@@ -1,35 +1,22 @@
 #!/usr/bin/python3
 
 """
-Just like the sym_tab module links symbols with their definition,
-type_tab links expressons wirh the corresponding TypeDecl.
-Alongt the way also fill in the missing symbol links we could
+Just like the sym_tab module cross links symbols with their definition,
+type_tab links expressions with the corresponding TypeDecls.
+Along the way it fills in the missing symbol links we could
 not resolve in sym_tab
 
-
-By far the biggest complication results from struct/union dereference
-which require both symbol and type links to be available.
+By far the biggest complication results from StructRef
+which require both symbol and type links.
 """
 
+from typing import Optional
 
-from pycparser import c_parser, c_ast, parse_file
 import sym_tab
+from pycparser import c_ast, parse_file
 
 
-class TypeTab:
-
-    def __init__(self):
-        self.links = {}
-
-    def link_expr(self, node, type):
-        # TODO: add missing classes as needed
-        assert isinstance(type,
-                          (str, list, c_ast.TypeDecl,
-                           c_ast.ArrayDecl, c_ast.PtrDecl)
-                          ), "unexpected type %s" % type
-        self.links[node] = type
-
-
+_ALLOWED_TYPE_LINKS = (str, list, c_ast.TypeDecl, c_ast.ArrayDecl, c_ast.PtrDecl)
 _EXPRESSION_CLASSES = (c_ast.ArrayRef,
                        c_ast.Assignment,
                        c_ast.BinaryOp,
@@ -43,12 +30,26 @@ _EXPRESSION_CLASSES = (c_ast.ArrayRef,
                        c_ast.TernaryOp,
                        c_ast.UnaryOp)
 
+class TypeTab:
+
+    def __init__(self):
+        self.links = {}
+
+    def link_expr(self, node, type):
+        assert isinstance(node, _EXPRESSION_CLASSES)
+        # TODO: add missing classes as needed
+        assert isinstance(type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
+        self.links[node] = type
+
+
+
+
 
 def IsExpression(node):
     return isinstance(node, _EXPRESSION_CLASSES)
 
 
-def GetTypeForID(decl):
+def GetTypeForDecl(decl: c_ast.Node):
     if isinstance(decl, c_ast.TypeDecl):
         return decl
     elif isinstance(decl, c_ast.PtrDecl):
@@ -63,7 +64,7 @@ def GetTypeForID(decl):
         assert False, decl
 
 
-def GetArgType(arg):
+def GetTypeForFunArg(arg: c_ast.Node):
     if isinstance(arg, c_ast.Decl):
         return arg.type
     elif isinstance(arg, c_ast.Typename):
@@ -151,7 +152,6 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_t
 
 
 def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
-
     if isinstance(node, c_ast.Constant):
         return node.type
     elif isinstance(node, c_ast.ID):
@@ -159,7 +159,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
             return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, type_tab)
         else:
             decl = sym_links[node].type
-            return GetTypeForID(decl)
+            return GetTypeForDecl(decl)
     elif isinstance(node, c_ast.BinaryOp):
         return GetBinopType(child_types[0], child_types[1])
     elif isinstance(node, c_ast.UnaryOp):
@@ -184,7 +184,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         if isinstance(parent, c_ast.FuncCall):
             args = sym_links[parent.name].type.args
             assert isinstance(args, c_ast.ParamList)
-            return [GetArgType(x) for x in args.params]
+            return [GetTypeForFunArg(x) for x in args.params]
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
@@ -198,7 +198,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         assert False, "unsupported expression node %s" % node
 
 
-def Typify(node: c_ast.Node, parent: c_ast.Node, type_tab, sym_links, fundef: c_ast.FuncDef):
+def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, fundef: Optional[c_ast.FuncDef]):
     """Determine the type of all expression  nodes and record it in type_tab"""
     if isinstance(node, c_ast.FuncDef):
         print("\nFUNCTION [%s]" % node.decl.name)
@@ -211,14 +211,24 @@ def Typify(node: c_ast.Node, parent: c_ast.Node, type_tab, sym_links, fundef: c_
 
     t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
 
-    print(node.__class__.__name__, TypePrettyPrint(t),
-           [TypePrettyPrint(x) for x in child_types])
+    print(node.__class__.__name__, TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
 
 
+def VerifyTypeLinks(node: c_ast.Node, type_links):
+    """This checks what the typing module is trying to accomplish"""
+    if IsExpression(node):
+        type = type_links.get(node)
+        assert type is not None
+        isinstance(type, _ALLOWED_TYPE_LINKS)
+    for c in node:
+        VerifyTypeLinks(c, type_links)
+
+
 if __name__ == "__main__":
     import sys
+
 
     def main(filename):
         ast = parse_file(filename, use_cpp=True)
@@ -228,9 +238,10 @@ if __name__ == "__main__":
         sym_links.update(stab.links)
         sym_links.update(su_tab.links)
 
-        # sym_tab.VerifySymtab(stab, ast)
         type_tab = TypeTab()
         Typify(ast, None, type_tab, sym_links, None)
+        VerifyTypeLinks(ast, type_tab.links)
+
 
     for filename in sys.argv[1:]:
         main(filename)

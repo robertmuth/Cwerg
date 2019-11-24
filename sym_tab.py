@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 
-
 """
 This module provides conceptual symbol table support for pycparser.
-Currently this mostly results in additional links within the AST that
-link IDs to their definition. So it is more like creating a symbols
-and then doing all the lookups and recording the results.
+Currently this mostly results in additional cross links in the AST that
+link IDs to their definition.
 
+Essentially we are creating a symbol table on the fly,
+performing all the lookups and recording the results.
+It is not clear yet if this fairly static approach works for all the corner
+cases of the C language.
 
-Concretely:
+The following cross links are created:
 
-c_ast.ID's asociated with variables are linked to the declaration of the variable
+c_ast.ID's associated with variables are linked to the declaration of the variable
 (c_ast.Decl)
 
 c_ast.ID's associated with field names of structs/unions are not linked
@@ -18,7 +20,7 @@ as we cannot resolve them until we have type information.
 
 """
 
-from pycparser import c_parser, c_ast, parse_file
+from pycparser import c_ast, parse_file
 
 
 def IsGlobalSym(decl, parent):
@@ -28,6 +30,10 @@ def IsGlobalSym(decl, parent):
 
 
 UNRESOLVED_STRUCT_UNION_MEMBER = "@UNRESOLVED@"
+
+_ALLOWED_SYMBOL_LINKS = (c_ast.Decl, c_ast.Struct, c_ast.Union, str)
+
+_STRUCT_OR_UNION = (c_ast.Struct, c_ast.Union)
 
 
 class SymTab:
@@ -62,8 +68,9 @@ class SymTab:
             return s
         assert False, "symbol not found: %s" % name
 
-    def add_link(self, id, decl):
-        assert isinstance(decl, (c_ast.Decl, c_ast.Struct, c_ast.Union, str))
+    def add_link(self, id: c_ast.ID, decl: c_ast.Node):
+        assert isinstance(id, (c_ast.ID, c_ast.Struct, c_ast.Union))
+        assert isinstance(decl, _ALLOWED_SYMBOL_LINKS)
         self.links[id] = decl
 
 
@@ -90,10 +97,10 @@ def _ProcessDecls(node, sym_tab, parent):
     if node.init:
         _PopulateSymTab(node.init, sym_tab, node)
     print("Var", node.name, node.storage,
-           node.quals, node.type.__class__.__name__)
+          node.quals, node.type.__class__.__name__)
     sym_tab.add_symbol(node, IsGlobalSym(node, parent))
 
-    if isinstance(node.type, c_ast.FuncDecl) and isinstance(parent,  c_ast.FuncDef):
+    if isinstance(node.type, c_ast.FuncDecl) and isinstance(parent, c_ast.FuncDef):
         # add params as local symbols
         params = node.type.args
         if params:
@@ -103,7 +110,7 @@ def _ProcessDecls(node, sym_tab, parent):
                 if isinstance(p, c_ast.Typename):
                     assert p.type.type.names[0] == "void"
                 else:
-                    assert isinstance(p,  c_ast.Decl)
+                    assert isinstance(p, c_ast.Decl)
                     sym_tab.add_symbol(p, False)
 
 
@@ -141,24 +148,22 @@ def ExtractSymTab(ast: c_ast.FileAST):
     return sym_tab
 
 
-def _VerifySymtab(links,  node):
-    if isinstance(node, c_ast.FuncDef):
-        # print("FUNCTION [%s]" % node.decl.name)
-        pass
+def VerifySymbolLinks(node: c_ast.Node, symbol_links):
     if isinstance(node, c_ast.ID):
-        decl = links[node]
+        decl = symbol_links[node]
+        assert isinstance(decl, _ALLOWED_SYMBOL_LINKS)
         # print ("ID", node.name, decl.type.__class__.__name__)
         return
 
     for c in node:
-        _VerifySymtab(links, c)
+        VerifySymbolLinks(c, symbol_links)
 
 
 def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
     if _IsNewScope(node):
         sym_tab.push_scope()
 
-    if isinstance(node, (c_ast.Struct, c_ast.Union)):
+    if isinstance(node, _STRUCT_OR_UNION):
         if node.decls:
             print("Struct", node.name, len(node.decls))
             sym_tab.add_symbol(node, top_level)
@@ -185,8 +190,21 @@ def ExtractStructUnionTab(ast: c_ast.FileAST):
     return sym_tab
 
 
+def VerifyStructLinks(node: c_ast.Node, struct_links):
+    if isinstance(node, _STRUCT_OR_UNION):
+        decl = struct_links[node]
+        assert decl.decls
+        assert isinstance(decl, _STRUCT_OR_UNION)
+        # print ("ID", node.name, decl.type.__class__.__name__)
+        return
+
+    for c in node:
+        VerifyStructLinks(c, struct_links)
+
+
 if __name__ == "__main__":
     import sys
+
 
     def process(fn):
         ast = parse_file(fn, use_cpp=True)
@@ -194,11 +212,13 @@ if __name__ == "__main__":
         print("GLOBALS SYMS")
         print(sym_tab.global_syms.keys())
         print("VERIFY SYMS")
-        _VerifySymtab(sym_tab.links, ast)
+        VerifySymbolLinks(ast, sym_tab.links)
 
         su_tab = ExtractStructUnionTab(ast)
         print("GLOBALS SU")
         print(su_tab.global_syms.keys())
+        print("VERIFY SU")
+        VerifyStructLinks(ast, su_tab.links)
 
     for fn in sys.argv[1:]:
         print("processing ", fn)
