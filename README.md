@@ -12,6 +12,8 @@ can be found below.
 
 ## Project Status
 
+* the supported part of the C language is whatever is in Tests/*c
+  (missing are typedef, union, ...)
 * basic symbol table in place
 * basic type annotations work
 
