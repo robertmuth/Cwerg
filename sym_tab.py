@@ -89,7 +89,7 @@ def _ProcessDecls(node, sym_tab, parent):
     assert node.name is not None
     if node.init:
         _PopulateSymTab(node.init, sym_tab, node)
-    print ("Var", node.name, node.storage,
+    print("Var", node.name, node.storage,
            node.quals, node.type.__class__.__name__)
     sym_tab.add_symbol(node, IsGlobalSym(node, parent))
 
@@ -99,7 +99,7 @@ def _ProcessDecls(node, sym_tab, parent):
         if params:
             assert isinstance(params, c_ast.ParamList)
             for p in params:
-                print ("Param", p.name, p.type.__class__.__name__)
+                print("Param", p.name, p.type.__class__.__name__)
                 if isinstance(p, c_ast.Typename):
                     assert p.type.type.names[0] == "void"
                 else:
@@ -123,7 +123,7 @@ def _PopulateSymTab(node, sym_tab, parent):
             sym_tab.add_link(node, UNRESOLVED_STRUCT_UNION_MEMBER)
         else:
             sym = sym_tab.find_symbol(node.name)
-            print ("LINK ID", id(node), id(sym), node.name)
+            print("LINK ID", id(node), id(sym), node.name)
 
             sym_tab.add_link(node, sym)
         return
@@ -154,26 +154,26 @@ def _VerifySymtab(links,  node):
         _VerifySymtab(links, c)
 
 
-def _PopulateStructUnionTab(node, sym_tab, parent, top_level):
+def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
     if _IsNewScope(node):
         sym_tab.push_scope()
 
     if isinstance(node, (c_ast.Struct, c_ast.Union)):
         if node.decls:
-            print ("Struct", node.name, len(node.decls))
+            print("Struct", node.name, len(node.decls))
             sym_tab.add_symbol(node, top_level)
             # avoid special casing later
             sym_tab.add_link(node, node)
         else:
             sym = sym_tab.find_symbol(node.name)
             assert sym
-            print ("LINK STRUCT ID", id(node), id(sym), node.name)
+            print("LINK STRUCT ID", id(node), id(sym), node.name)
             sym_tab.add_link(node, sym)
 
     if isinstance(node, c_ast.FuncDef):
         top_level = False
     for c in node:
-        _PopulateStructUnionTab(c, sym_tab, node, top_level)
+        _PopulateStructUnionTab(c, sym_tab, top_level)
 
     if _IsNewScope(node):
         sym_tab.pop_scope()
@@ -181,7 +181,7 @@ def _PopulateStructUnionTab(node, sym_tab, parent, top_level):
 
 def ExtractStructUnionTab(ast: c_ast.FileAST):
     sym_tab = SymTab()
-    _PopulateStructUnionTab(ast, sym_tab, None, True)
+    _PopulateStructUnionTab(ast, sym_tab, True)
     return sym_tab
 
 
@@ -191,14 +191,14 @@ if __name__ == "__main__":
     def process(fn):
         ast = parse_file(fn, use_cpp=True)
         sym_tab = ExtractSymTab(ast)
-        print ("GLOBALS SYMS")
-        print (sym_tab.global_syms.keys())
-        print ("VERIFY SYMS")
+        print("GLOBALS SYMS")
+        print(sym_tab.global_syms.keys())
+        print("VERIFY SYMS")
         _VerifySymtab(sym_tab.links, ast)
 
         su_tab = ExtractStructUnionTab(ast)
-        print ("GLOBALS SU")
-        print (su_tab.global_syms.keys())
+        print("GLOBALS SU")
+        print(su_tab.global_syms.keys())
 
     for fn in sys.argv[1:]:
         print("processing ", fn)

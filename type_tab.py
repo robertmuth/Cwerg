@@ -134,13 +134,13 @@ def _FindStructMember(struct, field):
     assert False, "cannot field %s in struct %s" % (field, struct)
 
 
-def _GetFieldRefTypeAndUpdateSymbolLink(node, parent, sym_links, type_tab):
-    assert isinstance(parent,  c_ast.StructRef)
+def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_tab):
+    assert isinstance(node, c_ast.StructRef)
     # Note: we assume here that the name side of the AST has already been processed
-    base = type_tab.links[parent.name]
-    field = parent.field
-    struct = _GetStructUnion(type_tab.links[parent.name], sym_links)
+    # base = type_tab.links[node.name]
     # print ("@@ STRUCT BASE @@", base)
+    field = node.field
+    struct = _GetStructUnion(type_tab.links[node.name], sym_links)
     # print ("@@ STRUCT FIELD @@", field)
     assert isinstance(field, c_ast.ID)
     assert sym_links[field] == sym_tab.UNRESOLVED_STRUCT_UNION_MEMBER
@@ -152,34 +152,34 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node, parent, sym_links, type_tab):
 
 def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
 
-    if isinstance(node, (c_ast.Constant)):
+    if isinstance(node, c_ast.Constant):
         return node.type
-    elif isinstance(node, (c_ast.ID)):
+    elif isinstance(node, c_ast.ID):
         if isinstance(parent, c_ast.StructRef) and parent.field == node:
-            return _GetFieldRefTypeAndUpdateSymbolLink(node, parent, sym_links, type_tab)
+            return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, type_tab)
         else:
             decl = sym_links[node].type
             return GetTypeForID(decl)
-    elif isinstance(node, (c_ast.BinaryOp)):
+    elif isinstance(node, c_ast.BinaryOp):
         return GetBinopType(child_types[0], child_types[1])
-    elif isinstance(node, (c_ast.UnaryOp)):
+    elif isinstance(node, c_ast.UnaryOp):
         if node.op == "sizeof":
             # really size_t
             return "unsigned"
         return child_types[0]
-    elif isinstance(node, (c_ast.FuncCall)):
+    elif isinstance(node, c_ast.FuncCall):
         return child_types[0]
-    elif isinstance(node, (c_ast.ArrayRef)):
+    elif isinstance(node, c_ast.ArrayRef):
         a = child_types[0]
         assert isinstance(a, (c_ast.ArrayDecl, c_ast.PtrDecl)
                           ), a.__class__.__name__
         # TODO: check that child_types[1] is integer
         return a.type
-    elif isinstance(node, (c_ast.Return)):
+    elif isinstance(node, c_ast.Return):
         return fundef.decl.type.type
-    elif isinstance(node, (c_ast.Assignment)):
+    elif isinstance(node, c_ast.Assignment):
         return child_types[0]
-    elif isinstance(node, (c_ast.ExprList)):
+    elif isinstance(node, c_ast.ExprList):
         # unfortunately ExprList have mutliple uses which we need to disambiguate
         if isinstance(parent, c_ast.FuncCall):
             args = sym_links[parent.name].type.args
@@ -198,7 +198,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         assert False, "unsupported expression node %s" % node
 
 
-def Typify(node, parent, type_tab, sym_links, fundef):
+def Typify(node: c_ast.Node, parent: c_ast.Node, type_tab, sym_links, fundef: c_ast.FuncDef):
     """Determine the type of all expression  nodes and record it in type_tab"""
     if isinstance(node, c_ast.FuncDef):
         print("\nFUNCTION [%s]" % node.decl.name)
@@ -211,7 +211,7 @@ def Typify(node, parent, type_tab, sym_links, fundef):
 
     t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
 
-    print (node.__class__.__name__, TypePrettyPrint(t),
+    print(node.__class__.__name__, TypePrettyPrint(t),
            [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
