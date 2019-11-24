@@ -10,6 +10,7 @@ By far the biggest complication results from StructRef
 which require both symbol and type links.
 """
 
+import logging
 from typing import Optional
 
 import sym_tab
@@ -139,7 +140,7 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_t
     assert isinstance(node, c_ast.StructRef)
     # Note: we assume here that the name side of the AST has already been processed
     # base = type_tab.links[node.name]
-    # print ("@@ STRUCT BASE @@", base)
+    # logging.info("@@ STRUCT BASE @@ %s", base)
     field = node.field
     struct = _GetStructUnion(type_tab.links[node.name], sym_links)
     # print ("@@ STRUCT FIELD @@", field)
@@ -201,7 +202,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
 def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, fundef: Optional[c_ast.FuncDef]):
     """Determine the type of all expression  nodes and record it in type_tab"""
     if isinstance(node, c_ast.FuncDef):
-        print("\nFUNCTION [%s]" % node.decl.name)
+        logging.info("\nFUNCTION [%s]", node.decl.name)
         fundef = node
 
     child_types = [Typify(c, node, type_tab, sym_links, fundef) for c in node]
@@ -211,7 +212,7 @@ def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, 
 
     t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
 
-    print(node.__class__.__name__, TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
+    logging.info("%s %s %s", node.__class__.__name__, TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
 
@@ -229,6 +230,7 @@ def VerifyTypeLinks(node: c_ast.Node, type_links):
 if __name__ == "__main__":
     import sys
 
+    logging.basicConfig(level=logging.DEBUG)
 
     def main(filename):
         ast = parse_file(filename, use_cpp=True)

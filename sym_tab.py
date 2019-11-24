@@ -20,6 +20,7 @@ as we cannot resolve them until we have type information.
 
 """
 
+import logging
 from pycparser import c_ast, parse_file
 
 
@@ -96,7 +97,7 @@ def _ProcessDecls(node, sym_tab, parent):
     assert node.name is not None
     if node.init:
         _PopulateSymTab(node.init, sym_tab, node)
-    print("Var", node.name, node.storage,
+    logging.info("Var %s %s %s %s", node.name, node.storage,
           node.quals, node.type.__class__.__name__)
     sym_tab.add_symbol(node, IsGlobalSym(node, parent))
 
@@ -106,7 +107,7 @@ def _ProcessDecls(node, sym_tab, parent):
         if params:
             assert isinstance(params, c_ast.ParamList)
             for p in params:
-                print("Param", p.name, p.type.__class__.__name__)
+                logging.info("Param %s %s", p.name, p.type.__class__.__name__)
                 if isinstance(p, c_ast.Typename):
                     assert p.type.type.names[0] == "void"
                 else:
@@ -119,7 +120,7 @@ def _PopulateSymTab(node, sym_tab, parent):
         sym_tab.push_scope()
 
     if isinstance(node, c_ast.FuncDef):
-        print("\nFUNCTION [%s]" % node.decl.name)
+        logging.info("\nFUNCTION [%s]" % node.decl.name)
 
     if isinstance(node, c_ast.Decl):
         _ProcessDecls(node, sym_tab, parent)
@@ -130,7 +131,7 @@ def _PopulateSymTab(node, sym_tab, parent):
             sym_tab.add_link(node, UNRESOLVED_STRUCT_UNION_MEMBER)
         else:
             sym = sym_tab.find_symbol(node.name)
-            print("LINK ID", id(node), id(sym), node.name)
+            logging.info("LINK ID %d %s [%s]", id(node), id(sym), node.name)
 
             sym_tab.add_link(node, sym)
         return
@@ -165,14 +166,14 @@ def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
 
     if isinstance(node, _STRUCT_OR_UNION):
         if node.decls:
-            print("Struct", node.name, len(node.decls))
+            logging.info("Struct %s #members %s", node.name, len(node.decls))
             sym_tab.add_symbol(node, top_level)
             # avoid special casing later
             sym_tab.add_link(node, node)
         else:
             sym = sym_tab.find_symbol(node.name)
             assert sym
-            print("LINK STRUCT ID", id(node), id(sym), node.name)
+            logging.info("LINK STRUCT ID %s %s %s", id(node), id(sym), node.name)
             sym_tab.add_link(node, sym)
 
     if isinstance(node, c_ast.FuncDef):
@@ -205,6 +206,7 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
 if __name__ == "__main__":
     import sys
 
+    logging.basicConfig(level=logging.DEBUG)
 
     def process(fn):
         ast = parse_file(fn, use_cpp=True)
