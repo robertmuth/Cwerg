@@ -16,8 +16,14 @@ from typing import Optional
 import sym_tab
 from pycparser import c_ast, parse_file
 
+_ALLOWED_TYPE_LINKS = (list,
+                       c_ast.TypeDecl,
+                       c_ast.ArrayDecl,
+                       c_ast.PtrDecl,
+                       c_ast.IdentifierType,
+                       c_ast.Struct,
+                       c_ast.Union)
 
-_ALLOWED_TYPE_LINKS = (str, list, c_ast.TypeDecl, c_ast.ArrayDecl, c_ast.PtrDecl)
 _EXPRESSION_CLASSES = (c_ast.ArrayRef,
                        c_ast.Assignment,
                        c_ast.BinaryOp,
@@ -31,19 +37,18 @@ _EXPRESSION_CLASSES = (c_ast.ArrayRef,
                        c_ast.TernaryOp,
                        c_ast.UnaryOp)
 
+
 class TypeTab:
+    """Classs for keeping track of types """
 
     def __init__(self):
         self.links = {}
 
     def link_expr(self, node, type):
-        assert isinstance(node, _EXPRESSION_CLASSES)
+        assert isinstance(node, _EXPRESSION_CLASSES), "unexpected type: [%s]" % type
         # TODO: add missing classes as needed
         assert isinstance(type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
         self.links[node] = type
-
-
-
 
 
 def IsExpression(node):
@@ -51,15 +56,17 @@ def IsExpression(node):
 
 
 def GetTypeForDecl(decl: c_ast.Node):
-    if isinstance(decl, c_ast.TypeDecl):
+    if isinstance(decl, c_ast.IdentifierType):
         return decl
-    elif isinstance(decl, c_ast.PtrDecl):
-        return decl
+    elif isinstance(decl, c_ast.TypeDecl):
+        # for simple decl extract the type
+        assert isinstance(decl.type, (c_ast.IdentifierType, c_ast.Struct, c_ast.Union))
+        return decl.type
     elif isinstance(decl, c_ast.FuncDecl):
-        decl = decl.type
-        assert isinstance(decl, (c_ast.TypeDecl, c_ast.PtrDecl))
-        return decl
-    elif isinstance(decl, c_ast.ArrayDecl):
+        # for function get the return type
+        return GetTypeForDecl(decl.type)
+    elif isinstance(decl, (c_ast.ArrayDecl, c_ast.PtrDecl)):
+        # for the rest do nothing
         return decl
     else:
         assert False, decl
@@ -76,23 +83,47 @@ def GetTypeForFunArg(arg: c_ast.Node):
         assert False, arg
 
 
+SIZE_T_IDENTIFIER_TYPE = c_ast.IdentifierType(["unsigned"])
+
+
+def IdentifierTypeToString(node: c_ast.IdentifierType):
+    return "-".join(node.names)
+
+
+def NodePrettyPrint(node):
+    if node is None:
+        return "none"
+    elif isinstance(node, c_ast.ID):
+        return "id[%s]" % node.name
+    elif isinstance(node, c_ast.BinaryOp):
+        return "op[%s]" % node.op
+    elif isinstance(node, c_ast.UnaryOp):
+        return "op[%s]" % node.op
+    else:
+        return node.__class__.__name__
+
+
 def TypePrettyPrint(decl):
-    if isinstance(decl, str):
+    if decl is None:
+        return "none"
+    elif isinstance(decl, str):
         return decl
     elif isinstance(decl, c_ast.TypeDecl):
-        if isinstance(decl.type, c_ast.Struct):
-            return "struct " + decl.type.name
-        elif isinstance(decl.type, c_ast.IdentifierType):
-            return "-".join(decl.type.names)
-        else:
-            assert False, decl.type
-
+        return TypePrettyPrint(decl.type)
     elif isinstance(decl, c_ast.EllipsisParam):
         return "..."
+    elif isinstance(decl, c_ast.IdentifierType):
+        return "-".join(decl.names)
     elif isinstance(decl, list):
         return [TypePrettyPrint(x) for x in decl]
+    elif isinstance(decl, c_ast.Struct):
+        return "struct " + decl.name
+    elif isinstance(decl, c_ast.ArrayDecl):
+        return "array-decl"
+    elif isinstance(decl, c_ast.PtrDecl):
+        return "ptr-decl"
     else:
-        return decl.__class__.__name__
+        assert False, "unexpected %s" % decl
 
 
 # This needs a lot more work and may be too simplistic
@@ -100,33 +131,31 @@ def TypePrettyPrint(decl):
 # (citation needed)
 _NUM_TYPE_ORDER = [
     "signed-char", "char", "unsigned-char",
-    "signed-short", "short", "unsigned-short",
+    "int-short", "signed-short", "short", "unsigned-short",
     "signed-int", "signed", "int", "unsigned-int", "unsigned",
     "long",
+    "long-long-int", "long-long",
     "float", "double"
 ]
 
 
-def GetBinopType(t1, t2):
-    if isinstance(t1, c_ast.TypeDecl):
-        t1 = t1.type.names[0]
-    if isinstance(t2, c_ast.TypeDecl):
-        t2 = t2.type.names[0]
-    if t1 == t2:
-        return t1
-    if t1 in _NUM_TYPE_ORDER and t2 in _NUM_TYPE_ORDER:
-        m = max(_NUM_TYPE_ORDER.index(t1), _NUM_TYPE_ORDER.index(t2))
-        return _NUM_TYPE_ORDER[m]
-    return "UNKWON"
+def GetBinopType(node, t1, t2):
+    # note: type of && || is always "int"
+    if isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType):
+        n1 = IdentifierTypeToString(t1)
+        n2 = IdentifierTypeToString(t2)
+        if n1 == n2:
+            return t1
 
+        if n1 in _NUM_TYPE_ORDER and n2 in _NUM_TYPE_ORDER:
+            i1 = _NUM_TYPE_ORDER.index(n1)
+            i2 = _NUM_TYPE_ORDER.index(n2)
+            return t2 if i1 < i2 else t1
+        assert False, "incomparable types: %s %s" % (n1, n2)
 
-def _GetStructUnion(decl, sym_links):
-    if isinstance(decl, c_ast.TypeDecl):
-        struct = decl.type
-        assert isinstance(struct, c_ast.Struct)
-        return sym_links[struct]
-    else:
-        assert False, decl
+    print("T1", t1)
+    print("T2", t2)
+    assert False, node
 
 
 def _FindStructMember(struct, field):
@@ -138,23 +167,29 @@ def _FindStructMember(struct, field):
 
 def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_tab):
     assert isinstance(node, c_ast.StructRef)
-    # Note: we assume here that the name side of the AST has already been processed
-    # base = type_tab.links[node.name]
-    # logging.info("@@ STRUCT BASE @@ %s", base)
+    # Note: we assume here that the node.name side of the AST has already been processed
+    struct = type_tab.links[node.name]
+    if isinstance(struct, c_ast.TypeDecl):
+        struct = struct.type
+    assert isinstance(struct, (c_ast.Struct, c_ast.Union)), struct
+    struct = sym_links[struct]
+
     field = node.field
-    struct = _GetStructUnion(type_tab.links[node.name], sym_links)
     # print ("@@ STRUCT FIELD @@", field)
     assert isinstance(field, c_ast.ID)
     assert sym_links[field] == sym_tab.UNRESOLVED_STRUCT_UNION_MEMBER
-    # print ("@@ STRUCT DECL @@", struct)
     member = _FindStructMember(struct, field)
+    logging.info("STRUCT_DEREF base %s (%s) field %s (%s)",
+                 NodePrettyPrint(node.name), TypePrettyPrint(struct),
+                 NodePrettyPrint(field), TypePrettyPrint(GetTypeForDecl(member.type)))
+
     sym_links[field] = member
-    return member.type
+    return GetTypeForDecl(member.type)
 
 
 def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
     if isinstance(node, c_ast.Constant):
-        return node.type
+        return c_ast.IdentifierType(node.type.split())
     elif isinstance(node, c_ast.ID):
         if isinstance(parent, c_ast.StructRef) and parent.field == node:
             return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, type_tab)
@@ -162,11 +197,11 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
             decl = sym_links[node].type
             return GetTypeForDecl(decl)
     elif isinstance(node, c_ast.BinaryOp):
-        return GetBinopType(child_types[0], child_types[1])
+        return GetBinopType(node, child_types[0], child_types[1])
     elif isinstance(node, c_ast.UnaryOp):
         if node.op == "sizeof":
             # really size_t
-            return "unsigned"
+            return SIZE_T_IDENTIFIER_TYPE
         return child_types[0]
     elif isinstance(node, c_ast.FuncCall):
         return child_types[0]
@@ -175,7 +210,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         assert isinstance(a, (c_ast.ArrayDecl, c_ast.PtrDecl)
                           ), a.__class__.__name__
         # TODO: check that child_types[1] is integer
-        return a.type
+        return GetTypeForDecl(a.type)
     elif isinstance(node, c_ast.Return):
         return fundef.decl.type.type
     elif isinstance(node, c_ast.Assignment):
@@ -189,12 +224,12 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
-        return GetBinopType(child_types[1], child_types[2])
+        return GetBinopType(node, child_types[1], child_types[2])
     elif isinstance(node, c_ast.StructRef):
         # This was computed by _GetFieldRefTypeAndUpdateSymbolLink
         return child_types[1]
     elif isinstance(node, c_ast.Cast):
-        return node.to_type.type
+        return GetTypeForDecl(node.to_type.type)
     else:
         assert False, "unsupported expression node %s" % node
 
@@ -206,13 +241,13 @@ def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, 
         fundef = node
 
     child_types = [Typify(c, node, type_tab, sym_links, fundef) for c in node]
-
+    # print("@@@@", [TypePrettyPrint(x) for x in child_types])
     if not IsExpression(node):
         return None
 
     t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
 
-    logging.info("%s %s %s", node.__class__.__name__, TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
+    logging.info("%s %s %s", NodePrettyPrint(node), TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
 
@@ -232,7 +267,8 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    def main(filename):
+
+    def process(filename):
         ast = parse_file(filename, use_cpp=True)
         stab = sym_tab.ExtractSymTab(ast)
         su_tab = sym_tab.ExtractStructUnionTab(ast)
@@ -246,4 +282,5 @@ if __name__ == "__main__":
 
 
     for filename in sys.argv[1:]:
-        main(filename)
+        print(filename)
+        process(filename)
