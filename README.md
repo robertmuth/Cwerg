@@ -13,9 +13,9 @@ can be found below.
 ## Project Status
 
 * the supported part of the C language is whatever is in Tests/*c
-  (missing are typedef, union, ...)
-* basic symbol table in place
-* basic type annotations work
+* no backend
+* basic symbol table 
+* basic type annotations 
 
 ## Survey of other open source c-compiler projects
 
@@ -82,6 +82,7 @@ Links
 
 * based on the original Portable C Compiler by S. C. Johnson 
 * much improved and actively maintained
+* easy to configure
 * multiple targets: x86 x86-64 mips mips64 68k power sparc pdp10 pdp11
 * clear separation between front and backend 
 
@@ -95,8 +96,8 @@ Links
 ### plan 9 cc
 
 * implemented in C 
-* not the easiest to configure
-* mulltiple target: x86, x86-64, sparc, power, power-64, mips, arm
+* had trouble configuring but did not spend a lot of time with it
+* multiple target: x86, x86-64, sparc, power, power-64, mips, arm
 
 
 Links
@@ -109,6 +110,7 @@ https://github.com/huangguiyang/plan9-cc (not official?)
 
 * implemented in Python
 * target: x86-64
+
 Links
 
 https://github.com/ShivamSarodia/ShivyC

@@ -40,6 +40,40 @@ def CanonicalizeIdentifierTypes(node: c_ast.Node):
         CanonicalizeIdentifierTypes(c)
 
 
+def CanonicalScalarType(node):
+    if not isinstance(node, c_ast.IdentifierType): return None
+    return type_tab.CanonicalizeIdentifierType(node.names)
+
+
+def MakeCast(canonical_scalar_type, node):
+    # print("ADD CAST")
+    it = c_ast.IdentifierType(list(canonical_scalar_type))
+    return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], it)), node)
+
+
+def AddExplicitCasts(node: c_ast.Node, ttab, parent: Optional[c_ast.Node]):
+    for c in node:
+        AddExplicitCasts(c, ttab, node)
+
+    if isinstance(node, c_ast.BinaryOp):
+        # Needs a ton of work
+        p = CanonicalScalarType(ttab[node])
+        if not p: return
+        l = CanonicalScalarType(ttab[node.left])
+        r = CanonicalScalarType(ttab[node.right])
+        if l != p:
+            node.left = MakeCast(p, node.left)
+        if r != p:
+            node.right = MakeCast(p, node.right)
+
+    if isinstance(node, c_ast.Assignment):
+        p = CanonicalScalarType(ttab[node])
+        if not p: return
+        r = CanonicalScalarType(ttab[node.rvalue])
+        if r != p:
+            node.rvalue = MakeCast(p, node.rvalue)
+
+
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
@@ -54,6 +88,7 @@ def main(argv):
 
     RemoveVoidParam(ast, None)
     CanonicalizeIdentifierTypes(ast)
+    AddExplicitCasts(ast, ttab.links, None)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 
