@@ -33,6 +33,13 @@ def RemoveVoidParam(node: c_ast.Node, parent: Optional[c_ast.Node]):
         RemoveVoidParam(c, node)
 
 
+def CanonicalizeIdentifierTypes(node: c_ast.Node):
+    if isinstance(node, c_ast.IdentifierType):
+        node.names = type_tab.CanonicalizeIdentifierType(node.names)
+    for c in node:
+        CanonicalizeIdentifierTypes(c)
+
+
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
@@ -46,6 +53,7 @@ def main(argv):
     type_tab.Typify(ast, None, ttab, sym_links, None)
 
     RemoveVoidParam(ast, None)
+    CanonicalizeIdentifierTypes(ast)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 
