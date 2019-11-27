@@ -4,7 +4,7 @@ This Project aims at building a re-targetable C compiler that is easy
 to understand and modify.
 
 It is currently developed in Python on top of Eli Bendersky 
-(pycparser)[https://github.com/eliben/pycparser] lexer/parser for C11.
+(pycparser)[https://github.com/eliben/pycparser] lexer/parser for C99.
 
 The project still has a along way to go. If you are looking for something more
 mature, you might save yourself some time by looking at the survey of other C-compilers which 
