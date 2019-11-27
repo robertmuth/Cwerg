@@ -4,7 +4,7 @@ int printf( const char *restrict format, ... );
 static int func(unsigned i) {
   int X = 4;
   switch (i) {
-  case 8: printf("C\n"); /* fall through. */  X = 6;
+  case 8: printf("C\n"); X = 6;
   case 0:
   case 3: 
   case 2: printf("A\n"); break;
