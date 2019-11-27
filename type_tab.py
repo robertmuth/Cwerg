@@ -11,10 +11,11 @@ which require both symbol and type links.
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional
+
+from pycparser import c_ast, parse_file
 
 import sym_tab
-from pycparser import c_ast, parse_file
 
 _ALLOWED_TYPE_LINKS = (list,
                        c_ast.TypeDecl,
@@ -84,6 +85,8 @@ def GetTypeForFunArg(arg: c_ast.Node):
 
 
 SIZE_T_IDENTIFIER_TYPE = c_ast.IdentifierType(["int", "unsigned"])
+
+INT_IDENTIFIER_TYPE = c_ast.IdentifierType(["int"])
 
 
 def NodePrettyPrint(node):
@@ -165,23 +168,100 @@ def CanonicalizeIdentifierType(names):
     return tuple(n)
 
 
+def MaxType(node, t1, t2):
+    if isinstance(t1, c_ast.PtrDecl) and isinstance(t2, c_ast.PtrDecl):
+        # maybe do some more checks
+        return t1
+
+    assert isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType)
+    n1 = CanonicalizeIdentifierType(t1.names)
+    n2 = CanonicalizeIdentifierType(t2.names)
+    if n1 == n2: return t1
+
+    if n1 in _NUM_TYPE_ORDER and n2 in _NUM_TYPE_ORDER:
+        i1 = _NUM_TYPE_ORDER.index(n1)
+        i2 = _NUM_TYPE_ORDER.index(n2)
+        return t2 if i1 < i2 else t1
+    assert False, "incomparable types: %s %s  %s" % (n1, n2, node)
+
+
+SAME_TYPE_BINARY_OPS = {
+    "+",
+    "-",
+    "^",
+    "*",
+    "/",
+    "|",
+    "&",
+    "%",
+    "<<",
+    ">>",
+}
+
+# Note: this would be bool in C++
+INT_TYPE_BINARY_OPS = {
+    "==",
+    "!=",
+    "<=",
+    "<",
+    ">=",
+    ">",
+    "&&",
+    "||",
+}
+
+
 def GetBinopType(node, t1, t2):
-    # note: type of && || is always "int"
-    if isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType):
-        n1 = CanonicalizeIdentifierType(t1.names)
-        n2 = CanonicalizeIdentifierType(t2.names)
-        if n1 == n2:
-            return t1
+    if node.op in INT_TYPE_BINARY_OPS:
+        return INT_IDENTIFIER_TYPE
 
-        if n1 in _NUM_TYPE_ORDER and n2 in _NUM_TYPE_ORDER:
-            i1 = _NUM_TYPE_ORDER.index(n1)
-            i2 = _NUM_TYPE_ORDER.index(n2)
-            return t2 if i1 < i2 else t1
-        assert False, "incomparable types: %s %s" % (n1, n2)
+    if node.op not in SAME_TYPE_BINARY_OPS:
+        assert False, node
 
-    print("T1", t1)
-    print("T2", t2)
-    assert False, node
+    return MaxType(node, t1, t2)
+
+
+SAME_TYPE_UNARY_OPS = {
+    "++",
+    "--",
+    "p--",
+    "p++",
+    "-",
+    "~",
+}
+
+INT_TYPE_UNARY_OPS = {
+    "!",
+}
+
+
+def MakePtrType(t):
+    # add missing ones as needed
+    if isinstance(t, c_ast.IdentifierType):
+        return c_ast.PtrDecl([], c_ast.TypeDecl(None, [], t))
+    elif isinstance(t, c_ast.PtrDecl):
+        return c_ast.PtrDecl([], t)
+    else:
+        assert False, t
+
+
+def GetUnaryType(node, t):
+    if node.op == "sizeof":
+        # really size_t
+        return SIZE_T_IDENTIFIER_TYPE
+    elif node.op in INT_TYPE_UNARY_OPS:
+        return INT_IDENTIFIER_TYPE
+    elif node.op == "&":
+        return MakePtrType(t)
+    elif node.op == "*":
+        assert isinstance(t, c_ast.PtrDecl)
+        return GetTypeForDecl(t.type)
+    elif node.op in SAME_TYPE_UNARY_OPS:
+        return t
+    else:
+        assert False, node
+
+    return t
 
 
 def _FindStructMember(struct, field):
@@ -225,10 +305,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
     elif isinstance(node, c_ast.BinaryOp):
         return GetBinopType(node, child_types[0], child_types[1])
     elif isinstance(node, c_ast.UnaryOp):
-        if node.op == "sizeof":
-            # really size_t
-            return SIZE_T_IDENTIFIER_TYPE
-        return child_types[0]
+        return GetUnaryType(node, child_types[0])
     elif isinstance(node, c_ast.FuncCall):
         return child_types[0]
     elif isinstance(node, c_ast.ArrayRef):
@@ -250,7 +327,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
-        return GetBinopType(node, child_types[1], child_types[2])
+        return MaxType(node, child_types[1], child_types[2])
     elif isinstance(node, c_ast.StructRef):
         # This was computed by _GetFieldRefTypeAndUpdateSymbolLink
         return child_types[1]
@@ -308,5 +385,7 @@ if __name__ == "__main__":
 
 
     for filename in sys.argv[1:]:
+        print("=" * 60)
         print(filename)
+        print("=" * 60)
         process(filename)

@@ -95,7 +95,7 @@ def GetStatementList(node: c_ast.Node):
     elif isinstance(node, c_ast.Compound):
         return node.block_items
     else:
-        #return None
+        # return None
         assert False, node
 
 
@@ -121,7 +121,9 @@ def DoPrintfSplitter(call, parent):
     if len(fmt_pieces) == 1: return
 
     stmts = GetStatementList(parent)
-    if not stmts: return
+    if not stmts:
+        assert False, parent
+        return
 
     calls = []
     args = args[1:]  # skip the format string
@@ -131,11 +133,29 @@ def DoPrintfSplitter(call, parent):
             arg = args.pop(0)
         calls.append(MakePrintfCall(f, arg))
     pos = stmts.index(call)
-    stmts[pos:pos+1] = calls
+    stmts[pos:pos + 1] = calls
 
 
 def PrintfSplitter(ast: c_ast.Node):
     candidates = FindMatchingNodes(ast, ast, IsSuitablePrintf)
+
+    for call, parent in candidates:
+        DoPrintfSplitter(call, parent)
+
+
+PRE_POST_INC_DEC_OPS = {
+    "++",
+    "--",
+    "p--",
+    "p++",
+}
+
+def IsPrePostIncDec(node):
+    return isinstance(node, c_ast.UnaryOp) and node.op in PRE_POST_INC_DEC_OPS
+
+
+def PrePostIncDec(ast: c_ast.Node):
+    candidates = FindMatchingNodes(ast, ast, IsPrePostIncDec)
 
     for call, parent in candidates:
         DoPrintfSplitter(call, parent)
