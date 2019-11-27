@@ -113,7 +113,9 @@ def TypePrettyPrint(decl):
     elif isinstance(decl, list):
         return [TypePrettyPrint(x) for x in decl]
     elif isinstance(decl, c_ast.Struct):
-        return "struct " + decl.name
+        return "struct %s" % decl.name
+    elif isinstance(decl, c_ast.Union):
+        return "union %s" % decl.name
     elif isinstance(decl, c_ast.ArrayDecl):
         return "array-decl"
     elif isinstance(decl, c_ast.PtrDecl):
