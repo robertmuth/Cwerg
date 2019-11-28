@@ -15,8 +15,7 @@ from pycparser import c_ast, parse_file, c_generator
 
 import common
 import printf_transform
-import sym_tab
-import type_tab
+import meta
 
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
@@ -172,7 +171,7 @@ def PrintfSplitter(ast: c_ast.Node):
 # ================================================================================
 def IsSuitablePostIncDec(node, parent):
     if not isinstance(node, c_ast.UnaryOp): return False
-    if not node.op in common.POST_INC_DEC_OPS: return False
+    if node.op not in common.POST_INC_DEC_OPS: return False
     if isinstance(parent, (c_ast.Compound, c_ast.Case, c_ast.Default)): return True
     if isinstance(parent, c_ast.If) and node != parent.cond: return True
     if isinstance(parent, c_ast.For) and node != parent.cond: return True
@@ -236,14 +235,7 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node):
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
-    stab = sym_tab.ExtractSymTab(ast)
-    su_tab = sym_tab.ExtractStructUnionTab(ast)
-    sym_links = {}
-    sym_links.update(stab.links)
-    sym_links.update(su_tab.links)
-
-    ttab = type_tab.TypeTab()
-    type_tab.Typify(ast, None, ttab, sym_links, None)
+    meta_info = meta.MetaInfo(ast)
 
     ConvertPostToPreIncDec(ast)
     RemoveVoidParam(ast)
