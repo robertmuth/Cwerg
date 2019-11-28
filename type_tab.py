@@ -15,6 +15,7 @@ from typing import Optional
 
 from pycparser import c_ast, parse_file
 
+import common
 import sym_tab
 
 _ALLOWED_TYPE_LINKS = (list,
@@ -25,35 +26,18 @@ _ALLOWED_TYPE_LINKS = (list,
                        c_ast.Struct,
                        c_ast.Union)
 
-_EXPRESSION_CLASSES = (c_ast.ArrayRef,
-                       c_ast.Assignment,
-                       c_ast.BinaryOp,
-                       c_ast.Cast,
-                       c_ast.Constant,
-                       c_ast.ExprList,
-                       c_ast.FuncCall,
-                       c_ast.ID,
-                       c_ast.Return,
-                       c_ast.StructRef,
-                       c_ast.TernaryOp,
-                       c_ast.UnaryOp)
-
 
 class TypeTab:
-    """Classs for keeping track of types """
+    """class for keeping track of per node type info """
 
     def __init__(self):
         self.links = {}
 
     def link_expr(self, node, type):
-        assert isinstance(node, _EXPRESSION_CLASSES), "unexpected type: [%s]" % type
+        assert isinstance(node, common.EXPRESSION_NODES), "unexpected type: [%s]" % type
         # TODO: add missing classes as needed
         assert isinstance(type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
         self.links[node] = type
-
-
-def IsExpression(node):
-    return isinstance(node, _EXPRESSION_CLASSES)
 
 
 def GetTypeForDecl(decl: c_ast.Node):
@@ -89,19 +73,6 @@ SIZE_T_IDENTIFIER_TYPE = c_ast.IdentifierType(["int", "unsigned"])
 INT_IDENTIFIER_TYPE = c_ast.IdentifierType(["int"])
 
 
-def NodePrettyPrint(node):
-    if node is None:
-        return "none"
-    elif isinstance(node, c_ast.ID):
-        return "id[%s]" % node.name
-    elif isinstance(node, c_ast.BinaryOp):
-        return "op[%s]" % node.op
-    elif isinstance(node, c_ast.UnaryOp):
-        return "op[%s]" % node.op
-    else:
-        return node.__class__.__name__
-
-
 def TypePrettyPrint(decl):
     if decl is None:
         return "none"
@@ -127,112 +98,14 @@ def TypePrettyPrint(decl):
         assert False, "unexpected %s" % decl
 
 
-# Note that the standard dictates: signed x unsigned -> unsigned
-# (citation needed)
-_NUM_TYPE_ORDER = [
-    ("char",),
-    ("char", "unsigned",),
-    ("short",),
-    ("short", "unsigned",),
-    ("int",),
-    ("int", "unsigned",),
-    ("long",),
-    ("long", "unsigned",),
-    ("long", "long",),
-    ("long", "long", "unsigned",),
-    ("float", "double"),
-]
-
-_CANONICAL_IDENTIFIER_TYPE_MAP = {
-    ("char", "signed"): ("char",),
-    ("short", "signed"): ("short",),
-    ("int", "signed"): ("int",),
-    ("long", "signed"): ("long",),
-    ("int", "short"): ("short",),
-    ("int", "long"): ("long",),
-    ("signed",): ("int",),
-    ("unsigned",): ("int", "unsigned"),
-}
-
-
-def CanonicalizeIdentifierType(names):
-    """Return a sorted and simplified string tuple"""
-    n = sorted(names)
-    if len(names) <= 2:
-        x = _CANONICAL_IDENTIFIER_TYPE_MAP.get(tuple(n))
-        return x if x else tuple(n)
-    if "int" in n:
-        n.remove("int")
-    if "signed" in n:
-        n.remove("signed")
-    return tuple(n)
-
-
-def MaxType(node, t1, t2):
-    if isinstance(t1, c_ast.PtrDecl) and isinstance(t2, c_ast.PtrDecl):
-        # maybe do some more checks
-        return t1
-
-    assert isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType)
-    n1 = CanonicalizeIdentifierType(t1.names)
-    n2 = CanonicalizeIdentifierType(t2.names)
-    if n1 == n2: return t1
-
-    if n1 in _NUM_TYPE_ORDER and n2 in _NUM_TYPE_ORDER:
-        i1 = _NUM_TYPE_ORDER.index(n1)
-        i2 = _NUM_TYPE_ORDER.index(n2)
-        return t2 if i1 < i2 else t1
-    assert False, "incomparable types: %s %s  %s" % (n1, n2, node)
-
-
-SAME_TYPE_BINARY_OPS = {
-    "+",
-    "-",
-    "^",
-    "*",
-    "/",
-    "|",
-    "&",
-    "%",
-    "<<",
-    ">>",
-}
-
-# Note: this would be bool in C++
-INT_TYPE_BINARY_OPS = {
-    "==",
-    "!=",
-    "<=",
-    "<",
-    ">=",
-    ">",
-    "&&",
-    "||",
-}
-
-
 def GetBinopType(node, t1, t2):
-    if node.op in INT_TYPE_BINARY_OPS:
+    if node.op in common.BOOL_INT_TYPE_BINARY_OPS:
         return INT_IDENTIFIER_TYPE
 
-    if node.op not in SAME_TYPE_BINARY_OPS:
+    if node.op not in common.SAME_TYPE_BINARY_OPS:
         assert False, node
 
-    return MaxType(node, t1, t2)
-
-
-SAME_TYPE_UNARY_OPS = {
-    "++",
-    "--",
-    "p--",
-    "p++",
-    "-",
-    "~",
-}
-
-INT_TYPE_UNARY_OPS = {
-    "!",
-}
+    return common.MaxType(node, t1, t2)
 
 
 def MakePtrType(t):
@@ -249,14 +122,14 @@ def GetUnaryType(node, t):
     if node.op == "sizeof":
         # really size_t
         return SIZE_T_IDENTIFIER_TYPE
-    elif node.op in INT_TYPE_UNARY_OPS:
+    elif node.op in common.BOOL_INT_TYPE_UNARY_OPS:
         return INT_IDENTIFIER_TYPE
     elif node.op == "&":
         return MakePtrType(t)
     elif node.op == "*":
         assert isinstance(t, c_ast.PtrDecl)
         return GetTypeForDecl(t.type)
-    elif node.op in SAME_TYPE_UNARY_OPS:
+    elif node.op in common.SAME_TYPE_UNARY_OPS:
         return t
     else:
         assert False, node
@@ -286,8 +159,8 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_t
     assert sym_links[field] == sym_tab.UNRESOLVED_STRUCT_UNION_MEMBER
     member = _FindStructMember(struct, field)
     logging.info("STRUCT_DEREF base %s (%s) field %s (%s)",
-                 NodePrettyPrint(node.name), TypePrettyPrint(struct),
-                 NodePrettyPrint(field), TypePrettyPrint(GetTypeForDecl(member.type)))
+                 common.NodePrettyPrint(node.name), TypePrettyPrint(struct),
+                 common.NodePrettyPrint(field), TypePrettyPrint(GetTypeForDecl(member.type)))
 
     sym_links[field] = member
     return GetTypeForDecl(member.type)
@@ -327,7 +200,7 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
-        return MaxType(node, child_types[1], child_types[2])
+        return common.MaxType(node, child_types[1], child_types[2])
     elif isinstance(node, c_ast.StructRef):
         # This was computed by _GetFieldRefTypeAndUpdateSymbolLink
         return child_types[1]
@@ -345,19 +218,19 @@ def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, 
 
     child_types = [Typify(c, node, type_tab, sym_links, fundef) for c in node]
     # print("@@@@", [TypePrettyPrint(x) for x in child_types])
-    if not IsExpression(node):
+    if not isinstance(node, common.EXPRESSION_NODES):
         return None
 
     t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
 
-    logging.info("%s %s %s", NodePrettyPrint(node), TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
+    logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
 
 
 def VerifyTypeLinks(node: c_ast.Node, type_links):
     """This checks what the typing module is trying to accomplish"""
-    if IsExpression(node):
+    if isinstance(node, common.EXPRESSION_NODES):
         type = type_links.get(node)
         assert type is not None
         isinstance(type, _ALLOWED_TYPE_LINKS)
