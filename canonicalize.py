@@ -238,6 +238,7 @@ def main(argv):
     meta_info = meta.MetaInfo(ast)
 
     ConvertPostToPreIncDec(ast)
+    meta_info.CheckConsistency(ast)
     RemoveVoidParam(ast)
     CanonicalizeIdentifierTypes(ast)
     # AddExplicitCasts(ast, ttab.links, ast)

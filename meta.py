@@ -33,7 +33,6 @@ from typing import Optional
 from pycparser import c_ast, parse_file
 
 import common
-import sym_tab
 
 
 __all__ = ["MetaInfo"]
@@ -354,7 +353,7 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct
     field = node.field
     # print ("@@ STRUCT FIELD @@", field)
     assert isinstance(field, c_ast.ID)
-    assert sym_links[field] == sym_tab.UNRESOLVED_STRUCT_UNION_MEMBER
+    assert sym_links[field] == UNRESOLVED_STRUCT_UNION_MEMBER
     member = _FindStructMember(struct, field)
     logging.info("STRUCT_DEREF base %s (%s) field %s (%s)",
                  common.NodePrettyPrint(node.name), TypePrettyPrint(struct),
@@ -454,6 +453,7 @@ class MetaInfo:
         type_tab = TypeTab()
         Typify(ast, None, type_tab, stab.links, su_tab.links, None)
         VerifyTypeLinks(ast, type_tab.links)
+        VerifySymbolLinks(ast, stab.links, strict=True)
 
         self.sym_links = stab.links
         self.struct_links = su_tab.links
@@ -468,7 +468,7 @@ class MetaInfo:
     def CheckConsistency(self, ast: c_ast.Node):
         VerifySymbolLinks(ast, self.sym_links)
         VerifyStructLinks(ast, self.struct_links)
-        VerifyTypeLinks(ast, self.type_inks)
+        VerifyTypeLinks(ast, self.type_links)
 
 
 if __name__ == "__main__":
