@@ -137,7 +137,7 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node]):
     return c_ast.FuncCall(c_ast.ID("printf"), c_ast.ExprList(args))
 
 
-def DoPrintfSplitter(call, parent):
+def DoPrintfSplitter(call, parent, meta):
     args = call.args.exprs
     fmt_pieces = printf_transform.TokenizeFormatString(args[0].value[1:-1])
     if not fmt_pieces: return
@@ -154,16 +154,22 @@ def DoPrintfSplitter(call, parent):
         arg = None
         if f[0] == '%' and len(f) > 1:
             arg = args.pop(0)
-        calls.append(MakePrintfCall(f, arg))
+        c = MakePrintfCall(f, arg)
+        meta.type_links[c] = meta.type_links[call]
+        meta.type_links[c.args] = meta.type_links[call.args]
+        meta.type_links[c.args.exprs[0]] = meta.type_links[call.args.exprs[0]]
+        meta.type_links[c.name] = meta.type_links[call.name]
+        meta.sym_links[c.name] = meta.sym_links[call.name]
+        calls.append(c)
     pos = stmts.index(call)
     stmts[pos:pos + 1] = calls
 
 
-def PrintfSplitter(ast: c_ast.Node):
+def PrintfSplitter(ast: c_ast.Node, meta: meta.MetaInfo):
     candidates = FindMatchingNodesPostOrder(ast, ast, IsSuitablePrintf)
 
     for call, parent in candidates:
-        DoPrintfSplitter(call, parent)
+        DoPrintfSplitter(call, parent, meta)
 
 
 # ================================================================================
@@ -238,12 +244,14 @@ def main(argv):
     meta_info = meta.MetaInfo(ast)
 
     ConvertPostToPreIncDec(ast)
-    meta_info.CheckConsistency(ast)
     RemoveVoidParam(ast)
     CanonicalizeIdentifierTypes(ast)
-    # AddExplicitCasts(ast, ttab.links, ast)
-    CanonicalizeIdentifierTypes(ast)
-    PrintfSplitter(ast)
+    meta_info.CheckConsistency(ast)
+
+    PrintfSplitter(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
+# AddExplicitCasts(ast, ttab.links, ast)
     FixNodeRequiringBoolInt(ast)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))

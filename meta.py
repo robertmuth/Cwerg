@@ -215,7 +215,7 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
         return
 
 
-_ALLOWED_TYPE_LINKS = (list,
+_ALLOWED_TYPE_LINKS = (c_ast.ParamList,   # for ExpressionList which are function arguments
                        c_ast.TypeDecl,
                        c_ast.ArrayDecl,
                        c_ast.PtrDecl,
@@ -281,8 +281,8 @@ def TypePrettyPrint(decl):
         return "..."
     elif isinstance(decl, c_ast.IdentifierType):
         return "-".join(decl.names)
-    elif isinstance(decl, list):
-        return [TypePrettyPrint(x) for x in decl]
+    elif isinstance(decl, c_ast.ParamList):
+        return [TypePrettyPrint(x.type if isinstance(x, (c_ast.Decl, c_ast.Typename)) else x) for x in decl.params]
     elif isinstance(decl, c_ast.Struct):
         return "struct %s" % decl.name
     elif isinstance(decl, c_ast.Union):
@@ -389,11 +389,11 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
     elif isinstance(node, c_ast.Assignment):
         return child_types[0]
     elif isinstance(node, c_ast.ExprList):
-        # unfortunately ExprList have mutliple uses which we need to disambiguate
+        # unfortunately ExprList have multiple uses which we need to disambiguate
         if isinstance(parent, c_ast.FuncCall):
             args = sym_links[parent.name].type.args
             assert isinstance(args, c_ast.ParamList)
-            return [GetTypeForFunArg(x) for x in args.params]
+            return args
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
@@ -431,7 +431,7 @@ def VerifyTypeLinks(node: c_ast.Node, type_links):
     """This checks what the typing module is trying to accomplish"""
     if isinstance(node, common.EXPRESSION_NODES):
         type = type_links.get(node)
-        assert type is not None
+        assert type is not None, node
         isinstance(type, _ALLOWED_TYPE_LINKS)
     for c in node:
         VerifyTypeLinks(c, type_links)
