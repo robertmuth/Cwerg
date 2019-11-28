@@ -27,13 +27,16 @@ By far the biggest complication results from StructRef
 which require both symbol and type links.
 """
 
-import common
+import logging
 from typing import Optional
 
-import sym_tab
-import logging
 from pycparser import c_ast, parse_file
 
+import common
+import sym_tab
+
+
+__all__ = ["MetaInfo"]
 
 def IsGlobalSym(decl, parent):
     return (isinstance(parent, c_ast.FuncDef) or
@@ -43,7 +46,7 @@ def IsGlobalSym(decl, parent):
 
 UNRESOLVED_STRUCT_UNION_MEMBER = "@UNRESOLVED@"
 
-_ALLOWED_SYMBOL_LINKS = (c_ast.Decl, c_ast.Struct, c_ast.Union, str)
+_ALLOWED_SYMBOL_LINKS = (c_ast.Decl, c_ast.Struct, c_ast.Union)
 
 _STRUCT_OR_UNION = (c_ast.Struct, c_ast.Union)
 
@@ -82,7 +85,7 @@ class SymTab:
 
     def add_link(self, id: c_ast.ID, decl: c_ast.Node):
         assert isinstance(id, (c_ast.ID, c_ast.Struct, c_ast.Union))
-        assert isinstance(decl, _ALLOWED_SYMBOL_LINKS)
+        assert decl is UNRESOLVED_STRUCT_UNION_MEMBER or isinstance(decl, _ALLOWED_SYMBOL_LINKS)
         self.links[id] = decl
 
 
@@ -109,7 +112,7 @@ def _ProcessDecls(node, sym_tab, parent):
     if node.init:
         _PopulateSymTab(node.init, sym_tab, node)
     logging.info("Var %s %s %s %s", node.name, node.storage,
-          node.quals, node.type.__class__.__name__)
+                 node.quals, node.type.__class__.__name__)
     sym_tab.add_symbol(node, IsGlobalSym(node, parent))
 
     if isinstance(node.type, c_ast.FuncDecl) and isinstance(parent, c_ast.FuncDef):
@@ -160,15 +163,17 @@ def ExtractSymTab(ast: c_ast.FileAST):
     return sym_tab
 
 
-def VerifySymbolLinks(node: c_ast.Node, symbol_links):
+def VerifySymbolLinks(node: c_ast.Node, symbol_links, strict=True):
     if isinstance(node, c_ast.ID):
         decl = symbol_links[node]
-        assert isinstance(decl, _ALLOWED_SYMBOL_LINKS)
+        if not strict and decl is UNRESOLVED_STRUCT_UNION_MEMBER:
+            return
+        assert isinstance(decl, _ALLOWED_SYMBOL_LINKS), decl
         # print ("ID", node.name, decl.type.__class__.__name__)
         return
 
     for c in node:
-        VerifySymbolLinks(c, symbol_links)
+        VerifySymbolLinks(c, symbol_links, strict)
 
 
 def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
@@ -209,6 +214,7 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
         assert isinstance(decl, _STRUCT_OR_UNION)
         # print ("ID", node.name, decl.type.__class__.__name__)
         return
+
 
 _ALLOWED_TYPE_LINKS = (list,
                        c_ast.TypeDecl,
@@ -336,14 +342,14 @@ def _FindStructMember(struct, field):
     assert False, "cannot field %s in struct %s" % (field, struct)
 
 
-def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_tab):
+def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct_links, type_tab):
     assert isinstance(node, c_ast.StructRef)
     # Note: we assume here that the node.name side of the AST has already been processed
     struct = type_tab.links[node.name]
     if isinstance(struct, c_ast.TypeDecl):
         struct = struct.type
     assert isinstance(struct, (c_ast.Struct, c_ast.Union)), struct
-    struct = sym_links[struct]
+    struct = struct_links[struct]
 
     field = node.field
     # print ("@@ STRUCT FIELD @@", field)
@@ -358,12 +364,12 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, type_t
     return GetTypeForDecl(member.type)
 
 
-def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
+def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef):
     if isinstance(node, c_ast.Constant):
         return c_ast.IdentifierType(node.type.split())
     elif isinstance(node, c_ast.ID):
         if isinstance(parent, c_ast.StructRef) and parent.field == node:
-            return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, type_tab)
+            return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, struct_links, type_tab)
         else:
             decl = sym_links[node].type
             return GetTypeForDecl(decl)
@@ -402,20 +408,22 @@ def TypeForNode(node, parent, sym_links, type_tab, child_types, fundef):
         assert False, "unsupported expression node %s" % node
 
 
-def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, fundef: Optional[c_ast.FuncDef]):
+def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, struct_links,
+           fundef: Optional[c_ast.FuncDef]):
     """Determine the type of all expression  nodes and record it in type_tab"""
     if isinstance(node, c_ast.FuncDef):
         logging.info("\nFUNCTION [%s]", node.decl.name)
         fundef = node
 
-    child_types = [Typify(c, node, type_tab, sym_links, fundef) for c in node]
+    child_types = [Typify(c, node, type_tab, sym_links, struct_links, fundef) for c in node]
     # print("@@@@", [TypePrettyPrint(x) for x in child_types])
     if not isinstance(node, common.EXPRESSION_NODES):
         return None
 
-    t = TypeForNode(node, parent, sym_links, type_tab, child_types, fundef)
+    t = TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef)
 
-    logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t), [TypePrettyPrint(x) for x in child_types])
+    logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t),
+                 [TypePrettyPrint(x) for x in child_types])
     type_tab.link_expr(node, t)
     return t
 
@@ -439,26 +447,28 @@ class MetaInfo:
 
     def __init__(self, ast: c_ast.FileAST):
         stab = ExtractSymTab(ast)
-        VerifySymbolLinks(ast, stab.links)
+        VerifySymbolLinks(ast, stab.links, strict=False)
         su_tab = ExtractStructUnionTab(ast)
         VerifyStructLinks(ast, su_tab.links)
 
-        self.sym_links = {}
-        self.sym_links.update(stab.links)
-        self.sym_links.update(su_tab.links)
-
         type_tab = TypeTab()
-        Typify(ast, None, type_tab, self.sym_links, None)
+        Typify(ast, None, type_tab, stab.links, su_tab.links, None)
         VerifyTypeLinks(ast, type_tab.links)
-        self.type_tab = type_tab.links
+
+        self.sym_links = stab.links
+        self.struct_links = su_tab.links
+        self.type_links = type_tab.links
 
     def GetDecl(self, sym: c_ast.Node):
         return self.sym_links[sym]
 
     def GetType(self, expr: c_ast.Node):
-        return self.type_tab[expr]
+        return self.type_links[expr]
 
-#    def CheckConsistency(self, ast: c_ast.Node):
+    def CheckConsistency(self, ast: c_ast.Node):
+        VerifySymbolLinks(ast, self.sym_links)
+        VerifyStructLinks(ast, self.struct_links)
+        VerifyTypeLinks(ast, self.type_inks)
 
 
 if __name__ == "__main__":
