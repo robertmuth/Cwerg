@@ -1,9 +1,7 @@
 TESTS = Tests/*c
 
-tests: sym_tests type_tests
-	#./sym_tab.py $(TESTS)
-	#./type_tab.py $(TESTS)
-	echo "OK"
+tests: 
+	./test_harness.py $(TESTS)
 
 sym_tests:
 	./sym_tab.py $(TESTS)

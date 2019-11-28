@@ -13,11 +13,14 @@ EXPRESSION_NODES = (c_ast.ArrayRef,
                     c_ast.TernaryOp,
                     c_ast.UnaryOp)
 
-PRE_POST_INC_DEC_OPS = {
-    "++",
-    "--",
+POST_INC_DEC_OPS = {
     "p--",
     "p++",
+}
+
+PRE_INC_DEC_OPS = {
+    "++",
+    "--",
 }
 
 SAME_TYPE_UNARY_OPS = {

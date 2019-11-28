@@ -19,6 +19,20 @@ import sym_tab
 import type_tab
 
 
+def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
+    res = []
+    for c in node:
+        res += FindMatchingNodesPostOrder(c, node, matcher)
+    if matcher(node, parent):
+        res.append((node, parent))
+    return res
+
+
+# ================================================================================
+# Remove void in favor of empty function argument expressions.
+# E.g.:
+# void fun(void)   =>  void fun()
+# ================================================================================
 def IsVoidArg(node):
     if not isinstance(node, c_ast.Typename): return False
     if not isinstance(node.type, c_ast.TypeDecl): return False
@@ -36,6 +50,9 @@ def RemoveVoidParam(node: c_ast.Node):
         RemoveVoidParam(c)
 
 
+# ================================================================================
+#
+# ================================================================================
 def CanonicalizeIdentifierTypes(node: c_ast.Node):
     if isinstance(node, c_ast.IdentifierType):
         node.names = common.CanonicalizeIdentifierType(node.names)
@@ -85,6 +102,13 @@ def MakeCast(canonical_scalar_type, node):
 #     elif isinstance(node, c_ast.FuncCall):
 #         pass
 
+# ================================================================================
+# This transformation splits printf calls with constant format string into several printf
+# calls. Each of which has at most one argument besides the format string
+# This eliminates the primary use case of variable argument lists.
+#
+# This invalidates sym_tab and type_tab
+# ================================================================================
 def IsSuitablePrintf(node: c_ast.Node, _):
     if not isinstance(node, c_ast.FuncCall): return None
     if not isinstance(node.name, c_ast.ID): return None
@@ -114,20 +138,6 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node]):
     return c_ast.FuncCall(c_ast.ID("printf"), c_ast.ExprList(args))
 
 
-def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
-    res = []
-    for c in node:
-        res += FindMatchingNodesPostOrder(c, node, matcher)
-    if matcher(node, parent):
-        res.append((node, parent))
-    return res
-
-
-# ================================================================================
-# This optimization splits printf calls with constant format string into several printf
-# calls. Each of which has at most on
-#
-# ================================================================================
 def DoPrintfSplitter(call, parent):
     args = call.args.exprs
     fmt_pieces = printf_transform.TokenizeFormatString(args[0].value[1:-1])
@@ -158,29 +168,42 @@ def PrintfSplitter(ast: c_ast.Node):
 
 
 # ================================================================================
-def IsPrePostIncDec(node):
-    return isinstance(node, c_ast.UnaryOp) and node.op in PRE_POST_INC_DEC_OPS
+# Transform post inc/dev to pre inc/dec which are sementically simpler
+# ================================================================================
+def IsSuitablePostIncDec(node, parent):
+    if not isinstance(node, c_ast.UnaryOp): return False
+    if not node.op in common.POST_INC_DEC_OPS: return False
+    if isinstance(parent, (c_ast.Compound, c_ast.Case, c_ast.Default)): return True
+    if isinstance(parent, c_ast.If) and node != parent.cond: return True
+    if isinstance(parent, c_ast.For) and node != parent.cond: return True
+    if isinstance(parent, c_ast.DoWhile) and node != parent.cond: return True
+    if isinstance(parent, c_ast.While) and node != parent.cond: return True
+    if isinstance(parent, c_ast.Switch) and node != parent.cond: return True
+    return False
 
 
-def PrePostIncDec(ast: c_ast.Node):
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsPrePostIncDec)
+def ConvertPostToPreIncDec(ast: c_ast.Node):
+    candidates = FindMatchingNodesPostOrder(ast, ast, IsSuitablePostIncDec)
 
-    for call, parent in candidates:
-        DoPrintfSplitter(call, parent)
+    for node, parent in candidates:
+        node.op = node.op[1:]  # strip out the leading "p"
 
 
 # ================================================================================
 # This transformation ensures that arguments of logic ops are either other logic ops  or comparisons
 # E.g.:
 # !p   =>  (p == 0)
-# (a+b) && <expr>   =>    (a+b) != 0 && <expr>
+# (a+b) && <expr>   =>    (a+b) != 0 && <expr>\
+#
 # Produces untyped nodes
+# ================================================================================
 
 CONST_ZERO = c_ast.Constant("int", 0)
 
 
 def IsNodeRequiringBoolInt(node: c_ast, _):
     return (isinstance(node, c_ast.If) or
+            isinstance(node, c_ast.For) or
             isinstance(node, c_ast.BinaryOp) and node.op in common.SHORT_CIRCUIT_OPS or
             isinstance(node, c_ast.UnaryOp) and node.op == "!")
 
@@ -194,6 +217,9 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node):
     candidates = FindMatchingNodesPostOrder(ast, ast, IsNodeRequiringBoolInt)
     for node, parent in candidates:
         if isinstance(node, c_ast.If):
+            if not IsExprOfTypeBoolInt(node.cond):
+                node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
+        elif isinstance(node, c_ast.For):
             if not IsExprOfTypeBoolInt(node.cond):
                 node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
         elif node.op == "!":
@@ -219,6 +245,7 @@ def main(argv):
     ttab = type_tab.TypeTab()
     type_tab.Typify(ast, None, ttab, sym_links, None)
 
+    ConvertPostToPreIncDec(ast)
     RemoveVoidParam(ast)
     CanonicalizeIdentifierTypes(ast)
     # AddExplicitCasts(ast, ttab.links, ast)
