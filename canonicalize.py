@@ -326,7 +326,6 @@ def ConvertForLoop(ast, meta_info):
         exit_label = GetLabel()
         goto = c_ast.Goto(loop_label)
         conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
-        assert node.next
         block = ExtractForInitStatements(node.init) + [
             c_ast.Goto(test_label),
             c_ast.Label(loop_label, node.stmt),

@@ -162,6 +162,9 @@ def ExtractSymTab(ast: c_ast.FileAST):
 
 
 def VerifySymbolLinks(node: c_ast.Node, symbol_links, strict=True):
+    for c in node:
+        VerifySymbolLinks(c, symbol_links, strict)
+
     if isinstance(node, c_ast.ID):
         decl = symbol_links[node]
         if not strict and decl is UNRESOLVED_STRUCT_UNION_MEMBER:
@@ -170,8 +173,6 @@ def VerifySymbolLinks(node: c_ast.Node, symbol_links, strict=True):
         # print ("ID", node.name, decl.type.__class__.__name__)
         return
 
-    for c in node:
-        VerifySymbolLinks(c, symbol_links, strict)
 
 
 def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
@@ -431,12 +432,13 @@ def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, 
 
 def VerifyTypeLinks(node: c_ast.Node, type_links):
     """This checks what the typing module is trying to accomplish"""
+    for c in node:
+        VerifyTypeLinks(c, type_links)
     if isinstance(node, common.EXPRESSION_NODES):
         type = type_links.get(node)
         assert type is not None, node
         isinstance(type, _ALLOWED_TYPE_LINKS)
-    for c in node:
-        VerifyTypeLinks(c, type_links)
+
 
 
 class MetaInfo:

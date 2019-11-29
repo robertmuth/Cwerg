@@ -1,4 +1,5 @@
 from pycparser import c_ast
+from typing import List
 
 EXPRESSION_NODES = (c_ast.ArrayRef,
                     c_ast.Assignment,
@@ -106,7 +107,7 @@ _CANONICAL_IDENTIFIER_TYPE_MAP = {
 }
 
 
-def CanonicalizeIdentifierType(names):
+def CanonicalizeIdentifierType(names: List[str]):
     """Return a sorted and simplified string tuple"""
     n = sorted(names)
     if len(names) <= 2:
