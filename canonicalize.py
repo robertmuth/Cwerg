@@ -21,6 +21,7 @@ CONST_ZERO = c_ast.Constant("int", 0)
 
 CONST_ONE = c_ast.Constant("int", 1)
 
+
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
     res = []
     for c in node:
@@ -59,16 +60,11 @@ def RemoveVoidParam(node: c_ast.Node):
 #
 # After this step only types from NUM_TYPE_ORDER should occur
 # ================================================================================
-def CanonicalizeIdentifierTypes(node: c_ast.Node):
+def CanonicalizeBaseTypes(node: c_ast.Node):
     if isinstance(node, c_ast.IdentifierType):
         node.names = common.CanonicalizeIdentifierType(node.names)
     for c in node:
-        CanonicalizeIdentifierTypes(c)
-
-
-def CanonicalScalarType(node):
-    if not isinstance(node, c_ast.IdentifierType): return None
-    return type_tab.CanonicalizeIdentifierType(node.names)
+        CanonicalizeBaseTypes(c)
 
 
 # ================================================================================
@@ -282,7 +278,7 @@ def main(argv):
 
     ConvertPostToPreIncDec(ast)
     RemoveVoidParam(ast)
-    CanonicalizeIdentifierTypes(ast)
+    CanonicalizeBaseTypes(ast)
     meta_info.CheckConsistency(ast)
 
     PrintfSplitter(ast, meta_info)

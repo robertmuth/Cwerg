@@ -233,6 +233,9 @@ class TypeTab:
         assert isinstance(node, common.EXPRESSION_NODES), "unexpected type: [%s]" % type
         # TODO: add missing classes as needed
         assert isinstance(type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
+
+        if isinstance(type, c_ast.IdentifierType):
+            assert type in common.ALLOWED_IDENTIFIER_TYPES, node
         self.links[node] = type
 
 
@@ -241,7 +244,10 @@ def GetTypeForDecl(decl: c_ast.Node):
         return decl
     elif isinstance(decl, c_ast.TypeDecl):
         # for simple decl extract the type
-        assert isinstance(decl.type, (c_ast.IdentifierType, c_ast.Struct, c_ast.Union))
+        if isinstance(decl.type, c_ast.IdentifierType):
+            return common.GetCanonicalIdentifierType(decl.type.names)
+        else:
+            assert isinstance(decl.type, _STRUCT_OR_UNION)
         return decl.type
     elif isinstance(decl, c_ast.FuncDecl):
         # for function get the return type
@@ -264,9 +270,9 @@ def GetTypeForFunArg(arg: c_ast.Node):
         assert False, arg
 
 
-SIZE_T_IDENTIFIER_TYPE = c_ast.IdentifierType(["int", "unsigned"])
+SIZE_T_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["int", "unsigned"])
 
-INT_IDENTIFIER_TYPE = c_ast.IdentifierType(["int"])
+INT_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["int"])
 
 
 def TypePrettyPrint(decl):
@@ -330,8 +336,6 @@ def GetUnaryType(node, t):
     else:
         assert False, node
 
-    return t
-
 
 def _FindStructMember(struct, field):
     for member in struct.decls:
@@ -364,7 +368,7 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct
 
 def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef):
     if isinstance(node, c_ast.Constant):
-        return c_ast.IdentifierType(node.type.split())
+        return common.GetCanonicalIdentifierType(node.type.split())
     elif isinstance(node, c_ast.ID):
         if isinstance(parent, c_ast.StructRef) and parent.field == node:
             return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, struct_links, type_tab)

@@ -89,7 +89,10 @@ CANONICAL_BASE_TYPE = {
     ("double",): (12, c_ast.IdentifierType(["double"])),
     # unrelated
     ("string",): (-1, c_ast.IdentifierType(["string"])),
+    ("void",): (-1, c_ast.IdentifierType(["void"])),
 }
+
+ALLOWED_IDENTIFIER_TYPES = {t[1] for t in CANONICAL_BASE_TYPE.values()}
 
 _CANONICAL_IDENTIFIER_TYPE_MAP = {
     ("char", "signed"): ("char",),
@@ -116,11 +119,13 @@ def CanonicalizeIdentifierType(names):
     return tuple(n)
 
 
+def GetCanonicalIdentifierType(names):
+    return CANONICAL_BASE_TYPE[CanonicalizeIdentifierType(names)][1]
+
+
 def TypeCompare(t1: c_ast.IdentifierType, t2: c_ast.IdentifierType):
-    n1 = CanonicalizeIdentifierType(t1.names)
-    n2 = CanonicalizeIdentifierType(t2.names)
-    i1 = CANONICAL_BASE_TYPE[n1][0]
-    i2 = CANONICAL_BASE_TYPE[n2][0]
+    i1 = CANONICAL_BASE_TYPE[tuple(t1.names)][0]
+    i2 = CANONICAL_BASE_TYPE[tuple(t2.names)][0]
     if i1 == i2:
         return "="
     elif i1 < i2:
