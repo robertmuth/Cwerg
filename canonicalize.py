@@ -164,7 +164,7 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node]):
     return c_ast.FuncCall(c_ast.ID("printf"), c_ast.ExprList(args))
 
 
-def DoPrintfSplitter(call, parent, meta):
+def DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
     args = call.args.exprs
     fmt_pieces = printf_transform.TokenizeFormatString(args[0].value[1:-1])
     if not fmt_pieces: return
@@ -173,7 +173,6 @@ def DoPrintfSplitter(call, parent, meta):
     stmts = GetStatementList(parent)
     if not stmts:
         assert False, parent
-        return
 
     calls = []
     args = args[1:]  # skip the format string
@@ -182,11 +181,11 @@ def DoPrintfSplitter(call, parent, meta):
         if f[0] == '%' and len(f) > 1:
             arg = args.pop(0)
         c = MakePrintfCall(f, arg)
-        meta.type_links[c] = meta.type_links[call]
-        meta.type_links[c.args] = meta.type_links[call.args]
-        meta.type_links[c.args.exprs[0]] = meta.type_links[call.args.exprs[0]]
-        meta.type_links[c.name] = meta.type_links[call.name]
-        meta.sym_links[c.name] = meta.sym_links[call.name]
+        meta_info.type_links[c] = meta_info.type_links[call]
+        meta_info.type_links[c.args] = meta_info.type_links[call.args]
+        meta_info.type_links[c.args.exprs[0]] = meta_info.type_links[call.args.exprs[0]]
+        meta_info.type_links[c.name] = meta_info.type_links[call.name]
+        meta_info.sym_links[c.name] = meta_info.sym_links[call.name]
         calls.append(c)
     pos = stmts.index(call)
     stmts[pos:pos + 1] = calls
@@ -249,16 +248,16 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
             if not IsExprOfTypeBoolInt(node.cond):
                 node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
                 meta_info.type_links[node.cond] = meta.INT_IDENTIFIER_TYPE
-        elif isinstance(node, c_ast.For):
+        elif isinstance(node, c_ast.For) and node.cond:
             if not IsExprOfTypeBoolInt(node.cond):
                 node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
                 meta_info.type_links[node.cond] = meta.INT_IDENTIFIER_TYPE
-        elif node.op == "!":
+        elif isinstance(node, c_ast.UnaryOp) and node.op == "!":
             if not IsExprOfTypeBoolInt(node.expr):
                 node = c_ast.BinaryOp("==", node.expr, CONST_ZERO)  # note: we are replacing the "!" node
                 meta_info.type_links[node] = meta.INT_IDENTIFIER_TYPE
 
-        elif node.op in common.SHORT_CIRCUIT_OPS:
+        elif isinstance(node, c_ast.BinaryOp) and node.op in common.SHORT_CIRCUIT_OPS:
             if not IsExprOfTypeBoolInt(node.left):
                 node.left = c_ast.BinaryOp("!=", node.left, CONST_ZERO)
                 meta_info.type_links[node.left] = meta.INT_IDENTIFIER_TYPE
@@ -270,11 +269,10 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
 # ================================================================================
 #
 # ================================================================================
-def IsPreIncDec(node, parent):
-    return isinstance(node, c_ast.UnaryOp) and node.op in common.PRE_INC_DEC_OPS
-
-
 def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
+    def IsPreIncDec(node, parent):
+        return isinstance(node, c_ast.UnaryOp) and node.op in common.PRE_INC_DEC_OPS
+
     candidates = FindMatchingNodesPostOrder(ast, ast, IsPreIncDec)
     meta_info.type_links[CONST_ONE] = meta.INT_IDENTIFIER_TYPE
 
@@ -288,11 +286,10 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
 # ================================================================================
 #
 # ================================================================================
-def IsWhileLoop(node, _):
-    return isinstance(node, (c_ast.DoWhile, c_ast.While))
-
-
 def ConvertWhileLoop(ast, meta_info):
+    def IsWhileLoop(node, _):
+        return isinstance(node, (c_ast.DoWhile, c_ast.While))
+
     candidates = FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
         loop_label = GetLabel()
@@ -305,6 +302,38 @@ def ConvertWhileLoop(ast, meta_info):
         if isinstance(node, c_ast.While):
             block = [c_ast.Goto(test_label)] + block
         common.ReplaceBreakAndContinue(node.stmt, node, test_label, exit_label)
+        common.ReplaceNode(parent, node, c_ast.Compound(block))
+
+
+# ================================================================================
+#
+# ================================================================================
+def ExtractForInitStatements(node):
+    if node is None:
+        return []
+    elif isinstance(node, c_ast.DeclList):
+        return node.decls
+    else:
+        return [node]
+
+
+def ConvertForLoop(ast, meta_info):
+    candidates = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
+    for node, parent in candidates:
+        loop_label = GetLabel()
+        next_label = GetLabel()
+        test_label = GetLabel()
+        exit_label = GetLabel()
+        goto = c_ast.Goto(loop_label)
+        conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
+        assert node.next
+        block = ExtractForInitStatements(node.init) + [
+            c_ast.Goto(test_label),
+            c_ast.Label(loop_label, node.stmt),
+            c_ast.Label(next_label, node.next if node.next else c_ast.EmptyStatement()),
+            c_ast.Label(test_label, conditional),
+            c_ast.Label(exit_label, c_ast.EmptyStatement())]
+        common.ReplaceBreakAndContinue(node.stmt, node, next_label, exit_label)
         common.ReplaceNode(parent, node, c_ast.Compound(block))
 
 
@@ -349,6 +378,7 @@ def main(argv):
     meta_info.CheckConsistency(ast)
 
     ConvertWhileLoop(ast, meta_info)
+    ConvertForLoop(ast, meta_info)
 
     meta_info.CheckConsistency(ast)
 
