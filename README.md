@@ -12,7 +12,7 @@ can be found below.
 
 ## Highlevel Overview
 
-The compilation can be split into the following phases:
+The compilation is split into the following phases:
 
 * Parse the code with pycparser into an AST
 
@@ -26,12 +26,12 @@ The compilation can be split into the following phases:
   
  * Canonicalize the c code so we can keep the backend simple
   
-  This effectively de-sugars some syntax like compound assigns and 
-  pre/post increment/decrement.
+   This effectively de-sugars some syntax like compound assigns and 
+   pre/post increment/decrement, loops, etc.
   
-  We can test the canonicalization transformations by re-emitting c-code
-  and ensuring that the transformed code has the same output as the original 
-  code
+   We can test the canonicalization transformations by re-emitting c-code
+   and ensuring that the transformed code has the same output as the original 
+   code.
   
  * Code emission
   
