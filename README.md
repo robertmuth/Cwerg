@@ -63,13 +63,12 @@ Links
 * enormously versatile
 * rather steep learning curve
 * very actively developed
-* inlcudes pre-processor 
-* llvm backend (supports all llvm targets )
+* includes pre-processor 
+* llvm backend (supports all llvm targets)
 
 Links
 
 https://clang.llvm.org/
-
 
 ### gcc
 
@@ -81,7 +80,6 @@ https://clang.llvm.org/
 * Information below may be dated (I am too traumatized to try again):
 * many many targets but not simultaneously 
 * configuration and building (especially cross compiles) very painful 
-
 
 Links
 

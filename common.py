@@ -72,7 +72,6 @@ OPS_REQUIRING_BOOL_INT = {
     "!",  # unary
 }
 
-
 # Note that the standard dictates: signed x unsigned -> unsigned
 # (citation needed)
 NUM_TYPE_ORDER = [
@@ -149,3 +148,31 @@ def NodePrettyPrint(node: c_ast):
         return "op[%s]" % node.op
     else:
         return node.__class__.__name__
+
+
+def ReplaceNode(parent, old_node, new_node):
+    # TODO: add nodes as needed
+    if isinstance(parent, c_ast.ExprList):
+        for n, e in enumerate(parent.exprs):
+            if e is old_node:
+                parent.exprs[n] = new_node
+                return
+    if isinstance(parent, c_ast.Compound):
+        for n, e in enumerate(parent.block_items):
+            if e is old_node:
+                parent.block_items[n] = new_node
+                return
+    elif isinstance(parent, c_ast.For):
+        if parent.next is old_node:
+            parent.next = new_node
+            return
+        if parent.stmt is old_node:
+            parent.stmt = new_node
+            return
+        if parent.cond is old_node:
+            parent.cond = new_node
+            return
+        if parent.init is old_node:
+            parent.init = new_node
+            return
+    assert False, parent

@@ -17,9 +17,9 @@ import common
 import meta
 import printf_transform
 
-
 CONST_ZERO = c_ast.Constant("int", 0)
 
+CONST_ONE = c_ast.Constant("int", 1)
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
     res = []
@@ -257,6 +257,24 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
                 meta_info.type_links[node.right] = meta.INT_IDENTIFIER_TYPE
 
 
+# ================================================================================
+#
+# ================================================================================
+def IsPreIncDec(node, parent):
+    return isinstance(node, c_ast.UnaryOp) and node.op in common.PRE_INC_DEC_OPS
+
+
+def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
+    candidates = FindMatchingNodesPostOrder(ast, ast, IsPreIncDec)
+    meta_info.type_links[CONST_ONE] = meta.INT_IDENTIFIER_TYPE
+
+    for node, parent in candidates:
+        op = "+=" if node.op == "++" else "-="
+        a = c_ast.Assignment(op, node.expr, CONST_ONE)
+        meta_info.type_links[a] = meta_info.type_links[node.expr]
+        common.ReplaceNode(parent, node, a)
+
+
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
@@ -274,6 +292,9 @@ def main(argv):
     meta_info.CheckConsistency(ast)
 
     AddExplicitCasts(ast, ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
+    ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     generator = c_generator.CGenerator()
