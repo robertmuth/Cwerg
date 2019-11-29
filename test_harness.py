@@ -10,6 +10,11 @@ def RunGcc(fn: str, exe: str):
     return subprocess.call(["gcc", "-Wno-builtin-declaration-mismatch", fn, "-o", exe])
 
 
+def RunClang(fn: str, exe: str):
+    print("RunClang [%s] -> [%s]" % (fn, exe))
+    return subprocess.call(["clang", "-Wno-incompatible-library-redeclaration", fn, "-o", exe])
+
+
 def RunAndCaptureStdout(command):
     print("Run %s" % command)
     p = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
@@ -37,13 +42,13 @@ def RunTest(fn: str):
     print(fn)
     print("=" * 50)
 
-    RunGcc(fn, "./a.out")
+    RunClang(fn, "./a.out")
     stdout = RunAndCaptureStdout('./a.out; echo "exit $?"')
     reference = fn[:-2] + ".reference_output"
     if os.path.exists(reference):
         CheckDelta(open(reference, "rb").read(), stdout)
     Canonicalize(fn, CANONICALIZED_C)
-    RunGcc(CANONICALIZED_C, "./a.out")
+    RunClang(CANONICALIZED_C, "./a.out")
     stdout2 = RunAndCaptureStdout('./a.out; echo "exit $?"')
     CheckDelta(stdout, stdout2)
 

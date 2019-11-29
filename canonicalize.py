@@ -21,6 +21,14 @@ CONST_ZERO = c_ast.Constant("int", 0)
 
 CONST_ONE = c_ast.Constant("int", 1)
 
+label_counter = 0
+
+
+def GetLabel():
+    global label_counter
+    label_counter += 1
+    return "label_%s" % label_counter
+
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
     res = []
@@ -277,6 +285,23 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
         common.ReplaceNode(parent, node, a)
 
 
+# ================================================================================
+#
+# ================================================================================
+def ConvertDoWhile(ast, meta_info):
+    candidates = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.DoWhile))
+    for node, parent in candidates:
+        if not isinstance(node, c_ast.DoWhile):
+            return
+        new_label = GetLabel()
+        conditional = c_ast.If(node.cond, c_ast.Goto(new_label), None)
+        label = c_ast.Label(new_label,  c_ast.Compound([node.stmt, conditional]))
+        common.ReplaceNode(parent, node, label)
+
+
+# ================================================================================
+#
+# ================================================================================
 def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
     for c in node:
         ConfirmAbsenceOfUnsupportedFeatures(c)
@@ -314,7 +339,11 @@ def main(argv):
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+    ConvertDoWhile(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
     ConfirmAbsenceOfUnsupportedFeatures(ast)
+
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 
