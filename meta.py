@@ -37,6 +37,7 @@ import common
 
 __all__ = ["MetaInfo"]
 
+
 def IsGlobalSym(decl, parent):
     return (isinstance(parent, c_ast.FuncDef) or
             isinstance(parent, c_ast.FileAST) or
@@ -302,7 +303,7 @@ def GetBinopType(node, t1, t2):
     if node.op not in common.SAME_TYPE_BINARY_OPS:
         assert False, node
 
-    return common.MaxType(node, t1, t2)
+    return common.MaxType(t1, t2)
 
 
 def MakePtrType(t):
@@ -397,7 +398,7 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
         else:
             return child_types[-1]
     elif isinstance(node, c_ast.TernaryOp):
-        return common.MaxType(node, child_types[1], child_types[2])
+        return common.MaxType(child_types[1], child_types[2])
     elif isinstance(node, c_ast.StructRef):
         # This was computed by _GetFieldRefTypeAndUpdateSymbolLink
         return child_types[1]

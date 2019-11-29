@@ -14,8 +14,8 @@ from typing import Optional
 from pycparser import c_ast, parse_file, c_generator
 
 import common
-import printf_transform
 import meta
+import printf_transform
 
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
@@ -64,42 +64,52 @@ def CanonicalScalarType(node):
     return type_tab.CanonicalizeIdentifierType(node.names)
 
 
-def MakeCast(canonical_scalar_type, node):
-    # print("ADD CAST")
-    it = c_ast.IdentifierType(list(canonical_scalar_type))
-    return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], it)), node)
+# ================================================================================
+#
+# ================================================================================
+def MakeCast(identifier_type, node):
+    return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], identifier_type)), node)
 
 
-# def AddExplicitCasts(node: c_ast.Node, ttab, parent: c_ast.Node):
-#     for c in node:
-#         AddExplicitCasts(c, ttab, node)
-#
-#     if isinstance(node, c_ast.BinaryOp):
-#
-#         if node.op in common.SHORT_CIRCUIT_OPS:
-#             pass
-#         else:
-#             tl = ttab[node.left]
-#             tr = ttab[node.right]
-#             if isinstance(tl, c_ast.IdentifierType) and isinstance(tr, c_ast.IdentifierType):
-#             m = common.MaxType(node, tl, tr)
-#             #if tl !=
-#
-#
-#         if left != p:
-#             node.left = MakeCast(p, node.left)
-#         if right != p:
-#             node.right = MakeCast(p, node.right)
-#
-#     elif isinstance(node, c_ast.Assignment):
-#         p = CanonicalScalarType(ttab[node])
-#         if not p: return
-#         right = CanonicalScalarType(ttab[node.rvalue])
-#         if right != p:
-#             node.rvalue = MakeCast(p, node.rvalue)
-#
-#     elif isinstance(node, c_ast.FuncCall):
-#         pass
+def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
+    for c in node:
+        AddExplicitCasts(c, node, meta_info)
+
+    if isinstance(node, c_ast.BinaryOp):
+        tl = meta_info.type_links[node.left]
+        tr = meta_info.type_links[node.right]
+        if not isinstance(tl, c_ast.IdentifierType) or not isinstance(tr, c_ast.IdentifierType):
+            return
+
+        cmp = common.TypeCompare(tl, tr)
+        if cmp == "<":
+            node.left = MakeCast(tr, node.left)
+            meta_info.type_links[node.left] = tr
+        elif cmp == ">":
+            node.right = MakeCast(tl, node.right)
+            meta_info.type_links[node.right] = tl
+
+    elif isinstance(node, c_ast.Assignment):
+        left = meta_info.type_links[node.lvalue]
+        right = meta_info.type_links[node.rvalue]
+        if not isinstance(left, c_ast.IdentifierType) or not isinstance(right, c_ast.IdentifierType):
+            return
+        cmp = common.TypeCompare(left, right)
+        if cmp != "=":
+            node.rvalue = MakeCast(left, node.rvalue)
+            meta_info.type_links[node.rvalue] = left
+
+    #     if not p: return
+    #     right = CanonicalScalarType(ttab[node.rvalue])
+    #     if right != p:
+    #         node.rvalue = MakeCast(p, node.rvalue)
+    #
+    # elif isinstance(node, c_ast.FuncCall):
+    #     pass
+    # elif isinstance(node, c_ast.Return):
+    #     pass
+    # TODO: function call
+
 
 # ================================================================================
 # This transformation splits printf calls with constant format string into several printf
@@ -259,8 +269,10 @@ def main(argv):
 
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
-    
-# AddExplicitCasts(ast, ttab.links, ast)
+
+    AddExplicitCasts(ast, ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 

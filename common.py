@@ -114,21 +114,28 @@ def CanonicalizeIdentifierType(names):
     return tuple(n)
 
 
-def MaxType(node, t1, t2):
+def TypeCompare(t1: c_ast.IdentifierType, t2: c_ast.IdentifierType):
+    n1 = CanonicalizeIdentifierType(t1.names)
+    n2 = CanonicalizeIdentifierType(t2.names)
+    if n1 == n2: return "="
+    if n1 in NUM_TYPE_ORDER and n2 in NUM_TYPE_ORDER:
+        i1 = NUM_TYPE_ORDER.index(n1)
+        i2 = NUM_TYPE_ORDER.index(n2)
+        return "<" if i1 < i2 else ">"
+    assert False, "incomparable types: %s %s  %s" % (t1, t2)
+
+
+def MaxType(t1, t2):
     if isinstance(t1, c_ast.PtrDecl) and isinstance(t2, c_ast.PtrDecl):
         # maybe do some more checks
         return t1
 
     assert isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType)
-    n1 = CanonicalizeIdentifierType(t1.names)
-    n2 = CanonicalizeIdentifierType(t2.names)
-    if n1 == n2: return t1
-
-    if n1 in NUM_TYPE_ORDER and n2 in NUM_TYPE_ORDER:
-        i1 = NUM_TYPE_ORDER.index(n1)
-        i2 = NUM_TYPE_ORDER.index(n2)
-        return t2 if i1 < i2 else t1
-    assert False, "incomparable types: %s %s  %s" % (n1, n2, node)
+    cmp = TypeCompare(t1, t2)
+    if cmp == "=" or cmp == ">":
+        return t1
+    else:
+        return t2
 
 
 def NodePrettyPrint(node: c_ast):
