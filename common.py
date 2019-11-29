@@ -74,19 +74,22 @@ OPS_REQUIRING_BOOL_INT = {
 
 # Note that the standard dictates: signed x unsigned -> unsigned
 # (citation needed)
-NUM_TYPE_ORDER = [
-    ("char",),
-    ("char", "unsigned",),
-    ("short",),
-    ("short", "unsigned",),
-    ("int",),
-    ("int", "unsigned",),
-    ("long",),
-    ("long", "unsigned",),
-    ("long", "long",),
-    ("long", "long", "unsigned",),
-    ("float", "double"),
-]
+CANONICAL_BASE_TYPE = {
+    ("char",): (1, c_ast.IdentifierType(["char"])),
+    ("char", "unsigned",): (2, c_ast.IdentifierType(["char", "unsigned"])),
+    ("short",): (3, c_ast.IdentifierType(["short"])),
+    ("short", "unsigned",): (4, c_ast.IdentifierType(["short", "unsigned"])),
+    ("int",): (5, c_ast.IdentifierType(["int"])),
+    ("int", "unsigned",): (6, c_ast.IdentifierType(["int", "unsigned"])),
+    ("long",): (7, c_ast.IdentifierType(["long"])),
+    ("long", "unsigned",): (8, c_ast.IdentifierType(["long", "unsigned"])),
+    ("long", "long",): (9, c_ast.IdentifierType(["long", "long"])),
+    ("long", "long", "unsigned",): (10, c_ast.IdentifierType(["long", "long", "unsigned"])),
+    ("float",): (11, c_ast.IdentifierType(["float"])),
+    ("double",): (12, c_ast.IdentifierType(["double"])),
+    # unrelated
+    ("string",): (-1, c_ast.IdentifierType(["string"])),
+}
 
 _CANONICAL_IDENTIFIER_TYPE_MAP = {
     ("char", "signed"): ("char",),
@@ -116,12 +119,14 @@ def CanonicalizeIdentifierType(names):
 def TypeCompare(t1: c_ast.IdentifierType, t2: c_ast.IdentifierType):
     n1 = CanonicalizeIdentifierType(t1.names)
     n2 = CanonicalizeIdentifierType(t2.names)
-    if n1 == n2: return "="
-    if n1 in NUM_TYPE_ORDER and n2 in NUM_TYPE_ORDER:
-        i1 = NUM_TYPE_ORDER.index(n1)
-        i2 = NUM_TYPE_ORDER.index(n2)
-        return "<" if i1 < i2 else ">"
-    assert False, "incomparable types: %s %s  %s" % (t1, t2)
+    i1 = CANONICAL_BASE_TYPE[n1][0]
+    i2 = CANONICAL_BASE_TYPE[n2][0]
+    if i1 == i2:
+        return "="
+    elif i1 < i2:
+        return "<"
+    else:
+        return ">"
 
 
 def MaxType(t1, t2):

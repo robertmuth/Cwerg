@@ -1,16 +1,12 @@
 #!/usr/bin/python3
 
 """
-This module provides conceptual symbol table support for pycparser.
+This module provides conceptual symbol table and typing support for pycparser.
+
 Currently this mostly results in additional cross links in the AST that
 link IDs to their definition.
 
-Essentially we are creating a symbol table on the fly,
-performing all the lookups and recording the results.
-It is not clear yet if this fairly static approach works for all the corner
-cases of the C language.
-
-The following cross links are created:
+For symbol table information:
 
 c_ast.ID's associated with variables are linked to the declaration of the variable
 (c_ast.Decl)
@@ -18,13 +14,16 @@ c_ast.ID's associated with variables are linked to the declaration of the variab
 c_ast.ID's associated with field names of structs/unions are not linked
 as we cannot resolve them until we have type information.
 
-Just like the sym_tab module cross links symbols with their definition,
-type_tab links expressions with the corresponding TypeDecls.
-Along the way it fills in the missing symbol links we could
-not resolve in sym_tab
+Essentially we are creating a symbol table on the fly, performing all the
+lookups and recording the results.
 
-By far the biggest complication results from StructRef
-which require both symbol and type links.
+For type information we links expressions with the corresponding TypeDecls.
+Along the way it fills in the missing symbol links we could
+not resolve without type information, e.g. struct fields
+
+It is not clear yet if this fairly static approach works for all the corner
+cases of the C language.
+
 """
 
 import logging
@@ -33,7 +32,6 @@ from typing import Optional
 from pycparser import c_ast, parse_file
 
 import common
-
 
 __all__ = ["MetaInfo"]
 
