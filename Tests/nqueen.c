@@ -26,10 +26,10 @@ int conflict(char board[][10], int row, int col) {
   return 0;
 }
 
-int solve(char board[][10], int row) {
+void solve(char board[][10], int row) {
   if (row > 9) {
     print_board(board);
-    return 0;
+    return;
   }
   for (int i = 0; i < 10; i++) {
     if (!conflict(board, row, i)) {

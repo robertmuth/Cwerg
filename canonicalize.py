@@ -97,8 +97,7 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
         right = meta_info.type_links[node.rvalue]
         if not isinstance(left, c_ast.IdentifierType) or not isinstance(right, c_ast.IdentifierType):
             return
-        cmp = common.TypeCompare(left, right)
-        if cmp != "=":
+        if left is not right:
             node.rvalue = MakeCast(left, node.rvalue)
             meta_info.type_links[node.rvalue] = left
 
@@ -109,8 +108,15 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
     #
     # elif isinstance(node, c_ast.FuncCall):
     #     pass
-    # elif isinstance(node, c_ast.Return):
-    #     pass
+    elif isinstance(node, c_ast.Return):
+        if node.expr:
+            src = meta_info.type_links[node.expr]
+            dst = meta_info.type_links[node]
+            if not isinstance(src, c_ast.IdentifierType) or not isinstance(dst, c_ast.IdentifierType):
+                return
+            if src is not dst:
+                node.expr = MakeCast(dst, node.expr)
+                meta_info.type_links[node.expr] = dst
     # TODO: function call
 
 
@@ -271,6 +277,21 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
         common.ReplaceNode(parent, node, a)
 
 
+def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
+    for c in node:
+        ConfirmAbsenceOfUnsupportedFeatures(c)
+
+    if isinstance(node, c_ast.UnaryOp):
+        # assert node.op not in common.POST_INC_DEC_OPS
+        assert node.op not in common.PRE_INC_DEC_OPS
+
+    elif isinstance(node, c_ast.ParamList):
+        params = node.params
+        assert not params or not IsVoidArg(params[0])
+    # elif isinstance(node, c_ast.EllipsisParam):
+    #    assert False
+
+
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
@@ -293,6 +314,7 @@ def main(argv):
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+    ConfirmAbsenceOfUnsupportedFeatures(ast)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 

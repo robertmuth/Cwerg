@@ -215,7 +215,6 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
 
 
 _ALLOWED_TYPE_LINKS = (c_ast.ParamList,   # for ExpressionList which are function arguments
-                       c_ast.TypeDecl,
                        c_ast.ArrayDecl,
                        c_ast.PtrDecl,
                        c_ast.IdentifierType,
@@ -388,7 +387,7 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
         # TODO: check that child_types[1] is integer
         return GetTypeForDecl(a.type)
     elif isinstance(node, c_ast.Return):
-        return fundef.decl.type.type
+        return GetTypeForDecl(fundef.decl.type.type)
     elif isinstance(node, c_ast.Assignment):
         return child_types[0]
     elif isinstance(node, c_ast.ExprList):
