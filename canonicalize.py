@@ -288,15 +288,24 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
 # ================================================================================
 #
 # ================================================================================
-def ConvertDoWhile(ast, meta_info):
-    candidates = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.DoWhile))
+def IsWhileLoop(node, _):
+    return isinstance(node, (c_ast.DoWhile, c_ast.While))
+
+
+def ConvertWhileLoop(ast, meta_info):
+    candidates = FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
-        if not isinstance(node, c_ast.DoWhile):
-            return
-        new_label = GetLabel()
-        conditional = c_ast.If(node.cond, c_ast.Goto(new_label), None)
-        label = c_ast.Label(new_label,  c_ast.Compound([node.stmt, conditional]))
-        common.ReplaceNode(parent, node, label)
+        loop_label = GetLabel()
+        test_label = GetLabel()
+        exit_label = GetLabel()
+        conditional = c_ast.If(node.cond, c_ast.Goto(loop_label), None)
+        block = [c_ast.Label(loop_label, node.stmt),
+                 c_ast.Label(test_label, conditional),
+                 c_ast.Label(exit_label, c_ast.EmptyStatement())]
+        if isinstance(node, c_ast.While):
+            block = [c_ast.Goto(test_label)] + block
+        common.ReplaceBreakAndContinue(node.stmt, node, test_label, exit_label)
+        common.ReplaceNode(parent, node, c_ast.Compound(block))
 
 
 # ================================================================================
@@ -339,7 +348,8 @@ def main(argv):
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    ConvertDoWhile(ast, meta_info)
+    ConvertWhileLoop(ast, meta_info)
+
     meta_info.CheckConsistency(ast)
 
     ConfirmAbsenceOfUnsupportedFeatures(ast)

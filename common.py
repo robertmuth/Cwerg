@@ -167,22 +167,53 @@ def ReplaceNode(parent, old_node, new_node):
             if e is old_node:
                 parent.exprs[n] = new_node
                 return
-    if isinstance(parent, c_ast.Compound):
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.Compound):
         for n, e in enumerate(parent.block_items):
             if e is old_node:
                 parent.block_items[n] = new_node
                 return
+        else:
+            assert False, parent
     elif isinstance(parent, c_ast.For):
         if parent.next is old_node:
             parent.next = new_node
-            return
-        if parent.stmt is old_node:
+        elif parent.stmt is old_node:
             parent.stmt = new_node
-            return
+        elif parent.cond is old_node:
+            parent.cond = new_node
+        elif parent.init is old_node:
+            parent.init = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.If):
         if parent.cond is old_node:
             parent.cond = new_node
-            return
-        if parent.init is old_node:
-            parent.init = new_node
-            return
-    assert False, parent
+        elif parent.iftrue is old_node:
+            parent.iftrue = new_node
+        elif parent.iffalse is old_node:
+            parent.iffalse = new_node
+        else:
+            assert False, parent
+    else:
+        assert False, parent
+
+
+def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
+    if isinstance(node, c_ast.Continue):
+        ReplaceNode(parent, node, c_ast.Goto(test_label))
+        return
+    if exit_label and isinstance(node, c_ast.Break):
+        ReplaceNode(parent, node, c_ast.Goto(exit_label))
+        return
+
+    if isinstance(node, (c_ast.While, c_ast.DoWhile, c_ast.For)):
+        return
+
+    if isinstance(node, c_ast.Switch):
+        # breaks inside switches have their own meaning
+        exit_label = None
+
+    for c in node:
+        ReplaceBreakAndContinue(c, node, test_label, exit_label)
