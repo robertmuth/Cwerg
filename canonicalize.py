@@ -18,6 +18,9 @@ import meta
 import printf_transform
 
 
+CONST_ZERO = c_ast.Constant("int", 0)
+
+
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
     res = []
     for c in node:
@@ -50,7 +53,11 @@ def RemoveVoidParam(node: c_ast.Node):
 
 
 # ================================================================================
+# Conversations of the form:
+# unsigned -> int unsigned
+# signed  ->  int
 #
+# After this step only types from NUM_TYPE_ORDER should occur
 # ================================================================================
 def CanonicalizeIdentifierTypes(node: c_ast.Node):
     if isinstance(node, c_ast.IdentifierType):
@@ -65,7 +72,7 @@ def CanonicalScalarType(node):
 
 
 # ================================================================================
-#
+# Make implicit conversions explicit by adding casts
 # ================================================================================
 def MakeCast(identifier_type, node):
     return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], identifier_type)), node)
@@ -212,10 +219,6 @@ def ConvertPostToPreIncDec(ast: c_ast.Node):
 #
 # Produces untyped nodes
 # ================================================================================
-
-CONST_ZERO = c_ast.Constant("int", 0)
-
-
 def IsNodeRequiringBoolInt(node: c_ast, _):
     return (isinstance(node, c_ast.If) or
             isinstance(node, c_ast.For) or
