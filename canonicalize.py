@@ -218,24 +218,30 @@ def IsExprOfTypeBoolInt(node: c_ast):
             isinstance(node, c_ast.UnaryOp) and node.op in common.BOOL_INT_TYPE_UNARY_OPS)
 
 
-def FixNodeRequiringBoolInt(ast: c_ast.Node):
+def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
     candidates = FindMatchingNodesPostOrder(ast, ast, IsNodeRequiringBoolInt)
+    meta_info.type_links[CONST_ZERO] = meta.INT_IDENTIFIER_TYPE
     for node, parent in candidates:
         if isinstance(node, c_ast.If):
             if not IsExprOfTypeBoolInt(node.cond):
                 node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
+                meta_info.type_links[node.cond] = meta.INT_IDENTIFIER_TYPE
         elif isinstance(node, c_ast.For):
             if not IsExprOfTypeBoolInt(node.cond):
                 node.cond = c_ast.BinaryOp("!=", node.cond, CONST_ZERO)
+                meta_info.type_links[node.cond] = meta.INT_IDENTIFIER_TYPE
         elif node.op == "!":
             if not IsExprOfTypeBoolInt(node.expr):
                 node = c_ast.BinaryOp("==", node.expr, CONST_ZERO)  # note: we are replacing the "!" node
+                meta_info.type_links[node] = meta.INT_IDENTIFIER_TYPE
 
         elif node.op in common.SHORT_CIRCUIT_OPS:
             if not IsExprOfTypeBoolInt(node.left):
                 node.left = c_ast.BinaryOp("!=", node.left, CONST_ZERO)
+                meta_info.type_links[node.left] = meta.INT_IDENTIFIER_TYPE
             if not IsExprOfTypeBoolInt(node.right):
                 node.right = c_ast.BinaryOp("!=", node.right, CONST_ZERO)
+                meta_info.type_links[node.right] = meta.INT_IDENTIFIER_TYPE
 
 
 def main(argv):
@@ -251,8 +257,10 @@ def main(argv):
     PrintfSplitter(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+    FixNodeRequiringBoolInt(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+    
 # AddExplicitCasts(ast, ttab.links, ast)
-    FixNodeRequiringBoolInt(ast)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 
