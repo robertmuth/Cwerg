@@ -5,17 +5,20 @@
 
  * remove void parameter lists: foo(void) -> foo()
  * insert all implicit casts
+ * replace for/while/do-while with label and gotos
 
 """
 
 import sys
-from typing import Optional
+from typing import Optional, List, Tuple
 
 from pycparser import c_ast, parse_file, c_generator
 
 import common
 import meta
 import printf_transform
+
+__all__ = ["Canonicalize"]
 
 CONST_ZERO = c_ast.Constant("int", 0)
 
@@ -31,7 +34,7 @@ def GetLabel():
 
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
-    res = []
+    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
     for c in node:
         res += FindMatchingNodesPostOrder(c, node, matcher)
     if matcher(node, parent):
@@ -354,11 +357,10 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
     #    assert False
 
 
-def main(argv):
-    filename = argv[0]
-    ast = parse_file(filename, use_cpp=True)
-    meta_info = meta.MetaInfo(ast)
-
+# ================================================================================
+#
+# ================================================================================
+def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     ConvertPostToPreIncDec(ast)
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
@@ -383,6 +385,12 @@ def main(argv):
 
     ConfirmAbsenceOfUnsupportedFeatures(ast)
 
+
+def main(argv):
+    filename = argv[0]
+    ast = parse_file(filename, use_cpp=True)
+    meta_info = meta.MetaInfo(ast)
+    Canonicalize(ast, meta_info)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 

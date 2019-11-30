@@ -7,8 +7,17 @@ It is currently developed in Python on top of Eli Bendersky
 (pycparser)[https://github.com/eliben/pycparser] lexer/parser for C99.
 
 The project still has a along way to go. If you are looking for something more
-mature, you might save yourself some time by looking at the survey of other C-compilers which 
-can be found below.
+mature, you might save yourself some time by looking at the survey of other C-compilers
+which  can be found below.
+
+## Project Status
+
+* the supported part of the C language is whatever is in `Tests/*c`
+  (this implies that the development is test driven) 
+* the canonicalizer is already useful. It transforms C programs into equivalents programs 
+  that use a smaller subset of the C language. For example, canonicalized programs do not
+  use pre/post in-/decrement and do not have for or while loops. 
+* no backend yet 
 
 ## Highlevel Overview
 
@@ -34,13 +43,19 @@ The compilation is split into the following phases:
    code.
   
  * Code emission
-  
-## Project Status
 
-* the supported part of the C language is whatever is in Tests/*c
-* no backend yet
+## Development
 
+* **Python3** the code uses Python3 exclusively
 
+* **Tests** are in the `Tests/` subdirectory and can be run by running `make`
+
+* **Test-Driven** the code usually does not support features or handles cases that are
+  not covered by tests. Instead the code is littered with assert statements.
+
+* **Type-Annotations** the code is using type annotations as much as possible, cf.:
+  [Introduction](https://realpython.com/python-type-checking/),
+  [Cheat Sheet](https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html)
 ## Survey of other open source c-compiler projects
 
 ## chibicc

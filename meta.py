@@ -27,7 +27,7 @@ cases of the C language.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 from pycparser import c_ast, parse_file
 
@@ -174,7 +174,6 @@ def VerifySymbolLinks(node: c_ast.Node, symbol_links, strict=True):
         return
 
 
-
 def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
     if _IsNewScope(node):
         sym_tab.push_scope()
@@ -215,7 +214,7 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
         return
 
 
-_ALLOWED_TYPE_LINKS = (c_ast.ParamList,   # for ExpressionList which are function arguments
+_ALLOWED_TYPE_LINKS = (c_ast.ParamList,  # for ExpressionList which are function arguments
                        c_ast.ArrayDecl,
                        c_ast.PtrDecl,
                        c_ast.IdentifierType,
@@ -239,10 +238,8 @@ class TypeTab:
         self.links[node] = type
 
 
-def GetTypeForDecl(decl: c_ast.Node):
-    if isinstance(decl, c_ast.IdentifierType):
-        return decl
-    elif isinstance(decl, c_ast.TypeDecl):
+def GetTypeForDecl(decl: Union[c_ast.TypeDecl, c_ast.FuncDecl, c_ast.ArrayDecl]):
+    if isinstance(decl, c_ast.TypeDecl):
         # for simple decl extract the type
         if isinstance(decl.type, c_ast.IdentifierType):
             return common.GetCanonicalIdentifierType(decl.type.names)
@@ -360,7 +357,7 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct
     member = _FindStructMember(struct, field)
     logging.info("STRUCT_DEREF base %s (%s) field %s (%s)",
                  common.NodePrettyPrint(node.name), TypePrettyPrint(struct),
-                 common.NodePrettyPrint(field), TypePrettyPrint(GetTypeForDecl(member.type)))
+                 common.NodePrettyPrint(field), TypePrettyPrint(member.type))
 
     sym_links[field] = member
     return GetTypeForDecl(member.type)
@@ -438,7 +435,6 @@ def VerifyTypeLinks(node: c_ast.Node, type_links):
         type = type_links.get(node)
         assert type is not None, node
         isinstance(type, _ALLOWED_TYPE_LINKS)
-
 
 
 class MetaInfo:
