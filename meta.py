@@ -273,6 +273,7 @@ INT_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["int"])
 
 STRING_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["string"])
 
+
 def TypePrettyPrint(decl):
     if decl is None:
         return "none"

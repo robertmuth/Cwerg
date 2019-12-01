@@ -197,6 +197,30 @@ def ReplaceNode(parent, old_node, new_node):
             parent.iffalse = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.Assignment):
+        if parent.lvalue is old_node:
+            parent.lvalue = new_node
+        elif parent.rvalue is old_node:
+            parent.rvalue = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.Cast):
+        if parent.expr is old_node:
+            parent.expr = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.Return):
+        if parent.expr is old_node:
+            parent.expr = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.ArrayRef):
+        if parent.name is old_node:
+            parent.name = new_node
+        elif parent.subscript is old_node:
+            parent.subscript = new_node
+        else:
+            assert False, parent
     else:
         assert False, parent
 
