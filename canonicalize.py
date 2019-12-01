@@ -20,9 +20,9 @@ import printf_transform
 
 __all__ = ["Canonicalize"]
 
-CONST_ZERO = c_ast.Constant("int", 0)
+CONST_ZERO = c_ast.Constant("int", "0")
 
-CONST_ONE = c_ast.Constant("int", 1)
+CONST_ONE = c_ast.Constant("int", "1")
 
 label_counter = 0
 
@@ -39,6 +39,16 @@ def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
         res += FindMatchingNodesPostOrder(c, node, matcher)
     if matcher(node, parent):
         res.append((node, parent))
+    return res
+
+
+def FindMatchingNodesPreOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
+    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
+    if matcher(node, parent):
+        res.append((node, parent))
+    for c in node:
+        res += FindMatchingNodesPreOrder(c, node, matcher)
+
     return res
 
 
@@ -85,9 +95,12 @@ def MakeCast(identifier_type, node):
     return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], identifier_type)), node)
 
 
-def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
+def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info, skip_constants):
+    def constant_check(node):
+        return not skip_constants or not isinstance(node, c_ast.Constant)
+
     for c in node:
-        AddExplicitCasts(c, node, meta_info)
+        AddExplicitCasts(c, node, meta_info, skip_constants)
 
     if isinstance(node, c_ast.BinaryOp):
         tl = meta_info.type_links[node.left]
@@ -96,10 +109,10 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
             return
 
         cmp = common.TypeCompare(tl, tr)
-        if cmp == "<":
+        if cmp == "<" and constant_check(node.left):
             node.left = MakeCast(tr, node.left)
             meta_info.type_links[node.left] = tr
-        elif cmp == ">":
+        elif cmp == ">" and constant_check(node.right):
             node.right = MakeCast(tl, node.right)
             meta_info.type_links[node.right] = tl
 
@@ -108,7 +121,7 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
         right = meta_info.type_links[node.rvalue]
         if not isinstance(left, c_ast.IdentifierType) or not isinstance(right, c_ast.IdentifierType):
             return
-        if left is not right:
+        if left is not right and constant_check(node.rvalue):
             node.rvalue = MakeCast(left, node.rvalue)
             meta_info.type_links[node.rvalue] = left
 
@@ -120,7 +133,7 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info):
     # elif isinstance(node, c_ast.FuncCall):
     #     pass
     elif isinstance(node, c_ast.Return):
-        if node.expr:
+        if node.expr and constant_check(node.expr):
             src = meta_info.type_links[node.expr]
             dst = meta_info.type_links[node]
             if not isinstance(src, c_ast.IdentifierType) or not isinstance(dst, c_ast.IdentifierType):
@@ -341,6 +354,69 @@ def ConvertForLoop(ast, meta_info):
 
 # ================================================================================
 #
+# Note the ArrayRefs, e.g.
+# board[i][j])
+# are parsed left to right
+#  ArrayRef:
+#      ArrayRef:
+#          ID: board
+#           ID: i
+#      ID: j
+# But the ArrayDecls, e.g.
+# char board[10][20];
+# are parsed right to left
+#   ArrayDecl: []
+#       ArrayDecl: []
+#           TypeDecl: board, []
+#               IdentifierType: ['char']
+#           Constant: int, 20
+#       Constant: int, 10
+# ================================================================================
+def GetStride(node):
+    stride = 1
+    while node and isinstance(node, c_ast.ArrayDecl):
+        assert isinstance(node.dim, c_ast.Constant), node.dim
+        assert node.dim.type == "int"
+        stride *= int(node.dim.value)
+        node = node.type
+    print ("STRIDE", stride)
+    return stride
+
+
+def ArrayRefReduceLevel(node, type):
+    new_node = None
+    new_type = None
+    stride = 1
+    if isinstance(type, c_ast.ArrayDecl):
+        assert isinstance(node, (c_ast.ID, c_ast.ArrayRef)), node
+        return node, type.type, GetStride(type.type)
+    else:
+        assert False, node
+
+
+def ConvertArrayIndexToPointerDereference(ast, meta_info):
+    def IsArrayRefChain(node, parent):
+        # this may need some extra checks to ensure the chain is for the  same type
+        return isinstance(node, c_ast.ArrayRef) and not isinstance(parent, c_ast.ArrayRef)
+
+    candidates = FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
+    for node, parent in candidates:
+        print ("NODE", count, node)
+        new_node, new_type, stride = ArrayRefReduceLevel(node.name, meta_info.type_links[node.name])
+        meta_info.type_links[new_node] = new_type
+        new_subscript = node.subscript
+        if stride != 1:
+            new_subscript = c_ast.BinaryOp("*", node.subscript, c_ast.Constant("int", stride))
+            meta_info.type_links[new_subscript] = meta_info.type_links[node.subscript]
+            meta_info.type_links[new_subscript.right] = common.GetCanonicalIdentifierType(["int"])
+        deref = c_ast.UnaryOp("*", c_ast.BinaryOp("+", new_node, new_subscript))
+        meta_info.type_links[deref.expr] = new_type
+        meta_info.type_links[deref] = meta_info.type_links[node]  # expression has not changed
+        common.ReplaceNode(parent, node, deref)
+
+
+# ================================================================================
+#
 # ================================================================================
 def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
     for c in node:
@@ -372,15 +448,19 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    AddExplicitCasts(ast, ast, meta_info)
-    meta_info.CheckConsistency(ast)
-
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     ConvertWhileLoop(ast, meta_info)
     ConvertForLoop(ast, meta_info)
+    meta_info.CheckConsistency(ast)
 
+    #ConvertArrayIndexToPointerDereference(ast, meta_info)
+    #meta_info.CheckConsistency(ast)
+
+    # This should go last so that we do not have worry to mess this
+    # up in other phases.
+    AddExplicitCasts(ast, ast, meta_info, False)
     meta_info.CheckConsistency(ast)
 
     ConfirmAbsenceOfUnsupportedFeatures(ast)
