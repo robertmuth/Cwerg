@@ -8,7 +8,7 @@ from pycparser import c_ast
 import common
 import meta
 
-__all__ = ["TokenizeFormatString", "FormatOptions"]
+__all__ = ["TokenizeFormatString", "FormatOptions", "PrintfSplitterTransform"]
 
 PRINTF_OPTION = re.compile(r"%([-+ 0]*)([0-9]*)([.][0-9]+)?([lqh]+)?([cduoxefgsp])")
 
