@@ -33,25 +33,6 @@ def GetLabel():
     return "label_%s" % label_counter
 
 
-def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
-    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
-    for c in node:
-        res += FindMatchingNodesPostOrder(c, node, matcher)
-    if matcher(node, parent):
-        res.append((node, parent))
-    return res
-
-
-def FindMatchingNodesPreOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
-    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
-    if matcher(node, parent):
-        res.append((node, parent))
-    for c in node:
-        res += FindMatchingNodesPreOrder(c, node, matcher)
-
-    return res
-
-
 # ================================================================================
 # Remove void in favor of empty function argument expressions.
 # E.g.:
@@ -208,7 +189,7 @@ def DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
 
 
 def PrintfSplitter(ast: c_ast.Node, meta: meta.MetaInfo):
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsSuitablePrintf)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsSuitablePrintf)
 
     for call, parent in candidates:
         DoPrintfSplitter(call, parent, meta)
@@ -230,7 +211,7 @@ def IsSuitablePostIncDec(node, parent):
 
 
 def ConvertPostToPreIncDec(ast: c_ast.Node):
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsSuitablePostIncDec)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsSuitablePostIncDec)
 
     for node, parent in candidates:
         node.op = node.op[1:]  # strip out the leading "p"
@@ -257,7 +238,7 @@ def IsExprOfTypeBoolInt(node: c_ast):
 
 
 def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsNodeRequiringBoolInt)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsNodeRequiringBoolInt)
     meta_info.type_links[CONST_ZERO] = meta.INT_IDENTIFIER_TYPE
     for node, parent in candidates:
         if isinstance(node, c_ast.If):
@@ -289,7 +270,7 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
     def IsPreIncDec(node, parent):
         return isinstance(node, c_ast.UnaryOp) and node.op in common.PRE_INC_DEC_OPS
 
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsPreIncDec)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsPreIncDec)
     meta_info.type_links[CONST_ONE] = meta.INT_IDENTIFIER_TYPE
 
     for node, parent in candidates:
@@ -302,11 +283,11 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
 # ================================================================================
 #
 # ================================================================================
-def ConvertWhileLoop(ast, meta_info):
+def ConvertWhileLoop(ast):
     def IsWhileLoop(node, _):
         return isinstance(node, (c_ast.DoWhile, c_ast.While))
 
-    candidates = FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
         loop_label = GetLabel()
         test_label = GetLabel()
@@ -333,8 +314,8 @@ def ExtractForInitStatements(node):
         return [node]
 
 
-def ConvertForLoop(ast, meta_info):
-    candidates: List[Tuple[c_ast.For, c_ast.Node]] = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
+def ConvertForLoop(ast):
+    candidates: List[Tuple[c_ast.For, c_ast.Node]] = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
     for node,  parent in candidates:
         loop_label = GetLabel()
         next_label = GetLabel()
@@ -424,7 +405,7 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
         # this may need some extra checks to ensure the chain is for the  same type
         return isinstance(node, c_ast.ArrayRef) and not isinstance(parent, c_ast.ArrayRef)
 
-    candidates: List[Tuple[c_ast.ArrayRef, c_ast.Node]] = FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
+    candidates: List[Tuple[c_ast.ArrayRef, c_ast.Node]] = common.FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
 
 
     for node, parent in candidates:
@@ -441,7 +422,7 @@ def CollapseArrayDeclChains(ast, meta_info):
         # this may need some extra checks to ensure the chain is for the  same type
         return isinstance(node, c_ast.ArrayDecl) and not isinstance(parent, c_ast.ArrayDecl)
 
-    candidates: List[Tuple[c_ast.ArrayDecl, c_ast.Node]] = FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChain)
+    candidates: List[Tuple[c_ast.ArrayDecl, c_ast.Node]] = common.FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChain)
     for node, parent in candidates:
         pass
 
@@ -482,8 +463,8 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    ConvertWhileLoop(ast, meta_info)
-    ConvertForLoop(ast, meta_info)
+    ConvertWhileLoop(ast)
+    ConvertForLoop(ast)
     meta_info.CheckConsistency(ast)
 
     #ConvertArrayIndexToPointerDereference(ast, meta_info)

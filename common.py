@@ -240,6 +240,10 @@ def ReplaceNode(parent, old_node, new_node):
 
 
 def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
+    """ Starting at `node` recursively replace
+    all `continue` statements with `goto test_label` and
+    all `break` statements with `goto exit_label`
+    """
     if isinstance(node, c_ast.Continue):
         ReplaceNode(parent, node, c_ast.Goto(test_label))
         return
@@ -248,6 +252,7 @@ def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
         return
 
     if isinstance(node, (c_ast.While, c_ast.DoWhile, c_ast.For)):
+        # do not recurse into other loops
         return
 
     if isinstance(node, c_ast.Switch):
@@ -256,3 +261,23 @@ def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
 
     for c in node:
         ReplaceBreakAndContinue(c, node, test_label, exit_label)
+
+
+def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
+    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
+    for c in node:
+        res += FindMatchingNodesPostOrder(c, node, matcher)
+    if matcher(node, parent):
+        res.append((node, parent))
+    return res
+
+
+def FindMatchingNodesPreOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
+    res: List[Tuple[c_ast.Node, c_ast.Node]] = []
+    if matcher(node, parent):
+        res.append((node, parent))
+    for c in node:
+        res += FindMatchingNodesPreOrder(c, node, matcher)
+
+    return res
+
