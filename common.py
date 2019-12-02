@@ -161,6 +161,13 @@ def NodePrettyPrint(node: c_ast):
         return node.__class__.__name__
 
 
+def IsZeroConstant(node):
+    if not isinstance(node, c_ast.Constant): return False
+    # TODO: also support other int types
+    if node.type != "int": return False
+    return 0 == int(node.value)
+
+
 def ReplaceNode(parent, old_node, new_node):
     # TODO: add nodes as needed
     if isinstance(parent, c_ast.ExprList):
@@ -195,6 +202,13 @@ def ReplaceNode(parent, old_node, new_node):
             parent.iftrue = new_node
         elif parent.iffalse is old_node:
             parent.iffalse = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.BinaryOp):
+        if parent.left is old_node:
+            parent.left = new_node
+        elif parent.right is old_node:
+            parent.right = new_node
         else:
             assert False, parent
     elif isinstance(parent, c_ast.Assignment):
