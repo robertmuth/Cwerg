@@ -334,8 +334,8 @@ def ExtractForInitStatements(node):
 
 
 def ConvertForLoop(ast, meta_info):
-    candidates = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
-    for node, parent in candidates:
+    candidates: List[Tuple[c_ast.For, c_ast.Node]] = FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
+    for node,  parent in candidates:
         loop_label = GetLabel()
         next_label = GetLabel()
         test_label = GetLabel()
@@ -379,19 +379,44 @@ def GetStride(node):
         assert node.dim.type == "int"
         stride *= int(node.dim.value)
         node = node.type
-    print ("STRIDE", stride)
     return stride
 
 
-def ArrayRefReduceLevel(node, type):
-    new_node = None
-    new_type = None
-    stride = 1
+def GetArrayRefMultiplier(node, type):
     if isinstance(type, c_ast.ArrayDecl):
-        assert isinstance(node, (c_ast.ID, c_ast.ArrayRef)), node
-        return node, type.type, GetStride(type.type)
+        return GetStride(type)
+    elif isinstance(type, c_ast.IdentifierType):
+        return 1
     else:
-        assert False, node
+        assert False, type
+
+
+def MakeCombinedSubscript(node, meta_info):
+        subscripts = []
+        while isinstance(node, c_ast.ArrayRef):
+            #print (node)
+            #print (meta_info.type_links[node])
+            #print (node.subscript)
+            old_subscript = node.subscript
+            assert meta_info.type_links[old_subscript] in common.ALLOWED_IDENTIFIER_TYPES
+            multiplier = GetArrayRefMultiplier(node, meta_info.type_links[node])
+            if common.IsZeroConstant(old_subscript):
+                continue
+            elif multiplier == 1:
+                subscripts.append(old_subscript)
+            else:
+                new_subscript = c_ast.BinaryOp("*", old_subscript, c_ast.Constant("int", str(multiplier)))
+                subscripts.append(new_subscript)
+                meta_info.type_links[new_subscript] = meta_info.type_links[old_subscript]
+                meta_info.type_links[new_subscript.right] = common.GetCanonicalIdentifierType(["int"])
+
+            node = node.name
+        s = subscripts[0]
+        for x in subscripts[1:]:
+            s = c_ast.BinaryOp("+", s, x)
+            # TODO: compute the max type
+            meta_info.type_links[s] =  meta_info.type_links[x]
+        return node, s
 
 
 def ConvertArrayIndexToPointerDereference(ast, meta_info):
@@ -399,20 +424,26 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
         # this may need some extra checks to ensure the chain is for the  same type
         return isinstance(node, c_ast.ArrayRef) and not isinstance(parent, c_ast.ArrayRef)
 
-    candidates = FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
+    candidates: List[Tuple[c_ast.ArrayRef, c_ast.Node]] = FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
+
+
     for node, parent in candidates:
-        print ("NODE", count, node)
-        new_node, new_type, stride = ArrayRefReduceLevel(node.name, meta_info.type_links[node.name])
-        meta_info.type_links[new_node] = new_type
-        new_subscript = node.subscript
-        if stride != 1:
-            new_subscript = c_ast.BinaryOp("*", node.subscript, c_ast.Constant("int", stride))
-            meta_info.type_links[new_subscript] = meta_info.type_links[node.subscript]
-            meta_info.type_links[new_subscript.right] = common.GetCanonicalIdentifierType(["int"])
-        deref = c_ast.UnaryOp("*", c_ast.BinaryOp("+", new_node, new_subscript))
-        meta_info.type_links[deref.expr] = new_type
+        name, s = MakeCombinedSubscript(node, meta_info)
+        deref = c_ast.UnaryOp("*", c_ast.BinaryOp("+", name, s))
+        # TODO: this is totally wrong
+        meta_info.type_links[deref.expr] = meta_info.type_links[node]
         meta_info.type_links[deref] = meta_info.type_links[node]  # expression has not changed
         common.ReplaceNode(parent, node, deref)
+
+
+def CollapseArrayDeclChains(ast, meta_info):
+    def IsArrayDeclChain(node, parent):
+        # this may need some extra checks to ensure the chain is for the  same type
+        return isinstance(node, c_ast.ArrayDecl) and not isinstance(parent, c_ast.ArrayDecl)
+
+    candidates: List[Tuple[c_ast.ArrayDecl, c_ast.Node]] = FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChain)
+    for node, parent in candidates:
+        pass
 
 
 # ================================================================================
