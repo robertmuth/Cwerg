@@ -55,9 +55,7 @@ def MakeCombinedSubscript(chain_head, meta_info):
     subscripts = []
     node = chain_head
     while isinstance(node, c_ast.ArrayRef):
-        # print (node)
-        # print (meta_info.type_links[node])
-        # print (node.subscript)
+
         old_subscript = node.subscript
         assert meta_info.type_links[old_subscript] in common.ALLOWED_IDENTIFIER_TYPES
         multiplier = GetArrayRefMultiplier(node, meta_info.type_links[node])
@@ -72,17 +70,15 @@ def MakeCombinedSubscript(chain_head, meta_info):
             meta_info.type_links[new_subscript.right] = common.GetCanonicalIdentifierType(["int"])
 
         node = node.name
-        #print ("TYPE", meta_info.type_links[node])
         if not isinstance(meta_info.type_links[node], c_ast.ArrayDecl):
-            #print ("END", node)
             break
     s = subscripts[0]
     for x in subscripts[1:]:
         s = c_ast.BinaryOp("+", s, x)
         # TODO: compute the max type
         meta_info.type_links[s] = meta_info.type_links[x]
-    #print ("RESULT-NAME", node)
-    #print ("RESULT-SUBS", s)
+    #print ("OUTPUT-NAME", node)
+    #print ("OUTPUT-SUBS", s)
 
     return node, s
 
@@ -116,10 +112,6 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
         return False
 
     ref_chains = common.FindMatchingNodesPostOrder(ast, ast, IsArrayRefChainHead)
-    #print ("LENGTH", len(ref_chains))
-    #for chain_head, parent in ref_chains:
-    #    print ("HEAD", chain_head)
-    #print ("================================")
     for chain_head, parent in ref_chains:
         name, s = MakeCombinedSubscript(chain_head, meta_info)
         addr = c_ast.BinaryOp("+", name, s)

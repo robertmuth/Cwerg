@@ -306,8 +306,8 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     ConvertForLoop(ast)
     meta_info.CheckConsistency(ast)
 
-    # ConvertArrayIndexToPointerDereference(ast, meta_info)
-    # meta_info.CheckConsistency(ast)
+    arrayref_transform.ConvertArrayIndexToPointerDereference(ast, meta_info)
+    meta_info.CheckConsistency(ast)
 
     # This should go last so that we do not have worry to mess this
     # up in other phases.
