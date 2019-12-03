@@ -28,10 +28,10 @@ CONST_ONE = c_ast.Constant("int", "1")
 label_counter = 0
 
 
-def GetLabel():
+def GetLabel(prefix="label"):
     global label_counter
     label_counter += 1
-    return "label_%s" % label_counter
+    return "%s_%s" % (prefix, label_counter)
 
 
 # ================================================================================
@@ -220,9 +220,9 @@ def ConvertWhileLoop(ast):
 
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
-        loop_label = GetLabel()
-        test_label = GetLabel()
-        exit_label = GetLabel()
+        loop_label = GetLabel("while")
+        test_label = GetLabel("while_cond")
+        exit_label = GetLabel("while_exit")
         conditional = c_ast.If(node.cond, c_ast.Goto(loop_label), None)
         block = [c_ast.Label(loop_label, node.stmt),
                  c_ast.Label(test_label, conditional),
@@ -250,10 +250,10 @@ def ConvertForLoop(ast):
                                                                                        lambda n, _: isinstance(n,
                                                                                                                c_ast.For))
     for node, parent in candidates:
-        loop_label = GetLabel()
-        next_label = GetLabel()
-        test_label = GetLabel()
-        exit_label = GetLabel()
+        loop_label = GetLabel("for")
+        next_label = GetLabel("for_next")
+        test_label = GetLabel("for_cond")
+        exit_label = GetLabel("for_exit")
         goto = c_ast.Goto(loop_label)
         conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
         block = ExtractForInitStatements(node.init) + [
@@ -280,6 +280,10 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
     elif isinstance(node, c_ast.ParamList):
         params = node.params
         assert not params or not IsVoidArg(params[0])
+
+    elif isinstance(node, c_ast.ArrayRef):
+        assert False
+
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
 
