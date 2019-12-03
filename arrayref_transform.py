@@ -11,10 +11,10 @@ __all__ = ["ConvertArrayIndexToPointerDereference"]
 # Note the ArrayRefs, e.g.
 # board[i][j])
 # are parsed left to right
-#  ArrayRef:
-#      ArrayRef:
-#          ID: board
-#           ID: i
+#  ArrayRef:             --> type is char
+#      ArrayRef:         --> type is ArrayDecl(char))
+#          ID: board     --> type is ArrayDecl(ArrayDecl(char))
+#          ID: i
 #      ID: j
 # But the ArrayDecls, e.g.
 # char board[10][20];
@@ -25,6 +25,8 @@ __all__ = ["ConvertArrayIndexToPointerDereference"]
 #               IdentifierType: ['char']
 #           Constant: int, 20
 #       Constant: int, 10
+#
+# Note: this is probably the hairiest code in the project
 # ================================================================================
 def GetStride(node):
     stride = 1
@@ -41,12 +43,17 @@ def GetArrayRefMultiplier(node, type):
         return GetStride(type)
     elif isinstance(type, c_ast.IdentifierType):
         return 1
+    elif isinstance(type, c_ast.PtrDecl):
+        return 1
     else:
         assert False, type
 
 
-def MakeCombinedSubscript(node, meta_info):
+def MakeCombinedSubscript(chain_head, meta_info):
+    #print ("INPUT", chain_head)
+    assert isinstance(chain_head, c_ast.ArrayRef)
     subscripts = []
+    node = chain_head
     while isinstance(node, c_ast.ArrayRef):
         # print (node)
         # print (meta_info.type_links[node])
@@ -65,35 +72,73 @@ def MakeCombinedSubscript(node, meta_info):
             meta_info.type_links[new_subscript.right] = common.GetCanonicalIdentifierType(["int"])
 
         node = node.name
+        #print ("TYPE", meta_info.type_links[node])
+        if not isinstance(meta_info.type_links[node], c_ast.ArrayDecl):
+            #print ("END", node)
+            break
     s = subscripts[0]
     for x in subscripts[1:]:
         s = c_ast.BinaryOp("+", s, x)
         # TODO: compute the max type
         meta_info.type_links[s] = meta_info.type_links[x]
+    #print ("RESULT-NAME", node)
+    #print ("RESULT-SUBS", s)
+
     return node, s
 
 
+def CollapseArrayDeclChain(head):
+    assert isinstance(head, c_ast.ArrayDecl)
+    dim = 1
+    node = head
+    while isinstance(node, c_ast.ArrayDecl):
+        if node.dim:
+            assert isinstance(node.dim, c_ast.Constant), node.dim
+            assert node.dim.type == "int"
+            dim *= int(node.dim.value)
+        else:
+            dim = 0
+        node = node.type
+    head.type = node
+    if dim == 0:
+        head.dim = None
+    else:
+        head.dim.value = str(dim)
+
+
 def ConvertArrayIndexToPointerDereference(ast, meta_info):
-    def IsArrayRefChain(node, parent):
-        # this may need some extra checks to ensure the chain is for the  same type
-        return isinstance(node, c_ast.ArrayRef) and not isinstance(parent, c_ast.ArrayRef)
 
-    candidates: List[Tuple[c_ast.ArrayRef, c_ast.Node]] = common.FindMatchingNodesPreOrder(ast, ast, IsArrayRefChain)
+    def IsArrayRefChainHead(node, parent):
+        if not isinstance(node, c_ast.ArrayRef): return False
+        name_type = meta_info.type_links[node.name]
+        if not isinstance(name_type, c_ast.ArrayDecl): return True
+        if not isinstance(parent, c_ast.ArrayRef): return True
+        return False
 
-    for node, parent in candidates:
-        name, s = MakeCombinedSubscript(node, meta_info)
-        deref = c_ast.UnaryOp("*", c_ast.BinaryOp("+", name, s))
-        # TODO: this is totally wrong
-        meta_info.type_links[deref.expr] = meta_info.type_links[node]
-        meta_info.type_links[deref] = meta_info.type_links[node]  # expression has not changed
-        common.ReplaceNode(parent, node, deref)
+    ref_chains = common.FindMatchingNodesPostOrder(ast, ast, IsArrayRefChainHead)
+    #print ("LENGTH", len(ref_chains))
+    #for chain_head, parent in ref_chains:
+    #    print ("HEAD", chain_head)
+    #print ("================================")
+    for chain_head, parent in ref_chains:
+        name, s = MakeCombinedSubscript(chain_head, meta_info)
+        addr = c_ast.BinaryOp("+", name, s)
+         # TODO: this is totally wrong
+        meta_info.type_links[addr] = meta_info.type_links[chain_head]
+        if isinstance(meta_info.type_links[chain_head], c_ast.ArrayDecl):
+            # the array ref sequence only partially indexes the array, so the result is just an address
+            common.ReplaceNode(parent, chain_head, addr)
+        else:
+            deref = c_ast.UnaryOp("*", addr)
+            meta_info.type_links[deref] = meta_info.type_links[chain_head]  # expression has not changed
+            common.ReplaceNode(parent, chain_head, deref)
+
+    def IsArrayDeclChainHead(node, parent):
+        if not isinstance(node, c_ast.ArrayDecl): return False
+        return not isinstance(parent, c_ast.ArrayDecl)
+
+    decl_chains = common.FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChainHead)
+    for chain_head, parent in decl_chains:
+        CollapseArrayDeclChain(chain_head)
 
 
-def CollapseArrayDeclChains(ast, meta_info):
-    def IsArrayDeclChain(node, parent):
-        # this may need some extra checks to ensure the chain is for the  same type
-        return isinstance(node, c_ast.ArrayDecl) and not isinstance(parent, c_ast.ArrayDecl)
-
-    candidates: List[Tuple[c_ast.ArrayDecl, c_ast.Node]] = common.FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChain)
-    for node, parent in candidates:
-        pass
