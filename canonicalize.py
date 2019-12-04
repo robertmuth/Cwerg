@@ -1,12 +1,18 @@
 #!/usr/bin/python3
-
 """
- Canonicalize the C source:
+ Canonicalize the C source
+ Transforms the ast into a simpler one using few node classes. etc.
+ This will simplify code generation.
+ The new ast can be re=emitted as working C code to test the correctness
+ of the transformations
 
+Currently implemented
  * remove void parameter lists: foo(void) -> foo()
  * insert all implicit casts
- * replace for/while/do-while with label and gotos
-
+ * remove For,While, DoWhile nodes
+ * remove ArrayRef node
+ * remove UnaryOp("++") and UnaryOp("--") nodes
+ * printf simplifications (goal is to get rid of EllipsisParam for most programs)
 """
 
 import sys
@@ -14,10 +20,10 @@ from typing import List, Tuple
 
 from pycparser import c_ast, parse_file, c_generator
 
+import arrayref_transform
 import common
 import meta
 import printf_transform
-import arrayref_transform
 
 __all__ = ["Canonicalize"]
 

@@ -1,33 +1,36 @@
 from pycparser import c_ast
-from typing import List, Tuple
+
+"""
+This code eliminates ArrayRef nodes and replaces them  with pointer arithmetic.
+It also collapses ArrayDecl of multi-dimensional arrays.
+TODO: fix array initializers for multi-dimensional arrays.
+
+This is probably the most subtle code in the project
+
+Note the ArrayRefs, e.g.
+board[i][j])
+are parsed left to right
+ ArrayRef:             --> type is char
+     ArrayRef:         --> type is ArrayDecl(char))
+         ID: board     --> type is ArrayDecl(ArrayDecl(char))
+         ID: i
+     ID: j
+But the ArrayDecls, e.g.
+char board[10][20];
+are parsed right to left
+  ArrayDecl: []
+      ArrayDecl: []
+          TypeDecl: board, []
+              IdentifierType: ['char']
+          Constant: int, 20
+      Constant: int, 10
+"""
 
 import common
 
 __all__ = ["ConvertArrayIndexToPointerDereference"]
 
 
-# ================================================================================
-#
-# Note the ArrayRefs, e.g.
-# board[i][j])
-# are parsed left to right
-#  ArrayRef:             --> type is char
-#      ArrayRef:         --> type is ArrayDecl(char))
-#          ID: board     --> type is ArrayDecl(ArrayDecl(char))
-#          ID: i
-#      ID: j
-# But the ArrayDecls, e.g.
-# char board[10][20];
-# are parsed right to left
-#   ArrayDecl: []
-#       ArrayDecl: []
-#           TypeDecl: board, []
-#               IdentifierType: ['char']
-#           Constant: int, 20
-#       Constant: int, 10
-#
-# Note: this is probably the hairiest code in the project
-# ================================================================================
 def GetStride(node):
     stride = 1
     while node and isinstance(node, c_ast.ArrayDecl):
@@ -50,7 +53,7 @@ def GetArrayRefMultiplier(node, type):
 
 
 def MakeCombinedSubscript(chain_head, meta_info):
-    #print ("INPUT", chain_head)
+    # print ("INPUT", chain_head)
     assert isinstance(chain_head, c_ast.ArrayRef)
     subscripts = []
     node = chain_head
@@ -77,8 +80,8 @@ def MakeCombinedSubscript(chain_head, meta_info):
         s = c_ast.BinaryOp("+", s, x)
         # TODO: compute the max type
         meta_info.type_links[s] = meta_info.type_links[x]
-    #print ("OUTPUT-NAME", node)
-    #print ("OUTPUT-SUBS", s)
+    # print ("OUTPUT-NAME", node)
+    # print ("OUTPUT-SUBS", s)
 
     return node, s
 
@@ -103,7 +106,6 @@ def CollapseArrayDeclChain(head):
 
 
 def ConvertArrayIndexToPointerDereference(ast, meta_info):
-
     def IsArrayRefChainHead(node, parent):
         if not isinstance(node, c_ast.ArrayRef): return False
         name_type = meta_info.type_links[node.name]
@@ -115,7 +117,7 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
     for chain_head, parent in ref_chains:
         name, s = MakeCombinedSubscript(chain_head, meta_info)
         addr = c_ast.BinaryOp("+", name, s)
-         # TODO: this is totally wrong
+        # TODO: this is totally wrong
         meta_info.type_links[addr] = meta_info.type_links[chain_head]
         if isinstance(meta_info.type_links[chain_head], c_ast.ArrayDecl):
             # the array ref sequence only partially indexes the array, so the result is just an address
@@ -132,5 +134,3 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
     decl_chains = common.FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChainHead)
     for chain_head, parent in decl_chains:
         CollapseArrayDeclChain(chain_head)
-
-

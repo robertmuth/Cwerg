@@ -73,6 +73,10 @@ OPS_REQUIRING_BOOL_INT = {
     "!",  # unary
 }
 
+# Map a canonicalized base type to a `level` and a canonical IdentifierType.
+# The `level` encodes C's implicit conversion rules:
+# if two values are inputs to a BinaryOp the must be implicitly converted to
+# the type with the larger level.
 # Note that the standard dictates: signed x unsigned -> unsigned
 # (citation needed)
 CANONICAL_BASE_TYPE = {
@@ -256,7 +260,7 @@ def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
         return
 
     if isinstance(node, c_ast.Switch):
-        # breaks inside switches have their own meaning
+        # `break`s inside switches have their own meaning but we still need to replace `continue`s
         exit_label = None
 
     for c in node:
