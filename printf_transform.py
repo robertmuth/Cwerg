@@ -82,17 +82,6 @@ def _IsSuitablePrintf(node: c_ast.Node, _):
     return True
 
 
-# TODO: update sym and type tabs
-def GetStatementList(node: c_ast.Node):
-    if isinstance(node, (c_ast.Default, c_ast.Case)):
-        return node.stmts
-    elif isinstance(node, c_ast.Compound):
-        return node.block_items
-    else:
-        # return None
-        assert False, node
-
-
 def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node]):
     args = [c_ast.Constant("string", '"' + fmt_str + '"')]
     if arg_node: args.append(arg_node)
@@ -105,7 +94,7 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
     if not fmt_pieces: return
     if len(fmt_pieces) == 1: return
 
-    stmts = GetStatementList(parent)
+    stmts = common.GetStatementList(parent)
     if not stmts:
         assert False, parent
 

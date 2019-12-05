@@ -178,14 +178,14 @@ def ReplaceNode(parent, old_node, new_node):
         for n, e in enumerate(parent.exprs):
             if e is old_node:
                 parent.exprs[n] = new_node
-                return
+                break
         else:
             assert False, parent
     elif isinstance(parent, c_ast.Compound):
         for n, e in enumerate(parent.block_items):
             if e is old_node:
                 parent.block_items[n] = new_node
-                return
+                break
         else:
             assert False, parent
     elif isinstance(parent, c_ast.For):
@@ -241,6 +241,7 @@ def ReplaceNode(parent, old_node, new_node):
             assert False, parent
     else:
         assert False, parent
+    return new_node
 
 
 def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
@@ -265,6 +266,16 @@ def ReplaceBreakAndContinue(node, parent, test_label, exit_label):
 
     for c in node:
         ReplaceBreakAndContinue(c, node, test_label, exit_label)
+
+
+def GetStatementList(node: c_ast.Node):
+    if isinstance(node, (c_ast.Default, c_ast.Case)):
+        return node.stmts
+    elif isinstance(node, c_ast.Compound):
+        return node.block_items
+    else:
+        # return None
+        assert False, node
 
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
