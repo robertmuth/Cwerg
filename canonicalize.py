@@ -301,7 +301,7 @@ def ConvertForLoop(ast):
 #
 # ================================================================================
 def IsStateChange(node):
-    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Goto)):
+    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Goto, c_ast.Return)):
         return True
     if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
         return True
@@ -345,14 +345,12 @@ def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, parent, forwards: Mappin
         ForwardGotosAndRemoveUnusedLabels(c, node, forwards)
 
     if isinstance(node, c_ast.Goto):
-        return
         while node.name in forwards:
             node.name = forwards[node.name]
     elif isinstance(node, c_ast.Label) and node.name in forwards:
-        return
         stmts = common.GetStatementList(parent)
         assert stmts, parent
-        del stmts[node]
+        stmts.remove(node)
 
 
 def PruneUselessLabels(fun: c_ast.Node):
