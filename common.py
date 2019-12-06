@@ -232,6 +232,11 @@ def ReplaceNode(parent, old_node, new_node):
             parent.expr = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.Label):
+        if parent.stmt is old_node:
+            parent.stmt = new_node
+        else:
+            assert False, parent
     elif isinstance(parent, c_ast.ArrayRef):
         if parent.name is old_node:
             parent.name = new_node
@@ -274,8 +279,7 @@ def GetStatementList(node: c_ast.Node):
     elif isinstance(node, c_ast.Compound):
         return node.block_items
     else:
-        # return None
-        assert False, node
+        return None
 
 
 def FindMatchingNodesPostOrder(node: c_ast.Node, parent: c_ast.Node, matcher):

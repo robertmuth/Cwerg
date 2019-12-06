@@ -23,6 +23,7 @@ from pycparser import c_ast, parse_file, c_generator
 import arrayref_transform
 import common
 import meta
+import if_transform
 import printf_transform
 
 __all__ = ["Canonicalize"]
@@ -242,6 +243,25 @@ def ConvertWhileLoop(ast):
 # ================================================================================
 #
 # ================================================================================
+def EliminateExpressionLists(ast):
+    """This is works best after for loop conversions
+    TODO: make this work for all cases
+    currently we duplicate some work in the "if transform"
+    """
+    def IsExpressionList(node, parent):
+        return isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall)
+
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsExpressionList)
+    for node, parent in candidates:
+        stmts = common.GetStatementList(parent)
+        if stmts:
+            pos = stmts.index(node)
+            stmts[pos:pos+1] = node.exprs
+
+
+# ================================================================================
+#
+# ================================================================================
 def ExtractForInitStatements(node):
     if node is None:
         return []
@@ -275,9 +295,9 @@ def ConvertForLoop(ast):
 # ================================================================================
 #
 # ================================================================================
-def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
+def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
     for c in node:
-        ConfirmAbsenceOfUnsupportedFeatures(c)
+        ConfirmAbsenceOfUnsupportedFeatures(c, node)
 
     if isinstance(node, c_ast.UnaryOp):
         # assert node.op not in common.POST_INC_DEC_OPS
@@ -289,6 +309,10 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node):
 
     elif isinstance(node, c_ast.ArrayRef):
         assert False
+
+    elif isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall):
+        assert False, parent
+
 
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
@@ -306,14 +330,19 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     printf_transform.PrintfSplitterTransform(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    FixNodeRequiringBoolInt(ast, meta_info)
-    meta_info.CheckConsistency(ast)
-
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     ConvertWhileLoop(ast)
     ConvertForLoop(ast)
+    meta_info.CheckConsistency(ast)
+
+    EliminateExpressionLists(ast)
+
+    if_transform.IfTransform(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
+    FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     arrayref_transform.ConvertArrayIndexToPointerDereference(ast, meta_info)
@@ -324,7 +353,7 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     AddExplicitCasts(ast, ast, meta_info, False)
     meta_info.CheckConsistency(ast)
 
-    ConfirmAbsenceOfUnsupportedFeatures(ast)
+    ConfirmAbsenceOfUnsupportedFeatures(ast, ast)
 
 
 def main(argv):
