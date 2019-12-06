@@ -233,8 +233,8 @@ def ConvertWhileLoop(ast):
         test_label = GetLabel("while_cond")
         exit_label = GetLabel("while_exit")
         conditional = c_ast.If(node.cond, c_ast.Goto(loop_label), None)
-        block = [c_ast.Label(loop_label, node.stmt),
-                 c_ast.Label(test_label, conditional),
+        block = [c_ast.Label(loop_label, c_ast.EmptyStatement()), node.stmt,
+                 c_ast.Label(test_label, c_ast.EmptyStatement()), conditional,
                  c_ast.Label(exit_label, c_ast.EmptyStatement())]
         if isinstance(node, c_ast.While):
             block = [c_ast.Goto(test_label)] + block
@@ -275,8 +275,7 @@ def ExtractForInitStatements(node):
 
 def ConvertForLoop(ast):
     candidates: List[Tuple[c_ast.For, c_ast.Node]] = common.FindMatchingNodesPostOrder(ast, ast,
-                                                                                       lambda n, _: isinstance(n,
-                                                                                                               c_ast.For))
+                                                                                       lambda n, _: isinstance(n, c_ast.For))
     for node, parent in candidates:
         loop_label = GetLabel("for")
         next_label = GetLabel("for_next")
@@ -286,9 +285,11 @@ def ConvertForLoop(ast):
         conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
         block = ExtractForInitStatements(node.init) + [
             c_ast.Goto(test_label),
-            c_ast.Label(loop_label, node.stmt),
+            c_ast.Label(loop_label,c_ast.EmptyStatement()),
+            node.stmt,
             c_ast.Label(next_label, node.next if node.next else c_ast.EmptyStatement()),
-            c_ast.Label(test_label, conditional),
+            c_ast.Label(test_label, c_ast.EmptyStatement()),
+            conditional,
             c_ast.Label(exit_label, c_ast.EmptyStatement())]
         common.ReplaceBreakAndContinue(node.stmt, node, next_label, exit_label)
         common.ReplaceNode(parent, node, c_ast.Compound(block))
@@ -304,7 +305,7 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
     if isinstance(node, c_ast.UnaryOp):
         # assert node.op not in common.POST_INC_DEC_OPS
         assert node.op not in common.PRE_INC_DEC_OPS
-        assert node.op != "!"
+        assert node.op != "!wc "
 
     elif isinstance(node, c_ast.BinaryOp):
         # assert node.op not in common.POST_INC_DEC_OPS
@@ -331,10 +332,8 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
 # ================================================================================
 #
 # ================================================================================
-def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
+def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     ConvertPostToPreIncDec(ast)
-    RemoveVoidParam(ast)
-    CanonicalizeBaseTypes(ast)
     meta_info.CheckConsistency(ast)
 
     printf_transform.PrintfSplitterTransform(ast, meta_info)
@@ -356,6 +355,20 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+
+
+
+# ================================================================================
+#
+# ================================================================================
+def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
+    RemoveVoidParam(ast)
+    CanonicalizeBaseTypes(ast)
+
+    for node in ast:
+        if isinstance(node, c_ast.FuncDef):
+            CanonicalizeFun(node, meta_info)
+
     arrayref_transform.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
@@ -365,7 +378,6 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     meta_info.CheckConsistency(ast)
 
     ConfirmAbsenceOfUnsupportedFeatures(ast, ast)
-
 
 def main(argv):
     filename = argv[0]
