@@ -18,14 +18,14 @@ Currently implemented
 """
 
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Mapping
 
 from pycparser import c_ast, parse_file, c_generator
 
 import arrayref_transform
 import common
-import meta
 import if_transform
+import meta
 import printf_transform
 
 __all__ = ["Canonicalize"]
@@ -250,6 +250,7 @@ def EliminateExpressionLists(ast):
     TODO: make this work for all cases
     currently we duplicate some work in the "if transform"
     """
+
     def IsExpressionList(node, parent):
         return isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall)
 
@@ -258,7 +259,7 @@ def EliminateExpressionLists(ast):
         stmts = common.GetStatementList(parent)
         if stmts:
             pos = stmts.index(node)
-            stmts[pos:pos+1] = node.exprs
+            stmts[pos:pos + 1] = node.exprs
 
 
 # ================================================================================
@@ -275,7 +276,8 @@ def ExtractForInitStatements(node):
 
 def ConvertForLoop(ast):
     candidates: List[Tuple[c_ast.For, c_ast.Node]] = common.FindMatchingNodesPostOrder(ast, ast,
-                                                                                       lambda n, _: isinstance(n, c_ast.For))
+                                                                                       lambda n, _: isinstance(n,
+                                                                                                               c_ast.For))
     for node, parent in candidates:
         loop_label = GetLabel("for")
         next_label = GetLabel("for_next")
@@ -285,7 +287,7 @@ def ConvertForLoop(ast):
         conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
         block = ExtractForInitStatements(node.init) + [
             c_ast.Goto(test_label),
-            c_ast.Label(loop_label,c_ast.EmptyStatement()),
+            c_ast.Label(loop_label, c_ast.EmptyStatement()),
             node.stmt,
             c_ast.Label(next_label, node.next if node.next else c_ast.EmptyStatement()),
             c_ast.Label(test_label, c_ast.EmptyStatement()),
@@ -293,6 +295,78 @@ def ConvertForLoop(ast):
             c_ast.Label(exit_label, c_ast.EmptyStatement())]
         common.ReplaceBreakAndContinue(node.stmt, node, next_label, exit_label)
         common.ReplaceNode(parent, node, c_ast.Compound(block))
+
+
+# ================================================================================
+#
+# ================================================================================
+def IsStateChange(node):
+    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Goto)):
+        return True
+    if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
+        return True
+    return False
+
+
+def IsStateChangeAndFollowChildren(node):
+    if isinstance(node, (c_ast.For, c_ast.If, c_ast.While, c_ast.DoWhile)):
+        return True
+    if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
+        return True
+    return False
+
+
+def SerializeLabels(node: c_ast.Node):
+    """this is meant to be very conservative
+    The idea is to put all the Label nodes in order into a list
+    separated by one or more None entries if there is intervening
+    code. Labels which are adjacent can be merged
+    """
+    out = []
+    if isinstance(node, c_ast.Label):
+        out.append(node)
+        out += SerializeLabels(node.stmt)
+    elif isinstance(node, c_ast.EmptyStatement):
+        pass
+    elif IsStateChange(node):
+        out.append(None)
+    elif IsStateChangeAndFollowChildren(node):
+        out.append(None)
+        for c in node:
+            out += SerializeLabels(c)
+    else:
+        for c in node:
+            out += SerializeLabels(c)
+    return out
+
+
+def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, parent, forwards: Mapping[str, str]):
+    for c in node:
+        ForwardGotosAndRemoveUnusedLabels(c, node, forwards)
+
+    if isinstance(node, c_ast.Goto):
+        return
+        while node.name in forwards:
+            node.name = forwards[node.name]
+    elif isinstance(node, c_ast.Label) and node.name in forwards:
+        return
+        stmts = common.GetStatementList(parent)
+        assert stmts, parent
+        del stmts[node]
+
+
+def PruneUselessLabels(fun: c_ast.Node):
+    serialized = SerializeLabels(fun)
+    #print (serialized)
+    forwards = {}
+    last = None
+    for item in serialized:
+        if item is None or last is None:
+            pass
+        else:
+            forwards[last.name] = item.name
+        last = item
+    ForwardGotosAndRemoveUnusedLabels(fun, fun, forwards)
 
 
 # ================================================================================
@@ -352,10 +426,10 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     if_transform.ShortCircuitIfTransform(ast)
     meta_info.CheckConsistency(ast)
 
+    PruneUselessLabels(ast)
+
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
-
-
 
 
 # ================================================================================
@@ -378,6 +452,7 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     meta_info.CheckConsistency(ast)
 
     ConfirmAbsenceOfUnsupportedFeatures(ast, ast)
+
 
 def main(argv):
     filename = argv[0]
