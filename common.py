@@ -1,5 +1,6 @@
-from pycparser import c_ast
 from typing import List
+
+from pycparser import c_ast
 
 EXPRESSION_NODES = (c_ast.ArrayRef,
                     c_ast.Assignment,
@@ -172,6 +173,11 @@ def IsZeroConstant(node):
     return 0 == int(node.value)
 
 
+def IsEmpty(node):
+    return (node is None or isinstance(node, c_ast.EmptyStatement) or
+            isinstance(node, c_ast.Compound) and len(node.block_items) == 0)
+
+
 def ReplaceNode(parent, old_node, new_node):
     # TODO: add nodes as needed
     if isinstance(parent, c_ast.ExprList):
@@ -299,4 +305,3 @@ def FindMatchingNodesPreOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
         res += FindMatchingNodesPreOrder(c, node, matcher)
 
     return res
-

@@ -313,6 +313,9 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
     elif isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall):
         assert False, parent
 
+    elif isinstance(node, c_ast.If):
+        assert isinstance(node.iftrue, c_ast.Goto), node
+        assert isinstance(node.iffalse, c_ast.Goto), node
 
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
