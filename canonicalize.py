@@ -4,7 +4,9 @@
  Transforms the ast into a simpler one using few node classes. etc.
  This will simplify code generation.
  The new ast can be re=emitted as working C code to test the correctness
- of the transformations
+ of the transformations.
+ However, we play at little fast and loose with Sequence Points
+ (https://en.wikipedia.org/wiki/Sequence_point)
 
 Currently implemented
  * remove void parameter lists: foo(void) -> foo()
@@ -302,6 +304,11 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
     if isinstance(node, c_ast.UnaryOp):
         # assert node.op not in common.POST_INC_DEC_OPS
         assert node.op not in common.PRE_INC_DEC_OPS
+        assert node.op != "!"
+
+    elif isinstance(node, c_ast.BinaryOp):
+        # assert node.op not in common.POST_INC_DEC_OPS
+        assert node.op not in ["&&", "||"]
 
     elif isinstance(node, c_ast.ParamList):
         params = node.params
@@ -342,7 +349,8 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
 
     EliminateExpressionLists(ast)
 
-    if_transform.IfTransform(ast, meta_info)
+    if_transform.IfTransform(ast)
+    if_transform.ShortCircuitIfTransform(ast)
     meta_info.CheckConsistency(ast)
 
     FixNodeRequiringBoolInt(ast, meta_info)

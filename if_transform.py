@@ -20,7 +20,7 @@ def GetLabel(prefix="branch"):
     return "%s_%s" % (prefix, branch_counter)
 
 
-def ConvertToGotos(if_stmt: c_ast.If, parent, meta):
+def ConvertToGotos(if_stmt: c_ast.If, parent):
     if (isinstance(if_stmt.iftrue, c_ast.Goto) and
             isinstance(if_stmt.iffalse, c_ast.Goto) and
             not isinstance(if_stmt.cond, c_ast.ExprList)):
@@ -62,11 +62,51 @@ def ConvertToGotos(if_stmt: c_ast.If, parent, meta):
     stmts[pos: pos+1]  = seq
 
 
-def IfTransform(ast: c_ast.Node, meta: meta.MetaInfo):
+def IfTransform(ast: c_ast.Node):
     """ make sure that there is not expression list inside the condition and that the
      true and false consist of at most a goto.
      This should be run after the loop conversions"""
     candidates = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.If))
 
     for if_stmt, parent in candidates:
-        ConvertToGotos(if_stmt, parent, meta)
+        ConvertToGotos(if_stmt, parent)
+
+
+def ConvertShortCircuitIf(if_stmt: c_ast.If, parent: c_ast.Node):
+    cond = if_stmt.cond
+    if isinstance(cond, c_ast.UnaryOp) and cond.op == "!":
+        # for a not not just swap the branches
+        if_stmt.cond = cond.expr
+        if_stmt.iffalse, if_stmt.iftrue = if_stmt.iftrue, if_stmt.iffalse
+        ConvertShortCircuitIf(if_stmt, parent)
+        return
+
+    if not isinstance(cond, c_ast.BinaryOp):
+        return
+
+    if cond.op != "&&" and cond.op != "||":
+        return
+
+    labelnext = GetLabel(prefix="branch")
+    if cond.op == "&&":
+        if_stmt2 = c_ast.If(cond.left, c_ast.Goto(labelnext), if_stmt.iffalse)
+    else:
+        assert cond.op == "||"
+        if_stmt2 = c_ast.If(cond.left, if_stmt.iftrue, c_ast.Goto(labelnext))
+    if_stmt.cond = cond.right
+
+    stmts = common.GetStatementList(parent)
+    # this is easy to fix but basically guaranteed after running IfTransform
+    assert stmts, parent
+    pos = stmts.index(if_stmt)
+    stmts[pos:pos+1] = [if_stmt2, c_ast.Label(labelnext, c_ast.EmptyStatement()), if_stmt]
+    ConvertShortCircuitIf(if_stmt2, parent)
+    ConvertShortCircuitIf(if_stmt, parent)
+
+
+def ShortCircuitIfTransform(ast: c_ast.Node):
+    """Requires that if statements only have gotos"""
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.If))
+
+    for if_stmt, parent in candidates:
+        ConvertShortCircuitIf(if_stmt, parent)
