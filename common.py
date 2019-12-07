@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from pycparser import c_ast
 
@@ -284,6 +284,8 @@ def GetStatementList(node: c_ast.Node):
         return node.stmts
     elif isinstance(node, c_ast.Compound):
         return node.block_items
+    elif isinstance(node, (c_ast.Case, c_ast.Default)):
+        return node.stmts
     else:
         return None
 

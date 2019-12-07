@@ -22,11 +22,11 @@ from typing import List, Tuple, Mapping
 
 from pycparser import c_ast, parse_file, c_generator
 
-import arrayref_transform
+import transform_arrayref
 import common
-import if_transform
+import transform_if
 import meta
-import printf_transform
+import transform_printf
 
 __all__ = ["Canonicalize"]
 
@@ -417,7 +417,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     ConvertPostToPreIncDec(ast)
     meta_info.CheckConsistency(ast)
 
-    printf_transform.PrintfSplitterTransform(ast, meta_info)
+    transform_printf.PrintfSplitterTransform(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
@@ -429,8 +429,8 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 
     EliminateExpressionLists(ast)
 
-    if_transform.IfTransform(ast)
-    if_transform.ShortCircuitIfTransform(ast)
+    transform_if.IfTransform(ast)
+    transform_if.ShortCircuitIfTransform(ast)
     meta_info.CheckConsistency(ast)
 
     PruneUselessLabels(ast)
@@ -450,7 +450,7 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
         if isinstance(node, c_ast.FuncDef):
             CanonicalizeFun(node, meta_info)
 
-    arrayref_transform.ConvertArrayIndexToPointerDereference(ast, meta_info)
+    transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     # This should go last so that we do not have worry to mess this
