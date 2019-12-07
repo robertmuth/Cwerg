@@ -1,12 +1,11 @@
 """
-
-
+TODO
 """
+from typing import Mapping
+
 from pycparser import c_ast
-from typing import List, Tuple, Mapping
 
 import common
-import meta
 
 __all__ = ["PruneUselessLabels"]
 
@@ -87,4 +86,3 @@ def PruneUselessLabels(fun: c_ast.Node):
     serialized = SerializeLabelsAndGotos(fun)
     forwards = ComputeLabelForwards(serialized)
     assert not forwards
-

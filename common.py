@@ -307,3 +307,12 @@ def FindMatchingNodesPreOrder(node: c_ast.Node, parent: c_ast.Node, matcher):
         res += FindMatchingNodesPreOrder(c, node, matcher)
 
     return res
+
+
+class UniqueId:
+    def __init__(self):
+        self.n = 0
+
+    def next(self, prefix):
+        self.n += 1
+        return "%s_%s" % (prefix, self.n)

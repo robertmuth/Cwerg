@@ -35,14 +35,6 @@ CONST_ZERO = c_ast.Constant("int", "0")
 
 CONST_ONE = c_ast.Constant("int", "1")
 
-label_counter = 0
-
-
-def GetLabel(prefix="label"):
-    global label_counter
-    label_counter += 1
-    return "%s_%s" % (prefix, label_counter)
-
 
 # ================================================================================
 # Remove void in favor of empty function argument expressions.
@@ -224,13 +216,13 @@ def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
 # ================================================================================
 #
 # ================================================================================
-def ConvertWhileLoop(ast):
+def ConvertWhileLoop(ast, id_gen: common.UniqueId):
     def IsWhileLoop(node, _):
         return isinstance(node, (c_ast.DoWhile, c_ast.While))
 
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
-        loop_label = GetLabel("while")
+        loop_label = id_gen.next("while")
         test_label = loop_label + "_cond"
         exit_label = loop_label + "_exit"
         conditional = c_ast.If(node.cond, c_ast.Goto(loop_label), None)
@@ -275,12 +267,12 @@ def ExtractForInitStatements(node):
         return [node]
 
 
-def ConvertForLoop(ast):
+def ConvertForLoop(ast, id_gen: common.UniqueId):
     candidates: List[Tuple[c_ast.For, c_ast.Node]] = common.FindMatchingNodesPostOrder(ast, ast,
                                                                                        lambda n, _: isinstance(n,
                                                                                                                c_ast.For))
     for node, parent in candidates:
-        loop_label = GetLabel("for")
+        loop_label = id_gen.next("for")
         next_label = loop_label + "_next"
         test_label = loop_label + "_cond"
         exit_label = loop_label + "_exit"
@@ -297,7 +289,6 @@ def ConvertForLoop(ast):
             c_ast.Label(exit_label, c_ast.EmptyStatement())]
         common.ReplaceBreakAndContinue(node.stmt, node, next_label, exit_label)
         common.ReplaceNode(parent, node, c_ast.Compound(block))
-
 
 
 # ================================================================================
@@ -338,6 +329,7 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
 #
 # ================================================================================
 def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
+    id_gen = common.UniqueId()
     ConvertPostToPreIncDec(ast)
     meta_info.CheckConsistency(ast)
 
@@ -347,14 +339,14 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    ConvertWhileLoop(ast)
-    ConvertForLoop(ast)
+    ConvertWhileLoop(ast, id_gen)
+    ConvertForLoop(ast, id_gen)
     meta_info.CheckConsistency(ast)
 
     EliminateExpressionLists(ast)
 
-    transform_if.IfTransform(ast)
-    transform_if.ShortCircuitIfTransform(ast)
+    transform_if.IfTransform(ast, id_gen)
+    transform_if.ShortCircuitIfTransform(ast, id_gen)
     meta_info.CheckConsistency(ast)
 
     transform_label.PruneUselessLabels(ast)

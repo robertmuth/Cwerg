@@ -1,5 +1,4 @@
 from pycparser import c_ast
-
 """
 This code eliminates ArrayRef nodes and replaces them  with pointer arithmetic.
 It also collapses ArrayDecl of multi-dimensional arrays.
