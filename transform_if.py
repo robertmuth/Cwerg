@@ -3,6 +3,8 @@ Ensures that if statements only have gotos in iftrue/iffalse and that
 cond only consists of a simple expression.
 
 """
+from typing import List
+
 from pycparser import c_ast
 
 import common
@@ -23,7 +25,7 @@ def ConvertToGotos(if_stmt: c_ast.If, parent, id_gen: common.UniqueId):
     emptytrue = common.IsEmpty(if_stmt.iftrue) or isinstance(if_stmt.iftrue, c_ast.Goto)
     emptyfalse = common.IsEmpty(if_stmt.iffalse) or isinstance(if_stmt.iffalse, c_ast.Goto)
 
-    seq = []
+    seq: List[c_ast.Node] = []
     # TODO: this should be done in  EliminateExpressionLists(
     if isinstance(if_stmt.cond, c_ast.ExprList):
         exprs = if_stmt.cond.exprs

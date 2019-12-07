@@ -446,7 +446,7 @@ class MetaInfo:
     either using existing AST nodes or new ones
     """
 
-    def __init__(self, ast: c_ast.FileAST):
+    def __init__(self, ast: c_ast.FileAST) -> None:
         stab = ExtractSymTab(ast)
         VerifySymbolLinks(ast, stab.links, strict=False)
         su_tab = ExtractStructUnionTab(ast)

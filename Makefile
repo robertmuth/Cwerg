@@ -6,3 +6,5 @@ tests:
 meta_tests:
 	./meta.py $(TESTS)
 
+mypy:
+	mypy --ignore-missing-imports *py

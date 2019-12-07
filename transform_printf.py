@@ -23,7 +23,7 @@ LENGTH_TRANSLATION = {
 
 class FormatOptions:
 
-    def __init__(self, s: str):
+    def __init__(self, s: str) -> None:
         m = PRINTF_OPTION.match(s)
         assert m
         flags, width, precision, length, kind = m.groups()
