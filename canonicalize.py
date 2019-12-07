@@ -289,7 +289,8 @@ def ConvertForLoop(ast):
             c_ast.Goto(test_label),
             c_ast.Label(loop_label, c_ast.EmptyStatement()),
             node.stmt,
-            c_ast.Label(next_label, node.next if node.next else c_ast.EmptyStatement()),
+            c_ast.Label(next_label, c_ast.EmptyStatement()),
+            node.next if node.next else c_ast.EmptyStatement(),
             c_ast.Label(test_label, c_ast.EmptyStatement()),
             conditional,
             c_ast.Label(exit_label, c_ast.EmptyStatement())]
@@ -301,7 +302,7 @@ def ConvertForLoop(ast):
 #
 # ================================================================================
 def IsStateChange(node):
-    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Goto, c_ast.Return)):
+    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Return)):
         return True
     if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
         return True
@@ -311,12 +312,10 @@ def IsStateChange(node):
 def IsStateChangeAndFollowChildren(node):
     if isinstance(node, (c_ast.For, c_ast.If, c_ast.While, c_ast.DoWhile)):
         return True
-    if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
-        return True
     return False
 
 
-def SerializeLabels(node: c_ast.Node):
+def SerializeLabelsAndGotos(node: c_ast.Node):
     """this is meant to be very conservative
     The idea is to put all the Label nodes in order into a list
     separated by one or more None entries if there is intervening
@@ -325,46 +324,56 @@ def SerializeLabels(node: c_ast.Node):
     out = []
     if isinstance(node, c_ast.Label):
         out.append(node)
-        out += SerializeLabels(node.stmt)
+        out += SerializeLabelsAndGotos(node.stmt)
+    if isinstance(node, c_ast.Goto):
+        out.append(node)
     elif isinstance(node, c_ast.EmptyStatement):
         pass
     elif IsStateChange(node):
-        out.append(None)
-    elif IsStateChangeAndFollowChildren(node):
-        out.append(None)
+        out.append(node.__class__.__name__)
+    elif isinstance(node, (c_ast.For, c_ast.While, c_ast.If, c_ast.DoWhile)):
+        out.append(node.__class__.__name__)
         for c in node:
-            out += SerializeLabels(c)
+            out += SerializeLabelsAndGotos(c)
     else:
         for c in node:
-            out += SerializeLabels(c)
+            out += SerializeLabelsAndGotos(c)
     return out
 
 
 def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, parent, forwards: Mapping[str, str]):
-    for c in node:
-        ForwardGotosAndRemoveUnusedLabels(c, node, forwards)
+    def IsGotoOrLabel(node, _):
+         return isinstance(node, (c_ast.Goto, c_ast.Label))
 
-    if isinstance(node, c_ast.Goto):
-        while node.name in forwards:
-            node.name = forwards[node.name]
-    elif isinstance(node, c_ast.Label) and node.name in forwards:
-        stmts = common.GetStatementList(parent)
-        assert stmts, parent
-        stmts.remove(node)
+    candidates = common.FindMatchingNodesPostOrder(node, node, IsGotoOrLabel)
+
+    for node, parent in candidates:
+        if isinstance(node, c_ast.Goto):
+            while node.name in forwards:
+                node.name = forwards[node.name]
+        elif isinstance(node, c_ast.Label) and node.name in forwards:
+            stmts = common.GetStatementList(parent)
+            assert stmts, parent
+            stmts.remove(node)
 
 
-def PruneUselessLabels(fun: c_ast.Node):
-    serialized = SerializeLabels(fun)
-    #print (serialized)
+def ComputeLabelForwards(serialized):
     forwards = {}
     last = None
     for item in serialized:
-        if item is None or last is None:
-            pass
-        else:
+        if isinstance(item, c_ast.Label) and isinstance(last, c_ast.Label):
             forwards[last.name] = item.name
         last = item
+    return forwards
+
+
+def PruneUselessLabels(fun: c_ast.Node):
+    serialized = SerializeLabelsAndGotos(fun)
+    forwards = ComputeLabelForwards(serialized)
     ForwardGotosAndRemoveUnusedLabels(fun, fun, forwards)
+    serialized = SerializeLabelsAndGotos(fun)
+    forwards = ComputeLabelForwards(serialized)
+    assert not forwards
 
 
 # ================================================================================
