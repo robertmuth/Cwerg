@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """
 Ensures that if statements only have gotos in iftrue/iffalse and that
 cond only consists of a simple expression.
@@ -7,9 +6,8 @@ cond only consists of a simple expression.
 from pycparser import c_ast
 
 import common
-import meta
 
-__all__ = ["IfTransform"]
+__all__ = ["IfTransform", "ShortCircuitIfTransform"]
 
 branch_counter = 0
 
@@ -26,12 +24,12 @@ def ConvertToGotos(if_stmt: c_ast.If, parent):
             not isinstance(if_stmt.cond, c_ast.ExprList)):
         return
 
-    labeltrue = GetLabel()
-    labelfalse = GetLabel()
-    labelend = GetLabel()
-    emptytrue  = common.IsEmpty(if_stmt.iftrue) or isinstance(if_stmt.iftrue, c_ast.Goto)
-    emptyfalse =  common.IsEmpty(if_stmt.iffalse) or isinstance(if_stmt.iffalse, c_ast.Goto)
-
+    label = GetLabel("if")
+    labeltrue = label + "_true"
+    labelfalse = label + "_false"
+    labelend = label + "_end"
+    emptytrue = common.IsEmpty(if_stmt.iftrue) or isinstance(if_stmt.iftrue, c_ast.Goto)
+    emptyfalse = common.IsEmpty(if_stmt.iffalse) or isinstance(if_stmt.iffalse, c_ast.Goto)
 
     seq = []
     # TODO: this should be done in  EliminateExpressionLists(
@@ -49,9 +47,9 @@ def ConvertToGotos(if_stmt: c_ast.If, parent):
     seq.append(c_ast.Label(labelend, c_ast.EmptyStatement()))
 
     if not isinstance(if_stmt.iftrue, c_ast.Goto):
-         if_stmt.iftrue = c_ast.Goto(labelend if emptytrue else labeltrue)
+        if_stmt.iftrue = c_ast.Goto(labelend if emptytrue else labeltrue)
     if not isinstance(if_stmt.iffalse, c_ast.Goto):
-         if_stmt.iffalse = c_ast.Goto(labelend if emptyfalse else labelfalse)
+        if_stmt.iffalse = c_ast.Goto(labelend if emptyfalse else labelfalse)
 
     stmts = common.GetStatementList(parent)
     if not stmts:
@@ -59,7 +57,7 @@ def ConvertToGotos(if_stmt: c_ast.If, parent):
         parent = common.ReplaceNode(parent, if_stmt, c_ast.Compound(stmts))
 
     pos = stmts.index(if_stmt)
-    stmts[pos: pos+1]  = seq
+    stmts[pos: pos + 1] = seq
 
 
 def IfTransform(ast: c_ast.Node):
@@ -99,7 +97,7 @@ def ConvertShortCircuitIf(if_stmt: c_ast.If, parent: c_ast.Node):
     # this is easy to fix but basically guaranteed after running IfTransform
     assert stmts, parent
     pos = stmts.index(if_stmt)
-    stmts[pos:pos+1] = [if_stmt2, c_ast.Label(labelnext, c_ast.EmptyStatement()), if_stmt]
+    stmts[pos:pos + 1] = [if_stmt2, c_ast.Label(labelnext, c_ast.EmptyStatement()), if_stmt]
     ConvertShortCircuitIf(if_stmt2, parent)
     ConvertShortCircuitIf(if_stmt, parent)
 

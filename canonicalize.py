@@ -22,10 +22,11 @@ from typing import List, Tuple, Mapping
 
 from pycparser import c_ast, parse_file, c_generator
 
-import transform_arrayref
 import common
-import transform_if
 import meta
+import transform_arrayref
+import transform_if
+import  transform_label
 import transform_printf
 
 __all__ = ["Canonicalize"]
@@ -230,8 +231,8 @@ def ConvertWhileLoop(ast):
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsWhileLoop)
     for node, parent in candidates:
         loop_label = GetLabel("while")
-        test_label = GetLabel("while_cond")
-        exit_label = GetLabel("while_exit")
+        test_label = loop_label + "_cond"
+        exit_label = loop_label + "_exit"
         conditional = c_ast.If(node.cond, c_ast.Goto(loop_label), None)
         block = [c_ast.Label(loop_label, c_ast.EmptyStatement()), node.stmt,
                  c_ast.Label(test_label, c_ast.EmptyStatement()), conditional,
@@ -280,9 +281,9 @@ def ConvertForLoop(ast):
                                                                                                                c_ast.For))
     for node, parent in candidates:
         loop_label = GetLabel("for")
-        next_label = GetLabel("for_next")
-        test_label = GetLabel("for_cond")
-        exit_label = GetLabel("for_exit")
+        next_label = loop_label + "_next"
+        test_label = loop_label + "_cond"
+        exit_label = loop_label + "_exit"
         goto = c_ast.Goto(loop_label)
         conditional = c_ast.If(node.cond, goto, None) if node.cond else goto
         block = ExtractForInitStatements(node.init) + [
@@ -297,83 +298,6 @@ def ConvertForLoop(ast):
         common.ReplaceBreakAndContinue(node.stmt, node, next_label, exit_label)
         common.ReplaceNode(parent, node, c_ast.Compound(block))
 
-
-# ================================================================================
-#
-# ================================================================================
-def IsStateChange(node):
-    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Return)):
-        return True
-    if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
-        return True
-    return False
-
-
-def IsStateChangeAndFollowChildren(node):
-    if isinstance(node, (c_ast.For, c_ast.If, c_ast.While, c_ast.DoWhile)):
-        return True
-    return False
-
-
-def SerializeLabelsAndGotos(node: c_ast.Node):
-    """this is meant to be very conservative
-    The idea is to put all the Label nodes in order into a list
-    separated by one or more None entries if there is intervening
-    code. Labels which are adjacent can be merged
-    """
-    out = []
-    if isinstance(node, c_ast.Label):
-        out.append(node)
-        out += SerializeLabelsAndGotos(node.stmt)
-    if isinstance(node, c_ast.Goto):
-        out.append(node)
-    elif isinstance(node, c_ast.EmptyStatement):
-        pass
-    elif IsStateChange(node):
-        out.append(node.__class__.__name__)
-    elif isinstance(node, (c_ast.For, c_ast.While, c_ast.If, c_ast.DoWhile)):
-        out.append(node.__class__.__name__)
-        for c in node:
-            out += SerializeLabelsAndGotos(c)
-    else:
-        for c in node:
-            out += SerializeLabelsAndGotos(c)
-    return out
-
-
-def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, parent, forwards: Mapping[str, str]):
-    def IsGotoOrLabel(node, _):
-         return isinstance(node, (c_ast.Goto, c_ast.Label))
-
-    candidates = common.FindMatchingNodesPostOrder(node, node, IsGotoOrLabel)
-
-    for node, parent in candidates:
-        if isinstance(node, c_ast.Goto):
-            while node.name in forwards:
-                node.name = forwards[node.name]
-        elif isinstance(node, c_ast.Label) and node.name in forwards:
-            stmts = common.GetStatementList(parent)
-            assert stmts, parent
-            stmts.remove(node)
-
-
-def ComputeLabelForwards(serialized):
-    forwards = {}
-    last = None
-    for item in serialized:
-        if isinstance(item, c_ast.Label) and isinstance(last, c_ast.Label):
-            forwards[last.name] = item.name
-        last = item
-    return forwards
-
-
-def PruneUselessLabels(fun: c_ast.Node):
-    serialized = SerializeLabelsAndGotos(fun)
-    forwards = ComputeLabelForwards(serialized)
-    ForwardGotosAndRemoveUnusedLabels(fun, fun, forwards)
-    serialized = SerializeLabelsAndGotos(fun)
-    forwards = ComputeLabelForwards(serialized)
-    assert not forwards
 
 
 # ================================================================================
@@ -433,7 +357,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     transform_if.ShortCircuitIfTransform(ast)
     meta_info.CheckConsistency(ast)
 
-    PruneUselessLabels(ast)
+    transform_label.PruneUselessLabels(ast)
 
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
