@@ -1,18 +1,36 @@
 #!/usr/bin/python3
 
 """
-Non-functional translator from C to a non-existent IR
+Translator from C to a hypothetical Three-Address-Code IR
 
+This is not even close to being done
 """
 
 import sys
-from typing import Optional, List, Tuple
 
-from pycparser import c_ast, parse_file, c_generator
+from pycparser import c_ast, parse_file
 
+import canonicalize
 import common
 import meta
-import canonicalize
+
+TYPE_TRANSLATION = {
+    ("char",): "s8",
+    ("char", "unsigned",): "u8",
+    ("short",): "s16",
+    ("short", "unsigned",): "u16",
+    ("int",): "s32",
+    ("int", "unsigned",): "u32",
+    ("long",): "s64",
+    ("long", "unsigned",): "u64",
+    ("long", "long",): "s64",
+    ("long", "long", "unsigned",): "u64",
+    ("float",): "f32",
+    ("double",): "f64",
+    ("void",): None
+}
+
+tmp_counter = 0
 
 
 def GetVarKind(node, parent):
@@ -26,37 +44,150 @@ def GetVarKind(node, parent):
         return "local"
 
 
-def EmitIR(node_stack, meta_info):
+def StringifyType(type):
+    if isinstance(type, c_ast.FuncDecl):
+        return "c32"
+    elif isinstance(type, c_ast.PtrDecl):
+        return "a32"
+    elif isinstance(type, c_ast.ArrayDecl):
+        return "a32"
+    elif isinstance(type, c_ast.TypeDecl):
+        return StringifyType((type.type))
+    elif isinstance(type, c_ast.Decl):
+        return StringifyType((type.type))
+    elif isinstance(type, c_ast.IdentifierType):
+        return TYPE_TRANSLATION[tuple(type.names)]
+    else:
+        assert False, type
+        return str(type)
+
+
+def GetTmp(type):
+    global tmp_counter
+    tmp_counter += 1
+    return "%%%s_%s" % (StringifyType(type), tmp_counter)
+
+
+def HasNoResult(type):
+    return isinstance(type, c_ast.IdentifierType) and type.names[0] == "void"
+
+
+TAB = "  "
+
+
+def EmitFunctionHeader(node: c_ast.FuncDef):
+    fun_decl = node.decl.type
+    assert isinstance(fun_decl, c_ast.FuncDecl)
+    return_type = StringifyType(fun_decl.type)
+    params = fun_decl.args.params if fun_decl.args else []
+    parameter_types = [StringifyType(p) for p in params]
+    parameter_names = [p.name for p in params]
+    fun_name = node.decl.name
+    print("")
+    print(".sig", "%sig_" + fun_name, "[" + return_type if return_type else "" + "]", "=",
+          "[" + " ".join(parameter_types) + "]")
+    print(".fun", fun_name, "%sig_" + fun_name, "[%out]" if return_type else "[]", "=",
+          "[" + " ".join(parameter_names) + "]")
+    print(".bbl %start")
+
+
+def EmitIR(node_stack, meta_info, node_value, id_gen):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
-        print ("\nfunction definition", node.decl.name)
-    elif isinstance(node, c_ast.Constant):
-      if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
-        print("string constant", node.value)
+        EmitFunctionHeader(node)
+        EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
+        return
+
+    if isinstance(node, c_ast.If):
+        cond = node.cond
+        if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
+            EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
+            EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
+            print(TAB, "brcond", node_value[cond.left], cond.op, node_value[cond.right], node.iftrue.name,
+                  node.iffalse.name)
+        else:
+            EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
+            print(TAB, "brcond", node_value[cond], node.iftrue.name, node.iffalse.name)
+        return
     elif isinstance(node, c_ast.Label):
-        print("LABEL:", node.name)
+        print(".bbl", node.name)
+        EmitIR(node_stack + [node.stmt], meta_info, node_value, id_gen)
+        return
+
+    for c in node:
+        node_stack.append(c)
+        EmitIR(node_stack, meta_info, node_value, id_gen)
+        node_stack.pop(-1)
+
+    if isinstance(node, c_ast.ID):
+        node_value[node] = node.name
+    elif isinstance(node, c_ast.Constant):
+        if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
+            print("string constant", node.value)
+            node_value[node] = "&string"
+        else:
+            node_value[node] = node.value
+    elif isinstance(node, c_ast.IdentifierType):
+        pass
     elif isinstance(node, c_ast.Goto):
-        print("goto", node.name)
+        print(TAB, "br", node.name)
     elif isinstance(node, c_ast.Decl):
         parent = node_stack[-2]
         kind = GetVarKind(node, parent)
-        print (kind, node.name, node.quals, node.storage)
-    for c in node:
-        node_stack.append(c)
-        EmitIR(node_stack, meta_info)
-        node_stack.pop(-1)
-    if isinstance(node, c_ast.FuncDef):
-        print ("end function definition", node.decl.name)
+        type_str = StringifyType(node.type)
+        print(kind, node.name, type_str)
+    elif isinstance(node, c_ast.Assignment):
+        assert node.op == "="
+        print(TAB, node_value[node.lvalue], node.op, node_value[node.rvalue])
+        node_value[node] = node_value[node.lvalue]
+    elif isinstance(node, c_ast.BinaryOp):
+        tmp = GetTmp(meta_info.type_links[node])
+        print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
+        node_value[node] = tmp
+    elif isinstance(node, c_ast.UnaryOp):
+        tmp = GetTmp(meta_info.type_links[node])
+        if node.op == "sizeof":
+            print(TAB, tmp, "=", "sizeof", "TODO")
+        else:
+            print(TAB, tmp, "=", node.op, node_value[node.expr])
+        node_value[node] = tmp
+    elif isinstance(node, c_ast.Cast):
+        tmp = GetTmp(meta_info.type_links[node])
+        print(TAB, tmp, "=", "(cast)", node_value[node.expr])
+        node_value[node] = tmp
+    elif isinstance(node, c_ast.FuncCall):
+        if HasNoResult(meta_info.type_links[node]):
+            print(TAB, "CALL", node_value[node.name], [node_value[a] for a in node.args])
+            node_value[node] = None
+        else:
+            tmp = GetTmp(meta_info.type_links[node])
+            print(TAB, tmp, "=", "CALL", node_value[node.name], [node_value[a] for a in node.args])
+            node_value[node] = tmp
+    elif isinstance(node, c_ast.Return):
+        if node.expr:
+            print(TAB, "%out", "=", node_value[node.expr])
+        print(TAB, "ret")
+    elif isinstance(node, c_ast.EmptyStatement):
+        pass
+    elif isinstance(node, c_ast.ExprList):
+        node_value[node] = node_value[node.exprs[-1]]
+    elif isinstance(node, (c_ast.TypeDecl, c_ast.PtrDecl, c_ast.ArrayDecl, c_ast.FuncDecl, c_ast.Typename)):
+        pass
+    elif isinstance(node, (c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
+        pass
+    else:
+        assert False, node
 
 
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
     meta_info = meta.MetaInfo(ast)
-    canonicalize.Canonicalize(ast, meta_info)
-    EmitIR([ast], meta_info)
-    #generator = c_generator.CGenerator()
-    #print(generator.visit(ast))
+    canonicalize.Canonicalize(ast, meta_info, True)
+    global_id_gen = common.UniqueId()
+    EmitIR([ast], meta_info, {}, global_id_gen)
+    # generator = c_generator.CGenerator()
+    # print(generator.visit(ast))
 
 
 if __name__ == "__main__":
