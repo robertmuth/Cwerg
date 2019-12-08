@@ -116,9 +116,10 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
     for chain_head, parent in ref_chains:
         name, s = MakeCombinedSubscript(chain_head, meta_info)
         addr = c_ast.BinaryOp("+", name, s)
-        # TODO: this is totally wrong
-        meta_info.type_links[addr] = meta_info.type_links[chain_head]
-        if isinstance(meta_info.type_links[chain_head], c_ast.ArrayDecl):
+        head_type = meta_info.type_links[chain_head]
+        # TODO:  low confidence - double check this
+        meta_info.type_links[addr] = meta_info.type_links[name]
+        if isinstance(head_type, c_ast.ArrayDecl):
             # the array ref sequence only partially indexes the array, so the result is just an address
             common.ReplaceNode(parent, chain_head, addr)
         else:

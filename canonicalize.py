@@ -293,7 +293,33 @@ def ConvertForLoop(ast, id_gen: common.UniqueId):
 # ================================================================================
 #
 # ================================================================================
+def ConvertCompoundAssignment(ast: c_ast.Node, meta_info: meta.MetaInfo, id_gen):
+    """This works best after ConvertArrayIndexToPointerDereference"""
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.Assignment))
+    for assign, parent in candidates:
+        if assign.op == "=":
+            continue
+        lvalue = assign.lvalue
+        if isinstance(lvalue, c_ast.ID):
+            node = c_ast.BinaryOp(assign.op[:-1], lvalue, assign.rvalue)
+            meta_info.type_links[node] = meta_info.type_links[assign]
+            assign.rvalue = node
+            assign.op = "="
+        elif isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
+            # TODO
+            pass
+            #stmts = common.GetStatementList(parent)
+            #assert stmts
+            #pos = stmts.index(assign)
+
+
+
+# ================================================================================
+#
+# ================================================================================
 def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
+    """This function documents documents all the C lang features we are trying to
+     eliminate by lowering them."""
     for c in node:
         ConfirmAbsenceOfUnsupportedFeatures(c, node)
 
@@ -322,6 +348,10 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
 
     elif isinstance(node, c_ast.Decl):
         assert "extern" not in node.storage and "static" not in node.storage
+
+    elif isinstance(node, c_ast.Assignment):
+        pass
+        #assert node.op == "=", parent
 
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
@@ -361,7 +391,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 # ================================================================================
 #
 # ================================================================================
-def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
+def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo, skip_constant_casts):
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
     global_id_gen = common.UniqueId()
@@ -373,9 +403,11 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+    ConvertCompoundAssignment(ast, meta_info, global_id_gen)
+
     # This should go last so that we do not have worry to mess this
     # up in other phases.
-    AddExplicitCasts(ast, ast, meta_info, False)
+    AddExplicitCasts(ast, ast, meta_info, skip_constant_casts)
 
     transform_rename.LiftStaticAndExternToGlobalScope(ast, meta_info, global_id_gen)
     meta_info.CheckConsistency(ast)
@@ -387,7 +419,7 @@ def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
     meta_info = meta.MetaInfo(ast)
-    Canonicalize(ast, meta_info)
+    Canonicalize(ast, meta_info, False)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 
