@@ -2,7 +2,7 @@ int printf( const char *restrict format, ... );
 void* malloc(int);
   
 int SumArray(int Array[], int Num) {
-  unsigned i, Result = 0;
+  int i, Result = 0;
   Array[34] = 1234;
 
   for (i = 0; i < Num; ++i)
