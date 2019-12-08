@@ -26,8 +26,9 @@ import common
 import meta
 import transform_arrayref
 import transform_if
-import  transform_label
+import transform_label
 import transform_printf
+import transform_rename
 
 __all__ = ["Canonicalize"]
 
@@ -321,6 +322,9 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
         assert isinstance(node.iftrue, c_ast.Goto), node
         assert isinstance(node.iffalse, c_ast.Goto), node
 
+    elif isinstance(node, c_ast.Decl):
+        assert "extern" not in node.storage and "static" not in node.storage
+
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
 
@@ -361,6 +365,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
+    global_id_gen = common.UniqueId()
 
     for node in ast:
         if isinstance(node, c_ast.FuncDef):
@@ -372,6 +377,8 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo):
     # This should go last so that we do not have worry to mess this
     # up in other phases.
     AddExplicitCasts(ast, ast, meta_info, False)
+
+    transform_rename.LiftStaticAndExternToGlobalScope(ast, meta_info, global_id_gen)
     meta_info.CheckConsistency(ast)
 
     ConfirmAbsenceOfUnsupportedFeatures(ast, ast)
