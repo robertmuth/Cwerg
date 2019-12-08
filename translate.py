@@ -44,22 +44,24 @@ def GetVarKind(node, parent):
         return "local"
 
 
-def StringifyType(type):
-    if isinstance(type, c_ast.FuncDecl):
+def StringifyType(type_or_decl):
+    if isinstance(type_or_decl, c_ast.FuncDecl):
         return "c32"
-    elif isinstance(type, c_ast.PtrDecl):
+    elif isinstance(type_or_decl, c_ast.PtrDecl):
         return "a32"
-    elif isinstance(type, c_ast.ArrayDecl):
+    elif isinstance(type_or_decl, c_ast.ArrayDecl):
         return "a32"
-    elif isinstance(type, c_ast.TypeDecl):
-        return StringifyType((type.type))
-    elif isinstance(type, c_ast.Decl):
-        return StringifyType((type.type))
-    elif isinstance(type, c_ast.IdentifierType):
-        return TYPE_TRANSLATION[tuple(type.names)]
+    elif isinstance(type_or_decl, c_ast.TypeDecl):
+        return StringifyType(type_or_decl.type)
+    elif isinstance(type_or_decl, c_ast.Decl):
+        return StringifyType(type_or_decl.type)
+    elif isinstance(type_or_decl, c_ast.IdentifierType):
+        return TYPE_TRANSLATION[tuple(type_or_decl.names)]
+    elif type(type_or_decl) == str:
+        return type_or_decl
     else:
-        assert False, type
-        return str(type)
+        assert False, type_or_decl
+        return str(type_or_decl)
 
 
 def GetTmp(type):
@@ -91,7 +93,7 @@ def EmitFunctionHeader(node: c_ast.FuncDef):
     print(".bbl %start")
 
 
-def EmitIR(node_stack, meta_info, node_value, id_gen):
+def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
         EmitFunctionHeader(node)
@@ -123,8 +125,13 @@ def EmitIR(node_stack, meta_info, node_value, id_gen):
         node_value[node] = node.name
     elif isinstance(node, c_ast.Constant):
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
-            print("string constant", node.value)
-            node_value[node] = "&string"
+            name = id_gen.next("string_const")
+            print(".mem", name, "4", "ro")
+            print(".data", "1", node.value)
+            print(".data", "1", "[0]")
+            tmp = GetTmp("a32")
+            print(TAB, tmp, "=", name)
+            node_value[node] = tmp
         else:
             node_value[node] = node.value
     elif isinstance(node, c_ast.IdentifierType):
@@ -156,6 +163,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen):
         print(TAB, tmp, "=", "(cast)", node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
+        print ("ARGS", node.args)
         if HasNoResult(meta_info.type_links[node]):
             print(TAB, "CALL", node_value[node.name], [node_value[a] for a in node.args])
             node_value[node] = None
