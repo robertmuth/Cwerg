@@ -1,7 +1,7 @@
 int printf( const char *restrict format, ... );
 
 
-int test() {
+void test() {
   printf("regular");
   int a = 6;
   {
@@ -60,4 +60,5 @@ int test() {
 int main() {
   test();
   test();
+  return 0;
 }

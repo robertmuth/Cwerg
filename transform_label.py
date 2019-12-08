@@ -53,7 +53,7 @@ def SerializeLabelsAndGotos(node: c_ast.Node):
     return out
 
 
-def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, parent, forwards: Mapping[str, str]):
+def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, forwards: Mapping[str, str]):
     def IsGotoOrLabel(node, _):
         return isinstance(node, (c_ast.Goto, c_ast.Label))
 
@@ -82,7 +82,7 @@ def ComputeLabelForwards(serialized):
 def PruneUselessLabels(fun: c_ast.Node):
     serialized = SerializeLabelsAndGotos(fun)
     forwards = ComputeLabelForwards(serialized)
-    ForwardGotosAndRemoveUnusedLabels(fun, fun, forwards)
+    ForwardGotosAndRemoveUnusedLabels(fun, forwards)
     serialized = SerializeLabelsAndGotos(fun)
     forwards = ComputeLabelForwards(serialized)
     assert not forwards

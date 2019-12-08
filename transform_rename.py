@@ -1,7 +1,6 @@
 """
 TODO
 """
-from typing import Mapping
 
 from pycparser import c_ast
 
@@ -12,11 +11,12 @@ __all__ = ["LiftStaticAndExternToGlobalScope"]
 
 
 def IsExternOrStatic(node, parent):
-    return  isinstance(node, c_ast.Decl) and ("extern" in node.storage or "static" in node.storage)
+    return isinstance(node, c_ast.Decl) and ("extern" in node.storage or "static" in node.storage)
 
 
 def LiftStaticAndExternToGlobalScope(ast: c_ast.FileAST, meta_info: meta.MetaInfo, id_gen: common.UniqueId):
-    """Requires that if statements only have gotos"""
+    """Requires that if statements only have gotos
+    """
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsExternOrStatic)
 
     for decl, parent in candidates:
@@ -41,7 +41,7 @@ def LiftStaticAndExternToGlobalScope(ast: c_ast.FileAST, meta_info: meta.MetaInf
                     id.name = new_name
         if "extern" in decl.storage:
             decl.storage.remove("extern")
-            if parent != ast:
+            if ast != parent:
                 stmts = common.GetStatementList(parent)
                 assert stmts, parent
                 stmts.remove(decl)

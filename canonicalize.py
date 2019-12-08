@@ -81,7 +81,7 @@ def MakeCast(identifier_type, node):
 
 
 def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info, skip_constants):
-    def constant_check(node):
+    def constant_check(node: c_ast.Node):
         return not skip_constants or not isinstance(node, c_ast.Constant)
 
     for c in node:
@@ -245,7 +245,7 @@ def EliminateExpressionLists(ast):
     currently we duplicate some work in the "if transform"
     """
 
-    def IsExpressionList(node, parent):
+    def IsExpressionList(node: c_ast.Node, parent):
         return isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall)
 
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsExpressionList)
@@ -269,9 +269,7 @@ def ExtractForInitStatements(node):
 
 
 def ConvertForLoop(ast, id_gen: common.UniqueId):
-    candidates: List[Tuple[c_ast.For, c_ast.Node]] = common.FindMatchingNodesPostOrder(ast, ast,
-                                                                                       lambda n, _: isinstance(n,
-                                                                                                               c_ast.For))
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.For))
     for node, parent in candidates:
         loop_label = id_gen.next("for")
         next_label = loop_label + "_next"

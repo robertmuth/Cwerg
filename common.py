@@ -63,6 +63,15 @@ BOOL_INT_TYPE_BINARY_OPS = {
     "||",
 }
 
+COMPARISON_INVERSE_MAP = {
+    "==" : "!=",
+    "!=": "==",
+    "<=": ">",
+    "<": ">=",
+    ">=": "<",
+    ">": "<=",
+}
+
 SHORT_CIRCUIT_OPS = {
     "&&",
     "||",
