@@ -353,6 +353,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 
     transform_label.PruneUselessLabels(ast)
 
+    transform_rename.UniquifyLocalVars(ast, meta_info, id_gen)
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
 

@@ -88,11 +88,7 @@ class SymTab:
 
 
 def _IsNewScope(node):
-    return isinstance(node, (c_ast.Compound,
-                             c_ast.For,
-                             c_ast.While,
-                             c_ast.DoWhile,
-                             c_ast.FuncDef))
+    return isinstance(node, common.NEW_SCOPE_NODE)
 
 
 _DECL_TYPES = (c_ast.Struct, c_ast.Union, c_ast.ArrayDecl,

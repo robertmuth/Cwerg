@@ -15,6 +15,12 @@ EXPRESSION_NODES = (c_ast.ArrayRef,
                     c_ast.TernaryOp,
                     c_ast.UnaryOp)
 
+NEW_SCOPE_NODE = (c_ast.Compound,
+                  c_ast.For,
+                  c_ast.While,
+                  c_ast.DoWhile,
+                  c_ast.FuncDef)
+
 POST_INC_DEC_OPS = {
     "p--",
     "p++",
@@ -64,7 +70,7 @@ BOOL_INT_TYPE_BINARY_OPS = {
 }
 
 COMPARISON_INVERSE_MAP = {
-    "==" : "!=",
+    "==": "!=",
     "!=": "==",
     "<=": ">",
     "<": ">=",
