@@ -30,8 +30,18 @@ TYPE_TRANSLATION = {
     ("void",): None
 }
 
+
 tmp_counter = 0
 
+
+def SizeOf(node):
+    assert isinstance(node, c_ast.Typename), node
+    if isinstance(node.type, c_ast.TypeDecl):
+        type_name = TYPE_TRANSLATION[tuple(node.type.type.names)]
+        bitsize = int(type_name[1:])
+        return bitsize // 8
+    else:
+        assert False, node
 
 def GetVarKind(node, parent):
     if isinstance(parent, c_ast.ParamList):
@@ -77,6 +87,10 @@ def HasNoResult(type):
 TAB = "  "
 
 
+def RenderItemList(items):
+    return "[" + " ".join(items) + "]"
+
+
 def EmitFunctionHeader(node: c_ast.FuncDef):
     fun_decl = node.decl.type
     assert isinstance(fun_decl, c_ast.FuncDecl)
@@ -87,9 +101,9 @@ def EmitFunctionHeader(node: c_ast.FuncDef):
     fun_name = node.decl.name
     print("")
     print(".sig", "%sig_" + fun_name, "[" + return_type if return_type else "" + "]", "=",
-          "[" + " ".join(parameter_types) + "]")
+          RenderItemList(parameter_types))
     print(".fun", fun_name, "%sig_" + fun_name, "[%out]" if return_type else "[]", "=",
-          "[" + " ".join(parameter_names) + "]")
+          RenderItemList(parameter_names))
     print(".bbl %start")
 
 
@@ -132,6 +146,10 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             tmp = GetTmp("a32")
             print(TAB, tmp, "=", name)
             node_value[node] = tmp
+        elif isinstance(node_stack[-2], c_ast.ExprList):
+            tmp = GetTmp(meta_info.type_links[node])
+            print(TAB, tmp, "=", node.value)
+            node_value[node] = tmp
         else:
             node_value[node] = node.value
     elif isinstance(node, c_ast.IdentifierType):
@@ -152,10 +170,15 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
         node_value[node] = tmp
     elif isinstance(node, c_ast.UnaryOp):
-        tmp = GetTmp(meta_info.type_links[node])
         if node.op == "sizeof":
-            print(TAB, tmp, "=", "sizeof", "TODO")
+            val = SizeOf(node.expr)
+            if isinstance(node_stack[-2], c_ast.ExprList):
+                tmp = GetTmp(meta_info.type_links[node])
+                print(TAB, tmp, "=", val)
+            else:
+                tmp = val
         else:
+            tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.Cast):
@@ -163,14 +186,16 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print(TAB, tmp, "=", "(cast)", node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
-        print ("ARGS", node.args)
+        #print ("ARGS", node.args)
         if HasNoResult(meta_info.type_links[node]):
-            print(TAB, "CALL", node_value[node.name], [node_value[a] for a in node.args])
+            result = []
             node_value[node] = None
         else:
             tmp = GetTmp(meta_info.type_links[node])
-            print(TAB, tmp, "=", "CALL", node_value[node.name], [node_value[a] for a in node.args])
+            results = [tmp]
             node_value[node] = tmp
+        params = [node_value[a] for a in node.args]
+        print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
     elif isinstance(node, c_ast.Return):
         if node.expr:
             print(TAB, "%out", "=", node_value[node.expr])
