@@ -56,15 +56,17 @@ The compilation is split into the following phases:
 * **Type-Annotations** the code is using type annotations as much as possible, cf.:
   [Introduction](https://realpython.com/python-type-checking/),
   [Cheat Sheet](https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html)
+  
+  
 ## Survey of other open source c-compiler projects
 
-## chibicc
+### chibicc
 
-* implemented in C
+* implemented in C by Rui Ueyama et el
 * very compact, only 5 .c files
 * bring you own pre-processor and libc
 * target: x86-64
-
+* successor of [8cc](https://github.com/rui314/8cc) and [9cc](https://github.com/rui314/9cc)
 
 Links
 
@@ -85,6 +87,17 @@ Links
 
 https://clang.llvm.org/
 
+### cproc
+
+* implemented in C (self hosting) by Michael Forney et al
+* actively developed
+* [QBE backend](https://c9x.me/compile/) supporting aarch64 and x86-64
+* successor (?) of [Andrew Chamber's C Suite](https://github.com/andrewchambers/c)
+
+Links
+
+* https://git.sr.ht/~mcf/cproc
+
 ### gcc
 
 * gold standard for C on Unix before clang came along
@@ -100,8 +113,19 @@ Links
 
 https://gcc.gnu.org/
 
+### lacc
+
+* implemented in C (self hosting)  by Lars Kirkholt Melhus
+* x86-64 only but can emit elf object files
+
+
+Links
+
+https://github.com/larmel/lacc
+
 ### lcc
 
+* wriiten in C by Dave Hanson, Chris Fraser et al
 * very well documented compiler 
 * partially aimed at education
 * feels a bit dated, front and backend are not separate programs
@@ -115,10 +139,21 @@ Links
 * book https://www.amazon.com/Retargetable-Compiler-Design-Implementation/dp/0805316701
 * https://github.com/drh/lcc
 
-## pcc
+### pacc
 
+* written in Delphi by Benjamin Rosseaux
+* uses qbe inspired backend
+
+Links
+
+https://github.com/BeRo1985/pacc
+
+### pcc
+
+* written in C by Anders Magnusson et al
 * based on the original Portable C Compiler by S. C. Johnson 
-* much improved and actively maintained
+* much improved though
+* actively maintained
 * easy to configure
 * multiple targets: x86 x86-64 mips mips64 68k power sparc pdp10 pdp11
 * clear separation between front and backend 
@@ -143,7 +178,23 @@ https://9p.io/sys/doc/compiler.html
 https://9p.io/wiki/plan9/Sources_repository/index.html
 https://github.com/huangguiyang/plan9-cc (not official?)
 
-## shivyc
+### scc
+
+* implemnted in C by Roberto E. Vargas Caballero et al
+* actively developed
+* backemds for arm32, x86-64 and possibly others
+* may (?) also use the qbe backend
+
+Links
+
+
+http://www.simple-cc.org/
+
+http://git.simple-cc.org/scc/file/README.html
+
+mirror: https://github.com/k0gaMSX/scc
+
+### shivyc
 
 * implemented in Python
 * target: x86-64
@@ -152,8 +203,10 @@ Links
 
 https://github.com/ShivamSarodia/ShivyC
 
+
 ## tcc
 
+* written in C (self hosting) by Fabrice Bellard et al
 * small code base  but not for the faint of heart
 * everything included approach (including linker)
 * mutliple targets: x86, x86-64, arm 
