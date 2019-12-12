@@ -313,7 +313,6 @@ def ConvertCompoundAssignment(ast: c_ast.Node, meta_info: meta.MetaInfo, id_gen)
             #pos = stmts.index(assign)
 
 
-
 # ================================================================================
 #
 # ================================================================================
@@ -365,9 +364,6 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     ConvertPostToPreIncDec(ast)
     meta_info.CheckConsistency(ast)
 
-    transform_printf.PrintfSplitterTransform(ast, meta_info)
-    meta_info.CheckConsistency(ast)
-
     ConvertPreIncDecToCompoundAssignment(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
@@ -391,7 +387,7 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 # ================================================================================
 #
 # ================================================================================
-def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo, skip_constant_casts):
+def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_casts, use_specialized_printf):
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
     global_id_gen = common.UniqueId()
@@ -401,6 +397,9 @@ def Canonicalize(ast: c_ast.Node, meta_info: meta.MetaInfo, skip_constant_casts)
             CanonicalizeFun(node, meta_info)
 
     transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
+    transform_printf.PrintfSplitterTransform(ast, meta_info, use_specialized_printf)
     meta_info.CheckConsistency(ast)
 
     ConvertCompoundAssignment(ast, meta_info, global_id_gen)
@@ -419,7 +418,7 @@ def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
     meta_info = meta.MetaInfo(ast)
-    Canonicalize(ast, meta_info, False)
+    Canonicalize(ast, meta_info, False, False)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 

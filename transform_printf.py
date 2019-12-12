@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import re
-from typing import Optional
+from typing import Optional, List
 
 from pycparser import c_ast
 
@@ -18,6 +18,59 @@ LENGTH_TRANSLATION = {
     "ll": "q",
     "q": "q",
     "h": "h",
+}
+
+
+def MakeSimpleTypeDecl(name, type_names):
+    return c_ast.TypeDecl(name, [], common.GetCanonicalIdentifierType(type_names))
+
+
+def MakePrintfStyleDecl(name: str, type_names: List[str], is_pointer=False):
+    parameter_format = c_ast.Decl("format", [], [], [],
+                                  c_ast.PtrDecl([], MakeSimpleTypeDecl("format", ["char"])), None, None)
+
+    parameter_value = c_ast.Decl("value", [], [], [], MakeSimpleTypeDecl("value", type_names), None, None)
+    if is_pointer:
+        parameter_value.type = c_ast.PtrDecl([], parameter_value.type)
+
+    fun_result = MakeSimpleTypeDecl(name, ["int"])
+    return c_ast.Decl(
+        name, [], [], [], c_ast.FuncDecl(
+            c_ast.ParamList([parameter_format, parameter_value]),
+            fun_result), None, None)
+
+
+PUTS = c_ast.Decl(
+    "puts", [], [], [], c_ast.FuncDecl(
+        c_ast.ParamList([
+            c_ast.Decl("s", [], [], [],
+                       c_ast.PtrDecl([], MakeSimpleTypeDecl("s", ["char"])), None, None)
+        ]),
+        MakeSimpleTypeDecl("puts", ["int"])), None, None)
+
+PRINTF_PROTOTYPES = {
+    "printf_u": MakePrintfStyleDecl("printf_u", ["long", "long", "unsigned"]),
+    "printf_d": MakePrintfStyleDecl("printf_d", ["long", "long"]),
+    "printf_f": MakePrintfStyleDecl("printf_f", ["double"]),
+    "printf_c": MakePrintfStyleDecl("printf_c", ["char"]),
+    "printf_p": MakePrintfStyleDecl("printf_p", ["void"], True),
+    "printf_s": MakePrintfStyleDecl("printf_s", ["char"], True)
+}
+
+
+PRINTF_DISPATCH = {
+    "c": "printf_c",
+    "s": "printf_s",
+    "d": "printf_d",
+    "p": "printf_p",
+    #
+    "u": "printf_u",
+    "o": "printf_u",
+    "x": "printf_u",
+    #
+    "e": "printf_e",
+    "f": "printf_f",
+    "g": "printf_g",
 }
 
 
@@ -82,13 +135,19 @@ def _IsSuitablePrintf(node: c_ast.Node, _):
     return True
 
 
-def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node]):
+def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_printf):
     args = [c_ast.Constant("string", '"' + fmt_str + '"')]
-    if arg_node: args.append(arg_node)
-    return c_ast.FuncCall(c_ast.ID("printf"), c_ast.ExprList(args))
+    if  arg_node:
+        args.append(arg_node)
+        name = PRINTF_DISPATCH[fmt_str[-1]]
+    else:
+        name = "puts"
+    if not use_specialized_printf:
+        name = "printf"
+    return c_ast.FuncCall(c_ast.ID(name), c_ast.ExprList(args))
 
 
-def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
+def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo, use_specialized_printf):
     args = call.args.exprs
     fmt_pieces = TokenizeFormatString(args[0].value[1:-1])
     if not fmt_pieces: return
@@ -104,7 +163,7 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
         arg = None
         if f[0] == '%' and len(f) > 1:
             arg = args.pop(0)
-        c = MakePrintfCall(f, arg)
+        c = MakePrintfCall(f, arg, use_specialized_printf)
         meta_info.type_links[c] = meta_info.type_links[call]
         meta_info.type_links[c.args] = meta_info.type_links[call.args]
         meta_info.type_links[c.args.exprs[0]] = meta_info.type_links[call.args.exprs[0]]
@@ -115,11 +174,21 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo):
     stmts[pos:pos + 1] = calls
 
 
-def PrintfSplitterTransform(ast: c_ast.Node, meta: meta.MetaInfo):
+def PrintfSplitterTransform(ast: c_ast.FileAST, meta: meta.MetaInfo, use_specialized_printf):
     candidates = common.FindMatchingNodesPostOrder(ast, ast, _IsSuitablePrintf)
 
     for call, parent in candidates:
-        _DoPrintfSplitter(call, parent, meta)
+        _DoPrintfSplitter(call, parent, meta, use_specialized_printf)
+    if not use_specialized_printf or len(candidates) == 0:
+        return
+    ext = ast.ext
+    to_be_deleted = []
+    for node in ext:
+        if isinstance(node, c_ast.Decl) and node.name in {"puts", "printf"}:
+            to_be_deleted.append(node)
+    for node in to_be_deleted:
+        ext.remove(node)
+    ext[0:0] = [PUTS] + list(PRINTF_PROTOTYPES.values())
 
 
 if __name__ == "__main__":
