@@ -43,6 +43,7 @@ def SizeOf(node):
     else:
         assert False, node
 
+
 def GetVarKind(node, parent):
     if isinstance(parent, c_ast.ParamList):
         return "param"
@@ -55,7 +56,9 @@ def GetVarKind(node, parent):
 
 
 def StringifyType(type_or_decl):
-    if isinstance(type_or_decl, c_ast.FuncDecl):
+    if isinstance(type_or_decl, c_ast.Typename):
+        return StringifyType(type_or_decl.type)
+    elif isinstance(type_or_decl, c_ast.FuncDecl):
         return "c32"
     elif isinstance(type_or_decl, c_ast.PtrDecl):
         return "a32"
@@ -91,27 +94,27 @@ def RenderItemList(items):
     return "[" + " ".join(items) + "]"
 
 
-def EmitFunctionHeader(node: c_ast.FuncDef):
-    fun_decl = node.decl.type
-    assert isinstance(fun_decl, c_ast.FuncDecl)
+def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
     return_type = StringifyType(fun_decl.type)
     params = fun_decl.args.params if fun_decl.args else []
     parameter_types = [StringifyType(p) for p in params]
     parameter_names = [p.name for p in params]
-    fun_name = node.decl.name
     print("")
-    print(".sig", "%sig_" + fun_name, "[" + return_type if return_type else "" + "]", "=",
+    print(".sig", "%sig_" + fun_name, "[" + (return_type if return_type else "") + "]", "=",
           RenderItemList(parameter_types))
     print(".fun", fun_name, "%sig_" + fun_name, "[%out]" if return_type else "[]", "=",
           RenderItemList(parameter_names))
-    print(".bbl %start")
 
 
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
-        EmitFunctionHeader(node)
+        EmitFunctionHeader(node.decl.name, node.decl.type)
+        print(".bbl %start")
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
+        return
+    if isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
+        EmitFunctionHeader(node.name, node.type)
         return
 
     if isinstance(node, c_ast.If):
@@ -216,7 +219,7 @@ def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
     meta_info = meta.MetaInfo(ast)
-    canonicalize.Canonicalize(ast, meta_info, True)
+    canonicalize.Canonicalize(ast, meta_info, True, True)
     global_id_gen = common.UniqueId()
     EmitIR([ast], meta_info, {}, global_id_gen)
     # generator = c_generator.CGenerator()

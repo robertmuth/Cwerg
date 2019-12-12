@@ -1,5 +1,5 @@
 int printf( const char *restrict format, ... );
-void* malloc(int);
+void* malloc(int size);
   
 int SumArray(int Array[], int Num) {
   int i, Result = 0;
