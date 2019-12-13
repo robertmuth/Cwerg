@@ -1,5 +1,5 @@
 extern void abort (void);
-extern void exit (int);
+extern void exit (int code);
 
 int main() {
     int a,b,c;

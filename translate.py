@@ -214,7 +214,9 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             tmp = GetTmp(meta_info.type_links[node])
             results = [tmp]
             node_value[node] = tmp
-        params = [node_value[a] for a in node.args]
+        params = []
+        if node.args:
+            params = [node_value[a] for a in node.args]
         print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
     elif isinstance(node, c_ast.Return):
         if node.expr:
