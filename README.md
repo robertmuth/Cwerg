@@ -17,7 +17,7 @@ which  can be found below.
 * the canonicalizer is already useful. It transforms C programs into equivalents programs 
   that use a smaller subset of the C language. For example, canonicalized programs do not
   use pre/post in-/decrement and do not have for or while loops. 
-* no backend yet 
+* no backend yet but likely targeting [QBE](https://c9x.me/compile/)
 
 ## Highlevel Overview
 
@@ -182,7 +182,7 @@ https://github.com/huangguiyang/plan9-cc (not official?)
 
 * implemnted in C by Roberto E. Vargas Caballero et al
 * actively developed
-* backemds for arm32, x86-64 and possibly others
+* backends for arm32, x86-64, qbe and possibly others
 * may (?) also use the qbe backend
 
 Links

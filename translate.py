@@ -106,11 +106,25 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
           RenderItemList(parameter_names))
 
 
+def HandleStore(node: c_ast.Assignment, meta_info, node_value, id_gen):
+    lvalue = node.lvalue
+    EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
+    tmp = node_value[node.rvalue]
+    if isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
+        EmitIR([node, lvalue.expr], meta_info, node_value, id_gen)
+        print (TAB, "store", node_value[lvalue.expr], "=", tmp)
+    else:
+        EmitIR([node, lvalue], meta_info, node_value, id_gen)
+        print (TAB, node_value[lvalue], "=", tmp)
+    node_value[node] = tmp
+
+
+
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
         EmitFunctionHeader(node.decl.name, node.decl.type)
-        print(".bbl %start")
+        print("@%start")
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
         return
     if isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
@@ -129,8 +143,11 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             print(TAB, "brcond", node_value[cond], node.iftrue.name, node.iffalse.name)
         return
     elif isinstance(node, c_ast.Label):
-        print(".bbl", node.name)
+        print("@" + node.name)
         EmitIR(node_stack + [node.stmt], meta_info, node_value, id_gen)
+        return
+    elif isinstance(node, c_ast.Assignment):
+        HandleStore(node, meta_info, node_value, id_gen)
         return
 
     for c in node:
@@ -164,10 +181,6 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         kind = GetVarKind(node, parent)
         type_str = StringifyType(node.type)
         print(kind, node.name, type_str)
-    elif isinstance(node, c_ast.Assignment):
-        assert node.op == "="
-        print(TAB, node_value[node.lvalue], node.op, node_value[node.rvalue])
-        node_value[node] = node_value[node.lvalue]
     elif isinstance(node, c_ast.BinaryOp):
         tmp = GetTmp(meta_info.type_links[node])
         print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
@@ -180,6 +193,10 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
                 print(TAB, tmp, "=", val)
             else:
                 tmp = val
+        elif node.op == "*":
+            tmp = GetTmp(meta_info.type_links[node])
+            print (TAB, "load", tmp, "=", node_value[node.expr])
+            node_value[node] = tmp
         else:
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
@@ -191,7 +208,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     elif isinstance(node, c_ast.FuncCall):
         #print ("ARGS", node.args)
         if HasNoResult(meta_info.type_links[node]):
-            result = []
+            results = []
             node_value[node] = None
         else:
             tmp = GetTmp(meta_info.type_links[node])
