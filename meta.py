@@ -311,6 +311,8 @@ def MakePtrType(t):
         return c_ast.PtrDecl([], c_ast.TypeDecl(None, [], t))
     elif isinstance(t, c_ast.PtrDecl):
         return c_ast.PtrDecl([], t)
+    elif isinstance(t, (c_ast.Struct, c_ast.Union)):
+        return c_ast.PtrDecl([], t)
     else:
         assert False, t
 
