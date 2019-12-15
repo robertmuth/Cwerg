@@ -17,7 +17,8 @@ which  can be found below.
 * the canonicalizer is already useful. It transforms C programs into equivalents programs 
   that use a smaller subset of the C language. For example, canonicalized programs do not
   use pre/post in-/decrement and do not have for or while loops. 
-* no backend yet but likely targeting [QBE](https://c9x.me/compile/)
+* no backend yet. Hook-up your own (see translate.py for inspiration).
+  [QBE](https://c9x.me/compile/) might also be a good candidate.
 
 ## Highlevel Overview
 
@@ -58,6 +59,11 @@ The compilation is split into the following phases:
   [Cheat Sheet](https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html)
   
   
+## Useful References
+
+* Some things every C programmer should know about C
+  https://web.archive.org/web/20030812081713/http://klausler.com/cnotes.txt
+ 
 ## Survey of other open source c-compiler projects
 
 ### chibicc
@@ -125,7 +131,7 @@ https://github.com/larmel/lacc
 
 ### lcc
 
-* wriiten in C by Dave Hanson, Chris Fraser et al
+* written in C by Dave Hanson, Chris Fraser et al
 * very well documented compiler 
 * partially aimed at education
 * feels a bit dated, front and backend are not separate programs
