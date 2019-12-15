@@ -18,7 +18,6 @@ Currently implemented
 """
 
 import sys
-from typing import List, Tuple, Mapping
 
 from pycparser import c_ast, parse_file, c_generator
 
@@ -30,7 +29,7 @@ import transform_label
 import transform_printf
 import transform_rename
 
-__all__ = ["Canonicalize"]
+__all__ = ["Canonicalize", "SimpleCanonicalize"]
 
 CONST_ZERO = c_ast.Constant("int", "0")
 
@@ -308,9 +307,22 @@ def ConvertCompoundAssignment(ast: c_ast.Node, meta_info: meta.MetaInfo, id_gen)
         elif isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
             # TODO
             pass
-            #stmts = common.GetStatementList(parent)
-            #assert stmts
-            #pos = stmts.index(assign)
+            # stmts = common.GetStatementList(parent)
+            # assert stmts
+            # pos = stmts.index(assign)
+
+
+# ================================================================================
+#
+# ================================================================================
+def ConvertArrayStructRef(ast: c_ast.FileAST):
+    def IsArrowStructRef(node, _):
+        return isinstance(node, c_ast.StructRef) and node.type == "->"
+
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsArrowStructRef)
+    for struct_ref, parent in candidates:
+        struct_ref.type = "."
+        struct_ref.name = c_ast.UnaryOp("*", struct_ref.name)
 
 
 # ================================================================================
@@ -350,7 +362,7 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
 
     elif isinstance(node, c_ast.Assignment):
         pass
-        #assert node.op == "=", parent
+        # assert node.op == "=", parent
 
     # elif isinstance(node, c_ast.EllipsisParam):
     #    assert False
@@ -387,19 +399,26 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
 # ================================================================================
 #
 # ================================================================================
-def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_casts, use_specialized_printf):
+def SimpleCanonicalize(ast: c_ast.FileAST, use_specialized_printf):
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
+    ConvertArrayStructRef(ast)
+    transform_printf.PrintfSplitterTransform(ast, use_specialized_printf)
+
+
+# ================================================================================
+#
+# ================================================================================
+def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_casts):
     global_id_gen = common.UniqueId()
 
     for node in ast:
         if isinstance(node, c_ast.FuncDef):
             CanonicalizeFun(node, meta_info)
 
-    transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
-    transform_printf.PrintfSplitterTransform(ast, meta_info, use_specialized_printf)
+    transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     ConvertCompoundAssignment(ast, meta_info, global_id_gen)
@@ -417,8 +436,9 @@ def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_cas
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
+    SimpleCanonicalize(ast, use_specialized_printf=False)
     meta_info = meta.MetaInfo(ast)
-    Canonicalize(ast, meta_info, False, False)
+    Canonicalize(ast, meta_info, skip_constant_casts=False)
     generator = c_generator.CGenerator()
     print(generator.visit(ast))
 

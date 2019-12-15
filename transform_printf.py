@@ -147,7 +147,7 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_prin
     return c_ast.FuncCall(c_ast.ID(name), c_ast.ExprList(args))
 
 
-def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo, use_specialized_printf):
+def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
     args = call.args.exprs
     fmt_pieces = TokenizeFormatString(args[0].value[1:-1])
     if not fmt_pieces: return
@@ -164,21 +164,16 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, meta_info: meta.MetaInfo, us
         if f[0] == '%' and len(f) > 1:
             arg = args.pop(0)
         c = MakePrintfCall(f, arg, use_specialized_printf)
-        meta_info.type_links[c] = meta_info.type_links[call]
-        meta_info.type_links[c.args] = meta_info.type_links[call.args]
-        meta_info.type_links[c.args.exprs[0]] = meta_info.type_links[call.args.exprs[0]]
-        meta_info.type_links[c.name] = meta_info.type_links[call.name]
-        meta_info.sym_links[c.name] = meta_info.sym_links[call.name]
         calls.append(c)
     pos = stmts.index(call)
     stmts[pos:pos + 1] = calls
 
 
-def PrintfSplitterTransform(ast: c_ast.FileAST, meta: meta.MetaInfo, use_specialized_printf):
+def PrintfSplitterTransform(ast: c_ast.FileAST, use_specialized_printf):
     candidates = common.FindMatchingNodesPostOrder(ast, ast, _IsSuitablePrintf)
 
     for call, parent in candidates:
-        _DoPrintfSplitter(call, parent, meta, use_specialized_printf)
+        _DoPrintfSplitter(call, parent, use_specialized_printf)
     if not use_specialized_printf or len(candidates) == 0:
         return
     ext = ast.ext
