@@ -67,6 +67,9 @@ def MaybeRenameSymbols(node, parent, meta_info, local_syms, id_gen: common.Uniqu
     if isinstance(node, common.NEW_SCOPE_NODE):
         local_syms.append({})
 
+    if isinstance(node, (c_ast.Struct,c_ast.Union)):
+        return
+
     if isinstance(node, c_ast.Decl):
         # skip non local vars
         if "static" in node.storage or "extern" in node.storage:
