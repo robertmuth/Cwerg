@@ -418,6 +418,9 @@ def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_cas
 
     meta_info.CheckConsistency(ast)
 
+    transform_arrayref.ConvertConvertAddressTakenScalarsToArray(ast, meta_info)
+    meta_info.CheckConsistency(ast)
+
     transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
     meta_info.CheckConsistency(ast)
 

@@ -213,6 +213,7 @@ def VerifyStructLinks(node: c_ast.Node, struct_links):
 _ALLOWED_TYPE_LINKS = (c_ast.ParamList,  # for ExpressionList which are function arguments
                        c_ast.ArrayDecl,
                        c_ast.PtrDecl,
+                       c_ast.FuncDecl,
                        c_ast.IdentifierType,
                        c_ast.Struct,
                        c_ast.Union)
@@ -291,6 +292,8 @@ def TypePrettyPrint(decl):
         return "array-decl"
     elif isinstance(decl, c_ast.PtrDecl):
         return "ptr-decl"
+    elif isinstance(decl, c_ast.FuncDecl):
+        return "ptr-fun"
     else:
         assert False, "unexpected %s" % decl
 
@@ -312,6 +315,9 @@ def MakePtrType(t):
     elif isinstance(t, c_ast.PtrDecl):
         return c_ast.PtrDecl([], t)
     elif isinstance(t, (c_ast.Struct, c_ast.Union)):
+        return c_ast.PtrDecl([], t)
+    elif isinstance(t, c_ast.FuncDecl):
+        # we treat function and function pointers the same
         return c_ast.PtrDecl([], t)
     else:
         assert False, t
@@ -371,6 +377,8 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
             return _GetFieldRefTypeAndUpdateSymbolLink(parent, sym_links, struct_links, type_tab)
         else:
             decl = sym_links[node].type
+            if isinstance(decl, c_ast.FuncDecl):
+                return decl
             return GetTypeForDecl(decl)
     elif isinstance(node, c_ast.BinaryOp):
         return GetBinopType(node, child_types[0], child_types[1])

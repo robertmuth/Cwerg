@@ -236,6 +236,11 @@ def ReplaceNode(parent, old_node, new_node):
             parent.right = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.UnaryOp):
+        if parent.expr is old_node:
+            parent.expr = new_node
+        else:
+            assert False, parent
     elif isinstance(parent, c_ast.Assignment):
         if parent.lvalue is old_node:
             parent.lvalue = new_node
