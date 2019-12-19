@@ -36,8 +36,12 @@ TYPE_TRANSLATION = {
 tmp_counter = 0
 
 
-def SizeOfStruct(node: c_ast.Struct):
-    return 66
+def SizeOfAndAlignmentStruct(node: c_ast.Struct):
+    return 8, 66
+
+
+def SizeOfAndAlignmentUnion(node: c_ast.Union):
+    return 8, 66
 
 
 def SizeOfAndAlignment(node):
@@ -45,7 +49,9 @@ def SizeOfAndAlignment(node):
         return SizeOfAndAlignment(node.type)
 
     if isinstance(node, c_ast.Struct):
-        return 8, SizeOfStruct(node)
+        return SizeOfAndAlignmentStruct(node)
+    elif isinstance(node, c_ast.Union):
+        return SizeOfAndAlignmentUnion(node)
     elif isinstance(node, c_ast.IdentifierType):
         type_name = TYPE_TRANSLATION[tuple(node.names)]
         bitsize = int(type_name[1:])
@@ -227,9 +233,11 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
                 print(TAB, name, "=", node_value[decl.init])
 
         else:
-            assert not decl.init, decl
             alignment, size = SizeOfAndAlignment(decl)
-            print("STACK DATA", name, size)
+            print("STACK DATA", name, alignment, size)
+            if decl.init:
+                print ("INIT-STACK", decl.init)
+
     else:
         assert False, decl
 
