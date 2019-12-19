@@ -157,7 +157,7 @@ TAB = "  "
 def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
     if isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
         EmitIR([lvalue, lvalue.expr], meta_info, node_value, id_gen)
-        node_value[lvalue] =  node_value[lvalue.expr]
+        node_value[lvalue] = node_value[lvalue.expr]
     elif isinstance(lvalue, c_ast.ArrayRef):
         assert False, lvalue
     elif isinstance(lvalue, c_ast.StructRef):
@@ -165,6 +165,12 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         tmp = GetTmp(TYPE_TRANSLATION[POINTER])
         print(TAB, tmp, "=", node_value[lvalue.name], "+ struct_offset", lvalue.field.name)
         node_value[lvalue] = tmp
+    elif isinstance(lvalue, c_ast.ID):
+        type = meta_info.type_links[lvalue]
+        assert ScalarDeclType(type) is None
+        node_value[lvalue] = lvalue.name
+    else:
+        assert False, lvalue
 
 
 def RenderItemList(items):
@@ -183,7 +189,7 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
           RenderItemList(parameter_names))
 
 
-def HandleAsignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
+def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
     tmp = node_value[node.rvalue]
@@ -233,8 +239,8 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
     elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
         node_value[node] = tmp
     else:
-        print (node)
-        print ("@@@@@", meta_info.type_links[node.field])
+        #print (node)
+        #print ("@@@@@", meta_info.type_links[node.field])
         field_type = meta_info.type_links[node.field]
         val_type = ScalarDeclType(field_type)
         val = GetTmp(val_type)
@@ -286,9 +292,13 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         EmitIR(node_stack + [node.stmt], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Assignment):
-        HandleAsignment(node, meta_info, node_value, id_gen)
+        HandleAssignment(node, meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Struct):
+        return
+    elif isinstance(node, c_ast.UnaryOp) and node.op == "&":
+        GetLValueAddress(node.expr, meta_info, node_value, id_gen)
+        node_value[node] = node_value[node.expr]
         return
 
     for c in node:
@@ -322,6 +332,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
         node_value[node] = tmp
     elif isinstance(node, c_ast.UnaryOp):
+        assert node.op != "&"
         if node.op == "sizeof":
             val = SizeOf(node.expr)
             if isinstance(node_stack[-2], c_ast.ExprList):
@@ -336,8 +347,6 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
                 tmp = GetTmp(meta_info.type_links[node])
                 print(TAB, "load", tmp, "=", node_value[node.expr])
                 node_value[node] = tmp
-        elif node.op == "&":
-            assert False, node
         else:
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
