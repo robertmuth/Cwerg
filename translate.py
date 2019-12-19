@@ -16,7 +16,6 @@ import meta
 
 POINTER = ("*",)
 
-
 TYPE_TRANSLATION = {
     ("char",): "s8",
     ("char", "unsigned",): "u8",
@@ -70,19 +69,20 @@ def IsLocalDecl(node, parent):
     return not isinstance(parent, (c_ast.FileAST, c_ast.ParamList, c_ast.FuncDef))
 
 
-def ScalarDeclType(decl: c_ast.Decl):
-    if isinstance(decl.type, c_ast.ArrayDecl):
+def ScalarDeclType(type):
+    if isinstance(type, c_ast.TypeDecl):
+        return ScalarDeclType(type.type)
+
+    if isinstance(type, c_ast.ArrayDecl):
         return None
-    if isinstance(decl.type, c_ast.PtrDecl):
+    elif isinstance(type, c_ast.PtrDecl):
         return TYPE_TRANSLATION[POINTER]
-
-    assert isinstance(decl.type, c_ast.TypeDecl), decl
-
-    type = decl.type.type
-    if isinstance(type, c_ast.IdentifierType):
+    elif isinstance(type, c_ast.IdentifierType):
         return TYPE_TRANSLATION[tuple(type.names)]
+    elif isinstance(type, (c_ast.FuncDef, c_ast.Struct, c_ast.Union)):
+        return None
     else:
-        assert False, decl
+        assert False, type
 
 
 def GetVarKind(node, parent):
@@ -106,7 +106,8 @@ def StringifyType(type_or_decl):
         return "a32"
     elif isinstance(type_or_decl, c_ast.ArrayDecl):
         return "a32"
-
+    elif isinstance(type_or_decl, (c_ast.Struct, c_ast.Union)):
+        return "a32"
     elif isinstance(type_or_decl, c_ast.IdentifierType):
         return TYPE_TRANSLATION[tuple(type_or_decl.names)]
     elif type(type_or_decl) == str:
@@ -118,6 +119,7 @@ def StringifyType(type_or_decl):
 
 def GetTmp(type):
     global tmp_counter
+    assert type is not None
     tmp_counter += 1
     return "%%%s_%s" % (StringifyType(type), tmp_counter)
 
@@ -127,6 +129,42 @@ def HasNoResult(type):
 
 
 TAB = "  "
+
+
+# x->b2->a1 = 0
+#   Assignment: =
+#     StructRef: .
+#       UnaryOp: *
+#         StructRef: .
+#           UnaryOp: *
+#             ID: x
+#           ID: b2
+#       ID: a1
+#     Constant: int, 0
+
+# xx.b1.c1.d1 = 0
+# Assignment: =
+#       StructRef: .
+#         StructRef: .
+#           StructRef: .
+#             ID: xx
+#             ID: b1
+#           ID: c1
+#         ID: d1
+#       Constant: int, 0
+
+
+def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
+    if isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
+        EmitIR([lvalue, lvalue.expr], meta_info, node_value, id_gen)
+        node_value[lvalue] =  node_value[lvalue.expr]
+    elif isinstance(lvalue, c_ast.ArrayRef):
+        assert False, lvalue
+    elif isinstance(lvalue, c_ast.StructRef):
+        EmitIR([lvalue, lvalue.name], meta_info, node_value, id_gen)
+        tmp = GetTmp(TYPE_TRANSLATION[POINTER])
+        print(TAB, tmp, "=", node_value[lvalue.name], "+ struct_offset", lvalue.field.name)
+        node_value[lvalue] = tmp
 
 
 def RenderItemList(items):
@@ -145,36 +183,63 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
           RenderItemList(parameter_names))
 
 
-def HandleStore(node: c_ast.Assignment, meta_info, node_value, id_gen):
+def HandleAsignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
     tmp = node_value[node.rvalue]
-    if isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
-        EmitIR([node, lvalue.expr], meta_info, node_value, id_gen)
-        print(TAB, "store", node_value[lvalue.expr], "=", tmp)
+    if isinstance(lvalue, c_ast.ID):
+        # but if address is taken
+        print(TAB, lvalue.name, "=", tmp)
     else:
-        EmitIR([node, lvalue], meta_info, node_value, id_gen)
-        print(TAB, node_value[lvalue], "=", tmp)
+        GetLValueAddress(lvalue, meta_info, node_value, id_gen)
+        print(TAB, "store", node_value[lvalue], "=", tmp)
     node_value[node] = tmp
 
 
-def HandleDecl(decl: c_ast.Decl, parent):
+def HandleDecl(node_stack, meta_info, node_value, id_gen):
+    decl: c_ast.Decl = node_stack[-1]
+    parent = node_stack[-2]
     name = decl.name
-    size = SizeOf(decl)
 
     if IsGlobalDecl(decl, parent):
+        size = SizeOf(decl)
         assert not decl.init, decl
         print(".mem", name, "4", "rw")
         print(".data", str(size), "[0]")
     elif IsLocalDecl(decl, parent):
         # we also need to take into account if the address is taken later
-        scalar = ScalarDeclType(decl)
+        scalar = ScalarDeclType(decl.type)
         if scalar:
             print(TAB, scalar, name)
+
+            if decl.init:
+                EmitIR(node_stack + [decl.init], meta_info, node_value, id_gen)
+                print(TAB, name, "=", node_value[decl.init])
+
         else:
+            assert not decl.init, decl
+            size = SizeOf(decl)
             print("STACK DATA", name, size)
     else:
         assert False, decl
+
+
+def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen):
+    assert node.type == "."
+    tmp = GetTmp(TYPE_TRANSLATION[POINTER])
+    print(TAB, tmp, "=", node_value[node.name], "+offset", node.field.name)
+    if isinstance(parent, c_ast.StructRef):
+        node_value[node] = tmp
+    elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
+        node_value[node] = tmp
+    else:
+        print (node)
+        print ("@@@@@", meta_info.type_links[node.field])
+        field_type = meta_info.type_links[node.field]
+        val_type = ScalarDeclType(field_type)
+        val = GetTmp(val_type)
+        print(TAB, "load", val, "=", tmp)
+        node_value[node] = val
 
 
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
@@ -184,11 +249,13 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print("@%start")
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
         return
-    if isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
+    elif isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
         EmitFunctionHeader(node.name, node.type)
         return
-
-    if isinstance(node, c_ast.If):
+    elif isinstance(node, c_ast.Decl):
+        HandleDecl(node_stack, meta_info, node_value, id_gen)
+        return
+    elif isinstance(node, c_ast.If):
         cond = node.cond
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
@@ -204,7 +271,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         EmitIR(node_stack + [node.stmt], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Assignment):
-        HandleStore(node, meta_info, node_value, id_gen)
+        HandleAsignment(node, meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Struct):
         return
@@ -235,9 +302,6 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         pass
     elif isinstance(node, c_ast.Goto):
         print(TAB, "br", node.name)
-    elif isinstance(node, c_ast.Decl):
-        parent = node_stack[-2]
-        HandleDecl(node, parent)
     elif isinstance(node, c_ast.BinaryOp):
         tmp = GetTmp(meta_info.type_links[node])
         print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
@@ -251,9 +315,14 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             else:
                 tmp = val
         elif node.op == "*":
-            tmp = GetTmp(meta_info.type_links[node])
-            print(TAB, "load", tmp, "=", node_value[node.expr])
-            node_value[node] = tmp
+            if isinstance(node_stack[-2], c_ast.StructRef):
+                tmp = node_value[node.expr]
+            else:
+                tmp = GetTmp(meta_info.type_links[node])
+                print(TAB, "load", tmp, "=", node_value[node.expr])
+                node_value[node] = tmp
+        elif node.op == "&":
+            assert False, node
         else:
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
@@ -287,6 +356,8 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         pass
     elif isinstance(node, (c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
         pass
+    elif isinstance(node, c_ast.StructRef):
+        HandleStructRef(node, node_stack[-2], meta_info, node_value, id_gen)
     else:
         assert False, node
 
@@ -294,8 +365,9 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
 def main(argv):
     filename = argv[0]
     ast = parse_file(filename, use_cpp=True)
+    canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
     meta_info = meta.MetaInfo(ast)
-    canonicalize.Canonicalize(ast, meta_info, True, True)
+    canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=True)
     global_id_gen = common.UniqueId()
     EmitIR([ast], meta_info, {}, global_id_gen)
     # generator = c_generator.CGenerator()
