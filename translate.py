@@ -242,6 +242,21 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
         node_value[node] = val
 
 
+def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
+    # print ("ARGS", node.args)
+    if HasNoResult(meta_info.type_links[node]):
+        results = []
+        node_value[node] = None
+    else:
+        tmp = GetTmp(meta_info.type_links[node])
+        results = [tmp]
+        node_value[node] = tmp
+    params = []
+    if node.args:
+        params = [node_value[a] for a in node.args]
+    print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
+
+
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
@@ -332,18 +347,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print(TAB, tmp, "=", "(cast)", node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
-        # print ("ARGS", node.args)
-        if HasNoResult(meta_info.type_links[node]):
-            results = []
-            node_value[node] = None
-        else:
-            tmp = GetTmp(meta_info.type_links[node])
-            results = [tmp]
-            node_value[node] = tmp
-        params = []
-        if node.args:
-            params = [node_value[a] for a in node.args]
-        print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
+        HandleFuncCall(node, meta_info, node_value)
     elif isinstance(node, c_ast.Return):
         if node.expr:
             print(TAB, "%out", "=", node_value[node.expr])

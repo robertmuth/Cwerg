@@ -369,6 +369,13 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct
     return GetTypeForDecl(member.type)
 
 
+def GetFunReturnType(fun_or_fun_ptr):
+    if isinstance(fun_or_fun_ptr, c_ast.FuncDecl):
+        return GetTypeForDecl(fun_or_fun_ptr.type)
+    assert isinstance(fun_or_fun_ptr, c_ast.PtrDecl)
+    return GetTypeForDecl(fun_or_fun_ptr.type)
+
+
 def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef):
     if isinstance(node, c_ast.Constant):
         return common.GetCanonicalIdentifierType(node.type.split())
@@ -385,7 +392,7 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
     elif isinstance(node, c_ast.UnaryOp):
         return GetUnaryType(node, child_types[0])
     elif isinstance(node, c_ast.FuncCall):
-        return child_types[0]
+        return GetFunReturnType(child_types[0])
     elif isinstance(node, c_ast.ArrayRef):
         a = child_types[0]
         assert isinstance(a, (c_ast.ArrayDecl, c_ast.PtrDecl)
