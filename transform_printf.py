@@ -121,6 +121,10 @@ def TokenizeFormatString(s: str):
 # calls. Each of which has at most one argument besides the format string
 # This eliminates the primary use case of variable argument lists.
 #
+# if `use_specialized_printf` is true the printfs will also be renamed based on
+# PRINTF_DISPATCH and the printf prototype will be replaced by PRINTF_PROTOTYPES.
+# printf with only a single argument after splitting will renamed into `puts`
+#
 # This invalidates sym_tab and type_tab
 # ================================================================================
 def _IsSuitablePrintf(node: c_ast.Node, _):
@@ -137,7 +141,7 @@ def _IsSuitablePrintf(node: c_ast.Node, _):
 
 def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_printf):
     args = [c_ast.Constant("string", '"' + fmt_str + '"')]
-    if  arg_node:
+    if arg_node:
         args.append(arg_node)
         name = PRINTF_DISPATCH[fmt_str[-1]]
     else:
@@ -150,12 +154,15 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_prin
 def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
     args = call.args.exprs
     fmt_pieces = TokenizeFormatString(args[0].value[1:-1])
-    if not fmt_pieces: return
-    if len(fmt_pieces) == 1: return
+    if len(fmt_pieces) <= 1:
+            if use_specialized_printf:
+                call.name.name = "puts"
+            return
 
     stmts = common.GetStatementList(parent)
     if not stmts:
-        assert False, parent
+        stmts = [call]
+        common.ReplaceNode(parent, call, c_ast.Compound(stmts))
 
     calls = []
     args = args[1:]  # skip the format string

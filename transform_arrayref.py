@@ -114,6 +114,8 @@ def CollapseArrayDeclChain(head):
 
 def ConvertArrayIndexToPointerDereference(ast, meta_info):
     """
+    Eliminates multi-dimensional arrays
+
     Phase 1:  a[1][2] = b; -> *(a + 1 * 10 + 2) = b;
 
     Phase 2:  int a[5][10]; -> int a[50];
@@ -160,6 +162,11 @@ def IsScalarType(type):
 
 
 def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
+    """
+    Rewrite address taken scalar vars as one element arrays
+
+    After this transform we can keep all scalars in registers.
+    """
     def IsAddressTakenScalar(node, _):
         if not isinstance(node, c_ast.UnaryOp): return False
         if node.op != "&": return False
