@@ -40,23 +40,24 @@ def SizeOfStruct(node: c_ast.Struct):
     return 66
 
 
-def SizeOf(node):
+def SizeOfAndAlignment(node):
     if isinstance(node, (c_ast.Typename, c_ast.Decl, c_ast.TypeDecl)):
-        return SizeOf(node.type)
+        return SizeOfAndAlignment(node.type)
 
     if isinstance(node, c_ast.Struct):
-        return SizeOfStruct(node)
+        return 8, SizeOfStruct(node)
     elif isinstance(node, c_ast.IdentifierType):
         type_name = TYPE_TRANSLATION[tuple(node.names)]
         bitsize = int(type_name[1:])
-        return bitsize // 8
+        return bitsize // 8, bitsize // 8
     elif isinstance(node, c_ast.ArrayDecl):
-        # take alignment into account
-        return SizeOf(node.type) * int(node.dim.value)
+        align, size = SizeOfAndAlignment(node.type)
+        size = (size + align - 1) // align * align
+        return align, size * int(node.dim.value)
     elif isinstance(node, c_ast.PtrDecl):
         type_name = TYPE_TRANSLATION[POINTER]
         bitsize = int(type_name[1:])
-        return bitsize // 8
+        return bitsize // 8, bitsize // 8
     else:
         assert False, node
 
@@ -167,7 +168,7 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
-        assert ScalarDeclType(type) is None
+        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union, c_ast.FuncDecl)), type
         node_value[lvalue] = lvalue.name
     else:
         assert False, lvalue
@@ -208,10 +209,13 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
     name = decl.name
 
     if IsGlobalDecl(decl, parent):
-        size = SizeOf(decl)
-        assert not decl.init, decl
-        print(".mem", name, "4", "rw")
-        print(".data", str(size), "[0]")
+        align, size = SizeOfAndAlignment(decl)
+        print(".mem", name, str(align), "rw")
+        if decl.init:
+            print ("INIT-THE-DATA", decl.init)
+        else:
+            print(".data", str(size), "[0]")
+
     elif IsLocalDecl(decl, parent):
         # we also need to take into account if the address is taken later
         scalar = ScalarDeclType(decl.type)
@@ -224,7 +228,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
 
         else:
             assert not decl.init, decl
-            size = SizeOf(decl)
+            alignment, size = SizeOfAndAlignment(decl)
             print("STACK DATA", name, size)
     else:
         assert False, decl
@@ -334,7 +338,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"
         if node.op == "sizeof":
-            val = SizeOf(node.expr)
+            _, val = SizeOfAndAlignment(node.expr)
             if isinstance(node_stack[-2], c_ast.ExprList):
                 tmp = GetTmp(meta_info.type_links[node])
                 print(TAB, tmp, "=", val)
