@@ -124,11 +124,16 @@ def StringifyType(type_or_decl):
         return str(type_or_decl)
 
 
-def GetTmp(type):
+
+def GetUnique():
     global tmp_counter
-    assert type is not None
     tmp_counter += 1
-    return "%%%s_%s" % (StringifyType(type), tmp_counter)
+    return tmp_counter
+
+
+def GetTmp(type):
+    assert type is not None
+    return "%%%s_%s" % (StringifyType(type), GetUnique())
 
 
 def HasNoResult(type):
@@ -275,6 +280,37 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
     print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
 
 
+def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
+    EmitIR([node, node.cond], meta_info, node_value, id_gen)
+    label = "switch_%d_" % GetUnique()
+    label_end = label + "end"
+    label_default = label + "default"
+    table = label + "table"
+    cases = []
+    default = None
+    for s in node.stmt:
+        if isinstance(s, c_ast.Case):
+            val = int(s.expr.value)
+            cases.append((val, s.stmts, label + str(val)))
+        else:
+            assert isinstance(s, c_ast.Default), s
+            cases.append((None, s.stmts, label_default))
+            default = s
+    print (TAB, "switch", node_value[node.cond], table, label_default if default else label_end)
+    for t in cases:
+        print ("@" + t[2])
+        for s in t[1]:
+            if isinstance(s, c_ast.Break):
+                print (TAB, "br", label_end)
+            else:
+                EmitIR([node, node.stmt, s], meta_info, node_value, id_gen)
+    print ("@" + label_end)
+    print ("SWITCH-TABLE", table)
+    for t in cases:
+        if t[0] is not None:
+            print (TAB, t[0], t[2])
+
+            
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
@@ -312,6 +348,9 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         GetLValueAddress(node.expr, meta_info, node_value, id_gen)
         node_value[node] = node_value[node.expr]
         return
+    elif isinstance(node, c_ast.Switch):
+        HandleSwitch(node, meta_info, node_value, id_gen)
+        return
 
     for c in node:
         node_stack.append(c)
@@ -344,7 +383,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
         node_value[node] = tmp
     elif isinstance(node, c_ast.UnaryOp):
-        assert node.op != "&"
+        assert node.op != "&"  # this is handled further up
         if node.op == "sizeof":
             _, val = SizeOfAndAlignment(node.expr)
             if isinstance(node_stack[-2], c_ast.ExprList):
