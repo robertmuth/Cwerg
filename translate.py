@@ -310,7 +310,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
         if t[0] is not None:
             print (TAB, t[0], t[2])
 
-            
+
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
@@ -427,15 +427,16 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
 
 
 def main(argv):
-    filename = argv[0]
-    ast = parse_file(filename, use_cpp=True)
-    canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
-    meta_info = meta.MetaInfo(ast)
-    canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=True)
-    global_id_gen = common.UniqueId()
-    EmitIR([ast], meta_info, {}, global_id_gen)
-    # generator = c_generator.CGenerator()
-    # print(generator.visit(ast))
+    for filename in  argv:
+        print ("#" * 60)
+        print ("#", filename)
+        print ("#" * 60)
+        ast = parse_file(filename, use_cpp=True)
+        canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
+        meta_info = meta.MetaInfo(ast)
+        canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=True)
+        global_id_gen = common.UniqueId()
+        EmitIR([ast], meta_info, {}, global_id_gen)
 
 
 if __name__ == "__main__":

@@ -277,6 +277,11 @@ def ReplaceNode(parent, old_node, new_node):
             parent.subscript = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.Decl):
+        if parent.init is old_node:
+            parent.init = new_node
+        else:
+            assert False, parent
     else:
         assert False, parent
     return new_node
