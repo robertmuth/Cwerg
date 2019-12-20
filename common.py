@@ -263,6 +263,13 @@ def ReplaceNode(parent, old_node, new_node):
             parent.stmt = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.Case):
+        if parent.stmts is old_node:
+            parent.stmts = new_node
+        elif parent.expr is old_node:
+            parent.expr = new_node
+        else:
+            assert False, parent
     elif isinstance(parent, c_ast.ArrayRef):
         if parent.name is old_node:
             parent.name = new_node

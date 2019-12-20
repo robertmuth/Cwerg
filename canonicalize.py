@@ -328,6 +328,20 @@ def ConvertArrayStructRef(ast: c_ast.FileAST):
 # ================================================================================
 #
 # ================================================================================
+def SimpleConstantFolding(node, parent):
+    if (isinstance(node, c_ast.UnaryOp) and
+            node.op == "-" and
+            isinstance(node.expr, c_ast.Constant)):
+        node.expr.value = "-" + node.expr.value
+        common.ReplaceNode(parent, node, node.expr)
+
+    for c in node:
+        SimpleConstantFolding(c, node)
+
+
+# ================================================================================
+#
+# ================================================================================
 def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
     """This function documents documents all the C lang features we are trying to
      eliminate by lowering them."""
@@ -403,6 +417,7 @@ def SimpleCanonicalize(ast: c_ast.FileAST, use_specialized_printf):
     RemoveVoidParam(ast)
     CanonicalizeBaseTypes(ast)
     ConvertArrayStructRef(ast)
+    SimpleConstantFolding(ast, ast)
     transform_printf.PrintfSplitterTransform(ast, use_specialized_printf)
 
 
