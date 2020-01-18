@@ -13,6 +13,9 @@ from pycparser import c_ast, parse_file
 import canonicalize
 import common
 import meta
+import re
+
+RE_NUMBER = re.compile("^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$")
 
 POINTER = ("*",)
 
@@ -34,6 +37,10 @@ TYPE_TRANSLATION = {
 }
 
 tmp_counter = 0
+
+
+def IsNumber(s):
+  return RE_NUMBER.match(s)
 
 
 def SizeOfAndAlignmentStruct(node: c_ast.Struct):
@@ -124,7 +131,6 @@ def StringifyType(type_or_decl):
         return str(type_or_decl)
 
 
-
 def GetUnique():
     global tmp_counter
     tmp_counter += 1
@@ -207,10 +213,12 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     tmp = node_value[node.rvalue]
     if isinstance(lvalue, c_ast.ID):
         # but if address is taken
-        print(TAB, lvalue.name, "=", tmp)
+        ext = ".i" if IsNumber(tmp) else ""
+        print(f"{TAB}mov{ext} {lvalue.name} = {tmp}")
     else:
         GetLValueAddress(lvalue, meta_info, node_value, id_gen)
-        print(TAB, "store", node_value[lvalue], "=", tmp)
+        # make sure tmp is not const
+        print(f"{TAB}st.i {node_value[lvalue]} 0 = {tmp}")
     node_value[node] = tmp
 
 
@@ -223,7 +231,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
         align, size = SizeOfAndAlignment(decl)
         print(".mem", name, str(align), "rw")
         if decl.init:
-            print ("INIT-THE-DATA", decl.init)
+            print("INIT-THE-DATA", decl.init)
         else:
             print(".data", str(size), "[0]")
 
@@ -231,17 +239,19 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
         # we also need to take into account if the address is taken later
         scalar = ScalarDeclType(decl.type)
         if scalar:
-            print(TAB, scalar, name)
+            print(f"{TAB}.reg [{name}] {scalar}")
 
             if decl.init:
                 EmitIR(node_stack + [decl.init], meta_info, node_value, id_gen)
-                print(TAB, name, "=", node_value[decl.init])
+                ext = ".i" if IsNumber(node_value[decl.init]) else ""
+                print(f"{TAB}mov{ext} {name} = {node_value[decl.init]}")
 
         else:
             alignment, size = SizeOfAndAlignment(decl)
-            print("STACK DATA", name, alignment, size)
+            print(f".stk {name} {alignment} {size}")
             if decl.init:
-                print ("INIT-STACK", decl.init)
+                assert False
+                print("INIT-STACK", decl.init)
 
     else:
         assert False, decl
@@ -256,8 +266,8 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
     elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
         node_value[node] = tmp
     else:
-        #print (node)
-        #print ("@@@@@", meta_info.type_links[node.field])
+        # print (node)
+        # print ("@@@@@", meta_info.type_links[node.field])
         field_type = meta_info.type_links[node.field]
         val_type = ScalarDeclType(field_type)
         val = GetTmp(val_type)
@@ -277,7 +287,7 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
     params = []
     if node.args:
         params = [node_value[a] for a in node.args]
-    print(TAB, "call", node_value[node.name], RenderItemList(results), "=", RenderItemList(params))
+    print(f"{TAB}bsr {node_value[node.name]} {RenderItemList(results)} = {RenderItemList(params)}")
 
 
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
@@ -296,26 +306,26 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
             assert isinstance(s, c_ast.Default), s
             cases.append((None, s.stmts, label_default))
             default = s
-    print (TAB, "switch", node_value[node.cond], table, label_default if default else label_end)
+    print(TAB, "switch", node_value[node.cond], table, label_default if default else label_end)
     for t in cases:
-        print ("@" + t[2])
+        print("@" + t[2])
         for s in t[1]:
             if isinstance(s, c_ast.Break):
-                print (TAB, "br", label_end)
+                print(f"{TAB}br {label_end}")
             else:
                 EmitIR([node, node.stmt, s], meta_info, node_value, id_gen)
-    print ("@" + label_end)
-    print ("SWITCH-TABLE", table)
+    print(f"\n.bbl {label_end}")
+    print("SWITCH-TABLE", table)
     for t in cases:
         if t[0] is not None:
-            print (TAB, t[0], t[2])
+            print(TAB, t[0], t[2])
 
 
 def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
         EmitFunctionHeader(node.decl.name, node.decl.type)
-        print("@%start")
+        print(f"\n.bbl %start")
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
@@ -329,14 +339,24 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            print(TAB, "brcond", node_value[cond.left], cond.op, node_value[cond.right], node.iftrue.name,
-                  node.iffalse.name)
+            MAP_COMPARE = {"!=": "bne",
+                           "==": "beq",
+                           "<": "blt",
+                           "<=": "ble",
+                           ">": "bgt",
+                           ">=": "bge",
+                           }
+            assert cond.op in MAP_COMPARE, cond.op
+            ins = MAP_COMPARE[cond.op]
+            ext = ".i"
+            print(f"{TAB}{ins}{ext} {node_value[cond.left]} {node_value[cond.right]} {node.iftrue.name}")
+            print(f"{TAB}br {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
             print(TAB, "brcond", node_value[cond], node.iftrue.name, node.iffalse.name)
         return
     elif isinstance(node, c_ast.Label):
-        print("@" + node.name)
+        print(f"\n.bbl {node.name}")
         EmitIR(node_stack + [node.stmt], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Assignment):
@@ -366,21 +386,30 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             print(".data", "1", node.value)
             print(".data", "1", "[0]")
             tmp = GetTmp("a32")
-            print(TAB, tmp, "=", name)
+            print(f"{TAB}mov.mem {tmp}:a32 = {name}")
             node_value[node] = tmp
         elif isinstance(node_stack[-2], c_ast.ExprList):
-            tmp = GetTmp(meta_info.type_links[node])
-            print(TAB, tmp, "=", node.value)
+            kind = meta_info.type_links[node]
+            tmp = GetTmp(kind)
+            print(f"{TAB}mov.i {tmp}:{StringifyType(kind)} = {node.value}")
             node_value[node] = tmp
         else:
             node_value[node] = node.value
     elif isinstance(node, c_ast.IdentifierType):
         pass
     elif isinstance(node, c_ast.Goto):
-        print(TAB, "br", node.name)
+        print(f"{TAB}br {node.name}")
     elif isinstance(node, c_ast.BinaryOp):
         tmp = GetTmp(meta_info.type_links[node])
-        print(TAB, tmp, "=", node_value[node.left], node.op, node_value[node.right])
+        BIN_OP_MAP = {"*": "mul",
+                      "+": "add",
+                      "-": "sub"}
+        assert node.op in BIN_OP_MAP, node.op
+        assert not IsNumber(node_value[node.left])
+        op = BIN_OP_MAP[node.op]
+        ext = ".i" if IsNumber(node_value[node.right]) else ""
+        kind = meta_info.type_links[node]
+        print(f"{TAB}{op}{ext} {tmp}:{StringifyType(kind)} = {node_value[node.left]} {node_value[node.right]}")
         node_value[node] = tmp
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
@@ -396,22 +425,24 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
                 tmp = node_value[node.expr]
             else:
                 tmp = GetTmp(meta_info.type_links[node])
-                print(TAB, "load", tmp, "=", node_value[node.expr])
+                print(f"{TAB}ld.i tmp = {node_value[node.expr]} 0")
                 node_value[node] = tmp
         else:
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.Cast):
-        tmp = GetTmp(meta_info.type_links[node])
-        print(TAB, tmp, "=", "(cast)", node_value[node.expr])
+        kind = meta_info.type_links[node]
+        tmp = GetTmp(kind)
+        print(f"{TAB}conv {tmp}:{StringifyType(kind)} = {node_value[node.expr]}")
         node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
         HandleFuncCall(node, meta_info, node_value)
     elif isinstance(node, c_ast.Return):
         if node.expr:
-            print(TAB, "%out", "=", node_value[node.expr])
-        print(TAB, "ret")
+            ext = ".i"
+            print(f"{TAB}mov{ext} %out = {node_value[node.expr]}")
+        print(f"{TAB}ret")
     elif isinstance(node, c_ast.EmptyStatement):
         pass
     elif isinstance(node, c_ast.ExprList):
@@ -427,10 +458,10 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
 
 
 def main(argv):
-    for filename in  argv:
-        print ("#" * 60)
-        print ("#", filename)
-        print ("#" * 60)
+    for filename in argv:
+        print("#" * 60)
+        print("#", filename)
+        print("#" * 60)
         ast = parse_file(filename, use_cpp=True)
         canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
         meta_info = meta.MetaInfo(ast)

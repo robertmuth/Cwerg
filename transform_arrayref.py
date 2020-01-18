@@ -167,18 +167,25 @@ def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
 
     After this transform we can keep all scalars in registers.
     """
-    def IsAddressTakenScalar(node, _):
+    def IsAddressTakenScalarOrGlobalScalar(node, parent):
+        if isinstance(parent, c_ast.FileAST):
+            if not isinstance(node, c_ast.Decl):
+                return  False
+            #print ("#@@", node)
+            return IsScalarType(node.type)
         if not isinstance(node, c_ast.UnaryOp): return False
         if node.op != "&": return False
         if not isinstance(node.expr, c_ast.ID): return False
         type = meta_info.type_links[node.expr]
         return IsScalarType(type)
 
-    candidates = common.FindMatchingNodesPreOrder(ast, ast, IsAddressTakenScalar)
-    ids = {}
+    candidates = common.FindMatchingNodesPreOrder(ast, ast, IsAddressTakenScalarOrGlobalScalar)
+    ids = set()
     for node, _ in candidates:
-        ids[meta_info.sym_links[node.expr]] = None
-
+        if isinstance(node, c_ast.UnaryOp):
+            ids.add(meta_info.sym_links[node.expr])
+        else:
+            ids.add(node)
     one = c_ast.Constant("int", "1")
     meta_info.type_links[one] = meta.INT_IDENTIFIER_TYPE
 
