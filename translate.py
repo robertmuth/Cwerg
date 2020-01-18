@@ -6,6 +6,7 @@ Translator from C to a hypothetical Three-Address-Code IR
 This is not even close to being done
 """
 
+import re
 import sys
 
 from pycparser import c_ast, parse_file
@@ -13,7 +14,6 @@ from pycparser import c_ast, parse_file
 import canonicalize
 import common
 import meta
-import re
 
 RE_NUMBER = re.compile("^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$")
 
@@ -40,7 +40,7 @@ tmp_counter = 0
 
 
 def IsNumber(s):
-  return RE_NUMBER.match(s)
+    return RE_NUMBER.match(s)
 
 
 def SizeOfAndAlignmentStruct(node: c_ast.Struct):
@@ -191,7 +191,7 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         assert False, lvalue
 
 
-def RenderItemList(items):
+def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
@@ -200,11 +200,11 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
     params = fun_decl.args.params if fun_decl.args else []
     parameter_types = [StringifyType(p) for p in params]
     parameter_names = [p.name for p in params]
-    print("")
-    print(".sig", "%sig_" + fun_name, "[" + (return_type if return_type else "") + "]", "=",
-          RenderItemList(parameter_types))
-    print(".fun", fun_name, "%sig_" + fun_name, "[%out]" if return_type else "[]", "=",
-          RenderItemList(parameter_names))
+    outs = [return_type] if return_type else []
+    print(f"\n.sig %sig_{fun_name} {RenderList(outs)} = {RenderList(parameter_types)}")
+    kind = "normal"
+    outs = ["%out"] if return_type else []
+    print(f".fun {fun_name} %sig_{fun_name} {kind} {RenderList(outs)} = {RenderList(parameter_names)}")
 
 
 def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
@@ -217,7 +217,11 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
         print(f"{TAB}mov{ext} {lvalue.name} = {tmp}")
     else:
         GetLValueAddress(lvalue, meta_info, node_value, id_gen)
-        # make sure tmp is not const
+        if IsNumber(tmp):
+            kind = kind = meta_info.type_links[node.rvalue]
+            tmp2 = GetTmp(kind)
+            print(f"{TAB}mov.i {tmp2}:{StringifyType(kind)} = {tmp}")
+            tmp = tmp2
         print(f"{TAB}st.i {node_value[lvalue]} 0 = {tmp}")
     node_value[node] = tmp
 
@@ -250,7 +254,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
             alignment, size = SizeOfAndAlignment(decl)
             print(f".stk {name} {alignment} {size}")
             if decl.init:
-                assert False
+                assert False, "stack with initialized data"
                 print("INIT-STACK", decl.init)
 
     else:
@@ -281,13 +285,14 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
         results = []
         node_value[node] = None
     else:
-        tmp = GetTmp(meta_info.type_links[node])
-        results = [tmp]
+        kind = meta_info.type_links[node]
+        tmp = GetTmp(kind)
+        results = [f"{tmp}:{StringifyType(kind)}"]
         node_value[node] = tmp
     params = []
     if node.args:
         params = [node_value[a] for a in node.args]
-    print(f"{TAB}bsr {node_value[node.name]} {RenderItemList(results)} = {RenderItemList(params)}")
+    print(f"{TAB}bsr {node_value[node.name]} {RenderList(results)} = {RenderList(params)}")
 
 
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
@@ -311,7 +316,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
         print("@" + t[2])
         for s in t[1]:
             if isinstance(s, c_ast.Break):
-                print(f"{TAB}br {label_end}")
+                print(f"{TAB}bra {label_end}")
             else:
                 EmitIR([node, node.stmt, s], meta_info, node_value, id_gen)
     print(f"\n.bbl {label_end}")
@@ -321,7 +326,64 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
             print(TAB, t[0], t[2])
 
 
-def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
+MAP_COMPARE_IMM = {
+    "!=": "bne.i",
+    "==": "beq.i",
+    "<": "blt.i",
+    "<=": "ble.i",
+    ">": "bgt.i",
+    ">=": "bge.i"}
+
+MAP_COMPARE_REG = {
+    "!=": "bne",
+    "==": "beq",
+    ">": "bgt",
+    ">=": "bge"}
+
+MAP_COMPARE_REV = {
+    "<": "bgt",
+    "<=": "bge"}
+
+
+def EmitConditionalBranch(op: str, target: str, left: str, right: str):
+    assert not IsNumber(left)
+    if IsNumber(right):
+        print(f"{TAB}{MAP_COMPARE_IMM[op]} {target} {left} {right}")
+    elif op in MAP_COMPARE_REG:
+        print(f"{TAB}{MAP_COMPARE_REG[op]} {target} {left} {right}")
+    else:
+        print(f"{TAB}{MAP_COMPARE_REV[op]} {target} {right} {left}")
+
+
+def IsScalarType(type):
+    if isinstance(type, c_ast.TypeDecl):
+        return IsScalarType(type.type)
+
+    return isinstance(type, c_ast.IdentifierType)
+
+
+def EmitID(node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
+    type_info = meta_info.type_links[node]
+    if isinstance(type_info, c_ast.IdentifierType):
+        node_value[node] = node.name
+        return
+    if isinstance(type_info, c_ast.FuncDecl):
+        node_value[node] = node.name
+        return
+    if not isinstance(type_info, c_ast.ArrayDecl):
+        node_value[node] = node.name
+        return
+    if isinstance(type_info, c_ast.ArrayDecl):
+        if type_info.dim is None:
+            node_value[node] = node.name
+            return
+
+    tmp = GetTmp("a32")
+    print(f"{TAB}lea.mem {tmp}:a32 = {node.name}")
+    node_value[node] = tmp
+
+
+def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
         EmitFunctionHeader(node.decl.name, node.decl.type)
@@ -339,18 +401,8 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            MAP_COMPARE = {"!=": "bne",
-                           "==": "beq",
-                           "<": "blt",
-                           "<=": "ble",
-                           ">": "bgt",
-                           ">=": "bge",
-                           }
-            assert cond.op in MAP_COMPARE, cond.op
-            ins = MAP_COMPARE[cond.op]
-            ext = ".i"
-            print(f"{TAB}{ins}{ext} {node_value[cond.left]} {node_value[cond.right]} {node.iftrue.name}")
-            print(f"{TAB}br {node.iffalse.name}")
+            EmitConditionalBranch(cond.op, node.iffalse.name, node_value[cond.left], node_value[cond.right])
+            print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
             print(TAB, "brcond", node_value[cond], node.iftrue.name, node.iffalse.name)
@@ -378,7 +430,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
         node_stack.pop(-1)
 
     if isinstance(node, c_ast.ID):
-        node_value[node] = node.name
+        EmitID(node, meta_info, node_value)
     elif isinstance(node, c_ast.Constant):
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
             name = id_gen.next("string_const")
@@ -386,7 +438,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             print(".data", "1", node.value)
             print(".data", "1", "[0]")
             tmp = GetTmp("a32")
-            print(f"{TAB}mov.mem {tmp}:a32 = {name}")
+            print(f"{TAB}lea.mem {tmp}:a32 = {name}")
             node_value[node] = tmp
         elif isinstance(node_stack[-2], c_ast.ExprList):
             kind = meta_info.type_links[node]
@@ -398,7 +450,7 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
     elif isinstance(node, c_ast.IdentifierType):
         pass
     elif isinstance(node, c_ast.Goto):
-        print(f"{TAB}br {node.name}")
+        print(f"{TAB}bra {node.name}")
     elif isinstance(node, c_ast.BinaryOp):
         tmp = GetTmp(meta_info.type_links[node])
         BIN_OP_MAP = {"*": "mul",
@@ -424,8 +476,9 @@ def EmitIR(node_stack, meta_info, node_value, id_gen: common.UniqueId):
             if isinstance(node_stack[-2], c_ast.StructRef):
                 tmp = node_value[node.expr]
             else:
-                tmp = GetTmp(meta_info.type_links[node])
-                print(f"{TAB}ld.i tmp = {node_value[node.expr]} 0")
+                kind = meta_info.type_links[node]
+                tmp = GetTmp(kind)
+                print(f"{TAB}ld.i {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
                 node_value[node] = tmp
         else:
             tmp = GetTmp(meta_info.type_links[node])
