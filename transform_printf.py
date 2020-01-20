@@ -41,12 +41,12 @@ def MakePrintfStyleDecl(name: str, type_names: List[str], is_pointer=False):
 
 
 PUTS = c_ast.Decl(
-    "puts", [], [], [], c_ast.FuncDecl(
+    "print", [], [], [], c_ast.FuncDecl(
         c_ast.ParamList([
             c_ast.Decl("s", [], [], [],
                        c_ast.PtrDecl([], MakeSimpleTypeDecl("s", ["char"])), None, None)
         ]),
-        MakeSimpleTypeDecl("puts", ["int"])), None, None)
+        MakeSimpleTypeDecl("print", ["int"])), None, None)
 
 PRINTF_PROTOTYPES = {
     "printf_u": MakePrintfStyleDecl("printf_u", ["long", "long", "unsigned"]),
@@ -154,7 +154,7 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_prin
         args.append(arg_node)
         name = PRINTF_DISPATCH[fmt_str[-1]]
     else:
-        name = "puts"
+        name = "print"
     if not use_specialized_printf:
         name = "printf"
     return c_ast.FuncCall(c_ast.ID(name), c_ast.ExprList(args))
@@ -167,7 +167,7 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
     if use_specialized_printf and len(fmt_pieces) == 1:
         s = fmt_pieces[0]
         if len(s) <= 1 or s[0] != "%":
-            call.name.name = "puts"
+            call.name.name = "print"
             return
         else:
             call.name.name = "printf_" + fmt_pieces[0][-1]

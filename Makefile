@@ -36,6 +36,8 @@ meta_tests:
 mypy:
 	mypy --ignore-missing-imports *py
 
+t1:
+	./translate.py Tests/nqueen.c
 
 tranlate:
 	./translate.py $(TESTS_FOR_TRANSLATE)

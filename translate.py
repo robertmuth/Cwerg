@@ -197,13 +197,13 @@ def RenderList(items):
 
 SPECIAL_FUNCTIONS = {
     "main": "main",
-    "puts": "builtin",
+    "print": "builtin",
     "printf_u": "builtin",
     "printf_d": "builtin",
     "printf_f": "builtin",
     "printf_c": "builtin",
     "printf_s": "builtin",
-    "printf_u": "builtin",
+    "printf_p": "builtin",
 }
 
 
@@ -395,7 +395,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            EmitConditionalBranch(cond.op, node.iffalse.name, node_value[cond.left], node_value[cond.right])
+            EmitConditionalBranch(cond.op, node.iftrue.name, node_value[cond.left], node_value[cond.right])
             print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
@@ -429,7 +429,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
             name = id_gen.next("string_const")
             print(".mem", name, "4", "ro")
-            print(".data", "1", node.value + "\x00")
+            print(".data", "1", node.value[:-1] + '\\x00"')
             tmp = GetTmp("a32")
             print(f"{TAB}lea {tmp}:a32 = {name} 0")
             node_value[node] = tmp
