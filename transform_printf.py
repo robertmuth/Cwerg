@@ -99,6 +99,14 @@ class FormatOptions:
 
 
 def TokenizeFormatString(s: str):
+    """
+    this breaks up a (well-formed) printf format string into a list of strings.
+
+    Each string falls into three categories
+    1. starts with "%" end ends with "[cduoxefgsp]" and contains no "%" in between
+    2. consists of exactly "%" (was "%%" in the original string)
+    3. does not contain any "%"
+    """
     out = []
     last = 0
 
@@ -107,6 +115,7 @@ def TokenizeFormatString(s: str):
             plain = s[start: end]
             out.append(plain if plain != "%%" else "%")
 
+    # loop over all category 1 sub strings
     for m in PRINTF_OPTION.finditer(s):
         start, end = m.span()
         add_plain(last, start)
@@ -154,9 +163,14 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_prin
 def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
     args = call.args.exprs
     fmt_pieces = TokenizeFormatString(args[0].value[1:-1])
-    if len(fmt_pieces) <= 1:
-            if use_specialized_printf:
-                call.name.name = "puts"
+    assert len(fmt_pieces) >= 1
+    if use_specialized_printf and len(fmt_pieces) == 1:
+        s = fmt_pieces[0]
+        if len(s) <= 1 or s[0] != "%":
+            call.name.name = "puts"
+            return
+        else:
+            call.name.name = "printf_" + fmt_pieces[0][-1]
             return
 
     stmts = common.GetStatementList(parent)

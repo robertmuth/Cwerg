@@ -17,7 +17,6 @@ Currently implemented
  * printf simplifications (goal is to get rid of EllipsisParam for most programs)
 """
 
-import sys
 
 from pycparser import c_ast, parse_file, c_generator
 
@@ -451,16 +450,25 @@ def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_cas
     ConfirmAbsenceOfUnsupportedFeatures(ast, ast)
 
 
-def main(argv):
-    filename = argv[0]
-    ast = parse_file(filename, use_cpp=True)
-    SimpleCanonicalize(ast, use_specialized_printf=False)
-    meta_info = meta.MetaInfo(ast)
-    Canonicalize(ast, meta_info, skip_constant_casts=False)
-    generator = c_generator.CGenerator()
-    print(generator.visit(ast))
-
-
 if __name__ == "__main__":
+    import argparse
+
+    def main():
+        parser = argparse.ArgumentParser(description='C canonicalizer')
+        parser.add_argument('--printf', action='store_const',
+                                const=True, default=False,
+                                help='use special printf rewrite')
+        parser.add_argument('filename', type=str,
+                            help='file to canonicalize')
+        args = parser.parse_args()
+
+        ast = parse_file(args.filename, use_cpp=True)
+
+        SimpleCanonicalize(ast, use_specialized_printf=args.printf)
+        meta_info = meta.MetaInfo(ast)
+        Canonicalize(ast, meta_info, skip_constant_casts=False)
+        generator = c_generator.CGenerator()
+        print(generator.visit(ast))
+
     # logging.basicConfig(level=logging.DEBUG)
-    main(sys.argv[1:])
+    main()
