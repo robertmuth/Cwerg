@@ -429,8 +429,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
             name = id_gen.next("string_const")
             print(".mem", name, "4", "ro")
-            print(".data", "1", node.value)
-            print(".data", "1", "[0]")
+            print(".data", "1", node.value + "\x00")
             tmp = GetTmp("a32")
             print(f"{TAB}lea {tmp}:a32 = {name} 0")
             node_value[node] = tmp
