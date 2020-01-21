@@ -38,6 +38,17 @@ TYPE_TRANSLATION = {
 
 tmp_counter = 0
 
+ALL_BITS_SET = {
+    "s8": -1,
+    "s16": -1,
+    "s32": -1,
+    "s64": -1,
+    "u8": (1 << 8) - 1,
+    "u16": (1 << 16) - 1,
+    "u32": (1 << 32) - 1,
+    "u64": (1 << 64) - 1,
+}
+
 
 def IsNumber(s):
     return RE_NUMBER.match(s)
@@ -198,6 +209,7 @@ def RenderList(items):
 SPECIAL_FUNCTIONS = {
     "abort": "builtin",
     "main": "main",
+    "malloc": "builtin",
     "print": "builtin",
     "printf_u": "builtin",
     "printf_d": "builtin",
@@ -247,6 +259,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
         align, size = SizeOfAndAlignment(decl)
         print(".mem", name, str(align), "rw")
         if decl.init:
+            assert False
             print("INIT-THE-DATA", decl.init)
         else:
             print(".data", str(size), "[0]")
@@ -324,7 +337,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
             default = s
 
     lst = [f"{a} {c}" for a, b, c in cases if a is not None]
-    print (f'{TAB}.jtb {table} {label_default if default else label_end} [{" ".join(lst)}]')
+    print(f'{TAB}.jtb {table} {label_default if default else label_end} [{" ".join(lst)}]')
     print(f"{TAB}switch {table} {node_value[node.cond]}")
     for a, b, c in cases:
         print(f".bbl {c}")
@@ -453,9 +466,12 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                       "%": "mod",
                       "<<": "shl",
                       ">>": "shr",
+                      "^": "xor",
+                      "|": "or",
+                      "&": "and",
                       }
         assert node.op in BIN_OP_MAP, node.op
-        assert not IsNumber(node_value[node.left])
+        assert not IsNumber(node_value[node.left]), node
         op = BIN_OP_MAP[node.op]
         kind = meta_info.type_links[node]
         print(f"{TAB}{op} {tmp}:{StringifyType(kind)} = {node_value[node.left]} {node_value[node.right]}")
@@ -466,9 +482,9 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             _, val = SizeOfAndAlignment(node.expr)
             if isinstance(node_stack[-2], c_ast.ExprList):
                 tmp = GetTmp(meta_info.type_links[node])
-                print(TAB, tmp, "=", val)
+                print(f"{TAB} {tmp} = {val}")
             else:
-                tmp = val
+                tmp = str(val)
         elif node.op == "*":
             if isinstance(node_stack[-2], c_ast.StructRef):
                 tmp = node_value[node.expr]
@@ -477,16 +493,26 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                 tmp = GetTmp(kind)
                 print(f"{TAB}ld {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
                 node_value[node] = tmp
+        elif node.op == "~":
+            kind = meta_info.type_links[node]
+            tmp = GetTmp(kind)
+            x = ALL_BITS_SET[StringifyType(kind)]
+            print(f"{TAB}xor {tmp}:{StringifyType(kind)} = {node_value[node.expr]} {x}")
+            node_value[node] = tmp
         else:
             assert False, node.op
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.Cast):
-        kind = meta_info.type_links[node]
-        tmp = GetTmp(kind)
-        print(f"{TAB}conv {tmp}:{StringifyType(kind)} = {node_value[node.expr]}")
-        node_value[node] = tmp
+        dst_kind = StringifyType(meta_info.type_links[node])
+        src_kind = StringifyType(meta_info.type_links[node.expr])
+        if src_kind == dst_kind:
+            node_value[node] = node_value[node.expr]
+        else:
+            tmp = GetTmp(meta_info.type_links[node])
+            print(f"{TAB}conv {tmp}:{dst_kind} = {node_value[node.expr]}")
+            node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
         HandleFuncCall(node, meta_info, node_value)
     elif isinstance(node, c_ast.Return):
