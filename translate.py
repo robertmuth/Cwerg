@@ -196,6 +196,7 @@ def RenderList(items):
 
 
 SPECIAL_FUNCTIONS = {
+    "abort": "builtin",
     "main": "main",
     "print": "builtin",
     "printf_u": "builtin",
@@ -321,19 +322,18 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
             assert isinstance(s, c_ast.Default), s
             cases.append((None, s.stmts, label_default))
             default = s
-    print(TAB, "switch", node_value[node.cond], table, label_default if default else label_end)
-    for t in cases:
-        print("@" + t[2])
-        for s in t[1]:
+
+    lst = [f"{a} {c}" for a, b, c in cases if a is not None]
+    print (f'{TAB}.jtb {table} {label_default if default else label_end} [{" ".join(lst)}]')
+    print(f"{TAB}switch {table} {node_value[node.cond]}")
+    for a, b, c in cases:
+        print(f".bbl {c}")
+        for s in b:
             if isinstance(s, c_ast.Break):
                 print(f"{TAB}bra {label_end}")
             else:
                 EmitIR([node, node.stmt, s], meta_info, node_value, id_gen)
     print(f"\n.bbl {label_end}")
-    print("SWITCH-TABLE", table)
-    for t in cases:
-        if t[0] is not None:
-            print(TAB, t[0], t[2])
 
 
 MAP_COMPARE = {
@@ -448,7 +448,12 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         tmp = GetTmp(meta_info.type_links[node])
         BIN_OP_MAP = {"*": "mul",
                       "+": "add",
-                      "-": "sub"}
+                      "-": "sub",
+                      "/": "div",
+                      "%": "mod",
+                      "<<": "shl",
+                      ">>": "shr",
+                      }
         assert node.op in BIN_OP_MAP, node.op
         assert not IsNumber(node_value[node.left])
         op = BIN_OP_MAP[node.op]
@@ -473,6 +478,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                 print(f"{TAB}ld {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
                 node_value[node] = tmp
         else:
+            assert False, node.op
             tmp = GetTmp(meta_info.type_links[node])
             print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
