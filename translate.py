@@ -54,6 +54,16 @@ def IsNumber(s):
     return RE_NUMBER.match(s)
 
 
+RE_NUMBER_SUFFIX = re.compile("(ull|ll|ul|l|u)$", re.IGNORECASE)
+
+
+def StripNumberSuffix(s):
+    m = RE_NUMBER_SUFFIX.search(s)
+    if m:
+        s = s[:m.start()]
+    return s
+
+
 def SizeOfAndAlignmentStruct(node: c_ast.Struct):
     return 8, 66
 
@@ -223,13 +233,12 @@ SPECIAL_FUNCTIONS = {
 def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
     return_type = StringifyType(fun_decl.type)
     params = fun_decl.args.params if fun_decl.args else []
-    parameter_types = [StringifyType(p) for p in params]
-    parameter_names = [p.name for p in params]
-    outs = [return_type] if return_type else []
-    print(f"\n.sig %sig_{fun_name} {RenderList(outs)} = {RenderList(parameter_types)}")
+    ins = []
+    for p in params:
+        ins += [p.name, StringifyType(p)]
+    outs = ["%out", return_type] if return_type else []
     kind = SPECIAL_FUNCTIONS.get(fun_name, "normal")
-    outs = ["%out"] if return_type else []
-    print(f".fun {fun_name} %sig_{fun_name} {kind} {RenderList(outs)} = {RenderList(parameter_names)}")
+    print(f".fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
 
 def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
@@ -330,7 +339,8 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     for s in node.stmt:
         if isinstance(s, c_ast.Case):
             val = int(s.expr.value)
-            cases.append((val, s.stmts, label + str(val)))
+            block = label + str(val).replace("-", "minus")
+            cases.append((val, s.stmts, block))
         else:
             assert isinstance(s, c_ast.Default), s
             cases.append((None, s.stmts, label_default))
@@ -449,10 +459,11 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         elif isinstance(node_stack[-2], c_ast.ExprList):
             kind = meta_info.type_links[node]
             tmp = GetTmp(kind)
-            print(f"{TAB}mov.i {tmp}:{StringifyType(kind)} = {node.value}")
+            val = StripNumberSuffix(node.value)
+            print(f"{TAB}mov.i {tmp}:{StringifyType(kind)} = {val}")
             node_value[node] = tmp
         else:
-            node_value[node] = node.value
+            node_value[node] = StripNumberSuffix(node.value)
     elif isinstance(node, c_ast.IdentifierType):
         pass
     elif isinstance(node, c_ast.Goto):
