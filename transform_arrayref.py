@@ -118,8 +118,11 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
 
     Phase 1:  a[1][2] = b; -> *(a + 1 * 10 + 2) = b;
 
-    Phase 2:  int a[5][10]; -> int a[50];
+    Phase 2: fun (int a[5][10]) -> fun (int a[][10])
+
+    Phase 3:  int a[5][10]; -> int a[50];
     """
+
     def IsArrayRefChainHead(node, parent):
         if not isinstance(node, c_ast.ArrayRef): return False
         name_type = meta_info.type_links[node.name]
@@ -145,11 +148,25 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
             meta_info.type_links[deref] = meta_info.type_links[chain_head]  # expression has not changed
             common.ReplaceNode(parent, chain_head, deref)
 
+    # Phase 2
+    def IsArrayDeclParam(node, parent):
+        if not isinstance(parent, c_ast.ParamList): return False
+        if isinstance(node, c_ast.EllipsisParam): return False
+        return isinstance(node.type, c_ast.ArrayDecl)
+
+    decl_params = common.FindMatchingNodesPreOrder(
+        ast, ast, IsArrayDeclParam)
+    for param, _ in decl_params:
+        t = param.type
+        t.dim = None
+
+    # Phase 3
     def IsArrayDeclChainHead(node, parent):
         if not isinstance(node, c_ast.ArrayDecl): return False
         return not isinstance(parent, c_ast.ArrayDecl)
 
-    decl_chains = common.FindMatchingNodesPreOrder(ast, ast, IsArrayDeclChainHead)
+    decl_chains = common.FindMatchingNodesPreOrder(
+        ast, ast, IsArrayDeclChainHead)
     for chain_head, parent in decl_chains:
         CollapseArrayDeclChain(chain_head)
 
@@ -167,11 +184,12 @@ def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
 
     After this transform we can keep all scalars in registers.
     """
+
     def IsAddressTakenScalarOrGlobalScalar(node, parent):
         if isinstance(parent, c_ast.FileAST):
             if not isinstance(node, c_ast.Decl):
-                return  False
-            #print ("#@@", node)
+                return False
+            # print ("#@@", node)
             return IsScalarType(node.type)
         if not isinstance(node, c_ast.UnaryOp): return False
         if node.op != "&": return False
