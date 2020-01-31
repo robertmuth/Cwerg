@@ -15,7 +15,7 @@ import canonicalize
 import common
 import meta
 
-RE_NUMBER = re.compile("^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$")
+RE_NUMBER = re.compile("^[-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?$")
 
 POINTER = ("*",)
 
@@ -33,7 +33,7 @@ TYPE_TRANSLATION = {
     ("float",): "f32",
     ("double",): "f64",
     ("void",): None,
-    POINTER: "a32",
+    POINTER: "a64",
 }
 
 tmp_counter = 0
@@ -149,7 +149,7 @@ def StringifyType(type_or_decl):
         return type_or_decl
     else:
         assert False, type_or_decl
-        return str(type_or_decl)
+        # return str(type_or_decl)
 
 
 def GetUnique():
@@ -200,9 +200,17 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
     elif isinstance(lvalue, c_ast.ArrayRef):
         assert False, lvalue
     elif isinstance(lvalue, c_ast.StructRef):
+        struct = meta_info.type_links[lvalue.name]
+        assert isinstance(struct, c_ast.Struct)
+        struct_def = meta_info.struct_links[struct]
+        assert isinstance(struct_def, c_ast.Struct)
+
+        # print ("@@", struct_def)
         EmitIR([lvalue, lvalue.name], meta_info, node_value, id_gen)
-        tmp = GetTmp(TYPE_TRANSLATION[POINTER])
-        print(TAB, tmp, "=", node_value[lvalue.name], "+ struct_offset", lvalue.field.name)
+        kind = TYPE_TRANSLATION[POINTER]
+        tmp = GetTmp(kind)
+        offset = GetStructOffset(struct_def, lvalue.field)
+        print(f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
@@ -228,6 +236,13 @@ SPECIAL_FUNCTIONS = {
     "printf_s": "builtin",
     "printf_p": "builtin",
 }
+
+
+def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID):
+    for f in struct.decls:
+        pass
+        #print (f"@{struct.name} {f.name} {field.name}")
+    return 0
 
 
 def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
@@ -269,7 +284,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
         print(".mem", name, str(align), "rw")
         if decl.init:
             assert False
-            print("INIT-THE-DATA", decl.init)
+            # print("INIT-THE-DATA", decl.init)
         else:
             print(".data", str(size), "[0]")
 
@@ -288,7 +303,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
             print(f".stk {name} {alignment} {size}")
             if decl.init:
                 assert False, "stack with initialized data"
-                print("INIT-STACK", decl.init)
+                # print("INIT-STACK", decl.init)
 
     else:
         assert False, decl
@@ -296,8 +311,14 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
 
 def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen):
     assert node.type == "."
-    tmp = GetTmp(TYPE_TRANSLATION[POINTER])
-    print(TAB, tmp, "=", node_value[node.name], "+offset", node.field.name)
+    kind = TYPE_TRANSLATION[POINTER]
+    tmp = GetTmp(kind)
+    struct = meta_info.type_links[node.name]
+    assert isinstance(struct, c_ast.Struct)
+    struct_def = meta_info.struct_links[struct]
+    assert isinstance(struct_def, c_ast.Struct)
+    offset = GetStructOffset(struct_def, node.field)
+    print(f"{TAB}add {tmp}:{kind} = {node_value[node.name]} {offset}")
     if isinstance(parent, c_ast.StructRef):
         node_value[node] = tmp
     elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
@@ -308,7 +329,7 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
         field_type = meta_info.type_links[node.field]
         val_type = ScalarDeclType(field_type)
         val = GetTmp(val_type)
-        print(TAB, "load", val, "=", tmp)
+        print(f"{TAB}ld {val}:{val_type} = {tmp} 0")
         node_value[node] = val
 
 
