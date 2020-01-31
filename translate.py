@@ -386,7 +386,14 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
         node_value[node] = tmp
     params = []
     if node.args:
-        params = [node_value[a] for a in node.args]
+        for a in node.args:
+            p = node_value[a]
+            if isinstance(p, _NUMBER_TYPES):
+                kind = meta_info.type_links[a]
+                tmp = GetTmp(kind)
+                print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
+                p = tmp
+            params.append(p)
     print(f"{TAB}bsr {node_value[node.name]} {RenderList(results)} = {RenderList(params)}")
 
 
@@ -466,6 +473,49 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     print(f"{TAB}lea {tmp}:{kind} = {node.name}")
     node_value[node] = tmp
 
+BIN_OP_MAP = {"*": "mul",
+              "+": "add",
+              "-": "sub",
+              "/": "div",
+              "%": "mod",
+              "<<": "shl",
+              ">>": "shr",
+              "^": "xor",
+              "|": "or",
+              "&": "and",
+              }
+
+def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
+    node_kind =  meta_info.type_links[node]
+    assert node.op in BIN_OP_MAP, node.op
+    left = node_value[node.left]
+    right = node_value[node.right]
+    if isinstance(left, _NUMBER_TYPES):
+        assert isinstance(right, _NUMBER_TYPES)
+        # partial eval is delicate
+        if node.op == "*":
+            node_value[node] = left * right
+        else:
+            assert False, node
+        return
+    op = BIN_OP_MAP[node.op]
+    if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
+        # need to scale
+        assert node.op == "+" or node.op == "-"
+        element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
+        if element_size == 1:
+            pass
+        elif isinstance(right, _NUMBER_TYPES):
+            right = str(right * element_size)
+        else:
+            right_kind = meta_info.type_links[node.right]
+            tmp = GetTmp(right_kind)
+            print(f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
+            right = tmp
+    tmp = GetTmp(node_kind)
+    print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left} {right}")
+    node_value[node] = tmp
+
 
 def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
@@ -526,11 +576,6 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             tmp = GetTmp(kind)
             print(f"{TAB}lea {tmp}:{kind} = {name} 0")
             node_value[node] = tmp
-        elif isinstance(node_stack[-2], c_ast.ExprList):
-            kind = meta_info.type_links[node]
-            tmp = GetTmp(kind)
-            val = ExtractNumber(node.value)
-            print(f"{TAB}mov.i {tmp}:{StringifyType(kind)} = {val}")
             node_value[node] = tmp
         else:
             node_value[node] = ExtractNumber(node.value)
@@ -539,49 +584,11 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.Goto):
         print(f"{TAB}bra {node.name}")
     elif isinstance(node, c_ast.BinaryOp):
-        node_kind =  meta_info.type_links[node]
-        BIN_OP_MAP = {"*": "mul",
-                      "+": "add",
-                      "-": "sub",
-                      "/": "div",
-                      "%": "mod",
-                      "<<": "shl",
-                      ">>": "shr",
-                      "^": "xor",
-                      "|": "or",
-                      "&": "and",
-                      }
-        assert node.op in BIN_OP_MAP, node.op
-        left = node_value[node.left]
-        right = node_value[node.right]
-        assert not isinstance(left, _NUMBER_TYPES), node
-        op = BIN_OP_MAP[node.op]
-        if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
-            # need to scale
-            assert node.op == "+" or node.op == "-"
-            element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
-            if element_size == 1:
-                pass
-            elif isinstance(right, _NUMBER_TYPES):
-                right = str(right * element_size)
-            else:
-                right_kind = meta_info.type_links[node.right]
-                tmp = GetTmp(right_kind)
-                print(f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
-        tmp = GetTmp(node_kind)
-        print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left} {right}")
-        node_value[node] = tmp
+        HandleBinop(node, meta_info, node_value, id_gen)
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
         if node.op == "sizeof":
-            _, val = SizeOfAndAlignment(node.expr, meta_info)
-            if isinstance(node_stack[-2], c_ast.ExprList):
-                # not this seems to be hardcoded to u32
-                kind = meta_info.type_links[node]
-                tmp = GetTmp(kind)
-                print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {val}")
-            else:
-                tmp = str(val)
+            _, tmp = SizeOfAndAlignment(node.expr, meta_info)
         elif node.op == "*":
             if isinstance(node_stack[-2], c_ast.StructRef):
                 tmp = node_value[node.expr]

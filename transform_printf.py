@@ -180,6 +180,9 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
 
     calls = []
     args = args[1:]  # skip the format string
+    # note this has a small bug: we should evaluate all the
+    # args and then print them instead of interleaaving
+    # computation and printing.
     for f in fmt_pieces:
         arg = None
         if f[0] == '%' and len(f) > 1:
