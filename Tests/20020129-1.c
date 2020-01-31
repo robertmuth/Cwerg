@@ -1,4 +1,3 @@
-
 struct D { int d1; struct D *d2; };
 struct C { struct D c1; long c2, c3, c4, c5, c6; };
 struct A { struct A *a1; struct C *a2; };
@@ -8,6 +7,21 @@ extern void abort (void);
 
 void foo (struct B *x, struct B *y)
 {
+  struct B bb;
+  bb.b1.c1.d1 = 333;
+  struct C cc;
+  cc.c2  = 444;
+  struct A aa;
+  aa.a1 = &aa;
+  aa.a2 = &cc;
+  struct A* pa = &aa;
+
+
+  if (pa->a2->c2 != 444) {
+    abort ();
+  }
+
+  
   if (x->b2 == 0)
     {
       struct A *a;
