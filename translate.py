@@ -96,7 +96,7 @@ def SizeOfAndAlignmentStruct(struct: c_ast.Struct, meta_info):
         if a > alignment:
             alignment = a
         size = align(size, a) + s
-    return  size, alignment
+    return size, alignment
 
 
 def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID, meta_info):
@@ -130,7 +130,7 @@ def SizeOfAndAlignment(node, meta_info):
     elif isinstance(node, c_ast.ArrayDecl):
         align, size = SizeOfAndAlignment(node.type, meta_info)
         size = (size + align - 1) // align * align
-        return align, size * int(node.dim.value)
+        return size * int(node.dim.value), align
     elif isinstance(node, c_ast.PtrDecl):
         type_name = TYPE_TRANSLATION[POINTER]
         bitsize = int(type_name[1:])
@@ -342,7 +342,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
                 print(f"{TAB}mov {name} = {node_value[decl.init]}")
 
         else:
-            alignment, size = SizeOfAndAlignment(decl, meta_info)
+            size, alignment = SizeOfAndAlignment(decl, meta_info)
             print(f".stk {name} {alignment} {size}")
             if decl.init:
                 assert False, "stack with initialized data"
