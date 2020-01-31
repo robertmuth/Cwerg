@@ -298,12 +298,13 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
 
     if IsGlobalDecl(decl, parent):
         align, size = SizeOfAndAlignment(decl, meta_info)
-        print(".mem", name, str(align), "rw")
+        assert name is not None
+        print(f".mem {name} {align} rw")
         if decl.init:
             assert False
             # print("INIT-THE-DATA", decl.init)
         else:
-            print(".data", str(size), "[0]")
+            print(f".data {size} [0]")
 
     elif IsLocalDecl(decl, parent):
         # we also need to take into account if the address is taken later
@@ -332,7 +333,7 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
     tmp = GetTmp(kind)
     struct = meta_info.type_links[node.name]
     assert isinstance(struct, c_ast.Struct)
-    offset = GetStructOffset(structq, node.field, meta_info)
+    offset = GetStructOffset(struct, node.field, meta_info)
     print(f"{TAB}add {tmp}:{kind} = {node_value[node.name]} {offset}")
     if isinstance(parent, c_ast.StructRef):
         node_value[node] = tmp
@@ -447,7 +448,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         EmitFunctionHeader(node.name, node.type)
         return
     elif isinstance(node, c_ast.Decl):
-        HandleDecl(node_stack, meta_info, node_value, id_gen)
+        if node.name is not None:
+            HandleDecl(node_stack, meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.If):
         cond = node.cond
