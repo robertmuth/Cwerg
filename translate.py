@@ -322,7 +322,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
     name = decl.name
 
     if IsGlobalDecl(decl, parent):
-        align, size = SizeOfAndAlignment(decl, meta_info)
+        size, align = SizeOfAndAlignment(decl, meta_info)
         assert name is not None
         print(f".mem {name} {align} rw")
         if decl.init:
