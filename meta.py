@@ -340,7 +340,7 @@ def GetUnaryType(node, t):
         assert False, node
 
 
-def _FindStructMember(struct, field):
+def _FindStructMember(struct: c_ast.Struct, field: c_ast.ID):
     for member in struct.decls:
         if member.name == field.name:
             return member

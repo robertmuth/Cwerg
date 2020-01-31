@@ -64,28 +64,53 @@ def StripNumberSuffix(s):
     return s
 
 
-def SizeOfAndAlignmentStruct(node: c_ast.Struct):
-    return 8, 66
+def align(x, a):
+    return  (x + a - 1) // a * a
 
 
-def SizeOfAndAlignmentUnion(node: c_ast.Union):
-    return 8, 66
+def SizeOfAndAlignmentStruct(struct: c_ast.Struct, meta_info):
+    if struct.decls is None:
+        struct = meta_info.struct_links[struct]
+    alignment = 1
+    size = 0
+    for f in struct.decls:
+        s, a = SizeOfAndAlignment(f.type, meta_info)
+        if a > alignment:
+            alignment = a
+        size = align(size, a) + s
+    return  size, alignment
 
 
-def SizeOfAndAlignment(node):
+def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID, meta_info):
+    if struct.decls is None:
+        struct = meta_info.struct_links[struct]
+    offset = 0
+    for f in struct.decls:
+        if f.name == field.name:
+            return offset
+        s, a = SizeOfAndAlignment(f.type, meta_info)
+        offset = align(offset, a) + s
+    assert False, f"GetStructOffset unknown field {struct} {field}"
+
+
+def SizeOfAndAlignmentUnion(node: c_ast.Union, meta_info):
+    assert False, f"SizeOfAndAlignmentUnion {node}"
+
+
+def SizeOfAndAlignment(node, meta_info):
     if isinstance(node, (c_ast.Typename, c_ast.Decl, c_ast.TypeDecl)):
-        return SizeOfAndAlignment(node.type)
+        return SizeOfAndAlignment(node.type, meta_info)
 
     if isinstance(node, c_ast.Struct):
-        return SizeOfAndAlignmentStruct(node)
+        return SizeOfAndAlignmentStruct(node, meta_info)
     elif isinstance(node, c_ast.Union):
-        return SizeOfAndAlignmentUnion(node)
+        return SizeOfAndAlignmentUnion(node, meta_info)
     elif isinstance(node, c_ast.IdentifierType):
         type_name = TYPE_TRANSLATION[tuple(node.names)]
         bitsize = int(type_name[1:])
         return bitsize // 8, bitsize // 8
     elif isinstance(node, c_ast.ArrayDecl):
-        align, size = SizeOfAndAlignment(node.type)
+        align, size = SizeOfAndAlignment(node.type, meta_info)
         size = (size + align - 1) // align * align
         return align, size * int(node.dim.value)
     elif isinstance(node, c_ast.PtrDecl):
@@ -202,14 +227,13 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
     elif isinstance(lvalue, c_ast.StructRef):
         struct = meta_info.type_links[lvalue.name]
         assert isinstance(struct, c_ast.Struct)
-        struct_def = meta_info.struct_links[struct]
-        assert isinstance(struct_def, c_ast.Struct)
+
 
         # print ("@@", struct_def)
         EmitIR([lvalue, lvalue.name], meta_info, node_value, id_gen)
         kind = TYPE_TRANSLATION[POINTER]
         tmp = GetTmp(kind)
-        offset = GetStructOffset(struct_def, lvalue.field)
+        offset = GetStructOffset(struct, lvalue.field, meta_info)
         print(f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
@@ -236,13 +260,6 @@ SPECIAL_FUNCTIONS = {
     "printf_s": "builtin",
     "printf_p": "builtin",
 }
-
-
-def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID):
-    for f in struct.decls:
-        pass
-        #print (f"@{struct.name} {f.name} {field.name}")
-    return 0
 
 
 def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
@@ -280,7 +297,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
     name = decl.name
 
     if IsGlobalDecl(decl, parent):
-        align, size = SizeOfAndAlignment(decl)
+        align, size = SizeOfAndAlignment(decl, meta_info)
         print(".mem", name, str(align), "rw")
         if decl.init:
             assert False
@@ -299,7 +316,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
                 print(f"{TAB}mov {name} = {node_value[decl.init]}")
 
         else:
-            alignment, size = SizeOfAndAlignment(decl)
+            alignment, size = SizeOfAndAlignment(decl, meta_info)
             print(f".stk {name} {alignment} {size}")
             if decl.init:
                 assert False, "stack with initialized data"
@@ -315,9 +332,7 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
     tmp = GetTmp(kind)
     struct = meta_info.type_links[node.name]
     assert isinstance(struct, c_ast.Struct)
-    struct_def = meta_info.struct_links[struct]
-    assert isinstance(struct_def, c_ast.Struct)
-    offset = GetStructOffset(struct_def, node.field)
+    offset = GetStructOffset(structq, node.field, meta_info)
     print(f"{TAB}add {tmp}:{kind} = {node_value[node.name]} {offset}")
     if isinstance(parent, c_ast.StructRef):
         node_value[node] = tmp
@@ -511,7 +526,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
         if node.op == "sizeof":
-            _, val = SizeOfAndAlignment(node.expr)
+            _, val = SizeOfAndAlignment(node.expr, meta_info)
             if isinstance(node_stack[-2], c_ast.ExprList):
                 tmp = GetTmp(meta_info.type_links[node])
                 print(f"{TAB} {tmp} = {val}")
