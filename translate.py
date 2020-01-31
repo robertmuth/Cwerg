@@ -299,6 +299,7 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
 
 
 def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
+    assert node.op == "=", node
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
     tmp = node_value[node.rvalue]
