@@ -3,7 +3,15 @@
 """
 Translator from C to a hypothetical Three-Address-Code IR
 
-This is not even close to being done
+This is not even close to being done and mostly a horrible
+unprincipled hack.
+
+EmitIR() is the main work-horse which traverse the AST recursively.
+
+It usually does a post-order traversal where results from
+the children are stored int the node_value map.
+For some node types, however, we follow a pre-order approach.
+
 """
 
 import re
@@ -56,12 +64,22 @@ def IsNumber(s):
 
 RE_NUMBER_SUFFIX = re.compile("(ull|ll|ul|l|u)$", re.IGNORECASE)
 
+_NUMBER_TYPES = (int, float)
+
 
 def StripNumberSuffix(s):
     m = RE_NUMBER_SUFFIX.search(s)
     if m:
         s = s[:m.start()]
     return s
+
+
+def ExtractNumber(s):
+    s = StripNumberSuffix(s)
+    try:
+        return int(s, 0)
+    except ValueError:
+        return float(s)
 
 
 def align(x, a):
@@ -163,11 +181,11 @@ def StringifyType(type_or_decl):
     if isinstance(type_or_decl, c_ast.FuncDecl):
         return "c32"
     elif isinstance(type_or_decl, c_ast.PtrDecl):
-        return "a32"
+        return TYPE_TRANSLATION[POINTER]
     elif isinstance(type_or_decl, c_ast.ArrayDecl):
-        return "a32"
+        return TYPE_TRANSLATION[POINTER]
     elif isinstance(type_or_decl, (c_ast.Struct, c_ast.Union)):
-        return "a32"
+        return TYPE_TRANSLATION[POINTER]
     elif isinstance(type_or_decl, c_ast.IdentifierType):
         return TYPE_TRANSLATION[tuple(type_or_decl.names)]
     elif type(type_or_decl) == str:
@@ -239,7 +257,14 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
         assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union, c_ast.FuncDecl)), type
-        node_value[lvalue] = lvalue.name
+        if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
+            kind = TYPE_TRANSLATION[POINTER]
+            tmp = GetTmp(kind)
+            print(f"{TAB}lea {tmp}:{kind} = {lvalue.name}")
+            node_value[lvalue] = tmp
+        else:
+            assert isinstance(type, c_ast.PtrDecl), type
+            node_value[lvalue] = lvalue.name
     else:
         assert False, lvalue
 
@@ -270,7 +295,7 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
         ins += [p.name, StringifyType(p)]
     outs = ["%out", return_type] if return_type else []
     kind = SPECIAL_FUNCTIONS.get(fun_name, "normal")
-    print(f".fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
+    print(f"\n\n.fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
 
 def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
@@ -282,7 +307,7 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
         print(f"{TAB}mov {lvalue.name} = {tmp}")
     else:
         GetLValueAddress(lvalue, meta_info, node_value, id_gen)
-        if IsNumber(tmp):
+        if isinstance(tmp, _NUMBER_TYPES):
             kind = kind = meta_info.type_links[node.rvalue]
             tmp2 = GetTmp(kind)
             print(f"{TAB}mov {tmp2}:{StringifyType(kind)} = {tmp}")
@@ -416,24 +441,29 @@ def IsScalarType(type):
     return isinstance(type, c_ast.IdentifierType)
 
 
-def EmitID(node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
+def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     type_info = meta_info.type_links[node]
     if isinstance(type_info, c_ast.IdentifierType):
         node_value[node] = node.name
         return
-    if isinstance(type_info, c_ast.FuncDecl):
+    elif isinstance(type_info, c_ast.Struct):
+        if parent.field == node:
+            node_value[node] = node.name
+            return
+    elif isinstance(type_info, c_ast.FuncDecl):
         node_value[node] = node.name
         return
-    if not isinstance(type_info, c_ast.ArrayDecl):
+    elif not isinstance(type_info, c_ast.ArrayDecl):
         node_value[node] = node.name
         return
-    if isinstance(type_info, c_ast.ArrayDecl):
+    elif isinstance(type_info, c_ast.ArrayDecl):
         if type_info.dim is None:
             node_value[node] = node.name
             return
 
-    tmp = GetTmp("a32")
-    print(f"{TAB}lea {tmp}:a32 = {node.name} 0")
+    kind = TYPE_TRANSLATION[POINTER]
+    tmp = GetTmp(kind)
+    print(f"{TAB}lea {tmp}:{kind} = {node.name}")
     node_value[node] = tmp
 
 
@@ -460,7 +490,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
-            print(TAB, "brcond", node_value[cond], node.iftrue.name, node.iffalse.name)
+            print(f"{TAB}brcond {node_value[cond]} {node.iftrue.name} {node.iffalse.name}")
+            assert False
         return
     elif isinstance(node, c_ast.Label):
         print(f"\n.bbl {node.name}")
@@ -485,29 +516,30 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         node_stack.pop(-1)
 
     if isinstance(node, c_ast.ID):
-        EmitID(node, meta_info, node_value)
+        EmitID(node_stack[-2], node, meta_info, node_value)
     elif isinstance(node, c_ast.Constant):
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
             name = id_gen.next("string_const")
-            print(".mem", name, "4", "ro")
+            print(f".mem {name} 4 ro")
             print(".data", "1", node.value[:-1] + '\\x00"')
-            tmp = GetTmp("a32")
-            print(f"{TAB}lea {tmp}:a32 = {name} 0")
+            kind = TYPE_TRANSLATION[POINTER]
+            tmp = GetTmp(kind)
+            print(f"{TAB}lea {tmp}:{kind} = {name} 0")
             node_value[node] = tmp
         elif isinstance(node_stack[-2], c_ast.ExprList):
             kind = meta_info.type_links[node]
             tmp = GetTmp(kind)
-            val = StripNumberSuffix(node.value)
+            val = ExtractNumber(node.value)
             print(f"{TAB}mov.i {tmp}:{StringifyType(kind)} = {val}")
             node_value[node] = tmp
         else:
-            node_value[node] = StripNumberSuffix(node.value)
+            node_value[node] = ExtractNumber(node.value)
     elif isinstance(node, c_ast.IdentifierType):
         pass
     elif isinstance(node, c_ast.Goto):
         print(f"{TAB}bra {node.name}")
     elif isinstance(node, c_ast.BinaryOp):
-        tmp = GetTmp(meta_info.type_links[node])
+        node_kind =  meta_info.type_links[node]
         BIN_OP_MAP = {"*": "mul",
                       "+": "add",
                       "-": "sub",
@@ -520,18 +552,34 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                       "&": "and",
                       }
         assert node.op in BIN_OP_MAP, node.op
-        assert not IsNumber(node_value[node.left]), node
+        left = node_value[node.left]
+        right = node_value[node.right]
+        assert not isinstance(left, _NUMBER_TYPES), node
         op = BIN_OP_MAP[node.op]
-        kind = meta_info.type_links[node]
-        print(f"{TAB}{op} {tmp}:{StringifyType(kind)} = {node_value[node.left]} {node_value[node.right]}")
+        if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
+            # need to scale
+            assert node.op == "+" or node.op == "-"
+            element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
+            if element_size == 1:
+                pass
+            elif isinstance(right, _NUMBER_TYPES):
+                right = str(right * element_size)
+            else:
+                right_kind = meta_info.type_links[node.right]
+                tmp = GetTmp(right_kind)
+                print(f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
+        tmp = GetTmp(node_kind)
+        print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left} {right}")
         node_value[node] = tmp
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
         if node.op == "sizeof":
             _, val = SizeOfAndAlignment(node.expr, meta_info)
             if isinstance(node_stack[-2], c_ast.ExprList):
-                tmp = GetTmp(meta_info.type_links[node])
-                print(f"{TAB} {tmp} = {val}")
+                # not this seems to be hardcoded to u32
+                kind = meta_info.type_links[node]
+                tmp = GetTmp(kind)
+                print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {val}")
             else:
                 tmp = str(val)
         elif node.op == "*":
@@ -550,8 +598,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             node_value[node] = tmp
         else:
             assert False, node.op
-            tmp = GetTmp(meta_info.type_links[node])
-            print(TAB, tmp, "=", node.op, node_value[node.expr])
+            #tmp = GetTmp(meta_info.type_links[node])
+            #print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.Cast):
         dst_kind = StringifyType(meta_info.type_links[node])
