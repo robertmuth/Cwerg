@@ -15,9 +15,12 @@ def RenameSymbol(decl, new_name, meta_info):
 
     if isinstance(decl.type, c_ast.FuncDecl):
         decl.type.type.declname = new_name
-
     elif isinstance(decl.type, c_ast.TypeDecl):
         decl.type.declname = new_name
+    elif isinstance(decl.type, c_ast.ArrayDecl):
+        decl.type.type.declname = new_name
+    else:
+        assert False, decl
 
     for id, sym in meta_info.sym_links.items():
         if sym == decl:
@@ -31,6 +34,10 @@ def IsExternOrStatic(node, parent):
 
 def LiftStaticAndExternToGlobalScope(ast: c_ast.FileAST, meta_info: meta.MetaInfo, id_gen: common.UniqueId):
     """Requires that if statements only have gotos
+
+    Why the constraint?
+    We want all variables we need to allocate memory for to be at the
+    top level.
     """
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsExternOrStatic)
 
@@ -39,12 +46,17 @@ def LiftStaticAndExternToGlobalScope(ast: c_ast.FileAST, meta_info: meta.MetaInf
             new_name = id_gen.next("__static") + "_" + decl.name
             decl.storage.remove("static")
             RenameSymbol(decl, new_name, meta_info)
-            if isinstance(decl.type, c_ast.TypeDecl) and parent != ast:
+            if isinstance(decl.type, (c_ast.TypeDecl, c_ast.ArrayDecl)) and parent != ast:
+                # rip it out
                 stmts = common.GetStatementList(parent)
                 assert stmts, parent
                 stmts.remove(decl)
                 # TODO: insert it just outside the function
                 ast.ext.insert(0, decl)
+            elif isinstance(decl.type, c_ast.FuncDecl):
+                pass
+            else:
+                assert False, decl
         if "extern" in decl.storage:
             decl.storage.remove("extern")
             if ast != parent:

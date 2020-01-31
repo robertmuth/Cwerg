@@ -186,11 +186,11 @@ def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
     """
 
     def IsAddressTakenScalarOrGlobalScalar(node, parent):
-        if isinstance(parent, c_ast.FileAST):
-            if not isinstance(node, c_ast.Decl):
-                return False
-            # print ("#@@", node)
-            return IsScalarType(node.type)
+        if isinstance(node, c_ast.Decl) and IsScalarType(node.type):
+            #return isinstance(parent, c_ast.FileAST)
+            return (isinstance(parent, c_ast.FileAST) or
+                     "static" in node.storage)
+
         if not isinstance(node, c_ast.UnaryOp): return False
         if node.op != "&": return False
         if not isinstance(node.expr, c_ast.ID): return False
