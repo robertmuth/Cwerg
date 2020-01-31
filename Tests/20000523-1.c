@@ -7,8 +7,9 @@ main (void)
   long long   x;
   int         n;
 
-  if (sizeof (long long) < 8)
-    return (0);
+  // requires 64bit
+  //if (sizeof (long long) < 8)
+  //  return (0);
 
   n = 9;
   x = (((long long) n) << 55) / 0xff;

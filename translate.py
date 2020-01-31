@@ -492,9 +492,13 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_g
     right = node_value[node.right]
     if isinstance(left, _NUMBER_TYPES):
         assert isinstance(right, _NUMBER_TYPES)
-        # partial eval is delicate
+        # TODO: revisit this - partial eval is delicate
         if node.op == "*":
             node_value[node] = left * right
+        elif node.op == "<<":
+            node_value[node] = left << right
+        elif node.op == "/":   # does not work for floats
+            node_value[node] = left // right
         else:
             assert False, node
         return
@@ -612,6 +616,9 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         dst_kind = StringifyType(meta_info.type_links[node])
         src_kind = StringifyType(meta_info.type_links[node.expr])
         if src_kind == dst_kind:
+            node_value[node] = node_value[node.expr]
+        elif isinstance(node_value[node.expr], _NUMBER_TYPES):
+            # needs more work especially for narrowing
             node_value[node] = node_value[node.expr]
         else:
             tmp = GetTmp(meta_info.type_links[node])
