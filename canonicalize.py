@@ -17,7 +17,6 @@ Currently implemented
  * printf simplifications (goal is to get rid of EllipsisParam for most programs)
 """
 
-
 from pycparser import c_ast, parse_file, c_generator
 
 import common
@@ -408,6 +407,21 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     FixNodeRequiringBoolInt(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
+    # if return type is void
+    decl: c_ast.FuncDecl = ast.decl
+
+    type_decl: c_ast.TypeDecl = decl.type.type
+    if not isinstance(type_decl.type, c_ast.IdentifierType):
+        return
+    if "void" not in type_decl.type.names:
+        return
+
+    stmts = ast.body.block_items
+    if not stmts or not isinstance(stmts[-1], c_ast.Return):
+        ret = c_ast.Return(None)
+        meta_info.type_links[ret] = meta.GetTypeForDecl(ast.decl.type)
+    stmts.append(ret)
+
 
 # ================================================================================
 #
@@ -453,11 +467,12 @@ def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_cas
 if __name__ == "__main__":
     import argparse
 
+
     def main():
         parser = argparse.ArgumentParser(description='C canonicalizer')
         parser.add_argument('--printf', action='store_const',
-                                const=True, default=False,
-                                help='use special printf rewrite')
+                            const=True, default=False,
+                            help='use special printf rewrite')
         parser.add_argument('filename', type=str,
                             help='file to canonicalize')
         args = parser.parse_args()
@@ -469,6 +484,7 @@ if __name__ == "__main__":
         Canonicalize(ast, meta_info, skip_constant_casts=False)
         generator = c_generator.CGenerator()
         print(generator.visit(ast))
+
 
     # logging.basicConfig(level=logging.DEBUG)
     main()

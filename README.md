@@ -14,11 +14,15 @@ which  can be found below.
 
 * the supported part of the C language is whatever is in `Tests/*c`
   (this implies that the development is test driven) 
-* the canonicalizer is already useful. It transforms C programs into equivalents programs 
-  that use a smaller subset of the C language. For example, canonicalized programs do not
+* the canonicalizer is already useful. It transforms C programs into
+  equivalents programs that use a smaller subset of the C language. 
+  For example, canonicalized programs do not
   use pre/post in-/decrement and do not have for or while loops. 
-* no backend yet. Hook-up your own (see translate.py for inspiration).
+* no real backend yet. Hook-up your own.
   [QBE](https://c9x.me/compile/) might also be a good candidate.
+  `translate.py` is a backend for a fictitious RISC CPU with unlimited
+  registers. It does not support `typedef`, post-inc/dec several other
+  syntactical features.
 
 ## Highlevel Overview
 
@@ -215,7 +219,7 @@ https://github.com/ShivamSarodia/ShivyC
 * written in C (self hosting) by Fabrice Bellard et al
 * small code base  but not for the faint of heart
 * everything included approach (including linker)
-* mutliple targets: x86, x86-64, arm 
+* multiple targets: x86, x86-64, arm 
 * emits elf object files
 
 Links
