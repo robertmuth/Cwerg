@@ -76,8 +76,8 @@ def IsShadowingEarlierDecl(name, sym_tab):
 
 
 def MaybeRenameSymbols(node, parent, meta_info, local_syms, id_gen: common.UniqueId):
-    if isinstance(node, common.NEW_SCOPE_NODE):
-        local_syms.append({})
+    #if isinstance(node, common.NEW_SCOPE_NODE):
+    #    local_syms.append({})
 
     if isinstance(node, (c_ast.Struct,c_ast.Union)):
         return
@@ -95,9 +95,9 @@ def MaybeRenameSymbols(node, parent, meta_info, local_syms, id_gen: common.Uniqu
     for c in node:
         MaybeRenameSymbols(c, node, meta_info, local_syms, id_gen)
 
-    if isinstance(node, common.NEW_SCOPE_NODE):
-        local_syms.pop(-1)
+    #if isinstance(node, common.NEW_SCOPE_NODE):
+    #    local_syms.pop(-1)
 
 
 def UniquifyLocalVars(fun: c_ast.FuncDef, meta_info: meta.MetaInfo, id_gen: common.UniqueId):
-    MaybeRenameSymbols(fun, fun, meta_info, [], id_gen)
+    MaybeRenameSymbols(fun, fun, meta_info, [{}], id_gen)
