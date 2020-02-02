@@ -158,6 +158,9 @@ def ExtractSymTab(ast: c_ast.FileAST):
 
 
 def VerifySymbolLinks(node: c_ast.Node, symbol_links, strict=True):
+    """
+    Ensure that all IDs have links to their definitions
+    """
     for c in node:
         VerifySymbolLinks(c, symbol_links, strict)
 

@@ -50,6 +50,8 @@ def GetArrayRefMultiplier(node, type):
         return 1
     elif isinstance(type, c_ast.PtrDecl):
         return 1
+    elif isinstance(type, c_ast.Struct):
+        return 1
     else:
         assert False, type
 

@@ -156,11 +156,22 @@ def TypeCompare(t1: c_ast.IdentifierType, t2: c_ast.IdentifierType):
 
 
 def MaxType(t1, t2):
+    """
+    Determine what the result type of a a binop with types t1, t2 should be
+    """
     if isinstance(t1, c_ast.PtrDecl) and isinstance(t2, c_ast.PtrDecl):
         # maybe do some more checks
         return t1
 
-    assert isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType)
+    if isinstance(t1, c_ast.PtrDecl):
+        # needs more checks, only works for integers and some ops
+        return t1
+
+    if isinstance(t2, c_ast.PtrDecl):
+        # needs more checks, only works for integers and some ops
+        return t2;
+
+    assert isinstance(t1, c_ast.IdentifierType) and isinstance(t2, c_ast.IdentifierType), f"unexpected type {t1} {t2}"
     cmp = TypeCompare(t1, t2)
     if cmp == "=" or cmp == ">":
         return t1
@@ -282,8 +293,25 @@ def ReplaceNode(parent, old_node, new_node):
             parent.init = new_node
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.StructRef):
+        if parent.name is old_node:
+            parent.name = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.Switch):
+        if parent.cond is old_node:
+            parent.cond = new_node
+        else:
+            assert False, parent
+    elif isinstance(parent, c_ast.Default):
+        for n, e in enumerate(parent.stmts):
+            if e is old_node:
+                parent.stmts[n] = new_node
+                break
+        else:
+            assert False, parent
     else:
-        assert False, parent
+        assert False, f"unimplemented replacement inside {parent}"
     return new_node
 
 
