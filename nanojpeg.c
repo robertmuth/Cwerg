@@ -650,7 +650,7 @@ void njUpsampleV(struct nj_component* c) {
         *cout = CF(CF3X * cin[0] + CF3Y * cin[-s1] + CF3Z * cin[-s2]);  cout += w;
         *cout = CF(CF2A * cin[0] + CF2B * cin[-s1]);
     }
-    c->height <<= 1;
+    c->height = c->height << 1;
     c->stride = c->width;
     free((void*) c->pixels);
     c->pixels = out;
@@ -680,9 +680,10 @@ void njConvert(void) {
                 register int y = py[x] << 8;
                 register int cb = pcb[x] - 128;
                 register int cr = pcr[x] - 128;
-                *prgb++ = njClip((y            + 359 * cr + 128) >> 8);
-                *prgb++ = njClip((y -  88 * cb - 183 * cr + 128) >> 8);
-                *prgb++ = njClip((y + 454 * cb            + 128) >> 8);
+                prgb[0] = njClip((y            + 359 * cr + 128) >> 8);
+                prgb[1] = njClip((y -  88 * cb - 183 * cr + 128) >> 8);
+                prgb[2] = njClip((y + 454 * cb            + 128) >> 8);
+		prgb += 3;
             }
             py += nj.comp[0].stride;
             pcb += nj.comp[1].stride;

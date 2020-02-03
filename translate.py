@@ -83,7 +83,7 @@ def ExtractNumber(s):
 
 
 def align(x, a):
-    return  (x + a - 1) // a * a
+    return (x + a - 1) // a * a
 
 
 def SizeOfAndAlignmentStruct(struct: c_ast.Struct, meta_info):
@@ -96,6 +96,8 @@ def SizeOfAndAlignmentStruct(struct: c_ast.Struct, meta_info):
         if a > alignment:
             alignment = a
         size = align(size, a) + s
+        # print ("@@", s, a, size, alignment, f)
+
     return size, alignment
 
 
@@ -128,7 +130,7 @@ def SizeOfAndAlignment(node, meta_info):
         bitsize = int(type_name[1:])
         return bitsize // 8, bitsize // 8
     elif isinstance(node, c_ast.ArrayDecl):
-        align, size = SizeOfAndAlignment(node.type, meta_info)
+        size, align = SizeOfAndAlignment(node.type, meta_info)
         size = (size + align - 1) // align * align
         return size * int(node.dim.value), align
     elif isinstance(node, c_ast.PtrDecl):
@@ -246,7 +248,6 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         struct = meta_info.type_links[lvalue.name]
         assert isinstance(struct, c_ast.Struct)
 
-
         # print ("@@", struct_def)
         EmitIR([lvalue, lvalue.name], meta_info, node_value, id_gen)
         kind = TYPE_TRANSLATION[POINTER]
@@ -355,6 +356,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
 
 def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen):
     assert node.type == "."
+    EmitIR([parent, node, node.name], meta_info, node_value, id_gen)
     kind = TYPE_TRANSLATION[POINTER]
     tmp = GetTmp(kind)
     struct = meta_info.type_links[node.name]
@@ -365,8 +367,9 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
         node_value[node] = tmp
     elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
         node_value[node] = tmp
+    elif isinstance(meta_info.type_links[node.field], c_ast.ArrayDecl):
+        node_value[node] = tmp
     else:
-        # print (node)
         # print ("@@@@@", meta_info.type_links[node.field])
         field_type = meta_info.type_links[node.field]
         val_type = ScalarDeclType(field_type)
@@ -408,7 +411,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     default = None
     for s in node.stmt:
         if isinstance(s, c_ast.Case):
-            val = int(s.expr.value)
+            val = ExtractNumber(s.expr.value)
             block = label + str(val).replace("-", "minus")
             cases.append((val, s.stmts, block))
         else:
@@ -450,6 +453,8 @@ def IsScalarType(type):
 
 
 def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
+    if isinstance(parent, c_ast.StructRef):
+        assert parent.field != node
     type_info = meta_info.type_links[node]
     if isinstance(type_info, c_ast.IdentifierType):
         node_value[node] = node.name
@@ -474,36 +479,57 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     print(f"{TAB}lea {tmp}:{kind} = {node.name}")
     node_value[node] = tmp
 
-BIN_OP_MAP = {"*": "mul",
-              "+": "add",
-              "-": "sub",
-              "/": "div",
-              "%": "mod",
-              "<<": "shl",
-              ">>": "shr",
-              "^": "xor",
-              "|": "or",
-              "&": "and",
-              }
+
+BIN_OP_MAP_RIGHT_IMM = {
+    "*": "mul",
+    "+": "add",
+    "-": "sub",
+    "/": "div",
+    "%": "mod",
+    "<<": "shl",
+    ">>": "shr",
+    "^": "xor",
+    "|": "or",
+    "&": "and",
+}
+
+BIN_OP_MAP_LEFT_IMM = {
+    "*": "mul",
+    "+": "add",
+    "-": "rsub",
+    "/": "rdiv",
+    "%": "rmod",
+    "<<": "rshl",
+    ">>": "rshr",
+    "^": "xor",
+    "|": "or",
+    "&": "and",
+}
+
 
 def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
-    node_kind =  meta_info.type_links[node]
-    assert node.op in BIN_OP_MAP, node.op
+    node_kind = meta_info.type_links[node]
+    assert node.op in BIN_OP_MAP_LEFT_IMM, node.op
     left = node_value[node.left]
     right = node_value[node.right]
-    if isinstance(left, _NUMBER_TYPES):
-        assert isinstance(right, _NUMBER_TYPES)
+    if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
         # TODO: revisit this - partial eval is delicate
         if node.op == "*":
             node_value[node] = left * right
+        elif node.op == "-":
+            node_value[node] = left - right
+        elif node.op == "+":
+            node_value[node] = left + right
         elif node.op == "<<":
             node_value[node] = left << right
-        elif node.op == "/":   # does not work for floats
+        elif node.op == "/":  # does not work for floats
             node_value[node] = left // right
         else:
             assert False, node
         return
-    op = BIN_OP_MAP[node.op]
+
+    m = BIN_OP_MAP_LEFT_IMM if isinstance(left, _NUMBER_TYPES) else BIN_OP_MAP_RIGHT_IMM
+    op = m[node.op]
     if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         # need to scale
         assert node.op == "+" or node.op == "-"
@@ -564,6 +590,9 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.Switch):
         HandleSwitch(node, meta_info, node_value, id_gen)
         return
+    elif isinstance(node, c_ast.StructRef):
+        HandleStructRef(node, node_stack[-2], meta_info, node_value, id_gen)
+        return
 
     for c in node:
         node_stack.append(c)
@@ -593,7 +622,9 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
         if node.op == "sizeof":
-            _, tmp = SizeOfAndAlignment(node.expr, meta_info)
+            expr = node.expr
+            expr = meta_info.type_links.get(expr, expr)
+            tmp, _ = SizeOfAndAlignment(expr, meta_info)
         elif node.op == "*":
             if isinstance(node_stack[-2], c_ast.StructRef):
                 tmp = node_value[node.expr]
@@ -608,10 +639,15 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             x = ALL_BITS_SET[StringifyType(kind)]
             print(f"{TAB}xor {tmp}:{StringifyType(kind)} = {node_value[node.expr]} {x}")
             node_value[node] = tmp
+        elif node.op == "-":
+            kind = meta_info.type_links[node]
+            tmp = GetTmp(kind)
+            print(f"{TAB}rsub {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
+            node_value[node] = tmp
         else:
-            assert False, node.op
-            #tmp = GetTmp(meta_info.type_links[node])
-            #print(TAB, tmp, "=", node.op, node_value[node.expr])
+            assert False, node
+            # tmp = GetTmp(meta_info.type_links[node])
+            # print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
     elif isinstance(node, c_ast.Cast):
         dst_kind = StringifyType(meta_info.type_links[node])
@@ -639,8 +675,6 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         pass
     elif isinstance(node, (c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
         pass
-    elif isinstance(node, c_ast.StructRef):
-        HandleStructRef(node, node_stack[-2], meta_info, node_value, id_gen)
     else:
         assert False, node
 
