@@ -350,7 +350,7 @@ static int njShowBits(int bits) {
 void njSkipBits(int bits) {
     if (nj.bufbits < bits)
         (void) njShowBits(bits);
-    nj.bufbits -= bits;
+    nj.bufbits = nj.bufbits - bits;
 }
 
 int njGetBits(int bits) {
@@ -360,13 +360,13 @@ int njGetBits(int bits) {
 }
 
 void njByteAlign(void) {
-    nj.bufbits &= 0xF8;
+    nj.bufbits = nj.bufbits & 0xF8;
 }
 
 static void njSkip(int count) {
-    nj.pos += count;
-    nj.size -= count;
-    nj.length -= count;
+    nj.pos = nj.pos + count;
+    nj.size = nj.size - count;
+    nj.length = nj.length - count;
     if (nj.size < 0) nj.error = NJ_SYNTAX_ERROR;
 }
 
@@ -414,7 +414,7 @@ void njDecodeSOF(void) {
         if (c->ssy & (c->ssy - 1)) njThrow(NJ_UNSUPPORTED);  // non-power of two
         if ((c->qtsel = nj.pos[2]) & 0xFC) njThrow(NJ_SYNTAX_ERROR);
         njSkip(3);
-        nj.qtused |= 1 << c->qtsel;
+        nj.qtused = nj.qtused | (1 << c->qtsel);
         if (c->ssx > ssxmax) ssxmax = c->ssx;
         if (c->ssy > ssymax) ssymax = c->ssy;
     }
@@ -473,7 +473,8 @@ void njDecodeDHT(void) {
             }
             njSkip(currcnt);
         }
-        while (remain--) {
+        while (remain) {
+	  --remain;
             vlc->bits = 0;
             ++vlc;
         }
