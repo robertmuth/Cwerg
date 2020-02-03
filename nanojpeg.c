@@ -274,17 +274,17 @@ void njColIDCT(const int* blk, unsigned char *out, int stride) {
         return;
     }
     x0 = (blk[0] << 8) + 8192;
-    x8 = W7 * (x4 + x5) + 4;
-    x4 = (x8 + (W1 - W7) * x4) >> 3;
-    x5 = (x8 - (W1 + W7) * x5) >> 3;
+    x8 = (x4 + x5) * W7 + 4;
+    x4 = (x8 + x4 * (W1 - W7)) >> 3;
+    x5 = (x8 - x5 * (W1 + W7)) >> 3;
     x8 = (x6 + x7) * W3 + 4;
-    x6 = (x8 - (W3 - W5) * x6) >> 3;
-    x7 = (x8 - (W3 + W5) * x7) >> 3;
+    x6 = (x8 - x6 * (W3 - W5)) >> 3;
+    x7 = (x8 - x7 * (W3 + W5)) >> 3;
     x8 = x0 + x1;
     x0 -= x1;
     x1 = (x3 + x2) * W6 + 4;
-    x2 = (x1 - (W2 + W6) * x2) >> 3;
-    x3 = (x1 + (W2 - W6) * x3) >> 3;
+    x2 = (x1 - x2 * (W2 + W6)) >> 3;
+    x3 = (x1 + x3 * (W2 - W6)) >> 3;
     x1 = x4 + x6;
     x4 -= x6;
     x6 = x5 + x7;
@@ -293,8 +293,8 @@ void njColIDCT(const int* blk, unsigned char *out, int stride) {
     x8 -= x3;
     x3 = x0 + x2;
     x0 -= x2;
-    x2 = (181 * (x4 + x5) + 128) >> 8;
-    x4 = (181 * (x4 - x5) + 128) >> 8;
+    x2 = ((x4 + x5) * 181 + 128) >> 8;
+    x4 = ((x4 - x5) * 181 + 128) >> 8;
     *out = njClip(((x7 + x1) >> 14) + 128);  out += stride;
     *out = njClip(((x3 + x2) >> 14) + 128);  out += stride;
     *out = njClip(((x0 + x4) >> 14) + 128);  out += stride;
