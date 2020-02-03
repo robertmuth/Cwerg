@@ -23,7 +23,8 @@ def RunAndCaptureStdout(command):
 
 def Canonicalize(fn, fn_canoicalized):
     print("Canonicalize [%s] -> [%s]" % (fn, fn_canoicalized))
-    p = subprocess.run("./canonicalize.py %s > %s" % (fn, fn_canoicalized), shell=True)
+    p = subprocess.run("./canonicalize.py %s > %s" %
+                       (fn, fn_canoicalized), shell=True)
     return p.stdout
 
 
@@ -32,6 +33,8 @@ def CheckDelta(expected, actual):
         print("DELTA")
         print(actual)
         print(expected)
+        return True
+    return False
 
 
 CANONICALIZED_C = "./canonicalized.c"
@@ -42,21 +45,27 @@ def RunTest(fn: str):
     print(fn)
     print("=" * 50)
 
-    RunClang(fn, "./a.out")
+    bad = False
+    bad |= RunClang(fn, "./a.out")
     stdout = RunAndCaptureStdout('./a.out; echo "exit $?"')
     reference = fn[:-2] + ".reference_output"
     if os.path.exists(reference):
         CheckDelta(open(reference, "rb").read(), stdout)
     Canonicalize(fn, CANONICALIZED_C)
-    RunClang(CANONICALIZED_C, "./a.out")
+    bad |= RunClang(CANONICALIZED_C, "./a.out")
     stdout2 = RunAndCaptureStdout('./a.out; echo "exit $?"')
-    CheckDelta(stdout, stdout2)
+    bad |= CheckDelta(stdout, stdout2)
+    return bad == True
 
 
 def main(argv):
+    bad = 0
     for fn in argv:
-        RunTest(fn)
-    print("OK")
+        bad += RunTest(fn)
+    if bad == 0:
+        print("OK")
+    else:
+        print(f"ERRORS: {bad}")
 
 
 if __name__ == "__main__":
