@@ -314,17 +314,19 @@ static int njShowBits(int bits) {
     while (nj.bufbits < bits) {
         if (nj.size <= 0) {
             nj.buf = (nj.buf << 8) | 0xFF;
-            nj.bufbits += 8;
+            nj.bufbits = nj.bufbits + 8;
             continue;
         }
-        newbyte = *nj.pos++;
-        nj.size--;
-        nj.bufbits += 8;
+        newbyte = *nj.pos;
+	nj.pos = nj.pos + 1;
+        nj.size = nj.size - 1;
+        nj.bufbits = nj.bufbits + 8;
         nj.buf = (nj.buf << 8) | newbyte;
         if (newbyte == 0xFF) {
             if (nj.size) {
-                unsigned char marker = *nj.pos++;
-                nj.size--;
+                unsigned char marker = *nj.pos;
+		nj.pos = nj.pos + 1;
+                nj.size = nj.size - 1;
                 switch (marker) {
                     case 0x00:
                     case 0xFF:
@@ -335,7 +337,7 @@ static int njShowBits(int bits) {
                             nj.error = NJ_SYNTAX_ERROR;
                         else {
                             nj.buf = (nj.buf << 8) | marker;
-                            nj.bufbits += 8;
+                            nj.bufbits = nj.bufbits + 8;
                         }
                 }
             } else
