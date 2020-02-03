@@ -158,12 +158,14 @@ struct nj_ctx {
 
 struct nj_ctx nj;
 
-
+#if 1
 const char njZZ[64] = { 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18,
 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35,
 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45,
 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63 };
-
+#else
+const char njZZ[64];
+#endif
 
 // njGetWidth: Return the width (in pixels) of the most recently decoded
 // image. If njDecode() failed, the result of njGetWidth() is undefined.
@@ -176,7 +178,7 @@ int njGetHeight(void)           { return nj.height; }
 // njIsColor: Return 1 if the most recently decoded image is a color image
 // (RGB) or 0 if it is a grayscale image. If njDecode() failed, the result
 // of njGetWidth() is undefined.
-int njIsColor(void)             { return (nj.ncomp != 1); }
+int njIsColor(void)             { if (nj.ncomp != 1) return 1; else return 0;; }
 
 // njGetImage: Returns the decoded image data.
 // Returns a pointer to the most recently image. The memory layout it byte-
@@ -185,7 +187,7 @@ int njIsColor(void)             { return (nj.ncomp != 1); }
 // blue channels. This data format is thus compatible with the PGM or PPM
 // file formats and the OpenGL texture formats GL_LUMINANCE8 or GL_RGB8.
 // If njDecode() failed, the result of njGetImage() is undefined.
-unsigned char* njGetImage(void) { return (nj.ncomp == 1) ? nj.comp[0].pixels : nj.rgb; }
+unsigned char* njGetImage(void) { if (nj.ncomp == 1) return nj.comp[0].pixels; else return nj.rgb; }
 
 // njGetImageSize: Returns the size (in bytes) of the image data returned
 // by njGetImage(). If njDecode() failed, the result of njGetImageSize() is
@@ -194,7 +196,12 @@ int njGetImageSize(void)        { return nj.width * nj.height * nj.ncomp; }
 
 
 unsigned char njClip(const int x) {
-    return (x < 0) ? 0 : ((x > 0xFF) ? 0xFF : (unsigned char) x);
+  if (x < 0) {
+    return 0;
+  } else  if (x > 0xFF) {
+    return 0xFF;
+  }
+  return (unsigned char) x;
 }
 
 #define W1 2841
@@ -218,17 +225,17 @@ void njRowIDCT(int* blk) {
         return;
     }
     x0 = (blk[0] << 11) + 128;
-    x8 = W7 * (x4 + x5);
-    x4 = x8 + (W1 - W7) * x4;
-    x5 = x8 - (W1 + W7) * x5;
-    x8 = W3 * (x6 + x7);
-    x6 = x8 - (W3 - W5) * x6;
-    x7 = x8 - (W3 + W5) * x7;
+    x8 = (x4 + x5) * W7;
+    x4 = x8 + x4* (W1 - W7);
+    x5 = x8 - x5 * (W1 + W7);
+    x8 = (x6 + x7) * W3;
+    x6 = x8 - x6 * (W3 - W5);
+    x7 = x8 - x7 * (W3 + W5);
     x8 = x0 + x1;
     x0 -= x1;
-    x1 = W6 * (x3 + x2);
-    x2 = x1 - (W2 + W6) * x2;
-    x3 = x1 + (W2 - W6) * x3;
+    x1 = (x3 + x2) * W6;
+    x2 = x1 - x2 * (W2 + W6);
+    x3 = x1 + x3 * (W2 - W6);
     x1 = x4 + x6;
     x4 -= x6;
     x6 = x5 + x7;
@@ -237,8 +244,8 @@ void njRowIDCT(int* blk) {
     x8 -= x3;
     x3 = x0 + x2;
     x0 -= x2;
-    x2 = (181 * (x4 + x5) + 128) >> 8;
-    x4 = (181 * (x4 - x5) + 128) >> 8;
+    x2 = ((x4 + x5) * 181 + 128) >> 8;
+    x4 = ((x4 - x5) * 181 + 128) >> 8;
     blk[0] = (x7 + x1) >> 8;
     blk[1] = (x3 + x2) >> 8;
     blk[2] = (x0 + x4) >> 8;
@@ -270,12 +277,12 @@ void njColIDCT(const int* blk, unsigned char *out, int stride) {
     x8 = W7 * (x4 + x5) + 4;
     x4 = (x8 + (W1 - W7) * x4) >> 3;
     x5 = (x8 - (W1 + W7) * x5) >> 3;
-    x8 = W3 * (x6 + x7) + 4;
+    x8 = (x6 + x7) * W3 + 4;
     x6 = (x8 - (W3 - W5) * x6) >> 3;
     x7 = (x8 - (W3 + W5) * x7) >> 3;
     x8 = x0 + x1;
     x0 -= x1;
-    x1 = W6 * (x3 + x2) + 4;
+    x1 = (x3 + x2) * W6 + 4;
     x2 = (x1 - (W2 + W6) * x2) >> 3;
     x3 = (x1 + (W2 - W6) * x3) >> 3;
     x1 = x4 + x6;
