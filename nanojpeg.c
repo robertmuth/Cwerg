@@ -490,7 +490,7 @@ void njDecodeDQT(void) {
     while (nj.length >= 65) {
         i = nj.pos[0];
         if (i & 0xFC) njThrow(NJ_SYNTAX_ERROR);
-        nj.qtavail |= 1 << i;
+        nj.qtavail = nj.qtavail | (1 << i);
         t = &nj.qtab[i][0];
         for (i = 0;  i < 64;  ++i)
             t[i] = nj.pos[i + 1];
@@ -523,10 +523,11 @@ int njGetVLC(struct nj_code* vlc, unsigned char* code) {
 }
 
 void njDecodeBlock(struct nj_component* c, unsigned char* out) {
-    unsigned char code = 0;
+  unsigned char code;
+  code = 0;
     int value, coef = 0;
     memset(nj.block, 0, sizeof(nj.block));
-    c->dcpred += njGetVLC(&nj.vlctab[c->dctabsel][0], (void* )0);
+    c->dcpred = c->dcpred + njGetVLC(&nj.vlctab[c->dctabsel][0], (void* )0);
     nj.block[0] = (c->dcpred) * nj.qtab[c->qtsel][0];
     do {
         value = njGetVLC(&nj.vlctab[c->actabsel][0], &code);
@@ -620,7 +621,7 @@ void njUpsampleH(struct nj_component* c) {
         lout[-2] = CF(CF3X * lin[-1] + CF3Y * lin[-2] + CF3Z * lin[-3]);
         lout[-1] = CF(CF2A * lin[-1] + CF2B * lin[-2]);
     }
-    c->width <<= 1;
+    c->width = c->width << 1;
     c->stride = c->width;
     free((void*)c->pixels);
     c->pixels = out;
