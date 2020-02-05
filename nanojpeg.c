@@ -145,7 +145,7 @@ struct nj_ctx {
     int width, height;
     int mbwidth, mbheight;
     int mbsizex, mbsizey;
-    int ncomp;
+    unsigned int ncomp;
     struct nj_component comp[3];
     int qtused, qtavail;
     unsigned char qtab[4][64];
@@ -348,9 +348,10 @@ static int njShowBits(int bits) {
 }
 
 void njSkipBits(int bits) {
-    if (nj.bufbits < bits)
-        (void) njShowBits(bits);
-    nj.bufbits = nj.bufbits - bits;
+  if (nj.bufbits < bits) {
+        njShowBits(bits);
+  }
+  nj.bufbits = nj.bufbits - bits;
 }
 
 int njGetBits(int bits) {
