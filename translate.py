@@ -13,7 +13,7 @@ the children are stored int the node_value map.
 For some node types, however, we follow a pre-order approach.
 
 """
-
+import operator
 import re
 import sys
 
@@ -250,10 +250,14 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
 
         # print ("@@", struct_def)
         EmitIR([lvalue, lvalue.name], meta_info, node_value, id_gen)
-        kind = TYPE_TRANSLATION[POINTER]
-        tmp = GetTmp(kind)
+
         offset = GetStructOffset(struct, lvalue.field, meta_info)
-        print(f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
+        if offset == 0:
+            tmp = node_value[lvalue.name]
+        else:
+            kind = TYPE_TRANSLATION[POINTER]
+            tmp = GetTmp(kind)
+            print(f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
@@ -304,13 +308,15 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
     tmp = node_value[node.rvalue]
+    # because of the canonicalization step only register promotable scalars will
+    # naked like this
     if isinstance(lvalue, c_ast.ID):
         # but if address is taken
         print(f"{TAB}mov {lvalue.name} = {tmp}")
     else:
         GetLValueAddress(lvalue, meta_info, node_value, id_gen)
         if isinstance(tmp, _NUMBER_TYPES):
-            kind = kind = meta_info.type_links[node.rvalue]
+            kind = meta_info.type_links[node.rvalue]
             tmp2 = GetTmp(kind)
             print(f"{TAB}mov {tmp2}:{StringifyType(kind)} = {tmp}")
             tmp = tmp2
@@ -392,10 +398,15 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
     if node.args:
         for a in node.args:
             p = node_value[a]
+            kind = meta_info.type_links[a]
             if isinstance(p, _NUMBER_TYPES):
-                kind = meta_info.type_links[a]
                 tmp = GetTmp(kind)
-                print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
+                if isinstance(kind, c_ast.PtrDecl):
+                    assert p == 0
+                    print(f"{TAB}lea {tmp}:{StringifyType(kind)} = %nullptr")
+
+                else:
+                    print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
                 p = tmp
             params.append(p)
     print(f"{TAB}bsr {node_value[node.name]} {RenderList(results)} = {RenderList(params)}")
@@ -438,10 +449,25 @@ MAP_COMPARE = {
     "<": "blt",
     "<=": "ble",
     ">": "bgt",
-    ">=": "bge"}
+    ">=": "bge"
+}
+
+MAP_COMPARE_EVAL = {
+    "<": operator.lt,
+    "<=": operator.le,
+    "==": operator.eq,
+    "!=": operator.ne,
+    ">": operator.ge,
+    ">=": operator.gt,
+}
 
 
-def EmitConditionalBranch(op: str, target: str, left: str, right: str):
+def EmitConditionalBranch(op: str, target: str, left, right):
+    if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
+        # partial evaluation
+        if MAP_COMPARE_EVAL[op](left, right):
+            print(f"{TAB}{bra} {target}")
+        return
     print(f"{TAB}{MAP_COMPARE[op]} {target} {left} {right}")
 
 
@@ -659,6 +685,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             node_value[node] = node_value[node.expr]
         else:
             tmp = GetTmp(meta_info.type_links[node])
+            assert dst_kind is not None
+
             print(f"{TAB}conv {tmp}:{dst_kind} = {node_value[node.expr]}")
             node_value[node] = tmp
     elif isinstance(node, c_ast.FuncCall):
@@ -684,10 +712,11 @@ def main(argv):
         print("#" * 60)
         print("#", filename)
         print("#" * 60)
+        print(".mem %nullptr 0 fix")
         ast = parse_file(filename, use_cpp=True)
         canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
         meta_info = meta.MetaInfo(ast)
-        canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=True)
+        canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=False)
         global_id_gen = common.UniqueId()
         EmitIR([ast], meta_info, {}, global_id_gen)
 
