@@ -21,8 +21,8 @@ which  can be found below.
 * no real backend yet. Hook-up your own.
   [QBE](https://c9x.me/compile/) might also be a good candidate.
   `translate.py` is a backend for a fictitious RISC CPU with unlimited
-  registers. It does not support `typedef`, post-inc/dec several other
-  syntactical features.
+   registers. It does not support `typedef`, post-inc/dec, static
+   initializers, ?-operator, enums, bitfields, and several other syntactical features.
 
 ## Highlevel Overview
 
@@ -69,6 +69,14 @@ The compilation is split into the following phases:
   https://web.archive.org/web/20030812081713/http://klausler.com/cnotes.txt
  
 ## Survey of other open source c-compiler projects
+
+### A Compiler Writing Journey
+
+* implements a subset of C
+
+Links
+
+https://github.com/DoctorWkt/acwj
 
 ### chibicc
 
