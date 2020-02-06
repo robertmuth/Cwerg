@@ -360,7 +360,7 @@ def ConfirmAbsenceOfUnsupportedFeatures(node: c_ast.Node, parent):
         assert not params or not IsVoidArg(params[0])
 
     elif isinstance(node, c_ast.ArrayRef):
-        assert False
+        assert False, f"unexpected ArrayRef {node}"
 
     elif isinstance(node, c_ast.ExprList) and not isinstance(parent, c_ast.FuncCall):
         assert False, parent
@@ -450,6 +450,7 @@ def Canonicalize(ast: c_ast.FileAST, meta_info: meta.MetaInfo, skip_constant_cas
     meta_info.CheckConsistency(ast)
 
     transform_arrayref.ConvertArrayIndexToPointerDereference(ast, meta_info)
+    transform_arrayref.SimplifyAddressExpressions(ast, meta_info)
     meta_info.CheckConsistency(ast)
 
     ConvertCompoundAssignment(ast, meta_info, global_id_gen)

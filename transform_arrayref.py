@@ -128,6 +128,8 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
     def IsArrayRefChainHead(node, parent):
         if not isinstance(node, c_ast.ArrayRef): return False
         name_type = meta_info.type_links[node.name]
+        #  int **b = a;
+        #  printf("%d\n", b[1][1]);
         if not isinstance(name_type, c_ast.ArrayDecl): return True
         if not isinstance(parent, c_ast.ArrayRef): return True
         return False
@@ -189,9 +191,9 @@ def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
 
     def IsAddressTakenScalarOrGlobalScalar(node, parent):
         if isinstance(node, c_ast.Decl) and IsScalarType(node.type):
-            #return isinstance(parent, c_ast.FileAST)
+            # return isinstance(parent, c_ast.FileAST)
             return (isinstance(parent, c_ast.FileAST) or
-                     "static" in node.storage)
+                    "static" in node.storage)
 
         if not isinstance(node, c_ast.UnaryOp): return False
         if node.op != "&": return False
@@ -220,9 +222,29 @@ def ConvertConvertAddressTakenScalarsToArray(ast, meta_info: meta.MetaInfo):
 
     candidates = common.FindMatchingNodesPreOrder(ast, ast, IsAddressTakenScalarId)
 
-    zero = c_ast.Constant("int", "0")
-    meta_info.type_links[zero] = meta.INT_IDENTIFIER_TYPE
     for node, parent in candidates:
-        array_ref = c_ast.ArrayRef(node, zero)
-        meta_info.type_links[array_ref] = meta_info.type_links[node]
+        original_type = meta_info.type_links[node]
+        meta_info.type_links[node] = meta.GetTypeForDecl(meta_info.sym_links[node].type)
+        array_ref = c_ast.UnaryOp("*", node)
+        meta_info.type_links[array_ref] = original_type
         common.ReplaceNode(parent, node, array_ref)
+
+
+def SimplifyAddressExpressions(ast, meta_info: meta.MetaInfo):
+    def IsAddressOfDeref(node, _):
+        return (isinstance(node, c_ast.UnaryOp) and
+                isinstance(node.expr, c_ast.UnaryOp) and
+                node.op == "&" and node.expr.op == "*")
+
+    def IsDerefOfAddress(node, _):
+        return (isinstance(node, c_ast.UnaryOp) and
+                isinstance(node.expr, c_ast.UnaryOp) and
+                node.op == "*" and node.expr.op == "&")
+
+    # we need to split these in case of "&*&*c"
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsAddressOfDeref)
+    for node, parent in candidates:
+        common.ReplaceNode(parent, node, node.expr.expr)
+    candidates = common.FindMatchingNodesPostOrder(ast, ast, IsDerefOfAddress)
+    for node, parent in candidates:
+        common.ReplaceNode(parent, node, node.expr.expr)
