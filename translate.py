@@ -285,6 +285,9 @@ SPECIAL_FUNCTIONS = {
     "abort": "builtin",
     "main": "main",
     "malloc": "builtin",
+    "free": "builtin",
+    "memset": "builtin",
+    "memcpy": "builtin",
     "print": "builtin",
     "printf_u": "builtin",
     "printf_d": "builtin",
@@ -292,6 +295,14 @@ SPECIAL_FUNCTIONS = {
     "printf_c": "builtin",
     "printf_s": "builtin",
     "printf_p": "builtin",
+    "fopen": "builtin",
+    "fclose": "builtin",
+    "fseek": "builtin",
+    "ftell": "builtin",
+    "fread": "builtin",
+    "fwrite": "builtin",
+    "fputs": "builtin",
+    # "": "builtin",
 }
 
 
@@ -342,6 +353,7 @@ def EmitInitData(init: c_ast.InitList, type_decl):
     assert dim == len(values)
 
     print(f'.data 1 [{" ".join(values)}]')
+
 
 def HandleDecl(node_stack, meta_info, node_value, id_gen):
     decl: c_ast.Decl = node_stack[-1]

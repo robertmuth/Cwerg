@@ -115,7 +115,7 @@ void free(void* mem);
 void * memset ( void * ptr, int value, unsigned long num );
 void * memcpy ( void * destination, const void * source, unsigned long num );
 
-
+int printf( const char *restrict format, ... );
 
 ///////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTATION SECTION                                                    //
@@ -766,7 +766,6 @@ nj_result_t njDecode(const void* jpeg, const int size) {
 }
 
 // ADDITIONAL LIBC PROTO TYPES
-int printf( const char *restrict format, ... );
 
 #define FILE void
 
