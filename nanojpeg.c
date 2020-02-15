@@ -158,11 +158,17 @@ struct nj_ctx {
 
 struct nj_ctx nj;
 
+// zigzag table
 #if 1
-const char njZZ[64] = { 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18,
-11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35,
-42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45,
-38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63 };
+const char njZZ[64] = {
+0, 1, 8, 16, 9, 2, 3, 10,
+17, 24, 32, 25, 18, 11, 4, 5,
+12, 19, 26, 33, 40, 48, 41, 34,
+27, 20, 13, 6, 7, 14, 21, 28,
+35, 42, 49, 56, 57, 50, 43, 36,
+29, 22, 15, 23, 30, 37, 44, 51,
+58, 59, 52, 45, 38, 31, 39, 46,
+53, 60, 61, 54, 47, 55, 62, 63 };
 #else
 const char njZZ[64];
 #endif
@@ -758,4 +764,88 @@ nj_result_t njDecode(const void* jpeg, const int size) {
     njConvert();
     return nj.error;
 }
+
+// ADDITIONAL LIBC PROTO TYPES
+int printf( const char *restrict format, ... );
+
+#define FILE void
+
+FILE* fopen(const char *pathname, const char *mode);
+int fclose(FILE* stream);
+int fseek(FILE* stream, long offset, int whence);
+long ftell(FILE* stream);
+unsigned long fread(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
+unsigned long fwrite(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
+int fputs(const char *restrict s, FILE *stream);
+
+#define SEEK_END  2
+#define SEEK_SET  0
+
+void fwrite_d(FILE* f, int a) {
+  char buf[64];
+  int i = 63;
+  buf[i] = 0;
+  --i;
+
+  // assume only pos a for now
+  do {
+        buf[i] = '0' + a % 10;
+        --i;
+        a /= 10;
+  } while (a != 0);
+  fputs(&buf[i+1], f);
+}
+
+int main(int argc, char* argv[]) {
+    int size;
+    char *buf;
+    FILE *f;
+
+    if (argc < 2) {
+        printf("Usage: %s <input.jpg> [<output.ppm>]\n", argv[0]);
+        return 2;
+    }
+    f = fopen(argv[1], "rb");
+    if (!f) {
+        printf("Error opening the input file.\n");
+        return 1;
+    }
+    fseek(f, 0, SEEK_END);
+    size = (int) ftell(f);
+    buf = (char*) malloc(size);
+    fseek(f, 0, SEEK_SET);
+    size = (int) fread(buf, 1, size, f);
+    fclose(f);
+
+    njInit();
+    if (njDecode(buf, size)) {
+        free((void*)buf);
+        printf("Error decoding the input file.\n");
+        return 1;
+    }
+    free((void*)buf);
+
+    char* out_name;
+    if (argc > 2) out_name = argv[2];
+    else if (njIsColor()) out_name = "nanojpeg_out.ppm";
+    else out_name = "nanojpeg_out.pgm";
+    f = fopen(out_name, "wb");
+    if (!f) {
+        printf("Error opening the output file.\n");
+        return 1;
+    }
+    if (njIsColor()) fputs("P6\n", f);
+    else fputs("P5\n", f);
+    fwrite_d(f, njGetWidth());
+    fputs(" ", f);
+    fwrite_d(f, njGetHeight());
+    fputs("\n", f);
+    fputs("255\n", f);
+
+    fwrite(njGetImage(), 1, njGetImageSize(), f);
+    fclose(f);
+    njDone();
+    return 0;
+}
+
 

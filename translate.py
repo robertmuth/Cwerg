@@ -75,6 +75,9 @@ def StripNumberSuffix(s):
 
 
 def ExtractNumber(s):
+    if s[0] == "'" and s[-1] == "'":
+        assert len(s) == 3
+        return ord(s[1])
     s = StripNumberSuffix(s)
     try:
         return int(s, 0)
@@ -324,6 +327,22 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     node_value[node] = tmp
 
 
+# hack - just good enough to handle nanojpeg.c
+def EmitInitData(init: c_ast.InitList, type_decl):
+    assert isinstance(init, c_ast.InitList)
+    values = []
+    for v in init.exprs:
+        assert isinstance(v, c_ast.Constant)
+        assert v.type == "int"
+        values.append(str(ExtractNumber(v.value)))
+    assert isinstance(type_decl, c_ast.ArrayDecl)
+    scalar = ScalarDeclType(type_decl.type)
+    assert scalar in {"s8", "u8"}
+    dim = ExtractNumber(type_decl.dim.value)
+    assert dim == len(values)
+
+    print(f'.data 1 [{" ".join(values)}]')
+
 def HandleDecl(node_stack, meta_info, node_value, id_gen):
     decl: c_ast.Decl = node_stack[-1]
     parent = node_stack[-2]
@@ -332,10 +351,10 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
     if IsGlobalDecl(decl, parent):
         size, align = SizeOfAndAlignment(decl, meta_info)
         assert name is not None
-        print(f".mem {name} {align} rw")
+        print(f"\n.mem {name} {align} rw")
         if decl.init:
-            assert False
-            # print("INIT-THE-DATA", decl.init)
+            EmitInitData(decl.init, decl.type)
+
         else:
             print(f".data {size} [0]")
 
@@ -506,7 +525,7 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     node_value[node] = tmp
 
 
-BIN_OP_MAP_RIGHT_IMM = {
+BIN_OP_MAP = {
     "*": "mul",
     "+": "add",
     "-": "sub",
@@ -519,23 +538,10 @@ BIN_OP_MAP_RIGHT_IMM = {
     "&": "and",
 }
 
-BIN_OP_MAP_LEFT_IMM = {
-    "*": "mul",
-    "+": "add",
-    "-": "rsub",
-    "/": "rdiv",
-    "%": "rmod",
-    "<<": "rshl",
-    ">>": "rshr",
-    "^": "xor",
-    "|": "or",
-    "&": "and",
-}
-
 
 def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
     node_kind = meta_info.type_links[node]
-    assert node.op in BIN_OP_MAP_LEFT_IMM, node.op
+    assert node.op in BIN_OP_MAP, node.op
     left = node_value[node.left]
     right = node_value[node.right]
     if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
@@ -554,8 +560,7 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_g
             assert False, node
         return
 
-    m = BIN_OP_MAP_LEFT_IMM if isinstance(left, _NUMBER_TYPES) else BIN_OP_MAP_RIGHT_IMM
-    op = m[node.op]
+    op = BIN_OP_MAP[node.op]
     if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         # need to scale
         assert node.op == "+" or node.op == "-"
