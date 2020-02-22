@@ -448,7 +448,6 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     label = "switch_%d_" % GetUnique()
     label_end = label + "end"
     label_default = label + "default"
-    table = label + "table"
     cases = []
     default = None
     for s in node.stmt:
@@ -462,8 +461,8 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
             default = s
 
     lst = [f"{a} {c}" for a, b, c in cases if a is not None]
-    print(f'{TAB}.jtb {table} {label_default if default else label_end} [{" ".join(lst)}]')
-    print(f"{TAB}switch {table} {node_value[node.cond]}")
+    dl = label_default if default else label_end
+    print(f"{TAB}switch {dl} [{' '.join(lst)}] {node_value[node.cond]}")
     for a, b, c in cases:
         print(f".bbl {c}")
         for s in b:
