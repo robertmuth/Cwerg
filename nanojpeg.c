@@ -184,7 +184,7 @@ int njGetHeight(void)           { return nj.height; }
 // njIsColor: Return 1 if the most recently decoded image is a color image
 // (RGB) or 0 if it is a grayscale image. If njDecode() failed, the result
 // of njGetWidth() is undefined.
-int njIsColor(void)             { if (nj.ncomp != 1) return 1; else return 0;; }
+int njIsColor(void)             { if (nj.ncomp != 1) return 1; else return 0; }
 
 // njGetImage: Returns the decoded image data.
 // Returns a pointer to the most recently image. The memory layout it byte-

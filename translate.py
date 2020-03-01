@@ -440,7 +440,7 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
                     print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
                 p = tmp
             params.append(p)
-    print(f"{TAB}bsr {node_value[node.name]} {RenderList(results)} = {RenderList(params)}")
+    print(f"{TAB}bsr{RenderList(results)} = {RenderList(params)} {node_value[node.name]}")
 
 
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
