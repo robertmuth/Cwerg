@@ -264,7 +264,8 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
-        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union, c_ast.FuncDecl)), type
+        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct,
+                                 c_ast.Union, c_ast.FuncDecl)), type
         if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
@@ -609,7 +610,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            EmitConditionalBranch(cond.op, node.iftrue.name, node_value[cond.left], node_value[cond.right])
+            EmitConditionalBranch(cond.op, node.iftrue.name,
+                                  node_value[cond.left], node_value[cond.right])
             print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
@@ -650,7 +652,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             print(".data", "1", node.value[:-1] + '\\x00"')
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
-            print(f"{TAB}lea {tmp}:{kind} = {name} 0")
+            print(f"{TAB}lea {tmp}:{kind} = {name}")
             node_value[node] = tmp
             node_value[node] = tmp
         else:
