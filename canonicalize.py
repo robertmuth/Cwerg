@@ -98,6 +98,17 @@ def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info, skip_const
             node.right = MakeCast(tl, node.right)
             meta_info.type_links[node.right] = tl
 
+    elif (isinstance(node, c_ast.Decl) and
+          node.init is not None and
+          not isinstance(node.init, c_ast.InitList)):
+        left = node.type.type
+        right = meta_info.type_links[node.init]
+        if not isinstance(left, c_ast.IdentifierType) or not isinstance(right, c_ast.IdentifierType):
+            return
+        if constant_check(node.init):
+            node.init = MakeCast(left, node.init)
+            meta_info.type_links[node.init] = left
+
     elif isinstance(node, c_ast.Assignment):
         left = meta_info.type_links[node.lvalue]
         right = meta_info.type_links[node.rvalue]
