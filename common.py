@@ -220,6 +220,13 @@ def ReplaceNode(parent, old_node, new_node):
                 break
         else:
             assert False, parent
+    elif isinstance(parent, c_ast.InitList):
+        for n, e in enumerate(parent.exprs):
+            if e is old_node:
+                parent.exprs[n] = new_node
+                break
+        else:
+            assert False, parent
     elif isinstance(parent, c_ast.For):
         if parent.next is old_node:
             parent.next = new_node

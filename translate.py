@@ -23,11 +23,12 @@ import canonicalize
 import common
 import meta
 
+
 RE_NUMBER = re.compile("^[-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?$")
 
 POINTER = ("*",)
 
-TYPE_TRANSLATION = {
+TYPE_TRANSLATION_64 = {
     ("char",): "s8",
     ("char", "unsigned",): "u8",
     ("short",): "s16",
@@ -43,6 +44,26 @@ TYPE_TRANSLATION = {
     ("void",): None,
     POINTER: "a64",
 }
+
+TYPE_TRANSLATION_32 = {
+    ("char",): "s8",
+    ("char", "unsigned",): "u8",
+    ("short",): "s16",
+    ("short", "unsigned",): "u16",
+    ("int",): "s32",
+    ("int", "unsigned",): "u32",
+    ("long",): "s32",
+    ("long", "unsigned",): "u32",
+    ("long", "long",): "s64",
+    ("long", "long", "unsigned",): "u64",
+    ("float",): "f32",
+    ("double",): "f64",
+    ("void",): None,
+    POINTER: "a32",
+}
+
+
+TYPE_TRANSLATION = TYPE_TRANSLATION_64
 
 tmp_counter = 0
 
@@ -698,9 +719,20 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         src_kind = StringifyType(meta_info.type_links[node.expr])
         if src_kind == dst_kind:
             node_value[node] = node_value[node.expr]
-        elif isinstance(node_value[node.expr], _NUMBER_TYPES):
-            # needs more work especially for narrowing
-            node_value[node] = node_value[node.expr]
+            return
+
+        if isinstance(node_value[node.expr], _NUMBER_TYPES):
+            if node_value[node.expr] >= 0:
+                # non-negative numbers, especially zero are compatible with most things
+                node_value[node] = node_value[node.expr]
+            else:
+                tmp = GetTmp(meta_info.type_links[node.expr])
+                print(f"{TAB}mov.i {tmp}:{src_kind} = {node_value[node.expr]}")
+                # needs more work especially for narrowing
+                tmp2 = GetTmp(meta_info.type_links[node])
+                assert dst_kind is not None
+                print(f"{TAB}conv {tmp2}:{dst_kind} = {tmp}")
+                node_value[node] = tmp2
         else:
             tmp = GetTmp(meta_info.type_links[node])
             assert dst_kind is not None
