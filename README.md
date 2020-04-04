@@ -116,6 +116,20 @@ Links
 
 * https://git.sr.ht/~mcf/cproc
 
+### firm
+
+* Intermediate code system using SSA and written in C
+* Started as research project at uni-karlsruhe.de 
+* C99 Compiler. CParser
+* targets: amd64, ia32, arm32, mips, riscv,sparc
+
+Links:
+
+* about: https://pp.ipd.kit.edu/firm/index.html
+* code: https://github.com/libfirm/libfirm
+* Comparison with LLVM: https://pp.ipd.kit.edu/firm/LLVM.html
+* cparser: https://github.com/libfirm/cparser/
+  
 ### gcc
 
 * gold standard for C on Unix before clang came along
@@ -139,7 +153,7 @@ https://gcc.gnu.org/
 
 Links
 
-https://github.com/larmel/lacc
+* https://github.com/larmel/lacc
 
 ### lcc
 
@@ -156,6 +170,18 @@ Links
 * https://en.wikipedia.org/wiki/LCC_(compiler)
 * book https://www.amazon.com/Retargetable-Compiler-Design-Implementation/dp/0805316701
 * https://github.com/drh/lcc
+
+### mir
+
+* written in C by Vladimir Makarov
+* A light-weight JIT compiler based on MIR (Medium Internal Representation)
+* c2mir C11 Compiler 
+* targets: arm64, ppc63, amd64
+
+Links
+
+* https://github.com/vnmakarov/mir
+* https://github.com/vnmakarov/mir/tree/master/c2mir
 
 ### pacc
 
