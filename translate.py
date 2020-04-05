@@ -333,8 +333,9 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
     params = fun_decl.args.params if fun_decl.args else []
     ins = []
     for p in params:
-        ins += [p.name, StringifyType(p)]
-    outs = ["%out", return_type] if return_type else []
+        ins += [StringifyType(p)]
+    outs = [return_type] if return_type else []
+
     kind = SPECIAL_FUNCTIONS.get(fun_name, "normal")
     print(f"\n\n.fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
@@ -462,7 +463,12 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
                     print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
                 p = tmp
             params.append(p)
-    print(f"{TAB}bsr{RenderList(results)} = {RenderList(params)} {node_value[node.name]}")
+        for p in reversed(params):
+            print(f"{TAB}pusharg {p}")
+    print(f"{TAB}bsr {node_value[node.name]}")
+    for p in results:
+        print(f"{TAB}poparg {p}")
+
 
 
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
@@ -615,8 +621,17 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_g
 def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
-        EmitFunctionHeader(node.decl.name, node.decl.type)
+        fun_decl = node.decl.type
+        EmitFunctionHeader(node.decl.name, fun_decl)
+        return_type = StringifyType(fun_decl.type)
+        if return_type:
+            print(f".reg [%out] {return_type}")
+        params = fun_decl.args.params if fun_decl.args else []
+        #for p in params:
+        #    print(f".reg [{p.name}] {StringifyType(p)}")
         print(f"\n.bbl %start")
+        for p in params:
+            print(f"{TAB}poparg {p.name}:{StringifyType(p)}")
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
@@ -744,6 +759,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.Return):
         if node.expr:
             print(f"{TAB}mov %out = {node_value[node.expr]}")
+            print(f"{TAB}pusharg %out")
         print(f"{TAB}ret")
     elif isinstance(node, c_ast.EmptyStatement):
         pass
