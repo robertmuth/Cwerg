@@ -23,7 +23,6 @@ import canonicalize
 import common
 import meta
 
-
 RE_NUMBER = re.compile("^[-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?$")
 
 POINTER = ("*",)
@@ -61,7 +60,6 @@ TYPE_TRANSLATION_32 = {
     ("void",): None,
     POINTER: "a32",
 }
-
 
 TYPE_TRANSLATION = TYPE_TRANSLATION_64
 
@@ -470,7 +468,6 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
         print(f"{TAB}poparg {p}")
 
 
-
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     EmitIR([node, node.cond], meta_info, node_value, id_gen)
     label = "switch_%d_" % GetUnique()
@@ -478,9 +475,13 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     label_default = label + "default"
     cases = []
     default = None
+    max_val = 0
     for s in node.stmt:
         if isinstance(s, c_ast.Case):
             val = ExtractNumber(s.expr.value)
+            assert val >= 0
+            if max_val < val:
+                max_val = val
             block = label + str(val).replace("-", "minus")
             cases.append((val, s.stmts, block))
         else:
@@ -490,7 +491,9 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
 
     lst = [f"{a} {c}" for a, b, c in cases if a is not None]
     dl = label_default if default else label_end
-    print(f"{TAB}switch {dl} [{' '.join(lst)}] {node_value[node.cond]}")
+    switch_value = node_value[node.cond]
+    print(f"{TAB}bgt {dl} {switch_value} {max_val}")
+    print(f"{TAB}switch {dl} [{' '.join(lst)}] {switch_value} {max_val + 1}")
     for a, b, c in cases:
         print(f".bbl {c}")
         for s in b:
@@ -627,7 +630,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if return_type:
             print(f".reg [%out] {return_type}")
         params = fun_decl.args.params if fun_decl.args else []
-        #for p in params:
+        # for p in params:
         #    print(f".reg [{p.name}] {StringifyType(p)}")
         print(f"\n.bbl %start")
         for p in params:
