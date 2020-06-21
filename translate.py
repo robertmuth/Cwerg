@@ -471,6 +471,7 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
 def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     EmitIR([node, node.cond], meta_info, node_value, id_gen)
     label = "switch_%d_" % GetUnique()
+    label_tab = label + "tab"
     label_end = label + "end"
     label_default = label + "default"
     cases = []
@@ -493,7 +494,8 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     dl = label_default if default else label_end
     switch_value = node_value[node.cond]
     print(f"{TAB}bgt {dl} {switch_value} {max_val}")
-    print(f"{TAB}switch {dl} [{' '.join(lst)}] {switch_value} {max_val + 1}")
+    print(f"{TAB}.jtb {label_tab} {dl} [{' '.join(lst)}] {max_val + 1}")
+    print(f"{TAB}switch {label_tab} {switch_value}")
     for a, b, c in cases:
         print(f".bbl {c}")
         for s in b:
