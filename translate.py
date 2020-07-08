@@ -279,7 +279,8 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         else:
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
-            print(f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
+            print(
+                f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
@@ -302,27 +303,27 @@ def RenderList(items):
 
 
 SPECIAL_FUNCTIONS = {
-    "abort": "builtin",
-    "main": "main",
-    "malloc": "builtin",
-    "free": "builtin",
-    "memset": "builtin",
-    "memcpy": "builtin",
-    "print": "builtin",
-    "printf_u": "builtin",
-    "printf_d": "builtin",
-    "printf_f": "builtin",
-    "printf_c": "builtin",
-    "printf_s": "builtin",
-    "printf_p": "builtin",
-    "fopen": "builtin",
-    "fclose": "builtin",
-    "fseek": "builtin",
-    "ftell": "builtin",
-    "fread": "builtin",
-    "fwrite": "builtin",
-    "fputs": "builtin",
-    # "": "builtin",
+    "abort": "BUILTIN",
+    "main": "MAIN",
+    "malloc": "BUILTIN",
+    "free": "BUILTIN",
+    "memset": "BUILTIN",
+    "memcpy": "BUILTIN",
+    "print": "BUILTIN",
+    "printf_u": "BUILTIN",
+    "printf_d": "BUILTIN",
+    "printf_f": "BUILTIN",
+    "printf_c": "BUILTIN",
+    "printf_s": "BUILTIN",
+    "printf_p": "BUILTIN",
+    "fopen": "BUILTIN",
+    "fclose": "BUILTIN",
+    "fseek": "BUILTIN",
+    "ftell": "BUILTIN",
+    "fread": "BUILTIN",
+    "fwrite": "BUILTIN",
+    "fputs": "BUILTIN",
+    # "": "BUILTIN",
 }
 
 
@@ -334,7 +335,7 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
         ins += [StringifyType(p)]
     outs = [return_type] if return_type else []
 
-    kind = SPECIAL_FUNCTIONS.get(fun_name, "normal")
+    kind = SPECIAL_FUNCTIONS.get(fun_name, "NORMAL")
     print(f"\n\n.fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
 
@@ -384,7 +385,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
     if IsGlobalDecl(decl, parent):
         size, align = SizeOfAndAlignment(decl, meta_info)
         assert name is not None
-        print(f"\n.mem {name} {align} rw")
+        print(f"\n.mem {name} {align} RW")
         if decl.init:
             EmitInitData(decl.init, decl.type)
 
@@ -616,7 +617,8 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_g
         else:
             right_kind = meta_info.type_links[node.right]
             tmp = GetTmp(right_kind)
-            print(f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
+            print(
+                f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
             right = tmp
     tmp = GetTmp(node_kind)
     print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left} {right}")
@@ -656,7 +658,8 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
-            print(f"{TAB}brcond {node_value[cond]} {node.iftrue.name} {node.iffalse.name}")
+            print(
+                f"{TAB}brcond {node_value[cond]} {node.iftrue.name} {node.iffalse.name}")
             assert False
         return
     elif isinstance(node, c_ast.Label):
@@ -689,7 +692,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.Constant):
         if meta_info.type_links[node] is meta.STRING_IDENTIFIER_TYPE:
             name = id_gen.next("string_const")
-            print(f".mem {name} 4 ro")
+            print(f".mem {name} 4 RO")
             print(".data", "1", node.value[:-1] + '\\x00"')
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
@@ -716,18 +719,21 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             else:
                 kind = meta_info.type_links[node]
                 tmp = GetTmp(kind)
-                print(f"{TAB}ld {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
+                print(
+                    f"{TAB}ld {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
                 node_value[node] = tmp
         elif node.op == "~":
             kind = meta_info.type_links[node]
             tmp = GetTmp(kind)
             x = ALL_BITS_SET[StringifyType(kind)]
-            print(f"{TAB}xor {tmp}:{StringifyType(kind)} = {node_value[node.expr]} {x}")
+            print(
+                f"{TAB}xor {tmp}:{StringifyType(kind)} = {node_value[node.expr]} {x}")
             node_value[node] = tmp
         elif node.op == "-":
             kind = meta_info.type_links[node]
             tmp = GetTmp(kind)
-            print(f"{TAB}rsub {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
+            print(
+                f"{TAB}rsub {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
             node_value[node] = tmp
         else:
             assert False, node
@@ -783,7 +789,7 @@ def main(argv):
         print("#" * 60)
         print("#", filename)
         print("#" * 60)
-        print(".mem %nullptr 0 fix")
+        print(".mem %nullptr 0 FIX")
         ast = parse_file(filename, use_cpp=True)
         canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
         meta_info = meta.MetaInfo(ast)
