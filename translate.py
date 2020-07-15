@@ -28,37 +28,37 @@ RE_NUMBER = re.compile("^[-+]?[0-9]*[.]?[0-9]+([eE][-+]?[0-9]+)?$")
 POINTER = ("*",)
 
 TYPE_TRANSLATION_64 = {
-    ("char",): "s8",
-    ("char", "unsigned",): "u8",
-    ("short",): "s16",
-    ("short", "unsigned",): "u16",
-    ("int",): "s32",
-    ("int", "unsigned",): "u32",
-    ("long",): "s64",
-    ("long", "unsigned",): "u64",
-    ("long", "long",): "s64",
-    ("long", "long", "unsigned",): "u64",
-    ("float",): "f32",
-    ("double",): "f64",
+    ("char",): "S8",
+    ("char", "unsigned",): "U8",
+    ("short",): "S16",
+    ("short", "unsigned",): "U16",
+    ("int",): "S32",
+    ("int", "unsigned",): "U32",
+    ("long",): "S64",
+    ("long", "unsigned",): "U64",
+    ("long", "long",): "S64",
+    ("long", "long", "unsigned",): "U64",
+    ("float",): "F32",
+    ("double",): "F64",
     ("void",): None,
-    POINTER: "a64",
+    POINTER: "A64",
 }
 
 TYPE_TRANSLATION_32 = {
-    ("char",): "s8",
-    ("char", "unsigned",): "u8",
-    ("short",): "s16",
-    ("short", "unsigned",): "u16",
-    ("int",): "s32",
-    ("int", "unsigned",): "u32",
-    ("long",): "s32",
-    ("long", "unsigned",): "u32",
-    ("long", "long",): "s64",
-    ("long", "long", "unsigned",): "u64",
-    ("float",): "f32",
-    ("double",): "f64",
+    ("char",): "S8",
+    ("char", "unsigned",): "U8",
+    ("short",): "S16",
+    ("short", "unsigned",): "U16",
+    ("int",): "S32",
+    ("int", "unsigned",): "U32",
+    ("long",): "S32",
+    ("long", "unsigned",): "U32",
+    ("long", "long",): "S64",
+    ("long", "long", "unsigned",): "U64",
+    ("float",): "F32",
+    ("double",): "F64",
     ("void",): None,
-    POINTER: "a32",
+    POINTER: "A32",
 }
 
 TYPE_TRANSLATION = TYPE_TRANSLATION_64
@@ -66,14 +66,14 @@ TYPE_TRANSLATION = TYPE_TRANSLATION_64
 tmp_counter = 0
 
 ALL_BITS_SET = {
-    "s8": -1,
-    "s16": -1,
-    "s32": -1,
-    "s64": -1,
-    "u8": (1 << 8) - 1,
-    "u16": (1 << 16) - 1,
-    "u32": (1 << 32) - 1,
-    "u64": (1 << 64) - 1,
+    "S8": -1,
+    "S16": -1,
+    "S32": -1,
+    "S64": -1,
+    "U8": (1 << 8) - 1,
+    "U16": (1 << 16) - 1,
+    "U32": (1 << 32) - 1,
+    "U64": (1 << 64) - 1,
 }
 
 
@@ -370,7 +370,7 @@ def EmitInitData(init: c_ast.InitList, type_decl):
         values.append(str(ExtractNumber(v.value)))
     assert isinstance(type_decl, c_ast.ArrayDecl)
     scalar = ScalarDeclType(type_decl.type)
-    assert scalar in {"s8", "u8"}
+    assert scalar in {"S8", "U8"}
     dim = ExtractNumber(type_decl.dim.value)
     assert dim == len(values)
 
@@ -396,7 +396,7 @@ def HandleDecl(node_stack, meta_info, node_value, id_gen):
         # we also need to take into account if the address is taken later
         scalar = ScalarDeclType(decl.type)
         if scalar:
-            print(f"{TAB}.reg [{name}] {scalar}")
+            print(f"{TAB}.reg {scalar} [{name}]")
 
             if decl.init:
                 EmitIR(node_stack + [decl.init], meta_info, node_value, id_gen)
@@ -632,10 +632,10 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         EmitFunctionHeader(node.decl.name, fun_decl)
         return_type = StringifyType(fun_decl.type)
         if return_type:
-            print(f".reg [%out] {return_type}")
+            print(f".reg {return_type} [%out]")
         params = fun_decl.args.params if fun_decl.args else []
         # for p in params:
-        #    print(f".reg [{p.name}] {StringifyType(p)}")
+        #    print(f".reg {StringifyType(p)} [{p.name}]")
         print(f"\n.bbl %start")
         for p in params:
             print(f"{TAB}poparg {p.name}:{StringifyType(p)}")
