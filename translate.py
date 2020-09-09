@@ -280,12 +280,11 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
             print(
-                f"{TAB}add {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
+                f"{TAB}lea {tmp}:{StringifyType(kind)} = {node_value[lvalue.name]} {offset}")
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
-        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct,
-                                 c_ast.Union, c_ast.FuncDecl)), type
+        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union)), type
         if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
@@ -421,7 +420,7 @@ def HandleStructRef(node: c_ast.StructRef, parent, meta_info, node_value, id_gen
     struct = meta_info.type_links[node.name]
     assert isinstance(struct, c_ast.Struct)
     offset = GetStructOffset(struct, node.field, meta_info)
-    print(f"{TAB}add {tmp}:{kind} = {node_value[node.name]} {offset}")
+    print(f"{TAB}lea {tmp}:{kind} = {node_value[node.name]} {offset}")
     if isinstance(parent, c_ast.StructRef):
         node_value[node] = tmp
     elif isinstance(parent, c_ast.UnaryOp) and parent.op == "&":
@@ -456,7 +455,7 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
                 tmp = GetTmp(kind)
                 if isinstance(kind, c_ast.PtrDecl):
                     assert p == 0
-                    print(f"{TAB}lea {tmp}:{StringifyType(kind)} = %nullptr")
+                    print(f"{TAB}lea {tmp}:{StringifyType(kind)} = 0:{StringifyType(kind)}")
 
                 else:
                     print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
@@ -495,7 +494,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     dl = label_default if default else label_end
     switch_value = node_value[node.cond]
     print(f"{TAB}bgt {dl} {switch_value} {max_val}")
-    print(f"{TAB}.jtb {label_tab} {dl} [{' '.join(lst)}] {max_val + 1}")
+    print(f"{TAB}.jtb {label_tab}  {max_val + 1} {dl} [{' '.join(lst)}]")
     print(f"{TAB}switch {label_tab} {switch_value}")
     for a, b, c in cases:
         print(f".bbl {c}")
@@ -608,7 +607,8 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_g
     op = BIN_OP_MAP[node.op]
     if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         # need to scale
-        assert node.op == "+" or node.op == "-"
+        assert node.op == "+"   # support this when we see it:  node.op == "-"
+        op = "lea"
         element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
         if element_size == 1:
             pass
@@ -733,7 +733,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             kind = meta_info.type_links[node]
             tmp = GetTmp(kind)
             print(
-                f"{TAB}rsub {tmp}:{StringifyType(kind)} = {node_value[node.expr]} 0")
+                f"{TAB}sub {tmp}:{StringifyType(kind)} = 0  {node_value[node.expr]}")
             node_value[node] = tmp
         else:
             assert False, node
@@ -753,7 +753,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                 node_value[node] = node_value[node.expr]
             else:
                 tmp = GetTmp(meta_info.type_links[node.expr])
-                print(f"{TAB}mov.i {tmp}:{src_kind} = {node_value[node.expr]}")
+                print(f"{TAB}mov {tmp}:{src_kind} = {node_value[node.expr]}")
                 # needs more work especially for narrowing
                 tmp2 = GetTmp(meta_info.type_links[node])
                 assert dst_kind is not None
@@ -789,7 +789,6 @@ def main(argv):
         print("#" * 60)
         print("#", filename)
         print("#" * 60)
-        print(".mem %nullptr 0 FIX")
         ast = parse_file(filename, use_cpp=True)
         canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
         meta_info = meta.MetaInfo(ast)
