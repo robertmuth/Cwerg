@@ -77,7 +77,7 @@ def MakeCast(identifier_type, node):
     return c_ast.Cast(c_ast.Typename(None, [], c_ast.TypeDecl(None, [], identifier_type)), node)
 
 
-def AddExplicitCasts(node: c_ast.Node, parent: c_ast.Node, meta_info, skip_constants):
+def AddExplicitCasts(node: c_ast.Node, _parent: c_ast.Node, meta_info, skip_constants):
     def constant_check(node: c_ast.Node):
         return not skip_constants or not isinstance(node, c_ast.Constant)
 
@@ -209,7 +209,7 @@ def FixNodeRequiringBoolInt(ast: c_ast.Node, meta_info):
 #
 # ================================================================================
 def ConvertPreIncDecToCompoundAssignment(ast, meta_info):
-    def IsPreIncDec(node, parent):
+    def IsPreIncDec(node, _parent):
         return isinstance(node, c_ast.UnaryOp) and node.op in common.PRE_INC_DEC_OPS
 
     candidates = common.FindMatchingNodesPostOrder(ast, ast, IsPreIncDec)
@@ -301,7 +301,7 @@ def ConvertForLoop(ast, id_gen: common.UniqueId):
 # ================================================================================
 #
 # ================================================================================
-def ConvertCompoundAssignment(ast: c_ast.Node, meta_info: meta.MetaInfo, id_gen):
+def ConvertCompoundAssignment(ast: c_ast.Node, meta_info: meta.MetaInfo, _id_gen):
     """This works best after ConvertArrayIndexToPointerDereference"""
     candidates = common.FindMatchingNodesPostOrder(ast, ast, lambda n, _: isinstance(n, c_ast.Assignment))
     for assign, parent in candidates:

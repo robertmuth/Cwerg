@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-Translator from C to a hypothetical Three-Address-Code IR
+Translator from C to Cwerg IR
 
 This is not even close to being done and mostly a horrible
 unprincipled hack.
@@ -135,7 +135,7 @@ def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID, meta_info):
     assert False, f"GetStructOffset unknown field {struct} {field}"
 
 
-def SizeOfAndAlignmentUnion(node: c_ast.Union, meta_info):
+def SizeOfAndAlignmentUnion(node: c_ast.Union, _meta_info):
     assert False, f"SizeOfAndAlignmentUnion {node}"
 
 
@@ -167,7 +167,7 @@ def IsGlobalDecl(node, parent):
     return isinstance(parent, c_ast.FileAST)
 
 
-def IsLocalDecl(node, parent):
+def IsLocalDecl(_node, parent):
     return not isinstance(parent, (c_ast.FileAST, c_ast.ParamList, c_ast.FuncDef))
 
 
@@ -529,7 +529,7 @@ def EmitConditionalBranch(op: str, target: str, left, right):
     if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
         # partial evaluation
         if MAP_COMPARE_EVAL[op](left, right):
-            print(f"{TAB}{bra} {target}")
+            print(f"{TAB}bra {target}")
         return
     print(f"{TAB}{MAP_COMPARE[op]} {target} {left} {right}")
 
@@ -583,7 +583,7 @@ BIN_OP_MAP = {
 }
 
 
-def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
+def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, _id_gen: common.UniqueId):
     node_kind = meta_info.type_links[node]
     assert node.op in BIN_OP_MAP, node.op
     left = node_value[node.left]
