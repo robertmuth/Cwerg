@@ -9,7 +9,7 @@ struct sometimes {
 int main() {
   int X;
   {
-    struct sometimes { int X, Y; } S;
+    struct sometimes { int X,  Y; } S;
     S.X = 1;
     X = S.X;
   }

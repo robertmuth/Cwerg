@@ -1,7 +1,7 @@
 int printf( const char *restrict format, ... );
 
 
-int main(int argc, char** argv)
+int main()
 {
   char  c1 = 100;  /* 100 = 'd' */
   short s1 = -769; /* 0xfcff = -769 */

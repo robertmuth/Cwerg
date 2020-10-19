@@ -37,7 +37,9 @@ def CheckDelta(expected, actual):
     return False
 
 
-CANONICALIZED_C = "./canonicalized.c"
+CANONICALIZED_C = "./canonicalized_gen.c"
+ORIG_EXE = "./orig.exe"
+CANONICALIZED_EXE = "./canonicalized.exe"
 
 
 def RunTest(fn: str):
@@ -46,14 +48,14 @@ def RunTest(fn: str):
     print("=" * 50)
 
     bad = False
-    bad |= RunClang(fn, "./a.out")
-    stdout = RunAndCaptureStdout('./a.out; echo "exit $?"')
+    bad |= RunClang(fn, ORIG_EXE)
+    stdout = RunAndCaptureStdout(f'{ORIG_EXE}; echo "exit $?"')
     reference = fn[:-2] + ".reference_output"
     if os.path.exists(reference):
         CheckDelta(open(reference, "rb").read(), stdout)
     Canonicalize(fn, CANONICALIZED_C)
-    bad |= RunClang(CANONICALIZED_C, "./a.out")
-    stdout2 = RunAndCaptureStdout('./a.out; echo "exit $?"')
+    bad |= RunClang(CANONICALIZED_C, CANONICALIZED_EXE)
+    stdout2 = RunAndCaptureStdout(f'{CANONICALIZED_EXE}; echo "exit $?"')
     bad |= CheckDelta(stdout, stdout2)
     return bad == True
 
