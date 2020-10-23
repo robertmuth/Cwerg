@@ -13,7 +13,6 @@ the children are stored int the node_value map.
 For some node types, however, we follow a pre-order approach.
 
 """
-import operator
 import re
 import sys
 
@@ -515,23 +514,12 @@ MAP_COMPARE = {
     ">=": "bge"
 }
 
-MAP_COMPARE_EVAL = {
-    "<": operator.lt,
-    "<=": operator.le,
-    "==": operator.eq,
-    "!=": operator.ne,
-    ">": operator.ge,
-    ">=": operator.gt,
-}
 
-
-def EmitConditionalBranch(op: str, target: str, left, right):
-    if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
-        # partial evaluation
-        if MAP_COMPARE_EVAL[op](left, right):
-            print(f"{TAB}bra {target}")
-        return
-    print(f"{TAB}{MAP_COMPARE[op]} {target} {left} {right}")
+def EmitConditionalBranch(op: str, target: str, left_type, left, right):
+    kind = ""
+    if isinstance(left, _NUMBER_TYPES):
+        kind = f":{StringifyType(left_type)}"
+    print(f"{TAB}{MAP_COMPARE[op]} {target} {left}{kind} {right}")
 
 
 def IsScalarType(type):
@@ -588,26 +576,11 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, _id_
     assert node.op in BIN_OP_MAP, node.op
     left = node_value[node.left]
     right = node_value[node.right]
-    if isinstance(left, _NUMBER_TYPES) and isinstance(right, _NUMBER_TYPES):
-        # TODO: revisit this - partial eval is delicate
-        if node.op == "*":
-            node_value[node] = left * right
-        elif node.op == "-":
-            node_value[node] = left - right
-        elif node.op == "+":
-            node_value[node] = left + right
-        elif node.op == "<<":
-            node_value[node] = left << right
-        elif node.op == "/":  # does not work for floats
-            node_value[node] = left // right
-        else:
-            assert False, node
-        return
 
     op = BIN_OP_MAP[node.op]
     if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         # need to scale
-        assert node.op == "+"   # support this when we see it:  node.op == "-"
+        assert node.op == "+"  # support this when we see it:  node.op == "-"
         op = "lea"
         element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
         if element_size == 1:
@@ -621,7 +594,11 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, _id_
                 f"{TAB}mul {tmp}:{StringifyType(right_kind)} = {right} {element_size}")
             right = tmp
     tmp = GetTmp(node_kind)
-    print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left} {right}")
+    left_kind = ""
+    if isinstance(left, _NUMBER_TYPES):
+        left_kind = f":{StringifyType(node_kind)}"
+
+    print(f"{TAB}{op} {tmp}:{StringifyType(node_kind)} = {left}{left_kind} {right}")
     node_value[node] = tmp
 
 
@@ -653,7 +630,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            EmitConditionalBranch(cond.op, node.iftrue.name,
+            EmitConditionalBranch(cond.op, node.iftrue.name, meta_info.type_links[cond.left],
                                   node_value[cond.left], node_value[cond.right])
             print(f"{TAB}bra {node.iffalse.name}")
         else:
