@@ -492,7 +492,8 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     lst = [f"{a} {c}" for a, b, c in cases if a is not None]
     dl = label_default if default else label_end
     switch_value = node_value[node.cond]
-    print(f"{TAB}bgt {dl} {switch_value} {max_val}")
+    kind = meta_info.type_links[node.cond]
+    print(f"{TAB}blt {dl} {max_val}:{StringifyType(kind)} {switch_value}")
     print(f"{TAB}.jtb {label_tab}  {max_val + 1} {dl} [{' '.join(lst)}]")
     print(f"{TAB}switch {label_tab} {switch_value}")
     for a, b, c in cases:
@@ -510,12 +511,14 @@ MAP_COMPARE = {
     "==": "beq",
     "<": "blt",
     "<=": "ble",
-    ">": "bgt",
-    ">=": "bge"
 }
 
 
-def EmitConditionalBranch(op: str, target: str, left_type, left, right):
+def EmitConditionalBranch(op: str, target: str, left_type, left, right_type, right):
+    if op == ">" or op == ">=":
+        op = "<" if op == ">" else "<="
+        left_type, left, right_type, right = right_type, right, left_type, left
+
     kind = ""
     if isinstance(left, _NUMBER_TYPES):
         kind = f":{StringifyType(left_type)}"
@@ -630,8 +633,11 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         if isinstance(cond, c_ast.BinaryOp) and cond.op in common.COMPARISON_INVERSE_MAP:
             EmitIR(node_stack + [cond.left], meta_info, node_value, id_gen)
             EmitIR(node_stack + [cond.right], meta_info, node_value, id_gen)
-            EmitConditionalBranch(cond.op, node.iftrue.name, meta_info.type_links[cond.left],
-                                  node_value[cond.left], node_value[cond.right])
+            EmitConditionalBranch(cond.op, node.iftrue.name,
+                                  meta_info.type_links[cond.left],
+                                  node_value[cond.left],
+                                  meta_info.type_links[cond.right],
+                                  node_value[cond.right])
             print(f"{TAB}bra {node.iffalse.name}")
         else:
             EmitIR(node_stack + [cond], meta_info, node_value, id_gen)
