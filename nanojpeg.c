@@ -1,24 +1,32 @@
 
 void* malloc(unsigned long size);
 void free(void* mem);
-void * memset ( void * ptr, int value, unsigned long num );
-void * memcpy ( void * destination, const void * source, unsigned long num );
-
 int printf( const char *restrict format, ... );
-// ADDITIONAL LIBC PROTO TYPES
 
-#define FILE void
-
-FILE* fopen(const char *pathname, const char *mode);
-int fclose(FILE* stream);
-int fseek(FILE* stream, long offset, int whence);
-long ftell(FILE* stream);
-unsigned long fread(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
-unsigned long fwrite(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
-int fputs(const char *restrict s, FILE *stream);
 
 #define SEEK_END  2
 #define SEEK_SET  0
+#define O_RDONLY 0
+#define O_WRONLY 1
+#define O_RDWR   2
+#define O_CREAT  64
+#define O_TRUNC  512
+
+int open(char*, int, int);
+int close(int);
+int read(int, const void* buf, unsigned size);
+int write(int, void* buf, unsigned size);
+unsigned lseek(int , int, int);
+
+void mymemset(void * ptr, int value, unsigned long num ) {
+  for (int i = 0; i < num; ++i)  ((char*) ptr)[i] = value;
+}
+
+void mymemcpy ( void * destination, const void * source, unsigned long num ) {
+  for (int i = 0; i < num; ++i) {
+    ((char*) destination)[i] = ((char*) source)[i];
+  }
+}
 
 
 // NanoJPEG -- KeyJ's Tiny Baseline JPEG Decoder
@@ -551,7 +559,7 @@ void njDecodeBlock(struct nj_component* c, unsigned char* out) {
   unsigned char code;
   code = 0;
     int value, coef = 0;
-    memset(nj.block, 0, sizeof(nj.block));
+    mymemset(nj.block, 0, sizeof(nj.block));
     c->dcpred = c->dcpred + njGetVLC(&nj.vlctab[c->dctabsel][0], (void* )0);
     nj.block[0] = (c->dcpred) * nj.qtab[c->qtsel][0];
     do {
@@ -720,7 +728,7 @@ void njConvert(void) {
         unsigned char *pout = &nj.comp[0].pixels[nj.comp[0].width];
         int y;
         for (y = nj.comp[0].height - 1;  y;  --y) {
-            memcpy(pout, pin, nj.comp[0].width);
+            mymemcpy(pout, pin, nj.comp[0].width);
             pin += nj.comp[0].stride;
             pout += nj.comp[0].width;
         }
@@ -732,7 +740,7 @@ void njConvert(void) {
 // For safety reasons, this should be called at least one time before using
 // using any of the other NanoJPEG functions.
 void njInit(void) {
-    memset(&nj, 0, sizeof(struct nj_ctx));
+    mymemset(&nj, 0, sizeof(struct nj_ctx));
 }
 
 // njDone: Uninitialize NanoJPEG.
@@ -783,7 +791,13 @@ nj_result_t njDecode(const void* jpeg, const int size) {
     return nj.error;
 }
 
-void fwrite_d(FILE* f, int a) {
+void write_str(char* s, int fd) {
+  int size;
+  for (size = 0; s[size] != 0; ++size) ;
+  write(fd, s, size);
+}
+
+void write_dec(int fd, int a) {
   char buf[64];
   int i = 63;
   buf[i] = 0;
@@ -795,29 +809,28 @@ void fwrite_d(FILE* f, int a) {
         --i;
         a /= 10;
   } while (a != 0);
-  fputs(&buf[i+1], f);
+  write_str(&buf[i+1], fd);
 }
 
 int main(int argc, char* argv[]) {
     int size;
     char *buf;
-    FILE *f;
+    int fd;
 
     if (argc < 2) {
         printf("Usage: %s <input.jpg> [<output.ppm>]\n", argv[0]);
         return 2;
     }
-    f = fopen(argv[1], "rb");
-    if (!f) {
+    fd = open(argv[1], O_RDONLY, 0);
+    if (fd < 0) {
         printf("Error opening the input file.\n");
         return 1;
     }
-    fseek(f, 0, SEEK_END);
-    size = (int) ftell(f);
+    size = lseek(fd, 0, SEEK_END);
     buf = (char*) malloc(size);
-    fseek(f, 0, SEEK_SET);
-    size = (int) fread(buf, 1, size, f);
-    fclose(f);
+    lseek(fd, 0, SEEK_SET);
+    size = (int) read(fd, buf, size);
+    close(fd);
 
     njInit();
     if (njDecode(buf, size)) {
@@ -831,21 +844,21 @@ int main(int argc, char* argv[]) {
     if (argc > 2) out_name = argv[2];
     else if (njIsColor()) out_name = "nanojpeg_out.ppm";
     else out_name = "nanojpeg_out.pgm";
-    f = fopen(out_name, "wb");
-    if (!f) {
+    fd = open(out_name, O_WRONLY | O_CREAT | O_TRUNC, (2 + 4) * 64);
+    if (fd < 0) {
         printf("Error opening the output file.\n");
         return 1;
     }
-    if (njIsColor()) fputs("P6\n", f);
-    else fputs("P5\n", f);
-    fwrite_d(f, njGetWidth());
-    fputs(" ", f);
-    fwrite_d(f, njGetHeight());
-    fputs("\n", f);
-    fputs("255\n", f);
+    if (njIsColor()) write_str("P6\n", fd);
+    else write_str("P5\n", fd);
+    write_dec(fd, njGetWidth());
+    write_str(" ", fd);
+    write_dec(fd, njGetHeight());
+    write_str("\n", fd);
+    write_str("255\n", fd);
 
-    fwrite(njGetImage(), 1, njGetImageSize(), f);
-    fclose(f);
+    write(fd, njGetImage(), njGetImageSize());
+    close(fd);
     njDone();
     return 0;
 }

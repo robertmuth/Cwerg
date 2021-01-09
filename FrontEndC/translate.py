@@ -315,13 +315,11 @@ SPECIAL_FUNCTIONS = {
     "printf_c": "BUILTIN",
     "printf_s": "BUILTIN",
     "printf_p": "BUILTIN",
-    "fopen": "BUILTIN",
-    "fclose": "BUILTIN",
-    "fseek": "BUILTIN",
-    "ftell": "BUILTIN",
-    "fread": "BUILTIN",
-    "fwrite": "BUILTIN",
-    "fputs": "BUILTIN",
+    "open": "BUILTIN",
+    "close": "BUILTIN",
+    "lseek": "BUILTIN",
+    "read": "BUILTIN",
+    "write": "BUILTIN",
     # "": "BUILTIN",
 }
 
