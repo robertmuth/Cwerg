@@ -1,3 +1,26 @@
+
+void* malloc(unsigned long size);
+void free(void* mem);
+void * memset ( void * ptr, int value, unsigned long num );
+void * memcpy ( void * destination, const void * source, unsigned long num );
+
+int printf( const char *restrict format, ... );
+// ADDITIONAL LIBC PROTO TYPES
+
+#define FILE void
+
+FILE* fopen(const char *pathname, const char *mode);
+int fclose(FILE* stream);
+int fseek(FILE* stream, long offset, int whence);
+long ftell(FILE* stream);
+unsigned long fread(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
+unsigned long fwrite(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
+int fputs(const char *restrict s, FILE *stream);
+
+#define SEEK_END  2
+#define SEEK_SET  0
+
+
 // NanoJPEG -- KeyJ's Tiny Baseline JPEG Decoder
 // version 1.3.5 (2016-11-14)
 // Copyright (c) 2009-2016 Martin J. Fiedler <martin.fiedler@gmx.net>
@@ -110,12 +133,7 @@
 // EXAMPLE PROGRAM                                                           //
 // just define _NJ_EXAMPLE_PROGRAM to compile this (requires NJ_USE_LIBC)    //
 ///////////////////////////////////////////////////////////////////////////////
-void* malloc(unsigned long size);
-void free(void* mem);
-void * memset ( void * ptr, int value, unsigned long num );
-void * memcpy ( void * destination, const void * source, unsigned long num );
 
-int printf( const char *restrict format, ... );
 
 ///////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTATION SECTION                                                    //
@@ -764,21 +782,6 @@ nj_result_t njDecode(const void* jpeg, const int size) {
     njConvert();
     return nj.error;
 }
-
-// ADDITIONAL LIBC PROTO TYPES
-
-#define FILE void
-
-FILE* fopen(const char *pathname, const char *mode);
-int fclose(FILE* stream);
-int fseek(FILE* stream, long offset, int whence);
-long ftell(FILE* stream);
-unsigned long fread(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
-unsigned long fwrite(void *ptr, unsigned long size, unsigned long nmemb, FILE* stream);
-int fputs(const char *restrict s, FILE *stream);
-
-#define SEEK_END  2
-#define SEEK_SET  0
 
 void fwrite_d(FILE* f, int a) {
   char buf[64];

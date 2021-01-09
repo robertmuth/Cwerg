@@ -42,7 +42,15 @@ t1:
 tranlate:
 	./translate.py $(TESTS_FOR_TRANSLATE)
 
-
+nano:
+	./canonicalize.py ../nanojpeg.c > ../nanojpeg.canonicaliced.c
+	gcc -Wno-builtin-declaration-mismatch ../nanojpeg.canonicaliced.c -o ../nanojpeg.gcc.exe
+	../nanojpeg.gcc.exe ../ash_tree.jpg ../nanojpeg.gcc.ppm
+	cmp  ../nanojpeg.gcc.ppm ../ash_tree.ppm
+	@echo
+	clang -Wno-builtin-requires-header ../nanojpeg.canonicaliced.c -o ../nanojpeg.clang.exe
+	../nanojpeg.clang.exe ../ash_tree.jpg ../nanojpeg.clang.ppm
+	cmp  ../nanojpeg.clang.ppm ../ash_tree.ppm
 
 clean:
 	rm -f *.exe *_gen.c
