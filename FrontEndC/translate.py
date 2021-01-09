@@ -283,7 +283,8 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
-        assert isinstance(type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union)), type
+        assert isinstance(
+            type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union)), type
         if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
@@ -454,7 +455,8 @@ def HandleFuncCall(node: c_ast.FuncCall, meta_info, node_value):
                 tmp = GetTmp(kind)
                 if isinstance(kind, c_ast.PtrDecl):
                     assert p == 0
-                    print(f"{TAB}lea {tmp}:{StringifyType(kind)} = 0:{StringifyType(kind)}")
+                    print(
+                        f"{TAB}lea {tmp}:{StringifyType(kind)} = 0:{StringifyType(kind)}")
 
                 else:
                     print(f"{TAB}mov {tmp}:{StringifyType(kind)} = {p}")
@@ -493,9 +495,9 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     dl = label_default if default else label_end
     switch_value = node_value[node.cond]
     kind = meta_info.type_links[node.cond]
-    print(f"{TAB}blt {dl} {max_val}:{StringifyType(kind)} {switch_value}")
+    print(f"{TAB}blt {max_val}:{StringifyType(kind)} {switch_value} {dl}")
     print(f"{TAB}.jtb {label_tab}  {max_val + 1} {dl} [{' '.join(lst)}]")
-    print(f"{TAB}switch {label_tab} {switch_value}")
+    print(f"{TAB}switch {switch_value} {label_tab}")
     for a, b, c in cases:
         print(f".bbl {c}")
         for s in b:
@@ -522,7 +524,7 @@ def EmitConditionalBranch(op: str, target: str, left_type, left, right_type, rig
     kind = ""
     if isinstance(left, _NUMBER_TYPES):
         kind = f":{StringifyType(left_type)}"
-    print(f"{TAB}{MAP_COMPARE[op]} {target} {left}{kind} {right}")
+    print(f"{TAB}{MAP_COMPARE[op]} {left}{kind} {right} {target}")
 
 
 def IsScalarType(type):
@@ -565,7 +567,7 @@ BIN_OP_MAP = {
     "+": "add",
     "-": "sub",
     "/": "div",
-    "%": "mod",
+    "%": "rem",
     "<<": "shl",
     ">>": "shr",
     "^": "xor",
