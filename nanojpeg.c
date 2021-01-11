@@ -1,7 +1,7 @@
 
 void* malloc(unsigned long size);
 void free(void* mem);
-int printf( const char *restrict format, ... );
+int puts(const char* s);
 
 
 #define SEEK_END  2
@@ -817,13 +817,13 @@ int main(int argc, char* argv[]) {
     char *buf;
     int fd;
 
-    if (argc < 2) {
-        printf("Usage: %s <input.jpg> [<output.ppm>]\n", argv[0]);
+    if (argc < 3) {
+        puts("Usage: nanojpeg <input.jpg> <output.ppm>");
         return 2;
     }
     fd = open(argv[1], O_RDONLY, 0);
     if (fd < 0) {
-        printf("Error opening the input file.\n");
+        puts("Error opening the input file.");
         return 1;
     }
     size = lseek(fd, 0, SEEK_END);
@@ -835,18 +835,14 @@ int main(int argc, char* argv[]) {
     njInit();
     if (njDecode(buf, size)) {
         free((void*)buf);
-        printf("Error decoding the input file.\n");
+        puts("Error decoding the input file.");
         return 1;
     }
     free((void*)buf);
 
-    char* out_name;
-    if (argc > 2) out_name = argv[2];
-    else if (njIsColor()) out_name = "nanojpeg_out.ppm";
-    else out_name = "nanojpeg_out.pgm";
-    fd = open(out_name, O_WRONLY | O_CREAT | O_TRUNC, (2 + 4) * 64);
+    fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, (2 + 4) * 64);
     if (fd < 0) {
-        printf("Error opening the output file.\n");
+        puts("Error opening the output file.");
         return 1;
     }
     if (njIsColor()) write_str("P6\n", fd);

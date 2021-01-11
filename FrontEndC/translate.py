@@ -315,6 +315,7 @@ SPECIAL_FUNCTIONS = {
     "printf_c": "BUILTIN",
     "printf_s": "BUILTIN",
     "printf_p": "BUILTIN",
+    "puts": "BUILTIN",
     "open": "BUILTIN",
     "close": "BUILTIN",
     "lseek": "BUILTIN",

@@ -83,7 +83,8 @@ class SymTab:
 
     def add_link(self, id: c_ast.ID, decl: c_ast.Node):
         assert isinstance(id, (c_ast.ID, c_ast.Struct, c_ast.Union))
-        assert decl is UNRESOLVED_STRUCT_UNION_MEMBER or isinstance(decl, _ALLOWED_SYMBOL_LINKS)
+        assert decl is UNRESOLVED_STRUCT_UNION_MEMBER or isinstance(
+            decl, _ALLOWED_SYMBOL_LINKS)
         self.links[id] = decl
 
 
@@ -186,7 +187,8 @@ def _PopulateStructUnionTab(node: c_ast.Node, sym_tab, top_level):
         else:
             sym = sym_tab.find_symbol(node.name)
             assert sym
-            logging.info("LINK STRUCT ID %s %s %s", id(node), id(sym), node.name)
+            logging.info("LINK STRUCT ID %s %s %s",
+                         id(node), id(sym), node.name)
             sym_tab.add_link(node, sym)
 
     if isinstance(node, c_ast.FuncDef):
@@ -229,9 +231,11 @@ class TypeTab:
         self.links = {}
 
     def link_expr(self, node, type):
-        assert isinstance(node, common.EXPRESSION_NODES), "unexpected type: [%s]" % type
+        assert isinstance(
+            node, common.EXPRESSION_NODES), "unexpected type: [%s]" % type
         # TODO: add missing classes as needed
-        assert isinstance(type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
+        assert isinstance(
+            type, _ALLOWED_TYPE_LINKS), "unexpected type %s" % type
 
         if isinstance(type, c_ast.IdentifierType):
             assert type in common.ALLOWED_IDENTIFIER_TYPES, node
@@ -399,7 +403,7 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
     elif isinstance(node, c_ast.ArrayRef):
         a = child_types[0]
         assert isinstance(a, (c_ast.ArrayDecl, c_ast.PtrDecl)
-                          ), a.__class__.__name__
+                          ), f"{node} - {a.__class__.__name__}"
         # TODO: check that child_types[1] is integer
         return GetTypeForDecl(a.type)
     elif isinstance(node, c_ast.Return):
@@ -432,12 +436,14 @@ def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, 
         logging.info("\nFUNCTION [%s]", node.decl.name)
         fundef = node
 
-    child_types = [Typify(c, node, type_tab, sym_links, struct_links, fundef) for c in node]
+    child_types = [Typify(c, node, type_tab, sym_links,
+                          struct_links, fundef) for c in node]
     # print("@@@@", [TypePrettyPrint(x) for x in child_types])
     if not isinstance(node, common.EXPRESSION_NODES):
         return None
 
-    t = TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef)
+    t = TypeForNode(node, parent, sym_links, struct_links,
+                    type_tab, child_types, fundef)
 
     logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t),
                  [TypePrettyPrint(x) for x in child_types])
@@ -494,11 +500,9 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-
     def process(filename):
         ast = parse_file(filename, use_cpp=True)
         meta_info = MetaInfo(ast)
-
 
     for filename in sys.argv[1:]:
         print("=" * 60)
