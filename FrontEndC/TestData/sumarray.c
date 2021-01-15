@@ -13,8 +13,8 @@ int SumArray(int Array[], int Num) {
 }
 
 int main() {
-  printf("sizeof int %lu\n", sizeof(int));
-  int *Array = (int*)malloc(sizeof(int) * 100);
+  printf("sizeof int %u\n", (unsigned)sizeof(int));
+  int *Array = (int*)malloc(sizeof(int) * (unsigned long) 100);
   int i;
 
   for (i = 0; i < 100; i += 2) {

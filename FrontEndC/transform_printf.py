@@ -49,16 +49,17 @@ PUTS = c_ast.Decl(
         MakeSimpleTypeDecl("print", ["int"])), None, None)
 
 PRINTF_PROTOTYPES = {
-    "printf_u": MakePrintfStyleDecl("printf_u", ["long", "long", "unsigned"]),
-    "printf_d": MakePrintfStyleDecl("printf_d", ["long", "long"]),
+    "printf_u": MakePrintfStyleDecl("printf_u", ["int", "unsigned"]),
+    "printf_d": MakePrintfStyleDecl("printf_d", ["int"]),
+    "printf_lu": MakePrintfStyleDecl("printf_lu", ["long", "long", "unsigned"]),
+    "printf_ld": MakePrintfStyleDecl("printf_ld", ["long", "long"]),
     "printf_f": MakePrintfStyleDecl("printf_f", ["double"]),
     "printf_c": MakePrintfStyleDecl("printf_c", ["char"]),
     "printf_p": MakePrintfStyleDecl("printf_p", ["void"], True),
     "printf_s": MakePrintfStyleDecl("printf_s", ["char"], True)
 }
 
-
-PRINTF_DISPATCH = {
+_PRINTF_DISPATCH = {
     "c": "printf_c",
     "s": "printf_s",
     "d": "printf_d",
@@ -68,10 +69,22 @@ PRINTF_DISPATCH = {
     "o": "printf_u",
     "x": "printf_u",
     #
+    "lu": "printf_lu",
+    "lo": "printf_lu",
+    "lx": "printf_lu",
+    "ld": "printf_ld",
+    #
     "e": "printf_e",
     "f": "printf_f",
     "g": "printf_g",
 }
+
+
+def GetSingleArgPrintForFormat(fmt):
+    key = fmt[-2:]
+    if key[0] != "l":
+        key = key[-1]
+    return _PRINTF_DISPATCH[key]
 
 
 class FormatOptions:
@@ -152,7 +165,7 @@ def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_prin
     args = [c_ast.Constant("string", '"' + fmt_str + '"')]
     if arg_node:
         args.append(arg_node)
-        name = PRINTF_DISPATCH[fmt_str[-1]]
+        name = GetSingleArgPrintForFormat(fmt_str)
     else:
         name = "print"
     if not use_specialized_printf:
@@ -170,7 +183,7 @@ def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
             call.name.name = "print"
             return
         else:
-            call.name.name = "printf_" + fmt_pieces[0][-1]
+            call.name.name = GetSingleArgPrintForFormat(s)
             return
 
     stmts = common.GetStatementList(parent)
@@ -200,6 +213,7 @@ def PrintfSplitterTransform(ast: c_ast.FileAST, use_specialized_printf):
         _DoPrintfSplitter(call, parent, use_specialized_printf)
     if not use_specialized_printf or len(candidates) == 0:
         return
+    # remove old prototypes
     ext = ast.ext
     to_be_deleted = []
     for node in ext:
@@ -207,6 +221,7 @@ def PrintfSplitterTransform(ast: c_ast.FileAST, use_specialized_printf):
             to_be_deleted.append(node)
     for node in to_be_deleted:
         ext.remove(node)
+    # prepend protos
     ext[0:0] = [PUTS] + list(PRINTF_PROTOTYPES.values())
 
 

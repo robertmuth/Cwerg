@@ -1,7 +1,7 @@
 
 void* malloc(unsigned long size);
 void free(void* mem);
-int puts(const char* s);
+void puts(const char* s);
 
 
 #define SEEK_END  2
@@ -14,9 +14,9 @@ int puts(const char* s);
 
 int open(char*, int, int);
 int close(int);
-int read(int, const void* buf, unsigned size);
-int write(int, void* buf, unsigned size);
-unsigned lseek(int , int, int);
+long read(int, const void* buf, unsigned long size);
+long write(int, void* buf, unsigned long size);
+long lseek(int , long, int);
 
 void mymemset(void * ptr, int value, unsigned long num ) {
   for (int i = 0; i < num; ++i)  ((char*) ptr)[i] = value;
@@ -464,10 +464,10 @@ void njDecodeSOF(void) {
         c->height = (nj.height * c->ssy + ssymax - 1) / ssymax;
         c->stride = nj.mbwidth * c->ssx << 3;
         if (((c->width < 3) && (c->ssx != ssxmax)) || ((c->height < 3) && (c->ssy != ssymax))) njThrow(NJ_UNSUPPORTED);
-        if (!(c->pixels = (unsigned char*) malloc(c->stride * nj.mbheight * c->ssy << 3))) njThrow(NJ_OUT_OF_MEM);
+        if (!(c->pixels = (unsigned char*) malloc((unsigned long)(c->stride * nj.mbheight * c->ssy << 3)))) njThrow(NJ_OUT_OF_MEM);
     }
     if (nj.ncomp == 3) {
-        nj.rgb = (unsigned char*) malloc(nj.width * nj.height * nj.ncomp);
+      nj.rgb = (unsigned char*) malloc((unsigned long)(nj.width * nj.height * nj.ncomp));
         if (!nj.rgb) njThrow(NJ_OUT_OF_MEM);
     }
     njSkip(nj.length);
@@ -559,7 +559,7 @@ void njDecodeBlock(struct nj_component* c, unsigned char* out) {
   unsigned char code;
   code = 0;
     int value, coef = 0;
-    mymemset(nj.block, 0, sizeof(nj.block));
+    mymemset(nj.block, 0, (unsigned long)sizeof(nj.block));
     c->dcpred = c->dcpred + njGetVLC(&nj.vlctab[c->dctabsel][0], (void* )0);
     nj.block[0] = (c->dcpred) * nj.qtab[c->qtsel][0];
     do {
@@ -636,7 +636,7 @@ void njUpsampleH(struct nj_component* c) {
     const int xmax = c->width - 3;
     unsigned char *out, *lin, *lout;
     int x, y;
-    out = (unsigned char*) malloc((c->width * c->height) << 1);
+    out = (unsigned char*) malloc((unsigned long)((c->width * c->height) << 1));
     if (!out) njThrow(NJ_OUT_OF_MEM);
     lin = c->pixels;
     lout = out;
@@ -664,7 +664,7 @@ void njUpsampleV(struct nj_component* c) {
     const int w = c->width, s1 = c->stride, s2 = s1 + s1;
     unsigned char *out, *cin, *cout;
     int x, y;
-    out = (unsigned char*) malloc((c->width * c->height) << 1);
+    out = (unsigned char*) malloc((unsigned long)((c->width * c->height) << 1));
     if (!out) njThrow(NJ_OUT_OF_MEM);
     for (x = 0;  x < w;  ++x) {
         cin = &c->pixels[x];
@@ -728,7 +728,7 @@ void njConvert(void) {
         unsigned char *pout = &nj.comp[0].pixels[nj.comp[0].width];
         int y;
         for (y = nj.comp[0].height - 1;  y;  --y) {
-            mymemcpy(pout, pin, nj.comp[0].width);
+	  mymemcpy(pout, pin, (unsigned long)nj.comp[0].width);
             pin += nj.comp[0].stride;
             pout += nj.comp[0].width;
         }
@@ -740,7 +740,7 @@ void njConvert(void) {
 // For safety reasons, this should be called at least one time before using
 // using any of the other NanoJPEG functions.
 void njInit(void) {
-    mymemset(&nj, 0, sizeof(struct nj_ctx));
+  mymemset(&nj, 0, (unsigned long)sizeof(struct nj_ctx));
 }
 
 // njDone: Uninitialize NanoJPEG.
@@ -792,7 +792,7 @@ nj_result_t njDecode(const void* jpeg, const int size) {
 }
 
 void write_str(char* s, int fd) {
-  int size;
+  unsigned long size;
   for (size = 0; s[size] != 0; ++size) ;
   write(fd, s, size);
 }
@@ -826,10 +826,10 @@ int main(int argc, char* argv[]) {
         puts("Error opening the input file.");
         return 1;
     }
-    size = lseek(fd, 0, SEEK_END);
-    buf = (char*) malloc(size);
-    lseek(fd, 0, SEEK_SET);
-    size = (int) read(fd, buf, size);
+    size = lseek(fd, (long)0, SEEK_END);
+    buf = (char*) malloc((unsigned long)size);
+    lseek(fd, (long)0, SEEK_SET);
+    size = (int) read(fd, buf, (unsigned long)size);
     close(fd);
 
     njInit();
@@ -853,7 +853,7 @@ int main(int argc, char* argv[]) {
     write_str("\n", fd);
     write_str("255\n", fd);
 
-    write(fd, njGetImage(), njGetImageSize());
+    write(fd, njGetImage(), (unsigned long)njGetImageSize());
     close(fd);
     njDone();
     return 0;

@@ -14,6 +14,6 @@ void test(unsigned int A, unsigned int B, unsigned int C, unsigned int D) {
 }
 
 int main() {
-  test(7, 8, (unsigned int)-5, 5);
+  test((unsigned)7, (unsigned)8, (unsigned)-5, (unsigned)5);
   return 0;
 }

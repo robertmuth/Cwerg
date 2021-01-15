@@ -311,6 +311,8 @@ SPECIAL_FUNCTIONS = {
     "print": "BUILTIN",
     "printf_u": "BUILTIN",
     "printf_d": "BUILTIN",
+    "printf_lu": "BUILTIN",
+    "printf_ld": "BUILTIN",
     "printf_f": "BUILTIN",
     "printf_c": "BUILTIN",
     "printf_s": "BUILTIN",
@@ -693,6 +695,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         HandleBinop(node, meta_info, node_value, id_gen)
     elif isinstance(node, c_ast.UnaryOp):
         assert node.op != "&"  # this is handled further up
+        # TODO: force this to be size_t
         if node.op == "sizeof":
             expr = node.expr
             expr = meta_info.type_links.get(expr, expr)
