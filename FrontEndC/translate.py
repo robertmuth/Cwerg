@@ -60,7 +60,8 @@ TYPE_TRANSLATION_32 = {
     POINTER: "A32",
 }
 
-TYPE_TRANSLATION = TYPE_TRANSLATION_64
+# MUST BE SET BEFORE USE
+TYPE_TRANSLATION = None
 
 tmp_counter = 0
 
@@ -772,6 +773,13 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
 
 
 def main(argv):
+    global TYPE_TRANSLATION
+    mode = argv.pop(0)
+    assert  mode in {"32", "64"}
+    if mode == "32":
+        TYPE_TRANSLATION = TYPE_TRANSLATION_32
+    else:
+         TYPE_TRANSLATION = TYPE_TRANSLATION_64
     for filename in argv:
         print("#" * 60)
         print("#", filename)
