@@ -304,7 +304,6 @@ def RenderList(items):
 
 SPECIAL_FUNCTIONS = {
     "abort": "BUILTIN",
-    "main": "MAIN",
     "malloc": "BUILTIN",
     "free": "BUILTIN",
     "memset": "BUILTIN",
