@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.7]
         os: [ubuntu-latest]
         #python-version: [3.7, 3.8, 3.9]
         #os: [ubuntu-latest, macos-latest, windows-latest]
@@ -58,4 +58,4 @@ jobs:
         PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make tests_github
     - name: Integration Tests
       run: |
-        PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make integration_tests
+        PYPY=python3 CC=clang CXX=g++ MAKESILENT= make integration_tests
