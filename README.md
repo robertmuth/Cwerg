@@ -1,269 +1,104 @@
 # Cwerg
 
-This Project aims at building a re-targetable C compiler that is easy
-to understand and modify.
+[[Getting Started]](Docs/getting_started.md) [[Documention]](Docs/) ![Status](../../workflows/cwerg-tests/badge.svg)
 
-It is currently developed in Python on top of Eli Bendersky 
-(pycparser)[https://github.com/eliben/pycparser] lexer/parser for C99.
 
-The project still has a along way to go. If you are looking for something more
-mature, you might save yourself some time by looking at the survey of other C-compilers
-which  can be found below.
 
-## Project Status
+Cwerg started off as an experimental C compiler but has morphed into a
+lightweight compiler backend aimed at experimental programming 
+language implementations that want to avoid heavy dependencies like
+[LLVM](https://llvm.org).
 
-* the supported part of the C language is whatever is in `Tests/*c`
-  (this implies that the development is test driven) 
-* the canonicalizer is already useful. It transforms C programs into
-  equivalents programs that use a smaller subset of the C language. 
-  For example, canonicalized programs do not
-  use pre/post in-/decrement and do not have for or while loops. 
-* no real backend yet. Hook-up your own.
-  [QBE](https://c9x.me/compile/) might also be a good candidate.
-  `translate.py` is a backend for a fictitious RISC CPU with unlimited
-   registers. It does not support `typedef`, post-inc/dec, static
-   initializers, ?-operator, enums, bitfields, and several other syntactical features.
+The project is very much "work in progress" and  currently consists of:
 
-## Highlevel Overview
+* RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
+* Optimizer for the IR
+* [C frontend](FrontEndC/README.md)  (supports a subset of C)
+* [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF files)
+* [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
+* [A32 backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
+* [C backend](CodeGenC/README.md) (code generator emitting C code)
 
-The compilation is split into the following phases:
+It can be used for both AOT compilation and JITing.
 
-* Parse the code with pycparser into an AST
+Most components are implemented twice (see [rationale](Docs/why_python.md)):
+1. spec/reference implementation: Python 3.8
+2. high performance implementation: C++17 (with limited STL usage)
 
-* Extract symbol and type information from the AST so that we can map
-  each ID node to a declaration and each expression node to a type.
-  
-  This is currently done by creating edges from nodes within the AST
-  to other nodes inside the AST and new nodes.
-  
-  Instead of inventing a new type system we use the nodes from pycparser
-  
- * Canonicalize the c code so we can keep the backend simple
-  
-   This effectively de-sugars some syntax like compound assigns and 
-   pre/post increment/decrement, loops, etc.
-  
-   We can test the canonicalization transformations by re-emitting c-code
-   and ensuring that the transformed code has the same output as the original 
-   code.
-  
- * Code emission
+Re-implementations in other languages are explicitly encouraged. A lot of
+code is table driven to facilitate that.
 
-## Development
+Cwerg de-emphasizes quality of the generated code (we hope to come within 30%
+of state of the art  compilers) in favor of a small code base that can be
+understood by a single developer and  very fast translation times.
 
-* **Python3** the code uses Python3 exclusively
+### Size Targets
 
-* **Tests** are in the `Tests/` subdirectory and can be run by running `make`
+The project tracks code size in [LOC](CLOC.txt) carefully. The goal is to limit 
+the IR optimizer to 10kLOC and an additional 5kLOC for each supported target 
+[ISA](https://en.wikipedia.org/wiki/Instruction_set_architecture) 
+(per implementation language).
+Note, that code generated from tables is not counted but the tables (written in Python) are.
 
-* **Test-Driven** the code usually does not support features or handles cases that are
-  not covered by tests. Instead the code is littered with assert statements.
+### Speed Targets
 
-* **Type-Annotations** the code is using type annotations as much as possible, cf.:
-  [Introduction](https://realpython.com/python-type-checking/),
-  [Cheat Sheet](https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html)
-  
-  
-## Useful References
+The goal for the c++ implementation is to translate the IR to an Elf executable at a speed of 
+500k IR instructions per sec using at most 4 cores on a 2020 era midrange desktop or high end laptop.
 
-* Some things every C programmer should know about C
-  https://web.archive.org/web/20030812081713/http://klausler.com/cnotes.txt
+Whole program translation and parallel translation at the function level are 
+explicit design goals for the c++ implementations.
+
+## Intentional Limitations
+
+To keep the project lightweight the feature set must be curtailed.
+Since the project is still evolving, these are not entirely cast in stone but 
+the following features are unlikely to be supported (contact us before starting 
+any work on these):
+
+* Instruction sets other than little endian (host and target) with 
+  2's complement integers.
+* Variable number of function parameters (var-args). Basically only used for
+  printf/scanf and responsible for a disproportionate amount of complexity in 
+   ABIs
+* Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
+  to fit into the complexity budget. Line numbers will likely be supported.
+* C++ exception. A lot of code and complexity that only benefits one language.
+* Linking against code produced with other toolchains.
+* Shared libs. The extra indirection and
+  PC relative addressing adds complexity and slows programs down, not
+  to mention the DLL hell problem.
+* Sophisticated instruction scheduling which is less important from memory 
+  bound code and out-of-order CPUs.
+* Sophisticated loop optimizations.
+* Variable sized stack frames (alloca). This
+  would require a frame pointer and makes it more difficult to reason about
+  stack overflows.
+* Tail call optimizations 
+* A standard library with unicode and locale support. Those add a lot of 
+  complexity and are better left to dedicated libraries.
  
-## Survey of other open source c-compiler projects
-
-### A Compiler Writing Journey
-
-* implements a subset of C
-
-Links
-
-https://github.com/DoctorWkt/acwj
-
-### chibicc
-
-* implemented in C by Rui Ueyama et el
-* very compact, only 5 .c files
-* bring you own pre-processor and libc
-* target: x86-64
-* successor of [8cc](https://github.com/rui314/8cc) and [9cc](https://github.com/rui314/9cc)
-
-Links
-
-* book (japanese only) https://www.sigbus.info/compilerbook
-* https://github.com/rui314/chibicc
-
-### clang
-
-* implemented in C++
-* sort of today's gold standard for C compilers
-* enormously versatile
-* rather steep learning curve
-* very actively developed
-* includes pre-processor 
-* llvm backend (supports all llvm targets)
-
-Links
-
-https://clang.llvm.org/
-
-### cproc
-
-* implemented in C (self hosting) by Michael Forney et al
-* actively developed
-* [QBE backend](https://c9x.me/compile/) supporting aarch64 and x86-64
-* successor (?) of [Andrew Chamber's C Suite](https://github.com/andrewchambers/c)
-
-Links
-
-* https://git.sr.ht/~mcf/cproc
-
-### firm
-
-* Intermediate code system using SSA and written in C
-* Started as research project at uni-karlsruhe.de 
-* C99 Compiler. CParser
-* targets: amd64, ia32, arm32, mips, riscv,sparc
-
-Links:
-
-* about: https://pp.ipd.kit.edu/firm/index.html
-* code: https://github.com/libfirm/libfirm
-* Comparison with LLVM: https://pp.ipd.kit.edu/firm/LLVM.html
-* cparser: https://github.com/libfirm/cparser/
-  
-### gcc
-
-* gold standard for C on Unix before clang came along
-* definitely not suitable for casual hacking
-* implemented in C (and nowadays C++)
-* includes pre-processor 
-* very steep learning curve
-* Information below may be dated (I am too traumatized to try again):
-* many many targets but not simultaneously 
-* configuration and building (especially cross compiles) very painful 
-
-Links
-
-https://gcc.gnu.org/
-
-### lacc
-
-* implemented in C (self hosting)  by Lars Kirkholt Melhus
-* x86-64 only but can emit elf object files
-
-
-Links
-
-* https://github.com/larmel/lacc
-
-### lcc
-
-* written in C by Dave Hanson, Chris Fraser et al
-* very well documented compiler 
-* partially aimed at education
-* feels a bit dated, front and backend are not separate programs
-* not actively developed any more (pelles c is based on it but not open source)
-* bring you own pre-processor and libc
-* mutliple targets: x86, mips, sparc
-
-Links
-
-* https://en.wikipedia.org/wiki/LCC_(compiler)
-* book https://www.amazon.com/Retargetable-Compiler-Design-Implementation/dp/0805316701
-* https://github.com/drh/lcc
-
-### mir
-
-* written in C by Vladimir Makarov
-* A light-weight JIT compiler based on MIR (Medium Internal Representation)
-* c2mir C11 Compiler 
-* targets: arm64, ppc63, amd64
-
-Links
-
-* https://github.com/vnmakarov/mir
-* https://github.com/vnmakarov/mir/tree/master/c2mir
-
-### pacc
-
-* written in Delphi by Benjamin Rosseaux
-* uses qbe inspired backend
-
-Links
-
-https://github.com/BeRo1985/pacc
-
-### pcc
-
-* written in C by Anders Magnusson et al
-* based on the original Portable C Compiler by S. C. Johnson 
-* much improved though
-* actively maintained
-* easy to configure
-* multiple targets: x86 x86-64 mips mips64 68k power sparc pdp10 pdp11
-* clear separation between front and backend 
-
-Links
-
-* http://pcc.ludd.ltu.se/
-* (original paper) ftp://pcc.ludd.ltu.se/pub/pcc-docs/porttour.ps
-* http://pcc.ludd.ltu.se/ftp/pub/pcc-docs/targdocs.txt
-* cvs -d :pserver:anonymous@pcc.ludd.ltu.se:/cvsroot co pcc
-
-### plan 9 cc
-
-* implemented in C 
-* had trouble configuring but did not spend a lot of time with it
-* multiple target: x86, x86-64, sparc, power, power-64, mips, arm
-
-
-Links
-
-https://9p.io/sys/doc/compiler.html
-https://9p.io/wiki/plan9/Sources_repository/index.html
-https://github.com/huangguiyang/plan9-cc (not official?)
-
-### scc
-
-* implemnted in C by Roberto E. Vargas Caballero et al
-* actively developed
-* backends for arm32, x86-64, qbe and possibly others
-* may (?) also use the qbe backend
-
-Links
-
-
-http://www.simple-cc.org/
-
-http://git.simple-cc.org/scc/file/README.html
-
-mirror: https://github.com/k0gaMSX/scc
-
-### shivyc
-
-* implemented in Python
-* target: x86-64
-
-Links
-
-https://github.com/ShivamSarodia/ShivyC
-
-
-## tcc
-
-* written in C (self hosting) by Fabrice Bellard et al
-* small code base  but not for the faint of heart
-* everything included approach (including linker)
-* multiple targets: x86, x86-64, arm 
-* emits elf object files
-
-Links
-
-* https://bellard.org/tcc/
-* http://download.savannah.gnu.org/releases/tinycc/
-
-
-
-
+It is not clear if an [X86-64 backend](CpuX64/README.md) will fit into the 
+complexity budget, especially since X64-64 idiosyncrasies tend to leak 
+complexity into the generic layers.
+
+The IR optimizer currently does not use a full-blown Single Static Assigment
+(SSA) form. Instead it uses a [modified use-def chain approach](Docs/use_def.md)
+to get some of the benefits of SSA.
+
+## Dependencies
+
+Cwerg controls dependencies carefully to keep them at a bare minimum:
+ 
+* [pycparser](https://github.com/eliben/pycparser) used by the (optional) C frontend
+
+## Inspirations
+
+* [LLVM](https://llvm.org) 
+* [QBE](https://c9x.me/compile/) ([QBE vs LLVM](https://c9x.me/compile/doc/llvm.html))
+* [Mir](https://github.com/vnmakarov/mir) ([blog post](https://developers.redhat.com/blog/2020/01/20/mir-a-lightweight-jit-compiler-project/))
+* [Oberon](http://www.projectoberon.com/) ([compiler implementation](http://www.inf.ethz.ch/personal/wirth/ProjectOberon/PO.System.pdf)) 
+* [Delphi's compilation speed](https://news.ycombinator.com/item?id=24735366)
+* [gcc code size](https://www.phoronix.com/scan.php?page=news_item&px=MTg3OTQ)
 
 
 

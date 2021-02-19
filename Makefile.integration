@@ -1,0 +1,126 @@
+# integration tests:
+# * run C code through FrontEndC to generate Cwerg IR
+# * optimize IR
+# * generate C code via CodeGenC
+
+NANO_SRC = FrontEndC/TestData/nanojpeg.c
+
+STDLIB_DIR=${PWD}/StdLib
+
+CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
+   -Wno-builtin-declaration-mismatch -Wno-unused-but-set-variable -Wno-main \
+   -Wno-misleading-indentation -Wno-builtin-declaration-mismatch -I$(STDLIB_DIR)
+
+tests: nano itests
+
+nano:
+	@echo "[$@"]
+	#
+	md5sum TestData/ash_tree.ppm
+	@echo cc test
+	$(CC) $(CC_FLAGS) -O $(NANO_SRC) -o $@.cc.exe
+	@rm -f $@.ppm.out
+	./$@.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg 32 test
+	$(PYPY) FrontEndC/translate.py 32  $(NANO_SRC) > $@.32.asm
+	$(PYPY) CodeGenC/codegen.py $@.32.asm > $@.32.out.c
+	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
+	@rm -f $@.ppm.out
+	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg 64 test
+	$(PYPY) FrontEndC/translate.py 64  $(NANO_SRC) > $@.64.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg optimize 32 test
+	$(PYPY) FrontEndC/translate.py 32  $(NANO_SRC) > $@.32.asm
+	$(PYPY) Base/optimize.py < $@.32.asm > $@.32.opt.asm
+	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
+	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
+	@rm -f $@.ppm.out
+	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg optimize 64 test
+	$(PYPY) FrontEndC/translate.py 64  $(NANO_SRC) > $@.64.asm
+	$(PYPY) Base/optimize.py < $@.64.asm > $@.64.opt.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg canned 32 test
+	 cat $(STDLIB_DIR)/std_lib.32.asm TestData/nano_jpeg.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
+	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
+	@rm -f $@.ppm.out
+	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg canned 64 test
+	cat $(STDLIB_DIR)/std_lib.64.asm TestData/nano_jpeg.64.asm |$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo OK
+
+ITESTS = \
+FrontEndC/TestData/struct2.c \
+FrontEndC/TestData/2003-07-08-BitOpsTest.c \
+FrontEndC/TestData/corner_cases.c \
+FrontEndC/TestData/20080424-1.c\
+FrontEndC/TestData/20000523-1.c \
+FrontEndC/TestData/sumarray.c \
+FrontEndC/TestData/nqueen.c \
+FrontEndC/TestData/20020129-1.c
+
+
+%.itest : %.c
+	@echo "[$@]"
+	#
+	$(PYPY) FrontEndC/translate.py 64  $? > $@.64.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	./$@.64.cc.exe > $@.run.out
+	diff $@.run.out $*.reference_output
+	#
+	$(PYPY) FrontEndC/translate.py 32  $? > $@.32.asm
+	$(PYPY) CodeGenC/codegen.py $@.32.asm > $@.32.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.32.out.c -o $@.32.cc.exe
+	./$@.32.cc.exe > $@.run.out
+	diff $@.run.out $*.reference_output
+	#
+	$(PYPY) FrontEndC/translate.py 64  $? > $@.64.asm
+	$(PYPY) Base/optimize.py < $@.64.asm > $@.64.opt.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	./$@.64.cc.exe > $@.run.out
+	diff $@.run.out $*.reference_output
+	#
+	$(PYPY) FrontEndC/translate.py 32  $? > $@.32.asm
+	$(PYPY) Base/optimize.py < $@.32.asm > $@.32.opt.asm
+	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.32.out.c -o $@.32.cc.exe
+	./$@.32.cc.exe > $@.run.out
+	diff $@.run.out $*.reference_output
+
+itests: $(ITESTS:.c=.itest)
+
+clean:
+	rm -f nano.*

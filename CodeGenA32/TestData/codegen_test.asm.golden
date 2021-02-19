@@ -1,0 +1,670 @@
+
+INS: syscall arm_syscall_exit 1:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 1
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: syscall arm_syscall_brk 45:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 45
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: syscall arm_syscall_open 5:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 5
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: syscall arm_syscall_close 6:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 6
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: syscall arm_syscall_write 4:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 4
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: syscall arm_syscall_read 3:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 3
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: conv $r1_U32@r1 $r0_U32@r0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r0 0
+
+INS: mov $r0_A32@r0 $sp_A32@sp  [A32 A32]
+PAT: reg:[A32 A32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl sp 0
+
+INS: conv $r1_U8@r1 $r1_U32@r1  [U8 U32]
+PAT: reg:[U8 U32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r1 0
+
+INS: st $sp_A32@sp 0 $r1_U8@r1  [A32 U8 U8]
+    MATCH_IMPOSSIBLE
+
+INS: mov $r2_U32@r2 1  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r2 1
+
+INS: mov $r1_A32@r1 $r0_A32@r0  [A32 A32]
+PAT: reg:[A32 A32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r0 0
+
+INS: mov $r0_S32@r0 1  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 1
+
+INS: syscall arm_syscall_write 4:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 4
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: ret  []
+    SPECIAL
+
+INS: mov $r2_U32@r2 $r1_U32@r1  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r2 lsl r1 0
+
+INS: mov $r1_A32@r1 $r0_A32@r0  [A32 A32]
+PAT: reg:[A32 A32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r0 0
+
+INS: mov $r0_S32@r0 1  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 1
+
+INS: syscall arm_syscall_write 4:U32  [_ U32]
+PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
+    str_imm al PuW sp 4 r7
+    movw al r7 4
+    svc al 0
+    ldr_imm al r7 pUw sp 4
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: bsr putchar  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:putchar
+
+INS: ret  []
+    SPECIAL
+
+INS: mov $r1_U32@r1 $r0_U32@r0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r0 0
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: div rem@r6 $r1_U32@r1 $r0_U32@r0  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    udiv al r6 r1 r0
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: mul rem@r6 rem@r6 $r0_U32@r0  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    mul al r6 r6 r0
+
+INS: sub rem@r6 $r1_U32@r1 rem@r6  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    sub_regimm al r6 r1 lsl r6 0
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: div div@lr $r1_U32@r1 $r0_U32@r0  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    udiv al lr r1 r0
+
+INS: beq div@lr 0 skip  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al lr 0
+    b eq expr:jump24:skip
+
+INS: mov $r0_U32@r0 div@lr  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl lr 0
+
+INS: bsr print_num  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:print_num
+
+INS: add rem@r6 rem@r6 48  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r6 r6 48
+
+INS: mov $r0_U32@r0 rem@r6  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl r6 0
+
+INS: bsr putchar  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:putchar
+
+INS: ret  []
+    SPECIAL
+
+INS: bsr print_num  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:print_num
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: bsr putchar  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:putchar
+
+INS: ret  []
+    SPECIAL
+
+INS: lea.mem $r0_A32@r0 COUNTER 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: ld $r0_U32@r0 $r0_A32@r0 0  [U32 A32 U8]
+    MATCH_IMPOSSIBLE
+
+INS: add $r1_U32@r1 $r0_U32@r0 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r1 r0 1
+
+INS: lea.mem $r0_A32@r0 COUNTER 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: st $r0_A32@r0 0 $r1_U32@r1  [A32 U8 U32]
+    MATCH_IMPOSSIBLE
+
+INS: lea.mem $r0_A32@r0 LINE 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: mov $r1_U32@r1 9  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r1 9
+
+INS: bsr writeln  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:writeln
+
+INS: lea.mem board@r6 BOARD 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: mov i@r7 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r7 0
+
+INS: mov $r1_U32@r1 8  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r1 8
+
+INS: mov $r0_A32@r0 board@r6  [A32 A32]
+PAT: reg:[A32 A32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl r6 0
+
+INS: bsr writeln  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:writeln
+
+INS: lea board@r6 board@r6 8  [A32 A32 U8]
+    MATCH_IMPOSSIBLE
+
+INS: add i@r7 i@r7 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r7 r7 1
+
+INS: blt i@r7 8 loop  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al r7 8
+    b cc expr:jump24:loop
+
+INS: ret  []
+    SPECIAL
+
+INS: mov y@r12 $r0_U32@r0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al ip lsl r0 0
+
+INS: beq y@r12 0 success  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al ip 0
+    b eq expr:jump24:success
+
+INS: lea.mem $r6_A32@r6 XCOORDS 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: ld $r6_U8@r6 $r6_A32@r6 y@r12  [U8 A32 U32]
+PAT: reg:[U8 A32 U32]  imm:[invalid invalid invalid]
+    ldrb_reg al r6 PUw r6 lsl ip 0
+
+INS: conv lastx@r3 $r6_U8@r6  [U32 U8]
+PAT: reg:[U32 U8]  imm:[invalid invalid]
+    uxtb al r3 ror_rrx r6 0
+
+INS: mov i@r2 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r2 0
+
+INS: lea.mem $r6_A32@r6 XCOORDS 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: ld $r6_U8@r6 $r6_A32@r6 i@r2  [U8 A32 U32]
+PAT: reg:[U8 A32 U32]  imm:[invalid invalid invalid]
+    ldrb_reg al r6 PUw r6 lsl r2 0
+
+INS: conv x@r5 $r6_U8@r6  [U32 U8]
+PAT: reg:[U32 U8]  imm:[invalid invalid]
+    uxtb al r5 ror_rrx r6 0
+
+INS: beq x@r5 lastx@r3 conflict  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
+    cmp_regimm al r5 lsl r3 0
+    b eq expr:jump24:conflict
+
+INS: sub d1@r0 y@r12 i@r2  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    sub_regimm al r0 ip lsl r2 0
+
+INS: sub d2@r1 lastx@r3 x@r5  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    sub_regimm al r1 r3 lsl r5 0
+
+INS: ble x@r5 lastx@r3 ok  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
+    cmp_regimm al r5 lsl r3 0
+    b ls expr:jump24:ok
+
+INS: sub d2@r1 x@r5 lastx@r3  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    sub_regimm al r1 r5 lsl r3 0
+
+INS: beq d1@r0 d2@r1 conflict  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
+    cmp_regimm al r0 lsl r1 0
+    b eq expr:jump24:conflict
+
+INS: add i@r2 i@r2 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r2 r2 1
+
+INS: blt i@r2 y@r12 loop  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
+    cmp_regimm al r2 lsl ip 0
+    b cc expr:jump24:loop
+
+INS: mov $r0_U32@r0 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 0
+
+INS: ret  []
+    SPECIAL
+
+INS: mov $r0_U32@r0 1  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 1
+
+INS: ret  []
+    SPECIAL
+
+INS: mov y@r8 $r0_U32@r0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r8 lsl r0 0
+
+INS: blt y@r8 8 cont  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al r8 8
+    b cc expr:jump24:cont
+
+INS: bsr dump  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:dump
+
+INS: ret  []
+    SPECIAL
+
+INS: mov i@r6 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r6 0
+
+INS: shl pos@r7 y@r8 3  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_5_bits]
+    mov_regimm al r7 lsl r8 3
+
+INS: add pos@r7 pos@r7 i@r6  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
+    add_regimm al r7 r7 lsl r6 0
+
+INS: lea.mem $r1_A32@r1 BOARD 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: mov $r0_U8@r0 42  [U8 U8]
+PAT: reg:[U8 U8]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 42
+
+INS: st $r1_A32@r1 pos@r7 $r0_U8@r0  [A32 U32 U8]
+PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
+    strb_reg al PUw r1 lsl r7 0 r0
+
+INS: conv $r1_U8@r1 i@r6  [U8 U32]
+PAT: reg:[U8 U32]  imm:[invalid invalid]
+    mov_regimm al r1 lsl r6 0
+
+INS: lea.mem $r0_A32@r0 XCOORDS 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: st $r0_A32@r0 y@r8 $r1_U8@r1  [A32 U32 U8]
+PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
+    strb_reg al PUw r0 lsl r8 0 r1
+
+INS: mov $r0_U32@r0 y@r8  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl r8 0
+
+INS: bsr conflict  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:conflict
+
+INS: beq $r0_U32@r0 1 next  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al r0 1
+    b eq expr:jump24:next
+
+INS: add y@r8 y@r8 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r8 r8 1
+
+INS: mov $r0_U32@r0 y@r8  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid invalid]
+    mov_regimm al r0 lsl r8 0
+
+INS: bsr solve  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:solve
+
+INS: sub y@r8 y@r8 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    sub_imm al r8 r8 1
+
+INS: lea.mem $r1_A32@r1 BOARD 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: mov $r0_U8@r0 32  [U8 U8]
+PAT: reg:[U8 U8]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 32
+
+INS: st $r1_A32@r1 pos@r7 $r0_U8@r0  [A32 U32 U8]
+PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
+    strb_reg al PUw r1 lsl r7 0 r0
+
+INS: add i@r6 i@r6 1  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r6 r6 1
+
+INS: blt i@r6 8 loop  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
+    cmp_imm al r6 8
+    b cc expr:jump24:loop
+
+INS: ret  []
+    SPECIAL
+
+INS: mov $r0_U32@r0 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 0
+
+INS: bsr solve  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:solve
+
+INS: lea.mem $r0_A32@r0 COUNTER 0  [A32 _ U8]
+    MATCH_IMPOSSIBLE
+
+INS: ld $r0_U32@r0 $r0_A32@r0 0  [U32 A32 U8]
+    MATCH_IMPOSSIBLE
+
+INS: bsr print_num  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:print_num
+
+INS: mov $r0_U32@r0 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 10
+
+INS: bsr putchar  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:putchar
+
+INS: mov $r0_U32@r0 0  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 0
+
+INS: bsr exit  [_]
+PAT: reg:[INVALID]  imm:[invalid]
+    bl al lr expr:call:exit
+
+INS: ret  []
+    SPECIAL
+
+INS: mov x@r0 66  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 66
+
+INS: mov x@r0 -66  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid not_8_bits_shifted]
+    mvn_imm al r0 65
+
+INS: mov x@r0 26112  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
+    mov_imm al r0 26112
+
+INS: mov x@r0 -26112  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid any_32_bits]
+    movw al r0 39424
+    movt al r0 65535
+
+INS: mov x@r0 666  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_16_bits]
+    movw al r0 666
+
+INS: mov x@r0 -666  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid any_32_bits]
+    movw al r0 64870
+    movt al r0 65535
+
+INS: mov x@r0 66666  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid any_32_bits]
+    movw al r0 1130
+    movt al r0 1
+
+INS: mov x@r0 -66666  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid any_32_bits]
+    movw al r0 64406
+    movt al r0 65534
+
+INS: ret  []
+    SPECIAL
+
+INS: ld ua@r6 base@r6 66  [U8 A32 S32]
+PAT: reg:[U8 A32 S32]  imm:[invalid invalid pos_12_bits]
+    ldrb_imm al r6 PUw r6 66
+
+INS: ld ua@r6 base@r6 -66  [U8 A32 S32]
+PAT: reg:[U8 A32 S32]  imm:[invalid invalid neg_12_bits]
+    ldrb_imm al r6 Puw r6 66
+
+INS: ld sa@r6 base@r6 66  [S8 A32 S32]
+PAT: reg:[S8 A32 S32]  imm:[invalid invalid pos_8_bits]
+    ldrsb_imm al r6 Puw r6 66
+
+INS: ld sa@r6 base@r6 -66  [S8 A32 S32]
+PAT: reg:[S8 A32 S32]  imm:[invalid invalid neg_8_bits]
+    ldrsb_imm al r6 PUw r6 66
+
+INS: ld ua@r6 base@r6 666  [U8 A32 S32]
+PAT: reg:[U8 A32 S32]  imm:[invalid invalid pos_12_bits]
+    ldrb_imm al r6 PUw r6 666
+
+INS: ld ua@r6 base@r6 -666  [U8 A32 S32]
+PAT: reg:[U8 A32 S32]  imm:[invalid invalid neg_12_bits]
+    ldrb_imm al r6 Puw r6 666
+
+INS: ld sa@r6 base@r6 666  [S8 A32 S32]
+    mismatches: 4
+
+INS: ld sa@r6 base@r6 -666  [S8 A32 S32]
+    mismatches: 4
+
+INS: st base@r6 66 ua@r6  [A32 S32 U8]
+PAT: reg:[A32 S32 U8]  imm:[invalid pos_12_bits invalid]
+    strb_imm al PUw r6 66 r6
+
+INS: st base@r6 -66 sa@r6  [A32 S32 S8]
+PAT: reg:[A32 S32 S8]  imm:[invalid neg_12_bits invalid]
+    strb_imm al Puw r6 66 r6
+
+INS: st base@r6 66 ua@r6  [A32 S32 U8]
+PAT: reg:[A32 S32 U8]  imm:[invalid pos_12_bits invalid]
+    strb_imm al PUw r6 66 r6
+
+INS: st base@r6 -66 sa@r6  [A32 S32 S8]
+PAT: reg:[A32 S32 S8]  imm:[invalid neg_12_bits invalid]
+    strb_imm al Puw r6 66 r6
+
+INS: st base@r6 666 ua@r6  [A32 S32 U8]
+PAT: reg:[A32 S32 U8]  imm:[invalid pos_12_bits invalid]
+    strb_imm al PUw r6 666 r6
+
+INS: st base@r6 -666 sa@r6  [A32 S32 S8]
+PAT: reg:[A32 S32 S8]  imm:[invalid neg_12_bits invalid]
+    strb_imm al Puw r6 666 r6
+
+INS: st base@r6 666 ua@r6  [A32 S32 U8]
+PAT: reg:[A32 S32 U8]  imm:[invalid pos_12_bits invalid]
+    strb_imm al PUw r6 666 r6
+
+INS: st base@r6 -666 sa@r6  [A32 S32 S8]
+PAT: reg:[A32 S32 S8]  imm:[invalid neg_12_bits invalid]
+    strb_imm al Puw r6 666 r6
+
+INS: ld ub@r6 base@r6 66  [U16 A32 S32]
+PAT: reg:[U16 A32 S32]  imm:[invalid invalid pos_8_bits]
+    ldrh_imm al r6 Puw r6 66
+
+INS: ld ub@r6 base@r6 -66  [U16 A32 S32]
+PAT: reg:[U16 A32 S32]  imm:[invalid invalid neg_8_bits]
+    ldrh_imm al r6 PUw r6 66
+
+INS: ld sb@r6 base@r6 66  [S16 A32 S32]
+PAT: reg:[S16 A32 S32]  imm:[invalid invalid pos_8_bits]
+    ldrsh_imm al r6 Puw r6 66
+
+INS: ld sb@r6 base@r6 -66  [S16 A32 S32]
+PAT: reg:[S16 A32 S32]  imm:[invalid invalid neg_8_bits]
+    ldrsh_imm al r6 PUw r6 66
+
+INS: ld ub@r6 base@r6 666  [U16 A32 S32]
+    mismatches: 4
+
+INS: ld ub@r6 base@r6 -666  [U16 A32 S32]
+    mismatches: 4
+
+INS: ld sb@r6 base@r6 666  [S16 A32 S32]
+    mismatches: 4
+
+INS: ld sb@r6 base@r6 -666  [S16 A32 S32]
+    mismatches: 4
+
+INS: st base@r6 66 ub@r6  [A32 S32 U16]
+PAT: reg:[A32 S32 U16]  imm:[invalid pos_8_bits invalid]
+    strh_imm al PUw r6 66 r6
+
+INS: st base@r6 -66 sb@r6  [A32 S32 S16]
+PAT: reg:[A32 S32 S16]  imm:[invalid neg_8_bits invalid]
+    strh_imm al Puw r6 66 r6
+
+INS: st base@r6 66 ub@r6  [A32 S32 U16]
+PAT: reg:[A32 S32 U16]  imm:[invalid pos_8_bits invalid]
+    strh_imm al PUw r6 66 r6
+
+INS: st base@r6 -66 sb@r6  [A32 S32 S16]
+PAT: reg:[A32 S32 S16]  imm:[invalid neg_8_bits invalid]
+    strh_imm al Puw r6 66 r6
+
+INS: st base@r6 666 ub@r6  [A32 S32 U16]
+    mismatches: 2
+
+INS: st base@r6 -666 sb@r6  [A32 S32 S16]
+    mismatches: 2
+
+INS: st base@r6 666 ub@r6  [A32 S32 U16]
+    mismatches: 2
+
+INS: st base@r6 -666 sb@r6  [A32 S32 S16]
+    mismatches: 2
+
+INS: mov x@r1 454  [S32 S32]
+PAT: reg:[S32 S32]  imm:[invalid pos_16_bits]
+    movw al r1 454
+
+INS: mov y@r1 4294967280  [U32 U32]
+PAT: reg:[U32 U32]  imm:[invalid not_8_bits_shifted]
+    mvn_imm al r1 15
+
+INS: and y@r1 y@r1 4294967280  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[invalid invalid not_8_bits_shifted]
+    bic_imm al r1 r1 15
+
+INS: ret  []
+    SPECIAL
+
+INS: lea base@r6 base@r6 66  [A32 A32 S32]
+PAT: reg:[A32 A32 S32]  imm:[invalid invalid pos_8_bits_shifted]
+    add_imm al r6 r6 66
+
+INS: lea base@r6 base@r6 -66  [A32 A32 S32]
+PAT: reg:[A32 A32 S32]  imm:[invalid invalid neg_8_bits_shifted]
+    sub_imm al r6 r6 66
+
+INS: ret  []
+    SPECIAL

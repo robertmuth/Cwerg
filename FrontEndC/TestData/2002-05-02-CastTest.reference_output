@@ -13,4 +13,3 @@ is4  = 256	   [0x100]
 is5  = 0	   [0x0]
 uic4 = 'd'	   [0x64]
 uis4 = 4294966527  [0xfffffcff]
-exit 0
