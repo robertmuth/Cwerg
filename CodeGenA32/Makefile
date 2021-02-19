@@ -96,12 +96,12 @@ $(CODEGEN_TOOL)::
 
 isel_gen.cc: isel_tab.py
 	@echo "[$@]"
-	./isel_tab.py gen_c <$@ > $@.tmp
+	$(PYPY) ./isel_tab.py gen_c <$@ > $@.tmp
 	@mv $@.tmp $@
 
 isel_gen.h: isel_tab.py
 	@echo "[$@]"
-	./isel_tab.py gen_h <$@ > $@.tmp
+	$(PYPY) ./isel_tab.py gen_h <$@ > $@.tmp
 	@mv $@.tmp $@
 
 isel_test_c: isel_gen.h isel_gen.cc
