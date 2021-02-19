@@ -135,8 +135,19 @@ def GetStructOffset(struct: c_ast.Struct, field: c_ast.ID, meta_info):
     assert False, f"GetStructOffset unknown field {struct} {field}"
 
 
-def SizeOfAndAlignmentUnion(node: c_ast.Union, _meta_info):
-    assert False, f"SizeOfAndAlignmentUnion {node}"
+def SizeOfAndAlignmentUnion(struct: c_ast.Union, meta_info):
+    if struct.decls is None:
+        struct = meta_info.struct_links[struct]
+    alignment = 1
+    size = 0
+    for f in struct.decls:
+        s, a = SizeOfAndAlignment(f.type, meta_info)
+        if a > alignment:
+            alignment = a
+        if s > size:
+            size = s
+    #assert False, f"SizeOfAndAlignmentUnion {struct}"
+    return size, alignment
 
 
 def SizeOfAndAlignment(node, meta_info):
@@ -368,7 +379,7 @@ def EmitInitData(init: c_ast.InitList, type_decl):
         assert isinstance(v, c_ast.Constant)
         assert v.type == "int"
         values.append(str(ExtractNumber(v.value)))
-    assert isinstance(type_decl, c_ast.ArrayDecl)
+    assert isinstance(type_decl, c_ast.ArrayDecl), f"unexpected initializer {type_decl}"
     scalar = ScalarDeclType(type_decl.type)
     assert scalar in {"S8", "U8"}
     dim = ExtractNumber(type_decl.dim.value)
@@ -482,7 +493,7 @@ def HandleSwitch(node: c_ast.Switch, meta_info, node_value, id_gen):
     for s in node.stmt:
         if isinstance(s, c_ast.Case):
             val = ExtractNumber(s.expr.value)
-            assert val >= 0
+            assert val >= 0, f"switch over signed data not implemented"
             if max_val < val:
                 max_val = val
             block = label + str(val).replace("-", "minus")
@@ -577,7 +588,8 @@ BIN_OP_MAP = {
 }
 
 
-def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value, _id_gen: common.UniqueId):
+def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value,
+                _id_gen: common.UniqueId):
     node_kind = meta_info.type_links[node]
     assert node.op in BIN_OP_MAP, node.op
     left = node_value[node.left]
@@ -723,7 +735,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
                 f"{TAB}sub {tmp}:{StringifyType(kind)} = 0  {node_value[node.expr]}")
             node_value[node] = tmp
         else:
-            assert False, node
+            assert False, f"post inc/dec not yet supported:\n{node}"
             # tmp = GetTmp(meta_info.type_links[node])
             # print(TAB, tmp, "=", node.op, node_value[node.expr])
         node_value[node] = tmp
@@ -763,9 +775,11 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         pass
     elif isinstance(node, c_ast.ExprList):
         node_value[node] = node_value[node.exprs[-1]]
-    elif isinstance(node, (c_ast.TypeDecl, c_ast.PtrDecl, c_ast.ArrayDecl, c_ast.FuncDecl, c_ast.Typename)):
+    elif isinstance(node, (
+    c_ast.TypeDecl, c_ast.PtrDecl, c_ast.ArrayDecl, c_ast.FuncDecl, c_ast.Typename)):
         pass
-    elif isinstance(node, (c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
+    elif isinstance(node, (
+    c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
         pass
     else:
         assert False, node
@@ -774,11 +788,11 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
 def main(argv):
     global TYPE_TRANSLATION
     mode = argv.pop(0)
-    assert  mode in {"32", "64"}
+    assert mode in {"32", "64"}
     if mode == "32":
         TYPE_TRANSLATION = TYPE_TRANSLATION_32
     else:
-         TYPE_TRANSLATION = TYPE_TRANSLATION_64
+        TYPE_TRANSLATION = TYPE_TRANSLATION_64
     for filename in argv:
         print("#" * 60)
         print("#", filename)

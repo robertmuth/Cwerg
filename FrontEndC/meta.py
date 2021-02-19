@@ -360,7 +360,7 @@ def _GetFieldRefTypeAndUpdateSymbolLink(node: c_ast.StructRef, sym_links, struct
     struct = type_tab.links[node.name]
     if isinstance(struct, c_ast.TypeDecl):
         struct = struct.type
-    assert isinstance(struct, (c_ast.Struct, c_ast.Union)), struct
+    assert isinstance(struct, (c_ast.Struct, c_ast.Union)), f"expected union or struct:\n {struct}"
     struct = struct_links[struct]
 
     field = node.field
@@ -498,7 +498,7 @@ class MetaInfo:
 if __name__ == "__main__":
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
 
     def process(filename):
         ast = parse_file(filename, use_cpp=True)
@@ -509,3 +509,4 @@ if __name__ == "__main__":
         print(filename)
         print("=" * 60)
         process(filename)
+    sys.exit(0)
