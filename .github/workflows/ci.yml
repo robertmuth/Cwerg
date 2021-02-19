@@ -58,4 +58,4 @@ jobs:
         PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make tests_github
     - name: Integration Tests
       run: |
-        PYPY=python3 CC=clang CXX=g++ MAKESILENT= make integration_tests
+        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make integration_tests
