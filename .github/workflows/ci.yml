@@ -35,7 +35,7 @@ jobs:
         pip install pycparser
     - name: Install Ubuntu Deps
       run: |
-        sudo apt-get install qemu-user-static libunwind-dev
+        sudo apt-get install qemu-user-static libunwind-dev gcc-multilib
     - name: Show Version Summary
       run: |
         uname -a
