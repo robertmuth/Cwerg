@@ -113,7 +113,7 @@ void FunPushargConversion(Fun fun) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIterReverse(bbl)) {
       if (InsOPC(ins) == OPC::PUSHARG) {
-        ASSERT(!parameter.empty(), "");
+        ASSERT(!parameter.empty(), "possible undefined fun call in " << Name(fun));
         Handle src = InsOperand(ins, 0);
         CpuReg cpu_reg = parameter.back();
         parameter.pop_back();

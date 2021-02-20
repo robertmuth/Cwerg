@@ -165,7 +165,7 @@ class FunArgState:
         elif ins.opcode.is_call():
             self.handle_call(ins, bbl, fun)
         else:
-            assert not self.push_args, (f"unprocessd pushargs in {fun.name}:{bbl.name}: "
+            assert not self.push_args, (f"unprocessed pushargs in {fun.name}:{bbl.name}: "
                                         f"{self.push_args} at {ins}")
 
 
