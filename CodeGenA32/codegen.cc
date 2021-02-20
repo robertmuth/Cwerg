@@ -21,7 +21,7 @@ void JtbCodeGen(Jtb jtb, std::ostream* output) {
   for (Jen jen : JtbJenIter(jtb)) {
     table[JenPos(jen)] = JenBbl(jen);
   }
-  *output << ".mem " << Name(jtb) << " 4 rodata\n";
+  *output << ".localmem " << Name(jtb) << " 4 rodata\n";
   for (Bbl bbl : table) {
     *output << "    .addr.bbl 4 " << Name(bbl) << "\n";
   }
@@ -129,7 +129,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   for (Mem mem : UnitMemIter(unit)) {
     if (MemKind(mem) == MEM_KIND::EXTERN) continue;
     out.MemStart(StrData(Name(mem)), MemAlignment(mem),
-                 MemKindToSectionName(MemKind(mem)));
+                 MemKindToSectionName(MemKind(mem)), false);
     for (Data data : MemDataIter(mem)) {
       uint32_t size = DataSize(data);
       Handle target = DataTarget(data);
@@ -161,7 +161,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       for (Jen jen : JtbJenIter(jtb)) {
         table[JenPos(jen)] = JenBbl(jen);
       }
-      out.MemStart(StrData(Name(jtb)), 4, "rodata");
+      out.MemStart(StrData(Name(jtb)), 4, "rodata", true);
       for (Bbl bbl : table) {
         out.AddBblAddr(4, StrData(Name(bbl)));
       }

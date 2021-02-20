@@ -1191,6 +1191,7 @@ class Ins:
     reloc_symbol: str = ""
     reloc_kind: int = 0
     reloc_pos = 0
+    is_local_sym = False
 
 
 def Disassemble(data: int) -> Optional[Ins]:

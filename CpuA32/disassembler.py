@@ -173,13 +173,16 @@ def RenderInstructionStd(ins: arm.Ins) -> str:
 
 def _EmitReloc(ins: arm.Ins, pos: int) -> str:
     if ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.JUMP24:
+        assert ins.is_local_sym, f"expected local symbol"
         return f"expr:jump24:{ins.reloc_symbol}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.MOVT_ABS:
+        loc = "loc_" if ins.is_local_sym  else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
-        return f"expr:movt_abs:{ins.reloc_symbol}{offset}"
+        return f"expr:{loc}movt_abs:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC:
+        loc = "loc_" if ins.is_local_sym  else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
-        return f"expr:movw_abs_nc:{ins.reloc_symbol}{offset}"
+        return f"expr:{loc}movw_abs_nc:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.CALL:
         return f"expr:call:{ins.reloc_symbol}"
     else:
@@ -265,6 +268,11 @@ def InsParse(mnemonic, token: List[str]) -> arm.Ins:
             rel_token = t.split(":")
             if len(rel_token) == 3:
                 rel_token.append("0")
+            if rel_token[1] == "jump24":
+                ins.is_local_sym = True
+            if rel_token[1].startswith("loc_"):
+                ins.is_local_sym = True
+                rel_token[1] = rel_token[1][4:]
             ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
             ins.reloc_pos = pos
             ins.reloc_symbol = rel_token[2]

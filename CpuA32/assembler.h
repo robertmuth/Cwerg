@@ -37,7 +37,7 @@ struct Unit {
 
   void MemStart(std::string_view name,
                 unsigned alignment,
-                std::string_view kind);
+                std::string_view kind, bool is_local);
   void AddData(unsigned repeats, const void* data, size_t len);
   void AddFunAddr(unsigned size, std::string_view fun_name);
   void AddBblAddr(unsigned size, std::string_view bbl_name);

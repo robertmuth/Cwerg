@@ -2981,10 +2981,12 @@ void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
   switch (op) {
     case PARAM::bbl0:
       armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
+      armins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 0)));
       break;
     case PARAM::bbl2:
       armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
+      armins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 2)));
       break;
     case PARAM::fun0:
@@ -3011,10 +3013,12 @@ void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
       break;
     case PARAM::jtb1_lo16:
       armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+      armins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
     case PARAM::jtb1_hi16:
       armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+      armins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
     default:

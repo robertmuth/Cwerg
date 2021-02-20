@@ -69,9 +69,12 @@ Symbol<uint32_t>* Unit::AddSymbol(std::string_view name,
     (*the_map)[name] = sym;
     return sym;
   }
-  ASSERT(sec != nullptr && sym->section == nullptr, "");
-  sym->section = sec;
-  sym->sym.st_value = sec->data->size();
+  if (sec != nullptr) {
+    ASSERT(sym->section == nullptr,
+           "Symbol " << name << " already has sec local:" << is_local);
+    sym->section = sec;
+    sym->sym.st_value = sec->data->size();
+  }
   return sym;
 }
 
@@ -90,7 +93,8 @@ void Unit::FunEnd() {
 
 void Unit::MemStart(std::string_view name,
                     unsigned alignment,
-                    std::string_view kind) {
+                    std::string_view kind,
+                    bool is_local) {
   ASSERT(current_mem_sec == nullptr, "");
   if (kind == "rodata") {
     current_mem_sec = sec_rodata;
@@ -102,7 +106,7 @@ void Unit::MemStart(std::string_view name,
     ASSERT(false, "bad mem kind " << kind);
   }
   current_mem_sec->PadData(alignment, padding_zero);
-  AddSymbol(name, current_mem_sec, false);
+  AddSymbol(name, current_mem_sec, is_local);
 }
 
 void Unit::MemEnd() {
@@ -152,8 +156,8 @@ void Unit::AddLabel(std::string_view name, unsigned alignment) {
 
 void Unit::AddIns(Ins* ins) {
   if (ins->has_reloc()) {
-    const elf::Symbol<uint32_t>* sym = FindOrAddSymbol(
-        ins->reloc_symbol, ins->reloc_kind == elf::RELOC_TYPE_ARM::JUMP24);
+    const elf::Symbol<uint32_t>* sym =
+        FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
     AddReloc(ins->reloc_kind, sec_text, sym, ins->operands[ins->reloc_pos]);
     ins->clear_reloc();
   }
@@ -205,7 +209,10 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
     unit->FunEnd();
   } else if (mnemonic == ".mem") {
     ASSERT(token.size() == 4, "");
-    unit->MemStart(token[1], ParseInt<uint32_t>(token[2]).value(), token[3]);
+    unit->MemStart(token[1], ParseInt<uint32_t>(token[2]).value(), token[3],
+                   false);
+  } else if (mnemonic == ".localmem") {
+    ASSERT(token.size() == 4, "");
   } else if (mnemonic == ".endmem") {
     unit->MemEnd();
   } else if (mnemonic == ".data") {
@@ -265,12 +272,19 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
     ins->reloc_kind = RELOC_TYPE_ARM::ABS32;
   } else if (kind_name == "jump24") {
     ins->reloc_kind = RELOC_TYPE_ARM::JUMP24;
+    ins->is_local_sym = true;
   } else if (kind_name == "call") {
     ins->reloc_kind = RELOC_TYPE_ARM::CALL;
   } else if (kind_name == "movw_abs_nc") {
     ins->reloc_kind = RELOC_TYPE_ARM::MOVW_ABS_NC;
   } else if (kind_name == "movt_abs") {
     ins->reloc_kind = RELOC_TYPE_ARM::MOVT_ABS;
+  } else if (kind_name == "loc_movw_abs_nc") {
+    ins->reloc_kind = RELOC_TYPE_ARM::MOVW_ABS_NC;
+    ins->is_local_sym = true;
+  } else if (kind_name == "loc_movt_abs") {
+    ins->reloc_kind = RELOC_TYPE_ARM::MOVT_ABS;
+    ins->is_local_sym = true;
   } else {
     return false;
   }
@@ -406,9 +420,8 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);
       return;
   }
-  std::cout << "PATCH INS " << rel.rel.r_type
-            << " " << std::hex << rel.rel.r_offset << " "
-            << sym_val << " " << old_data << " "
+  std::cout << "PATCH INS " << rel.rel.r_type << " " << std::hex
+            << rel.rel.r_offset << " " << sym_val << " " << old_data << " "
             << new_data << std::dec << " " << rel.symbol->name << "\n";
   *(uint32_t*)patch_addr = new_data;
 }

@@ -484,7 +484,7 @@ struct Ins {
   std::string_view reloc_symbol;
   elf::RELOC_TYPE_ARM reloc_kind = elf::RELOC_TYPE_ARM::NONE;
   uint8_t reloc_pos;  // index into  operands
-
+  bool is_local_sym = false;
   bool has_reloc() const { return reloc_kind != elf::RELOC_TYPE_ARM::NONE; }
 
   void clear_reloc() {

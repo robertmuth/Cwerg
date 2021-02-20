@@ -80,7 +80,7 @@ def _MemCodeGenArm32(mem: ir.Mem, _mod: ir.Unit) -> List[str]:
 
 
 def _JtbCodeGen(jtb: ir.Jtb):
-    out = [f".mem {jtb.name} 4 rodata"]
+    out = [f".localmem {jtb.name} 4 rodata"]
     for i in range(jtb.size):
         bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
         out.append(f"    .addr.bbl 4 {bbl.name}")
@@ -179,7 +179,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
     for mem in unit.mems:
         if mem.kind == o.MEM_KIND.EXTERN:
             continue
-        armunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind])
+        armunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
                 armunit.AddData(d.count, d.data)
@@ -195,7 +195,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
     for fun in unit.funs:
         armunit.FunStart(fun.name, 16)
         for jtb in fun.jtbs:
-            armunit.MemStart(jtb.name, 4, "rodata")
+            armunit.MemStart(jtb.name, 4, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
                 armunit.AddBblAddr(4, bbl.name)
@@ -206,7 +206,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
         def AppendArmIns(armins: arm.Ins):
             if armins.reloc_kind != enum_tab.RELOC_TYPE_ARM.NONE:
                 sym = armunit.FindOrAddSymbol(armins.reloc_symbol,
-                                              armins.reloc_kind is enum_tab.RELOC_TYPE_ARM.JUMP24)
+                                              armins.is_local_sym)
                 armunit.AddReloc(armins.reloc_kind, sec_text, sym,
                                  armins.operands[armins.reloc_pos])
                 # clear reloc info before proceeding

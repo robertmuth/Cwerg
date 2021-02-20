@@ -57,12 +57,12 @@ class Unit:
             self.symbols.append(sym)
             the_map[name] = sym
             return sym
-        else:
+        elif sec is not None:
             # the symbol was forward declared and now we are filling in the missing info
-            assert sec is not None and sym.is_undefined(), f"{sym} already defined"
+            assert sym.is_undefined(), f"{sym} already defined"
             sym.section = sec
             sym.st_value = len(sec.data)
-            return sym
+        return sym
 
     def FindOrAddSymbol(self, name, is_local) -> elf.Symbol:
         the_map = self.local_symbol_map if is_local else self.global_symbol_map
@@ -88,7 +88,7 @@ class Unit:
         self.current_fun = None
         self.local_symbol_map.clear()
 
-    def MemStart(self, name: str, alignment: int, kind: str):
+    def MemStart(self, name: str, alignment: int, kind: str, is_local_sym):
         assert self.mem_sec is None
         if kind == "rodata":
             self.mem_sec = self.sec_rodata
@@ -99,7 +99,7 @@ class Unit:
         else:
             assert False, f"bad mem kind {kind}"
         self.mem_sec.PadData(alignment, ZERO_BYTE)
-        self.AddSymbol(name, self.mem_sec, False)
+        self.AddSymbol(name, self.mem_sec, is_local_sym)
 
     def MemEnd(self):
         assert self.mem_sec is not None
@@ -139,8 +139,7 @@ class Unit:
 
     def AddIns(self, ins: arm.Ins):
         if ins.reloc_kind != elf_enum.RELOC_TYPE_ARM.NONE:
-            sym = self.FindOrAddSymbol(ins.reloc_symbol,
-                                       ins.reloc_kind is elf_enum.RELOC_TYPE_ARM.JUMP24)
+            sym = self.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
             self.AddReloc(ins.reloc_kind, self.sec_text, sym, ins.operands[ins.reloc_pos])
             # clear reloc info before proceeding
             ins.reloc_kind = elf_enum.RELOC_TYPE_ARM.NONE
@@ -213,7 +212,8 @@ def UnitParse(fin, add_startup_code) -> Unit:
     dir_handlers = {
         ".fun": lambda x, y: unit.FunStart(x, int(y, 0)),
         ".endfun": unit.FunEnd,
-        ".mem": lambda x, y, z: unit.MemStart(x, int(y, 0), z),
+        ".mem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, False),
+        ".localmem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, True),
         ".endmem": unit.MemEnd,
         ".data": lambda x, y: unit.AddData(int(x, 0),
                                            parse.QuotedEscapedStringToBytes(y)),

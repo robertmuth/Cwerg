@@ -269,6 +269,7 @@ def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
         armins.operands[pos] = num.value
     elif op in {PARAM.jtb1_lo16, PARAM.jtb1_hi16}:
         armins.reloc_kind = movt_or_movw_rel(op is PARAM.jtb1_lo16)
+        armins.is_local_sym = True
         jtb = ins.operands[1]
         assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
         armins.reloc_symbol = jtb.name
@@ -279,11 +280,13 @@ def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
         armins.reloc_symbol = fun.name
     elif op is PARAM.bbl0:
         armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.JUMP24
+        armins.is_local_sym = True
         bbl = ins.operands[0]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
         armins.reloc_symbol = bbl.name
     elif op is PARAM.bbl2:
         armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.JUMP24
+        armins.is_local_sym = True
         bbl = ins.operands[2]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
         armins.reloc_symbol = bbl.name

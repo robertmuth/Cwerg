@@ -4,17 +4,17 @@
 #include "Util/assert.h"
 
 #include <stdio.h>
-#include <string_view>
 #include <cstring>
+#include <string_view>
 
 namespace cwerg {
 namespace a32 {
 
-const char* kPredicates[] = {             //
+const char* kPredicates[] = {                        //
     "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",  //
     "hi", "ls", "ge", "lt", "gt", "le", "al", "@@"};
 
-const char* kArmRegNames[] = {            //
+const char* kArmRegNames[] = {                       //
     "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",  //
     "r8", "r9", "sl", "fp", "ip", "sp", "lr", "pc"};
 
@@ -130,7 +130,7 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::IMM_7_11:
     case OK::IMM_0_23:
     case OK::IMM_ZERO:
-      sprintf(buffer, "%u", (uint32_t) x);
+      sprintf(buffer, "%u", (uint32_t)x);
       return;
     case OK::SIMM_0_23:
       sprintf(buffer, "%d", x);
@@ -333,6 +333,7 @@ void RenderInsSystematic(const Ins& ins, char buffer[128]) {
     if (ins.reloc_kind != elf::RELOC_TYPE_ARM::NONE && i == ins.reloc_pos) {
       switch (ins.reloc_kind) {
         case elf::RELOC_TYPE_ARM::JUMP24:
+          ASSERT(ins.is_local_sym, "");
           buffer = strappend(buffer, "expr:jump24:");
           buffer = strappend(buffer, ins.reloc_symbol);
           break;
@@ -341,11 +342,13 @@ void RenderInsSystematic(const Ins& ins, char buffer[128]) {
           buffer = strappend(buffer, ins.reloc_symbol);
           break;
         case elf::RELOC_TYPE_ARM::MOVT_ABS:
-          buffer = strappend(buffer, "expr:movt_abs:");
+          buffer = strappend(buffer, ins.is_local_sym ? "expr:loc_movt_abs:"
+                                                      : "expr:movt_abs:");
           buffer = strappend(buffer, ins.reloc_symbol);
           break;
         case elf::RELOC_TYPE_ARM::MOVW_ABS_NC:
-          buffer = strappend(buffer, "expr:movw_abs_nc:");
+          buffer = strappend(buffer, ins.is_local_sym ? "expr:loc_movw_abs_nc:"
+                                                      : "expr:movw_abs_nc:");
           buffer = strappend(buffer, ins.reloc_symbol);
 
           break;
