@@ -862,6 +862,7 @@ struct FunBblList {
   static ITEM& Prev(ITEM x) { return gBblCore[x].prev; }
   static ITEM& Tail(CONT y) { return gFunCore[y].bbl_tail; }
   static ITEM& Head(CONT y) { return gFunCore[y].bbl_head; }
+  static bool IsEmpty(CONT y) { return IsSentinel(Head(y)); }
 };
 
 #define FunBblInsertBefore ListInsertBefore<FunBblList>

@@ -94,6 +94,8 @@ def _CheckIns(ins, fun, unit):
             assert op.name in fun.reg_syms, f"{ins} {op} {fun.reg_syms}"
         elif isinstance(op, ir.Fun):
             assert ot is o.OP_KIND.FUN
+            assert (op.kind in {o.FUN_KIND.BUILTIN, o.FUN_KIND.SIGNATURE} or
+                    op.bbls), f"undefined call to {op.name} in {fun.name}"
             if unit:
                 assert op.name in unit.fun_syms
         elif isinstance(op, ir.Bbl):
@@ -190,7 +192,7 @@ def FunCheck(fun: ir.Fun, unit: Optional[ir.Unit], check_cfg=True,
     fun_arg_state = FunArgState(fun)
     for bbl in fun.bbls:
         for ins in bbl.inss:
+            _CheckIns(ins, fun, unit)
             if check_push_pop:
                 fun_arg_state.check_ins(ins, bbl, fun)
 
-            _CheckIns(ins, fun, unit)

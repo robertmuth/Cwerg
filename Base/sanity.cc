@@ -1,5 +1,6 @@
 #include "Base/sanity.h"
 #include "Base/serialize.h"
+#include "Base/cfg.h"
 
 #include <set>
 
@@ -29,6 +30,13 @@ void BblCheck(Bbl bbl, Fun fun) {
         BblRenderToAsm(bbl, fun, &std::cout);
         ASSERT(false, "bbl corruption in " << Name(fun) << " at pos " << count);
       }
+    }
+
+    if (InsOpcode(ins).IsCall()) {
+        Fun callee = InsCallee(ins);
+        ASSERT(FunKind(callee) ==  FUN_KIND::BUILTIN ||
+        FunKind(callee) == FUN_KIND::SIGNATURE || !FunBblList::IsEmpty(callee),
+        "undefined function " << Name(callee) << " in " << Name(fun));
     }
     ++count;
   }
