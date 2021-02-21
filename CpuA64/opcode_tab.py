@@ -470,11 +470,18 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
 
-    for s_ext, sr_update, s_bit in [("", SR_UPDATE.NONE, (1, 0, 29)),
-                                    ("s", SR_UPDATE.NZ, (1, 1, 29))]:
-        for name, bits in [("add", (1, 0, 30)), ("sub", (1, 1, 30))]:
-            Opcode(name + s_ext, "reg_" + w_ext, [root010, w_bit, s_bit, bits, (1, 0, 21), (3, 3, 24)],
-                   [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
+    for name, bits, sr_update in [
+        ("add", [(3, 0, 29), (3, 3, 24)], SR_UPDATE.NONE),
+        ("adds", [(3, 1, 29), (3, 3, 24)], SR_UPDATE.NZ),
+        ("and", [(3, 0, 29), (3, 2, 24)], SR_UPDATE.NONE),
+        ("ands", [(3, 3, 29), (3, 2, 24)], SR_UPDATE.NZ),
+        ("sub", [(3, 2, 29), (3, 3, 24)], SR_UPDATE.NONE),
+        ("subs", [(3, 3, 29), (3, 3, 24)], SR_UPDATE.NZ),
+        ("orr", [(3, 1, 29), (3, 2, 24)], SR_UPDATE.NONE),
+
+    ]:
+        Opcode(name, "reg_" + w_ext, [root010, w_bit, (1, 0, 21)] + bits,
+               [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
 
 ########################################
 root100 = (7, 4, 26)
@@ -484,11 +491,15 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
 
-    for s_ext, sr_update, s_bit in [("", SR_UPDATE.NONE, (1, 0, 29)),
-                                    ("s", SR_UPDATE.NZ, (1, 1, 29))]:
-        for name, bits in [("add", (1, 0, 30)), ("sub", (1, 1, 30))]:
-            Opcode(name + s_ext, "imm_" + w_ext, [root100, w_bit, s_bit, bits, (3, 1, 24)],
-                   [dst_reg, src1_reg, OK.IMM_10_21_22_23], w_flag, sr_update=sr_update)
+    for name, bits, sr_update in [
+        ("add", [(3, 0, 29), (3, 1, 24)], SR_UPDATE.NONE),
+        ("adds", [(3, 1, 29), (3, 1, 24)], SR_UPDATE.NZ),
+        ("sub", [(3, 2, 29), (3, 1, 24)], SR_UPDATE.NONE),
+        ("subs", [(3, 3, 29), (3, 1, 24)], SR_UPDATE.NZ),
+
+    ]:
+        Opcode(name, "imm_" + w_ext, [root100, w_bit] + bits,
+               [dst_reg, src1_reg, OK.IMM_10_21_22_23], w_flag, sr_update=sr_update)
 
 
 class Ins:
