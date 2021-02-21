@@ -120,10 +120,8 @@ class OK(enum.Enum):
     IMM_10_21_22_23 = 22
     IMM_10_15 = 23
 
-
     # shifts
     SHIFT_22_23 = 30
-
 
 
 ############################################################
@@ -204,7 +202,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
- OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
+    OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
 }
 
 # merge all dicts from above
@@ -364,14 +362,6 @@ class MEM_WIDTH(enum.Enum):
     Variable = 6
 
 
-# All instruction contain this discriminant in their mask so we can use
-# it to partition the instructions.
-# Bit 0x00100000 is another candidate bit we would need an exception
-# for svc, b, bl
-_INS_CLASSIFIER: int = 0x0e000000
-
-# _INS_MAGIC_CLASSIFIER: int = 0x0ff00000  # needs more work
-
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
 
 # We use the notion of variant to disambiguate opcodes with the same mnemonic
@@ -393,7 +383,7 @@ class Opcode:
     # _INS_CLASSIFIER
     # For FindOpcode to work the more specific patterns must precede
     # the less specific ones
-    ordered_opcodes: Dict[int, List['Opcode']] = collections.defaultdict(list)
+    ordered_opcodes: List[List['Opcode']] = [[]] * 256
 
     def __init__(self, name: str, variant: str,
                  bits: List[Tuple[int, int, int]],
@@ -409,6 +399,10 @@ class Opcode:
             assert f in FIELD_DETAILS, f"miss field to mask entry {f}"
 
         assert len(fields) <= MAX_OPERANDS
+
+        bit_mask, bit_value = Bits(*bits)
+        self.bit_mask = bit_mask
+        self.bit_value = bit_value
 
         all_bits = bits[:]
         for f in fields:
@@ -427,13 +421,10 @@ class Opcode:
 
         mask, value = Bits(*bits)
 
-        # this ensures that we could split up ordered_opcodes
-        # by certain bits
-        assert mask & _INS_CLASSIFIER == _INS_CLASSIFIER, f"{name}"
+        assert (bit_mask >> 24) == 0xff, f"bad{name}"
 
-        Opcode.ordered_opcodes[value & _INS_CLASSIFIER].append(self)
-        self.bit_mask = mask
-        self.bit_value = value
+        Opcode.ordered_opcodes[bit_value >> 24].append(self)
+
         self.fields: List[OK] = fields
         self.classes: OPC_FLAG = classes
         self.sr_update = sr_update
@@ -441,9 +432,6 @@ class Opcode:
 
     def __lt__(self, other):
         return (self.name, self.variant) < (other.name, other.variant)
-
-    def HasPred(self):
-        return self.fields[0] == OK.PRED_28_31
 
     def NameForEnum(self):
         name = self.name
@@ -468,11 +456,25 @@ class Opcode:
 
     @classmethod
     def FindOpcode(cls, data: int) -> Optional["Opcode"]:
-        for opcode in Opcode.ordered_opcodes[data & _INS_CLASSIFIER]:
+        for opcode in Opcode.ordered_opcodes[data >> 24]:
             if data & opcode.bit_mask == opcode.bit_value:
                 return opcode
         return None
 
+
+########################################
+root010 = (7, 2, 26)
+########################################
+for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, (1, 0, 31))]:
+    dst_reg = OK.XREG_0_4 if w_bit else OK.WREG_0_4
+    src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
+    src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
+
+    for s_ext, sr_update, s_bit in [("", SR_UPDATE.NONE, (1, 0, 29)),
+                                    ("s", SR_UPDATE.NZ, (1, 1, 29))]:
+        for name, bits in [("add", (1, 0, 30)), ("sub", (1, 1, 30))]:
+            Opcode(name + s_ext, "reg_" + w_ext, [root010, w_bit, s_bit, bits, (1, 0, 21), (3, 3, 24)],
+                   [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
 
 ########################################
 root100 = (7, 4, 26)
@@ -487,10 +489,6 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         for name, bits in [("add", (1, 0, 30)), ("sub", (1, 1, 30))]:
             Opcode(name + s_ext, "imm_" + w_ext, [root100, w_bit, s_bit, bits, (3, 1, 24)],
                    [dst_reg, src1_reg, OK.IMM_10_21_22_23], w_flag, sr_update=sr_update)
-
-        for name, bits in [("add", (1, 0, 30)), ("sub", (1, 1, 30))]:
-            Opcode(name + s_ext, "reg_" + w_ext, [root100, w_bit, s_bit, bits, (1, 0, 21), (3, 3, 24)],
-                   [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
 
 
 class Ins:
