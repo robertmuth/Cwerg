@@ -21,6 +21,8 @@ ALIASES = {
     "negs": "subs",
     "tst": "ands",
     "mov": "orr",
+    "mul": "madd",
+    "mneg": "msub",
 }
 
 

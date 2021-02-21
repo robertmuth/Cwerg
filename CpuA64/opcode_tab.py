@@ -108,11 +108,13 @@ class OK(enum.Enum):
     # registers
     WREG_0_4 = 1
     WREG_5_9 = 2
-    WREG_16_20 = 3
+    WREG_10_14 = 3
+    WREG_16_20 = 4
 
-    XREG_0_4 = 4
-    XREG_5_9 = 5
-    XREG_16_20 = 6
+    XREG_0_4 = 5
+    XREG_5_9 = 6
+    XREG_10_14 = 7
+    XREG_16_20 = 8
 
     # immediates
     IMM_5_23 = 20
@@ -187,10 +189,12 @@ BIT_RANGE = Tuple[BRK, int, int]
 FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.WREG_0_4: [(BRK.Verbatim, 5, 0)],
     OK.WREG_5_9: [(BRK.Verbatim, 5, 5)],
+    OK.WREG_10_14: [(BRK.Verbatim, 5, 10)],
     OK.WREG_16_20: [(BRK.Verbatim, 5, 16)],
     #
     OK.XREG_0_4: [(BRK.Verbatim, 5, 0)],
     OK.XREG_5_9: [(BRK.Verbatim, 5, 5)],
+    OK.XREG_10_14: [(BRK.Verbatim, 5, 10)],
     OK.XREG_16_20: [(BRK.Verbatim, 5, 16)],
 }
 
@@ -370,6 +374,8 @@ _VARIANTS = {
     "imm_64",
     "reg_32",
     "reg_64",
+    "32",
+    "64",
 }
 
 
@@ -471,16 +477,17 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
 
     for name, bits, sr_update in [
-        ("add", [(3, 0, 29), (3, 3, 24)], SR_UPDATE.NONE),
-        ("adds", [(3, 1, 29), (3, 3, 24)], SR_UPDATE.NZ),
-        ("and", [(3, 0, 29), (3, 2, 24)], SR_UPDATE.NONE),
-        ("ands", [(3, 3, 29), (3, 2, 24)], SR_UPDATE.NZ),
-        ("sub", [(3, 2, 29), (3, 3, 24)], SR_UPDATE.NONE),
-        ("subs", [(3, 3, 29), (3, 3, 24)], SR_UPDATE.NZ),
-        ("orr", [(3, 1, 29), (3, 2, 24)], SR_UPDATE.NONE),
-
+        ("add", [(3, 0, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NONE),
+        ("adds", [(3, 1, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NZ),
+        ("and", [(3, 0, 29), (3, 2, 24), (1, 0, 21)], SR_UPDATE.NONE),
+        ("ands", [(3, 3, 29), (3, 2, 24), (1, 0, 21)], SR_UPDATE.NZ),
+        ("bic", [(3, 0, 29), (3, 2, 24), (1, 1, 21)], SR_UPDATE.NONE),
+        ("bics", [(3, 3, 29), (3, 2, 24), (1, 1, 21)], SR_UPDATE.NZ),
+        ("sub", [(3, 2, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NONE),
+        ("subs", [(3, 3, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NZ),
+        ("orr", [(3, 1, 29), (3, 2, 24), (1, 0, 21)], SR_UPDATE.NONE),
     ]:
-        Opcode(name, "reg_" + w_ext, [root010, w_bit, (1, 0, 21)] + bits,
+        Opcode(name, "reg_" + w_ext, [root010, w_bit] + bits,
                [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
 
 ########################################
@@ -501,6 +508,21 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         Opcode(name, "imm_" + w_ext, [root100, w_bit] + bits,
                [dst_reg, src1_reg, OK.IMM_10_21_22_23], w_flag, sr_update=sr_update)
 
+########################################
+root110 = (7, 6, 26)
+########################################
+for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, (1, 0, 31))]:
+    dst_reg = OK.XREG_0_4 if w_bit else OK.WREG_0_4
+    src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
+    src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
+    src3_reg = OK.XREG_10_14 if w_bit else OK.WREG_10_14
+
+    for name, bits, sr_update in [
+        ("madd", [(3, 0, 29), (3, 3, 24), (1, 0, 15)], SR_UPDATE.NONE),
+        ("msub", [(3, 0, 29), (3, 3, 24), (1, 1, 15)], SR_UPDATE.NONE),
+    ]:
+        Opcode(name, w_ext, [root110, w_bit, (7, 0, 21)] + bits,
+               [dst_reg, src1_reg, src3_reg, src2_reg], w_flag, sr_update=sr_update)
 
 class Ins:
     """Arm flavor of an Instruction
