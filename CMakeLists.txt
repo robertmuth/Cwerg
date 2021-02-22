@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Cwerg)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -pg")
+set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g")
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 # The "whole-archive" dance is necessary for using std::condition_variable
 # with static linking, see
