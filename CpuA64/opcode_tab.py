@@ -116,19 +116,21 @@ class OK(enum.Enum):
     XREG_10_14 = 7
     XREG_16_20 = 8
 
-    # immediates
+    # unsigned immediates
     IMM_5_23 = 20
     IMM_10_21 = 21
     IMM_10_21_22_23 = 22
     IMM_10_15 = 23
     IMM_12_20 = 24
-    SIMM_12_20 = 25
+
     IMM_10_21_times_2 = 26
     IMM_10_21_times_4 = 27
     IMM_10_21_times_8 = 28
-
+    # signed immeditate
+    SIMM_0_25 = 30
+    SIMM_12_20 = 31
     # shifts
-    SHIFT_22_23 = 30
+    SHIFT_22_23 = 40
 
 
 ############################################################
@@ -214,7 +216,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_21_22_23: [(BRK.Verbatim, 14, 10)],
     OK.IMM_12_20: [(BRK.Verbatim, 9, 12)],
     OK.SIMM_12_20: [(BRK.Verbatim, 9, 12)],
-
+    OK.SIMM_0_25: [(BRK.Verbatim, 26, 0)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
@@ -382,6 +384,7 @@ _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
 
 # We use the notion of variant to disambiguate opcodes with the same mnemonic
 _VARIANTS = {
+    "",
     "imm",
     "imm_32",
     "imm_64",
@@ -446,9 +449,13 @@ class Opcode:
 
         mask, value = Bits(*bits)
 
-        assert (bit_mask >> 24) == 0xff, f"bad{name}"
-
-        Opcode.ordered_opcodes[bit_value >> 24].append(self)
+        if (bit_mask >> 24) == 0xff:
+            Opcode.ordered_opcodes[bit_value >> 24].append(self)
+        else:
+            m = ~(bit_mask >> 24)
+            dont_care = set((m & x) for x in range(256))
+            for dc in dont_care:
+                Opcode.ordered_opcodes[m | dc].append(self)
 
         self.fields: List[OK] = fields
         self.classes: OPC_FLAG = classes
@@ -505,6 +512,10 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         ("sub", [(3, 2, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NONE),
         ("subs", [(3, 3, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NZ),
         ("orr", [(3, 1, 29), (3, 2, 24), (1, 0, 21)], SR_UPDATE.NONE),
+        ("orn", [(3, 1, 29), (3, 2, 24), (1, 1, 21)], SR_UPDATE.NONE),
+        ("eor", [(3, 2, 29), (3, 2, 24), (1, 0, 21)], SR_UPDATE.NONE),
+        ("eon", [(3, 2, 29), (3, 2, 24), (1, 1, 21)], SR_UPDATE.NONE),
+
     ]:
         Opcode(name, "reg_" + w_ext, [root010, w_bit] + bits,
                [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
@@ -526,6 +537,15 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     ]:
         Opcode(name, "imm_" + w_ext, [root100, w_bit] + bits,
                [dst_reg, src1_reg, OK.IMM_10_21_22_23], w_flag, sr_update=sr_update)
+########################################
+root101 = (7, 5, 26)
+########################################
+
+Opcode("b", "", [root101, (7, 0, 29)],
+       [OK.SIMM_0_25], OPC_FLAG(0))
+
+Opcode("bl", "", [root101, (7, 4, 29)],
+       [OK.SIMM_0_25], OPC_FLAG(0))
 
 ########################################
 root110 = (7, 6, 26)
