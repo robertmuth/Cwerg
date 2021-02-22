@@ -129,6 +129,7 @@ class OK(enum.Enum):
     # signed immeditate
     SIMM_0_25 = 30
     SIMM_12_20 = 31
+    SIMM_5_23 = 32
     # shifts
     SHIFT_22_23 = 40
 
@@ -213,6 +214,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_21_times_4: [(BRK.Verbatim, 12, 10)],
     OK.IMM_10_21_times_8: [(BRK.Verbatim, 12, 10)],
 
+    OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
     OK.IMM_10_21_22_23: [(BRK.Verbatim, 14, 10)],
     OK.IMM_12_20: [(BRK.Verbatim, 9, 12)],
     OK.SIMM_12_20: [(BRK.Verbatim, 9, 12)],
@@ -438,7 +440,7 @@ class Opcode:
                          for t in FIELD_DETAILS[f]]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
-        assert 0xffffffff == mask, f"instruction word not entirely covered {mask:08x}"
+        assert 0xffffffff == mask, f"instruction word not entirely covered {mask:08x}  {name}"
 
         self.name = name
         self.variant = variant
@@ -546,6 +548,11 @@ Opcode("b", "", [root101, (7, 0, 29)],
 
 Opcode("bl", "", [root101, (7, 4, 29)],
        [OK.SIMM_0_25], OPC_FLAG(0))
+
+for cond_val, cond_name  in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
+                                       "hi", "ls", "ge", "lt", "gt", "le"]):
+    Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
+       [OK.SIMM_5_23], OPC_FLAG(0))
 
 ########################################
 root110 = (7, 6, 26)
