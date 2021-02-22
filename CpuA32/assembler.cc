@@ -420,9 +420,11 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);
       return;
   }
+#if 0
   std::cout << "PATCH INS " << rel.rel.r_type << " " << std::hex
             << rel.rel.r_offset << " " << sym_val << " " << old_data << " "
             << new_data << std::dec << " " << rel.symbol->name << "\n";
+#endif
   *(uint32_t*)patch_addr = new_data;
 }
 
