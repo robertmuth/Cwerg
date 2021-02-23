@@ -118,6 +118,10 @@ nanojpeg_c: $(CODEGEN_TOOL)
 	md5sum  $@.ppm | sed -e "s/$@.ppm/nanojpeg.ppm/" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
 
+benchmark: $(CODEGEN_TOOL)
+	@echo "[$@]"
+	time $(CODEGEN_TOOL) -mode binary TestData/benchmark.asm $@.exe >$@.out
+
 TEST_MODE = normal
 #TEST_MODE = reg_alloc_local
 #TEST_MODE = reg_alloc_global

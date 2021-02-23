@@ -87,6 +87,10 @@ tests_cross:
 	cd TestQemu && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 	cd CpuA32 && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 
+
+benchmark:
+	cd CodeGenA32 && $(MAKE) -s benchmark && $(MAKE) -s clean
+
 #@ presumit - tests that should pass before any commit
 #@
 presubmit: lint tests format 
