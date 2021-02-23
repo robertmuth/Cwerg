@@ -25,9 +25,14 @@ ALIASES = {
     "mvn": {"orn"},
     "mul": {"madd"},
     "mneg": {"msub"},
+    "lsl": {"lslv"},
+    "lsr": {"lsrv"},
+    "asr": {"asrv"},
+
 }
 
 MISSED = collections.defaultdict(int)
+EXAMPLE = {}
 
 def HandleOneInstruction(count: int, line: str,
                          data: int,
@@ -40,6 +45,7 @@ def HandleOneInstruction(count: int, line: str,
         count_found += 1
         assert opcode.name in aliases, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
     else:
+        EXAMPLE[actual_name] = line
         MISSED[actual_name] += 1
 
 
@@ -62,7 +68,7 @@ def main(argv):
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
     for k, v in sorted(MISSED.items()):
-        print (f"{k}: {v}")
+        print (f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
 
 

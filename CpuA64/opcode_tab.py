@@ -138,14 +138,17 @@ class OK(enum.Enum):
     IMM_10_21_times_4 = 27
     IMM_10_21_times_8 = 28
     IMM_19_23_31 = 29
+    IMM_5_20 = 30
+
+
     # signed immeditate
-    SIMM_0_25 = 30
-    SIMM_12_20 = 31
-    SIMM_5_23 = 32
-    SIMM_5_18 = 33
+    SIMM_0_25 = 50
+    SIMM_12_20 = 51
+    SIMM_5_23 = 52
+    SIMM_5_18 = 53
 
     # shifts
-    SHIFT_22_23 = 40
+    SHIFT_22_23 = 60
 
 
 ############################################################
@@ -239,6 +242,8 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_21_times_8: [(BRK.Verbatim, 12, 10)],
     OK.IMM_10_15_16_22: [(BRK.Verbatim, 13, 10)],
     OK.IMM_19_23_31: [(BRK.Lo, 5, 19), (BRK.Hi, 1, 31)],
+    OK.IMM_5_20: [(BRK.Verbatim, 16, 5)],
+
 
     OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
     OK.IMM_10_21_22_23: [(BRK.Verbatim, 14, 10)],
@@ -570,12 +575,15 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     for name, bits, sr_update in [
         ("and", [(3, 0, 29), (7, 4, 23)], SR_UPDATE.NONE),
         ("ands", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
-        # ("bic", [(3, 2, 29), (7, 4, 23)], SR_UPDATE.NONE),
+        ("eor", [(3, 2, 29), (7, 4, 23)], SR_UPDATE.NONE),
+        ("orr", [(3, 1, 29), (7, 4, 23)], SR_UPDATE.NONE),
+        #("ubfx", [(3, 2, 29), (7, 6, 23)], SR_UPDATE.NONE),
         # ("bics", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
 
     ]:
         Opcode(name, "imm_" + w_ext, [root100, w_bit] + bits,
                [dst_reg, src1_reg, OK.IMM_10_15_16_22], w_flag, sr_update=sr_update)
+
 ########################################
 root101 = (7, 5, 26)
 ########################################
@@ -605,6 +613,14 @@ Opcode("tbz", "", [root101, (3, 1, 29), (3, 2, 24)],
 Opcode("tbnz", "", [root101, (3, 1, 29), (3, 3, 24)],
        [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG(0))
 
+Opcode("hlt", "", [root101, (7, 6, 29), (0x1f, 2, 21), (0x1f, 0, 0)],
+       [OK.IMM_5_20], OPC_FLAG(0))
+Opcode("brk", "", [root101, (7, 6, 29), (0x1f, 1, 21), (0x1f, 0, 0)],
+       [OK.IMM_5_20], OPC_FLAG(0))
+Opcode("svc", "", [root101, (7, 6, 29), (0x1f, 0, 21), (0x1f, 1, 0)],
+       [OK.IMM_5_20], OPC_FLAG(0))
+Opcode("yield", "", [root101, (7, 6, 29), (0x3ffffff, 0x103203f, 0)],
+       [], OPC_FLAG(0))
 ########################################
 root110 = (7, 6, 26)
 ########################################
@@ -620,6 +636,17 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     ]:
         Opcode(name, w_ext, [root110, w_bit, (7, 0, 21)] + bits,
                [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
+
+    for name, bits in [
+        ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)]),
+        ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)]),
+        ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)]),
+
+    ]:
+        Opcode(name, w_ext, [root110, w_bit] + bits,
+               [dst_reg, src1_reg, src2_reg], w_flag)
+
+
 
 # 64 bit
 
