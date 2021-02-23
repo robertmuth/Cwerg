@@ -6,6 +6,7 @@ found in `arm_test.dis` and similar dumps obtained via `objdump`
 """
 
 import sys
+import collections
 from typing import List
 
 # import CpuA64.disassembler as dis
@@ -26,6 +27,7 @@ ALIASES = {
     "mneg": "msub",
 }
 
+MISSED = collections.defaultdict(int)
 
 def HandleOneInstruction(count: int, line: str,
                          data: int,
@@ -37,6 +39,8 @@ def HandleOneInstruction(count: int, line: str,
     if opcode:
         count_found += 1
         assert opcode.name == actual_name, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
+    else:
+        MISSED[actual_name] += 1
 
 
 def main(argv):
@@ -57,6 +61,8 @@ def main(argv):
                     actual_ops = [o.strip() for o in token[2].split(",")]
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
+    for k, v in sorted(MISSED.items()):
+        print (f"{k}: {v}")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
 
 
