@@ -16,15 +16,15 @@ count_found = 0
 count_total = 0
 
 ALIASES = {
-    "cmn": "adds",
-    "cmp": "subs",
-    "neg": "sub",
-    "negs": "subs",
-    "tst": "ands",
-    "mov": "orr",
-    "mvn": "orn",
-    "mul": "madd",
-    "mneg": "msub",
+    "cmn": {"adds"},
+    "cmp": {"subs"},
+    "neg": {"sub"},
+    "negs": {"subs"},
+    "tst": {"ands"},
+    "mov": {"orr", "add"},
+    "mvn": {"orn"},
+    "mul": {"madd"},
+    "mneg": {"msub"},
 }
 
 MISSED = collections.defaultdict(int)
@@ -35,10 +35,10 @@ def HandleOneInstruction(count: int, line: str,
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = a64.Opcode.FindOpcode(data)
-    actual_name = ALIASES.get(actual_name, actual_name)
+    aliases = ALIASES.get(actual_name, {actual_name})
     if opcode:
         count_found += 1
-        assert opcode.name == actual_name, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
+        assert opcode.name in aliases, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
     else:
         MISSED[actual_name] += 1
 
