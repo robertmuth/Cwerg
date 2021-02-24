@@ -126,6 +126,10 @@ class OK(enum.Enum):
     DREG_10_14 = 15
     DREG_16_20 = 16
 
+    BREG_0_4 = 17
+    HREG_0_4 = 18
+    QREG_0_4 = 19
+
     # unsigned immediates
     IMM_5_23 = 20
     IMM_10_21 = 21
@@ -139,7 +143,7 @@ class OK(enum.Enum):
     IMM_10_21_times_8 = 28
     IMM_19_23_31 = 29
     IMM_5_20 = 30
-
+    IMM_16_22 = 31
 
     # signed immeditate
     SIMM_0_25 = 50
@@ -231,6 +235,10 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.DREG_5_9: [(BRK.Verbatim, 5, 5)],
     OK.DREG_10_14: [(BRK.Verbatim, 5, 10)],
     OK.DREG_16_20: [(BRK.Verbatim, 5, 16)],
+    #
+    OK.BREG_0_4: [(BRK.Verbatim, 5, 0)],
+    OK.HREG_0_4: [(BRK.Verbatim, 5, 0)],
+    OK.QREG_0_4: [(BRK.Verbatim, 5, 0)],
 }
 
 FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
@@ -243,7 +251,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_15_16_22: [(BRK.Verbatim, 13, 10)],
     OK.IMM_19_23_31: [(BRK.Lo, 5, 19), (BRK.Hi, 1, 31)],
     OK.IMM_5_20: [(BRK.Verbatim, 16, 5)],
-
+    OK.IMM_16_22: [(BRK.Verbatim, 7, 16)],
 
     OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
     OK.IMM_10_21_22_23: [(BRK.Verbatim, 14, 10)],
@@ -420,16 +428,25 @@ _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
 _VARIANTS = {
     "",
     "imm",
+    "imm_8",
+    "imm_16",
     "imm_32",
     "imm_64",
+    "imm_128",
     "reg_32",
     "reg_64",
-    "imm_pre",
     "imm_post",
-    "imm_pre_64",
-    "imm_post_64",
-    "imm_pre_32",
+    "imm_post_8",
+    "imm_post_16",
     "imm_post_32",
+    "imm_post_64",
+    "imm_post_128",
+    "imm_pre",
+    "imm_pre_8",
+    "imm_pre_16",
+    "imm_pre_32",
+    "imm_pre_64",
+    "imm_pre_128",
     "32",
     "64",
 }
@@ -561,6 +578,7 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     dst_reg = OK.XREG_0_4 if w_bit else OK.WREG_0_4
     src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
+    shift_filler = (0x3f, 0x3f, 10) if w_bit else (0x3f, 0x1f, 10)
 
     for name, bits, sr_update in [
         ("add", [(3, 0, 29), (3, 1, 24)], SR_UPDATE.NONE),
@@ -577,13 +595,24 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         ("ands", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
         ("eor", [(3, 2, 29), (7, 4, 23)], SR_UPDATE.NONE),
         ("orr", [(3, 1, 29), (7, 4, 23)], SR_UPDATE.NONE),
-        #("ubfx", [(3, 2, 29), (7, 6, 23)], SR_UPDATE.NONE),
+
+        # ("ubfx", [(3, 2, 29), (7, 6, 23)], SR_UPDATE.NONE),
         # ("bics", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
 
     ]:
         Opcode(name, "imm_" + w_ext, [root100, w_bit] + bits,
                [dst_reg, src1_reg, OK.IMM_10_15_16_22], w_flag, sr_update=sr_update)
+    for name, bits in [
+        # ("lsl", [(3, 2, 29), (7, 6, 23)]),
+        ("lsr", [(3, 2, 29), (7, 6, 23)]),
+        ("asr", [(3, 0, 29), (7, 6, 23)]),
 
+        # ("ubfx", [(3, 2, 29), (7, 6, 23)], SR_UPDATE.NONE),
+        # ("bics", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
+
+    ]:
+        Opcode(name, "imm_" + w_ext, [root100, w_bit, shift_filler] + bits,
+               [dst_reg, src1_reg, OK.IMM_16_22], w_flag, sr_update=SR_UPDATE.NONE)
 ########################################
 root101 = (7, 5, 26)
 ########################################
@@ -593,6 +622,11 @@ Opcode("b", "", [root101, (7, 0, 29)],
 
 Opcode("bl", "", [root101, (7, 4, 29)],
        [OK.SIMM_0_25], OPC_FLAG(0))
+
+Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0,10), (0x1f, 0,0)],
+       [OK.XREG_5_9], OPC_FLAG(0))
+Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0,10), (0x1f, 0,0)],
+       [OK.XREG_5_9], OPC_FLAG(0))
 
 for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
                                       "hi", "ls", "ge", "lt", "gt", "le"]):
@@ -621,6 +655,7 @@ Opcode("svc", "", [root101, (7, 6, 29), (0x1f, 0, 21), (0x1f, 1, 0)],
        [OK.IMM_5_20], OPC_FLAG(0))
 Opcode("yield", "", [root101, (7, 6, 29), (0x3ffffff, 0x103203f, 0)],
        [], OPC_FLAG(0))
+
 ########################################
 root110 = (7, 6, 26)
 ########################################
@@ -631,22 +666,34 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     src3_reg = OK.XREG_10_14 if w_bit else OK.WREG_10_14
 
     for name, bits in [
-        ("madd", [(3, 0, 29), (3, 3, 24), (1, 0, 15)]),
-        ("msub", [(3, 0, 29), (3, 3, 24), (1, 1, 15)]),
+        ("madd", [(3, 0, 29), (1, 0, 15)]),
+        ("msub", [(3, 0, 29), (1, 1, 15)]),
     ]:
-        Opcode(name, w_ext, [root110, w_bit, (7, 0, 21)] + bits,
+        Opcode(name, w_ext, [root110, w_bit, (3, 3, 24), (7, 0, 21)] + bits,
                [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
 
     for name, bits in [
+        ("udiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 2, 10)]),
+        ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)]),
         ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)]),
         ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)]),
         ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)]),
-
+        ("rorv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xb, 10)]),
     ]:
         Opcode(name, w_ext, [root110, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg], w_flag)
 
-
+    if w_ext == "64":
+        for name, bits in [
+            ("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
+            ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
+            ("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
+            ("umaddl", [(3, 0, 29), (7, 5, 21), (1, 0, 15)]),
+            ("umsubl", [(3, 0, 29), (7, 5, 21), (1, 1, 15)]),
+            ("umulh", [(3, 0, 29), (7, 6, 21), (1, 0, 15)]),
+        ]:
+            Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24)] + bits,
+                   [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
 
 # 64 bit
 
@@ -783,22 +830,32 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
     src1_reg = OK.DREG_5_9 if w_bit else OK.SREG_5_9
     src2_reg = OK.DREG_16_20 if w_bit else OK.SREG_16_20
 
-    Opcode("fadd", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 0xa, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fsub", w_ext, [root111, (7, 0, 29), (7, 0, 23), w_bit, (1, 1, 21), (0x3f, 0xe, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fmul", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 2, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fdiv", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 6, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fmax", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 0x12, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fmaxnm", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 0x1a, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fmin", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 0x16, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
-    Opcode("fminnm", w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), (0x3f, 0x1e, 10)],
-           [dst_reg, src1_reg, src2_reg], w_flag)
+    for name, bits in [("fadd", (0x3f, 0xa, 10)),
+                       ("fsub", (0x3f, 0xe, 10)),
+                       ("fmul", (0x3f, 2, 10)),
+                       ("fdiv", (0x3f, 6, 10)),
+                       ("fmax", (0x3f, 0x12, 10)),
+                       ("fmaxnm", (0x3f, 0x1a, 10)),
+                       ("fmin", (0x3f, 0x12, 10)),
+                       ("fminnm", (0x3f, 0x1a, 10)),
+                       ]:
+        Opcode(name, w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), bits],
+               [dst_reg, src1_reg, src2_reg], w_flag)
+
+for ext, dst_reg, bits in [
+    ("8", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
+    ("16", OK.HREG_0_4, [(3, 1, 30), (3, 1, 22)]),
+    ("32", OK.SREG_0_4, [(3, 2, 30), (3, 1, 22)]),
+    ("64", OK.DREG_0_4, [(3, 3, 30), (3, 1, 22)]),
+    ("128", OK.QREG_0_4, [(3, 0, 30), (3, 3, 22)]),
+]:
+    Opcode("fldr", "imm_post_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 1, 10)] + bits,
+           [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+    Opcode("fldr", "imm_pre_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 3, 10)] + bits,
+           [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+    Opcode("fldr", "imm_" + ext, [root111, (1, 1, 29), (3, 1, 24)] + bits,
+           [dst_reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
+
 
 class Ins:
     """Arm flavor of an Instruction

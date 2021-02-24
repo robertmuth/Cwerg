@@ -25,10 +25,14 @@ ALIASES = {
     "mvn": {"orn"},
     "mul": {"madd"},
     "mneg": {"msub"},
-    "lsl": {"lslv"},
-    "lsr": {"lsrv"},
-    "asr": {"asrv"},
+    "lsl": {"lslv", "lsl"},
+    "lsr": {"lsrv", "lsr"},
+    "asr": {"asrv", "asr"},
+    "ror": {"rorv", "ror"},
+    "smull": {"smaddl"},
+    "umull": {"umaddl"},
 
+    "ldr": {"ldr", "fldr"},
 }
 
 MISSED = collections.defaultdict(int)
