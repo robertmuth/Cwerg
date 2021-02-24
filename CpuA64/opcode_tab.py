@@ -30,9 +30,9 @@ def Bits(*patterns) -> Tuple[int, int]:
     """
     m = 0
     v = 0
-    print("")
+    #print("")
     for mask, val, pos in patterns:
-        print(f"@@ {v:x}/{m:x}   - ({mask}, {val}, {pos})")
+        #print(f"@@ {v:x}/{m:x}   - ({mask}, {val}, {pos})")
         mask <<= pos
         val <<= pos
         assert m & mask == 0, f"mask overlap {m:x} {mask:x}"
@@ -153,7 +153,7 @@ class OK(enum.Enum):
 
     # shifts
     SHIFT_22_23 = 60
-
+    SHIFT_12_14_15 = 61
 
 ############################################################
 # effects of an opcode wrt the status registers
@@ -263,6 +263,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
+    OK.SHIFT_12_14_15: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
 }
 
 # merge all dicts from above
@@ -433,8 +434,21 @@ _VARIANTS = {
     "imm_32",
     "imm_64",
     "imm_128",
+    #
     "reg_32",
     "reg_64",
+    #
+    "reg_32_8",
+    "reg_32_16",
+    "reg_32_32",
+    "reg_32_64",
+    "reg_32_128",
+    "reg_64_8",
+    "reg_64_16",
+    "reg_64_32",
+    "reg_64_64",
+    "reg_64_128",
+    #
     "imm_post",
     "imm_post_8",
     "imm_post_16",
@@ -495,7 +509,7 @@ class Opcode:
         self.variant = variant
 
         enum_name = self.NameForEnum()
-        assert enum_name not in Opcode.name_to_opcode
+        assert enum_name not in Opcode.name_to_opcode, f"duplicate opcode {enum_name}"
         Opcode.name_to_opcode[enum_name] = self
 
         mask, value = Bits(*bits)
@@ -623,9 +637,11 @@ Opcode("b", "", [root101, (7, 0, 29)],
 Opcode("bl", "", [root101, (7, 4, 29)],
        [OK.SIMM_0_25], OPC_FLAG(0))
 
-Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0,10), (0x1f, 0,0)],
+Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG(0))
-Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0,10), (0x1f, 0,0)],
+Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0, 10), (0x1f, 0, 0)],
+       [OK.XREG_5_9], OPC_FLAG(0))
+Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG(0))
 
 for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
@@ -655,7 +671,10 @@ Opcode("svc", "", [root101, (7, 6, 29), (0x1f, 0, 21), (0x1f, 1, 0)],
        [OK.IMM_5_20], OPC_FLAG(0))
 Opcode("yield", "", [root101, (7, 6, 29), (0x3ffffff, 0x103203f, 0)],
        [], OPC_FLAG(0))
-
+Opcode("nop", "", [root101, (7, 6, 29), (0x3ffffff, 0x103201f, 0)],
+       [], OPC_FLAG(0))
+Opcode("eret", "", [root101, (7, 6, 29), (0x3ffffff, 0x29f03e0, 0)],
+       [], OPC_FLAG(0))
 ########################################
 root110 = (7, 6, 26)
 ########################################
@@ -829,18 +848,30 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
     dst_reg = OK.DREG_0_4 if w_bit else OK.SREG_0_4
     src1_reg = OK.DREG_5_9 if w_bit else OK.SREG_5_9
     src2_reg = OK.DREG_16_20 if w_bit else OK.SREG_16_20
+    src3_reg = OK.DREG_10_14 if w_bit else OK.SREG_10_14
 
-    for name, bits in [("fadd", (0x3f, 0xa, 10)),
-                       ("fsub", (0x3f, 0xe, 10)),
-                       ("fmul", (0x3f, 2, 10)),
-                       ("fdiv", (0x3f, 6, 10)),
-                       ("fmax", (0x3f, 0x12, 10)),
-                       ("fmaxnm", (0x3f, 0x1a, 10)),
-                       ("fmin", (0x3f, 0x12, 10)),
-                       ("fminnm", (0x3f, 0x1a, 10)),
-                       ]:
+    for name, bits in [
+        ("fmul", (0x3f, 2, 10)),
+        ("fdiv", (0x3f, 6, 10)),
+        ("fadd", (0x3f, 0xa, 10)),
+        ("fsub", (0x3f, 0xe, 10)),
+        ("fmax", (0x3f, 0x12, 10)),
+        ("fmaxnm", (0x3f, 0x1a, 10)),
+        ("fmin", (0x3f, 0x12, 10)),
+        ("fminnm", (0x3f, 0x1a, 10)),
+        ("fnmul", (0x3f, 0x22, 10)),
+    ]:
         Opcode(name, w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), bits],
                [dst_reg, src1_reg, src2_reg], w_flag)
+
+    for name, bits in [
+        ("fmadd", [(7, 6, 23), (1, 0, 21), (1, 0, 15)]),
+        ("fmsub", [(7, 6, 23), (1, 0, 21), (1, 1, 15)]),
+        ("fnmadd", [(7, 6, 23), (1, 1, 21), (1, 0, 15)]),
+        ("fnmsub", [(7, 6, 23), (1, 1, 21), (1, 1, 15)]),
+    ]:
+        Opcode(name, w_ext, [root111, (7, 0, 29), w_bit] + bits,
+               [dst_reg, src1_reg, src2_reg, src3_reg], w_flag)
 
 for ext, dst_reg, bits in [
     ("8", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
@@ -855,8 +886,10 @@ for ext, dst_reg, bits in [
            [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
     Opcode("fldr", "imm_" + ext, [root111, (1, 1, 29), (3, 1, 24)] + bits,
            [dst_reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
-
-
+    Opcode("fldr", "reg_32_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3,2 , 10)] + bits,
+           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.WREG_16_20], OPC_FLAG(0))
+    Opcode("fldr", "reg_64_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3,2 , 10)] + bits,
+           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.XREG_16_20], OPC_FLAG(0))
 class Ins:
     """Arm flavor of an Instruction
 
