@@ -33,13 +33,13 @@ ALIASES = {
     "umull": {"umaddl"},
 
     "ldr": {"ldr", "ldrw", "ldrq", "fldrb",  "fldrh",  "fldrs",  "fldrd",  "fldrq"},
-    "str": {"strq", "str", "fstr"},
+    "str": {"strq", "strw", "fstr"},
     "ldp": {"ldp", "fldps", "fldpd", "fldpq"},
     "stp": {"stp", "fstps", "fstpd", "fstpq"},
-    "stur": {"sturq", "stur"},
+    "stur": {"sturq", "sturw"},
     "ldur": {"ldurq", "ldur", "ldurw"},
-    "ldrsh": {"ldrshq", "ldrshw"},
-    "ldursh": {"ldurshq", "ldurshw"},
+    "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
+    "ldursh": {"ldurshq", "ldurshw", "ldursh"},
     "ldrsb": {"ldrsbq", "ldrsbw"},
     "ldursb": {"ldursbq", "ldursbw"},
 
