@@ -42,6 +42,11 @@ ALIASES = {
     "ldursh": {"ldurshq", "ldurshw", "ldursh"},
     "ldrsb": {"ldrsbq", "ldrsbw"},
     "ldursb": {"ldursbq", "ldursbw"},
+	"ldxr": {"ldxrw", "ldxrq"},
+    "ldaxr": {"ldaxrw", "ldaxrq"},
+    "stxr":  {"stxrw", "stxrq"},
+    "stlxr":  {"stlxrw", "stlxrq"},
+    "stlr":  {"stlrw", "stlrq"},
 
 }
 
