@@ -495,6 +495,7 @@ _VARIANTS = {
     "imm_pre_128",
     "32",
     "64",
+    "reg",
 }
 
 
@@ -638,21 +639,21 @@ Opcode("ldaxrh", w_ext, [(7, 2, 29), root010, (0xffff, 0x17ff, 10)],
 root011 = (7, 3, 26)
 ########################################
 for ext, reg1, reg2, imm, bits in [
-    ("32", OK.SREG_0_4, OK.SREG_10_14, OK.SIMM_15_21_times_4, (7, 1, 29)),
-    ("64", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_times_8, (7, 3, 29)),
-    ("128", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_times_16, (7, 5, 29))]:
+    ("s", OK.SREG_0_4, OK.SREG_10_14, OK.SIMM_15_21_times_4, (7, 1, 29)),
+    ("d", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_times_8, (7, 3, 29)),
+    ("q", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_times_16, (7, 5, 29))]:
 
-    Opcode("fstp", "imm_post_" + ext, [bits, root011, (0xf, 2, 22)],
+    Opcode("fstp" + ext, "imm_post", [bits, root011, (0xf, 2, 22)],
            [OK.XREG_5_9, imm, reg1, reg2,], OPC_FLAG(0))
-    Opcode("fstp", "imm_pre_" + ext, [bits, root011, (0xf, 6, 22)],
+    Opcode("fstp" + ext , "imm_pre", [bits, root011, (0xf, 6, 22)],
            [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
-    Opcode("fstp", "imm_" + ext, [bits, root011, (0xf, 4, 22)],
+    Opcode("fstp" + ext, "imm", [bits, root011, (0xf, 4, 22)],
            [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
-    Opcode("fldp", "imm_post_" + ext, [bits, root011, (0xf, 3, 22)],
+    Opcode("fldp" + ext, "imm_post", [bits, root011, (0xf, 3, 22)],
            [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
-    Opcode("fldp", "imm_pre_" + ext, [bits, root011, (0xf, 7, 22)],
+    Opcode("fldp" + ext, "imm_pre", [bits, root011, (0xf, 7, 22)],
            [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
-    Opcode("fldp", "imm_" + ext, [bits, root011, (0xf, 5, 22)],
+    Opcode("fldp" + ext, "imm", [bits, root011, (0xf, 5, 22)],
            [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
 
 ########################################
@@ -786,104 +787,104 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
 
 # 64 bit
 
-Opcode("ldr", "imm_64", [root110, (7, 7, 29), (0xf, 5, 22)],
+Opcode("ldrq", "imm", [root110, (7, 7, 29), (0xf, 5, 22)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_8], OPC_FLAG(0))
-Opcode("ldr", "imm_pre_64", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 3, 10)],
+Opcode("ldrq", "imm_pre", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldr", "imm_post_64", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 1, 10)],
+Opcode("ldrq", "imm_post", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldur", "imm_64", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 0, 10)],
+Opcode("ldurq", "imm", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("ldr", "reg_32_64", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+Opcode("ldrq", "reg_32", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
-Opcode("ldr", "reg_64_64", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+Opcode("ldrq", "reg_64", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
-Opcode("str", "imm_64", [root110, (7, 7, 29), (0xf, 4, 22)],
+Opcode("strq", "imm", [root110, (7, 7, 29), (0xf, 4, 22)],
        [OK.XREG_0_4, OK.IMM_10_21_times_8, OK.XREG_5_9], OPC_FLAG(0))
-Opcode("str", "imm_pre_64", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 3, 10)],
+Opcode("strq", "imm_pre", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.XREG_5_9], OPC_FLAG(0))
-Opcode("str", "imm_post_64", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 1, 10)],
+Opcode("strq", "imm_post", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.XREG_5_9], OPC_FLAG(0))
-Opcode("stur", "imm_64", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 0, 10)],
+Opcode("sturq", "imm", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.XREG_5_9], OPC_FLAG(0))
 
 # 32 bit
 
-Opcode("ldr", "imm_32", [root110, (7, 5, 29), (0xf, 5, 22)],
+Opcode("ldrw", "imm", [root110, (7, 5, 29), (0xf, 5, 22)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_4], OPC_FLAG(0))
-Opcode("ldr", "imm_pre_32", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 3, 10)],
+Opcode("ldrw", "imm_pre", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 3, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldr", "imm_post_32", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 1, 10)],
+Opcode("ldrw", "imm_post", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 1, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldur", "imm_32", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 0, 10)],
+Opcode("ldurw", "imm", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("ldr", "reg_32_32", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+Opcode("ldrw", "reg_32", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
-Opcode("ldr", "reg_64_32", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+Opcode("ldrw", "reg_64", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
-Opcode("ldrsw", "imm_64", [root110, (7, 5, 29), (0xf, 6, 22)],
+Opcode("ldrsw", "imm", [root110, (7, 5, 29), (0xf, 6, 22)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_4], OPC_FLAG(0))
-Opcode("ldrsw", "imm_pre_64", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 3, 10)],
+Opcode("ldrsw", "imm_pre", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldrsw", "imm_post_64", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 1, 10)],
+Opcode("ldrsw", "imm_post", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldursw", "imm_post_64", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 0, 10)],
+Opcode("ldursw", "imm_post", [root110, (7, 5, 29), (0x1f, 4, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("str", "imm_32", [root110, (7, 5, 29), (0xf, 4, 22)],
+Opcode("str", "imm", [root110, (7, 5, 29), (0xf, 4, 22)],
        [OK.XREG_0_4, OK.IMM_10_21_times_4, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("str", "imm_pre_32", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 3, 10)],
+Opcode("str", "imm_pre", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("str", "imm_post_32", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 1, 10)],
+Opcode("str", "imm_post", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("stur", "imm_32", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 0, 10)],
+Opcode("stur", "imm", [root110, (7, 5, 29), (0x1f, 0, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
 
 # 16 bit
 
-Opcode("ldrh", "imm_32", [root110, (7, 3, 29), (0xf, 5, 22)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
+Opcode("ldrh", "imm", [root110, (7, 3, 29), (0xf, 5, 22)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
 Opcode("ldrh", "imm_pre", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 3, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 Opcode("ldrh", "imm_post", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 1, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldurh", "imm_32", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 0, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-
-Opcode("ldrh", "reg_32", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
-Opcode("ldrh", "reg_64", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
-
-Opcode("ldrsh", "imm_32", [root110, (7, 3, 29), (0xf, 7, 22)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
-Opcode("ldrsh", "imm_pre_32", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 3, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldrsh", "imm_post_32", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 1, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldursh", "imm_32", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 0, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-
-Opcode("ldrsh", "imm_64", [root110, (7, 3, 29), (0xf, 6, 22)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
-Opcode("ldrsh", "imm_pre_64", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 3, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldrsh", "imm_post_64", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 1, 10)],
-       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldursh", "imm_64", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 0, 10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldurh", "imm", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("strh", "imm_32", [root110, (7, 3, 29), (0xf, 4, 22)],
+Opcode("ldrh", "reg_32", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+Opcode("ldrh", "reg_64", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
+
+Opcode("ldrshw", "imm", [root110, (7, 3, 29), (0xf, 7, 22)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
+Opcode("ldrshw", "imm_pre", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 3, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldrshw", "imm_post", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 1, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldurshw", "imm", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 0, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+
+Opcode("ldrshq", "imm", [root110, (7, 3, 29), (0xf, 6, 22)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
+Opcode("ldrshq", "imm_pre", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 3, 10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldrshq", "imm_post", [root110, (7, 3, 29), (0x1f, 4, 21), (3, 1, 10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldurshq", "imm", [root110, (7, 3, 29), (0x1f, 6, 21), (3, 0, 10)],
+       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+
+Opcode("strh", "imm", [root110, (7, 3, 29), (0xf, 4, 22)],
        [OK.XREG_0_4, OK.IMM_10_21_times_2, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("strh", "imm_pre_32", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 3, 10)],
+Opcode("strh", "imm_pre", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("strh", "imm_post_32", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 1, 10)],
+Opcode("strh", "imm_post", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("sturh", "imm_32", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 0, 10)],
+Opcode("sturh", "imm", [root110, (7, 3, 29), (0x1f, 0, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
 
 # 8 bit
@@ -902,31 +903,31 @@ Opcode("ldrb", "reg_32", [root110, (7, 1, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,
 Opcode("ldrb", "reg_64", [root110, (7, 1, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
-Opcode("ldrsb", "imm_32", [root110, (7, 1, 29), (0xf, 7, 22)],
-       [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
-Opcode("ldrsb", "imm_pre_32", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 3, 10)],
-       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldrsb", "imm_post_32", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 1, 10)],
-       [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldursb", "imm_32", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 0, 10)],
+Opcode("ldrsbw", "imm", [root110, (7, 1, 29), (0xf, 7, 22)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
+Opcode("ldrsbw", "imm_pre", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 3, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldrsbw", "imm_post", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 1, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+Opcode("ldursbw", "imm", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 0, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("ldrsb", "imm_64", [root110, (7, 1, 29), (0xf, 6, 22)],
+Opcode("ldrsbq", "imm", [root110, (7, 1, 29), (0xf, 6, 22)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
-Opcode("ldrsb", "imm_pre_64", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 3, 10)],
+Opcode("ldrsbq", "imm_pre", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldrsb", "imm_post_64", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 1, 10)],
+Opcode("ldrsbq", "imm_post", [root110, (7, 1, 29), (0x1f, 4, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-Opcode("ldursb", "imm_64", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 0, 10)],
+Opcode("ldursbq", "imm", [root110, (7, 1, 29), (0x1f, 6, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
-Opcode("strb", "imm_64", [root110, (7, 1, 29), (0xf, 4, 22)],
+Opcode("strb", "imm", [root110, (7, 1, 29), (0xf, 4, 22)],
        [OK.XREG_0_4, OK.IMM_10_21, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("strb", "imm_pre_64", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 3, 10)],
+Opcode("strb", "imm_pre", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 3, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("strb", "imm_post_64", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 1, 10)],
+Opcode("strb", "imm_post", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 1, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
-Opcode("sturb", "imm_64", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 0, 10)],
+Opcode("sturb", "imm", [root110, (7, 1, 29), (0x1f, 0, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.SIMM_12_20, OK.WREG_5_9], OPC_FLAG(0))
 
 ########################################
@@ -964,21 +965,21 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
                [dst_reg, src1_reg, src2_reg, src3_reg], w_flag)
 
 for ext, dst_reg, bits in [
-    ("8", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
-    ("16", OK.HREG_0_4, [(3, 1, 30), (3, 1, 22)]),
-    ("32", OK.SREG_0_4, [(3, 2, 30), (3, 1, 22)]),
-    ("64", OK.DREG_0_4, [(3, 3, 30), (3, 1, 22)]),
-    ("128", OK.QREG_0_4, [(3, 0, 30), (3, 3, 22)]),
+    ("b", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
+    ("h", OK.HREG_0_4, [(3, 1, 30), (3, 1, 22)]),
+    ("s", OK.SREG_0_4, [(3, 2, 30), (3, 1, 22)]),
+    ("d", OK.DREG_0_4, [(3, 3, 30), (3, 1, 22)]),
+    ("q", OK.QREG_0_4, [(3, 0, 30), (3, 3, 22)]),
 ]:
-    Opcode("fldr", "imm_post_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 1, 10)] + bits,
+    Opcode("fldr" + ext, "imm_post", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 1, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-    Opcode("fldr", "imm_pre_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 3, 10)] + bits,
+    Opcode("fldr" + ext, "imm_pre", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 3, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
-    Opcode("fldr", "imm_" + ext, [root111, (1, 1, 29), (3, 1, 24)] + bits,
+    Opcode("fldr" + ext, "imm", [root111, (1, 1, 29), (3, 1, 24)] + bits,
            [dst_reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
-    Opcode("fldr", "reg_32_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
+    Opcode("fldr" + ext, "reg_32", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
-    Opcode("fldr", "reg_64_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
+    Opcode("fldr" + ext, "reg_64", [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
 
 

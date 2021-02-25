@@ -32,9 +32,17 @@ ALIASES = {
     "smull": {"smaddl"},
     "umull": {"umaddl"},
 
-    "ldr": {"ldr", "fldr"},
-    "ldp": {"ldp", "fldp"},
-    "stp": {"stp", "fstp"},
+    "ldr": {"ldr", "ldrw", "ldrq", "fldrb",  "fldrh",  "fldrs",  "fldrd",  "fldrq"},
+    "str": {"strq", "str", "fstr"},
+    "ldp": {"ldp", "fldps", "fldpd", "fldpq"},
+    "stp": {"stp", "fstps", "fstpd", "fstpq"},
+    "stur": {"sturq", "stur"},
+    "ldur": {"ldurq", "ldur", "ldurw"},
+    "ldrsh": {"ldrshq", "ldrshw"},
+    "ldursh": {"ldurshq", "ldurshw"},
+    "ldrsb": {"ldrsbq", "ldrsbw"},
+    "ldursb": {"ldursbq", "ldursbw"},
+
 }
 
 MISSED = collections.defaultdict(int)
