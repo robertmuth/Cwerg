@@ -30,9 +30,9 @@ def Bits(*patterns) -> Tuple[int, int]:
     """
     m = 0
     v = 0
-    #print("")
+    # print("")
     for mask, val, pos in patterns:
-        #print(f"@@ {v:x}/{m:x}   - ({mask}, {val}, {pos})")
+        # print(f"@@ {v:x}/{m:x}   - ({mask}, {val}, {pos})")
         mask <<= pos
         val <<= pos
         assert m & mask == 0, f"mask overlap {m:x} {mask:x}"
@@ -127,33 +127,49 @@ class OK(enum.Enum):
     DREG_16_20 = 16
 
     BREG_0_4 = 17
-    HREG_0_4 = 18
-    QREG_0_4 = 19
+    BREG_5_9 = 18
+    BREG_10_14 = 19
+    BREG_16_20 = 20
 
-    # unsigned immediates
-    IMM_5_23 = 20
-    IMM_10_21 = 21
-    IMM_10_21_22_23 = 22
-    IMM_10_15 = 23
-    IMM_12_20 = 24
-    IMM_10_15_16_22 = 25
+    HREG_0_4 = 21
+    HREG_5_9 = 22
+    HREG_10_14 = 23
+    HREG_16_20 = 24
 
-    IMM_10_21_times_2 = 26
-    IMM_10_21_times_4 = 27
-    IMM_10_21_times_8 = 28
-    IMM_19_23_31 = 29
-    IMM_5_20 = 30
-    IMM_16_22 = 31
+    QREG_0_4 = 25
+    QREG_5_9 = 26
+    QREG_10_14 = 27
+    QREG_16_20 = 28
+
+# unsigned immediates
+    IMM_5_23 = 30
+    IMM_10_21 = 31
+    IMM_10_21_22_23 = 32
+    IMM_10_15 = 33
+    IMM_12_20 = 34
+    IMM_10_15_16_22 = 35
+
+    IMM_10_21_times_2 = 36
+    IMM_10_21_times_4 = 37
+    IMM_10_21_times_8 = 38
+    IMM_19_23_31 = 39
+    IMM_5_20 = 40
+    IMM_16_22 = 41
+
 
     # signed immeditate
     SIMM_0_25 = 50
     SIMM_12_20 = 51
     SIMM_5_23 = 52
     SIMM_5_18 = 53
+    SIMM_15_21_times_4 = 54
+    SIMM_15_21_times_8 = 55
+    SIMM_15_21_times_16 = 56
 
     # shifts
     SHIFT_22_23 = 60
     SHIFT_12_14_15 = 61
+
 
 ############################################################
 # effects of an opcode wrt the status registers
@@ -237,8 +253,19 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.DREG_16_20: [(BRK.Verbatim, 5, 16)],
     #
     OK.BREG_0_4: [(BRK.Verbatim, 5, 0)],
+    OK.BREG_5_9: [(BRK.Verbatim, 5, 5)],
+    OK.BREG_10_14: [(BRK.Verbatim, 5, 10)],
+    OK.BREG_16_20: [(BRK.Verbatim, 5, 16)],
+    #
     OK.HREG_0_4: [(BRK.Verbatim, 5, 0)],
+    OK.HREG_5_9: [(BRK.Verbatim, 5, 5)],
+    OK.HREG_10_14: [(BRK.Verbatim, 5, 10)],
+    OK.HREG_16_20: [(BRK.Verbatim, 5, 16)],
+    #
     OK.QREG_0_4: [(BRK.Verbatim, 5, 0)],
+    OK.QREG_5_9: [(BRK.Verbatim, 5, 5)],
+    OK.QREG_10_14: [(BRK.Verbatim, 5, 10)],
+    OK.QREG_16_20: [(BRK.Verbatim, 5, 16)],
 }
 
 FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
@@ -259,6 +286,9 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.SIMM_12_20: [(BRK.Verbatim, 9, 12)],
     OK.SIMM_0_25: [(BRK.Verbatim, 26, 0)],
     OK.SIMM_5_18: [(BRK.Verbatim, 14, 5)],
+    OK.SIMM_15_21_times_4: [(BRK.Verbatim, 7, 15)],
+    OK.SIMM_15_21_times_8:[(BRK.Verbatim, 7, 15)],
+    OK.SIMM_15_21_times_16:[(BRK.Verbatim, 7, 15)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
@@ -585,6 +615,44 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         Opcode(name, "reg_" + w_ext, [root010, w_bit] + bits,
                [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15], w_flag, sr_update=sr_update)
 
+for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (7, 4, 29)), ("64", OPC_FLAG.X, (7, 6, 29))]:
+    dst_reg = OK.XREG_0_4 if w_bit else OK.WREG_0_4
+    Opcode("ldxr", w_ext, [w_bit, root010, (0xffff, 0x17df, 10)],
+           [dst_reg, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+    Opcode("ldaxr", w_ext, [w_bit, root010, (0xffff, 0x17ff, 10)],
+           [dst_reg, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+
+Opcode("ldxrb", w_ext, [(7, 0, 29), root010, (0xffff, 0x17df, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+Opcode("ldaxrb", w_ext, [(7, 0, 29), root010, (0xffff, 0x17ff, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+
+Opcode("ldxrh", w_ext, [(7, 2, 29), root010, (0xffff, 0x17df, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+Opcode("ldaxrh", w_ext, [(7, 2, 29), root010, (0xffff, 0x17ff, 10)],
+       [OK.WREG_0_4, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
+
+########################################
+root011 = (7, 3, 26)
+########################################
+for ext, reg1, reg2, imm, bits in [
+    ("32", OK.SREG_0_4, OK.SREG_10_14, OK.SIMM_15_21_times_4, (7, 1, 29)),
+    ("64", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_times_8, (7, 3, 29)),
+    ("128", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_times_16, (7, 5, 29))]:
+
+    Opcode("fstp", "imm_post_" + ext, [bits, root011, (0xf, 2, 22)],
+           [OK.XREG_5_9, imm, reg1, reg2,], OPC_FLAG(0))
+    Opcode("fstp", "imm_pre_" + ext, [bits, root011, (0xf, 6, 22)],
+           [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
+    Opcode("fstp", "imm_" + ext, [bits, root011, (0xf, 4, 22)],
+           [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
+    Opcode("fldp", "imm_post_" + ext, [bits, root011, (0xf, 3, 22)],
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+    Opcode("fldp", "imm_pre_" + ext, [bits, root011, (0xf, 7, 22)],
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+    Opcode("fldp", "imm_" + ext, [bits, root011, (0xf, 5, 22)],
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+
 ########################################
 root100 = (7, 4, 26)
 ########################################
@@ -886,10 +954,12 @@ for ext, dst_reg, bits in [
            [dst_reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
     Opcode("fldr", "imm_" + ext, [root111, (1, 1, 29), (3, 1, 24)] + bits,
            [dst_reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
-    Opcode("fldr", "reg_32_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3,2 , 10)] + bits,
+    Opcode("fldr", "reg_32_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.WREG_16_20], OPC_FLAG(0))
-    Opcode("fldr", "reg_64_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3,2 , 10)] + bits,
+    Opcode("fldr", "reg_64_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.XREG_16_20], OPC_FLAG(0))
+
+
 class Ins:
     """Arm flavor of an Instruction
 

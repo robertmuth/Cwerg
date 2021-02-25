@@ -33,6 +33,8 @@ ALIASES = {
     "umull": {"umaddl"},
 
     "ldr": {"ldr", "fldr"},
+    "ldp": {"ldp", "fldp"},
+    "stp": {"stp", "fstp"},
 }
 
 MISSED = collections.defaultdict(int)
