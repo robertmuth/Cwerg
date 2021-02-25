@@ -168,7 +168,8 @@ class OK(enum.Enum):
 
     # shifts
     SHIFT_22_23 = 60
-    SHIFT_12_14_15 = 61
+    SHIFT_12_14_15_W = 61
+    SHIFT_12_14_15_X = 62
 
 
 ############################################################
@@ -293,7 +294,8 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
-    OK.SHIFT_12_14_15: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
+    OK.SHIFT_12_14_15_W: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
+    OK.SHIFT_12_14_15_X: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
 }
 
 # merge all dicts from above
@@ -793,6 +795,11 @@ Opcode("ldr", "imm_post_64", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 1, 10)],
 Opcode("ldur", "imm_64", [root110, (7, 7, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 
+Opcode("ldr", "reg_32_64", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+Opcode("ldr", "reg_64_64", [root110, (7, 7, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
+
 Opcode("str", "imm_64", [root110, (7, 7, 29), (0xf, 4, 22)],
        [OK.XREG_0_4, OK.IMM_10_21_times_8, OK.XREG_5_9], OPC_FLAG(0))
 Opcode("str", "imm_pre_64", [root110, (7, 7, 29), (0x1f, 0, 21), (3, 3, 10)],
@@ -812,6 +819,11 @@ Opcode("ldr", "imm_post_32", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 1, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 Opcode("ldur", "imm_32", [root110, (7, 5, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+
+Opcode("ldr", "reg_32_32", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+Opcode("ldr", "reg_64_32", [root110, (7, 5, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
 Opcode("ldrsw", "imm_64", [root110, (7, 5, 29), (0xf, 6, 22)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_4], OPC_FLAG(0))
@@ -841,6 +853,11 @@ Opcode("ldrh", "imm_post", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 1, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 Opcode("ldurh", "imm_32", [root110, (7, 3, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+
+Opcode("ldrh", "reg_32", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+Opcode("ldrh", "reg_64", [root110, (7, 3, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
 Opcode("ldrsh", "imm_32", [root110, (7, 3, 29), (0xf, 7, 22)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.IMM_10_21_times_2], OPC_FLAG(0))
@@ -879,6 +896,11 @@ Opcode("ldrb", "imm_post", [root110, (7, 1, 29), (0x1f, 2, 21), (3, 1, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
 Opcode("ldurb", "imm_32", [root110, (7, 1, 29), (0x1f, 2, 21), (3, 0, 10)],
        [OK.WREG_0_4, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+
+Opcode("ldrb", "reg_32", [root110, (7, 1, 29), (0x1f, 3, 21), (1, 0, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+Opcode("ldrb", "reg_64", [root110, (7, 1, 29), (0x1f, 3, 21), (1, 1, 13), (3, 2,10)],
+       [OK.WREG_0_4, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.WREG_16_20], OPC_FLAG(0))
 
 Opcode("ldrsb", "imm_32", [root110, (7, 1, 29), (0xf, 7, 22)],
        [OK.XREG_0_4, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
@@ -955,9 +977,9 @@ for ext, dst_reg, bits in [
     Opcode("fldr", "imm_" + ext, [root111, (1, 1, 29), (3, 1, 24)] + bits,
            [dst_reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
     Opcode("fldr", "reg_32_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.WREG_16_20], OPC_FLAG(0))
+           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
     Opcode("fldr", "reg_64_" + ext, [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15, OK.XREG_16_20], OPC_FLAG(0))
+           [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
 
 
 class Ins:
