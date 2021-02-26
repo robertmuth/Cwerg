@@ -21,7 +21,13 @@ ALIASES = {
     "neg": {"sub"},
     "negs": {"subs"},
     "ngcs": {"sbcs"},
-
+    #
+    "cneg": {"csneg"},
+    "cinc": {"csinc"},
+    "cset": {"csinc"},
+    "cinv": {"csinv"},
+    "csetm": {"csinv"},
+    #
     "tst": {"ands"},
     "mov": {"orr", "add"},
     "mvn": {"orn"},
@@ -34,28 +40,29 @@ ALIASES = {
     "smull": {"smaddl"},
     "umull": {"umaddl"},
     #
-    "ldr": {"ldr", "ldrw", "ldrq", "fldrb",  "fldrh",  "fldrs",  "fldrd",  "fldrq"},
+    "ldr": {"ldr", "ldrw", "ldrq", "fldrb", "fldrh", "fldrs", "fldrd", "fldrq"},
     "ldp": {"ldp", "ldpq", "ldpw", "fldps", "fldpd", "fldpq"},
     "ldur": {"ldurq", "ldur", "ldurw"},
     "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
     "ldursh": {"ldurshq", "ldurshw", "ldursh"},
     "ldrsb": {"ldrsbq", "ldrsbw"},
     "ldursb": {"ldursbq", "ldursbw"},
-	"ldxr": {"ldxrw", "ldxrq"},
+    "ldxr": {"ldxrw", "ldxrq"},
     "ldaxr": {"ldaxrw", "ldaxrq"},
     "ldar": {"ldarw", "ldarq"},
     #
     "str": {"strq", "strw", "fstr"},
     "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
     "stur": {"sturq", "sturw"},
-    "stxr":  {"stxrw", "stxrq"},
-    "stlxr":  {"stlxrw", "stlxrq"},
-    "stlr":  {"stlrw", "stlrq"},
+    "stxr": {"stxrw", "stxrq"},
+    "stlxr": {"stlxrw", "stlxrq"},
+    "stlr": {"stlrw", "stlrq"},
 
 }
 
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
+
 
 def HandleOneInstruction(count: int, line: str,
                          data: int,
@@ -91,7 +98,7 @@ def main(argv):
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
     for k, v in sorted(MISSED.items()):
-        print (f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
+        print(f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
 
 

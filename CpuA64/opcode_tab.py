@@ -652,20 +652,29 @@ for ext, w_bit in [("q", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b"
     Opcode("stlr" + ext, "", [w_bit, root010, (0xffff, 0x27ff, 10)],
            [OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
 
-for ext, w_bit, imm in [("q", (3, 1, 30), OK.SIMM_15_21_TIMES8),
-                        ("w", (3, 0, 30), OK.SIMM_15_21_TIMES4),
-                        ("sw", (3, 1, 30), OK.SIMM_15_21_TIMES4)]:
+for ext, w_bit, imm in [("q", (7, 5, 29), OK.SIMM_15_21_TIMES8),
+                        ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4),
+                        ("sw", (7, 3, 29), OK.SIMM_15_21_TIMES4)]:
     dst1 = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
     dst2 = OK.XREG_10_14 if ext == "q" else OK.WREG_10_14
-    Opcode("ldp" + ext, "", [w_bit, (1, 1, 29), root010, (0xf, 3, 22)],
+    Opcode("ldp" + ext, "imm_post", [w_bit, root010, (0xf, 3, 22)],
+           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+    Opcode("ldp" + ext, "imm_pre", [w_bit, root010, (0xf, 7, 22)],
+           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+    Opcode("ldp" + ext, "imm", [w_bit, root010, (0xf, 5, 22)],
            [dst1, dst2, OK.XREG_5_9, imm], w_flag)
 
-for ext, w_bit, imm in [("q", (3, 1, 30), OK.SIMM_15_21_TIMES8),
-                        ("w", (3, 0, 30), OK.SIMM_15_21_TIMES4),
+for ext, w_bit, imm in [("q", (7, 4, 29), OK.SIMM_15_21_TIMES8),
+                        ("w", (7, 0, 29), OK.SIMM_15_21_TIMES4),
                         ]:
     src1 = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
     src2 = OK.XREG_10_14 if ext == "q" else OK.WREG_10_14
-    Opcode("stp" + ext, "", [w_bit, (1, 1, 29), root010, (0xf, 2, 22)],
+    Opcode("stp" + ext, "imm_post", [w_bit, root010, (0xf, 2, 22)],
+           [OK.XREG_5_9, imm, src1, src2], w_flag)
+
+    Opcode("stp" + ext, "imm_pre", [w_bit, root010, (0xf, 6, 22)],
+           [OK.XREG_5_9, imm, src1, src2], w_flag)
+    Opcode("stp" + ext, "imm", [w_bit, root010, (0xf, 4, 22)],
            [OK.XREG_5_9, imm, src1, src2], w_flag)
 
 ########################################
@@ -898,12 +907,28 @@ for ext, scaled_offset, w_bits in [
             Opcode(f"ldrs{ext}{ext2}", "reg_64",
                    [root110, w_bits, (7, 1, 23), w2_bits, (1, 1, 21), (1, 1, 13), (3, 2, 10)],
                    [dst, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
+
+for ext, w_bits in [("b", (1, 0, 31)), ("q", (1, 1, 31))]:
+    dst_reg = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
+    src1_reg = OK.XREG_5_9 if ext == "q" else OK.WREG_5_9
+    src2_reg = OK.XREG_16_20 if ext == "q" else OK.WREG_16_20
+    for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
+                                          "hi", "ls", "ge", "lt", "gt", "le"]):
+        for name, bits in [("csel", [(3, 0, 29), (3, 0, 10)]),
+                           ("csneg", [(3, 2, 29), (3, 1, 10)]),
+                           ("csinc", [(3, 0, 29), (3, 1, 10)]),
+                           ("csinv", [(3, 2, 29), (3, 0, 10)]),
+                           ]:
+            Opcode(name, f"{ext}_{cond_name}",
+                   [w_bits, root110, (0x1f, 0x14, 21), (0xf, cond_val, 12)] + bits,
+                   [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
+
 ########################################
 root111 = (7, 7, 26)
 ########################################
 
-for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
-                             ("64", OPC_FLAG.X, (1, 1, 22))]:
+for w_ext, w_flag, w_bit in [("s", OPC_FLAG.W, (1, 0, 22)),
+                             ("d", OPC_FLAG.X, (1, 1, 22))]:
     dst_reg = OK.DREG_0_4 if w_bit else OK.SREG_0_4
     src1_reg = OK.DREG_5_9 if w_bit else OK.SREG_5_9
     src2_reg = OK.DREG_16_20 if w_bit else OK.SREG_16_20
@@ -954,6 +979,12 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
     ]:
         Opcode(name, w_ext, [root111, (7, 0, 29), w_bit, (1, 1, 21)] + bits,
                [dst_reg, src1_reg], w_flag)
+
+    for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
+                                          "hi", "ls", "ge", "lt", "gt", "le"]):
+        Opcode(f"fcsel", f"{w_ext}_{cond_name}",
+               [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xf, cond_val, 12), (3, 3, 10)],
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
 
 for ext, dst_reg, bits in [
     ("b", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
@@ -1015,6 +1046,7 @@ for src_ext, src_reg, src_bits in [("w", OK.WREG_0_4, (1, 0, 31)),
         Opcode("ucvtf", dst_ext + "_" + src_ext,
                [src_bits, (3, 0, 29), root111, (7, 4, 23), dst_bits, (0xfff, 0x8c0, 10)],
                [dst_reg, src_reg], OPC_FLAG(0))
+
 
 class Ins:
     """Arm flavor of an Instruction
