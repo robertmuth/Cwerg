@@ -20,6 +20,8 @@ ALIASES = {
     "cmp": {"subs"},
     "neg": {"sub"},
     "negs": {"subs"},
+    "ngcs": {"sbcs"},
+
     "tst": {"ands"},
     "mov": {"orr", "add"},
     "mvn": {"orn"},
@@ -31,12 +33,9 @@ ALIASES = {
     "ror": {"rorv", "ror"},
     "smull": {"smaddl"},
     "umull": {"umaddl"},
-
+    #
     "ldr": {"ldr", "ldrw", "ldrq", "fldrb",  "fldrh",  "fldrs",  "fldrd",  "fldrq"},
-    "str": {"strq", "strw", "fstr"},
     "ldp": {"ldp", "ldpq", "ldpw", "fldps", "fldpd", "fldpq"},
-    "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
-    "stur": {"sturq", "sturw"},
     "ldur": {"ldurq", "ldur", "ldurw"},
     "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
     "ldursh": {"ldurshq", "ldurshw", "ldursh"},
@@ -45,6 +44,10 @@ ALIASES = {
 	"ldxr": {"ldxrw", "ldxrq"},
     "ldaxr": {"ldaxrw", "ldaxrq"},
     "ldar": {"ldarw", "ldarq"},
+    #
+    "str": {"strq", "strw", "fstr"},
+    "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
+    "stur": {"sturq", "sturw"},
     "stxr":  {"stxrw", "stxrq"},
     "stlxr":  {"stlxrw", "stlxrq"},
     "stlr":  {"stlrw", "stlrq"},
