@@ -623,12 +623,15 @@ for ext, w_bit in [("q", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b"
            [reg, OK.XREG_5_9], w_flag, SR_UPDATE.NONE)
     Opcode("ldaxr" + ext, "", [w_bit, root010, (0xffff, 0x17ff, 10)],
            [reg, OK.XREG_5_9], OPC_FLAG(0), SR_UPDATE.NONE)
+    Opcode("ldar" + ext, "", [w_bit, root010, (0xffff, 0x37ff, 10)],
+           [reg, OK.XREG_5_9], OPC_FLAG(0), SR_UPDATE.NONE)
     Opcode("stxr" + ext, "", [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x1f, 10)],
            [OK.WREG_16_20, OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
     Opcode("stlxr" + ext, "", [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x3f, 10)],
            [OK.WREG_16_20, OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
     Opcode("stlr" + ext, "", [w_bit, root010, (0xffff, 0x27ff, 10)],
            [OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
+
 ########################################
 root011 = (7, 3, 26)
 ########################################
@@ -866,8 +869,8 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
         ("fsub", (0x3f, 0xe, 10)),
         ("fmax", (0x3f, 0x12, 10)),
         ("fmaxnm", (0x3f, 0x1a, 10)),
-        ("fmin", (0x3f, 0x12, 10)),
-        ("fminnm", (0x3f, 0x1a, 10)),
+        ("fmin", (0x3f, 0x16, 10)),
+        ("fminnm", (0x3f, 0x1e, 10)),
         ("fnmul", (0x3f, 0x22, 10)),
     ]:
         Opcode(name, w_ext, [root111, (7, 0, 29), (7, 4, 23), w_bit, (1, 1, 21), bits],
@@ -881,6 +884,29 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 22)),
     ]:
         Opcode(name, w_ext, [root111, (7, 0, 29), w_bit] + bits,
                [dst_reg, src1_reg, src2_reg, src3_reg], w_flag)
+
+    for name, bits in [
+        ("fabd", [(7, 5, 23), (0x3f, 0x35, 10)]),
+        ("fcmge", [(7, 4, 23), (0x3f, 0x39, 10)]),
+        ("fcmgt", [(7, 5, 23), (0x3f, 0x39, 10)]),
+    ]:
+        Opcode(name, w_ext, [root111, (7, 3, 29), w_bit, (1, 1, 21)] + bits,
+               [dst_reg, src1_reg, src2_reg], w_flag)
+
+    for name, bits in [
+        ("fabs", [(7, 4, 23), (0x7ff, 0x30, 10)]),
+        ("fneg", [(7, 4, 23), (0x7ff, 0x50, 10)]),
+        ("fsqrt", [(7, 4, 23), (0x7ff, 0x70, 10)]),
+        ("frinta", [(7, 4, 23), (0x7ff, 0x190, 10)]),
+        ("frinti", [(7, 4, 23), (0x7ff, 0x1f0, 10)]),
+        ("frintm", [(7, 4, 23), (0x7ff, 0x150, 10)]),
+        ("frintn", [(7, 4, 23), (0x7ff, 0x110, 10)]),
+        ("frintp", [(7, 4, 23), (0x7ff, 0x130, 10)]),
+        ("frintx", [(7, 4, 23), (0x7ff, 0x1d0, 10)]),
+        ("frintz", [(7, 4, 23), (0x7ff, 0x170, 10)]),
+    ]:
+        Opcode(name, w_ext, [root111, (7, 0, 29), w_bit, (1, 1, 21)] + bits,
+               [dst_reg, src1_reg], w_flag)
 
 for ext, dst_reg, bits in [
     ("b", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
