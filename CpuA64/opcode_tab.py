@@ -164,6 +164,7 @@ class OK(enum.Enum):
     SIMM_15_21_times_4 = 54
     SIMM_15_21_times_8 = 55
     SIMM_15_21_times_16 = 56
+    SIMM_5_23_29_30 = 57
 
     # shifts
     SHIFT_22_23 = 60
@@ -289,6 +290,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.SIMM_15_21_times_4: [(BRK.Verbatim, 7, 15)],
     OK.SIMM_15_21_times_8: [(BRK.Verbatim, 7, 15)],
     OK.SIMM_15_21_times_16: [(BRK.Verbatim, 7, 15)],
+    OK.SIMM_5_23_29_30: [(BRK.Hi, 19, 5), (BRK.Lo, 2, 29)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
@@ -598,6 +600,7 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     dst_reg = OK.XREG_0_4 if w_bit else OK.WREG_0_4
     src1_reg = OK.XREG_5_9 if w_bit else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if w_bit else OK.WREG_16_20
+    dst2_reg = OK.XREG_10_14 if w_bit else OK.WREG_10_14
 
     for name, bits, sr_update in [
         ("add", [(3, 0, 29), (3, 3, 24), (1, 0, 21)], SR_UPDATE.NONE),
@@ -631,6 +634,22 @@ for ext, w_bit in [("q", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b"
            [OK.WREG_16_20, OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
     Opcode("stlr" + ext, "", [w_bit, root010, (0xffff, 0x27ff, 10)],
            [OK.XREG_5_9, reg], w_flag, SR_UPDATE.NONE)
+
+for ext, w_bit, imm in [("q", (3, 1, 30), OK.SIMM_15_21_times_8),
+                        ("w", (3, 0, 30), OK.SIMM_15_21_times_4),
+                        ("sw", (3, 1, 30), OK.SIMM_15_21_times_4)]:
+    dst1 = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
+    dst2 = OK.XREG_10_14 if ext == "q" else OK.WREG_10_14
+    Opcode("ldp" + ext, "", [w_bit, (1, 1, 29), root010, (0xf, 3, 22)],
+           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+
+for ext, w_bit, imm in [("q", (3, 1, 30), OK.SIMM_15_21_times_8),
+                        ("w", (3, 0, 30), OK.SIMM_15_21_times_4),
+    ]:
+    src1 = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
+    src2 = OK.XREG_10_14 if ext == "q" else OK.WREG_10_14
+    Opcode("stp" + ext, "", [w_bit, (1, 1, 29), root010, (0xf, 2, 22)],
+           [OK.XREG_5_9, imm, src1, src2], w_flag)
 
 ########################################
 root011 = (7, 3, 26)
@@ -694,6 +713,11 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
     ]:
         Opcode(name, "imm_" + w_ext, [root100, w_bit, shift_filler] + bits,
                [dst_reg, src1_reg, OK.IMM_16_22], w_flag, sr_update=SR_UPDATE.NONE)
+
+Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
+       [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
+Opcode("adrp", "", [root100, (1, 1, 31), (3, 0, 24)],
+       [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
 ########################################
 root101 = (7, 5, 26)
 ########################################
@@ -758,16 +782,19 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
         Opcode(name, w_ext, [root110, w_bit, (3, 3, 24), (7, 0, 21)] + bits,
                [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
 
-    for name, bits in [
-        ("udiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 2, 10)]),
-        ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)]),
-        ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)]),
-        ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)]),
-        ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)]),
-        ("rorv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xb, 10)]),
+    for name, bits, sr_update in [
+        ("udiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 2, 10)], SR_UPDATE.NONE),
+        ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)], SR_UPDATE.NONE),
+        ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)], SR_UPDATE.NONE),
+        ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)], SR_UPDATE.NONE),
+        ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)], SR_UPDATE.NONE),
+        ("rorv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xb, 10)], SR_UPDATE.NONE),
+        ("adc", [(3, 0, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)], SR_UPDATE.NONE),
+        ("adcs", [(3, 1, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)], SR_UPDATE.NZ),
+
     ]:
         Opcode(name, w_ext, [root110, w_bit] + bits,
-               [dst_reg, src1_reg, src2_reg], w_flag)
+               [dst_reg, src1_reg, src2_reg], w_flag, sr_update)
 
     if w_ext == "64":
         for name, bits in [

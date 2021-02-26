@@ -34,8 +34,8 @@ ALIASES = {
 
     "ldr": {"ldr", "ldrw", "ldrq", "fldrb",  "fldrh",  "fldrs",  "fldrd",  "fldrq"},
     "str": {"strq", "strw", "fstr"},
-    "ldp": {"ldp", "fldps", "fldpd", "fldpq"},
-    "stp": {"stp", "fstps", "fstpd", "fstpq"},
+    "ldp": {"ldp", "ldpq", "ldpw", "fldps", "fldpd", "fldpq"},
+    "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
     "stur": {"sturq", "sturw"},
     "ldur": {"ldurq", "ldur", "ldurw"},
     "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
