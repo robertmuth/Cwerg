@@ -800,13 +800,13 @@ for w_ext, w_flag, w_bit in [("32", OPC_FLAG.W, (1, 0, 31)), ("64", OPC_FLAG.X, 
                [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
 
     for name, bits in [("udiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 2, 10)]),
-        ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)]),
-        ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)]),
-        ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)]),
-        ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)]),
-        ("rorv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xb, 10)]),
-        ("adc", [(3, 0, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
-        ("sbc", [(3, 2, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
+                       ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)]),
+                       ("lslv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 8, 10)]),
+                       ("lsrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 9, 10)]),
+                       ("asrv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xa, 10)]),
+                       ("rorv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 0xb, 10)]),
+                       ("adc", [(3, 0, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
+                       ("sbc", [(3, 2, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
         Opcode(name, w_ext, [root110, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg], w_flag)
 
@@ -973,6 +973,48 @@ for ext, dst_reg, bits in [
     Opcode("fldr" + ext, "reg_64", [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
            [dst_reg, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
 
+for dst_ext, dst_reg, dst_bits in [
+    ("h", OK.HREG_0_4, (3, 3, 15)),
+    ("s", OK.SREG_0_4, (3, 0, 15)),
+    ("d", OK.DREG_0_4, (3, 1, 15))]:
+    for src_ext, src_reg, src_bits in [
+        ("h", OK.HREG_5_9, (3, 3, 22)),
+        ("s", OK.SREG_5_9, (3, 0, 22)),
+        ("d", OK.DREG_5_9, (3, 1, 22))]:
+        if src_ext != dst_ext:
+            Opcode("fcvt", dst_ext + "_" + src_ext,
+                   [(7, 0, 29), root111, (3, 2, 24), src_bits, (0x1f, 0x11, 17), dst_bits,
+                    (0x1f, 0x10, 10)],
+                   [dst_reg, src_reg], OPC_FLAG(0))
+
+for dst_ext, dst_reg, dst_bits in [("w", OK.WREG_0_4, (1, 0, 31)),
+                                   ("q", OK.XREG_0_4, (1, 1, 31))]:
+    for type_ext, bits in [("as", (0xfff, 0x900, 10)),
+                           ("au", (0xfff, 0x940, 10)),
+                           ("ms", (0xfff, 0xc00, 10)),
+                           ("mu", (0xfff, 0xc40, 10)),
+                           ("ns", (0xfff, 0x800, 10)),
+                           ("nu", (0xfff, 0x840, 10)),
+                           ("ps", (0xfff, 0xa00, 10)),
+                           ("pu", (0xfff, 0xa40, 10)),
+                           ("zs", (0xfff, 0xe00, 10)),
+                           ("zu", (0xfff, 0xe40, 10))]:
+        for src_ext, src_reg, src_bits in [("s", OK.SREG_5_9, (1, 0, 22)),
+                                           ("d", OK.DREG_5_9, (1, 1, 22))]:
+            Opcode("fcvt" + type_ext, dst_ext + "_" + src_ext,
+                   [dst_bits, (3, 0, 29), root111, (7, 4, 23), src_bits, bits],
+                   [dst_reg, src_reg], OPC_FLAG(0))
+
+for src_ext, src_reg, src_bits in [("w", OK.WREG_0_4, (1, 0, 31)),
+                                   ("q", OK.XREG_0_4, (1, 1, 31))]:
+    for dst_ext, dst_reg, dst_bits in [("s", OK.SREG_5_9, (1, 0, 22)),
+                                       ("d", OK.DREG_5_9, (1, 1, 22))]:
+        Opcode("scvtf", dst_ext + "_" + src_ext,
+               [src_bits, (3, 0, 29), root111, (7, 4, 23), dst_bits, (0xfff, 0x880, 10)],
+               [dst_reg, src_reg], OPC_FLAG(0))
+        Opcode("ucvtf", dst_ext + "_" + src_ext,
+               [src_bits, (3, 0, 29), root111, (7, 4, 23), dst_bits, (0xfff, 0x8c0, 10)],
+               [dst_reg, src_reg], OPC_FLAG(0))
 
 class Ins:
     """Arm flavor of an Instruction
