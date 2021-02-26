@@ -1,0 +1,36 @@
+1ac24929 	crc32w	w9, w9, w2
+1ac84040 	crc32b	w0, w2, w8
+1ac84442 	crc32h	w2, w2, w8
+1ac84842 	crc32w	w2, w2, w8
+1ac8516b 	crc32cb	w11, w11, w8
+1ac94942 	crc32w	w2, w10, w9
+1ac9556b 	crc32ch	w11, w11, w9
+1ac9596b 	crc32cw	w11, w11, w9
+5e280802 	sha1h	s2, s0
+5e280803 	sha1h	s3, s0
+9ac84c42 	crc32x	w2, w2, x8
+9ac95d6b 	crc32cx	w11, w11, x9
+9acb5feb 	crc32cx	w11, wzr, x11
+9acc5fec 	crc32cx	w12, wzr, x12
+9acd5d6b 	crc32cx	w11, w11, x13
+9acd5d8c 	crc32cx	w12, w12, x13
+9acd5ded 	crc32cx	w13, w15, x13
+9ace4d4a 	crc32x	w10, w10, x14
+9ace5d6b 	crc32cx	w11, w11, x14
+9ace5d8c 	crc32cx	w12, w12, x14
+9ace5dad 	crc32cx	w13, w13, x14
+9ace5fee 	crc32cx	w14, wzr, x14
+9acf4d29 	crc32x	w9, w9, x15
+9acf5d6b 	crc32cx	w11, w11, x15
+9acf5d8c 	crc32cx	w12, w12, x15
+9acf5d8f 	crc32cx	w15, w12, x15
+9acf5dce 	crc32cx	w14, w14, x15
+9acf5fef 	crc32cx	w15, wzr, x15
+9ad04c42 	crc32x	w2, w2, x16
+9ad05d8c 	crc32cx	w12, w12, x16
+9ad05dad 	crc32cx	w13, w13, x16
+9ad05dcd 	crc32cx	w13, w14, x16
+9ad05dce 	crc32cx	w14, w14, x16
+9ad15d6b 	crc32cx	w11, w11, x17
+9ad15d8c 	crc32cx	w12, w12, x17
+9ad15dad 	crc32cx	w13, w13, x17
