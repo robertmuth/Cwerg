@@ -705,7 +705,6 @@ for ext, w_flag, w_bit in [("b", OPC_FLAG.W, (1, 0, 31)), ("q", OPC_FLAG.X, (1, 
     dst_reg = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
     src1_reg = OK.XREG_5_9 if ext == "q" else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if ext == "q" else OK.WREG_16_20
-    shift_filler = (0x3f, 0x3f, 10) if ext == "q" else (0x3f, 0x1f, 10)
 
     for name, bits, sr_update in [
         ("add", [(3, 0, 29), (3, 1, 24)], SR_UPDATE.NONE),
@@ -728,15 +727,10 @@ for ext, w_flag, w_bit in [("b", OPC_FLAG.W, (1, 0, 31)), ("q", OPC_FLAG.X, (1, 
         Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
                [dst_reg, src1_reg, OK.IMM_10_15_16_22], w_flag, sr_update=sr_update)
 
-    for name, bits in [
-        # ("lsl", [(3, 2, 29), (7, 6, 23)]),
-        ("lsr", [(3, 2, 29), (7, 6, 23)]),
-        ("asr", [(3, 0, 29), (7, 6, 23)]),
-        # ("ubfx", [(3, 2, 29), (7, 6, 23)], SR_UPDATE.NONE),
-        # ("bics", [(3, 3, 29), (7, 4, 23)], SR_UPDATE.NZ),
-    ]:
-        Opcode(name, "imm_" + ext, [root100, w_bit, shift_filler] + bits,
-               [dst_reg, src1_reg, OK.IMM_16_22], w_flag, sr_update=SR_UPDATE.NONE)
+    for name, bits in [("ubfm", [(3, 2, 29), (7, 6, 23)]),
+                       ("sbfm", [(3, 0, 29), (7, 6, 23)])]:
+        Opcode(name, ext, [root100, w_bit] + bits,
+               [dst_reg, src1_reg, OK.IMM_16_22, OK.IMM_10_15], w_flag)
 
 Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
        [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))

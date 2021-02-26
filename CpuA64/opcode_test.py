@@ -33,10 +33,19 @@ ALIASES = {
     "mvn": {"orn"},
     "mul": {"madd"},
     "mneg": {"msub"},
-    "lsl": {"lslv", "lsl"},
-    "lsr": {"lsrv", "lsr"},
-    "asr": {"asrv", "asr"},
+    #
+    "lsl": {"lslv", "lsl", "ubfm"},
+    "lsr": {"lsrv", "lsr", "ubfm"},
+    "asr": {"asrv", "asr", "sbfm"},
     "ror": {"rorv", "ror"},
+    "ubfiz": {"ubfm"},
+    "ubfx": {"ubfm"},
+    "sbfx": {"sbfm"},
+    "sxtb": {"sbfm"},
+    "sxth": {"sbfm"},
+    "sxtw": {"sbfm"},
+    "sbfiz": {"sbfm"},
+    #
     "smull": {"smaddl"},
     "umull": {"umaddl"},
     #
