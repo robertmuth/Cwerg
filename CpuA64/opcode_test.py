@@ -37,7 +37,7 @@ ALIASES = {
     "lsl": {"lslv", "lsl", "ubfm"},
     "lsr": {"lsrv", "lsr", "ubfm"},
     "asr": {"asrv", "asr", "sbfm"},
-    "ror": {"rorv", "ror"},
+    "ror": {"rorv", "ror", "extr"},
     "ubfiz": {"ubfm"},
     "ubfx": {"ubfm"},
     "sbfx": {"sbfm"},
@@ -45,6 +45,9 @@ ALIASES = {
     "sxth": {"sbfm"},
     "sxtw": {"sbfm"},
     "sbfiz": {"sbfm"},
+    "bfxil": {"bfm"},
+    "bfi": {"bfm"},
+    "bfc": {"bfm"},
     #
     "smull": {"smaddl"},
     "umull": {"umaddl"},
@@ -60,7 +63,7 @@ ALIASES = {
     "ldaxr": {"ldaxrw", "ldaxrq"},
     "ldar": {"ldarw", "ldarq"},
     #
-    "str": {"strq", "strw", "fstr"},
+    "str": {"strq", "strw", "fstr", "fstrb", "fstrq", "fstrh", "fstrs", "fstrd"},
     "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
     "stur": {"sturq", "sturw"},
     "stxr": {"stxrw", "stxrq"},
