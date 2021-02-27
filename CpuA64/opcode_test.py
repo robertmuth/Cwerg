@@ -29,7 +29,7 @@ ALIASES = {
     "csetm": {"csinv"},
     #
     "tst": {"ands"},
-    "mov": {"orr", "add"},
+    "mov": {"orr", "add", "movz", "movn"},
     "mvn": {"orn"},
     "mul": {"madd"},
     "mneg": {"msub"},
