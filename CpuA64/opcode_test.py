@@ -90,10 +90,19 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
+SUPPORTED_OKS = set(a64.FIELDS_REG.keys())
+
+
+def IsRegOnly(opcode: a64.Opcode) -> bool:
+    for f in opcode.fields:
+        if f not in SUPPORTED_OKS:
+         return False
+    return True
+
 
 def HandleOneInstruction(count: int, line: str,
                          data: int,
-                         actual_name: str, actual_ops: List):
+                         actual_name: str, actual_ops: List[str]):
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = a64.Opcode.FindOpcode(data)
@@ -102,9 +111,22 @@ def HandleOneInstruction(count: int, line: str,
         count_found += 1
         assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
         #print (line, end="")
+        if (not IsRegOnly(opcode) or
+                a64.OPC_FLAG.COND_PARAM in opcode.classes or
+                a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes or
+                opcode.name != actual_name):
+            return
+        print (f"{len(opcode.fields)} {len(actual_ops)} {opcode.name}  {opcode.fields}  {actual_ops}")
+        assert len(opcode.fields) == len(actual_ops)
     else:
         EXAMPLE[actual_name] = line
         MISSED[actual_name] += 1
+
+
+def MassageOperands(name, operands):
+    if name == "ret" and not operands:
+        operands.append("x30")
+
 
 def main(argv):
     for fn in argv:
@@ -121,7 +143,10 @@ def main(argv):
                 actual_name = token[1]
                 actual_ops = []
                 if len(token) == 3:
-                    actual_ops = [o.strip() for o in token[2].split(",")]
+                    ops_str = token[2]
+                    ops_str = ops_str.split(" //")[0]
+                    actual_ops = [o.strip() for o in ops_str.split(",")]
+                MassageOperands(actual_name, actual_ops)
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
     for k, v in sorted(MISSED.items()):

@@ -459,6 +459,8 @@ class OPC_FLAG(enum.Flag):
     MISC = 1 << 23
     X = 1 << 24
     W = 1 << 25
+    COND_PARAM = 1 << 26  # csel, etc which have a condition-code as a parameter
+    DOMAIN_PARAM = 1 << 27  # dmb, etc which have a sharable domain as a parameter
     # do not go above 31 as we want these to fit into a 32 bit word
 
 
@@ -817,17 +819,17 @@ Opcode("isb", "", [root101, (7, 6, 29), (0x3ffffff, 0x1033fdf, 0)],
 Opcode("clrex", "", [root101, (7, 6, 29), (0x3ffffff, 0x1033f5f, 0)],
        [], OPC_FLAG(0))
 Opcode("dmb", "ish", [root101, (7, 6, 29), (0x3ffffff, 0x1033bbf, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 Opcode("dmb", "ishld", [root101, (7, 6, 29), (0x3ffffff, 0x10339bf, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 Opcode("dmb", "ishst", [root101, (7, 6, 29), (0x3ffffff, 0x1033abf, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 Opcode("dsb", "ish", [root101, (7, 6, 29), (0x3ffffff, 0x1033b9f, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 Opcode("dsb", "ishld", [root101, (7, 6, 29), (0x3ffffff, 0x103399f, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 Opcode("dsb", "ishst", [root101, (7, 6, 29), (0x3ffffff, 0x1033a9f, 0)],
-       [], OPC_FLAG(0))
+       [], OPC_FLAG.DOMAIN_PARAM)
 
 ########################################
 root110 = (7, 6, 26)
@@ -863,16 +865,16 @@ for ext, w_flag, w_bit in [("w", OPC_FLAG.W, (1, 0, 31)), ("x", OPC_FLAG.X, (1, 
                [dst_reg, src1_reg, src2_reg], w_flag, sr_update=SR_UPDATE.NZ)
 
     if ext == "x":
-        for name, bits in [
-            ("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
-            ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
-            ("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
-            ("umaddl", [(3, 0, 29), (7, 5, 21), (1, 0, 15)]),
-            ("umsubl", [(3, 0, 29), (7, 5, 21), (1, 1, 15)]),
-            ("umulh", [(3, 0, 29), (7, 6, 21), (1, 0, 15)]),
-        ]:
+        for name, bits in [("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
+                           ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
+                           ("umaddl", [(3, 0, 29), (7, 5, 21), (1, 0, 15)]),
+                           ("umsubl", [(3, 0, 29), (7, 5, 21), (1, 1, 15)])]:
             Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24)] + bits,
                    [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
+        for name, bits in [("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
+                           ("umulh", [(3, 0, 29), (7, 6, 21), (1, 0, 15)])]:
+            Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24), (0x1f, 0x1f, 10)] + bits,
+                   [dst_reg, src1_reg, src2_reg], w_flag)
 
 for ext, scaled_offset, w_bits in [("x", OK.IMM_10_21_times_8, (7, 7, 29)),
                                    ("w", OK.IMM_10_21_times_4, (7, 5, 29)),
@@ -955,7 +957,7 @@ for ext, w_bits in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                            ("csinv", [(3, 2, 29), (3, 0, 10)])]:
             Opcode(name, f"{ext}_{cond_name}",
                    [w_bits, root110, (0x1f, 0x14, 21), (0xf, cond_val, 12)] + bits,
-                   [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
+                   [dst_reg, src1_reg, src2_reg], OPC_FLAG.COND_PARAM)
 
         for name, bits in [("ccmp", (3, 3, 29)),
                            ("ccmn", (3, 1, 29))]:
@@ -1053,10 +1055,10 @@ for ext, w_flag, w_bit in [("s", OPC_FLAG.W, (1, 0, 22)),
                                           "hi", "ls", "ge", "lt", "gt", "le"]):
         Opcode(f"fcsel", f"{ext}_{cond_name}",
                [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xf, cond_val, 12), (3, 3, 10)],
-               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG.COND_PARAM)
         Opcode("fccmp", f"{ext}_{cond_name}",
                [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xf, cond_val, 12), (3, 1, 10), (1, 0, 4)],
-               [src1_reg, src2_reg, OK.IMM_0_3], OPC_FLAG(0))
+               [src1_reg, src2_reg, OK.IMM_0_3], OPC_FLAG.COND_PARAM)
 
 for ext, dst, src, bits in [
     ("s_from_w", OK.SREG_0_4, OK.WREG_5_9, [(1, 0, 31), (3, 0, 22), (1, 0, 19), (1, 1, 16)]),
