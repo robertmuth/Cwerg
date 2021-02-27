@@ -667,8 +667,8 @@ for ext, w_bit, imm in [("q", (7, 5, 29), OK.SIMM_15_21_TIMES8),
     Opcode("ldp" + ext, "imm", [w_bit, root010, (0xf, 5, 22)],
            [dst1, dst2, OK.XREG_5_9, imm], w_flag)
 
-for ext, w_bit, imm in [("q", (7, 4, 29), OK.SIMM_15_21_TIMES8),
-                        ("w", (7, 0, 29), OK.SIMM_15_21_TIMES4),
+for ext, w_bit, imm in [("q", (7, 5, 29), OK.SIMM_15_21_TIMES8),
+                        ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4),
                         ]:
     src1 = OK.XREG_0_4 if ext == "q" else OK.WREG_0_4
     src2 = OK.XREG_10_14 if ext == "q" else OK.WREG_10_14
@@ -810,6 +810,7 @@ Opcode("dsb", "ishld", [root101, (7, 6, 29), (0x3ffffff, 0x103399f, 0)],
        [], OPC_FLAG(0))
 Opcode("dsb", "ishst", [root101, (7, 6, 29), (0x3ffffff, 0x1033a9f, 0)],
        [], OPC_FLAG(0))
+
 ########################################
 root110 = (7, 6, 26)
 ########################################
@@ -935,11 +936,23 @@ for ext, w_bits in [("b", (1, 0, 31)), ("q", (1, 1, 31))]:
         for name, bits in [("csel", [(3, 0, 29), (3, 0, 10)]),
                            ("csneg", [(3, 2, 29), (3, 1, 10)]),
                            ("csinc", [(3, 0, 29), (3, 1, 10)]),
-                           ("csinv", [(3, 2, 29), (3, 0, 10)]),
-                           ]:
+                           ("csinv", [(3, 2, 29), (3, 0, 10)])]:
             Opcode(name, f"{ext}_{cond_name}",
                    [w_bits, root110, (0x1f, 0x14, 21), (0xf, cond_val, 12)] + bits,
                    [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
+
+for name, ext, bits in [("rbit", "q", [(7, 6, 29), (3, 0, 10)]),
+                        ("rbit", "w", [(7, 2, 29), (3, 0, 10)]),
+                        ("rev", "q", [(7, 6, 29), (3, 3, 10)]),
+                        ("rev", "w", [(7, 2, 29), (3, 2, 10)]),
+                        ("rev32", "", [(7, 6, 29), (3, 2, 10)]),
+                        ("rev16", "q", [(7, 6, 29), (3, 1, 10)]),
+                        ("rev16", "w", [(7, 2, 29), (3, 1, 10)])]:
+    dst = OK.XREG_0_4 if ext != "w" else OK.WREG_0_4
+    src = OK.XREG_5_9 if ext != "w" else OK.WREG_5_9
+
+    Opcode(name, ext, [root110, (0x3fff, 0x2c00, 12)] + bits,
+           [dst, src], OPC_FLAG(0))
 
 ########################################
 root111 = (7, 7, 26)
