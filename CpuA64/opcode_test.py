@@ -52,23 +52,39 @@ ALIASES = {
     "smull": {"smaddl"},
     "umull": {"umaddl"},
     #
-    "ldr": {"ldr", "ldrw", "ldrx", "fldrb", "fldrh", "fldrs", "fldrd", "fldrq"},
-    "ldp": {"ldp", "ldpx", "ldpw", "fldps", "fldpd", "fldpq"},
-    "ldur": {"ldurx", "ldur", "ldurw", "fldurq", "fldurd", "fldurs", "fldurh", "fldurb"},
-    "ldrsh": {"ldrshx", "ldrshw", "ldrsh"},
-    "ldursh": {"ldurshx", "ldurshw", "ldursh"},
-    "ldrsb": {"ldrsbx", "ldrsbw"},
-    "ldursb": {"ldursbx", "ldursbw"},
-    "ldxr": {"ldxrw", "ldxrx"},
-    "ldaxr": {"ldaxrw", "ldaxrx"},
-    "ldar": {"ldarw", "ldarx"},
+    "ldr": {"ldr", "fldr"},
+    "ldp": {"ldp", "fldp"},
+    "ldur": {"ldur", "fldur"},
     #
-    "str": {"strx", "strw", "fstr", "fstrb", "fstrq", "fstrh", "fstrs", "fstrd"},
-    "stp": {"stp", "stpw", "stpx", "fstps", "fstpd", "fstpq"},
-    "stur": {"sturx", "sturw", "fsturq", "fsturd", "fsturs", "fsturh", "fsturb"},
-    "stxr": {"stxrw", "stxrx"},
-    "stlxr": {"stlxrw", "stlxrx"},
-    "stlr": {"stlrw", "stlrx"},
+    "ldurb" : {"ldur"},
+    "ldurh" : {"ldur"},
+    "ldrb" : {"ldr"},
+    "ldrb" : {"ldr"},
+    "ldrh" : {"ldr"},
+    "ldarb" : {"ldar"},
+    "ldarh" : {"ldar"},
+    "ldxrb": {"ldxr"},
+    "ldxrh": {"ldxr"},
+    "ldaxrb": {"ldaxr"},
+    "ldaxrh": {"ldaxr"},
+    "ldpsw": {"ldp"},
+
+    #
+    "sturb" : {"stur"},
+    "sturh" : {"stur"},
+    "strb" : {"str"},
+    "strh" : {"str"},
+    "stlxrb": {"stlxr"},
+    "stlxrh": {"stlxr"},
+    "stxrb": {"stxr"},
+    "stxrh": {"stxr"},
+    "stlrb": {"stlr"},
+    "stlrh": {"stlr"},
+    "stpw": {"stp"},
+    #
+    "str":  {"str",  "fstr"},
+    "stp": {"stp", "fstp"},
+    "stur": {"stur", "fstur"},
 }
 
 MISSED = collections.defaultdict(int)
@@ -84,7 +100,7 @@ def HandleOneInstruction(count: int, line: str,
     aliases = ALIASES.get(actual_name, {actual_name})
     if opcode:
         count_found += 1
-        assert opcode.name in aliases, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
+        assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
         #print (line, end="")
     else:
         EXAMPLE[actual_name] = line
