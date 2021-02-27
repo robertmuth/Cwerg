@@ -54,7 +54,7 @@ ALIASES = {
     #
     "ldr": {"ldr", "ldrw", "ldrq", "fldrb", "fldrh", "fldrs", "fldrd", "fldrq"},
     "ldp": {"ldp", "ldpq", "ldpw", "fldps", "fldpd", "fldpq"},
-    "ldur": {"ldurq", "ldur", "ldurw"},
+    "ldur": {"ldurq", "ldur", "ldurw", "fldurq", "fldurd", "fldurs", "fldurh", "fldurb"},
     "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
     "ldursh": {"ldurshq", "ldurshw", "ldursh"},
     "ldrsb": {"ldrsbq", "ldrsbw"},
@@ -65,11 +65,10 @@ ALIASES = {
     #
     "str": {"strq", "strw", "fstr", "fstrb", "fstrq", "fstrh", "fstrs", "fstrd"},
     "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
-    "stur": {"sturq", "sturw"},
+    "stur": {"sturq", "sturw", "fsturq", "fsturd", "fsturs", "fsturh", "fsturb"},
     "stxr": {"stxrw", "stxrq"},
     "stlxr": {"stlxrw", "stlxrq"},
     "stlr": {"stlrw", "stlrq"},
-
 }
 
 MISSED = collections.defaultdict(int)
