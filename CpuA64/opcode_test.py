@@ -52,23 +52,23 @@ ALIASES = {
     "smull": {"smaddl"},
     "umull": {"umaddl"},
     #
-    "ldr": {"ldr", "ldrw", "ldrq", "fldrb", "fldrh", "fldrs", "fldrd", "fldrq"},
-    "ldp": {"ldp", "ldpq", "ldpw", "fldps", "fldpd", "fldpq"},
-    "ldur": {"ldurq", "ldur", "ldurw", "fldurq", "fldurd", "fldurs", "fldurh", "fldurb"},
-    "ldrsh": {"ldrshq", "ldrshw", "ldrsh"},
-    "ldursh": {"ldurshq", "ldurshw", "ldursh"},
-    "ldrsb": {"ldrsbq", "ldrsbw"},
-    "ldursb": {"ldursbq", "ldursbw"},
-    "ldxr": {"ldxrw", "ldxrq"},
-    "ldaxr": {"ldaxrw", "ldaxrq"},
-    "ldar": {"ldarw", "ldarq"},
+    "ldr": {"ldr", "ldrw", "ldrx", "fldrb", "fldrh", "fldrs", "fldrd", "fldrq"},
+    "ldp": {"ldp", "ldpx", "ldpw", "fldps", "fldpd", "fldpq"},
+    "ldur": {"ldurx", "ldur", "ldurw", "fldurq", "fldurd", "fldurs", "fldurh", "fldurb"},
+    "ldrsh": {"ldrshx", "ldrshw", "ldrsh"},
+    "ldursh": {"ldurshx", "ldurshw", "ldursh"},
+    "ldrsb": {"ldrsbx", "ldrsbw"},
+    "ldursb": {"ldursbx", "ldursbw"},
+    "ldxr": {"ldxrw", "ldxrx"},
+    "ldaxr": {"ldaxrw", "ldaxrx"},
+    "ldar": {"ldarw", "ldarx"},
     #
-    "str": {"strq", "strw", "fstr", "fstrb", "fstrq", "fstrh", "fstrs", "fstrd"},
-    "stp": {"stp", "stpw", "stpq", "fstps", "fstpd", "fstpq"},
-    "stur": {"sturq", "sturw", "fsturq", "fsturd", "fsturs", "fsturh", "fsturb"},
-    "stxr": {"stxrw", "stxrq"},
-    "stlxr": {"stlxrw", "stlxrq"},
-    "stlr": {"stlrw", "stlrq"},
+    "str": {"strx", "strw", "fstr", "fstrb", "fstrq", "fstrh", "fstrs", "fstrd"},
+    "stp": {"stp", "stpw", "stpx", "fstps", "fstpd", "fstpq"},
+    "stur": {"sturx", "sturw", "fsturq", "fsturd", "fsturs", "fsturh", "fsturb"},
+    "stxr": {"stxrw", "stxrx"},
+    "stlxr": {"stlxrw", "stlxrx"},
+    "stlr": {"stlrw", "stlrx"},
 }
 
 MISSED = collections.defaultdict(int)
@@ -85,10 +85,10 @@ def HandleOneInstruction(count: int, line: str,
     if opcode:
         count_found += 1
         assert opcode.name in aliases, f"[{opcode.name} {opcode.variant}] vs {actual_name}: {line}"
+        #print (line, end="")
     else:
         EXAMPLE[actual_name] = line
         MISSED[actual_name] += 1
-
 
 def main(argv):
     for fn in argv:
