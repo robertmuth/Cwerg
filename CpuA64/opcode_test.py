@@ -7,13 +7,14 @@ found in `arm_test.dis` and similar dumps obtained via `objdump`
 
 import sys
 import collections
-from typing import List
+from typing import List, Dict
 
 # import CpuA64.disassembler as dis
 import CpuA64.opcode_tab as a64
 
 count_found = 0
 count_total = 0
+ok_histogram: Dict[a64.OK, int] = collections.defaultdict(int)
 
 ALIASES = {
     "cmn": {"adds"},
@@ -90,17 +91,28 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
+
 STRIGIFIER = {
+    #a64.OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    a64.OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    #a64.OK.WREG_10_14_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    #a64.OK.WREG_16_20_SP: lambda x: "sp" if x == 31 else f"w{x}",
+
+    #a64.OK.XREG_0_4_SP: lambda x: "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_5_9_SP: lambda x: "xzr" if x == 31 else f"x{x}",
+    #a64.OK.XREG_10_14_SP: lambda x: "xzr" if x == 31 else f"x{x}",
+    #a64.OK.XREG_16_20_SP: lambda x: "xzr" if x == 31 else f"x{x}",
+
     a64.OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
     a64.OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
     a64.OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
     a64.OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
 
-    a64.OK.XREG_0_4: lambda x:  "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_5_9: lambda x:  "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_10_14: lambda x:  "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_16_20: lambda x:  "xzr" if x == 31 else f"x{x}",
-
+    a64.OK.XREG_0_4: lambda x: "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_5_9: lambda x: "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_10_14: lambda x: "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_16_20: lambda x: "xzr" if x == 31 else f"x{x}",
+    #
     a64.OK.SREG_0_4: lambda x: f"s{x}",
     a64.OK.SREG_5_9: lambda x: f"s{x}",
     a64.OK.SREG_10_14: lambda x: f"s{x}",
@@ -125,6 +137,9 @@ STRIGIFIER = {
     a64.OK.QREG_5_9: lambda x: f"q{x}",
     a64.OK.QREG_10_14: lambda x: f"q{x}",
     a64.OK.QREG_16_20: lambda x: f"q{x}",
+    #
+    a64.OK.IMM_FLT_ZERO: lambda x: "#0.0",
+    a64.OK.IMM_10_21_22: lambda x: [f"#0x{x&0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}"
 }
 
 
@@ -137,35 +152,58 @@ def IsRegOnly(opcode: a64.Opcode) -> bool:
 
 def HandleOneInstruction(count: int, line: str,
                          data: int,
-                         actual_name: str, actual_ops: List[str]):
+                         actual_name: str, actual_ops: List[str]) -> int:
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = a64.Opcode.FindOpcode(data)
     aliases = ALIASES.get(actual_name, {actual_name})
     if opcode:
         count_found += 1
+        for f in opcode.fields:
+            ok_histogram[f] += 1
         assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
         # print (line, end="")
         if (not IsRegOnly(opcode) or
                 a64.OPC_FLAG.COND_PARAM in opcode.classes or
                 a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes or
                 a64.OPC_FLAG.STORE in opcode.classes or
-                a64.OPC_FLAG.LOAD in opcode.classes or
+                # a64.OPC_FLAG.LOAD in opcode.classes or
                 opcode.name != actual_name):
-            return
-        # print (line, end="")
-        assert len(opcode.fields) == len(actual_ops)
-        ops = [STRIGIFIER[f](a64.DecodeOperand(f, data)) for f in opcode.fields]
-        assert ops == actual_ops, f"mismatch in [{count}]:  {ops}  {line}"
+            return 0
+        # print(line, end="")
 
+        ops = []
+        for f in opcode.fields:
+            op = STRIGIFIER[f](a64.DecodeOperand(f, data))
+            if isinstance(op, str):
+                ops.append(op)
+            elif isinstance(op, list):
+                ops += op
+            else:
+                assert  False
+        assert len(ops) == len(actual_ops), f"mismatch in {ops} vs {actual_ops}: {line}"
+
+        assert ops == actual_ops, f"mismatch in [{count}]:  {ops}  {line}"
+        return 1
     else:
         EXAMPLE[actual_name] = line
         MISSED[actual_name] += 1
+        return 0
 
 
 def MassageOperands(name, operands):
     if name == "ret" and not operands:
         operands.append("x30")
+
+
+def clean(op: str) -> str:
+    op = op.strip()
+    if op[0] == "[":
+        op = op[1:]
+    if op[-1] == "]":
+        op = op[:-1]
+    return op
+
 
 
 def main(argv):
@@ -174,8 +212,10 @@ def main(argv):
             # actual_XXX: derived from the text assembler listing
             # expected_XXX: derived from decoding the `data`
             count = 0
+            good = 0
             for line in fp:
                 count += 1
+                line = line.replace("lsl ", "lsl,")
                 token = line.split(None, 2)
                 if not token or token[0].startswith("#"):
                     continue
@@ -185,13 +225,17 @@ def main(argv):
                 if len(token) == 3:
                     ops_str = token[2]
                     ops_str = ops_str.split(" //")[0]
-                    actual_ops = [o.strip() for o in ops_str.split(",")]
+                    actual_ops = [clean(o) for o in ops_str.split(",")]
                 MassageOperands(actual_name, actual_ops)
-                HandleOneInstruction(
+                good += HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
     for k, v in sorted(MISSED.items()):
         print(f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
+    for k  in a64.OK:
+        print (f"{k.name}  {ok_histogram[k]}")
+
+    print(f"good: {good}/{count_total}   {100 * good / count_total:3.1f}% ")
 
 
 if __name__ == "__main__":
