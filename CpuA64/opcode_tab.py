@@ -673,17 +673,17 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:
     reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     Opcode("ldxr", ext, [w_bit, root010, (0xffff, 0x17df, 10)],
-           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD | OPC_FLAG.ATOMIC)
     Opcode("ldaxr", ext, [w_bit, root010, (0xffff, 0x17ff, 10)],
-           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD | OPC_FLAG.ATOMIC)
     Opcode("ldar", ext, [w_bit, root010, (0xffff, 0x37ff, 10)],
-           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD | OPC_FLAG.ATOMIC)
     Opcode("stxr", ext, [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x1f, 10)],
-           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE)
+           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE | OPC_FLAG.ATOMIC)
     Opcode("stlxr", ext, [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x3f, 10)],
-           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE)
+           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE | OPC_FLAG.ATOMIC)
     Opcode("stlr", ext, [w_bit, root010, (0xffff, 0x27ff, 10)],
-           [OK.XREG_5_9, reg], OPC_FLAG.STORE)
+           [OK.XREG_5_9, reg], OPC_FLAG.STORE | OPC_FLAG.ATOMIC)
 
 for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
                         ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4),

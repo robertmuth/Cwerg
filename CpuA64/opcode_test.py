@@ -91,17 +91,12 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
-
 STRIGIFIER = {
-    #a64.OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    a64.OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
     a64.OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
-    #a64.OK.WREG_10_14_SP: lambda x: "sp" if x == 31 else f"w{x}",
-    #a64.OK.WREG_16_20_SP: lambda x: "sp" if x == 31 else f"w{x}",
 
-    #a64.OK.XREG_0_4_SP: lambda x: "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_5_9_SP: lambda x: "xzr" if x == 31 else f"x{x}",
-    #a64.OK.XREG_10_14_SP: lambda x: "xzr" if x == 31 else f"x{x}",
-    #a64.OK.XREG_16_20_SP: lambda x: "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_0_4_SP: lambda x: "sp" if x == 31 else f"x{x}",
+    a64.OK.XREG_5_9_SP: lambda x: "sp" if x == 31 else f"x{x}",
 
     a64.OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
     a64.OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
@@ -139,7 +134,8 @@ STRIGIFIER = {
     a64.OK.QREG_16_20: lambda x: f"q{x}",
     #
     a64.OK.IMM_FLT_ZERO: lambda x: "#0.0",
-    a64.OK.IMM_10_21_22: lambda x: [f"#0x{x&0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}"
+    a64.OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
+    a64.OK.IMM_5_20: lambda x: f"#0x{x:x}"
 }
 
 
@@ -151,49 +147,67 @@ def IsRegOnly(opcode: a64.Opcode) -> bool:
 
 
 def HandleOneInstruction(count: int, line: str,
-                         data: int,
+                         data: int, opcode: a64.Opcode,
                          actual_name: str, actual_ops: List[str]) -> int:
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = a64.Opcode.FindOpcode(data)
     aliases = ALIASES.get(actual_name, {actual_name})
-    if opcode:
-        count_found += 1
-        for f in opcode.fields:
-            ok_histogram[f] += 1
-        assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
-        # print (line, end="")
-        if (not IsRegOnly(opcode) or
-                a64.OPC_FLAG.COND_PARAM in opcode.classes or
-                a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes or
-                a64.OPC_FLAG.STORE in opcode.classes or
-                # a64.OPC_FLAG.LOAD in opcode.classes or
-                opcode.name != actual_name):
-            return 0
-        # print(line, end="")
-
-        ops = []
-        for f in opcode.fields:
-            op = STRIGIFIER[f](a64.DecodeOperand(f, data))
-            if isinstance(op, str):
-                ops.append(op)
-            elif isinstance(op, list):
-                ops += op
-            else:
-                assert  False
-        assert len(ops) == len(actual_ops), f"mismatch in {ops} vs {actual_ops}: {line}"
-
-        assert ops == actual_ops, f"mismatch in [{count}]:  {ops}  {line}"
-        return 1
-    else:
-        EXAMPLE[actual_name] = line
-        MISSED[actual_name] += 1
+    count_found += 1
+    for f in opcode.fields:
+        ok_histogram[f] += 1
+    assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
+    # print (line, end="")
+    if (not IsRegOnly(opcode) or
+            a64.OPC_FLAG.COND_PARAM in opcode.classes or
+            a64.OPC_FLAG.ATOMIC in  opcode.classes or
+            opcode.name != actual_name):
+        MISSED[opcode.name] += 1
+        EXAMPLE[opcode.name] = line
         return 0
+    # print(line, end="")
+
+    ops = []
+    for f in opcode.fields:
+        op = STRIGIFIER[f](a64.DecodeOperand(f, data))
+        if isinstance(op, str):
+            ops.append(op)
+        elif isinstance(op, list):
+            ops += op
+        else:
+            assert False
+    assert len(ops) == len(actual_ops), f"num mismatch in {ops} vs {actual_ops}: {line}"
+    assert ops == actual_ops, f"mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    return 1
 
 
-def MassageOperands(name, operands):
+def MassageOperands(name, opcode, operands):
     if name == "ret" and not operands:
         operands.append("x30")
+        return name
+    if name == "umull":
+        operands.append("xzr")
+        return "umaddl"
+    if name == "smull":
+        operands.append("xzr")
+        return "smaddl"
+    if name == "asr" and opcode.name == "asrv":
+        return opcode.name
+    if name == "lsr" and opcode.name == "lsrv":
+        return opcode.name
+    if name == "lsl" and opcode.name == "lslv":
+        return opcode.name
+    if name == "ror" and opcode.name == "rorv":
+        return opcode.name
+    if name == "mov":
+        if opcode.name == "add":
+            operands.append("#0x0")
+            return "add"
+    if a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes:
+        if operands[-1] == opcode.variant:
+            operands.pop(-1)
+            return name
+    return name
 
 
 def clean(op: str) -> str:
@@ -203,7 +217,6 @@ def clean(op: str) -> str:
     if op[-1] == "]":
         op = op[:-1]
     return op
-
 
 
 def main(argv):
@@ -216,24 +229,29 @@ def main(argv):
             for line in fp:
                 count += 1
                 line = line.replace("lsl ", "lsl,")
+                line = line.replace("asr ", "asr,")
                 token = line.split(None, 2)
                 if not token or token[0].startswith("#"):
                     continue
                 data = int(token[0], 16)
+                opcode = a64.Opcode.FindOpcode(data)
+                assert opcode, f"cannot find opcode: {line}"
                 actual_name = token[1]
                 actual_ops = []
                 if len(token) == 3:
                     ops_str = token[2]
                     ops_str = ops_str.split(" //")[0]
                     actual_ops = [clean(o) for o in ops_str.split(",")]
-                MassageOperands(actual_name, actual_ops)
+                actual_name = MassageOperands(actual_name, opcode, actual_ops)
+                # print (actual_name, actual_ops)
                 good += HandleOneInstruction(
-                    count, line, data, actual_name, actual_ops)
+                    count, line, data, opcode, actual_name, actual_ops)
     for k, v in sorted(MISSED.items()):
         print(f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
-    for k  in a64.OK:
-        print (f"{k.name}  {ok_histogram[k]}")
+    for k in a64.OK:
+        if k not in STRIGIFIER:
+            print(f"{k.name}  {ok_histogram[k]}")
 
     print(f"good: {good}/{count_total}   {100 * good / count_total:3.1f}% ")
 
