@@ -659,17 +659,17 @@ for ext, w_flag, w_bit in [("w", OPC_FLAG.W, (1, 0, 31)), ("x", OPC_FLAG.X, (1, 
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:
     reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     Opcode("ldxr", ext, [w_bit, root010, (0xffff, 0x17df, 10)],
-           [reg, OK.XREG_5_9], w_flag)
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
     Opcode("ldaxr", ext, [w_bit, root010, (0xffff, 0x17ff, 10)],
-           [reg, OK.XREG_5_9], OPC_FLAG(0))
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
     Opcode("ldar", ext, [w_bit, root010, (0xffff, 0x37ff, 10)],
-           [reg, OK.XREG_5_9], OPC_FLAG(0))
+           [reg, OK.XREG_5_9], OPC_FLAG.LOAD)
     Opcode("stxr", ext, [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x1f, 10)],
-           [OK.WREG_16_20, OK.XREG_5_9, reg], w_flag)
+           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE)
     Opcode("stlxr", ext, [w_bit, root010, (0x1f, 0, 21), (0x3f, 0x3f, 10)],
-           [OK.WREG_16_20, OK.XREG_5_9, reg], w_flag)
+           [OK.WREG_16_20, OK.XREG_5_9, reg], OPC_FLAG.STORE)
     Opcode("stlr", ext, [w_bit, root010, (0xffff, 0x27ff, 10)],
-           [OK.XREG_5_9, reg], w_flag)
+           [OK.XREG_5_9, reg], OPC_FLAG.STORE)
 
 for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
                         ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4),
@@ -677,23 +677,23 @@ for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
     dst1 = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     dst2 = OK.XREG_10_14 if ext == "x" else OK.WREG_10_14
     Opcode("ldp", ext + "_imm_post", [w_bit, root010, (0xf, 3, 22)],
-           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+           [dst1, dst2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
     Opcode("ldp", ext + "_imm_pre", [w_bit, root010, (0xf, 7, 22)],
-           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+           [dst1, dst2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
     Opcode("ldp", ext + "_imm", [w_bit, root010, (0xf, 5, 22)],
-           [dst1, dst2, OK.XREG_5_9, imm], w_flag)
+           [dst1, dst2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
 
 for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
                         ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4)]:
     src1 = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     src2 = OK.XREG_10_14 if ext == "x" else OK.WREG_10_14
     Opcode("stp", ext + "_imm_post", [w_bit, root010, (0xf, 2, 22)],
-           [OK.XREG_5_9, imm, src1, src2], w_flag)
+           [OK.XREG_5_9, imm, src1, src2], OPC_FLAG.STORE)
 
     Opcode("stp", ext + "_imm_pre", [w_bit, root010, (0xf, 6, 22)],
-           [OK.XREG_5_9, imm, src1, src2], w_flag)
+           [OK.XREG_5_9, imm, src1, src2], OPC_FLAG.STORE)
     Opcode("stp", ext + "_imm", [w_bit, root010, (0xf, 4, 22)],
-           [OK.XREG_5_9, imm, src1, src2], w_flag)
+           [OK.XREG_5_9, imm, src1, src2], OPC_FLAG.STORE)
 
 ########################################
 root011 = (7, 3, 26)
@@ -703,17 +703,17 @@ for ext, reg1, reg2, imm, bits in [
     ("d", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_TIMES8, (7, 3, 29)),
     ("q", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_TIMES16, (7, 5, 29))]:
     Opcode("fstp", ext + "_imm_post", [bits, root011, (0xf, 2, 22)],
-           [OK.XREG_5_9, imm, reg1, reg2, ], OPC_FLAG(0))
+           [OK.XREG_5_9, imm, reg1, reg2, ], OPC_FLAG.STORE)
     Opcode("fstp", ext + "_imm_pre", [bits, root011, (0xf, 6, 22)],
            [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
     Opcode("fstp", ext + "_imm", [bits, root011, (0xf, 4, 22)],
-           [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG(0))
+           [OK.XREG_5_9, imm, reg1, reg2], OPC_FLAG.STORE)
     Opcode("fldp", ext + "_imm_post", [bits, root011, (0xf, 3, 22)],
-           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
     Opcode("fldp", ext + "_imm_pre", [bits, root011, (0xf, 7, 22)],
-           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
     Opcode("fldp", ext + "_imm", [bits, root011, (0xf, 5, 22)],
-           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG(0))
+           [reg1, reg2, OK.XREG_5_9, imm], OPC_FLAG.LOAD)
 
 ########################################
 root100 = (7, 4, 26)
@@ -834,18 +834,16 @@ Opcode("dsb", "ishst", [root101, (7, 6, 29), (0x3ffffff, 0x1033a9f, 0)],
 ########################################
 root110 = (7, 6, 26)
 ########################################
-for ext, w_flag, w_bit in [("w", OPC_FLAG.W, (1, 0, 31)), ("x", OPC_FLAG.X, (1, 1, 31))]:
+for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
     dst_reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     src1_reg = OK.XREG_5_9 if ext == "x" else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if ext == "x" else OK.WREG_16_20
     src3_reg = OK.XREG_10_14 if ext == "x" else OK.WREG_10_14
 
-    for name, bits in [
-        ("madd", [(3, 0, 29), (1, 0, 15)]),
-        ("msub", [(3, 0, 29), (1, 1, 15)]),
-    ]:
+    for name, bits in [("madd", [(3, 0, 29), (1, 0, 15)]),
+                       ("msub", [(3, 0, 29), (1, 1, 15)])]:
         Opcode(name, ext, [root110, w_bit, (3, 3, 24), (7, 0, 21)] + bits,
-               [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
+               [dst_reg, src1_reg, src2_reg, src3_reg], OPC_FLAG(0))
 
     for name, bits in [("udiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 2, 10)]),
                        ("sdiv", [(3, 0, 29), (0x1f, 0x16, 21), (0x3f, 3, 10)]),
@@ -856,25 +854,25 @@ for ext, w_flag, w_bit in [("w", OPC_FLAG.W, (1, 0, 31)), ("x", OPC_FLAG.X, (1, 
                        ("adc", [(3, 0, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
                        ("sbc", [(3, 2, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
         Opcode(name, ext, [root110, w_bit] + bits,
-               [dst_reg, src1_reg, src2_reg], w_flag)
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0))
 
     for name, bits, in [
         ("adcs", [(3, 1, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
         ("sbcs", [(3, 3, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
         Opcode(name, ext, [root110, w_bit] + bits,
-               [dst_reg, src1_reg, src2_reg], w_flag, sr_update=SR_UPDATE.NZ)
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
 
-    if ext == "x":
-        for name, bits in [("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
-                           ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
-                           ("umaddl", [(3, 0, 29), (7, 5, 21), (1, 0, 15)]),
-                           ("umsubl", [(3, 0, 29), (7, 5, 21), (1, 1, 15)])]:
-            Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24)] + bits,
-                   [dst_reg, src1_reg, src3_reg, src2_reg], w_flag)
-        for name, bits in [("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
-                           ("umulh", [(3, 0, 29), (7, 6, 21), (1, 0, 15)])]:
-            Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24), (0x1f, 0x1f, 10)] + bits,
-                   [dst_reg, src1_reg, src2_reg], w_flag)
+for name, bits in [("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
+                   ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
+                   ("umaddl", [(3, 0, 29), (7, 5, 21), (1, 0, 15)]),
+                   ("umsubl", [(3, 0, 29), (7, 5, 21), (1, 1, 15)])]:
+    Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24)] + bits,
+           [OK.XREG_0_4, OK.WREG_5_9, OK.WREG_16_20, OK.XREG_10_14], OPC_FLAG(0))
+
+for name, bits in [("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
+                   ("umulh", [(3, 0, 29), (7, 6, 21), (1, 0, 15)])]:
+    Opcode(name, "", [root110, (1, 1, 31), (3, 3, 24), (0x1f, 0x1f, 10)] + bits,
+           [OK.XREG_0_4, OK.XREG_5_9, OK.XREG_16_20], OPC_FLAG(0))
 
 for ext, scaled_offset, w_bits in [("x", OK.IMM_10_21_times_8, (7, 7, 29)),
                                    ("w", OK.IMM_10_21_times_4, (7, 5, 29)),
@@ -991,10 +989,10 @@ root111 = (7, 7, 26)
 
 for ext, w_flag, w_bit in [("s", OPC_FLAG.W, (1, 0, 22)),
                            ("d", OPC_FLAG.X, (1, 1, 22))]:
-    dst_reg = OK.DREG_0_4 if w_bit else OK.SREG_0_4
-    src1_reg = OK.DREG_5_9 if w_bit else OK.SREG_5_9
-    src2_reg = OK.DREG_16_20 if w_bit else OK.SREG_16_20
-    src3_reg = OK.DREG_10_14 if w_bit else OK.SREG_10_14
+    dst_reg = OK.DREG_0_4 if ext == "d" else OK.SREG_0_4
+    src1_reg = OK.DREG_5_9 if ext == "d" else OK.SREG_5_9
+    src2_reg = OK.DREG_16_20 if ext == "d" else OK.SREG_16_20
+    src3_reg = OK.DREG_10_14 if ext == "d" else OK.SREG_10_14
 
     Opcode("fmov", ext + "_imm", [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xff, 0x80, 5)],
            [dst_reg, OK.IMM_13_20_FLT], w_flag)
@@ -1075,19 +1073,19 @@ for ext, reg, bits in [("b", OK.BREG_0_4, [(3, 0, 30), (3, 1, 22)]),
                        ("d", OK.DREG_0_4, [(3, 3, 30), (3, 1, 22)]),
                        ("q", OK.QREG_0_4, [(3, 0, 30), (3, 3, 22)])]:
     Opcode("fldr", ext + "_imm_post", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 1, 10)] + bits,
-           [reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+           [reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG.LOAD)
     Opcode("fldr", ext + "_imm_pre", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 3, 10)] + bits,
-           [reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG(0))
+           [reg, OK.XREG_5_9, OK.SIMM_12_20], OPC_FLAG.LOAD)
     Opcode("fldr", ext + "_imm", [root111, (1, 1, 29), (3, 1, 24)] + bits,
            [reg, OK.XREG_5_9, OK.IMM_10_21], OPC_FLAG(0))
 
     Opcode("fldr", ext + "_reg_w", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [reg, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG(0))
+           [reg, OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20], OPC_FLAG.LOAD)
     Opcode("fldr", ext + "_reg_x", [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [reg, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG(0))
+           [reg, OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20], OPC_FLAG.LOAD)
 
     Opcode("fldur", ext + "_imm", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 0, 10)] + bits,
-           [reg, OK.XREG_5_9, OK.IMM_12_20], OPC_FLAG(0))
+           [reg, OK.XREG_5_9, OK.IMM_12_20], OPC_FLAG.LOAD)
 
 for ext, reg, bits in [("b", OK.BREG_0_4, [(3, 0, 30), (3, 0, 22)]),
                        ("h", OK.HREG_0_4, [(3, 1, 30), (3, 0, 22)]),
@@ -1095,17 +1093,17 @@ for ext, reg, bits in [("b", OK.BREG_0_4, [(3, 0, 30), (3, 0, 22)]),
                        ("d", OK.DREG_0_4, [(3, 3, 30), (3, 0, 22)]),
                        ("q", OK.QREG_0_4, [(3, 0, 30), (3, 2, 22)])]:
     Opcode("fstr", ext + "_imm_post", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 1, 10)] + bits,
-           [OK.XREG_5_9, OK.SIMM_12_20, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.SIMM_12_20, reg], OPC_FLAG.STORE)
     Opcode("fstr", ext + "_imm_pre", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 21), (3, 3, 10)] + bits,
-           [OK.XREG_5_9, OK.SIMM_12_20, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.SIMM_12_20, reg], OPC_FLAG.STORE)
     Opcode("fstr", ext + "_imm", [root111, (1, 1, 29), (3, 1, 24)] + bits,
-           [OK.XREG_5_9, OK.IMM_10_21, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.IMM_10_21, reg], OPC_FLAG.STORE)
     Opcode("fstr", ext + "_reg_w", [root111, (1, 1, 29), (3, 0, 24), (1, 0, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.SHIFT_12_14_15_W, OK.WREG_16_20, reg], OPC_FLAG.STORE)
     Opcode("fstr", ext + "_reg_x", [root111, (1, 1, 29), (3, 0, 24), (1, 1, 13), (1, 1, 21), (3, 2, 10)] + bits,
-           [OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.SHIFT_12_14_15_X, OK.XREG_16_20, reg], OPC_FLAG.STORE)
     Opcode("fstur", ext + "_imm", [(1, 1, 29), root111, (3, 0, 24), (1, 0, 21), (3, 0, 10)] + bits,
-           [OK.XREG_5_9, OK.IMM_12_20, reg], OPC_FLAG(0))
+           [OK.XREG_5_9, OK.IMM_12_20, reg], OPC_FLAG.STORE)
 
 for dst_ext, dst_reg, dst_bits in [("h", OK.HREG_0_4, (3, 3, 15)),
                                    ("s", OK.SREG_0_4, (3, 0, 15)),
@@ -1137,10 +1135,10 @@ for dst_ext, dst_reg, dst_bits in [("w", OK.WREG_0_4, (1, 0, 31)),
                    [dst_bits, (3, 0, 29), root111, (7, 4, 23), src_bits, bits],
                    [dst_reg, src_reg], OPC_FLAG(0))
 
-for src_ext, src_reg, src_bits in [("w", OK.WREG_0_4, (1, 0, 31)),
-                                   ("x", OK.XREG_0_4, (1, 1, 31))]:
-    for dst_ext, dst_reg, dst_bits in [("s", OK.SREG_5_9, (1, 0, 22)),
-                                       ("d", OK.DREG_5_9, (1, 1, 22))]:
+for src_ext, src_reg, src_bits in [("w", OK.WREG_5_9, (1, 0, 31)),
+                                   ("x", OK.XREG_5_9, (1, 1, 31))]:
+    for dst_ext, dst_reg, dst_bits in [("s", OK.SREG_0_4, (1, 0, 22)),
+                                       ("d", OK.DREG_0_4, (1, 1, 22))]:
         Opcode("scvtf", dst_ext + "_from_" + src_ext,
                [src_bits, (3, 0, 29), root111, (7, 4, 23), dst_bits, (0xfff, 0x880, 10)],
                [dst_reg, src_reg], OPC_FLAG(0))

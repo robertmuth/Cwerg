@@ -56,13 +56,13 @@ ALIASES = {
     "ldp": {"ldp", "fldp"},
     "ldur": {"ldur", "fldur"},
     #
-    "ldurb" : {"ldur"},
-    "ldurh" : {"ldur"},
-    "ldrb" : {"ldr"},
-    "ldrb" : {"ldr"},
-    "ldrh" : {"ldr"},
-    "ldarb" : {"ldar"},
-    "ldarh" : {"ldar"},
+    "ldurb": {"ldur"},
+    "ldurh": {"ldur"},
+    "ldrb": {"ldr"},
+    "ldrb": {"ldr"},
+    "ldrh": {"ldr"},
+    "ldarb": {"ldar"},
+    "ldarh": {"ldar"},
     "ldxrb": {"ldxr"},
     "ldxrh": {"ldxr"},
     "ldaxrb": {"ldaxr"},
@@ -70,10 +70,10 @@ ALIASES = {
     "ldpsw": {"ldp"},
 
     #
-    "sturb" : {"stur"},
-    "sturh" : {"stur"},
-    "strb" : {"str"},
-    "strh" : {"str"},
+    "sturb": {"stur"},
+    "sturh": {"stur"},
+    "strb": {"str"},
+    "strh": {"str"},
     "stlxrb": {"stlxr"},
     "stlxrh": {"stlxr"},
     "stxrb": {"stxr"},
@@ -82,7 +82,7 @@ ALIASES = {
     "stlrh": {"stlr"},
     "stpw": {"stp"},
     #
-    "str":  {"str",  "fstr"},
+    "str": {"str", "fstr"},
     "stp": {"stp", "fstp"},
     "stur": {"stur", "fstur"},
 }
@@ -90,13 +90,48 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
-SUPPORTED_OKS = set(a64.FIELDS_REG.keys())
+STRIGIFIER = {
+    a64.OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
+    a64.OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
+    a64.OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
+    a64.OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
+
+    a64.OK.XREG_0_4: lambda x:  "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_5_9: lambda x:  "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_10_14: lambda x:  "xzr" if x == 31 else f"x{x}",
+    a64.OK.XREG_16_20: lambda x:  "xzr" if x == 31 else f"x{x}",
+
+    a64.OK.SREG_0_4: lambda x: f"s{x}",
+    a64.OK.SREG_5_9: lambda x: f"s{x}",
+    a64.OK.SREG_10_14: lambda x: f"s{x}",
+    a64.OK.SREG_16_20: lambda x: f"s{x}",
+
+    a64.OK.DREG_0_4: lambda x: f"d{x}",
+    a64.OK.DREG_5_9: lambda x: f"d{x}",
+    a64.OK.DREG_10_14: lambda x: f"d{x}",
+    a64.OK.DREG_16_20: lambda x: f"d{x}",
+
+    a64.OK.BREG_0_4: lambda x: f"b{x}",
+    a64.OK.BREG_5_9: lambda x: f"b{x}",
+    a64.OK.BREG_10_14: lambda x: f"b{x}",
+    a64.OK.BREG_16_20: lambda x: f"b{x}",
+
+    a64.OK.HREG_0_4: lambda x: f"h{x}",
+    a64.OK.HREG_5_9: lambda x: f"h{x}",
+    a64.OK.HREG_10_14: lambda x: f"h{x}",
+    a64.OK.HREG_16_20: lambda x: f"h{x}",
+
+    a64.OK.QREG_0_4: lambda x: f"q{x}",
+    a64.OK.QREG_5_9: lambda x: f"q{x}",
+    a64.OK.QREG_10_14: lambda x: f"q{x}",
+    a64.OK.QREG_16_20: lambda x: f"q{x}",
+}
 
 
 def IsRegOnly(opcode: a64.Opcode) -> bool:
     for f in opcode.fields:
-        if f not in SUPPORTED_OKS:
-         return False
+        if f not in STRIGIFIER:
+            return False
     return True
 
 
@@ -110,14 +145,19 @@ def HandleOneInstruction(count: int, line: str,
     if opcode:
         count_found += 1
         assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
-        #print (line, end="")
+        # print (line, end="")
         if (not IsRegOnly(opcode) or
                 a64.OPC_FLAG.COND_PARAM in opcode.classes or
                 a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes or
+                a64.OPC_FLAG.STORE in opcode.classes or
+                a64.OPC_FLAG.LOAD in opcode.classes or
                 opcode.name != actual_name):
             return
-        print (f"{len(opcode.fields)} {len(actual_ops)} {opcode.name}  {opcode.fields}  {actual_ops}")
+        # print (line, end="")
         assert len(opcode.fields) == len(actual_ops)
+        ops = [STRIGIFIER[f](a64.DecodeOperand(f, data)) for f in opcode.fields]
+        assert ops == actual_ops, f"mismatch in [{count}]:  {ops}  {line}"
+
     else:
         EXAMPLE[actual_name] = line
         MISSED[actual_name] += 1
