@@ -159,7 +159,7 @@ class OK(enum.Enum):
     IMM_10_21_times_8 = 38
     IMM_19_23_31 = 39
     IMM_5_20 = 40
-    IMM_16_22 = 41
+    IMM_16_21 = 41
     IMM_0_3 = 42
     IMM_16_20 = 43
     IMM_5_20_21_22 = 44
@@ -297,7 +297,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_15_16_22: [(BRK.Verbatim, 13, 10)],
     OK.IMM_19_23_31: [(BRK.Lo, 5, 19), (BRK.Hi, 1, 31)],
     OK.IMM_5_20: [(BRK.Verbatim, 16, 5)],
-    OK.IMM_16_22: [(BRK.Verbatim, 7, 16)],
+    OK.IMM_16_21: [(BRK.Verbatim, 6, 16)],
 
     OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
     OK.IMM_10_21_22: [(BRK.Verbatim, 13, 10)],
@@ -732,7 +732,8 @@ for ext, reg1, reg2, imm, bits in [
 ########################################
 root100 = (7, 4, 26)
 ########################################
-for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
+for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
+                           ("x", (1, 1, 31), (1, 1, 22))]:
     dst_reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     dst_reg_sp = OK.XREG_0_4_SP if ext == "x" else OK.WREG_0_4_SP
     src1_reg = OK.XREG_5_9 if ext == "x" else OK.WREG_5_9
@@ -764,8 +765,8 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
     for name, bits in [("bfm", [(3, 1, 29), (7, 6, 23)]),
                        ("ubfm", [(3, 2, 29), (7, 6, 23)]),
                        ("sbfm", [(3, 0, 29), (7, 6, 23)])]:
-        Opcode(name, ext, [root100, w_bit] + bits,
-               [dst_reg, src1_reg, OK.IMM_16_22, OK.IMM_10_15], OPC_FLAG(0))
+        Opcode(name, ext, [root100, w_bit, w_bit2] + bits,
+               [dst_reg, src1_reg, OK.IMM_16_21, OK.IMM_10_15], OPC_FLAG(0))
     Opcode("extr", ext, [w_bit, (3, 0, 29), root100, (7, 7, 23), (1, ext == "x", 22), (1, 0, 21)],
            [dst_reg, src1_reg, src2_reg, OK.IMM_10_15], OPC_FLAG(0))
 
@@ -1004,8 +1005,8 @@ for name, ext, bits in [("rbit", "x", [(7, 6, 29), (7, 0, 10)]),
 root111 = (7, 7, 26)
 ########################################
 
-for ext,  w_bit in [("s", (1, 0, 22)),
-                           ("d", (1, 1, 22))]:
+for ext, w_bit in [("s", (1, 0, 22)),
+                   ("d", (1, 1, 22))]:
     dst_reg = OK.DREG_0_4 if ext == "d" else OK.SREG_0_4
     src1_reg = OK.DREG_5_9 if ext == "d" else OK.SREG_5_9
     src2_reg = OK.DREG_16_20 if ext == "d" else OK.SREG_16_20

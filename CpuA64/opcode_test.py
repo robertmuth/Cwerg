@@ -135,7 +135,10 @@ STRIGIFIER = {
     #
     a64.OK.IMM_FLT_ZERO: lambda x: "#0.0",
     a64.OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
-    a64.OK.IMM_5_20: lambda x: f"#0x{x:x}"
+    a64.OK.IMM_5_20: lambda x: f"#0x{x:x}",
+    a64.OK.IMM_16_21: lambda x: f"#{x}",
+    a64.OK.IMM_10_15: lambda x: f"#{x}",
+
 }
 
 
@@ -159,9 +162,15 @@ def HandleOneInstruction(count: int, line: str,
     assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
     if (not IsRegOnly(opcode) or
-            a64.OPC_FLAG.COND_PARAM in opcode.classes or
-            a64.OPC_FLAG.ATOMIC in  opcode.classes or
-            opcode.name != actual_name):
+            actual_name in {"stlxr", "stxr", "stlr",
+                            "stlxrb", "stlxrb", "stxrb", "stlrb",
+                            "stlxrh", "stlxrh", "stxrh", "stlrh",
+                            "sbfx", "sxtb", "sxth", "sxtw",
+                            "sbfiz",
+                            "cinc", "cset",	"bfxil", "bfi",
+                            "ubfx", "ubfiz",
+                            "cneg", "cinv", "csetm", "bfc",
+                            "lsl"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -176,21 +185,49 @@ def HandleOneInstruction(count: int, line: str,
             ops += op
         else:
             assert False
-    assert len(ops) == len(actual_ops), f"num mismatch in {ops} vs {actual_ops}: {line}"
-    assert ops == actual_ops, f"mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    assert len(ops) == len(actual_ops), f"[{opcode.name}] num mismatch in {ops} vs {actual_ops}: {line}"
+    assert ops == actual_ops, f"[{opcode.name}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
     return 1
 
 
 def MassageOperands(name, opcode, operands):
+    """Deal with aliases and case were we deviate from std notation"""
     if name == "ret" and not operands:
         operands.append("x30")
         return name
-    if name == "umull":
+    if name == "cmp" and opcode.name == "subs":
+        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "cmn" and opcode.name == "adds":
+        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "neg" and opcode.name == "sub":
+        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "ngcs" and opcode.name == "sbcs":
+        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "mul" and opcode.name == "madd":
+        operands.append("xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "mneg" and opcode.name == "msub":
+        operands.append("xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "asr" and opcode.name == "sbfm":
+        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+        return opcode.name
+    if name == "lsr" and opcode.name == "ubfm":
+        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+        return opcode.name
+    # if name == "lsl" and opcode.name == "ubfm":
+    #        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+    #    return opcode.name
+    if name == "umull" and opcode.name == "umaddl":
         operands.append("xzr")
-        return "umaddl"
-    if name == "smull":
+        return opcode.name
+    if name == "smull" and opcode.name == "smaddl":
         operands.append("xzr")
-        return "smaddl"
+        return opcode.name
     if name == "asr" and opcode.name == "asrv":
         return opcode.name
     if name == "lsr" and opcode.name == "lsrv":
@@ -199,12 +236,19 @@ def MassageOperands(name, opcode, operands):
         return opcode.name
     if name == "ror" and opcode.name == "rorv":
         return opcode.name
+    if name == "ror" and opcode.name == "extr":
+        operands.insert(1, operands[1])
+        return opcode.name
     if name == "mov":
         if opcode.name == "add":
             operands.append("#0x0")
             return "add"
     if a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes:
         if operands[-1] == opcode.variant:
+            operands.pop(-1)
+            return name
+    if a64.OPC_FLAG.COND_PARAM in opcode.classes:
+        if opcode.variant.endswith(operands[-1]):
             operands.pop(-1)
             return name
     return name
