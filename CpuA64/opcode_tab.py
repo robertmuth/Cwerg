@@ -212,10 +212,11 @@ class OK(enum.Enum):
 
     # shifts
     SHIFT_22_23 = 60
-    SHIFT_12_14_15_W = 61
-    SHIFT_12_14_15_X = 62
-    SHIFT_10_12_LIMIT4 = 63
-    SHIFT_21_22_TIMES16 = 64
+    SHIFT_22_23_NO_ROR = 61
+    SHIFT_12_14_15_W = 62
+    SHIFT_12_14_15_X = 63
+    IMM_10_12_LIMIT4 = 64
+    SHIFT_21_22_TIMES16 = 65
 
 
 ############################################################
@@ -349,13 +350,14 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_5_20_21_22_NOT: [(BRK.Verbatim, 18, 5)],
     OK.IMM_13_20_FLT: [(BRK.Verbatim, 8, 13)],
     OK.IMM_FLT_ZERO: [(BRK.Force0, 0, 0)],
+    OK.IMM_10_12_LIMIT4: [(BRK.Verbatim, 3, 10)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
+    OK.SHIFT_22_23_NO_ROR: [(BRK.Verbatim, 2, 22)],
     OK.SHIFT_12_14_15_W: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
     OK.SHIFT_12_14_15_X: [(BRK.Hi, 2, 14), (BRK.Lo, 1, 12)],
-    OK.SHIFT_10_12_LIMIT4: [(BRK.Verbatim, 3, 10)],
     OK.SHIFT_21_22_TIMES16: [(BRK.Verbatim, 2, 21)],
 }
 
@@ -680,15 +682,19 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                        ("eor", [(3, 2, 29), (3, 2, 24), (1, 0, 21)]),
                        ("eon", [(3, 2, 29), (3, 2, 24), (1, 1, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
-               [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15],
+               [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23, OK.IMM_10_15],
                OPC_FLAG(0))
 
+    for name, bits in [("ands", [(3, 3, 29), (3, 2, 24), (1, 0, 21)]),
+                       ("bics", [(3, 3, 29), (3, 2, 24), (1, 1, 21)])]:
+        Opcode(name, ext + "_reg", [root010, w_bit] + bits,
+               [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23, OK.IMM_10_15],
+               OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
+
     for name, bits in [("adds", [(3, 1, 29), (3, 3, 24), (1, 0, 21)]),
-                       ("ands", [(3, 3, 29), (3, 2, 24), (1, 0, 21)]),
-                       ("bics", [(3, 3, 29), (3, 2, 24), (1, 1, 21)]),
                        ("subs", [(3, 3, 29), (3, 3, 24), (1, 0, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
-               [dst_reg, src1_reg, OK.SHIFT_22_23, src2_reg, OK.IMM_10_15],
+               [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23_NO_ROR, OK.IMM_10_15],
                OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
 
     for ext2, option in [("b", (7, 0, 13)), ("h", (7, 1, 13)), ("w", (7, 2, 13)), ("x", (7, 3, 13)),
@@ -696,12 +702,12 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
         for name, bits in [("add", [(3, 0, 29), (0x1f, 0x19, 21)]),
                            ("sub", [(3, 2, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
-                   [dst_reg_sp, src1_reg_sp, OK.SHIFT_10_12_LIMIT4, src2_reg],
+                   [dst_reg_sp, src1_reg_sp, OK.IMM_10_12_LIMIT4, src2_reg],
                    OPC_FLAG.STACK_OPS)
         for name, bits in [("adds", [(3, 1, 29), (0x1f, 0x19, 21)]),
                            ("subs", [(3, 3, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
-                   [dst_reg, src1_reg, OK.SHIFT_10_12_LIMIT4, src2_reg], OPC_FLAG(0),
+                   [dst_reg, src1_reg, OK.IMM_10_12_LIMIT4, src2_reg], OPC_FLAG(0),
                    sr_update=SR_UPDATE.NZ)
 
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:

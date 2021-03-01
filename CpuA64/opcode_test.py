@@ -90,6 +90,7 @@ ALIASES = {
 
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
+SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 
 STRIGIFIER = {
     a64.OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
@@ -137,7 +138,7 @@ STRIGIFIER = {
     a64.OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
     a64.OK.IMM_5_20: lambda x: f"#0x{x:x}",
     a64.OK.IMM_16_21: lambda x: f"#{x}",
-    a64.OK.IMM_10_15: lambda x: f"#{x}",
+    a64.OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
     a64.OK.IMM_10_15_16_22_W: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 32):x}",
     a64.OK.IMM_10_15_16_22_X: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 64):x}",
     #
@@ -148,6 +149,9 @@ STRIGIFIER = {
     a64.OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
     a64.OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
     a64.OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 9)}",
+    #
+    a64.OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
+    a64.OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
 }
 
 
@@ -171,7 +175,8 @@ def HandleOneInstruction(count: int, line: str,
     assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
     if (not IsRegOnly(opcode) or
-            opcode.name in {"fstr", "fldr"} or
+            opcode.name in {"fstr", "fldr", "sbfm", "csinc", "bfm", "ubfm",
+                            "csneg", "csinv"} or
             actual_name in {"stlxr", "stxr", "stlr",
                             "stlxrb", "stlxrb", "stxrb", "stlrb",
                             "stlxrh", "stlxrh", "stxrh", "stlrh",
@@ -201,16 +206,7 @@ def HandleOneInstruction(count: int, line: str,
     return 1
 
 
-def MassageOperands(name, opcode, operands):
-    """Deal with aliases and case were we deviate from std notation"""
-    if a64.OPC_FLAG.STORE in opcode.classes:
-        operands.append(operands.pop(0))
-        if a64.OPC_FLAG.REG_PAIR in opcode.classes:
-            operands.append(operands.pop(0))
-
-    if name == "ret" and not operands:
-        operands.append("x30")
-        return name
+def HandleAliasMassaging(name, opcode, operands):
     if name == "tst" and opcode.name == "ands":
         operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
         return opcode.name
@@ -221,6 +217,9 @@ def MassageOperands(name, opcode, operands):
         operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "neg" and opcode.name == "sub":
+        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
+    if name == "negs" and opcode.name == "subs":
         operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "ngcs" and opcode.name == "sbcs":
@@ -262,8 +261,29 @@ def MassageOperands(name, opcode, operands):
         operands.append("#0x0")
         return opcode.name
     if name == "mov" and opcode.name == "orr":
-        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4_SP else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[1] == a64.OK.XREG_5_9 else "wzr")
         return opcode.name
+    if name == "mvn" and opcode.name == "orn":
+        operands.insert(1, "xzr" if opcode.fields[1] == a64.OK.XREG_5_9 else "wzr")
+    return opcode.name
+    return name
+
+
+def MassageOperands(name, opcode, operands):
+    """Deal with aliases and case were we deviate from std notation"""
+    if a64.OPC_FLAG.STORE in opcode.classes:
+        operands.append(operands.pop(0))
+        if a64.OPC_FLAG.REG_PAIR in opcode.classes:
+            operands.append(operands.pop(0))
+
+    if name in ALIASES:
+        name = HandleAliasMassaging(name, opcode, operands)
+    if (len(operands) + 2 == len(opcode.fields) and len(opcode.fields) > 3 and
+            opcode.fields[3] in {a64.OK.SHIFT_22_23, a64.OK.SHIFT_22_23_NO_ROR}):
+        operands.append("lsl")
+    if name == "ret" and not operands:
+        operands.append("x30")
+        return name
     if a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes:
         if operands[-1] == opcode.variant:
             operands.pop(-1)
@@ -296,7 +316,10 @@ def main(argv):
             for line in fp:
                 count += 1
                 line = line.replace("lsl ", "lsl,")
+                line = line.replace("lsr ", "lsr,")
                 line = line.replace("asr ", "asr,")
+                line = line.replace("ror ", "ror,")
+                line = line.replace("sxtw ", "sxtw,")
                 token = line.split(None, 2)
                 if not token or token[0].startswith("#"):
                     continue
