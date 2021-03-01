@@ -140,6 +140,10 @@ STRIGIFIER = {
     a64.OK.IMM_10_15: lambda x: f"#{x}",
     a64.OK.IMM_10_15_16_22_W: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 32):x}",
     a64.OK.IMM_10_15_16_22_X: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 64):x}",
+    #
+    a64.OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 4}",
+    a64.OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 8}",
+
 }
 
 
@@ -166,6 +170,8 @@ def HandleOneInstruction(count: int, line: str,
             actual_name in {"stlxr", "stxr", "stlr",
                             "stlxrb", "stlxrb", "stxrb", "stlrb",
                             "stlxrh", "stlxrh", "stxrh", "stlrh",
+                "stp",
+                            #
                             "sbfx", "sxtb", "sxth", "sxtw",
                             "sbfiz",
                             "cinc", "cset",	"bfxil", "bfi",
@@ -262,10 +268,12 @@ def MassageOperands(name, opcode, operands):
 
 def clean(op: str) -> str:
     op = op.strip()
-    if op[0] == "[":
+    if op.startswith("["):
         op = op[1:]
-    if op[-1] == "]":
+    if op.endswith("]"):
         op = op[:-1]
+    if op.endswith("]!"):
+        op = op[:-2]
     return op
 
 
