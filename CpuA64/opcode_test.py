@@ -148,6 +148,7 @@ STRIGIFIER = {
     a64.OK.IMM_10_21_times_2: lambda x: [] if x == 0 else f"#{x * 2}",
     a64.OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
     a64.OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
+    a64.OK.IMM_10_21_times_16: lambda x: [] if x == 0 else f"#{x * 16}",
     a64.OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 9)}",
     #
     a64.OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
@@ -175,12 +176,9 @@ def HandleOneInstruction(count: int, line: str,
     assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
     if (not IsRegOnly(opcode) or
-            opcode.name in {"fstr", "fldr", "sbfm", "csinc", "bfm", "ubfm",
+            opcode.name in {"sbfm", "csinc", "bfm", "ubfm",
                             "csneg", "csinv"} or
-            actual_name in {"stlxr", "stxr", "stlr",
-                            "stlxrb", "stlxrb", "stxrb", "stlrb",
-                            "stlxrh", "stlxrh", "stxrh", "stlrh",
-                            #
+            actual_name in {
                             "sbfx", "sxtb", "sxth", "sxtw",
                             "sbfiz",
                             "cinc", "cset", "bfxil", "bfi",
@@ -272,7 +270,10 @@ def HandleAliasMassaging(name, opcode, operands):
 def MassageOperands(name, opcode, operands):
     """Deal with aliases and case were we deviate from std notation"""
     if a64.OPC_FLAG.STORE in opcode.classes:
-        operands.append(operands.pop(0))
+        if  a64.OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
+            operands.append(operands.pop(1))
+        else:
+            operands.append(operands.pop(0))
         if a64.OPC_FLAG.REG_PAIR in opcode.classes:
             operands.append(operands.pop(0))
 
