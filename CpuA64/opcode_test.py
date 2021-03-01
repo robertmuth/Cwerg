@@ -143,6 +143,10 @@ STRIGIFIER = {
     #
     a64.OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 4}",
     a64.OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 8}",
+    a64.OK.IMM_10_21: lambda x: [] if x == 0 else f"#{x}",
+    a64.OK.IMM_10_21_times_2: lambda x: [] if x == 0 else f"#{x * 2}",
+    a64.OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
+    a64.OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
     a64.OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 9)}",
 }
 
@@ -174,7 +178,7 @@ def HandleOneInstruction(count: int, line: str,
                             #
                             "sbfx", "sxtb", "sxth", "sxtw",
                             "sbfiz",
-                            "cinc", "cset",	"bfxil", "bfi",
+                            "cinc", "cset", "bfxil", "bfi",
                             "ubfx", "ubfiz",
                             "cneg", "cinv", "csetm", "bfc",
                             "lsl"}):

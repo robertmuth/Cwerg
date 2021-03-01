@@ -979,7 +979,7 @@ for ext, scaled_offset, w_bits in [("x", OK.IMM_10_21_times_8, (7, 7, 29)),
         for ext2, w2_bits, dst in [("w", (1, 1, 22), OK.WREG_0_4), ("x", (1, 0, 22), OK.XREG_0_4)]:
             # scaled
             Opcode(f"ldrs" + ext, ext2 + "_imm", [root110, w_bits, (7, 3, 23), w2_bits],
-                   [dst, OK.XREG_5_9_SP, OK.IMM_10_21_times_2], OPC_FLAG.LOAD)
+                   [dst, OK.XREG_5_9_SP, scaled_offset], OPC_FLAG.LOAD)
             # pre/post
             Opcode("ldrs" + ext, ext2 + "_imm_pre", [root110, w_bits, (7, 1, 23), w2_bits, (1, 0, 21), (3, 3, 10)],
                    [dst, OK.XREG_5_9_SP, OK.SIMM_12_20], OPC_FLAG.LOAD)
