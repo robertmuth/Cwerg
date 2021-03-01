@@ -143,7 +143,7 @@ STRIGIFIER = {
     #
     a64.OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 4}",
     a64.OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 8}",
-
+    a64.OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 9)}",
 }
 
 
@@ -167,10 +167,10 @@ def HandleOneInstruction(count: int, line: str,
     assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
     if (not IsRegOnly(opcode) or
+            opcode.name in {"fstr", "fldr"} or
             actual_name in {"stlxr", "stxr", "stlr",
                             "stlxrb", "stlxrb", "stxrb", "stlrb",
                             "stlxrh", "stlxrh", "stxrh", "stlrh",
-                "stp",
                             #
                             "sbfx", "sxtb", "sxth", "sxtw",
                             "sbfiz",
@@ -199,6 +199,11 @@ def HandleOneInstruction(count: int, line: str,
 
 def MassageOperands(name, opcode, operands):
     """Deal with aliases and case were we deviate from std notation"""
+    if a64.OPC_FLAG.STORE in opcode.classes:
+        operands.append(operands.pop(0))
+        if a64.OPC_FLAG.REG_PAIR in opcode.classes:
+            operands.append(operands.pop(0))
+
     if name == "ret" and not operands:
         operands.append("x30")
         return name
