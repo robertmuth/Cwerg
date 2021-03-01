@@ -42,6 +42,38 @@ def Bits(*patterns) -> Tuple[int, int]:
     return m, v
 
 
+def ror(x: int, bit_size: int, amount: int) -> int:
+    mask = (1 << amount) - 1
+    return (x >> amount) | ((x & mask) << (bit_size - amount))
+
+
+# https://stackoverflow.com/questions/30904718/range-of-immediate-values-in-armv8-a64-assembly/33265035#33265035
+# table: https://gist.github.com/dinfuehr/51a01ac58c0b23e4de9aac313ed6a06a
+def DecodeLogicalImmediate(x, reg_size) -> int:
+    n = x >> 12
+    r = (x >> 6) & 0x3f
+    s = x & 0x3f
+    # print(f"@@ {n:x} {r:x}  {s:x}")
+    if n == 1:
+        size = 64
+        ones = s
+    else:
+        size = 32
+        while (size & s) != 0:
+            size >>= 1
+        ones = s & (size - 1)
+
+    pattern = (1 << (ones + 1)) - 1
+    # print (f"@@ pattern: {pattern:x} {size}")
+    # Note: pattern is of the form 0+1+
+
+    # spread pattern to reg_size
+    while size < reg_size:
+        pattern |= pattern << size
+        size *= 2
+    return ror(pattern, reg_size, r)
+
+
 def ExtractBits(data, mask) -> int:
     out = 0
     pos = 1
@@ -152,7 +184,9 @@ class OK(enum.Enum):
     IMM_10_21_22 = 32
     IMM_10_15 = 33
     IMM_12_20 = 34
-    IMM_10_15_16_22 = 35
+    IMM_10_15_16_22_W = 200
+    IMM_10_15_16_22_X = 201
+
 
     IMM_10_21_times_2 = 36
     IMM_10_21_times_4 = 37
@@ -294,7 +328,8 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_10_21_times_2: [(BRK.Verbatim, 12, 10)],
     OK.IMM_10_21_times_4: [(BRK.Verbatim, 12, 10)],
     OK.IMM_10_21_times_8: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_15_16_22: [(BRK.Verbatim, 13, 10)],
+    OK.IMM_10_15_16_22_W: [(BRK.Verbatim, 13, 10)],
+    OK.IMM_10_15_16_22_X: [(BRK.Verbatim, 13, 10)],
     OK.IMM_19_23_31: [(BRK.Lo, 5, 19), (BRK.Hi, 1, 31)],
     OK.IMM_5_20: [(BRK.Verbatim, 16, 5)],
     OK.IMM_16_21: [(BRK.Verbatim, 6, 16)],
@@ -751,16 +786,16 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
                [dst_reg, src1_reg, OK.IMM_10_21_22], OPC_FLAG(0),
                sr_update=SR_UPDATE.NZ)
 
+    imm =  OK.IMM_10_15_16_22_X if  ext == "x" else OK.IMM_10_15_16_22_W
     for name, bits in [("and", [(3, 0, 29), (7, 4, 23)]),
                        ("eor", [(3, 2, 29), (7, 4, 23)]),
                        ("orr", [(3, 1, 29), (7, 4, 23)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
-               [dst_reg_sp, src1_reg, OK.IMM_10_15_16_22], OPC_FLAG.STACK_OPS)
+               [dst_reg_sp, src1_reg, imm], OPC_FLAG.STACK_OPS)
 
     for name, bits in [("ands", [(3, 3, 29), (7, 4, 23)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
-               [dst_reg, src1_reg, OK.IMM_10_15_16_22], OPC_FLAG(0),
-               sr_update=SR_UPDATE.NZ)
+               [dst_reg, src1_reg, imm], OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
 
     for name, bits in [("bfm", [(3, 1, 29), (7, 6, 23)]),
                        ("ubfm", [(3, 2, 29), (7, 6, 23)]),

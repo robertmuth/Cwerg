@@ -138,7 +138,8 @@ STRIGIFIER = {
     a64.OK.IMM_5_20: lambda x: f"#0x{x:x}",
     a64.OK.IMM_16_21: lambda x: f"#{x}",
     a64.OK.IMM_10_15: lambda x: f"#{x}",
-
+    a64.OK.IMM_10_15_16_22_W: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 32):x}",
+    a64.OK.IMM_10_15_16_22_X: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 64):x}",
 }
 
 
@@ -195,6 +196,9 @@ def MassageOperands(name, opcode, operands):
     if name == "ret" and not operands:
         operands.append("x30")
         return name
+    if name == "tst" and opcode.name == "ands":
+        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        return opcode.name
     if name == "cmp" and opcode.name == "subs":
         operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
         return opcode.name
@@ -239,10 +243,12 @@ def MassageOperands(name, opcode, operands):
     if name == "ror" and opcode.name == "extr":
         operands.insert(1, operands[1])
         return opcode.name
-    if name == "mov":
-        if opcode.name == "add":
-            operands.append("#0x0")
-            return "add"
+    if name == "mov" and opcode.name == "add":
+        operands.append("#0x0")
+        return opcode.name
+    if name == "mov" and opcode.name == "orr":
+        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4_SP else "wzr")
+        return opcode.name
     if a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes:
         if operands[-1] == opcode.variant:
             operands.pop(-1)
@@ -284,7 +290,7 @@ def main(argv):
                 actual_ops = []
                 if len(token) == 3:
                     ops_str = token[2]
-                    ops_str = ops_str.split(" //")[0]
+                    ops_str = ops_str.split("//")[0]
                     actual_ops = [clean(o) for o in ops_str.split(",")]
                 actual_name = MassageOperands(actual_name, opcode, actual_ops)
                 # print (actual_name, actual_ops)
