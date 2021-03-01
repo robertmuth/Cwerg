@@ -10,11 +10,11 @@ import collections
 from typing import List, Dict
 
 # import CpuA64.disassembler as dis
-import CpuA64.opcode_tab as a64
+from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand
 
 count_found = 0
 count_total = 0
-ok_histogram: Dict[a64.OK, int] = collections.defaultdict(int)
+ok_histogram: Dict[OK, int] = collections.defaultdict(int)
 
 ALIASES = {
     "cmn": {"adds"},
@@ -93,70 +93,71 @@ EXAMPLE = {}
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 
 STRIGIFIER = {
-    a64.OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
-    a64.OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
+    OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
 
-    a64.OK.XREG_0_4_SP: lambda x: "sp" if x == 31 else f"x{x}",
-    a64.OK.XREG_5_9_SP: lambda x: "sp" if x == 31 else f"x{x}",
+    OK.XREG_0_4_SP: lambda x: "sp" if x == 31 else f"x{x}",
+    OK.XREG_5_9_SP: lambda x: "sp" if x == 31 else f"x{x}",
 
-    a64.OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
-    a64.OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
-    a64.OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
-    a64.OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
+    OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
+    OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
+    OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
+    OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
 
-    a64.OK.XREG_0_4: lambda x: "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_5_9: lambda x: "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_10_14: lambda x: "xzr" if x == 31 else f"x{x}",
-    a64.OK.XREG_16_20: lambda x: "xzr" if x == 31 else f"x{x}",
+    OK.XREG_0_4: lambda x: "xzr" if x == 31 else f"x{x}",
+    OK.XREG_5_9: lambda x: "xzr" if x == 31 else f"x{x}",
+    OK.XREG_10_14: lambda x: "xzr" if x == 31 else f"x{x}",
+    OK.XREG_16_20: lambda x: "xzr" if x == 31 else f"x{x}",
     #
-    a64.OK.SREG_0_4: lambda x: f"s{x}",
-    a64.OK.SREG_5_9: lambda x: f"s{x}",
-    a64.OK.SREG_10_14: lambda x: f"s{x}",
-    a64.OK.SREG_16_20: lambda x: f"s{x}",
+    OK.SREG_0_4: lambda x: f"s{x}",
+    OK.SREG_5_9: lambda x: f"s{x}",
+    OK.SREG_10_14: lambda x: f"s{x}",
+    OK.SREG_16_20: lambda x: f"s{x}",
 
-    a64.OK.DREG_0_4: lambda x: f"d{x}",
-    a64.OK.DREG_5_9: lambda x: f"d{x}",
-    a64.OK.DREG_10_14: lambda x: f"d{x}",
-    a64.OK.DREG_16_20: lambda x: f"d{x}",
+    OK.DREG_0_4: lambda x: f"d{x}",
+    OK.DREG_5_9: lambda x: f"d{x}",
+    OK.DREG_10_14: lambda x: f"d{x}",
+    OK.DREG_16_20: lambda x: f"d{x}",
 
-    a64.OK.BREG_0_4: lambda x: f"b{x}",
-    a64.OK.BREG_5_9: lambda x: f"b{x}",
-    a64.OK.BREG_10_14: lambda x: f"b{x}",
-    a64.OK.BREG_16_20: lambda x: f"b{x}",
+    OK.BREG_0_4: lambda x: f"b{x}",
+    OK.BREG_5_9: lambda x: f"b{x}",
+    OK.BREG_10_14: lambda x: f"b{x}",
+    OK.BREG_16_20: lambda x: f"b{x}",
 
-    a64.OK.HREG_0_4: lambda x: f"h{x}",
-    a64.OK.HREG_5_9: lambda x: f"h{x}",
-    a64.OK.HREG_10_14: lambda x: f"h{x}",
-    a64.OK.HREG_16_20: lambda x: f"h{x}",
+    OK.HREG_0_4: lambda x: f"h{x}",
+    OK.HREG_5_9: lambda x: f"h{x}",
+    OK.HREG_10_14: lambda x: f"h{x}",
+    OK.HREG_16_20: lambda x: f"h{x}",
 
-    a64.OK.QREG_0_4: lambda x: f"q{x}",
-    a64.OK.QREG_5_9: lambda x: f"q{x}",
-    a64.OK.QREG_10_14: lambda x: f"q{x}",
-    a64.OK.QREG_16_20: lambda x: f"q{x}",
+    OK.QREG_0_4: lambda x: f"q{x}",
+    OK.QREG_5_9: lambda x: f"q{x}",
+    OK.QREG_10_14: lambda x: f"q{x}",
+    OK.QREG_16_20: lambda x: f"q{x}",
     #
-    a64.OK.IMM_FLT_ZERO: lambda x: "#0.0",
-    a64.OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
-    a64.OK.IMM_5_20: lambda x: f"#0x{x:x}",
-    a64.OK.IMM_16_21: lambda x: f"#{x}",
-    a64.OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
-    a64.OK.IMM_10_15_16_22_W: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 32):x}",
-    a64.OK.IMM_10_15_16_22_X: lambda x: f"#0x{a64.DecodeLogicalImmediate(x, 64):x}",
+    OK.IMM_FLT_ZERO: lambda x: "#0.0",
+    OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
+    OK.IMM_5_20: lambda x: f"#0x{x:x}",
+    OK.IMM_16_21: lambda x: f"#{x}",
+    OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
+    OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
+    OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
     #
-    a64.OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 4}",
-    a64.OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 7) * 8}",
-    a64.OK.IMM_10_21: lambda x: [] if x == 0 else f"#{x}",
-    a64.OK.IMM_10_21_times_2: lambda x: [] if x == 0 else f"#{x * 2}",
-    a64.OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
-    a64.OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
-    a64.OK.IMM_10_21_times_16: lambda x: [] if x == 0 else f"#{x * 16}",
-    a64.OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{a64.SignedIntFromBits(x, 9)}",
+    OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 4}",
+    OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 8}",
+    OK.SIMM_15_21_TIMES16: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 16}",
+    OK.IMM_10_21: lambda x: [] if x == 0 else f"#{x}",
+    OK.IMM_10_21_times_2: lambda x: [] if x == 0 else f"#{x * 2}",
+    OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
+    OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
+    OK.IMM_10_21_times_16: lambda x: [] if x == 0 else f"#{x * 16}",
+    OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 9)}",
     #
-    a64.OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
-    a64.OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
+    OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
+    OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
 }
 
 
-def IsRegOnly(opcode: a64.Opcode) -> bool:
+def IsRegOnly(opcode: Opcode) -> bool:
     for f in opcode.fields:
         if f not in STRIGIFIER:
             return False
@@ -164,11 +165,11 @@ def IsRegOnly(opcode: a64.Opcode) -> bool:
 
 
 def HandleOneInstruction(count: int, line: str,
-                         data: int, opcode: a64.Opcode,
+                         data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]) -> int:
     global count_found, count_total, count_mismatch
     count_total += 1
-    opcode = a64.Opcode.FindOpcode(data)
+    opcode = Opcode.FindOpcode(data)
     aliases = ALIASES.get(actual_name, {actual_name})
     count_found += 1
     for f in opcode.fields:
@@ -192,7 +193,7 @@ def HandleOneInstruction(count: int, line: str,
 
     ops = []
     for f in opcode.fields:
-        op = STRIGIFIER[f](a64.DecodeOperand(f, data))
+        op = STRIGIFIER[f](DecodeOperand(f, data))
         if isinstance(op, str):
             ops.append(op)
         elif isinstance(op, list):
@@ -206,37 +207,37 @@ def HandleOneInstruction(count: int, line: str,
 
 def HandleAliasMassaging(name, opcode, operands):
     if name == "tst" and opcode.name == "ands":
-        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "cmp" and opcode.name == "subs":
-        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "cmn" and opcode.name == "adds":
-        operands.insert(0, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "neg" and opcode.name == "sub":
-        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "negs" and opcode.name == "subs":
-        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "ngcs" and opcode.name == "sbcs":
-        operands.insert(1, "xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "mul" and opcode.name == "madd":
-        operands.append("xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "mneg" and opcode.name == "msub":
-        operands.append("xzr" if opcode.fields[0] == a64.OK.XREG_0_4 else "wzr")
+        operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "asr" and opcode.name == "sbfm":
-        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+        operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
         return opcode.name
     if name == "lsr" and opcode.name == "ubfm":
-        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+        operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
         return opcode.name
     # if name == "lsl" and opcode.name == "ubfm":
-    #        operands.append("#63" if opcode.fields[0] == a64.OK.XREG_0_4 else "#31")
+    #        operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
     #    return opcode.name
     if name == "umull" and opcode.name == "umaddl":
         operands.append("xzr")
@@ -259,37 +260,37 @@ def HandleAliasMassaging(name, opcode, operands):
         operands.append("#0x0")
         return opcode.name
     if name == "mov" and opcode.name == "orr":
-        operands.insert(1, "xzr" if opcode.fields[1] == a64.OK.XREG_5_9 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
         return opcode.name
     if name == "mvn" and opcode.name == "orn":
-        operands.insert(1, "xzr" if opcode.fields[1] == a64.OK.XREG_5_9 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
     return opcode.name
     return name
 
 
 def MassageOperands(name, opcode, operands):
     """Deal with aliases and case were we deviate from std notation"""
-    if a64.OPC_FLAG.STORE in opcode.classes:
-        if  a64.OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
+    if OPC_FLAG.STORE in opcode.classes:
+        if  OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
             operands.append(operands.pop(1))
         else:
             operands.append(operands.pop(0))
-        if a64.OPC_FLAG.REG_PAIR in opcode.classes:
+        if OPC_FLAG.REG_PAIR in opcode.classes:
             operands.append(operands.pop(0))
 
     if name in ALIASES:
         name = HandleAliasMassaging(name, opcode, operands)
     if (len(operands) + 2 == len(opcode.fields) and len(opcode.fields) > 3 and
-            opcode.fields[3] in {a64.OK.SHIFT_22_23, a64.OK.SHIFT_22_23_NO_ROR}):
+            opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR}):
         operands.append("lsl")
     if name == "ret" and not operands:
         operands.append("x30")
         return name
-    if a64.OPC_FLAG.DOMAIN_PARAM in opcode.classes:
+    if OPC_FLAG.DOMAIN_PARAM in opcode.classes:
         if operands[-1] == opcode.variant:
             operands.pop(-1)
             return name
-    if a64.OPC_FLAG.COND_PARAM in opcode.classes:
+    if OPC_FLAG.COND_PARAM in opcode.classes:
         if opcode.variant.endswith(operands[-1]):
             operands.pop(-1)
             return name
@@ -325,7 +326,7 @@ def main(argv):
                 if not token or token[0].startswith("#"):
                     continue
                 data = int(token[0], 16)
-                opcode = a64.Opcode.FindOpcode(data)
+                opcode = Opcode.FindOpcode(data)
                 assert opcode, f"cannot find opcode: {line}"
                 actual_name = token[1]
                 actual_ops = []
@@ -340,7 +341,7 @@ def main(argv):
     for k, v in sorted(MISSED.items()):
         print(f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
     print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
-    for k in a64.OK:
+    for k in OK:
         if k not in STRIGIFIER:
             print(f"{k.name}  {ok_histogram[k]}")
 

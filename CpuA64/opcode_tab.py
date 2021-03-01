@@ -737,17 +737,17 @@ for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
     Opcode("ldp", ext + "_imm", [w_bit, root010, (0xf, 5, 22)],
            [dst1, dst2, OK.XREG_5_9_SP, imm], OPC_FLAG.LOAD | OPC_FLAG.REG_PAIR)
 
-for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
+for ext, w_bit, imm_scaled in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
                         ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4)]:
     src1 = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     src2 = OK.XREG_10_14 if ext == "x" else OK.WREG_10_14
     Opcode("stp", ext + "_imm_post", [w_bit, root010, (0xf, 2, 22)],
-           [OK.XREG_5_9_SP, imm, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
+           [OK.XREG_5_9_SP, imm_scaled, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
 
     Opcode("stp", ext + "_imm_pre", [w_bit, root010, (0xf, 6, 22)],
-           [OK.XREG_5_9_SP, imm, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
+           [OK.XREG_5_9_SP, imm_scaled, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
     Opcode("stp", ext + "_imm", [w_bit, root010, (0xf, 4, 22)],
-           [OK.XREG_5_9_SP, imm, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
+           [OK.XREG_5_9_SP, imm_scaled, src1, src2], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
 
 ########################################
 root011 = (7, 3, 26)
