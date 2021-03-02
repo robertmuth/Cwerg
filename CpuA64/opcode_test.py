@@ -100,6 +100,7 @@ MAYBE_SHIFT_0 = [[], []]
 MAYBE_SHIFT_1 = [[], "#1"]
 MAYBE_SHIFT_2 = [[], "#2"]
 MAYBE_SHIFT_3 = [[], "#3"]
+MAYBE_SHIFT_4 = [[], "#4"]
 
 STRIGIFIER = {
     OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
@@ -165,6 +166,7 @@ STRIGIFIER = {
     OK.IMM_12_MAYBE_SHIFT_1: lambda x: MAYBE_SHIFT_1[x],
     OK.IMM_12_MAYBE_SHIFT_2: lambda x: MAYBE_SHIFT_2[x],
     OK.IMM_12_MAYBE_SHIFT_3: lambda x: MAYBE_SHIFT_3[x],
+    OK.IMM_12_MAYBE_SHIFT_4: lambda x: MAYBE_SHIFT_4[x],
     #
     OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
     OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
