@@ -5,6 +5,7 @@ This test checks that we can assemble and disassemble all the instructions
 found in `arm_test.dis` and similar dumps obtained via `objdump`
 """
 
+import re
 import sys
 import collections
 from typing import List, Dict
@@ -317,17 +318,6 @@ def MassageOperands(name, opcode, operands):
     return name
 
 
-def clean(op: str) -> str:
-    op = op.strip()
-    if op.startswith("["):
-        op = op[1:]
-    if op.endswith("]"):
-        op = op[:-1]
-    if op.endswith("]!"):
-        op = op[:-2]
-    return op
-
-
 def main(argv):
     for fn in argv:
         with open(fn) as fp:
@@ -337,13 +327,6 @@ def main(argv):
             good = 0
             for line in fp:
                 count += 1
-                line = line.replace("lsl ", "lsl,")
-                line = line.replace("lsr ", "lsr,")
-                line = line.replace("asr ", "asr,")
-                line = line.replace("ror ", "ror,")
-                line = line.replace("sxtw ", "sxtw,")
-                line = line.replace("uxtw ", "uxtw,")
-
                 token = line.split(None, 2)
                 if not token or token[0].startswith("#"):
                     continue
@@ -355,7 +338,7 @@ def main(argv):
                 if len(token) == 3:
                     ops_str = token[2]
                     ops_str = ops_str.split("//")[0]
-                    actual_ops = [clean(o) for o in ops_str.split(",")]
+                    actual_ops = [x for x in re.split("[, \t\n\[\]!]+", ops_str) if x]
                 actual_name = MassageOperands(actual_name, opcode, actual_ops)
                 # print (actual_name, actual_ops)
                 good += HandleOneInstruction(
