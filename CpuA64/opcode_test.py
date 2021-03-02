@@ -90,7 +90,15 @@ ALIASES = {
 
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
+
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
+SHIFT_MAP_15_W = ["uxtw", "sxtw"]
+SHIFT_MAP_15_X = ["lsl", "sxtx"]
+
+MAYBE_SHIFT_0 = [[], []]
+MAYBE_SHIFT_1 = [[], "#1"]
+MAYBE_SHIFT_2 = [[], "#2"]
+MAYBE_SHIFT_3 = [[], "#3"]
 
 STRIGIFIER = {
     OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
@@ -152,8 +160,15 @@ STRIGIFIER = {
     OK.IMM_10_21_times_16: lambda x: [] if x == 0 else f"#{x * 16}",
     OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 9)}",
     #
+    OK.IMM_12_MAYBE_SHIFT_0: lambda x: MAYBE_SHIFT_0[x],
+    OK.IMM_12_MAYBE_SHIFT_1: lambda x: MAYBE_SHIFT_1[x],
+    OK.IMM_12_MAYBE_SHIFT_2: lambda x: MAYBE_SHIFT_2[x],
+    OK.IMM_12_MAYBE_SHIFT_3: lambda x: MAYBE_SHIFT_3[x],
+    #
     OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
     OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
+    OK.SHIFT_15_W: lambda x: SHIFT_MAP_15_W[x],
+    OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
 }
 
 
@@ -180,12 +195,12 @@ def HandleOneInstruction(count: int, line: str,
             opcode.name in {"sbfm", "csinc", "bfm", "ubfm",
                             "csneg", "csinv"} or
             actual_name in {
-                            "sbfx", "sxtb", "sxth", "sxtw",
-                            "sbfiz",
-                            "cinc", "cset", "bfxil", "bfi",
-                            "ubfx", "ubfiz",
-                            "cneg", "cinv", "csetm", "bfc",
-                            "lsl"}):
+                "sbfx", "sxtb", "sxth", "sxtw",
+                "sbfiz",
+                "cinc", "cset", "bfxil", "bfi",
+                "ubfx", "ubfiz",
+                "cneg", "cinv", "csetm", "bfc",
+                "lsl"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -271,7 +286,7 @@ def HandleAliasMassaging(name, opcode, operands):
 def MassageOperands(name, opcode, operands):
     """Deal with aliases and case were we deviate from std notation"""
     if OPC_FLAG.STORE in opcode.classes:
-        if  OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
+        if OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
             operands.append(operands.pop(1))
         else:
             operands.append(operands.pop(0))
@@ -280,9 +295,14 @@ def MassageOperands(name, opcode, operands):
 
     if name in ALIASES:
         name = HandleAliasMassaging(name, opcode, operands)
-    if (len(operands) + 2 == len(opcode.fields) and len(opcode.fields) > 3 and
-            opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR}):
-        operands.append("lsl")
+    if len(operands) + 2 == len(opcode.fields):
+        if (len(opcode.fields) > 3 and
+            opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR,
+                                 OK.SHIFT_15_W, OK.SHIFT_15_X}):
+            operands.insert(3, "lsl")
+        if (len(opcode.fields) > 2 and
+                opcode.fields[2] in {OK.SHIFT_15_W, OK.SHIFT_15_X}):
+            operands.insert(2, "lsl")
     if name == "ret" and not operands:
         operands.append("x30")
         return name
@@ -322,6 +342,8 @@ def main(argv):
                 line = line.replace("asr ", "asr,")
                 line = line.replace("ror ", "ror,")
                 line = line.replace("sxtw ", "sxtw,")
+                line = line.replace("uxtw ", "uxtw,")
+
                 token = line.split(None, 2)
                 if not token or token[0].startswith("#"):
                     continue
