@@ -1032,11 +1032,12 @@ for ext, w_bits in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
 
         for name, bits in [("ccmp", (3, 3, 29)),
                            ("ccmn", (3, 1, 29))]:
+            common = [w_bits, root110, (0x1f, 0x12, 21), (0xf, cond_val, 12), (1, 0, 4)]
             Opcode(name, f"{ext}_reg_{cond_name}",
-                   [w_bits, bits, root110, (0x1f, 0x12, 21), (0xf, cond_val, 12), (3, 0, 10), (1, 0, 4)],
+                   common + [bits, (3, 0, 10)],
                    [src1_reg, src2_reg, OK.IMM_COND_0_3], OPC_FLAG.COND_PARAM)
             Opcode(name, f"{ext}_imm_{cond_name}",
-                   [w_bits, bits, root110, (0x1f, 0x12, 21), (0xf, cond_val, 12), (3, 2, 10), (1, 0, 4)],
+                   common + [bits, (3, 2, 10)],
                    [src1_reg, OK.IMM_16_20, OK.IMM_COND_0_3], OPC_FLAG.COND_PARAM)
 
 for name, ext, bits in [("rbit", "x", [(7, 6, 29), (7, 0, 10)]),

@@ -96,6 +96,7 @@ EXAMPLE = {}
 def MaybeLsl(n):
     return [] if n == 0 else ["lsl", f"#{n}"]
 
+
 IMM_COND = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
             "hi", "ls", "ge", "lt", "gt", "le"]
 
@@ -160,8 +161,8 @@ STRIGIFIER = {
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
     OK.IMM_10_12_LIMIT4: lambda x: [] if x == 0 else f"#{x}",
-    OK.IMM_SHIFTED_5_20_21_22: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
-    #OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    OK.IMM_SHIFTED_5_20_21_22: lambda x: [f"#0x{x & 0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    # OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
     OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
     #
     OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 4}",
@@ -202,10 +203,9 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"sbfm", "csinc", "bfm", "ubfm",
+            opcode.name in {"sbfm", "csinc",
                             "csneg", "csinv", "adr", "adrp", "movn",
-                            "fmov", "movz", "fccmp"} or
-            actual_name in {"cinc", "cset"}):
+                            "fmov", "movz"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -226,6 +226,52 @@ def HandleOneInstruction(count: int, line: str,
 
 
 def HandleAliasMassaging(name, opcode, operands):
+    if name == "bfc" and opcode.name == "bfm":
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+        width = int(operands[3][1:])
+        if width - 1:
+            operands[3] = f"#{width - 1}"
+        else:
+            operands.pop(3)
+    if name == "bfi" and opcode.name == "bfm":
+        lsb = int(operands[2][1:])
+        width = int(operands[3][1:])
+        bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
+        operands[2] = f"#{bits - lsb}"
+        if width - 1:
+            operands[3] = f"#{width - 1}"
+        else:
+            operands.pop(3)
+        return opcode.name
+    if name == "bfxil" and opcode.name == "bfm":
+        lsb = int(operands[2][1:])
+        width = int(operands[3][1:])
+        if lsb + width - 1:
+            operands[3] = f"#{lsb + width - 1}"
+        else:
+            operands.pop(3)
+        return opcode.name
+    if name == "ubfiz" and opcode.name == "ubfm":
+        lsb = int(operands[2][1:])
+        width = int(operands[3][1:])
+        bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
+        operands[2] = f"#{bits - lsb}"
+        if width - 1:
+            operands[3] = f"#{width - 1}"
+        else:
+            operands.pop(3)
+        return opcode.name
+    if name == "ubfx" and opcode.name == "ubfm":
+        x = int(operands[2][1:]) + int(operands[3][1:]) - 1
+        operands[3] = f"#{x}"
+        return opcode.name
+    if name == "lsl" and opcode.name == "ubfm":
+        lsb = int(operands[2][1:])
+        bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
+        operands[2] = f"#{bits - lsb}"
+        if bits - lsb - 1:
+            operands.append(f"#{bits - lsb - 1}")
+        return opcode.name
     if name == "tst" and opcode.name == "ands":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
