@@ -203,9 +203,8 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"sbfm", "csinc",
-                            "csneg", "csinv", "adr", "adrp", "movn",
-                            "fmov", "movz"}):
+            opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp",
+                            "movn", "fmov", "movz"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -226,6 +225,19 @@ def HandleOneInstruction(count: int, line: str,
 
 
 def HandleAliasMassaging(name, opcode, operands):
+    """A bunch of a hacks to deal with the ton of alias that arm64 defines"""
+    if name == "sxtb" and opcode.name == "sbfm":
+        operands[1] = operands[0][0] + operands[1][1:]
+        operands += ["#0", "#7"]
+        return opcode.name
+    if name == "sxth" and opcode.name == "sbfm":
+        operands[1] = operands[0][0] + operands[1][1:]
+        operands += ["#0", "#15"]
+        return opcode.name
+    if name == "sxtw" and opcode.name == "sbfm":
+        operands[1] = operands[0][0] + operands[1][1:]
+        operands += ["#0", "#31"]
+        return opcode.name
     if name == "bfc" and opcode.name == "bfm":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         width = int(operands[3][1:])
@@ -233,7 +245,9 @@ def HandleAliasMassaging(name, opcode, operands):
             operands[3] = f"#{width - 1}"
         else:
             operands.pop(3)
-    if name == "bfi" and opcode.name == "bfm":
+        return opcode.name
+    if ((name == "bfi" and opcode.name == "bfm") or
+            (name == "sbfiz" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
@@ -243,7 +257,8 @@ def HandleAliasMassaging(name, opcode, operands):
         else:
             operands.pop(3)
         return opcode.name
-    if name == "bfxil" and opcode.name == "bfm":
+    if ((name == "bfxil" and opcode.name == "bfm") or
+            (name == "sbfx" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         if lsb + width - 1:
