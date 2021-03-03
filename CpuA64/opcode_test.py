@@ -92,6 +92,13 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
+
+def MaybeLsl(n):
+    return [] if n == 0 else ["lsl", f"#{n}"]
+
+IMM_COND = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
+            "hi", "ls", "ge", "lt", "gt", "le"]
+
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
@@ -147,11 +154,15 @@ STRIGIFIER = {
     OK.IMM_FLT_ZERO: lambda x: "#0.0",
     OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
     OK.IMM_5_20: lambda x: f"#0x{x:x}",
+    OK.IMM_16_20: lambda x: f"#0x{x:x}",
     OK.IMM_16_21: lambda x: f"#{x}",
     OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
     OK.IMM_10_12_LIMIT4: lambda x: [] if x == 0 else f"#{x}",
+    OK.IMM_SHIFTED_5_20_21_22: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    #OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
     #
     OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 4}",
     OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 8}",
@@ -192,9 +203,8 @@ def HandleOneInstruction(count: int, line: str,
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
             opcode.name in {"sbfm", "csinc", "bfm", "ubfm",
-                            "csneg", "csinv", "adr", "adrp", "movn", "movk",
-                            "fmov", "movz", "fccmp", "ccmp", "ccmn"
-                            } or
+                            "csneg", "csinv", "adr", "adrp", "movn",
+                            "fmov", "movz", "fccmp"} or
             actual_name in {"cinc", "cset"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line

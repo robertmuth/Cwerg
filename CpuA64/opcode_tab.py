@@ -194,10 +194,9 @@ class OK(enum.Enum):
     IMM_19_23_31 = 39
     IMM_5_20 = 40
     IMM_16_21 = 41
-    IMM_0_3 = 42
+    IMM_COND_0_3 = 42
     IMM_16_20 = 43
     IMM_5_20_21_22 = 44
-    IMM_5_20_21_22_NOT = 45
     IMM_13_20_FLT = 46
     IMM_FLT_ZERO = 47
     IMM_12_MAYBE_SHIFT_0 = 300
@@ -205,6 +204,8 @@ class OK(enum.Enum):
     IMM_12_MAYBE_SHIFT_2 = 302
     IMM_12_MAYBE_SHIFT_3 = 303
     IMM_12_MAYBE_SHIFT_4 = 304
+    IMM_SHIFTED_5_20_21_22 = 48
+    IMM_SHIFTED_5_20_21_22_NOT = 49
 
     # signed immeditate
     SIMM_0_25 = 50
@@ -220,7 +221,6 @@ class OK(enum.Enum):
     SHIFT_22_23 = 60
     SHIFT_22_23_NO_ROR = 61
     IMM_10_12_LIMIT4 = 64
-    SHIFT_21_22_TIMES16 = 65
     SHIFT_15_W = 68
     SHIFT_15_X = 69
 
@@ -351,10 +351,9 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.SIMM_15_21_TIMES8: [(BRK.Verbatim, 7, 15)],
     OK.SIMM_15_21_TIMES16: [(BRK.Verbatim, 7, 15)],
     OK.SIMM_5_23_29_30: [(BRK.Hi, 19, 5), (BRK.Lo, 2, 29)],
-    OK.IMM_0_3: [(BRK.Verbatim, 4, 0)],
+    OK.IMM_COND_0_3: [(BRK.Verbatim, 4, 0)],
     OK.IMM_16_20: [(BRK.Verbatim, 5, 16)],
     OK.IMM_5_20_21_22: [(BRK.Verbatim, 18, 5)],
-    OK.IMM_5_20_21_22_NOT: [(BRK.Verbatim, 18, 5)],
     OK.IMM_13_20_FLT: [(BRK.Verbatim, 8, 13)],
     OK.IMM_FLT_ZERO: [(BRK.Force0, 0, 0)],
     OK.IMM_10_12_LIMIT4: [(BRK.Verbatim, 3, 10)],
@@ -363,13 +362,13 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_12_MAYBE_SHIFT_2: [(BRK.Verbatim, 1, 12)],
     OK.IMM_12_MAYBE_SHIFT_3: [(BRK.Verbatim, 1, 12)],
     OK.IMM_12_MAYBE_SHIFT_4: [(BRK.Verbatim, 1, 12)],
-
+    OK.IMM_SHIFTED_5_20_21_22: [(BRK.Verbatim, 18, 5)],
+    OK.IMM_SHIFTED_5_20_21_22_NOT: [(BRK.Verbatim, 18, 5)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
     OK.SHIFT_22_23_NO_ROR: [(BRK.Verbatim, 2, 22)],
-    OK.SHIFT_21_22_TIMES16: [(BRK.Verbatim, 2, 21)],
     OK.SHIFT_15_W: [(BRK.Verbatim, 1, 15)],
     OK.SHIFT_15_X: [(BRK.Verbatim, 1, 15)],
 }
@@ -826,12 +825,12 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
            [dst_reg, src1_reg, src2_reg, OK.IMM_10_15], OPC_FLAG(0))
 
     Opcode("movk", ext, [w_bit, (3, 3, 29), root100, (7, 5, 23)],
-           [dst_reg, OK.SHIFT_21_22_TIMES16, OK.IMM_5_20], OPC_FLAG(0))
+           [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
 
     Opcode("movz", ext + "_imm", [w_bit, (3, 2, 29), root100, (7, 5, 23)],
-           [dst_reg, OK.IMM_5_20_21_22], OPC_FLAG(0))
+           [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
     Opcode("movn", ext + "_imm_", [w_bit, (3, 0, 29), root100, (7, 5, 23)],
-           [dst_reg, OK.IMM_5_20_21_22_NOT], OPC_FLAG(0))
+           [dst_reg, OK.IMM_SHIFTED_5_20_21_22_NOT], OPC_FLAG(0))
 
 Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
        [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
@@ -1035,10 +1034,10 @@ for ext, w_bits in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                            ("ccmn", (3, 1, 29))]:
             Opcode(name, f"{ext}_reg_{cond_name}",
                    [w_bits, bits, root110, (0x1f, 0x12, 21), (0xf, cond_val, 12), (3, 0, 10), (1, 0, 4)],
-                   [src1_reg, src2_reg, OK.IMM_0_3], OPC_FLAG(0))
+                   [src1_reg, src2_reg, OK.IMM_COND_0_3], OPC_FLAG.COND_PARAM)
             Opcode(name, f"{ext}_imm_{cond_name}",
                    [w_bits, bits, root110, (0x1f, 0x12, 21), (0xf, cond_val, 12), (3, 2, 10), (1, 0, 4)],
-                   [src1_reg, OK.IMM_16_20, OK.IMM_0_3], OPC_FLAG(0))
+                   [src1_reg, OK.IMM_16_20, OK.IMM_COND_0_3], OPC_FLAG.COND_PARAM)
 
 for name, ext, bits in [("rbit", "x", [(7, 6, 29), (7, 0, 10)]),
                         ("rbit", "w", [(7, 2, 29), (7, 0, 10)]),
@@ -1130,7 +1129,7 @@ for ext, w_bit in [("s", (1, 0, 22)),
                [dst_reg, src1_reg, src2_reg], OPC_FLAG.COND_PARAM)
         Opcode("fccmp", f"{ext}_{cond_name}",
                [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xf, cond_val, 12), (3, 1, 10), (1, 0, 4)],
-               [src1_reg, src2_reg, OK.IMM_0_3], OPC_FLAG.COND_PARAM)
+               [src1_reg, src2_reg, OK.IMM_COND_0_3], OPC_FLAG.COND_PARAM)
 
 for ext, dst, src, bits in [
     ("s_from_w", OK.SREG_0_4, OK.WREG_5_9, [(1, 0, 31), (3, 0, 22), (1, 0, 19), (1, 1, 16)]),
