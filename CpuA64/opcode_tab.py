@@ -178,6 +178,7 @@ class OK(enum.Enum):
 
     XREG_0_4_SP = 102
     XREG_5_9_SP = 103
+    REG_LINK = 104
 
     # unsigned immediates
     IMM_10_21 = 31
@@ -324,6 +325,7 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.QREG_5_9: [(BRK.Verbatim, 5, 5)],
     OK.QREG_10_14: [(BRK.Verbatim, 5, 10)],
     OK.QREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.REG_LINK: [],
 
 }
 
@@ -380,9 +382,9 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
 }
 
 for details in FIELD_DETAILS.values():
-    if len(details) == 1:
-        assert details[0][0] in BIT_RANGE_MODIFIER_SINGLE
-    if len(details) == 1:
+    if len(details) == 0:
+        pass
+    elif len(details) == 1:
         assert details[0][0] in BIT_RANGE_MODIFIER_SINGLE
     elif len(details) == 2:
         assert details[0][0] in BIT_RANGE_MODIFIER_HILO
@@ -499,15 +501,15 @@ class OPC_FLAG(enum.Flag):
     ATOMIC = 1 << 8
     ATOMIC_WITH_STATUS = 1 << 9
 
-    SIGNEXTEND = 1 << 11
-    JUMP = 1 << 12
-    LINK = 1 << 13
-    MOVETOSR = 1 << 15
+    COND_BRANCH = 1 << 11
+    BRANCH = 1 << 12
+    BRANCH_INDIRECT = 1 << 13
+    CALL = 1 << 15
+    CALL_INDIRECT = 1 << 20
     MOVEFROMSR = 1 << 16
     TEST = 1 << 17
     PREFETCH = 1 << 18
     MULTIPLE = 1 << 19
-    VFP = 1 << 20
     SYSCALL = 1 << 21
     BYTEREORDER = 1 << 22
     MISC = 1 << 23
@@ -841,36 +843,36 @@ root101 = (7, 5, 26)
 ########################################
 
 Opcode("b", "", [root101, (7, 0, 29)],
-       [OK.SIMM_0_25], OPC_FLAG(0))
+       [OK.SIMM_0_25], OPC_FLAG.BRANCH)
 
 Opcode("bl", "", [root101, (7, 4, 29)],
-       [OK.SIMM_0_25], OPC_FLAG(0))
+       [OK.SIMM_0_25, OK.REG_LINK], OPC_FLAG.CALL)
 
 Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
-       [OK.XREG_5_9], OPC_FLAG(0))
+       [OK.XREG_5_9], OPC_FLAG.BRANCH_INDIRECT)
 Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG(0))
 Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0, 10), (0x1f, 0, 0)],
-       [OK.XREG_5_9], OPC_FLAG(0))
+       [OK.XREG_5_9], OPC_FLAG.CALL_INDIRECT)
 
 for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
                                       "hi", "ls", "ge", "lt", "gt", "le"]):
     Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
-           [OK.SIMM_5_23], OPC_FLAG(0))
+           [OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 
 Opcode("cbnz", "64", [root101, (7, 5, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbnz", "32", [root101, (7, 1, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbz", "64", [root101, (7, 5, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbz", "32", [root101, (7, 1, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 
 Opcode("tbz", "", [root101, (3, 1, 29), (3, 2, 24)],
-       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG.COND_BRANCH)
 Opcode("tbnz", "", [root101, (3, 1, 29), (3, 3, 24)],
-       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG.COND_BRANCH)
 
 Opcode("hlt", "", [root101, (7, 6, 29), (0x1f, 2, 21), (0x1f, 0, 0)],
        [OK.IMM_5_20], OPC_FLAG(0))

@@ -176,13 +176,6 @@ STRIGIFIER = {
 }
 
 
-def IsRegOnly(opcode: Opcode) -> bool:
-    for f in opcode.fields:
-        if f not in STRIGIFIER:
-            return False
-    return True
-
-
 def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]) -> int:
@@ -195,16 +188,14 @@ def HandleOneInstruction(count: int, line: str,
         ok_histogram[f] += 1
     assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
-    if (not IsRegOnly(opcode) or
+    if (OPC_FLAG.BRANCH in opcode.classes or
+            OPC_FLAG.COND_BRANCH in opcode.classes or
+            OPC_FLAG.CALL in opcode.classes or
             opcode.name in {"sbfm", "csinc", "bfm", "ubfm",
-                            "csneg", "csinv"} or
-            actual_name in {
-                "sbfx", "sxtb", "sxth", "sxtw",
-                "sbfiz",
-                "cinc", "cset", "bfxil", "bfi",
-                "ubfx", "ubfiz",
-                "cneg", "cinv", "csetm", "bfc",
-                "lsl"}):
+                            "csneg", "csinv", "adr", "adrp", "movn", "movk",
+                            "fmov", "movz", "fccmp", "ccmp", "ccmn"
+                            } or
+            actual_name in {"cinc", "cset"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -229,7 +220,7 @@ def HandleAliasMassaging(name, opcode, operands):
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "cmp" and opcode.name == "subs":
-        operands.insert(0, "xzr" if opcode.fields[0] in {OK.XREG_0_4, OK.XREG_0_4_SP } else "wzr")
+        operands.insert(0, "xzr" if opcode.fields[0] in {OK.XREG_0_4, OK.XREG_0_4_SP} else "wzr")
         return opcode.name
     if name == "cmn" and opcode.name == "adds":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
@@ -301,8 +292,8 @@ def MassageOperands(name, opcode, operands):
         name = HandleAliasMassaging(name, opcode, operands)
     if len(operands) + 2 == len(opcode.fields):
         if (len(opcode.fields) > 3 and
-            opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR,
-                                 OK.SHIFT_15_W, OK.SHIFT_15_X}):
+                opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR,
+                                     OK.SHIFT_15_W, OK.SHIFT_15_X}):
             operands.insert(3, "lsl")
         if (len(opcode.fields) > 2 and
                 opcode.fields[2] in {OK.SHIFT_15_W, OK.SHIFT_15_X}):
