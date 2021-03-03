@@ -183,7 +183,6 @@ class OK(enum.Enum):
     IMM_10_21 = 31
     IMM_10_21_22 = 32
     IMM_10_15 = 33
-    IMM_12_20 = 34
     IMM_10_15_16_22_W = 200
     IMM_10_15_16_22_X = 201
 
@@ -343,7 +342,6 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
 
     OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
     OK.IMM_10_21_22: [(BRK.Verbatim, 13, 10)],
-    OK.IMM_12_20: [(BRK.Verbatim, 9, 12)],
     OK.SIMM_12_20: [(BRK.Verbatim, 9, 12)],
     OK.SIMM_0_25: [(BRK.Verbatim, 26, 0)],
     OK.SIMM_5_18: [(BRK.Verbatim, 14, 5)],
@@ -516,7 +514,8 @@ class OPC_FLAG(enum.Flag):
     REG_PAIR = 1 << 25
     COND_PARAM = 1 << 26  # csel, etc which have a condition-code as a parameter
     DOMAIN_PARAM = 1 << 27  # dmb, etc which have a sharable domain as a parameter
-    STACK_OPS = 1 << 28
+    EXTENSION_PARAM = 1 << 28
+    STACK_OPS = 1 << 29
     # do not go above 31 as we want these to fit into a 32 bit word
 
 
@@ -708,18 +707,21 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23_NO_ROR, OK.IMM_10_15],
                OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
 
-    for ext2, option in [("b", (7, 0, 13)), ("h", (7, 1, 13)), ("w", (7, 2, 13)), ("x", (7, 3, 13)),
-                         ("sb", (7, 4, 13)), ("sh", (7, 5, 13)), ("sw", (7, 6, 13)), ("sx", (7, 7, 13))]:
+    for ext2, option in [("uxtb", (7, 0, 13)), ("uxth", (7, 1, 13)),
+                         ("uxtw", (7, 2, 13)), ("uxtx", (7, 3, 13)),
+                         ("sxtb", (7, 4, 13)), ("sxth", (7, 5, 13)),
+                         ("sxtw", (7, 6, 13)), ("sxtx", (7, 7, 13))]:
+        src2_ext_reg = OK.XREG_16_20 if ext2[-1] == "x" else OK.WREG_16_20
         for name, bits in [("add", [(3, 0, 29), (0x1f, 0x19, 21)]),
                            ("sub", [(3, 2, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
-                   [dst_reg_sp, src1_reg_sp, OK.IMM_10_12_LIMIT4, src2_reg],
-                   OPC_FLAG.STACK_OPS)
+                   [dst_reg_sp, src1_reg_sp, src2_ext_reg, OK.IMM_10_12_LIMIT4],
+                   OPC_FLAG.STACK_OPS | OPC_FLAG.EXTENSION_PARAM)
         for name, bits in [("adds", [(3, 1, 29), (0x1f, 0x19, 21)]),
                            ("subs", [(3, 3, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
-                   [dst_reg, src1_reg, OK.IMM_10_12_LIMIT4, src2_reg], OPC_FLAG(0),
-                   sr_update=SR_UPDATE.NZ)
+                   [dst_reg, src1_reg_sp, src2_ext_reg, OK.IMM_10_12_LIMIT4],
+                   OPC_FLAG.EXTENSION_PARAM, sr_update=SR_UPDATE.NZ)
 
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:
     reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
@@ -1157,7 +1159,7 @@ for ext, reg, bits, scaled_imm, shift in [
            [reg, OK.XREG_5_9_SP, OK.XREG_16_20, OK.SHIFT_15_X, shift], OPC_FLAG.LOAD)
 
     Opcode("fldur", ext + "_imm", [(3, 0, 24), (1, 0, 21), (3, 0, 10)] + ld_bits,
-           [reg, OK.XREG_5_9, OK.IMM_12_20], OPC_FLAG.LOAD)
+           [reg, OK.XREG_5_9_SP, OK.SIMM_12_20], OPC_FLAG.LOAD)
 
     st_bits = [(1, 1, 29), root111, (1, 0, 22)] + bits
     Opcode("fstr", ext + "_imm_post", [(3, 0, 24), (1, 0, 21), (3, 1, 10)] + st_bits,
@@ -1171,7 +1173,7 @@ for ext, reg, bits, scaled_imm, shift in [
     Opcode("fstr", ext + "_reg_x", [(3, 0, 24), (1, 1, 13), (1, 1, 21), (1, 1, 14), (3, 2, 10)] + st_bits,
            [OK.XREG_5_9_SP, OK.XREG_16_20, OK.SHIFT_15_X, shift, reg], OPC_FLAG.STORE)
     Opcode("fstur", ext + "_imm", [(3, 0, 24), (1, 0, 21), (3, 0, 10)] + st_bits,
-           [OK.XREG_5_9_SP, OK.IMM_12_20, reg], OPC_FLAG.STORE)
+           [OK.XREG_5_9_SP, OK.SIMM_12_20, reg], OPC_FLAG.STORE)
 
 for dst_ext, dst_reg, dst_bits in [("h", OK.HREG_0_4, (3, 3, 15)),
                                    ("s", OK.SREG_0_4, (3, 0, 15)),

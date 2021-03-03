@@ -151,6 +151,7 @@ STRIGIFIER = {
     OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
+    OK.IMM_10_12_LIMIT4: lambda x: [] if x == 0 else f"#{x}",
     #
     OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 4}",
     OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 8}",
@@ -219,7 +220,7 @@ def HandleOneInstruction(count: int, line: str,
         else:
             assert False
     assert len(ops) == len(actual_ops), f"[{opcode.name}] num mismatch in {ops} vs {actual_ops}: {line}"
-    assert ops == actual_ops, f"[{opcode.name}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    assert ops == actual_ops, f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
     return 1
 
 
@@ -228,7 +229,7 @@ def HandleAliasMassaging(name, opcode, operands):
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         return opcode.name
     if name == "cmp" and opcode.name == "subs":
-        operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+        operands.insert(0, "xzr" if opcode.fields[0] in {OK.XREG_0_4, OK.XREG_0_4_SP } else "wzr")
         return opcode.name
     if name == "cmn" and opcode.name == "adds":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
@@ -316,6 +317,12 @@ def MassageOperands(name, opcode, operands):
     if OPC_FLAG.COND_PARAM in opcode.classes:
         if opcode.variant.endswith(operands[-1]):
             operands.pop(-1)
+            return name
+    if OPC_FLAG.EXTENSION_PARAM in opcode.classes:
+        if len(operands) == 3:
+            pass
+        elif opcode.variant.endswith(operands[3]) or operands[3] == "lsl":
+            operands.pop(3)
             return name
     return name
 
