@@ -11,7 +11,8 @@ import collections
 from typing import List, Dict
 
 # import CpuA64.disassembler as dis
-from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, FIELDS_SHIFT, FIELDS_IMM
+from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, \
+    FIELDS_SHIFT, FIELDS_IMM
 
 count_found = 0
 count_total = 0
@@ -100,13 +101,11 @@ def MaybeLsl(n):
 COND_INV = ["ne" "eq", "cc", "cs", "pl", "mi", "vc", "vs",
             "ls", "hi", "lt", "ge", "le", "gt"]
 
-
-SHIFT_OPS = set(["lsl", "lsr", "asr", "ror", "uxtw", "sxtw",  "sxtx"])
+SHIFT_OPS = set(["lsl", "lsr", "asr", "ror", "uxtw", "sxtw", "sxtx"])
 
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
-
 
 STRIGIFIER = {
     OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
@@ -159,8 +158,7 @@ STRIGIFIER = {
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
     OK.IMM_10_12_LIMIT4: lambda x: f"#{x}",
-    OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff)  << ((x >> 16) * 16):x}",
-    # OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff) << (16 * (x >> 16)):x}",
     OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
     #
     OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
@@ -192,13 +190,21 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
     for i, op in enumerate(std_ops):
         if j < len(objdump_ops) and op == objdump_ops[j]:
             j += 1
-            continue
-        if op == "lsl" or op == "#0":
-            continue
+        elif op == "lsl" or op == "#0":
+            pass
+        elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
+            if objdump_ops[j + 1] != "lsl":
+                return False
+            v = int(objdump_ops[j][1:], 0)
+            shift =  int(objdump_ops[j + 2][1:], 0)
+            if v << shift != int(op[1:], 0):
+                print (f"@@ {v:x}  {shift:x}")
+                return False
+            j += 3
         else:
-            print (f"Operand mismatch {op} vs  {objdump_ops[j]}")
+            print(f"Operand mismatch {op} vs  {objdump_ops[j]}")
             return False
-    return j == len(objdump_ops)
+    return j == len(objdump_ops) or opcode.fields[-1] == OK.IMM_SHIFTED_5_20_21_22
 
 
 def HandleOneInstruction(count: int, line: str,
@@ -217,7 +223,7 @@ def HandleOneInstruction(count: int, line: str,
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
             opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp",
-                            "movn", "fmov", "movk", "movz"}):
+                            "movn", "fmov"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -232,7 +238,8 @@ def HandleOneInstruction(count: int, line: str,
             ops += op
         else:
             assert False
-    assert OperandsMatch(opcode, ops, actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    assert OperandsMatch(opcode, ops,
+                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
     return 1
 
 
