@@ -93,7 +93,6 @@ ALIASES = {
 MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
-
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
@@ -190,9 +189,9 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
                 return int(op[1:], 0) ^ v == (1 << bits) - 1
             if objdump_ops[j + 1] != "lsl":
                 return False
-            shift =  int(objdump_ops[j + 2][1:], 0)
+            shift = int(objdump_ops[j + 2][1:], 0)
             if v << shift != int(op[1:], 0):
-                print (f"@@ {v:x}  {shift:x}")
+                print(f"@@ {v:x}  {shift:x}")
                 return False
             j += 3
         else:
@@ -216,7 +215,7 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"csinc", "adr", "adrp", "fmov"}):
+            opcode.name in {"adr", "adrp", "fmov"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -238,15 +237,14 @@ def HandleOneInstruction(count: int, line: str,
 
 def HandleAliasMassaging(name, opcode, operands):
     """A bunch of a hacks to deal with the ton of alias that arm64 defines"""
-    if name == "cneg" and opcode.name == "csneg":
+    if ((name == "cneg" and opcode.name == "csneg") or
+            (name == "cinv" and opcode.name == "csinv") or
+            (name == "cinc" and opcode.name == "csinc")):
         operands.insert(1, operands[1])
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
         return opcode.name
-    if name == "cinv" and opcode.name == "csinv":
-        operands.insert(1, operands[1])
-        operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
-        return opcode.name
-    if name == "csetm" and opcode.name == "csinv":
+    if ((name == "csetm" and opcode.name == "csinv") or
+            (name == "cset" and opcode.name == "csinc")):
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
