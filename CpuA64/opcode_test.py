@@ -94,15 +94,6 @@ MISSED = collections.defaultdict(int)
 EXAMPLE = {}
 
 
-def MaybeLsl(n):
-    return [] if n == 0 else ["lsl", f"#{n}"]
-
-
-COND_INV = ["ne" "eq", "cc", "cs", "pl", "mi", "vc", "vs",
-            "ls", "hi", "lt", "ge", "le", "gt"]
-
-SHIFT_OPS = set(["lsl", "lsr", "asr", "ror", "uxtw", "sxtw", "sxtx"])
-
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
@@ -193,9 +184,12 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
         elif op == "lsl" or op == "#0":
             pass
         elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
+            v = int(objdump_ops[j][1:], 0)
+            if opcode.name == "movn":
+                bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
+                return int(op[1:], 0) ^ v == (1 << bits) - 1
             if objdump_ops[j + 1] != "lsl":
                 return False
-            v = int(objdump_ops[j][1:], 0)
             shift =  int(objdump_ops[j + 2][1:], 0)
             if v << shift != int(op[1:], 0):
                 print (f"@@ {v:x}  {shift:x}")
@@ -222,8 +216,7 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp",
-                            "movn", "fmov"}):
+            opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp", "fmov"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0

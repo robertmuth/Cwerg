@@ -830,7 +830,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
     Opcode("movz", ext + "_imm", [w_bit, (3, 2, 29), root100, (7, 5, 23)],
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
     Opcode("movn", ext + "_imm_", [w_bit, (3, 0, 29), root100, (7, 5, 23)],
-           [dst_reg, OK.IMM_SHIFTED_5_20_21_22_NOT], OPC_FLAG(0))
+           [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
 
 Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
        [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
