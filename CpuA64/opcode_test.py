@@ -253,10 +253,7 @@ def HandleAliasMassaging(name, opcode, operands):
     if name == "bfc" and opcode.name == "bfm":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         width = int(operands[3][1:])
-        if width - 1:
-            operands[3] = f"#{width - 1}"
-        else:
-            operands.pop(3)
+        operands[3] = f"#{width - 1}"
         return opcode.name
     if ((name == "bfi" and opcode.name == "bfm") or
             (name == "sbfiz" and opcode.name == "sbfm")):
@@ -264,29 +261,20 @@ def HandleAliasMassaging(name, opcode, operands):
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
-        if width - 1:
-            operands[3] = f"#{width - 1}"
-        else:
-            operands.pop(3)
+        operands[3] = f"#{width - 1}"
         return opcode.name
     if ((name == "bfxil" and opcode.name == "bfm") or
             (name == "sbfx" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
-        if lsb + width - 1:
-            operands[3] = f"#{lsb + width - 1}"
-        else:
-            operands.pop(3)
+        operands[3] = f"#{lsb + width - 1}"
         return opcode.name
     if name == "ubfiz" and opcode.name == "ubfm":
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
-        if width - 1:
-            operands[3] = f"#{width - 1}"
-        else:
-            operands.pop(3)
+        operands[3] = f"#{width - 1}"
         return opcode.name
     if name == "ubfx" and opcode.name == "ubfm":
         x = int(operands[2][1:]) + int(operands[3][1:]) - 1
@@ -296,8 +284,7 @@ def HandleAliasMassaging(name, opcode, operands):
         lsb = int(operands[2][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
-        if bits - lsb - 1:
-            operands.append(f"#{bits - lsb - 1}")
+        operands.append(f"#{bits - lsb - 1}")
         return opcode.name
     if name == "tst" and opcode.name == "ands":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
@@ -329,9 +316,6 @@ def HandleAliasMassaging(name, opcode, operands):
     if name == "lsr" and opcode.name == "ubfm":
         operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
         return opcode.name
-    # if name == "lsl" and opcode.name == "ubfm":
-    #        operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
-    #    return opcode.name
     if name == "umull" and opcode.name == "umaddl":
         operands.append("xzr")
         return opcode.name
@@ -360,7 +344,6 @@ def HandleAliasMassaging(name, opcode, operands):
     if name == "mov" and opcode.name == "movz":
         return opcode.name
     return opcode.name
-    return name
 
 
 def MassageOperands(name, opcode, operands):
