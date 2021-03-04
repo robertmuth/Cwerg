@@ -97,8 +97,11 @@ def MaybeLsl(n):
     return [] if n == 0 else ["lsl", f"#{n}"]
 
 
-IMM_COND = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
-            "hi", "ls", "ge", "lt", "gt", "le"]
+COND_INV = ["ne" "eq", "cc", "cs", "pl", "mi", "vc", "vs",
+            "ls", "hi", "lt", "ge", "le", "gt"]
+
+
+SHIFT_OPS = set(["lsl", "lsr", "asr", "ror", "uxtw", "sxtw",  "sxtx"])
 
 SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
@@ -161,7 +164,7 @@ STRIGIFIER = {
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
     OK.IMM_10_12_LIMIT4: lambda x: [] if x == 0 else f"#{x}",
-    OK.IMM_SHIFTED_5_20_21_22: lambda x: [f"#0x{x & 0xffff:x}"] + MaybeLsl((x >> 16) * 16),
+    OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff)  << ((x >> 16) * 16):x}",
     # OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
     OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
     #
@@ -188,6 +191,10 @@ STRIGIFIER = {
 }
 
 
+def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) -> bool:
+    return std_ops == objdump_ops
+
+
 def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]) -> int:
@@ -204,7 +211,7 @@ def HandleOneInstruction(count: int, line: str,
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
             opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp",
-                            "movn", "fmov", "movz"}):
+                            "movn", "fmov", "movk", "movz"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -219,8 +226,7 @@ def HandleOneInstruction(count: int, line: str,
             ops += op
         else:
             assert False
-    assert len(ops) == len(actual_ops), f"[{opcode.name}] num mismatch in {ops} vs {actual_ops}: {line}"
-    assert ops == actual_ops, f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    assert OperandsMatch(opcode, ops, actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
     return 1
 
 
@@ -345,6 +351,8 @@ def HandleAliasMassaging(name, opcode, operands):
         return opcode.name
     if name == "mvn" and opcode.name == "orn":
         operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
+    if name == "mov" and opcode.name == "movz":
+        return opcode.name
     return opcode.name
     return name
 
