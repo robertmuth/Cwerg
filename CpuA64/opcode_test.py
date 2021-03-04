@@ -12,7 +12,7 @@ from typing import List, Dict
 
 # import CpuA64.disassembler as dis
 from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, \
-    FIELDS_SHIFT, FIELDS_IMM, CONDITION_CODES_INV_MAP
+    FIELDS_SHIFT, FIELDS_IMM, CONDITION_CODES_INV_MAP, Decode8BitFlt
 
 count_found = 0
 count_total = 0
@@ -171,6 +171,8 @@ STRIGIFIER = {
     OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
     OK.SHIFT_15_W: lambda x: SHIFT_MAP_15_W[x],
     OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
+
+    OK.FLT_13_20: lambda x:  f"#{Decode8BitFlt(x):e}",
 }
 
 
@@ -182,6 +184,8 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
             j += 1
         elif op == "lsl" or op == "#0":
             pass
+        elif opcode.fields[i] == OK.FLT_13_20:
+            return float(op[1:]) == float(objdump_ops[j][1:])
         elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
             v = int(objdump_ops[j][1:], 0)
             if opcode.name == "movn":
@@ -215,7 +219,7 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"adr", "adrp", "fmov"}):
+            opcode.name in {"adr", "adrp"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0

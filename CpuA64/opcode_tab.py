@@ -26,6 +26,14 @@ CONDITION_CODES_INV_MAP = {code: CONDITION_CODES[n ^ 1] for
                            n, code in enumerate(CONDITION_CODES)}
 
 
+def Decode8BitFlt(x):
+    mantissa = (x & 0xf) + 16
+    x >>= 4
+    exponent = (x & 7) ^ 4
+    sign = (x >> 3) * -2 + 1
+    return ((0.125 * mantissa) / 16) * (1 << exponent) * sign
+
+
 def Bits(*patterns) -> Tuple[int, int]:
     """
     combines are list of triples into a single triple
@@ -189,14 +197,14 @@ class OK(enum.Enum):
     SHIFT_15_X = 63
 
     # signed immeditate
-    SIMM_0_25 = 70
+    SIMM_PCREL_0_25 = 70
     SIMM_12_20 = 71
     SIMM_15_21_TIMES16 = 72
     SIMM_15_21_TIMES4 = 73
     SIMM_15_21_TIMES8 = 74
-    SIMM_5_18 = 75
-    SIMM_5_23 = 76
-    SIMM_5_23_29_30 = 77
+    SIMM_PCREL_5_18 = 75
+    SIMM_PCREL_5_23 = 76
+    SIMM_PCREL_5_23_29_30 = 77
 
     # unsigned immediates
     IMM_10_12_LIMIT4 = 100
@@ -214,17 +222,15 @@ class OK(enum.Enum):
     IMM_12_MAYBE_SHIFT_2 = 112
     IMM_12_MAYBE_SHIFT_3 = 113
     IMM_12_MAYBE_SHIFT_4 = 114
-    IMM_13_20_FLT = 115
     IMM_16_20 = 116
     IMM_16_21 = 117
     IMM_19_23_31 = 118
     IMM_5_20 = 119
-    IMM_5_20_21_22 = 120
     IMM_COND_0_3 = 121
     IMM_FLT_ZERO = 123
     IMM_SHIFTED_5_20_21_22 = 124
-    IMM_SHIFTED_5_20_21_22_NOT = 125
-
+    #
+    FLT_13_20 = 115
 
 ############################################################
 # effects of an opcode wrt the status registers
@@ -303,19 +309,18 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_5_20: [(16, 5)],
     OK.IMM_16_21: [(6, 16)],
 
-    OK.SIMM_5_23: [(19, 5)],
+    OK.SIMM_PCREL_5_23: [(19, 5)],
     OK.IMM_10_21_22: [(13, 10)],
     OK.SIMM_12_20: [(9, 12)],
-    OK.SIMM_0_25: [(26, 0)],
-    OK.SIMM_5_18: [(14, 5)],
+    OK.SIMM_PCREL_0_25: [(26, 0)],
+    OK.SIMM_PCREL_5_18: [(14, 5)],
     OK.SIMM_15_21_TIMES4: [(7, 15)],
     OK.SIMM_15_21_TIMES8: [(7, 15)],
     OK.SIMM_15_21_TIMES16: [(7, 15)],
-    OK.SIMM_5_23_29_30: [(19, 5), (2, 29)],
+    OK.SIMM_PCREL_5_23_29_30: [(19, 5), (2, 29)],
     OK.IMM_COND_0_3: [(4, 0)],
     OK.IMM_16_20: [(5, 16)],
-    OK.IMM_5_20_21_22: [(18, 5)],
-    OK.IMM_13_20_FLT: [(8, 13)],
+    OK.FLT_13_20: [(8, 13)],
     OK.IMM_FLT_ZERO: [],
     OK.IMM_10_12_LIMIT4: [(3, 10)],
     OK.IMM_12_MAYBE_SHIFT_0: [(1, 12)],
@@ -324,7 +329,6 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_12_MAYBE_SHIFT_3: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_4: [(1, 12)],
     OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
-    OK.IMM_SHIFTED_5_20_21_22_NOT: [(18, 5)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
@@ -729,19 +733,19 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
 
 Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23_29_30], OPC_FLAG(0))
 Opcode("adrp", "", [root100, (1, 1, 31), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23_29_30], OPC_FLAG(0))
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23_29_30], OPC_FLAG(0))
 
 ########################################
 root101 = (7, 5, 26)
 ########################################
 
 Opcode("b", "", [root101, (7, 0, 29)],
-       [OK.SIMM_0_25], OPC_FLAG.BRANCH)
+       [OK.SIMM_PCREL_0_25], OPC_FLAG.BRANCH)
 
 Opcode("bl", "", [root101, (7, 4, 29)],
-       [OK.SIMM_0_25, OK.REG_LINK], OPC_FLAG.CALL)
+       [OK.SIMM_PCREL_0_25, OK.REG_LINK], OPC_FLAG.CALL)
 
 Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG.BRANCH_INDIRECT)
@@ -752,21 +756,21 @@ Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0, 10), (0x1f, 0, 0)],
 
 for cond_val, cond_name in enumerate(CONDITION_CODES):
     Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
-           [OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
+           [OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 
 Opcode("cbnz", "64", [root101, (7, 5, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbnz", "32", [root101, (7, 1, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbz", "64", [root101, (7, 5, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 Opcode("cbz", "32", [root101, (7, 1, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 
 Opcode("tbz", "", [root101, (3, 1, 29), (3, 2, 24)],
-       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_PCREL_5_18], OPC_FLAG.COND_BRANCH)
 Opcode("tbnz", "", [root101, (3, 1, 29), (3, 3, 24)],
-       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_5_18], OPC_FLAG.COND_BRANCH)
+       [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_PCREL_5_18], OPC_FLAG.COND_BRANCH)
 
 Opcode("hlt", "", [root101, (7, 6, 29), (0x1f, 2, 21), (0x1f, 0, 0)],
        [OK.IMM_5_20], OPC_FLAG(0))
@@ -963,7 +967,7 @@ for ext, w_bit in [("s", (1, 0, 22)),
     src3_reg = OK.DREG_10_14 if ext == "d" else OK.SREG_10_14
 
     Opcode("fmov", ext + "_imm", [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xff, 0x80, 5)],
-           [dst_reg, OK.IMM_13_20_FLT], OPC_FLAG(0))
+           [dst_reg, OK.FLT_13_20], OPC_FLAG(0))
 
     for name, bits in [
         ("fmul", (0x3f, 2, 10)),
