@@ -12,7 +12,7 @@ from typing import List, Dict
 
 # import CpuA64.disassembler as dis
 from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, \
-    FIELDS_SHIFT, FIELDS_IMM
+    FIELDS_SHIFT, FIELDS_IMM, CONDITION_CODES_INV_MAP
 
 count_found = 0
 count_total = 0
@@ -216,7 +216,7 @@ def HandleOneInstruction(count: int, line: str,
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
             OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"csinc", "csneg", "csinv", "adr", "adrp", "fmov"}):
+            opcode.name in {"csinc", "adr", "adrp", "fmov"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -238,6 +238,19 @@ def HandleOneInstruction(count: int, line: str,
 
 def HandleAliasMassaging(name, opcode, operands):
     """A bunch of a hacks to deal with the ton of alias that arm64 defines"""
+    if name == "cneg" and opcode.name == "csneg":
+        operands.insert(1, operands[1])
+        operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
+        return opcode.name
+    if name == "cinv" and opcode.name == "csinv":
+        operands.insert(1, operands[1])
+        operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
+        return opcode.name
+    if name == "csetm" and opcode.name == "csinv":
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+        operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+        operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
+        return opcode.name
     if name == "sxtb" and opcode.name == "sbfm":
         operands[1] = operands[0][0] + operands[1][1:]
         operands += ["#0", "#7"]

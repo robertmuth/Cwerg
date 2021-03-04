@@ -19,6 +19,12 @@ MAX_OPERANDS = 5
 
 MAX_BIT_RANGES = 2
 
+CONDITION_CODES = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
+                   "hi", "ls", "ge", "lt", "gt", "le"]
+
+CONDITION_CODES_INV_MAP = {code: CONDITION_CODES[n ^ 1] for
+                           n, code in enumerate(CONDITION_CODES)}
+
 
 def Bits(*patterns) -> Tuple[int, int]:
     """
@@ -169,56 +175,55 @@ class OK(enum.Enum):
     QREG_10_14 = 27
     QREG_16_20 = 28
 
-    WREG_0_4_SP = 100
-    WREG_5_9_SP = 101
+    WREG_0_4_SP = 29
+    WREG_5_9_SP = 30
 
-    XREG_0_4_SP = 102
-    XREG_5_9_SP = 103
-    REG_LINK = 104
-
-    # unsigned immediates
-    IMM_10_21 = 31
-    IMM_10_21_22 = 32
-    IMM_10_15 = 33
-    IMM_10_15_16_22_W = 200
-    IMM_10_15_16_22_X = 201
-
-    IMM_10_21_times_2 = 35
-    IMM_10_21_times_4 = 36
-    IMM_10_21_times_8 = 37
-    IMM_10_21_times_16 = 38
-    IMM_19_23_31 = 39
-    IMM_5_20 = 40
-    IMM_16_21 = 41
-    IMM_COND_0_3 = 42
-    IMM_16_20 = 43
-    IMM_5_20_21_22 = 44
-    IMM_13_20_FLT = 46
-    IMM_FLT_ZERO = 47
-    IMM_12_MAYBE_SHIFT_0 = 300
-    IMM_12_MAYBE_SHIFT_1 = 301
-    IMM_12_MAYBE_SHIFT_2 = 302
-    IMM_12_MAYBE_SHIFT_3 = 303
-    IMM_12_MAYBE_SHIFT_4 = 304
-    IMM_SHIFTED_5_20_21_22 = 48
-    IMM_SHIFTED_5_20_21_22_NOT = 49
-
-    # signed immeditate
-    SIMM_0_25 = 50
-    SIMM_12_20 = 51
-    SIMM_5_23 = 52
-    SIMM_5_18 = 53
-    SIMM_15_21_TIMES4 = 54
-    SIMM_15_21_TIMES8 = 55
-    SIMM_15_21_TIMES16 = 56
-    SIMM_5_23_29_30 = 57
+    XREG_0_4_SP = 31
+    XREG_5_9_SP = 32
+    REG_LINK = 33
 
     # shifts
     SHIFT_22_23 = 60
     SHIFT_22_23_NO_ROR = 61
-    IMM_10_12_LIMIT4 = 64
-    SHIFT_15_W = 68
-    SHIFT_15_X = 69
+    SHIFT_15_W = 62
+    SHIFT_15_X = 63
+
+    # signed immeditate
+    SIMM_0_25 = 70
+    SIMM_12_20 = 71
+    SIMM_15_21_TIMES16 = 72
+    SIMM_15_21_TIMES4 = 73
+    SIMM_15_21_TIMES8 = 74
+    SIMM_5_18 = 75
+    SIMM_5_23 = 76
+    SIMM_5_23_29_30 = 77
+
+    # unsigned immediates
+    IMM_10_12_LIMIT4 = 100
+    IMM_10_15 = 101
+    IMM_10_15_16_22_W = 102
+    IMM_10_15_16_22_X = 103
+    IMM_10_21 = 104
+    IMM_10_21_22 = 105
+    IMM_10_21_times_16 = 106
+    IMM_10_21_times_2 = 107
+    IMM_10_21_times_4 = 108
+    IMM_10_21_times_8 = 109
+    IMM_12_MAYBE_SHIFT_0 = 110
+    IMM_12_MAYBE_SHIFT_1 = 111
+    IMM_12_MAYBE_SHIFT_2 = 112
+    IMM_12_MAYBE_SHIFT_3 = 113
+    IMM_12_MAYBE_SHIFT_4 = 114
+    IMM_13_20_FLT = 115
+    IMM_16_20 = 116
+    IMM_16_21 = 117
+    IMM_19_23_31 = 118
+    IMM_5_20 = 119
+    IMM_5_20_21_22 = 120
+    IMM_COND_0_3 = 121
+    IMM_FLT_ZERO = 123
+    IMM_SHIFTED_5_20_21_22 = 124
+    IMM_SHIFTED_5_20_21_22_NOT = 125
 
 
 ############################################################
@@ -343,7 +348,7 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
     for width, pos in FIELD_DETAILS[operand_kind]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
-        tmp =  tmp << width | x
+        tmp = tmp << width | x
     return tmp
 
 
@@ -420,8 +425,7 @@ class MEM_WIDTH(enum.Enum):
     W2 = 2
     W4 = 3
     W8 = 4
-    W12 = 5
-    Variable = 6
+    W16 = 5
 
 
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
@@ -502,7 +506,7 @@ class Opcode:
         all_bits = bits[:]
         for f in fields:
             all_bits += [((1 << width) - 1, 0, pos)
-                         for width,pos in FIELD_DETAILS[f]]
+                         for width, pos in FIELD_DETAILS[f]]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, f"instruction word not entirely covered {mask:08x}  {name}"
@@ -746,8 +750,7 @@ Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0, 10), (0x1f, 0, 0)],
 Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG.CALL_INDIRECT)
 
-for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
-                                      "hi", "ls", "ge", "lt", "gt", "le"]):
+for cond_val, cond_name in enumerate(CONDITION_CODES):
     Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
            [OK.SIMM_5_23], OPC_FLAG.COND_BRANCH)
 
@@ -912,8 +915,7 @@ for ext, w_bits in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
     dst_reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     src1_reg = OK.XREG_5_9 if ext == "x" else OK.WREG_5_9
     src2_reg = OK.XREG_16_20 if ext == "x" else OK.WREG_16_20
-    for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
-                                          "hi", "ls", "ge", "lt", "gt", "le"]):
+    for cond_val, cond_name in enumerate(CONDITION_CODES):
         for name, bits in [("csel", [(3, 0, 29), (3, 0, 10)]),
                            ("csneg", [(3, 2, 29), (3, 1, 10)]),
                            ("csinc", [(3, 0, 29), (3, 1, 10)]),
