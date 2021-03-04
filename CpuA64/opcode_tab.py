@@ -2,9 +2,6 @@
 
 """
 ARM 64bit assembler + disassembler + side-effects table
-
-
-
 """
 from Util import cgen
 
@@ -18,10 +15,9 @@ import sys
 
 _DEBUG = False
 
-# ldr_reg requires 7 operands:  [PRED, DST, ADD_MODE, BASE, SHIFT_MODE, INDEX, OFFSET]
-MAX_OPERANDS = 7
+MAX_OPERANDS = 5
 
-MAX_BIT_RANGES = 4
+MAX_BIT_RANGES = 2
 
 
 def Bits(*patterns) -> Tuple[int, int]:
@@ -243,134 +239,94 @@ class SR_UPDATE(enum.Enum):
 # bit ranges are the building blocks of fields
 # Each bit range specifies one or more consecutive bits
 ############################################################
-@enum.unique
-class BRK(enum.Enum):  # bit range kind
-
-    Verbatim = 0
-    Hi = 1
-    Lo = 2
-    Rotated = 3
-    Signed = 4
-    Times8 = 5
-    Times4 = 6
-    Times2 = 7
-    Times2Plus4 = 8
-    Force0 = 9
-    Force1 = 10
-    Force3 = 11
-    Force6 = 12
-    Force14 = 13
-    U = 14
-    W = 15
-    P = 16
-
-
-BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
-    BRK.Verbatim,
-    BRK.Rotated,
-    BRK.Signed,
-    BRK.Times8,
-    BRK.Times4,
-    BRK.Times2,
-    BRK.Times2Plus4,
-    BRK.Force0,
-    BRK.Force1,
-    BRK.Force3,
-    BRK.Force6,
-    BRK.Force14,
-}
-
-BIT_RANGE_MODIFIER_HILO: Set[BRK] = {BRK.Hi, BRK.Lo}
-BIT_RANGE_MODIFIER_ADDR: Set[BRK] = {BRK.P, BRK.U, BRK.W}
-BIT_RANGE_MODIFIER = BIT_RANGE_MODIFIER_SINGLE | BIT_RANGE_MODIFIER_HILO | BIT_RANGE_MODIFIER_ADDR
-BIT_RANGE = Tuple[BRK, int, int]
+BIT_RANGE = Tuple[int, int]
 
 FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
-    OK.WREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.WREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.WREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.WREG_16_20: [(BRK.Verbatim, 5, 16)],
-    OK.WREG_0_4_SP: [(BRK.Verbatim, 5, 0)],
-    OK.WREG_5_9_SP: [(BRK.Verbatim, 5, 5)],
+    OK.WREG_0_4: [(5, 0)],
+    OK.WREG_5_9: [(5, 5)],
+    OK.WREG_10_14: [(5, 10)],
+    OK.WREG_16_20: [(5, 16)],
+    OK.WREG_0_4_SP: [(5, 0)],
+    OK.WREG_5_9_SP: [(5, 5)],
 
     #
-    OK.XREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.XREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.XREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.XREG_16_20: [(BRK.Verbatim, 5, 16)],
-    OK.XREG_0_4_SP: [(BRK.Verbatim, 5, 0)],
-    OK.XREG_5_9_SP: [(BRK.Verbatim, 5, 5)],
+    OK.XREG_0_4: [(5, 0)],
+    OK.XREG_5_9: [(5, 5)],
+    OK.XREG_10_14: [(5, 10)],
+    OK.XREG_16_20: [(5, 16)],
+    OK.XREG_0_4_SP: [(5, 0)],
+    OK.XREG_5_9_SP: [(5, 5)],
     #
-    OK.SREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.SREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.SREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.SREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.SREG_0_4: [(5, 0)],
+    OK.SREG_5_9: [(5, 5)],
+    OK.SREG_10_14: [(5, 10)],
+    OK.SREG_16_20: [(5, 16)],
     #
-    OK.DREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.DREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.DREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.DREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.DREG_0_4: [(5, 0)],
+    OK.DREG_5_9: [(5, 5)],
+    OK.DREG_10_14: [(5, 10)],
+    OK.DREG_16_20: [(5, 16)],
     #
-    OK.BREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.BREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.BREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.BREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.BREG_0_4: [(5, 0)],
+    OK.BREG_5_9: [(5, 5)],
+    OK.BREG_10_14: [(5, 10)],
+    OK.BREG_16_20: [(5, 16)],
     #
-    OK.HREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.HREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.HREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.HREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.HREG_0_4: [(5, 0)],
+    OK.HREG_5_9: [(5, 5)],
+    OK.HREG_10_14: [(5, 10)],
+    OK.HREG_16_20: [(5, 16)],
     #
-    OK.QREG_0_4: [(BRK.Verbatim, 5, 0)],
-    OK.QREG_5_9: [(BRK.Verbatim, 5, 5)],
-    OK.QREG_10_14: [(BRK.Verbatim, 5, 10)],
-    OK.QREG_16_20: [(BRK.Verbatim, 5, 16)],
+    OK.QREG_0_4: [(5, 0)],
+    OK.QREG_5_9: [(5, 5)],
+    OK.QREG_10_14: [(5, 10)],
+    OK.QREG_16_20: [(5, 16)],
     OK.REG_LINK: [],
 
 }
 
 FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
-    OK.IMM_10_15: [(BRK.Verbatim, 6, 10)],
-    OK.IMM_10_21: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_21_times_2: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_21_times_4: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_21_times_8: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_21_times_16: [(BRK.Verbatim, 12, 10)],
-    OK.IMM_10_15_16_22_W: [(BRK.Verbatim, 13, 10)],
-    OK.IMM_10_15_16_22_X: [(BRK.Verbatim, 13, 10)],
-    OK.IMM_19_23_31: [(BRK.Lo, 5, 19), (BRK.Hi, 1, 31)],
-    OK.IMM_5_20: [(BRK.Verbatim, 16, 5)],
-    OK.IMM_16_21: [(BRK.Verbatim, 6, 16)],
+    OK.IMM_10_15: [(6, 10)],
+    OK.IMM_10_21: [(12, 10)],
+    OK.IMM_10_21_times_2: [(12, 10)],
+    OK.IMM_10_21_times_4: [(12, 10)],
+    OK.IMM_10_21_times_8: [(12, 10)],
+    OK.IMM_10_21_times_16: [(12, 10)],
+    OK.IMM_10_15_16_22_W: [(13, 10)],
+    OK.IMM_10_15_16_22_X: [(13, 10)],
+    OK.IMM_19_23_31: [(1, 31), (5, 19)],
+    OK.IMM_5_20: [(16, 5)],
+    OK.IMM_16_21: [(6, 16)],
 
-    OK.SIMM_5_23: [(BRK.Verbatim, 19, 5)],
-    OK.IMM_10_21_22: [(BRK.Verbatim, 13, 10)],
-    OK.SIMM_12_20: [(BRK.Verbatim, 9, 12)],
-    OK.SIMM_0_25: [(BRK.Verbatim, 26, 0)],
-    OK.SIMM_5_18: [(BRK.Verbatim, 14, 5)],
-    OK.SIMM_15_21_TIMES4: [(BRK.Verbatim, 7, 15)],
-    OK.SIMM_15_21_TIMES8: [(BRK.Verbatim, 7, 15)],
-    OK.SIMM_15_21_TIMES16: [(BRK.Verbatim, 7, 15)],
-    OK.SIMM_5_23_29_30: [(BRK.Hi, 19, 5), (BRK.Lo, 2, 29)],
-    OK.IMM_COND_0_3: [(BRK.Verbatim, 4, 0)],
-    OK.IMM_16_20: [(BRK.Verbatim, 5, 16)],
-    OK.IMM_5_20_21_22: [(BRK.Verbatim, 18, 5)],
-    OK.IMM_13_20_FLT: [(BRK.Verbatim, 8, 13)],
-    OK.IMM_FLT_ZERO: [(BRK.Force0, 0, 0)],
-    OK.IMM_10_12_LIMIT4: [(BRK.Verbatim, 3, 10)],
-    OK.IMM_12_MAYBE_SHIFT_0: [(BRK.Verbatim, 1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_1: [(BRK.Verbatim, 1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_2: [(BRK.Verbatim, 1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_3: [(BRK.Verbatim, 1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_4: [(BRK.Verbatim, 1, 12)],
-    OK.IMM_SHIFTED_5_20_21_22: [(BRK.Verbatim, 18, 5)],
-    OK.IMM_SHIFTED_5_20_21_22_NOT: [(BRK.Verbatim, 18, 5)],
+    OK.SIMM_5_23: [(19, 5)],
+    OK.IMM_10_21_22: [(13, 10)],
+    OK.SIMM_12_20: [(9, 12)],
+    OK.SIMM_0_25: [(26, 0)],
+    OK.SIMM_5_18: [(14, 5)],
+    OK.SIMM_15_21_TIMES4: [(7, 15)],
+    OK.SIMM_15_21_TIMES8: [(7, 15)],
+    OK.SIMM_15_21_TIMES16: [(7, 15)],
+    OK.SIMM_5_23_29_30: [(19, 5), (2, 29)],
+    OK.IMM_COND_0_3: [(4, 0)],
+    OK.IMM_16_20: [(5, 16)],
+    OK.IMM_5_20_21_22: [(18, 5)],
+    OK.IMM_13_20_FLT: [(8, 13)],
+    OK.IMM_FLT_ZERO: [],
+    OK.IMM_10_12_LIMIT4: [(3, 10)],
+    OK.IMM_12_MAYBE_SHIFT_0: [(1, 12)],
+    OK.IMM_12_MAYBE_SHIFT_1: [(1, 12)],
+    OK.IMM_12_MAYBE_SHIFT_2: [(1, 12)],
+    OK.IMM_12_MAYBE_SHIFT_3: [(1, 12)],
+    OK.IMM_12_MAYBE_SHIFT_4: [(1, 12)],
+    OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
+    OK.IMM_SHIFTED_5_20_21_22_NOT: [(18, 5)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
-    OK.SHIFT_22_23: [(BRK.Verbatim, 2, 22)],
-    OK.SHIFT_22_23_NO_ROR: [(BRK.Verbatim, 2, 22)],
-    OK.SHIFT_15_W: [(BRK.Verbatim, 1, 15)],
-    OK.SHIFT_15_X: [(BRK.Verbatim, 1, 15)],
+    OK.SHIFT_22_23: [(2, 22)],
+    OK.SHIFT_22_23_NO_ROR: [(2, 22)],
+    OK.SHIFT_15_W: [(1, 15)],
+    OK.SHIFT_15_X: [(1, 15)],
 }
 
 # merge all dicts from above
@@ -380,64 +336,15 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     **FIELDS_IMM,
 }
 
-for details in FIELD_DETAILS.values():
-    if len(details) == 0:
-        pass
-    elif len(details) == 1:
-        assert details[0][0] in BIT_RANGE_MODIFIER_SINGLE
-    elif len(details) == 2:
-        assert details[0][0] in BIT_RANGE_MODIFIER_HILO
-        assert details[1][0] in BIT_RANGE_MODIFIER_HILO
-    elif len(details) == 3:
-        assert details[0][0] in BIT_RANGE_MODIFIER_ADDR
-        assert details[1][0] in BIT_RANGE_MODIFIER_ADDR
-        assert details[2][0] in BIT_RANGE_MODIFIER_ADDR
-    else:
-        assert False
-
-assert len(FIELD_DETAILS) <= 256
-
 
 def DecodeOperand(operand_kind: OK, value: int) -> int:
     """ Decodes an operand into an int."""
     tmp = 0
-    # hi before lo
-    # p  before u before w
-    for modifier, width, pos in FIELD_DETAILS[operand_kind]:
+    for width, pos in FIELD_DETAILS[operand_kind]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
-        if modifier is BRK.Verbatim:
-            return x
-        elif modifier is BRK.Hi or modifier is BRK.P:
-            tmp = x
-        elif modifier is BRK.Times8:
-            return x * 8
-        elif modifier is BRK.Times4:
-            return x * 4
-        elif modifier is BRK.Times2:
-            return x * 2
-        elif modifier is BRK.Times2Plus4:
-            return x * 2 + 4
-        elif modifier is BRK.U:
-            tmp = (tmp << width) | x
-        elif modifier is BRK.Lo or modifier is BRK.W:
-            return (tmp << width) | x
-        elif modifier is BRK.Force1:
-            return 1
-        elif modifier is BRK.Force0:
-            return 0
-        elif modifier is BRK.Force3:
-            return 3
-        elif modifier is BRK.Force6:
-            return 6
-        elif modifier is BRK.Force14:
-            return 14
-        elif modifier is BRK.Signed:
-            return SignedIntFromBits(x, width)
-        else:
-            assert False, f"{modifier}"
-    # occurs for operands with empty field lists, e.g. OK.REG_LINK
-    return 0
+        tmp =  tmp << width | x
+    return tmp
 
 
 def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
@@ -449,33 +356,18 @@ def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
         if modifier is BRK.Verbatim:
             assert mask & val == val
             bits.append((mask, val, pos))
-        elif modifier is BRK.Times8:
-            assert val % 8 == 0
-            bits.append((mask, val >> 3, pos))
-        elif modifier is BRK.Times2:
-            assert val % 2 == 0
-            bits.append((mask, val >> 1, pos))
-        elif modifier is BRK.Times2Plus4:
-            assert val & 4 == 4
-            assert val % 2 == 0
-            bits.append((mask, (val - 4) >> 1, pos))
-        elif modifier is BRK.Times4:
-            assert val % 4 == 0
-            bits.append((mask, val >> 2, pos))
-        elif modifier is BRK.Lo or modifier is BRK.W:
+        elif modifier is BRK.Lo:
             bits.append((mask, val & mask, pos))
             val = val >> width
         elif modifier is BRK.U:
             bits.append((mask, val & mask, pos))
             val = val >> width
-        elif modifier is BRK.Hi or modifier is BRK.P:
+        elif modifier is BRK.Hi:
             assert mask & val == val, f"{operand_kind} {val} {modifier} {mask:x}"
             bits.append((mask, val, pos))
-        elif modifier in {BRK.Force0, BRK.Force1, BRK.Force3, BRK.Force6,
-                          BRK.Force14}:
+        elif modifier in {BRK.Force0}:
             pass
-        elif modifier is BRK.Signed:
-            bits.append((mask, BitsFromSignedInt(width, val), pos))
+
         else:
             assert False, f"unknown modifier {modifier}"
     return bits
@@ -609,8 +501,8 @@ class Opcode:
 
         all_bits = bits[:]
         for f in fields:
-            all_bits += [((1 << t[1]) - 1, 0, t[2])
-                         for t in FIELD_DETAILS[f]]
+            all_bits += [((1 << width) - 1, 0, pos)
+                         for width,pos in FIELD_DETAILS[f]]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, f"instruction word not entirely covered {mask:08x}  {name}"
