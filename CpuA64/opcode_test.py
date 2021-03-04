@@ -11,7 +11,7 @@ import collections
 from typing import List, Dict
 
 # import CpuA64.disassembler as dis
-from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand
+from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, FIELDS_SHIFT, FIELDS_IMM
 
 count_found = 0
 count_total = 0
@@ -107,11 +107,6 @@ SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
 
-MAYBE_SHIFT_0 = [[], []]
-MAYBE_SHIFT_1 = [[], "#1"]
-MAYBE_SHIFT_2 = [[], "#2"]
-MAYBE_SHIFT_3 = [[], "#3"]
-MAYBE_SHIFT_4 = [[], "#4"]
 
 STRIGIFIER = {
     OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
@@ -160,29 +155,29 @@ STRIGIFIER = {
     OK.IMM_5_20: lambda x: f"#0x{x:x}",
     OK.IMM_16_20: lambda x: f"#0x{x:x}",
     OK.IMM_16_21: lambda x: f"#{x}",
-    OK.IMM_10_15: lambda x: [] if x == 0 else f"#{x}",
+    OK.IMM_10_15: lambda x: f"#{x}",
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
-    OK.IMM_10_12_LIMIT4: lambda x: [] if x == 0 else f"#{x}",
+    OK.IMM_10_12_LIMIT4: lambda x: f"#{x}",
     OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff)  << ((x >> 16) * 16):x}",
     # OK.IMM_SHIFTED_5_20_21_22_NOT: lambda x: [f"#0x{x&0xffff:x}"] + MaybeLsl((x >> 16) * 16),
     OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
     #
-    OK.SIMM_15_21_TIMES4: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 4}",
-    OK.SIMM_15_21_TIMES8: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 8}",
-    OK.SIMM_15_21_TIMES16: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 7) * 16}",
-    OK.IMM_10_21: lambda x: [] if x == 0 else f"#{x}",
-    OK.IMM_10_21_times_2: lambda x: [] if x == 0 else f"#{x * 2}",
-    OK.IMM_10_21_times_4: lambda x: [] if x == 0 else f"#{x * 4}",
-    OK.IMM_10_21_times_8: lambda x: [] if x == 0 else f"#{x * 8}",
-    OK.IMM_10_21_times_16: lambda x: [] if x == 0 else f"#{x * 16}",
-    OK.SIMM_12_20: lambda x: [] if x == 0 else f"#{SignedIntFromBits(x, 9)}",
+    OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
+    OK.SIMM_15_21_TIMES8: lambda x: f"#{SignedIntFromBits(x, 7) * 8}",
+    OK.SIMM_15_21_TIMES16: lambda x: f"#{SignedIntFromBits(x, 7) * 16}",
+    OK.IMM_10_21: lambda x: f"#{x}",
+    OK.IMM_10_21_times_2: lambda x: f"#{x * 2}",
+    OK.IMM_10_21_times_4: lambda x: f"#{x * 4}",
+    OK.IMM_10_21_times_8: lambda x: f"#{x * 8}",
+    OK.IMM_10_21_times_16: lambda x: f"#{x * 16}",
+    OK.SIMM_12_20: lambda x: f"#{SignedIntFromBits(x, 9)}",
     #
-    OK.IMM_12_MAYBE_SHIFT_0: lambda x: MAYBE_SHIFT_0[x],
-    OK.IMM_12_MAYBE_SHIFT_1: lambda x: MAYBE_SHIFT_1[x],
-    OK.IMM_12_MAYBE_SHIFT_2: lambda x: MAYBE_SHIFT_2[x],
-    OK.IMM_12_MAYBE_SHIFT_3: lambda x: MAYBE_SHIFT_3[x],
-    OK.IMM_12_MAYBE_SHIFT_4: lambda x: MAYBE_SHIFT_4[x],
+    OK.IMM_12_MAYBE_SHIFT_0: lambda x: f"#{x * 0}",
+    OK.IMM_12_MAYBE_SHIFT_1: lambda x: f"#{x * 1}",
+    OK.IMM_12_MAYBE_SHIFT_2: lambda x: f"#{x * 2}",
+    OK.IMM_12_MAYBE_SHIFT_3: lambda x: f"#{x * 3}",
+    OK.IMM_12_MAYBE_SHIFT_4: lambda x: f"#{x * 4}",
     #
     OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
     OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
@@ -192,7 +187,18 @@ STRIGIFIER = {
 
 
 def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) -> bool:
-    return std_ops == objdump_ops
+    if std_ops == objdump_ops: return True
+    j = 0
+    for i, op in enumerate(std_ops):
+        if j < len(objdump_ops) and op == objdump_ops[j]:
+            j += 1
+            continue
+        if op == "lsl" or op == "#0":
+            continue
+        else:
+            print (f"Operand mismatch {op} vs  {objdump_ops[j]}")
+            return False
+    return j == len(objdump_ops)
 
 
 def HandleOneInstruction(count: int, line: str,
@@ -369,14 +375,6 @@ def MassageOperands(name, opcode, operands):
 
     if name in ALIASES:
         name = HandleAliasMassaging(name, opcode, operands)
-    if len(operands) + 2 == len(opcode.fields):
-        if (len(opcode.fields) > 3 and
-                opcode.fields[3] in {OK.SHIFT_22_23, OK.SHIFT_22_23_NO_ROR,
-                                     OK.SHIFT_15_W, OK.SHIFT_15_X}):
-            operands.insert(3, "lsl")
-        if (len(opcode.fields) > 2 and
-                opcode.fields[2] in {OK.SHIFT_15_W, OK.SHIFT_15_X}):
-            operands.insert(2, "lsl")
     if name == "ret" and not operands:
         operands.append("x30")
         return name
