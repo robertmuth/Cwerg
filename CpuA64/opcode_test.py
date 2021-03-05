@@ -10,9 +10,9 @@ import sys
 import collections
 from typing import List, Dict
 
-# import CpuA64.disassembler as dis
-from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, \
-    FIELDS_SHIFT, FIELDS_IMM, CONDITION_CODES_INV_MAP, Decode8BitFlt
+from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP
+
+from CpuA64 import  disass
 
 SIMPLE_ALIASES = {
     ("asr", "asrv"),
@@ -93,117 +93,7 @@ COMPLEX_ALIASES = {
     ("umull", "umaddl"),
 }
 
-MISSED = collections.defaultdict(int)
-EXAMPLE = {}
 
-SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
-SHIFT_MAP_15_W = ["uxtw", "sxtw"]
-SHIFT_MAP_15_X = ["lsl", "sxtx"]
-
-STRIGIFIER_REG = {
-    OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
-    OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
-
-    OK.XREG_0_4_SP: lambda x: "sp" if x == 31 else f"x{x}",
-    OK.XREG_5_9_SP: lambda x: "sp" if x == 31 else f"x{x}",
-
-    OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
-
-    OK.XREG_0_4: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_5_9: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_10_14: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_16_20: lambda x: "xzr" if x == 31 else f"x{x}",
-    #
-    OK.SREG_0_4: lambda x: f"s{x}",
-    OK.SREG_5_9: lambda x: f"s{x}",
-    OK.SREG_10_14: lambda x: f"s{x}",
-    OK.SREG_16_20: lambda x: f"s{x}",
-
-    OK.DREG_0_4: lambda x: f"d{x}",
-    OK.DREG_5_9: lambda x: f"d{x}",
-    OK.DREG_10_14: lambda x: f"d{x}",
-    OK.DREG_16_20: lambda x: f"d{x}",
-
-    OK.BREG_0_4: lambda x: f"b{x}",
-    OK.BREG_5_9: lambda x: f"b{x}",
-    OK.BREG_10_14: lambda x: f"b{x}",
-    OK.BREG_16_20: lambda x: f"b{x}",
-
-    OK.HREG_0_4: lambda x: f"h{x}",
-    OK.HREG_5_9: lambda x: f"h{x}",
-    OK.HREG_10_14: lambda x: f"h{x}",
-    OK.HREG_16_20: lambda x: f"h{x}",
-
-    OK.QREG_0_4: lambda x: f"q{x}",
-    OK.QREG_5_9: lambda x: f"q{x}",
-    OK.QREG_10_14: lambda x: f"q{x}",
-    OK.QREG_16_20: lambda x: f"q{x}",
-}
-
-
-def print_dec(x):
-    return "#" + str(x)
-
-
-STRIGIFIER_DEC = {x: print_dec for x in
-                  [OK.IMM_16_21, OK.IMM_10_15, OK.IMM_10_21, OK.IMM_19_23_31, OK.IMM_10_12_LIMIT4]}
-
-
-def print_hex(x):
-    return "#" + hex(x)
-
-
-STRIGIFIER_HEX = {x: print_hex for x in
-                  [OK.IMM_5_20, OK.IMM_16_20, OK.IMM_16_20, OK.IMM_COND_0_3]}
-
-STRINGIFIER_MISC = {
-    OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
-    OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
-    OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff) << (16 * (x >> 16)):x}",
-    OK.IMM_10_21_22: lambda x: f"#0x{(x & 0xfff) << (12  * (x >> 12)):x}",
-
-    #
-    OK.IMM_10_21_times_2: lambda x: "#" + str(x * 2),
-    OK.IMM_10_21_times_4: lambda x: "#" + str(x * 4),
-    OK.IMM_10_21_times_8: lambda x: "#" + str(x * 8),
-    OK.IMM_10_21_times_16: lambda x: "#" + str(x * 16),
-    #
-    OK.IMM_12_MAYBE_SHIFT_0: lambda x: f"#{x * 0}",
-    OK.IMM_12_MAYBE_SHIFT_1: lambda x: f"#{x * 1}",
-    OK.IMM_12_MAYBE_SHIFT_2: lambda x: f"#{x * 2}",
-    OK.IMM_12_MAYBE_SHIFT_3: lambda x: f"#{x * 3}",
-    OK.IMM_12_MAYBE_SHIFT_4: lambda x: f"#{x * 4}",
-    #
-    OK.SHIFT_22_23: lambda x: SHIFT_MAP_22_23[x],
-    OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
-    OK.SHIFT_15_W: lambda x: SHIFT_MAP_15_W[x],
-    OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
-    #
-    OK.FLT_13_20: lambda x: f"#{Decode8BitFlt(x):e}",
-    OK.IMM_FLT_ZERO: lambda x: "#0.0",
-    #
-    OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
-    OK.SIMM_15_21_TIMES8: lambda x: f"#{SignedIntFromBits(x, 7) * 8}",
-    OK.SIMM_15_21_TIMES16: lambda x: f"#{SignedIntFromBits(x, 7) * 16}",
-    OK.SIMM_12_20: lambda x: f"#{SignedIntFromBits(x, 9)}",
-    #
-    OK.SIMM_PCREL_0_25: lambda x: f"#{SignedIntFromBits(x, 26)}",
-    OK.SIMM_PCREL_5_23: lambda x: f"#{SignedIntFromBits(x, 19)}",
-    OK.SIMM_PCREL_5_18: lambda x: f"#{SignedIntFromBits(x, 14)}",
-    OK.SIMM_PCREL_5_23_29_30: lambda x: f"#{SignedIntFromBits(x, 21)}",
-    #
-    OK.REG_LINK: lambda x: f"lr",
-}
-
-STRINGIFIER = {
-    **STRIGIFIER_REG,
-    **STRINGIFIER_MISC,
-    **STRIGIFIER_DEC,
-    **STRIGIFIER_HEX,
-}
 
 
 def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) -> bool:
@@ -364,12 +254,18 @@ def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]):
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
-    ops = [STRINGIFIER[f](DecodeOperand(f, data)) for f in opcode.fields]
+    ops_raw = opcode.DisassembleOperands(data)
+    ops = [disass.DecodeOperand(f, op) for op, f  in zip(ops_raw, opcode.fields)]
     assert OperandsMatch(opcode, ops,
                          actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
 
 
 def main(argv):
+    HISTOGRAM = {}
+
+    for name in Opcode.name_to_opcode.keys():
+        HISTOGRAM[name] = 0
+
     for fn in argv:
         with open(fn) as fp:
             # actual_XXX: derived from the text assembler listing
@@ -383,6 +279,7 @@ def main(argv):
                 data = int(token[0], 16)
                 opcode = Opcode.FindOpcode(data)
                 assert opcode, f"cannot find opcode: {line}"
+                HISTOGRAM[opcode.NameForEnum()] += 1
                 actual_name = token[1]
                 actual_ops = []
                 if len(token) == 3:
@@ -392,11 +289,15 @@ def main(argv):
                 # print (actual_name, actual_ops)
                 HandleOneInstruction(
                     count, line, data, opcode, actual_name, actual_ops)
-
+    #for name, count in sorted(HISTOGRAM.items()):
+    #    print (f"{name:20s} {count}")
     print("OK")
 
 
 if __name__ == "__main__":
-    # import cProfile
-    # cProfile.run("main(sys.argv[1:])")
-    main(sys.argv[1:])
+    if False:
+        import cProfile
+        import pstats
+        cProfile.run("main(sys.argv[1:])", sort=pstats.SortKey.CUMULATIVE)
+    else:
+        main(sys.argv[1:])

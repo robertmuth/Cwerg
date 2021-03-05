@@ -115,22 +115,6 @@ def BitsFromSignedInt(n_bits, x) -> int:
     return x
 
 
-# P/p: pre/post
-# U/u: add/sub
-# W/w: wb/-
-# Note: post+wb no allowed
-@enum.unique
-class ADDR_MODE(enum.IntEnum):
-    puw = 0
-    puW = 1
-    pUw = 2
-    pUW = 3
-    Puw = 4
-    PuW = 5
-    PUw = 6
-    PUW = 7
-
-
 @enum.unique
 class SHIFT(enum.IntEnum):
     lsl = 0
@@ -232,6 +216,7 @@ class OK(enum.Enum):
     #
     FLT_13_20 = 115
 
+
 ############################################################
 # effects of an opcode wrt the status registers
 # Note, the for instructions with the fCC_UPDATE_20 the effect
@@ -240,10 +225,7 @@ class OK(enum.Enum):
 @enum.unique
 class SR_UPDATE(enum.Enum):
     NONE = 0
-    NZ = 1
-    NCZ_PSR = 2
-    NCZ = 4
-    NCZV = 5
+    NZCV = 1
 
 
 ############################################################
@@ -360,25 +342,10 @@ def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
-    for modifier, width, pos in reversed(FIELD_DETAILS[operand_kind]):
+    for width, pos in reversed(FIELD_DETAILS[operand_kind]):
         mask = (1 << width) - 1
-        if modifier is BRK.Verbatim:
-            assert mask & val == val
-            bits.append((mask, val, pos))
-        elif modifier is BRK.Lo:
-            bits.append((mask, val & mask, pos))
-            val = val >> width
-        elif modifier is BRK.U:
-            bits.append((mask, val & mask, pos))
-            val = val >> width
-        elif modifier is BRK.Hi:
-            assert mask & val == val, f"{operand_kind} {val} {modifier} {mask:x}"
-            bits.append((mask, val, pos))
-        elif modifier in {BRK.Force0}:
-            pass
-
-        else:
-            assert False, f"unknown modifier {modifier}"
+        bits.append((mask, val & mask, pos))
+        val = val >> width
     return bits
 
 
@@ -570,6 +537,25 @@ class Opcode:
         return None
 
 
+def _CheckOpcodeSeparability():
+    """Make sure we completely understand the case where the
+     bit_mask and bit_value are not uniquely specifying an opcode.
+     In this case the more specific one pattern must precede the
+     less specific.
+     """
+    for bucket_no, bucket in enumerate(Opcode.ordered_opcodes):
+        # if bucket:
+        #    print (f"0x{bucket_no:02x}: {len(bucket):2} {[b.name for b in bucket]}")
+        for n, o1 in enumerate(bucket):
+            for o2 in bucket[n + 1:]:
+                m = o1.bit_mask & o2.bit_mask
+                if o1.bit_value & m != o2.bit_value & m:
+                    continue
+
+                print(f"potential conflict: {o1.name} vs {o2.name}")
+                assert False
+    return True
+
 ########################################
 root010 = (7, 2, 26)
 ########################################
@@ -600,13 +586,13 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                        ("bics", [(3, 3, 29), (3, 2, 24), (1, 1, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23, OK.IMM_10_15],
-               OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
+               OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
 
     for name, bits in [("adds", [(3, 1, 29), (3, 3, 24), (1, 0, 21)]),
                        ("subs", [(3, 3, 29), (3, 3, 24), (1, 0, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23_NO_ROR, OK.IMM_10_15],
-               OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
+               OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
 
     for ext2, option in [("uxtb", (7, 0, 13)), ("uxth", (7, 1, 13)),
                          ("uxtw", (7, 2, 13)), ("uxtx", (7, 3, 13)),
@@ -622,7 +608,7 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                            ("subs", [(3, 3, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
                    [dst_reg, src1_reg_sp, src2_ext_reg, OK.IMM_10_12_LIMIT4],
-                   OPC_FLAG.EXTENSION_PARAM, sr_update=SR_UPDATE.NZ)
+                   OPC_FLAG.EXTENSION_PARAM, sr_update=SR_UPDATE.NZCV)
 
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:
     reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
@@ -703,7 +689,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
                        ("subs", [(3, 3, 29), (3, 1, 24)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit, (1, 0, 23)] + bits,
                [dst_reg, src1_reg, OK.IMM_10_21_22], OPC_FLAG(0),
-               sr_update=SR_UPDATE.NZ)
+               sr_update=SR_UPDATE.NZCV)
 
     imm = OK.IMM_10_15_16_22_X if ext == "x" else OK.IMM_10_15_16_22_W
     for name, bits in [("and", [(3, 0, 29), (7, 4, 23)]),
@@ -714,7 +700,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
 
     for name, bits in [("ands", [(3, 3, 29), (7, 4, 23)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
-               [dst_reg, src1_reg, imm], OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
+               [dst_reg, src1_reg, imm], OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
 
     for name, bits in [("bfm", [(3, 1, 29), (7, 6, 23)]),
                        ("ubfm", [(3, 2, 29), (7, 6, 23)]),
@@ -829,7 +815,7 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
         ("adcs", [(3, 1, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
         ("sbcs", [(3, 3, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
         Opcode(name, ext, [root110, w_bit] + bits,
-               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0), sr_update=SR_UPDATE.NZ)
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
 
 for name, bits in [("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
                    ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
@@ -1379,6 +1365,7 @@ def _MnemonicHashingExperiments():
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
+        _CheckOpcodeSeparability()
         print("no argument provided")
         sys.exit(1)
     if sys.argv[1] == "dist":
