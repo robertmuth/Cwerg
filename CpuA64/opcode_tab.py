@@ -745,7 +745,7 @@ Opcode("b", "", [root101, (7, 0, 29)],
        [OK.SIMM_PCREL_0_25], OPC_FLAG.BRANCH)
 
 Opcode("bl", "", [root101, (7, 4, 29)],
-       [OK.SIMM_PCREL_0_25, OK.REG_LINK], OPC_FLAG.CALL)
+       [OK.REG_LINK, OK.SIMM_PCREL_0_25], OPC_FLAG.CALL)
 
 Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG.BRANCH_INDIRECT)
@@ -758,14 +758,12 @@ for cond_val, cond_name in enumerate(CONDITION_CODES):
     Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
            [OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 
-Opcode("cbnz", "64", [root101, (7, 5, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
-Opcode("cbnz", "32", [root101, (7, 1, 29), (3, 1, 24)],
-       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
-Opcode("cbz", "64", [root101, (7, 5, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
-Opcode("cbz", "32", [root101, (7, 1, 29), (3, 0, 24)],
-       [OK.XREG_0_4, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
+for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
+    dst_reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
+    Opcode("cbnz", ext, [w_bit, root101, (3, 1, 29), (3, 1, 24)],
+           [dst_reg, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
+    Opcode("cbz", ext, [w_bit, root101, (3, 1, 29), (3, 0, 24)],
+           [dst_reg, OK.SIMM_PCREL_5_23], OPC_FLAG.COND_BRANCH)
 
 Opcode("tbz", "", [root101, (3, 1, 29), (3, 2, 24)],
        [OK.XREG_0_4, OK.IMM_19_23_31, OK.SIMM_PCREL_5_18], OPC_FLAG.COND_BRANCH)

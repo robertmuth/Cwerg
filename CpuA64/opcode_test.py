@@ -157,10 +157,12 @@ STRIGIFIER = {
     OK.IMM_10_12_LIMIT4: lambda x: f"#{x}",
     OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff) << (16 * (x >> 16)):x}",
     OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
+    OK.IMM_19_23_31: lambda x: f"#{x}",
     #
     OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
     OK.SIMM_15_21_TIMES8: lambda x: f"#{SignedIntFromBits(x, 7) * 8}",
     OK.SIMM_15_21_TIMES16: lambda x: f"#{SignedIntFromBits(x, 7) * 16}",
+    #
     OK.IMM_10_21: lambda x: f"#{x}",
     OK.IMM_10_21_times_2: lambda x: f"#{x * 2}",
     OK.IMM_10_21_times_4: lambda x: f"#{x * 4}",
@@ -178,8 +180,14 @@ STRIGIFIER = {
     OK.SHIFT_22_23_NO_ROR: lambda x: SHIFT_MAP_22_23[x],
     OK.SHIFT_15_W: lambda x: SHIFT_MAP_15_W[x],
     OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
-
+    #
     OK.FLT_13_20: lambda x:  f"#{Decode8BitFlt(x):e}",
+    #
+    OK.SIMM_PCREL_0_25: lambda x: f"#{SignedIntFromBits(x, 26)}",
+    OK.SIMM_PCREL_5_23: lambda x: f"#{SignedIntFromBits(x, 19)}",
+    OK.SIMM_PCREL_5_18: lambda x: f"#{SignedIntFromBits(x, 14)}",
+    #
+    OK.REG_LINK: lambda x: f"lr",
 }
 
 
@@ -189,8 +197,11 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
     for i, op in enumerate(std_ops):
         if j < len(objdump_ops) and op == objdump_ops[j]:
             j += 1
-        elif op == "lsl" or op == "#0":
+        elif op == "lsl" or op == "#0" or op == "lr":
             pass
+        elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
+                                  OK.SIMM_PCREL_5_23}:
+            j += 1
         elif opcode.fields[i] == OK.FLT_13_20:
             return float(op[1:]) == float(objdump_ops[j][1:])
         elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
@@ -206,8 +217,9 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
                 return False
             j += 3
         else:
-            print(f"Operand mismatch {op} vs  {objdump_ops[j]}")
+            print(f"Operand mismatch {opcode.fields[i].name}: {op} vs  {objdump_ops[j]}")
             return False
+
     return j == len(objdump_ops) or opcode.fields[-1] == OK.IMM_SHIFTED_5_20_21_22
 
 
@@ -222,9 +234,7 @@ def HandleOneInstruction(count: int, line: str,
         ok_histogram[f] += 1
     # print (line, end="")
     if (OPC_FLAG.BRANCH in opcode.classes or
-            OPC_FLAG.COND_BRANCH in opcode.classes or
-            OPC_FLAG.CALL in opcode.classes or
-            opcode.name in {"adr", "adrp"}):
+            opcode.name in {"adr", "adrp", "tbz", "tbnz"}):
         MISSED[opcode.name] += 1
         EXAMPLE[opcode.name] = line
         return 0
@@ -270,51 +280,53 @@ def HandleAliasMassaging(name, opcode, operands):
         width = int(operands[3][1:])
         operands[3] = f"#{width - 1}"
     elif ((name == "bfi" and opcode.name == "bfm") or
-            (name == "sbfiz" and opcode.name == "sbfm")):
+            (name == "sbfiz" and opcode.name == "sbfm") or
+          (name == "ubfiz" and opcode.name == "ubfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
         operands[3] = f"#{width - 1}"
     elif ((name == "bfxil" and opcode.name == "bfm") or
+          (name == "ubfx" and opcode.name == "ubfm") or
             (name == "sbfx" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         operands[3] = f"#{lsb + width - 1}"
-    elif name == "ubfiz" and opcode.name == "ubfm":
-        lsb = int(operands[2][1:])
-        width = int(operands[3][1:])
-        bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
-        operands[2] = f"#{bits - lsb}"
-        operands[3] = f"#{width - 1}"
-    elif name == "ubfx" and opcode.name == "ubfm":
-        x = int(operands[2][1:]) + int(operands[3][1:]) - 1
-        operands[3] = f"#{x}"
     elif name == "lsl" and opcode.name == "ubfm":
         lsb = int(operands[2][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
         operands.append(f"#{bits - lsb - 1}")
+    #
     elif name == "tst" and opcode.name == "ands":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
     elif name == "cmp" and opcode.name == "subs":
         operands.insert(0, "xzr" if opcode.fields[0] in {OK.XREG_0_4, OK.XREG_0_4_SP} else "wzr")
     elif name == "cmn" and opcode.name == "adds":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+    #
     elif name == "neg" and opcode.name == "sub":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
     elif name == "negs" and opcode.name == "subs":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
     elif name == "ngcs" and opcode.name == "sbcs":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+    elif name == "mov" and opcode.name == "orr":
+        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
+    elif name == "mvn" and opcode.name == "orn":
+        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
+    #
     elif name == "mul" and opcode.name == "madd":
         operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
     elif name == "mneg" and opcode.name == "msub":
         operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
+    #
     elif name == "asr" and opcode.name == "sbfm":
         operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
     elif name == "lsr" and opcode.name == "ubfm":
         operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
+    #
     elif name == "umull" and opcode.name == "umaddl":
         operands.append("xzr")
     elif name == "smull" and opcode.name == "smaddl":
@@ -323,10 +335,6 @@ def HandleAliasMassaging(name, opcode, operands):
         operands.insert(1, operands[1])
     elif name == "mov" and opcode.name == "add":
         operands.append("#0x0")
-    elif name == "mov" and opcode.name == "orr":
-        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
-    elif name == "mvn" and opcode.name == "orn":
-        operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
     else:
         assert False
 
