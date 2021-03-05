@@ -1,54 +1,43 @@
 """
-This module contains code for (un-)symbolizing the a64 ISA encodings
+This module contains code for (un-)symbolizing the a64 ISA operands
 """
+from typing import List, Dict, Tuple
+
 from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt
 
-_SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
-_SHIFT_MAP_15_W = ["uxtw", "sxtw"]
-_SHIFT_MAP_15_X = ["lsl", "sxtx"]
+_STRINGIFIER_CONST: Dict[Tuple[OK, int], str] = {}
 
-_STRINGIFIER_REG = {
-    OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
-    OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
-
-    OK.XREG_0_4_SP: lambda x: "sp" if x == 31 else f"x{x}",
-    OK.XREG_5_9_SP: lambda x: "sp" if x == 31 else f"x{x}",
-
-    OK.WREG_0_4: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_5_9: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_10_14: lambda x: "wzr" if x == 31 else f"w{x}",
-    OK.WREG_16_20: lambda x: "wzr" if x == 31 else f"w{x}",
-
-    OK.XREG_0_4: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_5_9: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_10_14: lambda x: "xzr" if x == 31 else f"x{x}",
-    OK.XREG_16_20: lambda x: "xzr" if x == 31 else f"x{x}",
+for i in range(32):
+    for ok in [OK.WREG_0_4_SP, OK.WREG_5_9_SP]:
+        _STRINGIFIER_CONST[(ok, i)] = "sp" if i == 31 else f"w{i}"
+    for ok in [OK.WREG_0_4, OK.WREG_5_9, OK.WREG_10_14, OK.WREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = "wzr" if i == 31 else f"w{i}"
+    for ok in [OK.XREG_0_4_SP, OK.XREG_5_9_SP]:
+        _STRINGIFIER_CONST[(ok, i)] = "sp" if i == 31 else f"x{i}"
+    for ok in [OK.XREG_0_4, OK.XREG_5_9, OK.XREG_10_14, OK.XREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = "xzr" if i == 31 else f"x{i}"
     #
-    OK.SREG_0_4: lambda x: f"s{x}",
-    OK.SREG_5_9: lambda x: f"s{x}",
-    OK.SREG_10_14: lambda x: f"s{x}",
-    OK.SREG_16_20: lambda x: f"s{x}",
+    for ok in [OK.BREG_0_4, OK.BREG_5_9, OK.BREG_10_14, OK.BREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = f"b{i}"
+    for ok in [OK.HREG_0_4, OK.HREG_5_9, OK.HREG_10_14, OK.HREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = f"h{i}"
+    for ok in [OK.SREG_0_4, OK.SREG_5_9, OK.SREG_10_14, OK.SREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = f"s{i}"
+    for ok in [OK.DREG_0_4, OK.DREG_5_9, OK.DREG_10_14, OK.DREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = f"d{i}"
+    for ok in [OK.QREG_0_4, OK.QREG_5_9, OK.QREG_10_14, OK.QREG_16_20]:
+        _STRINGIFIER_CONST[(ok, i)] = f"q{i}"
 
-    OK.DREG_0_4: lambda x: f"d{x}",
-    OK.DREG_5_9: lambda x: f"d{x}",
-    OK.DREG_10_14: lambda x: f"d{x}",
-    OK.DREG_16_20: lambda x: f"d{x}",
+for n, name in enumerate(["lsl", "lsr", "asr", "ror"]):
+    _STRINGIFIER_CONST[(OK.SHIFT_22_23, n)] = name
+    if name != "ror":
+        _STRINGIFIER_CONST[(OK.SHIFT_22_23_NO_ROR, n)] = name
 
-    OK.BREG_0_4: lambda x: f"b{x}",
-    OK.BREG_5_9: lambda x: f"b{x}",
-    OK.BREG_10_14: lambda x: f"b{x}",
-    OK.BREG_16_20: lambda x: f"b{x}",
+for n, name in enumerate(["uxtw", "sxtw"]):
+    _STRINGIFIER_CONST[(OK.SHIFT_15_W, n)] = name
 
-    OK.HREG_0_4: lambda x: f"h{x}",
-    OK.HREG_5_9: lambda x: f"h{x}",
-    OK.HREG_10_14: lambda x: f"h{x}",
-    OK.HREG_16_20: lambda x: f"h{x}",
-
-    OK.QREG_0_4: lambda x: f"q{x}",
-    OK.QREG_5_9: lambda x: f"q{x}",
-    OK.QREG_10_14: lambda x: f"q{x}",
-    OK.QREG_16_20: lambda x: f"q{x}",
-}
+for n, name in enumerate(["lsl", "sxtx"]):
+    _STRINGIFIER_CONST[(OK.SHIFT_15_X, n)] = name
 
 
 def print_dec(x):
@@ -61,7 +50,6 @@ def print_hex(x):
 
 _STRINGIFIER_DEC = {x: print_dec for x in
                     [OK.IMM_16_21, OK.IMM_10_15, OK.IMM_10_21, OK.IMM_19_23_31, OK.IMM_10_12_LIMIT4]}
-
 
 _STRINGIFIER_HEX = {x: print_hex for x in
                     [OK.IMM_5_20, OK.IMM_16_20, OK.IMM_16_20, OK.IMM_COND_0_3]}
@@ -83,11 +71,6 @@ STRINGIFIER_MISC = {
     OK.IMM_12_MAYBE_SHIFT_3: lambda x: print_dec(x * 3),
     OK.IMM_12_MAYBE_SHIFT_4: lambda x: print_dec(x * 4),
     #
-    OK.SHIFT_22_23: lambda x: _SHIFT_MAP_22_23[x],
-    OK.SHIFT_22_23_NO_ROR: lambda x: _SHIFT_MAP_22_23[x],
-    OK.SHIFT_15_W: lambda x: _SHIFT_MAP_15_W[x],
-    OK.SHIFT_15_X: lambda x: _SHIFT_MAP_15_X[x],
-    #
     OK.FLT_13_20: lambda x: f"#{Decode8BitFlt(x):e}",
     OK.IMM_FLT_ZERO: lambda x: "#0.0",
     #
@@ -105,7 +88,6 @@ STRINGIFIER_MISC = {
 }
 
 _STRINGIFIER = {
-    **_STRINGIFIER_REG,
     **STRINGIFIER_MISC,
     **_STRINGIFIER_DEC,
     **_STRINGIFIER_HEX,
@@ -113,4 +95,12 @@ _STRINGIFIER = {
 
 
 def DecodeOperand(kind: OK, data: int) -> str:
+    s = _STRINGIFIER_CONST.get((kind, data))
+    if s: return s
     return _STRINGIFIER[kind](data)
+
+
+
+
+def EncodeOperand(kind: OK, op: str) -> int:
+    pass

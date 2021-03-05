@@ -12,7 +12,7 @@ from typing import List, Dict
 
 from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP
 
-from CpuA64 import  disass
+from CpuA64 import disass
 
 SIMPLE_ALIASES = {
     ("asr", "asrv"),
@@ -92,8 +92,6 @@ COMPLEX_ALIASES = {
     ("smull", "smaddl"),
     ("umull", "umaddl"),
 }
-
-
 
 
 def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) -> bool:
@@ -255,9 +253,11 @@ def HandleOneInstruction(count: int, line: str,
                          actual_name: str, actual_ops: List[str]):
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
     ops_raw = opcode.DisassembleOperands(data)
-    ops = [disass.DecodeOperand(f, op) for op, f  in zip(ops_raw, opcode.fields)]
+    ops = [disass.DecodeOperand(f, op) for op, f in zip(ops_raw, opcode.fields)]
     assert OperandsMatch(opcode, ops,
                          actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    data2 = opcode.AssembleOperands(ops_raw)
+    assert data == data2
 
 
 def main(argv):
@@ -289,7 +289,7 @@ def main(argv):
                 # print (actual_name, actual_ops)
                 HandleOneInstruction(
                     count, line, data, opcode, actual_name, actual_ops)
-    #for name, count in sorted(HISTOGRAM.items()):
+    # for name, count in sorted(HISTOGRAM.items()):
     #    print (f"{name:20s} {count}")
     print("OK")
 
@@ -298,6 +298,7 @@ if __name__ == "__main__":
     if False:
         import cProfile
         import pstats
+
         cProfile.run("main(sys.argv[1:])", sort=pstats.SortKey.CUMULATIVE)
     else:
         main(sys.argv[1:])
