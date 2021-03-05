@@ -14,10 +14,6 @@ from typing import List, Dict
 from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, OPC_FLAG, DecodeOperand, \
     FIELDS_SHIFT, FIELDS_IMM, CONDITION_CODES_INV_MAP, Decode8BitFlt
 
-count_found = 0
-count_total = 0
-ok_histogram: Dict[OK, int] = collections.defaultdict(int)
-
 SIMPLE_ALIASES = {
     ("asr", "asrv"),
     ("lsr", "lsrv"),
@@ -104,7 +100,7 @@ SHIFT_MAP_22_23 = ["lsl", "lsr", "asr", "ror"]
 SHIFT_MAP_15_W = ["uxtw", "sxtw"]
 SHIFT_MAP_15_X = ["lsl", "sxtx"]
 
-STRIGIFIER = {
+STRIGIFIER_REG = {
     OK.WREG_0_4_SP: lambda x: "sp" if x == 31 else f"w{x}",
     OK.WREG_5_9_SP: lambda x: "sp" if x == 31 else f"w{x}",
 
@@ -145,30 +141,35 @@ STRIGIFIER = {
     OK.QREG_5_9: lambda x: f"q{x}",
     OK.QREG_10_14: lambda x: f"q{x}",
     OK.QREG_16_20: lambda x: f"q{x}",
-    #
-    OK.IMM_FLT_ZERO: lambda x: "#0.0",
-    OK.IMM_10_21_22: lambda x: [f"#0x{x & 0xfff:x}", "lsl", "#12"] if (x & (1 << 12)) else f"#0x{x:x}",
-    OK.IMM_5_20: lambda x: f"#0x{x:x}",
-    OK.IMM_16_20: lambda x: f"#0x{x:x}",
-    OK.IMM_16_21: lambda x: f"#{x}",
-    OK.IMM_10_15: lambda x: f"#{x}",
+}
+
+
+def print_dec(x):
+    return "#" + str(x)
+
+
+STRIGIFIER_DEC = {x: print_dec for x in
+                  [OK.IMM_16_21, OK.IMM_10_15, OK.IMM_10_21, OK.IMM_19_23_31, OK.IMM_10_12_LIMIT4]}
+
+
+def print_hex(x):
+    return "#" + hex(x)
+
+
+STRIGIFIER_HEX = {x: print_hex for x in
+                  [OK.IMM_5_20, OK.IMM_16_20, OK.IMM_16_20, OK.IMM_COND_0_3]}
+
+STRINGIFIER_MISC = {
     OK.IMM_10_15_16_22_W: lambda x: f"#0x{DecodeLogicalImmediate(x, 32):x}",
     OK.IMM_10_15_16_22_X: lambda x: f"#0x{DecodeLogicalImmediate(x, 64):x}",
-    OK.IMM_10_12_LIMIT4: lambda x: f"#{x}",
     OK.IMM_SHIFTED_5_20_21_22: lambda x: f"#0x{(x & 0xffff) << (16 * (x >> 16)):x}",
-    OK.IMM_COND_0_3: lambda x: f"#0x{x:x}",
-    OK.IMM_19_23_31: lambda x: f"#{x}",
+    OK.IMM_10_21_22: lambda x: f"#0x{(x & 0xfff) << (12  * (x >> 12)):x}",
+
     #
-    OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
-    OK.SIMM_15_21_TIMES8: lambda x: f"#{SignedIntFromBits(x, 7) * 8}",
-    OK.SIMM_15_21_TIMES16: lambda x: f"#{SignedIntFromBits(x, 7) * 16}",
-    #
-    OK.IMM_10_21: lambda x: f"#{x}",
-    OK.IMM_10_21_times_2: lambda x: f"#{x * 2}",
-    OK.IMM_10_21_times_4: lambda x: f"#{x * 4}",
-    OK.IMM_10_21_times_8: lambda x: f"#{x * 8}",
-    OK.IMM_10_21_times_16: lambda x: f"#{x * 16}",
-    OK.SIMM_12_20: lambda x: f"#{SignedIntFromBits(x, 9)}",
+    OK.IMM_10_21_times_2: lambda x: "#" + str(x * 2),
+    OK.IMM_10_21_times_4: lambda x: "#" + str(x * 4),
+    OK.IMM_10_21_times_8: lambda x: "#" + str(x * 8),
+    OK.IMM_10_21_times_16: lambda x: "#" + str(x * 16),
     #
     OK.IMM_12_MAYBE_SHIFT_0: lambda x: f"#{x * 0}",
     OK.IMM_12_MAYBE_SHIFT_1: lambda x: f"#{x * 1}",
@@ -182,6 +183,12 @@ STRIGIFIER = {
     OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
     #
     OK.FLT_13_20: lambda x: f"#{Decode8BitFlt(x):e}",
+    OK.IMM_FLT_ZERO: lambda x: "#0.0",
+    #
+    OK.SIMM_15_21_TIMES4: lambda x: f"#{SignedIntFromBits(x, 7) * 4}",
+    OK.SIMM_15_21_TIMES8: lambda x: f"#{SignedIntFromBits(x, 7) * 8}",
+    OK.SIMM_15_21_TIMES16: lambda x: f"#{SignedIntFromBits(x, 7) * 16}",
+    OK.SIMM_12_20: lambda x: f"#{SignedIntFromBits(x, 9)}",
     #
     OK.SIMM_PCREL_0_25: lambda x: f"#{SignedIntFromBits(x, 26)}",
     OK.SIMM_PCREL_5_23: lambda x: f"#{SignedIntFromBits(x, 19)}",
@@ -189,6 +196,13 @@ STRIGIFIER = {
     OK.SIMM_PCREL_5_23_29_30: lambda x: f"#{SignedIntFromBits(x, 21)}",
     #
     OK.REG_LINK: lambda x: f"lr",
+}
+
+STRINGIFIER = {
+    **STRIGIFIER_REG,
+    **STRINGIFIER_MISC,
+    **STRIGIFIER_DEC,
+    **STRIGIFIER_HEX,
 }
 
 
@@ -205,7 +219,7 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
             pass
         elif opcode.fields[i] == OK.FLT_13_20:
             return float(op[1:]) == float(objdump_ops[j][1:])
-        elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
+        elif opcode.fields[i] in {OK.IMM_SHIFTED_5_20_21_22, OK.IMM_10_21_22}:  # movz etc
             v = int(objdump_ops[j][1:], 0)
             if opcode.name == "movn":
                 bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
@@ -222,27 +236,6 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
             return False
 
     return j == len(objdump_ops) or opcode.fields[-1] == OK.IMM_SHIFTED_5_20_21_22
-
-
-def HandleOneInstruction(count: int, line: str,
-                         data: int, opcode: Opcode,
-                         actual_name: str, actual_ops: List[str]):
-    global count_found, count_total, count_mismatch
-    count_total += 1
-    opcode = Opcode.FindOpcode(data)
-    assert opcode
-
-    ops = []
-    for f in opcode.fields:
-        op = STRIGIFIER[f](DecodeOperand(f, data))
-        if isinstance(op, str):
-            ops.append(op)
-        elif isinstance(op, list):
-            ops += op
-        else:
-            assert False
-    assert OperandsMatch(opcode, ops,
-                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
 
 
 def HandleAliasMassaging(name, opcode, operands):
@@ -367,6 +360,15 @@ def MassageOperands(name, opcode, operands):
     return name
 
 
+def HandleOneInstruction(count: int, line: str,
+                         data: int, opcode: Opcode,
+                         actual_name: str, actual_ops: List[str]):
+    actual_name = MassageOperands(actual_name, opcode, actual_ops)
+    ops = [STRINGIFIER[f](DecodeOperand(f, data)) for f in opcode.fields]
+    assert OperandsMatch(opcode, ops,
+                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+
+
 def main(argv):
     for fn in argv:
         with open(fn) as fp:
@@ -387,7 +389,6 @@ def main(argv):
                     ops_str = token[2]
                     ops_str = ops_str.split("//")[0]
                     actual_ops = [x for x in re.split("[, \t\n\[\]!]+", ops_str) if x]
-                actual_name = MassageOperands(actual_name, opcode, actual_ops)
                 # print (actual_name, actual_ops)
                 HandleOneInstruction(
                     count, line, data, opcode, actual_name, actual_ops)
