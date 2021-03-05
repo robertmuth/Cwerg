@@ -38,25 +38,25 @@ SIMPLE_ALIASES = {
     #
     ("ldrh", "ldr"),
     ("strh", "str"),
-    ("ldurh",  "ldur"),
-    ("sturh",  "stur"),
-    ("ldpsw",  "ldp"),
-    ("ldarh",  "ldar"),
-    ("stlrh",  "stlr"),
-    ("ldaxrh",  "ldaxr"),
-    ("ldxrh",  "ldxr"),
-    ("stlxrh",  "stlxr"),
-    ("ldrb",  "ldr"),
-    ("strb",  "str"),
-    ("stxrh",  "stxr"),
-    ("ldurb",  "ldur"),
-    ("sturb",  "stur"),
-    ("ldarb",  "ldar"),
-    ("stlrb",  "stlr"),
-    ("ldaxrb",  "ldaxr"),
-    ("ldxrb",  "ldxr"),
-    ("stxrb",  "stxr"),
-    ("stlxrb",  "stlxr"),
+    ("ldurh", "ldur"),
+    ("sturh", "stur"),
+    ("ldpsw", "ldp"),
+    ("ldarh", "ldar"),
+    ("stlrh", "stlr"),
+    ("ldaxrh", "ldaxr"),
+    ("ldxrh", "ldxr"),
+    ("stlxrh", "stlxr"),
+    ("ldrb", "ldr"),
+    ("strb", "str"),
+    ("stxrh", "stxr"),
+    ("ldurb", "ldur"),
+    ("sturb", "stur"),
+    ("ldarb", "ldar"),
+    ("stlrb", "stlr"),
+    ("ldaxrb", "ldaxr"),
+    ("ldxrb", "ldxr"),
+    ("stxrb", "stxr"),
+    ("stlxrb", "stlxr"),
 }
 
 COMPLEX_ALIASES = {
@@ -181,11 +181,12 @@ STRIGIFIER = {
     OK.SHIFT_15_W: lambda x: SHIFT_MAP_15_W[x],
     OK.SHIFT_15_X: lambda x: SHIFT_MAP_15_X[x],
     #
-    OK.FLT_13_20: lambda x:  f"#{Decode8BitFlt(x):e}",
+    OK.FLT_13_20: lambda x: f"#{Decode8BitFlt(x):e}",
     #
     OK.SIMM_PCREL_0_25: lambda x: f"#{SignedIntFromBits(x, 26)}",
     OK.SIMM_PCREL_5_23: lambda x: f"#{SignedIntFromBits(x, 19)}",
     OK.SIMM_PCREL_5_18: lambda x: f"#{SignedIntFromBits(x, 14)}",
+    OK.SIMM_PCREL_5_23_29_30: lambda x: f"#{SignedIntFromBits(x, 21)}",
     #
     OK.REG_LINK: lambda x: f"lr",
 }
@@ -197,11 +198,11 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
     for i, op in enumerate(std_ops):
         if j < len(objdump_ops) and op == objdump_ops[j]:
             j += 1
+        elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
+                                  OK.SIMM_PCREL_5_23, OK.SIMM_PCREL_5_23_29_30}:
+            j += 1
         elif op == "lsl" or op == "#0" or op == "lr":
             pass
-        elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
-                                  OK.SIMM_PCREL_5_23}:
-            j += 1
         elif opcode.fields[i] == OK.FLT_13_20:
             return float(op[1:]) == float(objdump_ops[j][1:])
         elif opcode.fields[i] == OK.IMM_SHIFTED_5_20_21_22:  # movz etc
@@ -225,20 +226,11 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
 
 def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
-                         actual_name: str, actual_ops: List[str]) -> int:
+                         actual_name: str, actual_ops: List[str]):
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = Opcode.FindOpcode(data)
-    count_found += 1
-    for f in opcode.fields:
-        ok_histogram[f] += 1
-    # print (line, end="")
-    if (OPC_FLAG.BRANCH in opcode.classes or
-            opcode.name in {"adr", "adrp", "tbz", "tbnz"}):
-        MISSED[opcode.name] += 1
-        EXAMPLE[opcode.name] = line
-        return 0
-    # print(line, end="")
+    assert opcode
 
     ops = []
     for f in opcode.fields:
@@ -251,7 +243,6 @@ def HandleOneInstruction(count: int, line: str,
             assert False
     assert OperandsMatch(opcode, ops,
                          actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
-    return 1
 
 
 def HandleAliasMassaging(name, opcode, operands):
@@ -262,7 +253,7 @@ def HandleAliasMassaging(name, opcode, operands):
         operands.insert(1, operands[1])
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
     elif ((name == "csetm" and opcode.name == "csinv") or
-            (name == "cset" and opcode.name == "csinc")):
+          (name == "cset" and opcode.name == "csinc")):
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
@@ -280,7 +271,7 @@ def HandleAliasMassaging(name, opcode, operands):
         width = int(operands[3][1:])
         operands[3] = f"#{width - 1}"
     elif ((name == "bfi" and opcode.name == "bfm") or
-            (name == "sbfiz" and opcode.name == "sbfm") or
+          (name == "sbfiz" and opcode.name == "sbfm") or
           (name == "ubfiz" and opcode.name == "ubfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
@@ -289,7 +280,7 @@ def HandleAliasMassaging(name, opcode, operands):
         operands[3] = f"#{width - 1}"
     elif ((name == "bfxil" and opcode.name == "bfm") or
           (name == "ubfx" and opcode.name == "ubfm") or
-            (name == "sbfx" and opcode.name == "sbfm")):
+          (name == "sbfx" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         operands[3] = f"#{lsb + width - 1}"
@@ -355,7 +346,7 @@ def MassageOperands(name, opcode, operands):
         elif (name, opcode.name) in COMPLEX_ALIASES:
             HandleAliasMassaging(name, opcode, operands)
             name = opcode.name
-    assert name ==opcode.name
+    assert name == opcode.name
     if name == "ret" and not operands:
         operands.append("x30")
         return name
@@ -382,7 +373,6 @@ def main(argv):
             # actual_XXX: derived from the text assembler listing
             # expected_XXX: derived from decoding the `data`
             count = 0
-            good = 0
             for line in fp:
                 count += 1
                 token = line.split(None, 2)
@@ -399,16 +389,10 @@ def main(argv):
                     actual_ops = [x for x in re.split("[, \t\n\[\]!]+", ops_str) if x]
                 actual_name = MassageOperands(actual_name, opcode, actual_ops)
                 # print (actual_name, actual_ops)
-                good += HandleOneInstruction(
+                HandleOneInstruction(
                     count, line, data, opcode, actual_name, actual_ops)
-    for k, v in sorted(MISSED.items()):
-        print(f"{k:10}: {v:5}     {EXAMPLE[k]}", end="")
-    print(f"found {count_found}/{count_total}   {100 * count_found / count_total:3.1f}%")
-    for k in OK:
-        if k not in STRIGIFIER:
-            print(f"{k.name}  {ok_histogram[k]}")
 
-    print(f"good: {good}/{count_total}   {100 * good / count_total:3.1f}% ")
+    print("OK")
 
 
 if __name__ == "__main__":
