@@ -18,76 +18,83 @@ count_found = 0
 count_total = 0
 ok_histogram: Dict[OK, int] = collections.defaultdict(int)
 
-ALIASES = {
-    "cmn": {"adds"},
-    "cmp": {"subs"},
-    "neg": {"sub"},
-    "negs": {"subs"},
-    "ngcs": {"sbcs"},
-    #
-    "cneg": {"csneg"},
-    "cinc": {"csinc"},
-    "cset": {"csinc"},
-    "cinv": {"csinv"},
-    "csetm": {"csinv"},
-    #
-    "tst": {"ands"},
-    "mov": {"orr", "add", "movz", "movn"},
-    "mvn": {"orn"},
-    "mul": {"madd"},
-    "mneg": {"msub"},
-    #
-    "lsl": {"lslv", "lsl", "ubfm"},
-    "lsr": {"lsrv", "lsr", "ubfm"},
-    "asr": {"asrv", "asr", "sbfm"},
-    "ror": {"rorv", "ror", "extr"},
-    "ubfiz": {"ubfm"},
-    "ubfx": {"ubfm"},
-    "sbfx": {"sbfm"},
-    "sxtb": {"sbfm"},
-    "sxth": {"sbfm"},
-    "sxtw": {"sbfm"},
-    "sbfiz": {"sbfm"},
-    "bfxil": {"bfm"},
-    "bfi": {"bfm"},
-    "bfc": {"bfm"},
-    #
-    "smull": {"smaddl"},
-    "umull": {"umaddl"},
-    #
-    "ldr": {"ldr", "fldr"},
-    "ldp": {"ldp", "fldp"},
-    "ldur": {"ldur", "fldur"},
-    #
-    "ldurb": {"ldur"},
-    "ldurh": {"ldur"},
-    "ldrb": {"ldr"},
-    "ldrb": {"ldr"},
-    "ldrh": {"ldr"},
-    "ldarb": {"ldar"},
-    "ldarh": {"ldar"},
-    "ldxrb": {"ldxr"},
-    "ldxrh": {"ldxr"},
-    "ldaxrb": {"ldaxr"},
-    "ldaxrh": {"ldaxr"},
-    "ldpsw": {"ldp"},
+SIMPLE_ALIASES = {
+    ("asr", "asrv"),
+    ("lsr", "lsrv"),
+    ("lsl", "lslv"),
+    ("ror", "rorv"),
 
+    # will be handled by OperandsMatch(
+    ("mov", "movn"),
+    ("mov", "movz"),
+
+    # cwerg specific aliases
+    ("ldr", "fldr"),
+    ("str", "fstr"),
+    ("ldur", "fldur"),
+    ("stur", "fstur"),
+    ("ldp", "fldp"),
+    ("stp", "fstp"),
     #
-    "sturb": {"stur"},
-    "sturh": {"stur"},
-    "strb": {"str"},
-    "strh": {"str"},
-    "stlxrb": {"stlxr"},
-    "stlxrh": {"stlxr"},
-    "stxrb": {"stxr"},
-    "stxrh": {"stxr"},
-    "stlrb": {"stlr"},
-    "stlrh": {"stlr"},
-    "stpw": {"stp"},
+    ("ldrh", "ldr"),
+    ("strh", "str"),
+    ("ldurh",  "ldur"),
+    ("sturh",  "stur"),
+    ("ldpsw",  "ldp"),
+    ("ldarh",  "ldar"),
+    ("stlrh",  "stlr"),
+    ("ldaxrh",  "ldaxr"),
+    ("ldxrh",  "ldxr"),
+    ("stlxrh",  "stlxr"),
+    ("ldrb",  "ldr"),
+    ("strb",  "str"),
+    ("stxrh",  "stxr"),
+    ("ldurb",  "ldur"),
+    ("sturb",  "stur"),
+    ("ldarb",  "ldar"),
+    ("stlrb",  "stlr"),
+    ("ldaxrb",  "ldaxr"),
+    ("ldxrb",  "ldxr"),
+    ("stxrb",  "stxr"),
+    ("stlxrb",  "stlxr"),
+}
+
+COMPLEX_ALIASES = {
+    ("cmn", "adds"),
+    ("cmp", "subs"),
+    ("neg", "sub"),
+    ("negs", "subs"),
+    ("ngcs", "sbcs"),
+    ("cneg", "csneg"),
+    ("cinc", "csinc"),
+    ("cset", "csinc"),
+    ("cinv", "csinv"),
+    ("csetm", "csinv"),
     #
-    "str": {"str", "fstr"},
-    "stp": {"stp", "fstp"},
-    "stur": {"stur", "fstur"},
+    ("tst", "ands"),
+    ("mov", "orr"),
+    ("mov", "add"),
+    ("mvn", "orn"),
+    ("mul", "madd"),
+    ("mneg", "msub"),
+    #
+    ("lsl", "ubfm"),
+    ("lsr", "ubfm"),
+    ("asr", "sbfm"),
+    ("ror", "extr"),
+    ("ubfiz", "ubfm"),
+    ("ubfx", "ubfm"),
+    ("sbfx", "sbfm"),
+    ("sxtb", "sbfm"),
+    ("sxth", "sbfm"),
+    ("sxtw", "sbfm"),
+    ("sbfiz", "sbfm"),
+    ("bfxil", "bfm"),
+    ("bfi", "bfm"),
+    ("bfc", "bfm"),
+    #
+    ("smull", "smaddl"),
+    ("umull", "umaddl"),
 }
 
 MISSED = collections.defaultdict(int)
@@ -210,11 +217,9 @@ def HandleOneInstruction(count: int, line: str,
     global count_found, count_total, count_mismatch
     count_total += 1
     opcode = Opcode.FindOpcode(data)
-    aliases = ALIASES.get(actual_name, {actual_name})
     count_found += 1
     for f in opcode.fields:
         ok_histogram[f] += 1
-    assert opcode.name in aliases, f"[{opcode.name}#{opcode.variant}] vs [{actual_name}]: {line}"
     # print (line, end="")
     if (OPC_FLAG.BRANCH in opcode.classes or
             OPC_FLAG.COND_BRANCH in opcode.classes or
@@ -246,119 +251,84 @@ def HandleAliasMassaging(name, opcode, operands):
             (name == "cinc" and opcode.name == "csinc")):
         operands.insert(1, operands[1])
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
-        return opcode.name
-    if ((name == "csetm" and opcode.name == "csinv") or
+    elif ((name == "csetm" and opcode.name == "csinv") or
             (name == "cset" and opcode.name == "csinc")):
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         operands[3] = CONDITION_CODES_INV_MAP[operands[3]]
-        return opcode.name
-    if name == "sxtb" and opcode.name == "sbfm":
+    elif name == "sxtb" and opcode.name == "sbfm":
         operands[1] = operands[0][0] + operands[1][1:]
         operands += ["#0", "#7"]
-        return opcode.name
-    if name == "sxth" and opcode.name == "sbfm":
+    elif name == "sxth" and opcode.name == "sbfm":
         operands[1] = operands[0][0] + operands[1][1:]
         operands += ["#0", "#15"]
-        return opcode.name
-    if name == "sxtw" and opcode.name == "sbfm":
+    elif name == "sxtw" and opcode.name == "sbfm":
         operands[1] = operands[0][0] + operands[1][1:]
         operands += ["#0", "#31"]
-        return opcode.name
-    if name == "bfc" and opcode.name == "bfm":
+    elif name == "bfc" and opcode.name == "bfm":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
         width = int(operands[3][1:])
         operands[3] = f"#{width - 1}"
-        return opcode.name
-    if ((name == "bfi" and opcode.name == "bfm") or
+    elif ((name == "bfi" and opcode.name == "bfm") or
             (name == "sbfiz" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
         operands[3] = f"#{width - 1}"
-        return opcode.name
-    if ((name == "bfxil" and opcode.name == "bfm") or
+    elif ((name == "bfxil" and opcode.name == "bfm") or
             (name == "sbfx" and opcode.name == "sbfm")):
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         operands[3] = f"#{lsb + width - 1}"
-        return opcode.name
-    if name == "ubfiz" and opcode.name == "ubfm":
+    elif name == "ubfiz" and opcode.name == "ubfm":
         lsb = int(operands[2][1:])
         width = int(operands[3][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
         operands[3] = f"#{width - 1}"
-        return opcode.name
-    if name == "ubfx" and opcode.name == "ubfm":
+    elif name == "ubfx" and opcode.name == "ubfm":
         x = int(operands[2][1:]) + int(operands[3][1:]) - 1
         operands[3] = f"#{x}"
-        return opcode.name
-    if name == "lsl" and opcode.name == "ubfm":
+    elif name == "lsl" and opcode.name == "ubfm":
         lsb = int(operands[2][1:])
         bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
         operands[2] = f"#{bits - lsb}"
         operands.append(f"#{bits - lsb - 1}")
-        return opcode.name
-    if name == "tst" and opcode.name == "ands":
+    elif name == "tst" and opcode.name == "ands":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "cmp" and opcode.name == "subs":
+    elif name == "cmp" and opcode.name == "subs":
         operands.insert(0, "xzr" if opcode.fields[0] in {OK.XREG_0_4, OK.XREG_0_4_SP} else "wzr")
-        return opcode.name
-    if name == "cmn" and opcode.name == "adds":
+    elif name == "cmn" and opcode.name == "adds":
         operands.insert(0, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "neg" and opcode.name == "sub":
+    elif name == "neg" and opcode.name == "sub":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "negs" and opcode.name == "subs":
+    elif name == "negs" and opcode.name == "subs":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "ngcs" and opcode.name == "sbcs":
+    elif name == "ngcs" and opcode.name == "sbcs":
         operands.insert(1, "xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "mul" and opcode.name == "madd":
+    elif name == "mul" and opcode.name == "madd":
         operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "mneg" and opcode.name == "msub":
+    elif name == "mneg" and opcode.name == "msub":
         operands.append("xzr" if opcode.fields[0] == OK.XREG_0_4 else "wzr")
-        return opcode.name
-    if name == "asr" and opcode.name == "sbfm":
+    elif name == "asr" and opcode.name == "sbfm":
         operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
-        return opcode.name
-    if name == "lsr" and opcode.name == "ubfm":
+    elif name == "lsr" and opcode.name == "ubfm":
         operands.append("#63" if opcode.fields[0] == OK.XREG_0_4 else "#31")
-        return opcode.name
-    if name == "umull" and opcode.name == "umaddl":
+    elif name == "umull" and opcode.name == "umaddl":
         operands.append("xzr")
-        return opcode.name
-    if name == "smull" and opcode.name == "smaddl":
+    elif name == "smull" and opcode.name == "smaddl":
         operands.append("xzr")
-        return opcode.name
-    if name == "asr" and opcode.name == "asrv":
-        return opcode.name
-    if name == "lsr" and opcode.name == "lsrv":
-        return opcode.name
-    if name == "lsl" and opcode.name == "lslv":
-        return opcode.name
-    if name == "ror" and opcode.name == "rorv":
-        return opcode.name
-    if name == "ror" and opcode.name == "extr":
+    elif name == "ror" and opcode.name == "extr":
         operands.insert(1, operands[1])
-        return opcode.name
-    if name == "mov" and opcode.name == "add":
+    elif name == "mov" and opcode.name == "add":
         operands.append("#0x0")
-        return opcode.name
-    if name == "mov" and opcode.name == "orr":
+    elif name == "mov" and opcode.name == "orr":
         operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
-        return opcode.name
-    if name == "mvn" and opcode.name == "orn":
+    elif name == "mvn" and opcode.name == "orn":
         operands.insert(1, "xzr" if opcode.fields[1] == OK.XREG_5_9 else "wzr")
-    if name == "mov" and opcode.name == "movz":
-        return opcode.name
-    return opcode.name
+    else:
+        assert False
 
 
 def MassageOperands(name, opcode, operands):
@@ -371,8 +341,13 @@ def MassageOperands(name, opcode, operands):
         if OPC_FLAG.REG_PAIR in opcode.classes:
             operands.append(operands.pop(0))
 
-    if name in ALIASES:
-        name = HandleAliasMassaging(name, opcode, operands)
+    if name != opcode.name:
+        if (name, opcode.name) in SIMPLE_ALIASES:
+            name = opcode.name
+        elif (name, opcode.name) in COMPLEX_ALIASES:
+            HandleAliasMassaging(name, opcode, operands)
+            name = opcode.name
+    assert name ==opcode.name
     if name == "ret" and not operands:
         operands.append("x30")
         return name
