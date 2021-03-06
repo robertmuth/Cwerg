@@ -103,7 +103,7 @@ lint:
 
 
 # --by-file
-CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGenC|CpuA32|Elf|Tools|Util'
+CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGenC|CpuA32|CpuA64|Elf|Tools|Util'
 
 #@ cloc - print lines of code stats
 #@

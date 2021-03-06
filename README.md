@@ -16,6 +16,7 @@ The project is very much "work in progress" and  currently consists of:
 * [C frontend](FrontEndC/README.md)  (supports a subset of C)
 * [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF files)
 * [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
+* [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions - WIP)
 * [A32 backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
 * [C backend](CodeGenC/README.md) (code generator emitting C code)
 
