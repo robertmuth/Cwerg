@@ -253,9 +253,14 @@ def HandleOneInstruction(count: int, line: str,
                          actual_name: str, actual_ops: List[str]):
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
     ops_raw = opcode.DisassembleOperands(data)
-    ops = [disass.DecodeOperand(f, op) for op, f in zip(ops_raw, opcode.fields)]
-    assert OperandsMatch(opcode, ops,
-                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops} vs {actual_ops}: {line}"
+    ops_str = [disass.DecodeOperand(f, op) for op, f in zip(ops_raw, opcode.fields)]
+    assert OperandsMatch(opcode, ops_str,
+                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
+
+    ops_raw2 = [disass.EncodeOperand(f, op) for op, f in zip(ops_str, opcode.fields)]
+    for a, b in zip(ops_raw, ops_raw2):
+        if b is not None:
+            assert a == b, f"{a} vs {b} [{ops_str}] [{ops_raw}] in: {line}"
     data2 = opcode.AssembleOperands(ops_raw)
     assert data == data2
 
