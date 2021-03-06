@@ -4,7 +4,7 @@ This module contains code for (un-)symbolizing the a64 ISA operands
 from typing import Any, Dict, Tuple
 
 from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt, \
-    EncodeShifted_10_21_22, EncodeShifted_5_20_21_22
+    EncodeShifted_10_21_22, EncodeShifted_5_20_21_22, Encode_10_15_16_22_X
 
 
 def print_dec(x):
@@ -117,7 +117,7 @@ _UNSTRINGIFIER: Dict[OK, Any] = {
     OK.IMM_FLT_ZERO: lambda x: 0,
     OK.REG_LINK: lambda x: 0,
     # OK.IMM_10_15_16_22_W: lambda x: print_hex(DecodeLogicalImmediate(x, 32)),
-    # OK.IMM_10_15_16_22_X: lambda x: print_hex(DecodeLogicalImmediate(x, 64)),
+    OK.IMM_10_15_16_22_X: lambda x:  Encode_10_15_16_22_X(int(x[1:], 0)),
     OK.IMM_SHIFTED_5_20_21_22: lambda x: EncodeShifted_5_20_21_22(int(x[1:], 0)),
     OK.IMM_SHIFTED_10_21_22: lambda x: EncodeShifted_10_21_22(int(x[1:], 0)),
 }
