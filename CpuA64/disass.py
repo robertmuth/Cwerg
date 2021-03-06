@@ -3,30 +3,7 @@ This module contains code for (un-)symbolizing the a64 ISA operands
 """
 from typing import Any, Dict, Tuple
 
-from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt
-
-_STRINGIFIER_CONST: Dict[Tuple[OK, int], str] = {}
-
-for i in range(32):
-    for ok in [OK.WREG_0_4_SP, OK.WREG_5_9_SP]:
-        _STRINGIFIER_CONST[(ok, i)] = "sp" if i == 31 else f"w{i}"
-    for ok in [OK.WREG_0_4, OK.WREG_5_9, OK.WREG_10_14, OK.WREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = "wzr" if i == 31 else f"w{i}"
-    for ok in [OK.XREG_0_4_SP, OK.XREG_5_9_SP]:
-        _STRINGIFIER_CONST[(ok, i)] = "sp" if i == 31 else f"x{i}"
-    for ok in [OK.XREG_0_4, OK.XREG_5_9, OK.XREG_10_14, OK.XREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = "xzr" if i == 31 else f"x{i}"
-    #
-    for ok in [OK.BREG_0_4, OK.BREG_5_9, OK.BREG_10_14, OK.BREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = f"b{i}"
-    for ok in [OK.HREG_0_4, OK.HREG_5_9, OK.HREG_10_14, OK.HREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = f"h{i}"
-    for ok in [OK.SREG_0_4, OK.SREG_5_9, OK.SREG_10_14, OK.SREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = f"s{i}"
-    for ok in [OK.DREG_0_4, OK.DREG_5_9, OK.DREG_10_14, OK.DREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = f"d{i}"
-    for ok in [OK.QREG_0_4, OK.QREG_5_9, OK.QREG_10_14, OK.QREG_16_20]:
-        _STRINGIFIER_CONST[(ok, i)] = f"q{i}"
+from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt, EncodeShifted_10_21_22, EncodeShifted_5_20_21_22
 
 
 def print_dec(x):
@@ -41,7 +18,7 @@ _STRINGIFIER: Dict[OK, Any] = {
     OK.IMM_10_15_16_22_W: lambda x: print_hex(DecodeLogicalImmediate(x, 32)),
     OK.IMM_10_15_16_22_X: lambda x: print_hex(DecodeLogicalImmediate(x, 64)),
     OK.IMM_SHIFTED_5_20_21_22: lambda x: print_hex((x & 0xffff) << (16 * (x >> 16))),
-    OK.IMM_10_21_22: lambda x: print_hex((x & 0xfff) << (12 * (x >> 12))),
+    OK.IMM_SHIFTED_10_21_22: lambda x: print_hex((x & 0xfff) << (12 * (x >> 12))),
     #
     OK.FLT_13_20: lambda x: f"#{Decode8BitFlt(x):e}",
     #
@@ -125,7 +102,6 @@ def DecodeOperand(kind: OK, data: int) -> str:
 
 _UNSTRINGIFIER_CONST: Dict[str, int] = {}
 
-
 for ok, t in _STRINGIFIER.items():
     if isinstance(t, list):
         for val, name in enumerate(t):
@@ -136,9 +112,23 @@ for ok, t in _STRINGIFIER.items():
                 assert val == val2, f"{name}: {val} vs  {val2}"
 
 
+
+
+_UNSTRINGIFIER: Dict[OK, Any] = {
+    OK.IMM_FLT_ZERO: lambda x: 0,
+    OK.REG_LINK: lambda x: 0,
+    #OK.IMM_10_15_16_22_W: lambda x: print_hex(DecodeLogicalImmediate(x, 32)),
+    #OK.IMM_10_15_16_22_X: lambda x: print_hex(DecodeLogicalImmediate(x, 64)),
+    #OK.IMM_SHIFTED_5_20_21_22: lambda x: EncodeShifted_5_20_21_22(int(x[1:], 0)),
+    OK.IMM_SHIFTED_10_21_22: lambda x: EncodeShifted_10_21_22(int(x[1:], 0)),
+}
+
+
 def EncodeOperand(ok: OK, op: str) -> int:
     t = _STRINGIFIER.get(ok)
     if isinstance(t, list):
+        if t == 31:
+            pass
         return _UNSTRINGIFIER_CONST[op]
     elif isinstance(t, tuple):
         if ok in {OK.SIMM_PCREL_5_23_29_30,
@@ -155,5 +145,7 @@ def EncodeOperand(ok: OK, op: str) -> int:
             return i
         return i & ((1 << t[1]) - 1)
     else:
-        # NYI
-        return None
+        t = _UNSTRINGIFIER.get(ok)
+        if t is None:
+            return None
+        return t(op)

@@ -107,7 +107,7 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
             pass
         elif opcode.fields[i] == OK.FLT_13_20:
             return float(op[1:]) == float(objdump_ops[j][1:])
-        elif opcode.fields[i] in {OK.IMM_SHIFTED_5_20_21_22, OK.IMM_10_21_22}:  # movz etc
+        elif opcode.fields[i] in {OK.IMM_SHIFTED_5_20_21_22, OK.IMM_SHIFTED_10_21_22}:  # movz etc
             v = int(objdump_ops[j][1:], 0)
             if opcode.name == "movn":
                 bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
@@ -248,9 +248,14 @@ def MassageOperands(name, opcode, operands):
     return name
 
 
+all_operands = 0
+checked_operands = 0
+
+
 def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]):
+    global all_operands, checked_operands
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
     ops_raw = opcode.DisassembleOperands(data)
     ops_str = [disass.DecodeOperand(f, op) for op, f in zip(ops_raw, opcode.fields)]
@@ -259,8 +264,11 @@ def HandleOneInstruction(count: int, line: str,
 
     ops_raw2 = [disass.EncodeOperand(f, op) for op, f in zip(ops_str, opcode.fields)]
     for a, b in zip(ops_raw, ops_raw2):
+        all_operands += 1
         if b is not None:
             assert a == b, f"{a} vs {b} [{ops_str}] [{ops_raw}] in: {line}"
+            checked_operands += 1
+
     data2 = opcode.AssembleOperands(ops_raw)
     assert data == data2
 
@@ -296,6 +304,7 @@ def main(argv):
                     count, line, data, opcode, actual_name, actual_ops)
     # for name, count in sorted(HISTOGRAM.items()):
     #    print (f"{name:20s} {count}")
+    print (f"{checked_operands}/{all_operands} {checked_operands/all_operands * 100:3.1f}")
     print("OK")
 
 

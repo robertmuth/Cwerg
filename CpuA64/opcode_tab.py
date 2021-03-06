@@ -84,6 +84,22 @@ def DecodeLogicalImmediate(x, reg_size) -> int:
     return ror(pattern, reg_size, r)
 
 
+def EncodeShifted_10_21_22(x) -> Optional[int]:
+    for i in range(2):
+        if (x & 0xfff) == x:
+            return x | (i << 12)
+        x >>= 12
+    return None
+
+
+def EncodeShifted_5_20_21_22(x) -> Optional[int]:
+    for i in range(4):
+        if (x & 0xffff) == x:
+            return x | (i << 16)
+        x >>= 16
+    return None
+
+
 def ExtractBits(data, mask) -> int:
     out = 0
     pos = 1
@@ -196,7 +212,7 @@ class OK(enum.Enum):
     IMM_10_15_16_22_W = 102
     IMM_10_15_16_22_X = 103
     IMM_10_21 = 104
-    IMM_10_21_22 = 105
+    IMM_SHIFTED_10_21_22 = 105
     IMM_10_21_times_16 = 106
     IMM_10_21_times_2 = 107
     IMM_10_21_times_4 = 108
@@ -292,7 +308,7 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_16_21: [(6, 16)],
 
     OK.SIMM_PCREL_5_23: [(19, 5)],
-    OK.IMM_10_21_22: [(13, 10)],
+    OK.IMM_SHIFTED_10_21_22: [(13, 10)],
     OK.SIMM_12_20: [(9, 12)],
     OK.SIMM_PCREL_0_25: [(26, 0)],
     OK.SIMM_PCREL_5_18: [(14, 5)],
@@ -556,6 +572,7 @@ def _CheckOpcodeSeparability():
                 assert False
     return True
 
+
 ########################################
 root010 = (7, 2, 26)
 ########################################
@@ -683,12 +700,12 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
     for name, bits in [("add", [(3, 0, 29), (3, 1, 24)]),
                        ("sub", [(3, 2, 29), (3, 1, 24)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit, (1, 0, 23)] + bits,
-               [dst_reg_sp, src1_reg_sp, OK.IMM_10_21_22], OPC_FLAG.STACK_OPS)
+               [dst_reg_sp, src1_reg_sp, OK.IMM_SHIFTED_10_21_22], OPC_FLAG.STACK_OPS)
 
     for name, bits in [("adds", [(3, 1, 29), (3, 1, 24)]),
                        ("subs", [(3, 3, 29), (3, 1, 24)])]:
         Opcode(name, "imm_" + ext, [root100, w_bit, (1, 0, 23)] + bits,
-               [dst_reg, src1_reg, OK.IMM_10_21_22], OPC_FLAG(0),
+               [dst_reg, src1_reg, OK.IMM_SHIFTED_10_21_22], OPC_FLAG(0),
                sr_update=SR_UPDATE.NZCV)
 
     imm = OK.IMM_10_15_16_22_X if ext == "x" else OK.IMM_10_15_16_22_W
