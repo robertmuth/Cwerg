@@ -89,7 +89,7 @@ def Encode_10_15_16_22_X(x) -> Optional[int]:
     if x == 0 or x == ((1 << 64) - 1):
         return None
     # determine pattern width
-    for size, sm in [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2 , 0x3c)]:
+    for size, sm in [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2, 0x3c)]:
         shift = size >> 1
         a = x & ((1 << shift) - 1)
         b = x >> shift
@@ -108,6 +108,32 @@ def Encode_10_15_16_22_X(x) -> Optional[int]:
             s = sm | (ones - 1)
             # print (f"{n} {r:06b} {s:06b}")
             return (n << 12) | (r << 6) | s
+
+    return None
+
+
+def Encode_10_15_16_22_W(x) -> Optional[int]:
+    if x == 0 or x == ((1 << 32) - 1) or (x >> 32) != 0:
+        return None
+    # determine pattern width
+    for size, sm in [(32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2, 0x3c)]:
+        shift = size >> 1
+        a = x & ((1 << shift) - 1)
+        b = x >> shift
+        if a == b:
+            x = a
+        else:
+            break
+    else:
+        assert False
+    # determine ones
+    ones = bin(x).count('1')
+    ones_mask = (1 << ones) - 1
+    for r in range(size):
+        if x == ror(ones_mask, size, r):
+            s = sm | (ones - 1)
+            # print (f"{n} {r:06b} {s:06b}")
+            return (r << 6) | s
 
     return None
 
@@ -1347,10 +1373,6 @@ def _EmitCodeC(fout):
     print("};\n", file=fout)
 
     # what about REG/SREG/DREG
-    cgen.RenderEnumToStringMap(cgen.NameValues(PRED), "PRED", fout)
-    cgen.RenderEnumToStringFun("PRED", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(ADDR_MODE), "ADDR_MODE", fout)
-    cgen.RenderEnumToStringFun("ADDR_MODE", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
     cgen.RenderEnumToStringFun("SHIFT", fout)
 
@@ -1410,12 +1432,12 @@ def _MnemonicHashingExperiments():
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
-        print ("Check Separability")
+        print("Check Separability")
         _CheckOpcodeSeparability()
-        print ("Check Logical Immediate Encoding")
+        print("Check Logical Immediate Encoding")
         count = 0
         for size, sm in [(2, 0x3c), (4, 0x38), (8, 0x30), (16, 0x20), (32, 0), (64, 0)]:
-            for ones in range (1, size):
+            for ones in range(1, size):
                 for r in range(size):
                     count += 1
                     n = (size == 64)

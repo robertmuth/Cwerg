@@ -1,10 +1,10 @@
 """
 This module contains code for (un-)symbolizing the a64 ISA operands
 """
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
-from CpuA64.opcode_tab import OK, Opcode, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt, \
-    EncodeShifted_10_21_22, EncodeShifted_5_20_21_22, Encode_10_15_16_22_X
+from CpuA64.opcode_tab import OK, DecodeLogicalImmediate, SignedIntFromBits, Decode8BitFlt, \
+    EncodeShifted_10_21_22, EncodeShifted_5_20_21_22, Encode_10_15_16_22_X, Encode_10_15_16_22_W
 
 
 def print_dec(x):
@@ -33,7 +33,6 @@ _STRINGIFIER: Dict[OK, Any] = {
     #
     # Format: is dec/hex, sign-bits, scale
     OK.IMM_5_20: (True, 0, 1),
-    OK.IMM_16_20: (True, 0, 1),
     OK.IMM_16_20: (True, 0, 1),
     OK.IMM_COND_0_3: (True, 0, 1),
     OK.IMM_16_21: (False, 0, 1),
@@ -116,7 +115,7 @@ for ok, t in _STRINGIFIER.items():
 _UNSTRINGIFIER: Dict[OK, Any] = {
     OK.IMM_FLT_ZERO: lambda x: 0,
     OK.REG_LINK: lambda x: 0,
-    # OK.IMM_10_15_16_22_W: lambda x: print_hex(DecodeLogicalImmediate(x, 32)),
+    OK.IMM_10_15_16_22_W: lambda x: Encode_10_15_16_22_W(int(x[1:], 0)),
     OK.IMM_10_15_16_22_X: lambda x:  Encode_10_15_16_22_X(int(x[1:], 0)),
     OK.IMM_SHIFTED_5_20_21_22: lambda x: EncodeShifted_5_20_21_22(int(x[1:], 0)),
     OK.IMM_SHIFTED_10_21_22: lambda x: EncodeShifted_10_21_22(int(x[1:], 0)),
