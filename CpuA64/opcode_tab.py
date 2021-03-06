@@ -66,14 +66,15 @@ def DecodeLogicalImmediate(x, reg_size) -> int:
     # print(f"@@ {n:x} {r:x}  {s:x}")
     if n == 1:
         size = 64
-        ones = s
+        ones = s + 1
     else:
         size = 32
         while (size & s) != 0:
             size >>= 1
-        ones = s & (size - 1)
+        ones = 1 + (s & (size - 1))
+        assert ones != size
 
-    pattern = (1 << (ones + 1)) - 1
+    pattern = (1 << ones) - 1
     # print (f"@@ pattern: {pattern:x} {size}")
     # Note: pattern is of the form 0+1+
 
@@ -82,6 +83,33 @@ def DecodeLogicalImmediate(x, reg_size) -> int:
         pattern |= pattern << size
         size *= 2
     return ror(pattern, reg_size, r)
+
+
+def Encode_10_15_16_22_X(x) -> Optional[int]:
+    if x == 0 or x == ((1 << 64) - 1):
+        return None
+    # determine pattern width
+    for size, sm in [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2 , 0x3c)]:
+        shift = size >> 1
+        a = x & ((1 << shift) - 1)
+        b = x >> shift
+        if a == b:
+            x = a
+        else:
+            break
+    else:
+        assert False
+    n = 1 if size == 64 else 0
+    # determine ones
+    ones = bin(x).count('1')
+    ones_mask = (1 << ones) - 1
+    for r in range(size):
+        if x == ror(ones_mask, size, r):
+            s = sm | (ones - 1)
+            # print (f"{n} {r:06b} {s:06b}")
+            return (n << 12) | (r << 6) | s
+
+    return None
 
 
 def EncodeShifted_10_21_22(x) -> Optional[int]:
@@ -1382,8 +1410,22 @@ def _MnemonicHashingExperiments():
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
+        print ("Check Separability")
         _CheckOpcodeSeparability()
-        print("no argument provided")
+        print ("Check Logical Immediate Encoding")
+        count = 0
+        for size, sm in [(2, 0x3c), (4, 0x38), (8, 0x30), (16, 0x20), (32, 0), (64, 0)]:
+            for ones in range (1, size):
+                for r in range(size):
+                    count += 1
+                    n = (size == 64)
+                    s = sm | (ones - 1)
+                    i = (n << 12) | (r << 6) | s
+                    x = DecodeLogicalImmediate(i, 64)
+                    # print (f"{size:2d} {ones:2d} r={r:06b} s={s:06b} {x:016x}")
+                    i2 = Encode_10_15_16_22_X(x)
+                    assert i == i2, f"mismatch {i:x} {i2:x}"
+        print(f"checked {count} immediates")
         sys.exit(1)
     if sys.argv[1] == "dist":
         _OpcodeDisassemblerExperiments()
