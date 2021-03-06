@@ -266,7 +266,7 @@ def HandleOneInstruction(count: int, line: str,
     for a, b in zip(ops_raw, ops_raw2):
         all_operands += 1
         if b is not None:
-            assert a == b, f"{a} vs {b} [{ops_str}] [{ops_raw}] in: {line}"
+            assert a == b, f"{a} vs {b} {ops_str} {ops_raw} in: {line}"
             checked_operands += 1
 
     data2 = opcode.AssembleOperands(ops_raw)
