@@ -62,7 +62,7 @@ def EmitARM32Mul(code_buf):
 def EmitARM32Fib(code_buf):
     for ins in [
         # e92d4030 stm sp!, {r4,r5,lr}
-        dis.InsParse("stm", ["PuW", "sp", "reglist:16432"]),
+        dis.InsParse("stmdb_update", ["sp", "reglist:16432"]),
         dis.InsParse("cmp_imm", ["r0", "1"]),
         dis.InsParse("b", ["le", "7"]),
         dis.InsParse("mov_imm", ["r4", "0"]),
@@ -76,7 +76,7 @@ def EmitARM32Fib(code_buf):
         dis.InsParse("bl", ["lr", "-11"]),
         dis.InsParse("add_regimm", ["r0", "r4", "lsl", "r0", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
-        dis.InsParse("ldm", ["reglist:32816", "pUW", "sp"]),
+        dis.InsParse("ldmia_update", ["reglist:32816", "sp"]),
     ]:
         code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
 

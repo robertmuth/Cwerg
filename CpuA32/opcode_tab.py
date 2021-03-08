@@ -56,7 +56,7 @@ def Bits(*patterns) -> Tuple[int, int]:
     for mask, val, pos in patterns:
         mask <<= pos
         val <<= pos
-        assert m & mask == 0, "%x %x " % (m, mask)
+        assert m & mask == 0, f"mask overlap {m:x} {mask:x}"
         m |= mask
         v |= val
     # print ("<- %x %x" % (m, v))
@@ -225,16 +225,16 @@ class DREG(enum.IntEnum):
 # U/u: add/sub
 # W/w: wb/-
 # Note: post+wb no allowed
-@enum.unique
-class ADDR_MODE(enum.IntEnum):
-    puw = 0
-    puW = 1
-    pUw = 2
-    pUW = 3
-    Puw = 4
-    PuW = 5
-    PUw = 6
-    PUW = 7
+# @enum.unique
+# class ADDR_MODE(enum.IntEnum):
+#     puw = 0
+#     puW = 1
+#     pUw = 2
+#     pUW = 3
+#     Puw = 4
+#     PuW = 5
+#     PUw = 6
+#     PUW = 7
 
 
 @enum.unique
@@ -256,6 +256,7 @@ class OK(enum.Enum):
     REG_8_11 = 2
     REG_12_15 = 3
     REG_16_19 = 4
+
     # arm register misc
     REG_LINK = 5  # implicitly writes lr
     REG_PAIR_12_15 = 6  # {reg , reg+1}
@@ -276,15 +277,17 @@ class OK(enum.Enum):
     REGLIST_0_15 = 16
     REG_RANGE_0_7 = 17
     REG_RANGE_1_7 = 18
+    #
+    REG_BASE_16_19 = 19
 
     # misc
-    PRED_28_31 = 19
+    PRED_28_31 = 20
 
     # address modes (16_19 is implicit)
-    ADDR_BASE_ONLY = 20
-    ADDR_BASE_WITH_OFFSET = 21
-    ADDR_BASE_WITH_OFFSET2 = 22
-    ADDR_MULTI = 23
+    # ADDR_BASE_ONLY = 20
+    # ADDR_BASE_WITH_OFFSET = 21
+    # ADDR_BASE_WITH_OFFSET2 = 22
+    # ADDR_MULTI = 23
 
     # immediates
     IMM_0_7_times4 = 24
@@ -328,15 +331,15 @@ class BRK(enum.Enum):  # bit range kind
     Times8 = 5
     Times4 = 6
     Times2 = 7
-    Times2Plus4 = 8
+    # Times2Plus4 = 8
     Force0 = 9
     Force1 = 10
     Force3 = 11
     Force6 = 12
     Force14 = 13
-    U = 14
-    W = 15
-    P = 16
+    # U = 14
+    # W = 15
+    # P = 16
 
 
 BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
@@ -346,7 +349,7 @@ BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
     BRK.Times8,
     BRK.Times4,
     BRK.Times2,
-    BRK.Times2Plus4,
+    # BRK.Times2Plus4,
     BRK.Force0,
     BRK.Force1,
     BRK.Force3,
@@ -355,8 +358,9 @@ BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
 }
 
 BIT_RANGE_MODIFIER_HILO: Set[BRK] = {BRK.Hi, BRK.Lo}
-BIT_RANGE_MODIFIER_ADDR: Set[BRK] = {BRK.P, BRK.U, BRK.W}
-BIT_RANGE_MODIFIER = BIT_RANGE_MODIFIER_SINGLE | BIT_RANGE_MODIFIER_HILO | BIT_RANGE_MODIFIER_ADDR
+# BIT_RANGE_MODIFIER_ADDR: Set[BRK] = {BRK.P, BRK.U, BRK.W}
+BIT_RANGE_MODIFIER = BIT_RANGE_MODIFIER_SINGLE | BIT_RANGE_MODIFIER_HILO
+# | BIT_RANGE_MODIFIER_ADDR
 BIT_RANGE = Tuple[BRK, int, int]
 
 # plain register
@@ -365,6 +369,7 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.REG_8_11: [(BRK.Verbatim, 4, 8)],
     OK.REG_12_15: [(BRK.Verbatim, 4, 12)],
     OK.REG_16_19: [(BRK.Verbatim, 4, 16)],
+    OK.REG_BASE_16_19: [(BRK.Verbatim, 4, 16)],
     OK.REG_PAIR_12_15: [(BRK.Verbatim, 4, 12)],
     OK.REG_LINK: [(BRK.Force14, 0, 0)],  # implicitly writes lr
 }
@@ -400,12 +405,12 @@ FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_MODE_5_6_ADDR: [(BRK.Verbatim, 2, 5)],
 }
 
-FIELDS_ADDR: Dict[OK, List[BIT_RANGE]] = {
-    OK.ADDR_BASE_ONLY: [(BRK.Force6, 0, 0)],  # p=1, u=1, w=0
-    OK.ADDR_BASE_WITH_OFFSET: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
-    OK.ADDR_BASE_WITH_OFFSET2: [(BRK.Times2Plus4, 1, 23)],
-    OK.ADDR_MULTI: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
-}
+# FIELDS_ADDR: Dict[OK, List[BIT_RANGE]] = {
+#     OK.ADDR_BASE_ONLY: [(BRK.Force6, 0, 0)],  # p=1, u=1, w=0
+#     OK.ADDR_BASE_WITH_OFFSET: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
+#     OK.ADDR_BASE_WITH_OFFSET2: [(BRK.Times2Plus4, 1, 23)],
+#     OK.ADDR_MULTI: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
+# }
 
 FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
     # register set
@@ -423,7 +428,7 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     **FIELDS_DREG,
     **FIELDS_IMM,
     **FIELDS_SHIFT,
-    **FIELDS_ADDR,
+    #    **FIELDS_ADDR,
     **FIELDS_MISC,
 }
 
@@ -453,7 +458,7 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
         x = (value >> pos) & mask
         if modifier is BRK.Verbatim:
             return x
-        elif modifier is BRK.Hi or modifier is BRK.P:
+        elif modifier is BRK.Hi:
             tmp = x
         elif modifier is BRK.Times8:
             return x * 8
@@ -461,11 +466,11 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
             return x * 4
         elif modifier is BRK.Times2:
             return x * 2
-        elif modifier is BRK.Times2Plus4:
-            return x * 2 + 4
-        elif modifier is BRK.U:
-            tmp = (tmp << width) | x
-        elif modifier is BRK.Lo or modifier is BRK.W:
+        # elif modifier is BRK.Times2Plus4:
+        #    return x * 2 + 4
+        # elif modifier is BRK.U:
+        #    tmp = (tmp << width) | x
+        elif modifier is BRK.Lo:
             return (tmp << width) | x
         elif modifier is BRK.Force1:
             return 1
@@ -502,20 +507,20 @@ def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
         elif modifier is BRK.Times2:
             assert val % 2 == 0
             bits.append((mask, val >> 1, pos))
-        elif modifier is BRK.Times2Plus4:
-            assert val & 4 == 4
-            assert val % 2 == 0
-            bits.append((mask, (val - 4) >> 1, pos))
+        # elif modifier is BRK.Times2Plus4:
+        #    assert val & 4 == 4
+        #    assert val % 2 == 0
+        #    bits.append((mask, (val - 4) >> 1, pos))
         elif modifier is BRK.Times4:
             assert val % 4 == 0
             bits.append((mask, val >> 2, pos))
-        elif modifier is BRK.Lo or modifier is BRK.W:
+        elif modifier is BRK.Lo:
             bits.append((mask, val & mask, pos))
             val = val >> width
-        elif modifier is BRK.U:
-            bits.append((mask, val & mask, pos))
-            val = val >> width
-        elif modifier is BRK.Hi or modifier is BRK.P:
+        # elif modifier is BRK.U:
+        #    bits.append((mask, val & mask, pos))
+        #    val = val >> width
+        elif modifier is BRK.Hi:
             assert mask & val == val, f"{operand_kind} {val} {modifier} {mask:x}"
             bits.append((mask, val, pos))
         elif modifier in {BRK.Force0, BRK.Force1, BRK.Force3, BRK.Force6,
@@ -566,7 +571,14 @@ class OPC_FLAG(enum.Flag):
     SYSCALL = 1 << 21
     BYTEREORDER = 1 << 22
     MISC = 1 << 23
-    # do not go above 31 as we want these to fit into a 32 bit word
+    ADDR_PRE = (1 << 24)
+    ADDR_POST = (1 << 25)
+    ADDR_INC = (1 << 26)
+    ADDR_DEC = (1 << 27)
+    ADDR_UPDATE = (1 << 28)
+
+
+# do not go above 31 as we want these to fit into a 32 bit word
 
 
 # number of bytes accessed by a memory opcode (ld/st)
@@ -581,6 +593,54 @@ class MEM_WIDTH(enum.Enum):
     Variable = 6
 
 
+# W[21],  # 1: write base reg
+# U[23],  # 0: sub, 1: add
+# P[24],  # 0: post 1:pre
+STANDARD_ADDR_MODES = [
+    #  post with out a write back is not allowed or a different kind of instruction
+    #("sub", [(3, 0, 23), (1, 0, 21)],
+    # OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC),
+    #("add", [(3, 1, 23), (1, 0, 21)],
+    # OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_INC),
+    ("sub_post", [(3, 0, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_UPDATE),
+    ("add_post", [(3, 1, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_UPDATE),
+    ("sub", [(3, 2, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_DEC),
+    ("add", [(3, 3, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_INC),
+    ("sub_pre", [(3, 2, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_UPDATE),
+    ("add_pre", [(3, 3, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_UPDATE),
+]
+
+LIMITED_ADDR_MODES = [
+    #  post with out a write back is not allowed or a different kind of instuction
+    ("sub", [(1, 0, 23)], OPC_FLAG.ADDR_DEC),
+    ("add", [(1, 1, 23)], OPC_FLAG.ADDR_INC),
+]
+
+MULTI_ADDR_MODES = [
+    ("da", "", [(3, 0, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC),
+    ("ia", "", [(3, 1, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_INC),
+    ("db", "", [(3, 2, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_DEC),
+    ("ib", "", [(3, 3, 23), (1, 0, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_INC),
+    ("da", "update", [(3, 0, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_UPDATE),
+    ("ia", "update", [(3, 1, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_UPDATE),
+    ("db", "update", [(3, 2, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_UPDATE),
+    ("ib", "update", [(3, 3, 23), (1, 1, 21)],
+     OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_UPDATE),
+]
+
 # All instruction contain this discriminant in their mask so we can use
 # it to partition the instructions.
 # Bit 0x00100000 is another candidate bit we would need an exception
@@ -592,13 +652,21 @@ _INS_CLASSIFIER: int = 0x0e000000
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
 
 # We use the notion of variant to disambiguate opcodes with the same mnemonic
-_VARIANTS = {
+_VARIANTS: Set[str] = {
     "", "imm", "reg", "regreg", "regimm",
     "f32", "f64",
     "atof", "ftoa", "atos", "stoa",
     "zero", "s", "f",
     "APSR_nzcv_fpscr",
+    "update",
+    "f_update", "s_update"
 }
+
+_VARIANTS.update([t[0] for t in STANDARD_ADDR_MODES])
+_VARIANTS.update(["f32_" + t[0] for t in STANDARD_ADDR_MODES])
+_VARIANTS.update(["f64_" + t[0] for t in STANDARD_ADDR_MODES])
+_VARIANTS.update(["imm_" + t[0] for t in STANDARD_ADDR_MODES])
+_VARIANTS.update(["reg_" + t[0] for t in STANDARD_ADDR_MODES])
 
 
 class Opcode:
@@ -642,7 +710,7 @@ class Opcode:
         self.variant = variant
 
         enum_name = self.NameForEnum()
-        assert enum_name not in Opcode.name_to_opcode
+        assert enum_name not in Opcode.name_to_opcode, f"duplicate {enum_name}"
         Opcode.name_to_opcode[enum_name] = self
 
         mask, value = Bits(*bits)
@@ -732,10 +800,7 @@ def _CheckDiscriminantSeparability():
                         assert o1.bit_mask & mask == mask, o1.name
                         assert ExtractBits(o1.bit_value, mask) == 0, o1.name
                         continue
-                print(
-                    "potential conflict: ", repr(
-                        o1.name), "vs", repr(
-                        o2.name))
+                print(f"potential conflict: [{o1.name} {o1.variant}]  [{o2.name} {o2.variant}]")
                 assert False
 
 
@@ -794,41 +859,42 @@ for ext, n in [("bb", 8), ("tb", 10), ("bt", 12), ("tt", 14)]:
 Opcode("strex", "",
        # TODO: OK.REG_0_3 should move to the end
        [root00, (0x3f, 0x18, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
-       [OK.REG_12_15, OK.REG_0_3, OK.ADDR_BASE_ONLY, OK.REG_16_19],
+       [OK.REG_12_15, OK.REG_0_3, OK.REG_BASE_16_19],
        OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=MEM_WIDTH.W4)
 
 Opcode("ldrex", "",
        [root00, (0x3f, 0x19, 20), (0xf, 0xf, 8), (0xf, 0x9, 4),
         (0xf, 0xf, 0)],
-       [OK.REG_12_15, OK.ADDR_BASE_ONLY, OK.REG_16_19],
+       [OK.REG_12_15, OK.REG_BASE_16_19],
        OPC_FLAG.ATOMIC | OPC_FLAG.LOAD, mem_width=MEM_WIDTH.W4)
 
-for variant, bits, addr_mode in [
-    ("imm", [(1, 1, 22)],
-     [OK.ADDR_BASE_WITH_OFFSET, OK.REG_16_19, OK.IMM_0_3_8_11]),
-    ("reg", [(1, 0, 22), (0xf, 0, 8)],
-     [OK.ADDR_BASE_WITH_OFFSET, OK.REG_16_19, OK.REG_0_3])]:
-    for ext, width, n in [("h", MEM_WIDTH.W2, 0xb), ("sb", MEM_WIDTH.W1, 0xd),
-                          ("sh", MEM_WIDTH.W2, 0xf)]:
-        Opcode("ldr" + ext, variant,
-               bits + [root00, (1, 0, 25), (1, 1, 20), (0xf, n, 4)],
-               [OK.REG_12_15] + addr_mode,
-               OPC_FLAG.LOAD, mem_width=width)
+for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
+    for variant, bits, fields in [
+        ("imm_" + addr_mode, [(1, 1, 22)] + addr_bits,
+         [OK.REG_BASE_16_19, OK.IMM_0_3_8_11]),
+        ("reg_" + addr_mode, [(1, 0, 22), (0xf, 0, 8)] + addr_bits,
+         [OK.REG_BASE_16_19, OK.REG_0_3])]:
+        for ext, width, n in [("h", MEM_WIDTH.W2, 0xb), ("sb", MEM_WIDTH.W1, 0xd),
+                              ("sh", MEM_WIDTH.W2, 0xf)]:
+            Opcode("ldr" + ext, variant,
+                   bits + [root00, (1, 0, 25), (1, 1, 20), (0xf, n, 4)],
+                   [OK.REG_12_15] + fields,
+                   OPC_FLAG.LOAD | flag, mem_width=width)
 
-    Opcode("strh", variant,
-           bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 4)],
-           addr_mode + [OK.REG_12_15],
-           OPC_FLAG.STORE, mem_width=MEM_WIDTH.W2)
+        Opcode("strh", variant,
+               bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 4)],
+               fields + [OK.REG_12_15],
+               OPC_FLAG.STORE | flag, mem_width=MEM_WIDTH.W2)
 
-    Opcode("ldrd", variant,
-           bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xd, 4)],
-           [OK.REG_PAIR_12_15] + addr_mode,
-           OPC_FLAG.LOAD, mem_width=MEM_WIDTH.W8)
+        Opcode("ldrd", variant,
+               bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xd, 4)],
+               [OK.REG_PAIR_12_15] + fields,
+               OPC_FLAG.LOAD | flag, mem_width=MEM_WIDTH.W8)
 
-    Opcode("strd", variant,
-           bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xf, 4)],
-           addr_mode + [OK.REG_PAIR_12_15],
-           OPC_FLAG.STORE, mem_width=MEM_WIDTH.W8)
+        Opcode("strd", variant,
+               bits + [root00, (1, 0, 25), (1, 0, 20), (0xf, 0xf, 4)],
+               fields + [OK.REG_PAIR_12_15],
+               OPC_FLAG.STORE | flag, mem_width=MEM_WIDTH.W8)
 
 for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
                   ("add", 4), ("adc", 5), ("sbc", 6), ("rsc", 7),
@@ -853,7 +919,7 @@ for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
 for ext, width, n in [("", MEM_WIDTH.W4, 8), ("b", MEM_WIDTH.W1, 0xa)]:
     Opcode("swp" + ext, "",
            [root00, (0xf, n, 21), (1, 0, 25), (1, 0, 20), (0xf, 0x0, 8), (0xf, 0x9, 4)],
-           [OK.REG_12_15, OK.REG_0_3, OK.ADDR_BASE_ONLY, OK.REG_16_19],
+           [OK.REG_12_15, OK.REG_0_3, OK.REG_BASE_16_19],
            OPC_FLAG.ATOMIC, mem_width=width)
 
 Opcode("bx", "",
@@ -961,25 +1027,28 @@ for ext, n in [("", 3), ("16", 11)]:
            [OK.REG_12_15, OK.REG_0_3],
            OPC_FLAG.BYTEREORDER)
 # prefetch must precede ldrb as it is similar
-for variant, bits, addr_mode in [
-    ("reg", [(1, 1, 25), (1, 0, 4)], [OK.ADDR_BASE_WITH_OFFSET, OK.REG_16_19,
-                                      OK.SHIFT_MODE_5_6_ADDR, OK.REG_0_3, OK.IMM_7_11]),
-    ("imm", [(1, 0, 25)], [OK.ADDR_BASE_WITH_OFFSET, OK.REG_16_19, OK.IMM_0_11])]:
-    Opcode("ldp", variant,
-           bits + [root01, (1, 1, 22), (1, 1, 20), (0xf, 0xf, 12), (0xf, 0xf, 28)],
-           addr_mode,
-           OPC_FLAG.PREFETCH, has_pred=False)
 
-    for ext, width, n in [("", MEM_WIDTH.W4, 0), ("b", MEM_WIDTH.W1, 1)]:
-        Opcode("ldr" + ext, variant,
-               bits + [root01, (1, n, 22), (1, 1, 20)],
-               [OK.REG_12_15] + addr_mode,
-               OPC_FLAG.LOAD, mem_width=width)
+for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
+    for variant, bits, fields in [
+        ("reg_" + addr_mode, [(1, 1, 25), (1, 0, 4)] + addr_bits,
+         [OK.REG_BASE_16_19, OK.SHIFT_MODE_5_6_ADDR, OK.REG_0_3, OK.IMM_7_11]),
+        ("imm_" + addr_mode, [(1, 0, 25)] + addr_bits,
+         [OK.REG_BASE_16_19, OK.IMM_0_11])]:
+        Opcode("ldp", variant,
+               bits + [root01, (1, 1, 22), (1, 1, 20), (0xf, 0xf, 12), (0xf, 0xf, 28)],
+               fields,
+               OPC_FLAG.PREFETCH | flag, has_pred=False)
 
-        Opcode("str" + ext, variant,
-               bits + [root01, (1, n, 22), (1, 0, 20)],
-               addr_mode + [OK.REG_12_15],
-               OPC_FLAG.STORE, mem_width=width)
+        for ext, width, n in [("", MEM_WIDTH.W4, 0), ("b", MEM_WIDTH.W1, 1)]:
+            Opcode("ldr" + ext, variant,
+                   bits + [root01, (1, n, 22), (1, 1, 20)],
+                   [OK.REG_12_15] + fields,
+                   OPC_FLAG.LOAD | flag, mem_width=width)
+
+            Opcode("str" + ext, variant,
+                   bits + [root01, (1, n, 22), (1, 0, 20)],
+                   fields + [OK.REG_12_15],
+                   OPC_FLAG.STORE | flag, mem_width=width)
 
 Opcode("ud2", "",
        [root01, (0x3ffffff, 0x3f000f0, 0)],
@@ -993,15 +1062,17 @@ root10 = (3, 2, 26)
 #       [oSIMM_0_23_24],
 #       [cJump, cLink, cThumb], has_pred=False)
 
-Opcode("stm", "",
-       [root10, (1, 0, 25), (1, 0, 20), (1, 0, 22)],
-       [OK.ADDR_MULTI, OK.REG_16_19, OK.REGLIST_0_15],
-       OPC_FLAG.STORE | OPC_FLAG.MULTIPLE)
 
-Opcode("ldm", "",
-       [root10, (1, 0, 25), (1, 1, 20), (1, 0, 22)],
-       [OK.REGLIST_0_15, OK.ADDR_MULTI, OK.REG_16_19],
-       OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE)
+for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
+    Opcode("stm" + mode, update,
+           [root10, (1, 0, 25), (1, 0, 20), (1, 0, 22)] + addr_bits,
+           [OK.REG_BASE_16_19, OK.REGLIST_0_15],
+           OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | flag)
+
+    Opcode("ldm" + mode, update,
+           [root10, (1, 0, 25), (1, 1, 20), (1, 0, 22)] + addr_bits,
+           [OK.REGLIST_0_15, OK.REG_BASE_16_19],
+           OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | flag)
 
 Opcode("b", "",
        [root10, (1, 1, 25), (1, 0, 24)],
@@ -1021,25 +1092,26 @@ Opcode("svc", "",
        [OK.IMM_0_23],
        OPC_FLAG.SYSCALL)
 
-Opcode("vldr", "f32",
-       [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xa, 8)],
-       [OK.SREG_12_15_22, OK.ADDR_BASE_WITH_OFFSET2, OK.REG_16_19, OK.IMM_0_7_times4],
-       OPC_FLAG.VFP | OPC_FLAG.LOAD)
+for addr_mode, addr_bits, flag in LIMITED_ADDR_MODES:
+    Opcode("vldr", "f32_" + addr_mode,
+           [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xa, 8)] + addr_bits,
+           [OK.SREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_times4],
+           OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
-Opcode("vldr", "f64",
-       [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xb, 8)],
-       [OK.DREG_12_15_22, OK.ADDR_BASE_WITH_OFFSET2, OK.REG_16_19, OK.IMM_0_7_times4],
-       OPC_FLAG.VFP | OPC_FLAG.LOAD)
+    Opcode("vldr", "f64_" + addr_mode,
+           [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xb, 8)] + addr_bits,
+           [OK.DREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_times4],
+           OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
-Opcode("vstr", "f32",
-       [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xa, 8)],
-       [OK.ADDR_BASE_WITH_OFFSET2, OK.REG_16_19, OK.IMM_0_7_times4, OK.SREG_12_15_22],
-       OPC_FLAG.VFP | OPC_FLAG.STORE)
+    Opcode("vstr", "f32_" + addr_mode,
+           [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xa, 8)] + addr_bits,
+           [OK.REG_BASE_16_19, OK.IMM_0_7_times4, OK.SREG_12_15_22],
+           OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
-Opcode("vstr", "f64",
-       [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xb, 8)],
-       [OK.ADDR_BASE_WITH_OFFSET2, OK.REG_16_19, OK.IMM_0_7_times4, OK.DREG_12_15_22],
-       OPC_FLAG.VFP | OPC_FLAG.STORE)
+    Opcode("vstr", "f64_" + addr_mode,
+           [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xb, 8)] + addr_bits,
+           [OK.REG_BASE_16_19, OK.IMM_0_7_times4, OK.DREG_12_15_22],
+           OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
 Opcode("vmov", "atof",
        [root11, (0x3f, 4, 20), (0xfd, 0xb1, 4)],
@@ -1147,25 +1219,26 @@ for name, a, b, c in [("vnmul", 4, 2, 4),
            [OK.DREG_12_15_22, OK.DREG_16_19_7, OK.DREG_0_3_5],
            OPC_FLAG.VFP)
 
-Opcode("vldm", "s",
-       [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xa, 8)],
-       [OK.REG_RANGE_0_7, OK.SREG_12_15_22, OK.ADDR_MULTI, OK.REG_16_19],
-       OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP)
+for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
+    Opcode("vldm" + mode, "s_" + update if update else "s",
+           [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xa, 8)] + addr_bits,
+           [OK.REG_RANGE_0_7, OK.SREG_12_15_22, OK.REG_BASE_16_19],
+           OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
-Opcode("vldm", "f",
-       [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xb, 8), (1, 0, 0)],
-       [OK.REG_RANGE_1_7, OK.DREG_12_15_22, OK.ADDR_MULTI, OK.REG_16_19],
-       OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP)
+    Opcode("vldm" + mode, "f_" + update if update else "f",
+           [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
+           [OK.REG_RANGE_1_7, OK.DREG_12_15_22, OK.REG_BASE_16_19],
+           OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
-Opcode("vstm", "s",
-       [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xa, 8)],
-       [OK.ADDR_MULTI, OK.REG_16_19, OK.REG_RANGE_0_7, OK.SREG_12_15_22],
-       OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP)
+    Opcode("vstm" + mode, "s_" + update if update else "s",
+           [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xa, 8)] + addr_bits,
+           [OK.REG_BASE_16_19, OK.REG_RANGE_0_7, OK.SREG_12_15_22],
+           OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
-Opcode("vstm", "f",
-       [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 8), (1, 0, 0)],
-       [OK.ADDR_MULTI, OK.REG_16_19, OK.REG_RANGE_1_7, OK.DREG_12_15_22],
-       OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP)
+    Opcode("vstm" + mode, "f_" + update if update else "f",
+           [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
+           [OK.REG_BASE_16_19, OK.REG_RANGE_1_7, OK.DREG_12_15_22],
+           OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
 Opcode("vmrs", "APSR_nzcv_fpscr",
        [root11, (0x3ffffff, 0x2f1fa10, 0)],

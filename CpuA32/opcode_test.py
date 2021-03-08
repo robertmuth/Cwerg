@@ -12,18 +12,26 @@ import CpuA32.disassembler as dis
 import CpuA32.opcode_tab as arm
 
 
-def FixupAliases(actual_name: str, actual_ops: List, is_multi):
-    if actual_name[:3] in ["lsl", "lsr", "asr", "ror"]:
+def FixupAliases(name: str, ops: List, is_multi):
+    if name[:3] in ["lsl", "lsr", "asr", "ror"]:
         # lsrs	r3, r3, #7  -> movs  r3, r3, lsr #7
-        actual_ops[-1] = actual_name[:3] + " " + actual_ops[-1]
-        return "mov" + actual_name[3:]
-    if actual_name.startswith("vcmp") and "#0.0" in actual_ops:
-        actual_ops[actual_ops.index("#0.0")] = "#0"
+        ops[-1] = name[:3] + " " + ops[-1]
+        return "mov" + name[3:]
+    if name.startswith("vcmp") and "#0.0" in ops:
+        ops[ops.index("#0.0")] = "#0"
+
     if is_multi:
-        return (actual_name.replace("ia", "")
-                .replace("ib", "").replace("db", "")
-                .replace("push", "stm").replace("pop", "ldm"))
-    return actual_name
+        if "push" in name:
+            name = name.replace("push", "stmdb")
+            ops.insert(0, "sp!")
+        elif "pop" in name:
+            name = name.replace("pop", "ldmia")
+            ops.insert(0, "sp!")
+
+        start = 1 if name[0] == "v" else 0
+        if name[start + 3: start + 5] not in {"ia", "ib", "da", "db"}:
+            name = name[:start + 3] + "ia" + name[start + 3:]
+    return name
 
 
 def OperandsDiffer(actual_operands, expected_operands):
@@ -38,8 +46,8 @@ def OperandsDiffer(actual_operands, expected_operands):
 def HandleOneInstruction(count: int, line: str,
                          data: int,
                          actual_name: str, actual_ops: List):
-    is_push_pop = "push" in actual_name or "pop" in actual_name
     ins = arm.Disassemble(data)
+    assert ins is not None, f"cannot disassemble: {line}"
     assert ins.opcode is not None and ins.operands is not None, f"unknown opcode {line}"
     data2 = arm.Assemble(ins)
     assert data == data2
@@ -53,12 +61,10 @@ def HandleOneInstruction(count: int, line: str,
     actual_name = FixupAliases(actual_name, actual_ops,
                                arm.OPC_FLAG.MULTIPLE in ins.opcode.classes)
     if actual_name != expected_name:
-        print("BAD NAME", expected_name, actual_name, line)
+        print("BAD NAME", expected_name, actual_name, line, end="")
 
-    if is_push_pop:
-        expected_ops.pop(0)
     if OperandsDiffer(actual_ops, expected_ops):
-        print("OPERANDS differ", str(expected_ops), line)
+        print("OPERANDS differ", str(expected_ops), line, end="")
 
     operands_str = dis.SymbolizeOperands(ins)
     operands2 = [dis.UnsymbolizeOperand(o) for o in operands_str]

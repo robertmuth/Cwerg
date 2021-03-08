@@ -36,34 +36,41 @@ ALL_NAMES_MAP = _Merge([p.name for p in arm.PRED],
                        REG_NAMES_SYSTEMATIC,
                        [p.name for p in arm.DREG],
                        [p.name for p in arm.SREG],
-                       [p.name for p in arm.ADDR_MODE],
                        [p.name for p in arm.SHIFT])
 
 
-# U,  # 0: sub, 1: add
-# W,  # 1: write base reg
-# P,  # 0: post 1:pre
-def _RenderAddressStd(base, offset, puw):
-    if offset != "#0":
-        if not puw & 2:
-            if offset.startswith("#"):
-                offset = "#-" + offset[1:]
-            else:
-                offset = "-" + offset
-        offset = "," + offset
-    else:
-        offset = ""
-    suffix = "!" if (puw & 1) else ""
-    if puw & 4:
-        return f"[{base}{offset}]{suffix}"
-    else:
-        return f"[{base}]{offset}{suffix}"
-
-
 # render a single operand, e.g. and address like  `[r3, #-116]`
-def _RenderOperandStd(it) -> Optional[str]:
+def _RenderOperandStd(opcode, it) -> Optional[str]:
     field_kind, operand = next(it)
-    if field_kind is arm.OK.REG_LINK:
+    if field_kind is arm.OK.REG_BASE_16_19:
+        base = arm.REG(operand).name
+        if arm.OPC_FLAG.MULTIPLE in opcode.classes:
+            if arm.OPC_FLAG.ADDR_UPDATE in opcode.classes:
+                return f"{base}!"
+            else:
+                return f"{base}"
+
+        offset = ""
+        if arm.OPC_FLAG.ADDR_INC in opcode.classes:
+            offset = "," + _RenderOperandStd(opcode, it)
+        elif arm.OPC_FLAG.ADDR_DEC in opcode.classes:
+            offset = _RenderOperandStd(opcode, it)
+            if offset.startswith("#"):
+                offset = ",#-" + offset[1:]
+            else:
+                offset = ",-" + offset
+        if offset in {",#0", ",#-0"}:
+            offset = ""
+
+        if arm.OPC_FLAG.ADDR_UPDATE in opcode.classes:
+            if arm.OPC_FLAG.ADDR_POST in opcode.classes:
+                return f"[{base}]{offset}"
+            elif arm.OPC_FLAG.ADDR_PRE in opcode.classes:
+                return f"[{base}{offset}]!"
+        else:
+            return f"[{base}{offset}]"
+
+    elif field_kind is arm.OK.REG_LINK:
         return None
     elif field_kind in arm.FIELDS_SREG:
         return arm.SREG(operand).name
@@ -72,40 +79,27 @@ def _RenderOperandStd(it) -> Optional[str]:
     elif field_kind in arm.FIELDS_REG:
         return arm.REG(operand).name
     elif field_kind is arm.OK.SHIFT_MODE_ROT:
-        shiftee = _RenderOperandStd(it)
-        shift_amount = _RenderOperandStd(it)
+        shiftee = _RenderOperandStd(opcode, it)
+        shift_amount = _RenderOperandStd(opcode, it)
         if shift_amount == "#0":
             return f"{shiftee}"
         return f"{shiftee}, {shift_amount}"
     elif field_kind is arm.OK.SHIFT_MODE_5_6:
-        shiftee = _RenderOperandStd(it)
-        shift_amount = _RenderOperandStd(it)
+        shiftee = _RenderOperandStd(opcode, it)
+        shift_amount = _RenderOperandStd(opcode, it)
         if shift_amount == "#0":
             return f"{shiftee}"
         shift_dir = operand
         return f"{shiftee}, {SHIFT_NAMES_STD[shift_dir]} {shift_amount}"
     elif field_kind is arm.OK.SHIFT_MODE_5_6_ADDR:
-        shiftee = _RenderOperandStd(it)
-        shift_amount = _RenderOperandStd(it)
+        shiftee = _RenderOperandStd(opcode, it)
+        shift_amount = _RenderOperandStd(opcode, it)
         shift_dir = operand
         if shift_amount == "#0":
             dir = ["", ", lsr #32", ", asr #32", ", rrx"][shift_dir]
             return f"{shiftee}{dir}"
         else:
             return f"{shiftee}, {SHIFT_NAMES_STD[shift_dir]} {shift_amount}"
-    elif field_kind is arm.OK.ADDR_BASE_ONLY:
-        base = _RenderOperandStd(it)
-        return _RenderAddressStd(base, "#0", operand)
-    elif (field_kind is arm.OK.ADDR_BASE_WITH_OFFSET or
-          field_kind is arm.OK.ADDR_BASE_WITH_OFFSET2):
-        base = _RenderOperandStd(it)
-        offset = _RenderOperandStd(it)
-        return _RenderAddressStd(base, offset, operand)
-    elif field_kind is arm.OK.ADDR_MULTI:
-        puw = operand
-        suffix = "!" if (puw & 1) else ""
-        base = _RenderOperandStd(it)
-        return f"{base}{suffix}"
     elif field_kind in arm.FIELDS_IMM:
         return f"#{operand}"
     elif field_kind is arm.OK.PRED_28_31:
@@ -117,7 +111,7 @@ def _RenderOperandStd(it) -> Optional[str]:
         return expr
     elif field_kind == arm.OK.REG_RANGE_0_7 or field_kind == arm.OK.REG_RANGE_1_7:
         reg_count = operand
-        start_reg = _RenderOperandStd(it)
+        start_reg = _RenderOperandStd(opcode, it)
         assert start_reg is not None
         if reg_count == 1:
             return "{" + start_reg + "}"
@@ -157,12 +151,14 @@ def RenderInstructionStd(ins: arm.Ins) -> str:
     ops = []
     try:
         while True:
-            ops.append(_RenderOperandStd(it))
+            ops.append(_RenderOperandStd(ins.opcode, it))
     except StopIteration:
         pass
 
     # some opcodes do no follow the dst before src order of operands
-    if ins.opcode.name in {"ldm", "vldm", "str", "vstr", "strh", "strb", "strd"}:
+    if ins.opcode.name in {"str", "vstr", "strh", "strb", "strd",
+                           "ldmia", "ldmib", "ldmda", "ldmdb",
+                           "vldmia", "vldmib", "vldmda", "vldmdb"}:
         mask = ops.pop(-1)
         ops = [mask] + ops
 
@@ -176,11 +172,11 @@ def _EmitReloc(ins: arm.Ins, pos: int) -> str:
         assert ins.is_local_sym, f"expected local symbol"
         return f"expr:jump24:{ins.reloc_symbol}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.MOVT_ABS:
-        loc = "loc_" if ins.is_local_sym  else ""
+        loc = "loc_" if ins.is_local_sym else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
         return f"expr:{loc}movt_abs:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC:
-        loc = "loc_" if ins.is_local_sym  else ""
+        loc = "loc_" if ins.is_local_sym else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
         return f"expr:{loc}movw_abs_nc:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.CALL:
@@ -202,8 +198,6 @@ def _SymbolizeOperand(field: arm.OK, value: int) -> str:
         return f"{value}"
     elif field in arm.FIELDS_SHIFT:
         return arm.SHIFT(value).name
-    elif field in arm.FIELDS_ADDR:
-        return arm.ADDR_MODE(value).name
     elif field is arm.OK.REG_RANGE_0_7 or field is arm.OK.REG_RANGE_1_7:
         return f"regrange:{value}"
     elif field is arm.OK.REGLIST_0_15:
