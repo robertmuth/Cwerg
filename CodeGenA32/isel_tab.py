@@ -241,8 +241,6 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
         return op.value
     elif isinstance(op, arm.REG):
         return op.value
-    elif isinstance(op, arm.ADDR_MODE):
-        return op.value
     elif isinstance(op, arm.SHIFT):
         return op.value
     elif isinstance(op, PARAM):
@@ -315,7 +313,7 @@ class InsTmpl:
         if pred is not None:
             args = [pred] + args
         for op in args:
-            assert isinstance(op, (int, PARAM, arm.PRED, arm.REG, arm.ADDR_MODE, arm.SHIFT)), (
+            assert isinstance(op, (int, PARAM, arm.PRED, arm.REG, arm.SHIFT)), (
                 f"unknown op {op} for {opcode.name} {args}")
         self.opcode = opcode
         self.args = args
@@ -356,9 +354,9 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
         stk_size -= high_byte
     if ctx.vldm_regs > 0:
         out.append(
-            InsTmpl("vldm_s", [PARAM.vldm_count, PARAM.vldm_start, arm.ADDR_MODE.pUW, arm.REG.sp]))
+            InsTmpl("vldmia_s_update", [PARAM.vldm_count, PARAM.vldm_start, arm.REG.sp]))
     if ctx.ldm_regs > 0:
-        out.append(InsTmpl("ldm", [PARAM.ldm_regmask, arm.ADDR_MODE.pUW, arm.REG.sp]))
+        out.append(InsTmpl("ldmia_update", [PARAM.ldm_regmask, arm.REG.sp]))
     if (regs.A32RegToAllocMask(regs.PC_REG) & ctx.ldm_regs) == 0:
         out.append(InsTmpl("bx", [arm.REG.lr]))
     return out
@@ -379,11 +377,11 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     out = []
     # TODO: make sure stack is 8 byte aligned
     if ctx.stm_regs:
-        out.append(InsTmpl("stm", [arm.ADDR_MODE.PuW, arm.REG.sp, PARAM.stm_regmask]))
+        out.append(InsTmpl("stmdb_update", [arm.REG.sp, PARAM.stm_regmask]))
     if ctx.vstm_regs > 0:
         out.append(InsTmpl(
-            "vstm_s",
-            [arm.ADDR_MODE.PuW, arm.REG.sp, PARAM.vstm_count, PARAM.vstm_start]))
+            "vstmdb_s_update",
+            [arm.REG.sp, PARAM.vstm_count, PARAM.vstm_start]))
     stk_size = ctx.stk_size
     while stk_size > 0:
         high_byte = _HighByte(stk_size)
@@ -656,52 +654,52 @@ def InitLoad():
                        (o.DK.C32, "ldr"), (o.DK.U8, "ldrb")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2], _NO_IMM3,
-                    [InsTmpl(opc + "_reg",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, PARAM.reg1, arm.SHIFT.lsl, PARAM.reg2,
+                    [InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, PARAM.reg2,
                               0])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_pos,
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, PARAM.reg1, PARAM.num2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, PARAM.reg1, PARAM.num2])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_neg,
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.Puw, PARAM.reg1, PARAM.num2_neg])])
+                    [InsTmpl(opc + "_imm_sub",
+                             [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])])
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
                     [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_12_bits],
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk1_offset2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])])
 
     imm_constraints_pos = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_8_bits_times_4]
     imm_constraints_neg = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.neg_8_bits_times_4]
-    for kind1, opc in [(o.DK.F32, "vldr_f32"), (o.DK.F64, "vldr_f64")]:
+    for kind1, opc in [(o.DK.F32, "vldr_f32_"), (o.DK.F64, "vldr_f64_")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_pos,
-                    [InsTmpl(opc, [PARAM.reg0, arm.ADDR_MODE.PUw, PARAM.reg1, PARAM.num2])])
+                    [InsTmpl(opc + "add", [PARAM.reg0, PARAM.reg1, PARAM.num2])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_neg,
-                    [InsTmpl(opc, [PARAM.reg0, arm.ADDR_MODE.Puw, PARAM.reg1, PARAM.num2_neg])])
+                    [InsTmpl(opc + "sub", [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])])
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
                     [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_8_bits_times_4],
-                    [InsTmpl(opc, [PARAM.reg0, arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk1_offset2])])
+                    [InsTmpl(opc + "add", [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])])
 
     imm_constraints_pos = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_8_bits]
     imm_constraints_neg = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.neg_8_bits]
     for kind1, opc in [(o.DK.S8, "ldrsb"), (o.DK.U16, "ldrh"), (o.DK.S16, "ldrsh")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2], _NO_IMM3,
-                    [InsTmpl(opc + "_reg",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, PARAM.reg1, PARAM.reg2])])
+                    [InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_neg,
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, PARAM.reg1, PARAM.num2_neg])])
+                    [InsTmpl(opc + "_imm_sub",
+                             [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_pos,
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.Puw, PARAM.reg1, PARAM.num2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, PARAM.reg1, PARAM.num2])])
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
                     [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_8_bits],
-                    [InsTmpl(opc + "_imm",
-                             [PARAM.reg0, arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk1_offset2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])])
 
 
 def InitStore():
@@ -711,52 +709,52 @@ def InitStore():
                        (o.DK.C32, "str"), (o.DK.U8, "strb"), (o.DK.S8, "strb")]:
         for kind1 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind1, kind2], _NO_IMM3,
-                    [InsTmpl(opc + "_reg",
-                             [arm.ADDR_MODE.PUw, PARAM.reg0, arm.SHIFT.lsl, PARAM.reg1, 0,
+                    [InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, arm.SHIFT.lsl, PARAM.reg1, 0,
                               PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind1, kind2], imm_constraints_pos,
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.PUw, PARAM.reg0, PARAM.num1, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, PARAM.num1, PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind1, kind2], imm_constraints_neg,
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.Puw, PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_sub",
+                             [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [IMM_KIND.invalid, IMM_KIND.pos_stk_combo_12_bits, IMM_KIND.invalid],
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
 
     imm_constraints_pos = [IMM_KIND.invalid, IMM_KIND.pos_8_bits_times_4, IMM_KIND.invalid]
     imm_constraints_neg = [IMM_KIND.invalid, IMM_KIND.neg_8_bits_times_4, IMM_KIND.invalid]
-    for kind1, opc in [(o.DK.F32, "vstr_f32"), (o.DK.F64, "vstr_f64")]:
+    for kind1, opc in [(o.DK.F32, "vstr_f32_"), (o.DK.F64, "vstr_f64_")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind2, kind1], imm_constraints_pos,
-                    [InsTmpl(opc, [arm.ADDR_MODE.PUw, PARAM.reg0, PARAM.num1, PARAM.reg2])])
+                    [InsTmpl(opc + "add", [PARAM.reg0, PARAM.num1, PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind2, kind1], imm_constraints_neg,
-                    [InsTmpl(opc, [arm.ADDR_MODE.Puw, PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
+                    [InsTmpl(opc + "sub", [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind2, kind1],
                     [IMM_KIND.invalid, IMM_KIND.pos_stk_combo_8_bits_times_4, IMM_KIND.invalid],
-                    [InsTmpl(opc, [arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
+                    [InsTmpl(opc + "add", [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
 
     imm_constraints_pos = [IMM_KIND.invalid, IMM_KIND.pos_8_bits, IMM_KIND.invalid]
     imm_constraints_neg = [IMM_KIND.invalid, IMM_KIND.neg_8_bits, IMM_KIND.invalid]
     for kind2, opc in [(o.DK.U16, "strh"), (o.DK.S16, "strh")]:
         for kind1 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind1, kind2], _NO_IMM3,
-                    [InsTmpl(opc + "_reg",
-                             [arm.ADDR_MODE.PUw, PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+                    [InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind1, kind2], imm_constraints_pos,
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.PUw, PARAM.reg0, PARAM.num1, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [PARAM.reg0, PARAM.num1, PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind1, kind2], imm_constraints_neg,
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.Puw, PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_sub",
+                             [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])])
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [IMM_KIND.invalid, IMM_KIND.pos_stk_combo_8_bits, IMM_KIND.invalid],
-                    [InsTmpl(opc + "_imm",
-                             [arm.ADDR_MODE.PUw, arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
+                    [InsTmpl(opc + "_imm_add",
+                             [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])])
 
 
 def InitLea():
@@ -862,19 +860,19 @@ def InitMiscBra():
     Pattern(o.TRAP, [], [], [InsTmpl("ud2", [])])
 
     Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32], [IMM_KIND.invalid, IMM_KIND.pos_16_bits],
-            [InsTmpl("str_imm", [arm.ADDR_MODE.PuW, arm.REG.sp, 4, arm.REG.r7]),  # push r7 on stack
+            [InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),  # push r7 on stack
              InsTmpl("movw", [arm.REG.r7, PARAM.num1]),
              InsTmpl("svc", [0]),
-             InsTmpl("ldr_imm",
-                     [arm.REG.r7, arm.ADDR_MODE.pUw, arm.REG.sp, 4])])  # pop r7 from stack
+             InsTmpl("ldr_imm_add_post",
+                     [arm.REG.r7, arm.REG.sp, 4])])  # pop r7 from stack
 
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID], _NO_IMM2,
             [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.jtb1_lo16]),
              InsTmpl("movt", [PARAM.scratch_gpr, PARAM.jtb1_hi16]),
-             InsTmpl("ldr_reg",
-                     [arm.REG.pc, arm.ADDR_MODE.PUw, PARAM.scratch_gpr, arm.SHIFT.lsl, PARAM.reg0,
+             InsTmpl("ldr_reg_add",
+                     [arm.REG.pc, PARAM.scratch_gpr, arm.SHIFT.lsl, PARAM.reg0,
                       2]),
              ])
 
@@ -984,8 +982,6 @@ def _RenderOperands(operands: List[Any]):
             s = f"+PRED::{op.name}"
         elif isinstance(op, arm.REG):
             s = f"+REG::{op.name}"
-        elif isinstance(op, arm.ADDR_MODE):
-            s = f"+ADDR_MODE::{op.name}"
         elif isinstance(op, arm.SHIFT):
             s = f"+SHIFT::{op.name}"
         elif isinstance(op, int):

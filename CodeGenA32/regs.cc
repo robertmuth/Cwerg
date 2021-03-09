@@ -494,16 +494,14 @@ a32::Ins MakeIns(a32::OPC opc,
 
 void EmitFunProlog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
   if (ctx.stm_regs > 0) {
-    output->emplace_back(MakeIns(a32::OPC::stm, +a32::PRED::al,
-                                 +a32::ADDR_MODE::PuW, +a32::REG::sp,
-                                 ctx.stm_regs));
+    output->emplace_back(MakeIns(a32::OPC::stmdb_update, +a32::PRED::al,
+                                 +a32::REG::sp, ctx.stm_regs));
   }
 
   if (ctx.vstm_regs > 0) {
     const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vstm_regs);
-    output->emplace_back(MakeIns(a32::OPC::vstm_s, +a32::PRED::al,
-                                 +a32::ADDR_MODE::PuW, +a32::REG::sp,
-                                 range.count, range.start));
+    output->emplace_back(MakeIns(a32::OPC::vstmdb_s_update, +a32::PRED::al,
+                                 +a32::REG::sp, range.count, range.start));
   }
 
   uint32_t stk_size = ctx.stk_size;
@@ -526,14 +524,13 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
 
   if (ctx.vldm_regs > 0) {
     const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vldm_regs);
-    output->emplace_back(MakeIns(a32::OPC::vldm_s, +a32::PRED::al, range.count,
-                                 range.start, +a32::ADDR_MODE::pUW,
-                                 +a32::REG::sp));
+    output->emplace_back(MakeIns(a32::OPC::vldmia_s_update, +a32::PRED::al,
+                                 range.count, range.start, +a32::REG::sp));
   }
 
   if (ctx.ldm_regs > 0) {
-    output->emplace_back(MakeIns(a32::OPC::ldm, +a32::PRED::al, +ctx.ldm_regs,
-                                 +a32::ADDR_MODE::pUW, +a32::REG::sp));
+    output->emplace_back(MakeIns(a32::OPC::ldmia_update, +a32::PRED::al,
+                                 +ctx.ldm_regs, +a32::REG::sp));
   }
 
   if ((A32RegToAllocMask(GPR_REGS[15]) & ctx.ldm_regs) == 0) {

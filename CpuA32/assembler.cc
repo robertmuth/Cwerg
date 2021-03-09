@@ -166,7 +166,7 @@ void Unit::AddIns(Ins* ins) {
 }
 
 std::array<std::string_view, 6> kStartupCode = {  //
-    "ldr_imm al r0 PUw sp 0",                     //
+    "ldr_imm_add al r0 sp 0",                     //
     "add_imm al r1 sp 4",                         //
     "bl al expr:call:main",                       //
     "movw al r7 1",                               //

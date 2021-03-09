@@ -150,64 +150,64 @@
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun exit 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 1
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     ud2 al
 .endfun
 # sig: IN: [A32] -> OUT: [A32]  stk_size:0
 .fun brk 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 45
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [A32 S32 S32] -> OUT: [S32]  stk_size:0
 .fun open 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 5
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [S32] -> OUT: [S32]  stk_size:0
 .fun close 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 6
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [S32 A32 U32] -> OUT: [S32]  stk_size:0
 .fun write 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [S32 A32 U32] -> OUT: [S32]  stk_size:0
 .fun read 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 3
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [S32 S32 S32] -> OUT: [S32]  stk_size:0
 .fun lseek 16
 .bbl start 4
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 19
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     bx al lr
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:1
@@ -216,37 +216,37 @@
 .bbl start 4
     add_imm al r1 sp 0
     mov_regimm al r0 lsl r0 0
-    strb_imm al PUw sp 0 r0
+    strb_imm_add al sp 0 r0
     mov_imm al r2 1
     mov_imm al r0 1
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     add_imm al sp sp 16
     bx al lr
 .endfun
 # sig: IN: [A32 U32] -> OUT: []  stk_size:0
 .fun writeln 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     mov_regimm al r2 lsl r1 0
     mov_regimm al r1 lsl r0 0
     mov_imm al r0 1
-    str_imm al PuW sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
-    ldr_imm al r7 pUw sp 4
+    ldr_imm_add_post al r7 sp 4
     mov_regimm al r1 lsl r0 0
     mov_imm al r0 10
     bl al lr expr:call:putchar
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
 # sig: IN: [A32] -> OUT: []  stk_size:0
 .fun puts 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     mov_regimm al r2 lsl r0 0
@@ -255,7 +255,7 @@
 .bbl loop 4
     add_imm al r3 r3 1
 .bbl check 4
-    ldrb_reg al r0 PUw r2 lsl r3 0
+    ldrb_reg_add al r0 r2 lsl r3 0
     uxtb al r0 ror_rrx r0 0
     cmp_imm al r0 0
     b ne expr:jump24:loop
@@ -264,11 +264,11 @@
     mov_regimm al r0 lsl r2 0
     bl al lr expr:call:writeln
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_num 16
-    stm al PuW sp reglist:0x4040
+    stmdb_update al sp reglist:0x4040
     sub_imm al sp sp 8
 .bbl start 4
     mov_imm al r1 10
@@ -288,22 +288,22 @@
     mov_regimm al r0 lsl r6 0
     bl al lr expr:call:putchar
     add_imm al sp sp 8
-    ldm al reglist:0x8040 pUW sp
+    ldmia_update al reglist:0x8040 sp
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_num_ln 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     bl al lr expr:call:print_num
     mov_imm al r0 10
     bl al lr expr:call:putchar
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_hex_num 16
-    stm al PuW sp reglist:0x4040
+    stmdb_update al sp reglist:0x4040
     sub_imm al sp sp 8
 .bbl start 4
     and_imm al r6 r0 15
@@ -321,18 +321,18 @@
     mov_regimm al r0 lsl r6 0
     bl al lr expr:call:putchar
     add_imm al sp sp 8
-    ldm al reglist:0x8040 pUW sp
+    ldmia_update al reglist:0x8040 sp
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_hex_num_ln 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     bl al lr expr:call:print_hex_num
     mov_imm al r0 10
     bl al lr expr:call:putchar
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
 # sig: IN: [A32] -> OUT: []  stk_size:0
 .fun free 16
@@ -341,7 +341,7 @@
 .endfun
 # sig: IN: [U32] -> OUT: [A32]  stk_size:0
 .fun malloc 16
-    stm al PuW sp reglist:0x43c0
+    stmdb_update al sp reglist:0x43c0
     sub_imm al sp sp 12
 .bbl start 4
     mov_regimm al r8 lsl r0 0
@@ -349,10 +349,10 @@
     bic_imm al r8 r8 15
     movw al r0 expr:movw_abs_nc:$$malloc_state
     movt al r0 expr:movt_abs:$$malloc_state
-    ldr_imm al r9 PUw r0 0
+    ldr_imm_add al r9 r0 0
     movw al r0 expr:movw_abs_nc:$$malloc_state:4
     movt al r0 expr:movt_abs:$$malloc_state:4
-    ldr_imm al r3 PUw r0 0
+    ldr_imm_add al r3 r0 0
     cmp_imm al r9 0
     b ne expr:jump24:normal
 .bbl init 4
@@ -362,10 +362,10 @@
     mov_regimm al r3 lsl r9 0
     movw al r0 expr:movw_abs_nc:$$malloc_state
     movt al r0 expr:movt_abs:$$malloc_state
-    str_imm al PUw r0 0 r9
+    str_imm_add al r0 0 r9
     movw al r0 expr:movw_abs_nc:$$malloc_state:4
     movt al r0 expr:movt_abs:$$malloc_state:4
-    str_imm al PUw r0 0 r9
+    str_imm_add al r0 0 r9
 .bbl normal 4
     add_regimm al r7 r9 lsl r8 0
     cmp_regimm al r7 lsl r3 0
@@ -384,31 +384,31 @@
 .bbl normal_2 4
     mov_imm al r0 0
     add_imm al sp sp 12
-    ldm al reglist:0x83c0 pUW sp
+    ldmia_update al reglist:0x83c0 sp
 .bbl done_after_brk 4
     movw al r0 expr:movw_abs_nc:$$malloc_state:4
     movt al r0 expr:movt_abs:$$malloc_state:4
-    str_imm al PUw r0 0 r6
+    str_imm_add al r0 0 r6
 .bbl done 4
     movw al r0 expr:movw_abs_nc:$$malloc_state
     movt al r0 expr:movt_abs:$$malloc_state
-    str_imm al PUw r0 0 r7
+    str_imm_add al r0 0 r7
     mov_regimm al r0 lsl r9 0
     add_imm al sp sp 12
-    ldm al reglist:0x83c0 pUW sp
+    ldmia_update al reglist:0x83c0 sp
 .endfun
 # sig: IN: [] -> OUT: []  stk_size:0
 .fun dump 16
-    stm al PuW sp reglist:0x40c0
+    stmdb_update al sp reglist:0x40c0
     sub_imm al sp sp 4
 .bbl start 4
     movw al r0 expr:movw_abs_nc:COUNTER
     movt al r0 expr:movt_abs:COUNTER
-    ldr_imm al r0 PUw r0 0
+    ldr_imm_add al r0 r0 0
     add_imm al r0 r0 1
     movw al r1 expr:movw_abs_nc:COUNTER
     movt al r1 expr:movt_abs:COUNTER
-    str_imm al PUw r1 0 r0
+    str_imm_add al r1 0 r0
     movw al r0 expr:movw_abs_nc:LINE
     movt al r0 expr:movt_abs:LINE
     mov_imm al r1 9
@@ -426,11 +426,11 @@
     b cc expr:jump24:loop
 .bbl loop_1 4
     add_imm al sp sp 4
-    ldm al reglist:0x80c0 pUW sp
+    ldmia_update al reglist:0x80c0 sp
 .endfun
 # sig: IN: [U32] -> OUT: [U32]  stk_size:0
 .fun conflict 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     mov_regimm al lr lsl r0 0
@@ -439,13 +439,13 @@
 .bbl start_1 4
     movw al r0 expr:movw_abs_nc:XCOORDS
     movt al r0 expr:movt_abs:XCOORDS
-    ldrb_reg al r0 PUw r0 lsl lr 0
+    ldrb_reg_add al r0 r0 lsl lr 0
     uxtb al r5 ror_rrx r0 0
     mov_imm al r4 0
 .bbl loop 4
     movw al r0 expr:movw_abs_nc:XCOORDS
     movt al r0 expr:movt_abs:XCOORDS
-    ldrb_reg al r0 PUw r0 lsl r4 0
+    ldrb_reg_add al r0 r0 lsl r4 0
     uxtb al ip ror_rrx r0 0
     cmp_regimm al ip lsl r5 0
     b eq expr:jump24:conflict
@@ -466,22 +466,22 @@
 .bbl success 4
     mov_imm al r0 0
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .bbl conflict 4
     mov_imm al r0 1
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun solve 16
-    stm al PuW sp reglist:0x41c0
+    stmdb_update al sp reglist:0x41c0
 .bbl start 4
     mov_regimm al r8 lsl r0 0
     cmp_imm al r8 8
     b cc expr:jump24:cont
 .bbl start_1 4
     bl al lr expr:call:dump
-    ldm al reglist:0x81c0 pUW sp
+    ldmia_update al reglist:0x81c0 sp
 .bbl cont 4
     mov_imm al r6 0
 .bbl loop 4
@@ -490,11 +490,11 @@
     movw al r0 expr:movw_abs_nc:BOARD
     movt al r0 expr:movt_abs:BOARD
     mov_imm al r1 42
-    strb_reg al PUw r0 lsl r7 0 r1
+    strb_reg_add al r0 lsl r7 0 r1
     mov_regimm al r0 lsl r6 0
     movw al r1 expr:movw_abs_nc:XCOORDS
     movt al r1 expr:movt_abs:XCOORDS
-    strb_reg al PUw r1 lsl r8 0 r0
+    strb_reg_add al r1 lsl r8 0 r0
     mov_regimm al r0 lsl r8 0
     bl al lr expr:call:conflict
     cmp_imm al r0 1
@@ -508,25 +508,25 @@
     movw al r0 expr:movw_abs_nc:BOARD
     movt al r0 expr:movt_abs:BOARD
     mov_imm al r1 32
-    strb_reg al PUw r0 lsl r7 0 r1
+    strb_reg_add al r0 lsl r7 0 r1
     add_imm al r6 r6 1
     cmp_imm al r6 8
     b cc expr:jump24:loop
 .bbl next_1 4
-    ldm al reglist:0x81c0 pUW sp
+    ldmia_update al reglist:0x81c0 sp
 .endfun
 # sig: IN: [] -> OUT: [S32]  stk_size:0
 .fun main 16
-    stm al PuW sp reglist:0x4000
+    stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
     mov_imm al r0 0
     bl al lr expr:call:solve
     movw al r0 expr:movw_abs_nc:COUNTER
     movt al r0 expr:movt_abs:COUNTER
-    ldr_imm al r0 PUw r0 0
+    ldr_imm_add al r0 r0 0
     bl al lr expr:call:print_num_ln
     mov_imm al r0 0
     add_imm al sp sp 12
-    ldm al reglist:0x8000 pUW sp
+    ldmia_update al reglist:0x8000 sp
 .endfun
