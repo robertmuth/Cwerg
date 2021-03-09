@@ -46,14 +46,17 @@ void SplitLine(std::string_view buffer, std::vector<std::string_view>* tokens) {
 
 // We rename (v)stmiaXX  -> (v)stmXX
 const std::string_view kMultiRewrites[] = {  //
-    "stmia", "stm", "vstmia", "vstm",        //
-    "stmib", "stm", "vstmib", "vstm",        //
-    "stmdb", "stm", "vstmdb", "vstm",        //
-    "ldmia", "ldm", "vldmia", "vldm",        //
-    "ldmib", "ldm", "vldmib", "vldm",        //
-    "ldmdb", "ldm", "vldmdb", "vldm",        //
-    "push",  "stm", "vpush",  "vstm",        //
-    "pop",   "ldm", "vpop",   "vldm",        //
+    // nop overrides so we handle them before the stm/ldm case
+    "stmib", "stmib", "vstmib", "vstmib",        //
+    "stmdb", "stmdb", "vstmdb", "vstmdb",        //
+    "ldmib", "ldmib", "vldmib", "vldmib",        //
+    "ldmdb", "ldmdb", "vldmdb", "vldmdb",        //
+    "stmia", "stmia",
+    "stm", "stmia",        //
+    "ldm", "ldmia",        //
+
+    "push",  "stmdb", "vpush",  "vstmdb",        //
+    "pop",   "ldmia", "vpop",   "vldmia",        //
     "",      ""};
 
 std::string_view replace_prefix(char buffer[128],
@@ -120,7 +123,8 @@ int HandleOneInstruction(std::string_view line,
   std::vector<std::string_view> expected;
   SplitLine(buffer, &expected);
   if (expected[0] != (*actual)[1]) {
-    std::cout << "name mismatch: [" << line << "] [" << buffer << "\n";
+    std::cout << "name mismatch: [" << expected[0] << "] [" << (*actual)[1]
+              << "] in: " << line;
     return 1;
   }
   int operand_start_actual = 2;
@@ -134,7 +138,8 @@ int HandleOneInstruction(std::string_view line,
   for (int i = operand_start_actual; i < actual->size(); ++i) {
     int j = i - operand_start_actual + operand_start_expected;
     if ((*actual)[i] != expected[j]) {
-      std::cout << "operand mismatch: [" << line << "] [" << buffer << "\n";
+      std::cout << "operand mismatch: [" << expected[j] << "] [" <<
+         (*actual)[i]  << "] in: " << line;
       return 1;
     }
   }

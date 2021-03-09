@@ -65,32 +65,6 @@ int RenderMultipleVFP(const char* reg_prefix,
   return 1;
 }
 
-void RenderAddressStd(char* buffer,
-                      const char* base,
-                      const char* offset,
-                      int puw) {
-  char new_offset[128];
-  if (offset == kNumZero) {
-    new_offset[0] = 0;
-  } else {
-    if ((puw & 2) == 0) {
-      if (offset[0] == '#') {
-        sprintf(new_offset, ",#-%s", offset + 1);
-      } else {
-        sprintf(new_offset, ",-%s", offset);
-      }
-    } else {
-      sprintf(new_offset, ", %s", offset);
-    }
-  }
-  const char* suffix = (puw & 1) ? "!" : "";
-  if (puw & 4) {
-    sprintf(buffer, "[%s%s]%s", base, new_offset, suffix);
-  } else {
-    sprintf(buffer, "[%s]%s%s", base, new_offset, suffix);
-  }
-}
-
 void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
   const int32_t x = ins.operands[pos];
   const OK kind = ins.opcode->fields[pos];
@@ -104,6 +78,7 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::REG_0_3:
     case OK::REG_12_15:
     case OK::REG_16_19:
+    case OK::REG_BASE_16_19:
     case OK::REG_8_11:
     case OK::REG_PAIR_12_15:
       ASSERT(x <= 15, "REG out of range " << x);
@@ -147,17 +122,38 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::SHIFT_MODE_ROT:
       strcpy(buffer, EnumToString(SHIFT(x)));
       return;
-    case OK::ADDR_BASE_ONLY:
-    case OK::ADDR_BASE_WITH_OFFSET:
-    case OK::ADDR_BASE_WITH_OFFSET2:
-    case OK::ADDR_MULTI:
-      strcpy(buffer, EnumToString(ADDR_MODE(x)));
-      return;
     case OK::Invalid:
     default:
       ASSERT(false, "unreachable");
       return;
   }
+}
+
+// forward declaration because of mutual recursion
+unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos);
+
+unsigned RenderOffsetStd(char* buffer, const Ins& ins, unsigned pos) {
+  char* orig = buffer;
+  strcat(buffer, " ,");
+  buffer += strlen(buffer);
+  if (ins.opcode->classes & OPC_FLAG::ADDR_INC) {
+    pos = RenderOperandStd(buffer, ins, pos);
+    if (0 == strcmp("#0", buffer)) orig[0] = 0;
+    return pos;
+  }
+
+  strcat(buffer, "-");
+  pos = RenderOperandStd(buffer + 1, ins, pos);
+  if (0 == strcmp("#0", buffer + 1)) {
+    orig[0] = 0;
+    return pos;
+  }
+
+  if (buffer[1] == '#') {
+    buffer[0] = '#';
+    buffer[1] = '-';
+  }
+  return pos;
 }
 
 // render a single operand, e.g. and address like  `[r3, #-116]`
@@ -233,28 +229,36 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
       }
       return pos;
     }
-    case OK::ADDR_BASE_ONLY: {
-      char base[128];
-      pos = RenderOperandStd(base, ins, pos);
-      RenderAddressStd(buffer, base, "#0", x);
-    }
-      return pos;
-    case OK::ADDR_BASE_WITH_OFFSET:
-    case OK::ADDR_BASE_WITH_OFFSET2: {
-      char base[128];
-      pos = RenderOperandStd(base, ins, pos);
-      char offset[128];
-      pos = RenderOperandStd(offset, ins, pos);
-      RenderAddressStd(buffer, base, offset, x);
-    }
-      return pos;
-    case OK::ADDR_MULTI:
-      pos = RenderOperandStd(buffer, ins, pos);
-      buffer += strlen(buffer);
-      if (x & 1) {
-        strcpy(buffer, "!");
+    case OK::REG_BASE_16_19: {
+      if (ins.opcode->classes & OPC_FLAG::MULTIPLE) {
+        RenderOperandSystematic(buffer, ins, pos - 1);
+        if (ins.opcode->classes & OPC_FLAG::ADDR_UPDATE) {
+          strcat(buffer, "!");
+        }
+        return pos;
+      }
+      buffer[0] = '[';
+      RenderOperandSystematic(buffer + 1, ins, pos - 1);
+      if (ins.opcode->classes & (OPC_FLAG::ADDR_INC | OPC_FLAG::ADDR_DEC)) {
+        if (ins.opcode->classes & OPC_FLAG::ADDR_PRE) {
+          buffer += strlen(buffer);
+          pos = RenderOffsetStd(buffer, ins, pos);
+          strcat(buffer, "]");
+          if (ins.opcode->classes & OPC_FLAG::ADDR_UPDATE) {
+            strcat(buffer, "!");
+          }
+        } else {
+          ASSERT(ins.opcode->classes & OPC_FLAG::ADDR_POST,
+                 "unexpected addr mode " << ins.opcode->name);
+          strcat(buffer, "]");
+          buffer += strlen(buffer);
+          pos = RenderOffsetStd(buffer, ins, pos);
+        }
+      } else {
+        strcat(buffer, "]");
       }
       return pos;
+    }
     case OK::REGLIST_0_15: {
       const char* sep = "";
       buffer = strappend(buffer, "{");

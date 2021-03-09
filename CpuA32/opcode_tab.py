@@ -221,22 +221,6 @@ class DREG(enum.IntEnum):
     d15 = 15
 
 
-# P/p: pre/post
-# U/u: add/sub
-# W/w: wb/-
-# Note: post+wb no allowed
-# @enum.unique
-# class ADDR_MODE(enum.IntEnum):
-#     puw = 0
-#     puW = 1
-#     pUw = 2
-#     pUW = 3
-#     Puw = 4
-#     PuW = 5
-#     PUw = 6
-#     PUW = 7
-
-
 @enum.unique
 class SHIFT(enum.IntEnum):
     lsl = 0
@@ -283,23 +267,17 @@ class OK(enum.Enum):
     # misc
     PRED_28_31 = 20
 
-    # address modes (16_19 is implicit)
-    # ADDR_BASE_ONLY = 20
-    # ADDR_BASE_WITH_OFFSET = 21
-    # ADDR_BASE_WITH_OFFSET2 = 22
-    # ADDR_MULTI = 23
-
     # immediates
-    IMM_0_7_times4 = 24
-    IMM_0_11 = 25
-    IMM_0_3_8_11 = 26
-    IMM_7_11 = 27
-    IMM_10_11 = 28
-    IMM_0_23 = 29
-    IMM_0_7_8_11 = 30
-    IMM_ZERO = 31  # implicit 0.0 immediate
-    IMM_0_11_16_19 = 32
-    SIMM_0_23 = 33
+    IMM_0_7_times4 = 21
+    IMM_0_11 = 22
+    IMM_0_3_8_11 = 23
+    IMM_7_11 = 24
+    IMM_10_11 = 25
+    IMM_0_23 = 26
+    IMM_0_7_8_11 = 27
+    IMM_ZERO = 28  # implicit 0.0 immediate
+    IMM_0_11_16_19 = 29
+    SIMM_0_23 = 30
 
 
 ############################################################
@@ -331,15 +309,11 @@ class BRK(enum.Enum):  # bit range kind
     Times8 = 5
     Times4 = 6
     Times2 = 7
-    # Times2Plus4 = 8
     Force0 = 9
     Force1 = 10
     Force3 = 11
     Force6 = 12
     Force14 = 13
-    # U = 14
-    # W = 15
-    # P = 16
 
 
 BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
@@ -349,7 +323,6 @@ BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
     BRK.Times8,
     BRK.Times4,
     BRK.Times2,
-    # BRK.Times2Plus4,
     BRK.Force0,
     BRK.Force1,
     BRK.Force3,
@@ -358,9 +331,7 @@ BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
 }
 
 BIT_RANGE_MODIFIER_HILO: Set[BRK] = {BRK.Hi, BRK.Lo}
-# BIT_RANGE_MODIFIER_ADDR: Set[BRK] = {BRK.P, BRK.U, BRK.W}
 BIT_RANGE_MODIFIER = BIT_RANGE_MODIFIER_SINGLE | BIT_RANGE_MODIFIER_HILO
-# | BIT_RANGE_MODIFIER_ADDR
 BIT_RANGE = Tuple[BRK, int, int]
 
 # plain register
@@ -405,13 +376,6 @@ FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_MODE_5_6_ADDR: [(BRK.Verbatim, 2, 5)],
 }
 
-# FIELDS_ADDR: Dict[OK, List[BIT_RANGE]] = {
-#     OK.ADDR_BASE_ONLY: [(BRK.Force6, 0, 0)],  # p=1, u=1, w=0
-#     OK.ADDR_BASE_WITH_OFFSET: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
-#     OK.ADDR_BASE_WITH_OFFSET2: [(BRK.Times2Plus4, 1, 23)],
-#     OK.ADDR_MULTI: [(BRK.P, 1, 24), (BRK.U, 1, 23), (BRK.W, 1, 21)],
-# }
-
 FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
     # register set
     OK.REGLIST_0_15: [(BRK.Verbatim, 16, 0)],
@@ -428,7 +392,6 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     **FIELDS_DREG,
     **FIELDS_IMM,
     **FIELDS_SHIFT,
-    #    **FIELDS_ADDR,
     **FIELDS_MISC,
 }
 
@@ -438,10 +401,6 @@ for details in FIELD_DETAILS.values():
     elif len(details) == 2:
         assert details[0][0] in BIT_RANGE_MODIFIER_HILO
         assert details[1][0] in BIT_RANGE_MODIFIER_HILO
-    elif len(details) == 3:
-        assert details[0][0] in BIT_RANGE_MODIFIER_ADDR
-        assert details[1][0] in BIT_RANGE_MODIFIER_ADDR
-        assert details[2][0] in BIT_RANGE_MODIFIER_ADDR
     else:
         assert False
 
@@ -452,7 +411,6 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
     """ Decodes an operand into an int."""
     tmp = 0
     # hi before lo
-    # p  before u before w
     for modifier, width, pos in FIELD_DETAILS[operand_kind]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
@@ -466,10 +424,6 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
             return x * 4
         elif modifier is BRK.Times2:
             return x * 2
-        # elif modifier is BRK.Times2Plus4:
-        #    return x * 2 + 4
-        # elif modifier is BRK.U:
-        #    tmp = (tmp << width) | x
         elif modifier is BRK.Lo:
             return (tmp << width) | x
         elif modifier is BRK.Force1:
@@ -507,19 +461,12 @@ def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
         elif modifier is BRK.Times2:
             assert val % 2 == 0
             bits.append((mask, val >> 1, pos))
-        # elif modifier is BRK.Times2Plus4:
-        #    assert val & 4 == 4
-        #    assert val % 2 == 0
-        #    bits.append((mask, (val - 4) >> 1, pos))
         elif modifier is BRK.Times4:
             assert val % 4 == 0
             bits.append((mask, val >> 2, pos))
         elif modifier is BRK.Lo:
             bits.append((mask, val & mask, pos))
             val = val >> width
-        # elif modifier is BRK.U:
-        #    bits.append((mask, val & mask, pos))
-        #    val = val >> width
         elif modifier is BRK.Hi:
             assert mask & val == val, f"{operand_kind} {val} {modifier} {mask:x}"
             bits.append((mask, val, pos))
@@ -598,10 +545,6 @@ class MEM_WIDTH(enum.Enum):
 # P[24],  # 0: post 1:pre
 STANDARD_ADDR_MODES = [
     #  post with out a write back is not allowed or a different kind of instruction
-    #("sub", [(3, 0, 23), (1, 0, 21)],
-    # OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC),
-    #("add", [(3, 1, 23), (1, 0, 21)],
-    # OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_INC),
     ("sub_post", [(3, 0, 23), (1, 0, 21)],
      OPC_FLAG.ADDR_POST | OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_UPDATE),
     ("add_post", [(3, 1, 23), (1, 0, 21)],
@@ -618,8 +561,8 @@ STANDARD_ADDR_MODES = [
 
 LIMITED_ADDR_MODES = [
     #  post with out a write back is not allowed or a different kind of instuction
-    ("sub", [(1, 0, 23)], OPC_FLAG.ADDR_DEC),
-    ("add", [(1, 1, 23)], OPC_FLAG.ADDR_INC),
+    ("sub", [(1, 0, 23)], OPC_FLAG.ADDR_DEC | OPC_FLAG.ADDR_PRE),
+    ("add", [(1, 1, 23)], OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_PRE),
 ]
 
 MULTI_ADDR_MODES = [
@@ -1351,7 +1294,6 @@ def _EmitCodeH(fout):
     cgen.RenderEnum(cgen.NameValues(REG), "class REG : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SREG), "class SREG : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(DREG), "class DREG : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(ADDR_MODE), "class ADDR_MODE : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SHIFT), "class SHIFT : uint8_t", fout)
     opcodes = [opc.NameForEnum() for opc in _get_grouped_opcodes(_INS_CLASSIFIER)]
     # note we sneak in an invalid first entry
@@ -1455,8 +1397,6 @@ def _EmitCodeC(fout):
     # what about REG/SREG/DREG
     cgen.RenderEnumToStringMap(cgen.NameValues(PRED), "PRED", fout)
     cgen.RenderEnumToStringFun("PRED", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(ADDR_MODE), "ADDR_MODE", fout)
-    cgen.RenderEnumToStringFun("ADDR_MODE", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
     cgen.RenderEnumToStringFun("SHIFT", fout)
 
