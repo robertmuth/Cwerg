@@ -8,10 +8,10 @@
 .fun exit 16
 # live-out sp]
 .bbl start 4
-    str_imm PuW sp 4 r7
+    str_imm_sub_pre sp 4 r7
     mov_imm r7 1
     svc 0
-    ldr_imm r7 pUw sp 4
+    ldr_imm_add_post r7 sp 4
     bx lr
 .endfun 
 ############################################################
@@ -27,14 +27,14 @@
 .bbl start 4
     mov_regimm r1 lsl r0 0
     mov_regimm r0 lsl sp 0
-    strb_imm PUw sp 0 r1
+    strb_imm_add sp 0 r1
     mov_imm r2 1
     mov_regimm r1 lsl r0 0
     mov_imm r0 1
-    str_imm PuW sp 4 r7
+    str_imm_sub_pre sp 4 r7
     mov_imm r7 4
     svc 0
-    ldr_imm r7 pUw sp 4
+    ldr_imm_add_post r7 sp 4
     add_imm sp sp 16
     bx lr
 .endfun 
@@ -46,19 +46,19 @@
 # glo_not_lac []
 # sig: IN: [A32 U32] -> OUT: []  stk_size:0
 .fun writeln 16
-    stm PuW sp reglist:0x4000
+    stmdb_update sp reglist:0x4000
 # live-out sp]
 .bbl start 4
     mov_regimm r2 lsl r1 0
     mov_regimm r1 lsl r0 0
     mov_imm r0 1
-    str_imm PuW sp 4 r7
+    str_imm_sub_pre sp 4 r7
     mov_imm r7 4
     svc 0
-    ldr_imm r7 pUw sp 4
+    ldr_imm_add_post r7 sp 4
     mov_imm r0 10
     bl lr expr:call:putchar
-    ldm reglist:0x8000 pUW sp
+    ldmia_update reglist:0x8000 sp
 .endfun 
 ############################################################
 # CodeGen print_num
@@ -68,7 +68,7 @@
 # glo_not_lac ['div', 'sp']
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_num 16
-    stm PuW sp reglist:0x4040
+    stmdb_update sp reglist:0x4040
 # live-out div rem sp]
 .bbl start 4
     mov_regimm r1 lsl r0 0
@@ -90,7 +90,7 @@
     add_imm r6 r6 0x30
     mov_regimm r0 lsl r6 0
     bl lr expr:call:putchar
-    ldm reglist:0x8040 pUW sp
+    ldmia_update reglist:0x8040 sp
 .endfun 
 ############################################################
 # CodeGen print_num_ln
@@ -100,13 +100,13 @@
 # glo_not_lac []
 # sig: IN: [U32] -> OUT: []  stk_size:0
 .fun print_num_ln 16
-    stm PuW sp reglist:0x4000
+    stmdb_update sp reglist:0x4000
 # live-out sp]
 .bbl start 4
     bl lr expr:call:print_num
     mov_imm r0 10
     bl lr expr:call:putchar
-    ldm reglist:0x8000 pUW sp
+    ldmia_update reglist:0x8000 sp
 .endfun 
 ############################################################
 # CodeGen _start
@@ -123,7 +123,7 @@
 .addr.bbl 4 labelD
 .addr.bbl 4 labelC
 .endmem 
-    stm PuW sp reglist:0x4040
+    stmdb_update sp reglist:0x4040
 # live-out i sp]
 .bbl start 4
     mov_imm r6 0
@@ -131,7 +131,7 @@
 .bbl loop 4
     movw r0 expr:movw_abs_nc:switch_tab
     movt r0 expr:movt_abs:switch_tab
-    ldr_reg pc PUw r0 lsl r6 2
+    ldr_reg_add pc r0 lsl r6 2
 # live-out i sp]
 .bbl labelA 4
     mov_imm r0 0x41
@@ -168,7 +168,7 @@
 .bbl tail_1 4
     mov_imm r0 0
     bl lr expr:call:exit
-    ldm reglist:0x8040 pUW sp
+    ldmia_update reglist:0x8040 sp
 .endfun 
 # STATS:
 #  canonicalized: 0

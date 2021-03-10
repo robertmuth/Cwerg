@@ -25,8 +25,8 @@ void DumpA32Ins(uint32_t data) {
 
 Ins Fibonacci[] = {
     //
-    {&OpcodeTable[u(OPC::stm)],
-     {u(PRED::al), u(ADDR_MODE::PuW), u(REG::sp), 0x4030}},
+    {&OpcodeTable[u(OPC::stmdb_update)],
+     {u(PRED::al), u(REG::sp), 0x4030}},
     {&OpcodeTable[u(OPC::cmp_imm)], {u(PRED::al), u(REG::r0), 1}},
     {&OpcodeTable[u(OPC::b)], {u(PRED::le), 7}},
     //
@@ -48,8 +48,8 @@ Ins Fibonacci[] = {
      {u(PRED::al), u(REG::r0), u(REG::r4), u(SHIFT::lsl),
       u(REG::r0), 0}},
     //
-    {&OpcodeTable[u(OPC::ldm)],
-     {u(PRED::al), 0x8030, u(ADDR_MODE::pUW), u(REG::sp)}}
+    {&OpcodeTable[u(OPC::ldmia_update)],
+     {u(PRED::al), 0x8030, u(REG::sp)}}
 
 };
 
