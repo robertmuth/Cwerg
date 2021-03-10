@@ -90,7 +90,7 @@ objdump_compat_test_c: TestData/arm_test.dis opcode_gen.h opcode_gen.cc
 disassembler_test_c: opcode_gen.h opcode_gen.cc $(DISASSEMBLER_TOOL)
 	@echo "[$@]"
 	$(DISASSEMBLER_TOOL) disass $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff TestData/$@.golden $@.actual.out
+	diff $@.actual.out TestData/$@.golden
 
 build_test_c:
 	@echo "[$@]"

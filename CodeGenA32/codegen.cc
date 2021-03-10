@@ -120,6 +120,7 @@ void EmitUnitAsText(Unit unit, std::ostream* output) {
     MemCodeGenArm32(mem, output);
   }
   for (Fun fun : UnitFunIter(unit)) {
+    if (FunKind(fun) == FUN_KIND::SIGNATURE) continue;
     FunCodeGenArm32(fun, output);
   }
 }

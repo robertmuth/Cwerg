@@ -130,7 +130,7 @@ void Unit::AddFunAddr(unsigned size, std::string_view fun_name) {
 }
 
 void Unit::AddBblAddr(unsigned size, std::string_view bbl_name) {
-  ASSERT(current_mem_sec != nullptr, "");
+  ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem diretive");
   ASSERT(size == 4, "");
   auto* sym = FindOrAddSymbol(bbl_name, true);
   AddReloc(RELOC_TYPE_ARM::ABS32, current_mem_sec, sym, 0);
@@ -213,6 +213,8 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
                    false);
   } else if (mnemonic == ".localmem") {
     ASSERT(token.size() == 4, "");
+    unit->MemStart(token[1], ParseInt<uint32_t>(token[2]).value(), token[3],
+                   true);
   } else if (mnemonic == ".endmem") {
     unit->MemEnd();
   } else if (mnemonic == ".data") {

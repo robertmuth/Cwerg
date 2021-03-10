@@ -137,6 +137,8 @@ def EmitUnitAsText(unit: ir.Unit, fout):
         for s in _MemCodeGenArm32(mem, unit):
             print(s, file=fout)
     for fun in unit.funs:
+        if fun.kind in {o.FUN_KIND.SIGNATURE}:
+            continue
         for s in _FunCodeGenArm32(fun, unit):
             print(s, file=fout)
 
