@@ -105,6 +105,13 @@ class EHdrIdent:
         self.ei_osabi = 0
         self.ei_abiversion = 0
 
+    def InitA64(self):
+        self.ei_class = EI_CLASS.X_64.value
+        self.ei_data = EI_DATA.LSB2.value
+        self.ei_version = 1
+        self.ei_osabi = 0
+        self.ei_abiversion = 0
+
     def InitA32(self):
         self.ei_class = EI_CLASS.X_32.value
         self.ei_data = EI_DATA.LSB2.value
@@ -163,6 +170,19 @@ class EHdr:
         self.e_type = E_TYPE.EXEC.value
         self.e_machine = E_MACHINE.X86_64.value
         self.e_version = 1
+        self.e_ehsize = EHdrIdent.SIZE + EHdr.SIZE[EI_CLASS.X_64]
+        self.e_phentsize = Segment.SIZE[EI_CLASS.X_64]
+        self.e_shentsize = Section.SIZE[EI_CLASS.X_64]
+        self.e_shnum = shnum
+        self.e_phnum = phnum
+        self.e_shstrndx = shstrndx
+
+    def InitA64Exec(self, shnum, phnum, shstrndx):
+        self.e_type = E_TYPE.EXEC.value
+        self.e_machine = E_MACHINE.AARCH64.value
+        self.e_version = 1
+        # should we use HARD?
+        self.e_flags = 0
         self.e_ehsize = EHdrIdent.SIZE + EHdr.SIZE[EI_CLASS.X_64]
         self.e_phentsize = Segment.SIZE[EI_CLASS.X_64]
         self.e_shentsize = Section.SIZE[EI_CLASS.X_64]
@@ -566,6 +586,7 @@ class Symbol:
     def pack(self, which):
         st_info = (self.st_bind << 4) | self.st_type
         fmt = Symbol.FORMAT[which]
+        assert self.st_value != -1, f"undefined sym {self.name}"
         if which == EI_CLASS.X_32:
             return struct.pack(
                 fmt, self.st_name,
@@ -702,6 +723,19 @@ class Executable:
         exe = Executable()
         exe.ehdr_ident.InitA32()
         exe.ehdr.InitA32Exec(len(sections),
+                             len([p for p in segments
+                                  if not p.is_pseudo]),
+                             len(sections) - 1)
+        exe.InitWithSectionsAndSegments(start_vaddr, sections, segments)
+        return exe
+
+    @classmethod
+    def MakeExecutableA64(cls, start_vaddr: int,
+                          sections: List[Section],
+                          segments: List[Segment]):
+        exe = Executable()
+        exe.ehdr_ident.InitA64()
+        exe.ehdr.InitA64Exec(len(sections),
                              len([p for p in segments
                                   if not p.is_pseudo]),
                              len(sections) - 1)

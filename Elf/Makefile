@@ -1,7 +1,7 @@
 tests: tests_py tests_c
 	@echo
 
-tests_py: clone_x64_test  clone_a32_test gen_x64_test gen_a32_test
+tests_py: clone_x64_test  clone_a32_test gen_x64_test gen_a32_test gen_a64_test
 
 tests_c: clone_a32_test_c  clone_x64_test_c gen_x64_test_c gen_a32_test_c
 
@@ -22,17 +22,24 @@ clone_a32_test:
 
 gen_x64_test:
 	@echo "[$@]"
-	$(PYPY) ./gen_elf_test.py genx64 gen.x64.exe.out > $@.out 2>&1
+	$(PYPY) ./gen_elf_test.py genx64 gen.x64.exe.out > $@.log.out 2>&1
 	chmod a+rx gen.x64.exe.out
-	./gen.x64.exe.out > gen.x64.actual.out
-	diff  TestData/gen.x64.golden  gen.x64.actual.out
+	./gen.x64.exe.out > $@.out
+	diff $@.out TestData/gen.x64.golden
 
 gen_a32_test:
 	@echo "[$@]"
 	$(PYPY) ./gen_elf_test.py gena32 $@.exe  > $@.log.out 2>&1
 	chmod a+rx $@.exe
 	./$@.exe > $@.out
-	diff  TestData/gen.a32.golden  $@.out
+	diff $@.out TestData/gen.a32.golden
+
+gen_a64_test:
+	@echo "[$@]"
+	$(PYPY) ./gen_elf_test.py gena64 $@.exe  > $@.log.out 2>&1
+	chmod a+rx $@.exe
+	./$@.exe > $@.out
+	diff $@.out TestData/gen.a64.golden
 
 ############################################################
 # C++ Port
@@ -65,7 +72,7 @@ gen_a32_test_c:
 	$(BUILD_DIR)/gen_elf_test.exe gena32 $@.exe  > $@.log.out 2>&1
 	chmod a+rx $@.exe
 	./$@.exe > $@.out
-	diff  TestData/gen.a32.golden  $@.out
+	diff $@.out TestData/gen.a32.golden
 
 gen_x64_test_c:
 	@echo "[$@]"
@@ -73,7 +80,7 @@ gen_x64_test_c:
 	$(BUILD_DIR)/gen_elf_test.exe genx64 $@.exe  > $@.log.out 2>&1
 	chmod a+rx $@.exe
 	./$@.exe > $@.out
-	diff  TestData/gen.x64.golden  $@.out
+	diff $@.out TestData/gen.x64.golden
 
 ############################################################
 # Misc

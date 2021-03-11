@@ -16,7 +16,7 @@ using namespace cwerg;
 
 // Unlike char[] this will not count the zero terminator which
 // makes it match the python version.
-const std::string_view RODATA_X64("Hello, world (asm)\n");
+const std::string_view RODATA_X64("Hello, world (x64)\n");
 
 const unsigned char TEXT_X64[] = {
     0x48, 0xc7, 0xc0, 0x01, 0x00, 0x00, 0x00,  // mov  $0x1,%rax
@@ -77,7 +77,7 @@ Executable<uint64_t> GenBareBonesX64() {
 uint32_t TEXT_A32[] = {
     0xe3a00001,  // mov	r0, #1
     0xe28f1014,  // add	r1, pc, #20
-    0xe3a02013,  // mov	r2, #19
+    0xe3a02012,  // mov	r2, #18
     0xe3a07004,  // mov	r7, #4
     0xef000000,  // svc	0x00000000
     0xe3a00000,  // mov	r0, #0
@@ -87,7 +87,7 @@ uint32_t TEXT_A32[] = {
     0x6c6c6548,  // .word	0x6c6c6548
     0x6f77206f,  // .word	0x6f77206f
     0x20646c72,  // .word	0x20646c72
-    0x6d736128,  // .word	0x6d736128
+    0x32336128,  // .word	0x32336128
     0x00000a29,  // .short	0x0a29
 };
 
