@@ -30,11 +30,14 @@ const unsigned char TEXT_X64[] = {
 };
 
 Executable<uint64_t> GenBareBonesX64() {
+  auto* sec_null = new Section<uint64_t>();
   auto* sec_rodata = new Section<uint64_t>();
   auto* sec_text = new Section<uint64_t>();
   auto* sec_shstrtab = new Section<uint64_t>();
   std::vector<Section<uint64_t>*> all_sections(
-      {sec_rodata, sec_text, sec_shstrtab});
+      {sec_null, sec_rodata, sec_text, sec_shstrtab});
+
+  sec_null->InitNull();
 
   sec_rodata->InitRodata(1);
   sec_rodata->AddData(RODATA_X64);
@@ -51,6 +54,7 @@ Executable<uint64_t> GenBareBonesX64() {
   std::vector<Segment<uint64_t>*> all_segments({seg_ro, seg_exe, seg_pseudo});
 
   seg_ro->InitRO(4096);
+  seg_ro->sections.push_back(sec_null);
   seg_ro->sections.push_back(sec_rodata);
 
   seg_exe->InitExe(4096);
@@ -74,6 +78,63 @@ Executable<uint64_t> GenBareBonesX64() {
   return exe;
 }
 
+uint32_t TEXT_A64[] = {
+    // 9 instruction
+    0xd2800020,  // mov	x0, #0x1
+    0x90000001,  // adrp	x1, 400000 <_start-0xb0>
+    0x91035021,  // add	x1, x1, #0xd4
+    0xd2800242,  // mov	x2, #0x12
+    0xd2800808,  // mov	x8, #0x40
+    0xd4000001,  // svc	#0x0
+    0xd2800000,  // mov	x0, #0x0
+    0xd2800ba8,  // mov	x8, #0x5d
+    0xd4000001,  // svc	#0x0
+    //  "hello world...."
+    0x6c6c6548,  // .word	0x6c6c6548
+    0x6f77206f,  // .word	0x6f77206f
+    0x20646c72,  // .word	0x20646c72
+    0x34366128,  // .word	0x64666128
+    0x00000a29,  // .short	0x0a29
+};
+
+Executable<uint64_t> GenBareBonesA64() {
+  auto* sec_null = new Section<uint64_t>();
+  auto* sec_text = new Section<uint64_t>();
+  auto* sec_shstrtab = new Section<uint64_t>();
+  std::vector<Section<uint64_t>*> all_sections(
+      {sec_null, sec_text, sec_shstrtab});
+
+  sec_null->InitNull();
+
+  sec_text->InitText(1);
+  sec_text->AddData({(const char*)TEXT_A64, sizeof(TEXT_A64)});
+
+  sec_shstrtab->InitStrTab(".shstrtab");
+  sec_shstrtab->SetData(MakeShStrTabContents<uint64_t>(all_sections));
+
+  auto seg_exe = new Segment<uint64_t>();
+  auto seg_pseudo = new Segment<uint64_t>();
+  std::vector<Segment<uint64_t>*> all_segments({seg_exe, seg_pseudo});
+
+  seg_exe->InitExe(65536);
+  seg_exe->sections.push_back(sec_null);
+  seg_exe->sections.push_back(sec_text);
+
+  seg_pseudo->InitPseudo();
+  seg_pseudo->sections.push_back(sec_shstrtab);
+
+  Executable<uint64_t> exe =
+      MakeExecutableA64(0x400000, all_sections, all_segments);
+
+  exe.UpdateVaddrsAndOffsets();
+  exe.ehdr.e_entry = sec_text->shdr.sh_addr;
+  void* data = sec_text->data->rwdata();
+  uint64_t msg_addr = sec_text->shdr.sh_addr + 9 * 4;
+  uint32_t ins = 0x91035021 & 0xff0003ff | ((msg_addr & 0xfff) << 10);
+  ((uint32_t*)sec_text->data->rwdata())[2] = ins;
+  return exe;
+}
+
 uint32_t TEXT_A32[] = {
     0xe3a00001,  // mov	r0, #1
     0xe28f1014,  // add	r1, pc, #20
@@ -92,9 +153,13 @@ uint32_t TEXT_A32[] = {
 };
 
 Executable<uint32_t> GenBareBonesA32() {
+  auto* sec_null = new Section<uint32_t>();
   auto* sec_text = new Section<uint32_t>();
   auto* sec_shstrtab = new Section<uint32_t>();
-  std::vector<Section<uint32_t>*> all_sections({sec_text, sec_shstrtab});
+  std::vector<Section<uint32_t>*> all_sections(
+      {sec_null, sec_text, sec_shstrtab});
+
+  sec_null->InitNull();
 
   sec_text->InitText(1);
   sec_text->AddData({(const char*)TEXT_A32, sizeof(TEXT_A32)});
@@ -107,6 +172,7 @@ Executable<uint32_t> GenBareBonesA32() {
   std::vector<Segment<uint32_t>*> all_segments({seg_exe, seg_pseudo});
 
   seg_exe->InitExe(65536);
+  seg_exe->sections.push_back(sec_null);
   seg_exe->sections.push_back(sec_text);
 
   seg_pseudo->InitPseudo();
@@ -137,6 +203,15 @@ int main(int argc, char* argv[]) {
     fout.close();
   } else if (argv[1] == std::string_view{"gena32"}) {
     auto exe = GenBareBonesA32();
+    std::vector<std::string_view> chunks = exe.Save();
+    std::ofstream fout(argv[2], std::ios::out | std::ios::binary);
+    ASSERT(fout, "Cannot open file " << argv[2]);
+    for (const auto& c : chunks) {
+      fout.write((const char*)c.data(), c.size());
+    }
+    fout.close();
+  } else if (argv[1] == std::string_view{"gena64"}) {
+    auto exe = GenBareBonesA64();
     std::vector<std::string_view> chunks = exe.Save();
     std::ofstream fout(argv[2], std::ios::out | std::ios::binary);
     ASSERT(fout, "Cannot open file " << argv[2]);

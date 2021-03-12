@@ -38,6 +38,11 @@ struct Chunk {
     return is_read_only_ ? storage_ro_.data() : storage_rw_.data();
   }
 
+  void* rwdata() {
+    ASSERT(!is_read_only_, "");
+    return storage_rw_.data();
+  }
+
   size_t size() const {
     return is_read_only_ ? storage_ro_.size() : storage_rw_.size();
   }
@@ -86,6 +91,14 @@ struct Elf_EhdrIdent {
 
   void InitA32() {
     ei_class = EI_CLASS::X_32;
+    ei_data = EI_DATA::LSB2;
+    ei_version = EI_VERSION::CURRENT;
+    ei_osabi = EI_OSABI::SYSV;
+    ei_abiversion = 0;
+  }
+
+  void InitA64() {
+    ei_class = EI_CLASS::X_64;
     ei_data = EI_DATA::LSB2;
     ei_version = EI_VERSION::CURRENT;
     ei_osabi = EI_OSABI::SYSV;
@@ -402,6 +415,15 @@ struct Elf_Ehdr {
     e_phnum = phnum;
     e_shstrndx = shstrndx;
   }
+
+  void InitA64Exec(uint16_t shnum, uint16_t phnum, uint16_t shstrndx) {
+    e_type = E_TYPE::EXEC;
+    e_machine = E_MACHINE::AARCH64;
+    e_version = 1;
+    e_shnum = shnum;
+    e_phnum = phnum;
+    e_shstrndx = shstrndx;
+  }
 };
 
 // ===========================================================
@@ -462,6 +484,12 @@ extern Executable<uint32_t> MakeExecutableA32(
     uint32_t start_vaddr,
     std::vector<Section<uint32_t>*>& all_sections,
     std::vector<Segment<uint32_t>*>& all_segments);
+
+// takes ownership of Sections and Segments
+extern Executable<uint64_t> MakeExecutableA64(
+    uint64_t start_vaddr,
+    std::vector<Section<uint64_t>*>& sections,
+    std::vector<Segment<uint64_t>*>& segments);
 
 template <typename elfsize_t>
 Chunk* MakeShStrTabContents(const std::vector<Section<elfsize_t>*>& sections);

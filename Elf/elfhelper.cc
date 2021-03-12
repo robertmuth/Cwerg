@@ -595,6 +595,20 @@ Executable<uint32_t> MakeExecutableA32(
   return exe;
 }
 
+// takes ownership of Sections and Segments
+Executable<uint64_t> MakeExecutableA64(
+    uint64_t start_vaddr,
+    std::vector<Section<uint64_t>*>& all_sections,
+    std::vector<Segment<uint64_t>*>& all_segments) {
+  Executable<uint64_t> exe;
+  exe.InitWithSectionsAndSegments(start_vaddr, all_sections, all_segments);
+  exe.ident.InitA64();
+  exe.ehdr.InitA64Exec(all_sections.size(),
+                       all_segments.size() - (all_segments.back()->is_pseudo),
+                       all_sections.size() - 1);
+  return exe;
+}
+
 std::string_view null_byte = std::string_view("\0", 1);
 
 template <typename elfsize_t>

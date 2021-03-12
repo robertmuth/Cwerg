@@ -906,8 +906,10 @@ class Executable:
         self.sections = self._load_sections(fin, which)
         self._load_symbols(fin, which, self.sections)
 
-        # assign to segment
-        pseudo_segment: Optional[Segment] = None  # holds all the unmapped secions
+        # assign sections to segments
+        # The null sections goes into the first segment
+        # `pseudd_segment` holds all the unmapped sections
+        pseudo_segment: Optional[Segment] = None
         for sec in self.sections:
             segments = self.phdrs_containing_shdr(sec)
             if segments:

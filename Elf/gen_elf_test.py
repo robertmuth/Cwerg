@@ -24,6 +24,8 @@ TEXT_X64 = [
 
 
 def GenBareBonesX64() -> elfhelper.Executable:
+    sec_null = elfhelper.Section.MakeSectionNull()
+
     sec_rodata = elfhelper.Section.MakeSectionRodata(1)
     sec_rodata.data = RODATA_X64
     sec_rodata.sh_size = len(sec_rodata.data)
@@ -33,20 +35,23 @@ def GenBareBonesX64() -> elfhelper.Executable:
     sec_text.sh_size = len(sec_text.data)
 
     sec_shstrtab = elfhelper.Section.MakeSectionStrTab(".shstrtab")
-    sec_shstrtab.data = elfhelper.MakeSecStrTabContents([sec_rodata, sec_text, sec_shstrtab])
+    sec_shstrtab.data = elfhelper.MakeSecStrTabContents(
+        [sec_null, sec_rodata, sec_text, sec_shstrtab])
     sec_shstrtab.sh_size = len(sec_shstrtab.data)
 
     seg_ro = elfhelper.Segment.MakeROSegment(4096)
     seg_exe = elfhelper.Segment.MakeExeSegment(4096)
     seg_pseudo = elfhelper.Segment.MakePseudoSegment()
 
+    seg_ro.sections.append(sec_null)
     seg_ro.sections.append(sec_rodata)
     seg_exe.sections.append(sec_text)
     seg_pseudo.sections.append(sec_shstrtab)
 
-    exe = elfhelper.Executable.MakeExecutableX64(0x400000,
-                                                 [sec_rodata, sec_text, sec_shstrtab],
-                                                 [seg_ro, seg_exe, seg_pseudo])
+    exe = elfhelper.Executable.MakeExecutableX64(
+        0x400000,
+        [sec_null, sec_rodata, sec_text, sec_shstrtab],
+        [seg_ro, seg_exe, seg_pseudo])
     exe.update_vaddrs_and_offset()
 
     print(f"PATCH ENTRY: {sec_text.sh_addr:x}")
@@ -81,22 +86,27 @@ ALL_A64 = b"".join(x.to_bytes(4, byteorder='little') for x in [
 
 
 def GenBareBonesA64():
+    sec_null = elfhelper.Section.MakeSectionNull()
+
     sec_text = elfhelper.Section.MakeSectionText(1)
     sec_text.data = bytes(ALL_A64)
     sec_text.sh_size = len(sec_text.data)
 
     sec_shstrtab = elfhelper.Section.MakeSectionStrTab(".shstrtab")
-    sec_shstrtab.data = elfhelper.MakeSecStrTabContents([sec_text, sec_shstrtab])
+    sec_shstrtab.data = elfhelper.MakeSecStrTabContents(
+        [sec_null, sec_text, sec_shstrtab])
     sec_shstrtab.sh_size = len(sec_shstrtab.data)
 
     seg_exe = elfhelper.Segment.MakeExeSegment(65536)
+    seg_exe.sections.append(sec_null)
     seg_exe.sections.append(sec_text)
 
     seg_pseudo = elfhelper.Segment.MakePseudoSegment()
     seg_pseudo.sections.append(sec_shstrtab)
 
-    exe = elfhelper.Executable.MakeExecutableA64(0x400000, [sec_text, sec_shstrtab],
-                                                 [seg_exe, seg_pseudo])
+    exe = elfhelper.Executable.MakeExecutableA64(
+        0x400000, [sec_null, sec_text, sec_shstrtab],
+        [seg_exe, seg_pseudo])
     exe.update_vaddrs_and_offset()
     print(f"PATCH ENTRY: {sec_text.sh_addr:x}")
     exe.ehdr.e_entry = sec_text.sh_addr
@@ -130,22 +140,27 @@ ALL_A32 = b"".join(x.to_bytes(4, byteorder='little') for x in [
 
 
 def GenBareBonesA32():
+    sec_null = elfhelper.Section.MakeSectionNull()
+
     sec_text = elfhelper.Section.MakeSectionText(1)
     sec_text.data = bytes(ALL_A32)
     sec_text.sh_size = len(sec_text.data)
 
     sec_shstrtab = elfhelper.Section.MakeSectionStrTab(".shstrtab")
-    sec_shstrtab.data = elfhelper.MakeSecStrTabContents([sec_text, sec_shstrtab])
+    sec_shstrtab.data = elfhelper.MakeSecStrTabContents \
+        ([sec_null, sec_text, sec_shstrtab])
     sec_shstrtab.sh_size = len(sec_shstrtab.data)
 
     seg_exe = elfhelper.Segment.MakeExeSegment(65536)
+    seg_exe.sections.append(sec_null)
     seg_exe.sections.append(sec_text)
 
     seg_pseudo = elfhelper.Segment.MakePseudoSegment()
     seg_pseudo.sections.append(sec_shstrtab)
 
-    exe = elfhelper.Executable.MakeExecutableA32(0x20000, [sec_text, sec_shstrtab],
-                                                 [seg_exe, seg_pseudo])
+    exe = elfhelper.Executable.MakeExecutableA32(
+        0x20000, [sec_null, sec_text, sec_shstrtab],
+        [seg_exe, seg_pseudo])
     exe.update_vaddrs_and_offset()
     print(f"PATCH ENTRY: {sec_text.sh_addr:x}")
     exe.ehdr.e_entry = sec_text.sh_addr
@@ -165,10 +180,11 @@ if __name__ == "__main__":
     else:
         assert False, f"unknown mode {mode}"
 
+    print("HEADERS")
     for phdr in exe.segments:
-        print(phdr)
+        print("PHDR", phdr)
         for shdr in phdr.sections:
-            print(shdr)
+            print("SHDR", shdr)
 
     print("WRITING EXE")
     fout = open(sys.argv.pop(0), "wb")
