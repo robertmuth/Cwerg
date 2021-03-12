@@ -1172,6 +1172,7 @@ for src_ext, src_reg, src_bits in [("w", OK.WREG_5_9, (1, 0, 31)),
                [dst_reg, src_reg], OPC_FLAG(0))
 
 
+@dataclasses.dataclass
 class Ins:
     """Arm flavor of an Instruction
 
