@@ -51,6 +51,7 @@ We re-use the "official" instruction names as base names as much as
 possible. 
 The variant component is necessary for disambiguation since the
 instruction names are heavily overloaded.
+The different addressing modes are reflected as variants as well.
 
  
 ### Operands
@@ -68,7 +69,6 @@ The order of the `Operands` roughly corresponds to the order in the
 assembler notation with the following exceptions:
 * the predicate is always explicit and the first operand
 * the shift direction is used with a pre-fix notation
-* the address mode is explicit and used with a prefix notation
 * written registers precede read registers. This affects primarily (v)str
   instructions where the "storee" is moved to the end, and (v)ldm instructions
   where the register masks is moved to the front.
@@ -90,7 +90,7 @@ Our Notation
     ```
     add_regimm al r0 r1 asr r2 #3
     ldr_imm al r0  PUW r1 #2
-    ldrb_reg al lr PUw ip lsl r3 #1
+    ldrb_reg_add al lr ip lsl r3 #1
     bl al lr exit
     ```  
 

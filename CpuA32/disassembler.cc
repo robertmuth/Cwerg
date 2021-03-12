@@ -2,6 +2,7 @@
 
 #include "CpuA32/disassembler.h"
 #include "Util/assert.h"
+#include "Util/parse.h"
 
 #include <stdio.h>
 #include <cstring>
@@ -32,6 +33,21 @@ char* strappend(char* dst, const char* src) {
   return dst + strlen(dst);
 }
 
+char* strappenddec(char* dst, int64_t n) {
+  if (n >= 0) {
+    ToDecString(n, dst);
+  } else {
+    *dst++ = '-';
+    ToDecString(-n, dst);
+  }
+  return dst + strlen(dst);
+}
+
+char* strappendhex(char* dst, int64_t n) {
+  ToHexString(n, dst);
+  return dst + strlen(dst);
+}
+
 char* strappend(char* dst, std::string_view src) {
   memcpy(dst, src.data(), src.size());
   dst[src.size()] = 0;
@@ -57,7 +73,10 @@ int RenderMultipleVFP(const char* reg_prefix,
                       char* buffer) {
   ASSERT(count > 0, "");
   if (count == 1) {
-    sprintf(buffer, "{%s%d}", reg_prefix, start_reg);
+    buffer = strappend(buffer, "{");
+    buffer = strappend(buffer, reg_prefix);
+    buffer = strappenddec(buffer,start_reg);
+    buffer = strappend(buffer, "}");
   } else {
     sprintf(buffer, "{%s%d-%s%d}", reg_prefix, start_reg, reg_prefix,
             start_reg + count - 1);
@@ -82,19 +101,21 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::REG_8_11:
     case OK::REG_PAIR_12_15:
       ASSERT(x <= 15, "REG out of range " << x);
-      strcpy(buffer, kArmRegNames[x]);
+      strappend(buffer, kArmRegNames[x]);
       return;
     case OK::DREG_0_3_5:
     case OK::DREG_12_15_22:
     case OK::DREG_16_19_7:
       ASSERT(x <= 15, " DREG out of range " << x);
-      sprintf(buffer, "d%d", x);
+      *buffer++ = 'd';
+      strappenddec(buffer, x);
       return;
     case OK::SREG_0_3_5:
     case OK::SREG_12_15_22:
     case OK::SREG_16_19_7:
       ASSERT(x <= 31, "SREG out of range " << x);
-      sprintf(buffer, "s%d", x);
+      *buffer++ = 's';
+      strappenddec(buffer, x);
       return;
     case OK::IMM_0_11:
     case OK::IMM_0_11_16_19:
@@ -108,11 +129,12 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
       sprintf(buffer, "%u", (uint32_t)x);
       return;
     case OK::SIMM_0_23:
-      sprintf(buffer, "%d", x);
+      strappenddec(buffer, x);
       return;
     case OK::REG_RANGE_0_7:
     case OK::REG_RANGE_1_7:
-      sprintf(buffer, "regrange:%d", x);
+      buffer = strappend(buffer, "regrange:");
+      strappenddec(buffer, x);
       return;
     case OK::REGLIST_0_15:
       sprintf(buffer, "reglist:0x%04x", x);
@@ -190,7 +212,8 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
     case OK::IMM_0_23:
     case OK::IMM_ZERO:
     case OK::SIMM_0_23:
-      sprintf(buffer, "#%d", x);
+      *buffer++ = '#';
+      strappenddec(buffer, x);
       return pos;
     case OK::SHIFT_MODE_5_6: {
       pos = RenderOperandStd(buffer, ins, pos);
@@ -277,7 +300,10 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
       char reg[128];
       pos = RenderOperandStd(reg, ins, pos);
       if (x == 1) {
-        sprintf(buffer, "{%s}", reg);
+        *buffer++ = '{';
+        buffer = strappend(buffer, reg);
+        *buffer++ = '}';
+        *buffer++ = 0;
       } else {
         int32_t reg_last = atoi(reg + 1) + x - 1;
         sprintf(buffer, "{%s-%c%d}", reg, reg[0], reg_last);
@@ -360,8 +386,8 @@ void RenderInsSystematic(const Ins& ins, char buffer[128]) {
           ASSERT(false, "");
       }
       if (ins.operands[i] != 0) {
-        sprintf(buffer, ":%d", ins.operands[i]);
-        buffer += strlen(buffer);
+        *buffer++ = ':';
+        buffer = strappenddec(buffer, ins.operands[i]);
       }
     } else {
       RenderOperandSystematic(buffer, ins, i);
