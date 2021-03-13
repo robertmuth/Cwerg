@@ -83,6 +83,8 @@ for i in range(32):
     for ok in [a64.OK.QREG_0_4, a64.OK.QREG_5_9, a64.OK.QREG_10_14, a64.OK.QREG_16_20]:
         _STRINGIFIER[ok] = [f"q{i}" for i in range(32)]
 
+_STRINGIFIER[a64.OK.REG_LINK] = ["lr"]
+
 
 def DecodeOperand(kind: a64.OK, data: int) -> str:
     t = _STRINGIFIER.get(kind)
@@ -111,38 +113,39 @@ for ok, t in _STRINGIFIER.items():
                 assert val == val2, f"{name}: {val} vs  {val2}"
 
 
-_UNSTRINGIFIER: Dict[a64.OK, Any] = {
+_UNSTRINGIFIER_INT: Dict[a64.OK, Any] = {
+    a64.OK.IMM_10_15_16_22_W: a64.Encode_10_15_16_22_W,
+    a64.OK.IMM_10_15_16_22_X: a64.Encode_10_15_16_22_X,
+    a64.OK.IMM_SHIFTED_5_20_21_22: a64.EncodeShifted_5_20_21_22,
+    a64.OK.IMM_SHIFTED_10_21_22: a64.EncodeShifted_10_21_22,
+}
+
+
+_UNSTRINGIFIER_FLT: Dict[a64.OK, Any] = {
     a64.OK.IMM_FLT_ZERO: lambda x: 0,
-    a64.OK.REG_LINK: lambda x: 0,
-    a64.OK.IMM_10_15_16_22_W: lambda x: a64.Encode_10_15_16_22_W(int(x[1:], 0)),
-    a64.OK.IMM_10_15_16_22_X: lambda x:  a64.Encode_10_15_16_22_X(int(x[1:], 0)),
-    a64.OK.IMM_SHIFTED_5_20_21_22: lambda x: a64.EncodeShifted_5_20_21_22(int(x[1:], 0)),
-    a64.OK.IMM_SHIFTED_10_21_22: lambda x: a64.EncodeShifted_10_21_22(int(x[1:], 0)),
+    a64.OK.FLT_13_20: a64.EncodeEncode8BitFlt,
 }
 
 
 def EncodeOperand(ok: a64.OK, op: str) -> int:
     t = _STRINGIFIER.get(ok)
-    if isinstance(t, list):
-        if t == 31:
-            pass
+    if op[0] != "#":
+        assert isinstance(t, list)
         return _UNSTRINGIFIER_CONST[op]
-    elif isinstance(t, tuple):
-        if ok in {a64.OK.SIMM_PCREL_5_23_29_30,
-                  a64.OK.SIMM_PCREL_5_23,
-                  a64.OK.SIMM_PCREL_5_18,
-                  a64.OK.SIMM_PCREL_0_25}:  # pc rel
-            return None
+
+    if isinstance(t, tuple):
         i = int(op[1:], 0)  # skip "#", must handle "0x" prefix
         if t[2] > 1:
+            # handle scaling
             x = i // t[2]
             assert x * t[2] == i
             i = x
         if t[1] == 0:
-            return i
+            return i  # unsigned
         return i & ((1 << t[1]) - 1)
-    else:
-        t = _UNSTRINGIFIER.get(ok)
-        if t is None:
-            return None
-        return t(op)
+
+    t = _UNSTRINGIFIER_INT.get(ok)
+    if t:
+        return t(int(op[1:], 0))
+
+    return _UNSTRINGIFIER_FLT[ok](float(op[1:]))

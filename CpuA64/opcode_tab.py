@@ -10,6 +10,7 @@ from typing import List, Dict, Tuple, Optional, Set
 import collections
 import dataclasses
 import enum
+import struct
 import re
 import sys
 
@@ -26,12 +27,39 @@ CONDITION_CODES_INV_MAP = {code: CONDITION_CODES[n ^ 1] for
                            n, code in enumerate(CONDITION_CODES)}
 
 
+def _MakeFloat(sign, mantissa4bit, exponent) -> float:
+    sign = sign * -2 + 1
+    mantissa4bit |= 16
+    return ((0.125 * mantissa4bit) / 16) * (1 << exponent) * sign
+
+
+def _MakeIeee64(sign, mantissa4bit, exponent) -> int:
+    assert 0 <= exponent <= 7
+    assert 0 <= mantissa4bit <= 15
+    return (sign << 63) | ((exponent - 3 + 1023) << 52) | (mantissa4bit << 48)
+
+
+def EncodeEncode8BitFlt(val) -> Optional[int]:
+    assert isinstance(val, float)
+    data = struct.pack("d", val)
+    assert len(data) == 8
+    ieee64 = int.from_bytes(data, 'little')
+    mantissa = ieee64 & ((1 << 52) - 1)
+    ieee64 >>= 52
+    exponent = (ieee64 & ((1 << 11) - 1)) - 1023 +3
+    sign = ieee64 >> 11
+    if 0 <= exponent <= 7 and ((mantissa >> 48) << 48) == mantissa:
+        return (sign << 7) | ((exponent ^ 4) << 4) | (mantissa >> 48)
+    return None
+
+
 def Decode8BitFlt(x):
-    mantissa = (x & 0xf) + 16
+    mantissa = (x & 0xf)
     x >>= 4
     exponent = (x & 7) ^ 4
-    sign = (x >> 3) * -2 + 1
-    return ((0.125 * mantissa) / 16) * (1 << exponent) * sign
+    sign = (x >> 3)
+    ieee64 = int.to_bytes(_MakeIeee64(sign, mantissa, exponent), 8, 'little')
+    return struct.unpack("d", ieee64)[0]
 
 
 def Bits(*patterns) -> Tuple[int, int]:

@@ -248,26 +248,21 @@ def MassageOperands(name, opcode, operands):
     return name
 
 
-all_operands = 0
-checked_operands = 0
-
-
 def HandleOneInstruction(count: int, line: str,
                          data: int, opcode: Opcode,
                          actual_name: str, actual_ops: List[str]):
     global all_operands, checked_operands
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
     ops_raw = opcode.DisassembleOperands(data)
-    ops_str = [disass.DecodeOperand(f, op) for op, f in zip(ops_raw, opcode.fields)]
+    ops_str = [disass.DecodeOperand(f, op)
+               for op, f in zip(ops_raw, opcode.fields)]
     assert OperandsMatch(opcode, ops_str,
                          actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
 
-    ops_raw2 = [disass.EncodeOperand(f, op) for op, f in zip(ops_str, opcode.fields)]
+    ops_raw2 = [disass.EncodeOperand(f, op)
+                for op, f in zip(ops_str, opcode.fields)]
     for a, b in zip(ops_raw, ops_raw2):
-        all_operands += 1
-        if b is not None:
-            assert a == b, f"{a} vs {b} {ops_str} {ops_raw} in: {line}"
-            checked_operands += 1
+        assert a == b, f"{a} vs {b}  original: {ops_str} {ops_raw} in: {line}"
 
     data2 = opcode.AssembleOperands(ops_raw)
     assert data == data2
@@ -304,7 +299,6 @@ def main(argv):
                     count, line, data, opcode, actual_name, actual_ops)
     # for name, count in sorted(HISTOGRAM.items()):
     #    print (f"{name:20s} {count}")
-    print (f"{checked_operands}/{all_operands} {checked_operands/all_operands * 100:3.1f}")
     print("OK")
 
 
