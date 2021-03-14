@@ -34,13 +34,8 @@ def FixupAliases(name: str, ops: List, is_multi):
     return name
 
 
-def OperandsDiffer(actual_operands, expected_operands):
-    if len(actual_operands) != len(expected_operands):
-        return True
-    for n, o in enumerate(expected_operands):
-        if o != actual_operands[n]:
-            return True
-    return False
+def OperandsMatch(opcode: arm.Opcode, actual_ops: List[str], objdump_ops: List[str]) -> bool:
+    return actual_ops == objdump_ops
 
 
 def HandleOneInstruction(count: int, line: str,
@@ -50,7 +45,7 @@ def HandleOneInstruction(count: int, line: str,
     assert ins is not None, f"cannot disassemble: {line}"
     assert ins.opcode is not None and ins.operands is not None, f"unknown opcode {line}"
     data2 = arm.Assemble(ins)
-    assert data == data2
+    assert data == data2, f"disass mismatch [{ins.opcode.NameForEnum()}] {data:x} vs {data2:x}"
     expected = dis.RenderInstructionStd(ins)
     token = expected.split(None, 1)
     expected_name = token[0]
@@ -63,11 +58,11 @@ def HandleOneInstruction(count: int, line: str,
     if actual_name != expected_name:
         print("BAD NAME", expected_name, actual_name, line, end="")
 
-    if OperandsDiffer(actual_ops, expected_ops):
+    if not OperandsMatch(ins.opcode, actual_ops, expected_ops):
         print("OPERANDS differ", str(expected_ops), line, end="")
 
     operands_str = dis.SymbolizeOperands(ins)
-    operands2 = [dis.UnsymbolizeOperand(o) for o in operands_str]
+    operands2 = [dis.UnsymbolizeOperand(op) for op in operands_str]
     assert tuple(ins.operands) == tuple(operands2), f"{ins.operands} vs {operands2}"
 
 

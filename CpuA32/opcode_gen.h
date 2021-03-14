@@ -37,11 +37,11 @@ enum class OK : uint8_t {
     REG_RANGE_1_7 = 18,
     REG_BASE_16_19 = 19,
     PRED_28_31 = 20,
-    IMM_0_7_times4 = 21,
+    IMM_0_7_TIMES_4 = 21,
     IMM_0_11 = 22,
     IMM_0_3_8_11 = 23,
     IMM_7_11 = 24,
-    IMM_10_11 = 25,
+    IMM_10_11_TIMES_8 = 25,
     IMM_0_23 = 26,
     IMM_0_7_8_11 = 27,
     IMM_ZERO = 28,
@@ -55,22 +55,6 @@ enum class SR_UPDATE : uint8_t {
     NCZ_PSR = 2,
     NCZ = 4,
     NCZV = 5,
-};
-
-enum class BitRangeKind : uint8_t {
-    Verbatim = 0,
-    Hi = 1,
-    Lo = 2,
-    Rotated = 3,
-    Signed = 4,
-    Times8 = 5,
-    Times4 = 6,
-    Times2 = 7,
-    Force0 = 9,
-    Force1 = 10,
-    Force3 = 11,
-    Force6 = 12,
-    Force14 = 13,
 };
 
 enum class MEM_WIDTH : uint8_t {
@@ -612,13 +596,12 @@ extern const Opcode* FindArmOpcode(uint32_t bit_value);
 extern const Opcode* FindArmOpcodeForMnemonic(std::string_view s);
 
 // Returns non-zero if successful
-extern int32_t DecodeOperand(uint32_t data, OK field_kind);
+extern int32_t InsertOperand(uint32_t data, OK field_kind);
 
 // Decoded representation of the instruction word
 struct Ins {
   const Opcode* opcode;
   // number of used entries is ArmOpcode.num_fields
-  // This is signed because some operands can be negative, e.g.
   // branch offset, but this is not ideal since immediates
   // for add/sub/and etc can produce unsigned immediates with
   // high order bit set.
@@ -638,19 +621,30 @@ struct Ins {
   }
 };
 
+
 // Decode the instruction word `data`
 // Returns true if successful
 extern bool DecodeIns(Ins* ins, uint32_t data);
+
+extern uint32_t  DecodeRotatedImm(uint32_t data);
+
+extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
+
 
 // Encode the instruction
 // Returns the instruction word. Asserts if unsuccessful
 extern uint32_t EncodeIns(const Ins& ins);
 
+const uint32_t kEncodeFailure = 0xffffffff;
+
 // Tries to encode a 32 bit immediate value as a standard
 // ARM 12bit shifted immediate.
 // If this is successful a 12bit unsigned value is returned.
-// Otherwise, -1 is returned.
-extern int32_t EncodeRotatedImm(int32_t immediate);
+// Otherwise, kEncodingFailure is returned.
+extern uint32_t EncodeRotatedImm(int32_t immediate);
+
+
+extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
 
 template <typename Flag>
 const char* EnumToString(Flag f);

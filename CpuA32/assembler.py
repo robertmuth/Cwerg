@@ -254,10 +254,6 @@ _OPCODE_B: arm.Opcode = arm.Opcode.name_to_opcode["b"]
 _OPCODE_BL: arm.Opcode = arm.Opcode.name_to_opcode["bl"]
 
 
-def _patch_ins(ins_old: int, opcode: arm.Opcode, pos: int, value: int):
-    ops = opcode.DisassembleOperands(ins_old)
-    ops[pos] = value
-    return opcode.AssembleOperands(ops)
 
 
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
@@ -271,13 +267,13 @@ def _ApplyRelocation(rel: elf.Reloc):
     old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
     if rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
-        new_data = _patch_ins(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
+        new_data = arm.Patch(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVT_ABS.value:
-        new_data = _patch_ins(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
+        new_data = arm.Patch(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.JUMP24.value:
-        new_data = _patch_ins(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
+        new_data = arm.Patch(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.CALL.value:
-        new_data = _patch_ins(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
+        new_data = arm.Patch(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.ABS32.value:
         new_data = sym_val
     else:

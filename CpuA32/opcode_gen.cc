@@ -5,7 +5,6 @@
 namespace cwerg::a32 {
 
 struct BitRange {
-  BitRangeKind modifier;
   uint8_t width;
   uint8_t position;
 };
@@ -904,51 +903,51 @@ const Opcode OpcodeTable[] = {
  DIV, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxtb", "uxtb", 0x0fff03f0, 0x06ef0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxtb", "sxtb", 0x0fff03f0, 0x06af0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxtab", "uxtab", 0x0ff003f0, 0x06e00070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxtab", "sxtab", 0x0ff003f0, 0x06a00070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxtb16", "uxtb16", 0x0fff03f0, 0x06cf0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxtb16", "sxtb16", 0x0fff03f0, 0x068f0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxtab16", "uxtab16", 0x0ff003f0, 0x06c00070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxtab16", "sxtab16", 0x0ff003f0, 0x06800070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxth", "uxth", 0x0fff03f0, 0x06ff0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxth", "sxth", 0x0fff03f0, 0x06bf0070,
- 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 5, {OK::PRED_28_31, OK::REG_12_15, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"uxtah", "uxtah", 0x0ff003f0, 0x06f00070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"sxtah", "sxtah", 0x0ff003f0, 0x06b00070,
- 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11},
+ 6, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::SHIFT_MODE_ROT, OK::REG_0_3, OK::IMM_10_11_TIMES_8},
  SIGNEXTEND, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"rev", "rev", 0x0fff0ff0, 0x06bf0f30,
@@ -1165,35 +1164,35 @@ const Opcode OpcodeTable[] = {
 /* BLOCK 0c000000 */
 /* ============================================================*/
 {"vldr", "vldr_f32_sub", 0x0fb00f00, 0x0d100a00,
- 4, {OK::PRED_28_31, OK::SREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_times4},
+ 4, {OK::PRED_28_31, OK::SREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4},
  LOAD | VFP | ADDR_PRE | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vldr", "vldr_f64_sub", 0x0fb00f00, 0x0d100b00,
- 4, {OK::PRED_28_31, OK::DREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_times4},
+ 4, {OK::PRED_28_31, OK::DREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4},
  LOAD | VFP | ADDR_PRE | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vstr", "vstr_f32_sub", 0x0fb00f00, 0x0d000a00,
- 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_times4, OK::SREG_12_15_22},
+ 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4, OK::SREG_12_15_22},
  STORE | VFP | ADDR_PRE | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vstr", "vstr_f64_sub", 0x0fb00f00, 0x0d000b00,
- 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_times4, OK::DREG_12_15_22},
+ 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4, OK::DREG_12_15_22},
  STORE | VFP | ADDR_PRE | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vldr", "vldr_f32_add", 0x0fb00f00, 0x0d900a00,
- 4, {OK::PRED_28_31, OK::SREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_times4},
+ 4, {OK::PRED_28_31, OK::SREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4},
  LOAD | VFP | ADDR_PRE | ADDR_INC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vldr", "vldr_f64_add", 0x0fb00f00, 0x0d900b00,
- 4, {OK::PRED_28_31, OK::DREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_times4},
+ 4, {OK::PRED_28_31, OK::DREG_12_15_22, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4},
  LOAD | VFP | ADDR_PRE | ADDR_INC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vstr", "vstr_f32_add", 0x0fb00f00, 0x0d800a00,
- 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_times4, OK::SREG_12_15_22},
+ 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4, OK::SREG_12_15_22},
  STORE | VFP | ADDR_PRE | ADDR_INC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vstr", "vstr_f64_add", 0x0fb00f00, 0x0d800b00,
- 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_times4, OK::DREG_12_15_22},
+ 4, {OK::PRED_28_31, OK::REG_BASE_16_19, OK::IMM_0_7_TIMES_4, OK::DREG_12_15_22},
  STORE | VFP | ADDR_PRE | ADDR_INC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vmov", "vmov_atof", 0x0ff00fd0, 0x0c400b10,
@@ -1547,131 +1546,128 @@ static const Field FieldTable[] = {
 }}, 
 {   // REG_0_3 = 1
     1, {
-    {BitRangeKind::Verbatim, 4, 0},
+    {4, 0},
 }}, 
 {   // REG_8_11 = 2
     1, {
-    {BitRangeKind::Verbatim, 4, 8},
+    {4, 8},
 }}, 
 {   // REG_12_15 = 3
     1, {
-    {BitRangeKind::Verbatim, 4, 12},
+    {4, 12},
 }}, 
 {   // REG_16_19 = 4
     1, {
-    {BitRangeKind::Verbatim, 4, 16},
+    {4, 16},
 }}, 
 {   // REG_LINK = 5
-    1, {
-    {BitRangeKind::Force14, 0, 0},
+    0, {
 }}, 
 {   // REG_PAIR_12_15 = 6
     1, {
-    {BitRangeKind::Verbatim, 4, 12},
+    {4, 12},
 }}, 
 {   // DREG_0_3_5 = 7
     2, {
-    {BitRangeKind::Hi, 1, 5},
-    {BitRangeKind::Lo, 4, 0},
+    {1, 5},
+    {4, 0},
 }}, 
 {   // DREG_12_15_22 = 8
     2, {
-    {BitRangeKind::Hi, 1, 22},
-    {BitRangeKind::Lo, 4, 12},
+    {1, 22},
+    {4, 12},
 }}, 
 {   // DREG_16_19_7 = 9
     2, {
-    {BitRangeKind::Hi, 1, 7},
-    {BitRangeKind::Lo, 4, 16},
+    {1, 7},
+    {4, 16},
 }}, 
 {   // SREG_0_3_5 = 10
     2, {
-    {BitRangeKind::Hi, 4, 0},
-    {BitRangeKind::Lo, 1, 5},
+    {4, 0},
+    {1, 5},
 }}, 
 {   // SREG_12_15_22 = 11
     2, {
-    {BitRangeKind::Hi, 4, 12},
-    {BitRangeKind::Lo, 1, 22},
+    {4, 12},
+    {1, 22},
 }}, 
 {   // SREG_16_19_7 = 12
     2, {
-    {BitRangeKind::Hi, 4, 16},
-    {BitRangeKind::Lo, 1, 7},
+    {4, 16},
+    {1, 7},
 }}, 
 {   // SHIFT_MODE_5_6 = 13
     1, {
-    {BitRangeKind::Verbatim, 2, 5},
+    {2, 5},
 }}, 
 {   // SHIFT_MODE_5_6_ADDR = 14
     1, {
-    {BitRangeKind::Verbatim, 2, 5},
+    {2, 5},
 }}, 
 {   // SHIFT_MODE_ROT = 15
-    1, {
-    {BitRangeKind::Force3, 0, 0},
+    0, {
 }}, 
 {   // REGLIST_0_15 = 16
     1, {
-    {BitRangeKind::Verbatim, 16, 0},
+    {16, 0},
 }}, 
 {   // REG_RANGE_0_7 = 17
     1, {
-    {BitRangeKind::Verbatim, 8, 0},
+    {8, 0},
 }}, 
 {   // REG_RANGE_1_7 = 18
     1, {
-    {BitRangeKind::Verbatim, 7, 1},
+    {7, 1},
 }}, 
 {   // REG_BASE_16_19 = 19
     1, {
-    {BitRangeKind::Verbatim, 4, 16},
+    {4, 16},
 }}, 
 {   // PRED_28_31 = 20
     1, {
-    {BitRangeKind::Verbatim, 4, 28},
+    {4, 28},
 }}, 
-{   // IMM_0_7_times4 = 21
+{   // IMM_0_7_TIMES_4 = 21
     1, {
-    {BitRangeKind::Times4, 8, 0},
+    {8, 0},
 }}, 
 {   // IMM_0_11 = 22
     1, {
-    {BitRangeKind::Verbatim, 12, 0},
+    {12, 0},
 }}, 
 {   // IMM_0_3_8_11 = 23
     2, {
-    {BitRangeKind::Hi, 4, 8},
-    {BitRangeKind::Lo, 4, 0},
+    {4, 8},
+    {4, 0},
 }}, 
 {   // IMM_7_11 = 24
     1, {
-    {BitRangeKind::Verbatim, 5, 7},
+    {5, 7},
 }}, 
-{   // IMM_10_11 = 25
+{   // IMM_10_11_TIMES_8 = 25
     1, {
-    {BitRangeKind::Times8, 2, 10},
+    {2, 10},
 }}, 
 {   // IMM_0_23 = 26
     1, {
-    {BitRangeKind::Verbatim, 24, 0},
+    {24, 0},
 }}, 
 {   // IMM_0_7_8_11 = 27
     1, {
-    {BitRangeKind::Rotated, 12, 0},
+    {12, 0},
 }}, 
 {   // IMM_ZERO = 28
-    1, {
-    {BitRangeKind::Force0, 0, 0},
+    0, {
 }}, 
 {   // IMM_0_11_16_19 = 29
     2, {
-    {BitRangeKind::Hi, 4, 16},
-    {BitRangeKind::Lo, 12, 0},
+    {4, 16},
+    {12, 0},
 }}, 
 {   // SIMM_0_23 = 30
     1, {
-    {BitRangeKind::Signed, 24, 0},
+    {24, 0},
 }}, 
 };
 
@@ -1867,7 +1863,7 @@ uint32_t DecodeRotatedImm(uint32_t data) {
 
 // Inverse of DecodeRotatedImm()
 // returns -1 in case of failure
-int32_t EncodeRotatedImm(int32_t immediate) {
+uint32_t EncodeRotatedImm(int32_t immediate) {
   uint32_t x = immediate;
   for (int r = 0; r < 16; ++r) {
     if ((x & 0xff) == x) {
@@ -1876,123 +1872,71 @@ int32_t EncodeRotatedImm(int32_t immediate) {
     // rotate left by 2
     x = (x << 2) | (x >> 30);
   }
-  return -1;
+  return kEncodeFailure;
 }
 
-int32_t DecodeOperand(uint32_t data, OK field_kind) {
+uint32_t ExtractOperand(uint32_t data, OK field_kind) {
   const BitRange* bit_ranges = FieldTable[uint8_t(field_kind)].bit_ranges;
 
-  int32_t hi = 0;
+  int32_t out = 0;
   for (unsigned i = 0; i < FieldTable[uint8_t(field_kind)].num_bit_ranges;
        ++i) {
     const BitRange* range = bit_ranges + i;
     uint32_t mask = (1 << range->width) - 1;
     uint32_t x = (data >> range->position) & mask;
-    switch (range->modifier) {
-      case BitRangeKind::Verbatim:
-        return x;
-      case BitRangeKind::Times8:
-        return x << 3;
-      case BitRangeKind::Times4:
-        return x << 2;
-      case BitRangeKind::Times2:
-        return x << 1;
-      case BitRangeKind::Force0:
-        return 0;
-      case BitRangeKind::Force1:
-        return 1;
-      case BitRangeKind::Force3:
-        return 3;
-      case BitRangeKind::Force6:
-        return 6;
-      case BitRangeKind::Force14:
-        return 14;
-      case BitRangeKind::Hi:  // hi must directly precede lo
-        hi = x;
-        continue;  // SKIP
-      case BitRangeKind::Lo:
-        return x | hi << range->width;
-      case BitRangeKind::Rotated:
-        return DecodeRotatedImm(x);
-      case BitRangeKind::Signed: {
-        uint32_t mask2 = mask >> 1;
-        if ((x & mask2) != x) {  // hi bit set
-          x -= 1 << range->width;
-        }
-        return x;
-      }
-    }
+    out = x | out << range->width;
   }
-  ASSERT(false, "unreachable");
-  return 0;
+  return out;
 }
 
-void EncodeOperand(int32_t x,
-                   const struct Field* field,
+int32_t DecodeOperand(uint32_t data, OK ok) {
+  switch (ok) {
+    case OK::IMM_0_7_8_11:
+      return DecodeRotatedImm(data);
+    case OK::SIMM_0_23:
+      return SignedIntFromBits(data, 24);
+    case OK::IMM_ZERO:
+      return 0;
+    case OK::IMM_10_11_TIMES_8:
+      return data * 8;
+    case OK::IMM_0_7_TIMES_4:
+      return data * 4;
+    default:
+      return data;
+  }
+}
+
+
+uint32_t EncodeOperand(int32_t data, OK ok) {
+  switch (ok) {
+    case OK::IMM_0_7_8_11:
+      return EncodeRotatedImm(data);
+    case OK::SIMM_0_23:
+      return data & 0xffffff;
+    case OK::IMM_ZERO:
+      return 0;
+    case OK::IMM_10_11_TIMES_8:
+      return data / 8;
+    case OK::IMM_0_7_TIMES_4:
+      return data / 4;
+    default:
+      return data;
+  }
+}
+
+void InsertOperand(int32_t x,
+                   const Field* field,
                    uint32_t* bits_value,
                    uint32_t* bits_mask) {
   const BitRange* bit_ranges = field->bit_ranges;
-  int32_t hi = 0;
   // backwards is important
   for (int i = field->num_bit_ranges - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
     const uint32_t mask = (1 << range->width) - 1;
-    switch (range->modifier) {
-      case BitRangeKind::Verbatim:
-        // assert (0);
-        break;
-      case BitRangeKind::Times8:
-        ASSERT((x & 7) == 0, "");
-        x >>= 3;
-        break;
-      case BitRangeKind::Times4:
-        ASSERT((x & 3) == 0, "");
-        x >>= 2;
-        break;
-      case BitRangeKind::Times2:
-        ASSERT((x & 1) == 0, "");
-        x >>= 1;
-        break;
-      case BitRangeKind::Force0:
-        ASSERT(x == 0, "");
-        continue;
-      case BitRangeKind::Force1:
-        ASSERT(x == 1, "");
-        continue;
-      case BitRangeKind::Force3:
-        ASSERT(x == 3, "");
-        continue;
-      case BitRangeKind::Force6:
-        ASSERT(x == 6, "");
-        continue;
-      case BitRangeKind::Force14:
-        ASSERT(x == 14, "");
-        continue;
-      case BitRangeKind::Hi:  // hi will process directly after low (reverse for loop)
-        x = hi;
-        break;
-      case BitRangeKind::Lo:
-        hi = x >> range->width;
-        x &= mask;
-        break;
-      case BitRangeKind::Rotated:
-        x = EncodeRotatedImm(x);
-        ASSERT((x & 0xfff) == x, "");
-        break;
-      case BitRangeKind::Signed: {
-        if (x >= 0) {
-          ASSERT((x & int32_t(mask >> 1)) == x, "bad val " << x);
-        } else {
-          ASSERT((x | int32_t(mask >> 1)) == ~0, "");
-        }
-        x &= mask;
-        break;
-      }
-    }
-    ASSERT((int32_t(mask) & x) == x, "bad value - did you forget the pred");
     ASSERT(((mask << range->position) & *bits_mask) == 0, "");
     *bits_mask |= mask << range->position;
-    *bits_value |= x << range->position;
+    *bits_value |= (x & mask) << range->position;
+    x >>= range->width;
   }
 }
 
@@ -2002,7 +1946,9 @@ bool DecodeIns(Ins* ins, uint32_t data) {
 
   ins->opcode = opcode;
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
-    ins->operands[i] = DecodeOperand(data, opcode->fields[i]);
+    ins->operands[i] =
+        DecodeOperand(ExtractOperand(data, opcode->fields[i]),
+                      opcode->fields[i]);
   }
   return true;
 }
@@ -2014,11 +1960,19 @@ uint32_t EncodeIns(const Ins& ins) {
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
     const OK kind = ins.opcode->fields[i];
     ASSERT(kind != OK::Invalid, "");
-    EncodeOperand(ins.operands[i], &FieldTable[uint8_t(kind)], &value,
-                  &mask);
+    uint32_t x = EncodeOperand(ins.operands[i], kind);
+    InsertOperand(x, &FieldTable[uint8_t(kind)], &value, &mask);
   }
   ASSERT(mask == 0xffffffff, "problems encoding " << opcode->name);
   return value;
+}
+
+uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
+  Ins ins;
+  CHECK(DecodeIns(&ins, ins_old), "");
+  
+  ins.operands[pos] = value;
+  return EncodeIns(ins);
 }
 
 const Opcode* FindArmOpcodeForMnemonic(std::string_view s) {
@@ -2035,6 +1989,13 @@ const Opcode* FindArmOpcodeForMnemonic(std::string_view s) {
     if (opcode->enum_name == s) return opcode;
   }
   return nullptr;
+}
+
+int32_t SignedIntFromBits(uint32_t data, unsigned n_bits) {
+  uint32_t mask = (1 << n_bits) - 1;
+  data &= mask;
+  bool is_neg = data & (1 << (n_bits - 1));
+  return is_neg ? data - (1 << n_bits) : data;
 }
 
 }  // namespace cwerg::a32

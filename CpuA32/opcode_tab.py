@@ -42,7 +42,7 @@ import sys
 _DEBUG = False
 
 # ldr_reg requires 7 operands:  [PRED, DST, ADD_MODE, BASE, SHIFT_MODE, INDEX, OFFSET]
-MAX_OPERANDS = 7
+MAX_OPERANDS = 6
 
 MAX_BIT_RANGES = 4
 
@@ -87,11 +87,15 @@ def SignedIntFromBits(data, n_bits) -> int:
         return data
 
 
-def BitsFromSignedInt(n_bits, x) -> int:
+def BitsFromSignedInt(x, n_bits) -> Optional[int]:
     if x < 0:
         x = (1 << n_bits) + x
-    assert x < (1 << n_bits)
+    assert x < (1 << n_bits), f"signed value out of range: {x}  bits:{n_bits}"
     return x
+
+
+def BitsFromScaledInt(x, scale) -> Optional[int]:
+    return x // scale
 
 
 def DecodeRotatedImm(data) -> int:
@@ -268,11 +272,11 @@ class OK(enum.Enum):
     PRED_28_31 = 20
 
     # immediates
-    IMM_0_7_times4 = 21
+    IMM_0_7_TIMES_4 = 21
     IMM_0_11 = 22
     IMM_0_3_8_11 = 23
     IMM_7_11 = 24
-    IMM_10_11 = 25
+    IMM_10_11_TIMES_8 = 25
     IMM_0_23 = 26
     IMM_0_7_8_11 = 27
     IMM_ZERO = 28  # implicit 0.0 immediate
@@ -294,95 +298,57 @@ class SR_UPDATE(enum.Enum):
     NCZV = 5
 
 
-############################################################
-# bit ranges are the building blocks of fields
-# Each bit range specifies one or more consecutive bits
-############################################################
-@enum.unique
-class BRK(enum.Enum):  # bit range kind
-
-    Verbatim = 0
-    Hi = 1
-    Lo = 2
-    Rotated = 3
-    Signed = 4
-    Times8 = 5
-    Times4 = 6
-    Times2 = 7
-    Force0 = 9
-    Force1 = 10
-    Force3 = 11
-    Force6 = 12
-    Force14 = 13
-
-
-BIT_RANGE_MODIFIER_SINGLE: Set[BRK] = {
-    BRK.Verbatim,
-    BRK.Rotated,
-    BRK.Signed,
-    BRK.Times8,
-    BRK.Times4,
-    BRK.Times2,
-    BRK.Force0,
-    BRK.Force1,
-    BRK.Force3,
-    BRK.Force6,
-    BRK.Force14,
-}
-
-BIT_RANGE_MODIFIER_HILO: Set[BRK] = {BRK.Hi, BRK.Lo}
-BIT_RANGE_MODIFIER = BIT_RANGE_MODIFIER_SINGLE | BIT_RANGE_MODIFIER_HILO
-BIT_RANGE = Tuple[BRK, int, int]
+BIT_RANGE = Tuple[int, int]
 
 # plain register
 FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
-    OK.REG_0_3: [(BRK.Verbatim, 4, 0)],
-    OK.REG_8_11: [(BRK.Verbatim, 4, 8)],
-    OK.REG_12_15: [(BRK.Verbatim, 4, 12)],
-    OK.REG_16_19: [(BRK.Verbatim, 4, 16)],
-    OK.REG_BASE_16_19: [(BRK.Verbatim, 4, 16)],
-    OK.REG_PAIR_12_15: [(BRK.Verbatim, 4, 12)],
-    OK.REG_LINK: [(BRK.Force14, 0, 0)],  # implicitly writes lr
+    OK.REG_0_3: [(4, 0)],
+    OK.REG_8_11: [(4, 8)],
+    OK.REG_12_15: [(4, 12)],
+    OK.REG_16_19: [(4, 16)],
+    OK.REG_BASE_16_19: [(4, 16)],
+    OK.REG_PAIR_12_15: [(4, 12)],
+    OK.REG_LINK: [],  # implicitly writes lr
 }
 
 FIELDS_DREG: Dict[OK, List[BIT_RANGE]] = {
-    OK.DREG_0_3_5: [(BRK.Hi, 1, 5), (BRK.Lo, 4, 0)],
-    OK.DREG_12_15_22: [(BRK.Hi, 1, 22), (BRK.Lo, 4, 12)],
-    OK.DREG_16_19_7: [(BRK.Hi, 1, 7), (BRK.Lo, 4, 16)],
+    OK.DREG_0_3_5: [(1, 5), (4, 0)],
+    OK.DREG_12_15_22: [(1, 22), (4, 12)],
+    OK.DREG_16_19_7: [(1, 7), (4, 16)],
 }
 
 FIELDS_SREG: Dict[OK, List[BIT_RANGE]] = {
-    OK.SREG_0_3_5: [(BRK.Hi, 4, 0), (BRK.Lo, 1, 5)],
-    OK.SREG_12_15_22: [(BRK.Hi, 4, 12), (BRK.Lo, 1, 22)],
-    OK.SREG_16_19_7: [(BRK.Hi, 4, 16), (BRK.Lo, 1, 7)],
+    OK.SREG_0_3_5: [(4, 0), (1, 5)],
+    OK.SREG_12_15_22: [(4, 12), (1, 22)],
+    OK.SREG_16_19_7: [(4, 16), (1, 7)],
 }
 
 FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
-    OK.IMM_7_11: [(BRK.Verbatim, 5, 7)],
-    OK.IMM_10_11: [(BRK.Times8, 2, 10)],
-    OK.SIMM_0_23: [(BRK.Signed, 24, 0)],
-    OK.IMM_0_23: [(BRK.Verbatim, 24, 0)],
-    OK.IMM_0_7_8_11: [(BRK.Rotated, 12, 0)],
-    OK.IMM_ZERO: [(BRK.Force0, 0, 0)],  # implicit 0.0 immediate
-    OK.IMM_0_11_16_19: [(BRK.Hi, 4, 16), (BRK.Lo, 12, 0)],
-    OK.IMM_0_7_times4: [(BRK.Times4, 8, 0)],
-    OK.IMM_0_11: [(BRK.Verbatim, 12, 0)],
-    OK.IMM_0_3_8_11: [(BRK.Hi, 4, 8), (BRK.Lo, 4, 0)],
+    OK.IMM_7_11: [(5, 7)],
+    OK.IMM_10_11_TIMES_8: [(2, 10)],
+    OK.SIMM_0_23: [(24, 0)],
+    OK.IMM_0_23: [(24, 0)],
+    OK.IMM_0_7_8_11: [(12, 0)],
+    OK.IMM_ZERO: [],  # implicit 0.0 immediate
+    OK.IMM_0_11_16_19: [(4, 16), (12, 0)],
+    OK.IMM_0_7_TIMES_4: [(8, 0)],
+    OK.IMM_0_11: [(12, 0)],
+    OK.IMM_0_3_8_11: [(4, 8), (4, 0)],
 }
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
-    OK.SHIFT_MODE_5_6: [(BRK.Verbatim, 2, 5)],
-    OK.SHIFT_MODE_ROT: [(BRK.Force3, 0, 0)],
-    OK.SHIFT_MODE_5_6_ADDR: [(BRK.Verbatim, 2, 5)],
+    OK.SHIFT_MODE_5_6: [(2, 5)],
+    OK.SHIFT_MODE_ROT: [],
+    OK.SHIFT_MODE_5_6_ADDR: [(2, 5)],
 }
 
 FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
     # register set
-    OK.REGLIST_0_15: [(BRK.Verbatim, 16, 0)],
-    OK.REG_RANGE_0_7: [(BRK.Verbatim, 8, 0)],
-    OK.REG_RANGE_1_7: [(BRK.Verbatim, 7, 1)],
+    OK.REGLIST_0_15: [(16, 0)],
+    OK.REG_RANGE_0_7: [(8, 0)],
+    OK.REG_RANGE_1_7: [(7, 1)],
     # misc
-    OK.PRED_28_31: [(BRK.Verbatim, 4, 28)],
+    OK.PRED_28_31: [(4, 28)],
 }
 
 # merge all dicts from above
@@ -395,92 +361,57 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     **FIELDS_MISC,
 }
 
-for details in FIELD_DETAILS.values():
-    if len(details) == 1:
-        assert details[0][0] in BIT_RANGE_MODIFIER_SINGLE
-    elif len(details) == 2:
-        assert details[0][0] in BIT_RANGE_MODIFIER_HILO
-        assert details[1][0] in BIT_RANGE_MODIFIER_HILO
-    else:
-        assert False
-
 assert len(FIELD_DETAILS) <= 256
 
+DECODE_IMM = {
+    OK.IMM_0_7_8_11: DecodeRotatedImm,
+    OK.SIMM_0_23: lambda x: SignedIntFromBits(x, 24),
+    OK.IMM_ZERO: lambda x: 0,
+    OK.IMM_10_11_TIMES_8: lambda x: 8 * x,
+    OK.IMM_0_7_TIMES_4: lambda x: 4 * x,
+    #
+    OK.REG_LINK: lambda x: 14,
+    #
+    #OK.IMM_7_11: lambda x: x,
+    #OK.IMM_0_23: lambda x: x,
+    #OK.IMM_0_3_8_11: lambda x: x,
+    #OK.IMM_0_11: lambda x: x,
+    #OK.IMM_0_11_16_19: lambda x: x,
+}
 
-def DecodeOperand(operand_kind: OK, value: int) -> int:
+ENCODE_IMM = {
+    OK.IMM_0_7_8_11: EncodeRotateImm,
+    OK.SIMM_0_23: lambda x: BitsFromSignedInt(x, 24),
+    OK.IMM_ZERO: lambda x: 0,
+    OK.IMM_10_11_TIMES_8: lambda x: BitsFromScaledInt(x, 8),
+    OK.IMM_0_7_TIMES_4: lambda x: BitsFromScaledInt(x, 4),
+    #
+    #OK.IMM_7_11: lambda x: x,
+    #OK.IMM_0_23: lambda x: x,
+    #OK.IMM_0_3_8_11: lambda x: x,
+    #OK.IMM_0_11: lambda x: x,
+    #OK.IMM_0_11_16_19: lambda x: x,
+}
+
+
+def ExtractOperand(operand_kind: OK, value: int) -> int:
     """ Decodes an operand into an int."""
     tmp = 0
-    # hi before lo
-    for modifier, width, pos in FIELD_DETAILS[operand_kind]:
+    for width, pos in FIELD_DETAILS[operand_kind]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
-        if modifier is BRK.Verbatim:
-            return x
-        elif modifier is BRK.Hi:
-            tmp = x
-        elif modifier is BRK.Times8:
-            return x * 8
-        elif modifier is BRK.Times4:
-            return x * 4
-        elif modifier is BRK.Times2:
-            return x * 2
-        elif modifier is BRK.Lo:
-            return (tmp << width) | x
-        elif modifier is BRK.Force1:
-            return 1
-        elif modifier is BRK.Force0:
-            return 0
-        elif modifier is BRK.Force3:
-            return 3
-        elif modifier is BRK.Force6:
-            return 6
-        elif modifier is BRK.Force14:
-            return 14
-        elif modifier is BRK.Signed:
-            return SignedIntFromBits(x, width)
-        elif modifier is BRK.Rotated:
-            return DecodeRotatedImm(x)
-        else:
-            assert False, f"{modifier}"
-    # occurs for operands with empty field lists, e.g. OK.REG_LINK
-    return 0
+        tmp = tmp << width | x
+    return tmp
 
 
-def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
+def InsertOperand(operand_kind: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
-    for modifier, width, pos in reversed(FIELD_DETAILS[operand_kind]):
+    for width, pos in reversed(FIELD_DETAILS[operand_kind]):
         mask = (1 << width) - 1
-        if modifier is BRK.Verbatim:
-            assert mask & val == val
-            bits.append((mask, val, pos))
-        elif modifier is BRK.Times8:
-            assert val % 8 == 0
-            bits.append((mask, val >> 3, pos))
-        elif modifier is BRK.Times2:
-            assert val % 2 == 0
-            bits.append((mask, val >> 1, pos))
-        elif modifier is BRK.Times4:
-            assert val % 4 == 0
-            bits.append((mask, val >> 2, pos))
-        elif modifier is BRK.Lo:
-            bits.append((mask, val & mask, pos))
-            val = val >> width
-        elif modifier is BRK.Hi:
-            assert mask & val == val, f"{operand_kind} {val} {modifier} {mask:x}"
-            bits.append((mask, val, pos))
-        elif modifier in {BRK.Force0, BRK.Force1, BRK.Force3, BRK.Force6,
-                          BRK.Force14}:
-            pass
-        elif modifier is BRK.Signed:
-            bits.append((mask, BitsFromSignedInt(width, val), pos))
-        elif modifier is BRK.Rotated:
-            enc = EncodeRotateImm(val)
-            assert enc is not None, f"could not encode 0x{val:x} as {modifier}"
-            bits.append((mask, enc, pos))
-        else:
-            assert False, f"unknown modifier {modifier}"
+        bits.append((mask, val & mask, pos))
+        val = val >> width
     return bits
 
 
@@ -643,8 +574,8 @@ class Opcode:
 
         all_bits = bits[:]
         for f in fields:
-            all_bits += [((1 << t[1]) - 1, 0, t[2])
-                         for t in FIELD_DETAILS[f]]
+            all_bits += [((1 << bitwidth) - 1, 0, pos)
+                         for bitwidth, pos in FIELD_DETAILS[f]]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, "%08x" % mask
@@ -682,19 +613,19 @@ class Opcode:
             name += "_" + self.variant
         return name.replace(".", "_")
 
-    def AssembleOperands(self, operands: List[int]):
+    def AssembleOperandsRaw(self, operands: List[int]):
         assert len(operands) == len(
             self.fields), f"not enough operands for {self.NameForEnum()}"
         bits = [(self.bit_mask, self.bit_value, 0)]
         for f, o in zip(self.fields, operands):
-            bits += EncodeOperand(f, o)
+            bits += InsertOperand(f, o)
         bit_mask, bit_value = Bits(*bits)
         assert bit_mask == 0xffffffff, f"{self.name} BAD MASK {bit_mask:08x}"
         return bit_value
 
-    def DisassembleOperands(self, data: int) -> List[int]:
+    def DisassembleOperandsRaw(self, data: int) -> List[int]:
         assert data & self.bit_mask == self.bit_value
-        return [DecodeOperand(f, data)
+        return [ExtractOperand(f, data)
                 for f in self.fields]
 
     @classmethod
@@ -944,24 +875,24 @@ for ext, n in [("b", 2), ("b16", 0), ("h", 3)]:
     bits = [root01, (0x3f, 0x7, 4), (0x3, n, 20)]
     Opcode("uxt" + ext, "",
            bits + [(0xf, 0xb, 22), (0xf, 0xf, 16)],
-           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11],
+           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("sxt" + ext, "",
            bits + [(0xf, 0xa, 22), (0xf, 0xf, 16)],
-           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11],
+           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("uxta" + ext, "",
            bits + [(0xf, 0xb, 22)],
            [OK.REG_12_15, OK.REG_16_19, OK.SHIFT_MODE_ROT,
-            OK.REG_0_3, OK.IMM_10_11],
+            OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("sxta" + ext, "",
            bits + [(0xf, 0xa, 22)],
            [OK.REG_12_15, OK.REG_16_19, OK.SHIFT_MODE_ROT, OK.REG_0_3,
-            OK.IMM_10_11],
+            OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
 for ext, n in [("", 3), ("16", 11)]:
@@ -1038,22 +969,22 @@ Opcode("svc", "",
 for addr_mode, addr_bits, flag in LIMITED_ADDR_MODES:
     Opcode("vldr", "f32_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.SREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_times4],
+           [OK.SREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4],
            OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
     Opcode("vldr", "f64_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xb, 8)] + addr_bits,
-           [OK.DREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_times4],
+           [OK.DREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4],
            OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
     Opcode("vstr", "f32_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.IMM_0_7_times4, OK.SREG_12_15_22],
+           [OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4, OK.SREG_12_15_22],
            OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
     Opcode("vstr", "f64_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xb, 8)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.IMM_0_7_times4, OK.DREG_12_15_22],
+           [OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4, OK.DREG_12_15_22],
            OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
 Opcode("vmov", "atof",
@@ -1214,16 +1145,34 @@ def Disassemble(data: int) -> Optional[Ins]:
     opcode = Opcode.FindOpcode(data)
     if opcode is None:
         return None
-    operands = opcode.DisassembleOperands(data)
-    if operands is None:
+    raw_ops = opcode.DisassembleOperandsRaw(data)
+    if raw_ops is None:
         return None
-    return Ins(opcode, operands)
+
+    ops = []
+    for ok, op in zip(opcode.fields, raw_ops):
+        t = DECODE_IMM.get(ok)
+        ops.append(op if t is None else t(op))
+    return Ins(opcode, ops)
 
 
 def Assemble(ins: Ins) -> int:
     assert ins.reloc_kind == 0, "reloc has not been resolved"
-    return ins.opcode.AssembleOperands(ins.operands)
+    raw_ops = []
+    for ok,op in zip(ins.opcode.fields, ins.operands):
+        t = ENCODE_IMM.get(ok)
+        raw_ops.append(op if t is None else t(op))
+    return ins.opcode.AssembleOperandsRaw(raw_ops)
 
+
+def Patch(data: int, opcode: Opcode, pos: int, value: int):
+    ops = opcode.DisassembleOperandsRaw(data)
+    ok = opcode.fields[pos]
+    enc = ENCODE_IMM.get(ok)
+    if enc is not None:
+        value = enc(value)
+    ops[pos] = value
+    return opcode.AssembleOperandsRaw(ops)
 
 ############################################################
 # code below is only used if this file is run as an executable
@@ -1287,7 +1236,6 @@ def hash_djb2(x: str):
 def _EmitCodeH(fout):
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SR_UPDATE), "class SR_UPDATE : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(BRK), "class BitRangeKind : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OPC_FLAG), "OPC_FLAG", fout)
     cgen.RenderEnum(cgen.NameValues(PRED), "class PRED : uint8_t", fout)
@@ -1349,8 +1297,7 @@ def _RenderFieldTable():
         assert len(bit_ranges) <= MAX_BIT_RANGES
         out += ["{" + f"   // {ok.name} = {ok.value}"]
         out += [f"    {len(bit_ranges)}," + " {"]
-        out += ["    {BitRangeKind::%s, %d, %d}," % (brk.name, a, b)
-                for (brk, a, b) in bit_ranges]
+        out += ["    {%d, %d}," % (a, b) for a, b in bit_ranges]
         out += ["}}, "]
     return out
 

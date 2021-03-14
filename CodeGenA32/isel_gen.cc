@@ -33,11 +33,11 @@ bool ImmFitsConstraint(IMM_KIND constr, int64_t x, int32_t last_stack_offset) {
       x += last_stack_offset;
       // fallthrough
     case IK::pos_8_bits_shifted:
-      return a32::EncodeRotatedImm(x) != -1;
+      return a32::EncodeRotatedImm(x) != a32::kEncodeFailure;
     case IK::neg_8_bits_shifted:
-      return a32::EncodeRotatedImm(-x) != -1;
+      return a32::EncodeRotatedImm(-x) != a32::kEncodeFailure;
     case IK::not_8_bits_shifted:
-      return a32::EncodeRotatedImm(~x) != -1;
+      return a32::EncodeRotatedImm(~x) != a32::kEncodeFailure;
     case IK::pos_5_bits:
       return 0 <= x && x < (1 << 5);
     case IK::pos_stk_combo_12_bits:

@@ -75,7 +75,7 @@ int RenderMultipleVFP(const char* reg_prefix,
   if (count == 1) {
     buffer = strappend(buffer, "{");
     buffer = strappend(buffer, reg_prefix);
-    buffer = strappenddec(buffer,start_reg);
+    buffer = strappenddec(buffer, start_reg);
     buffer = strappend(buffer, "}");
   } else {
     sprintf(buffer, "{%s%d-%s%d}", reg_prefix, start_reg, reg_prefix,
@@ -121,8 +121,8 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::IMM_0_11_16_19:
     case OK::IMM_0_3_8_11:
     case OK::IMM_0_7_8_11:
-    case OK::IMM_0_7_times4:
-    case OK::IMM_10_11:
+    case OK::IMM_0_7_TIMES_4:
+    case OK::IMM_10_11_TIMES_8:
     case OK::IMM_7_11:
     case OK::IMM_0_23:
     case OK::IMM_ZERO:
@@ -146,7 +146,7 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
       return;
     case OK::Invalid:
     default:
-      ASSERT(false, "unreachable");
+      ASSERT(false, "unhandled OK: " << (unsigned)kind);
       return;
   }
 }
@@ -206,8 +206,8 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
     case OK::IMM_0_11_16_19:
     case OK::IMM_0_3_8_11:
     case OK::IMM_0_7_8_11:
-    case OK::IMM_0_7_times4:
-    case OK::IMM_10_11:
+    case OK::IMM_0_7_TIMES_4:
+    case OK::IMM_10_11_TIMES_8:
     case OK::IMM_7_11:
     case OK::IMM_0_23:
     case OK::IMM_ZERO:

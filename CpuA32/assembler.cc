@@ -384,12 +384,7 @@ bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit) {
   return true;
 }
 
-uint32_t PatchA32Ins(uint32_t ins_old, unsigned pos, int32_t value) {
-  Ins ins;
-  CHECK(DecodeIns(&ins, ins_old), "");
-  ins.operands[pos] = value;
-  return EncodeIns(ins);
-}
+
 
 int32_t BranchOffset(const Reloc<uint32_t>& rel, int32_t sym_val) {
   return int32_t(sym_val - rel.section->shdr.sh_addr - rel.rel.r_offset - 8) >>
@@ -407,16 +402,16 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       new_data = sym_val;
       break;
     case RELOC_TYPE_ARM::JUMP24:
-      new_data = PatchA32Ins(old_data, 1, BranchOffset(rel, sym_val));
+      new_data = PatchIns(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::CALL:
-      new_data = PatchA32Ins(old_data, 2, BranchOffset(rel, sym_val));
+      new_data = PatchIns(old_data, 2, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::MOVW_ABS_NC:
-      new_data = PatchA32Ins(old_data, 2, sym_val & 0xffff);
+      new_data = PatchIns(old_data, 2, sym_val & 0xffff);
       break;
     case RELOC_TYPE_ARM::MOVT_ABS:
-      new_data = PatchA32Ins(old_data, 2, (sym_val >> 16) & 0xffff);
+      new_data = PatchIns(old_data, 2, (sym_val >> 16) & 0xffff);
       break;
     default:
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);
