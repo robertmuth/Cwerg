@@ -4,7 +4,7 @@
     sub_imm al sp sp 16
 .bbl start 4
     add_imm al r1 sp 0
-    mov_regimm al r0 lsl r0 0
+    mov_regimm al r0 r0 lsl 0
     strb_imm_add al sp 0 r0
     mov_imm al r2 1
     mov_imm al r0 1
@@ -26,17 +26,17 @@
     udiv al r1 r0 r1
     mov_imm al r2 10
     mul al r1 r1 r2
-    sub_regimm al r6 r0 lsl r1 0
+    sub_regimm al r6 r0 r1 lsl 0
     mov_imm al r1 10
     udiv al r4 r0 r1
     cmp_imm al r4 0
     b eq expr:jump24:skip
 .bbl ddd 4
-    mov_regimm al r0 lsl r4 0
+    mov_regimm al r0 r4 lsl 0
     bl al lr expr:call:print_num
 .bbl skip 4
     add_imm al r6 r6 48
-    mov_regimm al r0 lsl r6 0
+    mov_regimm al r0 r6 lsl 0
     bl al lr expr:call:putchar
     add_imm al sp sp 8
     ldmia_update al reglist:0x8040 sp
@@ -60,20 +60,20 @@
     stmdb_update al sp reglist:0x40c0
     sub_imm al sp sp 4
 .bbl start 4
-    mov_regimm al r6 lsl r0 0
+    mov_regimm al r6 r0 lsl 0
     cmp_imm al r6 1
     b hi expr:jump24:difficult
 .bbl start_1 4
-    mov_regimm al r0 lsl r6 0
+    mov_regimm al r0 r6 lsl 0
     add_imm al sp sp 4
     ldmia_update al reglist:0x80c0 sp
 .bbl difficult 4
     sub_imm al r0 r6 1
     bl al lr expr:call:fibonacci
-    mov_regimm al r7 lsl r0 0
+    mov_regimm al r7 r0 lsl 0
     sub_imm al r0 r6 2
     bl al lr expr:call:fibonacci
-    add_regimm al r0 r7 lsl r0 0
+    add_regimm al r0 r7 r0 lsl 0
     add_imm al sp sp 4
     ldmia_update al reglist:0x80c0 sp
 .endfun

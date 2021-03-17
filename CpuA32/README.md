@@ -1,6 +1,6 @@
 # A32 (aka ARM32) Encoder/Decoder
 
-This directory contains code for encoding and decoding  ARM32 instructions.
+This directory contains code for encoding and decoding  A32 instructions.
 
 We only support the regular 32 bit ISA.
 Neither Thumb nor Thumb-2 are supported.
@@ -61,17 +61,21 @@ An `Operand` represents:
 * a register
 * an immediate value
 * a register mask
-* a shift direction (e.g. `lsl`), part of a prefix expression consuming the next two operands 
-* an addressing mode (`Puw`), part of a prefix expression consuming the next two operands 
+* a shift direction
 * etc.
 
 The order of the `Operands` roughly corresponds to the order in the
 assembler notation with the following exceptions:
-* the predicate is always explicit and the first operand
-* the shift direction is used with a pre-fix notation
-* written registers precede read registers. This affects primarily (v)str
-  instructions where the "storee" is moved to the end, and (v)ldm instructions
-  where the register masks is moved to the front.
+* the predicate is always explicit and the first operand. "al" represents the always
+  predicate.
+* written registers precede read registers. This affects (v)str
+  instructions where the "storee" is moved to the end, and (v)ldm instructions where the register masks is moved to the front.
+* the register-list for ldm and stm is expressed as a 16bit integer immediate
+* register ranges for vldm and vstm are expressed as a start-register
+  followed by an immediate count 
+* the lr register in the bl instruction is made explicit
+* store and load instruction do not use square brackets, exclamation marks, minus signs
+  to indictae the various addressing modes as this is already encoded in the opcode variant
  
  
 #### Examples
@@ -80,17 +84,17 @@ Standard Notation
 
     ```
     add r0 r1 r2 asr #3
-    ldr r0 [r1, #2]!
     ldrb lr, [ip, r3, lsl #1]
+    ldrsheq r6, [r4,#-26]
     bl exit
     ```
     
 Our Notation
     
     ```
-    add_regimm al r0 r1 asr r2 #3
-    ldr_imm al r0  PUW r1 #2
-    ldrb_reg_add al lr ip lsl r3 #1
+    add_regimm al r0 r1 asr asr 3
+    ldrb_reg_add al lr ip r3 lsl 1
+    ldrsheq eq, r6, r4, 26
     bl al lr exit
     ```  
 

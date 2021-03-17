@@ -9,57 +9,57 @@ OPCODE blx reg
     PRED_28_31          al (14)
     REG_0_3             r1 (1)
 
-924aa001 subls sl, sl, #1
+924aa001 sub ls, sl, sl, #1
 OPCODE sub imm
     PRED_28_31          ls (9)
     REG_12_15           sl (10)
     REG_16_19           sl (10)
     IMM_0_7_8_11        1 (1)
 
-ebffdc62 bl #-9118
+ebffdc62 bl lr, #-9118
 OPCODE bl 
     PRED_28_31          al (14)
     REG_LINK            lr (14)
     SIMM_0_23           -9118 (-9118)
 
-e8bd87f0 ldmia sp!, {r4,r5,r6,r7,r8,r9,sl,pc}
+e8bd87f0 ldmia {r4,r5,r6,r7,r8,r9,sl,pc}, sp
 OPCODE ldmia update
     PRED_28_31          al (14)
     REGLIST_0_15        reglist:0x87f0 (34800)
-    REG_BASE_16_19      sp (13)
+    REG_16_19           sp (13)
 
-ecbd8b08 vldmia sp!, {d8-d11}
+ecbd8b08 vldmia d8, #4, sp
 OPCODE vldmia f_update
     PRED_28_31          al (14)
-    REG_RANGE_1_7       regrange:4 (4)
     DREG_12_15_22       d8 (8)
-    REG_BASE_16_19      sp (13)
+    REG_RANGE_1_7       regrange:4 (4)
+    REG_16_19           sp (13)
 
-08bd81f0 ldmiaeq sp!, {r4,r5,r6,r7,r8,pc}
+08bd81f0 ldmia eq, {r4,r5,r6,r7,r8,pc}, sp
 OPCODE ldmia update
     PRED_28_31          eq (0)
     REGLIST_0_15        reglist:0x81f0 (33264)
-    REG_BASE_16_19      sp (13)
+    REG_16_19           sp (13)
 
-e1920f9f ldrex r0, [r2]
+e1920f9f ldrex r0, r2
 OPCODE ldrex 
     PRED_28_31          al (14)
     REG_12_15           r0 (0)
-    REG_BASE_16_19      r2 (2)
+    REG_16_19           r2 (2)
 
-015461fa ldrsheq r6, [r4,#-26]
+015461fa ldrsh eq, r6, r4, #-26
 OPCODE ldrsh imm_sub
     PRED_28_31          eq (0)
     REG_12_15           r6 (6)
-    REG_BASE_16_19      r4 (4)
+    REG_16_19           r4 (4)
     IMM_0_3_8_11        26 (26)
 
-00000000 andeq r0, r0, r0
+00000000 and eq, r0, r0, r0, lsl, #0
 OPCODE and regimm
     PRED_28_31          eq (0)
     REG_12_15           r0 (0)
     REG_16_19           r0 (0)
-    SHIFT_MODE_5_6      lsl (0)
     REG_0_3             r0 (0)
+    SHIFT_MODE_5_6      lsl (0)
     IMM_7_11            0 (0)
 

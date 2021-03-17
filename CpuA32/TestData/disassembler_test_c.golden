@@ -1,10 +1,10 @@
-eefdbbc0 vcvt.s32.f64 s23, d0
-e12fff31 blx r1
-924aa001 subls sl, sl, #1
-ebffdc62 bl , #-9118
-e8bd87f0 ldmia sp!, {r4, r5, r6, r7, r8, r9, sl, pc}
-ecbd8b08 vldmia sp!, {d8-d11}
-08bd81f0 ldmiaeq sp!, {r4, r5, r6, r7, r8, pc}
-e1920f9f ldrex r0, [r2]
-015461fa ldrsheq r6, [r4 ,#-26]
-0 andeq r0, r0, r0
+eefdbbc0 vcvt_s32_f64 al, s23, d0
+e12fff31 blx_reg al, r1
+924aa001 sub_imm ls, sl, sl, #1
+ebffdc62 bl al, lr, #-9118
+e8bd87f0 ldmia_update al, {r4, r5, r6, r7, r8, r9, sl, pc}, sp
+ecbd8b08 vldmia_f_update al, d8, #4, sp
+08bd81f0 ldmia_update eq, {r4, r5, r6, r7, r8, pc}, sp
+e1920f9f ldrex al, r0, r2
+015461fa ldrsh_imm_sub eq, r6, r4, #-26
+0 and_regimm eq, r0, r0, r0, lsl, #0

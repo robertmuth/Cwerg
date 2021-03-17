@@ -23,8 +23,15 @@ int main(int argc, char* argv[]) {
         continue;
       }
       char buffer[128];
-      RenderInsStd(ins, buffer);
-      std::cout << argv[i] << " " << buffer << "\n";
+      std::cout << argv[i] << " " << ins.opcode->enum_name;
+      std::string_view sep = " ";
+      for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
+        RenderOperandStd(buffer, *ins.opcode, ins.operands[i],
+                         ins.opcode->fields[i]);
+        std::cout << sep << buffer;
+        sep = ", ";
+      }
+      std::cout << "\n";
       // check that the assembler works - this is not strictly
       // necessary but useful for debuggging the assembler
       const uint32_t data2 = EncodeIns(ins);
@@ -36,7 +43,8 @@ int main(int argc, char* argv[]) {
       ASSERT(data == data2, "");
     }
   } else if (std::string_view("benchmark") == argv[1]) {
-    // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate "eq"
+    // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate
+    // "eq"
     uint32_t num_bad = 0;
     for (uint32_t data = 0; data < (1 << 28); ++data) {
       Ins ins;
@@ -45,10 +53,19 @@ int main(int argc, char* argv[]) {
         if (data != data2) {
           if (ins.opcode->fields[2] != OK::IMM_0_7_8_11 &&
               ins.opcode->fields[3] != OK::IMM_0_7_8_11) {
-            char buffer[128];
-            RenderInsStd(ins, buffer);
             std::cout << "Disassembler failure " << std::hex << data << " vs "
-                      << data2 << ": " << buffer << "\n";
+                      << data2 << ": ";
+            char buffer[128];
+            std::cout << ins.opcode->enum_name;
+            std::string_view sep = " ";
+            for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
+              RenderOperandStd(buffer, *ins.opcode, ins.operands[i],
+                               ins.opcode->fields[i]);
+              std::cout << sep << buffer;
+              sep = ", ";
+            }
+            std::cout << "\n";
+
             return 1;
           }
           continue;

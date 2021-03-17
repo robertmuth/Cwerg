@@ -27,8 +27,11 @@ class TestBuffer:
         for i, bs in enumerate(self.instructions):
             data = struct.unpack("<I", bs)[0]
             ins = arm.Disassemble(data)
-            disass = dis.RenderInstructionStd(ins)
-            print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {disass}")
+            ops = [dis.RenderOperandStd(ins.opcode, op, ok)
+                   for ok, op in zip(ins.opcode.fields, ins.operands)]
+            if ops and ops[0] == "al":
+                ops.pop(0)
+            print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.NameForEnum()} {' '.join(ops)}")
 
 
 def MakeBuffer(size, prot):
@@ -46,7 +49,7 @@ def EmitX86(code_buf):
 def EmitARM32(code_buf):
     for ins in [
         dis.InsParse("add_imm", ["r0", "r0", "1"]),
-        dis.InsParse("mov_regimm", ["r15", "lsl", "r14", "0"])
+        dis.InsParse("mov_regimm", ["r15", "r14", "lsl", "0"])
     ]:
         code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
 
@@ -54,7 +57,7 @@ def EmitARM32(code_buf):
 def EmitARM32Mul(code_buf):
     for ins in [
         dis.InsParse("mul", ["r0", "r1", "r0"]),
-        dis.InsParse("mov_regimm", ["r15", "lsl", "r14", "0"])
+        dis.InsParse("mov_regimm", ["r15", "r14", "lsl", "0"])
     ]:
         code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
 
@@ -66,15 +69,15 @@ def EmitARM32Fib(code_buf):
         dis.InsParse("cmp_imm", ["r0", "1"]),
         dis.InsParse("b", ["le", "7"]),
         dis.InsParse("mov_imm", ["r4", "0"]),
-        dis.InsParse("mov_regimm", ["r5", "lsl", "r0", "0"]),
+        dis.InsParse("mov_regimm", ["r5", "r0", "lsl", "0"]),
         #
         dis.InsParse("sub_imm", ["r0", "r5", "1"]),
         dis.InsParse("bl", ["lr", "-8"]),
-        dis.InsParse("add_regimm", ["r4", "r4", "lsl", "r0", "0"]),
+        dis.InsParse("add_regimm", ["r4", "r4", "r0", "lsl", "0"]),
         # #
         dis.InsParse("sub_imm", ["r0", "r5", "2"]),
         dis.InsParse("bl", ["lr", "-11"]),
-        dis.InsParse("add_regimm", ["r0", "r4", "lsl", "r0", "0"]),
+        dis.InsParse("add_regimm", ["r0", "r4", "r0", "lsl", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
         dis.InsParse("ldmia_update", ["reglist:32816", "sp"]),
     ]:

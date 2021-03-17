@@ -8,7 +8,7 @@ be processed by an assembler.
 import CpuA32.opcode_tab as arm
 from Elf import enum_tab
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 REG_NAMES_SYSTEMATIC = [
     "r0", "r1", "r2", "r3",
@@ -31,140 +31,48 @@ def _Merge(*name_lists):
     return out
 
 
-ALL_NAMES_MAP = _Merge([p.name for p in arm.PRED],
-                       [p.name for p in arm.REG],
+PRED_NAMES_MAP = _Merge([p.name for p in arm.PRED])
+
+REG_NAMES_MAP = _Merge([p.name for p in arm.REG],
                        REG_NAMES_SYSTEMATIC,
                        [p.name for p in arm.DREG],
-                       [p.name for p in arm.SREG],
-                       [p.name for p in arm.SHIFT])
+                       [p.name for p in arm.SREG])
+
+SHIFT_NAMES_MAP = _Merge([p.name for p in arm.SHIFT])
 
 
 # render a single operand, e.g. and address like  `[r3, #-116]`
-def _RenderOperandStd(opcode, it) -> Optional[str]:
-    field_kind, operand = next(it)
-    if field_kind is arm.OK.REG_BASE_16_19:
-        base = arm.REG(operand).name
-        if arm.OPC_FLAG.MULTIPLE in opcode.classes:
-            if arm.OPC_FLAG.ADDR_UPDATE in opcode.classes:
-                return f"{base}!"
-            else:
-                return f"{base}"
-
-        offset = ""
-        if arm.OPC_FLAG.ADDR_INC in opcode.classes:
-            offset = "," + _RenderOperandStd(opcode, it)
-        elif arm.OPC_FLAG.ADDR_DEC in opcode.classes:
-            offset = _RenderOperandStd(opcode, it)
-            if offset.startswith("#"):
-                offset = ",#-" + offset[1:]
-            else:
-                offset = ",-" + offset
-        if offset in {",#0", ",#-0"}:
-            offset = ""
-
-        if arm.OPC_FLAG.ADDR_UPDATE in opcode.classes:
-            if arm.OPC_FLAG.ADDR_POST in opcode.classes:
-                return f"[{base}]{offset}"
-            elif arm.OPC_FLAG.ADDR_PRE in opcode.classes:
-                return f"[{base}{offset}]!"
-        else:
-            return f"[{base}{offset}]"
-
-    elif field_kind is arm.OK.REG_LINK:
-        return None
-    elif field_kind in arm.FIELDS_SREG:
+def RenderOperandStd(opcode: arm.Opcode, operand, ok) -> str:
+    if ok is arm.OK.REG_LINK:
+        return "lr"
+    elif ok in arm.FIELDS_SREG:
         return arm.SREG(operand).name
-    elif field_kind in arm.FIELDS_DREG:
+    elif ok in arm.FIELDS_DREG:
         return arm.DREG(operand).name
-    elif field_kind in arm.FIELDS_REG:
+    elif ok is arm.OK.REG_0_3 and arm.OPC_FLAG.ADDR_DEC in opcode.classes:
+        return "-" + arm.REG(operand).name
+    elif ok in arm.FIELDS_REG:
         return arm.REG(operand).name
-    elif field_kind is arm.OK.SHIFT_MODE_ROT:
-        shiftee = _RenderOperandStd(opcode, it)
-        shift_amount = _RenderOperandStd(opcode, it)
-        if shift_amount == "#0":
-            return f"{shiftee}"
-        return f"{shiftee}, {shift_amount}"
-    elif field_kind is arm.OK.SHIFT_MODE_5_6:
-        shiftee = _RenderOperandStd(opcode, it)
-        shift_amount = _RenderOperandStd(opcode, it)
-        if shift_amount == "#0":
-            return f"{shiftee}"
-        shift_dir = operand
-        return f"{shiftee}, {SHIFT_NAMES_STD[shift_dir]} {shift_amount}"
-    elif field_kind is arm.OK.SHIFT_MODE_5_6_ADDR:
-        shiftee = _RenderOperandStd(opcode, it)
-        shift_amount = _RenderOperandStd(opcode, it)
-        shift_dir = operand
-        if shift_amount == "#0":
-            dir = ["", ", lsr #32", ", asr #32", ", rrx"][shift_dir]
-            return f"{shiftee}{dir}"
+    elif ok is arm.OK.SHIFT_MODE_5_6:
+        return SHIFT_NAMES_STD[operand]
+    elif ok in {arm.OK.IMM_0_7_TIMES_4, arm.OK.IMM_0_11, arm.OK.IMM_0_3_8_11}:
+        if arm.OPC_FLAG.ADDR_DEC in opcode.classes:
+            return f"#-{operand}"
         else:
-            return f"{shiftee}, {SHIFT_NAMES_STD[shift_dir]} {shift_amount}"
-    elif field_kind in arm.FIELDS_IMM:
+            return f"#{operand}"
+    elif ok in arm.FIELDS_IMM:
         return f"#{operand}"
-    elif field_kind is arm.OK.PRED_28_31:
-        return None
-    elif field_kind is arm.OK.REGLIST_0_15:
+    elif ok is arm.OK.PRED_28_31:
+        return arm.PRED(operand).name
+    elif ok is arm.OK.REGLIST_0_15:
         reg_mask = operand
         regs = [arm.REG(x).name for x in range(16) if reg_mask & (1 << x)]
         expr = "{%s}" % (",".join(regs))
         return expr
-    elif field_kind == arm.OK.REG_RANGE_0_7 or field_kind == arm.OK.REG_RANGE_1_7:
-        reg_count = operand
-        start_reg = _RenderOperandStd(opcode, it)
-        assert start_reg is not None
-        if reg_count == 1:
-            return "{" + start_reg + "}"
-        kind = start_reg[0]
-        reg_num = int(start_reg[1:])
-        end_reg = f"{kind}{reg_num + reg_count - 1}"
-        return "{" + f"{start_reg}-{end_reg}" + "}"
-    assert False, (field_kind, operand)
-
-
-def _RenderNameStd(opcode: arm.Opcode, pred=None):
-    """
-    Mimics the name generated by objdump
-    """
-    name = opcode.name
-    if pred is not None:
-        if pred != arm.PRED.al:
-            name += pred.name
-    return name
-
-
-def RenderInstructionStd(ins: arm.Ins) -> str:
-    """Render an instruction more or less as in the ARM manual
-
-    This is provided for cross checking but we do not provide the
-     inverse parsing function.
-
-    This is by necessity a bunch of hacks
-    """
-    pred: Optional[arm.PRED] = None
-    for n, f in enumerate(ins.opcode.fields):
-        # we skip fPRED_28_31 when we process the operands
-        if f is arm.OK.PRED_28_31:
-            pred = arm.PRED(ins.operands[n])
-
-    it = zip(ins.opcode.fields, ins.operands)
-    ops = []
-    try:
-        while True:
-            ops.append(_RenderOperandStd(ins.opcode, it))
-    except StopIteration:
-        pass
-
-    # some opcodes do no follow the dst before src order of operands
-    if ins.opcode.name in {"str", "vstr", "strh", "strb", "strd",
-                           "ldmia", "ldmib", "ldmda", "ldmdb",
-                           "vldmia", "vldmib", "vldmda", "vldmdb"}:
-        mask = ops.pop(-1)
-        ops = [mask] + ops
-
-    if ins.opcode.name == "vmrs":
-        ops = ins.opcode.variant.rsplit("_", 1)
-    return _RenderNameStd(ins.opcode, pred) + " " + ", ".join([o for o in ops if o])
+    elif ok is arm.OK.REG_RANGE_0_7 or ok is arm.OK.REG_RANGE_1_7:
+        return f"#{operand}"
+    else:
+        assert False, f"OK:{ok} OP:{operand}"
 
 
 def _EmitReloc(ins: arm.Ins, pos: int) -> str:
@@ -221,8 +129,12 @@ def RenderInstructionSystematic(ins: arm.Ins) -> str:
     return f"{ins.opcode.NameForEnum()} {' '.join(SymbolizeOperands(ins))}"
 
 
-def UnsymbolizeOperand(o: str) -> int:
-    x = ALL_NAMES_MAP.get(o)
+def UnsymbolizeOperand(o: str, ok: arm.OK) -> int:
+    if ok is arm.OK.SHIFT_MODE_5_6:
+        return SHIFT_NAMES_MAP[o]
+    elif ok is arm.OK.PRED_28_31:
+        return PRED_NAMES_MAP[o]
+    x = REG_NAMES_MAP.get(o)
     if x is not None:
         return x
     elif ":" in o:
@@ -248,13 +160,13 @@ def InsParse(mnemonic, token: List[str]) -> arm.Ins:
      * Supports relocatable expressions
      * Adds missing "al" predicate if necessary
      Example input:
-     "add_regimm", ["r4", "r4", "lsl", "r0", "0"]
+     "add_regimm", ["r4", "r4", "r0", "lsl", "0"]
      """
     opcode: arm.Opcode = arm.Opcode.name_to_opcode[mnemonic]
     if opcode.HasPred() and len(token) == len(opcode.fields) - 1:
         token = ["al"] + token
     ins = arm.Ins(opcode)
-    for pos, t in enumerate(token):
+    for pos, (t, ok) in enumerate(zip(token, opcode.fields)):
         if t.startswith("expr:"):
             # expr strings have the form expr:<rel-kind>:<symbol>:<addend>, e.g.:
             #   expr:movw_abs_nc:string_pointers:5
@@ -272,7 +184,7 @@ def InsParse(mnemonic, token: List[str]) -> arm.Ins:
             ins.reloc_symbol = rel_token[2]
             ins.operands.append(int(rel_token[3], 0))
         else:
-            ins.operands.append(UnsymbolizeOperand(t))
+            ins.operands.append(UnsymbolizeOperand(t, ok))
     return ins
 
 
@@ -285,7 +197,13 @@ if __name__ == "__main__":
         if ins.opcode is None:
             print(f"could not disassemble {data:x}")
             return
-        print(f"{data:08x}", RenderInstructionStd(ins))
+        std_name = ins.opcode.name
+        std_ops = [RenderOperandStd(ins.opcode, op, ok)
+                   for ok, op in zip(ins.opcode.fields, ins.operands)]
+
+        if std_ops and std_ops[0] == "al":
+            std_ops.pop(0)
+        print(f"{data:08x} {std_name} {', '.join(std_ops)}")
         print("OPCODE", ins.opcode.name, ins.opcode.variant)
         operands_str = SymbolizeOperands(ins)
         for f, o, o_str in zip(ins.opcode.fields, ins.operands, operands_str):
@@ -293,11 +211,14 @@ if __name__ == "__main__":
         print()
         data2 = arm.Assemble(ins)
         assert data == data2
-        operands2 = [UnsymbolizeOperand(o) for o in operands_str]
+        operands2 = [UnsymbolizeOperand(o, ok)
+                     for o, ok in zip(operands_str, ins.opcode.fields)]
         assert tuple(ins.operands) == tuple(
-            operands2), f"{ins.operands} vs {operands2}"
-        # opcode.AssembleOperands(operands2)
 
+            operands2), f"{ins.operands} vs {operands2}"
+
+
+    # opcode.AssembleOperands(operands2)
 
     for arg_hex_number in sys.argv[1:]:
         disass(int(arg_hex_number, 16))

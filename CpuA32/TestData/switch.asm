@@ -25,11 +25,11 @@
     sub_imm sp sp 16
 # live-out sp]
 .bbl start 4
-    mov_regimm r1 lsl r0 0
-    mov_regimm r0 lsl sp 0
+    mov_regimm r1 r0 lsl 0
+    mov_regimm r0 sp lsl 0
     strb_imm_add sp 0 r1
     mov_imm r2 1
-    mov_regimm r1 lsl r0 0
+    mov_regimm r1 r0 lsl 0
     mov_imm r0 1
     str_imm_sub_pre sp 4 r7
     mov_imm r7 4
@@ -49,8 +49,8 @@
     stmdb_update sp reglist:0x4000
 # live-out sp]
 .bbl start 4
-    mov_regimm r2 lsl r1 0
-    mov_regimm r1 lsl r0 0
+    mov_regimm r2 r1 lsl 0
+    mov_regimm r1 r0 lsl 0
     mov_imm r0 1
     str_imm_sub_pre sp 4 r7
     mov_imm r7 4
@@ -71,24 +71,24 @@
     stmdb_update sp reglist:0x4040
 # live-out div rem sp]
 .bbl start 4
-    mov_regimm r1 lsl r0 0
+    mov_regimm r1 r0 lsl 0
     mov_imm r0 10
     udiv r6 r1 r0
     mov_imm r0 10
     mul r6 r6 r0
-    sub_regimm r6 r1 lsl r6 0
+    sub_regimm r6 r1 r6 lsl 0
     mov_imm r0 10
     udiv lr r1 r0
     cmp_imm lr 0
     b eq expr:jump24:skip
 # live-out rem sp]
 .bbl ddd 4
-    mov_regimm r0 lsl lr 0
+    mov_regimm r0 lr lsl 0
     bl lr expr:call:print_num
 # live-out sp]
 .bbl skip 4
     add_imm r6 r6 0x30
-    mov_regimm r0 lsl r6 0
+    mov_regimm r0 r6 lsl 0
     bl lr expr:call:putchar
     ldmia_update reglist:0x8040 sp
 .endfun 
@@ -131,7 +131,7 @@
 .bbl loop 4
     movw r0 expr:movw_abs_nc:switch_tab
     movt r0 expr:movt_abs:switch_tab
-    ldr_reg_add pc r0 lsl r6 2
+    ldr_reg_add pc r0 r6 lsl 2
 # live-out i sp]
 .bbl labelA 4
     mov_imm r0 0x41

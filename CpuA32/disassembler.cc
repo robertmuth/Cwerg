@@ -11,18 +11,9 @@
 namespace cwerg {
 namespace a32 {
 
-const char* kPredicates[] = {                        //
-    "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",  //
-    "hi", "ls", "ge", "lt", "gt", "le", "al", "@@"};
-
 const char* kArmRegNames[] = {                       //
     "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",  //
     "r8", "r9", "sl", "fp", "ip", "sp", "lr", "pc"};
-
-const char* kShiftKindsWithComma[] = {  //
-    ", lsl", ", lsr", ", asr", ", ror"};
-const char* kShiftKindsZeroWithComma[] = {  //
-    "", ", lsr #32", ", asr #32", ", rrx"};
 
 const constexpr std::string_view kNumZero("#0");
 
@@ -54,19 +45,6 @@ char* strappend(char* dst, std::string_view src) {
   return dst + src.size();
 }
 
-unsigned RenderName(const Ins& ins, char* buffer) {
-  unsigned start = 0;
-  int pred_bits = 14;
-  if (ins.opcode->num_fields > 0 && ins.opcode->fields[0] == OK::PRED_28_31) {
-    pred_bits = ins.operands[0];
-    start = 1;
-  }
-
-  buffer = strappend(buffer, ins.opcode->name);
-  if (pred_bits != 14) strcpy(buffer, kPredicates[pred_bits]);
-  return start;
-}
-
 int RenderMultipleVFP(const char* reg_prefix,
                       int32_t start_reg,
                       int32_t count,
@@ -84,39 +62,31 @@ int RenderMultipleVFP(const char* reg_prefix,
   return 1;
 }
 
-void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
-  const int32_t x = ins.operands[pos];
-  const OK kind = ins.opcode->fields[pos];
-  switch (kind) {
+char* RenderOperandSystematic(char* buffer, int32_t x, OK ok) {
+  switch (ok) {
     case OK::PRED_28_31:
-      strcpy(buffer, EnumToString(PRED(x)));
-      return;
+      return strappend(buffer, EnumToString(PRED(x)));
     case OK::REG_LINK:
-      strcpy(buffer, kArmRegNames[14]);
-      return;
+      return strappend(buffer, kArmRegNames[14]);
     case OK::REG_0_3:
     case OK::REG_12_15:
     case OK::REG_16_19:
-    case OK::REG_BASE_16_19:
     case OK::REG_8_11:
     case OK::REG_PAIR_12_15:
       ASSERT(x <= 15, "REG out of range " << x);
-      strappend(buffer, kArmRegNames[x]);
-      return;
+      return strappend(buffer, kArmRegNames[x]);
     case OK::DREG_0_3_5:
     case OK::DREG_12_15_22:
     case OK::DREG_16_19_7:
       ASSERT(x <= 15, " DREG out of range " << x);
       *buffer++ = 'd';
-      strappenddec(buffer, x);
-      return;
+      return strappenddec(buffer, x);
     case OK::SREG_0_3_5:
     case OK::SREG_12_15_22:
     case OK::SREG_16_19_7:
       ASSERT(x <= 31, "SREG out of range " << x);
       *buffer++ = 's';
-      strappenddec(buffer, x);
-      return;
+      return strappenddec(buffer, x);
     case OK::IMM_0_11:
     case OK::IMM_0_11_16_19:
     case OK::IMM_0_3_8_11:
@@ -127,69 +97,34 @@ void RenderOperandSystematic(char* buffer, const Ins& ins, unsigned pos) {
     case OK::IMM_0_23:
     case OK::IMM_ZERO:
       sprintf(buffer, "%u", (uint32_t)x);
-      return;
+      return buffer + strlen(buffer);
     case OK::SIMM_0_23:
-      strappenddec(buffer, x);
-      return;
+      return strappenddec(buffer, x);
     case OK::REG_RANGE_0_7:
     case OK::REG_RANGE_1_7:
       buffer = strappend(buffer, "regrange:");
-      strappenddec(buffer, x);
-      return;
+      return strappenddec(buffer, x);
     case OK::REGLIST_0_15:
       sprintf(buffer, "reglist:0x%04x", x);
-      return;
+      return buffer + strlen(buffer);
     case OK::SHIFT_MODE_5_6:
-    case OK::SHIFT_MODE_5_6_ADDR:
-    case OK::SHIFT_MODE_ROT:
-      strcpy(buffer, EnumToString(SHIFT(x)));
-      return;
+      return  strappend(buffer, EnumToString(SHIFT(x)));
     case OK::Invalid:
     default:
-      ASSERT(false, "unhandled OK: " << (unsigned)kind);
-      return;
+      ASSERT(false, "unhandled OK: " << (unsigned)ok);
+      return buffer;
   }
-}
-
-// forward declaration because of mutual recursion
-unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos);
-
-unsigned RenderOffsetStd(char* buffer, const Ins& ins, unsigned pos) {
-  char* orig = buffer;
-  strcat(buffer, " ,");
-  buffer += strlen(buffer);
-  if (ins.opcode->classes & OPC_FLAG::ADDR_INC) {
-    pos = RenderOperandStd(buffer, ins, pos);
-    if (0 == strcmp("#0", buffer)) orig[0] = 0;
-    return pos;
-  }
-
-  strcat(buffer, "-");
-  pos = RenderOperandStd(buffer + 1, ins, pos);
-  if (0 == strcmp("#0", buffer + 1)) {
-    orig[0] = 0;
-    return pos;
-  }
-
-  if (buffer[1] == '#') {
-    buffer[0] = '#';
-    buffer[1] = '-';
-  }
-  return pos;
 }
 
 // render a single operand, e.g. and address like  `[r3, #-116]`
-unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
-  const int32_t x = ins.operands[pos];
-  const OK kind = ins.opcode->fields[pos];
-  ++pos;
-  //   printf("@@ processing kind: %d %d\n", kind, x);
-  switch (kind) {
+// Used to sanity check against objdump output
+char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok) {
+  switch (ok) {
     case OK::REG_LINK:
-    case OK::PRED_28_31:
-      // no output
-      return pos;
+      return strappend(buffer, "lr");
     case OK::REG_0_3:
+      if (opcode.classes & OPC_FLAG::ADDR_DEC) *buffer++ = '-';
+      // FALL-THROUGH
     case OK::REG_12_15:
     case OK::REG_16_19:
     case OK::REG_8_11:
@@ -200,88 +135,29 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
     case OK::SREG_0_3_5:
     case OK::SREG_12_15_22:
     case OK::SREG_16_19_7:
-      RenderOperandSystematic(buffer, ins, pos - 1);
-      return pos;
-    case OK::IMM_0_11:
-    case OK::IMM_0_11_16_19:
-    case OK::IMM_0_3_8_11:
-    case OK::IMM_0_7_8_11:
+    //
+    case OK::PRED_28_31:
+    case OK::SHIFT_MODE_5_6:
+      return RenderOperandSystematic(buffer, x, ok);
     case OK::IMM_0_7_TIMES_4:
+    case OK::IMM_0_11:
+    case OK::IMM_0_3_8_11:
+      *buffer++ = '#';
+      if (opcode.classes & OPC_FLAG::ADDR_DEC) {
+        *buffer++ = '-';
+      }
+      return strappenddec(buffer, x);
+    case OK::IMM_0_11_16_19:
+    case OK::IMM_0_7_8_11:
     case OK::IMM_10_11_TIMES_8:
     case OK::IMM_7_11:
     case OK::IMM_0_23:
     case OK::IMM_ZERO:
     case OK::SIMM_0_23:
+    case OK::REG_RANGE_0_7:
+    case OK::REG_RANGE_1_7:
       *buffer++ = '#';
-      strappenddec(buffer, x);
-      return pos;
-    case OK::SHIFT_MODE_5_6: {
-      pos = RenderOperandStd(buffer, ins, pos);
-      buffer += strlen(buffer);
-      char* save = buffer;
-      buffer = strappend(buffer, kShiftKindsWithComma[x]);
-      buffer = strappend(buffer, " ");
-      pos = RenderOperandStd(buffer, ins, pos);
-      if (buffer == kNumZero) {
-        *save = 0;
-      }
-      return pos;
-    }
-    case OK::SHIFT_MODE_5_6_ADDR: {
-      pos = RenderOperandStd(buffer, ins, pos);
-      buffer += strlen(buffer);
-      char amount[128];
-      pos = RenderOperandStd(amount, ins, pos);
-      if (amount != kNumZero) {
-        buffer = strappend(buffer, kShiftKindsWithComma[x]);
-        buffer = strappend(buffer, " ");
-        buffer = strappend(buffer, amount);
-      } else {
-        buffer = strappend(buffer, kShiftKindsZeroWithComma[x]);
-      }
-      return pos;
-    }
-    case OK::SHIFT_MODE_ROT: {
-      pos = RenderOperandStd(buffer, ins, pos);
-      buffer += strlen(buffer);
-      char* save = buffer;
-      buffer = strappend(buffer, ", ");
-      pos = RenderOperandStd(buffer, ins, pos);
-      if (buffer == kNumZero) {
-        *save = 0;
-      }
-      return pos;
-    }
-    case OK::REG_BASE_16_19: {
-      if (ins.opcode->classes & OPC_FLAG::MULTIPLE) {
-        RenderOperandSystematic(buffer, ins, pos - 1);
-        if (ins.opcode->classes & OPC_FLAG::ADDR_UPDATE) {
-          strcat(buffer, "!");
-        }
-        return pos;
-      }
-      buffer[0] = '[';
-      RenderOperandSystematic(buffer + 1, ins, pos - 1);
-      if (ins.opcode->classes & (OPC_FLAG::ADDR_INC | OPC_FLAG::ADDR_DEC)) {
-        if (ins.opcode->classes & OPC_FLAG::ADDR_PRE) {
-          buffer += strlen(buffer);
-          pos = RenderOffsetStd(buffer, ins, pos);
-          strcat(buffer, "]");
-          if (ins.opcode->classes & OPC_FLAG::ADDR_UPDATE) {
-            strcat(buffer, "!");
-          }
-        } else {
-          ASSERT(ins.opcode->classes & OPC_FLAG::ADDR_POST,
-                 "unexpected addr mode " << ins.opcode->name);
-          strcat(buffer, "]");
-          buffer += strlen(buffer);
-          pos = RenderOffsetStd(buffer, ins, pos);
-        }
-      } else {
-        strcat(buffer, "]");
-      }
-      return pos;
-    }
+      return strappenddec(buffer, x);
     case OK::REGLIST_0_15: {
       const char* sep = "";
       buffer = strappend(buffer, "{");
@@ -294,66 +170,17 @@ unsigned RenderOperandStd(char* buffer, const Ins& ins, unsigned pos) {
       }
       buffer = strappend(buffer, "}");
     }
-      return pos;
-    case OK::REG_RANGE_0_7:
-    case OK::REG_RANGE_1_7: {
-      char reg[128];
-      pos = RenderOperandStd(reg, ins, pos);
-      if (x == 1) {
-        *buffer++ = '{';
-        buffer = strappend(buffer, reg);
-        *buffer++ = '}';
-        *buffer++ = 0;
-      } else {
-        int32_t reg_last = atoi(reg + 1) + x - 1;
-        sprintf(buffer, "{%s-%c%d}", reg, reg[0], reg_last);
-      }
-    }
-      return pos;
+      return buffer;
     case OK::Invalid:
     default:
       ASSERT(false, "Invalid");
-      return pos;
+      return buffer;
   }
 }
 
-int FirstOperandIsLast(const struct Opcode* opcode) {
-  return ((opcode->classes & (STORE | MULTIPLE | ATOMIC)) == STORE) ||
-         ((opcode->classes & (LOAD | MULTIPLE)) == (LOAD | MULTIPLE));
-}
-
-// Render the given instruction using standard assembler notation into `buffer`
-// Note: not production quality - does not check for buffer overruns.
-void RenderInsStd(const Ins& ins, char buffer[128]) {
-  unsigned i = RenderName(ins, buffer);
-  buffer += strlen(buffer);
-  buffer = strappend(buffer, " ");
-
-  // Move some operands to the end to be compatible with regular assemblers
-  char suffix[128];
-  if (FirstOperandIsLast(ins.opcode)) {
-    strcpy(suffix, ", ");
-    i = RenderOperandStd(suffix + 2, ins, i);
-  } else {
-    suffix[0] = 0;
-  }
-
-  if (ins.opcode == &OpcodeTable[unsigned(OPC::vmrs_APSR_nzcv_fpscr)]) {
-    buffer = strappend(buffer, " APSR_nzcv, fpscr");
-  }
-
-  const char* sep = "";
-  while (i < ins.opcode->num_fields) {
-    buffer = strappend(buffer, sep);
-    i = RenderOperandStd(buffer, ins, i);
-    buffer += strlen(buffer);
-    sep = ", ";
-  }
-  strcat(buffer, suffix);
-}
 
 // Render the given instruction using a systematic notation into `buffer`
-void RenderInsSystematic(const Ins& ins, char buffer[128]) {
+void RenderInsSystematic(const Ins& ins, char buffer[512]) {
   buffer = strappend(buffer, ins.opcode->enum_name);
   buffer = strappend(buffer, " ");
 
@@ -390,8 +217,8 @@ void RenderInsSystematic(const Ins& ins, char buffer[128]) {
         buffer = strappenddec(buffer, ins.operands[i]);
       }
     } else {
-      RenderOperandSystematic(buffer, ins, i);
-      buffer += strlen(buffer);
+      buffer = RenderOperandSystematic(buffer, ins.operands[i],
+                                       ins.opcode->fields[i]);
     }
     sep = " ";
   }

@@ -230,7 +230,7 @@ class SHIFT(enum.IntEnum):
     lsl = 0
     lsr = 1
     asr = 2
-    ror_rrx = 3
+    ror = 3  # also includes rrx
 
 
 ############################################################
@@ -258,30 +258,26 @@ class OK(enum.Enum):
     SREG_16_19_7 = 12
 
     SHIFT_MODE_5_6 = 13
-    SHIFT_MODE_5_6_ADDR = 14
-    SHIFT_MODE_ROT = 15
 
     # reglist
-    REGLIST_0_15 = 16
-    REG_RANGE_0_7 = 17
-    REG_RANGE_1_7 = 18
-    #
-    REG_BASE_16_19 = 19
+    REGLIST_0_15 = 14
+    REG_RANGE_0_7 = 15
+    REG_RANGE_1_7 = 16
 
     # misc
-    PRED_28_31 = 20
+    PRED_28_31 = 17
 
     # immediates
-    IMM_0_7_TIMES_4 = 21
-    IMM_0_11 = 22
-    IMM_0_3_8_11 = 23
-    IMM_7_11 = 24
-    IMM_10_11_TIMES_8 = 25
-    IMM_0_23 = 26
-    IMM_0_7_8_11 = 27
-    IMM_ZERO = 28  # implicit 0.0 immediate
-    IMM_0_11_16_19 = 29
-    SIMM_0_23 = 30
+    IMM_0_7_TIMES_4 = 18
+    IMM_0_11 = 19
+    IMM_0_3_8_11 = 20
+    IMM_7_11 = 21
+    IMM_10_11_TIMES_8 = 22
+    IMM_0_23 = 23
+    IMM_0_7_8_11 = 24
+    IMM_ZERO = 25  # implicit 0.0 immediate
+    IMM_0_11_16_19 = 26
+    SIMM_0_23 = 27
 
 
 ############################################################
@@ -306,7 +302,7 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.REG_8_11: [(4, 8)],
     OK.REG_12_15: [(4, 12)],
     OK.REG_16_19: [(4, 16)],
-    OK.REG_BASE_16_19: [(4, 16)],
+    OK.REG_16_19: [(4, 16)],
     OK.REG_PAIR_12_15: [(4, 12)],
     OK.REG_LINK: [],  # implicitly writes lr
 }
@@ -338,8 +334,6 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
 
 FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_MODE_5_6: [(2, 5)],
-    OK.SHIFT_MODE_ROT: [],
-    OK.SHIFT_MODE_5_6_ADDR: [(2, 5)],
 }
 
 FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
@@ -733,21 +727,21 @@ for ext, n in [("bb", 8), ("tb", 10), ("bt", 12), ("tt", 14)]:
 Opcode("strex", "",
        # TODO: OK.REG_0_3 should move to the end
        [root00, (0x3f, 0x18, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
-       [OK.REG_12_15, OK.REG_0_3, OK.REG_BASE_16_19],
+       [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3],
        OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=MEM_WIDTH.W4)
 
 Opcode("ldrex", "",
        [root00, (0x3f, 0x19, 20), (0xf, 0xf, 8), (0xf, 0x9, 4),
         (0xf, 0xf, 0)],
-       [OK.REG_12_15, OK.REG_BASE_16_19],
+       [OK.REG_12_15, OK.REG_16_19],
        OPC_FLAG.ATOMIC | OPC_FLAG.LOAD, mem_width=MEM_WIDTH.W4)
 
 for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
     for variant, bits, fields in [
         ("imm_" + addr_mode, [(1, 1, 22)] + addr_bits,
-         [OK.REG_BASE_16_19, OK.IMM_0_3_8_11]),
+         [OK.REG_16_19, OK.IMM_0_3_8_11]),
         ("reg_" + addr_mode, [(1, 0, 22), (0xf, 0, 8)] + addr_bits,
-         [OK.REG_BASE_16_19, OK.REG_0_3])]:
+         [OK.REG_16_19, OK.REG_0_3])]:
         for ext, width, n in [("h", MEM_WIDTH.W2, 0xb), ("sb", MEM_WIDTH.W1, 0xd),
                               ("sh", MEM_WIDTH.W2, 0xf)]:
             Opcode("ldr" + ext, variant,
@@ -778,12 +772,12 @@ for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
         Opcode(opcode + ext, "regreg",
                [root00, s_bit, (0xf, n, 21), (1, 0, 25), (1, 0, 7), (1, 1, 4)],
                [OK.REG_12_15, OK.REG_16_19,
-                OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.REG_8_11],
+                OK.REG_0_3,OK.SHIFT_MODE_5_6,  OK.REG_8_11],
                OPC_FLAG.ALU, sr_update=sr_update)
         Opcode(opcode + ext, "regimm",
                [root00, s_bit, (0xf, n, 21), (1, 0, 25), (1, 0, 4)],
                [OK.REG_12_15, OK.REG_16_19,
-                OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.IMM_7_11],
+                 OK.REG_0_3,OK.SHIFT_MODE_5_6, OK.IMM_7_11],
                OPC_FLAG.ALU, sr_update=sr_update)
         Opcode(opcode + ext, "imm",
                [root00, s_bit, (0xf, n, 21), (1, 1, 25)],
@@ -793,7 +787,7 @@ for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
 for ext, width, n in [("", MEM_WIDTH.W4, 8), ("b", MEM_WIDTH.W1, 0xa)]:
     Opcode("swp" + ext, "",
            [root00, (0xf, n, 21), (1, 0, 25), (1, 0, 20), (0xf, 0x0, 8), (0xf, 0x9, 4)],
-           [OK.REG_12_15, OK.REG_0_3, OK.REG_BASE_16_19],
+           [OK.REG_12_15, OK.REG_0_3, OK.REG_16_19],
            OPC_FLAG.ATOMIC, mem_width=width)
 
 Opcode("bx", "",
@@ -818,12 +812,12 @@ for opcode, n in [("tst", 8), ("teq", 9), ("cmp", 10), ("cmn", 11)]:
     Opcode(opcode, "regreg",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12), (1, 0, 25),
             (1, 0, 7), (1, 1, 4)],
-           [OK.REG_16_19, OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.REG_8_11],
+           [OK.REG_16_19,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.REG_8_11],
            OPC_FLAG.TEST, sr_update=SR_UPDATE.NCZ)
     Opcode(opcode, "regimm",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12),
             (1, 0, 25), (1, 0, 4)],
-           [OK.REG_16_19, OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.IMM_7_11],
+           [OK.REG_16_19,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.IMM_7_11],
            OPC_FLAG.TEST, sr_update=SR_UPDATE.NCZ)
     Opcode(opcode, "imm",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12), (1, 1, 25)],
@@ -836,11 +830,11 @@ for opcode, n in [("mov", 0xd), ("mvn", 0xf)]:
         bits = [root00, s_bit, (0xf, n, 21), (0xf, 0, 16)]
         Opcode(opcode + ext, "regreg",
                bits + [(1, 0, 25), (1, 0, 7), (1, 1, 4)],
-               [OK.REG_12_15, OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.REG_8_11],
+               [OK.REG_12_15, OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.REG_8_11],
                OPC_FLAG.ALU1, sr_update=sr_update)
         Opcode(opcode + ext, "regimm",
                bits + [(1, 0, 25), (1, 0, 4)],
-               [OK.REG_12_15, OK.SHIFT_MODE_5_6, OK.REG_0_3, OK.IMM_7_11],
+               [OK.REG_12_15,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.IMM_7_11],
                OPC_FLAG.ALU1, sr_update=sr_update)
         Opcode(opcode + ext, "imm",
                bits + [(1, 1, 25)],
@@ -875,24 +869,22 @@ for ext, n in [("b", 2), ("b16", 0), ("h", 3)]:
     bits = [root01, (0x3f, 0x7, 4), (0x3, n, 20)]
     Opcode("uxt" + ext, "",
            bits + [(0xf, 0xb, 22), (0xf, 0xf, 16)],
-           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
+           [OK.REG_12_15, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("sxt" + ext, "",
            bits + [(0xf, 0xa, 22), (0xf, 0xf, 16)],
-           [OK.REG_12_15, OK.SHIFT_MODE_ROT, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
+           [OK.REG_12_15, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("uxta" + ext, "",
            bits + [(0xf, 0xb, 22)],
-           [OK.REG_12_15, OK.REG_16_19, OK.SHIFT_MODE_ROT,
-            OK.REG_0_3, OK.IMM_10_11_TIMES_8],
+           [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
     Opcode("sxta" + ext, "",
            bits + [(0xf, 0xa, 22)],
-           [OK.REG_12_15, OK.REG_16_19, OK.SHIFT_MODE_ROT, OK.REG_0_3,
-            OK.IMM_10_11_TIMES_8],
+           [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
 for ext, n in [("", 3), ("16", 11)]:
@@ -905,9 +897,9 @@ for ext, n in [("", 3), ("16", 11)]:
 for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
     for variant, bits, fields in [
         ("reg_" + addr_mode, [(1, 1, 25), (1, 0, 4)] + addr_bits,
-         [OK.REG_BASE_16_19, OK.SHIFT_MODE_5_6_ADDR, OK.REG_0_3, OK.IMM_7_11]),
+         [OK.REG_16_19, OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.IMM_7_11]),
         ("imm_" + addr_mode, [(1, 0, 25)] + addr_bits,
-         [OK.REG_BASE_16_19, OK.IMM_0_11])]:
+         [OK.REG_16_19, OK.IMM_0_11])]:
         Opcode("ldp", variant,
                bits + [root01, (1, 1, 22), (1, 1, 20), (0xf, 0xf, 12), (0xf, 0xf, 28)],
                fields,
@@ -940,12 +932,12 @@ root10 = (3, 2, 26)
 for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
     Opcode("stm" + mode, update,
            [root10, (1, 0, 25), (1, 0, 20), (1, 0, 22)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.REGLIST_0_15],
+           [OK.REG_16_19, OK.REGLIST_0_15],
            OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | flag)
 
     Opcode("ldm" + mode, update,
            [root10, (1, 0, 25), (1, 1, 20), (1, 0, 22)] + addr_bits,
-           [OK.REGLIST_0_15, OK.REG_BASE_16_19],
+           [OK.REGLIST_0_15, OK.REG_16_19],
            OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | flag)
 
 Opcode("b", "",
@@ -969,22 +961,22 @@ Opcode("svc", "",
 for addr_mode, addr_bits, flag in LIMITED_ADDR_MODES:
     Opcode("vldr", "f32_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.SREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4],
+           [OK.SREG_12_15_22, OK.REG_16_19, OK.IMM_0_7_TIMES_4],
            OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
     Opcode("vldr", "f64_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 1, 20), (0xf, 0xb, 8)] + addr_bits,
-           [OK.DREG_12_15_22, OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4],
+           [OK.DREG_12_15_22, OK.REG_16_19, OK.IMM_0_7_TIMES_4],
            OPC_FLAG.VFP | OPC_FLAG.LOAD | flag)
 
     Opcode("vstr", "f32_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4, OK.SREG_12_15_22],
+           [OK.REG_16_19, OK.IMM_0_7_TIMES_4, OK.SREG_12_15_22],
            OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
     Opcode("vstr", "f64_" + addr_mode,
            [root11, (0x3, 1, 24), (0x3, 0, 20), (0xf, 0xb, 8)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.IMM_0_7_TIMES_4, OK.DREG_12_15_22],
+           [OK.REG_16_19, OK.IMM_0_7_TIMES_4, OK.DREG_12_15_22],
            OPC_FLAG.VFP | OPC_FLAG.STORE | flag)
 
 Opcode("vmov", "atof",
@@ -1096,22 +1088,22 @@ for name, a, b, c in [("vnmul", 4, 2, 4),
 for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
     Opcode("vldm" + mode, "s_" + update if update else "s",
            [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.REG_RANGE_0_7, OK.SREG_12_15_22, OK.REG_BASE_16_19],
+           [OK.SREG_12_15_22, OK.REG_RANGE_0_7, OK.REG_16_19],
            OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
     Opcode("vldm" + mode, "f_" + update if update else "f",
            [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
-           [OK.REG_RANGE_1_7, OK.DREG_12_15_22, OK.REG_BASE_16_19],
+           [OK.DREG_12_15_22, OK.REG_RANGE_1_7, OK.REG_16_19],
            OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
     Opcode("vstm" + mode, "s_" + update if update else "s",
            [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xa, 8)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.REG_RANGE_0_7, OK.SREG_12_15_22],
+           [OK.REG_16_19, OK.SREG_12_15_22, OK.REG_RANGE_0_7],
            OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
     Opcode("vstm" + mode, "f_" + update if update else "f",
            [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
-           [OK.REG_BASE_16_19, OK.REG_RANGE_1_7, OK.DREG_12_15_22],
+           [OK.REG_16_19, OK.DREG_12_15_22, OK.REG_RANGE_1_7],
            OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
 Opcode("vmrs", "APSR_nzcv_fpscr",

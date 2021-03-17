@@ -23,7 +23,7 @@
     sub_imm al sp sp 16
 .bbl start 4
     add_imm al r1 sp 0
-    mov_regimm al r0 lsl r0 0
+    mov_regimm al r0 r0 lsl 0
     strb_imm_add al sp 0 r0
     mov_imm al r2 1
     mov_imm al r0 1
@@ -40,14 +40,14 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
-    mov_regimm al r2 lsl r1 0
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r2 r1 lsl 0
+    mov_regimm al r1 r0 lsl 0
     mov_imm al r0 1
     str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
     ldr_imm_add_post al r7 sp 4
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r1 r0 lsl 0
     mov_imm al r0 10
     bl al lr expr:call:putchar
     add_imm al sp sp 12

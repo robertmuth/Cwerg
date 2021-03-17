@@ -59,7 +59,7 @@ BUILD_DIR=../build
 ASSEMBLER_TOOL=$(BUILD_DIR)/a32_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a32_disassembler_tool.exe
 
-$(DISSEMBLER_TOOL)::
+$(DISASSEMBLER_TOOL)::
 	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
 
 

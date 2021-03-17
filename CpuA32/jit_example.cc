@@ -3,8 +3,8 @@
 #include "CpuA32/opcode_gen.h"
 #include "Util/assert.h"
 
-#include <iostream>
 #include <sys/mman.h>
+#include <iostream>
 
 using namespace cwerg::a32;
 
@@ -18,38 +18,38 @@ using FunPtr = uint32_t (*)(uint32_t);
 void DumpA32Ins(uint32_t data) {
   Ins ins;
   DecodeIns(&ins, data);
-  char buf[128];
-  RenderInsStd(ins, buf);
-  std::cout << "0x" << std::hex << data << " " << buf << "\n";
+  std::cout << "0x" << std::hex << data << " " << ins.opcode->enum_name;
+  std::string_view sep = " ";
+  for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
+    char buf[128];
+    RenderOperandStd(buf, *ins.opcode, ins.operands[i], ins.opcode->fields[i]);
+    std::cout << sep << buf;
+    sep = ", ";
+  }
+  std::cout << "\n";
 }
 
 Ins Fibonacci[] = {
     //
-    {&OpcodeTable[u(OPC::stmdb_update)],
-     {u(PRED::al), u(REG::sp), 0x4030}},
+    {&OpcodeTable[u(OPC::stmdb_update)], {u(PRED::al), u(REG::sp), 0x4030}},
     {&OpcodeTable[u(OPC::cmp_imm)], {u(PRED::al), u(REG::r0), 1}},
     {&OpcodeTable[u(OPC::b)], {u(PRED::le), 7}},
     //
     {&OpcodeTable[u(OPC::mov_imm)], {u(PRED::al), u(REG::r4), 0}},
     {&OpcodeTable[u(OPC::mov_regimm)],
-     {u(PRED::al), u(REG::r5), u(SHIFT::lsl), u(REG::r0), 0}},
+     {u(PRED::al), u(REG::r5), u(REG::r0), u(SHIFT::lsl), 0}},
     //
-    {&OpcodeTable[u(OPC::sub_imm)],
-     {u(PRED::al), u(REG::r0), u(REG::r5), 1}},
+    {&OpcodeTable[u(OPC::sub_imm)], {u(PRED::al), u(REG::r0), u(REG::r5), 1}},
     {&OpcodeTable[u(OPC::bl)], {u(PRED::al), u(REG::lr), -8}},
     {&OpcodeTable[u(OPC::add_regimm)],
-     {u(PRED::al), u(REG::r4), u(REG::r4), u(SHIFT::lsl),
-      u(REG::r0), 0}},
+     {u(PRED::al), u(REG::r4), u(REG::r4), u(REG::r0), u(SHIFT::lsl), 0}},
     //
-   {&OpcodeTable[u(OPC::sub_imm)],
-     {u(PRED::al), u(REG::r0), u(REG::r5), 2}},
+    {&OpcodeTable[u(OPC::sub_imm)], {u(PRED::al), u(REG::r0), u(REG::r5), 2}},
     {&OpcodeTable[u(OPC::bl)], {u(PRED::al), u(REG::lr), -11}},
     {&OpcodeTable[u(OPC::add_regimm)],
-     {u(PRED::al), u(REG::r0), u(REG::r4), u(SHIFT::lsl),
-      u(REG::r0), 0}},
+     {u(PRED::al), u(REG::r0), u(REG::r4), u(REG::r0), u(SHIFT::lsl), 0}},
     //
-    {&OpcodeTable[u(OPC::ldmia_update)],
-     {u(PRED::al), 0x8030, u(REG::sp)}}
+    {&OpcodeTable[u(OPC::ldmia_update)], {u(PRED::al), 0x8030, u(REG::sp)}}
 
 };
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   }
 
   FunPtr f = reinterpret_cast<FunPtr>(memory);
-  for (unsigned i =0; i < 10; ++i) {
+  for (unsigned i = 0; i < 10; ++i) {
     std::cout << std::dec << i << " " << f(i) << "\n";
   }
   return 0;
