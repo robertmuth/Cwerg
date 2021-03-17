@@ -8,9 +8,11 @@
 
 using namespace cwerg::a32;
 
-template <typename X>
-uint16_t u(X x) {
-  return uint16_t(x);
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
 }
 
 using FunPtr = uint32_t (*)(uint32_t);
@@ -31,25 +33,25 @@ void DumpA32Ins(uint32_t data) {
 
 Ins Fibonacci[] = {
     //
-    {&OpcodeTable[u(OPC::stmdb_update)], {u(PRED::al), u(REG::sp), 0x4030}},
-    {&OpcodeTable[u(OPC::cmp_imm)], {u(PRED::al), u(REG::r0), 1}},
-    {&OpcodeTable[u(OPC::b)], {u(PRED::le), 7}},
+    {&OpcodeTable[+OPC::stmdb_update], {+PRED::al, +REG::sp, 0x4030}},
+    {&OpcodeTable[+OPC::cmp_imm], {+PRED::al, +REG::r0, 1}},
+    {&OpcodeTable[+OPC::b], {+PRED::le, 7}},
     //
-    {&OpcodeTable[u(OPC::mov_imm)], {u(PRED::al), u(REG::r4), 0}},
-    {&OpcodeTable[u(OPC::mov_regimm)],
-     {u(PRED::al), u(REG::r5), u(REG::r0), u(SHIFT::lsl), 0}},
+    {&OpcodeTable[+OPC::mov_imm], {+PRED::al, +REG::r4, 0}},
+    {&OpcodeTable[+OPC::mov_regimm],
+     {+PRED::al, +REG::r5, +REG::r0, +SHIFT::lsl, 0}},
     //
-    {&OpcodeTable[u(OPC::sub_imm)], {u(PRED::al), u(REG::r0), u(REG::r5), 1}},
-    {&OpcodeTable[u(OPC::bl)], {u(PRED::al), u(REG::lr), -8}},
-    {&OpcodeTable[u(OPC::add_regimm)],
-     {u(PRED::al), u(REG::r4), u(REG::r4), u(REG::r0), u(SHIFT::lsl), 0}},
+    {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 1}},
+    {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, -8}},
+    {&OpcodeTable[+OPC::add_regimm],
+     {+PRED::al, +REG::r4, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
     //
-    {&OpcodeTable[u(OPC::sub_imm)], {u(PRED::al), u(REG::r0), u(REG::r5), 2}},
-    {&OpcodeTable[u(OPC::bl)], {u(PRED::al), u(REG::lr), -11}},
-    {&OpcodeTable[u(OPC::add_regimm)],
-     {u(PRED::al), u(REG::r0), u(REG::r4), u(REG::r0), u(SHIFT::lsl), 0}},
+    {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 2}},
+    {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, -11}},
+    {&OpcodeTable[+OPC::add_regimm],
+     {+PRED::al, +REG::r0, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
     //
-    {&OpcodeTable[u(OPC::ldmia_update)], {u(PRED::al), 0x8030, u(REG::sp)}}
+    {&OpcodeTable[+OPC::ldmia_update], {+PRED::al, 0x8030, +REG::sp}}
 
 };
 
