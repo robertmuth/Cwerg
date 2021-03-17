@@ -501,7 +501,7 @@ void EmitFunProlog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
   if (ctx.vstm_regs > 0) {
     const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vstm_regs);
     output->emplace_back(MakeIns(a32::OPC::vstmdb_s_update, +a32::PRED::al,
-                                 +a32::REG::sp, range.count, range.start));
+                                 +a32::REG::sp, range.start, range.count));
   }
 
   uint32_t stk_size = ctx.stk_size;
@@ -525,7 +525,7 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
   if (ctx.vldm_regs > 0) {
     const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vldm_regs);
     output->emplace_back(MakeIns(a32::OPC::vldmia_s_update, +a32::PRED::al,
-                                 range.count, range.start, +a32::REG::sp));
+                                 range.start, range.count, +a32::REG::sp));
   }
 
   if (ctx.ldm_regs > 0) {

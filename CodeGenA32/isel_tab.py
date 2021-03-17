@@ -354,7 +354,7 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
         stk_size -= high_byte
     if ctx.vldm_regs > 0:
         out.append(
-            InsTmpl("vldmia_s_update", [PARAM.vldm_count, PARAM.vldm_start, arm.REG.sp]))
+            InsTmpl("vldmia_s_update", [PARAM.vldm_start, PARAM.vldm_count, arm.REG.sp]))
     if ctx.ldm_regs > 0:
         out.append(InsTmpl("ldmia_update", [PARAM.ldm_regmask, arm.REG.sp]))
     if (regs.A32RegToAllocMask(regs.PC_REG) & ctx.ldm_regs) == 0:
@@ -381,7 +381,7 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     if ctx.vstm_regs > 0:
         out.append(InsTmpl(
             "vstmdb_s_update",
-            [arm.REG.sp, PARAM.vstm_count, PARAM.vstm_start]))
+            [arm.REG.sp, PARAM.vstm_start, PARAM.vstm_count]))
     stk_size = ctx.stk_size
     while stk_size > 0:
         high_byte = _HighByte(stk_size)
@@ -491,8 +491,8 @@ def InitCondBra():
         for opc, cond in [(o.BEQ, arm.PRED.eq), (o.BNE, arm.PRED.ne)]:
             type_constraints = [kind, kind, o.DK.INVALID]
             Pattern(opc, type_constraints, _NO_IMM3,
-                    [InsTmpl("cmp_regimm", [PARAM.reg0, arm.SHIFT.lsl, PARAM.reg1, 0]),
-                     InsTmpl("b", [PARAM.bbl2], pred=cond)])
+                    [InsTmpl("cmp_regimm", [PARAM.reg0,PARAM.reg1, arm.SHIFT.lsl, 0]),
+            InsTmpl("b", [PARAM.bbl2], pred=cond)])
             imm_constraints = [IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted,
                                IMM_KIND.invalid]
             Pattern(opc, type_constraints, imm_constraints,
@@ -506,7 +506,7 @@ def InitCondBra():
         for opc in [o.BLT, o.BLE]:
             type_constraints = [kind, kind, o.DK.INVALID]
             Pattern(opc, type_constraints, _NO_IMM3,
-                    [InsTmpl("cmp_regimm", [PARAM.reg0, arm.SHIFT.lsl, PARAM.reg1, 0]),
+                    [InsTmpl("cmp_regimm", [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, 0]),
                      InsTmpl("b", [PARAM.bbl2], pred=xlate[opc])])
             imm_constraints = [IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted,
                                IMM_KIND.invalid]
@@ -533,7 +533,7 @@ def InitCondBra():
 def InsTmplMove(dst, src, kind, pred=arm.PRED.al):
     assert dst is PARAM.reg0
     if src in {PARAM.reg1, PARAM.reg2, PARAM.reg3, PARAM.reg4}:
-        return InsTmpl("mov_regimm", [dst, arm.SHIFT.lsl, src, 0], pred)
+        return InsTmpl("mov_regimm", [dst, src, arm.SHIFT.lsl, 0], pred)
 
     assert src in {PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4, PARAM.num1_not}
     if kind is IMM_KIND.pos_16_bits:
@@ -556,7 +556,7 @@ def InitCmp():
         for imm1, imm2 in IMM_1_2:
             Pattern(o.CMPEQ, [kind] * 5,
                     [IMM_KIND.invalid, imm1, imm2, IMM_KIND.invalid, IMM_KIND.invalid],
-                    [InsTmpl("cmp_regimm", [PARAM.reg3, arm.SHIFT.lsl, PARAM.reg4, 0]),
+                    [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
                      InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_KIND.invalid else PARAM.num1,
                                  imm1, cond),
                      InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_KIND.invalid else PARAM.num2,
@@ -575,7 +575,7 @@ def InitCmp():
         for imm1, imm2 in IMM_1_2:
             Pattern(o.CMPLT, [kind] * 5,
                     [IMM_KIND.invalid, imm1, imm2, IMM_KIND.invalid, IMM_KIND.invalid],
-                    [InsTmpl("cmp_regimm", [PARAM.reg3, arm.SHIFT.lsl, PARAM.reg4, 0]),
+                    [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
                      InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_KIND.invalid else PARAM.num1,
                                  imm1, cond),
                      InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_KIND.invalid else PARAM.num2,
@@ -607,7 +607,7 @@ def InitAlu():
                           (o.ADD, "add"), (o.OR, "orr"), (o.SUB, "sub")]:
             Pattern(node, [kind1] * 3, _NO_IMM3,
                     [InsTmpl(opc + "_regimm",
-                             [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, PARAM.reg2, 0])])
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, arm.SHIFT.lsl, 0])])
 
         imm_constraints = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted]
         for node, opc in [(o.AND, "and"), (o.XOR, "eor"),
@@ -636,10 +636,10 @@ def InitAlu():
         imm_constraints = [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_5_bits]
         Pattern(opc, [kind1] * 3, _NO_IMM3,
                 [InsTmpl("mov_regreg",
-                         [PARAM.reg0, shift_dir, PARAM.reg1, PARAM.reg2])])
+                         [PARAM.reg0, PARAM.reg1, shift_dir, PARAM.reg2])])
         Pattern(opc, [kind1] * 3, imm_constraints,
                 [InsTmpl("mov_regimm",
-                         [PARAM.reg0, shift_dir, PARAM.reg1, PARAM.num2])])
+                         [PARAM.reg0, PARAM.reg1, shift_dir, PARAM.num2])])
 
     Pattern(o.DIV, [o.DK.U32] * 3, _NO_IMM3,
             [InsTmpl("udiv", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -655,7 +655,7 @@ def InitLoad():
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2], _NO_IMM3,
                     [InsTmpl(opc + "_reg_add",
-                             [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, PARAM.reg2,
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, arm.SHIFT.lsl,
                               0])])
             Pattern(o.LD, [kind1, o.DK.A32, kind2], imm_constraints_pos,
                     [InsTmpl(opc + "_imm_add",
@@ -710,7 +710,7 @@ def InitStore():
         for kind1 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind1, kind2], _NO_IMM3,
                     [InsTmpl(opc + "_reg_add",
-                             [PARAM.reg0, arm.SHIFT.lsl, PARAM.reg1, 0,
+                             [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, 0,
                               PARAM.reg2])])
             Pattern(o.ST, [o.DK.A32, kind1, kind2], imm_constraints_pos,
                     [InsTmpl(opc + "_imm_add",
@@ -765,7 +765,7 @@ def InitLea():
     for kind1 in [o.DK.U32, o.DK.S32]:
         Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1], _NO_IMM3,
                 [InsTmpl("add_regimm",
-                         [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, PARAM.reg2, 0])])
+                         [PARAM.reg0, PARAM.reg1, PARAM.reg2, arm.SHIFT.lsl, 0])])
         Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
                 [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted],
                 [InsTmpl("add_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2])])
@@ -788,12 +788,12 @@ def InitLea():
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
                 [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_16_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2]),
-                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, arm.SHIFT.lsl, PARAM.reg0, 0])])
+                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])])
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
                 [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.any_32_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2_lo]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.stk1_offset2_hi]),
-                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, arm.SHIFT.lsl, PARAM.reg0, 0])])
+                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])])
 
 
 # Note, moves are our last resort and MUST support ALL possible immediates
@@ -829,16 +829,16 @@ def InitConv():
                     [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
 
     Pattern(o.CONV, [o.DK.U32, o.DK.U8], _NO_IMM2,
-            [InsTmpl("uxtb", [PARAM.reg0, arm.SHIFT.ror_rrx, PARAM.reg1, 0])])
+            [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
 
     Pattern(o.CONV, [o.DK.S32, o.DK.S8], _NO_IMM2,
-            [InsTmpl("sxtb", [PARAM.reg0, arm.SHIFT.ror_rrx, PARAM.reg1, 0])])
+            [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
 
     Pattern(o.CONV, [o.DK.U32, o.DK.U16], _NO_IMM2,
-            [InsTmpl("uxth", [PARAM.reg0, arm.SHIFT.ror_rrx, PARAM.reg1, 0])])
+            [InsTmpl("uxth", [PARAM.reg0, PARAM.reg1, 0])])
 
     Pattern(o.CONV, [o.DK.S32, o.DK.S16], _NO_IMM2,
-            [InsTmpl("sxth", [PARAM.reg0, arm.SHIFT.ror_rrx, PARAM.reg1, 0])])
+            [InsTmpl("sxth", [PARAM.reg0, PARAM.reg1, 0])])
 
     # bitcast between 32bit regs: nothing to be done here
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
@@ -872,7 +872,7 @@ def InitMiscBra():
             [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.jtb1_lo16]),
              InsTmpl("movt", [PARAM.scratch_gpr, PARAM.jtb1_hi16]),
              InsTmpl("ldr_reg_add",
-                     [arm.REG.pc, PARAM.scratch_gpr, arm.SHIFT.lsl, PARAM.reg0,
+                     [arm.REG.pc, PARAM.scratch_gpr, PARAM.reg0, arm.SHIFT.lsl,
                       2]),
              ])
 

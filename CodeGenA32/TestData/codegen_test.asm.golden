@@ -61,15 +61,15 @@ INS: ret  []
 
 INS: conv $r1_U32@r1 $r0_U32@r0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r1 r0 lsl 0
 
 INS: mov $r0_A32@r0 $sp_A32@sp  [A32 A32]
 PAT: reg:[A32 A32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl sp 0
+    mov_regimm al r0 sp lsl 0
 
 INS: conv $r1_U8@r1 $r1_U32@r1  [U8 U32]
 PAT: reg:[U8 U32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r1 0
+    mov_regimm al r1 r1 lsl 0
 
 INS: st $sp_A32@sp 0 $r1_U8@r1  [A32 U8 U8]
     MATCH_IMPOSSIBLE
@@ -80,7 +80,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: mov $r1_A32@r1 $r0_A32@r0  [A32 A32]
 PAT: reg:[A32 A32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r1 r0 lsl 0
 
 INS: mov $r0_S32@r0 1  [S32 S32]
 PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
@@ -98,11 +98,11 @@ INS: ret  []
 
 INS: mov $r2_U32@r2 $r1_U32@r1  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r2 lsl r1 0
+    mov_regimm al r2 r1 lsl 0
 
 INS: mov $r1_A32@r1 $r0_A32@r0  [A32 A32]
 PAT: reg:[A32 A32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r1 r0 lsl 0
 
 INS: mov $r0_S32@r0 1  [S32 S32]
 PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
@@ -128,7 +128,7 @@ INS: ret  []
 
 INS: mov $r1_U32@r1 $r0_U32@r0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r0 0
+    mov_regimm al r1 r0 lsl 0
 
 INS: mov $r0_U32@r0 10  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -148,7 +148,7 @@ PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
 
 INS: sub rem@r6 $r1_U32@r1 rem@r6  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
-    sub_regimm al r6 r1 lsl r6 0
+    sub_regimm al r6 r1 r6 lsl 0
 
 INS: mov $r0_U32@r0 10  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -165,7 +165,7 @@ PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
 
 INS: mov $r0_U32@r0 div@lr  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl lr 0
+    mov_regimm al r0 lr lsl 0
 
 INS: bsr print_num  [_]
 PAT: reg:[INVALID]  imm:[invalid]
@@ -177,7 +177,7 @@ PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
 
 INS: mov $r0_U32@r0 rem@r6  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl r6 0
+    mov_regimm al r0 r6 lsl 0
 
 INS: bsr putchar  [_]
 PAT: reg:[INVALID]  imm:[invalid]
@@ -241,7 +241,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: mov $r0_A32@r0 board@r6  [A32 A32]
 PAT: reg:[A32 A32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl r6 0
+    mov_regimm al r0 r6 lsl 0
 
 INS: bsr writeln  [_]
 PAT: reg:[INVALID]  imm:[invalid]
@@ -264,7 +264,7 @@ INS: ret  []
 
 INS: mov y@r12 $r0_U32@r0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al ip lsl r0 0
+    mov_regimm al ip r0 lsl 0
 
 INS: beq y@r12 0 success  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
@@ -276,11 +276,11 @@ INS: lea.mem $r6_A32@r6 XCOORDS 0  [A32 _ U8]
 
 INS: ld $r6_U8@r6 $r6_A32@r6 y@r12  [U8 A32 U32]
 PAT: reg:[U8 A32 U32]  imm:[invalid invalid invalid]
-    ldrb_reg_add al r6 r6 lsl ip 0
+    ldrb_reg_add al r6 r6 ip lsl 0
 
 INS: conv lastx@r3 $r6_U8@r6  [U32 U8]
 PAT: reg:[U32 U8]  imm:[invalid invalid]
-    uxtb al r3 ror_rrx r6 0
+    uxtb al r3 r6 0
 
 INS: mov i@r2 0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -291,37 +291,37 @@ INS: lea.mem $r6_A32@r6 XCOORDS 0  [A32 _ U8]
 
 INS: ld $r6_U8@r6 $r6_A32@r6 i@r2  [U8 A32 U32]
 PAT: reg:[U8 A32 U32]  imm:[invalid invalid invalid]
-    ldrb_reg_add al r6 r6 lsl r2 0
+    ldrb_reg_add al r6 r6 r2 lsl 0
 
 INS: conv x@r5 $r6_U8@r6  [U32 U8]
 PAT: reg:[U32 U8]  imm:[invalid invalid]
-    uxtb al r5 ror_rrx r6 0
+    uxtb al r5 r6 0
 
 INS: beq x@r5 lastx@r3 conflict  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
-    cmp_regimm al r5 lsl r3 0
+    cmp_regimm al r5 r3 lsl 0
     b eq expr:jump24:conflict
 
 INS: sub d1@r0 y@r12 i@r2  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
-    sub_regimm al r0 ip lsl r2 0
+    sub_regimm al r0 ip r2 lsl 0
 
 INS: sub d2@r1 lastx@r3 x@r5  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
-    sub_regimm al r1 r3 lsl r5 0
+    sub_regimm al r1 r3 r5 lsl 0
 
 INS: ble x@r5 lastx@r3 ok  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
-    cmp_regimm al r5 lsl r3 0
+    cmp_regimm al r5 r3 lsl 0
     b ls expr:jump24:ok
 
 INS: sub d2@r1 x@r5 lastx@r3  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
-    sub_regimm al r1 r5 lsl r3 0
+    sub_regimm al r1 r5 r3 lsl 0
 
 INS: beq d1@r0 d2@r1 conflict  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
-    cmp_regimm al r0 lsl r1 0
+    cmp_regimm al r0 r1 lsl 0
     b eq expr:jump24:conflict
 
 INS: add i@r2 i@r2 1  [U32 U32 U32]
@@ -330,7 +330,7 @@ PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
 
 INS: blt i@r2 y@r12 loop  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid invalid invalid]
-    cmp_regimm al r2 lsl ip 0
+    cmp_regimm al r2 ip lsl 0
     b cc expr:jump24:loop
 
 INS: mov $r0_U32@r0 0  [U32 U32]
@@ -349,7 +349,7 @@ INS: ret  []
 
 INS: mov y@r8 $r0_U32@r0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r8 lsl r0 0
+    mov_regimm al r8 r0 lsl 0
 
 INS: blt y@r8 8 cont  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
@@ -369,11 +369,11 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: shl pos@r7 y@r8 3  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_5_bits]
-    mov_regimm al r7 lsl r8 3
+    mov_regimm al r7 r8 lsl 3
 
 INS: add pos@r7 pos@r7 i@r6  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid invalid]
-    add_regimm al r7 r7 lsl r6 0
+    add_regimm al r7 r7 r6 lsl 0
 
 INS: lea.mem $r1_A32@r1 BOARD 0  [A32 _ U8]
     MATCH_IMPOSSIBLE
@@ -384,22 +384,22 @@ PAT: reg:[U8 U8]  imm:[invalid pos_8_bits_shifted]
 
 INS: st $r1_A32@r1 pos@r7 $r0_U8@r0  [A32 U32 U8]
 PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
-    strb_reg_add al r1 lsl r7 0 r0
+    strb_reg_add al r1 r7 lsl 0 r0
 
 INS: conv $r1_U8@r1 i@r6  [U8 U32]
 PAT: reg:[U8 U32]  imm:[invalid invalid]
-    mov_regimm al r1 lsl r6 0
+    mov_regimm al r1 r6 lsl 0
 
 INS: lea.mem $r0_A32@r0 XCOORDS 0  [A32 _ U8]
     MATCH_IMPOSSIBLE
 
 INS: st $r0_A32@r0 y@r8 $r1_U8@r1  [A32 U32 U8]
 PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
-    strb_reg_add al r0 lsl r8 0 r1
+    strb_reg_add al r0 r8 lsl 0 r1
 
 INS: mov $r0_U32@r0 y@r8  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl r8 0
+    mov_regimm al r0 r8 lsl 0
 
 INS: bsr conflict  [_]
 PAT: reg:[INVALID]  imm:[invalid]
@@ -416,7 +416,7 @@ PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
 
 INS: mov $r0_U32@r0 y@r8  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid invalid]
-    mov_regimm al r0 lsl r8 0
+    mov_regimm al r0 r8 lsl 0
 
 INS: bsr solve  [_]
 PAT: reg:[INVALID]  imm:[invalid]
@@ -435,7 +435,7 @@ PAT: reg:[U8 U8]  imm:[invalid pos_8_bits_shifted]
 
 INS: st $r1_A32@r1 pos@r7 $r0_U8@r0  [A32 U32 U8]
 PAT: reg:[A32 U32 U8]  imm:[invalid invalid invalid]
-    strb_reg_add al r1 lsl r7 0 r0
+    strb_reg_add al r1 r7 lsl 0 r0
 
 INS: add i@r6 i@r6 1  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
