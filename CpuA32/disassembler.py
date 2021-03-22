@@ -8,15 +8,7 @@ be processed by an assembler.
 import CpuA32.opcode_tab as arm
 from Elf import enum_tab
 
-from typing import List, Optional, Tuple
-
-REG_NAMES_SYSTEMATIC = [
-    "r0", "r1", "r2", "r3",
-    "r4", "r5", "r6", "r7",
-    "r8", "r9", "r10", "r11",
-    "r12", "r13", "r14", "r15"]
-
-SHIFT_NAMES_STD = ["lsl", "lsr", "asr", "ror"]
+from typing import List
 
 
 def _Merge(*name_lists):
@@ -34,7 +26,7 @@ def _Merge(*name_lists):
 PRED_NAMES_MAP = _Merge([p.name for p in arm.PRED])
 
 REG_NAMES_MAP = _Merge([p.name for p in arm.REG],
-                       REG_NAMES_SYSTEMATIC,
+                       [f"r{i}" for i in range(16)],
                        [p.name for p in arm.DREG],
                        [p.name for p in arm.SREG])
 
@@ -54,7 +46,7 @@ def RenderOperandStd(opcode: arm.Opcode, operand, ok) -> str:
     elif ok in arm.FIELDS_REG:
         return arm.REG(operand).name
     elif ok is arm.OK.SHIFT_MODE_5_6:
-        return SHIFT_NAMES_STD[operand]
+        return arm.SHIFT(operand).name
     elif ok in {arm.OK.IMM_0_7_TIMES_4, arm.OK.IMM_0_11, arm.OK.IMM_0_3_8_11}:
         if arm.OPC_FLAG.ADDR_DEC in opcode.classes:
             return f"#-{operand}"

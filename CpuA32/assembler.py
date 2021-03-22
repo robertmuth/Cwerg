@@ -254,8 +254,6 @@ _OPCODE_B: arm.Opcode = arm.Opcode.name_to_opcode["b"]
 _OPCODE_BL: arm.Opcode = arm.Opcode.name_to_opcode["bl"]
 
 
-
-
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
     return (sym_val - rel.section.sh_addr - rel.r_offset - 8) >> 2
 

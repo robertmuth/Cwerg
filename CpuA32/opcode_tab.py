@@ -302,7 +302,6 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.REG_8_11: [(4, 8)],
     OK.REG_12_15: [(4, 12)],
     OK.REG_16_19: [(4, 16)],
-    OK.REG_16_19: [(4, 16)],
     OK.REG_PAIR_12_15: [(4, 12)],
     OK.REG_LINK: [],  # implicitly writes lr
 }
@@ -366,11 +365,11 @@ DECODE_IMM = {
     #
     OK.REG_LINK: lambda x: 14,
     #
-    #OK.IMM_7_11: lambda x: x,
-    #OK.IMM_0_23: lambda x: x,
-    #OK.IMM_0_3_8_11: lambda x: x,
-    #OK.IMM_0_11: lambda x: x,
-    #OK.IMM_0_11_16_19: lambda x: x,
+    # OK.IMM_7_11: lambda x: x,
+    # OK.IMM_0_23: lambda x: x,
+    # OK.IMM_0_3_8_11: lambda x: x,
+    # OK.IMM_0_11: lambda x: x,
+    # OK.IMM_0_11_16_19: lambda x: x,
 }
 
 ENCODE_IMM = {
@@ -380,11 +379,11 @@ ENCODE_IMM = {
     OK.IMM_10_11_TIMES_8: lambda x: BitsFromScaledInt(x, 8),
     OK.IMM_0_7_TIMES_4: lambda x: BitsFromScaledInt(x, 4),
     #
-    #OK.IMM_7_11: lambda x: x,
-    #OK.IMM_0_23: lambda x: x,
-    #OK.IMM_0_3_8_11: lambda x: x,
-    #OK.IMM_0_11: lambda x: x,
-    #OK.IMM_0_11_16_19: lambda x: x,
+    # OK.IMM_7_11: lambda x: x,
+    # OK.IMM_0_23: lambda x: x,
+    # OK.IMM_0_3_8_11: lambda x: x,
+    # OK.IMM_0_11: lambda x: x,
+    # OK.IMM_0_11_16_19: lambda x: x,
 }
 
 
@@ -1128,6 +1127,8 @@ class Ins:
     #
     # Note the addend is store in `operands[reloc_pos]
     reloc_symbol: str = ""
+    # this is really of type elf_enum.RELOC_TYPE_ARM but it does not seem
+    # worthy it to create a dependency on the Elf package for it
     reloc_kind: int = 0
     reloc_pos = 0
     is_local_sym = False

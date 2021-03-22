@@ -71,8 +71,8 @@ def OperandsMatch(opcode: arm.Opcode, objdump_name: str,
         if j < len(objdump_ops) and op == objdump_ops[j]:
             j += 1
         elif (ok is arm.OK.PRED_28_31 and
-             op == "al" or objdump_name.endswith(op)):
-                continue
+              op == "al" or objdump_name.endswith(op)):
+            continue
         elif ok in {arm.OK.IMM_0_7_TIMES_4, arm.OK.IMM_7_11,
                     arm.OK.IMM_0_11, arm.OK.IMM_0_3_8_11,
                     arm.OK.IMM_10_11_TIMES_8} and op == "#0":
@@ -104,7 +104,7 @@ def HandleOneInstruction(count: int, line: str,
                          data: int,
                          actual_name: str, actual_ops: List):
     ins = arm.Disassemble(data)
-    assert ins is not None, f"cannot disassemble: {line}"
+    assert ins is not None, f"cannot disassemble [{count}]: {line}"
     assert ins.opcode is not None and ins.operands is not None, f"unknown opcode {line}"
     data2 = arm.Assemble(ins)
     assert data == data2, f"disass mismatch [{ins.opcode.NameForEnum()}] {data:x} vs {data2:x}"
