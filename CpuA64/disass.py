@@ -1,7 +1,7 @@
 """
 This module contains code for (un-)symbolizing the a64 ISA operands
 """
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from CpuA64 import opcode_tab as a64
 
@@ -101,17 +101,16 @@ def DecodeOperand(kind: a64.OK, data: int) -> str:
         return t(data)
 
 
-_UNSTRINGIFIER_CONST: Dict[str, int] = {}
+_UNSTRINGIFIER_SYMBOL: Dict[str, int] = {}
 
 for ok, t in _STRINGIFIER.items():
     if isinstance(t, list):
         for val, name in enumerate(t):
-            val2 = _UNSTRINGIFIER_CONST.get(name)
+            val2 = _UNSTRINGIFIER_SYMBOL.get(name)
             if val2 is None:
-                _UNSTRINGIFIER_CONST[name] = val
+                _UNSTRINGIFIER_SYMBOL[name] = val
             else:
                 assert val == val2, f"{name}: {val} vs  {val2}"
-
 
 _UNSTRINGIFIER_INT: Dict[a64.OK, Any] = {
     a64.OK.IMM_10_15_16_22_W: a64.Encode_10_15_16_22_W,
@@ -120,7 +119,6 @@ _UNSTRINGIFIER_INT: Dict[a64.OK, Any] = {
     a64.OK.IMM_SHIFTED_10_21_22: a64.EncodeShifted_10_21_22,
 }
 
-
 _UNSTRINGIFIER_FLT: Dict[a64.OK, Any] = {
     a64.OK.IMM_FLT_ZERO: lambda x: 0,
     a64.OK.FLT_13_20: a64.EncodeEncode8BitFlt,
@@ -128,11 +126,19 @@ _UNSTRINGIFIER_FLT: Dict[a64.OK, Any] = {
 
 
 def EncodeOperand(ok: a64.OK, op: str) -> int:
-    t = _STRINGIFIER.get(ok)
-    if op[0] != "#":
-        assert isinstance(t, list)
-        return _UNSTRINGIFIER_CONST[op]
+    """
+    Converts a string into and int suitable for the provided `ok`
+    E.g.
+    #66 -> 65
+    x0 -> 0
+    asr -> 2
 
+    """
+    if op[0] != "#":
+        return _UNSTRINGIFIER_SYMBOL[op]
+
+    # systematic int encodings first
+    t = _STRINGIFIER.get(ok)
     if isinstance(t, tuple):
         i = int(op[1:], 0)  # skip "#", must handle "0x" prefix
         if t[2] > 1:
@@ -144,8 +150,15 @@ def EncodeOperand(ok: a64.OK, op: str) -> int:
             return i  # unsigned
         return i & ((1 << t[1]) - 1)
 
+    # handle custom in encodings
     t = _UNSTRINGIFIER_INT.get(ok)
     if t:
         return t(int(op[1:], 0))
 
     return _UNSTRINGIFIER_FLT[ok](float(op[1:]))
+
+
+def InsParse(mnemonic: str, ops_str: List[str]) -> a64.Ins:
+    opcode = a64.Opcode.name_to_opcode[mnemonic]
+    ops = [EncodeOperand(f, op) for op, f in zip(ops_str, opcode.fields)]
+    return a64.Ins(opcode, ops)

@@ -46,7 +46,7 @@ def EncodeEncode8BitFlt(val) -> Optional[int]:
     ieee64 = int.from_bytes(data, 'little')
     mantissa = ieee64 & ((1 << 52) - 1)
     ieee64 >>= 52
-    exponent = (ieee64 & ((1 << 11) - 1)) - 1023 +3
+    exponent = (ieee64 & ((1 << 11) - 1)) - 1023 + 3
     sign = ieee64 >> 11
     if 0 <= exponent <= 7 and ((mantissa >> 48) << 48) == mantissa:
         return (sign << 7) | ((exponent ^ 4) << 4) | (mantissa >> 48)
@@ -436,7 +436,7 @@ def DecodeOperand(operand_kind: OK, value: int) -> int:
     return tmp
 
 
-def EncodeOperand(operand_kind, val) -> List[Tuple[int, int, int]]:
+def EncodeOperand(operand_kind: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
@@ -1199,10 +1199,14 @@ for src_ext, src_reg, src_bits in [("w", OK.WREG_5_9, (1, 0, 31)),
                [src_bits, (3, 0, 29), root111, (7, 4, 23), dst_bits, (0xfff, 0x8c0, 10)],
                [dst_reg, src_reg], OPC_FLAG(0))
 
+# this is available in Elf but we do not want to create a dependency to Elf
+# just for this.
+_RELOC_TYPE_AARCH64M_NONE = 256
+
 
 @dataclasses.dataclass
 class Ins:
-    """Arm flavor of an Instruction
+    """A64 flavor of an Instruction
 
     There can be at most one relocation associated with an Ins
     """
@@ -1211,7 +1215,7 @@ class Ins:
     #
     # Note the addend is store in `operands[reloc_pos]
     reloc_symbol: str = ""
-    reloc_kind: int = 0
+    reloc_kind: int = _RELOC_TYPE_AARCH64M_NONE
     reloc_pos = 0
     is_local_sym = False
 
@@ -1227,7 +1231,7 @@ def Disassemble(data: int) -> Optional[Ins]:
 
 
 def Assemble(ins: Ins) -> int:
-    assert ins.reloc_kind == 0, "reloc has not been resolved"
+    assert ins.reloc_kind == _RELOC_TYPE_AARCH64M_NONE, "reloc has not been resolved"
     return ins.opcode.AssembleOperands(ins.operands)
 
 
