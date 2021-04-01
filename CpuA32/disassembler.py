@@ -138,8 +138,11 @@ def UnsymbolizeOperand(o: str, ok: arm.OK) -> int:
 
 
 _RELOC_KIND_MAP = {
-    "abs32": enum_tab.RELOC_TYPE_ARM.ABS32,
+    # these relocations imply that the symbol is local
     "jump24": enum_tab.RELOC_TYPE_ARM.JUMP24,
+    # these relocations imply that the symbol is local
+    # unless prefixed with `loc_`
+    "abs32": enum_tab.RELOC_TYPE_ARM.ABS32,
     "call": enum_tab.RELOC_TYPE_ARM.CALL,
     "movw_abs_nc": enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
     "movt_abs": enum_tab.RELOC_TYPE_ARM.MOVT_ABS,

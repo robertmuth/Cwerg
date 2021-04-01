@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-
+"""
+Assembler produces A32 ELF executables
+"""
 import CpuA32.assembler as asm
 
 import argparse
