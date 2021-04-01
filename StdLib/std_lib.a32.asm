@@ -1,4 +1,6 @@
-# overview here: https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+# Prepend this to cwerg IR code  before running it through CodeGenA32/codegen.py
+
+# syscall overview here: https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
 .fun arm_syscall_write SIGNATURE [S32] = [S32 A32 U32]
 .fun arm_syscall_read SIGNATURE [S32] = [S32 A32 U32]
 .fun arm_syscall_open SIGNATURE [S32] = [A32 S32 S32]

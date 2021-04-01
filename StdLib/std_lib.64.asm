@@ -1,3 +1,4 @@
+# Prepend this to cwerg IR code before running it through CodeGenC/codegen.py
 
 .fun exit BUILTIN [] = [U32]
 .fun brk BUILTIN [A64] = [A64]

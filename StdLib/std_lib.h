@@ -1,4 +1,4 @@
-/* This file is #included by every code emitted by codegen.py */
+/* This file is #included by every code emitted by CodeGenC/codegen.py */
 
 #include <math.h>
 #include <stdint.h>
