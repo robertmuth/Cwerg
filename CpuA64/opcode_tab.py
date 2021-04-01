@@ -499,48 +499,6 @@ class MEM_WIDTH(enum.Enum):
 
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
 
-# We use the notion of variant to disambiguate opcodes with the same mnemonic
-_VARIANTS = {
-    "",
-    "imm",
-    "imm_8",
-    "imm_16",
-    "imm_32",
-    "imm_64",
-    "imm_128",
-    #
-    "reg_32",
-    "reg_64",
-    #
-    "reg_32_8",
-    "reg_32_16",
-    "reg_32_32",
-    "reg_32_64",
-    "reg_32_128",
-    "reg_64_8",
-    "reg_64_16",
-    "reg_64_32",
-    "reg_64_64",
-    "reg_64_128",
-    #
-    "imm_post",
-    "imm_post_8",
-    "imm_post_16",
-    "imm_post_32",
-    "imm_post_64",
-    "imm_post_128",
-    "imm_pre",
-    "imm_pre_8",
-    "imm_pre_16",
-    "imm_pre_32",
-    "imm_pre_64",
-    "imm_pre_128",
-    "32",
-    "64",
-    "reg",
-}
-
-
 class Opcode:
     """The primary purpose of of instantiating an Opcode is to register it with
     the class variable `name_to_opcode`
@@ -623,7 +581,7 @@ class Opcode:
         return bit_value
 
     def DisassembleOperands(self, data: int) -> List[int]:
-        assert data & self.bit_mask == self.bit_value
+        assert data & self.bit_mask == self.bit_value, f"bit-pattern for opcode for {self.name}_{self.variant} {data:x}"
         return [DecodeOperand(f, data)
                 for f in self.fields]
 
@@ -781,12 +739,12 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
 
     for name, bits in [("add", [(3, 0, 29), (3, 1, 24)]),
                        ("sub", [(3, 2, 29), (3, 1, 24)])]:
-        Opcode(name, "imm_" + ext, [root100, w_bit, (1, 0, 23)] + bits,
+        Opcode(name, ext + "_imm", [root100, w_bit, (1, 0, 23)] + bits,
                [dst_reg_sp, src1_reg_sp, OK.IMM_SHIFTED_10_21_22], OPC_FLAG.STACK_OPS)
 
     for name, bits in [("adds", [(3, 1, 29), (3, 1, 24)]),
                        ("subs", [(3, 3, 29), (3, 1, 24)])]:
-        Opcode(name, "imm_" + ext, [root100, w_bit, (1, 0, 23)] + bits,
+        Opcode(name, ext + "_imm", [root100, w_bit, (1, 0, 23)] + bits,
                [dst_reg, src1_reg, OK.IMM_SHIFTED_10_21_22], OPC_FLAG(0),
                sr_update=SR_UPDATE.NZCV)
 
@@ -794,11 +752,11 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
     for name, bits in [("and", [(3, 0, 29), (7, 4, 23)]),
                        ("eor", [(3, 2, 29), (7, 4, 23)]),
                        ("orr", [(3, 1, 29), (7, 4, 23)])]:
-        Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
+        Opcode(name, ext + "_imm", [root100, w_bit] + bits,
                [dst_reg_sp, src1_reg, imm], OPC_FLAG.STACK_OPS)
 
     for name, bits in [("ands", [(3, 3, 29), (7, 4, 23)])]:
-        Opcode(name, "imm_" + ext, [root100, w_bit] + bits,
+        Opcode(name, ext + "_imm", [root100, w_bit] + bits,
                [dst_reg, src1_reg, imm], OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
 
     for name, bits in [("bfm", [(3, 1, 29), (7, 6, 23)]),
@@ -814,7 +772,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
 
     Opcode("movz", ext + "_imm", [w_bit, (3, 2, 29), root100, (7, 5, 23)],
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
-    Opcode("movn", ext + "_imm_", [w_bit, (3, 0, 29), root100, (7, 5, 23)],
+    Opcode("movn", ext + "_imm", [w_bit, (3, 0, 29), root100, (7, 5, 23)],
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
 
 Opcode("adr", "", [root100, (1, 0, 31), (3, 0, 24)],
@@ -1481,6 +1439,9 @@ if __name__ == "__main__":
                     i2 = Encode_10_15_16_22_X(x)
                     assert i == i2, f"mismatch {i:x} {i2:x}"
         print(f"checked {count} immediates")
+        for name, opcode in sorted(Opcode.name_to_opcode.items()):
+            fields = [ok.name for ok in opcode.fields]
+            print (f"{name:20} {' '.join(fields)}")
         sys.exit(1)
     if sys.argv[1] == "dist":
         _OpcodeDisassemblerExperiments()

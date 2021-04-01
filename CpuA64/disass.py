@@ -147,7 +147,7 @@ def EncodeOperand(ok: a64.OK, op: str) -> int:
     t = _UNSTRINGIFIER_INT.get(ok)
     if t:
         return t(int(op, 0))
-
+    assert ok in _UNSTRINGIFIER_FLT, f"unknown operand: {ok.name} {op}"
     return _UNSTRINGIFIER_FLT[ok](float(op))
 
 
@@ -178,11 +178,10 @@ def InsParse(mnemonic: str, ops_str: List[str]) -> a64.Ins:
             rel_token = t.split(":")
             if len(rel_token) == 3:
                 rel_token.append("0")
-            if rel_token[1] == "conbr19" or rel_token[1] == "jump26":
-                assert False, "NYI"
+            assert rel_token[1] in _RELOC_KIND_MAP, f"unknown reloc kind {rel_token}"
+            if rel_token[1] == "condbr19" or rel_token[1] == "jump26":
                 ins.is_local_sym = True
             if rel_token[1].startswith("loc_"):
-                assert False, "NYI"
                 ins.is_local_sym = True
                 rel_token[1] = rel_token[1][4:]
             ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]

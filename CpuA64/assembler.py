@@ -252,7 +252,7 @@ def UnitParse(fin, add_startup_code) -> Unit:
 # sample 90000440
 _OPCODE_ADRP: a64.Opcode = a64.Opcode.name_to_opcode["adrp"]
 # sample 9126c000
-_OPCODE_ADD_IMM_X: a64.Opcode = a64.Opcode.name_to_opcode["add_imm_x"]
+_OPCODE_ADD_X_IMM: a64.Opcode = a64.Opcode.name_to_opcode["add_x_imm"]
 # sample 14014192
 _OPCODE_B: a64.Opcode = a64.Opcode.name_to_opcode["b"]
 # sample 97fffcf7
@@ -268,7 +268,7 @@ def _patch_ins(ins_old: int, opcode: a64.Opcode, pos: int, value: int):
 
 
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
-    return (sym_val - rel.section.sh_addr - rel.r_offset - 8) >> 2
+    return (sym_val - (rel.section.sh_addr + rel.r_offset)) >> 2
 
 
 def _adrp_offset(rel: elf.Reloc, sym_val: int) -> int:
@@ -284,13 +284,13 @@ def _ApplyRelocation(rel: elf.Reloc):
     if rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21.value:
         new_data = _patch_ins(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC.value:
-        new_data = _patch_ins(old_data, _OPCODE_ADD_IMM_X, 2, sym_val & 0xfff)
+        new_data = _patch_ins(old_data, _OPCODE_ADD_X_IMM, 2, sym_val & 0xfff)
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CONDBR19.value:
-        new_data = _patch_ins(old_data, _OPCODE_COND_BR[old_data & 0xf], 1, _branch_offset(rel, sym_val))
+        new_data = _patch_ins(old_data, _OPCODE_COND_BR[old_data & 0xf], 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.JUMP26.value:
-        new_data = _patch_ins(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
+        new_data = _patch_ins(old_data, _OPCODE_B, 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CALL26.value:
-        new_data = _patch_ins(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
+        new_data = _patch_ins(old_data, _OPCODE_BL, 1, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS32.value:
         new_data = sym_val
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS64.value:

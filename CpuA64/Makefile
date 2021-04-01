@@ -1,7 +1,7 @@
 
 .SUFFIXES:
 
-TESTS = TestData/exit.asm TestData/hello.asm
+TESTS = TestData/exit.asm TestData/hello.asm TestData/fib.asm
 
 
 .PHONY: $(TESTS)
