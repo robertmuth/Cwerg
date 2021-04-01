@@ -142,7 +142,7 @@ class Unit:
             sym = self.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
             self.AddReloc(ins.reloc_kind, self.sec_text, sym, ins.operands[ins.reloc_pos])
             # clear reloc info before proceeding
-            ins.reloc_kind = elf_enum.RELOC_TYPE_AARCH64M.NONE
+            ins.reloc_kind = elf_enum.RELOC_TYPE_AARCH64.NONE
             ins.operands[ins.reloc_pos] = 0
         self.sec_text.AddData(a64.Assemble(ins).to_bytes(4, byteorder='little'))
 
@@ -249,10 +249,16 @@ def UnitParse(fin, add_startup_code) -> Unit:
     return unit
 
 
-#_OPCODE_MOVW: a64.Opcode = a64.Opcode.name_to_opcode["movw"]
-#_OPCODE_MOVT: a64.Opcode = a64.Opcode.name_to_opcode["movt"]
-#_OPCODE_B: a64.Opcode = a64.Opcode.name_to_opcode["b"]
-#_OPCODE_BL: a64.Opcode = a64.Opcode.name_to_opcode["bl"]
+# sample 90000440
+_OPCODE_ADRP: a64.Opcode = a64.Opcode.name_to_opcode["adrp"]
+# sample 9126c000
+_OPCODE_ADD_IMM_X: a64.Opcode = a64.Opcode.name_to_opcode["add_imm_x"]
+# sample 14014192
+_OPCODE_B: a64.Opcode = a64.Opcode.name_to_opcode["b"]
+# sample 97fffcf7
+_OPCODE_BL: a64.Opcode = a64.Opcode.name_to_opcode["bl"]
+# sample 54000140
+_OPCODE_COND_BR = [a64.Opcode.name_to_opcode[f"b_{cond}"] for cond in a64.CONDITION_CODES]
 
 
 def _patch_ins(ins_old: int, opcode: a64.Opcode, pos: int, value: int):
@@ -265,21 +271,29 @@ def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
     return (sym_val - rel.section.sh_addr - rel.r_offset - 8) >> 2
 
 
+def _adrp_offset(rel: elf.Reloc, sym_val: int) -> int:
+    return (sym_val >> 12) - ((rel.section.sh_addr + rel.r_offset) >> 12)
+
+
 def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
     assert rel.r_offset + 4 <= len(sec_data)
     old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
-    if rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
-        new_data = _patch_ins(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVT_ABS.value:
-        new_data = _patch_ins(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.JUMP24.value:
+    if rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21.value:
+        new_data = _patch_ins(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC.value:
+        new_data = _patch_ins(old_data, _OPCODE_ADD_IMM_X, 2, sym_val & 0xfff)
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CONDBR19.value:
+        new_data = _patch_ins(old_data, _OPCODE_COND_BR[old_data & 0xf], 1, _branch_offset(rel, sym_val))
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.JUMP26.value:
         new_data = _patch_ins(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.CALL.value:
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CALL26.value:
         new_data = _patch_ins(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.ABS32.value:
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS32.value:
+        new_data = sym_val
+    elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS64.value:
         new_data = sym_val
     else:
         assert False, f"unknown kind reloc {rel}"

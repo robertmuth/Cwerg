@@ -3,26 +3,18 @@ This module contains code for (un-)symbolizing the a64 ISA operands
 """
 from typing import Any, Dict, List
 
+from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
 
-
-def print_dec(x):
-    return "#" + str(x)
-
-
-def print_hex(x):
-    return "#" + hex(x)
-
-
 _STRINGIFIER: Dict[a64.OK, Any] = {
-    a64.OK.IMM_10_15_16_22_W: lambda x: print_hex(a64.DecodeLogicalImmediate(x, 32)),
-    a64.OK.IMM_10_15_16_22_X: lambda x: print_hex(a64.DecodeLogicalImmediate(x, 64)),
-    a64.OK.IMM_SHIFTED_5_20_21_22: lambda x: print_hex((x & 0xffff) << (16 * (x >> 16))),
-    a64.OK.IMM_SHIFTED_10_21_22: lambda x: print_hex((x & 0xfff) << (12 * (x >> 12))),
+    a64.OK.IMM_10_15_16_22_W: lambda x: hex(a64.DecodeLogicalImmediate(x, 32)),
+    a64.OK.IMM_10_15_16_22_X: lambda x: hex(a64.DecodeLogicalImmediate(x, 64)),
+    a64.OK.IMM_SHIFTED_5_20_21_22: lambda x: hex((x & 0xffff) << (16 * (x >> 16))),
+    a64.OK.IMM_SHIFTED_10_21_22: lambda x: hex((x & 0xfff) << (12 * (x >> 12))),
     #
-    a64.OK.FLT_13_20: lambda x: f"#{a64.Decode8BitFlt(x):e}",
+    a64.OK.FLT_13_20: lambda x: f"{a64.Decode8BitFlt(x):e}",
     #
-    a64.OK.IMM_FLT_ZERO: lambda x: "#0.0",
+    a64.OK.IMM_FLT_ZERO: lambda x: "0.0",
     a64.OK.REG_LINK: lambda x: f"lr",
     #
     a64.OK.SHIFT_15_W: ["uxtw", "sxtw"],
@@ -94,9 +86,9 @@ def DecodeOperand(kind: a64.OK, data: int) -> str:
         if t[1]:
             data = a64.SignedIntFromBits(data, t[1])
         if t[0]:
-            return "#" + hex(data * t[2])
+            return hex(data * t[2])
         else:
-            return "#" + str(data * t[2])
+            return str(data * t[2])
     else:
         return t(data)
 
@@ -134,13 +126,14 @@ def EncodeOperand(ok: a64.OK, op: str) -> int:
     asr -> 2
 
     """
-    if op[0] != "#":
-        return _UNSTRINGIFIER_SYMBOL[op]
+    t = _UNSTRINGIFIER_SYMBOL.get(op)
+    if t is not None:
+        return t
 
     # systematic int encodings first
     t = _STRINGIFIER.get(ok)
     if isinstance(t, tuple):
-        i = int(op[1:], 0)  # skip "#", must handle "0x" prefix
+        i = int(op, 0)  # skip "#", must handle "0x" prefix
         if t[2] > 1:
             # handle scaling
             x = i // t[2]
@@ -153,12 +146,49 @@ def EncodeOperand(ok: a64.OK, op: str) -> int:
     # handle custom in encodings
     t = _UNSTRINGIFIER_INT.get(ok)
     if t:
-        return t(int(op[1:], 0))
+        return t(int(op, 0))
 
-    return _UNSTRINGIFIER_FLT[ok](float(op[1:]))
+    return _UNSTRINGIFIER_FLT[ok](float(op))
+
+
+_RELOC_KIND_MAP = {
+    # these relocations imply that the symbol is local
+    "jump26": enum_tab.RELOC_TYPE_AARCH64.JUMP26,
+    "condbr19": enum_tab.RELOC_TYPE_AARCH64.CONDBR19,
+    # these relocations imply that the symbol is local
+    # unless prefixed with `loc_`
+    "call26": enum_tab.RELOC_TYPE_AARCH64.CALL26,
+    "abs32": enum_tab.RELOC_TYPE_AARCH64.ABS32,
+    "abs64": enum_tab.RELOC_TYPE_AARCH64.ABS64,
+
+
+    "adr_prel_pg_hi21": enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
+    "add_abs_lo12_nc": enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
+}
 
 
 def InsParse(mnemonic: str, ops_str: List[str]) -> a64.Ins:
     opcode = a64.Opcode.name_to_opcode[mnemonic]
-    ops = [EncodeOperand(f, op) for op, f in zip(ops_str, opcode.fields)]
-    return a64.Ins(opcode, ops)
+    ins = a64.Ins(opcode)
+    for pos, (t, ok) in enumerate(zip(ops_str, opcode.fields)):
+        if t.startswith("expr:"):
+            # expr strings have the form expr:<rel-kind>:<symbol>:<addend>, e.g.:
+            #   expr:movw_abs_nc:string_pointers:5
+            #   expr:call:putchar
+            rel_token = t.split(":")
+            if len(rel_token) == 3:
+                rel_token.append("0")
+            if rel_token[1] == "conbr19" or rel_token[1] == "jump26":
+                assert False, "NYI"
+                ins.is_local_sym = True
+            if rel_token[1].startswith("loc_"):
+                assert False, "NYI"
+                ins.is_local_sym = True
+                rel_token[1] = rel_token[1][4:]
+            ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
+            ins.reloc_pos = pos
+            ins.reloc_symbol = rel_token[2]
+            ins.operands.append(int(rel_token[3], 0))
+        else:
+            ins.operands.append(EncodeOperand(ok, t))
+    return ins
