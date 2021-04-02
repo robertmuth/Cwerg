@@ -305,7 +305,7 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
 }
 
 bool InsParse(const std::vector<std::string_view>& token, Ins* ins) {
-  ins->opcode = FindArmOpcodeForMnemonic(token[0]);
+  ins->opcode = FindOpcodeForMnemonic(token[0]);
   if (ins->opcode == nullptr) {
     std::cerr << "unknown opcode " << token[0] << "\n";
     return false;

@@ -584,13 +584,13 @@ struct Opcode {
   SR_UPDATE sr_update;
 };
 
-// Indexed by ArmINS
+// Indexed by OPC
 extern const Opcode OpcodeTable[];
 
 // Find the Opcode or null for a 32 bit instruction word
-extern const Opcode* FindArmOpcode(uint32_t bit_value);
+extern const Opcode* FindOpcode(uint32_t bit_value);
 
-extern const Opcode* FindArmOpcodeForMnemonic(std::string_view s);
+extern const Opcode* FindOpcodeForMnemonic(std::string_view s);
 
 // Returns non-zero if successful
 extern int32_t InsertOperand(uint32_t data, OK field_kind);

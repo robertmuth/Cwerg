@@ -1828,7 +1828,7 @@ const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]
 
 /* @AUTOGEN-END@ */
 
-const Opcode* FindArmOpcode(uint32_t bit_value) {
+const Opcode* FindOpcode(uint32_t bit_value) {
   uint32_t discriminant = (bit_value & 0x0e000000) >> 25;
   const int start = OpcodeTableJumper[2 * discriminant];
   const int end = OpcodeTableJumper[2 * discriminant + 1];
@@ -1930,7 +1930,7 @@ void InsertOperand(int32_t x,
 }
 
 bool DecodeIns(Ins* ins, uint32_t data) {
-  const struct Opcode* opcode = FindArmOpcode(data);
+  const struct Opcode* opcode = FindOpcode(data);
   if (opcode == nullptr) return false;
 
   ins->opcode = opcode;
@@ -1964,7 +1964,7 @@ uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
   return EncodeIns(ins);
 }
 
-const Opcode* FindArmOpcodeForMnemonic(std::string_view s) {
+const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   uint32_t h = 5381;
   for (uint8_t c : s) {
     h = (h << 5) + h + c;
