@@ -16,7 +16,7 @@ tests: tests_py tests_c
 
 
 tests_py: objdump_compat_test disassembler_test disassembler_test jit_test \
-          $(TESTS:.asm=.test)
+              argv_test $(TESTS:.asm=.test)
 
 tests_c: objdump_compat_test_c disassembler_test_c build_test_c \
          $(TESTS:.asm=.test_c) codegen_parity

@@ -61,6 +61,8 @@ def AddStartUpCode(unit: elf_unit.Unit):
     (4*(argc+2))(sp)    envp[1]
     ...
                         NULL    # envp sentinel
+
+    This feature is needed by CodeGenA32/
     """
     unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [

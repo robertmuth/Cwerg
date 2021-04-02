@@ -117,10 +117,9 @@ def HandleOneInstruction(count: int, line: str,
     if not OperandsMatch(ins.opcode, actual_name, actual_ops, expected_ops):
         print(f"OPERANDS differ {expected_ops} {actual_ops} in line  {line}", end="")
 
-    _, operands_str = symbolic.InsSymbolize(ins)
-    operands2 = [symbolic.UnsymbolizeOperand(op, ok)
-                 for op, ok in zip(operands_str, ins.opcode.fields)]
-    assert tuple(ins.operands) == tuple(operands2), f"{ins.operands} vs {operands2}"
+    name, operands_str = symbolic.InsSymbolize(ins)
+    ins2 = symbolic.InsFromSymbolized(name, operands_str)
+    assert tuple(ins.operands) == tuple(ins2.operands), f"{ins.operands} vs {ins2.operands}"
 
 
 def main(argv):
