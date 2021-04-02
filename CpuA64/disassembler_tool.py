@@ -11,7 +11,7 @@ from CpuA64 import symbolic
 
 def handle_opcode(data):
     ins = a64.Disassemble(data)
-    if ins.opcode is None:
+    if ins is None:
         print(f"could not disassemble {data:x}")
         return
 

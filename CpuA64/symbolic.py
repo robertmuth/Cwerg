@@ -75,8 +75,6 @@ for i in range(32):
     for ok in [a64.OK.QREG_0_4, a64.OK.QREG_5_9, a64.OK.QREG_10_14, a64.OK.QREG_16_20]:
         _STRINGIFIER[ok] = [f"q{i}" for i in range(32)]
 
-_STRINGIFIER[a64.OK.REG_LINK] = ["lr"]
-
 
 def SymbolizeOperand(ok: a64.OK, data: int) -> str:
     t = _STRINGIFIER.get(ok)
@@ -103,6 +101,8 @@ for ok, t in _STRINGIFIER.items():
                 _UNSTRINGIFIER_SYMBOL[name] = val
             else:
                 assert val == val2, f"{name}: {val} vs  {val2}"
+
+_UNSTRINGIFIER_SYMBOL["lr"] = 30
 
 _UNSTRINGIFIER_INT: Dict[a64.OK, Any] = {
     a64.OK.IMM_10_15_16_22_W: a64.Encode_10_15_16_22_W,

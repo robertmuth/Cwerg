@@ -47,28 +47,30 @@ def AddStartUpCode(unit: elf_unit.Unit):
     convention so we need this shim.
     The initial execution env looks like this:
     0(sp)			argc
-
-    4(sp)			    argv[0] # argv start
-    8(sp)               argv[1]
+    8(sp)			    argv[0] # argv start
+    16(sp)               argv[1]
     ...
-    (4*argc)(sp)        NULL    # argv sentinel
+    (8*argc)(sp)        NULL    # argv sentinel
 
-    (4*(argc+1))(sp)    envp[0] # envp start
-    (4*(argc+2))(sp)    envp[1]
+    (8*(argc+1))(sp)    envp[0] # envp start
+    (8*(argc+2))(sp)    envp[1]
     ...
                         NULL    # envp sentinel
+
+    This feature is needed by CodeGenA64/
     """
-    assert False
-    self.FunStart("_start", 16, NOP_BYTES)
+    unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [
-        ("ldr_imm_add", "al r0 sp 0"),
-        ("add_imm", "al r1 sp 4"),
-        ("bl", "al expr:call:main"),
-        ("movw", "al r7 1"),
-        ("svc", "al 0"),
-        ("ud2", "al")]:
+        ("ldr_x_imm", "x0 sp 0"),
+        ("add_x_imm", "x1 sp 8"),
+        ("bl", "lr expr:call26:main"),
+        # x0 contains result from main
+        ("movz_x_imm", "x8 0x5d"),
+        ("svc", "0"),
+        # unreachable
+        ("brk", "1")]:
         HandleOpcode(mnemonic, ops.split(), unit)
-    self.FunEnd()
+    unit.FunEnd()
 
 
 class ParseError(Exception):
@@ -124,7 +126,7 @@ _OPCODE_ADD_X_IMM: a64.Opcode = a64.Opcode.name_to_opcode["add_x_imm"]
 _OPCODE_B: a64.Opcode = a64.Opcode.name_to_opcode["b"]
 # sample 97fffcf7
 _OPCODE_BL: a64.Opcode = a64.Opcode.name_to_opcode["bl"]
-# sample 54000140
+# sample
 _OPCODE_COND_BR = [a64.Opcode.name_to_opcode[f"b_{cond}"] for cond in a64.CONDITION_CODES]
 
 

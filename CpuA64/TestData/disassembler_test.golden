@@ -1,0 +1,25 @@
+could not disassemble 0
+90000440 adrp x0 136
+OPCODE adrp 
+    XREG_0_4                            x0         (0)
+    SIMM_PCREL_5_23_29_30               136        (136)
+
+9126c000 add_x_imm x0 x0 0x9b0
+OPCODE add x_imm
+    XREG_0_4_SP                         x0         (0)
+    XREG_5_9_SP                         x0         (0)
+    IMM_SHIFTED_10_21_22                0x9b0      (2480)
+
+14014192 b 82322
+OPCODE b 
+    SIMM_PCREL_0_25                     82322      (82322)
+
+97fffcf7 bl lr -777
+OPCODE bl 
+    REG_LINK                            lr         (30)
+    SIMM_PCREL_0_25                     -777       (67108087)
+
+54000140 b_eq 10
+OPCODE b.eq 
+    SIMM_PCREL_5_23                     10         (10)
+

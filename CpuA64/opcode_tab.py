@@ -426,21 +426,23 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
 }
 
 
-def DecodeOperand(operand_kind: OK, value: int) -> int:
+def DecodeOperand(ok: OK, value: int) -> int:
     """ Decodes an operand into an int."""
+    if ok == OK.REG_LINK:
+        return 30
     tmp = 0
-    for width, pos in FIELD_DETAILS[operand_kind]:
+    for width, pos in FIELD_DETAILS[ok]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
         tmp = tmp << width | x
     return tmp
 
 
-def EncodeOperand(operand_kind: OK, val) -> List[Tuple[int, int, int]]:
+def EncodeOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
-    for width, pos in reversed(FIELD_DETAILS[operand_kind]):
+    for width, pos in reversed(FIELD_DETAILS[ok]):
         mask = (1 << width) - 1
         bits.append((mask, val & mask, pos))
         val = val >> width

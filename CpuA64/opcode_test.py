@@ -10,7 +10,7 @@ import sys
 import collections
 from typing import List, Dict
 
-from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP
+from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP, Assemble, Disassemble, Ins
 
 from CpuA64 import symbolic
 
@@ -254,23 +254,16 @@ def MassageOperands(name, opcode, operands):
 
 
 def HandleOneInstruction(count: int, line: str,
-                         data: int, opcode: Opcode,
+                         data: int, ins: Ins,
                          actual_name: str, actual_ops: List[str]):
     global all_operands, checked_operands
-    actual_name = MassageOperands(actual_name, opcode, actual_ops)
-    ops_raw = opcode.DisassembleOperands(data)
-    ops_str = [symbolic.SymbolizeOperand(f, op)
-               for op, f in zip(ops_raw, opcode.fields)]
-    assert OperandsMatch(opcode, ops_str,
-                         actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
+    actual_name = MassageOperands(actual_name, ins.opcode, actual_ops)
+    name, ops_str = symbolic.InsSymbolize(ins)
+    assert OperandsMatch(ins.opcode, ops_str,
+                         actual_ops), f"[{name}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
 
-    ops_raw2 = [symbolic.UnsymbolizeOperand(f, op)
-                for op, f in zip(ops_str, opcode.fields)]
-    for a, b in zip(ops_raw, ops_raw2):
-        assert a == b, f"{a} vs {b}  original: {ops_str} {ops_raw} in: {line}"
-
-    data2 = opcode.AssembleOperands(ops_raw)
-    assert data == data2
+    ins2 = symbolic.InsFromSymbolized(name, ops_str)
+    assert tuple(ins.operands) == tuple(ins2.operands), f"{ins.operands} vs {ins2.operands}"
 
 
 def main(argv):
@@ -290,9 +283,12 @@ def main(argv):
                 if not token or token[0].startswith("#"):
                     continue
                 data = int(token[0], 16)
-                opcode = Opcode.FindOpcode(data)
-                assert opcode, f"cannot find opcode: {line}"
-                HISTOGRAM[opcode.NameForEnum()] += 1
+                ins = Disassemble(data)
+                assert ins, f"cannot find opcode: {line}"
+                # sanity check
+                data2 = Assemble(ins)
+                assert data == data2
+                HISTOGRAM[ins.opcode.NameForEnum()] += 1
                 actual_name = token[1]
                 actual_ops = []
                 if len(token) == 3:
@@ -301,7 +297,7 @@ def main(argv):
                     actual_ops = [x for x in re.split("[, \t\n\[\]!]+", ops_str) if x]
                 # print (actual_name, actual_ops)
                 HandleOneInstruction(
-                    count, line, data, opcode, actual_name, actual_ops)
+                    count, line, data, ins, actual_name, actual_ops)
     # for name, count in sorted(HISTOGRAM.items()):
     #    print (f"{name:20s} {count}")
     print("OK")
