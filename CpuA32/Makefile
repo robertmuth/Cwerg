@@ -44,7 +44,7 @@ jit_test:
 
 disassembler_test:
 	@echo "[$@]"
-	$(PYPY) ./disassembler.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
 	diff $@.actual.out TestData/$@.golden
 
 # dump opcode table

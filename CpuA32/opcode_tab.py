@@ -1397,7 +1397,9 @@ def _MnemonicHashingExperiments():
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
-        print("no argument provided")
+        for name, opcode in sorted(Opcode.name_to_opcode.items()):
+            fields = [ok.name for ok in opcode.fields]
+            print (f"{name:20} {' '.join(fields)}")
         sys.exit(1)
     if sys.argv[1] == "dist":
         _OpcodeDisassemblerExperiments()

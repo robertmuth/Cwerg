@@ -5,8 +5,8 @@ This files contains ELF like abstraction to help build an assembler.
 """
 from typing import List, Dict, Any
 
-import CpuA32.opcode_tab as arm
-import CpuA32.disassembler as dis
+import CpuA32.opcode_tab as a32
+import CpuA32.symbolic as dis
 import Elf.elfhelper as elf
 import Elf.enum_tab as elf_enum
 from Elf import elf_unit
@@ -30,18 +30,18 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
     return "\n".join(out)
 
 
-def AddIns(unit: elf_unit.Unit, ins: arm.Ins):
+def AddIns(unit: elf_unit.Unit, ins: a32.Ins):
     if ins.reloc_kind != elf_enum.RELOC_TYPE_ARM.NONE:
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
         unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
         # clear reloc info before proceeding
         ins.reloc_kind = elf_enum.RELOC_TYPE_ARM.NONE
         ins.operands[ins.reloc_pos] = 0
-    unit.sec_text.AddData(arm.Assemble(ins).to_bytes(4, byteorder='little'))
+    unit.sec_text.AddData(a32.Assemble(ins).to_bytes(4, byteorder='little'))
 
 
 def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
-    AddIns(unit, dis.InsParse(mnemonic, token))
+    AddIns(unit, dis.InsFromSymbolized(mnemonic, token))
 
 
 def AddStartUpCode(unit: elf_unit.Unit):
@@ -119,10 +119,10 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
     return unit
 
 
-_OPCODE_MOVW: arm.Opcode = arm.Opcode.name_to_opcode["movw"]
-_OPCODE_MOVT: arm.Opcode = arm.Opcode.name_to_opcode["movt"]
-_OPCODE_B: arm.Opcode = arm.Opcode.name_to_opcode["b"]
-_OPCODE_BL: arm.Opcode = arm.Opcode.name_to_opcode["bl"]
+_OPCODE_MOVW: a32.Opcode = a32.Opcode.name_to_opcode["movw"]
+_OPCODE_MOVT: a32.Opcode = a32.Opcode.name_to_opcode["movt"]
+_OPCODE_B: a32.Opcode = a32.Opcode.name_to_opcode["b"]
+_OPCODE_BL: a32.Opcode = a32.Opcode.name_to_opcode["bl"]
 
 
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
@@ -136,13 +136,13 @@ def _ApplyRelocation(rel: elf.Reloc):
     old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
     if rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
-        new_data = arm.Patch(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
+        new_data = a32.Patch(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVT_ABS.value:
-        new_data = arm.Patch(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
+        new_data = a32.Patch(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.JUMP24.value:
-        new_data = arm.Patch(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
+        new_data = a32.Patch(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.CALL.value:
-        new_data = arm.Patch(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
+        new_data = a32.Patch(old_data, _OPCODE_BL, 2, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_ARM.ABS32.value:
         new_data = sym_val
     else:

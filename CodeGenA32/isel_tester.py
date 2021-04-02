@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """Testing helper for table driven code selection"""
 
-import CpuA32.opcode_tab as arm
-from CpuA32 import disassembler
+import CpuA32.opcode_tab as a32
+from CpuA32 import symbolic
 from Base import serialize
 from Base import ir
 from CodeGenA32 import isel_tab
@@ -13,8 +13,7 @@ import sys
 
 
 def OpToStr(op: Any) -> str:
-    if isinstance(op, (
-            isel_tab.PARAM, arm.PRED, arm.REG, arm.ADDR_MODE, arm.SHIFT)):
+    if isinstance(op, (isel_tab.PARAM, a32.PRED, a32.REG, a32.SHIFT)):
         return op.name
     assert isinstance(op, int)
     return str(op)
@@ -49,7 +48,8 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
             f"imm:[{' '.join(a.name for a in pattern.imm_constraints)}]")
         for tmpl in pattern.emit:
             armins = tmpl.MakeInsFromTmpl(ins, ctx)
-            print(f"    {disassembler.RenderInstructionSystematic(armins)}")
+            name, ops = symbolic.InsSymbolize(armins)
+            print(f"    {name} {' '.join(ops)}")
 
 
 def Translate(fin):

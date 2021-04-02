@@ -5,8 +5,8 @@
 See `ARM32.md` for more details.
 """
 
-import CpuA32.opcode_tab as arm
-import CpuA32.disassembler as dis
+import CpuA32.opcode_tab as a32
+from CpuA32 import symbolic
 from CpuA32 import assembler
 
 from Base import ir
@@ -90,8 +90,9 @@ def _JtbCodeGen(jtb: ir.Jtb):
     return out
 
 
-def _RenderArmIns(ins: arm.Ins):
-    return f"    {dis.RenderInstructionSystematic(ins)}"
+def _RenderArmIns(ins: a32.Ins):
+    name, ops = symbolic.InsSymbolize(ins)
+    return f"    {name} {' '.join(ops)}"
 
 
 def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> List[str]:

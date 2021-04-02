@@ -4,7 +4,7 @@ Assembler produces A32 ELF executables
 """
 from typing import Dict, Any
 
-import CpuA32.assembler as asm
+import CpuA32.assembler as a32
 
 import argparse
 import os
@@ -14,18 +14,18 @@ import sys
 
 def lint(input):
     src = sys.stdin if input == "-" else open(input)
-    print("UNIT", asm.UnitParse(src))
+    print("UNIT", a32.UnitParse(src, False))
 
 
 def assemble_common(input, output, add_startup_code):
     src = sys.stdin if input == "-" else open(input)
     dst = sys.stdout if output == "-" else open(output, "wb")
-    unit = asm.UnitParse(src, add_startup_code)
+    unit = a32.UnitParse(src, add_startup_code)
     for sym in unit.symbols:
         assert sym.section, f"undefined symbol: {sym}"
 
     # print(unit)
-    exe = asm.Assemble(unit, True)
+    exe = a32.Assemble(unit, True)
     # for phdr in exe.segments:
     #    print(phdr)
     #    for sec in phdr.sections:

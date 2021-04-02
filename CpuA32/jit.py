@@ -7,8 +7,8 @@ import platform
 import struct
 import sys
 
-import CpuA32.disassembler as dis
-import CpuA32.opcode_tab as arm
+import CpuA32.symbolic as dis
+import CpuA32.opcode_tab as a32
 
 
 class TestBuffer:
@@ -26,8 +26,8 @@ class TestBuffer:
     def dump_fancy(self):
         for i, bs in enumerate(self.instructions):
             data = struct.unpack("<I", bs)[0]
-            ins = arm.Disassemble(data)
-            ops = [dis.RenderOperandStd(ins.opcode, op, ok)
+            ins = a32.Disassemble(data)
+            ops = [dis.SymbolizeOperandOfficial(ins.opcode, op, ok)
                    for ok, op in zip(ins.opcode.fields, ins.operands)]
             if ops and ops[0] == "al":
                 ops.pop(0)
@@ -48,40 +48,40 @@ def EmitX86(code_buf):
 
 def EmitARM32(code_buf):
     for ins in [
-        dis.InsParse("add_imm", ["r0", "r0", "1"]),
-        dis.InsParse("mov_regimm", ["r15", "r14", "lsl", "0"])
+        dis.InsFromSymbolized("add_imm", ["r0", "r0", "1"]),
+        dis.InsFromSymbolized("mov_regimm", ["r15", "r14", "lsl", "0"])
     ]:
-        code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
+        code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
 def EmitARM32Mul(code_buf):
     for ins in [
-        dis.InsParse("mul", ["r0", "r1", "r0"]),
-        dis.InsParse("mov_regimm", ["r15", "r14", "lsl", "0"])
+        dis.InsFromSymbolized("mul", ["r0", "r1", "r0"]),
+        dis.InsFromSymbolized("mov_regimm", ["r15", "r14", "lsl", "0"])
     ]:
-        code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
+        code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
 def EmitARM32Fib(code_buf):
     for ins in [
         # e92d4030 stm sp!, {r4,r5,lr}
-        dis.InsParse("stmdb_update", ["sp", "reglist:16432"]),
-        dis.InsParse("cmp_imm", ["r0", "1"]),
-        dis.InsParse("b", ["le", "7"]),
-        dis.InsParse("mov_imm", ["r4", "0"]),
-        dis.InsParse("mov_regimm", ["r5", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("stmdb_update", ["sp", "reglist:16432"]),
+        dis.InsFromSymbolized("cmp_imm", ["r0", "1"]),
+        dis.InsFromSymbolized("b", ["le", "7"]),
+        dis.InsFromSymbolized("mov_imm", ["r4", "0"]),
+        dis.InsFromSymbolized("mov_regimm", ["r5", "r0", "lsl", "0"]),
         #
-        dis.InsParse("sub_imm", ["r0", "r5", "1"]),
-        dis.InsParse("bl", ["lr", "-8"]),
-        dis.InsParse("add_regimm", ["r4", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("sub_imm", ["r0", "r5", "1"]),
+        dis.InsFromSymbolized("bl", ["lr", "-8"]),
+        dis.InsFromSymbolized("add_regimm", ["r4", "r4", "r0", "lsl", "0"]),
         # #
-        dis.InsParse("sub_imm", ["r0", "r5", "2"]),
-        dis.InsParse("bl", ["lr", "-11"]),
-        dis.InsParse("add_regimm", ["r0", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("sub_imm", ["r0", "r5", "2"]),
+        dis.InsFromSymbolized("bl", ["lr", "-11"]),
+        dis.InsFromSymbolized("add_regimm", ["r0", "r4", "r0", "lsl", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
-        dis.InsParse("ldmia_update", ["reglist:32816", "sp"]),
+        dis.InsFromSymbolized("ldmia_update", ["reglist:32816", "sp"]),
     ]:
-        code_buf.write(arm.Assemble(ins).to_bytes(4, "little"))
+        code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
 def TestCodeGen():

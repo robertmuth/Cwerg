@@ -9,17 +9,17 @@ import re
 import sys
 from typing import List
 
-import CpuA32.disassembler as dis
-import CpuA32.opcode_tab as arm
+from  CpuA32 import symbolic
+import CpuA32.opcode_tab as a32
 
 
-def FixupAliases(opcode: arm.Opcode, name: str, ops: List[str]) -> str:
+def FixupAliases(opcode: a32.Opcode, name: str, ops: List[str]) -> str:
     if name[:3] in ["lsl", "lsr", "asr", "ror"]:
         # lsrs	r3, r3, #7  -> movs  r3, r3, lsr #7
         ops.insert(-1, name[:3])
         return "mov" + name[3:]
 
-    if arm.OPC_FLAG.MULTIPLE in opcode.classes:
+    if a32.OPC_FLAG.MULTIPLE in opcode.classes:
         # unsplit '{r0', 'r1}'
         while not ops[-1].startswith("{"):
             end = ops.pop(-1)
@@ -64,31 +64,31 @@ def _GetWidthFromRange(range):
     return 1 + int(token[1][1:]) - int(token[0][1:])
 
 
-def OperandsMatch(opcode: arm.Opcode, objdump_name: str,
+def OperandsMatch(opcode: a32.Opcode, objdump_name: str,
                   objdump_ops: List[str], std_ops: List[str]) -> bool:
     j = 0
     for i, (ok, op) in enumerate(zip(opcode.fields, std_ops)):
         if j < len(objdump_ops) and op == objdump_ops[j]:
             j += 1
-        elif (ok is arm.OK.PRED_28_31 and
+        elif (ok is a32.OK.PRED_28_31 and
               op == "al" or objdump_name.endswith(op)):
             continue
-        elif ok in {arm.OK.IMM_0_7_TIMES_4, arm.OK.IMM_7_11,
-                    arm.OK.IMM_0_11, arm.OK.IMM_0_3_8_11,
-                    arm.OK.IMM_10_11_TIMES_8} and op == "#0":
+        elif ok in {a32.OK.IMM_0_7_TIMES_4, a32.OK.IMM_7_11,
+                    a32.OK.IMM_0_11, a32.OK.IMM_0_3_8_11,
+                    a32.OK.IMM_10_11_TIMES_8} and op == "#0":
             continue
         elif op == "#0" and j < len(objdump_ops) and "#0.0" == objdump_ops[j]:
             continue
-        elif ok is arm.OK.SHIFT_MODE_5_6 and op == "lsl":
+        elif ok is a32.OK.SHIFT_MODE_5_6 and op == "lsl":
             continue
-        elif ok is arm.OK.REG_LINK:
+        elif ok is a32.OK.REG_LINK:
             continue
-        elif (arm.OPC_FLAG.MULTIPLE in opcode.classes and
-              arm.OPC_FLAG.VFP in opcode.classes):
-            if ok in {arm.OK.DREG_12_15_22, arm.OK.SREG_12_15_22}:
+        elif (a32.OPC_FLAG.MULTIPLE in opcode.classes and
+              a32.OPC_FLAG.VFP in opcode.classes):
+            if ok in {a32.OK.DREG_12_15_22, a32.OK.SREG_12_15_22}:
                 if _GetFirstRegFromRange(objdump_ops[j]) == op:
                     continue
-            elif ok in {arm.OK.REG_RANGE_0_7, arm.OK.REG_RANGE_1_7}:
+            elif ok in {a32.OK.REG_RANGE_0_7, a32.OK.REG_RANGE_1_7}:
                 if f"#{_GetWidthFromRange(objdump_ops[j])}" == op:
                     j += 1
                     continue
@@ -103,22 +103,22 @@ def OperandsMatch(opcode: arm.Opcode, objdump_name: str,
 def HandleOneInstruction(count: int, line: str,
                          data: int,
                          actual_name: str, actual_ops: List):
-    ins = arm.Disassemble(data)
+    ins = a32.Disassemble(data)
     assert ins is not None, f"cannot disassemble [{count}]: {line}"
     assert ins.opcode is not None and ins.operands is not None, f"unknown opcode {line}"
-    data2 = arm.Assemble(ins)
+    data2 = a32.Assemble(ins)
     assert data == data2, f"disass mismatch [{ins.opcode.NameForEnum()}] {data:x} vs {data2:x}"
     actual_name = FixupAliases(ins.opcode, actual_name, actual_ops)
     if not actual_name.startswith(ins.opcode.name):
         print("BAD NAME", ins.opcode.name, actual_name, line, end="")
 
-    expected_ops = [dis.RenderOperandStd(ins.opcode, op, ok)
+    expected_ops = [symbolic.SymbolizeOperandOfficial(ins.opcode, op, ok)
                     for ok, op in zip(ins.opcode.fields, ins.operands)]
     if not OperandsMatch(ins.opcode, actual_name, actual_ops, expected_ops):
         print(f"OPERANDS differ {expected_ops} {actual_ops} in line  {line}", end="")
 
-    operands_str = dis.SymbolizeOperands(ins)
-    operands2 = [dis.UnsymbolizeOperand(op, ok)
+    _, operands_str = symbolic.InsSymbolize(ins)
+    operands2 = [symbolic.UnsymbolizeOperand(op, ok)
                  for op, ok in zip(operands_str, ins.opcode.fields)]
     assert tuple(ins.operands) == tuple(operands2), f"{ins.operands} vs {operands2}"
 
@@ -136,6 +136,8 @@ def main(argv):
                 actual_name = token[1]
                 actual_ops = []
                 if len(token) == 3:
+                    # Note this removes all the address mode syntax
+                    # so we lose a bit of fidelity
                     actual_ops = [x for x in re.split("[, \t\n\[\]!]+", token[2]) if x]
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
