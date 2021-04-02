@@ -6,7 +6,7 @@ This files contains ELF like abstraction to help build an assembler.
 from typing import List, Dict, Any
 
 import CpuA32.opcode_tab as a32
-import CpuA32.symbolic as dis
+from CpuA32 import symbolic 
 import Elf.elfhelper as elf
 import Elf.enum_tab as elf_enum
 from Elf import elf_unit
@@ -41,7 +41,7 @@ def AddIns(unit: elf_unit.Unit, ins: a32.Ins):
 
 
 def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
-    AddIns(unit, dis.InsFromSymbolized(mnemonic, token))
+    AddIns(unit, symbolic.InsFromSymbolized(mnemonic, token))
 
 
 def AddStartUpCode(unit: elf_unit.Unit):
