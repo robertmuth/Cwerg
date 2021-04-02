@@ -112,7 +112,7 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
     unit.AddLinkerDefs()
     if add_startup_code:
-        unit.AddStartUpCode()
+        AddStartUpCode(unit)
     return unit
 
 

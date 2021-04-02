@@ -2,7 +2,7 @@
 """
 Assembler produces A64 ELF executables
 """
-from typing import List, Dict, Tuple, Optional, Set
+from typing import Dict, Any
 
 import CpuA64.assembler as asm
 
@@ -61,14 +61,12 @@ def main():
     parser_assemble.add_argument('input', type=str, help='input file')
     parser_assemble.add_argument('output', type=str, help='output file')
 
-    args = parser.parse_args()
-
     # First extract all the parser members into a dict
     kwargs: Dict[str, Any] = vars(parser.parse_args())
+
     # Next invoke the proper handler which is derived from the subparser
     # name. E.g. subparser `assembler_raw` is handled by the Python
     # function assembler_raw()
-
     handler = globals().get(kwargs.pop('subparser'))
     if handler:
         handler(**kwargs)

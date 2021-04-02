@@ -2,6 +2,8 @@
 """
 Assembler produces A32 ELF executables
 """
+from typing import Dict, Any
+
 import CpuA32.assembler as asm
 
 import argparse
@@ -22,9 +24,9 @@ def assemble_common(input, output, add_startup_code):
     for sym in unit.symbols:
         assert sym.section, f"undefined symbol: {sym}"
 
-    #print(unit)
+    # print(unit)
     exe = asm.Assemble(unit, True)
-    #for phdr in exe.segments:
+    # for phdr in exe.segments:
     #    print(phdr)
     #    for sec in phdr.sections:
     #        print(sec)
@@ -59,7 +61,13 @@ if __name__ == '__main__':
     parser_assemble.add_argument('input', type=str, help='input file')
     parser_assemble.add_argument('output', type=str, help='output file')
 
-    args = parser.parse_args()
-
-    kwargs = vars(parser.parse_args())
-    globals()[kwargs.pop('subparser')](**kwargs)
+    # First extract all the parser members into a dict
+    kwargs: Dict[str, Any] = vars(parser.parse_args())
+    # Next invoke the proper handler which is derived from the subparser
+    # name. E.g. subparser `assembler_raw` is handled by the Python
+    # function assembler_raw()
+    handler = globals().get(kwargs.pop('subparser'))
+    if handler:
+        handler(**kwargs)
+    else:
+        parser.print_help(sys.stderr)

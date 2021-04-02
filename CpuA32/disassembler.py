@@ -34,7 +34,7 @@ SHIFT_NAMES_MAP = _Merge([p.name for p in arm.SHIFT])
 
 
 # render a single operand, e.g. and address like  `[r3, #-116]`
-def RenderOperandStd(opcode: arm.Opcode, operand, ok) -> str:
+def RenderOperandStd(opcode: arm.Opcode, operand, ok: arm.OK) -> str:
     if ok is arm.OK.REG_LINK:
         return "lr"
     elif ok in arm.FIELDS_SREG:

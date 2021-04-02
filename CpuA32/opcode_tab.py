@@ -771,12 +771,12 @@ for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
         Opcode(opcode + ext, "regreg",
                [root00, s_bit, (0xf, n, 21), (1, 0, 25), (1, 0, 7), (1, 1, 4)],
                [OK.REG_12_15, OK.REG_16_19,
-                OK.REG_0_3,OK.SHIFT_MODE_5_6,  OK.REG_8_11],
+                OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.REG_8_11],
                OPC_FLAG.ALU, sr_update=sr_update)
         Opcode(opcode + ext, "regimm",
                [root00, s_bit, (0xf, n, 21), (1, 0, 25), (1, 0, 4)],
                [OK.REG_12_15, OK.REG_16_19,
-                 OK.REG_0_3,OK.SHIFT_MODE_5_6, OK.IMM_7_11],
+                OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.IMM_7_11],
                OPC_FLAG.ALU, sr_update=sr_update)
         Opcode(opcode + ext, "imm",
                [root00, s_bit, (0xf, n, 21), (1, 1, 25)],
@@ -811,12 +811,12 @@ for opcode, n in [("tst", 8), ("teq", 9), ("cmp", 10), ("cmn", 11)]:
     Opcode(opcode, "regreg",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12), (1, 0, 25),
             (1, 0, 7), (1, 1, 4)],
-           [OK.REG_16_19,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.REG_8_11],
+           [OK.REG_16_19, OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.REG_8_11],
            OPC_FLAG.TEST, sr_update=SR_UPDATE.NCZ)
     Opcode(opcode, "regimm",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12),
             (1, 0, 25), (1, 0, 4)],
-           [OK.REG_16_19,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.IMM_7_11],
+           [OK.REG_16_19, OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.IMM_7_11],
            OPC_FLAG.TEST, sr_update=SR_UPDATE.NCZ)
     Opcode(opcode, "imm",
            [root00, (0xf, n, 21), (1, 1, 20), (0xf, 0, 12), (1, 1, 25)],
@@ -833,7 +833,7 @@ for opcode, n in [("mov", 0xd), ("mvn", 0xf)]:
                OPC_FLAG.ALU1, sr_update=sr_update)
         Opcode(opcode + ext, "regimm",
                bits + [(1, 0, 25), (1, 0, 4)],
-               [OK.REG_12_15,  OK.REG_0_3, OK.SHIFT_MODE_5_6,OK.IMM_7_11],
+               [OK.REG_12_15, OK.REG_0_3, OK.SHIFT_MODE_5_6, OK.IMM_7_11],
                OPC_FLAG.ALU1, sr_update=sr_update)
         Opcode(opcode + ext, "imm",
                bits + [(1, 1, 25)],
@@ -1152,7 +1152,7 @@ def Disassemble(data: int) -> Optional[Ins]:
 def Assemble(ins: Ins) -> int:
     assert ins.reloc_kind == 0, "reloc has not been resolved"
     raw_ops = []
-    for ok,op in zip(ins.opcode.fields, ins.operands):
+    for ok, op in zip(ins.opcode.fields, ins.operands):
         t = ENCODE_IMM.get(ok)
         raw_ops.append(op if t is None else t(op))
     return ins.opcode.AssembleOperandsRaw(raw_ops)
@@ -1166,6 +1166,7 @@ def Patch(data: int, opcode: Opcode, pos: int, value: int):
         value = enc(value)
     ops[pos] = value
     return opcode.AssembleOperandsRaw(ops)
+
 
 ############################################################
 # code below is only used if this file is run as an executable

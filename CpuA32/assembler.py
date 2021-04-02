@@ -3,7 +3,7 @@
 """
 This files contains ELF like abstraction to help build an assembler.
 """
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 
 import CpuA32.opcode_tab as arm
 import CpuA32.disassembler as dis
