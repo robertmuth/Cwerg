@@ -6,7 +6,7 @@ be processed by an assembler.
 """
 
 import CpuA64.opcode_tab as a64
-from CpuA64 import disass
+from CpuA64 import symbolic
 
 
 def handle_opcode(data):
@@ -14,8 +14,8 @@ def handle_opcode(data):
     if ins.opcode is None:
         print(f"could not disassemble {data:x}")
         return
-    ops_str = [disass.DecodeOperand(f, op) for op, f in
-               zip(ins.operands, ins.opcode.fields)]
+
+    enum_name, ops_str = symbolic.InsSymbolize(ins)
     print(f"{data:08x}", f"{ins.opcode.NameForEnum()} {' '.join(ops_str)}")
     print("OPCODE", ins.opcode.name, ins.opcode.variant)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
@@ -23,10 +23,8 @@ def handle_opcode(data):
     print()
     data2 = a64.Assemble(ins)
     assert data == data2
-    operands2 = [disass.EncodeOperand(ok, op) for ok, op in
-                 zip(ins.opcode.fields, ops_str)]
-    assert tuple(ins.operands) == tuple(
-        operands2), f"{ins.operands} vs {operands2}"
+    ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)
+    assert tuple(ins.operands) == tuple(ins2.operands), f"{ins.operands} vs {ins2.operands}"
 
 
 if __name__ == "__main__":

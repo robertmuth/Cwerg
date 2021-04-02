@@ -1,7 +1,7 @@
 """
 This module contains code for (un-)symbolizing the a64 ISA operands
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
@@ -78,8 +78,8 @@ for i in range(32):
 _STRINGIFIER[a64.OK.REG_LINK] = ["lr"]
 
 
-def DecodeOperand(kind: a64.OK, data: int) -> str:
-    t = _STRINGIFIER.get(kind)
+def SymbolizeOperand(ok: a64.OK, data: int) -> str:
+    t = _STRINGIFIER.get(ok)
     if isinstance(t, list):
         return t[data]
     elif isinstance(t, tuple):
@@ -117,7 +117,7 @@ _UNSTRINGIFIER_FLT: Dict[a64.OK, Any] = {
 }
 
 
-def EncodeOperand(ok: a64.OK, op: str) -> int:
+def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
     """
     Converts a string into and int suitable for the provided `ok`
     E.g.
@@ -161,13 +161,31 @@ _RELOC_KIND_MAP = {
     "abs32": enum_tab.RELOC_TYPE_AARCH64.ABS32,
     "abs64": enum_tab.RELOC_TYPE_AARCH64.ABS64,
 
-
     "adr_prel_pg_hi21": enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
     "add_abs_lo12_nc": enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
 }
 
 
-def InsParse(mnemonic: str, ops_str: List[str]) -> a64.Ins:
+def _EmitReloc(ins: a64.Ins, pos: int) -> str:
+    assert False, "NYI"
+
+
+def InsSymbolize(ins: a64.Ins) -> Tuple[str, List[str]]:
+    """Convert all the operands in an arm.Ins to strings including relocs
+    """
+    ops = []
+    for pos, (field, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
+        if (field in a64.FIELDS_IMM and
+                ins.reloc_kind != enum_tab.RELOC_TYPE_AARCH64.NONE and
+        ins.reloc_pos == pos):
+            ops.append(_EmitReloc(ins, pos))
+        else:
+            ops.append(SymbolizeOperand(field, value))
+
+    return ins.opcode.NameForEnum(), ops
+
+
+def InsFromSymbolized(mnemonic: str, ops_str: List[str]) -> a64.Ins:
     opcode = a64.Opcode.name_to_opcode[mnemonic]
     ins = a64.Ins(opcode)
     for pos, (t, ok) in enumerate(zip(ops_str, opcode.fields)):
@@ -189,5 +207,5 @@ def InsParse(mnemonic: str, ops_str: List[str]) -> a64.Ins:
             ins.reloc_symbol = rel_token[2]
             ins.operands.append(int(rel_token[3], 0))
         else:
-            ins.operands.append(EncodeOperand(ok, t))
+            ins.operands.append(UnsymbolizeOperand(ok, t))
     return ins

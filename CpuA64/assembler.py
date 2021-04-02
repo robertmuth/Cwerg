@@ -6,7 +6,7 @@ This files contains ELF like abstraction to help build an a64 assembler.
 from typing import List, Dict, Optional, Any
 
 import CpuA64.opcode_tab as a64
-from CpuA64 import disass
+from CpuA64 import symbolic
 import Elf.elfhelper as elf
 import Elf.enum_tab as elf_enum
 from Util import parse
@@ -30,7 +30,7 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
 
 
 def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
-    ins = disass.InsParse(mnemonic, token)
+    ins = symbolic.InsFromSymbolized(mnemonic, token)
     if ins.reloc_kind != elf_enum.RELOC_TYPE_AARCH64.NONE:
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
         unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])

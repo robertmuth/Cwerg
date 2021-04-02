@@ -12,7 +12,7 @@ from typing import List, Dict
 
 from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP
 
-from CpuA64 import disass
+from CpuA64 import symbolic
 
 SIMPLE_ALIASES = {
     ("asr", "asrv"),
@@ -259,12 +259,12 @@ def HandleOneInstruction(count: int, line: str,
     global all_operands, checked_operands
     actual_name = MassageOperands(actual_name, opcode, actual_ops)
     ops_raw = opcode.DisassembleOperands(data)
-    ops_str = [disass.DecodeOperand(f, op)
+    ops_str = [symbolic.SymbolizeOperand(f, op)
                for op, f in zip(ops_raw, opcode.fields)]
     assert OperandsMatch(opcode, ops_str,
                          actual_ops), f"[{opcode.name} {opcode.variant}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
 
-    ops_raw2 = [disass.EncodeOperand(f, op)
+    ops_raw2 = [symbolic.UnsymbolizeOperand(f, op)
                 for op, f in zip(ops_str, opcode.fields)]
     for a, b in zip(ops_raw, ops_raw2):
         assert a == b, f"{a} vs {b}  original: {ops_str} {ops_raw} in: {line}"
