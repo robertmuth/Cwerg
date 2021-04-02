@@ -43,6 +43,11 @@ Segments can be primary or auxiliary. If a Section belongs to multiple Segments 
 A special pseude Segment which is always comes last contains all the unmapped Sections.
 This Segment is not reflected as a Phdr in the Elf executable.
 
+### API
+
+`gen_elf_test.py` and `gen_elf_test.cc` show how to use this library
+to generated simple executables for A32, A64 and X64.
+
 ##### Executable
 
 An Executable consists of an Elf Ehdr and a list of Segments.

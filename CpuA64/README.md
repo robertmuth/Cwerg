@@ -7,6 +7,9 @@ and might be useful by itself.
 
 It also contains an assembler that can directly generate Elf executables.
 
+If you are working on this on a non-A64 platform installing Qemu 
+will be invaluable see  [../TestQemu] .
+
 ## Concepts
 
 An instruction consists of two parts:

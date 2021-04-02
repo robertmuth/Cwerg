@@ -12,6 +12,9 @@ It also contains an assembler that can directly generate Elf executables.
 
 Note: we deviate from the official notation in several places.
 
+If you are working on this on a non-A32 platform installing Qemu 
+will be invaluable see  [../TestQemu] .
+
 ## Concepts 
 
 An instruction (`Ins`) consists of two parts:
