@@ -72,10 +72,10 @@ class Unit:
             return self.AddSymbol(name, None, is_local)
         return sym
 
-    def AddReloc(self, kind: elf_enum.RELOC_TYPE_ARM, sec: elf.Section, symbol: elf.Symbol,
+    def AddReloc(self, reloc_kind, sec: elf.Section, symbol: elf.Symbol,
                  extra: int):
         self.relocations.append(
-            elf.Reloc.Init(kind.value, sec, len(sec.data), symbol, extra))
+            elf.Reloc.Init(reloc_kind.value, sec, len(sec.data), symbol, extra))
 
     def FunStart(self, name: str, alignment: int):
         self.sec_text.PadData(alignment, NOP_BYTES)
@@ -109,31 +109,31 @@ class Unit:
         assert self.mem_sec is not None
         self.mem_sec.AddData(data * repeats)
 
-    def AddFunAddr(self, size: int, fun_name: str):
+    def AddFunAddr(self, reloc_type, size: int, fun_name: str):
         assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(fun_name, False)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, 0)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddBblAddr(self, size: int, bbl_name: str):
+    def AddBblAddr(self, reloc_type, size: int, bbl_name: str):
         assert size == 4
         assert self.current_fun is not None
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(bbl_name, True)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, 0)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddMemAddr(self, size: int, mem_name: str, addend: int):
+    def AddMemAddr(self, reloc_type, size: int, mem_name: str, addend: int):
         assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(mem_name, False)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, addend)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, addend)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddLabel(self, name: str, alignment: int):
-        assert alignment % len(NOP_BYTES) == 0
-        self.sec_text.PadData(alignment, NOP_BYTES)
+    def AddLabel(self, name: str, alignment: int, padding_bytes: bytes):
+        assert alignment % len(padding_bytes) == 0
+        self.sec_text.PadData(alignment, padding_bytes)
         assert self.current_fun is not None
         self.AddSymbol(name, self.sec_text, True)
 
@@ -201,7 +201,14 @@ SECTION[bss] {len(self.sec_bss.data)}
 
 def HandleOpcode(mnemonic, token: List[str], unit: Unit):
     ins = disass.InsParse(mnemonic, token)
-    unit.AddIns(ins)
+    if ins.reloc_kind != elf_enum.RELOC_TYPE_AARCH64.NONE:
+        sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
+        unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
+        # clear reloc info before proceeding
+        ins.reloc_kind = elf_enum.RELOC_TYPE_AARCH64.NONE
+        ins.operands[ins.reloc_pos] = 0
+    unit.sec_text.AddData(a64.Assemble(ins).to_bytes(4, byteorder='little'))
+
 
 
 class ParseError(Exception):
@@ -218,10 +225,10 @@ def UnitParse(fin, add_startup_code) -> Unit:
         ".endmem": unit.MemEnd,
         ".data": lambda x, y: unit.AddData(int(x, 0),
                                            parse.QuotedEscapedStringToBytes(y)),
-        ".addr.fun": lambda x, y: unit.AddFunAddr(int(x, 0), y),
-        ".addr.bbl": lambda x, y: unit.AddBblAddr(int(x, 0), y),
-        ".addr.mem": lambda x, y, z: unit.AddMemAddr(int(x, 0), y, int(z, 0)),
-        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0)),
+        ".addr.fun": lambda x, y: unit.AddFunAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.bbl": lambda x, y: unit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.mem": lambda x, y, z: unit.AddMemAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y, int(z, 0)),
+        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), NOP_BYTES),
     }
     for line_num, line in enumerate(fin):
         token = parse.ParseLine(line)

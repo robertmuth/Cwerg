@@ -72,10 +72,10 @@ class Unit:
             return self.AddSymbol(name, None, is_local)
         return sym
 
-    def AddReloc(self, kind: elf_enum.RELOC_TYPE_ARM, sec: elf.Section, symbol: elf.Symbol,
+    def AddReloc(self, reloc_kind, sec: elf.Section, symbol: elf.Symbol,
                  extra: int):
         self.relocations.append(
-            elf.Reloc.Init(kind.value, sec, len(sec.data), symbol, extra))
+            elf.Reloc.Init(reloc_kind.value, sec, len(sec.data), symbol, extra))
 
     def FunStart(self, name: str, alignment: int):
         self.sec_text.PadData(alignment, NOP_BYTES)
@@ -109,31 +109,31 @@ class Unit:
         assert self.mem_sec is not None
         self.mem_sec.AddData(data * repeats)
 
-    def AddFunAddr(self, size: int, fun_name: str):
+    def AddFunAddr(self, reloc_type, size: int, fun_name: str):
         assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(fun_name, False)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, 0)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddBblAddr(self, size: int, bbl_name: str):
+    def AddBblAddr(self, reloc_type, size: int, bbl_name: str):
         assert size == 4
         assert self.current_fun is not None
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(bbl_name, True)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, 0)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddMemAddr(self, size: int, mem_name: str, addend: int):
+    def AddMemAddr(self, reloc_type, size: int, mem_name: str, addend: int):
         assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(mem_name, False)
-        self.AddReloc(elf_enum.RELOC_TYPE_ARM.ABS32, self.mem_sec, symbol, addend)
+        self.AddReloc(reloc_type, self.mem_sec, symbol, addend)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddLabel(self, name: str, alignment: int):
-        assert alignment % len(NOP_BYTES) == 0
-        self.sec_text.PadData(alignment, NOP_BYTES)
+    def AddLabel(self, name: str, alignment: int, padding_bytes: bytes):
+        assert alignment % len(padding_bytes) == 0
+        self.sec_text.PadData(alignment, padding_bytes)
         assert self.current_fun is not None
         self.AddSymbol(name, self.sec_text, True)
 
@@ -155,34 +155,6 @@ class Unit:
             self.sec_data.PadData(16, ZERO_BYTE)
             self.AddSymbol("$$rw_data_end", self.sec_data, False)
 
-    def AddStartUpCode(self):
-        """Add code for `_start` wrapper which calls main(()
-
-        When Linux transfers control to a new A32 program is does not follow any calling
-        convention so we need this shim.
-        The initial execution env looks like this:
-        0(sp)			argc
-
-        4(sp)			    argv[0] # argv start
-        8(sp)               argv[1]
-        ...
-        (4*argc)(sp)        NULL    # argv sentinel
-
-        (4*(argc+1))(sp)    envp[0] # envp start
-        (4*(argc+2))(sp)    envp[1]
-        ...
-                            NULL    # envp sentinel
-        """
-        self.FunStart("_start", 16)
-        for mnemonic, ops in [
-            ("ldr_imm_add", "al r0 sp 0"),
-            ("add_imm", "al r1 sp 4"),
-            ("bl", "al lr expr:call:main"),
-            ("movw", "al r7 1"),
-            ("svc", "al 0"),
-            ("ud2", "al")]:
-            self.AddIns(dis.InsParse(mnemonic, ops.split()))
-        self.FunEnd()
 
     def __str__(self):
         syms = {}
@@ -200,7 +172,43 @@ SECTION[bss] {len(self.sec_bss.data)}
 
 def HandleOpcode(mnemonic, token: List[str], unit: Unit):
     ins = dis.InsParse(mnemonic, token)
-    unit.AddIns(ins)
+    if ins.reloc_kind != elf_enum.RELOC_TYPE_ARM.NONE:
+        sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
+        unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
+        # clear reloc info before proceeding
+        ins.reloc_kind = elf_enum.RELOC_TYPE_ARM.NONE
+        ins.operands[ins.reloc_pos] = 0
+    unit.sec_text.AddData(arm.Assemble(ins).to_bytes(4, byteorder='little'))
+
+
+def AddStartUpCode(unit: Unit):
+    """Add code for `_start` wrapper which calls main(()
+
+    When Linux transfers control to a new A32 program is does not follow any calling
+    convention so we need this shim.
+    The initial execution env looks like this:
+    0(sp)			argc
+
+    4(sp)			    argv[0] # argv start
+    8(sp)               argv[1]
+    ...
+    (4*argc)(sp)        NULL    # argv sentinel
+
+    (4*(argc+1))(sp)    envp[0] # envp start
+    (4*(argc+2))(sp)    envp[1]
+    ...
+                        NULL    # envp sentinel
+    """
+    unit.FunStart("_start", 16)
+    for mnemonic, ops in [
+        ("ldr_imm_add", "al r0 sp 0"),
+        ("add_imm", "al r1 sp 4"),
+        ("bl", "al lr expr:call:main"),
+        ("movw", "al r7 1"),
+        ("svc", "al 0"),
+        ("ud2", "al")]:
+        HandleOpcode(mnemonic, ops.split(), unit)
+    unit.FunEnd()
 
 
 class ParseError(Exception):
@@ -217,10 +225,10 @@ def UnitParse(fin, add_startup_code) -> Unit:
         ".endmem": unit.MemEnd,
         ".data": lambda x, y: unit.AddData(int(x, 0),
                                            parse.QuotedEscapedStringToBytes(y)),
-        ".addr.fun": lambda x, y: unit.AddFunAddr(int(x, 0), y),
-        ".addr.bbl": lambda x, y: unit.AddBblAddr(int(x, 0), y),
-        ".addr.mem": lambda x, y, z: unit.AddMemAddr(int(x, 0), y, int(z, 0)),
-        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0)),
+        ".addr.fun": lambda x, y: unit.AddFunAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.bbl": lambda x, y: unit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.mem": lambda x, y, z: unit.AddMemAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y, int(z, 0)),
+        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), NOP_BYTES),
     }
     for line_num, line in enumerate(fin):
         token = parse.ParseLine(line)
@@ -244,7 +252,7 @@ def UnitParse(fin, add_startup_code) -> Unit:
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
     unit.AddLinkerDefs()
     if add_startup_code:
-        unit.AddStartUpCode()
+        AddStartUpCode(unit)
     return unit
 
 

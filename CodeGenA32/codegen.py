@@ -18,6 +18,7 @@ from CodeGenA32 import regs
 from CodeGenA32 import legalize
 
 from Elf import enum_tab
+import Elf.enum_tab as elf_enum
 
 import os
 import stat
@@ -186,9 +187,9 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
             if isinstance(d, ir.DataBytes):
                 armunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                armunit.AddFunAddr(d.size, d.fun.name)
+                armunit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                armunit.AddMemAddr(d.size, d.mem.name, d.offset)
+                armunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.mem.name, d.offset)
             else:
                 assert False
         armunit.MemEnd()
@@ -200,7 +201,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
             armunit.MemStart(jtb.name, 4, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                armunit.AddBblAddr(4, bbl.name)
+                armunit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, 4, bbl.name)
             armunit.MemEnd()
 
         ctx = regs.FunComputeEmitContext(fun)
@@ -220,7 +221,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
             AppendArmIns(tmpl.MakeInsFromTmpl(None, ctx))
 
         for bbl in fun.bbls:
-            armunit.AddLabel(bbl.name, 4)
+            armunit.AddLabel(bbl.name, 4, assembler.NOP_BYTES)
             for ins in bbl.inss:
                 if ins.opcode is o.NOP1:
                     isel_tab.HandlePseudoNop1(ins, ctx)
@@ -236,7 +237,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
         armunit.FunEnd()
     armunit.AddLinkerDefs()
     if add_startup_code:
-        armunit.AddStartUpCode()
+        assembler.AddStartUpCode(armunit)
     return armunit
 
 
