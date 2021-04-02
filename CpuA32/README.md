@@ -8,6 +8,8 @@ Neither Thumb nor Thumb-2 are supported. Nor are there plans to do so.
 The implementation is far more complete than what is needed by [../CodeGenA32]
 and might be useful by itself.
 
+It also contains an assembler that can directly generate Elf executables.
+
 Note: we deviate from the official notation in several places.
 
 ## Concepts 

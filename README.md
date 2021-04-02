@@ -49,6 +49,10 @@ The goal for the c++ implementation is to translate the IR to an Elf executable 
 Whole program translation and parallel translation at the function level are 
 explicit design goals for the c++ implementations.
 
+Cwerg does not have linker at this point. Instead the responsibility of 
+generating executables and resolving relocations rests with the assembler
+components of the various backends.
+
 ## Intentional Limitations
 
 To keep the project lightweight the feature set must be curtailed.

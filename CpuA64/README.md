@@ -2,9 +2,10 @@
 
 This directory contains code for encoding and decoding A64 instructions.
 
-
 The implementation is far more complete than what is needed by [../CodeGenA64]
 and might be useful by itself.
+
+It also contains an assembler that can directly generate Elf executables.
 
 ## Concepts
 
@@ -67,17 +68,12 @@ assembler notation with the following exceptions:
  
 ### API
 
-There are helpers for looking up the `Opcode` of a 32 bit instruction 
-word, `Opcode.FindOpcode`, and extracting the `Operand` values,
-`Opcode.DisassembleOperands`.
+`opcode_tab.Assemble()` converts and int to an `opcode_tab.Ins`.
+`opcode_tab.Disasemble()` does the inverse.
 
-Conversely, starting with and `Opcode` and list of `Operand` values
-an instruction word can be obtained via `Opcode.AssembleOperands`
-
-An `Opocode` can also be looked up by its name in the dictionary
-`Opcode.names_to_opcode`. 
-
-
+`symbolic.InsSymbolize()` converts an `opcode_tab.Ins` into a more 
+human friendly form. (Reminder: we deviate from the official notation.).
+`symbolic.InsFromSybolized()` does the inverse.
 
 
 ## References
