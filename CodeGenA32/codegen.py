@@ -19,6 +19,7 @@ from CodeGenA32 import legalize
 
 from Elf import enum_tab
 import Elf.enum_tab as elf_enum
+from Elf import elf_unit
 
 import os
 import stat
@@ -173,12 +174,8 @@ def codegen(unit: ir.Unit) -> Unit:
 # binary emitter
 ############################################################
 
-_ZERO_BYTE = bytes([0])
-_NOP_BYTES = bytes([0x00, 0xF0, 0x20, 0xE3])
-
-
-def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
-    armunit = assembler.Unit()
+def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
+    armunit = elf_unit.Unit()
     for mem in unit.mems:
         if mem.kind == o.MEM_KIND.EXTERN:
             continue
@@ -196,7 +193,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
 
     sec_text = armunit.sec_text
     for fun in unit.funs:
-        armunit.FunStart(fun.name, 16)
+        armunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
         for jtb in fun.jtbs:
             armunit.MemStart(jtb.name, 4, "rodata", True)
             for i in range(jtb.size):
@@ -206,19 +203,8 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
 
         ctx = regs.FunComputeEmitContext(fun)
 
-        def AppendArmIns(armins: arm.Ins):
-            if armins.reloc_kind != enum_tab.RELOC_TYPE_ARM.NONE:
-                sym = armunit.FindOrAddSymbol(armins.reloc_symbol,
-                                              armins.is_local_sym)
-                armunit.AddReloc(armins.reloc_kind, sec_text, sym,
-                                 armins.operands[armins.reloc_pos])
-                # clear reloc info before proceeding
-                armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.NONE
-                armins.operands[armins.reloc_pos] = 0
-            sec_text.AddData(arm.Assemble(armins).to_bytes(4, byteorder='little'))
-
         for tmpl in isel_tab.EmitFunProlog(ctx):
-            AppendArmIns(tmpl.MakeInsFromTmpl(None, ctx))
+            assembler.AddIns(armunit, tmpl.MakeInsFromTmpl(None, ctx))
 
         for bbl in fun.bbls:
             armunit.AddLabel(bbl.name, 4, assembler.NOP_BYTES)
@@ -227,13 +213,15 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> assembler.Unit:
                     isel_tab.HandlePseudoNop1(ins, ctx)
                 elif ins.opcode is o.RET:
                     for tmpl in isel_tab.EmitFunEpilog(ctx):
-                        AppendArmIns(tmpl.MakeInsFromTmpl(None, ctx))
+                        assembler.AddIns(armunit,
+                                         tmpl.MakeInsFromTmpl(None, ctx))
 
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
                     assert pattern, f"could not find pattern for\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
-                        AppendArmIns(tmpl.MakeInsFromTmpl(ins, ctx))
+                        assembler.AddIns(armunit,
+                                         tmpl.MakeInsFromTmpl(ins, ctx))
         armunit.FunEnd()
     armunit.AddLinkerDefs()
     if add_startup_code:

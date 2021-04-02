@@ -9,9 +9,10 @@ import CpuA32.opcode_tab as arm
 import CpuA32.disassembler as dis
 import Elf.elfhelper as elf
 import Elf.enum_tab as elf_enum
+from Elf import elf_unit
+
 from Util import parse
 
-ZERO_BYTE = bytes([0])
 NOP_BYTES = bytes([0x00, 0xF0, 0x20, 0xE3])
 
 
@@ -29,149 +30,7 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
     return "\n".join(out)
 
 
-class Unit:
-    """Holds a low level binary version of an A32 executable """
-
-    def __init__(self):
-        self.sec_text = elf.Section.MakeSectionText(1)
-        self.sec_rodata = elf.Section.MakeSectionRodata(1)
-        self.sec_data = elf.Section.MakeSectionData(1)
-        self.sec_bss = elf.Section.MakeSectionBss(1)
-        #
-        self.global_symbol_map: Dict[str, elf.Symbol] = {}
-        self.symbols: List[elf.Symbol] = []
-        self.relocations: List[elf.Reloc] = []
-
-        # used while processing
-        self.local_symbol_map: Dict[str, elf.Symbol] = {}
-        self.mem_sec: Optional[elf.Section] = None
-        self.current_fun: Optional[str] = None
-
-    def AddSymbol(self, name, sec: Optional[elf.Section], is_local: bool) -> elf.Symbol:
-        the_map = self.local_symbol_map if is_local else self.global_symbol_map
-        sym = the_map.get(name)
-        if sym is None:
-            # ~0 is our undefined symbol marker. It is checked in
-            val = ~0 if sec is None else len(sec.data)
-            sym = elf.Symbol.Init(name, is_local, sec, val)
-            self.symbols.append(sym)
-            the_map[name] = sym
-            return sym
-        elif sec is not None:
-            # the symbol was forward declared and now we are filling in the missing info
-            assert sym.is_undefined(), f"{sym} already defined"
-            sym.section = sec
-            sym.st_value = len(sec.data)
-        return sym
-
-    def FindOrAddSymbol(self, name, is_local) -> elf.Symbol:
-        the_map = self.local_symbol_map if is_local else self.global_symbol_map
-
-        sym = the_map.get(name)
-        if sym is None:
-            return self.AddSymbol(name, None, is_local)
-        return sym
-
-    def AddReloc(self, reloc_kind, sec: elf.Section, symbol: elf.Symbol,
-                 extra: int):
-        self.relocations.append(
-            elf.Reloc.Init(reloc_kind.value, sec, len(sec.data), symbol, extra))
-
-    def FunStart(self, name: str, alignment: int):
-        self.sec_text.PadData(alignment, NOP_BYTES)
-        self.AddSymbol(name, self.sec_text, False)
-        assert self.current_fun is None
-        self.current_fun = name
-
-    def FunEnd(self):
-        assert self.current_fun is not None
-        self.current_fun = None
-        self.local_symbol_map.clear()
-
-    def MemStart(self, name: str, alignment: int, kind: str, is_local_sym):
-        assert self.mem_sec is None
-        if kind == "rodata":
-            self.mem_sec = self.sec_rodata
-        elif kind == "data":
-            self.mem_sec = self.sec_data
-        elif kind == "bss":
-            self.mem_sec = self.sec_bss
-        else:
-            assert False, f"bad mem kind {kind}"
-        self.mem_sec.PadData(alignment, ZERO_BYTE)
-        self.AddSymbol(name, self.mem_sec, is_local_sym)
-
-    def MemEnd(self):
-        assert self.mem_sec is not None
-        self.mem_sec = None
-
-    def AddData(self, repeats: int, data: bytes):
-        assert self.mem_sec is not None
-        self.mem_sec.AddData(data * repeats)
-
-    def AddFunAddr(self, reloc_type, size: int, fun_name: str):
-        assert size == 4
-        assert self.mem_sec is not None
-        symbol = self.FindOrAddSymbol(fun_name, False)
-        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
-        self.mem_sec.AddData(b"\0" * size)
-
-    def AddBblAddr(self, reloc_type, size: int, bbl_name: str):
-        assert size == 4
-        assert self.current_fun is not None
-        assert self.mem_sec is not None
-        symbol = self.FindOrAddSymbol(bbl_name, True)
-        self.AddReloc(reloc_type, self.mem_sec, symbol, 0)
-        self.mem_sec.AddData(b"\0" * size)
-
-    def AddMemAddr(self, reloc_type, size: int, mem_name: str, addend: int):
-        assert size == 4
-        assert self.mem_sec is not None
-        symbol = self.FindOrAddSymbol(mem_name, False)
-        self.AddReloc(reloc_type, self.mem_sec, symbol, addend)
-        self.mem_sec.AddData(b"\0" * size)
-
-    def AddLabel(self, name: str, alignment: int, padding_bytes: bytes):
-        assert alignment % len(padding_bytes) == 0
-        self.sec_text.PadData(alignment, padding_bytes)
-        assert self.current_fun is not None
-        self.AddSymbol(name, self.sec_text, True)
-
-    def AddIns(self, ins: arm.Ins):
-        if ins.reloc_kind != elf_enum.RELOC_TYPE_ARM.NONE:
-            sym = self.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
-            self.AddReloc(ins.reloc_kind, self.sec_text, sym, ins.operands[ins.reloc_pos])
-            # clear reloc info before proceeding
-            ins.reloc_kind = elf_enum.RELOC_TYPE_ARM.NONE
-            ins.operands[ins.reloc_pos] = 0
-        self.sec_text.AddData(arm.Assemble(ins).to_bytes(4, byteorder='little'))
-
-    def AddLinkerDefs(self):
-        """must be called last"""
-        if self.sec_bss.sh_size > 0:
-            self.sec_bss.PadData(16, ZERO_BYTE)
-            self.AddSymbol("$$rw_data_end", self.sec_bss, False)
-        elif self.sec_data.sh_size > 0:
-            self.sec_data.PadData(16, ZERO_BYTE)
-            self.AddSymbol("$$rw_data_end", self.sec_data, False)
-
-
-    def __str__(self):
-        syms = {}
-        return f"""UNIT
-SECTION[text] {len(self.sec_text.data)}
-{DumpData(self.sec_text.data, 0, syms)}
-SECTION[rodata] {len(self.sec_rodata.data)}
-{DumpData(self.sec_rodata.data, 0, syms)}     
-SECTION[data] {len(self.sec_data.data)}
-{DumpData(self.sec_data.data, 0, syms)}    
-SECTION[bss] {len(self.sec_bss.data)}
-{DumpData(self.sec_bss.data, 0, syms)}    
-"""
-
-
-def HandleOpcode(mnemonic, token: List[str], unit: Unit):
-    ins = dis.InsParse(mnemonic, token)
+def AddIns(unit: elf_unit.Unit, ins: arm.Ins):
     if ins.reloc_kind != elf_enum.RELOC_TYPE_ARM.NONE:
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
         unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
@@ -181,7 +40,11 @@ def HandleOpcode(mnemonic, token: List[str], unit: Unit):
     unit.sec_text.AddData(arm.Assemble(ins).to_bytes(4, byteorder='little'))
 
 
-def AddStartUpCode(unit: Unit):
+def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
+    AddIns(unit, dis.InsParse(mnemonic, token))
+
+
+def AddStartUpCode(unit: elf_unit.Unit):
     """Add code for `_start` wrapper which calls main(()
 
     When Linux transfers control to a new A32 program is does not follow any calling
@@ -199,7 +62,7 @@ def AddStartUpCode(unit: Unit):
     ...
                         NULL    # envp sentinel
     """
-    unit.FunStart("_start", 16)
+    unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [
         ("ldr_imm_add", "al r0 sp 0"),
         ("add_imm", "al r1 sp 4"),
@@ -215,10 +78,10 @@ class ParseError(Exception):
     pass
 
 
-def UnitParse(fin, add_startup_code) -> Unit:
-    unit = Unit()
+def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
+    unit = elf_unit.Unit()
     dir_handlers = {
-        ".fun": lambda x, y: unit.FunStart(x, int(y, 0)),
+        ".fun": lambda x, y: unit.FunStart(x, int(y, 0), NOP_BYTES),
         ".endfun": unit.FunEnd,
         ".mem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, False),
         ".localmem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, True),
@@ -289,7 +152,7 @@ def _ApplyRelocation(rel: elf.Reloc):
     print(f"PATCH INS {rel.r_type} {rel.r_offset:x} {sym_val:x} {old_data:x} {new_data:x} {rel.symbol.name}")
 
 
-def Assemble(unit: Unit, create_sym_tab: bool) -> elf.Executable:
+def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
     sections = []
     segments = []
 
