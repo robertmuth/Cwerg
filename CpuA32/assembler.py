@@ -6,7 +6,7 @@ This files contains ELF like abstraction to help build an assembler.
 from typing import List, Dict, Any
 
 import CpuA32.opcode_tab as a32
-from CpuA32 import symbolic 
+from CpuA32 import symbolic
 import Elf.elfhelper as elf
 import Elf.enum_tab as elf_enum
 from Elf import elf_unit

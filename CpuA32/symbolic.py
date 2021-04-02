@@ -87,29 +87,29 @@ def _EmitReloc(ins: a32.Ins, pos: int) -> str:
         assert False
 
 
-def SymbolizeOperand(field: a32.OK, value: int) -> str:
+def SymbolizeOperand(ok: a32.OK, value: int) -> str:
     """Convert an operand in integer form as found in  arm.Ins to a string
 
     (This does not handle relocation expressions.)
     """
-    if field == a32.OK.PRED_28_31:
+    if ok == a32.OK.PRED_28_31:
         return a32.PRED(value).name
-    elif field in a32.FIELDS_REG:
+    elif ok in a32.FIELDS_REG:
         return a32.REG(value).name
-    elif field in a32.FIELDS_DREG:
+    elif ok in a32.FIELDS_DREG:
         return a32.DREG(value).name
-    elif field in a32.FIELDS_SREG:
+    elif ok in a32.FIELDS_SREG:
         return a32.SREG(value).name
-    elif field in a32.FIELDS_IMM:
+    elif ok in a32.FIELDS_IMM:
         return f"{value}"
-    elif field in a32.FIELDS_SHIFT:
+    elif ok in a32.FIELDS_SHIFT:
         return a32.SHIFT(value).name
-    elif field is a32.OK.REG_RANGE_0_7 or field is a32.OK.REG_RANGE_1_7:
+    elif ok is a32.OK.REG_RANGE_0_7 or ok is a32.OK.REG_RANGE_1_7:
         return f"regrange:{value}"
-    elif field is a32.OK.REGLIST_0_15:
+    elif ok is a32.OK.REGLIST_0_15:
         return f"reglist:0x{value:04x}"
     else:
-        assert False, f"unsupported field {field}"
+        assert False, f"unsupported field {ok}"
         return ""
 
 
