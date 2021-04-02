@@ -32,6 +32,12 @@ tests_cross: jit_example_cross
 	diff $<.actual.out $<.golden
 
 
+argv_test: TestData/argv.asm
+	echo "[integration $@]"
+	$(PYPY)	./assembler_tool.py assemble $< TestData/$@.exe > $<.out
+	TestData/$@.exe argv1 argv2 arvg3 argv4 ... argn > $<.actual.out
+	diff $<.actual.out $<.golden
+
 objdump_compat_test:
 	@echo "[$@]"
 	$(PYPY) ./opcode_test.py TestData/arm_test.dis
