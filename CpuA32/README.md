@@ -8,12 +8,16 @@ Neither Thumb nor Thumb-2 are supported.
 The implementation is far more complete than what is needed by [../CodeGenA32]
 and might be useful by itself.
 
-## Concepts and API
+## Concepts 
 
 An instruction consists of two parts:
 1. a template describing its format, aka `Opcode`,
    which breaks down the instruction into a list of `Operands`.  
 2. a list of integers, one for each `Operand` in the `Opcode`.
+
+The integers are usually just the bits used by the operand shifted all the 
+way to the right but for some immediate operands we decode the operand for
+ergonomic reasons. 
 
 A list of all opcodes and their operands can be obtained by running
 ```
@@ -33,15 +37,9 @@ OPCODE vcvt.s32.f64                # opcode name
     DREG_0_3_5          d0 (0)     # 3. operand name:DREG_0_3_5     symbolized_val:d0  val:0
 ```
 
-There are helpers for looking up the `Opcode` of a 32 bit instruction 
-word, `Opcode.FindOpcode`, and extracting the `Operand` values,
-`Opcode.DisassembleOperands`.
+### Opcode Names
 
-Conversely, starting with and `Opcode` and list of `Operand` values
-an instruction word can be obtained via `Opcode.AssembleOperands`
-
-An `Opocode` can also be looked up by its name in the dictionary
-`Opcode.names_to_opcode`. Note, the name may have two components a basename and possibly 
+ Note, the opcode name may have two components a basename and possibly 
 a variant suffix separated by an underscore:
 * `add_regreg` (src2 is reg shifted by another reg)
 * `add_regimm` (src2 is reg shifted by immediate)
@@ -75,9 +73,20 @@ assembler notation with the following exceptions:
   followed by an immediate count 
 * the lr register in the bl instruction is made explicit
 * store and load instruction do not use square brackets, exclamation marks, minus signs
-  to indictae the various addressing modes as this is already encoded in the opcode variant
+  to indicate the various addressing modes as this is already encoded in the opcode variant
  
- 
+### API
+
+There are helpers for looking up the `Opcode` of a 32 bit instruction 
+word, `Opcode.FindOpcode`, and extracting the `Operand` values,
+`Opcode.DisassembleOperands`.
+
+Conversely, starting with and `Opcode` and list of `Operand` values
+an instruction word can be obtained via `Opcode.AssembleOperands`
+
+An `Opocode` can also be looked up by its name in the dictionary
+`Opcode.names_to_opcode`.
+
 #### Examples
 
 Standard Notation
