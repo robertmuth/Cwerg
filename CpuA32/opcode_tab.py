@@ -1238,7 +1238,7 @@ def _EmitCodeH(fout):
     _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
 
 
-def _RenderOpcodeTable():
+def _RenderOpcodeTable() -> List[str]:
     """Note: we sneak in an invalid first entry"""
     out = [
         '{"invalid", "invalid", 0, 0, 0, {}, 0, MEM_WIDTH::NA, SR_UPDATE::NONE},'
@@ -1254,6 +1254,16 @@ def _RenderOpcodeTable():
             f' {len(opc.fields)}, {fields},',
             f' {flags}, MEM_WIDTH::{opc.mem_width.name}, SR_UPDATE::{opc.sr_update.name}',
             '},']
+    return out
+
+
+def _RenderClusteredOpcodeTable() -> List[str]:
+    out = []
+    for i in range(8):
+        out += [f"  // cluster {i}"]
+        cluster = Opcode.ordered_opcodes[i]
+        enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
+        out += ["  " + ", ".join(enums)]
     return out
 
 
@@ -1306,6 +1316,10 @@ def _EmitCodeC(fout):
     print("// Indexed by OPC which in turn are organize to help with disassembly", file=fout)
     print("const Opcode OpcodeTable[] = {", file=fout)
     print("\n".join(_RenderOpcodeTable()), file=fout)
+    print("};\n", file=fout)
+
+    print("const OPC ClusteredOpcodeTable[] = {", file=fout)
+    print(",\n".join(_RenderClusteredOpcodeTable()), file=fout)
     print("};\n", file=fout)
 
     print("const int16_t OpcodeTableJumper[] = {", file=fout)
