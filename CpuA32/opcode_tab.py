@@ -533,11 +533,11 @@ _VARIANTS.update(["reg_" + t[0] for t in STANDARD_ADDR_MODES])
 # it to partition the instructions.
 # Bit 0x00100000 is another candidate bit we would need an exception
 # for svc, b, bl
-_INS_CLASSIFIER: int = 7 << 25
+_INS_CLASSIFIER: int = 0xf << 24
 
 
 def _OpcodeDiscriminant(data: int) -> int:
-    return (data >> 25) & 7
+    return (data >> 24) & 0xf
 
 
 class Opcode:
@@ -1192,18 +1192,6 @@ def Query(opcode: str):
         print("bit range tuples have the form (modifier, bit-width, start-pos)")
 
 
-def _get_grouped_opcodes(mask: int) -> List[Opcode]:
-    """Preserves the order of the Opcode.ordered_opcodes"""
-    d = collections.defaultdict(list)
-    for lst in Opcode.ordered_opcodes.values():
-        for opc in lst:
-            d[opc.bit_value & mask].append(opc)
-    out = []
-    for k, v in sorted(d.items()):
-        out += v
-    return out
-
-
 def _render_enum_simple(symbols, name):
     print("\n%s {" % name)
     for sym in symbols:
@@ -1233,7 +1221,7 @@ def _EmitCodeH(fout):
     cgen.RenderEnum(cgen.NameValues(SREG), "class SREG : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(DREG), "class DREG : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SHIFT), "class SHIFT : uint8_t", fout)
-    opcodes = [opc.NameForEnum() for opc in _get_grouped_opcodes(_INS_CLASSIFIER)]
+    opcodes = list(sorted(Opcode.name_to_opcode.keys()))
     # note we sneak in an invalid first entry
     _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
 
@@ -1243,14 +1231,13 @@ def _RenderOpcodeTable() -> List[str]:
     out = [
         '{"invalid", "invalid", 0, 0, 0, {}, 0, MEM_WIDTH::NA, SR_UPDATE::NONE},'
     ]
-    opcodes = _get_grouped_opcodes(_INS_CLASSIFIER)
-    for opc in opcodes:
+    for name, opc in sorted(Opcode.name_to_opcode.items()):
         flags = " | ".join([f.name for f in OPC_FLAG if opc.classes & f])
         assert len(opc.fields) <= MAX_OPERANDS
         fields = "{" + ", ".join(["OK::" + f.name for f in opc.fields]) + "}"
         out += [
             "{" +
-            f'"{opc.name}", "{opc.NameForEnum()}", 0x{opc.bit_mask:08x}, 0x{opc.bit_value:08x},',
+            f'"{opc.name}", "{name}", 0x{opc.bit_mask:08x}, 0x{opc.bit_value:08x},',
             f' {len(opc.fields)}, {fields},',
             f' {flags}, MEM_WIDTH::{opc.mem_width.name}, SR_UPDATE::{opc.sr_update.name}',
             '},']
@@ -1259,7 +1246,7 @@ def _RenderOpcodeTable() -> List[str]:
 
 def _RenderClusteredOpcodeTable() -> List[str]:
     out = []
-    for i in range(8):
+    for i in range(16):
         out += [f"  // cluster {i}"]
         cluster = Opcode.ordered_opcodes[i]
         enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
@@ -1270,7 +1257,7 @@ def _RenderClusteredOpcodeTable() -> List[str]:
 def _RenderOpcodeTableJumper() -> List[str]:
     out = []
     current_offset = 0  # compensate for invalid first entry
-    for i in range(8):
+    for i in range(16):
         cluster = Opcode.ordered_opcodes[i]
         out.append(f"{current_offset}")
         current_offset += len(cluster)
@@ -1349,16 +1336,16 @@ def _EmitCodeC(fout):
 def _OpcodeDisassemblerExperiments():
     """Some failed experiments for making the disassembler even faster"""
     print("opcode distribution")
-    for k, v in Opcode.ordered_opcodes.items():
+    for k, cluster in Opcode.ordered_opcodes.items():
         submask = ~0
-        for x in v:
+        for x in cluster:
             submask &= x.bit_mask
-        print(f"{k:08x} {len(v):2}  {submask:08x}")
-        d = collections.defaultdict(list)
-        for x in v:
-            d[x.bit_value & submask].append(x)
-        for k2, v2 in sorted(d.items()):
-            print(f"  {k2:08x} {len(v2):2}")
+        print(f"{k:08x} {len(cluster):3}  {submask:08x}")
+        #d = collections.defaultdict(list)
+        #for x in cluster:
+        #    d[x.bit_value & submask].append(x)
+        #for k2, v2 in sorted(d.items()):
+        #    print(f"  {k2:08x} {len(v2):2}")
     # print(f"magic mask {_INS_MAGIC_CLASSIFIER:08x}")
     # d = collections.defaultdict(list)
     # for x in Opcode.name_to_opcode.values():
@@ -1366,8 +1353,8 @@ def _OpcodeDisassemblerExperiments():
     # for k, v in sorted(d.items()):
     #     print(f"  {k:08x} {len(v):2}")
     # print("")
-    for opc in sorted(Opcode.name_to_opcode.values()):
-        print(f"{opc.name:12s} {opc.variant:6s} {opc.fields}")
+    # for opc in sorted(Opcode.name_to_opcode.values()):
+    #     print(f"{opc.name:12s} {opc.variant:6s} {opc.fields}")
     print("OK")
 
 
