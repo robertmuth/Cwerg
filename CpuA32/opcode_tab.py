@@ -508,12 +508,6 @@ MULTI_ADDR_MODES = [
      OPC_FLAG.ADDR_PRE | OPC_FLAG.ADDR_INC | OPC_FLAG.ADDR_UPDATE),
 ]
 
-# All instruction contain this discriminant in their mask so we can use
-# it to partition the instructions.
-# Bit 0x00100000 is another candidate bit we would need an exception
-# for svc, b, bl
-_INS_CLASSIFIER: int = 0x0e000000
-
 # _INS_MAGIC_CLASSIFIER: int = 0x0ff00000  # needs more work
 
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
@@ -534,6 +528,16 @@ _VARIANTS.update(["f32_" + t[0] for t in STANDARD_ADDR_MODES])
 _VARIANTS.update(["f64_" + t[0] for t in STANDARD_ADDR_MODES])
 _VARIANTS.update(["imm_" + t[0] for t in STANDARD_ADDR_MODES])
 _VARIANTS.update(["reg_" + t[0] for t in STANDARD_ADDR_MODES])
+
+# All instruction contain this discriminant in their mask so we can use
+# it to partition the instructions.
+# Bit 0x00100000 is another candidate bit we would need an exception
+# for svc, b, bl
+_INS_CLASSIFIER: int = 7 << 25
+
+
+def _OpcodeDiscriminant(data: int) -> int:
+    return (data >> 25) & 7
 
 
 class Opcode:
@@ -586,7 +590,7 @@ class Opcode:
         # by certain bits
         assert mask & _INS_CLASSIFIER == _INS_CLASSIFIER, f"{name}"
 
-        Opcode.ordered_opcodes[value & _INS_CLASSIFIER].append(self)
+        Opcode.ordered_opcodes[_OpcodeDiscriminant(value)].append(self)
         self.bit_mask = mask
         self.bit_value = value
         self.fields: List[OK] = fields
@@ -623,7 +627,7 @@ class Opcode:
 
     @classmethod
     def FindOpcode(cls, data: int) -> Optional["Opcode"]:
-        for opcode in Opcode.ordered_opcodes[data & _INS_CLASSIFIER]:
+        for opcode in Opcode.ordered_opcodes[_OpcodeDiscriminant(data)]:
             if data & opcode.bit_mask == opcode.bit_value:
                 return opcode
         return None
@@ -1240,16 +1244,7 @@ def _RenderOpcodeTable():
         '{"invalid", "invalid", 0, 0, 0, {}, 0, MEM_WIDTH::NA, SR_UPDATE::NONE},'
     ]
     opcodes = _get_grouped_opcodes(_INS_CLASSIFIER)
-    last = ~0
     for opc in opcodes:
-        key = opc.bit_value & _INS_CLASSIFIER
-        if key != last:
-            out += [
-                f"/* {'=' * 60}*/",
-                f"/* BLOCK {key:08x} */",
-                f"/* {'=' * 60}*/",
-            ]
-            last = key
         flags = " | ".join([f.name for f in OPC_FLAG if opc.classes & f])
         assert len(opc.fields) <= MAX_OPERANDS
         fields = "{" + ", ".join(["OK::" + f.name for f in opc.fields]) + "}"
@@ -1264,9 +1259,9 @@ def _RenderOpcodeTable():
 
 def _RenderOpcodeTableJumper() -> List[str]:
     out = []
-    current_offset = 0 # compensate for invalid first entry
+    current_offset = 0  # compensate for invalid first entry
     for i in range(8):
-        cluster = Opcode.ordered_opcodes[i * 0x2000000]
+        cluster = Opcode.ordered_opcodes[i]
         # the +1 compensates for the invalid first entry we have snuck in
         out.append(f"{current_offset + 1}, {current_offset + len(cluster)}")
         current_offset += len(cluster)

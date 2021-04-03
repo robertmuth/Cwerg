@@ -18,9 +18,6 @@ struct Field {
 // Indexed by OPC which in turn are organize to help with disassembly
 const Opcode OpcodeTable[] = {
 {"invalid", "invalid", 0, 0, 0, {}, 0, MEM_WIDTH::NA, SR_UPDATE::NONE},
-/* ============================================================*/
-/* BLOCK 00000000 */
-/* ============================================================*/
 {"mul", "mul", 0x0ff0f0f0, 0x00000090,
  4, {OK::PRED_28_31, OK::REG_16_19, OK::REG_0_3, OK::REG_8_11},
  MUL, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -645,9 +642,6 @@ const Opcode OpcodeTable[] = {
  5, {OK::PRED_28_31, OK::REG_12_15, OK::REG_0_3, OK::SHIFT_MODE_5_6, OK::IMM_7_11},
  ALU1, MEM_WIDTH::NA, SR_UPDATE::NCZ_PSR
 },
-/* ============================================================*/
-/* BLOCK 02000000 */
-/* ============================================================*/
 {"and", "and_imm", 0x0ff00000, 0x02000000,
  4, {OK::PRED_28_31, OK::REG_12_15, OK::REG_16_19, OK::IMM_0_7_8_11},
  ALU, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -768,9 +762,6 @@ const Opcode OpcodeTable[] = {
  3, {OK::PRED_28_31, OK::REG_12_15, OK::IMM_0_11_16_19},
  ALU1, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 04000000 */
-/* ============================================================*/
 {"ldp", "ldp_imm_sub_post", 0xfff0f000, 0xf450f000,
  2, {OK::REG_16_19, OK::IMM_0_11},
  PREFETCH | ADDR_POST | ADDR_DEC | ADDR_UPDATE, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -891,9 +882,6 @@ const Opcode OpcodeTable[] = {
  4, {OK::PRED_28_31, OK::REG_16_19, OK::IMM_0_11, OK::REG_12_15},
  STORE | ADDR_PRE | ADDR_INC | ADDR_UPDATE, MEM_WIDTH::W1, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 06000000 */
-/* ============================================================*/
 {"sdiv", "sdiv", 0x0ff0f0f0, 0x0710f010,
  4, {OK::PRED_28_31, OK::REG_16_19, OK::REG_0_3, OK::REG_8_11},
  DIV, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -1082,9 +1070,6 @@ const Opcode OpcodeTable[] = {
  1, {OK::PRED_28_31},
  MISC, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 08000000 */
-/* ============================================================*/
 {"stmda", "stmda", 0x0ff00000, 0x08000000,
  3, {OK::PRED_28_31, OK::REG_16_19, OK::REGLIST_0_15},
  STORE | MULTIPLE | ADDR_POST | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -1149,9 +1134,6 @@ const Opcode OpcodeTable[] = {
  3, {OK::PRED_28_31, OK::REGLIST_0_15, OK::REG_16_19},
  LOAD | MULTIPLE | ADDR_PRE | ADDR_INC | ADDR_UPDATE, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 0a000000 */
-/* ============================================================*/
 {"b", "b", 0x0f000000, 0x0a000000,
  2, {OK::PRED_28_31, OK::SIMM_0_23},
  JUMP, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -1160,9 +1142,6 @@ const Opcode OpcodeTable[] = {
  3, {OK::PRED_28_31, OK::REG_LINK, OK::SIMM_0_23},
  JUMP | LINK, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 0c000000 */
-/* ============================================================*/
 {"vldr", "vldr_f32_sub", 0x0fb00f00, 0x0d100a00,
  4, {OK::PRED_28_31, OK::SREG_12_15_22, OK::REG_16_19, OK::IMM_0_7_TIMES_4},
  LOAD | VFP | ADDR_PRE | ADDR_DEC, MEM_WIDTH::NA, SR_UPDATE::NONE
@@ -1331,9 +1310,6 @@ const Opcode OpcodeTable[] = {
  4, {OK::PRED_28_31, OK::REG_16_19, OK::DREG_12_15_22, OK::REG_RANGE_1_7},
  STORE | MULTIPLE | VFP | ADDR_PRE | ADDR_INC | ADDR_UPDATE, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
-/* ============================================================*/
-/* BLOCK 0e000000 */
-/* ============================================================*/
 {"svc", "svc", 0x0f000000, 0x0f000000,
  2, {OK::PRED_28_31, OK::IMM_0_23},
  SYSCALL, MEM_WIDTH::NA, SR_UPDATE::NONE
