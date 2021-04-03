@@ -219,7 +219,7 @@ class SHIFT(enum.IntEnum):
     lsl = 0
     lsr = 1
     asr = 2
-    ror_rrx = 3
+    ror = 3
 
 
 ############################################################
@@ -274,46 +274,46 @@ class OK(enum.Enum):
     REG_LINK = 33
 
     # shifts
-    SHIFT_22_23 = 60
-    SHIFT_22_23_NO_ROR = 61
-    SHIFT_15_W = 62
-    SHIFT_15_X = 63
+    SHIFT_22_23 = 34
+    SHIFT_22_23_NO_ROR = 35
+    SHIFT_15_W = 36
+    SHIFT_15_X = 37
 
-    # signed immeditate
-    SIMM_PCREL_0_25 = 70
-    SIMM_12_20 = 71
-    SIMM_15_21_TIMES16 = 72
-    SIMM_15_21_TIMES4 = 73
-    SIMM_15_21_TIMES8 = 74
-    SIMM_PCREL_5_18 = 75
-    SIMM_PCREL_5_23 = 76
-    SIMM_PCREL_5_23_29_30 = 77
+    # signed immediate
+    SIMM_PCREL_0_25 = 38
+    SIMM_12_20 = 39
+    SIMM_15_21_TIMES16 = 40
+    SIMM_15_21_TIMES4 = 41
+    SIMM_15_21_TIMES8 = 42
+    SIMM_PCREL_5_18 = 43
+    SIMM_PCREL_5_23 = 44
+    SIMM_PCREL_5_23_29_30 = 45
 
-    # unsigned immediates
-    IMM_10_12_LIMIT4 = 100
-    IMM_10_15 = 101
-    IMM_10_15_16_22_W = 102
-    IMM_10_15_16_22_X = 103
-    IMM_10_21 = 104
-    IMM_SHIFTED_10_21_22 = 105
-    IMM_10_21_times_16 = 106
-    IMM_10_21_times_2 = 107
-    IMM_10_21_times_4 = 108
-    IMM_10_21_times_8 = 109
-    IMM_12_MAYBE_SHIFT_0 = 110
-    IMM_12_MAYBE_SHIFT_1 = 111
-    IMM_12_MAYBE_SHIFT_2 = 112
-    IMM_12_MAYBE_SHIFT_3 = 113
-    IMM_12_MAYBE_SHIFT_4 = 114
-    IMM_16_20 = 116
-    IMM_16_21 = 117
-    IMM_19_23_31 = 118
-    IMM_5_20 = 119
-    IMM_COND_0_3 = 121
-    IMM_FLT_ZERO = 123
-    IMM_SHIFTED_5_20_21_22 = 124
+    # unsigned immediate
+    IMM_10_12_LIMIT4 = 46
+    IMM_10_15 = 47
+    IMM_10_15_16_22_W = 48
+    IMM_10_15_16_22_X = 49
+    IMM_10_21 = 50
+    IMM_SHIFTED_10_21_22 = 51
+    IMM_10_21_times_16 = 52
+    IMM_10_21_times_2 = 53
+    IMM_10_21_times_4 = 54
+    IMM_10_21_times_8 = 55
+    IMM_12_MAYBE_SHIFT_0 = 56
+    IMM_12_MAYBE_SHIFT_1 = 57
+    IMM_12_MAYBE_SHIFT_2 = 58
+    IMM_12_MAYBE_SHIFT_3 = 59
+    IMM_12_MAYBE_SHIFT_4 = 60
+    IMM_16_20 = 61
+    IMM_16_21 = 62
+    IMM_19_23_31 = 63
+    IMM_5_20 = 64
+    IMM_COND_0_3 = 65
+    IMM_FLT_ZERO = 66
+    IMM_SHIFTED_5_20_21_22 = 67
     #
-    FLT_13_20 = 115
+    FLT_13_20 = 68
 
 
 ############################################################
@@ -498,6 +498,7 @@ class MEM_WIDTH(enum.Enum):
     W4 = 3
     W8 = 4
     W16 = 5
+    W32 = 6
 
 
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
@@ -1200,11 +1201,10 @@ def Assemble(ins: Ins) -> int:
 ############################################################
 def Query(opcode: str):
     count = 0
-    for opc_list in Opcode.ordered_opcodes.values():
-        for opc in opc_list:
-            if opc.name != opcode:
+    for name, opc in sorted(Opcode.name_to_opcode.items()):
+            if not name.startswith(opcode):
                 continue
-            print(f"name={opc.name} variant={opc.variant}")
+            print(f"name={name}")
             print(f"mask={opc.bit_mask:08x} value={opc.bit_value:08x}")
             print("fields with bit ranges:")
             for f in opc.fields:
@@ -1290,24 +1290,23 @@ def _RenderOpcodeTableJumper() -> List[str]:
     return out
 
 
-def _RenderFieldTable():
+def _RenderOperandKindTable():
     out = []
     for n, ok in enumerate(OK):
-        assert n == ok.value
+        assert n == ok.value, f"expected enum value {n} from {ok}"
         if ok is OK.Invalid:
             bit_ranges = []
         else:
             bit_ranges = FIELD_DETAILS[ok]
         assert len(bit_ranges) <= MAX_BIT_RANGES
-        out += ["{" + f"   // {ok.name} = {ok.value}"]
+        out += [f"{{   // {ok.name} = {ok.value}"]
         out += [f"    {len(bit_ranges)}," + " {"]
-        out += ["    {BitRangeKind::%s, %d, %d}," % (brk.name, a, b)
-                for (brk, a, b) in bit_ranges]
+        out += ["    {%d, %d}," % (a, b) for a, b in bit_ranges]
         out += ["}}, "]
     return out
 
 
-_MNEMONIC_HASH_LOOKUP_SIZE = 512
+_MNEMONIC_HASH_LOOKUP_SIZE = 2048
 
 
 def _RenderMnemonicHashLookup():
@@ -1326,23 +1325,23 @@ def _RenderMnemonicHashLookup():
 
 
 def _EmitCodeC(fout):
-    print("// Indexed by OPC which in turn are organize to help with disassembly", file=fout)
-    print("const Opcode OpcodeTable[] = {", file=fout)
-    print("\n".join(_RenderOpcodeTable()), file=fout)
-    print("};\n", file=fout)
-
-    print("const int16_t OpcodeTableJumper[] = {", file=fout)
-    print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
-    print("};\n", file=fout)
-
-    print("// Indexed by FieldKind", file=fout)
+    # print("// Indexed by OPC which in turn are organize to help with disassembly", file=fout)
+    # print("const Opcode OpcodeTable[] = {", file=fout)
+    # print("\n".join(_RenderOpcodeTable()), file=fout)
+    # print("};\n", file=fout)
+    #
+    # print("const int16_t OpcodeTableJumper[] = {", file=fout)
+    # print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
+    # print("};\n", file=fout)
+    #
+    print("// Indexed by OK", file=fout)
     print("static const Field FieldTable[] = {", file=fout)
-    print("\n".join(_RenderFieldTable()), file=fout)
+    print("\n".join(_RenderOperandKindTable()), file=fout)
     print("};\n", file=fout)
 
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print("static const OPC MnemonicHashTable[512] = {", file=fout)
+    print(f"static const OPC MnemonicHashTable[{_MNEMONIC_HASH_LOOKUP_SIZE}] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
@@ -1351,40 +1350,16 @@ def _EmitCodeC(fout):
     cgen.RenderEnumToStringFun("SHIFT", fout)
 
 
-def _OpcodeDisassemblerExperiments():
-    """Some failed experiments for making the disassembler even faster"""
-    print("opcode distribution")
-    for k, v in Opcode.ordered_opcodes.items():
-        submask = ~0
-        for x in v:
-            submask &= x.bit_mask
-        print(f"{k:08x} {len(v):2}  {submask:08x}")
-        d = collections.defaultdict(list)
-        for x in v:
-            d[x.bit_value & submask].append(x)
-        for k2, v2 in sorted(d.items()):
-            print(f"  {k2:08x} {len(v2):2}")
-    # print(f"magic mask {_INS_MAGIC_CLASSIFIER:08x}")
-    # d = collections.defaultdict(list)
-    # for x in Opcode.name_to_opcode.values():
-    #     d[x.bit_value & _INS_MAGIC_CLASSIFIER].append(x)
-    # for k, v in sorted(d.items()):
-    #     print(f"  {k:08x} {len(v):2}")
-    # print("")
-    for opc in sorted(Opcode.name_to_opcode.values()):
-        print(f"{opc.name:12s} {opc.variant:6s} {opc.fields}")
-    print("OK")
-
-
 def _MnemonicHashingExperiments():
     # experiment for near perfect hashing
+    print (f"hashtable size: {_MNEMONIC_HASH_LOOKUP_SIZE} opcodes: {len(Opcode.name_to_opcode)}")
+    assert len(Opcode.name_to_opcode) < _MNEMONIC_HASH_LOOKUP_SIZE
     buckets = [[] for _ in range(_MNEMONIC_HASH_LOOKUP_SIZE)]
     table = [""] * _MNEMONIC_HASH_LOOKUP_SIZE
     distance = [0] * 128
-    for opc in Opcode.name_to_opcode.values():
-        s = opc.NameForEnum()
+    for s, opc in Opcode.name_to_opcode.items():
         h = hash_djb2(s)
-        print(f"{s}: {h:x}")
+        # print(f"{s}: {h:x}")
         buckets[h % _MNEMONIC_HASH_LOOKUP_SIZE].append(s)
         for d in range(len(distance)):
             hh = (h + d) % _MNEMONIC_HASH_LOOKUP_SIZE
@@ -1396,7 +1371,7 @@ def _MnemonicHashingExperiments():
             assert False, f"probing distance exceeded {s}"
     print("hash collisions")
     for n, opcodes in enumerate(buckets):
-        if opcodes:
+        if opcodes and len(opcodes) > 1:
             print(f"{n:2x} {len(opcodes)}  {opcodes}")
     print("linear probing distances")
     for n, count in enumerate(distance):
@@ -1404,31 +1379,33 @@ def _MnemonicHashingExperiments():
             print(f"{n} {count}")
 
 
+def _CheckLogicalImmediateEncoding():
+    count = 0
+    for size, sm in [(2, 0x3c), (4, 0x38), (8, 0x30), (16, 0x20), (32, 0), (64, 0)]:
+        for ones in range(1, size):
+            for r in range(size):
+                count += 1
+                n = (size == 64)
+                s = sm | (ones - 1)
+                i = (n << 12) | (r << 6) | s
+                x = DecodeLogicalImmediate(i, 64)
+                # print (f"{size:2d} {ones:2d} r={r:06b} s={s:06b} {x:016x}")
+                i2 = Encode_10_15_16_22_X(x)
+                assert i == i2, f"mismatch {i:x} {i2:x}"
+
+
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
         print("Check Separability")
         _CheckOpcodeSeparability()
         print("Check Logical Immediate Encoding")
-        count = 0
-        for size, sm in [(2, 0x3c), (4, 0x38), (8, 0x30), (16, 0x20), (32, 0), (64, 0)]:
-            for ones in range(1, size):
-                for r in range(size):
-                    count += 1
-                    n = (size == 64)
-                    s = sm | (ones - 1)
-                    i = (n << 12) | (r << 6) | s
-                    x = DecodeLogicalImmediate(i, 64)
-                    # print (f"{size:2d} {ones:2d} r={r:06b} s={s:06b} {x:016x}")
-                    i2 = Encode_10_15_16_22_X(x)
-                    assert i == i2, f"mismatch {i:x} {i2:x}"
+        _CheckLogicalImmediateEncoding()
         print(f"checked {count} immediates")
         for name, opcode in sorted(Opcode.name_to_opcode.items()):
             fields = [ok.name for ok in opcode.fields]
             print (f"{name:20} {' '.join(fields)}")
         sys.exit(1)
-    if sys.argv[1] == "dist":
-        _OpcodeDisassemblerExperiments()
-    elif sys.argv[1] == "hash":
+    if sys.argv[1] == "hash":
         _MnemonicHashingExperiments()
     elif sys.argv[1] == "gen_c":
         cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
