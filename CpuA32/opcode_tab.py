@@ -1200,16 +1200,6 @@ def _get_grouped_opcodes(mask: int) -> List[Opcode]:
     return out
 
 
-def _find_mask_matches(mask: int, val: int, opcodes: List[Opcode]) -> Tuple[int, int]:
-    first = -1
-    last = -1
-    for n, opc in enumerate(opcodes):
-        if (opc.bit_value & mask) == val & opc.bit_mask:
-            if first == -1: first = n
-            last = n
-    return first, last
-
-
 def _render_enum_simple(symbols, name):
     print("\n%s {" % name)
     for sym in symbols:
@@ -1228,6 +1218,8 @@ def hash_djb2(x: str):
 
 
 def _EmitCodeH(fout):
+    print(f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
+    print(f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SR_UPDATE), "class SR_UPDATE : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
@@ -1272,11 +1264,12 @@ def _RenderOpcodeTable():
 
 def _RenderOpcodeTableJumper() -> List[str]:
     out = []
-    opcodes = _get_grouped_opcodes(_INS_CLASSIFIER)
+    current_offset = 0 # compensate for invalid first entry
     for i in range(8):
-        first, last = _find_mask_matches(_INS_CLASSIFIER, i * 0x2000000, opcodes)
+        cluster = Opcode.ordered_opcodes[i * 0x2000000]
         # the +1 compensates for the invalid first entry we have snuck in
-        out.append(f"{first + 1}, {last + 1}")
+        out.append(f"{current_offset + 1}, {current_offset + len(cluster)}")
+        current_offset += len(cluster)
     return out
 
 
@@ -1296,15 +1289,15 @@ def _RenderOperandKindTable():
     return out
 
 
-_MNEMONIC_HASH_LOOKUP_SIZE = 512
+_MNEMONIC_HASH_TABLE_SIZE = 512
 
 
 def _RenderMnemonicHashLookup():
-    table = ["invalid"] * _MNEMONIC_HASH_LOOKUP_SIZE
+    table = ["invalid"] * _MNEMONIC_HASH_TABLE_SIZE
     for name, opc in Opcode.name_to_opcode.items():
         h = hash_djb2(name)
         for d in range(64):
-            hh = (h + d) % _MNEMONIC_HASH_LOOKUP_SIZE
+            hh = (h + d) % _MNEMONIC_HASH_TABLE_SIZE
             if table[hh] == "invalid":
                 table[hh] = name
                 break
@@ -1329,9 +1322,11 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderOperandKindTable()), file=fout)
     print("};\n", file=fout)
 
+    print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
+
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print(f"static const OPC MnemonicHashTable[{_MNEMONIC_HASH_LOOKUP_SIZE}] = {{", file=fout)
+    print(f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
@@ -1369,16 +1364,16 @@ def _OpcodeDisassemblerExperiments():
 
 def _MnemonicHashingExperiments():
     # experiment for near perfect hashing
-    buckets = [[] for _ in range(_MNEMONIC_HASH_LOOKUP_SIZE)]
-    table = [""] * _MNEMONIC_HASH_LOOKUP_SIZE
+    buckets = [[] for _ in range(_MNEMONIC_HASH_TABLE_SIZE)]
+    table = [""] * _MNEMONIC_HASH_TABLE_SIZE
     distance = [0] * 128
     for opc in Opcode.name_to_opcode.values():
         s = opc.NameForEnum()
         h = hash_djb2(s)
         print(f"{s}: {h:x}")
-        buckets[h % _MNEMONIC_HASH_LOOKUP_SIZE].append(s)
+        buckets[h % _MNEMONIC_HASH_TABLE_SIZE].append(s)
         for d in range(len(distance)):
-            hh = (h + d) % _MNEMONIC_HASH_LOOKUP_SIZE
+            hh = (h + d) % _MNEMONIC_HASH_TABLE_SIZE
             if table[hh] == "":
                 table[hh] = s
                 distance[d] += 1
@@ -1399,7 +1394,7 @@ if __name__ == "__main__":
     if len(sys.argv) <= 1:
         for name, opcode in sorted(Opcode.name_to_opcode.items()):
             fields = [ok.name for ok in opcode.fields]
-            print (f"{name:20} {' '.join(fields)}")
+            print(f"{name:20} {' '.join(fields)}")
         sys.exit(1)
     if sys.argv[1] == "dist":
         _OpcodeDisassemblerExperiments()

@@ -1660,8 +1660,9 @@ static const Field FieldTable[] = {
 }}, 
 };
 
+constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 512;
 // Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing
-static const OPC MnemonicHashTable[512] = {
+static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::tst_regimm, OPC::invalid, OPC::subs_regimm, OPC::adcs_imm,
    OPC::subs_imm, OPC::vcmp_f32, OPC::vcmp_f32_zero, OPC::b,
    OPC::rsc_regreg, OPC::blx_reg, OPC::vldmia_f, OPC::invalid,
@@ -1971,8 +1972,8 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   }
   h &= 0xffff;
 
-  for (uint32_t d = 0; d < 512; ++d) {
-    OPC opc = MnemonicHashTable[(h + d) % 512];
+  for (uint32_t d = 0; d < MNEMONIC_HASH_TABLE_SIZE; ++d) {
+    OPC opc = MnemonicHashTable[(h + d) % MNEMONIC_HASH_TABLE_SIZE];
     if (opc == OPC::invalid) return nullptr;
     auto* opcode = &OpcodeTable[uint32_t(opc)];
     if (opcode->enum_name == s) return opcode;

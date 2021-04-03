@@ -10,10 +10,9 @@
 namespace cwerg::a32 {
 using namespace cwerg;
 
-constexpr const unsigned MAX_OPERANDS = 7;
-constexpr const unsigned MAX_BIT_RANGES = 4;
-
 /* @AUTOGEN-START@ */
+constexpr const unsigned MAX_OPERANDS = 6;
+constexpr const unsigned MAX_BIT_RANGES = 4;
 
 enum class OK : uint8_t {
     Invalid = 0,
