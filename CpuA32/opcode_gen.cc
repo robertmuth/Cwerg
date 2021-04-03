@@ -1524,14 +1524,15 @@ const OPC ClusteredOpcodeTable[] = {
 };
 
 const int16_t OpcodeTableJumper[] = {
-1, 156,
-157, 186,
-187, 216,
-217, 263,
-264, 279,
-280, 281,
-282, 323,
-324, 371
+0,
+156,
+186,
+216,
+263,
+279,
+281,
+323,
+371
 };
 
 // Indexed by OK
@@ -1826,14 +1827,12 @@ const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]
 
 const Opcode* FindOpcode(uint32_t bit_value) {
   uint32_t discriminant = (bit_value & 0x0e000000) >> 25;
-  const int start = OpcodeTableJumper[2 * discriminant];
-  const int end = OpcodeTableJumper[2 * discriminant + 1];
-  if (start >= 0) {
-    for (int i = start; i <= end; ++i) {
-      const struct Opcode* opc = &OpcodeTable[i];
-      if ((opc->bit_mask & bit_value) == opc->bit_value) {
-        return opc;
-      }
+  const unsigned start = OpcodeTableJumper[discriminant];
+  const unsigned end = OpcodeTableJumper[discriminant + 1];
+  for (unsigned i = start; i < end; ++i) {
+    const struct Opcode* opc = &OpcodeTable[(unsigned)ClusteredOpcodeTable[i]];
+    if ((opc->bit_mask & bit_value) == opc->bit_value) {
+      return opc;
     }
   }
   return nullptr;
@@ -1891,7 +1890,6 @@ int32_t DecodeOperand(uint32_t data, OK ok) {
   }
 }
 
-
 uint32_t EncodeOperand(int32_t data, OK ok) {
   switch (ok) {
     case OK::IMM_0_7_8_11:
@@ -1931,9 +1929,8 @@ bool Disassemble(Ins* ins, uint32_t data) {
 
   ins->opcode = opcode;
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
-    ins->operands[i] =
-        DecodeOperand(ExtractOperand(data, opcode->fields[i]),
-                      opcode->fields[i]);
+    ins->operands[i] = DecodeOperand(ExtractOperand(data, opcode->fields[i]),
+                                     opcode->fields[i]);
   }
   return true;
 }

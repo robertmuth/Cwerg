@@ -1272,9 +1272,9 @@ def _RenderOpcodeTableJumper() -> List[str]:
     current_offset = 0  # compensate for invalid first entry
     for i in range(8):
         cluster = Opcode.ordered_opcodes[i]
-        # the +1 compensates for the invalid first entry we have snuck in
-        out.append(f"{current_offset + 1}, {current_offset + len(cluster)}")
+        out.append(f"{current_offset}")
         current_offset += len(cluster)
+    out.append(f"{current_offset}")
     return out
 
 
