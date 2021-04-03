@@ -533,11 +533,11 @@ _VARIANTS.update(["reg_" + t[0] for t in STANDARD_ADDR_MODES])
 # it to partition the instructions.
 # Bit 0x00100000 is another candidate bit we would need an exception
 # for svc, b, bl
-_INS_CLASSIFIER: int = 0xf << 24
+_INS_CLASSIFIER: int = 0xff << 20
 
 
 def _OpcodeDiscriminant(data: int) -> int:
-    return (data >> 24) & 0xf
+    return (data >> 20) & 0xff
 
 
 class Opcode:
@@ -584,15 +584,20 @@ class Opcode:
         assert enum_name not in Opcode.name_to_opcode, f"duplicate {enum_name}"
         Opcode.name_to_opcode[enum_name] = self
 
-        mask, value = Bits(*bits)
+        # Discriminant on fixed bits
+        bit_mask, bit_value = Bits(*bits)
+        if bit_mask & _INS_CLASSIFIER == _INS_CLASSIFIER:
+            Opcode.ordered_opcodes[_OpcodeDiscriminant(bit_value)].append(self)
+        else:
+            b = _OpcodeDiscriminant(bit_value)
+            m_inv = ~_OpcodeDiscriminant(bit_mask)
+            # needs to go through all bit patterns for the bit sin m_inv
+            dont_care = set((m_inv & x) for x in range(256))
+            for dc in dont_care:
+                Opcode.ordered_opcodes[b | dc].append(self)
 
-        # this ensures that we could split up ordered_opcodes
-        # by certain bits
-        assert mask & _INS_CLASSIFIER == _INS_CLASSIFIER, f"{name}"
-
-        Opcode.ordered_opcodes[_OpcodeDiscriminant(value)].append(self)
-        self.bit_mask = mask
-        self.bit_value = value
+        self.bit_mask = bit_mask
+        self.bit_value = bit_value
         self.fields: List[OK] = fields
         self.classes: OPC_FLAG = classes
         self.sr_update = sr_update
@@ -1246,18 +1251,19 @@ def _RenderOpcodeTable() -> List[str]:
 
 def _RenderClusteredOpcodeTable() -> List[str]:
     out = []
-    for i in range(16):
-        out += [f"  // cluster {i}"]
+    for i in range(256):
         cluster = Opcode.ordered_opcodes[i]
-        enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
-        out += ["  " + ", ".join(enums)]
+        out += [f"  // cluster {i}  size:{len(cluster)}"]
+        if cluster:
+            enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
+            out += ["  " + ", ".join(enums)]
     return out
 
 
 def _RenderOpcodeTableJumper() -> List[str]:
     out = []
     current_offset = 0  # compensate for invalid first entry
-    for i in range(16):
+    for i in range(256):
         cluster = Opcode.ordered_opcodes[i]
         out.append(f"{current_offset}")
         current_offset += len(cluster)
@@ -1333,7 +1339,7 @@ def _EmitCodeC(fout):
     cgen.RenderEnumToStringFun("SHIFT", fout)
 
 
-def _OpcodeDisassemblerExperiments():
+def _OpcodeDiscriminantExperiments():
     """Some failed experiments for making the disassembler even faster"""
     print("opcode distribution")
     for k, cluster in Opcode.ordered_opcodes.items():
@@ -1392,8 +1398,8 @@ if __name__ == "__main__":
             fields = [ok.name for ok in opcode.fields]
             print(f"{name:20} {' '.join(fields)}")
         sys.exit(1)
-    if sys.argv[1] == "dist":
-        _OpcodeDisassemblerExperiments()
+    if sys.argv[1] == "discriminant":
+        _OpcodeDiscriminantExperiments()
     elif sys.argv[1] == "hash":
         _MnemonicHashingExperiments()
     elif sys.argv[1] == "gen_c":
