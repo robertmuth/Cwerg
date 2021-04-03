@@ -40,7 +40,7 @@ def _MakeIeee64(sign, mantissa4bit, exponent) -> int:
     return (sign << 63) | ((exponent - 3 + 1023) << 52) | (mantissa4bit << 48)
 
 
-def EncodeEncode8BitFlt(val) -> Optional[int]:
+def Encode8BitFlt(val: float) -> Optional[int]:
     assert isinstance(val, float)
     data = struct.pack("d", val)
     assert len(data) == 8
@@ -54,7 +54,7 @@ def EncodeEncode8BitFlt(val) -> Optional[int]:
     return None
 
 
-def Decode8BitFlt(x):
+def Decode8BitFlt(x: int) -> float:
     mantissa = (x & 0xf)
     x >>= 4
     exponent = (x & 7) ^ 4
@@ -502,6 +502,7 @@ class MEM_WIDTH(enum.Enum):
 
 
 _RE_OPCODE_NAME = re.compile(r"[a-z.0-9]+")
+
 
 class Opcode:
     """The primary purpose of of instantiating an Opcode is to register it with
@@ -1202,15 +1203,15 @@ def Assemble(ins: Ins) -> int:
 def Query(opcode: str):
     count = 0
     for name, opc in sorted(Opcode.name_to_opcode.items()):
-            if not name.startswith(opcode):
-                continue
-            print(f"name={name}")
-            print(f"mask={opc.bit_mask:08x} value={opc.bit_value:08x}")
-            print("fields with bit ranges:")
-            for f in opc.fields:
-                print("\t", f.name, FIELD_DETAILS[f])
-                count += 1
-            print()
+        if not name.startswith(opcode):
+            continue
+        print(f"name={name}")
+        print(f"mask={opc.bit_mask:08x} value={opc.bit_value:08x}")
+        print("fields with bit ranges:")
+        for f in opc.fields:
+            print("\t", f.name, FIELD_DETAILS[f])
+            count += 1
+        print()
     if count:
         print("bit range tuples have the form (modifier, bit-width, start-pos)")
 
@@ -1346,7 +1347,7 @@ def _EmitCodeC(fout):
 
 def _MnemonicHashingExperiments():
     # experiment for near perfect hashing
-    print (f"hashtable size: {_MNEMONIC_HASH_LOOKUP_SIZE} opcodes: {len(Opcode.name_to_opcode)}")
+    print(f"hashtable size: {_MNEMONIC_HASH_LOOKUP_SIZE} opcodes: {len(Opcode.name_to_opcode)}")
     assert len(Opcode.name_to_opcode) < _MNEMONIC_HASH_LOOKUP_SIZE
     buckets = [[] for _ in range(_MNEMONIC_HASH_LOOKUP_SIZE)]
     table = [""] * _MNEMONIC_HASH_LOOKUP_SIZE
@@ -1389,29 +1390,40 @@ def _CheckLogicImmediateEncoding():
     print(f"checked {count} logic immediates")
 
 
+def _CheckFloatImmediateEncoding():
+    for i in range(256):
+        f = Decode8BitFlt(i)
+        print(f"{i:02x} {f}")
+        assert Encode8BitFlt(f) == i
+
+
 def _StatsOK():
     histo = collections.defaultdict(int)
     for opcode in Opcode.name_to_opcode.values():
         for ok in opcode.fields:
             histo[ok] += 1
     for ok in OK:
-        print (f"{ok}:  {histo[ok]}")
+        print(f"{ok}:  {histo[ok]}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
         print("Check Separability")
         _CheckOpcodeSeparability()
-        print("Check Logical Immediate Encoding")
-        _CheckLogicImmediateEncoding()
+
         for name, opcode in sorted(Opcode.name_to_opcode.items()):
             fields = [ok.name for ok in opcode.fields]
-            print (f"{name:20} {' '.join(fields)}")
-        print ("OperandKind Usage Stats")
+            print(f"{name:20} {' '.join(fields)}")
+        print("OperandKind Usage Stats")
         _StatsOK()
         sys.exit(1)
     if sys.argv[1] == "hash":
         _MnemonicHashingExperiments()
+    elif sys.argv[1] == "encoding_test":
+        print("Check Logic Immediate Encoding")
+        _CheckLogicImmediateEncoding()
+        print("Check Float Immediate Encoding")
+        _CheckFloatImmediateEncoding()
     elif sys.argv[1] == "gen_c":
         cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_h":

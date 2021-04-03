@@ -113,7 +113,7 @@ _UNSTRINGIFIER_INT: Dict[a64.OK, Any] = {
 
 _UNSTRINGIFIER_FLT: Dict[a64.OK, Any] = {
     a64.OK.IMM_FLT_ZERO: lambda x: 0,
-    a64.OK.FLT_13_20: a64.EncodeEncode8BitFlt,
+    a64.OK.FLT_13_20: a64.Encode8BitFlt,
 }
 
 
