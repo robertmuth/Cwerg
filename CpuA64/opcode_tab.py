@@ -16,6 +16,7 @@ import sys
 
 _DEBUG = False
 
+# e.g.  add x0 x1 x2 lsl 0
 MAX_OPERANDS = 5
 
 MAX_BIT_RANGES = 2
@@ -526,7 +527,7 @@ class Opcode:
         for f in fields:
             assert f in FIELD_DETAILS, f"miss field to mask entry {f}"
 
-        assert len(fields) <= MAX_OPERANDS
+        assert len(fields) <= MAX_OPERANDS, f"{name} {variant} too many operands"
 
         bit_mask, bit_value = Bits(*bits)
         self.bit_mask = bit_mask
@@ -1064,8 +1065,7 @@ for ext, w_bit in [("s", (1, 0, 22)),
         Opcode(name, ext, [root111, (7, 0, 29), w_bit, (1, 1, 21)] + bits,
                [dst_reg, src1_reg], OPC_FLAG(0))
 
-    for cond_val, cond_name in enumerate(["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
-                                          "hi", "ls", "ge", "lt", "gt", "le"]):
+    for cond_val, cond_name in enumerate(CONDITION_CODES):
         Opcode(f"fcsel", f"{ext}_{cond_name}",
                [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xf, cond_val, 12), (3, 3, 10)],
                [dst_reg, src1_reg, src2_reg], OPC_FLAG.COND_PARAM)
@@ -1215,18 +1215,6 @@ def Query(opcode: str):
         print("bit range tuples have the form (modifier, bit-width, start-pos)")
 
 
-def _get_grouped_opcodes(mask: int) -> List[Opcode]:
-    """Preserves the order of the Opcode.ordered_opcodes"""
-    d = collections.defaultdict(list)
-    for lst in Opcode.ordered_opcodes.values():
-        for opc in lst:
-            d[opc.bit_value & mask].append(opc)
-    out = []
-    for k, v in sorted(d.items()):
-        out += v
-    return out
-
-
 def _find_mask_matches(mask: int, val: int, opcodes: List[Opcode]) -> Tuple[int, int]:
     first = -1
     last = -1
@@ -1256,17 +1244,10 @@ def hash_djb2(x: str):
 
 def _EmitCodeH(fout):
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(SR_UPDATE), "class SR_UPDATE : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(BRK), "class BitRangeKind : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OPC_FLAG), "OPC_FLAG", fout)
-    # cgen.RenderEnum(cgen.NameValues(PRED), "class PRED : uint8_t", fout)
-    # cgen.RenderEnum(cgen.NameValues(REG), "class REG : uint8_t", fout)
-    # cgen.RenderEnum(cgen.NameValues(SREG), "class SREG : uint8_t", fout)
-    # cgen.RenderEnum(cgen.NameValues(DREG), "class DREG : uint8_t", fout)
-    # cgen.RenderEnum(cgen.NameValues(ADDR_MODE), "class ADDR_MODE : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SHIFT), "class SHIFT : uint8_t", fout)
-    opcodes = [opc.NameForEnum() for opc in _get_grouped_opcodes(_INS_CLASSIFIER)]
+    opcodes = list(sorted(Opcode.name_to_opcode.keys()))
     # note we sneak in an invalid first entry
     _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
 

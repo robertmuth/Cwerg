@@ -40,4 +40,23 @@ disassembler_test:
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
 	diff $@.actual.out TestData/$@.golden
 
+############################################################
+# C++ Port
+############################################################
+BUILD_DIR=../build
+
+ASSEMBLER_TOOL=$(BUILD_DIR)/a64_assembler_tool.exe
+DISASSEMBLER_TOOL=$(BUILD_DIR)/a64_disassembler_tool.exe
+
+
+opcode_gen.cc: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $@.tmp
+	@mv $@.tmp $@
+
+opcode_gen.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
+	@mv $@.tmp $@
+
 clean:
