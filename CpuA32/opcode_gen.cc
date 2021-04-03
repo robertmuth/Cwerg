@@ -5,12 +5,11 @@
 namespace cwerg::a32 {
 
 struct BitRange {
-  uint8_t width;
+  uint8_t width;  // if this is zero , the bitrange is invalid
   uint8_t position;
 };
 
 struct Field {
-  uint8_t num_bit_ranges;
   BitRange bit_ranges[MAX_BIT_RANGES];
 };
 
@@ -2247,123 +2246,34 @@ const int16_t OpcodeTableJumper[] = {
 
 // Indexed by OK
 static const Field FieldTable[] = {
-{   // Invalid = 0
-    0, {
-}}, 
-{   // REG_0_3 = 1
-    1, {
-    {4, 0},
-}}, 
-{   // REG_8_11 = 2
-    1, {
-    {4, 8},
-}}, 
-{   // REG_12_15 = 3
-    1, {
-    {4, 12},
-}}, 
-{   // REG_16_19 = 4
-    1, {
-    {4, 16},
-}}, 
-{   // REG_LINK = 5
-    0, {
-}}, 
-{   // REG_PAIR_12_15 = 6
-    1, {
-    {4, 12},
-}}, 
-{   // DREG_0_3_5 = 7
-    2, {
-    {1, 5},
-    {4, 0},
-}}, 
-{   // DREG_12_15_22 = 8
-    2, {
-    {1, 22},
-    {4, 12},
-}}, 
-{   // DREG_16_19_7 = 9
-    2, {
-    {1, 7},
-    {4, 16},
-}}, 
-{   // SREG_0_3_5 = 10
-    2, {
-    {4, 0},
-    {1, 5},
-}}, 
-{   // SREG_12_15_22 = 11
-    2, {
-    {4, 12},
-    {1, 22},
-}}, 
-{   // SREG_16_19_7 = 12
-    2, {
-    {4, 16},
-    {1, 7},
-}}, 
-{   // SHIFT_MODE_5_6 = 13
-    1, {
-    {2, 5},
-}}, 
-{   // REGLIST_0_15 = 14
-    1, {
-    {16, 0},
-}}, 
-{   // REG_RANGE_0_7 = 15
-    1, {
-    {8, 0},
-}}, 
-{   // REG_RANGE_1_7 = 16
-    1, {
-    {7, 1},
-}}, 
-{   // PRED_28_31 = 17
-    1, {
-    {4, 28},
-}}, 
-{   // IMM_0_7_TIMES_4 = 18
-    1, {
-    {8, 0},
-}}, 
-{   // IMM_0_11 = 19
-    1, {
-    {12, 0},
-}}, 
-{   // IMM_0_3_8_11 = 20
-    2, {
-    {4, 8},
-    {4, 0},
-}}, 
-{   // IMM_7_11 = 21
-    1, {
-    {5, 7},
-}}, 
-{   // IMM_10_11_TIMES_8 = 22
-    1, {
-    {2, 10},
-}}, 
-{   // IMM_0_23 = 23
-    1, {
-    {24, 0},
-}}, 
-{   // IMM_0_7_8_11 = 24
-    1, {
-    {12, 0},
-}}, 
-{   // IMM_ZERO = 25
-    0, {
-}}, 
-{   // IMM_0_11_16_19 = 26
-    2, {
-    {4, 16},
-    {12, 0},
-}}, 
-{   // SIMM_0_23 = 27
-    1, {
-    {24, 0},
-}}, 
+  { {  } }, // Invalid = 0
+  { { {4, 0} } }, // REG_0_3 = 1
+  { { {4, 8} } }, // REG_8_11 = 2
+  { { {4, 12} } }, // REG_12_15 = 3
+  { { {4, 16} } }, // REG_16_19 = 4
+  { {  } }, // REG_LINK = 5
+  { { {4, 12} } }, // REG_PAIR_12_15 = 6
+  { { {1, 5}, {4, 0} } }, // DREG_0_3_5 = 7
+  { { {1, 22}, {4, 12} } }, // DREG_12_15_22 = 8
+  { { {1, 7}, {4, 16} } }, // DREG_16_19_7 = 9
+  { { {4, 0}, {1, 5} } }, // SREG_0_3_5 = 10
+  { { {4, 12}, {1, 22} } }, // SREG_12_15_22 = 11
+  { { {4, 16}, {1, 7} } }, // SREG_16_19_7 = 12
+  { { {2, 5} } }, // SHIFT_MODE_5_6 = 13
+  { { {16, 0} } }, // REGLIST_0_15 = 14
+  { { {8, 0} } }, // REG_RANGE_0_7 = 15
+  { { {7, 1} } }, // REG_RANGE_1_7 = 16
+  { { {4, 28} } }, // PRED_28_31 = 17
+  { { {8, 0} } }, // IMM_0_7_TIMES_4 = 18
+  { { {12, 0} } }, // IMM_0_11 = 19
+  { { {4, 8}, {4, 0} } }, // IMM_0_3_8_11 = 20
+  { { {5, 7} } }, // IMM_7_11 = 21
+  { { {2, 10} } }, // IMM_10_11_TIMES_8 = 22
+  { { {24, 0} } }, // IMM_0_23 = 23
+  { { {12, 0} } }, // IMM_0_7_8_11 = 24
+  { {  } }, // IMM_ZERO = 25
+  { { {4, 16}, {12, 0} } }, // IMM_0_11_16_19 = 26
+  { { {24, 0} } }, // SIMM_0_23 = 27
 };
 
 constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 512;
@@ -2573,9 +2483,9 @@ uint32_t ExtractOperand(uint32_t data, OK field_kind) {
   const BitRange* bit_ranges = FieldTable[uint8_t(field_kind)].bit_ranges;
 
   int32_t out = 0;
-  for (unsigned i = 0; i < FieldTable[uint8_t(field_kind)].num_bit_ranges;
-       ++i) {
+  for (unsigned i = 0; i < MAX_BIT_RANGES; ++i) {
     const BitRange* range = bit_ranges + i;
+    if (range->width == 0) break;
     uint32_t mask = (1 << range->width) - 1;
     uint32_t x = (data >> range->position) & mask;
     out = x | out << range->width;
@@ -2623,8 +2533,9 @@ void InsertOperand(int32_t x,
                    uint32_t* bits_mask) {
   const BitRange* bit_ranges = field->bit_ranges;
   // backwards is important
-  for (int i = field->num_bit_ranges - 1; i >= 0; --i) {
+  for (int i = MAX_BIT_RANGES - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
+    if (range->width == 0) continue;
     const uint32_t mask = (1 << range->width) - 1;
     ASSERT(((mask << range->position) & *bits_mask) == 0, "");
     *bits_mask |= mask << range->position;

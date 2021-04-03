@@ -44,7 +44,7 @@ _DEBUG = False
 # ldr_reg requires 7 operands:  [PRED, DST, ADD_MODE, BASE, SHIFT_MODE, INDEX, OFFSET]
 MAX_OPERANDS = 6
 
-MAX_BIT_RANGES = 4
+MAX_BIT_RANGES = 2
 
 
 def Bits(*patterns) -> Tuple[int, int]:
@@ -1280,10 +1280,9 @@ def _RenderOperandKindTable():
         else:
             bit_ranges = FIELD_DETAILS[ok]
         assert len(bit_ranges) <= MAX_BIT_RANGES
-        out += [f"{{   // {ok.name} = {ok.value}"]
-        out += [f"    {len(bit_ranges)}," + " {"]
-        out += ["    {%d, %d}," % (a, b) for a, b in bit_ranges]
-        out += ["}}, "]
+
+        ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
+        out += [f"  {{ {{ {', '.join(ranges_str)} }} }}, // {ok.name} = {ok.value}"]
     return out
 
 

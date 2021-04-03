@@ -12,7 +12,7 @@ using namespace cwerg;
 
 /* @AUTOGEN-START@ */
 constexpr const unsigned MAX_OPERANDS = 6;
-constexpr const unsigned MAX_BIT_RANGES = 4;
+constexpr const unsigned MAX_BIT_RANGES = 2;
 
 enum class OK : uint8_t {
     Invalid = 0,
