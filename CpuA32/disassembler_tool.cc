@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     for (unsigned i = 2; i < argc; ++i) {
       const uint32_t data = strtoul(argv[i], 0, 16);
       Ins ins;
-      if (!DecodeIns(&ins, data)) {
+      if (!Disassemble(&ins, data)) {
         std::cout << "could not find opcode for: " << std::hex << data << "\n";
         continue;
       }
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
       std::cout << "\n";
       // check that the assembler works - this is not strictly
       // necessary but useful for debuggging the assembler
-      const uint32_t data2 = EncodeIns(ins);
+      const uint32_t data2 = Assemble(ins);
       if (data != data2) {
         std::cout << "Disassembler failure " << std::hex << data << " vs "
                   << data2 << "\n";
@@ -48,8 +48,8 @@ int main(int argc, char* argv[]) {
     uint32_t num_bad = 0;
     for (uint32_t data = 0; data < (1 << 28); ++data) {
       Ins ins;
-      if (DecodeIns(&ins, data)) {
-        const uint32_t data2 = EncodeIns(ins);
+      if (Disassemble(&ins, data)) {
+        const uint32_t data2 = Assemble(ins);
         if (data != data2) {
           if (ins.opcode->fields[2] != OK::IMM_0_7_8_11 &&
               ins.opcode->fields[3] != OK::IMM_0_7_8_11) {

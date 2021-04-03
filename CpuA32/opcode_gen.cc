@@ -1929,7 +1929,7 @@ void InsertOperand(int32_t x,
   }
 }
 
-bool DecodeIns(Ins* ins, uint32_t data) {
+bool Disassemble(Ins* ins, uint32_t data) {
   const struct Opcode* opcode = FindOpcode(data);
   if (opcode == nullptr) return false;
 
@@ -1942,7 +1942,7 @@ bool DecodeIns(Ins* ins, uint32_t data) {
   return true;
 }
 
-uint32_t EncodeIns(const Ins& ins) {
+uint32_t Assemble(const Ins& ins) {
   const Opcode* opcode = ins.opcode;
   uint32_t value = opcode->bit_value;
   uint32_t mask = opcode->bit_mask;
@@ -1958,10 +1958,10 @@ uint32_t EncodeIns(const Ins& ins) {
 
 uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
   Ins ins;
-  CHECK(DecodeIns(&ins, ins_old), "");
+  CHECK(Disassemble(&ins, ins_old), "");
 
   ins.operands[pos] = value;
-  return EncodeIns(ins);
+  return Assemble(ins);
 }
 
 const Opcode* FindOpcodeForMnemonic(std::string_view s) {

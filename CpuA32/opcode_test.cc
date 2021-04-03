@@ -191,13 +191,13 @@ int HandleOneInstruction(std::string_view line,
                          const std::vector<std::string_view>& token) {
   // printf("%s\n", line);
   a32::Ins ins;
-  if (!DecodeIns(&ins, data)) {
+  if (!Disassemble(&ins, data)) {
     std::cout << "could not find opcode for: " << std::hex << data << std::dec
               << " -- [" << line << "]\n";
     return 1;
   }
 
-  uint32_t data_expected = EncodeIns(ins);
+  uint32_t data_expected = Assemble(ins);
   if (data != data_expected) {
     std::cout << "assembler mismatch " << std::hex << data << " vs "
               << data_expected << std::dec << " in: " << line;

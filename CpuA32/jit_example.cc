@@ -19,7 +19,7 @@ using FunPtr = uint32_t (*)(uint32_t);
 
 void DumpA32Ins(uint32_t data) {
   Ins ins;
-  DecodeIns(&ins, data);
+  Disassemble(&ins, data);
   std::cout << "0x" << std::hex << data << " " << ins.opcode->enum_name;
   std::string_view sep = " ";
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
   ASSERT(memory != nullptr, "");
   unsigned i = 0;
   for (const auto& ins : Fibonacci) {
-    memory[i] = EncodeIns(ins);
+    memory[i] = Assemble(ins);
     DumpA32Ins(memory[i]);
     ++i;
   }

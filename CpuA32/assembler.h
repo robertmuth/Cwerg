@@ -83,7 +83,7 @@ struct Unit {
 
   void AddStartupCode();
 
-  elf::Executable<uint32_t> Assemble(bool create_sym_tab);
+  elf::Executable<uint32_t> MakeExe(bool create_sym_tab);
 
  private:
   std::string_view current_fun_name = "";

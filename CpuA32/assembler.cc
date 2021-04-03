@@ -40,9 +40,6 @@ std::map<std::string_view, uint32_t> operand_symbols = {
     {"d8", 8}, {"d9", 9}, {"d10", 10}, {"d11", 11},
     {"d12", 12}, {"d13", 13}, {"d14", 14}, {"d15", 15},
     //
-    {"puw", 0}, {"puW", 1}, {"pUw", 2}, {"pUW", 3},
-    {"Puw", 4}, {"PuW", 5}, {"PUw", 6}, {"PUW", 7},
-    //
     {"lsl",  0}, {"lsr", 1}, {"asr", 2}, {"ror_rrx", 3},
 };
 // @formatter:on
@@ -161,7 +158,7 @@ void Unit::AddIns(Ins* ins) {
     AddReloc(ins->reloc_kind, sec_text, sym, ins->operands[ins->reloc_pos]);
     ins->clear_reloc();
   }
-  uint32_t data = EncodeIns(*ins);
+  uint32_t data = Assemble(*ins);
   sec_text->AddData({(const char*)&data, 4});
 }
 
@@ -425,7 +422,7 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
   *(uint32_t*)patch_addr = new_data;
 }
 
-Executable<uint32_t> Unit::Assemble(bool create_sym_tab) {
+Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
   std::vector<Section<uint32_t>*> sections;
   std::vector<Segment<uint32_t>*> segments;
 

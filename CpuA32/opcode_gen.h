@@ -621,16 +621,13 @@ struct Ins {
 
 // Decode the instruction word `data`
 // Returns true if successful
-extern bool DecodeIns(Ins* ins, uint32_t data);
-
-extern uint32_t  DecodeRotatedImm(uint32_t data);
-
-extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
-
+extern bool Disassemble(Ins* ins, uint32_t data);
 
 // Encode the instruction
 // Returns the instruction word. Asserts if unsuccessful
-extern uint32_t EncodeIns(const Ins& ins);
+extern uint32_t Assemble(const Ins& ins);
+
+extern uint32_t  DecodeRotatedImm(uint32_t data);
 
 const uint32_t kEncodeFailure = 0xffffffff;
 
@@ -639,6 +636,8 @@ const uint32_t kEncodeFailure = 0xffffffff;
 // If this is successful a 12bit unsigned value is returned.
 // Otherwise, kEncodingFailure is returned.
 extern uint32_t EncodeRotatedImm(int32_t immediate);
+
+extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
 
 
 extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
