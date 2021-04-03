@@ -7,8 +7,8 @@ from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
 
 _STRINGIFIER: Dict[a64.OK, Any] = {
-    a64.OK.IMM_10_15_16_22_W: lambda x: hex(a64.DecodeLogicalImmediate(x, 32)),
-    a64.OK.IMM_10_15_16_22_X: lambda x: hex(a64.DecodeLogicalImmediate(x, 64)),
+    a64.OK.IMM_10_15_16_22_W: lambda x: hex(a64.DecodeLogicImmediate(x, 32)),
+    a64.OK.IMM_10_15_16_22_X: lambda x: hex(a64.DecodeLogicImmediate(x, 64)),
     a64.OK.IMM_SHIFTED_5_20_21_22: lambda x: hex((x & 0xffff) << (16 * (x >> 16))),
     a64.OK.IMM_SHIFTED_10_21_22: lambda x: hex((x & 0xfff) << (12 * (x >> 12))),
     #

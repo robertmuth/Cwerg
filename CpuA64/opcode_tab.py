@@ -88,7 +88,7 @@ def ror(x: int, bit_size: int, amount: int) -> int:
 
 # https://stackoverflow.com/questions/30904718/range-of-immediate-values-in-armv8-a64-assembly/33265035#33265035
 # table: https://gist.github.com/dinfuehr/51a01ac58c0b23e4de9aac313ed6a06a
-def DecodeLogicalImmediate(x, reg_size) -> int:
+def DecodeLogicImmediate(x, reg_size) -> int:
     n = x >> 12
     r = (x >> 6) & 0x3f
     s = x & 0x3f
@@ -1253,29 +1253,23 @@ def _EmitCodeH(fout):
 
 
 def _RenderOpcodeTable():
-    """Note: we sneak in an invalid first entry"""
+    """Note: we sneak in an invalid first entry
+
+    The first entry only match the 0x0 instruction which happens to be invalid
+    so it can serve as a sentinel
+    """
     out = [
-        '{"invalid", "invalid", 0, 0, 0, {}, 0, MEM_WIDTH::NA, SR_UPDATE::NONE},'
+        '{"invalid", 0xffffffff, 0, 0, {}, 0},'
     ]
-    opcodes = _get_grouped_opcodes(_INS_CLASSIFIER)
-    last = ~0
-    for opc in opcodes:
-        key = opc.bit_value & _INS_CLASSIFIER
-        if key != last:
-            out += [
-                f"/* {'=' * 60}*/",
-                f"/* BLOCK {key:08x} */",
-                f"/* {'=' * 60}*/",
-            ]
-            last = key
-        flags = " | ".join([f.name for f in OPC_FLAG if opc.classes & f])
-        assert len(opc.fields) <= MAX_OPERANDS
-        fields = "{" + ", ".join(["OK::" + f.name for f in opc.fields]) + "}"
+    for name, opcode in sorted(Opcode.name_to_opcode.items()):
+        flags = " | ".join([f.name for f in OPC_FLAG if opcode.classes & f])
+        assert len(opcode.fields) <= MAX_OPERANDS
+        fields = "{" + ", ".join(["OK::" + f.name for f in opcode.fields]) + "}"
         out += [
             "{" +
-            f'"{opc.name}", "{opc.NameForEnum()}", 0x{opc.bit_mask:08x}, 0x{opc.bit_value:08x},',
-            f' {len(opc.fields)}, {fields},',
-            f' {flags}, MEM_WIDTH::{opc.mem_width.name}, SR_UPDATE::{opc.sr_update.name}',
+            f'"{name}", 0x{opcode.bit_mask:08x}, 0x{opcode.bit_value:08x},',
+            f' {len(opcode.fields)}, {fields},',
+            f' {flags}',
             '},']
     return out
 
@@ -1325,11 +1319,11 @@ def _RenderMnemonicHashLookup():
 
 
 def _EmitCodeC(fout):
-    # print("// Indexed by OPC which in turn are organize to help with disassembly", file=fout)
-    # print("const Opcode OpcodeTable[] = {", file=fout)
-    # print("\n".join(_RenderOpcodeTable()), file=fout)
-    # print("};\n", file=fout)
-    #
+    print("// Indexed by OPC", file=fout)
+    print("const Opcode OpcodeTable[] = {", file=fout)
+    print("\n".join(_RenderOpcodeTable()), file=fout)
+    print("};\n", file=fout)
+
     # print("const int16_t OpcodeTableJumper[] = {", file=fout)
     # print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
     # print("};\n", file=fout)
@@ -1379,7 +1373,7 @@ def _MnemonicHashingExperiments():
             print(f"{n} {count}")
 
 
-def _CheckLogicalImmediateEncoding():
+def _CheckLogicImmediateEncoding():
     count = 0
     for size, sm in [(2, 0x3c), (4, 0x38), (8, 0x30), (16, 0x20), (32, 0), (64, 0)]:
         for ones in range(1, size):
@@ -1388,10 +1382,20 @@ def _CheckLogicalImmediateEncoding():
                 n = (size == 64)
                 s = sm | (ones - 1)
                 i = (n << 12) | (r << 6) | s
-                x = DecodeLogicalImmediate(i, 64)
+                x = DecodeLogicImmediate(i, 64)
                 # print (f"{size:2d} {ones:2d} r={r:06b} s={s:06b} {x:016x}")
                 i2 = Encode_10_15_16_22_X(x)
                 assert i == i2, f"mismatch {i:x} {i2:x}"
+    print(f"checked {count} logic immediates")
+
+
+def _StatsOK():
+    histo = collections.defaultdict(int)
+    for opcode in Opcode.name_to_opcode.values():
+        for ok in opcode.fields:
+            histo[ok] += 1
+    for ok in OK:
+        print (f"{ok}:  {histo[ok]}")
 
 
 if __name__ == "__main__":
@@ -1399,11 +1403,12 @@ if __name__ == "__main__":
         print("Check Separability")
         _CheckOpcodeSeparability()
         print("Check Logical Immediate Encoding")
-        _CheckLogicalImmediateEncoding()
-        print(f"checked {count} immediates")
+        _CheckLogicImmediateEncoding()
         for name, opcode in sorted(Opcode.name_to_opcode.items()):
             fields = [ok.name for ok in opcode.fields]
             print (f"{name:20} {' '.join(fields)}")
+        print ("OperandKind Usage Stats")
+        _StatsOK()
         sys.exit(1)
     if sys.argv[1] == "hash":
         _MnemonicHashingExperiments()
