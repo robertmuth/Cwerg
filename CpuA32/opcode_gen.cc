@@ -1539,7 +1539,7 @@ const int16_t OpcodeTableJumper[] = {
 324, 371
 };
 
-// Indexed by FieldKind
+// Indexed by OK
 static const Field FieldTable[] = {
 {   // Invalid = 0
     0, {

@@ -1280,7 +1280,7 @@ def _RenderOpcodeTableJumper() -> List[str]:
     return out
 
 
-def _RenderFieldTable():
+def _RenderOperandKindTable():
     out = []
     for n, ok in enumerate(OK):
         assert n == ok.value
@@ -1289,7 +1289,7 @@ def _RenderFieldTable():
         else:
             bit_ranges = FIELD_DETAILS[ok]
         assert len(bit_ranges) <= MAX_BIT_RANGES
-        out += ["{" + f"   // {ok.name} = {ok.value}"]
+        out += [f"{{   // {ok.name} = {ok.value}"]
         out += [f"    {len(bit_ranges)}," + " {"]
         out += ["    {%d, %d}," % (a, b) for a, b in bit_ranges]
         out += ["}}, "]
@@ -1324,14 +1324,14 @@ def _EmitCodeC(fout):
     print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
     print("};\n", file=fout)
 
-    print("// Indexed by FieldKind", file=fout)
+    print("// Indexed by OK", file=fout)
     print("static const Field FieldTable[] = {", file=fout)
-    print("\n".join(_RenderFieldTable()), file=fout)
+    print("\n".join(_RenderOperandKindTable()), file=fout)
     print("};\n", file=fout)
 
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print("static const OPC MnemonicHashTable[512] = {", file=fout)
+    print(f"static const OPC MnemonicHashTable[{_MNEMONIC_HASH_LOOKUP_SIZE}] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
