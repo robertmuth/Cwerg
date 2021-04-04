@@ -932,7 +932,7 @@ enum class OPC : uint16_t {
 
 // Describes a class of instructions structurally (read-only data).
 struct Opcode {
-  const char* name;
+  std::string_view name;   // base name + variant
   uint32_t bit_mask;
   uint32_t bit_value;
   uint8_t num_fields;

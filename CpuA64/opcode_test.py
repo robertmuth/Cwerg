@@ -15,6 +15,7 @@ from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP, Ass
 from CpuA64 import symbolic
 
 SIMPLE_ALIASES = {
+    # official name, cwerg name without variant
     ("asr", "asrv"),
     ("lsr", "lsrv"),
     ("lsl", "lslv"),
@@ -216,7 +217,7 @@ def HandleAliasMassaging(name, opcode, operands):
         assert False
 
 
-def MassageOperands(name, opcode, operands):
+def MassageOperandsAndCheckName(name, opcode, operands):
     """Deal with aliases and case were we deviate from std notation"""
     if OPC_FLAG.STORE in opcode.classes:
         if OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
@@ -233,6 +234,7 @@ def MassageOperands(name, opcode, operands):
             HandleAliasMassaging(name, opcode, operands)
             name = opcode.name
     assert name == opcode.name
+
     if name == "ret" and not operands:
         operands.append("x30")
         return name
@@ -257,7 +259,7 @@ def HandleOneInstruction(count: int, line: str,
                          data: int, ins: Ins,
                          actual_name: str, actual_ops: List[str]):
     global all_operands, checked_operands
-    actual_name = MassageOperands(actual_name, ins.opcode, actual_ops)
+    MassageOperandsAndCheckName(actual_name, ins.opcode, actual_ops)
     name, ops_str = symbolic.InsSymbolize(ins)
     assert OperandsMatch(ins.opcode, ops_str,
                          actual_ops), f"[{name}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
