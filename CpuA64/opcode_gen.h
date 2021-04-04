@@ -10,10 +10,10 @@
 namespace cwerg::a64 {
 using namespace cwerg;
 
-constexpr const unsigned MAX_OPERANDS = 5;
-constexpr const unsigned MAX_BIT_RANGES = 2;
 
 /* @AUTOGEN-START@ */
+constexpr const unsigned MAX_OPERANDS = 5;
+constexpr const unsigned MAX_BIT_RANGES = 2;
 
 enum class OK : uint8_t {
     Invalid = 0,
@@ -50,41 +50,41 @@ enum class OK : uint8_t {
     XREG_0_4_SP = 31,
     XREG_5_9_SP = 32,
     REG_LINK = 33,
-    SHIFT_22_23 = 60,
-    SHIFT_22_23_NO_ROR = 61,
-    SHIFT_15_W = 62,
-    SHIFT_15_X = 63,
-    SIMM_PCREL_0_25 = 70,
-    SIMM_12_20 = 71,
-    SIMM_15_21_TIMES16 = 72,
-    SIMM_15_21_TIMES4 = 73,
-    SIMM_15_21_TIMES8 = 74,
-    SIMM_PCREL_5_18 = 75,
-    SIMM_PCREL_5_23 = 76,
-    SIMM_PCREL_5_23_29_30 = 77,
-    IMM_10_12_LIMIT4 = 100,
-    IMM_10_15 = 101,
-    IMM_10_15_16_22_W = 102,
-    IMM_10_15_16_22_X = 103,
-    IMM_10_21 = 104,
-    IMM_SHIFTED_10_21_22 = 105,
-    IMM_10_21_times_16 = 106,
-    IMM_10_21_times_2 = 107,
-    IMM_10_21_times_4 = 108,
-    IMM_10_21_times_8 = 109,
-    IMM_12_MAYBE_SHIFT_0 = 110,
-    IMM_12_MAYBE_SHIFT_1 = 111,
-    IMM_12_MAYBE_SHIFT_2 = 112,
-    IMM_12_MAYBE_SHIFT_3 = 113,
-    IMM_12_MAYBE_SHIFT_4 = 114,
-    IMM_16_20 = 116,
-    IMM_16_21 = 117,
-    IMM_19_23_31 = 118,
-    IMM_5_20 = 119,
-    IMM_COND_0_3 = 121,
-    IMM_FLT_ZERO = 123,
-    IMM_SHIFTED_5_20_21_22 = 124,
-    FLT_13_20 = 115,
+    SHIFT_22_23 = 34,
+    SHIFT_22_23_NO_ROR = 35,
+    SHIFT_15_W = 36,
+    SHIFT_15_X = 37,
+    SIMM_PCREL_0_25 = 38,
+    SIMM_12_20 = 39,
+    SIMM_15_21_TIMES16 = 40,
+    SIMM_15_21_TIMES4 = 41,
+    SIMM_15_21_TIMES8 = 42,
+    SIMM_PCREL_5_18 = 43,
+    SIMM_PCREL_5_23 = 44,
+    SIMM_PCREL_5_23_29_30 = 45,
+    IMM_10_12_LIMIT4 = 46,
+    IMM_10_15 = 47,
+    IMM_10_15_16_22_W = 48,
+    IMM_10_15_16_22_X = 49,
+    IMM_10_21 = 50,
+    IMM_SHIFTED_10_21_22 = 51,
+    IMM_10_21_times_16 = 52,
+    IMM_10_21_times_2 = 53,
+    IMM_10_21_times_4 = 54,
+    IMM_10_21_times_8 = 55,
+    IMM_12_MAYBE_SHIFT_0 = 56,
+    IMM_12_MAYBE_SHIFT_1 = 57,
+    IMM_12_MAYBE_SHIFT_2 = 58,
+    IMM_12_MAYBE_SHIFT_3 = 59,
+    IMM_12_MAYBE_SHIFT_4 = 60,
+    IMM_16_20 = 61,
+    IMM_16_21 = 62,
+    IMM_19_23_31 = 63,
+    IMM_5_20 = 64,
+    IMM_COND_0_3 = 65,
+    IMM_FLT_ZERO = 66,
+    IMM_SHIFTED_5_20_21_22 = 67,
+    FLT_13_20 = 68,
 };
 
 enum class MEM_WIDTH : uint8_t {
@@ -94,6 +94,7 @@ enum class MEM_WIDTH : uint8_t {
     W4 = 3,
     W8 = 4,
     W16 = 5,
+    W32 = 6,
 };
 
 enum OPC_FLAG {
@@ -130,7 +131,7 @@ enum class SHIFT : uint8_t {
     lsl = 0,
     lsr = 1,
     asr = 2,
-    ror_rrx = 3,
+    ror = 3,
 };
 
 enum class OPC : uint16_t {
@@ -932,7 +933,6 @@ enum class OPC : uint16_t {
 // Describes a class of instructions structurally (read-only data).
 struct Opcode {
   const char* name;
-  const char* enum_name;
   uint32_t bit_mask;
   uint32_t bit_value;
   uint8_t num_fields;
@@ -946,10 +946,9 @@ extern const Opcode OpcodeTable[];
 // Find the Opcode or null for a 32 bit instruction word
 extern const Opcode* FindOpcode(uint32_t bit_value);
 
-extern const Opcode* FindOpcodeForMnemonic(std::string_view s);
+// Find the Opcode or null with the given name
+extern const Opcode* FindOpcodeForMnemonic(std::string_view name);
 
-// Returns non-zero if successful
-extern int32_t InsertOperand(uint32_t data, OK field_kind);
 
 // Decoded representation of the instruction word
 struct Ins {

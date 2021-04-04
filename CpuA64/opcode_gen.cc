@@ -5,297 +5,3891 @@
 namespace cwerg::a64 {
 
 struct BitRange {
-  uint8_t width;
+  uint8_t width; // if this is zero , the bitrange is invalid
   uint8_t position;
 };
 
 struct Field {
-  uint8_t num_bit_ranges;
   BitRange bit_ranges[MAX_BIT_RANGES];
 };
 
 /* @AUTOGEN-START@ */
-// Indexed by OK
-static const Field FieldTable[] = {
-{   // Invalid = 0
-    0, {
-}}, 
-{   // WREG_0_4 = 1
-    1, {
-    {5, 0},
-}}, 
-{   // WREG_5_9 = 2
-    1, {
-    {5, 5},
-}}, 
-{   // WREG_10_14 = 3
-    1, {
-    {5, 10},
-}}, 
-{   // WREG_16_20 = 4
-    1, {
-    {5, 16},
-}}, 
-{   // XREG_0_4 = 5
-    1, {
-    {5, 0},
-}}, 
-{   // XREG_5_9 = 6
-    1, {
-    {5, 5},
-}}, 
-{   // XREG_10_14 = 7
-    1, {
-    {5, 10},
-}}, 
-{   // XREG_16_20 = 8
-    1, {
-    {5, 16},
-}}, 
-{   // SREG_0_4 = 9
-    1, {
-    {5, 0},
-}}, 
-{   // SREG_5_9 = 10
-    1, {
-    {5, 5},
-}}, 
-{   // SREG_10_14 = 11
-    1, {
-    {5, 10},
-}}, 
-{   // SREG_16_20 = 12
-    1, {
-    {5, 16},
-}}, 
-{   // DREG_0_4 = 13
-    1, {
-    {5, 0},
-}}, 
-{   // DREG_5_9 = 14
-    1, {
-    {5, 5},
-}}, 
-{   // DREG_10_14 = 15
-    1, {
-    {5, 10},
-}}, 
-{   // DREG_16_20 = 16
-    1, {
-    {5, 16},
-}}, 
-{   // BREG_0_4 = 17
-    1, {
-    {5, 0},
-}}, 
-{   // BREG_5_9 = 18
-    1, {
-    {5, 5},
-}}, 
-{   // BREG_10_14 = 19
-    1, {
-    {5, 10},
-}}, 
-{   // BREG_16_20 = 20
-    1, {
-    {5, 16},
-}}, 
-{   // HREG_0_4 = 21
-    1, {
-    {5, 0},
-}}, 
-{   // HREG_5_9 = 22
-    1, {
-    {5, 5},
-}}, 
-{   // HREG_10_14 = 23
-    1, {
-    {5, 10},
-}}, 
-{   // HREG_16_20 = 24
-    1, {
-    {5, 16},
-}}, 
-{   // QREG_0_4 = 25
-    1, {
-    {5, 0},
-}}, 
-{   // QREG_5_9 = 26
-    1, {
-    {5, 5},
-}}, 
-{   // QREG_10_14 = 27
-    1, {
-    {5, 10},
-}}, 
-{   // QREG_16_20 = 28
-    1, {
-    {5, 16},
-}}, 
-{   // WREG_0_4_SP = 29
-    1, {
-    {5, 0},
-}}, 
-{   // WREG_5_9_SP = 30
-    1, {
-    {5, 5},
-}}, 
-{   // XREG_0_4_SP = 31
-    1, {
-    {5, 0},
-}}, 
-{   // XREG_5_9_SP = 32
-    1, {
-    {5, 5},
-}}, 
-{   // REG_LINK = 33
-    0, {
-}}, 
-{   // SHIFT_22_23 = 34
-    1, {
-    {2, 22},
-}}, 
-{   // SHIFT_22_23_NO_ROR = 35
-    1, {
-    {2, 22},
-}}, 
-{   // SHIFT_15_W = 36
-    1, {
-    {1, 15},
-}}, 
-{   // SHIFT_15_X = 37
-    1, {
-    {1, 15},
-}}, 
-{   // SIMM_PCREL_0_25 = 38
-    1, {
-    {26, 0},
-}}, 
-{   // SIMM_12_20 = 39
-    1, {
-    {9, 12},
-}}, 
-{   // SIMM_15_21_TIMES16 = 40
-    1, {
-    {7, 15},
-}}, 
-{   // SIMM_15_21_TIMES4 = 41
-    1, {
-    {7, 15},
-}}, 
-{   // SIMM_15_21_TIMES8 = 42
-    1, {
-    {7, 15},
-}}, 
-{   // SIMM_PCREL_5_18 = 43
-    1, {
-    {14, 5},
-}}, 
-{   // SIMM_PCREL_5_23 = 44
-    1, {
-    {19, 5},
-}}, 
-{   // SIMM_PCREL_5_23_29_30 = 45
-    2, {
-    {19, 5},
-    {2, 29},
-}}, 
-{   // IMM_10_12_LIMIT4 = 46
-    1, {
-    {3, 10},
-}}, 
-{   // IMM_10_15 = 47
-    1, {
-    {6, 10},
-}}, 
-{   // IMM_10_15_16_22_W = 48
-    1, {
-    {13, 10},
-}}, 
-{   // IMM_10_15_16_22_X = 49
-    1, {
-    {13, 10},
-}}, 
-{   // IMM_10_21 = 50
-    1, {
-    {12, 10},
-}}, 
-{   // IMM_SHIFTED_10_21_22 = 51
-    1, {
-    {13, 10},
-}}, 
-{   // IMM_10_21_times_16 = 52
-    1, {
-    {12, 10},
-}}, 
-{   // IMM_10_21_times_2 = 53
-    1, {
-    {12, 10},
-}}, 
-{   // IMM_10_21_times_4 = 54
-    1, {
-    {12, 10},
-}}, 
-{   // IMM_10_21_times_8 = 55
-    1, {
-    {12, 10},
-}}, 
-{   // IMM_12_MAYBE_SHIFT_0 = 56
-    1, {
-    {1, 12},
-}}, 
-{   // IMM_12_MAYBE_SHIFT_1 = 57
-    1, {
-    {1, 12},
-}}, 
-{   // IMM_12_MAYBE_SHIFT_2 = 58
-    1, {
-    {1, 12},
-}}, 
-{   // IMM_12_MAYBE_SHIFT_3 = 59
-    1, {
-    {1, 12},
-}}, 
-{   // IMM_12_MAYBE_SHIFT_4 = 60
-    1, {
-    {1, 12},
-}}, 
-{   // IMM_16_20 = 61
-    1, {
-    {5, 16},
-}}, 
-{   // IMM_16_21 = 62
-    1, {
-    {6, 16},
-}}, 
-{   // IMM_19_23_31 = 63
-    2, {
-    {1, 31},
-    {5, 19},
-}}, 
-{   // IMM_5_20 = 64
-    1, {
-    {16, 5},
-}}, 
-{   // IMM_COND_0_3 = 65
-    1, {
-    {4, 0},
-}}, 
-{   // IMM_FLT_ZERO = 66
-    0, {
-}}, 
-{   // IMM_SHIFTED_5_20_21_22 = 67
-    1, {
-    {18, 5},
-}}, 
-{   // FLT_13_20 = 68
-    1, {
-    {8, 13},
-}}, 
+// Indexed by OPC
+const Opcode OpcodeTable[] = {
+{"invalid", 0xffffffff, 0, 0, {}, 0},
+{"adc_w", 0xffe0fc00, 0x1a000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"adc_x", 0xffe0fc00, 0x9a000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"adcs_w", 0xffe0fc00, 0x3a000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"adcs_x", 0xffe0fc00, 0xba000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"add_w_imm", 0xff800000, 0x11000000,
+ 3, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::IMM_SHIFTED_10_21_22},
+ STACK_OPS
+},
+{"add_w_reg", 0xff200000, 0x0b000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"add_w_reg_sxtb", 0xffe0e000, 0x0b208000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_sxth", 0xffe0e000, 0x0b20a000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_sxtw", 0xffe0e000, 0x0b20c000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_sxtx", 0xffe0e000, 0x0b20e000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_uxtb", 0xffe0e000, 0x0b200000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_uxth", 0xffe0e000, 0x0b202000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_uxtw", 0xffe0e000, 0x0b204000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_w_reg_uxtx", 0xffe0e000, 0x0b206000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_imm", 0xff800000, 0x91000000,
+ 3, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::IMM_SHIFTED_10_21_22},
+ STACK_OPS
+},
+{"add_x_reg", 0xff200000, 0x8b000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"add_x_reg_sxtb", 0xffe0e000, 0x8b208000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_sxth", 0xffe0e000, 0x8b20a000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_sxtw", 0xffe0e000, 0x8b20c000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_sxtx", 0xffe0e000, 0x8b20e000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_uxtb", 0xffe0e000, 0x8b200000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_uxth", 0xffe0e000, 0x8b202000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_uxtw", 0xffe0e000, 0x8b204000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"add_x_reg_uxtx", 0xffe0e000, 0x8b206000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"adds_w_imm", 0xff800000, 0x31000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_SHIFTED_10_21_22},
+ 
+},
+{"adds_w_reg", 0xff200000, 0x2b000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
+ 
+},
+{"adds_w_reg_sxtb", 0xffe0e000, 0x2b208000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_sxth", 0xffe0e000, 0x2b20a000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_sxtw", 0xffe0e000, 0x2b20c000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_sxtx", 0xffe0e000, 0x2b20e000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_uxtb", 0xffe0e000, 0x2b200000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_uxth", 0xffe0e000, 0x2b202000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_uxtw", 0xffe0e000, 0x2b204000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_w_reg_uxtx", 0xffe0e000, 0x2b206000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_imm", 0xff800000, 0xb1000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_SHIFTED_10_21_22},
+ 
+},
+{"adds_x_reg", 0xff200000, 0xab000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
+ 
+},
+{"adds_x_reg_sxtb", 0xffe0e000, 0xab208000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_sxth", 0xffe0e000, 0xab20a000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_sxtw", 0xffe0e000, 0xab20c000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_sxtx", 0xffe0e000, 0xab20e000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_uxtb", 0xffe0e000, 0xab200000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_uxth", 0xffe0e000, 0xab202000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_uxtw", 0xffe0e000, 0xab204000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adds_x_reg_uxtx", 0xffe0e000, 0xab206000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"adr", 0x9f000000, 0x10000000,
+ 2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23_29_30},
+ 
+},
+{"adrp", 0x9f000000, 0x90000000,
+ 2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23_29_30},
+ 
+},
+{"and_w_imm", 0xff800000, 0x12000000,
+ 3, {OK::WREG_0_4_SP, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
+ STACK_OPS
+},
+{"and_w_reg", 0xff200000, 0x0a000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"and_x_imm", 0xff800000, 0x92000000,
+ 3, {OK::XREG_0_4_SP, OK::XREG_5_9, OK::IMM_10_15_16_22_X},
+ STACK_OPS
+},
+{"and_x_reg", 0xff200000, 0x8a000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"ands_w_imm", 0xff800000, 0x72000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
+ 
+},
+{"ands_w_reg", 0xff200000, 0x6a000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"ands_x_imm", 0xff800000, 0xf2000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_10_15_16_22_X},
+ 
+},
+{"ands_x_reg", 0xff200000, 0xea000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"asrv_w", 0xffe0fc00, 0x1ac02800,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"asrv_x", 0xffe0fc00, 0x9ac02800,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"b", 0xfc000000, 0x14000000,
+ 1, {OK::SIMM_PCREL_0_25},
+ BRANCH
+},
+{"b_cc", 0xff00001f, 0x54000003,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_cs", 0xff00001f, 0x54000002,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_eq", 0xff00001f, 0x54000000,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_ge", 0xff00001f, 0x5400000a,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_gt", 0xff00001f, 0x5400000c,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_hi", 0xff00001f, 0x54000008,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_le", 0xff00001f, 0x5400000d,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_ls", 0xff00001f, 0x54000009,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_lt", 0xff00001f, 0x5400000b,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_mi", 0xff00001f, 0x54000004,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_ne", 0xff00001f, 0x54000001,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_pl", 0xff00001f, 0x54000005,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_vc", 0xff00001f, 0x54000007,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"b_vs", 0xff00001f, 0x54000006,
+ 1, {OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"bfm_w", 0xffc00000, 0x33000000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"bfm_x", 0xffc00000, 0xb3400000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"bic_w_reg", 0xff200000, 0x0a200000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"bic_x_reg", 0xff200000, 0x8a200000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"bics_w_reg", 0xff200000, 0x6a200000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"bics_x_reg", 0xff200000, 0xea200000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"bl", 0xfc000000, 0x94000000,
+ 2, {OK::REG_LINK, OK::SIMM_PCREL_0_25},
+ CALL
+},
+{"blr", 0xfffffc1f, 0xd63f0000,
+ 1, {OK::XREG_5_9},
+ CALL_INDIRECT
+},
+{"br", 0xfffffc1f, 0xd61f0000,
+ 1, {OK::XREG_5_9},
+ 
+},
+{"brk", 0xffe0001f, 0xd4200000,
+ 1, {OK::IMM_5_20},
+ 
+},
+{"cbnz_w", 0xff000000, 0x35000000,
+ 2, {OK::WREG_0_4, OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"cbnz_x", 0xff000000, 0xb5000000,
+ 2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"cbz_w", 0xff000000, 0x34000000,
+ 2, {OK::WREG_0_4, OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"cbz_x", 0xff000000, 0xb4000000,
+ 2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23},
+ COND_BRANCH
+},
+{"ccmn_w_imm_cc", 0xffe0fc10, 0x3a403800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_cs", 0xffe0fc10, 0x3a402800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_eq", 0xffe0fc10, 0x3a400800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_ge", 0xffe0fc10, 0x3a40a800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_gt", 0xffe0fc10, 0x3a40c800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_hi", 0xffe0fc10, 0x3a408800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_le", 0xffe0fc10, 0x3a40d800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_ls", 0xffe0fc10, 0x3a409800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_lt", 0xffe0fc10, 0x3a40b800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_mi", 0xffe0fc10, 0x3a404800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_ne", 0xffe0fc10, 0x3a401800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_pl", 0xffe0fc10, 0x3a405800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_vc", 0xffe0fc10, 0x3a407800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_imm_vs", 0xffe0fc10, 0x3a406800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_cc", 0xffe0fc10, 0x3a403000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_cs", 0xffe0fc10, 0x3a402000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_eq", 0xffe0fc10, 0x3a400000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_ge", 0xffe0fc10, 0x3a40a000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_gt", 0xffe0fc10, 0x3a40c000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_hi", 0xffe0fc10, 0x3a408000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_le", 0xffe0fc10, 0x3a40d000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_ls", 0xffe0fc10, 0x3a409000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_lt", 0xffe0fc10, 0x3a40b000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_mi", 0xffe0fc10, 0x3a404000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_ne", 0xffe0fc10, 0x3a401000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_pl", 0xffe0fc10, 0x3a405000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_vc", 0xffe0fc10, 0x3a407000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_w_reg_vs", 0xffe0fc10, 0x3a406000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_cc", 0xffe0fc10, 0xba403800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_cs", 0xffe0fc10, 0xba402800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_eq", 0xffe0fc10, 0xba400800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_ge", 0xffe0fc10, 0xba40a800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_gt", 0xffe0fc10, 0xba40c800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_hi", 0xffe0fc10, 0xba408800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_le", 0xffe0fc10, 0xba40d800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_ls", 0xffe0fc10, 0xba409800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_lt", 0xffe0fc10, 0xba40b800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_mi", 0xffe0fc10, 0xba404800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_ne", 0xffe0fc10, 0xba401800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_pl", 0xffe0fc10, 0xba405800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_vc", 0xffe0fc10, 0xba407800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_imm_vs", 0xffe0fc10, 0xba406800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_cc", 0xffe0fc10, 0xba403000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_cs", 0xffe0fc10, 0xba402000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_eq", 0xffe0fc10, 0xba400000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_ge", 0xffe0fc10, 0xba40a000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_gt", 0xffe0fc10, 0xba40c000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_hi", 0xffe0fc10, 0xba408000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_le", 0xffe0fc10, 0xba40d000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_ls", 0xffe0fc10, 0xba409000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_lt", 0xffe0fc10, 0xba40b000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_mi", 0xffe0fc10, 0xba404000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_ne", 0xffe0fc10, 0xba401000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_pl", 0xffe0fc10, 0xba405000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_vc", 0xffe0fc10, 0xba407000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmn_x_reg_vs", 0xffe0fc10, 0xba406000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_cc", 0xffe0fc10, 0x7a403800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_cs", 0xffe0fc10, 0x7a402800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_eq", 0xffe0fc10, 0x7a400800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_ge", 0xffe0fc10, 0x7a40a800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_gt", 0xffe0fc10, 0x7a40c800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_hi", 0xffe0fc10, 0x7a408800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_le", 0xffe0fc10, 0x7a40d800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_ls", 0xffe0fc10, 0x7a409800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_lt", 0xffe0fc10, 0x7a40b800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_mi", 0xffe0fc10, 0x7a404800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_ne", 0xffe0fc10, 0x7a401800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_pl", 0xffe0fc10, 0x7a405800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_vc", 0xffe0fc10, 0x7a407800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_imm_vs", 0xffe0fc10, 0x7a406800,
+ 3, {OK::WREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_cc", 0xffe0fc10, 0x7a403000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_cs", 0xffe0fc10, 0x7a402000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_eq", 0xffe0fc10, 0x7a400000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_ge", 0xffe0fc10, 0x7a40a000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_gt", 0xffe0fc10, 0x7a40c000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_hi", 0xffe0fc10, 0x7a408000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_le", 0xffe0fc10, 0x7a40d000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_ls", 0xffe0fc10, 0x7a409000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_lt", 0xffe0fc10, 0x7a40b000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_mi", 0xffe0fc10, 0x7a404000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_ne", 0xffe0fc10, 0x7a401000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_pl", 0xffe0fc10, 0x7a405000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_vc", 0xffe0fc10, 0x7a407000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_w_reg_vs", 0xffe0fc10, 0x7a406000,
+ 3, {OK::WREG_5_9, OK::WREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_cc", 0xffe0fc10, 0xfa403800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_cs", 0xffe0fc10, 0xfa402800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_eq", 0xffe0fc10, 0xfa400800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_ge", 0xffe0fc10, 0xfa40a800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_gt", 0xffe0fc10, 0xfa40c800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_hi", 0xffe0fc10, 0xfa408800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_le", 0xffe0fc10, 0xfa40d800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_ls", 0xffe0fc10, 0xfa409800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_lt", 0xffe0fc10, 0xfa40b800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_mi", 0xffe0fc10, 0xfa404800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_ne", 0xffe0fc10, 0xfa401800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_pl", 0xffe0fc10, 0xfa405800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_vc", 0xffe0fc10, 0xfa407800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_imm_vs", 0xffe0fc10, 0xfa406800,
+ 3, {OK::XREG_5_9, OK::IMM_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_cc", 0xffe0fc10, 0xfa403000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_cs", 0xffe0fc10, 0xfa402000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_eq", 0xffe0fc10, 0xfa400000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_ge", 0xffe0fc10, 0xfa40a000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_gt", 0xffe0fc10, 0xfa40c000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_hi", 0xffe0fc10, 0xfa408000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_le", 0xffe0fc10, 0xfa40d000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_ls", 0xffe0fc10, 0xfa409000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_lt", 0xffe0fc10, 0xfa40b000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_mi", 0xffe0fc10, 0xfa404000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_ne", 0xffe0fc10, 0xfa401000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_pl", 0xffe0fc10, 0xfa405000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_vc", 0xffe0fc10, 0xfa407000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"ccmp_x_reg_vs", 0xffe0fc10, 0xfa406000,
+ 3, {OK::XREG_5_9, OK::XREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"clrex", 0xffffffff, 0xd5033f5f,
+ 0, {},
+ 
+},
+{"cls_w", 0xfffffc00, 0x5ac01400,
+ 2, {OK::WREG_0_4, OK::WREG_5_9},
+ 
+},
+{"cls_x", 0xfffffc00, 0xdac01400,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"clz_w", 0xfffffc00, 0x5ac01000,
+ 2, {OK::WREG_0_4, OK::WREG_5_9},
+ 
+},
+{"clz_x", 0xfffffc00, 0xdac01000,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"csel_w_cc", 0xffe0fc00, 0x1a803000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_cs", 0xffe0fc00, 0x1a802000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_eq", 0xffe0fc00, 0x1a800000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_ge", 0xffe0fc00, 0x1a80a000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_gt", 0xffe0fc00, 0x1a80c000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_hi", 0xffe0fc00, 0x1a808000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_le", 0xffe0fc00, 0x1a80d000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_ls", 0xffe0fc00, 0x1a809000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_lt", 0xffe0fc00, 0x1a80b000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_mi", 0xffe0fc00, 0x1a804000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_ne", 0xffe0fc00, 0x1a801000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_pl", 0xffe0fc00, 0x1a805000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_vc", 0xffe0fc00, 0x1a807000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_w_vs", 0xffe0fc00, 0x1a806000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csel_x_cc", 0xffe0fc00, 0x9a803000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_cs", 0xffe0fc00, 0x9a802000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_eq", 0xffe0fc00, 0x9a800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_ge", 0xffe0fc00, 0x9a80a000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_gt", 0xffe0fc00, 0x9a80c000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_hi", 0xffe0fc00, 0x9a808000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_le", 0xffe0fc00, 0x9a80d000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_ls", 0xffe0fc00, 0x9a809000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_lt", 0xffe0fc00, 0x9a80b000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_mi", 0xffe0fc00, 0x9a804000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_ne", 0xffe0fc00, 0x9a801000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_pl", 0xffe0fc00, 0x9a805000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_vc", 0xffe0fc00, 0x9a807000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csel_x_vs", 0xffe0fc00, 0x9a806000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_cc", 0xffe0fc00, 0x1a803400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_cs", 0xffe0fc00, 0x1a802400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_eq", 0xffe0fc00, 0x1a800400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_ge", 0xffe0fc00, 0x1a80a400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_gt", 0xffe0fc00, 0x1a80c400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_hi", 0xffe0fc00, 0x1a808400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_le", 0xffe0fc00, 0x1a80d400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_ls", 0xffe0fc00, 0x1a809400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_lt", 0xffe0fc00, 0x1a80b400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_mi", 0xffe0fc00, 0x1a804400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_ne", 0xffe0fc00, 0x1a801400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_pl", 0xffe0fc00, 0x1a805400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_vc", 0xffe0fc00, 0x1a807400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_w_vs", 0xffe0fc00, 0x1a806400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_cc", 0xffe0fc00, 0x9a803400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_cs", 0xffe0fc00, 0x9a802400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_eq", 0xffe0fc00, 0x9a800400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_ge", 0xffe0fc00, 0x9a80a400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_gt", 0xffe0fc00, 0x9a80c400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_hi", 0xffe0fc00, 0x9a808400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_le", 0xffe0fc00, 0x9a80d400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_ls", 0xffe0fc00, 0x9a809400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_lt", 0xffe0fc00, 0x9a80b400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_mi", 0xffe0fc00, 0x9a804400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_ne", 0xffe0fc00, 0x9a801400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_pl", 0xffe0fc00, 0x9a805400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_vc", 0xffe0fc00, 0x9a807400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinc_x_vs", 0xffe0fc00, 0x9a806400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_cc", 0xffe0fc00, 0x5a803000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_cs", 0xffe0fc00, 0x5a802000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_eq", 0xffe0fc00, 0x5a800000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_ge", 0xffe0fc00, 0x5a80a000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_gt", 0xffe0fc00, 0x5a80c000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_hi", 0xffe0fc00, 0x5a808000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_le", 0xffe0fc00, 0x5a80d000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_ls", 0xffe0fc00, 0x5a809000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_lt", 0xffe0fc00, 0x5a80b000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_mi", 0xffe0fc00, 0x5a804000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_ne", 0xffe0fc00, 0x5a801000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_pl", 0xffe0fc00, 0x5a805000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_vc", 0xffe0fc00, 0x5a807000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_w_vs", 0xffe0fc00, 0x5a806000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_cc", 0xffe0fc00, 0xda803000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_cs", 0xffe0fc00, 0xda802000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_eq", 0xffe0fc00, 0xda800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_ge", 0xffe0fc00, 0xda80a000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_gt", 0xffe0fc00, 0xda80c000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_hi", 0xffe0fc00, 0xda808000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_le", 0xffe0fc00, 0xda80d000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_ls", 0xffe0fc00, 0xda809000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_lt", 0xffe0fc00, 0xda80b000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_mi", 0xffe0fc00, 0xda804000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_ne", 0xffe0fc00, 0xda801000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_pl", 0xffe0fc00, 0xda805000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_vc", 0xffe0fc00, 0xda807000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csinv_x_vs", 0xffe0fc00, 0xda806000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_cc", 0xffe0fc00, 0x5a803400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_cs", 0xffe0fc00, 0x5a802400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_eq", 0xffe0fc00, 0x5a800400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_ge", 0xffe0fc00, 0x5a80a400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_gt", 0xffe0fc00, 0x5a80c400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_hi", 0xffe0fc00, 0x5a808400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_le", 0xffe0fc00, 0x5a80d400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_ls", 0xffe0fc00, 0x5a809400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_lt", 0xffe0fc00, 0x5a80b400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_mi", 0xffe0fc00, 0x5a804400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_ne", 0xffe0fc00, 0x5a801400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_pl", 0xffe0fc00, 0x5a805400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_vc", 0xffe0fc00, 0x5a807400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_w_vs", 0xffe0fc00, 0x5a806400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_cc", 0xffe0fc00, 0xda803400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_cs", 0xffe0fc00, 0xda802400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_eq", 0xffe0fc00, 0xda800400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_ge", 0xffe0fc00, 0xda80a400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_gt", 0xffe0fc00, 0xda80c400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_hi", 0xffe0fc00, 0xda808400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_le", 0xffe0fc00, 0xda80d400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_ls", 0xffe0fc00, 0xda809400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_lt", 0xffe0fc00, 0xda80b400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_mi", 0xffe0fc00, 0xda804400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_ne", 0xffe0fc00, 0xda801400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_pl", 0xffe0fc00, 0xda805400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_vc", 0xffe0fc00, 0xda807400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"csneg_x_vs", 0xffe0fc00, 0xda806400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ COND_PARAM
+},
+{"dmb_ish", 0xffffffff, 0xd5033bbf,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"dmb_ishld", 0xffffffff, 0xd50339bf,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"dmb_ishst", 0xffffffff, 0xd5033abf,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"dsb_ish", 0xffffffff, 0xd5033b9f,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"dsb_ishld", 0xffffffff, 0xd503399f,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"dsb_ishst", 0xffffffff, 0xd5033a9f,
+ 0, {},
+ DOMAIN_PARAM
+},
+{"eon_w_reg", 0xff200000, 0x4a200000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"eon_x_reg", 0xff200000, 0xca200000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"eor_w_imm", 0xff800000, 0x52000000,
+ 3, {OK::WREG_0_4_SP, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
+ STACK_OPS
+},
+{"eor_w_reg", 0xff200000, 0x4a000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"eor_x_imm", 0xff800000, 0xd2000000,
+ 3, {OK::XREG_0_4_SP, OK::XREG_5_9, OK::IMM_10_15_16_22_X},
+ STACK_OPS
+},
+{"eor_x_reg", 0xff200000, 0xca000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"eret", 0xffffffff, 0xd69f03e0,
+ 0, {},
+ 
+},
+{"extr_w", 0xffe00000, 0x13800000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::IMM_10_15},
+ 
+},
+{"extr_x", 0xffe00000, 0x93c00000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::IMM_10_15},
+ 
+},
+{"fabd_d", 0xffe0fc00, 0x7ee0d400,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fabd_s", 0xffe0fc00, 0x7ea0d400,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fabs_d", 0xfffffc00, 0x1e60c000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fabs_s", 0xfffffc00, 0x1e20c000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fadd_d", 0xffe0fc00, 0x1e602800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fadd_s", 0xffe0fc00, 0x1e202800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fccmp_d_cc", 0xffe0fc10, 0x1e603400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_cs", 0xffe0fc10, 0x1e602400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_eq", 0xffe0fc10, 0x1e600400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_ge", 0xffe0fc10, 0x1e60a400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_gt", 0xffe0fc10, 0x1e60c400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_hi", 0xffe0fc10, 0x1e608400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_le", 0xffe0fc10, 0x1e60d400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_ls", 0xffe0fc10, 0x1e609400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_lt", 0xffe0fc10, 0x1e60b400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_mi", 0xffe0fc10, 0x1e604400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_ne", 0xffe0fc10, 0x1e601400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_pl", 0xffe0fc10, 0x1e605400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_vc", 0xffe0fc10, 0x1e607400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_d_vs", 0xffe0fc10, 0x1e606400,
+ 3, {OK::DREG_5_9, OK::DREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_cc", 0xffe0fc10, 0x1e203400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_cs", 0xffe0fc10, 0x1e202400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_eq", 0xffe0fc10, 0x1e200400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_ge", 0xffe0fc10, 0x1e20a400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_gt", 0xffe0fc10, 0x1e20c400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_hi", 0xffe0fc10, 0x1e208400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_le", 0xffe0fc10, 0x1e20d400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_ls", 0xffe0fc10, 0x1e209400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_lt", 0xffe0fc10, 0x1e20b400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_mi", 0xffe0fc10, 0x1e204400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_ne", 0xffe0fc10, 0x1e201400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_pl", 0xffe0fc10, 0x1e205400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_vc", 0xffe0fc10, 0x1e207400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fccmp_s_vs", 0xffe0fc10, 0x1e206400,
+ 3, {OK::SREG_5_9, OK::SREG_16_20, OK::IMM_COND_0_3},
+ COND_PARAM
+},
+{"fcmge_d", 0xffe0fc00, 0x7e60e400,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fcmge_s", 0xffe0fc00, 0x7e20e400,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fcmgt_d", 0xffe0fc00, 0x7ee0e400,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fcmgt_s", 0xffe0fc00, 0x7ea0e400,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fcmp_d", 0xffe0fc1f, 0x1e602000,
+ 2, {OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fcmp_d_zero", 0xfffffc1f, 0x1e602008,
+ 2, {OK::DREG_5_9, OK::IMM_FLT_ZERO},
+ 
+},
+{"fcmp_s", 0xffe0fc1f, 0x1e202000,
+ 2, {OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fcmp_s_zero", 0xfffffc1f, 0x1e202008,
+ 2, {OK::SREG_5_9, OK::IMM_FLT_ZERO},
+ 
+},
+{"fcsel_d_cc", 0xffe0fc00, 0x1e603c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_cs", 0xffe0fc00, 0x1e602c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_eq", 0xffe0fc00, 0x1e600c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_ge", 0xffe0fc00, 0x1e60ac00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_gt", 0xffe0fc00, 0x1e60cc00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_hi", 0xffe0fc00, 0x1e608c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_le", 0xffe0fc00, 0x1e60dc00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_ls", 0xffe0fc00, 0x1e609c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_lt", 0xffe0fc00, 0x1e60bc00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_mi", 0xffe0fc00, 0x1e604c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_ne", 0xffe0fc00, 0x1e601c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_pl", 0xffe0fc00, 0x1e605c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_vc", 0xffe0fc00, 0x1e607c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_d_vs", 0xffe0fc00, 0x1e606c00,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_cc", 0xffe0fc00, 0x1e203c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_cs", 0xffe0fc00, 0x1e202c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_eq", 0xffe0fc00, 0x1e200c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_ge", 0xffe0fc00, 0x1e20ac00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_gt", 0xffe0fc00, 0x1e20cc00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_hi", 0xffe0fc00, 0x1e208c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_le", 0xffe0fc00, 0x1e20dc00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_ls", 0xffe0fc00, 0x1e209c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_lt", 0xffe0fc00, 0x1e20bc00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_mi", 0xffe0fc00, 0x1e204c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_ne", 0xffe0fc00, 0x1e201c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_pl", 0xffe0fc00, 0x1e205c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_vc", 0xffe0fc00, 0x1e207c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcsel_s_vs", 0xffe0fc00, 0x1e206c00,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ COND_PARAM
+},
+{"fcvt_d_h", 0xfffffc00, 0x1ee2c000,
+ 2, {OK::DREG_0_4, OK::HREG_5_9},
+ 
+},
+{"fcvt_d_s", 0xfffffc00, 0x1e22c000,
+ 2, {OK::DREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvt_h_d", 0xfffffc00, 0x1e63c000,
+ 2, {OK::HREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvt_h_s", 0xfffffc00, 0x1e23c000,
+ 2, {OK::HREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvt_s_d", 0xfffffc00, 0x1e624000,
+ 2, {OK::SREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvt_s_h", 0xfffffc00, 0x1ee24000,
+ 2, {OK::SREG_0_4, OK::HREG_5_9},
+ 
+},
+{"fcvtas_w_d", 0xfffffc00, 0x1e640000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtas_w_s", 0xfffffc00, 0x1e240000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtas_x_d", 0xfffffc00, 0x9e640000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtas_x_s", 0xfffffc00, 0x9e240000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtau_w_d", 0xfffffc00, 0x1e650000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtau_w_s", 0xfffffc00, 0x1e250000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtau_x_d", 0xfffffc00, 0x9e650000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtau_x_s", 0xfffffc00, 0x9e250000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtms_w_d", 0xfffffc00, 0x1e700000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtms_w_s", 0xfffffc00, 0x1e300000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtms_x_d", 0xfffffc00, 0x9e700000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtms_x_s", 0xfffffc00, 0x9e300000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtmu_w_d", 0xfffffc00, 0x1e710000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtmu_w_s", 0xfffffc00, 0x1e310000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtmu_x_d", 0xfffffc00, 0x9e710000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtmu_x_s", 0xfffffc00, 0x9e310000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtns_w_d", 0xfffffc00, 0x1e600000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtns_w_s", 0xfffffc00, 0x1e200000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtns_x_d", 0xfffffc00, 0x9e600000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtns_x_s", 0xfffffc00, 0x9e200000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtnu_w_d", 0xfffffc00, 0x1e610000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtnu_w_s", 0xfffffc00, 0x1e210000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtnu_x_d", 0xfffffc00, 0x9e610000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtnu_x_s", 0xfffffc00, 0x9e210000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtps_w_d", 0xfffffc00, 0x1e680000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtps_w_s", 0xfffffc00, 0x1e280000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtps_x_d", 0xfffffc00, 0x9e680000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtps_x_s", 0xfffffc00, 0x9e280000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtpu_w_d", 0xfffffc00, 0x1e690000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtpu_w_s", 0xfffffc00, 0x1e290000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtpu_x_d", 0xfffffc00, 0x9e690000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtpu_x_s", 0xfffffc00, 0x9e290000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtzs_w_d", 0xfffffc00, 0x1e780000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtzs_w_s", 0xfffffc00, 0x1e380000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtzs_x_d", 0xfffffc00, 0x9e780000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtzs_x_s", 0xfffffc00, 0x9e380000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtzu_w_d", 0xfffffc00, 0x1e790000,
+ 2, {OK::WREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtzu_w_s", 0xfffffc00, 0x1e390000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fcvtzu_x_d", 0xfffffc00, 0x9e790000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fcvtzu_x_s", 0xfffffc00, 0x9e390000,
+ 2, {OK::XREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fdiv_d", 0xffe0fc00, 0x1e601800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fdiv_s", 0xffe0fc00, 0x1e201800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fldp_d_imm", 0xffc00000, 0x6d400000,
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"fldp_d_imm_post", 0xffc00000, 0x6cc00000,
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"fldp_d_imm_pre", 0xffc00000, 0x6dc00000,
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"fldp_q_imm", 0xffc00000, 0xad400000,
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ LOAD | REG_PAIR
+},
+{"fldp_q_imm_post", 0xffc00000, 0xacc00000,
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ LOAD | REG_PAIR
+},
+{"fldp_q_imm_pre", 0xffc00000, 0xadc00000,
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ LOAD | REG_PAIR
+},
+{"fldp_s_imm", 0xffc00000, 0x2d400000,
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"fldp_s_imm_post", 0xffc00000, 0x2cc00000,
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"fldp_s_imm_pre", 0xffc00000, 0x2dc00000,
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"fldr_b_imm", 0xffc00000, 0x3d400000,
+ 3, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21},
+ LOAD
+},
+{"fldr_b_imm_post", 0xffe00c00, 0x3c400400,
+ 3, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_b_imm_pre", 0xffe00c00, 0x3c400c00,
+ 3, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_b_reg_w", 0xffe06c00, 0x3c604800,
+ 5, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"fldr_b_reg_x", 0xffe06c00, 0x3c606800,
+ 5, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"fldr_d_imm", 0xffc00000, 0xfd400000,
+ 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_8},
+ LOAD
+},
+{"fldr_d_imm_post", 0xffe00c00, 0xfc400400,
+ 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_d_imm_pre", 0xffe00c00, 0xfc400c00,
+ 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_d_reg_w", 0xffe06c00, 0xfc604800,
+ 5, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_3},
+ LOAD
+},
+{"fldr_d_reg_x", 0xffe06c00, 0xfc606800,
+ 5, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_3},
+ LOAD
+},
+{"fldr_h_imm", 0xffc00000, 0x7d400000,
+ 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ LOAD
+},
+{"fldr_h_imm_post", 0xffe00c00, 0x7c400400,
+ 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_h_imm_pre", 0xffe00c00, 0x7c400c00,
+ 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_h_reg_w", 0xffe06c00, 0x7c604800,
+ 5, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"fldr_h_reg_x", 0xffe06c00, 0x7c606800,
+ 5, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"fldr_q_imm", 0xffc00000, 0x3dc00000,
+ 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_16},
+ LOAD
+},
+{"fldr_q_imm_post", 0xffe00c00, 0x3cc00400,
+ 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_q_imm_pre", 0xffe00c00, 0x3cc00c00,
+ 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_q_reg_w", 0xffe06c00, 0x3ce04800,
+ 5, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_4},
+ LOAD
+},
+{"fldr_q_reg_x", 0xffe06c00, 0x3ce06800,
+ 5, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_4},
+ LOAD
+},
+{"fldr_s_imm", 0xffc00000, 0xbd400000,
+ 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ LOAD
+},
+{"fldr_s_imm_post", 0xffe00c00, 0xbc400400,
+ 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_s_imm_pre", 0xffe00c00, 0xbc400c00,
+ 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldr_s_reg_w", 0xffe06c00, 0xbc604800,
+ 5, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_2},
+ LOAD
+},
+{"fldr_s_reg_x", 0xffe06c00, 0xbc606800,
+ 5, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_2},
+ LOAD
+},
+{"fldur_b_imm", 0xffe00c00, 0x3c400000,
+ 3, {OK::BREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldur_d_imm", 0xffe00c00, 0xfc400000,
+ 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldur_h_imm", 0xffe00c00, 0x7c400000,
+ 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldur_q_imm", 0xffe00c00, 0x3cc00000,
+ 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fldur_s_imm", 0xffe00c00, 0xbc400000,
+ 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"fmadd_d", 0xffe08000, 0x1f400000,
+ 4, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20, OK::DREG_10_14},
+ 
+},
+{"fmadd_s", 0xffe08000, 0x1f000000,
+ 4, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20, OK::SREG_10_14},
+ 
+},
+{"fmax_d", 0xffe0fc00, 0x1e604800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fmax_s", 0xffe0fc00, 0x1e204800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fmaxnm_d", 0xffe0fc00, 0x1e606800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fmaxnm_s", 0xffe0fc00, 0x1e206800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fmin_d", 0xffe0fc00, 0x1e605800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fmin_s", 0xffe0fc00, 0x1e205800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fminnm_d", 0xffe0fc00, 0x1e607800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fminnm_s", 0xffe0fc00, 0x1e207800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fmov_d_from_x", 0xfffffc00, 0x9e670000,
+ 2, {OK::DREG_0_4, OK::XREG_5_9},
+ 
+},
+{"fmov_d_imm", 0xffe01fe0, 0x1e601000,
+ 2, {OK::DREG_0_4, OK::FLT_13_20},
+ 
+},
+{"fmov_s_from_w", 0xfffffc00, 0x1e270000,
+ 2, {OK::SREG_0_4, OK::WREG_5_9},
+ 
+},
+{"fmov_s_imm", 0xffe01fe0, 0x1e201000,
+ 2, {OK::SREG_0_4, OK::FLT_13_20},
+ 
+},
+{"fmov_w_from_s", 0xfffffc00, 0x1e260000,
+ 2, {OK::WREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fmov_x_from_d", 0xfffffc00, 0x9e660000,
+ 2, {OK::XREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fmsub_d", 0xffe08000, 0x1f408000,
+ 4, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20, OK::DREG_10_14},
+ 
+},
+{"fmsub_s", 0xffe08000, 0x1f008000,
+ 4, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20, OK::SREG_10_14},
+ 
+},
+{"fmul_d", 0xffe0fc00, 0x1e600800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fmul_s", 0xffe0fc00, 0x1e200800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fneg_d", 0xfffffc00, 0x1e614000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fneg_s", 0xfffffc00, 0x1e214000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fnmadd_d", 0xffe08000, 0x1f600000,
+ 4, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20, OK::DREG_10_14},
+ 
+},
+{"fnmadd_s", 0xffe08000, 0x1f200000,
+ 4, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20, OK::SREG_10_14},
+ 
+},
+{"fnmsub_d", 0xffe08000, 0x1f608000,
+ 4, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20, OK::DREG_10_14},
+ 
+},
+{"fnmsub_s", 0xffe08000, 0x1f208000,
+ 4, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20, OK::SREG_10_14},
+ 
+},
+{"fnmul_d", 0xffe0fc00, 0x1e608800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fnmul_s", 0xffe0fc00, 0x1e208800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"frinta_d", 0xfffffc00, 0x1e664000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frinta_s", 0xfffffc00, 0x1e264000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frinti_d", 0xfffffc00, 0x1e67c000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frinti_s", 0xfffffc00, 0x1e27c000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frintm_d", 0xfffffc00, 0x1e654000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frintm_s", 0xfffffc00, 0x1e254000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frintn_d", 0xfffffc00, 0x1e644000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frintn_s", 0xfffffc00, 0x1e244000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frintp_d", 0xfffffc00, 0x1e64c000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frintp_s", 0xfffffc00, 0x1e24c000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frintx_d", 0xfffffc00, 0x1e674000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frintx_s", 0xfffffc00, 0x1e274000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"frintz_d", 0xfffffc00, 0x1e65c000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"frintz_s", 0xfffffc00, 0x1e25c000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fsqrt_d", 0xfffffc00, 0x1e61c000,
+ 2, {OK::DREG_0_4, OK::DREG_5_9},
+ 
+},
+{"fsqrt_s", 0xfffffc00, 0x1e21c000,
+ 2, {OK::SREG_0_4, OK::SREG_5_9},
+ 
+},
+{"fstp_d_imm", 0xffc00000, 0x6d000000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_d_imm_post", 0xffc00000, 0x6c800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_d_imm_pre", 0xffc00000, 0x6d800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_q_imm", 0xffc00000, 0xad000000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_q_imm_post", 0xffc00000, 0xac800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_q_imm_pre", 0xffc00000, 0xad800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_s_imm", 0xffc00000, 0x2d000000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_s_imm_post", 0xffc00000, 0x2c800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstp_s_imm_pre", 0xffc00000, 0x2d800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ STORE | REG_PAIR
+},
+{"fstr_b_imm", 0xffc00000, 0x3d000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21, OK::BREG_0_4},
+ STORE
+},
+{"fstr_b_imm_post", 0xffe00c00, 0x3c000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::BREG_0_4},
+ STORE
+},
+{"fstr_b_imm_pre", 0xffe00c00, 0x3c000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::BREG_0_4},
+ STORE
+},
+{"fstr_b_reg_w", 0xffe06c00, 0x3c204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0, OK::BREG_0_4},
+ STORE
+},
+{"fstr_b_reg_x", 0xffe06c00, 0x3c206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0, OK::BREG_0_4},
+ STORE
+},
+{"fstr_d_imm", 0xffc00000, 0xfd000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_8, OK::DREG_0_4},
+ STORE
+},
+{"fstr_d_imm_post", 0xffe00c00, 0xfc000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::DREG_0_4},
+ STORE
+},
+{"fstr_d_imm_pre", 0xffe00c00, 0xfc000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::DREG_0_4},
+ STORE
+},
+{"fstr_d_reg_w", 0xffe06c00, 0xfc204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_3, OK::DREG_0_4},
+ STORE
+},
+{"fstr_d_reg_x", 0xffe06c00, 0xfc206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_3, OK::DREG_0_4},
+ STORE
+},
+{"fstr_h_imm", 0xffc00000, 0x7d000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_2, OK::HREG_0_4},
+ STORE
+},
+{"fstr_h_imm_post", 0xffe00c00, 0x7c000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::HREG_0_4},
+ STORE
+},
+{"fstr_h_imm_pre", 0xffe00c00, 0x7c000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::HREG_0_4},
+ STORE
+},
+{"fstr_h_reg_w", 0xffe06c00, 0x7c204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1, OK::HREG_0_4},
+ STORE
+},
+{"fstr_h_reg_x", 0xffe06c00, 0x7c206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1, OK::HREG_0_4},
+ STORE
+},
+{"fstr_q_imm", 0xffc00000, 0x3d800000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_16, OK::QREG_0_4},
+ STORE
+},
+{"fstr_q_imm_post", 0xffe00c00, 0x3c800400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::QREG_0_4},
+ STORE
+},
+{"fstr_q_imm_pre", 0xffe00c00, 0x3c800c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::QREG_0_4},
+ STORE
+},
+{"fstr_q_reg_w", 0xffe06c00, 0x3ca04800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_4, OK::QREG_0_4},
+ STORE
+},
+{"fstr_q_reg_x", 0xffe06c00, 0x3ca06800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_4, OK::QREG_0_4},
+ STORE
+},
+{"fstr_s_imm", 0xffc00000, 0xbd000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_4, OK::SREG_0_4},
+ STORE
+},
+{"fstr_s_imm_post", 0xffe00c00, 0xbc000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::SREG_0_4},
+ STORE
+},
+{"fstr_s_imm_pre", 0xffe00c00, 0xbc000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::SREG_0_4},
+ STORE
+},
+{"fstr_s_reg_w", 0xffe06c00, 0xbc204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_2, OK::SREG_0_4},
+ STORE
+},
+{"fstr_s_reg_x", 0xffe06c00, 0xbc206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_2, OK::SREG_0_4},
+ STORE
+},
+{"fstur_b_imm", 0xffe00c00, 0x3c000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::BREG_0_4},
+ STORE
+},
+{"fstur_d_imm", 0xffe00c00, 0xfc000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::DREG_0_4},
+ STORE
+},
+{"fstur_h_imm", 0xffe00c00, 0x7c000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::HREG_0_4},
+ STORE
+},
+{"fstur_q_imm", 0xffe00c00, 0x3c800000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::QREG_0_4},
+ STORE
+},
+{"fstur_s_imm", 0xffe00c00, 0xbc000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::SREG_0_4},
+ STORE
+},
+{"fsub_d", 0xffe0fc00, 0x1e603800,
+ 3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
+ 
+},
+{"fsub_s", 0xffe0fc00, 0x1e203800,
+ 3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"hlt", 0xffe0001f, 0xd4400000,
+ 1, {OK::IMM_5_20},
+ 
+},
+{"isb", 0xffffffff, 0xd5033fdf,
+ 0, {},
+ 
+},
+{"ldar_b", 0xfffffc00, 0x08dffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldar_h", 0xfffffc00, 0x48dffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldar_w", 0xfffffc00, 0x88dffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldar_x", 0xfffffc00, 0xc8dffc00,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldaxr_b", 0xfffffc00, 0x085ffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldaxr_h", 0xfffffc00, 0x485ffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldaxr_w", 0xfffffc00, 0x885ffc00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldaxr_x", 0xfffffc00, 0xc85ffc00,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldp_sw_imm", 0xffc00000, 0x69400000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_sw_imm_post", 0xffc00000, 0x68c00000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_sw_imm_pre", 0xffc00000, 0x69c00000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_w_imm", 0xffc00000, 0x29400000,
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_w_imm_post", 0xffc00000, 0x28c00000,
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_w_imm_pre", 0xffc00000, 0x29c00000,
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ LOAD | REG_PAIR
+},
+{"ldp_x_imm", 0xffc00000, 0xa9400000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"ldp_x_imm_post", 0xffc00000, 0xa8c00000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"ldp_x_imm_pre", 0xffc00000, 0xa9c00000,
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ LOAD | REG_PAIR
+},
+{"ldr_b_imm", 0xffc00000, 0x39400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21},
+ LOAD
+},
+{"ldr_b_imm_post", 0xffe00c00, 0x38400400,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_b_imm_pre", 0xffe00c00, 0x38400c00,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_b_reg_w", 0xffe06c00, 0x38604800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldr_b_reg_x", 0xffe06c00, 0x38606800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldr_h_imm", 0xffc00000, 0x79400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ LOAD
+},
+{"ldr_h_imm_post", 0xffe00c00, 0x78400400,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_h_imm_pre", 0xffe00c00, 0x78400c00,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_h_reg_w", 0xffe06c00, 0x78604800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldr_h_reg_x", 0xffe06c00, 0x78606800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldr_w_imm", 0xffc00000, 0xb9400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ LOAD
+},
+{"ldr_w_imm_post", 0xffe00c00, 0xb8400400,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_w_imm_pre", 0xffe00c00, 0xb8400c00,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_w_reg_w", 0xffe06c00, 0xb8604800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_2},
+ LOAD
+},
+{"ldr_w_reg_x", 0xffe06c00, 0xb8606800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_2},
+ LOAD
+},
+{"ldr_x_imm", 0xffc00000, 0xf9400000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_8},
+ LOAD
+},
+{"ldr_x_imm_post", 0xffe00c00, 0xf8400400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_x_imm_pre", 0xffe00c00, 0xf8400c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldr_x_reg_w", 0xffe06c00, 0xf8604800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_3},
+ LOAD
+},
+{"ldr_x_reg_x", 0xffe06c00, 0xf8606800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_3},
+ LOAD
+},
+{"ldrsb_w_imm", 0xffc00000, 0x39c00000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21},
+ LOAD
+},
+{"ldrsb_w_imm_post", 0xffe00c00, 0x38c00400,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsb_w_imm_pre", 0xffe00c00, 0x38c00c00,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsb_w_reg_w", 0xffe06c00, 0x38e04800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldrsb_w_reg_x", 0xffe06c00, 0x38e06800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldrsb_x_imm", 0xffc00000, 0x39800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21},
+ LOAD
+},
+{"ldrsb_x_imm_post", 0xffe00c00, 0x38800400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsb_x_imm_pre", 0xffe00c00, 0x38800c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsb_x_reg_w", 0xffe06c00, 0x38a04800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldrsb_x_reg_x", 0xffe06c00, 0x38a06800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0},
+ LOAD
+},
+{"ldrsh_w_imm", 0xffc00000, 0x79c00000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ LOAD
+},
+{"ldrsh_w_imm_post", 0xffe00c00, 0x78c00400,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsh_w_imm_pre", 0xffe00c00, 0x78c00c00,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsh_w_reg_w", 0xffe06c00, 0x78e04800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldrsh_w_reg_x", 0xffe06c00, 0x78e06800,
+ 5, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldrsh_x_imm", 0xffc00000, 0x79800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ LOAD
+},
+{"ldrsh_x_imm_post", 0xffe00c00, 0x78800400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsh_x_imm_pre", 0xffe00c00, 0x78800c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsh_x_reg_w", 0xffe06c00, 0x78a04800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldrsh_x_reg_x", 0xffe06c00, 0x78a06800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1},
+ LOAD
+},
+{"ldrsw_imm", 0xffc00000, 0xb9800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ LOAD
+},
+{"ldrsw_imm_post", 0xffe00c00, 0xb8800400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsw_imm_pre", 0xffe00c00, 0xb8800c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldrsw_reg_w", 0xffe06c00, 0xb8a04800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_2},
+ 
+},
+{"ldrsw_reg_x", 0xffe06c00, 0xb8a06800,
+ 5, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_2},
+ LOAD
+},
+{"ldur_b_imm", 0xffe00c00, 0x38400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldur_h_imm", 0xffe00c00, 0x78400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldur_w_imm", 0xffe00c00, 0xb8400000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldur_x_imm", 0xffe00c00, 0xf8400000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldursb_w_imm", 0xffe00c00, 0x38c00000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldursb_x_imm", 0xffe00c00, 0x38800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldursh_w_imm", 0xffe00c00, 0x78c00000,
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldursh_x_imm", 0xffe00c00, 0x78800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldursw_imm_post", 0xffe00c00, 0xb8800000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::SIMM_12_20},
+ LOAD
+},
+{"ldxr_b", 0xfffffc00, 0x085f7c00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldxr_h", 0xfffffc00, 0x485f7c00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldxr_w", 0xfffffc00, 0x885f7c00,
+ 2, {OK::WREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"ldxr_x", 0xfffffc00, 0xc85f7c00,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ LOAD | ATOMIC
+},
+{"lslv_w", 0xffe0fc00, 0x1ac02000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"lslv_x", 0xffe0fc00, 0x9ac02000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"lsrv_w", 0xffe0fc00, 0x1ac02400,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"lsrv_x", 0xffe0fc00, 0x9ac02400,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"madd_w", 0xffe08000, 0x1b000000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::WREG_10_14},
+ 
+},
+{"madd_x", 0xffe08000, 0x9b000000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::XREG_10_14},
+ 
+},
+{"movk_w", 0xff800000, 0x72800000,
+ 2, {OK::WREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"movk_x", 0xff800000, 0xf2800000,
+ 2, {OK::XREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"movn_w_imm", 0xff800000, 0x12800000,
+ 2, {OK::WREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"movn_x_imm", 0xff800000, 0x92800000,
+ 2, {OK::XREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"movz_w_imm", 0xff800000, 0x52800000,
+ 2, {OK::WREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"movz_x_imm", 0xff800000, 0xd2800000,
+ 2, {OK::XREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 
+},
+{"msub_w", 0xffe08000, 0x1b008000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::WREG_10_14},
+ 
+},
+{"msub_x", 0xffe08000, 0x9b008000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::XREG_10_14},
+ 
+},
+{"nop", 0xffffffff, 0xd503201f,
+ 0, {},
+ 
+},
+{"orn_w_reg", 0xff200000, 0x2a200000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"orn_x_reg", 0xff200000, 0xaa200000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"orr_w_imm", 0xff800000, 0x32000000,
+ 3, {OK::WREG_0_4_SP, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
+ STACK_OPS
+},
+{"orr_w_reg", 0xff200000, 0x2a000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"orr_x_imm", 0xff800000, 0xb2000000,
+ 3, {OK::XREG_0_4_SP, OK::XREG_5_9, OK::IMM_10_15_16_22_X},
+ STACK_OPS
+},
+{"orr_x_reg", 0xff200000, 0xaa000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"rbit_w", 0xfffffc00, 0x5ac00000,
+ 2, {OK::WREG_0_4, OK::WREG_5_9},
+ 
+},
+{"rbit_x", 0xfffffc00, 0xdac00000,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"ret", 0xfffffc1f, 0xd65f0000,
+ 1, {OK::XREG_5_9},
+ BRANCH_INDIRECT
+},
+{"rev16_w", 0xfffffc00, 0x5ac00400,
+ 2, {OK::WREG_0_4, OK::WREG_5_9},
+ 
+},
+{"rev16_x", 0xfffffc00, 0xdac00400,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"rev32", 0xfffffc00, 0xdac00800,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"rev_w", 0xfffffc00, 0x5ac00800,
+ 2, {OK::WREG_0_4, OK::WREG_5_9},
+ 
+},
+{"rev_x", 0xfffffc00, 0xdac00c00,
+ 2, {OK::XREG_0_4, OK::XREG_5_9},
+ 
+},
+{"rorv_w", 0xffe0fc00, 0x1ac02c00,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"rorv_x", 0xffe0fc00, 0x9ac02c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"sbc_w", 0xffe0fc00, 0x5a000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"sbc_x", 0xffe0fc00, 0xda000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"sbcs_w", 0xffe0fc00, 0x7a000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"sbcs_x", 0xffe0fc00, 0xfa000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"sbfm_w", 0xffc00000, 0x13000000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"sbfm_x", 0xffc00000, 0x93400000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"scvtf_d_from_w", 0xfffffc00, 0x1e620000,
+ 2, {OK::DREG_0_4, OK::WREG_5_9},
+ 
+},
+{"scvtf_d_from_x", 0xfffffc00, 0x9e620000,
+ 2, {OK::DREG_0_4, OK::XREG_5_9},
+ 
+},
+{"scvtf_s_from_w", 0xfffffc00, 0x1e220000,
+ 2, {OK::SREG_0_4, OK::WREG_5_9},
+ 
+},
+{"scvtf_s_from_x", 0xfffffc00, 0x9e220000,
+ 2, {OK::SREG_0_4, OK::XREG_5_9},
+ 
+},
+{"sdiv_w", 0xffe0fc00, 0x1ac00c00,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"sdiv_x", 0xffe0fc00, 0x9ac00c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"smaddl", 0xffe08000, 0x9b200000,
+ 4, {OK::XREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::XREG_10_14},
+ 
+},
+{"smsubl", 0xffe08000, 0x9b208000,
+ 4, {OK::XREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::XREG_10_14},
+ 
+},
+{"smulh", 0xffe0fc00, 0x9b407c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"stlr_b", 0xfffffc00, 0x089ffc00,
+ 2, {OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC
+},
+{"stlr_h", 0xfffffc00, 0x489ffc00,
+ 2, {OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC
+},
+{"stlr_w", 0xfffffc00, 0x889ffc00,
+ 2, {OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC
+},
+{"stlr_x", 0xfffffc00, 0xc89ffc00,
+ 2, {OK::XREG_5_9, OK::XREG_0_4},
+ STORE | ATOMIC
+},
+{"stlxr_b", 0xffe0fc00, 0x0800fc00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stlxr_h", 0xffe0fc00, 0x4800fc00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stlxr_w", 0xffe0fc00, 0x8800fc00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stlxr_x", 0xffe0fc00, 0xc800fc00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::XREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stp_w_imm", 0xffc00000, 0x29000000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ STORE | REG_PAIR
+},
+{"stp_w_imm_post", 0xffc00000, 0x28800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ STORE | REG_PAIR
+},
+{"stp_w_imm_pre", 0xffc00000, 0x29800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ STORE | REG_PAIR
+},
+{"stp_x_imm", 0xffc00000, 0xa9000000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ STORE | REG_PAIR
+},
+{"stp_x_imm_post", 0xffc00000, 0xa8800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ STORE | REG_PAIR
+},
+{"stp_x_imm_pre", 0xffc00000, 0xa9800000,
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ STORE | REG_PAIR
+},
+{"str_b_imm", 0xffc00000, 0x39000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21, OK::WREG_0_4},
+ STORE
+},
+{"str_b_imm_post", 0xffe00c00, 0x38000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_b_imm_pre", 0xffe00c00, 0x38000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_b_reg_w", 0xffe06c00, 0x38204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_0, OK::WREG_0_4},
+ STORE
+},
+{"str_b_reg_x", 0xffe06c00, 0x38206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_0, OK::WREG_0_4},
+ STORE
+},
+{"str_h_imm", 0xffc00000, 0x79000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_2, OK::WREG_0_4},
+ STORE
+},
+{"str_h_imm_post", 0xffe00c00, 0x78000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_h_imm_pre", 0xffe00c00, 0x78000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_h_reg_w", 0xffe06c00, 0x78204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_1, OK::WREG_0_4},
+ STORE
+},
+{"str_h_reg_x", 0xffe06c00, 0x78206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_1, OK::WREG_0_4},
+ STORE
+},
+{"str_w_imm", 0xffc00000, 0xb9000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_4, OK::WREG_0_4},
+ STORE
+},
+{"str_w_imm_post", 0xffe00c00, 0xb8000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_w_imm_pre", 0xffe00c00, 0xb8000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"str_w_reg_w", 0xffe06c00, 0xb8204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_2, OK::WREG_0_4},
+ STORE
+},
+{"str_w_reg_x", 0xffe06c00, 0xb8206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_2, OK::WREG_0_4},
+ STORE
+},
+{"str_x_imm", 0xffc00000, 0xf9000000,
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_8, OK::XREG_0_4},
+ STORE
+},
+{"str_x_imm_post", 0xffe00c00, 0xf8000400,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::XREG_0_4},
+ STORE
+},
+{"str_x_imm_pre", 0xffe00c00, 0xf8000c00,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::XREG_0_4},
+ STORE
+},
+{"str_x_reg_w", 0xffe06c00, 0xf8204800,
+ 5, {OK::XREG_5_9_SP, OK::WREG_16_20, OK::SHIFT_15_W, OK::IMM_12_MAYBE_SHIFT_3, OK::XREG_0_4},
+ STORE
+},
+{"str_x_reg_x", 0xffe06c00, 0xf8206800,
+ 5, {OK::XREG_5_9_SP, OK::XREG_16_20, OK::SHIFT_15_X, OK::IMM_12_MAYBE_SHIFT_3, OK::XREG_0_4},
+ STORE
+},
+{"stur_b_imm", 0xffe00c00, 0x38000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"stur_h_imm", 0xffe00c00, 0x78000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"stur_w_imm", 0xffe00c00, 0xb8000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::WREG_0_4},
+ STORE
+},
+{"stur_x_imm", 0xffe00c00, 0xf8000000,
+ 3, {OK::XREG_5_9_SP, OK::SIMM_12_20, OK::XREG_0_4},
+ STORE
+},
+{"stxr_b", 0xffe0fc00, 0x08007c00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stxr_h", 0xffe0fc00, 0x48007c00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stxr_w", 0xffe0fc00, 0x88007c00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::WREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"stxr_x", 0xffe0fc00, 0xc8007c00,
+ 3, {OK::WREG_16_20, OK::XREG_5_9, OK::XREG_0_4},
+ STORE | ATOMIC_WITH_STATUS
+},
+{"sub_w_imm", 0xff800000, 0x51000000,
+ 3, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::IMM_SHIFTED_10_21_22},
+ STACK_OPS
+},
+{"sub_w_reg", 0xff200000, 0x4b000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"sub_w_reg_sxtb", 0xffe0e000, 0x4b208000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_sxth", 0xffe0e000, 0x4b20a000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_sxtw", 0xffe0e000, 0x4b20c000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_sxtx", 0xffe0e000, 0x4b20e000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_uxtb", 0xffe0e000, 0x4b200000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_uxth", 0xffe0e000, 0x4b202000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_uxtw", 0xffe0e000, 0x4b204000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_w_reg_uxtx", 0xffe0e000, 0x4b206000,
+ 4, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_imm", 0xff800000, 0xd1000000,
+ 3, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::IMM_SHIFTED_10_21_22},
+ STACK_OPS
+},
+{"sub_x_reg", 0xff200000, 0xcb000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"sub_x_reg_sxtb", 0xffe0e000, 0xcb208000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_sxth", 0xffe0e000, 0xcb20a000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_sxtw", 0xffe0e000, 0xcb20c000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_sxtx", 0xffe0e000, 0xcb20e000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_uxtb", 0xffe0e000, 0xcb200000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_uxth", 0xffe0e000, 0xcb202000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_uxtw", 0xffe0e000, 0xcb204000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"sub_x_reg_uxtx", 0xffe0e000, 0xcb206000,
+ 4, {OK::XREG_0_4_SP, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM | STACK_OPS
+},
+{"subs_w_imm", 0xff800000, 0x71000000,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_SHIFTED_10_21_22},
+ 
+},
+{"subs_w_reg", 0xff200000, 0x6b000000,
+ 5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
+ 
+},
+{"subs_w_reg_sxtb", 0xffe0e000, 0x6b208000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_sxth", 0xffe0e000, 0x6b20a000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_sxtw", 0xffe0e000, 0x6b20c000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_sxtx", 0xffe0e000, 0x6b20e000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_uxtb", 0xffe0e000, 0x6b200000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_uxth", 0xffe0e000, 0x6b202000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_uxtw", 0xffe0e000, 0x6b204000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_w_reg_uxtx", 0xffe0e000, 0x6b206000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_imm", 0xff800000, 0xf1000000,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_SHIFTED_10_21_22},
+ 
+},
+{"subs_x_reg", 0xff200000, 0xeb000000,
+ 5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
+ 
+},
+{"subs_x_reg_sxtb", 0xffe0e000, 0xeb208000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_sxth", 0xffe0e000, 0xeb20a000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_sxtw", 0xffe0e000, 0xeb20c000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_sxtx", 0xffe0e000, 0xeb20e000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_uxtb", 0xffe0e000, 0xeb200000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_uxth", 0xffe0e000, 0xeb202000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_uxtw", 0xffe0e000, 0xeb204000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"subs_x_reg_uxtx", 0xffe0e000, 0xeb206000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
+ EXTENSION_PARAM
+},
+{"svc", 0xffe0001f, 0xd4000001,
+ 1, {OK::IMM_5_20},
+ 
+},
+{"tbnz", 0x7f000000, 0x37000000,
+ 3, {OK::XREG_0_4, OK::IMM_19_23_31, OK::SIMM_PCREL_5_18},
+ COND_BRANCH
+},
+{"tbz", 0x7f000000, 0x36000000,
+ 3, {OK::XREG_0_4, OK::IMM_19_23_31, OK::SIMM_PCREL_5_18},
+ COND_BRANCH
+},
+{"ubfm_w", 0xffc00000, 0x53000000,
+ 4, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"ubfm_x", 0xffc00000, 0xd3400000,
+ 4, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
+ 
+},
+{"ucvtf_d_from_w", 0xfffffc00, 0x1e630000,
+ 2, {OK::DREG_0_4, OK::WREG_5_9},
+ 
+},
+{"ucvtf_d_from_x", 0xfffffc00, 0x9e630000,
+ 2, {OK::DREG_0_4, OK::XREG_5_9},
+ 
+},
+{"ucvtf_s_from_w", 0xfffffc00, 0x1e230000,
+ 2, {OK::SREG_0_4, OK::WREG_5_9},
+ 
+},
+{"ucvtf_s_from_x", 0xfffffc00, 0x9e230000,
+ 2, {OK::SREG_0_4, OK::XREG_5_9},
+ 
+},
+{"udiv_w", 0xffe0fc00, 0x1ac00800,
+ 3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
+ 
+},
+{"udiv_x", 0xffe0fc00, 0x9ac00800,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"umaddl", 0xffe08000, 0x9ba00000,
+ 4, {OK::XREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::XREG_10_14},
+ 
+},
+{"umsubl", 0xffe08000, 0x9ba08000,
+ 4, {OK::XREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::XREG_10_14},
+ 
+},
+{"umulh", 0xffe0fc00, 0x9bc07c00,
+ 3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
+ 
+},
+{"yield", 0xffffffff, 0xd503203f,
+ 0, {},
+ 
+},
 };
 
+const OPC ClusteredOpcodeTable[] = {
+  // cluster 0  size:0,
+  // cluster 1  size:0,
+  // cluster 2  size:0,
+  // cluster 3  size:0,
+  // cluster 4  size:0,
+  // cluster 5  size:0,
+  // cluster 6  size:0,
+  // cluster 7  size:0,
+  // cluster 8  size:6,
+  OPC::ldxr_b, OPC::ldaxr_b, OPC::ldar_b, OPC::stxr_b, OPC::stlxr_b, OPC::stlr_b,
+  // cluster 9  size:0,
+  // cluster 10  size:2,
+  OPC::and_w_reg, OPC::bic_w_reg,
+  // cluster 11  size:9,
+  OPC::add_w_reg, OPC::add_w_reg_uxtb, OPC::add_w_reg_uxth, OPC::add_w_reg_uxtw, OPC::add_w_reg_uxtx, OPC::add_w_reg_sxtb, OPC::add_w_reg_sxth, OPC::add_w_reg_sxtw, OPC::add_w_reg_sxtx,
+  // cluster 12  size:0,
+  // cluster 13  size:0,
+  // cluster 14  size:0,
+  // cluster 15  size:0,
+  // cluster 16  size:1,
+  OPC::adr,
+  // cluster 17  size:1,
+  OPC::add_w_imm,
+  // cluster 18  size:2,
+  OPC::and_w_imm, OPC::movn_w_imm,
+  // cluster 19  size:2,
+  OPC::sbfm_w, OPC::extr_w,
+  // cluster 20  size:1,
+  OPC::b,
+  // cluster 21  size:1,
+  OPC::b,
+  // cluster 22  size:1,
+  OPC::b,
+  // cluster 23  size:1,
+  OPC::b,
+  // cluster 24  size:0,
+  // cluster 25  size:0,
+  // cluster 26  size:35,
+  OPC::udiv_w, OPC::sdiv_w, OPC::lslv_w, OPC::lsrv_w, OPC::asrv_w, OPC::rorv_w, OPC::adc_w, OPC::csel_w_eq, OPC::csinc_w_eq, OPC::csel_w_ne, OPC::csinc_w_ne, OPC::csel_w_cs, OPC::csinc_w_cs, OPC::csel_w_cc, OPC::csinc_w_cc, OPC::csel_w_mi, OPC::csinc_w_mi, OPC::csel_w_pl, OPC::csinc_w_pl, OPC::csel_w_vs, OPC::csinc_w_vs, OPC::csel_w_vc, OPC::csinc_w_vc, OPC::csel_w_hi, OPC::csinc_w_hi, OPC::csel_w_ls, OPC::csinc_w_ls, OPC::csel_w_ge, OPC::csinc_w_ge, OPC::csel_w_lt, OPC::csinc_w_lt, OPC::csel_w_gt, OPC::csinc_w_gt, OPC::csel_w_le, OPC::csinc_w_le,
+  // cluster 27  size:2,
+  OPC::madd_w, OPC::msub_w,
+  // cluster 28  size:0,
+  // cluster 29  size:0,
+  // cluster 30  size:132,
+  OPC::fmov_s_imm, OPC::fmul_s, OPC::fdiv_s, OPC::fadd_s, OPC::fsub_s, OPC::fmax_s, OPC::fmaxnm_s, OPC::fmin_s, OPC::fminnm_s, OPC::fnmul_s, OPC::fcmp_s_zero, OPC::fcmp_s, OPC::fabs_s, OPC::fneg_s, OPC::fsqrt_s, OPC::frinta_s, OPC::frinti_s, OPC::frintm_s, OPC::frintn_s, OPC::frintp_s, OPC::frintx_s, OPC::frintz_s, OPC::fcsel_s_eq, OPC::fccmp_s_eq, OPC::fcsel_s_ne, OPC::fccmp_s_ne, OPC::fcsel_s_cs, OPC::fccmp_s_cs, OPC::fcsel_s_cc, OPC::fccmp_s_cc, OPC::fcsel_s_mi, OPC::fccmp_s_mi, OPC::fcsel_s_pl, OPC::fccmp_s_pl, OPC::fcsel_s_vs, OPC::fccmp_s_vs, OPC::fcsel_s_vc, OPC::fccmp_s_vc, OPC::fcsel_s_hi, OPC::fccmp_s_hi, OPC::fcsel_s_ls, OPC::fccmp_s_ls, OPC::fcsel_s_ge, OPC::fccmp_s_ge, OPC::fcsel_s_lt, OPC::fccmp_s_lt, OPC::fcsel_s_gt, OPC::fccmp_s_gt, OPC::fcsel_s_le, OPC::fccmp_s_le, OPC::fmov_d_imm, OPC::fmul_d, OPC::fdiv_d, OPC::fadd_d, OPC::fsub_d, OPC::fmax_d, OPC::fmaxnm_d, OPC::fmin_d, OPC::fminnm_d, OPC::fnmul_d, OPC::fcmp_d_zero, OPC::fcmp_d, OPC::fabs_d, OPC::fneg_d, OPC::fsqrt_d, OPC::frinta_d, OPC::frinti_d, OPC::frintm_d, OPC::frintn_d, OPC::frintp_d, OPC::frintx_d, OPC::frintz_d, OPC::fcsel_d_eq, OPC::fccmp_d_eq, OPC::fcsel_d_ne, OPC::fccmp_d_ne, OPC::fcsel_d_cs, OPC::fccmp_d_cs, OPC::fcsel_d_cc, OPC::fccmp_d_cc, OPC::fcsel_d_mi, OPC::fccmp_d_mi, OPC::fcsel_d_pl, OPC::fccmp_d_pl, OPC::fcsel_d_vs, OPC::fccmp_d_vs, OPC::fcsel_d_vc, OPC::fccmp_d_vc, OPC::fcsel_d_hi, OPC::fccmp_d_hi, OPC::fcsel_d_ls, OPC::fccmp_d_ls, OPC::fcsel_d_ge, OPC::fccmp_d_ge, OPC::fcsel_d_lt, OPC::fccmp_d_lt, OPC::fcsel_d_gt, OPC::fccmp_d_gt, OPC::fcsel_d_le, OPC::fccmp_d_le, OPC::fmov_s_from_w, OPC::fmov_w_from_s, OPC::fcvt_h_s, OPC::fcvt_h_d, OPC::fcvt_s_h, OPC::fcvt_s_d, OPC::fcvt_d_h, OPC::fcvt_d_s, OPC::fcvtas_w_s, OPC::fcvtas_w_d, OPC::fcvtau_w_s, OPC::fcvtau_w_d, OPC::fcvtms_w_s, OPC::fcvtms_w_d, OPC::fcvtmu_w_s, OPC::fcvtmu_w_d, OPC::fcvtns_w_s, OPC::fcvtns_w_d, OPC::fcvtnu_w_s, OPC::fcvtnu_w_d, OPC::fcvtps_w_s, OPC::fcvtps_w_d, OPC::fcvtpu_w_s, OPC::fcvtpu_w_d, OPC::fcvtzs_w_s, OPC::fcvtzs_w_d, OPC::fcvtzu_w_s, OPC::fcvtzu_w_d, OPC::scvtf_s_from_w, OPC::ucvtf_s_from_w, OPC::scvtf_d_from_w, OPC::ucvtf_d_from_w,
+  // cluster 31  size:8,
+  OPC::fmadd_s, OPC::fmsub_s, OPC::fnmadd_s, OPC::fnmsub_s, OPC::fmadd_d, OPC::fmsub_d, OPC::fnmadd_d, OPC::fnmsub_d,
+  // cluster 32  size:0,
+  // cluster 33  size:0,
+  // cluster 34  size:0,
+  // cluster 35  size:0,
+  // cluster 36  size:0,
+  // cluster 37  size:0,
+  // cluster 38  size:0,
+  // cluster 39  size:0,
+  // cluster 40  size:2,
+  OPC::ldp_w_imm_post, OPC::stp_w_imm_post,
+  // cluster 41  size:4,
+  OPC::ldp_w_imm_pre, OPC::ldp_w_imm, OPC::stp_w_imm_pre, OPC::stp_w_imm,
+  // cluster 42  size:2,
+  OPC::orr_w_reg, OPC::orn_w_reg,
+  // cluster 43  size:9,
+  OPC::adds_w_reg, OPC::adds_w_reg_uxtb, OPC::adds_w_reg_uxth, OPC::adds_w_reg_uxtw, OPC::adds_w_reg_uxtx, OPC::adds_w_reg_sxtb, OPC::adds_w_reg_sxth, OPC::adds_w_reg_sxtw, OPC::adds_w_reg_sxtx,
+  // cluster 44  size:2,
+  OPC::fstp_s_imm_post, OPC::fldp_s_imm_post,
+  // cluster 45  size:4,
+  OPC::fstp_s_imm_pre, OPC::fstp_s_imm, OPC::fldp_s_imm_pre, OPC::fldp_s_imm,
+  // cluster 46  size:0,
+  // cluster 47  size:0,
+  // cluster 48  size:1,
+  OPC::adr,
+  // cluster 49  size:1,
+  OPC::adds_w_imm,
+  // cluster 50  size:1,
+  OPC::orr_w_imm,
+  // cluster 51  size:1,
+  OPC::bfm_w,
+  // cluster 52  size:1,
+  OPC::cbz_w,
+  // cluster 53  size:1,
+  OPC::cbnz_w,
+  // cluster 54  size:1,
+  OPC::tbz,
+  // cluster 55  size:1,
+  OPC::tbnz,
+  // cluster 56  size:20,
+  OPC::ldr_b_imm_pre, OPC::ldr_b_imm_post, OPC::ldur_b_imm, OPC::ldr_b_reg_w, OPC::ldr_b_reg_x, OPC::str_b_reg_w, OPC::str_b_reg_x, OPC::str_b_imm_pre, OPC::str_b_imm_post, OPC::stur_b_imm, OPC::ldrsb_w_imm_pre, OPC::ldrsb_w_imm_post, OPC::ldursb_w_imm, OPC::ldrsb_w_reg_w, OPC::ldrsb_w_reg_x, OPC::ldrsb_x_imm_pre, OPC::ldrsb_x_imm_post, OPC::ldursb_x_imm, OPC::ldrsb_x_reg_w, OPC::ldrsb_x_reg_x,
+  // cluster 57  size:4,
+  OPC::ldr_b_imm, OPC::str_b_imm, OPC::ldrsb_w_imm, OPC::ldrsb_x_imm,
+  // cluster 58  size:29,
+  OPC::adcs_w, OPC::ccmn_w_reg_eq, OPC::ccmn_w_imm_eq, OPC::ccmn_w_reg_ne, OPC::ccmn_w_imm_ne, OPC::ccmn_w_reg_cs, OPC::ccmn_w_imm_cs, OPC::ccmn_w_reg_cc, OPC::ccmn_w_imm_cc, OPC::ccmn_w_reg_mi, OPC::ccmn_w_imm_mi, OPC::ccmn_w_reg_pl, OPC::ccmn_w_imm_pl, OPC::ccmn_w_reg_vs, OPC::ccmn_w_imm_vs, OPC::ccmn_w_reg_vc, OPC::ccmn_w_imm_vc, OPC::ccmn_w_reg_hi, OPC::ccmn_w_imm_hi, OPC::ccmn_w_reg_ls, OPC::ccmn_w_imm_ls, OPC::ccmn_w_reg_ge, OPC::ccmn_w_imm_ge, OPC::ccmn_w_reg_lt, OPC::ccmn_w_imm_lt, OPC::ccmn_w_reg_gt, OPC::ccmn_w_imm_gt, OPC::ccmn_w_reg_le, OPC::ccmn_w_imm_le,
+  // cluster 59  size:0,
+  // cluster 60  size:20,
+  OPC::fldr_b_imm_post, OPC::fldr_b_imm_pre, OPC::fldr_b_reg_w, OPC::fldr_b_reg_x, OPC::fldur_b_imm, OPC::fstr_b_imm_post, OPC::fstr_b_imm_pre, OPC::fstr_b_reg_w, OPC::fstr_b_reg_x, OPC::fstur_b_imm, OPC::fldr_q_imm_post, OPC::fldr_q_imm_pre, OPC::fldr_q_reg_w, OPC::fldr_q_reg_x, OPC::fldur_q_imm, OPC::fstr_q_imm_post, OPC::fstr_q_imm_pre, OPC::fstr_q_reg_w, OPC::fstr_q_reg_x, OPC::fstur_q_imm,
+  // cluster 61  size:4,
+  OPC::fldr_b_imm, OPC::fstr_b_imm, OPC::fldr_q_imm, OPC::fstr_q_imm,
+  // cluster 62  size:0,
+  // cluster 63  size:0,
+  // cluster 64  size:0,
+  // cluster 65  size:0,
+  // cluster 66  size:0,
+  // cluster 67  size:0,
+  // cluster 68  size:0,
+  // cluster 69  size:0,
+  // cluster 70  size:0,
+  // cluster 71  size:0,
+  // cluster 72  size:6,
+  OPC::ldxr_h, OPC::ldaxr_h, OPC::ldar_h, OPC::stxr_h, OPC::stlxr_h, OPC::stlr_h,
+  // cluster 73  size:0,
+  // cluster 74  size:2,
+  OPC::eor_w_reg, OPC::eon_w_reg,
+  // cluster 75  size:9,
+  OPC::sub_w_reg, OPC::sub_w_reg_uxtb, OPC::sub_w_reg_uxth, OPC::sub_w_reg_uxtw, OPC::sub_w_reg_uxtx, OPC::sub_w_reg_sxtb, OPC::sub_w_reg_sxth, OPC::sub_w_reg_sxtw, OPC::sub_w_reg_sxtx,
+  // cluster 76  size:0,
+  // cluster 77  size:0,
+  // cluster 78  size:0,
+  // cluster 79  size:0,
+  // cluster 80  size:1,
+  OPC::adr,
+  // cluster 81  size:1,
+  OPC::sub_w_imm,
+  // cluster 82  size:2,
+  OPC::eor_w_imm, OPC::movz_w_imm,
+  // cluster 83  size:1,
+  OPC::ubfm_w,
+  // cluster 84  size:14,
+  OPC::b_eq, OPC::b_ne, OPC::b_cs, OPC::b_cc, OPC::b_mi, OPC::b_pl, OPC::b_vs, OPC::b_vc, OPC::b_hi, OPC::b_ls, OPC::b_ge, OPC::b_lt, OPC::b_gt, OPC::b_le,
+  // cluster 85  size:0,
+  // cluster 86  size:0,
+  // cluster 87  size:0,
+  // cluster 88  size:0,
+  // cluster 89  size:0,
+  // cluster 90  size:34,
+  OPC::sbc_w, OPC::csneg_w_eq, OPC::csinv_w_eq, OPC::csneg_w_ne, OPC::csinv_w_ne, OPC::csneg_w_cs, OPC::csinv_w_cs, OPC::csneg_w_cc, OPC::csinv_w_cc, OPC::csneg_w_mi, OPC::csinv_w_mi, OPC::csneg_w_pl, OPC::csinv_w_pl, OPC::csneg_w_vs, OPC::csinv_w_vs, OPC::csneg_w_vc, OPC::csinv_w_vc, OPC::csneg_w_hi, OPC::csinv_w_hi, OPC::csneg_w_ls, OPC::csinv_w_ls, OPC::csneg_w_ge, OPC::csinv_w_ge, OPC::csneg_w_lt, OPC::csinv_w_lt, OPC::csneg_w_gt, OPC::csinv_w_gt, OPC::csneg_w_le, OPC::csinv_w_le, OPC::rbit_w, OPC::clz_w, OPC::cls_w, OPC::rev_w, OPC::rev16_w,
+  // cluster 91  size:0,
+  // cluster 92  size:0,
+  // cluster 93  size:0,
+  // cluster 94  size:0,
+  // cluster 95  size:0,
+  // cluster 96  size:0,
+  // cluster 97  size:0,
+  // cluster 98  size:0,
+  // cluster 99  size:0,
+  // cluster 100  size:0,
+  // cluster 101  size:0,
+  // cluster 102  size:0,
+  // cluster 103  size:0,
+  // cluster 104  size:1,
+  OPC::ldp_sw_imm_post,
+  // cluster 105  size:2,
+  OPC::ldp_sw_imm_pre, OPC::ldp_sw_imm,
+  // cluster 106  size:2,
+  OPC::ands_w_reg, OPC::bics_w_reg,
+  // cluster 107  size:9,
+  OPC::subs_w_reg, OPC::subs_w_reg_uxtb, OPC::subs_w_reg_uxth, OPC::subs_w_reg_uxtw, OPC::subs_w_reg_uxtx, OPC::subs_w_reg_sxtb, OPC::subs_w_reg_sxth, OPC::subs_w_reg_sxtw, OPC::subs_w_reg_sxtx,
+  // cluster 108  size:2,
+  OPC::fstp_d_imm_post, OPC::fldp_d_imm_post,
+  // cluster 109  size:4,
+  OPC::fstp_d_imm_pre, OPC::fstp_d_imm, OPC::fldp_d_imm_pre, OPC::fldp_d_imm,
+  // cluster 110  size:0,
+  // cluster 111  size:0,
+  // cluster 112  size:1,
+  OPC::adr,
+  // cluster 113  size:1,
+  OPC::subs_w_imm,
+  // cluster 114  size:2,
+  OPC::ands_w_imm, OPC::movk_w,
+  // cluster 115  size:0,
+  // cluster 116  size:0,
+  // cluster 117  size:0,
+  // cluster 118  size:0,
+  // cluster 119  size:0,
+  // cluster 120  size:20,
+  OPC::ldr_h_imm_pre, OPC::ldr_h_imm_post, OPC::ldur_h_imm, OPC::ldr_h_reg_w, OPC::ldr_h_reg_x, OPC::str_h_reg_w, OPC::str_h_reg_x, OPC::str_h_imm_pre, OPC::str_h_imm_post, OPC::stur_h_imm, OPC::ldrsh_w_imm_pre, OPC::ldrsh_w_imm_post, OPC::ldursh_w_imm, OPC::ldrsh_w_reg_w, OPC::ldrsh_w_reg_x, OPC::ldrsh_x_imm_pre, OPC::ldrsh_x_imm_post, OPC::ldursh_x_imm, OPC::ldrsh_x_reg_w, OPC::ldrsh_x_reg_x,
+  // cluster 121  size:4,
+  OPC::ldr_h_imm, OPC::str_h_imm, OPC::ldrsh_w_imm, OPC::ldrsh_x_imm,
+  // cluster 122  size:29,
+  OPC::sbcs_w, OPC::ccmp_w_reg_eq, OPC::ccmp_w_imm_eq, OPC::ccmp_w_reg_ne, OPC::ccmp_w_imm_ne, OPC::ccmp_w_reg_cs, OPC::ccmp_w_imm_cs, OPC::ccmp_w_reg_cc, OPC::ccmp_w_imm_cc, OPC::ccmp_w_reg_mi, OPC::ccmp_w_imm_mi, OPC::ccmp_w_reg_pl, OPC::ccmp_w_imm_pl, OPC::ccmp_w_reg_vs, OPC::ccmp_w_imm_vs, OPC::ccmp_w_reg_vc, OPC::ccmp_w_imm_vc, OPC::ccmp_w_reg_hi, OPC::ccmp_w_imm_hi, OPC::ccmp_w_reg_ls, OPC::ccmp_w_imm_ls, OPC::ccmp_w_reg_ge, OPC::ccmp_w_imm_ge, OPC::ccmp_w_reg_lt, OPC::ccmp_w_imm_lt, OPC::ccmp_w_reg_gt, OPC::ccmp_w_imm_gt, OPC::ccmp_w_reg_le, OPC::ccmp_w_imm_le,
+  // cluster 123  size:0,
+  // cluster 124  size:10,
+  OPC::fldr_h_imm_post, OPC::fldr_h_imm_pre, OPC::fldr_h_reg_w, OPC::fldr_h_reg_x, OPC::fldur_h_imm, OPC::fstr_h_imm_post, OPC::fstr_h_imm_pre, OPC::fstr_h_reg_w, OPC::fstr_h_reg_x, OPC::fstur_h_imm,
+  // cluster 125  size:2,
+  OPC::fldr_h_imm, OPC::fstr_h_imm,
+  // cluster 126  size:6,
+  OPC::fabd_s, OPC::fcmge_s, OPC::fcmgt_s, OPC::fabd_d, OPC::fcmge_d, OPC::fcmgt_d,
+  // cluster 127  size:0,
+  // cluster 128  size:0,
+  // cluster 129  size:0,
+  // cluster 130  size:0,
+  // cluster 131  size:0,
+  // cluster 132  size:0,
+  // cluster 133  size:0,
+  // cluster 134  size:0,
+  // cluster 135  size:0,
+  // cluster 136  size:6,
+  OPC::ldxr_w, OPC::ldaxr_w, OPC::ldar_w, OPC::stxr_w, OPC::stlxr_w, OPC::stlr_w,
+  // cluster 137  size:0,
+  // cluster 138  size:2,
+  OPC::and_x_reg, OPC::bic_x_reg,
+  // cluster 139  size:9,
+  OPC::add_x_reg, OPC::add_x_reg_uxtb, OPC::add_x_reg_uxth, OPC::add_x_reg_uxtw, OPC::add_x_reg_uxtx, OPC::add_x_reg_sxtb, OPC::add_x_reg_sxth, OPC::add_x_reg_sxtw, OPC::add_x_reg_sxtx,
+  // cluster 140  size:0,
+  // cluster 141  size:0,
+  // cluster 142  size:0,
+  // cluster 143  size:0,
+  // cluster 144  size:1,
+  OPC::adrp,
+  // cluster 145  size:1,
+  OPC::add_x_imm,
+  // cluster 146  size:2,
+  OPC::and_x_imm, OPC::movn_x_imm,
+  // cluster 147  size:2,
+  OPC::sbfm_x, OPC::extr_x,
+  // cluster 148  size:1,
+  OPC::bl,
+  // cluster 149  size:1,
+  OPC::bl,
+  // cluster 150  size:1,
+  OPC::bl,
+  // cluster 151  size:1,
+  OPC::bl,
+  // cluster 152  size:0,
+  // cluster 153  size:0,
+  // cluster 154  size:35,
+  OPC::udiv_x, OPC::sdiv_x, OPC::lslv_x, OPC::lsrv_x, OPC::asrv_x, OPC::rorv_x, OPC::adc_x, OPC::csel_x_eq, OPC::csinc_x_eq, OPC::csel_x_ne, OPC::csinc_x_ne, OPC::csel_x_cs, OPC::csinc_x_cs, OPC::csel_x_cc, OPC::csinc_x_cc, OPC::csel_x_mi, OPC::csinc_x_mi, OPC::csel_x_pl, OPC::csinc_x_pl, OPC::csel_x_vs, OPC::csinc_x_vs, OPC::csel_x_vc, OPC::csinc_x_vc, OPC::csel_x_hi, OPC::csinc_x_hi, OPC::csel_x_ls, OPC::csinc_x_ls, OPC::csel_x_ge, OPC::csinc_x_ge, OPC::csel_x_lt, OPC::csinc_x_lt, OPC::csel_x_gt, OPC::csinc_x_gt, OPC::csel_x_le, OPC::csinc_x_le,
+  // cluster 155  size:8,
+  OPC::madd_x, OPC::msub_x, OPC::smaddl, OPC::smsubl, OPC::umaddl, OPC::umsubl, OPC::smulh, OPC::umulh,
+  // cluster 156  size:0,
+  // cluster 157  size:0,
+  // cluster 158  size:26,
+  OPC::fmov_d_from_x, OPC::fmov_x_from_d, OPC::fcvtas_x_s, OPC::fcvtas_x_d, OPC::fcvtau_x_s, OPC::fcvtau_x_d, OPC::fcvtms_x_s, OPC::fcvtms_x_d, OPC::fcvtmu_x_s, OPC::fcvtmu_x_d, OPC::fcvtns_x_s, OPC::fcvtns_x_d, OPC::fcvtnu_x_s, OPC::fcvtnu_x_d, OPC::fcvtps_x_s, OPC::fcvtps_x_d, OPC::fcvtpu_x_s, OPC::fcvtpu_x_d, OPC::fcvtzs_x_s, OPC::fcvtzs_x_d, OPC::fcvtzu_x_s, OPC::fcvtzu_x_d, OPC::scvtf_s_from_x, OPC::ucvtf_s_from_x, OPC::scvtf_d_from_x, OPC::ucvtf_d_from_x,
+  // cluster 159  size:0,
+  // cluster 160  size:0,
+  // cluster 161  size:0,
+  // cluster 162  size:0,
+  // cluster 163  size:0,
+  // cluster 164  size:0,
+  // cluster 165  size:0,
+  // cluster 166  size:0,
+  // cluster 167  size:0,
+  // cluster 168  size:2,
+  OPC::ldp_x_imm_post, OPC::stp_x_imm_post,
+  // cluster 169  size:4,
+  OPC::ldp_x_imm_pre, OPC::ldp_x_imm, OPC::stp_x_imm_pre, OPC::stp_x_imm,
+  // cluster 170  size:2,
+  OPC::orr_x_reg, OPC::orn_x_reg,
+  // cluster 171  size:9,
+  OPC::adds_x_reg, OPC::adds_x_reg_uxtb, OPC::adds_x_reg_uxth, OPC::adds_x_reg_uxtw, OPC::adds_x_reg_uxtx, OPC::adds_x_reg_sxtb, OPC::adds_x_reg_sxth, OPC::adds_x_reg_sxtw, OPC::adds_x_reg_sxtx,
+  // cluster 172  size:2,
+  OPC::fstp_q_imm_post, OPC::fldp_q_imm_post,
+  // cluster 173  size:4,
+  OPC::fstp_q_imm_pre, OPC::fstp_q_imm, OPC::fldp_q_imm_pre, OPC::fldp_q_imm,
+  // cluster 174  size:0,
+  // cluster 175  size:0,
+  // cluster 176  size:1,
+  OPC::adrp,
+  // cluster 177  size:1,
+  OPC::adds_x_imm,
+  // cluster 178  size:1,
+  OPC::orr_x_imm,
+  // cluster 179  size:1,
+  OPC::bfm_x,
+  // cluster 180  size:1,
+  OPC::cbz_x,
+  // cluster 181  size:1,
+  OPC::cbnz_x,
+  // cluster 182  size:1,
+  OPC::tbz,
+  // cluster 183  size:1,
+  OPC::tbnz,
+  // cluster 184  size:15,
+  OPC::ldr_w_imm_pre, OPC::ldr_w_imm_post, OPC::ldur_w_imm, OPC::ldr_w_reg_w, OPC::ldr_w_reg_x, OPC::str_w_reg_w, OPC::str_w_reg_x, OPC::str_w_imm_pre, OPC::str_w_imm_post, OPC::stur_w_imm, OPC::ldrsw_imm_pre, OPC::ldrsw_imm_post, OPC::ldursw_imm_post, OPC::ldrsw_reg_w, OPC::ldrsw_reg_x,
+  // cluster 185  size:3,
+  OPC::ldr_w_imm, OPC::str_w_imm, OPC::ldrsw_imm,
+  // cluster 186  size:29,
+  OPC::adcs_x, OPC::ccmn_x_reg_eq, OPC::ccmn_x_imm_eq, OPC::ccmn_x_reg_ne, OPC::ccmn_x_imm_ne, OPC::ccmn_x_reg_cs, OPC::ccmn_x_imm_cs, OPC::ccmn_x_reg_cc, OPC::ccmn_x_imm_cc, OPC::ccmn_x_reg_mi, OPC::ccmn_x_imm_mi, OPC::ccmn_x_reg_pl, OPC::ccmn_x_imm_pl, OPC::ccmn_x_reg_vs, OPC::ccmn_x_imm_vs, OPC::ccmn_x_reg_vc, OPC::ccmn_x_imm_vc, OPC::ccmn_x_reg_hi, OPC::ccmn_x_imm_hi, OPC::ccmn_x_reg_ls, OPC::ccmn_x_imm_ls, OPC::ccmn_x_reg_ge, OPC::ccmn_x_imm_ge, OPC::ccmn_x_reg_lt, OPC::ccmn_x_imm_lt, OPC::ccmn_x_reg_gt, OPC::ccmn_x_imm_gt, OPC::ccmn_x_reg_le, OPC::ccmn_x_imm_le,
+  // cluster 187  size:0,
+  // cluster 188  size:10,
+  OPC::fldr_s_imm_post, OPC::fldr_s_imm_pre, OPC::fldr_s_reg_w, OPC::fldr_s_reg_x, OPC::fldur_s_imm, OPC::fstr_s_imm_post, OPC::fstr_s_imm_pre, OPC::fstr_s_reg_w, OPC::fstr_s_reg_x, OPC::fstur_s_imm,
+  // cluster 189  size:2,
+  OPC::fldr_s_imm, OPC::fstr_s_imm,
+  // cluster 190  size:0,
+  // cluster 191  size:0,
+  // cluster 192  size:0,
+  // cluster 193  size:0,
+  // cluster 194  size:0,
+  // cluster 195  size:0,
+  // cluster 196  size:0,
+  // cluster 197  size:0,
+  // cluster 198  size:0,
+  // cluster 199  size:0,
+  // cluster 200  size:6,
+  OPC::ldxr_x, OPC::ldaxr_x, OPC::ldar_x, OPC::stxr_x, OPC::stlxr_x, OPC::stlr_x,
+  // cluster 201  size:0,
+  // cluster 202  size:2,
+  OPC::eor_x_reg, OPC::eon_x_reg,
+  // cluster 203  size:9,
+  OPC::sub_x_reg, OPC::sub_x_reg_uxtb, OPC::sub_x_reg_uxth, OPC::sub_x_reg_uxtw, OPC::sub_x_reg_uxtx, OPC::sub_x_reg_sxtb, OPC::sub_x_reg_sxth, OPC::sub_x_reg_sxtw, OPC::sub_x_reg_sxtx,
+  // cluster 204  size:0,
+  // cluster 205  size:0,
+  // cluster 206  size:0,
+  // cluster 207  size:0,
+  // cluster 208  size:1,
+  OPC::adrp,
+  // cluster 209  size:1,
+  OPC::sub_x_imm,
+  // cluster 210  size:2,
+  OPC::eor_x_imm, OPC::movz_x_imm,
+  // cluster 211  size:1,
+  OPC::ubfm_x,
+  // cluster 212  size:3,
+  OPC::hlt, OPC::brk, OPC::svc,
+  // cluster 213  size:10,
+  OPC::yield, OPC::nop, OPC::isb, OPC::clrex, OPC::dmb_ish, OPC::dmb_ishld, OPC::dmb_ishst, OPC::dsb_ish, OPC::dsb_ishld, OPC::dsb_ishst,
+  // cluster 214  size:4,
+  OPC::ret, OPC::br, OPC::blr, OPC::eret,
+  // cluster 215  size:0,
+  // cluster 216  size:0,
+  // cluster 217  size:0,
+  // cluster 218  size:35,
+  OPC::sbc_x, OPC::csneg_x_eq, OPC::csinv_x_eq, OPC::csneg_x_ne, OPC::csinv_x_ne, OPC::csneg_x_cs, OPC::csinv_x_cs, OPC::csneg_x_cc, OPC::csinv_x_cc, OPC::csneg_x_mi, OPC::csinv_x_mi, OPC::csneg_x_pl, OPC::csinv_x_pl, OPC::csneg_x_vs, OPC::csinv_x_vs, OPC::csneg_x_vc, OPC::csinv_x_vc, OPC::csneg_x_hi, OPC::csinv_x_hi, OPC::csneg_x_ls, OPC::csinv_x_ls, OPC::csneg_x_ge, OPC::csinv_x_ge, OPC::csneg_x_lt, OPC::csinv_x_lt, OPC::csneg_x_gt, OPC::csinv_x_gt, OPC::csneg_x_le, OPC::csinv_x_le, OPC::rbit_x, OPC::clz_x, OPC::cls_x, OPC::rev_x, OPC::rev32, OPC::rev16_x,
+  // cluster 219  size:0,
+  // cluster 220  size:0,
+  // cluster 221  size:0,
+  // cluster 222  size:0,
+  // cluster 223  size:0,
+  // cluster 224  size:0,
+  // cluster 225  size:0,
+  // cluster 226  size:0,
+  // cluster 227  size:0,
+  // cluster 228  size:0,
+  // cluster 229  size:0,
+  // cluster 230  size:0,
+  // cluster 231  size:0,
+  // cluster 232  size:0,
+  // cluster 233  size:0,
+  // cluster 234  size:2,
+  OPC::ands_x_reg, OPC::bics_x_reg,
+  // cluster 235  size:9,
+  OPC::subs_x_reg, OPC::subs_x_reg_uxtb, OPC::subs_x_reg_uxth, OPC::subs_x_reg_uxtw, OPC::subs_x_reg_uxtx, OPC::subs_x_reg_sxtb, OPC::subs_x_reg_sxth, OPC::subs_x_reg_sxtw, OPC::subs_x_reg_sxtx,
+  // cluster 236  size:0,
+  // cluster 237  size:0,
+  // cluster 238  size:0,
+  // cluster 239  size:0,
+  // cluster 240  size:1,
+  OPC::adrp,
+  // cluster 241  size:1,
+  OPC::subs_x_imm,
+  // cluster 242  size:2,
+  OPC::ands_x_imm, OPC::movk_x,
+  // cluster 243  size:0,
+  // cluster 244  size:0,
+  // cluster 245  size:0,
+  // cluster 246  size:0,
+  // cluster 247  size:0,
+  // cluster 248  size:10,
+  OPC::ldr_x_imm_pre, OPC::ldr_x_imm_post, OPC::ldur_x_imm, OPC::ldr_x_reg_w, OPC::ldr_x_reg_x, OPC::str_x_reg_w, OPC::str_x_reg_x, OPC::str_x_imm_pre, OPC::str_x_imm_post, OPC::stur_x_imm,
+  // cluster 249  size:2,
+  OPC::ldr_x_imm, OPC::str_x_imm,
+  // cluster 250  size:29,
+  OPC::sbcs_x, OPC::ccmp_x_reg_eq, OPC::ccmp_x_imm_eq, OPC::ccmp_x_reg_ne, OPC::ccmp_x_imm_ne, OPC::ccmp_x_reg_cs, OPC::ccmp_x_imm_cs, OPC::ccmp_x_reg_cc, OPC::ccmp_x_imm_cc, OPC::ccmp_x_reg_mi, OPC::ccmp_x_imm_mi, OPC::ccmp_x_reg_pl, OPC::ccmp_x_imm_pl, OPC::ccmp_x_reg_vs, OPC::ccmp_x_imm_vs, OPC::ccmp_x_reg_vc, OPC::ccmp_x_imm_vc, OPC::ccmp_x_reg_hi, OPC::ccmp_x_imm_hi, OPC::ccmp_x_reg_ls, OPC::ccmp_x_imm_ls, OPC::ccmp_x_reg_ge, OPC::ccmp_x_imm_ge, OPC::ccmp_x_reg_lt, OPC::ccmp_x_imm_lt, OPC::ccmp_x_reg_gt, OPC::ccmp_x_imm_gt, OPC::ccmp_x_reg_le, OPC::ccmp_x_imm_le,
+  // cluster 251  size:0,
+  // cluster 252  size:10,
+  OPC::fldr_d_imm_post, OPC::fldr_d_imm_pre, OPC::fldr_d_reg_w, OPC::fldr_d_reg_x, OPC::fldur_d_imm, OPC::fstr_d_imm_post, OPC::fstr_d_imm_pre, OPC::fstr_d_reg_w, OPC::fstr_d_reg_x, OPC::fstur_d_imm,
+  // cluster 253  size:2,
+  OPC::fldr_d_imm, OPC::fstr_d_imm,
+  // cluster 254  size:0,
+  // cluster 255  size:0
+};
+
+const int16_t OpcodeTableJumper[] = {
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+6,
+6,
+8,
+17,
+17,
+17,
+17,
+17,
+18,
+19,
+21,
+23,
+24,
+25,
+26,
+27,
+27,
+27,
+62,
+64,
+64,
+64,
+196,
+204,
+204,
+204,
+204,
+204,
+204,
+204,
+204,
+204,
+206,
+210,
+212,
+221,
+223,
+227,
+227,
+227,
+228,
+229,
+230,
+231,
+232,
+233,
+234,
+235,
+255,
+259,
+288,
+288,
+308,
+312,
+312,
+312,
+312,
+312,
+312,
+312,
+312,
+312,
+312,
+312,
+318,
+318,
+320,
+329,
+329,
+329,
+329,
+329,
+330,
+331,
+333,
+334,
+348,
+348,
+348,
+348,
+348,
+348,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+382,
+383,
+385,
+387,
+396,
+398,
+402,
+402,
+402,
+403,
+404,
+406,
+406,
+406,
+406,
+406,
+406,
+426,
+430,
+459,
+459,
+469,
+471,
+477,
+477,
+477,
+477,
+477,
+477,
+477,
+477,
+477,
+477,
+483,
+483,
+485,
+494,
+494,
+494,
+494,
+494,
+495,
+496,
+498,
+500,
+501,
+502,
+503,
+504,
+504,
+504,
+539,
+547,
+547,
+547,
+573,
+573,
+573,
+573,
+573,
+573,
+573,
+573,
+573,
+573,
+575,
+579,
+581,
+590,
+592,
+596,
+596,
+596,
+597,
+598,
+599,
+600,
+601,
+602,
+603,
+604,
+619,
+622,
+651,
+651,
+661,
+663,
+663,
+663,
+663,
+663,
+663,
+663,
+663,
+663,
+663,
+663,
+669,
+669,
+671,
+680,
+680,
+680,
+680,
+680,
+681,
+682,
+684,
+685,
+688,
+698,
+702,
+702,
+702,
+702,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+737,
+739,
+748,
+748,
+748,
+748,
+748,
+749,
+750,
+752,
+752,
+752,
+752,
+752,
+752,
+762,
+764,
+793,
+793,
+803,
+805,
+805,
+805
+};
+
+// Indexed by OK
+static const Field FieldTable[] = {
+  { {  } }, // Invalid = 0
+  { { {5, 0} } }, // WREG_0_4 = 1
+  { { {5, 5} } }, // WREG_5_9 = 2
+  { { {5, 10} } }, // WREG_10_14 = 3
+  { { {5, 16} } }, // WREG_16_20 = 4
+  { { {5, 0} } }, // XREG_0_4 = 5
+  { { {5, 5} } }, // XREG_5_9 = 6
+  { { {5, 10} } }, // XREG_10_14 = 7
+  { { {5, 16} } }, // XREG_16_20 = 8
+  { { {5, 0} } }, // SREG_0_4 = 9
+  { { {5, 5} } }, // SREG_5_9 = 10
+  { { {5, 10} } }, // SREG_10_14 = 11
+  { { {5, 16} } }, // SREG_16_20 = 12
+  { { {5, 0} } }, // DREG_0_4 = 13
+  { { {5, 5} } }, // DREG_5_9 = 14
+  { { {5, 10} } }, // DREG_10_14 = 15
+  { { {5, 16} } }, // DREG_16_20 = 16
+  { { {5, 0} } }, // BREG_0_4 = 17
+  { { {5, 5} } }, // BREG_5_9 = 18
+  { { {5, 10} } }, // BREG_10_14 = 19
+  { { {5, 16} } }, // BREG_16_20 = 20
+  { { {5, 0} } }, // HREG_0_4 = 21
+  { { {5, 5} } }, // HREG_5_9 = 22
+  { { {5, 10} } }, // HREG_10_14 = 23
+  { { {5, 16} } }, // HREG_16_20 = 24
+  { { {5, 0} } }, // QREG_0_4 = 25
+  { { {5, 5} } }, // QREG_5_9 = 26
+  { { {5, 10} } }, // QREG_10_14 = 27
+  { { {5, 16} } }, // QREG_16_20 = 28
+  { { {5, 0} } }, // WREG_0_4_SP = 29
+  { { {5, 5} } }, // WREG_5_9_SP = 30
+  { { {5, 0} } }, // XREG_0_4_SP = 31
+  { { {5, 5} } }, // XREG_5_9_SP = 32
+  { {  } }, // REG_LINK = 33
+  { { {2, 22} } }, // SHIFT_22_23 = 34
+  { { {2, 22} } }, // SHIFT_22_23_NO_ROR = 35
+  { { {1, 15} } }, // SHIFT_15_W = 36
+  { { {1, 15} } }, // SHIFT_15_X = 37
+  { { {26, 0} } }, // SIMM_PCREL_0_25 = 38
+  { { {9, 12} } }, // SIMM_12_20 = 39
+  { { {7, 15} } }, // SIMM_15_21_TIMES16 = 40
+  { { {7, 15} } }, // SIMM_15_21_TIMES4 = 41
+  { { {7, 15} } }, // SIMM_15_21_TIMES8 = 42
+  { { {14, 5} } }, // SIMM_PCREL_5_18 = 43
+  { { {19, 5} } }, // SIMM_PCREL_5_23 = 44
+  { { {19, 5}, {2, 29} } }, // SIMM_PCREL_5_23_29_30 = 45
+  { { {3, 10} } }, // IMM_10_12_LIMIT4 = 46
+  { { {6, 10} } }, // IMM_10_15 = 47
+  { { {13, 10} } }, // IMM_10_15_16_22_W = 48
+  { { {13, 10} } }, // IMM_10_15_16_22_X = 49
+  { { {12, 10} } }, // IMM_10_21 = 50
+  { { {13, 10} } }, // IMM_SHIFTED_10_21_22 = 51
+  { { {12, 10} } }, // IMM_10_21_times_16 = 52
+  { { {12, 10} } }, // IMM_10_21_times_2 = 53
+  { { {12, 10} } }, // IMM_10_21_times_4 = 54
+  { { {12, 10} } }, // IMM_10_21_times_8 = 55
+  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_0 = 56
+  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_1 = 57
+  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_2 = 58
+  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_3 = 59
+  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_4 = 60
+  { { {5, 16} } }, // IMM_16_20 = 61
+  { { {6, 16} } }, // IMM_16_21 = 62
+  { { {1, 31}, {5, 19} } }, // IMM_19_23_31 = 63
+  { { {16, 5} } }, // IMM_5_20 = 64
+  { { {4, 0} } }, // IMM_COND_0_3 = 65
+  { {  } }, // IMM_FLT_ZERO = 66
+  { { {18, 5} } }, // IMM_SHIFTED_5_20_21_22 = 67
+  { { {8, 13} } }, // FLT_13_20 = 68
+};
+
+constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 2048;
 // Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing
-static const OPC MnemonicHashTable[2048] = {
+static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::fnmadd_s, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::csneg_w_pl, OPC::invalid,
    OPC::fcvtau_x_d, OPC::invalid, OPC::invalid, OPC::invalid,
@@ -823,89 +4417,31 @@ const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]
 
 /* @AUTOGEN-END@ */
 
-const Opcode* FindArmOpcode(uint32_t bit_value) {
-  uint32_t discriminant = (bit_value & 0x0e000000) >> 25;
-  const int start = OpcodeTableJumper[2 * discriminant];
-  const int end = OpcodeTableJumper[2 * discriminant + 1];
-  if (start >= 0) {
-    for (int i = start; i <= end; ++i) {
-      const struct Opcode* opc = &OpcodeTable[i];
-      if ((opc->bit_mask & bit_value) == opc->bit_value) {
-        return opc;
-      }
+const Opcode* FindOpcode(uint32_t bit_value) {
+  uint32_t discriminant = (bit_value >> 24) & 0xff;
+  const unsigned start = OpcodeTableJumper[discriminant];
+  const unsigned end = OpcodeTableJumper[discriminant + 1];
+  for (unsigned i = start; i < end; ++i) {
+    const struct Opcode* opc = &OpcodeTable[(unsigned)ClusteredOpcodeTable[i]];
+    if ((opc->bit_mask & bit_value) == opc->bit_value) {
+      return opc;
     }
   }
   return nullptr;
-}
-
-uint32_t DecodeRotatedImm(uint32_t data) {
-  uint32_t x = data & 0xff;
-  uint32_t rot = (data & 0xf00) >> 7;
-  uint32_t mask = (1 << rot) - 1;
-  return (x >> rot) | ((x & mask) << (32 - rot));
-}
-
-// Inverse of DecodeRotatedImm()
-// returns -1 in case of failure
-uint32_t EncodeRotatedImm(int32_t immediate) {
-  uint32_t x = immediate;
-  for (int r = 0; r < 16; ++r) {
-    if ((x & 0xff) == x) {
-      return (r << 8) | x;
-    }
-    // rotate left by 2
-    x = (x << 2) | (x >> 30);
-  }
-  return kEncodeFailure;
 }
 
 uint32_t ExtractOperand(uint32_t data, OK field_kind) {
   const BitRange* bit_ranges = FieldTable[uint8_t(field_kind)].bit_ranges;
 
   int32_t out = 0;
-  for (unsigned i = 0; i < FieldTable[uint8_t(field_kind)].num_bit_ranges;
-       ++i) {
+  for (unsigned i = 0; i < MAX_BIT_RANGES; ++i) {
     const BitRange* range = bit_ranges + i;
+    if (range->width == 0) break;
     uint32_t mask = (1 << range->width) - 1;
     uint32_t x = (data >> range->position) & mask;
     out = x | out << range->width;
   }
   return out;
-}
-
-int32_t DecodeOperand(uint32_t data, OK ok) {
-  switch (ok) {
-    case OK::IMM_0_7_8_11:
-      return DecodeRotatedImm(data);
-    case OK::SIMM_0_23:
-      return SignedIntFromBits(data, 24);
-    case OK::IMM_ZERO:
-      return 0;
-    case OK::IMM_10_11_TIMES_8:
-      return data * 8;
-    case OK::IMM_0_7_TIMES_4:
-      return data * 4;
-    default:
-      return data;
-  }
-}
-
-
-uint32_t EncodeOperand(int32_t data, OK ok) {
-  switch (ok) {
-    case OK::IMM_0_7_8_11:
-      return EncodeRotatedImm(data);
-    case OK::SIMM_0_23:
-      return data & 0xffffff;
-    case OK::IMM_ZERO:
-      return 0;
-    case OK::IMM_10_11_TIMES_8:
-      return data / 8;
-    case OK::IMM_0_7_TIMES_4:
-      return data / 4;
-    default:
-      return data;
-  }
 }
 
 void InsertOperand(int32_t x,
@@ -914,8 +4450,9 @@ void InsertOperand(int32_t x,
                    uint32_t* bits_mask) {
   const BitRange* bit_ranges = field->bit_ranges;
   // backwards is important
-  for (int i = field->num_bit_ranges - 1; i >= 0; --i) {
+  for (int i = MAX_BIT_RANGES - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
+    if (range->width == 0) continue;
     const uint32_t mask = (1 << range->width) - 1;
     ASSERT(((mask << range->position) & *bits_mask) == 0, "");
     *bits_mask |= mask << range->position;
@@ -925,14 +4462,12 @@ void InsertOperand(int32_t x,
 }
 
 bool Disassemble(Ins* ins, uint32_t data) {
-  const struct Opcode* opcode = FindArmOpcode(data);
+  const struct Opcode* opcode = FindOpcode(data);
   if (opcode == nullptr) return false;
 
   ins->opcode = opcode;
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
-    ins->operands[i] =
-        DecodeOperand(ExtractOperand(data, opcode->fields[i]),
-                      opcode->fields[i]);
+    ins->operands[i] = ExtractOperand(data, opcode->fields[i]);
   }
   return true;
 }
@@ -944,13 +4479,13 @@ uint32_t Assemble(const Ins& ins) {
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
     const OK kind = ins.opcode->fields[i];
     ASSERT(kind != OK::Invalid, "");
-    uint32_t x = EncodeOperand(ins.operands[i], kind);
-    InsertOperand(x, &FieldTable[uint8_t(kind)], &value, &mask);
+    InsertOperand(ins.operands[i], &FieldTable[uint8_t(kind)], &value, &mask);
   }
   ASSERT(mask == 0xffffffff, "problems encoding " << opcode->name);
   return value;
 }
 
+#if 0
 uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
   Ins ins;
   CHECK(DecodeIns(&ins, ins_old), "");
@@ -958,6 +4493,7 @@ uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
   ins.operands[pos] = value;
   return EncodeIns(ins);
 }
+#endif
 
 const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   uint32_t h = 5381;
@@ -966,11 +4502,11 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   }
   h &= 0xffff;
 
-  for (uint32_t d = 0; d < 512; ++d) {
-    OPC opc = MnemonicHashTable[(h + d) % 512];
+  for (uint32_t d = 0; d < MNEMONIC_HASH_TABLE_SIZE; ++d) {
+    OPC opc = MnemonicHashTable[(h + d) % MNEMONIC_HASH_TABLE_SIZE];
     if (opc == OPC::invalid) return nullptr;
     auto* opcode = &OpcodeTable[uint32_t(opc)];
-    if (opcode->enum_name == s) return opcode;
+    if (opcode->name == s) return opcode;
   }
   return nullptr;
 }

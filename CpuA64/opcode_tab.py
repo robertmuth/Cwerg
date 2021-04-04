@@ -442,7 +442,7 @@ def DecodeOperand(ok: OK, value: int) -> int:
 def EncodeOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
-    # Note: going reverse is crucial to make Hi/Lo and P/U/W work
+    # Note: going reverse is crucial
     for width, pos in reversed(FIELD_DETAILS[ok]):
         mask = (1 << width) - 1
         bits.append((mask, val & mask, pos))
@@ -549,8 +549,6 @@ class Opcode:
         enum_name = self.NameForEnum()
         assert enum_name not in Opcode.name_to_opcode, f"duplicate opcode {enum_name}"
         Opcode.name_to_opcode[enum_name] = self
-
-        mask, value = Bits(*bits)
 
         if (bit_mask >> 24) == 0xff:
             Opcode.ordered_opcodes[bit_value >> 24].append(self)
@@ -1244,6 +1242,9 @@ def hash_djb2(x: str):
 
 
 def _EmitCodeH(fout):
+    print(f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
+    print(f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
+
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OPC_FLAG), "OPC_FLAG", fout)
@@ -1275,41 +1276,51 @@ def _RenderOpcodeTable():
     return out
 
 
+def _RenderClusteredOpcodeTable() -> List[str]:
+    out = []
+    for i in range(256):
+        cluster = Opcode.ordered_opcodes[i]
+        out += [f"  // cluster {i}  size:{len(cluster)}"]
+        if cluster:
+            enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
+            out += ["  " + ", ".join(enums)]
+    return out
+
+
 def _RenderOpcodeTableJumper() -> List[str]:
     out = []
-    opcodes = _get_grouped_opcodes(_INS_CLASSIFIER)
-    for i in range(8):
-        first, last = _find_mask_matches(_INS_CLASSIFIER, i * 0x2000000, opcodes)
-        # the +1 compensates for the invalid first entry we have snuck in
-        out.append(f"{first + 1}, {last + 1}")
+    current_offset = 0  # compensate for invalid first entry
+    for i in range(256):
+        cluster = Opcode.ordered_opcodes[i]
+        out.append(f"{current_offset}")
+        current_offset += len(cluster)
+    out.append(f"{current_offset}")
     return out
 
 
 def _RenderOperandKindTable():
     out = []
     for n, ok in enumerate(OK):
-        assert n == ok.value, f"expected enum value {n} from {ok}"
+        assert n == ok.value
         if ok is OK.Invalid:
             bit_ranges = []
         else:
             bit_ranges = FIELD_DETAILS[ok]
         assert len(bit_ranges) <= MAX_BIT_RANGES
-        out += [f"{{   // {ok.name} = {ok.value}"]
-        out += [f"    {len(bit_ranges)}," + " {"]
-        out += ["    {%d, %d}," % (a, b) for a, b in bit_ranges]
-        out += ["}}, "]
+
+        ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
+        out += [f"  {{ {{ {', '.join(ranges_str)} }} }}, // {ok.name} = {ok.value}"]
     return out
 
-
-_MNEMONIC_HASH_LOOKUP_SIZE = 2048
+_MNEMONIC_HASH_TABLE_SIZE = 2048
 
 
 def _RenderMnemonicHashLookup():
-    table = ["invalid"] * _MNEMONIC_HASH_LOOKUP_SIZE
+    table = ["invalid"] * _MNEMONIC_HASH_TABLE_SIZE
     for name, opc in Opcode.name_to_opcode.items():
         h = hash_djb2(name)
         for d in range(64):
-            hh = (h + d) % _MNEMONIC_HASH_LOOKUP_SIZE
+            hh = (h + d) % _MNEMONIC_HASH_TABLE_SIZE
             if table[hh] == "invalid":
                 table[hh] = name
                 break
@@ -1325,18 +1336,24 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderOpcodeTable()), file=fout)
     print("};\n", file=fout)
 
-    # print("const int16_t OpcodeTableJumper[] = {", file=fout)
-    # print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
-    # print("};\n", file=fout)
+    print("const OPC ClusteredOpcodeTable[] = {", file=fout)
+    print(",\n".join(_RenderClusteredOpcodeTable()), file=fout)
+    print("};\n", file=fout)
+
+    print("const int16_t OpcodeTableJumper[] = {", file=fout)
+    print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
+    print("};\n", file=fout)
     #
     print("// Indexed by OK", file=fout)
     print("static const Field FieldTable[] = {", file=fout)
     print("\n".join(_RenderOperandKindTable()), file=fout)
     print("};\n", file=fout)
 
+    print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
+
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print(f"static const OPC MnemonicHashTable[{_MNEMONIC_HASH_LOOKUP_SIZE}] = {{", file=fout)
+    print(f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
@@ -1347,17 +1364,17 @@ def _EmitCodeC(fout):
 
 def _MnemonicHashingExperiments():
     # experiment for near perfect hashing
-    print(f"hashtable size: {_MNEMONIC_HASH_LOOKUP_SIZE} opcodes: {len(Opcode.name_to_opcode)}")
-    assert len(Opcode.name_to_opcode) < _MNEMONIC_HASH_LOOKUP_SIZE
-    buckets = [[] for _ in range(_MNEMONIC_HASH_LOOKUP_SIZE)]
-    table = [""] * _MNEMONIC_HASH_LOOKUP_SIZE
+    print(f"hashtable size: {_MNEMONIC_HASH_TABLE_SIZE} opcodes: {len(Opcode.name_to_opcode)}")
+    assert len(Opcode.name_to_opcode) < _MNEMONIC_HASH_TABLE_SIZE
+    buckets = [[] for _ in range(_MNEMONIC_HASH_TABLE_SIZE)]
+    table = [""] * _MNEMONIC_HASH_TABLE_SIZE
     distance = [0] * 128
     for s, opc in Opcode.name_to_opcode.items():
         h = hash_djb2(s)
         # print(f"{s}: {h:x}")
-        buckets[h % _MNEMONIC_HASH_LOOKUP_SIZE].append(s)
+        buckets[h % _MNEMONIC_HASH_TABLE_SIZE].append(s)
         for d in range(len(distance)):
-            hh = (h + d) % _MNEMONIC_HASH_LOOKUP_SIZE
+            hh = (h + d) % _MNEMONIC_HASH_TABLE_SIZE
             if table[hh] == "":
                 table[hh] = s
                 distance[d] += 1

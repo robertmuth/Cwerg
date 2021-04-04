@@ -59,4 +59,9 @@ opcode_gen.h: opcode_tab.py
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
 	@mv $@.tmp $@
 
+objdump_compat_test_c: TestData/a64_test.regular.dis opcode_gen.h opcode_gen.cc
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s a64_opcode_test.exe
+	$(BUILD_DIR)/a64_opcode_test.exe TestData/a64_test.regular.dis
+
 clean:
