@@ -4511,11 +4511,4 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   return nullptr;
 }
 
-int32_t SignedIntFromBits(uint32_t data, unsigned n_bits) {
-  uint32_t mask = (1 << n_bits) - 1;
-  data &= mask;
-  bool is_neg = data & (1 << (n_bits - 1));
-  return is_neg ? data - (1 << n_bits) : data;
-}
-
 }  // namespace cwerg::a32

@@ -95,6 +95,20 @@ add_executable(a32_jit_example.exe
         CpuA32/jit_example.cc
         )
 
+
+add_library(CPUA64_LITE_LIB OBJECT
+        CpuA64/symbolic.cc
+        CpuA64/symbolic.h
+        CpuA64/opcode_gen.cc
+        CpuA64/opcode_gen.h
+        )
+
+add_executable(a64_opcode_test.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUA64_LITE_LIB>
+        CpuA64/opcode_test.cc
+        )
+
 add_library(ELF_LIB OBJECT
         Elf/enum_gen.cc
         Elf/enum_gen.h

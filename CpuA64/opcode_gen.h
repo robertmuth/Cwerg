@@ -973,22 +973,13 @@ struct Ins {
   }
 };
 
-
 // Decode the instruction word `data`
 // Returns true if successful
 extern bool Disassemble(Ins* ins, uint32_t data);
 
-
-extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
-
-
 // Encode the instruction
 // Returns the instruction word. Asserts if unsuccessful
 extern uint32_t Assemble(const Ins& ins);
-
-const uint32_t kEncodeFailure = 0xffffffff;
-
-
 
 extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
 
