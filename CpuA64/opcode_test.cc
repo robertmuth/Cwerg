@@ -7,6 +7,7 @@
 
 // #include "Cpu64/disassembler.h"
 #include "CpuA64/opcode_gen.h"
+#include "CpuA64/symbolic.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
 
@@ -21,7 +22,8 @@ namespace {
 using namespace cwerg;
 
 const int kMaxLineLen = 256;
-std::set<std::pair<std::string_view, std::string_view>> SIMPLE_ALIASES = {
+
+const std::set<std::pair<std::string_view, std::string_view>> SIMPLE_ALIASES = {
     // official name, cwerg name without variant
     {"asr", "asrv"},
     {"lsr", "lsrv"},
@@ -64,42 +66,43 @@ std::set<std::pair<std::string_view, std::string_view>> SIMPLE_ALIASES = {
     {"stlxrb", "stlxr"},
 };
 
-std::set<std::pair<std::string_view, std::string_view>> COMPLEX_ALIASES = {
-    {"cmn", "adds"},
-    {"cmp", "subs"},
-    {"neg", "sub"},
-    {"negs", "subs"},
-    {"ngcs", "sbcs"},
-    {"cneg", "csneg"},
-    {"cinc", "csinc"},
-    {"cset", "csinc"},
-    {"cinv", "csinv"},
-    {"csetm", "csinv"},
-    //
-    {"tst", "ands"},
-    {"mov", "orr"},
-    {"mov", "add"},
-    {"mvn", "orn"},
-    {"mul", "madd"},
-    {"mneg", "msub"},
-    //
-    {"lsl", "ubfm"},
-    {"lsr", "ubfm"},
-    {"asr", "sbfm"},
-    {"ror", "extr"},
-    {"ubfiz", "ubfm"},
-    {"ubfx", "ubfm"},
-    {"sbfx", "sbfm"},
-    {"sxtb", "sbfm"},
-    {"sxth", "sbfm"},
-    {"sxtw", "sbfm"},
-    {"sbfiz", "sbfm"},
-    {"bfxil", "bfm"},
-    {"bfi", "bfm"},
-    {"bfc", "bfm"},
-    //
-    {"smull", "smaddl"},
-    {"umull", "umaddl"},
+const std::set<std::pair<std::string_view, std::string_view>> COMPLEX_ALIASES =
+    {
+        {"cmn", "adds"},
+        {"cmp", "subs"},
+        {"neg", "sub"},
+        {"negs", "subs"},
+        {"ngcs", "sbcs"},
+        {"cneg", "csneg"},
+        {"cinc", "csinc"},
+        {"cset", "csinc"},
+        {"cinv", "csinv"},
+        {"csetm", "csinv"},
+        //
+        {"tst", "ands"},
+        {"mov", "orr"},
+        {"mov", "add"},
+        {"mvn", "orn"},
+        {"mul", "madd"},
+        {"mneg", "msub"},
+        //
+        {"lsl", "ubfm"},
+        {"lsr", "ubfm"},
+        {"asr", "sbfm"},
+        {"ror", "extr"},
+        {"ubfiz", "ubfm"},
+        {"ubfx", "ubfm"},
+        {"sbfx", "sbfm"},
+        {"sxtb", "sbfm"},
+        {"sxth", "sbfm"},
+        {"sxtw", "sbfm"},
+        {"sbfiz", "sbfm"},
+        {"bfxil", "bfm"},
+        {"bfi", "bfm"},
+        {"bfc", "bfm"},
+        //
+        {"smull", "smaddl"},
+        {"umull", "umaddl"},
 };
 
 // Splits at whitespace and comma
@@ -141,6 +144,10 @@ bool has_suffix(std::string_view name, std::string_view suffix) {
   return name.substr(name.size() - suffix.size()) == suffix;
 }
 
+void HandleAliasMassaging(std::string_view short_name,
+                          const a64::Ins& ins,
+                          std::vector<std::string_view>* token) {}
+
 void MassageOperandsAndCheckName(std::string_view line,
                                  uint32_t data,
                                  const a64::Ins& ins,
@@ -154,6 +161,7 @@ void MassageOperandsAndCheckName(std::string_view line,
       short_name = actual_name;
     } else if (COMPLEX_ALIASES.find({actual_name, short_name}) !=
                COMPLEX_ALIASES.end()) {
+      // HandleAliasMassaging(short_name, ins, token);
       short_name = actual_name;
     } else if (short_name == "b" &&
                ins.opcode->name.substr(2) == actual_name.substr(2)) {
@@ -162,10 +170,13 @@ void MassageOperandsAndCheckName(std::string_view line,
   }
 
   if (short_name != actual_name) {
-    std::cout << "name mismatch: " << short_name << " vs " << actual_name
+    std::cout << "name mismatch: " << actual_name << " vs " << short_name
               << "\n";
   }
 }
+
+// bool OperandsMatch(const a64::Ins& ins,
+//                   std::vector<std::string_view>* token) {}
 
 int HandleOneInstruction(std::string_view line,
                          uint32_t data,
@@ -214,9 +225,47 @@ int Process(const char* filename) {
   return errors;
 }
 
+void CheckEncodeDecode() {
+  uint32_t count = 0;
+  uint32_t sm = 0;
+  for (uint32_t size = 64; size >= 2; size >>= 1) {
+    for (uint32_t ones = 1; ones < size; ++ones) {
+      for (uint32_t r = 0; r < size; ++r) {
+        ++count;
+        const uint32_t n = size == 64;
+        const uint32_t s = sm | (ones - 1);
+        const uint32_t i = (n << 12) | (r << 6) | s;
+        uint64_t x = a64::Decode_10_15_16_22(i, 64);
+        // std::cout << std::hex << n << " " << r << " " << s << " pattern " <<
+        // x
+        //          << "\n";
+        uint32_t j = a64::Encode_10_15_16_22_X(x);
+        ASSERT(i == j, "bad logic imm " << i << " vs " << j);
+      }
+    }
+
+    if (size <= 32) {
+      sm += size;
+    }
+  }
+
+  ASSERT(count == 5334, "total number of codes is not 5334: " << count);
+}
+
+void CheckEncodeDecodeFloat() {
+  for (uint32_t i = 0; i < 256; ++i) {
+    const double d = a64::Decode8BitFlt(i);
+     // std::cout << std::hex << i << " " << d << "\n";
+     uint32_t j = a64::Encode8BitFlt(d);
+     ASSERT(i == j, "bad flt imm " << i << " vs " << j << "  val " << d);
+  }
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  CheckEncodeDecode();
+  CheckEncodeDecodeFloat();
   int failures = 0;
   for (int i = 1; i < argc; ++i) {
     failures += Process(argv[i]);

@@ -57,9 +57,9 @@ uint64_t ror(uint64_t x, uint32_t bit_size, uint32_t amount) {
 }
 
 uint64_t Decode_10_15_16_22(uint32_t x, uint32_t reg_size) {
-  uint32_t n = x >> 12;
-  uint32_t r = (x >> 6) & 0x3f;
-  uint32_t s = x & 0x3f;
+  const uint32_t n = x >> 12;
+  const uint32_t r = (x >> 6) & 0x3f;
+  const uint32_t s = x & 0x3f;
   uint32_t size = 64;
   uint32_t ones = s + 1;
   if (n != 1) {
@@ -74,6 +74,40 @@ uint64_t Decode_10_15_16_22(uint32_t x, uint32_t reg_size) {
     size *= 2;
   }
   return ror(pattern, reg_size, r);
+}
+
+uint32_t Encode_10_15_16_22_X(uint64_t x) {
+  if (x == 0 || (x + 1) == 0) return kEncodeFailure;
+  // for size, sm in
+  // [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2, 0x3c)]
+  uint32_t size;
+  uint32_t sm = 0;
+  for (size = 64; size >= 2; size >>= 1) {
+      const uint32_t shift = size >> 1;
+      const uint32_t a = x & ((1 << shift) - 1);
+      const uint32_t b = x >> shift;
+      if (a == b) {
+        x = a;
+      } else {
+        break;
+      }
+
+     if (size <= 32) {
+       sm += size;
+     }
+  }
+  ASSERT(size != 1, "");
+  // const uint32_t sm = size > 16 ? 0 :
+  const uint32_t n = size == 64 ? 1 : 0;
+  const uint32_t ones = __builtin_popcountll(x);
+  const uint64_t ones_mask = (1ULL << ones) - 1;
+  for (uint32_t r = 0; r < size; ++r) {
+    if (x == ror(ones_mask, size, r)) {
+      const uint32_t s = sm | (ones - 1);
+      return (n << 12) | (r << 6) | s;
+    }
+  }
+  return kEncodeFailure;
 }
 
 char* strappend(char* dst, std::string_view src) {
