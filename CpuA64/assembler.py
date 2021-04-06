@@ -63,7 +63,7 @@ def AddStartUpCode(unit: elf_unit.Unit):
     for mnemonic, ops in [
         ("ldr_x_imm", "x0 sp 0"),
         ("add_x_imm", "x1 sp 8"),
-        ("bl", "lr expr:call26:main"),
+        ("bl", "expr:call26:main"),
         # x0 contains result from main
         ("movz_x_imm", "x8 0x5d"),
         ("svc", "0"),
@@ -159,7 +159,7 @@ def _ApplyRelocation(rel: elf.Reloc):
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.JUMP26.value:
         new_data = _patch_ins(old_data, _OPCODE_B, 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CALL26.value:
-        new_data = _patch_ins(old_data, _OPCODE_BL, 1, _branch_offset(rel, sym_val))
+        new_data = _patch_ins(old_data, _OPCODE_BL, 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS32.value:
         new_data = sym_val
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS64.value:

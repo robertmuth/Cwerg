@@ -5,7 +5,7 @@ ARM 64bit assembler + disassembler + side-effects table
 """
 from Util import cgen
 
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Tuple, Optional, Set, Any
 
 import collections
 import dataclasses
@@ -167,7 +167,11 @@ def Encode_10_15_16_22_W(x) -> Optional[int]:
     return None
 
 
-def EncodeShifted_10_21_22(x) -> Optional[int]:
+def DecodeShifted_10_21_22(x: int) -> int:
+    return (x & 0xfff) << (12 * (x >> 12))
+
+
+def EncodeShifted_10_21_22(x: int) -> Optional[int]:
     for i in range(2):
         if (x & 0xfff) == x:
             return x | (i << 12)
@@ -175,7 +179,11 @@ def EncodeShifted_10_21_22(x) -> Optional[int]:
     return None
 
 
-def EncodeShifted_5_20_21_22(x) -> Optional[int]:
+def DecodeShifted_5_20_21_22(x: int) -> int:
+    return (x & 0xffff) << (16 * (x >> 16))
+
+
+def EncodeShifted_5_20_21_22(x: int) -> Optional[int]:
     for i in range(4):
         if (x & 0xffff) == x:
             return x | (i << 16)
@@ -271,49 +279,48 @@ class OK(enum.Enum):
 
     XREG_0_4_SP = 31
     XREG_5_9_SP = 32
-    REG_LINK = 33
 
     # shifts
-    SHIFT_22_23 = 34
-    SHIFT_22_23_NO_ROR = 35
-    SHIFT_15_W = 36
-    SHIFT_15_X = 37
+    SHIFT_22_23 = 35
+    SHIFT_22_23_NO_ROR = 36
+    SHIFT_15_W = 37
+    SHIFT_15_X = 38
 
     # signed immediate
-    SIMM_PCREL_0_25 = 38
-    SIMM_12_20 = 39
-    SIMM_15_21_TIMES16 = 40
-    SIMM_15_21_TIMES4 = 41
-    SIMM_15_21_TIMES8 = 42
-    SIMM_PCREL_5_18 = 43
-    SIMM_PCREL_5_23 = 44
-    SIMM_PCREL_5_23_29_30 = 45
+    SIMM_PCREL_0_25 = 39
+    SIMM_12_20 = 40
+    SIMM_15_21_TIMES16 = 41
+    SIMM_15_21_TIMES4 = 42
+    SIMM_15_21_TIMES8 = 43
+    SIMM_PCREL_5_18 = 44
+    SIMM_PCREL_5_23 = 45
+    SIMM_PCREL_5_23_29_30 = 46
 
     # unsigned immediate
-    IMM_10_12_LIMIT4 = 46
-    IMM_10_15 = 47
-    IMM_10_15_16_22_W = 48
-    IMM_10_15_16_22_X = 49
-    IMM_10_21 = 50
-    IMM_SHIFTED_10_21_22 = 51
-    IMM_10_21_times_16 = 52
-    IMM_10_21_times_2 = 53
-    IMM_10_21_times_4 = 54
-    IMM_10_21_times_8 = 55
-    IMM_12_MAYBE_SHIFT_0 = 56
-    IMM_12_MAYBE_SHIFT_1 = 57
-    IMM_12_MAYBE_SHIFT_2 = 58
-    IMM_12_MAYBE_SHIFT_3 = 59
-    IMM_12_MAYBE_SHIFT_4 = 60
-    IMM_16_20 = 61
-    IMM_16_21 = 62
-    IMM_19_23_31 = 63
-    IMM_5_20 = 64
-    IMM_COND_0_3 = 65
-    IMM_FLT_ZERO = 66
-    IMM_SHIFTED_5_20_21_22 = 67
+    IMM_10_12_LIMIT4 = 47
+    IMM_10_15 = 48
+    IMM_10_15_16_22_W = 49
+    IMM_10_15_16_22_X = 50
+    IMM_10_21 = 51
+    IMM_SHIFTED_10_21_22 = 52
+    IMM_10_21_times_16 = 53
+    IMM_10_21_times_2 = 54
+    IMM_10_21_times_4 = 55
+    IMM_10_21_times_8 = 56
+    IMM_12_MAYBE_SHIFT_0 = 57
+    IMM_12_MAYBE_SHIFT_1 = 58
+    IMM_12_MAYBE_SHIFT_2 = 59
+    IMM_12_MAYBE_SHIFT_3 = 60
+    IMM_12_MAYBE_SHIFT_4 = 61
+    IMM_16_20 = 62
+    IMM_16_21 = 63
+    IMM_19_23_31 = 64
+    IMM_5_20 = 65
+    IMM_COND_0_3 = 66
+    IMM_FLT_ZERO = 67
+    IMM_SHIFTED_5_20_21_22 = 68
     #
-    FLT_13_20 = 68
+    FLT_13_20 = 69
 
 
 ############################################################
@@ -333,6 +340,7 @@ class SR_UPDATE(enum.Enum):
 ############################################################
 BIT_RANGE = Tuple[int, int]
 
+# used for raw-decoding
 FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     OK.Invalid: None,
     OK.WREG_0_4: [(5, 0)],
@@ -374,41 +382,45 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     OK.QREG_5_9: [(5, 5)],
     OK.QREG_10_14: [(5, 10)],
     OK.QREG_16_20: [(5, 16)],
-    OK.REG_LINK: [],
 
     #
     OK.IMM_10_15: [(6, 10)],
     OK.IMM_10_21: [(12, 10)],
-    OK.IMM_10_21_times_2: [(12, 10)],
-    OK.IMM_10_21_times_4: [(12, 10)],
-    OK.IMM_10_21_times_8: [(12, 10)],
-    OK.IMM_10_21_times_16: [(12, 10)],
+
     OK.IMM_10_15_16_22_W: [(13, 10)],
     OK.IMM_10_15_16_22_X: [(13, 10)],
     OK.IMM_19_23_31: [(1, 31), (5, 19)],
     OK.IMM_5_20: [(16, 5)],
     OK.IMM_16_21: [(6, 16)],
 
-    OK.SIMM_PCREL_5_23: [(19, 5)],
     OK.IMM_SHIFTED_10_21_22: [(13, 10)],
-    OK.SIMM_12_20: [(9, 12)],
-    OK.SIMM_PCREL_0_25: [(26, 0)],
-    OK.SIMM_PCREL_5_18: [(14, 5)],
-    OK.SIMM_15_21_TIMES4: [(7, 15)],
-    OK.SIMM_15_21_TIMES8: [(7, 15)],
-    OK.SIMM_15_21_TIMES16: [(7, 15)],
-    OK.SIMM_PCREL_5_23_29_30: [(19, 5), (2, 29)],
     OK.IMM_COND_0_3: [(4, 0)],
     OK.IMM_16_20: [(5, 16)],
     OK.FLT_13_20: [(8, 13)],
     OK.IMM_FLT_ZERO: [],
     OK.IMM_10_12_LIMIT4: [(3, 10)],
+    OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
+    #
+    OK.IMM_10_21_times_2: [(12, 10)],
+    OK.IMM_10_21_times_4: [(12, 10)],
+    OK.IMM_10_21_times_8: [(12, 10)],
+    OK.IMM_10_21_times_16: [(12, 10)],
+    #
     OK.IMM_12_MAYBE_SHIFT_0: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_1: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_2: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_3: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_4: [(1, 12)],
-    OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
+    #
+    OK.SIMM_12_20: [(9, 12)],
+    OK.SIMM_15_21_TIMES4: [(7, 15)],
+    OK.SIMM_15_21_TIMES8: [(7, 15)],
+    OK.SIMM_15_21_TIMES16: [(7, 15)],
+    #
+    OK.SIMM_PCREL_5_23: [(19, 5)],
+    OK.SIMM_PCREL_5_23_29_30: [(19, 5), (2, 29)],
+    OK.SIMM_PCREL_0_25: [(26, 0)],
+    OK.SIMM_PCREL_5_18: [(14, 5)],
     #
     OK.SHIFT_22_23: [(2, 22)],
     OK.SHIFT_22_23_NO_ROR: [(2, 22)],
@@ -416,14 +428,115 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     OK.SHIFT_15_X: [(1, 15)],
 }
 
+
+@dataclasses.dataclass
+class CustomField:
+    datatype: Any
+    decoder: Any
+    encoder: Any
+
+
+# used for (un)symbolizing
+FIELD_INFO: Dict[OK, Any] = {
+    OK.Invalid: None,
+    OK.WREG_0_4: [f"w{i}" for i in range(31)] + ["wzr"],
+    OK.WREG_5_9: [f"w{i}" for i in range(31)] + ["wzr"],
+    OK.WREG_10_14: [f"w{i}" for i in range(31)] + ["wzr"],
+    OK.WREG_16_20: [f"w{i}" for i in range(31)] + ["wzr"],
+    OK.WREG_0_4_SP: [f"w{i}" for i in range(31)] + ["sp"],
+    OK.WREG_5_9_SP: [f"w{i}" for i in range(31)] + ["sp"],
+    #
+    OK.XREG_0_4: [f"x{i}" for i in range(31)] + ["xzr"],
+    OK.XREG_5_9: [f"x{i}" for i in range(31)] + ["xzr"],
+    OK.XREG_10_14: [f"x{i}" for i in range(31)] + ["xzr"],
+    OK.XREG_16_20: [f"x{i}" for i in range(31)] + ["xzr"],
+    OK.XREG_0_4_SP: [f"x{i}" for i in range(31)] + ["sp"],
+    OK.XREG_5_9_SP: [f"x{i}" for i in range(31)] + ["sp"],
+    #
+    OK.SREG_0_4: [f"s{i}" for i in range(32)],
+    OK.SREG_5_9: [f"s{i}" for i in range(32)],
+    OK.SREG_10_14: [f"s{i}" for i in range(32)],
+    OK.SREG_16_20: [f"s{i}" for i in range(32)],
+    #
+    OK.DREG_0_4: [f"d{i}" for i in range(32)],
+    OK.DREG_5_9: [f"d{i}" for i in range(32)],
+    OK.DREG_10_14: [f"d{i}" for i in range(32)],
+    OK.DREG_16_20: [f"d{i}" for i in range(32)],
+    #
+    OK.BREG_0_4: [f"b{i}" for i in range(32)],
+    OK.BREG_5_9: [f"b{i}" for i in range(32)],
+    OK.BREG_10_14: [f"b{i}" for i in range(32)],
+    OK.BREG_16_20: [f"b{i}" for i in range(32)],
+    #
+    OK.HREG_0_4: [f"h{i}" for i in range(32)],
+    OK.HREG_5_9: [f"h{i}" for i in range(32)],
+    OK.HREG_10_14: [f"h{i}" for i in range(32)],
+    OK.HREG_16_20: [f"h{i}" for i in range(32)],
+    #
+    OK.QREG_0_4: [f"q{i}" for i in range(32)],
+    OK.QREG_5_9: [f"q{i}" for i in range(32)],
+    OK.QREG_10_14: [f"q{i}" for i in range(32)],
+    OK.QREG_16_20: [f"q{i}" for i in range(32)],
+    #
+    OK.IMM_SHIFTED_5_20_21_22: CustomField(
+        int, DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22),
+    OK.IMM_10_15_16_22_W: CustomField(
+        int, lambda x: DecodeLogicImmediate(x, 32), Encode_10_15_16_22_W),
+    OK.IMM_10_15_16_22_X: CustomField(
+        int, lambda x: DecodeLogicImmediate(x, 64), Encode_10_15_16_22_X),
+    OK.IMM_SHIFTED_10_21_22: CustomField(
+        int, DecodeShifted_10_21_22, EncodeShifted_10_21_22),
+    #
+    OK.FLT_13_20: CustomField(
+        float, Decode8BitFlt, Encode8BitFlt),
+    OK.IMM_FLT_ZERO: CustomField(
+        float, lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
+
+    # Triple Format: is dec/hex, sign-bits, scale
+    OK.IMM_5_20: (True, 0, 1),
+    OK.IMM_16_20: (True, 0, 1),
+    OK.IMM_COND_0_3: (True, 0, 1),
+    #
+    OK.IMM_16_21: (False, 0, 1),
+    OK.IMM_10_15: (False, 0, 1),
+    OK.IMM_10_21: (False, 0, 1),
+    OK.IMM_19_23_31: (False, 0, 1),
+    OK.IMM_10_12_LIMIT4: (False, 0, 1),
+    #
+    OK.IMM_10_21_times_2: (False, 0, 2),
+    OK.IMM_10_21_times_4: (False, 0, 4),
+    OK.IMM_10_21_times_8: (False, 0, 8),
+    OK.IMM_10_21_times_16: (False, 0, 16),
+    #
+    OK.IMM_12_MAYBE_SHIFT_0: (False, 0, 0),  # returns zero regardless
+    OK.IMM_12_MAYBE_SHIFT_1: (False, 0, 1),
+    OK.IMM_12_MAYBE_SHIFT_2: (False, 0, 2),
+    OK.IMM_12_MAYBE_SHIFT_3: (False, 0, 3),
+    OK.IMM_12_MAYBE_SHIFT_4: (False, 0, 4),
+    #
+    OK.SIMM_12_20: (False, 9, 1),
+    OK.SIMM_15_21_TIMES4: (False, 7, 4),
+    OK.SIMM_15_21_TIMES8: (False, 7, 8),
+    OK.SIMM_15_21_TIMES16: (False, 7, 16),
+    #
+    OK.SIMM_PCREL_5_23: (False, 19, 1),
+    OK.SIMM_PCREL_5_23_29_30: (False, 21, 1),
+    OK.SIMM_PCREL_0_25: (False, 26, 1),
+    OK.SIMM_PCREL_5_18: (False, 14, 1),
+    #
+    OK.SHIFT_22_23: ["lsl", "lsr", "asr", "ror"],
+    OK.SHIFT_22_23_NO_ROR: ["lsl", "lsr", "asr"],
+    OK.SHIFT_15_W: ["uxtw", "sxtw"],
+    OK.SHIFT_15_X: ["lsl", "sxtx"],
+}
+
 for ok in OK:
     assert ok in FIELD_DETAILS
+    assert ok in FIELD_INFO
 
 
 def DecodeOperand(ok: OK, value: int) -> int:
     """ Decodes an operand into an int."""
-    if ok == OK.REG_LINK:
-        return 30
     tmp = 0
     for width, pos in FIELD_DETAILS[ok]:
         mask = (1 << width) - 1
@@ -467,13 +580,11 @@ class OPC_FLAG(enum.Flag):
     BRANCH_INDIRECT = 1 << 13
     CALL = 1 << 15
     CALL_INDIRECT = 1 << 20
-    MOVEFROMSR = 1 << 16
     TEST = 1 << 17
     PREFETCH = 1 << 18
     MULTIPLE = 1 << 19
     SYSCALL = 1 << 21
-    BYTEREORDER = 1 << 22
-    MISC = 1 << 23
+    IMPLICIT_LINK_REG = 1 << 23
     REG_PAIR = 1 << 25
     COND_PARAM = 1 << 26  # csel, etc which have a condition-code as a parameter
     DOMAIN_PARAM = 1 << 27  # dmb, etc which have a sharable domain as a parameter
@@ -784,7 +895,7 @@ Opcode("b", "", [root101, (7, 0, 29)],
        [OK.SIMM_PCREL_0_25], OPC_FLAG.BRANCH)
 
 Opcode("bl", "", [root101, (7, 4, 29)],
-       [OK.REG_LINK, OK.SIMM_PCREL_0_25], OPC_FLAG.CALL)
+       [OK.SIMM_PCREL_0_25], OPC_FLAG.CALL | OPC_FLAG.IMPLICIT_LINK_REG)
 
 Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG.BRANCH_INDIRECT)
@@ -1304,6 +1415,7 @@ def _RenderOperandKindTable():
         ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
         out += [f"  {{ {{ {', '.join(ranges_str)} }} }}, // {ok.name} = {ok.value}"]
     return out
+
 
 _MNEMONIC_HASH_TABLE_SIZE = 2048
 

@@ -14,9 +14,8 @@ OPCODE add x_imm
 OPCODE b 
     SIMM_PCREL_0_25                     82322      (82322)
 
-97fffcf7 bl lr -777
+97fffcf7 bl -777
 OPCODE bl 
-    REG_LINK                            lr         (30)
     SIMM_PCREL_0_25                     -777       (67108087)
 
 54000140 b_eq 10

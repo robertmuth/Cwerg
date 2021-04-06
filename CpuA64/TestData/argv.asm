@@ -19,7 +19,7 @@
 .bbl next_byte 4
     add_x_imm x2 x2 1
 .bbl null_check 4
-    ldr_b_reg_x x0 x1 x2 lsl 0
+    ldr_b_reg_x w0 x1 x2 lsl 0
     subs_x_imm xzr x0 0
     b_ne expr:condbr19:next_byte
 # print string
@@ -39,5 +39,5 @@
     b_ne expr:condbr19:loop
 # exit
     movz_x_imm x0 0
-    ret lr
+    ret x30
 .endfun	
