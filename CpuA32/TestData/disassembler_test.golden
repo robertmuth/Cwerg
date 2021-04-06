@@ -16,10 +16,9 @@ OPCODE sub imm
     REG_16_19           sl (10)
     IMM_0_7_8_11        1 (1)
 
-ebffdc62 bl lr, #-9118
+ebffdc62 bl #-9118
 OPCODE bl 
     PRED_28_31          al (14)
-    REG_LINK            lr (14)
     SIMM_0_23           -9118 (-9118)
 
 e8bd87f0 ldmia {r4,r5,r6,r7,r8,r9,sl,pc}, sp

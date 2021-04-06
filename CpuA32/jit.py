@@ -72,11 +72,11 @@ def EmitARM32Fib(code_buf):
         dis.InsFromSymbolized("mov_regimm", ["r5", "r0", "lsl", "0"]),
         #
         dis.InsFromSymbolized("sub_imm", ["r0", "r5", "1"]),
-        dis.InsFromSymbolized("bl", ["lr", "-8"]),
+        dis.InsFromSymbolized("bl", ["-8"]),
         dis.InsFromSymbolized("add_regimm", ["r4", "r4", "r0", "lsl", "0"]),
         # #
         dis.InsFromSymbolized("sub_imm", ["r0", "r5", "2"]),
-        dis.InsFromSymbolized("bl", ["lr", "-11"]),
+        dis.InsFromSymbolized("bl", ["-11"]),
         dis.InsFromSymbolized("add_regimm", ["r0", "r4", "r0", "lsl", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
         dis.InsFromSymbolized("ldmia_update", ["reglist:32816", "sp"]),

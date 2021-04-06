@@ -37,9 +37,7 @@ def SymbolizeOperandOfficial(opcode: a32.Opcode, operand, ok: a32.OK) -> str:
 
     The result tries to mimic the official notation.
     """
-    if ok is a32.OK.REG_LINK:
-        return "lr"
-    elif ok in a32.FIELDS_SREG:
+    if ok in a32.FIELDS_SREG:
         return a32.SREG(operand).name
     elif ok in a32.FIELDS_DREG:
         return a32.DREG(operand).name
@@ -170,6 +168,7 @@ def InsFromSymbolized(mnemonic, token: List[str]) -> a32.Ins:
     if opcode.HasPred() and len(token) == len(opcode.fields) - 1:
         token = ["al"] + token
     ins = a32.Ins(opcode)
+    assert len(token) == len(opcode.fields), f"expected {len(opcode.fields)} operands in {mnemonic} {token}"
     for pos, (t, ok) in enumerate(zip(token, opcode.fields)):
         if t.startswith("expr:"):
             # expr strings have the form expr:<rel-kind>:<symbol>:<addend>, e.g.:

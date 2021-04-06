@@ -57,7 +57,7 @@
     svc 0
     ldr_imm_add_post r7 sp 4
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     ldmia_update reglist:0x8000 sp
 .endfun 
 ############################################################
@@ -84,12 +84,12 @@
 # live-out rem sp]
 .bbl ddd 4
     mov_regimm r0 lr lsl 0
-    bl lr expr:call:print_num
+    bl expr:call:print_num
 # live-out sp]
 .bbl skip 4
     add_imm r6 r6 0x30
     mov_regimm r0 r6 lsl 0
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     ldmia_update reglist:0x8040 sp
 .endfun 
 ############################################################
@@ -103,9 +103,9 @@
     stmdb_update sp reglist:0x4000
 # live-out sp]
 .bbl start 4
-    bl lr expr:call:print_num
+    bl expr:call:print_num
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     ldmia_update reglist:0x8000 sp
 .endfun 
 ############################################################
@@ -135,30 +135,30 @@
 # live-out i sp]
 .bbl labelA 4
     mov_imm r0 0x41
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     b expr:jump24:tail
 # live-out i sp]
 .bbl labelB 4
     mov_imm r0 0x42
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     b expr:jump24:tail
 # live-out i sp]
 .bbl labelC 4
     mov_imm r0 0x43
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     b expr:jump24:tail
 # live-out i sp]
 .bbl labelD 4
     mov_imm r0 0x44
-    bl lr expr:call:putchar
+    bl expr:call:putchar
     mov_imm r0 10
-    bl lr expr:call:putchar
+    bl expr:call:putchar
 # live-out i sp]
 .bbl tail 4
     add_imm r6 r6 1
@@ -167,7 +167,7 @@
 # live-out sp]
 .bbl tail_1 4
     mov_imm r0 0
-    bl lr expr:call:exit
+    bl expr:call:exit
     ldmia_update reglist:0x8040 sp
 .endfun 
 # STATS:

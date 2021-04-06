@@ -121,7 +121,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr putchar  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
 
 INS: ret  []
     SPECIAL
@@ -169,7 +169,7 @@ PAT: reg:[U32 U32]  imm:[invalid invalid]
 
 INS: bsr print_num  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
 
 INS: add rem@r6 rem@r6 48  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
@@ -181,14 +181,14 @@ PAT: reg:[U32 U32]  imm:[invalid invalid]
 
 INS: bsr putchar  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
 
 INS: ret  []
     SPECIAL
 
 INS: bsr print_num  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
 
 INS: mov $r0_U32@r0 10  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -196,7 +196,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr putchar  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
 
 INS: ret  []
     SPECIAL
@@ -226,7 +226,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr writeln  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
 
 INS: lea.mem board@r6 BOARD 0  [A32 _ U8]
     MATCH_IMPOSSIBLE
@@ -245,7 +245,7 @@ PAT: reg:[A32 A32]  imm:[invalid invalid]
 
 INS: bsr writeln  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
 
 INS: lea board@r6 board@r6 8  [A32 A32 U8]
     MATCH_IMPOSSIBLE
@@ -358,7 +358,7 @@ PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
 
 INS: bsr dump  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:dump
+    bl al expr:call:dump
 
 INS: ret  []
     SPECIAL
@@ -403,7 +403,7 @@ PAT: reg:[U32 U32]  imm:[invalid invalid]
 
 INS: bsr conflict  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:conflict
+    bl al expr:call:conflict
 
 INS: beq $r0_U32@r0 1 next  [U32 U32 _]
 PAT: reg:[U32 U32 INVALID]  imm:[invalid pos_8_bits_shifted invalid]
@@ -420,7 +420,7 @@ PAT: reg:[U32 U32]  imm:[invalid invalid]
 
 INS: bsr solve  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:solve
+    bl al expr:call:solve
 
 INS: sub y@r8 y@r8 1  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[invalid invalid pos_8_bits_shifted]
@@ -455,7 +455,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr solve  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:solve
+    bl al expr:call:solve
 
 INS: lea.mem $r0_A32@r0 COUNTER 0  [A32 _ U8]
     MATCH_IMPOSSIBLE
@@ -465,7 +465,7 @@ INS: ld $r0_U32@r0 $r0_A32@r0 0  [U32 A32 U8]
 
 INS: bsr print_num  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
 
 INS: mov $r0_U32@r0 10  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -473,7 +473,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr putchar  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
 
 INS: mov $r0_U32@r0 0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
@@ -481,7 +481,7 @@ PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
 
 INS: bsr exit  [_]
 PAT: reg:[INVALID]  imm:[invalid]
-    bl al lr expr:call:exit
+    bl al expr:call:exit
 
 INS: ret  []
     SPECIAL

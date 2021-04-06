@@ -1,7 +1,7 @@
 eefdbbc0 vcvt_s32_f64 al, s23, d0
 e12fff31 blx_reg al, r1
 924aa001 sub_imm ls, sl, sl, #1
-ebffdc62 bl al, lr, #-9118
+ebffdc62 bl al, #-9118
 e8bd87f0 ldmia_update al, {r4, r5, r6, r7, r8, r9, sl, pc}, sp
 ecbd8b08 vldmia_f_update al, d8, #4, sp
 08bd81f0 ldmia_update eq, {r4, r5, r6, r7, r8, pc}, sp

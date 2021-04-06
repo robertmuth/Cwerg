@@ -49,7 +49,7 @@
     ldr_imm_add_post al r7 sp 4
     mov_regimm al r1 r0 lsl 0
     mov_imm al r0 10
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -64,24 +64,24 @@
     movt al r0 expr:movt_abs:string_pointers
     ldr_imm_add al r0 r0 0
     mov_imm al r1 10
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
     movw al r0 expr:movw_abs_nc:string_pointers:4
     movt al r0 expr:movt_abs:string_pointers:4
     ldr_imm_add al r0 r0 0
     mov_imm al r1 10
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
     movw al r0 expr:movw_abs_nc:string_pointers:8
     movt al r0 expr:movt_abs:string_pointers:8
     ldr_imm_add al r0 r0 0
     mov_imm al r1 10
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
     mov_imm al r0 0
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
 
 .fun _start 16
-    bl  al lr expr:call:main
+    bl  al expr:call:main
 
     # exit 0
     mov_imm al r0 0

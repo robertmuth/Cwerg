@@ -33,11 +33,11 @@
     b eq expr:jump24:skip
 .bbl ddd 4
     mov_regimm al r0 r4 lsl 0
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
 .bbl skip 4
     add_imm al r6 r6 48
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 8
     ldmia_update al reglist:0x8040 sp
 .endfun
@@ -47,9 +47,9 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
     mov_imm al r0 10
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -69,10 +69,10 @@
     ldmia_update al reglist:0x80c0 sp
 .bbl difficult 4
     sub_imm al r0 r6 1
-    bl al lr expr:call:fibonacci
+    bl al expr:call:fibonacci
     mov_regimm al r7 r0 lsl 0
     sub_imm al r0 r6 2
-    bl al lr expr:call:fibonacci
+    bl al expr:call:fibonacci
     add_regimm al r0 r7 r0 lsl 0
     add_imm al sp sp 4
     ldmia_update al reglist:0x80c0 sp
@@ -84,8 +84,8 @@
     sub_imm al sp sp 12
 .bbl start 4
     mov_imm al r0 7
-    bl al lr expr:call:fibonacci
-    bl al lr expr:call:print_num_ln
+    bl al expr:call:fibonacci
+    bl al expr:call:print_num_ln
     mov_imm al r0 0
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
@@ -95,8 +95,8 @@
     mov_imm al r10 0
  .bbl loop 16
     add_imm al r0 r10 0
-    bl  al lr expr:call:fibonacci
-    bl  al lr expr:call:print_num_ln
+    bl  al expr:call:fibonacci
+    bl  al expr:call:print_num_ln
 
     add_imm al r10 r10 1
     cmp_imm al r10 10

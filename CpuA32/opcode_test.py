@@ -81,8 +81,6 @@ def OperandsMatch(opcode: a32.Opcode, objdump_name: str,
             continue
         elif ok is a32.OK.SHIFT_MODE_5_6 and op == "lsl":
             continue
-        elif ok is a32.OK.REG_LINK:
-            continue
         elif (a32.OPC_FLAG.MULTIPLE in opcode.classes and
               a32.OPC_FLAG.VFP in opcode.classes):
             if ok in {a32.OK.DREG_12_15_22, a32.OK.SREG_12_15_22}:

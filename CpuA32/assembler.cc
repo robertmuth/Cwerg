@@ -165,7 +165,7 @@ void Unit::AddIns(Ins* ins) {
 std::array<std::string_view, 6> kStartupCode = {  //
     "ldr_imm_add al r0 sp 0",                     //
     "add_imm al r1 sp 4",                         //
-    "bl al expr:call:main",                       //
+    "bl expr:call:main",                       //
     "movw al r7 1",                               //
     "svc al 0",                                   //
     "ud2 al"};
@@ -402,7 +402,7 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       new_data = PatchIns(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::CALL:
-      new_data = PatchIns(old_data, 2, BranchOffset(rel, sym_val));
+      new_data = PatchIns(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::MOVW_ABS_NC:
       new_data = PatchIns(old_data, 2, sym_val & 0xffff);

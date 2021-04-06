@@ -443,8 +443,8 @@ const InsTmpl kInsTemplates[] = {
     a32::OPC::ldr_reg_add, 0xc },  // switch [152]
   { {+PRED::al, +PARAM::bbl0},
     a32::OPC::b, 0x2 },  // bra [153]
-  { {+PRED::al, +REG::lr, +PARAM::fun0},
-    a32::OPC::bl, 0x4 },  // bsr [154]
+  { {+PRED::al, +PARAM::fun0},
+    a32::OPC::bl, 0x2 },  // bsr [154]
   { {+PRED::al, +PARAM::reg0},
     a32::OPC::blx_reg, 0x2 },  // jsr [155]
   { {+PRED::al, +REG::sp, 4, +REG::r7},

@@ -66,8 +66,6 @@ char* RenderOperandSystematic(char* buffer, int32_t x, OK ok) {
   switch (ok) {
     case OK::PRED_28_31:
       return strappend(buffer, EnumToString(PRED(x)));
-    case OK::REG_LINK:
-      return strappend(buffer, kArmRegNames[14]);
     case OK::REG_0_3:
     case OK::REG_12_15:
     case OK::REG_16_19:
@@ -120,8 +118,6 @@ char* RenderOperandSystematic(char* buffer, int32_t x, OK ok) {
 // Used to sanity check against objdump output
 char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok) {
   switch (ok) {
-    case OK::REG_LINK:
-      return strappend(buffer, "lr");
     case OK::REG_0_3:
       if (opcode.classes & OPC_FLAG::ADDR_DEC) *buffer++ = '-';
       // FALL-THROUGH

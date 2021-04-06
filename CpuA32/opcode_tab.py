@@ -246,38 +246,37 @@ class OK(enum.Enum):
     REG_16_19 = 4
 
     # arm register misc
-    REG_LINK = 5  # implicitly writes lr
-    REG_PAIR_12_15 = 6  # {reg , reg+1}
+    REG_PAIR_12_15 = 5  # {reg , reg+1}
     # d registers
-    DREG_0_3_5 = 7
-    DREG_12_15_22 = 8
-    DREG_16_19_7 = 9
+    DREG_0_3_5 = 6
+    DREG_12_15_22 = 7
+    DREG_16_19_7 = 8
     # s registers
-    SREG_0_3_5 = 10
-    SREG_12_15_22 = 11
-    SREG_16_19_7 = 12
+    SREG_0_3_5 = 9
+    SREG_12_15_22 = 10
+    SREG_16_19_7 = 11
 
-    SHIFT_MODE_5_6 = 13
+    SHIFT_MODE_5_6 = 12
 
     # reglist
-    REGLIST_0_15 = 14
-    REG_RANGE_0_7 = 15
-    REG_RANGE_1_7 = 16
+    REGLIST_0_15 = 13
+    REG_RANGE_0_7 = 14
+    REG_RANGE_1_7 = 15
 
     # misc
-    PRED_28_31 = 17
+    PRED_28_31 = 16
 
     # immediates
-    IMM_0_7_TIMES_4 = 18
-    IMM_0_11 = 19
-    IMM_0_3_8_11 = 20
-    IMM_7_11 = 21
-    IMM_10_11_TIMES_8 = 22
-    IMM_0_23 = 23
-    IMM_0_7_8_11 = 24
-    IMM_ZERO = 25  # implicit 0.0 immediate
-    IMM_0_11_16_19 = 26
-    SIMM_0_23 = 27
+    IMM_0_7_TIMES_4 = 17
+    IMM_0_11 = 18
+    IMM_0_3_8_11 = 19
+    IMM_7_11 = 20
+    IMM_10_11_TIMES_8 = 21
+    IMM_0_23 = 22
+    IMM_0_7_8_11 = 23
+    IMM_ZERO = 24  # implicit 0.0 immediate
+    IMM_0_11_16_19 = 25
+    SIMM_0_23 = 26
 
 
 ############################################################
@@ -303,7 +302,6 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.REG_12_15: [(4, 12)],
     OK.REG_16_19: [(4, 16)],
     OK.REG_PAIR_12_15: [(4, 12)],
-    OK.REG_LINK: [],  # implicitly writes lr
 }
 
 FIELDS_DREG: Dict[OK, List[BIT_RANGE]] = {
@@ -362,8 +360,6 @@ DECODE_IMM = {
     OK.IMM_ZERO: lambda x: 0,
     OK.IMM_10_11_TIMES_8: lambda x: 8 * x,
     OK.IMM_0_7_TIMES_4: lambda x: 4 * x,
-    #
-    OK.REG_LINK: lambda x: 14,
     #
     # OK.IMM_7_11: lambda x: x,
     # OK.IMM_0_23: lambda x: x,
@@ -955,7 +951,7 @@ Opcode("b", "",
 
 Opcode("bl", "",
        [root10, (1, 1, 25), (1, 1, 24)],
-       [OK.REG_LINK, OK.SIMM_0_23],
+       [OK.SIMM_0_23],
        OPC_FLAG.JUMP | OPC_FLAG.LINK)
 
 ########################################

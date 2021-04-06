@@ -852,7 +852,7 @@ def InitMiscBra():
             [InsTmpl("b", [PARAM.bbl0])])
 
     Pattern(o.BSR, [o.DK.INVALID], _NO_IMM1,
-            [InsTmpl("bl", [arm.REG.lr, PARAM.fun0])])
+            [InsTmpl("bl", [PARAM.fun0])])
 
     Pattern(o.JSR, [o.DK.C32, o.DK.INVALID], _NO_IMM2,
             [InsTmpl("blx_reg", [PARAM.reg0])])

@@ -371,7 +371,7 @@
     ldr_imm_add_post al r7 sp 4
     mov_regimm al r1 r0 lsl 0
     mov_imm al r0 10
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -393,7 +393,7 @@
 .bbl check_1 4
     mov_regimm al r1 r3 lsl 0
     mov_regimm al r0 r2 lsl 0
-    bl al lr expr:call:writeln
+    bl al expr:call:writeln
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -413,11 +413,11 @@
     b eq expr:jump24:skip
 .bbl ddd 4
     mov_regimm al r0 r4 lsl 0
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
 .bbl skip 4
     add_imm al r6 r6 48
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 8
     ldmia_update al reglist:0x8040 sp
 .endfun
@@ -426,9 +426,9 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
-    bl al lr expr:call:print_num
+    bl al expr:call:print_num
     mov_imm al r0 10
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -443,14 +443,14 @@
     b eq expr:jump24:skip
 .bbl ddd 4
     mov_regimm al r0 r2 lsl 0
-    bl al lr expr:call:print_hex_num
+    bl al expr:call:print_hex_num
 .bbl skip 4
     cmp_imm al r6 10
     movw cc r0 48
     movw cs r0 55
     add_regimm al r6 r6 r0 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 8
     ldmia_update al reglist:0x8040 sp
 .endfun
@@ -459,9 +459,9 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl start 4
-    bl al lr expr:call:print_hex_num
+    bl al expr:call:print_hex_num
     mov_imm al r0 10
-    bl al lr expr:call:putchar
+    bl al expr:call:putchar
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -488,7 +488,7 @@
     b ne expr:jump24:normal
 .bbl init 4
     mov_imm al r0 0
-    bl al lr expr:call:brk
+    bl al expr:call:brk
     mov_regimm al r9 r0 lsl 0
     mov_regimm al r3 r9 lsl 0
     movw al r0 expr:movw_abs_nc:$$malloc_state
@@ -509,7 +509,7 @@
     and_regimm al r0 r0 r1 lsl 0
     mov_regimm al r6 r0 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:brk
+    bl al expr:call:brk
     cmp_regimm al r0 r6 lsl 0
     b eq expr:jump24:done_after_brk
 .bbl normal_2 4
@@ -881,7 +881,7 @@
     add_imm al r0 r0 32
     mov_regimm al r0 r0 asr 6
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     str_imm_add al sp 44 r0
     mov_imm al r0 8
@@ -1001,7 +1001,7 @@
     add_regimm al r0 sl r8 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_imm_add al r6 0 r0
     add_regimm al r6 r6 r7 lsl 0
@@ -1010,7 +1010,7 @@
     add_regimm al r0 r1 r0 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_imm_add al r6 0 r0
     add_regimm al r0 r6 r7 lsl 0
@@ -1020,7 +1020,7 @@
     add_regimm al r0 r1 r0 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_reg_add al r6 r7 lsl 0 r0
     ldr_imm_add al r0 sp 8
@@ -1028,7 +1028,7 @@
     add_regimm al r0 fp r9 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 8
     strb_reg_add al r1 r7 lsl 0 r0
@@ -1037,7 +1037,7 @@
     sub_regimm al r0 fp r9 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_reg_add al r6 r7 lsl 0 r0
     ldr_imm_add al r0 sp 12
@@ -1047,7 +1047,7 @@
     sub_regimm al r0 r1 r0 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 12
     strb_reg_add al r1 r7 lsl 0 r0
@@ -1057,13 +1057,13 @@
     sub_regimm al r0 r1 r0 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_reg_add al r6 r7 lsl 0 r0
     sub_regimm al r0 sl r8 lsl 0
     mov_regimm al r0 r0 asr 14
     add_imm al r0 r0 128
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_reg_add al r9 r7 lsl 0 r0
     add_imm al sp sp 100
@@ -1504,7 +1504,7 @@
     b le expr:jump24:if_1_end
 .bbl if_1_true 4
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:__static_1_njShowBits
+    bl al expr:call:__static_1_njShowBits
 .bbl if_1_end 4
     movw al r0 expr:movw_abs_nc:nj:524732
     movt al r0 expr:movt_abs:nj:524732
@@ -1523,10 +1523,10 @@
 .bbl %start 4
     mov_regimm al r6 r0 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:__static_1_njShowBits
+    bl al expr:call:__static_1_njShowBits
     mov_regimm al r7 r0 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:njSkipBits
+    bl al expr:call:njSkipBits
     mov_regimm al r0 r7 lsl 0
     add_imm al sp sp 4
     ldmia_update al reglist:0x80c0 sp
@@ -1616,7 +1616,7 @@
     movw al r0 expr:movw_abs_nc:nj:4
     movt al r0 expr:movt_abs:nj:4
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:njDecode16
+    bl al expr:call:njDecode16
     mov_regimm al r0 r0 lsl 0
     movw al r1 expr:movw_abs_nc:nj:12
     movt al r1 expr:movt_abs:nj:12
@@ -1639,7 +1639,7 @@
 .bbl while_2_cond 4
 .bbl if_6_end 4
     mov_imm al r0 2
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -1648,11 +1648,11 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl %start 4
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
     movw al r0 expr:movw_abs_nc:nj:12
     movt al r0 expr:movt_abs:nj:12
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -1669,7 +1669,7 @@
 .bbl %start 4
     mov_imm al r8 0
     mov_imm al r9 0
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -1716,7 +1716,7 @@
     movt al r0 expr:movt_abs:nj:4
     ldr_imm_add al r0 r0 0
     add_imm al r0 r0 1
-    bl al lr expr:call:njDecode16
+    bl al expr:call:njDecode16
     mov_regimm al r0 r0 lsl 0
     movw al r1 expr:movw_abs_nc:nj:20
     movt al r1 expr:movt_abs:nj:20
@@ -1725,7 +1725,7 @@
     movt al r0 expr:movt_abs:nj:4
     ldr_imm_add al r0 r0 0
     add_imm al r0 r0 3
-    bl al lr expr:call:njDecode16
+    bl al expr:call:njDecode16
     mov_regimm al r0 r0 lsl 0
     movw al r1 expr:movw_abs_nc:nj:16
     movt al r1 expr:movt_abs:nj:16
@@ -1760,7 +1760,7 @@
     movt al r1 expr:movt_abs:nj:40
     str_imm_add al r1 0 r0
     mov_imm al r0 6
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     movw al r0 expr:movw_abs_nc:nj:40
     movt al r0 expr:movt_abs:nj:40
     ldr_imm_add al r4 r0 0
@@ -1900,7 +1900,7 @@
 .bbl while_11_cond 4
 .bbl if_37_end 4
     mov_imm al r0 3
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     movw al r0 expr:movw_abs_nc:nj:176
     movt al r0 expr:movt_abs:nj:176
     ldr_imm_add al r0 r0 0
@@ -2056,7 +2056,7 @@
     mul al r0 r0 r1
     mov_regimm al r0 r0 lsl 3
     mov_regimm al r0 r0 lsl 0
-    bl al lr expr:call:malloc
+    bl al expr:call:malloc
     str_imm_add al r6 40 r0
     cmp_imm al r0 0
     b ne expr:jump24:for_16_next
@@ -2099,7 +2099,7 @@
     movt al r1 expr:movt_abs:nj:40
     ldr_imm_add al r1 r1 0
     mul al r0 r0 r1
-    bl al lr expr:call:malloc
+    bl al expr:call:malloc
     movw al r1 expr:movw_abs_nc:nj:524996
     movt al r1 expr:movt_abs:nj:524996
     str_imm_add al r1 0 r0
@@ -2120,7 +2120,7 @@
     movw al r0 expr:movw_abs_nc:nj:12
     movt al r0 expr:movt_abs:nj:12
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp
 .endfun
@@ -2129,7 +2129,7 @@
     stmdb_update al sp reglist:0x4fc0
     sub_imm al sp sp 20
 .bbl %start 4
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -2196,7 +2196,7 @@
     b le expr:jump24:for_9
 .bbl for_9_exit 4
     mov_imm al r0 17
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     movw al r0 expr:movw_abs_nc:nj:440
     movt al r0 expr:movt_abs:nj:440
     mov_regimm al r1 r6 lsl 16
@@ -2287,7 +2287,7 @@
     b lt expr:jump24:for_11
 .bbl for_11_exit 4
     mov_regimm al r0 lr lsl 0
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
 .bbl for_12_next 4
     add_imm al r0 r7 1
     mov_regimm al r7 r0 lsl 0
@@ -2335,7 +2335,7 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl %start 4
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -2398,7 +2398,7 @@
     b lt expr:jump24:for_5
 .bbl for_5_exit 4
     mov_imm al r0 65
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
 .bbl while_3_cond 4
     movw al r0 expr:movw_abs_nc:nj:12
     movt al r0 expr:movt_abs:nj:12
@@ -2428,7 +2428,7 @@
     stmdb_update al sp reglist:0x4000
     sub_imm al sp sp 12
 .bbl %start 4
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -2457,7 +2457,7 @@
     movw al r0 expr:movw_abs_nc:nj:4
     movt al r0 expr:movt_abs:nj:4
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:njDecode16
+    bl al expr:call:njDecode16
     mov_regimm al r0 r0 lsl 0
     movw al r1 expr:movw_abs_nc:nj:524992
     movt al r1 expr:movt_abs:nj:524992
@@ -2465,7 +2465,7 @@
     movw al r0 expr:movw_abs_nc:nj:12
     movt al r0 expr:movt_abs:nj:12
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -2477,7 +2477,7 @@
     mov_regimm al r9 r0 lsl 0
     mov_regimm al r8 r1 lsl 0
     mov_imm al r0 16
-    bl al lr expr:call:__static_1_njShowBits
+    bl al expr:call:__static_1_njShowBits
     mov_regimm al r6 r0 lsl 0
     mov_regimm al r0 r6 lsl 1
     ldrb_reg_add al r0 r9 r0 lsl 0
@@ -2495,7 +2495,7 @@
     ldmia_update al reglist:0x83c0 sp
 .bbl if_1_end 4
     mov_regimm al r0 r3 lsl 0
-    bl al lr expr:call:njSkipBits
+    bl al expr:call:njSkipBits
     mov_regimm al r0 r6 lsl 1
     add_regimm al r0 r9 r0 lsl 0
     ldrb_imm_add al r0 r0 1
@@ -2517,7 +2517,7 @@
     ldmia_update al reglist:0x83c0 sp
 .bbl if_3_end 4
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:njGetBits
+    bl al expr:call:njGetBits
     mov_regimm al r5 r0 lsl 0
     mov_regimm al ip r5 lsl 0
     sub_imm al r0 r7 1
@@ -2550,7 +2550,7 @@
     movt al r0 expr:movt_abs:nj:524736
     mov_imm al r2 256
     mov_imm al r1 0
-    bl al lr expr:call:mymemset
+    bl al expr:call:mymemset
     ldr_imm_add al r9 r6 36
     movw al r0 expr:movw_abs_nc:nj:440
     movt al r0 expr:movt_abs:nj:440
@@ -2559,7 +2559,7 @@
     mov_regimm al r1 r1 lsl 1
     add_regimm al r0 r0 r1 lsl 0
     mov_imm al r1 0
-    bl al lr expr:call:njGetVLC
+    bl al expr:call:njGetVLC
     add_regimm al r0 r9 r0 lsl 0
     str_imm_add al r6 36 r0
     ldr_imm_add al r0 r6 36
@@ -2582,7 +2582,7 @@
     mov_regimm al r1 r1 lsl 1
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r1 sp 0
-    bl al lr expr:call:njGetVLC
+    bl al expr:call:njGetVLC
     mov_regimm al r4 r0 lsl 0
     ldrb_imm_add al r0 sp 0
     uxtb al r0 r0 0
@@ -2658,7 +2658,7 @@
     movt al r0 expr:movt_abs:nj:524736
     mov_regimm al r1 r7 lsl 2
     add_regimm al r0 r0 r1 lsl 0
-    bl al lr expr:call:njRowIDCT
+    bl al expr:call:njRowIDCT
 .bbl for_4_next 4
     add_imm al r0 r7 8
     mov_regimm al r7 r0 lsl 0
@@ -2675,7 +2675,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_regimm al r1 r8 r7 lsl 0
     ldr_imm_add al r2 r6 20
-    bl al lr expr:call:njColIDCT
+    bl al expr:call:njColIDCT
 .bbl for_5_next 4
     add_imm al r0 r7 1
     mov_regimm al r7 r0 lsl 0
@@ -2696,7 +2696,7 @@
     ldr_imm_add al r0 r0 0
     mov_regimm al fp r0 lsl 0
     mov_imm al sl 0
-    bl al lr expr:call:__static_3_njDecodeLength
+    bl al expr:call:__static_3_njDecodeLength
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -2749,7 +2749,7 @@
 .bbl while_3_cond 4
 .bbl if_20_end 4
     mov_imm al r0 1
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     mov_imm al r7 0
     movw al r0 expr:movw_abs_nc:nj:44
     movt al r0 expr:movt_abs:nj:44
@@ -2810,7 +2810,7 @@
     orr_imm al r0 r0 2
     str_imm_add al r6 28 r0
     mov_imm al r0 2
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
 .bbl for_9_next 4
     add_imm al r0 r7 1
     mov_regimm al r7 r0 lsl 0
@@ -2862,7 +2862,7 @@
     movw al r0 expr:movw_abs_nc:nj:12
     movt al r0 expr:movt_abs:nj:12
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     mov_imm al r9 0
     mov_imm al r8 0
 .bbl for_14 4
@@ -2896,7 +2896,7 @@
     add_regimm al r0 r0 r1 lsl 0
     mov_regimm al r1 r0 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:njDecodeBlock
+    bl al expr:call:njDecodeBlock
 .bbl while_7 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -2966,9 +2966,9 @@
     cmp_imm al r0 0
     b ne expr:jump24:for_14
 .bbl if_38_true 4
-    bl al lr expr:call:njByteAlign
+    bl al expr:call:njByteAlign
     mov_imm al r0 16
-    bl al lr expr:call:njGetBits
+    bl al expr:call:njGetBits
     mov_regimm al r5 r0 lsl 0
     movw al r0 65528
     and_regimm al r0 r5 r0 lsl 0
@@ -3034,7 +3034,7 @@
     mul al r0 r0 r1
     mov_regimm al r0 r0 lsl 1
     mov_regimm al r0 r0 lsl 0
-    bl al lr expr:call:malloc
+    bl al expr:call:malloc
     mov_regimm al r6 r0 lsl 0
     cmp_imm al r6 0
     b ne expr:jump24:if_5_end
@@ -3067,7 +3067,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_imm_add al sl 0 r0
     ldrb_imm_add al r0 r9 0
@@ -3089,7 +3089,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_imm_add al sl 1 r0
     ldrb_imm_add al r0 r9 0
@@ -3111,7 +3111,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     strb_imm_add al sl 2 r0
     mov_imm al fp 0
@@ -3145,7 +3145,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r1 fp lsl 1
     add_imm al r1 r1 3
     mov_regimm al r0 r0 lsl 0
@@ -3178,7 +3178,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r1 fp lsl 1
     add_imm al r1 r1 4
     mov_regimm al r0 r0 lsl 0
@@ -3218,7 +3218,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 0
     strb_imm_sub al r1 3 r0
@@ -3241,7 +3241,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 0
     strb_imm_sub al r1 2 r0
@@ -3258,7 +3258,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 0
     strb_imm_sub al r1 1 r0
@@ -3277,7 +3277,7 @@
     ldr_imm_add al r0 r8 12
     str_imm_add al r8 20 r0
     ldr_imm_add al r0 r8 40
-    bl al lr expr:call:free
+    bl al expr:call:free
     str_imm_add al r8 40 r6
     add_imm al sp sp 20
     ldmia_update al reglist:0x8fc0 sp
@@ -3296,7 +3296,7 @@
     mul al r0 r0 r1
     mov_regimm al r0 r0 lsl 1
     mov_regimm al r0 r0 lsl 0
-    bl al lr expr:call:malloc
+    bl al expr:call:malloc
     mov_regimm al r6 r0 lsl 0
     cmp_imm al r6 0
     b ne expr:jump24:if_5_end
@@ -3335,7 +3335,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 28
     strb_reg_add al r6 r1 lsl 0 r0
@@ -3364,7 +3364,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 4
     strb_reg_add al r1 r7 lsl 0 r0
@@ -3393,7 +3393,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 8
     strb_reg_add al r1 r7 lsl 0 r0
@@ -3434,7 +3434,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 24
     strb_imm_add al r1 0 r0
@@ -3467,7 +3467,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 16
     strb_imm_add al r1 0 r0
@@ -3507,7 +3507,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 24
     strb_imm_add al r1 0 r0
@@ -3535,7 +3535,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 20
     strb_imm_add al r1 0 r0
@@ -3553,7 +3553,7 @@
     add_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 64
     mov_regimm al r0 r0 asr 7
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 20
     strb_reg_add al r1 r7 lsl 0 r0
@@ -3572,7 +3572,7 @@
     ldr_imm_add al r0 sl 12
     str_imm_add al sl 20 r0
     ldr_imm_add al r0 sl 40
-    bl al lr expr:call:free
+    bl al expr:call:free
     str_imm_add al sl 40 r6
     add_imm al sp sp 36
     ldmia_update al reglist:0x8fc0 sp
@@ -3596,7 +3596,7 @@
     b le expr:jump24:while_1
 .bbl if_9_true 4
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:njUpsampleH
+    bl al expr:call:njUpsampleH
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -3616,7 +3616,7 @@
     b le expr:jump24:while_2
 .bbl if_12_true 4
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:njUpsampleV
+    bl al expr:call:njUpsampleV
 .bbl while_2 4
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
@@ -3729,7 +3729,7 @@
     add_regimm al r0 r6 r0 lsl 0
     add_imm al r0 r0 128
     mov_regimm al r0 r0 asr 8
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 4
     strb_imm_add al r1 0 r0
@@ -3741,7 +3741,7 @@
     sub_regimm al r0 r0 r1 lsl 0
     add_imm al r0 r0 128
     mov_regimm al r0 r0 asr 8
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 4
     strb_imm_add al r1 1 r0
@@ -3750,7 +3750,7 @@
     add_regimm al r0 r6 r0 lsl 0
     add_imm al r0 r0 128
     mov_regimm al r0 r0 asr 8
-    bl al lr expr:call:njClip
+    bl al expr:call:njClip
     mov_regimm al r0 r0 lsl 0
     ldr_imm_add al r1 sp 4
     strb_imm_add al r1 2 r0
@@ -3835,7 +3835,7 @@
     mov_regimm al r2 r0 lsl 0
     mov_regimm al r1 fp lsl 0
     ldr_imm_add al r0 sp 0
-    bl al lr expr:call:mymemcpy
+    bl al expr:call:mymemcpy
     movw al r0 expr:movw_abs_nc:nj:64
     movt al r0 expr:movt_abs:nj:64
     ldr_imm_add al r0 r0 0
@@ -3874,7 +3874,7 @@
     movw al r2 712
     movt al r2 8
     mov_imm al r1 0
-    bl al lr expr:call:mymemset
+    bl al expr:call:mymemset
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -3901,7 +3901,7 @@
     mul al r1 r6 r1
     add_regimm al r0 r0 r1 lsl 0
     ldr_imm_add al r0 r0 40
-    bl al lr expr:call:free
+    bl al expr:call:free
 .bbl for_1_next 4
     add_imm al r0 r6 1
     mov_regimm al r6 r0 lsl 0
@@ -3918,9 +3918,9 @@
     movw al r0 expr:movw_abs_nc:nj:524996
     movt al r0 expr:movt_abs:nj:524996
     ldr_imm_add al r0 r0 0
-    bl al lr expr:call:free
+    bl al expr:call:free
 .bbl if_4_end 4
-    bl al lr expr:call:njInit
+    bl al expr:call:njInit
     add_imm al sp sp 8
     ldmia_update al reglist:0x8040 sp
 .endfun
@@ -4188,7 +4188,7 @@
 .bbl %start 4
     mov_regimm al r6 r0 lsl 0
     mov_regimm al r7 r1 lsl 0
-    bl al lr expr:call:njDone
+    bl al expr:call:njDone
     movw al r0 expr:movw_abs_nc:nj:4
     movt al r0 expr:movt_abs:nj:4
     str_imm_add al r0 0 r6
@@ -4229,7 +4229,7 @@
     ldmia_update al reglist:0x80c0 sp
 .bbl if_3_end 4
     mov_imm al r0 2
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     b al expr:jump24:while_1_cond
 .bbl while_1 4
     movw al r0 expr:movw_abs_nc:nj:8
@@ -4252,7 +4252,7 @@
     ldmia_update al reglist:0x80c0 sp
 .bbl if_4_end 4
     mov_imm al r0 2
-    bl al lr expr:call:__static_2_njSkip
+    bl al expr:call:__static_2_njSkip
     movw al r0 expr:movw_abs_nc:nj:4
     movt al r0 expr:movt_abs:nj:4
     ldr_imm_add al r0 r0 0
@@ -4265,22 +4265,22 @@
     movt al r0 expr:loc_movt_abs:switch_1727_tab
     ldr_reg_add al pc r0 r3 lsl 2
 .bbl switch_1727_192 4
-    bl al lr expr:call:njDecodeSOF
+    bl al expr:call:njDecodeSOF
     b al expr:jump24:while_1_cond
 .bbl switch_1727_196 4
-    bl al lr expr:call:njDecodeDHT
+    bl al expr:call:njDecodeDHT
     b al expr:jump24:while_1_cond
 .bbl switch_1727_219 4
-    bl al lr expr:call:njDecodeDQT
+    bl al expr:call:njDecodeDQT
     b al expr:jump24:while_1_cond
 .bbl switch_1727_221 4
-    bl al lr expr:call:njDecodeDRI
+    bl al expr:call:njDecodeDRI
     b al expr:jump24:while_1_cond
 .bbl switch_1727_218 4
-    bl al lr expr:call:njDecodeScan
+    bl al expr:call:njDecodeScan
     b al expr:jump24:while_1_cond
 .bbl switch_1727_254 4
-    bl al lr expr:call:njSkipMarker
+    bl al expr:call:njSkipMarker
     b al expr:jump24:while_1_cond
 .bbl switch_1727_default 4
     movw al r0 expr:movw_abs_nc:nj:4
@@ -4293,7 +4293,7 @@
     cmp_imm al r0 224
     b ne expr:jump24:if_5_false
 .bbl if_5_true 4
-    bl al lr expr:call:njSkipMarker
+    bl al expr:call:njSkipMarker
     b al expr:jump24:while_1_cond
 .bbl if_5_false 4
     mov_imm al r0 2
@@ -4322,7 +4322,7 @@
     movt al r0 expr:movt_abs:nj
     mov_imm al r1 0
     str_imm_add al r0 0 r1
-    bl al lr expr:call:njConvert
+    bl al expr:call:njConvert
     movw al r0 expr:movw_abs_nc:nj
     movt al r0 expr:movt_abs:nj
     ldr_imm_add al r0 r0 0
@@ -4351,7 +4351,7 @@
     mov_regimm al r2 r5 lsl 0
     mov_regimm al r1 r4 lsl 0
     mov_regimm al r0 r3 lsl 0
-    bl al lr expr:call:write
+    bl al expr:call:write
     add_imm al sp sp 12
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -4390,7 +4390,7 @@
     add_imm al r1 sp 0
     add_regimm al r0 r1 r0 lsl 0
     mov_regimm al r1 ip lsl 0
-    bl al lr expr:call:write_str
+    bl al expr:call:write_str
     add_imm al sp sp 76
     ldmia_update al reglist:0x8000 sp
 .endfun
@@ -4405,7 +4405,7 @@
 .bbl if_1_true 4
     movw al r0 expr:movw_abs_nc:string_const_1
     movt al r0 expr:movt_abs:string_const_1
-    bl al lr expr:call:puts
+    bl al expr:call:puts
     mov_imm al r0 2
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp
@@ -4413,14 +4413,14 @@
     ldr_imm_add al r0 r9 4
     mov_imm al r2 0
     mov_imm al r1 0
-    bl al lr expr:call:open
+    bl al expr:call:open
     mov_regimm al r7 r0 lsl 0
     cmp_imm al r7 0
     b ge expr:jump24:if_2_end
 .bbl if_2_true 4
     movw al r0 expr:movw_abs_nc:string_const_2
     movt al r0 expr:movt_abs:string_const_2
-    bl al lr expr:call:puts
+    bl al expr:call:puts
     mov_imm al r0 1
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp
@@ -4428,108 +4428,108 @@
     mov_imm al r2 2
     mov_imm al r1 0
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:lseek
+    bl al expr:call:lseek
     mov_regimm al r8 r0 lsl 0
     mov_regimm al r0 r8 lsl 0
-    bl al lr expr:call:malloc
+    bl al expr:call:malloc
     mov_regimm al r6 r0 lsl 0
     mov_imm al r2 0
     mov_imm al r1 0
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:lseek
+    bl al expr:call:lseek
     mov_regimm al r3 r0 lsl 0
     mov_regimm al r0 r8 lsl 0
     mov_regimm al r2 r0 lsl 0
     mov_regimm al r1 r6 lsl 0
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:read
+    bl al expr:call:read
     mov_regimm al r8 r0 lsl 0
     mov_regimm al r0 r7 lsl 0
-    bl al lr expr:call:close
+    bl al expr:call:close
     mov_regimm al r2 r0 lsl 0
-    bl al lr expr:call:njInit
+    bl al expr:call:njInit
     mov_regimm al r1 r8 lsl 0
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:njDecode
+    bl al expr:call:njDecode
     cmp_imm al r0 0
     b eq expr:jump24:if_3_end
 .bbl if_3_true 4
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:free
+    bl al expr:call:free
     movw al r0 expr:movw_abs_nc:string_const_3
     movt al r0 expr:movt_abs:string_const_3
-    bl al lr expr:call:puts
+    bl al expr:call:puts
     mov_imm al r0 1
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp
 .bbl if_3_end 4
     mov_regimm al r0 r6 lsl 0
-    bl al lr expr:call:free
+    bl al expr:call:free
     ldr_imm_add al r0 r9 8
     mov_imm al r1 65
     orr_imm al r1 r1 512
     mov_imm al r2 6
     mov_regimm al r2 r2 lsl 6
-    bl al lr expr:call:open
+    bl al expr:call:open
     mov_regimm al r8 r0 lsl 0
     cmp_imm al r8 0
     b ge expr:jump24:if_4_end
 .bbl if_4_true 4
     movw al r0 expr:movw_abs_nc:string_const_4
     movt al r0 expr:movt_abs:string_const_4
-    bl al lr expr:call:puts
+    bl al expr:call:puts
     mov_imm al r0 1
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp
 .bbl if_4_end 4
-    bl al lr expr:call:njIsColor
+    bl al expr:call:njIsColor
     cmp_imm al r0 0
     b eq expr:jump24:if_5_false
 .bbl if_5_true 4
     movw al r0 expr:movw_abs_nc:string_const_5
     movt al r0 expr:movt_abs:string_const_5
     mov_regimm al r1 r8 lsl 0
-    bl al lr expr:call:write_str
+    bl al expr:call:write_str
     b al expr:jump24:if_5_end
 .bbl if_5_false 4
     movw al r0 expr:movw_abs_nc:string_const_6
     movt al r0 expr:movt_abs:string_const_6
     mov_regimm al r1 r8 lsl 0
-    bl al lr expr:call:write_str
+    bl al expr:call:write_str
 .bbl if_5_end 4
-    bl al lr expr:call:njGetWidth
+    bl al expr:call:njGetWidth
     mov_regimm al r1 r0 lsl 0
     mov_regimm al r0 r8 lsl 0
-    bl al lr expr:call:write_dec
+    bl al expr:call:write_dec
     movw al r0 expr:movw_abs_nc:string_const_7
     movt al r0 expr:movt_abs:string_const_7
     mov_regimm al r1 r8 lsl 0
-    bl al lr expr:call:write_str
-    bl al lr expr:call:njGetHeight
+    bl al expr:call:write_str
+    bl al expr:call:njGetHeight
     mov_regimm al r1 r0 lsl 0
     mov_regimm al r0 r8 lsl 0
-    bl al lr expr:call:write_dec
+    bl al expr:call:write_dec
     movw al r0 expr:movw_abs_nc:string_const_8
     movt al r0 expr:movt_abs:string_const_8
     mov_regimm al r1 r8 lsl 0
-    bl al lr expr:call:write_str
+    bl al expr:call:write_str
     movw al r0 expr:movw_abs_nc:string_const_9
     movt al r0 expr:movt_abs:string_const_9
     mov_regimm al r1 r8 lsl 0
-    bl al lr expr:call:write_str
-    bl al lr expr:call:njGetImage
+    bl al expr:call:write_str
+    bl al expr:call:njGetImage
     mov_regimm al r6 r0 lsl 0
-    bl al lr expr:call:njGetImageSize
+    bl al expr:call:njGetImageSize
     mov_regimm al r0 r0 lsl 0
     mov_regimm al r2 r0 lsl 0
     mov_regimm al r1 r6 lsl 0
     mov_regimm al r0 r8 lsl 0
-    bl al lr expr:call:write
+    bl al expr:call:write
     mov_regimm al r1 r0 lsl 0
     mov_regimm al r0 r8 lsl 0
-    bl al lr expr:call:close
+    bl al expr:call:close
     mov_regimm al r1 r0 lsl 0
-    bl al lr expr:call:njDone
+    bl al expr:call:njDone
     mov_imm al r0 0
     add_imm al sp sp 12
     ldmia_update al reglist:0x83c0 sp

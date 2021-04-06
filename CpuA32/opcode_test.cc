@@ -156,8 +156,6 @@ bool OperandsMatch(const a32::Opcode& opcode,
     } else if (opcode.fields[i] == a32::OK::PRED_28_31 &&
                (std_op == "al" || has_suffix(actual_name, std_op))) {
       // pass
-    } else if (opcode.fields[i] == a32::OK::REG_LINK && std_op == "lr") {
-      // pass
     } else if (std_op == "#0" &&
                (ok == a32::OK::IMM_10_11_TIMES_8 ||
                 ok == a32::OK::IMM_0_7_TIMES_4 || ok == a32::OK::IMM_7_11 ||
