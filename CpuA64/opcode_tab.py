@@ -902,7 +902,7 @@ Opcode("ret", "", [root101, (7, 6, 29), (0xffff, 0x97c0, 10), (0x1f, 0, 0)],
 Opcode("br", "", [root101, (7, 6, 29), (0xffff, 0x87c0, 10), (0x1f, 0, 0)],
        [OK.XREG_5_9], OPC_FLAG(0))
 Opcode("blr", "", [root101, (7, 6, 29), (0xffff, 0x8fc0, 10), (0x1f, 0, 0)],
-       [OK.XREG_5_9], OPC_FLAG.CALL_INDIRECT)
+       [OK.XREG_5_9], OPC_FLAG.CALL_INDIRECT | OPC_FLAG.IMPLICIT_LINK_REG)
 
 for cond_val, cond_name in enumerate(CONDITION_CODES):
     Opcode("b." + cond_name, "", [root101, (7, 2, 29), (3, 0, 24), (0x1f, cond_val, 0)],
