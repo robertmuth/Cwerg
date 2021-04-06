@@ -333,7 +333,8 @@ class SR_UPDATE(enum.Enum):
 ############################################################
 BIT_RANGE = Tuple[int, int]
 
-FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
+FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
+    OK.Invalid: None,
     OK.WREG_0_4: [(5, 0)],
     OK.WREG_5_9: [(5, 5)],
     OK.WREG_10_14: [(5, 10)],
@@ -375,9 +376,7 @@ FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
     OK.QREG_16_20: [(5, 16)],
     OK.REG_LINK: [],
 
-}
-
-FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.IMM_10_15: [(6, 10)],
     OK.IMM_10_21: [(12, 10)],
     OK.IMM_10_21_times_2: [(12, 10)],
@@ -410,21 +409,15 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_12_MAYBE_SHIFT_3: [(1, 12)],
     OK.IMM_12_MAYBE_SHIFT_4: [(1, 12)],
     OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
-}
-
-FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.SHIFT_22_23: [(2, 22)],
     OK.SHIFT_22_23_NO_ROR: [(2, 22)],
     OK.SHIFT_15_W: [(1, 15)],
     OK.SHIFT_15_X: [(1, 15)],
 }
 
-# merge all dicts from above
-FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
-    **FIELDS_REG,
-    **FIELDS_SHIFT,
-    **FIELDS_IMM,
-}
+for ok in OK:
+    assert ok in FIELD_DETAILS
 
 
 def DecodeOperand(ok: OK, value: int) -> int:

@@ -258,7 +258,6 @@ def MassageOperandsAndCheckName(name, opcode, operands):
 def HandleOneInstruction(count: int, line: str,
                          data: int, ins: Ins,
                          actual_name: str, actual_ops: List[str]):
-    global all_operands, checked_operands
     MassageOperandsAndCheckName(actual_name, ins.opcode, actual_ops)
     name, ops_str = symbolic.InsSymbolize(ins)
     assert OperandsMatch(ins.opcode, ops_str,

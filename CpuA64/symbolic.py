@@ -165,6 +165,10 @@ _RELOC_KIND_MAP = {
     "add_abs_lo12_nc": enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
 }
 
+_RELOC_OK = set([
+    a64.OK.SIMM_PCREL_0_25, a64.OK.SIMM_PCREL_5_23, a64.OK.SIMM_PCREL_5_23_29_30
+])
+
 
 def _EmitReloc(ins: a64.Ins, pos: int) -> str:
     assert False, "NYI"
@@ -174,13 +178,13 @@ def InsSymbolize(ins: a64.Ins) -> Tuple[str, List[str]]:
     """Convert all the operands in an arm.Ins to strings including relocs
     """
     ops = []
-    for pos, (field, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
-        if (field in a64.FIELDS_IMM and
+    for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
+        if (ok in _RELOC_OK and
                 ins.reloc_kind != enum_tab.RELOC_TYPE_AARCH64.NONE and
-        ins.reloc_pos == pos):
+                ins.reloc_pos == pos):
             ops.append(_EmitReloc(ins, pos))
         else:
-            ops.append(SymbolizeOperand(field, value))
+            ops.append(SymbolizeOperand(ok, value))
 
     return ins.opcode.NameForEnum(), ops
 
