@@ -9,7 +9,6 @@ import CpuA32.opcode_tab as a32
 from Elf import enum_tab
 
 
-
 def _Merge(*name_lists):
     out = {}
     for nl in name_lists:
@@ -30,41 +29,6 @@ _REG_NAMES_MAP = _Merge([p.name for p in a32.REG],
                         [p.name for p in a32.SREG])
 
 _SHIFT_NAMES_MAP = _Merge([p.name for p in a32.SHIFT])
-
-
-def SymbolizeOperandOfficial(opcode: a32.Opcode, operand, ok: a32.OK) -> str:
-    """Convert an operand in integer form as found in  arm.Ins to a string
-
-    The result tries to mimic the official notation.
-    """
-    if ok in a32.FIELDS_SREG:
-        return a32.SREG(operand).name
-    elif ok in a32.FIELDS_DREG:
-        return a32.DREG(operand).name
-    elif ok is a32.OK.REG_0_3 and a32.OPC_FLAG.ADDR_DEC in opcode.classes:
-        return "-" + a32.REG(operand).name
-    elif ok in a32.FIELDS_REG:
-        return a32.REG(operand).name
-    elif ok is a32.OK.SHIFT_MODE_5_6:
-        return a32.SHIFT(operand).name
-    elif ok in {a32.OK.IMM_0_7_TIMES_4, a32.OK.IMM_0_11, a32.OK.IMM_0_3_8_11}:
-        if a32.OPC_FLAG.ADDR_DEC in opcode.classes:
-            return f"#-{operand}"
-        else:
-            return f"#{operand}"
-    elif ok in a32.FIELDS_IMM:
-        return f"#{operand}"
-    elif ok is a32.OK.PRED_28_31:
-        return a32.PRED(operand).name
-    elif ok is a32.OK.REGLIST_0_15:
-        reg_mask = operand
-        regs = [a32.REG(x).name for x in range(16) if reg_mask & (1 << x)]
-        expr = "{%s}" % (",".join(regs))
-        return expr
-    elif ok is a32.OK.REG_RANGE_0_7 or ok is a32.OK.REG_RANGE_1_7:
-        return f"#{operand}"
-    else:
-        assert False, f"OK:{ok} OP:{operand}"
 
 
 def _EmitReloc(ins: a32.Ins, pos: int) -> str:

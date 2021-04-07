@@ -27,8 +27,7 @@ class TestBuffer:
         for i, bs in enumerate(self.instructions):
             data = struct.unpack("<I", bs)[0]
             ins = a32.Disassemble(data)
-            ops = [dis.SymbolizeOperandOfficial(ins.opcode, op, ok)
-                   for ok, op in zip(ins.opcode.fields, ins.operands)]
+            _, ops = dis.InsSymbolize(ins)
             if ops and ops[0] == "al":
                 ops.pop(0)
             print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.NameForEnum()} {' '.join(ops)}")
@@ -85,7 +84,7 @@ def EmitARM32Fib(code_buf):
 
 
 def TestCodeGen():
-    print("Ensure code generators work in principle - no executation")
+    print("Ensure code generators work in principle - no execution")
     for snippet in [EmitX86]:
         print(f"\n{snippet.__name__}")
         test_buffer = TestBuffer()

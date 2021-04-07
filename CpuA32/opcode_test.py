@@ -9,7 +9,7 @@ import re
 import sys
 from typing import List
 
-from  CpuA32 import symbolic
+from CpuA32 import symbolic
 import CpuA32.opcode_tab as a32
 
 
@@ -56,7 +56,7 @@ def _GetFirstRegFromRange(range):
     return token[0]
 
 
-def _GetWidthFromRange(range):
+def _GetWidthFromRange(range) -> int:
     token = range[1:-1].split("-")
     if len(token) == 1:
         return 1
@@ -64,30 +64,51 @@ def _GetWidthFromRange(range):
     return 1 + int(token[1][1:]) - int(token[0][1:])
 
 
+def _GetRegListFromMask(reg_mask: int) -> str:
+    regs = [a32.REG(x).name for x in range(16) if reg_mask & (1 << x)]
+    expr = "{%s}" % (",".join(regs))
+    return expr
+
+
 def OperandsMatch(opcode: a32.Opcode, objdump_name: str,
                   objdump_ops: List[str], std_ops: List[str]) -> bool:
     j = 0
     for i, (ok, op) in enumerate(zip(opcode.fields, std_ops)):
-        if j < len(objdump_ops) and op == objdump_ops[j]:
+        objdump_op = objdump_ops[j] if j < len(objdump_ops) else ""
+        if objdump_op.startswith("#"):
+            objdump_op = objdump_op[1:]
+            if objdump_op == "0.0":
+                objdump_op = "0"
+
+        # This is a bit hackish and incomplete
+        if objdump_op.startswith("-") and a32.OPC_FLAG.ADDR_DEC in opcode.classes:
+            # that is a bit weak
+            assert ok in {a32.OK.REG_0_3, a32.OK.IMM_0_7_TIMES_4, a32.OK.IMM_0_11, a32.OK.IMM_0_3_8_11}
+            objdump_op = objdump_op[1:]
+
+        if op == objdump_op:
             j += 1
         elif (ok is a32.OK.PRED_28_31 and
               op == "al" or objdump_name.endswith(op)):
             continue
         elif ok in {a32.OK.IMM_0_7_TIMES_4, a32.OK.IMM_7_11,
                     a32.OK.IMM_0_11, a32.OK.IMM_0_3_8_11,
-                    a32.OK.IMM_10_11_TIMES_8} and op == "#0":
-            continue
-        elif op == "#0" and j < len(objdump_ops) and "#0.0" == objdump_ops[j]:
+                    a32.OK.IMM_10_11_TIMES_8} and op == "0":
             continue
         elif ok is a32.OK.SHIFT_MODE_5_6 and op == "lsl":
             continue
-        elif (a32.OPC_FLAG.MULTIPLE in opcode.classes and
-              a32.OPC_FLAG.VFP in opcode.classes):
-            if ok in {a32.OK.DREG_12_15_22, a32.OK.SREG_12_15_22}:
-                if _GetFirstRegFromRange(objdump_ops[j]) == op:
-                    continue
-            elif ok in {a32.OK.REG_RANGE_0_7, a32.OK.REG_RANGE_1_7}:
-                if f"#{_GetWidthFromRange(objdump_ops[j])}" == op:
+        elif a32.OPC_FLAG.MULTIPLE in opcode.classes:
+            if a32.OPC_FLAG.VFP in opcode.classes:
+                if ok in {a32.OK.DREG_12_15_22, a32.OK.SREG_12_15_22}:
+                    if _GetFirstRegFromRange(objdump_op) == op:
+                        continue
+                elif ok in {a32.OK.REG_RANGE_0_7, a32.OK.REG_RANGE_1_7}:
+                    if f"regrange:{_GetWidthFromRange(objdump_op)}" == op:
+                        j += 1
+                        continue
+            else:
+                assert op.startswith("reglist:")
+                if _GetRegListFromMask(int(op[8:], 0)) == objdump_op:
                     j += 1
                     continue
 
@@ -110,12 +131,10 @@ def HandleOneInstruction(count: int, line: str,
     if not actual_name.startswith(ins.opcode.name):
         print("BAD NAME", ins.opcode.name, actual_name, line, end="")
 
-    expected_ops = [symbolic.SymbolizeOperandOfficial(ins.opcode, op, ok)
-                    for ok, op in zip(ins.opcode.fields, ins.operands)]
-    if not OperandsMatch(ins.opcode, actual_name, actual_ops, expected_ops):
-        print(f"OPERANDS differ {expected_ops} {actual_ops} in line  {line}", end="")
-
     name, operands_str = symbolic.InsSymbolize(ins)
+    if not OperandsMatch(ins.opcode, actual_name, actual_ops, operands_str):
+        print(f"OPERANDS differ {operands_str} {actual_ops} in line  {line}", end="")
+
     ins2 = symbolic.InsFromSymbolized(name, operands_str)
     assert tuple(ins.operands) == tuple(ins2.operands), f"{ins.operands} vs {ins2.operands}"
 
