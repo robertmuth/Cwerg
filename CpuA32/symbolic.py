@@ -3,32 +3,10 @@ Convert ARM32 instruction into human readable form suitable to
 be processed by an assembler.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 import CpuA32.opcode_tab as a32
 from Elf import enum_tab
-
-
-def _Merge(*name_lists):
-    out = {}
-    for nl in name_lists:
-        for n, name in enumerate(nl):
-            x = out.get(name)
-            if x is None:
-                out[name] = n
-            else:
-                assert x == n, f"conflict {n} vs {x} for {name}"
-    return out
-
-
-_PRED_NAMES_MAP = _Merge([p.name for p in a32.PRED])
-
-_REG_NAMES_MAP = _Merge([p.name for p in a32.REG],
-                        [f"r{i}" for i in range(16)],
-                        [p.name for p in a32.DREG],
-                        [p.name for p in a32.SREG])
-
-_SHIFT_NAMES_MAP = _Merge([p.name for p in a32.SHIFT])
 
 
 def _EmitReloc(ins: a32.Ins, pos: int) -> str:
@@ -49,50 +27,68 @@ def _EmitReloc(ins: a32.Ins, pos: int) -> str:
         assert False
 
 
-def SymbolizeOperand(ok: a32.OK, value: int) -> str:
+def _SymbolizeOperand(ok: a32.OK, data: int) -> str:
     """Convert an operand in integer form as found in  arm.Ins to a string
 
     (This does not handle relocation expressions.)
     """
-    if ok == a32.OK.PRED_28_31:
-        return a32.PRED(value).name
-    elif ok in a32.FIELDS_REG:
-        return a32.REG(value).name
-    elif ok in a32.FIELDS_DREG:
-        return a32.DREG(value).name
-    elif ok in a32.FIELDS_SREG:
-        return a32.SREG(value).name
-    elif ok in a32.FIELDS_IMM:
-        return f"{value}"
-    elif ok in a32.FIELDS_SHIFT:
-        return a32.SHIFT(value).name
-    elif ok is a32.OK.REG_RANGE_0_7 or ok is a32.OK.REG_RANGE_1_7:
-        return f"regrange:{value}"
-    elif ok is a32.OK.REGLIST_0_15:
-        return f"reglist:0x{value:04x}"
+    t = a32.FIELD_INFO.get(ok)
+    assert t is not None, f"NYI: {ok}"
+    if isinstance(t, list):
+        return t[data]
+    elif isinstance(t, tuple):
+        if t[1] < 0:
+            data = a32.SignedIntFromBits(data, -t[1])
+        if t[0]:
+            return t[3] + hex(data * t[2])
+        else:
+            return t[3] + str(data * t[2])
+
+    assert isinstance(t, a32.CustomField)
+    if t.datatype == int:
+        return str(t.decoder(data))
     else:
-        assert False, f"unsupported field {ok}"
-        return ""
+        return str(t.decoder(data))
 
 
-def UnsymbolizeOperand(o: str, ok: a32.OK) -> int:
+_REG_REWRITES = {
+    "r10": "sl",
+    "r11": "fp",
+    "r12": "ip",
+    "r14": "lr",
+}
+
+
+def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
     """Convert a symbolized operand  into an int suitable for arm.Ins
 
     This does not handle relocation expressions.
     """
-    if ok is a32.OK.SHIFT_MODE_5_6:
-        return _SHIFT_NAMES_MAP[o]
-    elif ok is a32.OK.PRED_28_31:
-        return _PRED_NAMES_MAP[o]
-    x = _REG_NAMES_MAP.get(o)
-    if x is not None:
-        return x
-    elif ":" in o:
-        tag, val = o.split(":")
-        return int(val, 0)
-    else:
-        # must be a number
-        return int(o, 0)
+    t = a32.FIELD_INFO.get(ok)
+    assert t is not None, f"NYI: {ok}"
+
+    if isinstance(t, list):
+        op = _REG_REWRITES.get(op, op)
+        return t.index(op)
+    elif isinstance(t, tuple):
+        assert op.startswith(t[3])
+        op = op[len(t[3]):]
+        i = int(op, 0)  # must handle "0x" prefix
+        if t[2] > 1:
+            # handle scaling
+            x = i // t[2]
+            assert x * t[2] == i
+            i = x
+        if t[1] >= 0:
+            return i  # unsigned
+        return i & ((1 << -t[1]) - 1)
+
+    assert isinstance(t, a32.CustomField), f"expected CustomField got: {t} for {ok}"
+    if t.datatype == int:
+        return t.encoder(int(op, 0))
+
+    assert t.datatype == float
+    return t.encoder(float(op))
 
 
 _RELOC_KIND_MAP = {
@@ -106,16 +102,18 @@ _RELOC_KIND_MAP = {
     "movt_abs": enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
 }
 
+_RELOC_OK: Set[a32.OK] = set([a32.OK.SIMM_0_23, a32.OK.IMM_0_11_16_19])
+
 
 def InsSymbolize(ins: a32.Ins) -> Tuple[str, List[str]]:
     """Convert all the operands in an arm.Ins to strings including relocs
     """
     ops = []
-    for pos, (field, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
-        if field in a32.FIELDS_IMM and ins.reloc_kind != 0 and ins.reloc_pos == pos:
+    for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
+        if ok in _RELOC_OK and ins.reloc_kind != 0 and ins.reloc_pos == pos:
             ops.append(_EmitReloc(ins, pos))
         else:
-            ops.append(SymbolizeOperand(field, value))
+            ops.append(_SymbolizeOperand(ok, value))
 
     return ins.opcode.NameForEnum(), ops
 
@@ -151,5 +149,5 @@ def InsFromSymbolized(mnemonic, token: List[str]) -> a32.Ins:
             ins.reloc_symbol = rel_token[2]
             ins.operands.append(int(rel_token[3], 0))
         else:
-            ins.operands.append(UnsymbolizeOperand(t, ok))
+            ins.operands.append(_UnsymbolizeOperand(ok, t))
     return ins

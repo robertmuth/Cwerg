@@ -18,7 +18,7 @@ flags: OPC_FLAG.ALU
 
 ebffdc62 bl al, -9118
     PRED_28_31          al (14)
-    SIMM_0_23           -9118 (-9118)
+    SIMM_0_23           -9118 (16768098)
 flags: OPC_FLAG.LINK|JUMP
 
 e8bd87f0 ldmia_update al, reglist:0x87f0, sp

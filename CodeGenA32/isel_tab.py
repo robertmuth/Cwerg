@@ -55,15 +55,15 @@ _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
 
     IMM_KIND.pos_8_bits: lambda x: 0 <= x < (1 << 8),
     IMM_KIND.neg_8_bits: lambda x: -(1 << 8) < x <= 0,
-    IMM_KIND.pos_8_bits_times_4: lambda x: 0 <= (x // 2) < (1 << 8) and (x & 3) == 0,
-    IMM_KIND.neg_8_bits_times_4: lambda x: -(1 << 8) < (x // 2) <= 0 and (x & 3) == 0,
+    IMM_KIND.pos_8_bits_times_4: lambda x: 0 <= (x // 4) < (1 << 8) and (x & 3) == 0,
+    IMM_KIND.neg_8_bits_times_4: lambda x: -(1 << 8) < (x // 4) <= 0 and (x & 3) == 0,
 
     IMM_KIND.pos_16_bits: lambda x: 0 <= x < (1 << 16),
     IMM_KIND.any_32_bits: lambda x: True,
 
     IMM_KIND.pos_stk_combo_8_bits_shifted: lambda x: arm.EncodeRotateImm(x) is not None,
     IMM_KIND.pos_stk_combo_8_bits: lambda x: 0 <= x < (1 << 8),
-    IMM_KIND.pos_stk_combo_8_bits_times_4: lambda x: 0 <= (x // 2) < (1 << 8),
+    IMM_KIND.pos_stk_combo_8_bits_times_4: lambda x: 0 <= (x // 4) < (1 << 8),
     IMM_KIND.pos_stk_combo_12_bits: lambda x: 0 <= x < (1 << 12),
     IMM_KIND.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
 }
@@ -249,6 +249,14 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
         assert False, f"unknown param {repr(op)}"
 
 
+_RAW_ENOCDER : Dict [arm.OK, Any] = {
+    arm.OK.IMM_0_7_8_11: arm.EncodeRotateImm,
+    arm.OK.SIMM_0_23: lambda x: x & 0xffffff,
+    arm.OK.IMM_10_11_TIMES_8: lambda x: x // 8,
+    arm.OK.IMM_0_7_TIMES_4: lambda x: x // 4,
+}
+
+
 def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
     assert armins.reloc_kind == 0
     armins.reloc_pos = pos
@@ -302,7 +310,7 @@ class InsTmpl:
 
     The idea is to "explode" each IR instruction into a list of these.
 
-    The template args will be conveted into A32 instruction operands by
+    The template args will be converted into A32 instruction operands by
     substituting data derived from the IR instruction operands as needed.
     """
 
@@ -321,7 +329,12 @@ class InsTmpl:
     def MakeInsFromTmpl(self, ins: Optional[ir.Ins], ctx: regs.EmitContext) -> arm.Ins:
         out = arm.Ins(self.opcode)
         for n, arg in enumerate(self.args):
-            out.operands.append(_TranslateTmplOpInt(ins, arg, ctx))
+            val = _TranslateTmplOpInt(ins, arg, ctx)
+            enc = _RAW_ENOCDER.get(self.opcode.fields[n])
+            if enc:
+                val = enc(val)
+            assert val is not None
+            out.operands.append(val)
             # note: this may alter the value we just appended
             if arg in _RELOC_ARGS:
                 _HandleReloc(out, n, ins, arg)

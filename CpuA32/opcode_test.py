@@ -77,8 +77,6 @@ def OperandsMatch(opcode: a32.Opcode, objdump_name: str,
         objdump_op = objdump_ops[j] if j < len(objdump_ops) else ""
         if objdump_op.startswith("#"):
             objdump_op = objdump_op[1:]
-            if objdump_op == "0.0":
-                objdump_op = "0"
 
         # This is a bit hackish and incomplete
         if objdump_op.startswith("-") and a32.OPC_FLAG.ADDR_DEC in opcode.classes:

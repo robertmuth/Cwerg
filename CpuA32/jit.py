@@ -48,7 +48,7 @@ def EmitX86(code_buf):
 def EmitARM32(code_buf):
     for ins in [
         dis.InsFromSymbolized("add_imm", ["r0", "r0", "1"]),
-        dis.InsFromSymbolized("mov_regimm", ["r15", "r14", "lsl", "0"])
+        dis.InsFromSymbolized("mov_regimm", ["pc", "lr", "lsl", "0"])
     ]:
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
@@ -56,7 +56,7 @@ def EmitARM32(code_buf):
 def EmitARM32Mul(code_buf):
     for ins in [
         dis.InsFromSymbolized("mul", ["r0", "r1", "r0"]),
-        dis.InsFromSymbolized("mov_regimm", ["r15", "r14", "lsl", "0"])
+        dis.InsFromSymbolized("mov_regimm", ["pc", "lr", "lsl", "0"])
     ]:
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 

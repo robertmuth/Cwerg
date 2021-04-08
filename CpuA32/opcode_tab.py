@@ -31,7 +31,7 @@ Without any arguments the entire list of opcodes are shown
 """
 from Util import cgen
 
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Tuple, Optional, Set, Any
 
 import collections
 import dataclasses
@@ -129,6 +129,8 @@ def EncodeRotateImm(x) -> Optional[int]:
 ############################################################
 #
 ############################################################
+
+
 @enum.unique
 class PRED(enum.IntEnum):
     eq = 0
@@ -295,28 +297,22 @@ class SR_UPDATE(enum.Enum):
 
 BIT_RANGE = Tuple[int, int]
 
-# plain register
-FIELDS_REG: Dict[OK, List[BIT_RANGE]] = {
+FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
+    OK.Invalid: [],
     OK.REG_0_3: [(4, 0)],
     OK.REG_8_11: [(4, 8)],
     OK.REG_12_15: [(4, 12)],
     OK.REG_16_19: [(4, 16)],
     OK.REG_PAIR_12_15: [(4, 12)],
-}
-
-FIELDS_DREG: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.DREG_0_3_5: [(1, 5), (4, 0)],
     OK.DREG_12_15_22: [(1, 22), (4, 12)],
     OK.DREG_16_19_7: [(1, 7), (4, 16)],
-}
-
-FIELDS_SREG: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.SREG_0_3_5: [(4, 0), (1, 5)],
     OK.SREG_12_15_22: [(4, 12), (1, 22)],
     OK.SREG_16_19_7: [(4, 16), (1, 7)],
-}
-
-FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.IMM_7_11: [(5, 7)],
     OK.IMM_10_11_TIMES_8: [(2, 10)],
     OK.SIMM_0_23: [(24, 0)],
@@ -327,13 +323,8 @@ FIELDS_IMM: Dict[OK, List[BIT_RANGE]] = {
     OK.IMM_0_7_TIMES_4: [(8, 0)],
     OK.IMM_0_11: [(12, 0)],
     OK.IMM_0_3_8_11: [(4, 8), (4, 0)],
-}
-
-FIELDS_SHIFT: Dict[OK, List[BIT_RANGE]] = {
+    #
     OK.SHIFT_MODE_5_6: [(2, 5)],
-}
-
-FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
     # register set
     OK.REGLIST_0_15: [(16, 0)],
     OK.REG_RANGE_0_7: [(8, 0)],
@@ -342,45 +333,61 @@ FIELDS_MISC: Dict[OK, List[BIT_RANGE]] = {
     OK.PRED_28_31: [(4, 28)],
 }
 
-# merge all dicts from above
-FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
-    **FIELDS_REG,
-    **FIELDS_SREG,
-    **FIELDS_DREG,
-    **FIELDS_IMM,
-    **FIELDS_SHIFT,
-    **FIELDS_MISC,
-}
 
-assert len(FIELD_DETAILS) <= 256
+@dataclasses.dataclass
+class CustomField:
+    datatype: Any
+    decoder: Any
+    encoder: Any
 
-DECODE_IMM = {
-    OK.IMM_0_7_8_11: DecodeRotatedImm,
-    OK.SIMM_0_23: lambda x: SignedIntFromBits(x, 24),
-    OK.IMM_ZERO: lambda x: 0,
-    OK.IMM_10_11_TIMES_8: lambda x: 8 * x,
-    OK.IMM_0_7_TIMES_4: lambda x: 4 * x,
+
+FIELD_INFO: Dict[OK, Any] = {
+    OK.Invalid: None,
+    OK.REG_0_3: [p.name for p in REG],
+    OK.REG_8_11: [p.name for p in REG],
+    OK.REG_12_15: [p.name for p in REG],
+    OK.REG_16_19: [p.name for p in REG],
+    OK.REG_PAIR_12_15: [p.name for p in REG],
     #
-    # OK.IMM_7_11: lambda x: x,
-    # OK.IMM_0_23: lambda x: x,
-    # OK.IMM_0_3_8_11: lambda x: x,
-    # OK.IMM_0_11: lambda x: x,
-    # OK.IMM_0_11_16_19: lambda x: x,
+    OK.DREG_0_3_5: [p.name for p in DREG],
+    OK.DREG_12_15_22: [p.name for p in DREG],
+    OK.DREG_16_19_7: [p.name for p in DREG],
+    #
+    OK.SREG_0_3_5: [p.name for p in SREG],
+    OK.SREG_12_15_22: [p.name for p in SREG],
+    OK.SREG_16_19_7: [p.name for p in SREG],
+    #
+    # Triple Format: is dec/hex, sign-bits, scale, prefix
+    OK.IMM_7_11: (False, 5, 1, ""),
+    OK.IMM_0_23: (False, 24, 1, ""),
+    OK.IMM_0_11_16_19: (False, 7, 1, ""),
+    OK.IMM_0_11: (False, 12, 1, ""),
+    OK.IMM_0_3_8_11: (False, 8, 1, ""),
+    #
+    OK.IMM_10_11_TIMES_8: (False, 2, 8, ""),
+    OK.IMM_0_7_TIMES_4: (False, 8, 4, ""),
+    #
+    OK.SIMM_0_23: (False, -24, 1, ""),
+    #
+    OK.IMM_ZERO: CustomField(
+        float, lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
+    #
+    OK.IMM_0_7_8_11: CustomField(
+        int, DecodeRotatedImm, EncodeRotateImm),
+
+    #
+    OK.SHIFT_MODE_5_6: [p.name for p in SHIFT],
+    # register set
+    OK.REGLIST_0_15: (True, 16, 1, "reglist:"),
+    OK.REG_RANGE_0_7: (False, 8, 1, "regrange:"),
+    OK.REG_RANGE_1_7: (False, 7, 1, "regrange:"),
+    # misc
+    OK.PRED_28_31: [p.name for p in PRED],
 }
 
-ENCODE_IMM = {
-    OK.IMM_0_7_8_11: EncodeRotateImm,
-    OK.SIMM_0_23: lambda x: BitsFromSignedInt(x, 24),
-    OK.IMM_ZERO: lambda x: 0,
-    OK.IMM_10_11_TIMES_8: lambda x: BitsFromScaledInt(x, 8),
-    OK.IMM_0_7_TIMES_4: lambda x: BitsFromScaledInt(x, 4),
-    #
-    # OK.IMM_7_11: lambda x: x,
-    # OK.IMM_0_23: lambda x: x,
-    # OK.IMM_0_3_8_11: lambda x: x,
-    # OK.IMM_0_11: lambda x: x,
-    # OK.IMM_0_11_16_19: lambda x: x,
-}
+for ok in OK:
+    assert ok in FIELD_DETAILS
+    assert ok in FIELD_INFO
 
 
 def ExtractOperand(operand_kind: OK, value: int) -> int:
@@ -1143,32 +1150,20 @@ def Disassemble(data: int) -> Optional[Ins]:
     opcode = Opcode.FindOpcode(data)
     if opcode is None:
         return None
-    raw_ops = opcode.DisassembleOperandsRaw(data)
-    if raw_ops is None:
+    ops = opcode.DisassembleOperandsRaw(data)
+    if ops is None:
         return None
 
-    ops = []
-    for ok, op in zip(opcode.fields, raw_ops):
-        t = DECODE_IMM.get(ok)
-        ops.append(op if t is None else t(op))
     return Ins(opcode, ops)
 
 
 def Assemble(ins: Ins) -> int:
     assert ins.reloc_kind == 0, "reloc has not been resolved"
-    raw_ops = []
-    for ok, op in zip(ins.opcode.fields, ins.operands):
-        t = ENCODE_IMM.get(ok)
-        raw_ops.append(op if t is None else t(op))
-    return ins.opcode.AssembleOperandsRaw(raw_ops)
+    return ins.opcode.AssembleOperandsRaw(ins.operands)
 
 
 def Patch(data: int, opcode: Opcode, pos: int, value: int):
     ops = opcode.DisassembleOperandsRaw(data)
-    ok = opcode.fields[pos]
-    enc = ENCODE_IMM.get(ok)
-    if enc is not None:
-        value = enc(value)
     ops[pos] = value
     return opcode.AssembleOperandsRaw(ops)
 
@@ -1342,10 +1337,10 @@ def _OpcodeDiscriminantExperiments():
         for x in cluster:
             submask &= x.bit_mask
         print(f"{k:08x} {len(cluster):3}  {submask:08x}")
-        #d = collections.defaultdict(list)
-        #for x in cluster:
+        # d = collections.defaultdict(list)
+        # for x in cluster:
         #    d[x.bit_value & submask].append(x)
-        #for k2, v2 in sorted(d.items()):
+        # for k2, v2 in sorted(d.items()):
         #    print(f"  {k2:08x} {len(v2):2}")
     # print(f"magic mask {_INS_MAGIC_CLASSIFIER:08x}")
     # d = collections.defaultdict(list)
