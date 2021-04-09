@@ -44,7 +44,7 @@ class IMM_KIND(enum.IntEnum):
 
 
 _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
-    IMM_KIND.pos_8_bits_shifted: lambda x: arm.EncodeRotateImm(x) is not None,
+    IMM_KIND.pos_8_bits_shifted: lambda x: arm.EncodeRotateImm(x & 0xffffffff) is not None,
     IMM_KIND.neg_8_bits_shifted: lambda x: arm.EncodeRotateImm(-x & 0xffffffff) is not None,
     IMM_KIND.not_8_bits_shifted: lambda x: arm.EncodeRotateImm(~x & 0xffffffff) is not None,
 

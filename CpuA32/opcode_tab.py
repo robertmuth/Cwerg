@@ -103,11 +103,7 @@ def DecodeRotatedImm(data) -> int:
     x += x << 32
     rot = (data & 0xf00) >> 7
     x >>= rot
-    x &= 0xffffffff
-    # pretend we are dealing with signed 32 quatities to mimic objdump
-    if x >= (1 << 31):
-        x = x - (1 << 32)
-    return x
+    return x & 0xffffffff
 
 
 def EncodeRotateImm(x) -> Optional[int]:
@@ -115,8 +111,6 @@ def EncodeRotateImm(x) -> Optional[int]:
 
      return None if that os is not possible
      """
-    if x < 0:
-        x = (1 << 32) + x
     assert x >= 0
     x += x << 32  # duplicate the bit pattern
     for r in range(16):
@@ -127,12 +121,15 @@ def EncodeRotateImm(x) -> Optional[int]:
         return None
 
 
-def DecodeFloatZero(x) -> float:
-    return 0.0
+def DecodeFloatZero(x) -> int:
+    """Returns the integer representation of 32 bit float zero"""
+    assert x == 0
+    return 0
 
 
-def EncodeFloatZero(x) -> Optional[int]:
-    return 0 if x == 0.0 else None
+def EncodeFloatZero(x: int) -> Optional[int]:
+    """Expects a 32 bit float in integer representation"""
+    return 0 if x == 0 else None
 
 
 ############################################################
@@ -314,7 +311,7 @@ class FK(enum.Enum):
     INT = 2
     INT_HEX = 3
     INT_SIGNED = 4
-    INT_CUSTOM = 5
+    INT_SIGNED_CUSTOM = 5
     FLT_CUSTOM = 6
 
 
@@ -358,7 +355,7 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.SIMM_0_23: FieldInfo([(24, 0)], 24, FK.INT_SIGNED),
     OK.IMM_FLT_ZERO: FieldInfo([], 0, FK.FLT_CUSTOM,
                                encoder=EncodeFloatZero, decoder=DecodeFloatZero),
-    OK.IMM_0_7_8_11: FieldInfo([(12, 0)], 12, FK.INT_CUSTOM,
+    OK.IMM_0_7_8_11: FieldInfo([(12, 0)], 12, FK.INT_SIGNED_CUSTOM,
                                encoder=EncodeRotateImm, decoder=DecodeRotatedImm),
 
     OK.IMM_10_11_TIMES_8: FieldInfo([(2, 10)], 2, FK.INT, scale=8),
@@ -374,18 +371,23 @@ for ok in OK:
     assert ok in FIELD_DETAILS
 
 
-def EncodeOperand(ok: OK, val: Any) -> int:
-    """
+def EncodeOperand(ok: OK, val: int) -> int:
+    """Expects an unsigned 32 bit integer and emit it raw encoded equivalent
+       to be insert into an a32 instruction as an operand
 
+    The val can be interpreted as 32 bit signed ot even a 32bit float depending
+    on t.kind.
     """
+    assert val >= 0
     t = FIELD_DETAILS[ok]
-    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+    if t.kind == FK.INT_SIGNED_CUSTOM or t.kind == FK.FLT_CUSTOM:
         return t.encoder(val)
     elif t.kind == FK.LIST:
         assert val < len(t.names)
         return val
     elif t.kind == FK.INT_SIGNED:
-        assert (val >> t.bitwidth - 1) == 0 or (val >> t.bitwidth - 1) == -1
+        rest = val >> (t.bitwidth - 1)
+        assert rest == 0 or rest + 1 == (1 << (32 - t.bitwidth + 1))
         return val & ((1 << t.bitwidth) - 1)
     if t.scale != 1:
         assert val % t.scale == 0
@@ -401,10 +403,10 @@ def DecodeOperand(ok: OK, val: Any) -> int:
     Most operands are just passed through only a handful of OKs need this
     """
     t = FIELD_DETAILS[ok]
-    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+    if t.kind == FK.INT_SIGNED_CUSTOM or t.kind == FK.FLT_CUSTOM:
         return t.decoder(val)
     elif t.kind == FK.INT_SIGNED:
-        return SignedIntFromBits(val, t.bitwidth)
+        return SignedIntFromBits(val, t.bitwidth) & 0xffffffff
     if t.scale != 1:
         val *= t.scale
     return val

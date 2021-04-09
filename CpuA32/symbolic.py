@@ -4,7 +4,7 @@ be processed by an assembler.
 """
 
 from typing import List, Tuple, Set, Dict, Any
-import enum
+import struct
 import CpuA32.opcode_tab as a32
 from Elf import enum_tab
 
@@ -27,16 +27,30 @@ def _EmitReloc(ins: a32.Ins, pos: int) -> str:
         assert False
 
 
+def _FloatFrom32BitRepresentation(data: int) -> float:
+    return struct.unpack('<f', int.to_bytes(data, 4, "little"))[0]
+
+
 def _SymbolizeOperand(ok: a32.OK, data: int) -> str:
     """Convert an operand in integer form as found in  arm.Ins to a string
 
     (This does not handle relocation expressions.)
     """
     data = a32.DecodeOperand(ok, data)
+    assert data >= 0, f"expected unsigned for {ok}: {data}"
     t = a32.FIELD_DETAILS[ok]
     if t.kind == a32.FK.LIST:
         return t.names[data]
-    if t.kind == a32.FK.INT_HEX:
+    elif t.kind == a32.FK.FLT_CUSTOM:
+        # we only care about the float aspect
+        data = _FloatFrom32BitRepresentation(data)
+        return str(data)
+    elif t.kind == a32.FK.INT_SIGNED_CUSTOM or t.kind == a32.FK.INT_SIGNED:
+        # we only care about the signed aspect
+        if data >= 1 << 31:
+            data -= (1 << 32)
+        return str(data)
+    elif t.kind == a32.FK.INT_HEX:
         return t.prefix + hex(data)
     else:
         return t.prefix + str(data)
@@ -48,6 +62,12 @@ _REG_REWRITES = {
     "r12": "ip",
     "r14": "lr",
 }
+
+
+def _FloatTo32BitRepresentation(num: float) -> int:
+    b = struct.pack('<f', num)
+    assert len(b) == 4
+    return int.from_bytes(b, "little")
 
 
 def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
@@ -62,9 +82,16 @@ def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
         op = _REG_REWRITES.get(op, op)
         data = t.names.index(op)
     elif t.kind == a32.FK.FLT_CUSTOM:
-        data = float(op)
+        # we only care about the float aspect
+        data = _FloatTo32BitRepresentation(float(op))
+    elif t.kind == a32.FK.INT_SIGNED_CUSTOM or t.kind == a32.FK.INT_SIGNED:
+        # we only care about the signed aspect
+        data = int(op, 0)
+        if data < 0:
+            data += 1 << 32
     else:
         data = int(op, 0)
+    assert data is not None and data >= 0, f"bad data {ok}: {op}"
     return a32.EncodeOperand(ok, data)
 
 
