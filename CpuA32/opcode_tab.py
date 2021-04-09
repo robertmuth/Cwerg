@@ -297,40 +297,63 @@ class SR_UPDATE(enum.Enum):
 
 BIT_RANGE = Tuple[int, int]
 
-FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
-    OK.Invalid: [],
-    OK.REG_0_3: [(4, 0)],
-    OK.REG_8_11: [(4, 8)],
-    OK.REG_12_15: [(4, 12)],
-    OK.REG_16_19: [(4, 16)],
-    OK.REG_PAIR_12_15: [(4, 12)],
+@enum.unique
+class FK(enum.Enum):
+    NONE = 0
+    LIST = 1
+    INT = 2
+    INT_HEX = 3
+    INT_SIGNED = 4
+    INT_CUSTOM = 5
+    FLT = 6
+
+
+@dataclasses.dataclass
+class FieldInfo:
+    ranges: List[BIT_RANGE]
+    bitwidth: int
+    kind: FK
+    names: List[str] = dataclasses.field(default_factory=list)
+    prefix: str = ""
+    scale: int = 1
+    decoder: Any = None
+    encoder: Any = None
+
+
+FIELD_DETAILS: Dict[OK, FieldInfo] = {
+    OK.Invalid: FieldInfo([], 0, FK.NONE),
+    OK.REG_0_3: FieldInfo([(4, 0)], 4, FK.LIST),
+    OK.REG_8_11: FieldInfo([(4, 8)], 4, FK.LIST),
+    OK.REG_12_15: FieldInfo([(4, 12)], 4, FK.LIST),
+    OK.REG_16_19: FieldInfo([(4, 16)], 4, FK.LIST),
+    OK.REG_PAIR_12_15: FieldInfo([(4, 12)], 4, FK.LIST),
     #
-    OK.DREG_0_3_5: [(1, 5), (4, 0)],
-    OK.DREG_12_15_22: [(1, 22), (4, 12)],
-    OK.DREG_16_19_7: [(1, 7), (4, 16)],
+    OK.DREG_0_3_5:  FieldInfo([(1, 5), (4, 0)], 5, FK.LIST),
+    OK.DREG_12_15_22:  FieldInfo([(1, 22), (4, 12)], 5, FK.LIST),
+    OK.DREG_16_19_7:  FieldInfo([(1, 7), (4, 16)], 5, FK.LIST),
     #
-    OK.SREG_0_3_5: [(4, 0), (1, 5)],
-    OK.SREG_12_15_22: [(4, 12), (1, 22)],
-    OK.SREG_16_19_7: [(4, 16), (1, 7)],
+    OK.SREG_0_3_5:  FieldInfo([(4, 0), (1, 5)], 5, FK.LIST),
+    OK.SREG_12_15_22:  FieldInfo([(4, 12), (1, 22)], 5, FK.LIST),
+    OK.SREG_16_19_7:  FieldInfo([(4, 16), (1, 7)], 4, FK.LIST),
     #
-    OK.IMM_7_11: [(5, 7)],
-    OK.IMM_10_11_TIMES_8: [(2, 10)],
-    OK.SIMM_0_23: [(24, 0)],
-    OK.IMM_0_23: [(24, 0)],
-    OK.IMM_0_7_8_11: [(12, 0)],
-    OK.IMM_FLT_ZERO: [],  # implicit 0.0 immediate
-    OK.IMM_0_11_16_19: [(4, 16), (12, 0)],
-    OK.IMM_0_7_TIMES_4: [(8, 0)],
-    OK.IMM_0_11: [(12, 0)],
-    OK.IMM_0_3_8_11: [(4, 8), (4, 0)],
+    OK.IMM_7_11:  FieldInfo([(5, 7)], 5, FK.INT),
+    OK.IMM_10_11_TIMES_8:  FieldInfo([(2, 10)], 2, FK.INT, scale=8),
+    OK.SIMM_0_23:  FieldInfo([(24, 0)], 24, FK.INT_SIGNED),
+    OK.IMM_0_23: FieldInfo([(24, 0)], 24, FK.INT),
+    OK.IMM_0_7_8_11:  FieldInfo([(12, 0)], 12, FK.INT),
+    OK.IMM_FLT_ZERO:  FieldInfo([], 0, FK.FLT),  # implicit 0.0 immediate
+    OK.IMM_0_11_16_19:  FieldInfo([(4, 16), (12, 0)], 16, FK.INT_CUSTOM),
+    OK.IMM_0_7_TIMES_4:  FieldInfo([(8, 0)], 8, FK.INT, scale=4),
+    OK.IMM_0_11:  FieldInfo([(12, 0)], 12, FK.INT),
+    OK.IMM_0_3_8_11:  FieldInfo([(4, 8), (4, 0)], 8, FK.INT),
     #
-    OK.SHIFT_MODE_5_6: [(2, 5)],
+    OK.SHIFT_MODE_5_6:  FieldInfo([(2, 5)], 2, FK.LIST),
     # register set
-    OK.REGLIST_0_15: [(16, 0)],
-    OK.REG_RANGE_0_7: [(8, 0)],
-    OK.REG_RANGE_1_7: [(7, 1)],
+    OK.REGLIST_0_15:  FieldInfo([(16, 0)], 16, FK.INT_HEX, prefix="reglist:"),
+    OK.REG_RANGE_0_7:  FieldInfo([(8, 0)], 8, FK.INT, prefix="regrange:"),
+    OK.REG_RANGE_1_7:  FieldInfo([(7, 1)], 7, FK.INT, prefix="regrange:"),
     # misc
-    OK.PRED_28_31: [(4, 28)],
+    OK.PRED_28_31: FieldInfo( [(4, 28)], 4, FK.LIST),
 }
 
 
@@ -435,21 +458,21 @@ def ExtractOperand(ok: OK, value: int) -> int:
     This essentially shifts all the relevant bits to the right
     """
     tmp = 0
-    for width, pos in FIELD_DETAILS[ok]:
+    for width, pos in FIELD_DETAILS[ok].ranges:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
         tmp = tmp << width | x
     return tmp
 
 
-def InsertOperand(operand_kind: OK, val) -> List[Tuple[int, int, int]]:
+def InsertOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields
 
     This is essentially the inverse of ExtractOperand
     """
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
-    for width, pos in reversed(FIELD_DETAILS[operand_kind]):
+    for width, pos in reversed(FIELD_DETAILS[ok].ranges):
         mask = (1 << width) - 1
         bits.append((mask, val & mask, pos))
         val = val >> width
@@ -620,7 +643,7 @@ class Opcode:
         all_bits = bits[:]
         for f in fields:
             all_bits += [((1 << bitwidth) - 1, 0, pos)
-                         for bitwidth, pos in FIELD_DETAILS[f]]
+                         for bitwidth, pos in FIELD_DETAILS[f].ranges]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, "%08x" % mask
@@ -1314,7 +1337,7 @@ def _RenderOperandKindTable():
         if ok is OK.Invalid:
             bit_ranges = []
         else:
-            bit_ranges = FIELD_DETAILS[ok]
+            bit_ranges = FIELD_DETAILS[ok].ranges
         assert len(bit_ranges) <= MAX_BIT_RANGES
 
         ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
