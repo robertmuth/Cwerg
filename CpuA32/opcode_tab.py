@@ -276,7 +276,7 @@ class OK(enum.Enum):
     IMM_10_11_TIMES_8 = 21
     IMM_0_23 = 22
     IMM_0_7_8_11 = 23
-    IMM_ZERO = 24  # implicit 0.0 immediate
+    IMM_FLT_ZERO = 24  # implicit 0.0 immediate
     IMM_0_11_16_19 = 25
     SIMM_0_23 = 26
 
@@ -318,7 +318,7 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
     OK.SIMM_0_23: [(24, 0)],
     OK.IMM_0_23: [(24, 0)],
     OK.IMM_0_7_8_11: [(12, 0)],
-    OK.IMM_ZERO: [],  # implicit 0.0 immediate
+    OK.IMM_FLT_ZERO: [],  # implicit 0.0 immediate
     OK.IMM_0_11_16_19: [(4, 16), (12, 0)],
     OK.IMM_0_7_TIMES_4: [(8, 0)],
     OK.IMM_0_11: [(12, 0)],
@@ -336,53 +336,54 @@ FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
 
 @dataclasses.dataclass
 class CustomField:
-    datatype: Any
     decoder: Any
     encoder: Any
 
 
+# positive int: unsigned
+# negative int: signed
+# tuple: scaled unsigned int
 FIELD_INFO: Dict[OK, Any] = {
     OK.Invalid: None,
-    OK.REG_0_3: [p.name for p in REG],
-    OK.REG_8_11: [p.name for p in REG],
-    OK.REG_12_15: [p.name for p in REG],
-    OK.REG_16_19: [p.name for p in REG],
-    OK.REG_PAIR_12_15: [p.name for p in REG],
+    OK.REG_0_3: 4,
+    OK.REG_8_11: 4,
+    OK.REG_12_15: 4,
+    OK.REG_16_19: 4,
+    OK.REG_PAIR_12_15: 4,
     #
-    OK.DREG_0_3_5: [p.name for p in DREG],
-    OK.DREG_12_15_22: [p.name for p in DREG],
-    OK.DREG_16_19_7: [p.name for p in DREG],
+    OK.DREG_0_3_5: 5,
+    OK.DREG_12_15_22: 5,
+    OK.DREG_16_19_7: 5,
     #
-    OK.SREG_0_3_5: [p.name for p in SREG],
-    OK.SREG_12_15_22: [p.name for p in SREG],
-    OK.SREG_16_19_7: [p.name for p in SREG],
+    OK.SREG_0_3_5: 5,
+    OK.SREG_12_15_22: 5,
+    OK.SREG_16_19_7: 5,
     #
     # Triple Format: is dec/hex, sign-bits, scale, prefix
-    OK.IMM_7_11: (False, 5, 1, ""),
-    OK.IMM_0_23: (False, 24, 1, ""),
-    OK.IMM_0_11_16_19: (False, 7, 1, ""),
-    OK.IMM_0_11: (False, 12, 1, ""),
-    OK.IMM_0_3_8_11: (False, 8, 1, ""),
+    OK.IMM_7_11: 5,
+    OK.IMM_0_23: 24,
+    OK.IMM_0_11_16_19: 16,
+    OK.IMM_0_11: 12,
+    OK.IMM_0_3_8_11: 8,
     #
-    OK.IMM_10_11_TIMES_8: (False, 2, 8, ""),
-    OK.IMM_0_7_TIMES_4: (False, 8, 4, ""),
+    OK.IMM_10_11_TIMES_8: (2, 8),
+    OK.IMM_0_7_TIMES_4: (8, 4),
     #
-    OK.SIMM_0_23: (False, -24, 1, ""),
+    OK.SIMM_0_23: -24,
     #
-    OK.IMM_ZERO: CustomField(
-        float, lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
+    OK.IMM_FLT_ZERO: CustomField(
+        lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
     #
     OK.IMM_0_7_8_11: CustomField(
-        int, DecodeRotatedImm, EncodeRotateImm),
-
+        DecodeRotatedImm, EncodeRotateImm),
     #
-    OK.SHIFT_MODE_5_6: [p.name for p in SHIFT],
+    OK.SHIFT_MODE_5_6: 2,
     # register set
-    OK.REGLIST_0_15: (True, 16, 1, "reglist:"),
-    OK.REG_RANGE_0_7: (False, 8, 1, "regrange:"),
-    OK.REG_RANGE_1_7: (False, 7, 1, "regrange:"),
+    OK.REGLIST_0_15: 16,
+    OK.REG_RANGE_0_7: 8,
+    OK.REG_RANGE_1_7: 7,
     # misc
-    OK.PRED_28_31: [p.name for p in PRED],
+    OK.PRED_28_31: 4,
 }
 
 for ok in OK:
@@ -390,10 +391,51 @@ for ok in OK:
     assert ok in FIELD_INFO
 
 
-def ExtractOperand(operand_kind: OK, value: int) -> int:
-    """ Decodes an operand into an int."""
+def EncodeOperand(ok: OK, val: Any) -> int:
+    """
+
+    """
+    t = FIELD_INFO[ok]
+    if isinstance(t, int):
+        if t > 0:
+            assert (val >> t) == 0, f"bad value {ok}: {val}"
+            return  val
+        else:
+            assert (val >> -t - 1) == 0 or (val >> -t - 1) == -1
+            return val & ((1 << -t) -1)
+    if isinstance(t, tuple):
+        assert val % t[1] == 0
+        val //= t[1]
+        assert (val >> t[0]) == 0
+        return val
+    assert isinstance(t, CustomField)
+    return t.encoder(val)
+
+
+def DecodeOperand(ok: OK, val: Any) -> int:
+    """Convert a raw operand into something more human friendly
+
+    Most operands are just passed through only a handful of OKs need this
+    """
+    t = FIELD_INFO[ok]
+    if isinstance(t, int):
+        if t > 0:
+            return val
+        else:
+            return SignedIntFromBits(val, -t)
+    if isinstance(t, tuple):
+        return val * t[1]
+    assert isinstance(t, CustomField)
+    return t.decoder(val)
+
+
+def ExtractOperand(ok: OK, value: int) -> int:
+    """ Decodes an operand into an int.
+
+    This essentially shifts all the relevant bits to the right
+    """
     tmp = 0
-    for width, pos in FIELD_DETAILS[operand_kind]:
+    for width, pos in FIELD_DETAILS[ok]:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
         tmp = tmp << width | x
@@ -401,7 +443,10 @@ def ExtractOperand(operand_kind: OK, value: int) -> int:
 
 
 def InsertOperand(operand_kind: OK, val) -> List[Tuple[int, int, int]]:
-    """ Encodes an int into a list of bit-fields"""
+    """ Encodes an int into a list of bit-fields
+
+    This is essentially the inverse of ExtractOperand
+    """
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial to make Hi/Lo and P/U/W work
     for width, pos in reversed(FIELD_DETAILS[operand_kind]):
@@ -1045,12 +1090,12 @@ for name, a, c in [("vcmp", 5, 4), ("vcmpe", 5, 0xc)]:
 
     Opcode(name + ".f32", "zero",
            bits + [(0xf, 5, 16), (0xf, 0xa, 8), (0x2f, 0, 0)],
-           [OK.SREG_12_15_22, OK.IMM_ZERO],
+           [OK.SREG_12_15_22, OK.IMM_FLT_ZERO],
            OPC_FLAG.VFP)
 
     Opcode(name + ".f64", "zero",
            bits + [(0xf, 5, 16), (0xf, 0xb, 8), (0x2f, 0, 0)],
-           [OK.DREG_12_15_22, OK.IMM_ZERO],
+           [OK.DREG_12_15_22, OK.IMM_FLT_ZERO],
            OPC_FLAG.VFP)
 
 for name, a, b, c in [("vabs", 5, 0, 0xc),

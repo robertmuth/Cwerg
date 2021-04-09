@@ -3,10 +3,66 @@ Convert ARM32 instruction into human readable form suitable to
 be processed by an assembler.
 """
 
-from typing import List, Tuple, Set
-
+from typing import List, Tuple, Set, Dict, Any
+import enum
 import CpuA32.opcode_tab as a32
 from Elf import enum_tab
+
+
+@enum.unique
+class VK(enum.Enum):
+    NONE = 0
+    STR = 1
+    INT = 2
+    INT_HEX = 3
+    FLT = 4
+
+
+_FORMAT_INFO: Dict[a32.OK, Any] = {
+    a32.OK.Invalid: None,
+    a32.OK.REG_0_3: [p.name for p in a32.REG],
+    a32.OK.REG_8_11: [p.name for p in a32.REG],
+    a32.OK.REG_12_15: [p.name for p in a32.REG],
+    a32.OK.REG_16_19: [p.name for p in a32.REG],
+    a32.OK.REG_PAIR_12_15: [p.name for p in a32.REG],
+    #
+    a32.OK.DREG_0_3_5: [p.name for p in a32.DREG],
+    a32.OK.DREG_12_15_22: [p.name for p in a32.DREG],
+    a32.OK.DREG_16_19_7: [p.name for p in a32.DREG],
+    #
+    a32.OK.SREG_0_3_5: [p.name for p in a32.SREG],
+    a32.OK.SREG_12_15_22: [p.name for p in a32.SREG],
+    a32.OK.SREG_16_19_7: [p.name for p in a32.SREG],
+    #
+    # Triple Format: is dec/hex, sign-bits, scale, prefix
+    a32.OK.IMM_7_11: (VK.INT, ""),
+    a32.OK.IMM_0_23: (VK.INT, ""),
+    a32.OK.IMM_0_11_16_19: (VK.INT, ""),
+    a32.OK.IMM_0_11: (VK.INT, ""),
+    a32.OK.IMM_0_3_8_11: (VK.INT, ""),
+    #
+    a32.OK.IMM_10_11_TIMES_8: (VK.INT, ""),
+    a32.OK.IMM_0_7_TIMES_4: (VK.INT, ""),
+    #
+    a32.OK.SIMM_0_23: (VK.INT, ""),
+    #
+    a32.OK.IMM_FLT_ZERO: (VK.FLT, ""),
+    #
+    a32.OK.IMM_0_7_8_11: (VK.INT, ""),
+
+    #
+    a32.OK.SHIFT_MODE_5_6: [p.name for p in a32.SHIFT],
+    # register set
+    a32.OK.REGLIST_0_15: (VK.INT_HEX, "reglist:"),
+    a32.OK.REG_RANGE_0_7: (VK.INT, "regrange:"),
+    a32.OK.REG_RANGE_1_7: (VK.INT, "regrange:"),
+    # misc
+    a32.OK.PRED_28_31: [p.name for p in a32.PRED],
+}
+for ok in a32.OK:
+    assert ok in _FORMAT_INFO
+    t = _FORMAT_INFO[ok]
+    assert t is None or isinstance(t, (int, tuple, list)), f"{ok}"
 
 
 def _EmitReloc(ins: a32.Ins, pos: int) -> str:
@@ -32,23 +88,20 @@ def _SymbolizeOperand(ok: a32.OK, data: int) -> str:
 
     (This does not handle relocation expressions.)
     """
-    t = a32.FIELD_INFO.get(ok)
+    data = a32.DecodeOperand(ok, data)
+    t = _FORMAT_INFO.get(ok)
     assert t is not None, f"NYI: {ok}"
     if isinstance(t, list):
         return t[data]
-    elif isinstance(t, tuple):
-        if t[1] < 0:
-            data = a32.SignedIntFromBits(data, -t[1])
-        if t[0]:
-            return t[3] + hex(data * t[2])
-        else:
-            return t[3] + str(data * t[2])
-
-    assert isinstance(t, a32.CustomField)
-    if t.datatype == int:
-        return str(t.decoder(data))
+    assert isinstance(t, tuple), f"{ok}: {data} {t}"
+    if t[0] == VK.INT:
+        return t[1] + str(data)
+    elif t[0] == VK.INT_HEX:
+        return t[1] + hex(data)
+    elif t[0] == VK.FLT:
+        return t[1] + str(data)
     else:
-        return str(t.decoder(data))
+        assert False
 
 
 _REG_REWRITES = {
@@ -64,31 +117,24 @@ def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
 
     This does not handle relocation expressions.
     """
-    t = a32.FIELD_INFO.get(ok)
+    assert isinstance(op, str)
+    t = _FORMAT_INFO.get(ok)
     assert t is not None, f"NYI: {ok}"
-
     if isinstance(t, list):
         op = _REG_REWRITES.get(op, op)
         return t.index(op)
-    elif isinstance(t, tuple):
-        assert op.startswith(t[3])
-        op = op[len(t[3]):]
-        i = int(op, 0)  # must handle "0x" prefix
-        if t[2] > 1:
-            # handle scaling
-            x = i // t[2]
-            assert x * t[2] == i
-            i = x
-        if t[1] >= 0:
-            return i  # unsigned
-        return i & ((1 << -t[1]) - 1)
-
-    assert isinstance(t, a32.CustomField), f"expected CustomField got: {t} for {ok}"
-    if t.datatype == int:
-        return t.encoder(int(op, 0))
-
-    assert t.datatype == float
-    return t.encoder(float(op))
+    assert isinstance(t, tuple),  f"{ok} for {op} {t}"
+    assert op.startswith(t[1]), f"bad prefix {op} for {ok}"
+    op = op[len(t[1]):]
+    if t[0] == VK.INT:
+        data = int(op, 0)
+    elif t[0] == VK.INT_HEX:
+        data = int(op, 0)
+    elif t[0] == VK.FLT:
+        data = float(op)
+    else:
+        assert False
+    return a32.EncodeOperand(ok, data)
 
 
 _RELOC_KIND_MAP = {
@@ -102,7 +148,7 @@ _RELOC_KIND_MAP = {
     "movt_abs": enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
 }
 
-_RELOC_OK: Set[a32.OK] = set([a32.OK.SIMM_0_23, a32.OK.IMM_0_11_16_19])
+_RELOC_OK: Set[a32.OK] = {a32.OK.SIMM_0_23, a32.OK.IMM_0_11_16_19}
 
 
 def InsSymbolize(ins: a32.Ins) -> Tuple[str, List[str]]:
@@ -111,6 +157,7 @@ def InsSymbolize(ins: a32.Ins) -> Tuple[str, List[str]]:
     ops = []
     for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
         if ok in _RELOC_OK and ins.reloc_kind != 0 and ins.reloc_pos == pos:
+            # Note: we essentially store the "addend" here
             ops.append(_EmitReloc(ins, pos))
         else:
             ops.append(_SymbolizeOperand(ok, value))

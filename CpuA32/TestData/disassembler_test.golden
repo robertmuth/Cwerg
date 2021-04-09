@@ -53,6 +53,13 @@ flags: OPC_FLAG.ATOMIC|LOAD
     IMM_0_3_8_11        26 (26)
 flags: OPC_FLAG.ADDR_DEC|ADDR_PRE|LOAD
 
+e3c70102 bic_imm al, r0, r7, -2147483648
+    PRED_28_31          al (14)
+    REG_12_15           r0 (0)
+    REG_16_19           r7 (7)
+    IMM_0_7_8_11        -2147483648 (258)
+flags: OPC_FLAG.ALU
+
 00000000 and_regimm eq, r0, r0, r0, lsl, 0
     PRED_28_31          eq (0)
     REG_12_15           r0 (0)

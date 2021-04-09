@@ -9,7 +9,7 @@ TESTS = TestData/memaddr.asm \
 
 .PHONY: $(TESTS)
 
-TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81f0 e1920f9f 015461fa 0
+TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81f0 e1920f9f 015461fa e3c70102 0
 
 tests: tests_py tests_c
 	@echo

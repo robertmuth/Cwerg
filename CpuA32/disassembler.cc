@@ -93,7 +93,7 @@ char* RenderOperandSystematic(char* buffer, int32_t x, OK ok) {
     case OK::IMM_10_11_TIMES_8:
     case OK::IMM_7_11:
     case OK::IMM_0_23:
-    case OK::IMM_ZERO:
+    case OK::IMM_FLT_ZERO:
       sprintf(buffer, "%u", (uint32_t)x);
       return buffer + strlen(buffer);
     case OK::SIMM_0_23:
@@ -148,7 +148,7 @@ char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok) {
     case OK::IMM_10_11_TIMES_8:
     case OK::IMM_7_11:
     case OK::IMM_0_23:
-    case OK::IMM_ZERO:
+    case OK::IMM_FLT_ZERO:
     case OK::SIMM_0_23:
     case OK::REG_RANGE_0_7:
     case OK::REG_RANGE_1_7:

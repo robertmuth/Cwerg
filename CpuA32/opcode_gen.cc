@@ -1166,7 +1166,7 @@ const Opcode OpcodeTable[] = {
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmp.f32", "vcmp_f32_zero", 0x0fbf0fff, 0x0eb50a40,
- 3, {OK::PRED_28_31, OK::SREG_12_15_22, OK::IMM_ZERO},
+ 3, {OK::PRED_28_31, OK::SREG_12_15_22, OK::IMM_FLT_ZERO},
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmp.f64", "vcmp_f64", 0x0fbf0fd0, 0x0eb40b40,
@@ -1174,7 +1174,7 @@ const Opcode OpcodeTable[] = {
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmp.f64", "vcmp_f64_zero", 0x0fbf0fff, 0x0eb50b40,
- 3, {OK::PRED_28_31, OK::DREG_12_15_22, OK::IMM_ZERO},
+ 3, {OK::PRED_28_31, OK::DREG_12_15_22, OK::IMM_FLT_ZERO},
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmpe.f32", "vcmpe_f32", 0x0fbf0fd0, 0x0eb40ac0,
@@ -1182,7 +1182,7 @@ const Opcode OpcodeTable[] = {
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmpe.f32", "vcmpe_f32_zero", 0x0fbf0fff, 0x0eb50ac0,
- 3, {OK::PRED_28_31, OK::SREG_12_15_22, OK::IMM_ZERO},
+ 3, {OK::PRED_28_31, OK::SREG_12_15_22, OK::IMM_FLT_ZERO},
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmpe.f64", "vcmpe_f64", 0x0fbf0fd0, 0x0eb40bc0,
@@ -1190,7 +1190,7 @@ const Opcode OpcodeTable[] = {
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcmpe.f64", "vcmpe_f64_zero", 0x0fbf0fff, 0x0eb50bc0,
- 3, {OK::PRED_28_31, OK::DREG_12_15_22, OK::IMM_ZERO},
+ 3, {OK::PRED_28_31, OK::DREG_12_15_22, OK::IMM_FLT_ZERO},
  VFP, MEM_WIDTH::NA, SR_UPDATE::NONE
 },
 {"vcvt.f32.f64", "vcvt_f32_f64", 0x0fbf0fd0, 0x0eb70bc0,
@@ -2270,7 +2270,7 @@ static const Field FieldTable[] = {
   { { {2, 10} } }, // IMM_10_11_TIMES_8 = 21
   { { {24, 0} } }, // IMM_0_23 = 22
   { { {12, 0} } }, // IMM_0_7_8_11 = 23
-  { {  } }, // IMM_ZERO = 24
+  { {  } }, // IMM_FLT_ZERO = 24
   { { {4, 16}, {12, 0} } }, // IMM_0_11_16_19 = 25
   { { {24, 0} } }, // SIMM_0_23 = 26
 };
@@ -2498,7 +2498,7 @@ int32_t DecodeOperand(uint32_t data, OK ok) {
       return DecodeRotatedImm(data);
     case OK::SIMM_0_23:
       return SignedIntFromBits(data, 24);
-    case OK::IMM_ZERO:
+    case OK::IMM_FLT_ZERO:
       return 0;
     case OK::IMM_10_11_TIMES_8:
       return data * 8;
@@ -2515,7 +2515,7 @@ uint32_t EncodeOperand(int32_t data, OK ok) {
       return EncodeRotatedImm(data);
     case OK::SIMM_0_23:
       return data & 0xffffff;
-    case OK::IMM_ZERO:
+    case OK::IMM_FLT_ZERO:
       return 0;
     case OK::IMM_10_11_TIMES_8:
       return data / 8;

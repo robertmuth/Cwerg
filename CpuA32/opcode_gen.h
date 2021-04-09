@@ -39,7 +39,7 @@ enum class OK : uint8_t {
     IMM_10_11_TIMES_8 = 21,
     IMM_0_23 = 22,
     IMM_0_7_8_11 = 23,
-    IMM_ZERO = 24,
+    IMM_FLT_ZERO = 24,
     IMM_0_11_16_19 = 25,
     SIMM_0_23 = 26,
 };
