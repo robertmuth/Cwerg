@@ -9,62 +9,6 @@ import CpuA32.opcode_tab as a32
 from Elf import enum_tab
 
 
-@enum.unique
-class VK(enum.Enum):
-    NONE = 0
-    STR = 1
-    INT = 2
-    INT_HEX = 3
-    FLT = 4
-
-
-_FORMAT_INFO: Dict[a32.OK, Any] = {
-    a32.OK.Invalid: None,
-    a32.OK.REG_0_3: [p.name for p in a32.REG],
-    a32.OK.REG_8_11: [p.name for p in a32.REG],
-    a32.OK.REG_12_15: [p.name for p in a32.REG],
-    a32.OK.REG_16_19: [p.name for p in a32.REG],
-    a32.OK.REG_PAIR_12_15: [p.name for p in a32.REG],
-    #
-    a32.OK.DREG_0_3_5: [p.name for p in a32.DREG],
-    a32.OK.DREG_12_15_22: [p.name for p in a32.DREG],
-    a32.OK.DREG_16_19_7: [p.name for p in a32.DREG],
-    #
-    a32.OK.SREG_0_3_5: [p.name for p in a32.SREG],
-    a32.OK.SREG_12_15_22: [p.name for p in a32.SREG],
-    a32.OK.SREG_16_19_7: [p.name for p in a32.SREG],
-    #
-    # Triple Format: is dec/hex, sign-bits, scale, prefix
-    a32.OK.IMM_7_11: (VK.INT, ""),
-    a32.OK.IMM_0_23: (VK.INT, ""),
-    a32.OK.IMM_0_11_16_19: (VK.INT, ""),
-    a32.OK.IMM_0_11: (VK.INT, ""),
-    a32.OK.IMM_0_3_8_11: (VK.INT, ""),
-    #
-    a32.OK.IMM_10_11_TIMES_8: (VK.INT, ""),
-    a32.OK.IMM_0_7_TIMES_4: (VK.INT, ""),
-    #
-    a32.OK.SIMM_0_23: (VK.INT, ""),
-    #
-    a32.OK.IMM_FLT_ZERO: (VK.FLT, ""),
-    #
-    a32.OK.IMM_0_7_8_11: (VK.INT, ""),
-
-    #
-    a32.OK.SHIFT_MODE_5_6: [p.name for p in a32.SHIFT],
-    # register set
-    a32.OK.REGLIST_0_15: (VK.INT_HEX, "reglist:"),
-    a32.OK.REG_RANGE_0_7: (VK.INT, "regrange:"),
-    a32.OK.REG_RANGE_1_7: (VK.INT, "regrange:"),
-    # misc
-    a32.OK.PRED_28_31: [p.name for p in a32.PRED],
-}
-for ok in a32.OK:
-    assert ok in _FORMAT_INFO
-    t = _FORMAT_INFO[ok]
-    assert t is None or isinstance(t, (int, tuple, list)), f"{ok}"
-
-
 def _EmitReloc(ins: a32.Ins, pos: int) -> str:
     if ins.reloc_kind == enum_tab.RELOC_TYPE_ARM.JUMP24:
         assert ins.is_local_sym, f"expected local symbol"
@@ -89,19 +33,13 @@ def _SymbolizeOperand(ok: a32.OK, data: int) -> str:
     (This does not handle relocation expressions.)
     """
     data = a32.DecodeOperand(ok, data)
-    t = _FORMAT_INFO.get(ok)
-    assert t is not None, f"NYI: {ok}"
-    if isinstance(t, list):
-        return t[data]
-    assert isinstance(t, tuple), f"{ok}: {data} {t}"
-    if t[0] == VK.INT:
-        return t[1] + str(data)
-    elif t[0] == VK.INT_HEX:
-        return t[1] + hex(data)
-    elif t[0] == VK.FLT:
-        return t[1] + str(data)
+    t = a32.FIELD_DETAILS[ok]
+    if t.kind == a32.FK.LIST:
+        return t.names[data]
+    if t.kind == a32.FK.INT_HEX:
+        return t.prefix + hex(data)
     else:
-        assert False
+        return t.prefix + str(data)
 
 
 _REG_REWRITES = {
@@ -117,23 +55,16 @@ def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
 
     This does not handle relocation expressions.
     """
-    assert isinstance(op, str)
-    t = _FORMAT_INFO.get(ok)
-    assert t is not None, f"NYI: {ok}"
-    if isinstance(t, list):
+    t = a32.FIELD_DETAILS[ok]
+    if t.prefix and op.startswith(t.prefix):
+        op = op[len(t.prefix):]
+    if t.kind == a32.FK.LIST:
         op = _REG_REWRITES.get(op, op)
-        return t.index(op)
-    assert isinstance(t, tuple),  f"{ok} for {op} {t}"
-    assert op.startswith(t[1]), f"bad prefix {op} for {ok}"
-    op = op[len(t[1]):]
-    if t[0] == VK.INT:
-        data = int(op, 0)
-    elif t[0] == VK.INT_HEX:
-        data = int(op, 0)
-    elif t[0] == VK.FLT:
+        data = t.names.index(op)
+    elif t.kind == a32.FK.FLT_CUSTOM:
         data = float(op)
     else:
-        assert False
+        data = int(op, 0)
     return a32.EncodeOperand(ok, data)
 
 

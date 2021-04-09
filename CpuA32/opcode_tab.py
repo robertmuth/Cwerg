@@ -104,6 +104,7 @@ def DecodeRotatedImm(data) -> int:
     rot = (data & 0xf00) >> 7
     x >>= rot
     x &= 0xffffffff
+    # pretend we are dealing with signed 32 quatities to mimic objdump
     if x >= (1 << 31):
         x = x - (1 << 32)
     return x
@@ -124,6 +125,14 @@ def EncodeRotateImm(x) -> Optional[int]:
             return (r << 8) | (y & 0xff)
     else:
         return None
+
+
+def DecodeFloatZero(x) -> float:
+    return 0.0
+
+
+def EncodeFloatZero(x) -> Optional[int]:
+    return 0 if x == 0.0 else None
 
 
 ############################################################
@@ -297,6 +306,7 @@ class SR_UPDATE(enum.Enum):
 
 BIT_RANGE = Tuple[int, int]
 
+
 @enum.unique
 class FK(enum.Enum):
     NONE = 0
@@ -305,7 +315,7 @@ class FK(enum.Enum):
     INT_HEX = 3
     INT_SIGNED = 4
     INT_CUSTOM = 5
-    FLT = 6
+    FLT_CUSTOM = 6
 
 
 @dataclasses.dataclass
@@ -322,117 +332,67 @@ class FieldInfo:
 
 FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.Invalid: FieldInfo([], 0, FK.NONE),
-    OK.REG_0_3: FieldInfo([(4, 0)], 4, FK.LIST),
-    OK.REG_8_11: FieldInfo([(4, 8)], 4, FK.LIST),
-    OK.REG_12_15: FieldInfo([(4, 12)], 4, FK.LIST),
-    OK.REG_16_19: FieldInfo([(4, 16)], 4, FK.LIST),
-    OK.REG_PAIR_12_15: FieldInfo([(4, 12)], 4, FK.LIST),
+    OK.REG_0_3: FieldInfo([(4, 0)], 4, FK.LIST, names=[p.name for p in REG]),
+    OK.REG_8_11: FieldInfo([(4, 8)], 4, FK.LIST, names=[p.name for p in REG]),
+    OK.REG_12_15: FieldInfo([(4, 12)], 4, FK.LIST, names=[p.name for p in REG]),
+    OK.REG_16_19: FieldInfo([(4, 16)], 4, FK.LIST, names=[p.name for p in REG]),
+    OK.REG_PAIR_12_15: FieldInfo([(4, 12)], 4, FK.LIST, names=[p.name for p in REG]),
     #
-    OK.DREG_0_3_5:  FieldInfo([(1, 5), (4, 0)], 5, FK.LIST),
-    OK.DREG_12_15_22:  FieldInfo([(1, 22), (4, 12)], 5, FK.LIST),
-    OK.DREG_16_19_7:  FieldInfo([(1, 7), (4, 16)], 5, FK.LIST),
+    OK.DREG_0_3_5: FieldInfo([(1, 5), (4, 0)], 5, FK.LIST, names=[p.name for p in DREG]),
+    OK.DREG_12_15_22: FieldInfo([(1, 22), (4, 12)], 5, FK.LIST, names=[p.name for p in DREG]),
+    OK.DREG_16_19_7: FieldInfo([(1, 7), (4, 16)], 5, FK.LIST, names=[p.name for p in DREG]),
     #
-    OK.SREG_0_3_5:  FieldInfo([(4, 0), (1, 5)], 5, FK.LIST),
-    OK.SREG_12_15_22:  FieldInfo([(4, 12), (1, 22)], 5, FK.LIST),
-    OK.SREG_16_19_7:  FieldInfo([(4, 16), (1, 7)], 4, FK.LIST),
+    OK.SREG_0_3_5: FieldInfo([(4, 0), (1, 5)], 5, FK.LIST, names=[p.name for p in SREG]),
+    OK.SREG_12_15_22: FieldInfo([(4, 12), (1, 22)], 5, FK.LIST, names=[p.name for p in SREG]),
+    OK.SREG_16_19_7: FieldInfo([(4, 16), (1, 7)], 4, FK.LIST, names=[p.name for p in SREG]),
     #
-    OK.IMM_7_11:  FieldInfo([(5, 7)], 5, FK.INT),
-    OK.IMM_10_11_TIMES_8:  FieldInfo([(2, 10)], 2, FK.INT, scale=8),
-    OK.SIMM_0_23:  FieldInfo([(24, 0)], 24, FK.INT_SIGNED),
+    OK.SHIFT_MODE_5_6: FieldInfo([(2, 5)], 2, FK.LIST, names= [p.name for p in SHIFT]),
+    OK.PRED_28_31: FieldInfo([(4, 28)], 4, FK.LIST, names= [p.name for p in PRED]),
+    #
+    OK.IMM_7_11: FieldInfo([(5, 7)], 5, FK.INT),
     OK.IMM_0_23: FieldInfo([(24, 0)], 24, FK.INT),
-    OK.IMM_0_7_8_11:  FieldInfo([(12, 0)], 12, FK.INT),
-    OK.IMM_FLT_ZERO:  FieldInfo([], 0, FK.FLT),  # implicit 0.0 immediate
-    OK.IMM_0_11_16_19:  FieldInfo([(4, 16), (12, 0)], 16, FK.INT_CUSTOM),
-    OK.IMM_0_7_TIMES_4:  FieldInfo([(8, 0)], 8, FK.INT, scale=4),
-    OK.IMM_0_11:  FieldInfo([(12, 0)], 12, FK.INT),
-    OK.IMM_0_3_8_11:  FieldInfo([(4, 8), (4, 0)], 8, FK.INT),
+    OK.IMM_0_11_16_19: FieldInfo([(4, 16), (12, 0)], 16, FK.INT),
+    OK.IMM_0_11: FieldInfo([(12, 0)], 12, FK.INT),
+    OK.IMM_0_3_8_11: FieldInfo([(4, 8), (4, 0)], 8, FK.INT),
     #
-    OK.SHIFT_MODE_5_6:  FieldInfo([(2, 5)], 2, FK.LIST),
+    OK.SIMM_0_23: FieldInfo([(24, 0)], 24, FK.INT_SIGNED),
+    OK.IMM_FLT_ZERO: FieldInfo([], 0, FK.FLT_CUSTOM,
+                               encoder=EncodeFloatZero, decoder=DecodeFloatZero),
+    OK.IMM_0_7_8_11: FieldInfo([(12, 0)], 12, FK.INT_CUSTOM,
+                               encoder=EncodeRotateImm, decoder=DecodeRotatedImm),
+
+    OK.IMM_10_11_TIMES_8: FieldInfo([(2, 10)], 2, FK.INT, scale=8),
+    OK.IMM_0_7_TIMES_4: FieldInfo([(8, 0)], 8, FK.INT, scale=4),
+
     # register set
-    OK.REGLIST_0_15:  FieldInfo([(16, 0)], 16, FK.INT_HEX, prefix="reglist:"),
-    OK.REG_RANGE_0_7:  FieldInfo([(8, 0)], 8, FK.INT, prefix="regrange:"),
-    OK.REG_RANGE_1_7:  FieldInfo([(7, 1)], 7, FK.INT, prefix="regrange:"),
-    # misc
-    OK.PRED_28_31: FieldInfo( [(4, 28)], 4, FK.LIST),
-}
-
-
-@dataclasses.dataclass
-class CustomField:
-    decoder: Any
-    encoder: Any
-
-
-# positive int: unsigned
-# negative int: signed
-# tuple: scaled unsigned int
-FIELD_INFO: Dict[OK, Any] = {
-    OK.Invalid: None,
-    OK.REG_0_3: 4,
-    OK.REG_8_11: 4,
-    OK.REG_12_15: 4,
-    OK.REG_16_19: 4,
-    OK.REG_PAIR_12_15: 4,
-    #
-    OK.DREG_0_3_5: 5,
-    OK.DREG_12_15_22: 5,
-    OK.DREG_16_19_7: 5,
-    #
-    OK.SREG_0_3_5: 5,
-    OK.SREG_12_15_22: 5,
-    OK.SREG_16_19_7: 5,
-    #
-    # Triple Format: is dec/hex, sign-bits, scale, prefix
-    OK.IMM_7_11: 5,
-    OK.IMM_0_23: 24,
-    OK.IMM_0_11_16_19: 16,
-    OK.IMM_0_11: 12,
-    OK.IMM_0_3_8_11: 8,
-    #
-    OK.IMM_10_11_TIMES_8: (2, 8),
-    OK.IMM_0_7_TIMES_4: (8, 4),
-    #
-    OK.SIMM_0_23: -24,
-    #
-    OK.IMM_FLT_ZERO: CustomField(
-        lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
-    #
-    OK.IMM_0_7_8_11: CustomField(
-        DecodeRotatedImm, EncodeRotateImm),
-    #
-    OK.SHIFT_MODE_5_6: 2,
-    # register set
-    OK.REGLIST_0_15: 16,
-    OK.REG_RANGE_0_7: 8,
-    OK.REG_RANGE_1_7: 7,
-    # misc
-    OK.PRED_28_31: 4,
+    OK.REGLIST_0_15: FieldInfo([(16, 0)], 16, FK.INT_HEX, prefix="reglist:"),
+    OK.REG_RANGE_0_7: FieldInfo([(8, 0)], 8, FK.INT, prefix="regrange:"),
+    OK.REG_RANGE_1_7: FieldInfo([(7, 1)], 7, FK.INT, prefix="regrange:"),
 }
 
 for ok in OK:
     assert ok in FIELD_DETAILS
-    assert ok in FIELD_INFO
 
 
 def EncodeOperand(ok: OK, val: Any) -> int:
     """
 
     """
-    t = FIELD_INFO[ok]
-    if isinstance(t, int):
-        if t > 0:
-            assert (val >> t) == 0, f"bad value {ok}: {val}"
-            return  val
-        else:
-            assert (val >> -t - 1) == 0 or (val >> -t - 1) == -1
-            return val & ((1 << -t) -1)
-    if isinstance(t, tuple):
-        assert val % t[1] == 0
-        val //= t[1]
-        assert (val >> t[0]) == 0
+    t = FIELD_DETAILS[ok]
+    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        return t.encoder(val)
+    elif t.kind == FK.LIST:
+        assert val < len(t.names)
         return val
-    assert isinstance(t, CustomField)
-    return t.encoder(val)
+    elif t.kind == FK.INT_SIGNED:
+        assert (val >> t.bitwidth - 1) == 0 or (val >> t.bitwidth - 1) == -1
+        return val & ((1 << t.bitwidth) - 1)
+    if t.scale != 1:
+        assert val % t.scale == 0
+        val //= t.scale
+
+    assert (val >> t.bitwidth) == 0
+    return val
 
 
 def DecodeOperand(ok: OK, val: Any) -> int:
@@ -440,16 +400,14 @@ def DecodeOperand(ok: OK, val: Any) -> int:
 
     Most operands are just passed through only a handful of OKs need this
     """
-    t = FIELD_INFO[ok]
-    if isinstance(t, int):
-        if t > 0:
-            return val
-        else:
-            return SignedIntFromBits(val, -t)
-    if isinstance(t, tuple):
-        return val * t[1]
-    assert isinstance(t, CustomField)
-    return t.decoder(val)
+    t = FIELD_DETAILS[ok]
+    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        return t.decoder(val)
+    elif t.kind == FK.INT_SIGNED:
+        return SignedIntFromBits(val, t.bitwidth)
+    if t.scale != 1:
+        val *= t.scale
+    return val
 
 
 def ExtractOperand(ok: OK, value: int) -> int:
