@@ -62,55 +62,30 @@ int RenderMultipleVFP(const char* reg_prefix,
   return 1;
 }
 
-char* RenderOperandSystematic(char* buffer, int32_t x, OK ok) {
-  switch (ok) {
-    case OK::PRED_28_31:
-      return strappend(buffer, EnumToString(PRED(x)));
-    case OK::REG_0_3:
-    case OK::REG_12_15:
-    case OK::REG_16_19:
-    case OK::REG_8_11:
-    case OK::REG_PAIR_12_15:
-      ASSERT(x <= 15, "REG out of range " << x);
-      return strappend(buffer, kArmRegNames[x]);
-    case OK::DREG_0_3_5:
-    case OK::DREG_12_15_22:
-    case OK::DREG_16_19_7:
-      ASSERT(x <= 15, " DREG out of range " << x);
-      *buffer++ = 'd';
-      return strappenddec(buffer, x);
-    case OK::SREG_0_3_5:
-    case OK::SREG_12_15_22:
-    case OK::SREG_16_19_7:
-      ASSERT(x <= 31, "SREG out of range " << x);
-      *buffer++ = 's';
-      return strappenddec(buffer, x);
-    case OK::IMM_0_11:
-    case OK::IMM_0_11_16_19:
-    case OK::IMM_0_3_8_11:
-    case OK::IMM_0_7_8_11:
-    case OK::IMM_0_7_TIMES_4:
-    case OK::IMM_10_11_TIMES_8:
-    case OK::IMM_7_11:
-    case OK::IMM_0_23:
-    case OK::IMM_FLT_ZERO:
-      sprintf(buffer, "%u", (uint32_t)x);
-      return buffer + strlen(buffer);
-    case OK::SIMM_0_23:
-      return strappenddec(buffer, x);
-    case OK::REG_RANGE_0_7:
-    case OK::REG_RANGE_1_7:
-      buffer = strappend(buffer, "regrange:");
-      return strappenddec(buffer, x);
-    case OK::REGLIST_0_15:
-      sprintf(buffer, "reglist:0x%04x", x);
-      return buffer + strlen(buffer);
-    case OK::SHIFT_MODE_5_6:
-      return  strappend(buffer, EnumToString(SHIFT(x)));
-    case OK::Invalid:
+char* RenderOperand(char* buffer, int32_t x, OK ok) {
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  switch (fi.kind) {
     default:
-      ASSERT(false, "unhandled OK: " << (unsigned)ok);
-      return buffer;
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return 0;
+    case FK::INT_SIGNED_CUSTOM:
+      return strappenddec(buffer, x);
+    case FK::FLT_CUSTOM:
+      ASSERT(x == 0, "");
+      return strappend(buffer, "0.0");
+    case FK::LIST:
+      ASSERT(x < fi.num_names, "");
+      return strappend(buffer, fi.names[x]);
+    case FK::INT_SIGNED:
+      return strappenddec(buffer, x);
+    case FK::INT:
+      buffer = strappend(buffer, fi.prefix);
+      return strappenddec(buffer, x);
+    case FK::INT_HEX:
+      buffer = strappend(buffer, fi.prefix);
+      buffer = strappend(buffer, "0x");
+      return strappendhex(buffer, x);
   }
 }
 
@@ -134,7 +109,7 @@ char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok) {
     //
     case OK::PRED_28_31:
     case OK::SHIFT_MODE_5_6:
-      return RenderOperandSystematic(buffer, x, ok);
+      return RenderOperand(buffer, x, ok);
     case OK::IMM_0_7_TIMES_4:
     case OK::IMM_0_11:
     case OK::IMM_0_3_8_11:
@@ -213,8 +188,7 @@ void RenderInsSystematic(const Ins& ins, char buffer[512]) {
         buffer = strappenddec(buffer, ins.operands[i]);
       }
     } else {
-      buffer = RenderOperandSystematic(buffer, ins.operands[i],
-                                       ins.opcode->fields[i]);
+      buffer = RenderOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
     }
     sep = " ";
   }
