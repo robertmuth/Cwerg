@@ -342,7 +342,7 @@ BIT_RANGE = Tuple[int, int]
 
 # used for raw-decoding
 FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
-    OK.Invalid: None,
+    OK.Invalid: [],
     OK.WREG_0_4: [(5, 0)],
     OK.WREG_5_9: [(5, 5)],
     OK.WREG_10_14: [(5, 10)],

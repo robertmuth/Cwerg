@@ -106,7 +106,7 @@ def DecodeRotatedImm(data) -> int:
     return x & 0xffffffff
 
 
-def EncodeRotateImm(x) -> Optional[int]:
+def EncodeRotatedImm(x) -> Optional[int]:
     """Tries to convert the given integer into a 12bit arm rotated immediate
 
      return None if that os is not possible
@@ -356,7 +356,7 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.IMM_FLT_ZERO: FieldInfo([], 0, FK.FLT_CUSTOM,
                                encoder=EncodeFloatZero, decoder=DecodeFloatZero),
     OK.IMM_0_7_8_11: FieldInfo([(12, 0)], 12, FK.INT_SIGNED_CUSTOM,
-                               encoder=EncodeRotateImm, decoder=DecodeRotatedImm),
+                               encoder=EncodeRotatedImm, decoder=DecodeRotatedImm),
 
     OK.IMM_10_11_TIMES_8: FieldInfo([(2, 10)], 2, FK.INT, scale=8),
     OK.IMM_0_7_TIMES_4: FieldInfo([(8, 0)], 8, FK.INT, scale=4),
@@ -397,7 +397,7 @@ def EncodeOperand(ok: OK, val: int) -> int:
     return val
 
 
-def DecodeOperand(ok: OK, val: Any) -> int:
+def DecodeOperand(ok: OK, val: int) -> int:
     """Convert a raw operand into something more human friendly
 
     Most operands are just passed through only a handful of OKs need this
@@ -1290,18 +1290,21 @@ def _RenderOpcodeTableJumper() -> List[str]:
     return out
 
 
-def _RenderOperandKindTable():
+def _RenderFieldInfoTable():
     out = []
     for n, ok in enumerate(OK):
         assert n == ok.value
-        if ok is OK.Invalid:
-            bit_ranges = []
-        else:
-            bit_ranges = FIELD_DETAILS[ok].ranges
-        assert len(bit_ranges) <= MAX_BIT_RANGES
+        fd = FIELD_DETAILS[ok]
+        ranges = ', '.join(["{%d, %d}" % (a, b) for a, b in fd.ranges])
+        names = ""
+        decoder = fd.decoder.__name__ if fd.decoder else 'nullptr'
+        encoder = fd.encoder.__name__ if fd.encoder else 'nullptr'
 
-        ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
-        out += [f"  {{ {{ {', '.join(ranges_str)} }} }}, // {ok.name} = {ok.value}"]
+        out += ['  {  // %s = %d' % (ok.name, ok.value)]
+        out += ['    {%s}, {%s}, "%s",' % (ranges, names, fd.prefix)]
+        out += ['    %s, %s,' % (decoder, encoder)]
+        out += ['    %d, FK::%s, %d, %d},' %
+                (fd.bitwidth, fd.kind.name, fd.scale, len(fd.names))]
     return out
 
 
@@ -1338,8 +1341,8 @@ def _EmitCodeC(fout):
     print("};\n", file=fout)
 
     print("// Indexed by OK", file=fout)
-    print("static const Field FieldTable[] = {", file=fout)
-    print("\n".join(_RenderOperandKindTable()), file=fout)
+    print("const FieldInfo FieldInfoTable[] = {", file=fout)
+    print("\n".join(_RenderFieldInfoTable()), file=fout)
     print("};\n", file=fout)
 
     print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)

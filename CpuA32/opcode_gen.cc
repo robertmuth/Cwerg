@@ -4,14 +4,17 @@
 
 namespace cwerg::a32 {
 
-struct BitRange {
-  uint8_t width;  // if this is zero , the bitrange is invalid
-  uint8_t position;
-};
 
-struct Field {
-  BitRange bit_ranges[MAX_BIT_RANGES];
-};
+
+uint32_t DecodeFloatZero(uint32_t data) {
+  ASSERT(data == 0, "");
+  return 0;
+}
+
+uint32_t EncodeFloatZero(uint32_t num) {
+  if (num == 0) return 0;
+  return kEncodeFailure;
+}
 
 /* @AUTOGEN-START@ */
 // Indexed by OPC which in turn are organize to help with disassembly
@@ -2245,34 +2248,115 @@ const int16_t OpcodeTableJumper[] = {
 };
 
 // Indexed by OK
-static const Field FieldTable[] = {
-  { {  } }, // Invalid = 0
-  { { {4, 0} } }, // REG_0_3 = 1
-  { { {4, 8} } }, // REG_8_11 = 2
-  { { {4, 12} } }, // REG_12_15 = 3
-  { { {4, 16} } }, // REG_16_19 = 4
-  { { {4, 12} } }, // REG_PAIR_12_15 = 5
-  { { {1, 5}, {4, 0} } }, // DREG_0_3_5 = 6
-  { { {1, 22}, {4, 12} } }, // DREG_12_15_22 = 7
-  { { {1, 7}, {4, 16} } }, // DREG_16_19_7 = 8
-  { { {4, 0}, {1, 5} } }, // SREG_0_3_5 = 9
-  { { {4, 12}, {1, 22} } }, // SREG_12_15_22 = 10
-  { { {4, 16}, {1, 7} } }, // SREG_16_19_7 = 11
-  { { {2, 5} } }, // SHIFT_MODE_5_6 = 12
-  { { {16, 0} } }, // REGLIST_0_15 = 13
-  { { {8, 0} } }, // REG_RANGE_0_7 = 14
-  { { {7, 1} } }, // REG_RANGE_1_7 = 15
-  { { {4, 28} } }, // PRED_28_31 = 16
-  { { {8, 0} } }, // IMM_0_7_TIMES_4 = 17
-  { { {12, 0} } }, // IMM_0_11 = 18
-  { { {4, 8}, {4, 0} } }, // IMM_0_3_8_11 = 19
-  { { {5, 7} } }, // IMM_7_11 = 20
-  { { {2, 10} } }, // IMM_10_11_TIMES_8 = 21
-  { { {24, 0} } }, // IMM_0_23 = 22
-  { { {12, 0} } }, // IMM_0_7_8_11 = 23
-  { {  } }, // IMM_FLT_ZERO = 24
-  { { {4, 16}, {12, 0} } }, // IMM_0_11_16_19 = 25
-  { { {24, 0} } }, // SIMM_0_23 = 26
+const FieldInfo FieldInfoTable[] = {
+  {  // Invalid = 0
+    {}, {}, "",
+    nullptr, nullptr,
+    0, FK::NONE, 1, 0},
+  {  // REG_0_3 = 1
+    {{4, 0}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // REG_8_11 = 2
+    {{4, 8}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // REG_12_15 = 3
+    {{4, 12}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // REG_16_19 = 4
+    {{4, 16}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // REG_PAIR_12_15 = 5
+    {{4, 12}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // DREG_0_3_5 = 6
+    {{1, 5}, {4, 0}}, {}, "",
+    nullptr, nullptr,
+    5, FK::LIST, 1, 16},
+  {  // DREG_12_15_22 = 7
+    {{1, 22}, {4, 12}}, {}, "",
+    nullptr, nullptr,
+    5, FK::LIST, 1, 16},
+  {  // DREG_16_19_7 = 8
+    {{1, 7}, {4, 16}}, {}, "",
+    nullptr, nullptr,
+    5, FK::LIST, 1, 16},
+  {  // SREG_0_3_5 = 9
+    {{4, 0}, {1, 5}}, {}, "",
+    nullptr, nullptr,
+    5, FK::LIST, 1, 32},
+  {  // SREG_12_15_22 = 10
+    {{4, 12}, {1, 22}}, {}, "",
+    nullptr, nullptr,
+    5, FK::LIST, 1, 32},
+  {  // SREG_16_19_7 = 11
+    {{4, 16}, {1, 7}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 32},
+  {  // SHIFT_MODE_5_6 = 12
+    {{2, 5}}, {}, "",
+    nullptr, nullptr,
+    2, FK::LIST, 1, 4},
+  {  // REGLIST_0_15 = 13
+    {{16, 0}}, {}, "reglist:",
+    nullptr, nullptr,
+    16, FK::INT_HEX, 1, 0},
+  {  // REG_RANGE_0_7 = 14
+    {{8, 0}}, {}, "regrange:",
+    nullptr, nullptr,
+    8, FK::INT, 1, 0},
+  {  // REG_RANGE_1_7 = 15
+    {{7, 1}}, {}, "regrange:",
+    nullptr, nullptr,
+    7, FK::INT, 1, 0},
+  {  // PRED_28_31 = 16
+    {{4, 28}}, {}, "",
+    nullptr, nullptr,
+    4, FK::LIST, 1, 16},
+  {  // IMM_0_7_TIMES_4 = 17
+    {{8, 0}}, {}, "",
+    nullptr, nullptr,
+    8, FK::INT, 4, 0},
+  {  // IMM_0_11 = 18
+    {{12, 0}}, {}, "",
+    nullptr, nullptr,
+    12, FK::INT, 1, 0},
+  {  // IMM_0_3_8_11 = 19
+    {{4, 8}, {4, 0}}, {}, "",
+    nullptr, nullptr,
+    8, FK::INT, 1, 0},
+  {  // IMM_7_11 = 20
+    {{5, 7}}, {}, "",
+    nullptr, nullptr,
+    5, FK::INT, 1, 0},
+  {  // IMM_10_11_TIMES_8 = 21
+    {{2, 10}}, {}, "",
+    nullptr, nullptr,
+    2, FK::INT, 8, 0},
+  {  // IMM_0_23 = 22
+    {{24, 0}}, {}, "",
+    nullptr, nullptr,
+    24, FK::INT, 1, 0},
+  {  // IMM_0_7_8_11 = 23
+    {{12, 0}}, {}, "",
+    DecodeRotatedImm, EncodeRotatedImm,
+    12, FK::INT_SIGNED_CUSTOM, 1, 0},
+  {  // IMM_FLT_ZERO = 24
+    {}, {}, "",
+    DecodeFloatZero, EncodeFloatZero,
+    0, FK::FLT_CUSTOM, 1, 0},
+  {  // IMM_0_11_16_19 = 25
+    {{4, 16}, {12, 0}}, {}, "",
+    nullptr, nullptr,
+    16, FK::INT, 1, 0},
+  {  // SIMM_0_23 = 26
+    {{24, 0}}, {}, "",
+    nullptr, nullptr,
+    24, FK::INT_SIGNED, 1, 0},
 };
 
 constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 512;
@@ -2466,8 +2550,7 @@ uint32_t DecodeRotatedImm(uint32_t data) {
 
 // Inverse of DecodeRotatedImm()
 // returns -1 in case of failure
-uint32_t EncodeRotatedImm(int32_t immediate) {
-  uint32_t x = immediate;
+uint32_t EncodeRotatedImm(uint32_t x) {
   for (int r = 0; r < 16; ++r) {
     if ((x & 0xff) == x) {
       return (r << 8) | x;
@@ -2478,8 +2561,8 @@ uint32_t EncodeRotatedImm(int32_t immediate) {
   return kEncodeFailure;
 }
 
-uint32_t ExtractOperand(uint32_t data, OK field_kind) {
-  const BitRange* bit_ranges = FieldTable[uint8_t(field_kind)].bit_ranges;
+uint32_t ExtractOperand(uint32_t data, OK ok) {
+  const BitRange* bit_ranges = FieldInfoTable[uint8_t(ok)].ranges;
 
   int32_t out = 0;
   for (unsigned i = 0; i < MAX_BIT_RANGES; ++i) {
@@ -2492,45 +2575,62 @@ uint32_t ExtractOperand(uint32_t data, OK field_kind) {
   return out;
 }
 
-int32_t DecodeOperand(uint32_t data, OK ok) {
-  switch (ok) {
-    case OK::IMM_0_7_8_11:
-      return DecodeRotatedImm(data);
-    case OK::SIMM_0_23:
-      return SignedIntFromBits(data, 24);
-    case OK::IMM_FLT_ZERO:
-      return 0;
-    case OK::IMM_10_11_TIMES_8:
-      return data * 8;
-    case OK::IMM_0_7_TIMES_4:
-      return data * 4;
+uint32_t DecodeOperand(uint32_t data, OK ok) {
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  switch (fi.kind) {
     default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return 0;
+    case FK::INT_SIGNED_CUSTOM:
+    case FK::FLT_CUSTOM:
+      return fi.decoder(data);
+
+    case FK::INT_SIGNED:
+      return SignedIntFromBits(data, fi.bitwidth);
+    case FK::INT:
+    case FK::INT_HEX:
+      return data * fi.scale;
+    case FK::LIST:
+      // check length
       return data;
   }
 }
 
-uint32_t EncodeOperand(int32_t data, OK ok) {
-  switch (ok) {
-    case OK::IMM_0_7_8_11:
-      return EncodeRotatedImm(data);
-    case OK::SIMM_0_23:
-      return data & 0xffffff;
-    case OK::IMM_FLT_ZERO:
-      return 0;
-    case OK::IMM_10_11_TIMES_8:
-      return data / 8;
-    case OK::IMM_0_7_TIMES_4:
-      return data / 4;
+uint32_t EncodeOperand(uint32_t data, OK ok) {
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  switch (fi.kind) {
     default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return 0;
+    case FK::INT_SIGNED_CUSTOM:
+    case FK::FLT_CUSTOM:
+      return fi.encoder(data);
+    case FK::LIST:
+      ASSERT(data < fi.num_names, "");
+      return data;
+    case FK::INT_SIGNED: {
+      uint32_t rest = data >> (fi.bitwidth - 1);
+      ASSERT(rest == 0 || rest + 1 == (1 << (32 - fi.bitwidth + 1)), "");
+      return data & ((1 << fi.bitwidth) - 1);
+    }
+    case FK::INT:
+    case FK::INT_HEX:
+      if (fi.scale != 1) {
+        ASSERT(data % fi.scale == 0, "");
+        data /= fi.scale;
+      }
+      ASSERT(data >> fi.bitwidth == 0, "");
       return data;
   }
 }
 
 void InsertOperand(int32_t x,
-                   const Field* field,
+                   OK ok,
                    uint32_t* bits_value,
                    uint32_t* bits_mask) {
-  const BitRange* bit_ranges = field->bit_ranges;
+  const BitRange* bit_ranges = FieldInfoTable[uint8_t(ok)].ranges;
   // backwards is important
   for (int i = MAX_BIT_RANGES - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
@@ -2560,10 +2660,10 @@ uint32_t Assemble(const Ins& ins) {
   uint32_t value = opcode->bit_value;
   uint32_t mask = opcode->bit_mask;
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
-    const OK kind = ins.opcode->fields[i];
-    ASSERT(kind != OK::Invalid, "");
-    uint32_t x = EncodeOperand(ins.operands[i], kind);
-    InsertOperand(x, &FieldTable[uint8_t(kind)], &value, &mask);
+    const OK ok = ins.opcode->fields[i];
+    ASSERT(ok != OK::Invalid, "");
+    uint32_t x = EncodeOperand(ins.operands[i], ok);
+    InsertOperand(x, ok, &value, &mask);
   }
   ASSERT(mask == 0xffffffff, "problems encoding " << opcode->name);
   return value;

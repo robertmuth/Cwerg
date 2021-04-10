@@ -625,6 +625,43 @@ extern bool Disassemble(Ins* ins, uint32_t data);
 // Returns the instruction word. Asserts if unsuccessful
 extern uint32_t Assemble(const Ins& ins);
 
+extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
+
+struct BitRange {
+  uint8_t width;  // if this is zero , the bitrange is invalid
+  uint8_t position;
+};
+
+struct Field {
+  BitRange bit_ranges[MAX_BIT_RANGES];
+};
+
+enum class FK : uint8_t {
+  NONE = 0,
+  LIST = 1,
+  INT = 2,
+  INT_HEX = 3,
+  INT_SIGNED = 4,
+  INT_SIGNED_CUSTOM = 5,
+  FLT_CUSTOM = 6,
+};
+
+typedef uint32_t (*ENC_DEC_FUN)(uint32_t);
+
+struct FieldInfo {
+  BitRange ranges[MAX_BIT_RANGES];
+  std::string_view* names;
+  std::string_view prefix;
+  ENC_DEC_FUN decoder;
+  ENC_DEC_FUN encoder;
+  uint8_t bitwidth;
+  FK kind;
+  uint8_t scale;
+  uint8_t num_names;
+};
+
+extern const FieldInfo FieldInfoTable[];
+
 extern uint32_t  DecodeRotatedImm(uint32_t data);
 
 const uint32_t kEncodeFailure = 0xffffffff;
@@ -633,12 +670,11 @@ const uint32_t kEncodeFailure = 0xffffffff;
 // ARM 12bit shifted immediate.
 // If this is successful a 12bit unsigned value is returned.
 // Otherwise, kEncodingFailure is returned.
-extern uint32_t EncodeRotatedImm(int32_t immediate);
+extern uint32_t EncodeRotatedImm(uint32_t immediate);
 
 extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
 
 
-extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
 
 template <typename Flag>
 const char* EnumToString(Flag f);

@@ -44,9 +44,9 @@ class IMM_KIND(enum.IntEnum):
 
 
 _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
-    IMM_KIND.pos_8_bits_shifted: lambda x: arm.EncodeRotateImm(x & 0xffffffff) is not None,
-    IMM_KIND.neg_8_bits_shifted: lambda x: arm.EncodeRotateImm(-x & 0xffffffff) is not None,
-    IMM_KIND.not_8_bits_shifted: lambda x: arm.EncodeRotateImm(~x & 0xffffffff) is not None,
+    IMM_KIND.pos_8_bits_shifted: lambda x: arm.EncodeRotatedImm(x & 0xffffffff) is not None,
+    IMM_KIND.neg_8_bits_shifted: lambda x: arm.EncodeRotatedImm(-x & 0xffffffff) is not None,
+    IMM_KIND.not_8_bits_shifted: lambda x: arm.EncodeRotatedImm(~x & 0xffffffff) is not None,
 
     IMM_KIND.pos_5_bits: lambda x: 0 <= x < (1 << 5),
 
@@ -61,7 +61,7 @@ _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
     IMM_KIND.pos_16_bits: lambda x: 0 <= x < (1 << 16),
     IMM_KIND.any_32_bits: lambda x: True,
 
-    IMM_KIND.pos_stk_combo_8_bits_shifted: lambda x: arm.EncodeRotateImm(x) is not None,
+    IMM_KIND.pos_stk_combo_8_bits_shifted: lambda x: arm.EncodeRotatedImm(x) is not None,
     IMM_KIND.pos_stk_combo_8_bits: lambda x: 0 <= x < (1 << 8),
     IMM_KIND.pos_stk_combo_8_bits_times_4: lambda x: 0 <= (x // 4) < (1 << 8),
     IMM_KIND.pos_stk_combo_12_bits: lambda x: 0 <= x < (1 << 12),
@@ -250,7 +250,7 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
 
 
 _RAW_ENOCDER : Dict [arm.OK, Any] = {
-    arm.OK.IMM_0_7_8_11: arm.EncodeRotateImm,
+    arm.OK.IMM_0_7_8_11: arm.EncodeRotatedImm,
     arm.OK.SIMM_0_23: lambda x: x & 0xffffff,
     arm.OK.IMM_10_11_TIMES_8: lambda x: x // 8,
     arm.OK.IMM_0_7_TIMES_4: lambda x: x // 4,
