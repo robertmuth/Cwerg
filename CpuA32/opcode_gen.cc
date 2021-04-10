@@ -2247,118 +2247,6 @@ const int16_t OpcodeTableJumper[] = {
 500
 };
 
-// Indexed by OK
-const FieldInfo FieldInfoTable[] = {
-  {  // Invalid = 0
-    {}, {}, "",
-    nullptr, nullptr,
-    0, FK::NONE, 1, 0},
-  {  // REG_0_3 = 1
-    {{4, 0}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // REG_8_11 = 2
-    {{4, 8}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // REG_12_15 = 3
-    {{4, 12}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // REG_16_19 = 4
-    {{4, 16}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // REG_PAIR_12_15 = 5
-    {{4, 12}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // DREG_0_3_5 = 6
-    {{1, 5}, {4, 0}}, {}, "",
-    nullptr, nullptr,
-    5, FK::LIST, 1, 16},
-  {  // DREG_12_15_22 = 7
-    {{1, 22}, {4, 12}}, {}, "",
-    nullptr, nullptr,
-    5, FK::LIST, 1, 16},
-  {  // DREG_16_19_7 = 8
-    {{1, 7}, {4, 16}}, {}, "",
-    nullptr, nullptr,
-    5, FK::LIST, 1, 16},
-  {  // SREG_0_3_5 = 9
-    {{4, 0}, {1, 5}}, {}, "",
-    nullptr, nullptr,
-    5, FK::LIST, 1, 32},
-  {  // SREG_12_15_22 = 10
-    {{4, 12}, {1, 22}}, {}, "",
-    nullptr, nullptr,
-    5, FK::LIST, 1, 32},
-  {  // SREG_16_19_7 = 11
-    {{4, 16}, {1, 7}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 32},
-  {  // SHIFT_MODE_5_6 = 12
-    {{2, 5}}, {}, "",
-    nullptr, nullptr,
-    2, FK::LIST, 1, 4},
-  {  // REGLIST_0_15 = 13
-    {{16, 0}}, {}, "reglist:",
-    nullptr, nullptr,
-    16, FK::INT_HEX, 1, 0},
-  {  // REG_RANGE_0_7 = 14
-    {{8, 0}}, {}, "regrange:",
-    nullptr, nullptr,
-    8, FK::INT, 1, 0},
-  {  // REG_RANGE_1_7 = 15
-    {{7, 1}}, {}, "regrange:",
-    nullptr, nullptr,
-    7, FK::INT, 1, 0},
-  {  // PRED_28_31 = 16
-    {{4, 28}}, {}, "",
-    nullptr, nullptr,
-    4, FK::LIST, 1, 16},
-  {  // IMM_0_7_TIMES_4 = 17
-    {{8, 0}}, {}, "",
-    nullptr, nullptr,
-    8, FK::INT, 4, 0},
-  {  // IMM_0_11 = 18
-    {{12, 0}}, {}, "",
-    nullptr, nullptr,
-    12, FK::INT, 1, 0},
-  {  // IMM_0_3_8_11 = 19
-    {{4, 8}, {4, 0}}, {}, "",
-    nullptr, nullptr,
-    8, FK::INT, 1, 0},
-  {  // IMM_7_11 = 20
-    {{5, 7}}, {}, "",
-    nullptr, nullptr,
-    5, FK::INT, 1, 0},
-  {  // IMM_10_11_TIMES_8 = 21
-    {{2, 10}}, {}, "",
-    nullptr, nullptr,
-    2, FK::INT, 8, 0},
-  {  // IMM_0_23 = 22
-    {{24, 0}}, {}, "",
-    nullptr, nullptr,
-    24, FK::INT, 1, 0},
-  {  // IMM_0_7_8_11 = 23
-    {{12, 0}}, {}, "",
-    DecodeRotatedImm, EncodeRotatedImm,
-    12, FK::INT_SIGNED_CUSTOM, 1, 0},
-  {  // IMM_FLT_ZERO = 24
-    {}, {}, "",
-    DecodeFloatZero, EncodeFloatZero,
-    0, FK::FLT_CUSTOM, 1, 0},
-  {  // IMM_0_11_16_19 = 25
-    {{4, 16}, {12, 0}}, {}, "",
-    nullptr, nullptr,
-    16, FK::INT, 1, 0},
-  {  // SIMM_0_23 = 26
-    {{24, 0}}, {}, "",
-    nullptr, nullptr,
-    24, FK::INT_SIGNED, 1, 0},
-};
-
 constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 512;
 // Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing
 static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
@@ -2493,6 +2381,91 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
 };
 
 
+const char* const REG_ToStringMap[] = {
+    "r0", // 0
+    "r1", // 1
+    "r2", // 2
+    "r3", // 3
+    "r4", // 4
+    "r5", // 5
+    "r6", // 6
+    "r7", // 7
+    "r8", // 8
+    "r9", // 9
+    "sl", // 10
+    "fp", // 11
+    "ip", // 12
+    "sp", // 13
+    "lr", // 14
+    "pc", // 15
+};
+
+template<>  // template specialization for REG
+const char* EnumToString<REG>(REG x) { return REG_ToStringMap[unsigned(x)]; }
+
+
+const char* const DREG_ToStringMap[] = {
+    "d0", // 0
+    "d1", // 1
+    "d2", // 2
+    "d3", // 3
+    "d4", // 4
+    "d5", // 5
+    "d6", // 6
+    "d7", // 7
+    "d8", // 8
+    "d9", // 9
+    "d10", // 10
+    "d11", // 11
+    "d12", // 12
+    "d13", // 13
+    "d14", // 14
+    "d15", // 15
+};
+
+template<>  // template specialization for DREG
+const char* EnumToString<DREG>(DREG x) { return DREG_ToStringMap[unsigned(x)]; }
+
+
+const char* const SREG_ToStringMap[] = {
+    "s0", // 0
+    "s1", // 1
+    "s2", // 2
+    "s3", // 3
+    "s4", // 4
+    "s5", // 5
+    "s6", // 6
+    "s7", // 7
+    "s8", // 8
+    "s9", // 9
+    "s10", // 10
+    "s11", // 11
+    "s12", // 12
+    "s13", // 13
+    "s14", // 14
+    "s15", // 15
+    "s16", // 16
+    "s17", // 17
+    "s18", // 18
+    "s19", // 19
+    "s20", // 20
+    "s21", // 21
+    "s22", // 22
+    "s23", // 23
+    "s24", // 24
+    "s25", // 25
+    "s26", // 26
+    "s27", // 27
+    "s28", // 28
+    "s29", // 29
+    "s30", // 30
+    "s31", // 31
+};
+
+template<>  // template specialization for SREG
+const char* EnumToString<SREG>(SREG x) { return SREG_ToStringMap[unsigned(x)]; }
+
+
 const char* const PRED_ToStringMap[] = {
     "eq", // 0
     "ne", // 1
@@ -2525,6 +2498,91 @@ const char* const SHIFT_ToStringMap[] = {
 
 template<>  // template specialization for SHIFT
 const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
+
+// Indexed by OK
+const FieldInfo FieldInfoTable[] = {
+  {  // Invalid = 0
+    {}, nullptr, "",
+    nullptr, nullptr, 0, FK::NONE, 1, 0},
+  {  // REG_0_3 = 1
+    {{4, 0}}, REG_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // REG_8_11 = 2
+    {{4, 8}}, REG_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // REG_12_15 = 3
+    {{4, 12}}, REG_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // REG_16_19 = 4
+    {{4, 16}}, REG_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // REG_PAIR_12_15 = 5
+    {{4, 12}}, REG_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // DREG_0_3_5 = 6
+    {{1, 5}, {4, 0}}, DREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 16},
+  {  // DREG_12_15_22 = 7
+    {{1, 22}, {4, 12}}, DREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 16},
+  {  // DREG_16_19_7 = 8
+    {{1, 7}, {4, 16}}, DREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 16},
+  {  // SREG_0_3_5 = 9
+    {{4, 0}, {1, 5}}, SREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_12_15_22 = 10
+    {{4, 12}, {1, 22}}, SREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_16_19_7 = 11
+    {{4, 16}, {1, 7}}, SREG_ToStringMap, "",
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SHIFT_MODE_5_6 = 12
+    {{2, 5}}, SHIFT_ToStringMap, "",
+    nullptr, nullptr, 2, FK::LIST, 1, 4},
+  {  // REGLIST_0_15 = 13
+    {{16, 0}}, nullptr, "reglist:",
+    nullptr, nullptr, 16, FK::INT_HEX, 1, 0},
+  {  // REG_RANGE_0_7 = 14
+    {{8, 0}}, nullptr, "regrange:",
+    nullptr, nullptr, 8, FK::INT, 1, 0},
+  {  // REG_RANGE_1_7 = 15
+    {{7, 1}}, nullptr, "regrange:",
+    nullptr, nullptr, 7, FK::INT, 1, 0},
+  {  // PRED_28_31 = 16
+    {{4, 28}}, PRED_ToStringMap, "",
+    nullptr, nullptr, 4, FK::LIST, 1, 16},
+  {  // IMM_0_7_TIMES_4 = 17
+    {{8, 0}}, nullptr, "",
+    nullptr, nullptr, 8, FK::INT, 4, 0},
+  {  // IMM_0_11 = 18
+    {{12, 0}}, nullptr, "",
+    nullptr, nullptr, 12, FK::INT, 1, 0},
+  {  // IMM_0_3_8_11 = 19
+    {{4, 8}, {4, 0}}, nullptr, "",
+    nullptr, nullptr, 8, FK::INT, 1, 0},
+  {  // IMM_7_11 = 20
+    {{5, 7}}, nullptr, "",
+    nullptr, nullptr, 5, FK::INT, 1, 0},
+  {  // IMM_10_11_TIMES_8 = 21
+    {{2, 10}}, nullptr, "",
+    nullptr, nullptr, 2, FK::INT, 8, 0},
+  {  // IMM_0_23 = 22
+    {{24, 0}}, nullptr, "",
+    nullptr, nullptr, 24, FK::INT, 1, 0},
+  {  // IMM_0_7_8_11 = 23
+    {{12, 0}}, nullptr, "",
+    DecodeRotatedImm, EncodeRotatedImm, 12, FK::INT_SIGNED_CUSTOM, 1, 0},
+  {  // IMM_FLT_ZERO = 24
+    {}, nullptr, "",
+    DecodeFloatZero, EncodeFloatZero, 0, FK::FLT_CUSTOM, 1, 0},
+  {  // IMM_0_11_16_19 = 25
+    {{4, 16}, {12, 0}}, nullptr, "",
+    nullptr, nullptr, 16, FK::INT, 1, 0},
+  {  // SIMM_0_23 = 26
+    {{24, 0}}, nullptr, "",
+    nullptr, nullptr, 24, FK::INT_SIGNED, 1, 0},
+};
 
 /* @AUTOGEN-END@ */
 

@@ -315,56 +315,60 @@ class FK(enum.Enum):
     FLT_CUSTOM = 6
 
 
-@dataclasses.dataclass
 class FieldInfo:
-    ranges: List[BIT_RANGE]
-    bitwidth: int
-    kind: FK
-    names: List[str] = dataclasses.field(default_factory=list)
-    prefix: str = ""
-    scale: int = 1
-    decoder: Any = None
-    encoder: Any = None
+
+    def __init__(self, ranges, kind, enum_class=None, scale=1, prefix="", decoder=None, encoder=None):
+        self.ranges: List[BIT_RANGE] = ranges
+        self.bitwidth: int = sum([r[0] for r in ranges])
+        self.kind: FK = kind
+        self.enum_class = enum_class
+        self.names: List[str] = [p.name for p in enum_class] if enum_class else []
+        self.prefix: str = prefix
+        self.scale: int = scale
+        self.decoder = decoder
+        self.encoder = encoder
+        assert scale == 1 or kind in {FK.INT, FK.INT_HEX}
+        assert not prefix or kind in {FK.INT, FK.INT_HEX}
 
 
 FIELD_DETAILS: Dict[OK, FieldInfo] = {
-    OK.Invalid: FieldInfo([], 0, FK.NONE),
-    OK.REG_0_3: FieldInfo([(4, 0)], 4, FK.LIST, names=[p.name for p in REG]),
-    OK.REG_8_11: FieldInfo([(4, 8)], 4, FK.LIST, names=[p.name for p in REG]),
-    OK.REG_12_15: FieldInfo([(4, 12)], 4, FK.LIST, names=[p.name for p in REG]),
-    OK.REG_16_19: FieldInfo([(4, 16)], 4, FK.LIST, names=[p.name for p in REG]),
-    OK.REG_PAIR_12_15: FieldInfo([(4, 12)], 4, FK.LIST, names=[p.name for p in REG]),
+    OK.Invalid: FieldInfo([], FK.NONE),
+    OK.REG_0_3: FieldInfo([(4, 0)], FK.LIST, enum_class=REG),
+    OK.REG_8_11: FieldInfo([(4, 8)], FK.LIST, enum_class=REG),
+    OK.REG_12_15: FieldInfo([(4, 12)], FK.LIST, enum_class=REG),
+    OK.REG_16_19: FieldInfo([(4, 16)], FK.LIST, enum_class=REG),
+    OK.REG_PAIR_12_15: FieldInfo([(4, 12)], FK.LIST, enum_class=REG),
     #
-    OK.DREG_0_3_5: FieldInfo([(1, 5), (4, 0)], 5, FK.LIST, names=[p.name for p in DREG]),
-    OK.DREG_12_15_22: FieldInfo([(1, 22), (4, 12)], 5, FK.LIST, names=[p.name for p in DREG]),
-    OK.DREG_16_19_7: FieldInfo([(1, 7), (4, 16)], 5, FK.LIST, names=[p.name for p in DREG]),
+    OK.DREG_0_3_5: FieldInfo([(1, 5), (4, 0)], FK.LIST, enum_class=DREG),
+    OK.DREG_12_15_22: FieldInfo([(1, 22), (4, 12)], FK.LIST, enum_class=DREG),
+    OK.DREG_16_19_7: FieldInfo([(1, 7), (4, 16)], FK.LIST, enum_class=DREG),
     #
-    OK.SREG_0_3_5: FieldInfo([(4, 0), (1, 5)], 5, FK.LIST, names=[p.name for p in SREG]),
-    OK.SREG_12_15_22: FieldInfo([(4, 12), (1, 22)], 5, FK.LIST, names=[p.name for p in SREG]),
-    OK.SREG_16_19_7: FieldInfo([(4, 16), (1, 7)], 4, FK.LIST, names=[p.name for p in SREG]),
+    OK.SREG_0_3_5: FieldInfo([(4, 0), (1, 5)], FK.LIST, enum_class=SREG),
+    OK.SREG_12_15_22: FieldInfo([(4, 12), (1, 22)], FK.LIST, enum_class=SREG),
+    OK.SREG_16_19_7: FieldInfo([(4, 16), (1, 7)], FK.LIST, enum_class=SREG),
     #
-    OK.SHIFT_MODE_5_6: FieldInfo([(2, 5)], 2, FK.LIST, names= [p.name for p in SHIFT]),
-    OK.PRED_28_31: FieldInfo([(4, 28)], 4, FK.LIST, names= [p.name for p in PRED]),
+    OK.SHIFT_MODE_5_6: FieldInfo([(2, 5)], FK.LIST, enum_class=SHIFT),
+    OK.PRED_28_31: FieldInfo([(4, 28)], FK.LIST, enum_class=PRED),
     #
-    OK.IMM_7_11: FieldInfo([(5, 7)], 5, FK.INT),
-    OK.IMM_0_23: FieldInfo([(24, 0)], 24, FK.INT),
-    OK.IMM_0_11_16_19: FieldInfo([(4, 16), (12, 0)], 16, FK.INT),
-    OK.IMM_0_11: FieldInfo([(12, 0)], 12, FK.INT),
-    OK.IMM_0_3_8_11: FieldInfo([(4, 8), (4, 0)], 8, FK.INT),
+    OK.IMM_7_11: FieldInfo([(5, 7)], FK.INT),
+    OK.IMM_0_23: FieldInfo([(24, 0)], FK.INT),
+    OK.IMM_0_11_16_19: FieldInfo([(4, 16), (12, 0)], FK.INT),
+    OK.IMM_0_11: FieldInfo([(12, 0)], FK.INT),
+    OK.IMM_0_3_8_11: FieldInfo([(4, 8), (4, 0)], FK.INT),
     #
-    OK.SIMM_0_23: FieldInfo([(24, 0)], 24, FK.INT_SIGNED),
-    OK.IMM_FLT_ZERO: FieldInfo([], 0, FK.FLT_CUSTOM,
+    OK.SIMM_0_23: FieldInfo([(24, 0)], FK.INT_SIGNED),
+    OK.IMM_FLT_ZERO: FieldInfo([], FK.FLT_CUSTOM,
                                encoder=EncodeFloatZero, decoder=DecodeFloatZero),
-    OK.IMM_0_7_8_11: FieldInfo([(12, 0)], 12, FK.INT_SIGNED_CUSTOM,
+    OK.IMM_0_7_8_11: FieldInfo([(12, 0)], FK.INT_SIGNED_CUSTOM,
                                encoder=EncodeRotatedImm, decoder=DecodeRotatedImm),
 
-    OK.IMM_10_11_TIMES_8: FieldInfo([(2, 10)], 2, FK.INT, scale=8),
-    OK.IMM_0_7_TIMES_4: FieldInfo([(8, 0)], 8, FK.INT, scale=4),
+    OK.IMM_10_11_TIMES_8: FieldInfo([(2, 10)], FK.INT, scale=8),
+    OK.IMM_0_7_TIMES_4: FieldInfo([(8, 0)], FK.INT, scale=4),
 
     # register set
-    OK.REGLIST_0_15: FieldInfo([(16, 0)], 16, FK.INT_HEX, prefix="reglist:"),
-    OK.REG_RANGE_0_7: FieldInfo([(8, 0)], 8, FK.INT, prefix="regrange:"),
-    OK.REG_RANGE_1_7: FieldInfo([(7, 1)], 7, FK.INT, prefix="regrange:"),
+    OK.REGLIST_0_15: FieldInfo([(16, 0)], FK.INT_HEX, prefix="reglist:"),
+    OK.REG_RANGE_0_7: FieldInfo([(8, 0)], FK.INT, prefix="regrange:"),
+    OK.REG_RANGE_1_7: FieldInfo([(7, 1)], FK.INT, prefix="regrange:"),
 }
 
 for ok in OK:
@@ -1236,6 +1240,7 @@ def hash_djb2(x: str):
 def _EmitCodeH(fout):
     print(f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
     print(f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
+    cgen.RenderEnum(cgen.NameValues(FK), "class FK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(SR_UPDATE), "class SR_UPDATE : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
@@ -1296,15 +1301,14 @@ def _RenderFieldInfoTable():
         assert n == ok.value
         fd = FIELD_DETAILS[ok]
         ranges = ', '.join(["{%d, %d}" % (a, b) for a, b in fd.ranges])
-        names = ""
+        names = f"{fd.enum_class.__name__}_ToStringMap" if fd.enum_class else "nullptr"
         decoder = fd.decoder.__name__ if fd.decoder else 'nullptr'
         encoder = fd.encoder.__name__ if fd.encoder else 'nullptr'
 
         out += ['  {  // %s = %d' % (ok.name, ok.value)]
-        out += ['    {%s}, {%s}, "%s",' % (ranges, names, fd.prefix)]
-        out += ['    %s, %s,' % (decoder, encoder)]
-        out += ['    %d, FK::%s, %d, %d},' %
-                (fd.bitwidth, fd.kind.name, fd.scale, len(fd.names))]
+        out += ['    {%s}, %s, "%s",' % (ranges, names, fd.prefix)]
+        out += ['    %s, %s, %d, FK::%s, %d, %d},' %
+                (decoder, encoder, fd.bitwidth, fd.kind.name, fd.scale, len(fd.names))]
     return out
 
 
@@ -1340,10 +1344,7 @@ def _EmitCodeC(fout):
     print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
     print("};\n", file=fout)
 
-    print("// Indexed by OK", file=fout)
-    print("const FieldInfo FieldInfoTable[] = {", file=fout)
-    print("\n".join(_RenderFieldInfoTable()), file=fout)
-    print("};\n", file=fout)
+
 
     print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
 
@@ -1353,12 +1354,22 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
-    # what about REG/SREG/DREG
+    cgen.RenderEnumToStringMap(cgen.NameValues(REG), "REG", fout)
+    cgen.RenderEnumToStringFun("REG", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(DREG), "DREG", fout)
+    cgen.RenderEnumToStringFun("DREG", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(SREG), "SREG", fout)
+    cgen.RenderEnumToStringFun("SREG", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(PRED), "PRED", fout)
     cgen.RenderEnumToStringFun("PRED", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
     cgen.RenderEnumToStringFun("SHIFT", fout)
 
+    # Note this also uses the string tables from the enums above
+    print("// Indexed by OK", file=fout)
+    print("const FieldInfo FieldInfoTable[] = {", file=fout)
+    print("\n".join(_RenderFieldInfoTable()), file=fout)
+    print("};\n", file=fout)
 
 def _OpcodeDiscriminantExperiments():
     """Some failed experiments for making the disassembler even faster"""

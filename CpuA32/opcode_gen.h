@@ -14,6 +14,16 @@ using namespace cwerg;
 constexpr const unsigned MAX_OPERANDS = 6;
 constexpr const unsigned MAX_BIT_RANGES = 2;
 
+enum class FK : uint8_t {
+    NONE = 0,
+    LIST = 1,
+    INT = 2,
+    INT_HEX = 3,
+    INT_SIGNED = 4,
+    INT_SIGNED_CUSTOM = 5,
+    FLT_CUSTOM = 6,
+};
+
 enum class OK : uint8_t {
     Invalid = 0,
     REG_0_3 = 1,
@@ -636,21 +646,12 @@ struct Field {
   BitRange bit_ranges[MAX_BIT_RANGES];
 };
 
-enum class FK : uint8_t {
-  NONE = 0,
-  LIST = 1,
-  INT = 2,
-  INT_HEX = 3,
-  INT_SIGNED = 4,
-  INT_SIGNED_CUSTOM = 5,
-  FLT_CUSTOM = 6,
-};
 
 typedef uint32_t (*ENC_DEC_FUN)(uint32_t);
 
 struct FieldInfo {
   BitRange ranges[MAX_BIT_RANGES];
-  std::string_view* names;
+  const char* const* names;  // points  PRED_ToStringMap, SHIFT_ToStringMap etc
   std::string_view prefix;
   ENC_DEC_FUN decoder;
   ENC_DEC_FUN encoder;
