@@ -130,48 +130,74 @@ unsigned range_width(std::string_view range) {
   auto start_reg = range_first_reg(range);
   if (start_reg.size() + 2 == range.size()) return 1;
   auto end_reg = range_first_reg(range.substr(1 + start_reg.size()));
-  auto r1 = ParseInt<unsigned >(start_reg.substr(1));
-  auto r2 = ParseInt<unsigned >(end_reg.substr(1));
+  auto r1 = ParseInt<unsigned>(start_reg.substr(1));
+  auto r2 = ParseInt<unsigned>(end_reg.substr(1));
   if (r1 && r2) {
     return 1 + r2.value() - r1.value();
   }
   return 0;
 }
 
+bool MatchRegListMask(std::string_view std_op, std::string_view objdump_op) {
+  if (has_prefix(std_op, "reglist:")) std_op.remove_prefix(8);
+  const uint32_t mask = ParseInt<unsigned>(std_op).value();
+  std::string regs = "{";
+  std::string_view sep;
+  for (unsigned int i = 0; i < 16; ++i) {
+    if (mask & (1 << i)) {
+      regs += sep;
+      regs += EnumToString(a32::REG(i));
+      sep = ", ";
+    }
+  }
+  regs += "}";
+  return regs == objdump_op;
+}
 
 bool OperandsMatch(const a32::Opcode& opcode,
                    std::string_view actual_name,
                    const std::vector<std::string>& objdump_ops,
                    const std::vector<std::string>& std_ops) {
   ASSERT(opcode.num_fields == std_ops.size(), "");
-  std::string empty;
   unsigned j = 0;  // index into objdump_ops
   for (unsigned i = 0; i < opcode.num_fields; ++i) {
     const a32::OK ok = opcode.fields[i];
-    const std::string& std_op = std_ops[i];
-    const std::string& objdump_op =
-        j < objdump_ops.size() ? objdump_ops[j] : empty;
+    std::string_view std_op = std_ops[i];
+    std::string_view objdump_op;
+    if (j < objdump_ops.size()) objdump_op = objdump_ops[j];
+    if (has_prefix(objdump_op, "#")) objdump_op.remove_prefix(1);
+
+    if (has_prefix(objdump_op, "-") && a32::OPC_FLAG::ADDR_DEC & opcode.classes) {
+      ASSERT(ok == a32::OK::REG_0_3 || ok == a32::OK::IMM_0_7_TIMES_4 ||
+             ok == a32::OK::IMM_0_11 || ok == a32::OK::IMM_0_3_8_11 , "");
+      objdump_op.remove_prefix(1);
+    }
+
     if (std_op == objdump_op) {
       ++j;
     } else if (opcode.fields[i] == a32::OK::PRED_28_31 &&
                (std_op == "al" || has_suffix(actual_name, std_op))) {
       // pass
-    } else if (std_op == "#0" &&
+    } else if (std_op == "0" &&
                (ok == a32::OK::IMM_10_11_TIMES_8 ||
                 ok == a32::OK::IMM_0_7_TIMES_4 || ok == a32::OK::IMM_7_11 ||
                 ok == a32::OK::IMM_0_11 || ok == a32::OK::IMM_0_3_8_11)) {
       // pass
-    } else if (std_op == "#0" && objdump_op == "#0.0") {
-      // pass
     } else if (std_op == "lsl" && ok == a32::OK::SHIFT_MODE_5_6) {
       // pass
-    } else if ((a32::OPC_FLAG::MULTIPLE & opcode.classes) &&
-               (a32::OPC_FLAG::VFP & opcode.classes)) {
+    } else if (a32::OPC_FLAG::MULTIPLE & opcode.classes) {
       if (ok == a32::OK::DREG_12_15_22 || ok == a32::OK::SREG_12_15_22) {
         if (range_first_reg(objdump_op) == std_op) continue;
-      } else if (ok == a32::OK::REG_RANGE_0_7 || ok == a32::OK::REG_RANGE_1_7) {
-        auto w = ParseInt<unsigned >(std_op.substr(1));
+      } else if (ok == a32::OK::REG_RANGE_0_7 ||
+                 ok == a32::OK::REG_RANGE_1_7) {
+        if (has_prefix(std_op, "regrange:")) std_op.remove_prefix(9);
+        auto w = ParseInt<unsigned>(std_op);
         if (w.value() == range_width(objdump_op)) {
+          ++j;
+          continue;
+        }
+      } else if (ok == a32::OK::REGLIST_0_15) {
+        if (MatchRegListMask(std_op, objdump_op)) {
           ++j;
           continue;
         }
@@ -212,8 +238,7 @@ int HandleOneInstruction(std::string_view line,
   std::vector<std::string> std_ops;
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
     char buffer[128];
-    RenderOperandStd(buffer, *ins.opcode, ins.operands[i],
-                     ins.opcode->fields[i]);
+    RenderOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
     std_ops.push_back(buffer);
   }
 

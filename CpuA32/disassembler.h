@@ -5,7 +5,6 @@
 
 namespace cwerg::a32 {
 
-extern char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok);
 
 extern char* RenderOperand(char* buffer, int32_t x, OK ok);
 

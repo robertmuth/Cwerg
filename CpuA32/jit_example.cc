@@ -24,7 +24,7 @@ void DumpA32Ins(uint32_t data) {
   std::string_view sep = " ";
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
     char buf[128];
-    RenderOperandStd(buf, *ins.opcode, ins.operands[i], ins.opcode->fields[i]);
+    RenderOperand(buf, ins.operands[i], ins.opcode->fields[i]);
     std::cout << sep << buf;
     sep = ", ";
   }

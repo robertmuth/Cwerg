@@ -32,10 +32,12 @@ def FixupAliases(opcode: a32.Opcode, name: str, ops: List[str]) -> str:
             ops.append("sp")
             return name.replace("pop", "ldmia")
 
+        # ia suffix if no suffix is specified
         start = 1 if name[0] == "v" else 0
         if name[start + 3: start + 5] not in {"ia", "ib", "da", "db"}:
             name = name[:start + 3] + "ia" + name[start + 3:]
         if name.startswith("ldm") or name.startswith("vldm"):
+            # move loadee to end of ops
             loadee = ops.pop(0)
             ops.append(loadee)
         return name
@@ -64,7 +66,10 @@ def _GetWidthFromRange(range) -> int:
     return 1 + int(token[1][1:]) - int(token[0][1:])
 
 
-def _GetRegListFromMask(reg_mask: int) -> str:
+def _GetRegListFromMask(reg_mask_str: str) -> str:
+    if reg_mask_str.startswith("reglist:"):
+        reg_mask_str = reg_mask_str[8:]
+    reg_mask = int(reg_mask_str, 0)
     regs = [a32.REG(x).name for x in range(16) if reg_mask & (1 << x)]
     expr = "{%s}" % (",".join(regs))
     return expr
@@ -105,8 +110,7 @@ def OperandsMatch(opcode: a32.Opcode, objdump_name: str,
                         j += 1
                         continue
             else:
-                assert op.startswith("reglist:")
-                if _GetRegListFromMask(int(op[8:], 0)) == objdump_op:
+                if _GetRegListFromMask(op) == objdump_op:
                     j += 1
                     continue
 

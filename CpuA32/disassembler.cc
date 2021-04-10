@@ -11,12 +11,6 @@
 namespace cwerg {
 namespace a32 {
 
-const char* kArmRegNames[] = {                       //
-    "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",  //
-    "r8", "r9", "sl", "fp", "ip", "sp", "lr", "pc"};
-
-const constexpr std::string_view kNumZero("#0");
-
 // TODO: stop using printf and realted cruft from <cstring>
 
 char* strappend(char* dst, const char* src) {
@@ -86,66 +80,6 @@ char* RenderOperand(char* buffer, int32_t x, OK ok) {
       buffer = strappend(buffer, fi.prefix);
       buffer = strappend(buffer, "0x");
       return strappendhex(buffer, x);
-  }
-}
-
-// render a single operand, e.g. and address like  `[r3, #-116]`
-// Used to sanity check against objdump output
-char* RenderOperandStd(char* buffer, const Opcode& opcode, int32_t x, OK ok) {
-  switch (ok) {
-    case OK::REG_0_3:
-      if (opcode.classes & OPC_FLAG::ADDR_DEC) *buffer++ = '-';
-      // FALL-THROUGH
-    case OK::REG_12_15:
-    case OK::REG_16_19:
-    case OK::REG_8_11:
-    case OK::REG_PAIR_12_15:
-    case OK::DREG_0_3_5:
-    case OK::DREG_12_15_22:
-    case OK::DREG_16_19_7:
-    case OK::SREG_0_3_5:
-    case OK::SREG_12_15_22:
-    case OK::SREG_16_19_7:
-    //
-    case OK::PRED_28_31:
-    case OK::SHIFT_MODE_5_6:
-      return RenderOperand(buffer, x, ok);
-    case OK::IMM_0_7_TIMES_4:
-    case OK::IMM_0_11:
-    case OK::IMM_0_3_8_11:
-      *buffer++ = '#';
-      if (opcode.classes & OPC_FLAG::ADDR_DEC) {
-        *buffer++ = '-';
-      }
-      return strappenddec(buffer, x);
-    case OK::IMM_0_11_16_19:
-    case OK::IMM_0_7_8_11:
-    case OK::IMM_10_11_TIMES_8:
-    case OK::IMM_7_11:
-    case OK::IMM_0_23:
-    case OK::IMM_FLT_ZERO:
-    case OK::SIMM_0_23:
-    case OK::REG_RANGE_0_7:
-    case OK::REG_RANGE_1_7:
-      *buffer++ = '#';
-      return strappenddec(buffer, x);
-    case OK::REGLIST_0_15: {
-      const char* sep = "";
-      buffer = strappend(buffer, "{");
-      for (int i = 0; i < 16; ++i) {
-        if (x & (1 << i)) {
-          buffer = strappend(buffer, sep);
-          buffer = strappend(buffer, kArmRegNames[i]);
-          sep = ", ";
-        }
-      }
-      buffer = strappend(buffer, "}");
-    }
-      return buffer;
-    case OK::Invalid:
-    default:
-      ASSERT(false, "Invalid");
-      return buffer;
   }
 }
 

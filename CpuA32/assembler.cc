@@ -248,7 +248,7 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-std::optional<uint32_t> UnsymbolizeOperand(std::string_view s) {
+std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
   size_t colon_pos = s.find(':');
   if (colon_pos == std::string_view::npos) {
     auto it = operand_symbols.find(s);
@@ -319,7 +319,7 @@ bool InsParse(const std::vector<std::string_view>& token, Ins* ins) {
         return false;
       }
     } else {
-      auto val = UnsymbolizeOperand(token[i]);
+      auto val = UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
       if (!val.has_value()) return false;
       ins->operands[operand_count] = val.value();
     }
