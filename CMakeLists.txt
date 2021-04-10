@@ -68,8 +68,8 @@ add_executable(mem_pool_test.exe
         )
 
 add_library(CPUA32_LIB OBJECT
-        CpuA32/disassembler.cc
-        CpuA32/disassembler.h
+        CpuA32/symbolic.cc
+        CpuA32/symbolic.h
         CpuA32/assembler.cc
         CpuA32/assembler.h
         CpuA32/opcode_gen.cc
@@ -77,8 +77,8 @@ add_library(CPUA32_LIB OBJECT
         )
 
 add_library(CPUA32_LITE_LIB OBJECT
-        CpuA32/disassembler.cc
-        CpuA32/disassembler.h
+        CpuA32/symbolic.cc
+        CpuA32/symbolic.h
         CpuA32/opcode_gen.cc
         CpuA32/opcode_gen.h
         )

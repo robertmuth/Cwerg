@@ -5,8 +5,8 @@
     found in `arm_test.dis`
 */
 
-#include "CpuA32/disassembler.h"
 #include "CpuA32/opcode_gen.h"
+#include "CpuA32/symbolic.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
 
