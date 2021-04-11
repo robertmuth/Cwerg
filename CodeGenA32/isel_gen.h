@@ -98,6 +98,14 @@ const constexpr uint8_t MATCH_IMPOSSIBLE = 255;
 
 extern uint8_t FindtImmediateMismatchesInBestMatchPattern(base::Ins ins);
 
+extern a32::Ins MakeIns(a32::OPC opc_enum,
+                 uint32_t x0 = 0,
+                 uint32_t x1 = 0,
+                 uint32_t x2 = 0,
+                 uint32_t x3 = 0,
+                 uint32_t x4 = 0,
+                 uint32_t x5 = 0);
+
 extern a32::Ins MakeInsFromTmpl(const InsTmpl& tmpl,
                  base::Ins ins,
                  const EmitContext& ctx);

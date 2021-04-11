@@ -600,17 +600,14 @@ extern const Opcode* FindOpcode(uint32_t bit_value);
 
 extern const Opcode* FindOpcodeForMnemonic(std::string_view s);
 
-// Returns non-zero if successful
-extern int32_t InsertOperand(uint32_t data, OK field_kind);
 
 // Decoded representation of the instruction word
 struct Ins {
   const Opcode* opcode;
-  // number of used entries is ArmOpcode.num_fields
-  // branch offset, but this is not ideal since immediates
-  // for add/sub/and etc can produce unsigned immediates with
-  // high order bit set.
-  int32_t operands[MAX_OPERANDS];
+  // Number of used entries is ArmOpcode.num_fields.
+  // None of the values can be  kEncodeFailure since the widest operand
+  // is 24 bits.
+  uint32_t operands[MAX_OPERANDS];
   // Relocation info
   std::string_view reloc_symbol;
   elf::RELOC_TYPE_ARM reloc_kind = elf::RELOC_TYPE_ARM::NONE;
@@ -673,8 +670,12 @@ const uint32_t kEncodeFailure = 0xffffffff;
 // Otherwise, kEncodingFailure is returned.
 extern uint32_t EncodeRotatedImm(uint32_t immediate);
 
-extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
+// Note, this returns the unsigned equivalent of the signed quantity
+extern uint32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
 
+
+extern uint32_t EncodeOperand(uint32_t data, OK ok);
+extern uint32_t DecodeOperand(uint32_t data, OK ok);
 
 
 template <typename Flag>

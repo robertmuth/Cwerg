@@ -16,17 +16,17 @@ char* strappend(char* dst, const char* src) {
   return dst + strlen(dst);
 }
 
-char* strappenddec(char* dst, int64_t n) {
-  if (n >= 0) {
+char* strappenddec(char* dst, uint32_t n) {
+  if (n <= 0x7fffffff) {
     ToDecString(n, dst);
   } else {
     *dst++ = '-';
-    ToDecString(-n, dst);
+    ToDecString(~n + 1, dst);
   }
   return dst + strlen(dst);
 }
 
-char* strappendhex(char* dst, int64_t n) {
+char* strappendhex(char* dst, uint32_t n) {
   ToHexString(n, dst);
   return dst + strlen(dst);
 }
@@ -37,8 +37,9 @@ char* strappend(char* dst, std::string_view src) {
   return dst + src.size();
 }
 
-char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
+char* SymbolizeOperand(char* buffer, uint32_t data, OK ok) {
   const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  const uint32_t x = a32::DecodeOperand(data, ok);
   switch (fi.kind) {
     default:
     case FK::NONE:
@@ -50,7 +51,7 @@ char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
       ASSERT(x == 0, "");
       return strappend(buffer, "0.0");
     case FK::LIST:
-      ASSERT(x < fi.num_names, "");
+      ASSERT(x < fi.num_names, "out of range for list " << x << " " << (int)ok);
       return strappend(buffer, fi.names[x]);
     case FK::INT_SIGNED:
       return strappenddec(buffer, x);
@@ -68,7 +69,36 @@ bool has_prefix(std::string_view name, std::string_view prefix) {
   return name.substr(0, prefix.size()) == prefix;
 }
 
-std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
+uint32_t UnsymbolizeOperandString(const FieldInfo& fi,  std::string_view s) {
+  switch (fi.kind) {
+    default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return kEncodeFailure;
+    case FK::INT_SIGNED:
+    case FK::INT_SIGNED_CUSTOM: {
+      auto val = ParseInt<int32_t>(s);
+      if (!val) return kEncodeFailure;
+      return val.value();
+    }
+    case FK::FLT_CUSTOM:
+      if (s != "0.0" && s != ".0" && s != "0") return kEncodeFailure;
+      return 0; // this is really the bit representation of float(0.0)
+    case FK::LIST:
+      for (unsigned i = 0; i < fi.num_names; ++i) {
+        if (s == fi.names[i]) return i;
+      }
+      return kEncodeFailure;
+    case FK::INT:
+    case FK::INT_HEX: {
+      auto val = ParseInt<uint32_t>(s);
+      if (!val) return  kEncodeFailure;
+      return val.value();
+    }
+  }
+}
+
+uint32_t UnsymbolizeOperand(OK ok, std::string_view s) {
   const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
   if (!fi.prefix.empty() && has_prefix(s, fi.prefix)) {
     s.remove_prefix(fi.prefix.size());
@@ -79,26 +109,7 @@ std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
   else if (s == "r12")
     s = "ip";
 
-  switch (fi.kind) {
-    default:
-    case FK::NONE:
-      ASSERT(false, "unreachable");
-      return std::nullopt;
-    case FK::INT_SIGNED:
-    case FK::INT_SIGNED_CUSTOM:
-      return ParseInt<int32_t>(s);
-    case FK::FLT_CUSTOM:
-      if (s != "0.0" && s != ".0" && s != "0") return std::nullopt;
-      return 0;
-    case FK::LIST:
-      for (unsigned i = 0; i < fi.num_names; ++i) {
-        if (s == fi.names[i]) return i;
-      }
-      return std::nullopt;
-    case FK::INT:
-    case FK::INT_HEX:
-      return ParseInt<uint32_t>(s);
-  }
+  return a32::EncodeOperand(UnsymbolizeOperandString(fi, s), ok);
 }
 
 bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
@@ -205,13 +216,13 @@ bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
         return false;
       }
     } else {
-      auto val =
-          UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
-      if (!val.has_value()) {
-        std::cerr << "cannot parse " << token[i] << "\n";
+      const OK ok = ins->opcode->fields[operand_count];
+      auto val = UnsymbolizeOperand(ok , token[i]);
+      if (val == kEncodeFailure) {
+        std::cerr << "cannot parse " << token[i] << " " << "\n";
         return false;
       }
-      ins->operands[operand_count] = val.value();
+      ins->operands[operand_count] = val;
     }
   }
   return true;

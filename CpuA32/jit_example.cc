@@ -31,33 +31,36 @@ void DumpA32Ins(uint32_t data) {
   std::cout << "\n";
 }
 
-
+// encode a OK.SIMM_0_23
+constexpr uint32_t encode_branch_offset(int32_t offset) {
+  return offset & 0xffffff;
+}
 
 int main(int argc, char* argv[]) {
   const Ins Fibonacci[] = {
       //
       {&OpcodeTable[+OPC::stmdb_update], {+PRED::al, +REG::sp, 0x4030}},
       {&OpcodeTable[+OPC::cmp_imm], {+PRED::al, +REG::r0, 1}},
-      {&OpcodeTable[+OPC::b], {+PRED::le, 7}},
+      {&OpcodeTable[+OPC::b], {+PRED::le, encode_branch_offset(7)}},
       //
       {&OpcodeTable[+OPC::mov_imm], {+PRED::al, +REG::r4, 0}},
       {&OpcodeTable[+OPC::mov_regimm],
-                                         {+PRED::al, +REG::r5, +REG::r0, +SHIFT::lsl, 0}},
+       {+PRED::al, +REG::r5, +REG::r0, +SHIFT::lsl, 0}},
       //
       {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 1}},
-      {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, -8}},
+      {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, encode_branch_offset(-8)}},
       {&OpcodeTable[+OPC::add_regimm],
-                                         {+PRED::al, +REG::r4, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
+       {+PRED::al, +REG::r4, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
       //
       {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 2}},
-      {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, -11}},
+      {&OpcodeTable[+OPC::bl],
+       {+PRED::al, +REG::lr, encode_branch_offset(-11)}},
       {&OpcodeTable[+OPC::add_regimm],
-                                         {+PRED::al, +REG::r0, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
+       {+PRED::al, +REG::r0, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
       //
       {&OpcodeTable[+OPC::ldmia_update], {+PRED::al, 0x8030, +REG::sp}}
 
   };
-
 
   uint32_t* memory =
       (uint32_t*)mmap(nullptr, 4096, PROT_READ | PROT_WRITE | PROT_EXEC,

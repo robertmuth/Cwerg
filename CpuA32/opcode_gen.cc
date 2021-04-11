@@ -2707,8 +2707,7 @@ bool Disassemble(Ins* ins, uint32_t data) {
 
   ins->opcode = opcode;
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
-    ins->operands[i] = DecodeOperand(ExtractOperand(data, opcode->fields[i]),
-                                     opcode->fields[i]);
+    ins->operands[i] = ExtractOperand(data, opcode->fields[i]);
   }
   return true;
 }
@@ -2720,8 +2719,7 @@ uint32_t Assemble(const Ins& ins) {
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
     const OK ok = ins.opcode->fields[i];
     ASSERT(ok != OK::Invalid, "");
-    uint32_t x = EncodeOperand(ins.operands[i], ok);
-    InsertOperand(x, ok, &value, &mask);
+    InsertOperand(ins.operands[i], ok, &value, &mask);
   }
   ASSERT(mask == 0xffffffff, "problems encoding " << opcode->name);
   return value;
@@ -2751,7 +2749,7 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   return nullptr;
 }
 
-int32_t SignedIntFromBits(uint32_t data, unsigned n_bits) {
+uint32_t SignedIntFromBits(uint32_t data, unsigned n_bits) {
   uint32_t mask = (1 << n_bits) - 1;
   data &= mask;
   bool is_neg = data & (1 << (n_bits - 1));

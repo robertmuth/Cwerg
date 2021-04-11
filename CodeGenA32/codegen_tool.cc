@@ -251,6 +251,7 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
+  // normal is handled by this as well
   EmitUnitAsText(unit, fout);
 
   // If we spawned a webserver break before exiting so we can expect the  code.

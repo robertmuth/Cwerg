@@ -77,9 +77,9 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
   for (unsigned i = 0; i < num_ops; ++i) {
     const Handle h = InsOperand(ins, i);
     if (h.kind() == RefKind::REG) {
-      reg_matcher |= uint64_t (RegKind(Reg(h))) << 8 * i;
+      reg_matcher |= uint64_t(RegKind(Reg(h))) << 8 * i;
     } else if (h.kind() == RefKind::CONST) {
-      reg_matcher |= uint64_t (ConstKind(Const(h))) << 8 * i;
+      reg_matcher |= uint64_t(ConstKind(Const(h))) << 8 * i;
     }
   }
   return reg_matcher;
@@ -2884,13 +2884,9 @@ int32_t ExtractNum(Const num) {
   }
 }
 
-int32_t ExtractNumNeg(Const num) {
-  return -ExtractNum(num);
-}
+int32_t ExtractNumNeg(Const num) { return -ExtractNum(num); }
 
-int32_t ExtractNumNot(Const num) {
-  return ~ExtractNum(num);
-}
+int32_t ExtractNumNot(Const num) { return ~ExtractNum(num); }
 
 int32_t GetStackOffset(Handle stk, Handle num) {
   ASSERT(stk.kind() == RefKind::STK, "");
@@ -3029,15 +3025,35 @@ void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
 
 }  // namespace
 
+// number of args == MAX_OPERANDS
+a32::Ins MakeIns(a32::OPC opc_enum,
+                 uint32_t x0,
+                 uint32_t x1,
+                 uint32_t x2,
+                 uint32_t x3,
+                 uint32_t x4,
+                 uint32_t x5) {
+  const a32::Opcode* opc = &a32::OpcodeTable[+opc_enum];
+  if (opc->num_fields > 0) x0 = EncodeOperand(x0, opc->fields[0]);
+  if (opc->num_fields > 1) x1 = EncodeOperand(x1, opc->fields[1]);
+  if (opc->num_fields > 2) x2 = EncodeOperand(x2, opc->fields[2]);
+  if (opc->num_fields > 3) x3 = EncodeOperand(x3, opc->fields[3]);
+  if (opc->num_fields > 4) x4 = EncodeOperand(x4, opc->fields[4]);
+  if (opc->num_fields > 5) x5 = EncodeOperand(x5, opc->fields[5]);
+  return a32::Ins{opc, {x0, x1, x2, x3, x4, x5}};
+}
 a32::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a32::Ins out;
   out.opcode = &a32::OpcodeTable[unsigned(tmpl.opcode)];
   for (unsigned o = 0; o < a32::MAX_OPERANDS; ++o) {
     if ((tmpl.template_mask & (1 << o)) == 0) {
+      // fixed operand - we uses these verbatim
       out.operands[o] = tmpl.operands[o];
     } else {
+      // parameters require extra processing
       auto param = PARAM(tmpl.operands[o]);
-      out.operands[o] = ExtractParamOp(ins, param, ctx);
+      out.operands[o] = a32::EncodeOperand(ExtractParamOp(ins, param, ctx),
+                                           out.opcode->fields[o]);
       // Note: this may overwrite    out.operands[o]
       MaybeHandleReloc(&out, o, ins, param);
     }

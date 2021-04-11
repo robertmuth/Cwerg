@@ -1,4 +1,5 @@
 #include "CodeGenA32/regs.h"
+#include "CodeGenA32/isel_gen.h"
 #include "Base/reg_alloc.h"
 #include "Base/serialize.h"
 #include "Util/parse.h"
@@ -480,16 +481,6 @@ template <typename T>
 constexpr auto operator+(T e) noexcept
     -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
-}
-
-a32::Ins MakeIns(a32::OPC opc,
-                 int32_t x0 = 0,
-                 int32_t x1 = 0,
-                 int32_t x2 = 0,
-                 int32_t x3 = 0,
-                 int32_t x4 = 0,
-                 int32_t x5 = 0) {
-  return {&a32::OpcodeTable[unsigned(opc)], {x0, x1, x2, x3, x4, x5}};
 }
 
 void EmitFunProlog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
