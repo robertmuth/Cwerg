@@ -86,7 +86,7 @@ std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
       return std::nullopt;
     case FK::INT_SIGNED:
     case FK::INT_SIGNED_CUSTOM:
-      return ParseInt<uint32_t>(s);
+      return ParseInt<int32_t>(s);
     case FK::FLT_CUSTOM:
       if (s != "0.0" && s != ".0" && s != "0") return std::nullopt;
       return 0;

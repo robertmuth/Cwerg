@@ -227,6 +227,11 @@ int HandleOneInstruction(std::string_view line,
 
   std::vector<std::string> std_ops;
   InsSymbolize(ins, &std_ops);
+  std::vector<std::string_view> std_ops_view;
+  std_ops_view.emplace_back(ins.opcode->enum_name);
+  for (const std::string& op : std_ops)  std_ops_view.emplace_back(op);
+  a32::Ins ins2;
+  a32::InsFromSymbolized(std_ops_view, &ins2);
 
   if (!OperandsMatch(*ins.opcode, actual_name, actual_ops, std_ops)) {
     std::cout << "operand mismatch: std:[";

@@ -132,6 +132,7 @@ def InsFromSymbolized(mnemonic, token: List[str]) -> a32.Ins:
      "add_regimm", ["r4", "r4", "r0", "lsl", "0"]
      """
     opcode: a32.Opcode = a32.Opcode.name_to_opcode[mnemonic]
+    # Maybe get rid of this special case?
     if opcode.HasPred() and len(token) == len(opcode.fields) - 1:
         token = ["al"] + token
     ins = a32.Ins(opcode)

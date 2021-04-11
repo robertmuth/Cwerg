@@ -4192,7 +4192,7 @@
     movw al r0 expr:movw_abs_nc:nj:4
     movt al r0 expr:movt_abs:nj:4
     str_imm_add al r0 0 r6
-    bic_imm al r0 r7 2147483648
+    bic_imm al r0 r7 -2147483648
     movw al r1 expr:movw_abs_nc:nj:8
     movt al r1 expr:movt_abs:nj:8
     str_imm_add al r1 0 r0
