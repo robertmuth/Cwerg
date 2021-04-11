@@ -26,8 +26,7 @@ int main(int argc, char* argv[]) {
       std::cout << argv[i] << " " << ins.opcode->enum_name;
       std::string_view sep = " ";
       for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-        RenderOperand(buffer, ins.operands[i],
-                         ins.opcode->fields[i]);
+        SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
         std::cout << sep << buffer;
         sep = ", ";
       }
@@ -59,8 +58,7 @@ int main(int argc, char* argv[]) {
             std::cout << ins.opcode->enum_name;
             std::string_view sep = " ";
             for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-              RenderOperand(buffer, ins.operands[i],
-                               ins.opcode->fields[i]);
+              SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
               std::cout << sep << buffer;
               sep = ", ";
             }

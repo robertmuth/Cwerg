@@ -4,8 +4,8 @@
 #include "Util/assert.h"
 #include "Util/parse.h"
 
-#include <stdio.h>
 #include <cstring>
+#include <map>
 #include <string_view>
 
 namespace cwerg {
@@ -39,24 +39,9 @@ char* strappend(char* dst, std::string_view src) {
   return dst + src.size();
 }
 
-int RenderMultipleVFP(const char* reg_prefix,
-                      int32_t start_reg,
-                      int32_t count,
-                      char* buffer) {
-  ASSERT(count > 0, "");
-  if (count == 1) {
-    buffer = strappend(buffer, "{");
-    buffer = strappend(buffer, reg_prefix);
-    buffer = strappenddec(buffer, start_reg);
-    buffer = strappend(buffer, "}");
-  } else {
-    sprintf(buffer, "{%s%d-%s%d}", reg_prefix, start_reg, reg_prefix,
-            start_reg + count - 1);
-  }
-  return 1;
-}
 
-char* RenderOperand(char* buffer, int32_t x, OK ok) {
+
+char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
   const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
   switch (fi.kind) {
     default:
@@ -82,7 +67,6 @@ char* RenderOperand(char* buffer, int32_t x, OK ok) {
       return strappendhex(buffer, x);
   }
 }
-
 
 // Render the given instruction using a systematic notation into `buffer`
 void RenderInsSystematic(const Ins& ins, char buffer[512]) {
@@ -122,10 +106,91 @@ void RenderInsSystematic(const Ins& ins, char buffer[512]) {
         buffer = strappenddec(buffer, ins.operands[i]);
       }
     } else {
-      buffer = RenderOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
+      buffer = SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
     }
     sep = " ";
   }
+}
+
+// clang-format off
+// @formatter:off
+std::map<std::string_view, uint32_t> operand_symbols = {
+    {"eq", 0}, {"ne", 1}, {"cs", 2}, {"cc", 3},
+    {"mi", 4}, {"pl", 5}, {"vs", 6}, {"vc", 7},
+    {"hi", 8},   {"ls", 9}, {"ge", 10}, {"lt", 11},
+    {"gt", 12}, {"le", 13},  {"al", 14},
+     //
+    {"r0", 0},  {"r1", 1}, {"r2", 2}, {"r3", 3},
+    {"r4", 4}, {"r5", 5}, {"r6", 6}, {"r7", 7},
+    {"r8", 8}, {"r9", 9}, {"r10", 10}, {"r11", 11},
+    {"r12", 12}, {"r13", 13}, {"r14", 14}, {"r15", 15},
+    //
+    {"sl", 10}, {"fp", 11},
+    {"ip", 12}, {"sp", 13}, {"lr", 14}, {"pc", 15},
+    //
+    {"s0", 0}, {"s1", 1}, {"s2", 2}, {"s3", 3},
+    {"s4", 4}, {"s5", 5}, {"s6", 6}, {"s7", 7},
+    {"s8", 8}, {"s9", 9}, {"s10", 10}, {"s11", 11},
+    {"s12", 12}, {"s13", 13}, {"s14", 14}, {"s15", 15},
+    //
+    {"s16", 16}, {"s17", 17}, {"s18", 18}, {"s19", 19},
+    {"s20", 20}, {"s21", 21}, {"s22", 22}, {"s23", 23},
+    {"s24", 24}, {"s25", 25}, {"s26", 26}, {"s27", 27},
+    {"s28", 28}, {"s29", 29}, {"s30", 30}, {"s31", 31},
+    //
+    {"d0", 0}, {"d1", 1}, {"d2", 2}, {"d3", 3},
+    {"d4", 4}, {"d5", 5}, {"d6", 6}, {"d7", 7},
+    {"d8", 8}, {"d9", 9}, {"d10", 10}, {"d11", 11},
+    {"d12", 12}, {"d13", 13}, {"d14", 14}, {"d15", 15},
+    //
+    {"lsl",  0}, {"lsr", 1}, {"asr", 2}, {"ror_rrx", 3},
+};
+// @formatter:on
+// clang-format on
+
+std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
+  size_t colon_pos = s.find(':');
+  if (colon_pos == std::string_view::npos) {
+    auto it = operand_symbols.find(s);
+    if (it != operand_symbols.end()) {
+      return it->second;
+    }
+    return ParseInt<uint32_t>(s);
+  }
+  std::string_view num({s.data() + colon_pos + 1, s.size() - colon_pos - 1});
+  return ParseInt<uint32_t>(num);
+}
+
+std::string SymbolizeRegListMask(uint32_t mask) {
+  std::string regs = "{";
+  std::string_view sep;
+  for (unsigned int i = 0; i < 16; ++i) {
+    if (mask & (1 << i)) {
+      regs += sep;
+      regs += EnumToString(a32::REG(i));
+      sep = ", ";
+    }
+  }
+  regs += "}";
+  return regs;
+}
+
+std::string SymbolizeRegRange(uint32_t start_reg_no,
+                              uint32_t count,
+                              bool single) {
+  ASSERT(count > 0, "");
+  std::string_view start_reg = single ? EnumToString(a32::SREG(start_reg_no))
+                                      : EnumToString(a32::DREG(start_reg_no));
+  std::string out = "{";
+  out += start_reg;
+  if (count > 1) {
+    uint32_t end_reg_no = start_reg_no + count - 1;
+    std::string_view end_reg = single ? EnumToString(a32::SREG(end_reg_no))
+                                      : EnumToString(a32::DREG(end_reg_no));
+    out += "-";
+    out += end_reg;
+  }
+  return out + "}";
 }
 
 }  // namespace a32

@@ -138,20 +138,10 @@ unsigned range_width(std::string_view range) {
   return 0;
 }
 
-bool MatchRegListMask(std::string_view std_op, std::string_view objdump_op) {
+std::string reg_list(std::string_view std_op) {
   if (has_prefix(std_op, "reglist:")) std_op.remove_prefix(8);
   const uint32_t mask = ParseInt<unsigned>(std_op).value();
-  std::string regs = "{";
-  std::string_view sep;
-  for (unsigned int i = 0; i < 16; ++i) {
-    if (mask & (1 << i)) {
-      regs += sep;
-      regs += EnumToString(a32::REG(i));
-      sep = ", ";
-    }
-  }
-  regs += "}";
-  return regs == objdump_op;
+  return a32::SymbolizeRegListMask(mask);
 }
 
 bool OperandsMatch(const a32::Opcode& opcode,
@@ -197,7 +187,7 @@ bool OperandsMatch(const a32::Opcode& opcode,
           continue;
         }
       } else if (ok == a32::OK::REGLIST_0_15) {
-        if (MatchRegListMask(std_op, objdump_op)) {
+        if (reg_list(std_op) == objdump_op) {
           ++j;
           continue;
         }
@@ -238,7 +228,7 @@ int HandleOneInstruction(std::string_view line,
   std::vector<std::string> std_ops;
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
     char buffer[128];
-    RenderOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
+    SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
     std_ops.push_back(buffer);
   }
 
