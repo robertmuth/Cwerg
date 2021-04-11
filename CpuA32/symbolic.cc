@@ -3,6 +3,7 @@
 #include "CpuA32/symbolic.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
+#include "Elf/elfhelper.h"
 
 #include <cstring>
 #include <map>
@@ -145,6 +146,77 @@ std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
     case FK::INT_HEX:
       return ParseInt<uint32_t>(s);
   }
+}
+
+
+
+bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
+  ins->reloc_pos = pos;
+  const size_t colon_sym = expr.find(':');
+  if (colon_sym == std::string_view::npos) return false;
+  const std::string_view kind_name = expr.substr(0, colon_sym);
+  elf::RELOC_TYPE_ARM rel_type;
+  if (kind_name == "abs32") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::ABS32;
+  } else if (kind_name == "jump24") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
+    ins->is_local_sym = true;
+  } else if (kind_name == "call") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::CALL;
+  } else if (kind_name == "movw_abs_nc") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+  } else if (kind_name == "movt_abs") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+  } else if (kind_name == "loc_movw_abs_nc") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+    ins->is_local_sym = true;
+  } else if (kind_name == "loc_movt_abs") {
+    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+    ins->is_local_sym = true;
+  } else {
+    return false;
+  }
+  //
+  std::string_view rest = expr.substr(colon_sym + 1);
+  const size_t colon_addend = rest.find(':');
+  ins->reloc_symbol = rest.substr(0, colon_addend);
+
+  ins->operands[pos] = 0;
+  if (colon_addend != std::string_view::npos) {
+    auto val = ParseInt<int32_t>(rest.substr(colon_addend + 1));
+    if (!val.has_value()) return false;
+    ins->operands[pos] = val.value();
+  }
+  return true;
+}
+
+bool InsParse(const std::vector<std::string_view>& token, Ins* ins) {
+  ins->opcode = FindOpcodeForMnemonic(token[0]);
+  if (ins->opcode == nullptr) {
+    std::cerr << "unknown opcode " << token[0] << "\n";
+    return false;
+  }
+  uint32_t operand_count = 0;
+  if (token.size() == ins->opcode->num_fields) {
+    ins->operands[operand_count++] = 14;  // predicate 'al'
+  }
+  ASSERT(token.size() - 1 + operand_count == ins->opcode->num_fields, "");
+  for (unsigned i = 1; i < token.size(); ++i, ++operand_count) {
+    if (token[i].substr(0, 5) == "expr:") {
+      if (!HandleRelocation(token[i].substr(5), operand_count, ins)) {
+        std::cerr << "malformed relocation expression " << token[i] << "\n";
+        return false;
+      }
+    } else {
+      auto val = UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
+      if (!val.has_value()) {
+        std::cerr << "cannot parse " << token[i] << "\n";
+        return false;
+      }
+      ins->operands[operand_count] = val.value();
+    }
+  }
+  return true;
 }
 
 std::string SymbolizeRegListMask(uint32_t mask) {
