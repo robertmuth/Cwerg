@@ -276,7 +276,10 @@ bool InsParse(const std::vector<std::string_view>& token, Ins* ins) {
       }
     } else {
       auto val = UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
-      if (!val.has_value()) return false;
+      if (!val.has_value()) {
+        std::cerr << "cannot parse " << token[i] << "\n";
+        return false;
+      }
       ins->operands[operand_count] = val.value();
     }
   }

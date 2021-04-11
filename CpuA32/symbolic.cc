@@ -39,8 +39,6 @@ char* strappend(char* dst, std::string_view src) {
   return dst + src.size();
 }
 
-
-
 char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
   const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
   switch (fi.kind) {
@@ -112,53 +110,41 @@ void RenderInsSystematic(const Ins& ins, char buffer[512]) {
   }
 }
 
-// clang-format off
-// @formatter:off
-std::map<std::string_view, uint32_t> operand_symbols = {
-    {"eq", 0}, {"ne", 1}, {"cs", 2}, {"cc", 3},
-    {"mi", 4}, {"pl", 5}, {"vs", 6}, {"vc", 7},
-    {"hi", 8},   {"ls", 9}, {"ge", 10}, {"lt", 11},
-    {"gt", 12}, {"le", 13},  {"al", 14},
-     //
-    {"r0", 0},  {"r1", 1}, {"r2", 2}, {"r3", 3},
-    {"r4", 4}, {"r5", 5}, {"r6", 6}, {"r7", 7},
-    {"r8", 8}, {"r9", 9}, {"r10", 10}, {"r11", 11},
-    {"r12", 12}, {"r13", 13}, {"r14", 14}, {"r15", 15},
-    //
-    {"sl", 10}, {"fp", 11},
-    {"ip", 12}, {"sp", 13}, {"lr", 14}, {"pc", 15},
-    //
-    {"s0", 0}, {"s1", 1}, {"s2", 2}, {"s3", 3},
-    {"s4", 4}, {"s5", 5}, {"s6", 6}, {"s7", 7},
-    {"s8", 8}, {"s9", 9}, {"s10", 10}, {"s11", 11},
-    {"s12", 12}, {"s13", 13}, {"s14", 14}, {"s15", 15},
-    //
-    {"s16", 16}, {"s17", 17}, {"s18", 18}, {"s19", 19},
-    {"s20", 20}, {"s21", 21}, {"s22", 22}, {"s23", 23},
-    {"s24", 24}, {"s25", 25}, {"s26", 26}, {"s27", 27},
-    {"s28", 28}, {"s29", 29}, {"s30", 30}, {"s31", 31},
-    //
-    {"d0", 0}, {"d1", 1}, {"d2", 2}, {"d3", 3},
-    {"d4", 4}, {"d5", 5}, {"d6", 6}, {"d7", 7},
-    {"d8", 8}, {"d9", 9}, {"d10", 10}, {"d11", 11},
-    {"d12", 12}, {"d13", 13}, {"d14", 14}, {"d15", 15},
-    //
-    {"lsl",  0}, {"lsr", 1}, {"asr", 2}, {"ror_rrx", 3},
-};
-// @formatter:on
-// clang-format on
+bool has_prefix(std::string_view name, std::string_view prefix) {
+  return name.substr(0, prefix.size()) == prefix;
+}
 
 std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
-  size_t colon_pos = s.find(':');
-  if (colon_pos == std::string_view::npos) {
-    auto it = operand_symbols.find(s);
-    if (it != operand_symbols.end()) {
-      return it->second;
-    }
-    return ParseInt<uint32_t>(s);
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  if (!fi.prefix.empty() && has_prefix(s, fi.prefix)) {
+    s.remove_prefix(fi.prefix.size());
+  } else if (s == "r10")
+    s = "sl";
+  else if (s == "r11")
+    s = "fp";
+  else if (s == "r12")
+    s = "ip";
+
+  switch (fi.kind) {
+    default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return std::nullopt;
+    case FK::INT_SIGNED:
+    case FK::INT_SIGNED_CUSTOM:
+      return ParseInt<uint32_t>(s);
+    case FK::FLT_CUSTOM:
+      if (s != "0.0" && s != ".0" && s != "0") return std::nullopt;
+      return 0;
+    case FK::LIST:
+      for (unsigned i = 0; i < fi.num_names; ++i) {
+        if (s == fi.names[i]) return i;
+      }
+      return std::nullopt;
+    case FK::INT:
+    case FK::INT_HEX:
+      return ParseInt<uint32_t>(s);
   }
-  std::string_view num({s.data() + colon_pos + 1, s.size() - colon_pos - 1});
-  return ParseInt<uint32_t>(num);
 }
 
 std::string SymbolizeRegListMask(uint32_t mask) {
