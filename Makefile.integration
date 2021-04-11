@@ -9,7 +9,8 @@ STDLIB_DIR=${PWD}/StdLib
 
 CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
    -Wno-builtin-declaration-mismatch -Wno-unused-but-set-variable -Wno-main \
-   -Wno-misleading-indentation -Wno-builtin-declaration-mismatch -I$(STDLIB_DIR)
+   -Wno-misleading-indentation -Wno-builtin-declaration-mismatch \
+   -Wno-non-literal-null-conversion -I$(STDLIB_DIR)
 
 tests: nano itests
 

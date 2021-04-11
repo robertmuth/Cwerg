@@ -31,7 +31,7 @@ Without any arguments the entire list of opcodes are shown
 """
 from Util import cgen
 
-from typing import List, Dict, Tuple, Optional, Set, Any
+from typing import List, Dict, Tuple, Optional, Set
 
 import collections
 import dataclasses

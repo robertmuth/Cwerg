@@ -6,13 +6,11 @@
 #include "Util/parse.h"
 
 #include <cstring>
-#include <map>
 #include <string_view>
 
-namespace cwerg {
-namespace a32 {
-
+namespace cwerg::a32 {
 namespace {
+
 char* strappend(char* dst, const char* src) {
   strcpy(dst, src);
   return dst + strlen(dst);
@@ -45,7 +43,7 @@ char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
     default:
     case FK::NONE:
       ASSERT(false, "unreachable");
-      return 0;
+      return nullptr;
     case FK::INT_SIGNED_CUSTOM:
       return strappenddec(buffer, x);
     case FK::FLT_CUSTOM:
@@ -251,5 +249,4 @@ std::string SymbolizeRegRange(uint32_t start_reg_no,
   return out + "}";
 }
 
-}  // namespace a32
-}  // namespace cwerg
+}  // namespace cwerg::a32

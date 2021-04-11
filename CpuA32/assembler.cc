@@ -28,7 +28,7 @@ Symbol<uint32_t>* Unit::AddSymbol(std::string_view name,
   Symbol<uint32_t>* sym = it == the_map->end() ? nullptr : it->second;
   if (sym == nullptr) {
     sym = new Symbol<uint32_t>();
-    sym->Init(name, is_local, sec, sec == nullptr ? ~0 : sec->data->size());
+    sym->Init(name, is_local, sec, sec == nullptr ? ~0U : sec->data->size());
     symbols.emplace_back(std::unique_ptr<Symbol<uint32_t>>(sym));
     (*the_map)[name] = sym;
     return sym;
@@ -377,12 +377,12 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
                              sections.size() + 1);
       sec_symtab->shdr.sh_info = symbols.size();
       std::string dummy(sizeof(Elf_Sym<uint32_t>) * symbols.size(), '\0');
-      Chunk* sym_data = new Chunk(dummy, false);
+      auto* sym_data = new Chunk(dummy, false);
       sec_symtab->SetData(sym_data);
       sections.push_back(sec_symtab);
       seg_pseudo->sections.push_back(sec_symtab);
 
-      Chunk* names = new Chunk(padding_zero, false);
+      auto* names = new Chunk(padding_zero, false);
       for (auto& sym : symbols) {
         if (!sym->name.empty()) {
           sym->sym.st_name = names->size();
@@ -392,7 +392,7 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
           sym->sym.st_name = 0;
         }
       }
-      Section<uint32_t>* sec_strtab = new Section<uint32_t>();
+      auto* sec_strtab = new Section<uint32_t>();
       sec_strtab->InitStrTab(".strtab");
       sec_strtab->SetData(names);
       sections.push_back(sec_strtab);
@@ -425,7 +425,7 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
   if (create_sym_tab) {
     ASSERT(sec_symtab != nullptr, "");
 
-    Chunk* sym_data = new Chunk("", false);
+    auto* sym_data = new Chunk("", false);
     for (auto& sym : symbols) {
       sym_data->AddData({(const char*)&sym->sym, sizeof(sym->sym)});
     }

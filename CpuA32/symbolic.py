@@ -3,7 +3,7 @@ Convert ARM32 instruction into human readable form suitable to
 be processed by an assembler.
 """
 
-from typing import List, Tuple, Set, Dict, Any
+from typing import List, Tuple, Set
 import struct
 import CpuA32.opcode_tab as a32
 from Elf import enum_tab

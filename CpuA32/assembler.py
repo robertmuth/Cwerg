@@ -65,13 +65,12 @@ def AddStartUpCode(unit: elf_unit.Unit):
     This feature is needed by CodeGenA32/
     """
     unit.FunStart("_start", 16, NOP_BYTES)
-    for mnemonic, ops in [
-        ("ldr_imm_add", "al r0 sp 0"),
-        ("add_imm", "al r1 sp 4"),
-        ("bl", "al expr:call:main"),
-        ("movw", "al r7 1"),
-        ("svc", "al 0"),
-        ("ud2", "al")]:
+    for mnemonic, ops in [("ldr_imm_add", "al r0 sp 0"),
+                          ("add_imm", "al r1 sp 4"),
+                          ("bl", "al expr:call:main"),
+                          ("movw", "al r7 1"),
+                          ("svc", "al 0"),
+                          ("ud2", "al")]:
         HandleOpcode(mnemonic, ops.split(), unit)
     unit.FunEnd()
 

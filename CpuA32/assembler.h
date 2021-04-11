@@ -47,7 +47,7 @@ struct Unit {
   std::string_view InternString(std::string_view s) {
     auto it = string_table.find(s);
     if (it != string_table.end()) return it->first;
-    std::string* sp = new std::string(s.data(), s.size());
+    auto* sp = new std::string(s.data(), s.size());
     std::string_view key(*sp);
     string_table[key] = std::unique_ptr<std::string>(sp);
     return key;

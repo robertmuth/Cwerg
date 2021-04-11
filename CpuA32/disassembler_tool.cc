@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   }
   if (std::string_view("disass") == argv[1]) {
     for (unsigned i = 2; i < argc; ++i) {
-      const uint32_t data = strtoul(argv[i], 0, 16);
+      const uint32_t data = strtoul(argv[i], nullptr, 16);
       Ins ins;
       if (!Disassemble(&ins, data)) {
         std::cout << "could not find opcode for: " << std::hex << data << "\n";
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     // "eq"
     uint32_t num_bad = 0;
     std::vector<std::string> ops;
-    for (uint32_t data = 0; data < (1 << 28); ++data) {
+    for (uint32_t data = 0; data < (1U << 28U); ++data) {
       Ins ins;
       if (Disassemble(&ins, data)) {
         const uint32_t data2 = Assemble(ins);
