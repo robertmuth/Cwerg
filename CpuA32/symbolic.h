@@ -8,11 +8,11 @@
 
 namespace cwerg::a32 {
 
-extern char* SymbolizeOperand(char* buffer, int32_t x, OK ok);
-
 extern void RenderInsSystematic(const Ins& ins, char buffer[512]);
 
-extern bool InsParse(const std::vector<std::string_view>& token, Ins* ins);
+extern std::string_view InsSymbolize(const Ins& ins, std::vector<std::string>* ops);
+
+extern bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins);
 
 extern std::string SymbolizeRegListMask(uint32_t mask);
 

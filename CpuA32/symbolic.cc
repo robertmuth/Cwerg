@@ -190,7 +190,16 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
   return true;
 }
 
-bool InsParse(const std::vector<std::string_view>& token, Ins* ins) {
+std::string_view InsSymbolize(const Ins& ins, std::vector<std::string>* ops) {
+  char buffer[128];
+  for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
+    SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
+    ops->emplace_back(buffer);
+  }
+  return ins.opcode->enum_name;
+}
+
+bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
   ins->opcode = FindOpcodeForMnemonic(token[0]);
   if (ins->opcode == nullptr) {
     std::cerr << "unknown opcode " << token[0] << "\n";

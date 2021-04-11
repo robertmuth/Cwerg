@@ -20,12 +20,12 @@ using FunPtr = uint32_t (*)(uint32_t);
 void DumpA32Ins(uint32_t data) {
   Ins ins;
   Disassemble(&ins, data);
-  std::cout << "0x" << std::hex << data << " " << ins.opcode->enum_name;
+  std::vector<std::string> ops;
+  std::string_view enum_name = InsSymbolize(ins, &ops);
+  std::cout << "0x" << std::hex << data << " " << enum_name;
   std::string_view sep = " ";
-  for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-    char buf[128];
-    SymbolizeOperand(buf, ins.operands[i], ins.opcode->fields[i]);
-    std::cout << sep << buf;
+  for (const std::string& op : ops) {
+    std::cout << sep << op;
     sep = ", ";
   }
   std::cout << "\n";

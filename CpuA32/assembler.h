@@ -95,8 +95,4 @@ extern bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit);
 
 extern std::ostream& operator<<(std::ostream& os, const Unit& s);
 
-extern bool InsParse(const std::vector<std::string_view>& token, Ins* ins);
-
-extern std::optional<uint32_t> UnsymbolizeOperand(std::string_view s);
-
 }  // namespace cwerg::a32

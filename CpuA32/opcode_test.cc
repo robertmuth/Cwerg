@@ -226,11 +226,7 @@ int HandleOneInstruction(std::string_view line,
   }
 
   std::vector<std::string> std_ops;
-  for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-    char buffer[128];
-    SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
-    std_ops.push_back(buffer);
-  }
+  InsSymbolize(ins, &std_ops);
 
   if (!OperandsMatch(*ins.opcode, actual_name, actual_ops, std_ops)) {
     std::cout << "operand mismatch: std:[";

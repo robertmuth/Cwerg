@@ -22,12 +22,12 @@ int main(int argc, char* argv[]) {
         std::cout << "could not find opcode for: " << std::hex << data << "\n";
         continue;
       }
-      char buffer[128];
-      std::cout << argv[i] << " " << ins.opcode->enum_name;
+      std::vector<std::string> ops;
+      std::string_view enum_name = InsSymbolize(ins, &ops);
+      std::cout << argv[i] << " " << enum_name;
       std::string_view sep = " ";
-      for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-        SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
-        std::cout << sep << buffer;
+      for (const std::string& op : ops) {
+        std::cout << sep << op;
         sep = ", ";
       }
       std::cout << "\n";
@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
     // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate
     // "eq"
     uint32_t num_bad = 0;
+    std::vector<std::string> ops;
     for (uint32_t data = 0; data < (1 << 28); ++data) {
       Ins ins;
       if (Disassemble(&ins, data)) {
@@ -54,12 +55,12 @@ int main(int argc, char* argv[]) {
               ins.opcode->fields[3] != OK::IMM_0_7_8_11) {
             std::cout << "Disassembler failure " << std::hex << data << " vs "
                       << data2 << ": ";
-            char buffer[128];
-            std::cout << ins.opcode->enum_name;
+            ops.clear();
+            std::string_view enum_name = InsSymbolize(ins, &ops);
+            std::cout << enum_name;
             std::string_view sep = " ";
-            for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-              SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
-              std::cout << sep << buffer;
+            for (const std::string& op : ops) {
+              std::cout << sep << op;
               sep = ", ";
             }
             std::cout << "\n";

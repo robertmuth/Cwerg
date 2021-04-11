@@ -146,7 +146,7 @@ void Unit::AddStartupCode() {
       ASSERT(false, "bad internal code template " << line);
     }
     Ins ins;
-    if (!InsParse(token, &ins)) {
+    if (!InsFromSymbolized(token, &ins)) {
       ASSERT(false, "internal parse error " << token[0]);
     }
     AddIns(&ins);
@@ -220,7 +220,7 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
 
 bool HandleOpcode(Unit* unit, const std::vector<std::string_view>& token) {
   Ins ins;
-  if (!InsParse(token, &ins)) {
+  if (!InsFromSymbolized(token, &ins)) {
     std::cerr << "parse error " << token[0] << "\n";
     return false;
   }
