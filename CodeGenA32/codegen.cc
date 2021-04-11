@@ -40,11 +40,14 @@ void FunCodeGenArm32(Fun fun, std::ostream* output) {
   }
 
   std::vector<a32::Ins> inss;
+  std::vector<std::string> ops;
   auto drain = [&]() {
-    char buffer[128];
     for (const auto& ins : inss) {
-      a32::RenderInsSystematic(ins, buffer);
-      *output << "    " << buffer << "\n";
+      ops.clear();
+      std::string_view name = a32::InsSymbolize(ins, &ops);
+      *output << "    " << name;
+      for (const std::string& op : ops) *output << " " << op;
+      *output << "\n";
     }
     inss.clear();
   };

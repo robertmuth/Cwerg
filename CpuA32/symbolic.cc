@@ -1,9 +1,9 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CpuA32/symbolic.h"
+#include "Elf/elfhelper.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
-#include "Elf/elfhelper.h"
 
 #include <cstring>
 #include <map>
@@ -12,8 +12,7 @@
 namespace cwerg {
 namespace a32 {
 
-// TODO: stop using printf and realted cruft from <cstring>
-
+namespace {
 char* strappend(char* dst, const char* src) {
   strcpy(dst, src);
   return dst + strlen(dst);
@@ -67,50 +66,6 @@ char* SymbolizeOperand(char* buffer, int32_t x, OK ok) {
   }
 }
 
-// Render the given instruction using a systematic notation into `buffer`
-void RenderInsSystematic(const Ins& ins, char buffer[512]) {
-  buffer = strappend(buffer, ins.opcode->enum_name);
-  buffer = strappend(buffer, " ");
-
-  const char* sep = "";
-  for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-    buffer = strappend(buffer, sep);
-    if (ins.reloc_kind != elf::RELOC_TYPE_ARM::NONE && i == ins.reloc_pos) {
-      switch (ins.reloc_kind) {
-        case elf::RELOC_TYPE_ARM::JUMP24:
-          ASSERT(ins.is_local_sym, "");
-          buffer = strappend(buffer, "expr:jump24:");
-          buffer = strappend(buffer, ins.reloc_symbol);
-          break;
-        case elf::RELOC_TYPE_ARM::CALL:
-          buffer = strappend(buffer, "expr:call:");
-          buffer = strappend(buffer, ins.reloc_symbol);
-          break;
-        case elf::RELOC_TYPE_ARM::MOVT_ABS:
-          buffer = strappend(buffer, ins.is_local_sym ? "expr:loc_movt_abs:"
-                                                      : "expr:movt_abs:");
-          buffer = strappend(buffer, ins.reloc_symbol);
-          break;
-        case elf::RELOC_TYPE_ARM::MOVW_ABS_NC:
-          buffer = strappend(buffer, ins.is_local_sym ? "expr:loc_movw_abs_nc:"
-                                                      : "expr:movw_abs_nc:");
-          buffer = strappend(buffer, ins.reloc_symbol);
-
-          break;
-        default:
-          ASSERT(false, "");
-      }
-      if (ins.operands[i] != 0) {
-        *buffer++ = ':';
-        buffer = strappenddec(buffer, ins.operands[i]);
-      }
-    } else {
-      buffer = SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
-    }
-    sep = " ";
-  }
-}
-
 bool has_prefix(std::string_view name, std::string_view prefix) {
   return name.substr(0, prefix.size()) == prefix;
 }
@@ -147,8 +102,6 @@ std::optional<uint32_t> UnsymbolizeOperand(OK ok, std::string_view s) {
       return ParseInt<uint32_t>(s);
   }
 }
-
-
 
 bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
   ins->reloc_pos = pos;
@@ -190,10 +143,47 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
   return true;
 }
 
+void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
+  cp = strappend(cp, "expr:");
+  switch (ins.reloc_kind) {
+    case elf::RELOC_TYPE_ARM::JUMP24:
+      ASSERT(ins.is_local_sym, "");
+      cp = strappend(cp, "jump24:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_ARM::CALL:
+      cp = strappend(cp, "call:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_ARM::MOVT_ABS:
+      cp = strappend(cp, ins.is_local_sym ? "loc_movt_abs:" : "movt_abs:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_ARM::MOVW_ABS_NC:
+      cp =
+          strappend(cp, ins.is_local_sym ? "loc_movw_abs_nc:" : "movw_abs_nc:");
+      cp = strappend(cp, ins.reloc_symbol);
+
+      break;
+    default:
+      ASSERT(false, "");
+  }
+  if (addend != 0) {
+    *cp++ = ':';
+    cp = strappenddec(cp, addend);
+  }
+}
+
+}  // namespace
+
 std::string_view InsSymbolize(const Ins& ins, std::vector<std::string>* ops) {
   char buffer[128];
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-    SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
+    if (ins.reloc_kind != elf::RELOC_TYPE_ARM::NONE && i == ins.reloc_pos) {
+      SymbolizeReloc(buffer, ins, ins.operands[i]);
+    } else {
+      SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
+    }
     ops->emplace_back(buffer);
   }
   return ins.opcode->enum_name;
@@ -217,7 +207,8 @@ bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
         return false;
       }
     } else {
-      auto val = UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
+      auto val =
+          UnsymbolizeOperand(ins->opcode->fields[operand_count], token[i]);
       if (!val.has_value()) {
         std::cerr << "cannot parse " << token[i] << "\n";
         return false;

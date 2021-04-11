@@ -64,12 +64,15 @@ void HandleIns(Ins ins) {
     std::cout << "]\n";
 
     code_gen_a32::EmitContext ctx;
+    std::vector<std::string> ops;
     for (unsigned i = 0; i < pat->length; ++i) {
       const code_gen_a32::InsTmpl& tmpl = pat->start[i];
       a32::Ins a32ins = code_gen_a32::MakeInsFromTmpl(tmpl, ins, ctx);
-      char buffer[128];
-      a32::RenderInsSystematic(a32ins, buffer);
-      std::cout << "    " << buffer << "\n";
+      ops.clear();
+      std::string_view name = a32::InsSymbolize(a32ins, &ops);
+      std::cout << "    " << name;
+      for (const std::string& op : ops) std::cout << " " << op;
+      std::cout << "\n";
     }
   }
 }
