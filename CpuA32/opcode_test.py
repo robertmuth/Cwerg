@@ -130,7 +130,7 @@ def HandleOneInstruction(count: int, line: str,
     data2 = a32.Assemble(ins)
     assert data == data2, f"disass mismatch [{ins.opcode.NameForEnum()}] {data:x} vs {data2:x}"
     actual_name = FixupAliases(ins.opcode, actual_name, actual_ops)
-    if not actual_name.startswith(ins.opcode.name):
+    if not actual_name.startswith(ins.opcode.official_name):
         print("BAD NAME", ins.opcode.name, actual_name, line, end="")
 
     name, operands_str = symbolic.InsSymbolize(ins)

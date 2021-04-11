@@ -30,7 +30,7 @@ class TestBuffer:
             _, ops = dis.InsSymbolize(ins)
             if ops and ops[0] == "al":
                 ops.pop(0)
-            print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.NameForEnum()} {' '.join(ops)}")
+            print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.name} {' '.join(ops)}")
 
 
 def MakeBuffer(size, prot):
@@ -47,6 +47,7 @@ def EmitX86(code_buf):
 
 def EmitARM32(code_buf):
     for ins in [
+        # "al" predicate is optional
         dis.InsFromSymbolized("add_imm", ["r0", "r0", "1"]),
         dis.InsFromSymbolized("mov_regimm", ["pc", "lr", "lsl", "0"])
     ]:
@@ -55,6 +56,7 @@ def EmitARM32(code_buf):
 
 def EmitARM32Mul(code_buf):
     for ins in [
+        # "al" predicate is optional
         dis.InsFromSymbolized("mul", ["r0", "r1", "r0"]),
         dis.InsFromSymbolized("mov_regimm", ["pc", "lr", "lsl", "0"])
     ]:
@@ -64,21 +66,21 @@ def EmitARM32Mul(code_buf):
 def EmitARM32Fib(code_buf):
     for ins in [
         # e92d4030 stm sp!, {r4,r5,lr}
-        dis.InsFromSymbolized("stmdb_update", ["sp", "reglist:16432"]),
-        dis.InsFromSymbolized("cmp_imm", ["r0", "1"]),
+        dis.InsFromSymbolized("stmdb_update", ["al", "sp", "reglist:16432"]),
+        dis.InsFromSymbolized("cmp_imm", ["al", "r0", "1"]),
         dis.InsFromSymbolized("b", ["le", "7"]),
-        dis.InsFromSymbolized("mov_imm", ["r4", "0"]),
-        dis.InsFromSymbolized("mov_regimm", ["r5", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("mov_imm", ["al", "r4", "0"]),
+        dis.InsFromSymbolized("mov_regimm", ["al", "r5", "r0", "lsl", "0"]),
         #
-        dis.InsFromSymbolized("sub_imm", ["r0", "r5", "1"]),
-        dis.InsFromSymbolized("bl", ["-8"]),
-        dis.InsFromSymbolized("add_regimm", ["r4", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("sub_imm", ["al", "r0", "r5", "1"]),
+        dis.InsFromSymbolized("bl", ["al", "-8"]),
+        dis.InsFromSymbolized("add_regimm", ["al", "r4", "r4", "r0", "lsl", "0"]),
         # #
-        dis.InsFromSymbolized("sub_imm", ["r0", "r5", "2"]),
-        dis.InsFromSymbolized("bl", ["-11"]),
-        dis.InsFromSymbolized("add_regimm", ["r0", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized("sub_imm", ["al", "r0", "r5", "2"]),
+        dis.InsFromSymbolized("bl", ["al", "-11"]),
+        dis.InsFromSymbolized("add_regimm", ["al", "r0", "r4", "r0", "lsl", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
-        dis.InsFromSymbolized("ldmia_update", ["reglist:32816", "sp"]),
+        dis.InsFromSymbolized("ldmia_update", ["al", "reglist:32816", "sp"]),
     ]:
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 

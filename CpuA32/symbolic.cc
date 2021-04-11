@@ -205,6 +205,7 @@ bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
     return false;
   }
   uint32_t operand_count = 0;
+  // CodeGenA32 relies on this
   if (token.size() == ins->opcode->num_fields) {
     ins->operands[operand_count++] = 14;  // predicate 'al'
   }

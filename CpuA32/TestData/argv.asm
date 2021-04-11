@@ -7,18 +7,18 @@
 .fun main 16
     add_imm al r10 r0 0
     add_imm al r11 r1 0
-    b expr:jump24:argc_check
+    b al expr:jump24:argc_check
 .bbl loop 4
     ldr_imm_add_post al r1 r11 4
     sub_imm al r10 r10 1
 
 # strlen computation: r1 contains string r2 will contain it's length
     mov_imm al r2 0
-    b expr:jump24:null_check
+    b al expr:jump24:null_check
 .bbl next_byte 4
     add_imm al r2 r2 1
 .bbl null_check 4
-    ldrb_reg_add r0 r1 r2 lsl 0
+    ldrb_reg_add al r0 r1 r2 lsl 0
     cmp_imm al r0 0
     b ne expr:jump24:next_byte
 # print string

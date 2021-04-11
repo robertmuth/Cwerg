@@ -575,6 +575,13 @@ def _OpcodeDiscriminant(data: int) -> int:
     return (data >> 20) & 0xff
 
 
+def _NameForEnum(base_name: str, variant: str) -> str:
+    name = base_name
+    if variant:
+        name += "_" + variant
+    return name.replace(".", "_")
+
+
 class Opcode:
     """The primary purpose of of instantiating an Opcode is to register it with
     the class variable `name_to_opcode`
@@ -612,12 +619,10 @@ class Opcode:
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, "%08x" % mask
 
-        self.name = name
-        self.variant = variant
-
-        enum_name = self.NameForEnum()
-        assert enum_name not in Opcode.name_to_opcode, f"duplicate {enum_name}"
-        Opcode.name_to_opcode[enum_name] = self
+        self.name = _NameForEnum(name, variant)
+        self.official_name = name
+        assert self.name not in Opcode.name_to_opcode, f"duplicate {self.name}"
+        Opcode.name_to_opcode[self.name] = self
 
         # Discriminant on fixed bits
         bit_mask, bit_value = Bits(*bits)
@@ -639,20 +644,14 @@ class Opcode:
         self.mem_width = mem_width
 
     def __lt__(self, other):
-        return (self.name, self.variant) < (other.name, other.variant)
+        return self.name < other.name
 
     def HasPred(self):
         return self.fields[0] == OK.PRED_28_31
 
-    def NameForEnum(self):
-        name = self.name
-        if self.variant:
-            name += "_" + self.variant
-        return name.replace(".", "_")
-
     def AssembleOperandsRaw(self, operands: List[int]):
         assert len(operands) == len(
-            self.fields), f"not enough operands for {self.NameForEnum()}"
+            self.fields), f"not enough operands for {self.name}"
         bits = [(self.bit_mask, self.bit_value, 0)]
         for f, o in zip(self.fields, operands):
             bits += InsertOperand(f, o)
@@ -711,7 +710,7 @@ def _CheckDiscriminantSeparability():
                         assert o1.bit_mask & mask == mask, o1.name
                         assert ExtractBits(o1.bit_value, mask) == 0, o1.name
                         continue
-                print(f"potential conflict: [{o1.name} {o1.variant}]  [{o2.name} {o2.variant}]")
+                print(f"potential conflict: [{o1.name}]  [{o2.name}]")
                 assert False
 
 
@@ -1266,7 +1265,7 @@ def _RenderOpcodeTable() -> List[str]:
         fields = "{" + ", ".join(["OK::" + f.name for f in opc.fields]) + "}"
         out += [
             "{" +
-            f'"{opc.name}", "{name}", 0x{opc.bit_mask:08x}, 0x{opc.bit_value:08x},',
+            f'"{opc.official_name}", "{name}", 0x{opc.bit_mask:08x}, 0x{opc.bit_value:08x},',
             f' {len(opc.fields)}, {fields},',
             f' {flags}, MEM_WIDTH::{opc.mem_width.name}, SR_UPDATE::{opc.sr_update.name}',
             '},']
@@ -1279,7 +1278,7 @@ def _RenderClusteredOpcodeTable() -> List[str]:
         cluster = Opcode.ordered_opcodes[i]
         out += [f"  // cluster {i}  size:{len(cluster)}"]
         if cluster:
-            enums = [f"OPC::{opc.NameForEnum()}" for opc in cluster]
+            enums = [f"OPC::{opc.name}" for opc in cluster]
             out += ["  " + ", ".join(enums)]
     return out
 
@@ -1371,6 +1370,7 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderFieldInfoTable()), file=fout)
     print("};\n", file=fout)
 
+
 def _OpcodeDiscriminantExperiments():
     """Some failed experiments for making the disassembler even faster"""
     print("opcode distribution")
@@ -1379,20 +1379,6 @@ def _OpcodeDiscriminantExperiments():
         for x in cluster:
             submask &= x.bit_mask
         print(f"{k:08x} {len(cluster):3}  {submask:08x}")
-        # d = collections.defaultdict(list)
-        # for x in cluster:
-        #    d[x.bit_value & submask].append(x)
-        # for k2, v2 in sorted(d.items()):
-        #    print(f"  {k2:08x} {len(v2):2}")
-    # print(f"magic mask {_INS_MAGIC_CLASSIFIER:08x}")
-    # d = collections.defaultdict(list)
-    # for x in Opcode.name_to_opcode.values():
-    #     d[x.bit_value & _INS_MAGIC_CLASSIFIER].append(x)
-    # for k, v in sorted(d.items()):
-    #     print(f"  {k:08x} {len(v):2}")
-    # print("")
-    # for opc in sorted(Opcode.name_to_opcode.values()):
-    #     print(f"{opc.name:12s} {opc.variant:6s} {opc.fields}")
     print("OK")
 
 
@@ -1402,7 +1388,7 @@ def _MnemonicHashingExperiments():
     table = [""] * _MNEMONIC_HASH_TABLE_SIZE
     distance = [0] * 128
     for opc in Opcode.name_to_opcode.values():
-        s = opc.NameForEnum()
+        s = opc.name
         h = hash_djb2(s)
         print(f"{s}: {h:x}")
         buckets[h % _MNEMONIC_HASH_TABLE_SIZE].append(s)
