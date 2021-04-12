@@ -281,151 +281,165 @@ class OK(enum.Enum):
     XREG_5_9_SP = 32
 
     # shifts
-    SHIFT_22_23 = 35
-    SHIFT_22_23_NO_ROR = 36
-    SHIFT_15_W = 37
-    SHIFT_15_X = 38
+    SHIFT_22_23 = 33
+    SHIFT_22_23_NO_ROR = 34
+    SHIFT_15_W = 35
+    SHIFT_15_X = 36
 
     # signed immediate
-    SIMM_PCREL_0_25 = 39
-    SIMM_12_20 = 40
-    SIMM_15_21_TIMES16 = 41
-    SIMM_15_21_TIMES4 = 42
-    SIMM_15_21_TIMES8 = 43
-    SIMM_PCREL_5_18 = 44
-    SIMM_PCREL_5_23 = 45
-    SIMM_PCREL_5_23_29_30 = 46
+    SIMM_PCREL_0_25 = 37
+    SIMM_12_20 = 38
+    SIMM_15_21_TIMES16 = 39
+    SIMM_15_21_TIMES4 = 40
+    SIMM_15_21_TIMES8 = 41
+    SIMM_PCREL_5_18 = 42
+    SIMM_PCREL_5_23 = 43
+    SIMM_PCREL_5_23_29_30 = 44
 
     # unsigned immediate
-    IMM_10_12_LIMIT4 = 47
-    IMM_10_15 = 48
-    IMM_10_15_16_22_W = 49
-    IMM_10_15_16_22_X = 50
-    IMM_10_21 = 51
-    IMM_SHIFTED_10_21_22 = 52
-    IMM_10_21_times_16 = 53
-    IMM_10_21_times_2 = 54
-    IMM_10_21_times_4 = 55
-    IMM_10_21_times_8 = 56
-    IMM_12_MAYBE_SHIFT_0 = 57
-    IMM_12_MAYBE_SHIFT_1 = 58
-    IMM_12_MAYBE_SHIFT_2 = 59
-    IMM_12_MAYBE_SHIFT_3 = 60
-    IMM_12_MAYBE_SHIFT_4 = 61
-    IMM_16_20 = 62
-    IMM_16_21 = 63
-    IMM_19_23_31 = 64
-    IMM_5_20 = 65
-    IMM_COND_0_3 = 66
-    IMM_FLT_ZERO = 67
-    IMM_SHIFTED_5_20_21_22 = 68
+    IMM_10_12_LIMIT4 = 45
+    IMM_10_15 = 46
+    IMM_10_15_16_22_W = 47
+    IMM_10_15_16_22_X = 48
+    IMM_10_21 = 49
+    IMM_SHIFTED_10_21_22 = 50
+    IMM_10_21_times_16 = 51
+    IMM_10_21_times_2 = 52
+    IMM_10_21_times_4 = 53
+    IMM_10_21_times_8 = 54
+    IMM_12_MAYBE_SHIFT_0 = 55
+    IMM_12_MAYBE_SHIFT_1 = 56
+    IMM_12_MAYBE_SHIFT_2 = 57
+    IMM_12_MAYBE_SHIFT_3 = 58
+    IMM_12_MAYBE_SHIFT_4 = 59
+    IMM_16_20 = 60
+    IMM_16_21 = 61
+    IMM_19_23_31 = 62
+    IMM_5_20 = 63
+    IMM_COND_0_3 = 64
+    IMM_FLT_ZERO = 65
+    IMM_SHIFTED_5_20_21_22 = 66
     #
-    FLT_13_20 = 69
-
-
-############################################################
-# effects of an opcode wrt the status registers
-# Note, the for instructions with the fCC_UPDATE_20 the effect
-# is gated on the "s" bit
-############################################################
-@enum.unique
-class SR_UPDATE(enum.Enum):
-    NONE = 0
-    NZCV = 1
+    FLT_13_20 = 67
 
 
 ############################################################
 # bit ranges are the building blocks of fields
 # Each bit range specifies one or more consecutive bits
 ############################################################
+@enum.unique
+class FK(enum.Enum):
+    NONE = 0
+    LIST = 1
+    INT = 2
+    INT_HEX = 3
+    INT_SIGNED = 4
+    INT_CUSTOM = 5
+    FLT_CUSTOM = 6
+
+
 BIT_RANGE = Tuple[int, int]
 
+
+class FieldInfo:
+
+    def __init__(self, ranges, kind, enum_class=None, scale=1, decoder=None, encoder=None):
+        self.ranges: List[BIT_RANGE] = ranges
+        self.bitwidth: int = sum([r[0] for r in ranges])
+        self.kind: FK = kind
+        self.enum_class = enum_class
+        self.names: List[str] = [p.name for p in enum_class] if enum_class else []
+        self.scale: int = scale
+        self.decoder = decoder
+        self.encoder = encoder
+        assert scale == 1 or kind in {FK.INT, FK.INT_SIGNED}
+
+
 # used for raw-decoding
-FIELD_DETAILS: Dict[OK, List[BIT_RANGE]] = {
-    OK.Invalid: [],
-    OK.WREG_0_4: [(5, 0)],
-    OK.WREG_5_9: [(5, 5)],
-    OK.WREG_10_14: [(5, 10)],
-    OK.WREG_16_20: [(5, 16)],
-    OK.WREG_0_4_SP: [(5, 0)],
-    OK.WREG_5_9_SP: [(5, 5)],
+FIELD_DETAILS: Dict[OK, FieldInfo] = {
+    OK.Invalid: FieldInfo([], FK.NONE),
+    OK.WREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.WREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.WREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.WREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.WREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST),
+    OK.WREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST),
+    #
+    OK.XREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.XREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.XREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.XREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.XREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST),
+    OK.XREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST),
+    #
+    OK.SREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.SREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.SREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.SREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    #
+    OK.DREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.DREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.DREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.DREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    #
+    OK.BREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.BREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.BREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.BREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    #
+    OK.HREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.HREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.HREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.HREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    #
+    OK.QREG_0_4: FieldInfo([(5, 0)], FK.LIST),
+    OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST),
+    OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST),
+    OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST),
 
+    OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_CUSTOM),
+    OK.IMM_10_15_16_22_X: FieldInfo([(13, 10)], FK.INT_CUSTOM),
+    OK.IMM_SHIFTED_10_21_22: FieldInfo([(13, 10)], FK.INT_CUSTOM),
+    OK.IMM_SHIFTED_5_20_21_22: FieldInfo([(18, 5)], FK.INT_CUSTOM),
     #
-    OK.XREG_0_4: [(5, 0)],
-    OK.XREG_5_9: [(5, 5)],
-    OK.XREG_10_14: [(5, 10)],
-    OK.XREG_16_20: [(5, 16)],
-    OK.XREG_0_4_SP: [(5, 0)],
-    OK.XREG_5_9_SP: [(5, 5)],
+    OK.FLT_13_20: FieldInfo([(8, 13)], FK.FLT_CUSTOM),
+    OK.IMM_FLT_ZERO: FieldInfo([], FK.FLT_CUSTOM),
     #
-    OK.SREG_0_4: [(5, 0)],
-    OK.SREG_5_9: [(5, 5)],
-    OK.SREG_10_14: [(5, 10)],
-    OK.SREG_16_20: [(5, 16)],
+    OK.IMM_5_20: FieldInfo([(16, 5)], FK.INT_HEX),
+    OK.IMM_COND_0_3: FieldInfo([(4, 0)], FK.INT_HEX),
+    OK.IMM_16_20: FieldInfo([(5, 16)], FK.INT_HEX),
     #
-    OK.DREG_0_4: [(5, 0)],
-    OK.DREG_5_9: [(5, 5)],
-    OK.DREG_10_14: [(5, 10)],
-    OK.DREG_16_20: [(5, 16)],
+    OK.IMM_10_15: FieldInfo([(6, 10)], FK.INT),
+    OK.IMM_10_21: FieldInfo([(12, 10)], FK.INT),
+    OK.IMM_16_21: FieldInfo([(6, 16)], FK.INT),
+    OK.IMM_19_23_31: FieldInfo([(1, 31), (5, 19)], FK.INT),
+    OK.IMM_10_12_LIMIT4: FieldInfo([(3, 10)], FK.INT),
     #
-    OK.BREG_0_4: [(5, 0)],
-    OK.BREG_5_9: [(5, 5)],
-    OK.BREG_10_14: [(5, 10)],
-    OK.BREG_16_20: [(5, 16)],
+    OK.IMM_10_21_times_2: FieldInfo([(12, 10)], FK.INT),
+    OK.IMM_10_21_times_4: FieldInfo([(12, 10)], FK.INT),
+    OK.IMM_10_21_times_8: FieldInfo([(12, 10)], FK.INT),
+    OK.IMM_10_21_times_16: FieldInfo([(12, 10)], FK.INT),
     #
-    OK.HREG_0_4: [(5, 0)],
-    OK.HREG_5_9: [(5, 5)],
-    OK.HREG_10_14: [(5, 10)],
-    OK.HREG_16_20: [(5, 16)],
+    OK.IMM_12_MAYBE_SHIFT_0: FieldInfo([(1, 12)], FK.INT, scale=0),
+    OK.IMM_12_MAYBE_SHIFT_1: FieldInfo([(1, 12)], FK.INT, scale=1),
+    OK.IMM_12_MAYBE_SHIFT_2: FieldInfo([(1, 12)], FK.INT, scale=2),
+    OK.IMM_12_MAYBE_SHIFT_3: FieldInfo([(1, 12)], FK.INT, scale=3),
+    OK.IMM_12_MAYBE_SHIFT_4: FieldInfo([(1, 12)], FK.INT, scale=4),
     #
-    OK.QREG_0_4: [(5, 0)],
-    OK.QREG_5_9: [(5, 5)],
-    OK.QREG_10_14: [(5, 10)],
-    OK.QREG_16_20: [(5, 16)],
-
+    OK.SIMM_12_20: FieldInfo([(9, 12)], FK.INT_SIGNED),
+    OK.SIMM_15_21_TIMES4: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=4),
+    OK.SIMM_15_21_TIMES8: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=8),
+    OK.SIMM_15_21_TIMES16: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=16),
     #
-    OK.IMM_10_15: [(6, 10)],
-    OK.IMM_10_21: [(12, 10)],
-
-    OK.IMM_10_15_16_22_W: [(13, 10)],
-    OK.IMM_10_15_16_22_X: [(13, 10)],
-    OK.IMM_19_23_31: [(1, 31), (5, 19)],
-    OK.IMM_5_20: [(16, 5)],
-    OK.IMM_16_21: [(6, 16)],
-
-    OK.IMM_SHIFTED_10_21_22: [(13, 10)],
-    OK.IMM_COND_0_3: [(4, 0)],
-    OK.IMM_16_20: [(5, 16)],
-    OK.FLT_13_20: [(8, 13)],
-    OK.IMM_FLT_ZERO: [],
-    OK.IMM_10_12_LIMIT4: [(3, 10)],
-    OK.IMM_SHIFTED_5_20_21_22: [(18, 5)],
+    OK.SIMM_PCREL_5_23: FieldInfo([(19, 5)], FK.INT_SIGNED),
+    OK.SIMM_PCREL_5_23_29_30: FieldInfo([(19, 5), (2, 29)], FK.INT_SIGNED),
+    OK.SIMM_PCREL_0_25: FieldInfo([(26, 0)], FK.INT_SIGNED),
+    OK.SIMM_PCREL_5_18: FieldInfo([(14, 5)], FK.INT_SIGNED),
     #
-    OK.IMM_10_21_times_2: [(12, 10)],
-    OK.IMM_10_21_times_4: [(12, 10)],
-    OK.IMM_10_21_times_8: [(12, 10)],
-    OK.IMM_10_21_times_16: [(12, 10)],
-    #
-    OK.IMM_12_MAYBE_SHIFT_0: [(1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_1: [(1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_2: [(1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_3: [(1, 12)],
-    OK.IMM_12_MAYBE_SHIFT_4: [(1, 12)],
-    #
-    OK.SIMM_12_20: [(9, 12)],
-    OK.SIMM_15_21_TIMES4: [(7, 15)],
-    OK.SIMM_15_21_TIMES8: [(7, 15)],
-    OK.SIMM_15_21_TIMES16: [(7, 15)],
-    #
-    OK.SIMM_PCREL_5_23: [(19, 5)],
-    OK.SIMM_PCREL_5_23_29_30: [(19, 5), (2, 29)],
-    OK.SIMM_PCREL_0_25: [(26, 0)],
-    OK.SIMM_PCREL_5_18: [(14, 5)],
-    #
-    OK.SHIFT_22_23: [(2, 22)],
-    OK.SHIFT_22_23_NO_ROR: [(2, 22)],
-    OK.SHIFT_15_W: [(1, 15)],
-    OK.SHIFT_15_X: [(1, 15)],
+    OK.SHIFT_22_23: FieldInfo([(2, 22)], FK.LIST),
+    OK.SHIFT_22_23_NO_ROR: FieldInfo([(2, 22)], FK.LIST),
+    OK.SHIFT_15_W: FieldInfo([(1, 15)], FK.LIST),
+    OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST),
 }
 
 
@@ -538,7 +552,7 @@ for ok in OK:
 def DecodeOperand(ok: OK, value: int) -> int:
     """ Decodes an operand into an int."""
     tmp = 0
-    for width, pos in FIELD_DETAILS[ok]:
+    for width, pos in FIELD_DETAILS[ok].ranges:
         mask = (1 << width) - 1
         x = (value >> pos) & mask
         tmp = tmp << width | x
@@ -549,7 +563,7 @@ def EncodeOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial
-    for width, pos in reversed(FIELD_DETAILS[ok]):
+    for width, pos in reversed(FIELD_DETAILS[ok].ranges):
         mask = (1 << width) - 1
         bits.append((mask, val & mask, pos))
         val = val >> width
@@ -585,6 +599,7 @@ class OPC_FLAG(enum.Flag):
     MULTIPLE = 1 << 19
     SYSCALL = 1 << 21
     IMPLICIT_LINK_REG = 1 << 23
+    SR_UPDATE = 1 << 24
     REG_PAIR = 1 << 25
     COND_PARAM = 1 << 26  # csel, etc which have a condition-code as a parameter
     DOMAIN_PARAM = 1 << 27  # dmb, etc which have a sharable domain as a parameter
@@ -624,8 +639,7 @@ class Opcode:
                  bits: List[Tuple[int, int, int]],
                  fields: List[OK],
                  classes: OPC_FLAG,
-                 mem_width: MEM_WIDTH = MEM_WIDTH.NA,
-                 sr_update: SR_UPDATE = SR_UPDATE.NONE):
+                 mem_width: MEM_WIDTH = MEM_WIDTH.NA):
         if _DEBUG:
             print(name)
         # assert variant in _VARIANTS, f"bad variant [{variant}]"
@@ -642,7 +656,7 @@ class Opcode:
         all_bits = bits[:]
         for f in fields:
             all_bits += [((1 << width) - 1, 0, pos)
-                         for width, pos in FIELD_DETAILS[f]]
+                         for width, pos in FIELD_DETAILS[f].ranges]
         mask = Bits(*all_bits)[0]
         # make sure all 32bits are accounted for
         assert 0xffffffff == mask, f"instruction word not entirely covered {mask:08x}  {name}"
@@ -665,7 +679,6 @@ class Opcode:
 
         self.fields: List[OK] = fields
         self.classes: OPC_FLAG = classes
-        self.sr_update = sr_update
         self.mem_width = mem_width
 
     def __lt__(self, other):
@@ -750,13 +763,13 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                        ("bics", [(3, 3, 29), (3, 2, 24), (1, 1, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23, OK.IMM_10_15],
-               OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
+               OPC_FLAG.SR_UPDATE)
 
     for name, bits in [("adds", [(3, 1, 29), (3, 3, 24), (1, 0, 21)]),
                        ("subs", [(3, 3, 29), (3, 3, 24), (1, 0, 21)])]:
         Opcode(name, ext + "_reg", [root010, w_bit] + bits,
                [dst_reg, src1_reg, src2_reg, OK.SHIFT_22_23_NO_ROR, OK.IMM_10_15],
-               OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
+               OPC_FLAG.SR_UPDATE)
 
     for ext2, option in [("uxtb", (7, 0, 13)), ("uxth", (7, 1, 13)),
                          ("uxtw", (7, 2, 13)), ("uxtx", (7, 3, 13)),
@@ -772,7 +785,7 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
                            ("subs", [(3, 3, 29), (0x1f, 0x19, 21)])]:
             Opcode(name, ext + "_reg_" + ext2, [root010, w_bit, option] + bits,
                    [dst_reg, src1_reg_sp, src2_ext_reg, OK.IMM_10_12_LIMIT4],
-                   OPC_FLAG.EXTENSION_PARAM, sr_update=SR_UPDATE.NZCV)
+                   OPC_FLAG.EXTENSION_PARAM | OPC_FLAG.SR_UPDATE)
 
 for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b", (7, 0, 29))]:
     reg = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
@@ -852,8 +865,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
     for name, bits in [("adds", [(3, 1, 29), (3, 1, 24)]),
                        ("subs", [(3, 3, 29), (3, 1, 24)])]:
         Opcode(name, ext + "_imm", [root100, w_bit, (1, 0, 23)] + bits,
-               [dst_reg, src1_reg, OK.IMM_SHIFTED_10_21_22], OPC_FLAG(0),
-               sr_update=SR_UPDATE.NZCV)
+               [dst_reg, src1_reg, OK.IMM_SHIFTED_10_21_22], OPC_FLAG.SR_UPDATE)
 
     imm = OK.IMM_10_15_16_22_X if ext == "x" else OK.IMM_10_15_16_22_W
     for name, bits in [("and", [(3, 0, 29), (7, 4, 23)]),
@@ -864,7 +876,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
 
     for name, bits in [("ands", [(3, 3, 29), (7, 4, 23)])]:
         Opcode(name, ext + "_imm", [root100, w_bit] + bits,
-               [dst_reg, src1_reg, imm], OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
+               [dst_reg, src1_reg, imm], OPC_FLAG.SR_UPDATE)
 
     for name, bits in [("bfm", [(3, 1, 29), (7, 6, 23)]),
                        ("ubfm", [(3, 2, 29), (7, 6, 23)]),
@@ -979,7 +991,7 @@ for ext, w_bit in [("w", (1, 0, 31)), ("x", (1, 1, 31))]:
         ("adcs", [(3, 1, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)]),
         ("sbcs", [(3, 3, 29), (0x1f, 0x10, 21), (0x3f, 0, 10)])]:
         Opcode(name, ext, [root110, w_bit] + bits,
-               [dst_reg, src1_reg, src2_reg], OPC_FLAG(0), sr_update=SR_UPDATE.NZCV)
+               [dst_reg, src1_reg, src2_reg], OPC_FLAG.SR_UPDATE)
 
 for name, bits in [("smaddl", [(3, 0, 29), (7, 1, 21), (1, 0, 15)]),
                    ("smsubl", [(3, 0, 29), (7, 1, 21), (1, 1, 15)]),
@@ -1405,7 +1417,7 @@ def _RenderOpcodeTableJumper() -> List[str]:
 def _RenderOperandKindTable():
     out = []
     for n, ok in enumerate(OK):
-        assert n == ok.value
+        assert n == ok.value, f"OK exptected {n} for {ok}"
         if ok is OK.Invalid:
             bit_ranges = []
         else:
