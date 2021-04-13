@@ -2,29 +2,35 @@
 This module contains code for (un-)symbolizing the a64 ISA operands
 """
 from typing import Any, Dict, List, Tuple
+import struct
 
 from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
 
 
-def SymbolizeOperand(ok: a64.OK, data: int) -> str:
-    t = a64.FIELD_INFO.get(ok)
-    assert t is not None, f"NYI: {ok}"
-    if isinstance(t, list):
-        return t[data]
-    elif isinstance(t, tuple):
-        if t[1]:
-            data = a64.SignedIntFromBits(data, t[1])
-        if t[0]:
-            return hex(data * t[2])
-        else:
-            return str(data * t[2])
-    assert isinstance(t, a64.CustomField)
-    if t.datatype == int:
-        return hex(t.decoder(data))
-    else:
-        return str(t.decoder(data))
+def _FloatFrom64BitRepresentation(data: int) -> float:
+    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
 
+
+def SymbolizeOperand(ok: a64.OK, data: int) -> str:
+    t = a64.FIELD_DETAILS.get(ok)
+    assert t is not None, f"NYI: {ok}"
+    data = a64.DecodeOperand(ok, data)
+    if t.kind == a64.FK.LIST:
+        return t.names[data]
+    elif t.kind == a64.FK.FLT_CUSTOM:
+        # we only care about the float aspect
+        data = _FloatFrom64BitRepresentation(data)
+        return str(data)
+    elif t.kind == a64.FK.INT_SIGNED:
+        # we only care about the signed aspect
+        if data >= 1 << 63:
+            data -= (1 << 64)
+        return str(data)
+    elif t.kind == a64.FK.INT_HEX or t.kind == a64.FK.INT_CUSTOM:
+        return hex(data)
+    else:
+        return str(data)
 
 
 def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:

@@ -3,22 +3,27 @@ could not disassemble 0
 OPCODE adrp 
     XREG_0_4                            x0         (0)
     SIMM_PCREL_5_23_29_30               136        (136)
+flags: OPC_FLAG.0
 
 9126c000 add_x_imm x0 x0 0x9b0
 OPCODE add x_imm
     XREG_0_4_SP                         x0         (0)
     XREG_5_9_SP                         x0         (0)
     IMM_SHIFTED_10_21_22                0x9b0      (2480)
+flags: OPC_FLAG.STACK_OPS
 
 14014192 b 82322
 OPCODE b 
     SIMM_PCREL_0_25                     82322      (82322)
+flags: OPC_FLAG.BRANCH
 
 97fffcf7 bl -777
 OPCODE bl 
     SIMM_PCREL_0_25                     -777       (67108087)
+flags: OPC_FLAG.IMPLICIT_LINK_REG|CALL
 
 54000140 b_eq 10
 OPCODE b.eq 
     SIMM_PCREL_5_23                     10         (10)
+flags: OPC_FLAG.COND_BRANCH
 

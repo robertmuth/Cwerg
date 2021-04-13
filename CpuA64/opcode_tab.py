@@ -59,8 +59,7 @@ def Decode8BitFlt(x: int) -> float:
     x >>= 4
     exponent = (x & 7) ^ 4
     sign = (x >> 3)
-    ieee64 = int.to_bytes(_MakeIeee64(sign, mantissa, exponent), 8, 'little')
-    return struct.unpack("d", ieee64)[0]
+    return _MakeIeee64(sign, mantissa, exponent)
 
 
 def Bits(*patterns) -> Tuple[int, int]:
@@ -88,7 +87,7 @@ def ror(x: int, bit_size: int, amount: int) -> int:
 
 # https://stackoverflow.com/questions/30904718/range-of-immediate-values-in-armv8-a64-assembly/33265035#33265035
 # table: https://gist.github.com/dinfuehr/51a01ac58c0b23e4de9aac313ed6a06a
-def DecodeLogicImmediate(x, reg_size) -> int:
+def DecodeLogicImmediate(x: int, reg_size: int) -> int:
     n = x >> 12
     r = (x >> 6) & 0x3f
     s = x & 0x3f
@@ -114,7 +113,15 @@ def DecodeLogicImmediate(x, reg_size) -> int:
     return ror(pattern, reg_size, r)
 
 
-def Encode_10_15_16_22_X(x) -> Optional[int]:
+def Decode_10_15_16_22_X(x: int) -> int:
+    return DecodeLogicImmediate(x, 64)
+
+
+def Decode_10_15_16_22_W(x: int) -> int:
+    return DecodeLogicImmediate(x, 32)
+
+
+def Encode_10_15_16_22_X(x: int) -> Optional[int]:
     if x == 0 or x == ((1 << 64) - 1):
         return None
     # determine pattern width
@@ -141,7 +148,7 @@ def Encode_10_15_16_22_X(x) -> Optional[int]:
     return None
 
 
-def Encode_10_15_16_22_W(x) -> Optional[int]:
+def Encode_10_15_16_22_W(x: int) -> Optional[int]:
     if x == 0 or x == ((1 << 32) - 1) or (x >> 32) != 0:
         return None
     # determine pattern width
@@ -189,6 +196,17 @@ def EncodeShifted_5_20_21_22(x: int) -> Optional[int]:
             return x | (i << 16)
         x >>= 16
     return None
+
+
+def DecodeFltZero(x) -> int:
+    """Returns the integer representation of 32 bit float zero"""
+    assert x == 0
+    return 0
+
+
+def EncodeFltZero(x: int) -> Optional[int]:
+    """Expects a 32 bit float in integer representation"""
+    return 0 if x == 0 else None
 
 
 def ExtractBits(data, mask) -> int:
@@ -343,67 +361,87 @@ BIT_RANGE = Tuple[int, int]
 
 class FieldInfo:
 
-    def __init__(self, ranges, kind, enum_class=None, scale=1, decoder=None, encoder=None):
+    def __init__(self, ranges, kind, names=[], names_enum="",
+                 scale=1, decoder=None, encoder=None):
         self.ranges: List[BIT_RANGE] = ranges
         self.bitwidth: int = sum([r[0] for r in ranges])
         self.kind: FK = kind
-        self.enum_class = enum_class
-        self.names: List[str] = [p.name for p in enum_class] if enum_class else []
+        self.names: List[str] = names
         self.scale: int = scale
         self.decoder = decoder
         self.encoder = encoder
+        if names_enum:
+            if len(names_enum) == 1:
+                self.names = [f"{names_enum}{i}" for i in range(32)]
+            else:
+                prefix, last = names_enum.split("_")
+                self.names = [f"{prefix}{i}" for i in range(31)] + [last]
         assert scale == 1 or kind in {FK.INT, FK.INT_SIGNED}
 
 
 # used for raw-decoding
 FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.Invalid: FieldInfo([], FK.NONE),
-    OK.WREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.WREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.WREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.WREG_16_20: FieldInfo([(5, 16)], FK.LIST),
-    OK.WREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST),
-    OK.WREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST),
+    OK.WREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="w_wzr"),
+    OK.WREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="w_wzr"),
+    OK.WREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="w_wzr"),
+    OK.WREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="w_wzr"),
     #
-    OK.XREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.XREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.XREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.XREG_16_20: FieldInfo([(5, 16)], FK.LIST),
-    OK.XREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST),
-    OK.XREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST),
+    OK.WREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names_enum="w_sp"),
+    OK.WREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names_enum="w_sp"),
     #
-    OK.SREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.SREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.SREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.SREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.XREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="x_xzr"),
+    OK.XREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="x_xzr"),
+    OK.XREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="x_xzr"),
+    OK.XREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="x_xzr"),
     #
-    OK.DREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.DREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.DREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.DREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.XREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names_enum="x_sp"),
+    OK.XREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names_enum="x_sp"),
     #
-    OK.BREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.BREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.BREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.BREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.SREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="s"),
+    OK.SREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="s"),
+    OK.SREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="s"),
+    OK.SREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="s"),
     #
-    OK.HREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.HREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.HREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.HREG_16_20: FieldInfo([(5, 16)], FK.LIST),
+    OK.DREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="d"),
+    OK.DREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="d"),
+    OK.DREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="d"),
+    OK.DREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="d"),
     #
-    OK.QREG_0_4: FieldInfo([(5, 0)], FK.LIST),
-    OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST),
-    OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST),
-    OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST),
-
-    OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_CUSTOM),
-    OK.IMM_10_15_16_22_X: FieldInfo([(13, 10)], FK.INT_CUSTOM),
-    OK.IMM_SHIFTED_10_21_22: FieldInfo([(13, 10)], FK.INT_CUSTOM),
-    OK.IMM_SHIFTED_5_20_21_22: FieldInfo([(18, 5)], FK.INT_CUSTOM),
+    OK.BREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="b"),
+    OK.BREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="b"),
+    OK.BREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="b"),
+    OK.BREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="b"),
     #
-    OK.FLT_13_20: FieldInfo([(8, 13)], FK.FLT_CUSTOM),
-    OK.IMM_FLT_ZERO: FieldInfo([], FK.FLT_CUSTOM),
+    OK.HREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="h"),
+    OK.HREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="h"),
+    OK.HREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="h"),
+    OK.HREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="h"),
+    #
+    OK.QREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="q"),
+    OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="q"),
+    OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="q"),
+    OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="q"),
+    #
+    OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+                                    decoder=Decode_10_15_16_22_W,
+                                    encoder=Encode_10_15_16_22_W),
+    OK.IMM_10_15_16_22_X: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+                                    decoder=Decode_10_15_16_22_X,
+                                    encoder=Encode_10_15_16_22_X),
+    OK.IMM_SHIFTED_10_21_22: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+                                       decoder=DecodeShifted_10_21_22,
+                                       encoder=EncodeShifted_10_21_22),
+    OK.IMM_SHIFTED_5_20_21_22: FieldInfo([(18, 5)], FK.INT_CUSTOM,
+                                         decoder=DecodeShifted_5_20_21_22,
+                                         encoder=EncodeShifted_5_20_21_22),
+    #
+    OK.FLT_13_20: FieldInfo([(8, 13)], FK.FLT_CUSTOM,
+                            decoder=Decode8BitFlt,
+                            encoder=Encode8BitFlt),
+    OK.IMM_FLT_ZERO: FieldInfo([], FK.FLT_CUSTOM,
+                               decoder=DecodeFltZero,
+                               encoder=EncodeFltZero),
     #
     OK.IMM_5_20: FieldInfo([(16, 5)], FK.INT_HEX),
     OK.IMM_COND_0_3: FieldInfo([(4, 0)], FK.INT_HEX),
@@ -415,10 +453,10 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.IMM_19_23_31: FieldInfo([(1, 31), (5, 19)], FK.INT),
     OK.IMM_10_12_LIMIT4: FieldInfo([(3, 10)], FK.INT),
     #
-    OK.IMM_10_21_times_2: FieldInfo([(12, 10)], FK.INT),
-    OK.IMM_10_21_times_4: FieldInfo([(12, 10)], FK.INT),
-    OK.IMM_10_21_times_8: FieldInfo([(12, 10)], FK.INT),
-    OK.IMM_10_21_times_16: FieldInfo([(12, 10)], FK.INT),
+    OK.IMM_10_21_times_2: FieldInfo([(12, 10)], FK.INT, scale=2),
+    OK.IMM_10_21_times_4: FieldInfo([(12, 10)], FK.INT, scale=4),
+    OK.IMM_10_21_times_8: FieldInfo([(12, 10)], FK.INT, scale=8),
+    OK.IMM_10_21_times_16: FieldInfo([(12, 10)], FK.INT, scale=16),
     #
     OK.IMM_12_MAYBE_SHIFT_0: FieldInfo([(1, 12)], FK.INT, scale=0),
     OK.IMM_12_MAYBE_SHIFT_1: FieldInfo([(1, 12)], FK.INT, scale=1),
@@ -436,10 +474,10 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.SIMM_PCREL_0_25: FieldInfo([(26, 0)], FK.INT_SIGNED),
     OK.SIMM_PCREL_5_18: FieldInfo([(14, 5)], FK.INT_SIGNED),
     #
-    OK.SHIFT_22_23: FieldInfo([(2, 22)], FK.LIST),
-    OK.SHIFT_22_23_NO_ROR: FieldInfo([(2, 22)], FK.LIST),
-    OK.SHIFT_15_W: FieldInfo([(1, 15)], FK.LIST),
-    OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST),
+    OK.SHIFT_22_23: FieldInfo([(2, 22)], FK.LIST, names=["lsl", "lsr", "asr", "ror"]),
+    OK.SHIFT_22_23_NO_ROR: FieldInfo([(2, 22)], FK.LIST, names=["lsl", "lsr", "asr"]),
+    OK.SHIFT_15_W: FieldInfo([(1, 15)], FK.LIST, names=["uxtw", "sxtw"]),
+    OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST, names=["lsl", "sxtx"]),
 }
 
 
@@ -495,9 +533,9 @@ FIELD_INFO: Dict[OK, Any] = {
     OK.IMM_SHIFTED_5_20_21_22: CustomField(
         int, DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22),
     OK.IMM_10_15_16_22_W: CustomField(
-        int, lambda x: DecodeLogicImmediate(x, 32), Encode_10_15_16_22_W),
+        int, Decode_10_15_16_22_W, Encode_10_15_16_22_W),
     OK.IMM_10_15_16_22_X: CustomField(
-        int, lambda x: DecodeLogicImmediate(x, 64), Encode_10_15_16_22_X),
+        int, Decode_10_15_16_22_X, Encode_10_15_16_22_X),
     OK.IMM_SHIFTED_10_21_22: CustomField(
         int, DecodeShifted_10_21_22, EncodeShifted_10_21_22),
     #
@@ -549,7 +587,48 @@ for ok in OK:
     assert ok in FIELD_INFO
 
 
-def DecodeOperand(ok: OK, value: int) -> int:
+def EncodeOperand(ok: OK, val: int) -> int:
+    """Expects an unsigned 32 bit integer and emit it raw encoded equivalent
+       to be insert into an a32 instruction as an operand
+
+    The val can be interpreted as 32 bit signed ot even a 32bit float depending
+    on t.kind.
+    """
+    assert val >= 0
+    t = FIELD_DETAILS[ok]
+    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        return t.encoder(val)
+    elif t.kind == FK.LIST:
+        assert val < len(t.names)
+        return val
+    elif t.kind == FK.INT_SIGNED:
+        rest = val >> (t.bitwidth - 1)
+        assert rest == 0 or rest + 1 == (1 << (32 - t.bitwidth + 1))
+        return val & ((1 << t.bitwidth) - 1)
+    if t.scale != 1:
+        assert val % t.scale == 0
+        val //= t.scale
+
+    assert (val >> t.bitwidth) == 0
+    return val
+
+
+def DecodeOperand(ok: OK, val: int) -> int:
+    """Convert a raw operand into something more human friendly
+
+    Most operands are just passed through only a handful of OKs need this
+    """
+    t = FIELD_DETAILS[ok]
+    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        return t.decoder(val)
+    elif t.kind == FK.INT_SIGNED:
+        val = SignedIntFromBits(val, t.bitwidth)
+    if t.scale != 1:
+        val *= t.scale
+    return val & ((1 << 64) - 1)
+
+
+def ExtractOperand(ok: OK, value: int) -> int:
     """ Decodes an operand into an int."""
     tmp = 0
     for width, pos in FIELD_DETAILS[ok].ranges:
@@ -559,7 +638,7 @@ def DecodeOperand(ok: OK, value: int) -> int:
     return tmp
 
 
-def EncodeOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
+def InsertOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial
@@ -695,14 +774,14 @@ class Opcode:
             self.fields), f"not enough operands for {self.NameForEnum()}"
         bits = [(self.bit_mask, self.bit_value, 0)]
         for f, o in zip(self.fields, operands):
-            bits += EncodeOperand(f, o)
+            bits += InsertOperand(f, o)
         bit_mask, bit_value = Bits(*bits)
         assert bit_mask == 0xffffffff, f"{self.name} BAD MASK {bit_mask:08x}"
         return bit_value
 
     def DisassembleOperands(self, data: int) -> List[int]:
         assert data & self.bit_mask == self.bit_value, f"bit-pattern for opcode for {self.name}_{self.variant} {data:x}"
-        return [DecodeOperand(f, data)
+        return [ExtractOperand(f, data)
                 for f in self.fields]
 
     @classmethod

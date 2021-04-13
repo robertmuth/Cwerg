@@ -20,6 +20,7 @@ def handle_opcode(data):
     print("OPCODE", ins.opcode.name, ins.opcode.variant)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         print(f"    {f.name:35s} {o_str:10} ({o})")
+    print(f"flags: {ins.opcode.classes}")
     print()
     data2 = a64.Assemble(ins)
     assert data == data2
