@@ -40,11 +40,7 @@ def _MakeIeee64(sign, mantissa4bit, exponent) -> int:
     return (sign << 63) | ((exponent - 3 + 1023) << 52) | (mantissa4bit << 48)
 
 
-def Encode8BitFlt(val: float) -> Optional[int]:
-    assert isinstance(val, float)
-    data = struct.pack("d", val)
-    assert len(data) == 8
-    ieee64 = int.from_bytes(data, 'little')
+def Encode8BitFlt(ieee64: int) -> Optional[int]:
     mantissa = ieee64 & ((1 << 52) - 1)
     ieee64 >>= 52
     exponent = (ieee64 & ((1 << 11) - 1)) - 1023 + 3
@@ -307,9 +303,9 @@ class OK(enum.Enum):
     # signed immediate
     SIMM_PCREL_0_25 = 37
     SIMM_12_20 = 38
-    SIMM_15_21_TIMES16 = 39
-    SIMM_15_21_TIMES4 = 40
-    SIMM_15_21_TIMES8 = 41
+    SIMM_15_21_TIMES_16 = 39
+    SIMM_15_21_TIMES_4 = 40
+    SIMM_15_21_TIMES_8 = 41
     SIMM_PCREL_5_18 = 42
     SIMM_PCREL_5_23 = 43
     SIMM_PCREL_5_23_29_30 = 44
@@ -321,10 +317,10 @@ class OK(enum.Enum):
     IMM_10_15_16_22_X = 48
     IMM_10_21 = 49
     IMM_SHIFTED_10_21_22 = 50
-    IMM_10_21_times_16 = 51
-    IMM_10_21_times_2 = 52
-    IMM_10_21_times_4 = 53
-    IMM_10_21_times_8 = 54
+    IMM_10_21_TIMES_16 = 51
+    IMM_10_21_TIMES_2 = 52
+    IMM_10_21_TIMES_4 = 53
+    IMM_10_21_TIMES_8 = 54
     IMM_12_MAYBE_SHIFT_0 = 55
     IMM_12_MAYBE_SHIFT_1 = 56
     IMM_12_MAYBE_SHIFT_2 = 57
@@ -453,10 +449,10 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.IMM_19_23_31: FieldInfo([(1, 31), (5, 19)], FK.INT),
     OK.IMM_10_12_LIMIT4: FieldInfo([(3, 10)], FK.INT),
     #
-    OK.IMM_10_21_times_2: FieldInfo([(12, 10)], FK.INT, scale=2),
-    OK.IMM_10_21_times_4: FieldInfo([(12, 10)], FK.INT, scale=4),
-    OK.IMM_10_21_times_8: FieldInfo([(12, 10)], FK.INT, scale=8),
-    OK.IMM_10_21_times_16: FieldInfo([(12, 10)], FK.INT, scale=16),
+    OK.IMM_10_21_TIMES_2: FieldInfo([(12, 10)], FK.INT, scale=2),
+    OK.IMM_10_21_TIMES_4: FieldInfo([(12, 10)], FK.INT, scale=4),
+    OK.IMM_10_21_TIMES_8: FieldInfo([(12, 10)], FK.INT, scale=8),
+    OK.IMM_10_21_TIMES_16: FieldInfo([(12, 10)], FK.INT, scale=16),
     #
     OK.IMM_12_MAYBE_SHIFT_0: FieldInfo([(1, 12)], FK.INT, scale=0),
     OK.IMM_12_MAYBE_SHIFT_1: FieldInfo([(1, 12)], FK.INT, scale=1),
@@ -465,9 +461,9 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.IMM_12_MAYBE_SHIFT_4: FieldInfo([(1, 12)], FK.INT, scale=4),
     #
     OK.SIMM_12_20: FieldInfo([(9, 12)], FK.INT_SIGNED),
-    OK.SIMM_15_21_TIMES4: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=4),
-    OK.SIMM_15_21_TIMES8: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=8),
-    OK.SIMM_15_21_TIMES16: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=16),
+    OK.SIMM_15_21_TIMES_4: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=4),
+    OK.SIMM_15_21_TIMES_8: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=8),
+    OK.SIMM_15_21_TIMES_16: FieldInfo([(7, 15)], FK.INT_SIGNED, scale=16),
     #
     OK.SIMM_PCREL_5_23: FieldInfo([(19, 5)], FK.INT_SIGNED),
     OK.SIMM_PCREL_5_23_29_30: FieldInfo([(19, 5), (2, 29)], FK.INT_SIGNED),
@@ -481,110 +477,8 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
 }
 
 
-@dataclasses.dataclass
-class CustomField:
-    datatype: Any
-    decoder: Any
-    encoder: Any
-
-
-# used for (un)symbolizing
-FIELD_INFO: Dict[OK, Any] = {
-    OK.Invalid: None,
-    OK.WREG_0_4: [f"w{i}" for i in range(31)] + ["wzr"],
-    OK.WREG_5_9: [f"w{i}" for i in range(31)] + ["wzr"],
-    OK.WREG_10_14: [f"w{i}" for i in range(31)] + ["wzr"],
-    OK.WREG_16_20: [f"w{i}" for i in range(31)] + ["wzr"],
-    OK.WREG_0_4_SP: [f"w{i}" for i in range(31)] + ["sp"],
-    OK.WREG_5_9_SP: [f"w{i}" for i in range(31)] + ["sp"],
-    #
-    OK.XREG_0_4: [f"x{i}" for i in range(31)] + ["xzr"],
-    OK.XREG_5_9: [f"x{i}" for i in range(31)] + ["xzr"],
-    OK.XREG_10_14: [f"x{i}" for i in range(31)] + ["xzr"],
-    OK.XREG_16_20: [f"x{i}" for i in range(31)] + ["xzr"],
-    OK.XREG_0_4_SP: [f"x{i}" for i in range(31)] + ["sp"],
-    OK.XREG_5_9_SP: [f"x{i}" for i in range(31)] + ["sp"],
-    #
-    OK.SREG_0_4: [f"s{i}" for i in range(32)],
-    OK.SREG_5_9: [f"s{i}" for i in range(32)],
-    OK.SREG_10_14: [f"s{i}" for i in range(32)],
-    OK.SREG_16_20: [f"s{i}" for i in range(32)],
-    #
-    OK.DREG_0_4: [f"d{i}" for i in range(32)],
-    OK.DREG_5_9: [f"d{i}" for i in range(32)],
-    OK.DREG_10_14: [f"d{i}" for i in range(32)],
-    OK.DREG_16_20: [f"d{i}" for i in range(32)],
-    #
-    OK.BREG_0_4: [f"b{i}" for i in range(32)],
-    OK.BREG_5_9: [f"b{i}" for i in range(32)],
-    OK.BREG_10_14: [f"b{i}" for i in range(32)],
-    OK.BREG_16_20: [f"b{i}" for i in range(32)],
-    #
-    OK.HREG_0_4: [f"h{i}" for i in range(32)],
-    OK.HREG_5_9: [f"h{i}" for i in range(32)],
-    OK.HREG_10_14: [f"h{i}" for i in range(32)],
-    OK.HREG_16_20: [f"h{i}" for i in range(32)],
-    #
-    OK.QREG_0_4: [f"q{i}" for i in range(32)],
-    OK.QREG_5_9: [f"q{i}" for i in range(32)],
-    OK.QREG_10_14: [f"q{i}" for i in range(32)],
-    OK.QREG_16_20: [f"q{i}" for i in range(32)],
-    #
-    OK.IMM_SHIFTED_5_20_21_22: CustomField(
-        int, DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22),
-    OK.IMM_10_15_16_22_W: CustomField(
-        int, Decode_10_15_16_22_W, Encode_10_15_16_22_W),
-    OK.IMM_10_15_16_22_X: CustomField(
-        int, Decode_10_15_16_22_X, Encode_10_15_16_22_X),
-    OK.IMM_SHIFTED_10_21_22: CustomField(
-        int, DecodeShifted_10_21_22, EncodeShifted_10_21_22),
-    #
-    OK.FLT_13_20: CustomField(
-        float, Decode8BitFlt, Encode8BitFlt),
-    OK.IMM_FLT_ZERO: CustomField(
-        float, lambda x: 0.0, lambda x: 0 if x == 0.0 else None),
-
-    # Triple Format: is dec/hex, sign-bits, scale
-    OK.IMM_5_20: (True, 0, 1),
-    OK.IMM_16_20: (True, 0, 1),
-    OK.IMM_COND_0_3: (True, 0, 1),
-    #
-    OK.IMM_16_21: (False, 0, 1),
-    OK.IMM_10_15: (False, 0, 1),
-    OK.IMM_10_21: (False, 0, 1),
-    OK.IMM_19_23_31: (False, 0, 1),
-    OK.IMM_10_12_LIMIT4: (False, 0, 1),
-    #
-    OK.IMM_10_21_times_2: (False, 0, 2),
-    OK.IMM_10_21_times_4: (False, 0, 4),
-    OK.IMM_10_21_times_8: (False, 0, 8),
-    OK.IMM_10_21_times_16: (False, 0, 16),
-    #
-    OK.IMM_12_MAYBE_SHIFT_0: (False, 0, 0),  # returns zero regardless
-    OK.IMM_12_MAYBE_SHIFT_1: (False, 0, 1),
-    OK.IMM_12_MAYBE_SHIFT_2: (False, 0, 2),
-    OK.IMM_12_MAYBE_SHIFT_3: (False, 0, 3),
-    OK.IMM_12_MAYBE_SHIFT_4: (False, 0, 4),
-    #
-    OK.SIMM_12_20: (False, 9, 1),
-    OK.SIMM_15_21_TIMES4: (False, 7, 4),
-    OK.SIMM_15_21_TIMES8: (False, 7, 8),
-    OK.SIMM_15_21_TIMES16: (False, 7, 16),
-    #
-    OK.SIMM_PCREL_5_23: (False, 19, 1),
-    OK.SIMM_PCREL_5_23_29_30: (False, 21, 1),
-    OK.SIMM_PCREL_0_25: (False, 26, 1),
-    OK.SIMM_PCREL_5_18: (False, 14, 1),
-    #
-    OK.SHIFT_22_23: ["lsl", "lsr", "asr", "ror"],
-    OK.SHIFT_22_23_NO_ROR: ["lsl", "lsr", "asr"],
-    OK.SHIFT_15_W: ["uxtw", "sxtw"],
-    OK.SHIFT_15_X: ["lsl", "sxtx"],
-}
-
 for ok in OK:
     assert ok in FIELD_DETAILS
-    assert ok in FIELD_INFO
 
 
 def EncodeOperand(ok: OK, val: int) -> int:
@@ -594,20 +488,21 @@ def EncodeOperand(ok: OK, val: int) -> int:
     The val can be interpreted as 32 bit signed ot even a 32bit float depending
     on t.kind.
     """
-    assert val >= 0
+    #assert (1 << 64) > val >= 0
     t = FIELD_DETAILS[ok]
-    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
-        return t.encoder(val)
-    elif t.kind == FK.LIST:
-        assert val < len(t.names)
-        return val
-    elif t.kind == FK.INT_SIGNED:
-        rest = val >> (t.bitwidth - 1)
-        assert rest == 0 or rest + 1 == (1 << (32 - t.bitwidth + 1))
-        return val & ((1 << t.bitwidth) - 1)
-    if t.scale != 1:
+    if t.scale > 1:
         assert val % t.scale == 0
         val //= t.scale
+
+    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        val = t.encoder(val)
+    elif t.kind == FK.LIST:
+        assert val < len(t.names)
+    elif t.kind == FK.INT_SIGNED:
+        if val < 0: val += 1 << 64
+        rest = val >> (t.bitwidth - 1)
+        assert rest == 0 or rest + 1 == (1 << (64 - t.bitwidth + 1))
+        val &= ((1 << t.bitwidth) - 1)
 
     assert (val >> t.bitwidth) == 0
     return val
@@ -881,9 +776,9 @@ for ext, w_bit in [("x", (7, 6, 29)), ("w", (7, 4, 29)), ("h", (7, 2, 29)), ("b"
     Opcode("stlr", ext, [w_bit, root010, (0xffff, 0x27ff, 10)],
            [OK.XREG_5_9, reg], OPC_FLAG.STORE | OPC_FLAG.ATOMIC)
 
-for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
-                        ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4),
-                        ("sw", (7, 3, 29), OK.SIMM_15_21_TIMES4)]:
+for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES_8),
+                        ("w", (7, 1, 29), OK.SIMM_15_21_TIMES_4),
+                        ("sw", (7, 3, 29), OK.SIMM_15_21_TIMES_4)]:
     dst1 = OK.XREG_0_4 if ext != "w" else OK.WREG_0_4
     dst2 = OK.XREG_10_14 if ext != "w" else OK.WREG_10_14
     Opcode("ldp", ext + "_imm_post", [w_bit, root010, (0xf, 3, 22)],
@@ -893,8 +788,8 @@ for ext, w_bit, imm in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
     Opcode("ldp", ext + "_imm", [w_bit, root010, (0xf, 5, 22)],
            [dst1, dst2, OK.XREG_5_9_SP, imm], OPC_FLAG.LOAD | OPC_FLAG.REG_PAIR)
 
-for ext, w_bit, imm_scaled in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
-                               ("w", (7, 1, 29), OK.SIMM_15_21_TIMES4)]:
+for ext, w_bit, imm_scaled in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES_8),
+                               ("w", (7, 1, 29), OK.SIMM_15_21_TIMES_4)]:
     src1 = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     src2 = OK.XREG_10_14 if ext == "x" else OK.WREG_10_14
     Opcode("stp", ext + "_imm_post", [w_bit, root010, (0xf, 2, 22)],
@@ -909,9 +804,9 @@ for ext, w_bit, imm_scaled in [("x", (7, 5, 29), OK.SIMM_15_21_TIMES8),
 root011 = (7, 3, 26)
 ########################################
 for ext, reg1, reg2, imm, bits in [
-    ("s", OK.SREG_0_4, OK.SREG_10_14, OK.SIMM_15_21_TIMES4, (7, 1, 29)),
-    ("d", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_TIMES8, (7, 3, 29)),
-    ("q", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_TIMES16, (7, 5, 29))]:
+    ("s", OK.SREG_0_4, OK.SREG_10_14, OK.SIMM_15_21_TIMES_4, (7, 1, 29)),
+    ("d", OK.DREG_0_4, OK.DREG_10_14, OK.SIMM_15_21_TIMES_8, (7, 3, 29)),
+    ("q", OK.QREG_0_4, OK.QREG_10_14, OK.SIMM_15_21_TIMES_16, (7, 5, 29))]:
     Opcode("fstp", ext + "_imm_post", [bits, root011, (0xf, 2, 22)],
            [OK.XREG_5_9_SP, imm, reg1, reg2, ], OPC_FLAG.STORE | OPC_FLAG.REG_PAIR)
     Opcode("fstp", ext + "_imm_pre", [bits, root011, (0xf, 6, 22)],
@@ -1085,9 +980,9 @@ for name, bits in [("smulh", [(3, 0, 29), (7, 2, 21), (1, 0, 15)]),
            [OK.XREG_0_4, OK.XREG_5_9, OK.XREG_16_20], OPC_FLAG(0))
 
 for ext, scaled_offset, w_bits, shift in [
-    ("x", OK.IMM_10_21_times_8, (7, 7, 29), OK.IMM_12_MAYBE_SHIFT_3),
-    ("w", OK.IMM_10_21_times_4, (7, 5, 29), OK.IMM_12_MAYBE_SHIFT_2),
-    ("h", OK.IMM_10_21_times_2, (7, 3, 29), OK.IMM_12_MAYBE_SHIFT_1),
+    ("x", OK.IMM_10_21_TIMES_8, (7, 7, 29), OK.IMM_12_MAYBE_SHIFT_3),
+    ("w", OK.IMM_10_21_TIMES_4, (7, 5, 29), OK.IMM_12_MAYBE_SHIFT_2),
+    ("h", OK.IMM_10_21_TIMES_2, (7, 3, 29), OK.IMM_12_MAYBE_SHIFT_1),
     ("b", OK.IMM_10_21, (7, 1, 29), OK.IMM_12_MAYBE_SHIFT_0)]:
     src = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
     dst = OK.XREG_0_4 if ext == "x" else OK.WREG_0_4
@@ -1279,10 +1174,10 @@ for ext, dst, src, bits in [
 
 for ext, reg, bits, scaled_imm, shift in [
     ("b", OK.BREG_0_4, [(3, 0, 30), (1, 0, 23)], OK.IMM_10_21, OK.IMM_12_MAYBE_SHIFT_0),
-    ("h", OK.HREG_0_4, [(3, 1, 30), (1, 0, 23)], OK.IMM_10_21_times_2, OK.IMM_12_MAYBE_SHIFT_1),
-    ("s", OK.SREG_0_4, [(3, 2, 30), (1, 0, 23)], OK.IMM_10_21_times_4, OK.IMM_12_MAYBE_SHIFT_2),
-    ("d", OK.DREG_0_4, [(3, 3, 30), (1, 0, 23)], OK.IMM_10_21_times_8, OK.IMM_12_MAYBE_SHIFT_3),
-    ("q", OK.QREG_0_4, [(3, 0, 30), (1, 1, 23)], OK.IMM_10_21_times_16, OK.IMM_12_MAYBE_SHIFT_4)]:
+    ("h", OK.HREG_0_4, [(3, 1, 30), (1, 0, 23)], OK.IMM_10_21_TIMES_2, OK.IMM_12_MAYBE_SHIFT_1),
+    ("s", OK.SREG_0_4, [(3, 2, 30), (1, 0, 23)], OK.IMM_10_21_TIMES_4, OK.IMM_12_MAYBE_SHIFT_2),
+    ("d", OK.DREG_0_4, [(3, 3, 30), (1, 0, 23)], OK.IMM_10_21_TIMES_8, OK.IMM_12_MAYBE_SHIFT_3),
+    ("q", OK.QREG_0_4, [(3, 0, 30), (1, 1, 23)], OK.IMM_10_21_TIMES_16, OK.IMM_12_MAYBE_SHIFT_4)]:
     ld_bits = [(1, 1, 29), root111, (1, 1, 22)] + bits
     Opcode("fldr", ext + "_imm_post", [(3, 0, 24), (1, 0, 21), (3, 1, 10)] + ld_bits,
            [reg, OK.XREG_5_9_SP, OK.SIMM_12_20], OPC_FLAG.LOAD)

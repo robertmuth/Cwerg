@@ -33,6 +33,12 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         return str(data)
 
 
+def _FloatTo64BitRepresentation(num: float) -> int:
+    b = struct.pack('<d', num)
+    assert len(b) == 8
+    return int.from_bytes(b, "little")
+
+
 def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
     """
     Converts a string into and int suitable for the provided `ok`
@@ -40,31 +46,20 @@ def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
     #66 -> 65
     x0 -> 0
     asr -> 2
-
     """
-    t = a64.FIELD_INFO.get(ok)
+    t = a64.FIELD_DETAILS.get(ok)
     assert t is not None, f"NYI: {ok}"
 
-    if isinstance(t, list):
+    if t.kind == a64.FK.LIST:
         # assert op in t, f"{op} not in {t}"
-        return t.index(op)
-    elif isinstance(t, tuple):
-        i = int(op, 0)  # skip "#", must handle "0x" prefix
-        if t[2] > 1:
-            # handle scaling
-            x = i // t[2]
-            assert x * t[2] == i
-            i = x
-        if t[1] == 0:
-            return i  # unsigned
-        return i & ((1 << t[1]) - 1)
-
-    assert isinstance(t, a64.CustomField), f"expected CustomField got: {t} for {ok}"
-    if t.datatype == int:
-        return t.encoder(int(op, 0))
-
-    assert t.datatype == float
-    return t.encoder(float(op))
+        data = t.names.index(op)
+    elif t.kind == a64.FK.FLT_CUSTOM:
+        # we only care about the float aspect
+        data = _FloatTo64BitRepresentation(float(op))
+    else:
+        data = int(op, 0)  # skip "#", must handle "0x" prefix
+        # note we intentionally allow negative numbers here
+    return a64.EncodeOperand(ok, data)
 
 
 _RELOC_KIND_MAP = {
