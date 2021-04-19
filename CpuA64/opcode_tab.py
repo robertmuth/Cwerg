@@ -16,9 +16,12 @@ import sys
 
 _DEBUG = False
 
-# e.g.  add x0 x1 x2 lsl 0
+# Maximum number of operands an opcode can have. Worst case is
+# dd x0 x1 x2 lsl 0
 MAX_OPERANDS = 5
 
+# Maximum number of bit ranges within an instruction word an operand can
+# be comprised of.
 MAX_BIT_RANGES = 2
 
 CONDITION_CODES = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
@@ -29,12 +32,14 @@ CONDITION_CODES_INV_MAP = {code: CONDITION_CODES[n ^ 1] for
 
 
 def _MakeFloat(sign, mantissa4bit, exponent) -> float:
+    """convert the 3 components of an 8bit a64 float to a python float"""
     sign = sign * -2 + 1
     mantissa4bit |= 16
     return ((0.125 * mantissa4bit) / 16) * (1 << exponent) * sign
 
 
 def _MakeIeee64(sign, mantissa4bit, exponent) -> int:
+    """convert the 3 components of an 8bit a64 float to an ieeee 64 bit float"""
     assert 0 <= exponent <= 7
     assert 0 <= mantissa4bit <= 15
     return (sign << 63) | ((exponent - 3 + 1023) << 52) | (mantissa4bit << 48)
@@ -348,7 +353,7 @@ class FK(enum.Enum):
     INT = 2
     INT_HEX = 3
     INT_SIGNED = 4
-    INT_CUSTOM = 5
+    INT_HEX_CUSTOM = 5
     FLT_CUSTOM = 6
 
 
@@ -357,7 +362,7 @@ BIT_RANGE = Tuple[int, int]
 
 class FieldInfo:
 
-    def __init__(self, ranges, kind, names=[], names_enum="",
+    def __init__(self, ranges, kind, names=[],
                  scale=1, decoder=None, encoder=None):
         self.ranges: List[BIT_RANGE] = ranges
         self.bitwidth: int = sum([r[0] for r in ranges])
@@ -366,69 +371,73 @@ class FieldInfo:
         self.scale: int = scale
         self.decoder = decoder
         self.encoder = encoder
-        if names_enum:
-            if len(names_enum) == 1:
-                self.names = [f"{names_enum}{i}" for i in range(32)]
-            else:
-                prefix, last = names_enum.split("_")
-                self.names = [f"{prefix}{i}" for i in range(31)] + [last]
         assert scale == 1 or kind in {FK.INT, FK.INT_SIGNED}
 
+
+REG_WZR = [f"w{i}" for i in range(31)] + ["wzr"]
+REG_WSP = [f"w{i}" for i in range(31)] + ["sp"]
+REG_XZR = [f"x{i}" for i in range(31)] + ["xzr"]
+REG_XSP = [f"x{i}" for i in range(31)] + ["sp"]
+REG_S = [f"s{i}" for i in range(32)]
+REG_D = [f"d{i}" for i in range(32)]
+REG_B = [f"b{i}" for i in range(32)]
+REG_H = [f"h{i}" for i in range(32)]
+REG_Q = [f"q{i}" for i in range(32)]
 
 # used for raw-decoding
 FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.Invalid: FieldInfo([], FK.NONE),
-    OK.WREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="w_wzr"),
-    OK.WREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="w_wzr"),
-    OK.WREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="w_wzr"),
-    OK.WREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="w_wzr"),
+    OK.WREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_WZR),
+    OK.WREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_WZR),
+    OK.WREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_WZR),
+    OK.WREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_WZR),
     #
-    OK.WREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names_enum="w_sp"),
-    OK.WREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names_enum="w_sp"),
+    OK.WREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names=REG_WSP),
+    OK.WREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names=REG_WSP),
     #
-    OK.XREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="x_xzr"),
-    OK.XREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="x_xzr"),
-    OK.XREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="x_xzr"),
-    OK.XREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="x_xzr"),
+    OK.XREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_XZR),
+    OK.XREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_XZR),
+    OK.XREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_XZR),
+    OK.XREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_XZR),
     #
-    OK.XREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names_enum="x_sp"),
-    OK.XREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names_enum="x_sp"),
+    OK.XREG_0_4_SP: FieldInfo([(5, 0)], FK.LIST, names=REG_XSP),
+    OK.XREG_5_9_SP: FieldInfo([(5, 5)], FK.LIST, names=REG_XSP),
     #
-    OK.SREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="s"),
-    OK.SREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="s"),
-    OK.SREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="s"),
-    OK.SREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="s"),
+    OK.SREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_S),
+    OK.SREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_S),
+    OK.SREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_S),
+    OK.SREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_S),
     #
-    OK.DREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="d"),
-    OK.DREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="d"),
-    OK.DREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="d"),
-    OK.DREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="d"),
+    OK.DREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_D),
+    OK.DREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_D),
+    OK.DREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_D),
+    OK.DREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_D),
     #
-    OK.BREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="b"),
-    OK.BREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="b"),
-    OK.BREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="b"),
-    OK.BREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="b"),
+    OK.BREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_B),
+    OK.BREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_B),
+    OK.BREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_B),
+    OK.BREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_B),
     #
-    OK.HREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="h"),
-    OK.HREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="h"),
-    OK.HREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="h"),
-    OK.HREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="h"),
+    OK.HREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_H),
+    OK.HREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_H),
+    OK.HREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_H),
+    OK.HREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_H),
     #
-    OK.QREG_0_4: FieldInfo([(5, 0)], FK.LIST, names_enum="q"),
-    OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST, names_enum="q"),
-    OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST, names_enum="q"),
-    OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST, names_enum="q"),
+    OK.QREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_Q),
+    OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_Q),
+    OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_Q),
+    OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_Q),
     #
-    OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+    OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_HEX_CUSTOM,
                                     decoder=Decode_10_15_16_22_W,
                                     encoder=Encode_10_15_16_22_W),
-    OK.IMM_10_15_16_22_X: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+    OK.IMM_10_15_16_22_X: FieldInfo([(13, 10)], FK.INT_HEX_CUSTOM,
                                     decoder=Decode_10_15_16_22_X,
                                     encoder=Encode_10_15_16_22_X),
-    OK.IMM_SHIFTED_10_21_22: FieldInfo([(13, 10)], FK.INT_CUSTOM,
+    OK.IMM_SHIFTED_10_21_22: FieldInfo([(13, 10)], FK.INT_HEX_CUSTOM,
                                        decoder=DecodeShifted_10_21_22,
                                        encoder=EncodeShifted_10_21_22),
-    OK.IMM_SHIFTED_5_20_21_22: FieldInfo([(18, 5)], FK.INT_CUSTOM,
+    OK.IMM_SHIFTED_5_20_21_22: FieldInfo([(18, 5)], FK.INT_HEX_CUSTOM,
                                          decoder=DecodeShifted_5_20_21_22,
                                          encoder=EncodeShifted_5_20_21_22),
     #
@@ -476,7 +485,6 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST, names=["lsl", "sxtx"]),
 }
 
-
 for ok in OK:
     assert ok in FIELD_DETAILS
 
@@ -488,13 +496,12 @@ def EncodeOperand(ok: OK, val: int) -> int:
     The val can be interpreted as 32 bit signed ot even a 32bit float depending
     on t.kind.
     """
-    #assert (1 << 64) > val >= 0
+    # assert (1 << 64) > val >= 0
     t = FIELD_DETAILS[ok]
     if t.scale > 1:
         assert val % t.scale == 0
         val //= t.scale
-
-    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+    if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
         val = t.encoder(val)
     elif t.kind == FK.LIST:
         assert val < len(t.names)
@@ -514,7 +521,7 @@ def DecodeOperand(ok: OK, val: int) -> int:
     Most operands are just passed through only a handful of OKs need this
     """
     t = FIELD_DETAILS[ok]
-    if t.kind == FK.INT_CUSTOM or t.kind == FK.FLT_CUSTOM:
+    if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
         return t.decoder(val)
     elif t.kind == FK.INT_SIGNED:
         val = SignedIntFromBits(val, t.bitwidth)
@@ -1335,6 +1342,7 @@ def _EmitCodeH(fout):
     print(f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
     print(f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
 
+    cgen.RenderEnum(cgen.NameValues(FK), "class FK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OPC_FLAG), "OPC_FLAG", fout)
@@ -1388,18 +1396,20 @@ def _RenderOpcodeTableJumper() -> List[str]:
     return out
 
 
-def _RenderOperandKindTable():
+def _RenderFieldInfoTable(names_map):
     out = []
     for n, ok in enumerate(OK):
-        assert n == ok.value, f"OK exptected {n} for {ok}"
-        if ok is OK.Invalid:
-            bit_ranges = []
-        else:
-            bit_ranges = FIELD_DETAILS[ok]
-        assert len(bit_ranges) <= MAX_BIT_RANGES
+        assert n == ok.value
+        fd = FIELD_DETAILS[ok]
+        ranges = ', '.join(["{%d, %d}" % (a, b) for a, b in fd.ranges])
+        names = ', '.join([f'"{n}"' for n in fd.names])
+        decoder = fd.decoder.__name__ if fd.decoder else 'nullptr'
+        encoder = fd.encoder.__name__ if fd.encoder else 'nullptr'
 
-        ranges_str = ["{%d, %d}" % (a, b) for a, b in bit_ranges]
-        out += [f"  {{ {{ {', '.join(ranges_str)} }} }}, // {ok.name} = {ok.value}"]
+        out += ['  {  // %s = %d' % (ok.name, ok.value)]
+        out += ['    {%s}, %s,' % (ranges, names_map.get(ok, "nullptr"))]
+        out += ['    %s, %s, %d, FK::%s, %d, %d},' %
+                (decoder, encoder, fd.bitwidth, fd.kind.name, fd.scale, len(fd.names))]
     return out
 
 
@@ -1421,6 +1431,30 @@ def _RenderMnemonicHashLookup():
     return ["   " + " ".join(items[i:i + 4]) for i in range(0, len(items), 4)]
 
 
+def _RenderNameMaps(fout):
+    out = {}
+    last_list = None
+    last_ok = None
+    for ok in OK:
+        fd = FIELD_DETAILS[ok]
+        if not fd.names:
+            continue
+        if fd.names == last_list:
+            out[ok] = out[last_ok]
+        else:
+            last_list = fd.names
+            last_ok = ok
+            name = f"NameMap_{ok.name}"
+            out[ok] = name
+            print(f"// Names for {ok.name}", file=fout)
+            print(f"const char* {name}[] = {{", file=fout)
+            for i in range(0, len(fd.names), 8):
+                chunk = [f'"{n}"' for n in fd.names[i:i +8]]
+                print(f"    {', '.join(chunk)},", file=fout)
+            print("};", file=fout)
+    return out
+
+
 def _EmitCodeC(fout):
     print("// Indexed by OPC", file=fout)
     print("const Opcode OpcodeTable[] = {", file=fout)
@@ -1435,9 +1469,11 @@ def _EmitCodeC(fout):
     print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
     print("};\n", file=fout)
     #
+    names_map = _RenderNameMaps(fout)
+    #
     print("// Indexed by OK", file=fout)
-    print("static const Field FieldTable[] = {", file=fout)
-    print("\n".join(_RenderOperandKindTable()), file=fout)
+    print("const FieldInfo FieldInfoTable[] = {", file=fout)
+    print("\n".join(_RenderFieldInfoTable(names_map)), file=fout)
     print("};\n", file=fout)
 
     print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)

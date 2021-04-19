@@ -14,7 +14,7 @@ tests: tests_py tests_c
 tests_py: objdump_compat_test argv_test disassembler_test  $(TESTS:.asm=.test)
 
 
-tests_c:
+tests_c: objdump_compat_test_c
 
 objdump_compat_test:
 	@echo "[$@]"

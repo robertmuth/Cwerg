@@ -27,7 +27,7 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         if data >= 1 << 63:
             data -= (1 << 64)
         return str(data)
-    elif t.kind == a64.FK.INT_HEX or t.kind == a64.FK.INT_CUSTOM:
+    elif t.kind == a64.FK.INT_HEX or t.kind == a64.FK.INT_HEX_CUSTOM:
         return hex(data)
     else:
         return str(data)

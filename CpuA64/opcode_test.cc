@@ -235,7 +235,7 @@ void CheckEncodeDecode() {
         const uint32_t n = size == 64;
         const uint32_t s = sm | (ones - 1);
         const uint32_t i = (n << 12) | (r << 6) | s;
-        uint64_t x = a64::Decode_10_15_16_22(i, 64);
+        uint64_t x = a64::Decode_10_15_16_22_X(i);
         // std::cout << std::hex << n << " " << r << " " << s << " pattern " <<
         // x
         //          << "\n";

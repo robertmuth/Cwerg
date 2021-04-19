@@ -10,22 +10,11 @@
 #include <vector>
 
 namespace cwerg::a64 {
-using namespace cwerg;
 
 extern std::string_view InsSymbolize(const a64::Ins& ins,
-                                     std::vector<std::string>* operands);
+                                     std::vector<std::string>* ops);
 
-extern int32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
+extern bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins);
 
-const uint32_t kEncodeFailure = 0xffffffff;
-
-// may return kEncodeFailure
-extern uint32_t Encode8BitFlt(double val);
-extern double Decode8BitFlt(uint32_t x);
-
-// may return kEncodeFailure
-extern uint32_t Encode_10_15_16_22_X(uint64_t val);
-extern uint32_t Encode_10_15_16_22_W(uint64_t val);
-extern uint64_t Decode_10_15_16_22(uint32_t x, uint32_t reg_size);
 
 }  // namespace cwerg::a64

@@ -4,14 +4,174 @@
 
 namespace cwerg::a64 {
 
-struct BitRange {
-  uint8_t width; // if this is zero , the bitrange is invalid
-  uint8_t position;
-};
-
 struct Field {
   BitRange bit_ranges[MAX_BIT_RANGES];
 };
+
+uint64_t DecodeShifted_10_21_22(uint32_t x) {
+  return (x & 0xfff) << (12U * (x >> 12U));
+}
+
+uint32_t EncodeShifted_10_21_22(uint64_t x) {
+  for (unsigned i = 0; i < 2; i++) {
+    if ((x & 0xfff) == x) {
+      return x | (i << 12U);
+    }
+    x >>= 12U;
+  }
+  return kEncodeFailure;
+}
+
+uint64_t DecodeShifted_5_20_21_22(uint32_t x) {
+  return (x & 0xffff) << (16U * (x >> 16U));
+}
+
+uint32_t EncodeShifted_5_20_21_22(uint64_t x) {
+  for (unsigned i = 0; i < 4; i++) {
+    if ((x & 0xffff) == x) {
+      return x | (i << 16U);
+    }
+    x >>= 16U;
+  }
+  return kEncodeFailure;
+}
+
+uint64_t MakeIeee64(uint64_t sign, uint64_t mantissa, uint64_t exponent) {
+  ASSERT(0 <= exponent && exponent <= 7, "");
+  ASSERT(0 <= mantissa && mantissa <= 15, "");
+  return (sign << 63U) | ((exponent - 3 + 1023) << 52U) | (mantissa << 48U);
+}
+
+uint32_t Encode8BitFlt(uint64_t ieee64) {
+  uint64_t mantissa = ieee64 & ((1ULL << 52U) - 1);
+  ieee64 >>= 52;
+  uint64_t exponent = (ieee64 & ((1U << 11U) - 1)) - 1023 + 3;
+  uint64_t sign = ieee64 >> 11U;
+  if (0 <= exponent <= 7 && ((mantissa >> 48U) << 48U) == mantissa) {
+    return (sign << 7U) | ((exponent ^ 4U) << 4U) | (mantissa >> 48U);
+  }
+  return kEncodeFailure;
+}
+
+uint64_t Decode8BitFlt(uint32_t x) {
+  const uint32_t mantissa = (x & 0xf);
+  x >>= 4;
+  const uint32_t exponent = (x & 7U) ^ 4;
+  const uint32_t sign = (x >> 3U);
+  return MakeIeee64(sign, mantissa, exponent);
+}
+
+uint64_t DecodeFltZero(uint32_t val) {
+  ASSERT(val == 0, "");
+  return 0;  // binary encoding of double(0.0)
+}
+
+uint32_t EncodeFltZero(uint64_t val) {
+  if (val != 0) return kEncodeFailure;
+  return 0;
+}
+
+uint64_t ror(uint64_t x, uint32_t bit_size, uint32_t amount) {
+  uint64_t mask = (1ULL << amount) - 1;
+  return (x >> amount) | ((x & mask) << (bit_size - amount));
+}
+
+uint64_t Decode_10_15_16_22(uint32_t x, uint32_t reg_size) {
+  const uint32_t n = x >> 12U;
+  const uint32_t r = (x >> 6U) & 0x3f;
+  const uint32_t s = x & 0x3f;
+  uint32_t size = 64;
+  uint32_t ones = s + 1;
+  if (n != 1) {
+    size = 32;
+    while ((size & s) != 0) size >>= 1U;
+    ones = 1 + (s & (size - 1));
+    ASSERT(ones != size, "");
+  }
+  uint64_t pattern = (1ULL << ones) - 1;
+  while (size < reg_size) {
+    pattern |= pattern << size;
+    size *= 2;
+  }
+  return ror(pattern, reg_size, r);
+}
+
+uint64_t Decode_10_15_16_22_W(uint32_t x) {
+  return  Decode_10_15_16_22(x, 32);
+}
+
+uint64_t Decode_10_15_16_22_X(uint32_t x) {
+  return  Decode_10_15_16_22(x, 64);
+}
+
+
+uint32_t Encode_10_15_16_22_X(uint64_t x) {
+  if (x == 0 || (x + 1) == 0) return kEncodeFailure;
+  // for size, sm in
+  // [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2, 0x3c)]
+  uint32_t size;
+  uint32_t sm = 0;
+  for (size = 64; size >= 2; size >>= 1U) {
+    const uint32_t shift = size >> 1U;
+    const uint32_t a = x & ((1U << shift) - 1);
+    const uint32_t b = x >> shift;
+    if (a == b) {
+      x = a;
+    } else {
+      break;
+    }
+
+    if (size <= 32) {
+      sm += size;
+    }
+  }
+  ASSERT(size != 1, "");
+  // const uint32_t sm = size > 16 ? 0 :
+  const uint32_t n = size == 64 ? 1 : 0;
+  const uint32_t ones = __builtin_popcountll(x);
+  const uint64_t ones_mask = (1ULL << ones) - 1;
+  for (uint32_t r = 0; r < size; ++r) {
+    if (x == ror(ones_mask, size, r)) {
+      const uint32_t s = sm | (ones - 1);
+      return (n << 12U) | (r << 6U) | s;
+    }
+  }
+  return kEncodeFailure;
+}
+
+uint32_t Encode_10_15_16_22_W(uint64_t x) {
+  if (x == 0 || x == ((1UL << 32U) - 1) || (x >> 32U) != 0) return kEncodeFailure;
+  // for size, sm in
+  // [(64, 0), (32, 0), (16, 0x20), (8, 0x30), (4, 0x38), (2, 0x3c)]
+  uint32_t size;
+  uint32_t sm = 0;
+  for (size = 32; size >= 2; size >>= 1U) {
+    const uint32_t shift = size >> 1U;
+    const uint32_t a = x & ((1U << shift) - 1);
+    const uint32_t b = x >> shift;
+    if (a == b) {
+      x = a;
+    } else {
+      break;
+    }
+
+    if (size <= 32) {
+      sm += size;
+    }
+  }
+  ASSERT(size != 1, "");
+  // const uint32_t sm = size > 16 ? 0 :
+  const uint32_t n = size == 64 ? 1 : 0;
+  const uint32_t ones = __builtin_popcountll(x);
+  const uint64_t ones_mask = (1ULL << ones) - 1;
+  for (uint32_t r = 0; r < size; ++r) {
+    if (x == ror(ones_mask, size, r)) {
+      const uint32_t s = sm | (ones - 1);
+      return (n << 12U) | (r << 6U) | s;
+    }
+  }
+  return kEncodeFailure;
+}
 
 /* @AUTOGEN-START@ */
 // Indexed by OPC
@@ -27,11 +187,11 @@ const Opcode OpcodeTable[] = {
 },
 {"adcs_w", 0xffe0fc00, 0x3a000000,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
- 
+ SR_UPDATE
 },
 {"adcs_x", 0xffe0fc00, 0xba000000,
  3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
- 
+ SR_UPDATE
 },
 {"add_w_imm", 0xff800000, 0x11000000,
  3, {OK::WREG_0_4_SP, OK::WREG_5_9_SP, OK::IMM_SHIFTED_10_21_22},
@@ -115,83 +275,83 @@ const Opcode OpcodeTable[] = {
 },
 {"adds_w_imm", 0xff800000, 0x31000000,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_SHIFTED_10_21_22},
- 
+ SR_UPDATE
 },
 {"adds_w_reg", 0xff200000, 0x2b000000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"adds_w_reg_sxtb", 0xffe0e000, 0x2b208000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_sxth", 0xffe0e000, 0x2b20a000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_sxtw", 0xffe0e000, 0x2b20c000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_sxtx", 0xffe0e000, 0x2b20e000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_uxtb", 0xffe0e000, 0x2b200000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_uxth", 0xffe0e000, 0x2b202000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_uxtw", 0xffe0e000, 0x2b204000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_w_reg_uxtx", 0xffe0e000, 0x2b206000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_imm", 0xff800000, 0xb1000000,
  3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_SHIFTED_10_21_22},
- 
+ SR_UPDATE
 },
 {"adds_x_reg", 0xff200000, 0xab000000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"adds_x_reg_sxtb", 0xffe0e000, 0xab208000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_sxth", 0xffe0e000, 0xab20a000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_sxtw", 0xffe0e000, 0xab20c000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_sxtx", 0xffe0e000, 0xab20e000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_uxtb", 0xffe0e000, 0xab200000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_uxth", 0xffe0e000, 0xab202000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_uxtw", 0xffe0e000, 0xab204000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adds_x_reg_uxtx", 0xffe0e000, 0xab206000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"adr", 0x9f000000, 0x10000000,
  2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23_29_30},
@@ -219,19 +379,19 @@ const Opcode OpcodeTable[] = {
 },
 {"ands_w_imm", 0xff800000, 0x72000000,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
- 
+ SR_UPDATE
 },
 {"ands_w_reg", 0xff200000, 0x6a000000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"ands_x_imm", 0xff800000, 0xf2000000,
  3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_10_15_16_22_X},
- 
+ SR_UPDATE
 },
 {"ands_x_reg", 0xff200000, 0xea000000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"asrv_w", 0xffe0fc00, 0x1ac02800,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
@@ -319,19 +479,19 @@ const Opcode OpcodeTable[] = {
 },
 {"bics_w_reg", 0xff200000, 0x6a200000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"bics_x_reg", 0xff200000, 0xea200000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"bl", 0xfc000000, 0x94000000,
- 2, {OK::REG_LINK, OK::SIMM_PCREL_0_25},
- CALL
+ 1, {OK::SIMM_PCREL_0_25},
+ CALL | IMPLICIT_LINK_REG
 },
 {"blr", 0xfffffc1f, 0xd63f0000,
  1, {OK::XREG_5_9},
- CALL_INDIRECT
+ CALL_INDIRECT | IMPLICIT_LINK_REG
 },
 {"br", 0xfffffc1f, 0xd61f0000,
  1, {OK::XREG_5_9},
@@ -1806,39 +1966,39 @@ const Opcode OpcodeTable[] = {
  
 },
 {"fldp_d_imm", 0xffc00000, 0x6d400000,
- 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"fldp_d_imm_post", 0xffc00000, 0x6cc00000,
- 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"fldp_d_imm_pre", 0xffc00000, 0x6dc00000,
- 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::DREG_0_4, OK::DREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"fldp_q_imm", 0xffc00000, 0xad400000,
- 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16},
  LOAD | REG_PAIR
 },
 {"fldp_q_imm_post", 0xffc00000, 0xacc00000,
- 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16},
  LOAD | REG_PAIR
 },
 {"fldp_q_imm_pre", 0xffc00000, 0xadc00000,
- 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16},
+ 4, {OK::QREG_0_4, OK::QREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16},
  LOAD | REG_PAIR
 },
 {"fldp_s_imm", 0xffc00000, 0x2d400000,
- 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"fldp_s_imm_post", 0xffc00000, 0x2cc00000,
- 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"fldp_s_imm_pre", 0xffc00000, 0x2dc00000,
- 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::SREG_0_4, OK::SREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"fldr_b_imm", 0xffc00000, 0x3d400000,
@@ -1862,7 +2022,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"fldr_d_imm", 0xffc00000, 0xfd400000,
- 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_8},
+ 3, {OK::DREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_8},
  LOAD
 },
 {"fldr_d_imm_post", 0xffe00c00, 0xfc400400,
@@ -1882,7 +2042,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"fldr_h_imm", 0xffc00000, 0x7d400000,
- 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ 3, {OK::HREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2},
  LOAD
 },
 {"fldr_h_imm_post", 0xffe00c00, 0x7c400400,
@@ -1902,7 +2062,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"fldr_q_imm", 0xffc00000, 0x3dc00000,
- 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_16},
+ 3, {OK::QREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_16},
  LOAD
 },
 {"fldr_q_imm_post", 0xffe00c00, 0x3cc00400,
@@ -1922,7 +2082,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"fldr_s_imm", 0xffc00000, 0xbd400000,
- 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ 3, {OK::SREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_4},
  LOAD
 },
 {"fldr_s_imm_post", 0xffe00c00, 0xbc400400,
@@ -2138,39 +2298,39 @@ const Opcode OpcodeTable[] = {
  
 },
 {"fstp_d_imm", 0xffc00000, 0x6d000000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::DREG_0_4, OK::DREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_d_imm_post", 0xffc00000, 0x6c800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::DREG_0_4, OK::DREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_d_imm_pre", 0xffc00000, 0x6d800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::DREG_0_4, OK::DREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::DREG_0_4, OK::DREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_q_imm", 0xffc00000, 0xad000000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16, OK::QREG_0_4, OK::QREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_q_imm_post", 0xffc00000, 0xac800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16, OK::QREG_0_4, OK::QREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_q_imm_pre", 0xffc00000, 0xad800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES16, OK::QREG_0_4, OK::QREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_16, OK::QREG_0_4, OK::QREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_s_imm", 0xffc00000, 0x2d000000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::SREG_0_4, OK::SREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_s_imm_post", 0xffc00000, 0x2c800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::SREG_0_4, OK::SREG_10_14},
  STORE | REG_PAIR
 },
 {"fstp_s_imm_pre", 0xffc00000, 0x2d800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::SREG_0_4, OK::SREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::SREG_0_4, OK::SREG_10_14},
  STORE | REG_PAIR
 },
 {"fstr_b_imm", 0xffc00000, 0x3d000000,
@@ -2194,7 +2354,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"fstr_d_imm", 0xffc00000, 0xfd000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_8, OK::DREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_8, OK::DREG_0_4},
  STORE
 },
 {"fstr_d_imm_post", 0xffe00c00, 0xfc000400,
@@ -2214,7 +2374,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"fstr_h_imm", 0xffc00000, 0x7d000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_2, OK::HREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2, OK::HREG_0_4},
  STORE
 },
 {"fstr_h_imm_post", 0xffe00c00, 0x7c000400,
@@ -2234,7 +2394,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"fstr_q_imm", 0xffc00000, 0x3d800000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_16, OK::QREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_16, OK::QREG_0_4},
  STORE
 },
 {"fstr_q_imm_post", 0xffe00c00, 0x3c800400,
@@ -2254,7 +2414,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"fstr_s_imm", 0xffc00000, 0xbd000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_4, OK::SREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_4, OK::SREG_0_4},
  STORE
 },
 {"fstr_s_imm_post", 0xffe00c00, 0xbc000400,
@@ -2342,39 +2502,39 @@ const Opcode OpcodeTable[] = {
  LOAD | ATOMIC
 },
 {"ldp_sw_imm", 0xffc00000, 0x69400000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_sw_imm_post", 0xffc00000, 0x68c00000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_sw_imm_pre", 0xffc00000, 0x69c00000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_w_imm", 0xffc00000, 0x29400000,
- 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_w_imm_post", 0xffc00000, 0x28c00000,
- 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_w_imm_pre", 0xffc00000, 0x29c00000,
- 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4},
+ 4, {OK::WREG_0_4, OK::WREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4},
  LOAD | REG_PAIR
 },
 {"ldp_x_imm", 0xffc00000, 0xa9400000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"ldp_x_imm_post", 0xffc00000, 0xa8c00000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"ldp_x_imm_pre", 0xffc00000, 0xa9c00000,
- 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8},
+ 4, {OK::XREG_0_4, OK::XREG_10_14, OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8},
  LOAD | REG_PAIR
 },
 {"ldr_b_imm", 0xffc00000, 0x39400000,
@@ -2398,7 +2558,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldr_h_imm", 0xffc00000, 0x79400000,
- 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2},
  LOAD
 },
 {"ldr_h_imm_post", 0xffe00c00, 0x78400400,
@@ -2418,7 +2578,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldr_w_imm", 0xffc00000, 0xb9400000,
- 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_4},
  LOAD
 },
 {"ldr_w_imm_post", 0xffe00c00, 0xb8400400,
@@ -2438,7 +2598,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldr_x_imm", 0xffc00000, 0xf9400000,
- 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_8},
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_8},
  LOAD
 },
 {"ldr_x_imm_post", 0xffe00c00, 0xf8400400,
@@ -2498,7 +2658,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldrsh_w_imm", 0xffc00000, 0x79c00000,
- 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ 3, {OK::WREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2},
  LOAD
 },
 {"ldrsh_w_imm_post", 0xffe00c00, 0x78c00400,
@@ -2518,7 +2678,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldrsh_x_imm", 0xffc00000, 0x79800000,
- 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_2},
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2},
  LOAD
 },
 {"ldrsh_x_imm_post", 0xffe00c00, 0x78800400,
@@ -2538,7 +2698,7 @@ const Opcode OpcodeTable[] = {
  LOAD
 },
 {"ldrsw_imm", 0xffc00000, 0xb9800000,
- 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_times_4},
+ 3, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_4},
  LOAD
 },
 {"ldrsw_imm_post", 0xffe00c00, 0xb8800400,
@@ -2743,11 +2903,11 @@ const Opcode OpcodeTable[] = {
 },
 {"sbcs_w", 0xffe0fc00, 0x7a000000,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20},
- 
+ SR_UPDATE
 },
 {"sbcs_x", 0xffe0fc00, 0xfa000000,
  3, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20},
- 
+ SR_UPDATE
 },
 {"sbfm_w", 0xffc00000, 0x13000000,
  4, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
@@ -2826,27 +2986,27 @@ const Opcode OpcodeTable[] = {
  STORE | ATOMIC_WITH_STATUS
 },
 {"stp_w_imm", 0xffc00000, 0x29000000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::WREG_0_4, OK::WREG_10_14},
  STORE | REG_PAIR
 },
 {"stp_w_imm_post", 0xffc00000, 0x28800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::WREG_0_4, OK::WREG_10_14},
  STORE | REG_PAIR
 },
 {"stp_w_imm_pre", 0xffc00000, 0x29800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES4, OK::WREG_0_4, OK::WREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_4, OK::WREG_0_4, OK::WREG_10_14},
  STORE | REG_PAIR
 },
 {"stp_x_imm", 0xffc00000, 0xa9000000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::XREG_0_4, OK::XREG_10_14},
  STORE | REG_PAIR
 },
 {"stp_x_imm_post", 0xffc00000, 0xa8800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::XREG_0_4, OK::XREG_10_14},
  STORE | REG_PAIR
 },
 {"stp_x_imm_pre", 0xffc00000, 0xa9800000,
- 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES8, OK::XREG_0_4, OK::XREG_10_14},
+ 4, {OK::XREG_5_9_SP, OK::SIMM_15_21_TIMES_8, OK::XREG_0_4, OK::XREG_10_14},
  STORE | REG_PAIR
 },
 {"str_b_imm", 0xffc00000, 0x39000000,
@@ -2870,7 +3030,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"str_h_imm", 0xffc00000, 0x79000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_2, OK::WREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_2, OK::WREG_0_4},
  STORE
 },
 {"str_h_imm_post", 0xffe00c00, 0x78000400,
@@ -2890,7 +3050,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"str_w_imm", 0xffc00000, 0xb9000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_4, OK::WREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_4, OK::WREG_0_4},
  STORE
 },
 {"str_w_imm_post", 0xffe00c00, 0xb8000400,
@@ -2910,7 +3070,7 @@ const Opcode OpcodeTable[] = {
  STORE
 },
 {"str_x_imm", 0xffc00000, 0xf9000000,
- 3, {OK::XREG_5_9_SP, OK::IMM_10_21_times_8, OK::XREG_0_4},
+ 3, {OK::XREG_5_9_SP, OK::IMM_10_21_TIMES_8, OK::XREG_0_4},
  STORE
 },
 {"str_x_imm_post", 0xffe00c00, 0xf8000400,
@@ -3043,83 +3203,83 @@ const Opcode OpcodeTable[] = {
 },
 {"subs_w_imm", 0xff800000, 0x71000000,
  3, {OK::WREG_0_4, OK::WREG_5_9, OK::IMM_SHIFTED_10_21_22},
- 
+ SR_UPDATE
 },
 {"subs_w_reg", 0xff200000, 0x6b000000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"subs_w_reg_sxtb", 0xffe0e000, 0x6b208000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_sxth", 0xffe0e000, 0x6b20a000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_sxtw", 0xffe0e000, 0x6b20c000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_sxtx", 0xffe0e000, 0x6b20e000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_uxtb", 0xffe0e000, 0x6b200000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_uxth", 0xffe0e000, 0x6b202000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_uxtw", 0xffe0e000, 0x6b204000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_w_reg_uxtx", 0xffe0e000, 0x6b206000,
  4, {OK::WREG_0_4, OK::WREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_imm", 0xff800000, 0xf1000000,
  3, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_SHIFTED_10_21_22},
- 
+ SR_UPDATE
 },
 {"subs_x_reg", 0xff200000, 0xeb000000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23_NO_ROR, OK::IMM_10_15},
- 
+ SR_UPDATE
 },
 {"subs_x_reg_sxtb", 0xffe0e000, 0xeb208000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_sxth", 0xffe0e000, 0xeb20a000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_sxtw", 0xffe0e000, 0xeb20c000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_sxtx", 0xffe0e000, 0xeb20e000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_uxtb", 0xffe0e000, 0xeb200000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_uxth", 0xffe0e000, 0xeb202000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_uxtw", 0xffe0e000, 0xeb204000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::WREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"subs_x_reg_uxtx", 0xffe0e000, 0xeb206000,
  4, {OK::XREG_0_4, OK::XREG_5_9_SP, OK::XREG_16_20, OK::IMM_10_12_LIMIT4},
- EXTENSION_PARAM
+ SR_UPDATE | EXTENSION_PARAM
 },
 {"svc", 0xffe0001f, 0xd4000001,
  1, {OK::IMM_5_20},
@@ -3814,77 +3974,291 @@ const int16_t OpcodeTableJumper[] = {
 805
 };
 
+// Names for WREG_0_4
+const char* NameMap_WREG_0_4[] = {
+    "w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7",
+    "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15",
+    "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23",
+    "w24", "w25", "w26", "w27", "w28", "w29", "w30", "wzr",
+};
+// Names for XREG_0_4
+const char* NameMap_XREG_0_4[] = {
+    "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7",
+    "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15",
+    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+    "x24", "x25", "x26", "x27", "x28", "x29", "x30", "xzr",
+};
+// Names for SREG_0_4
+const char* NameMap_SREG_0_4[] = {
+    "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+    "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15",
+    "s16", "s17", "s18", "s19", "s20", "s21", "s22", "s23",
+    "s24", "s25", "s26", "s27", "s28", "s29", "s30", "s31",
+};
+// Names for DREG_0_4
+const char* NameMap_DREG_0_4[] = {
+    "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7",
+    "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
+    "d16", "d17", "d18", "d19", "d20", "d21", "d22", "d23",
+    "d24", "d25", "d26", "d27", "d28", "d29", "d30", "d31",
+};
+// Names for BREG_0_4
+const char* NameMap_BREG_0_4[] = {
+    "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7",
+    "b8", "b9", "b10", "b11", "b12", "b13", "b14", "b15",
+    "b16", "b17", "b18", "b19", "b20", "b21", "b22", "b23",
+    "b24", "b25", "b26", "b27", "b28", "b29", "b30", "b31",
+};
+// Names for HREG_0_4
+const char* NameMap_HREG_0_4[] = {
+    "h0", "h1", "h2", "h3", "h4", "h5", "h6", "h7",
+    "h8", "h9", "h10", "h11", "h12", "h13", "h14", "h15",
+    "h16", "h17", "h18", "h19", "h20", "h21", "h22", "h23",
+    "h24", "h25", "h26", "h27", "h28", "h29", "h30", "h31",
+};
+// Names for QREG_0_4
+const char* NameMap_QREG_0_4[] = {
+    "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7",
+    "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
+    "q16", "q17", "q18", "q19", "q20", "q21", "q22", "q23",
+    "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31",
+};
+// Names for WREG_0_4_SP
+const char* NameMap_WREG_0_4_SP[] = {
+    "w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7",
+    "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15",
+    "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23",
+    "w24", "w25", "w26", "w27", "w28", "w29", "w30", "sp",
+};
+// Names for XREG_0_4_SP
+const char* NameMap_XREG_0_4_SP[] = {
+    "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7",
+    "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15",
+    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+    "x24", "x25", "x26", "x27", "x28", "x29", "x30", "sp",
+};
+// Names for SHIFT_22_23
+const char* NameMap_SHIFT_22_23[] = {
+    "lsl", "lsr", "asr", "ror",
+};
+// Names for SHIFT_22_23_NO_ROR
+const char* NameMap_SHIFT_22_23_NO_ROR[] = {
+    "lsl", "lsr", "asr",
+};
+// Names for SHIFT_15_W
+const char* NameMap_SHIFT_15_W[] = {
+    "uxtw", "sxtw",
+};
+// Names for SHIFT_15_X
+const char* NameMap_SHIFT_15_X[] = {
+    "lsl", "sxtx",
+};
 // Indexed by OK
-static const Field FieldTable[] = {
-  { {  } }, // Invalid = 0
-  { { {5, 0} } }, // WREG_0_4 = 1
-  { { {5, 5} } }, // WREG_5_9 = 2
-  { { {5, 10} } }, // WREG_10_14 = 3
-  { { {5, 16} } }, // WREG_16_20 = 4
-  { { {5, 0} } }, // XREG_0_4 = 5
-  { { {5, 5} } }, // XREG_5_9 = 6
-  { { {5, 10} } }, // XREG_10_14 = 7
-  { { {5, 16} } }, // XREG_16_20 = 8
-  { { {5, 0} } }, // SREG_0_4 = 9
-  { { {5, 5} } }, // SREG_5_9 = 10
-  { { {5, 10} } }, // SREG_10_14 = 11
-  { { {5, 16} } }, // SREG_16_20 = 12
-  { { {5, 0} } }, // DREG_0_4 = 13
-  { { {5, 5} } }, // DREG_5_9 = 14
-  { { {5, 10} } }, // DREG_10_14 = 15
-  { { {5, 16} } }, // DREG_16_20 = 16
-  { { {5, 0} } }, // BREG_0_4 = 17
-  { { {5, 5} } }, // BREG_5_9 = 18
-  { { {5, 10} } }, // BREG_10_14 = 19
-  { { {5, 16} } }, // BREG_16_20 = 20
-  { { {5, 0} } }, // HREG_0_4 = 21
-  { { {5, 5} } }, // HREG_5_9 = 22
-  { { {5, 10} } }, // HREG_10_14 = 23
-  { { {5, 16} } }, // HREG_16_20 = 24
-  { { {5, 0} } }, // QREG_0_4 = 25
-  { { {5, 5} } }, // QREG_5_9 = 26
-  { { {5, 10} } }, // QREG_10_14 = 27
-  { { {5, 16} } }, // QREG_16_20 = 28
-  { { {5, 0} } }, // WREG_0_4_SP = 29
-  { { {5, 5} } }, // WREG_5_9_SP = 30
-  { { {5, 0} } }, // XREG_0_4_SP = 31
-  { { {5, 5} } }, // XREG_5_9_SP = 32
-  { {  } }, // REG_LINK = 33
-  { { {2, 22} } }, // SHIFT_22_23 = 34
-  { { {2, 22} } }, // SHIFT_22_23_NO_ROR = 35
-  { { {1, 15} } }, // SHIFT_15_W = 36
-  { { {1, 15} } }, // SHIFT_15_X = 37
-  { { {26, 0} } }, // SIMM_PCREL_0_25 = 38
-  { { {9, 12} } }, // SIMM_12_20 = 39
-  { { {7, 15} } }, // SIMM_15_21_TIMES16 = 40
-  { { {7, 15} } }, // SIMM_15_21_TIMES4 = 41
-  { { {7, 15} } }, // SIMM_15_21_TIMES8 = 42
-  { { {14, 5} } }, // SIMM_PCREL_5_18 = 43
-  { { {19, 5} } }, // SIMM_PCREL_5_23 = 44
-  { { {19, 5}, {2, 29} } }, // SIMM_PCREL_5_23_29_30 = 45
-  { { {3, 10} } }, // IMM_10_12_LIMIT4 = 46
-  { { {6, 10} } }, // IMM_10_15 = 47
-  { { {13, 10} } }, // IMM_10_15_16_22_W = 48
-  { { {13, 10} } }, // IMM_10_15_16_22_X = 49
-  { { {12, 10} } }, // IMM_10_21 = 50
-  { { {13, 10} } }, // IMM_SHIFTED_10_21_22 = 51
-  { { {12, 10} } }, // IMM_10_21_times_16 = 52
-  { { {12, 10} } }, // IMM_10_21_times_2 = 53
-  { { {12, 10} } }, // IMM_10_21_times_4 = 54
-  { { {12, 10} } }, // IMM_10_21_times_8 = 55
-  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_0 = 56
-  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_1 = 57
-  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_2 = 58
-  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_3 = 59
-  { { {1, 12} } }, // IMM_12_MAYBE_SHIFT_4 = 60
-  { { {5, 16} } }, // IMM_16_20 = 61
-  { { {6, 16} } }, // IMM_16_21 = 62
-  { { {1, 31}, {5, 19} } }, // IMM_19_23_31 = 63
-  { { {16, 5} } }, // IMM_5_20 = 64
-  { { {4, 0} } }, // IMM_COND_0_3 = 65
-  { {  } }, // IMM_FLT_ZERO = 66
-  { { {18, 5} } }, // IMM_SHIFTED_5_20_21_22 = 67
-  { { {8, 13} } }, // FLT_13_20 = 68
+const FieldInfo FieldInfoTable[] = {
+  {  // Invalid = 0
+    {}, nullptr,
+    nullptr, nullptr, 0, FK::NONE, 1, 0},
+  {  // WREG_0_4 = 1
+    {{5, 0}}, NameMap_WREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_5_9 = 2
+    {{5, 5}}, NameMap_WREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_10_14 = 3
+    {{5, 10}}, NameMap_WREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_16_20 = 4
+    {{5, 16}}, NameMap_WREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_0_4 = 5
+    {{5, 0}}, NameMap_XREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_5_9 = 6
+    {{5, 5}}, NameMap_XREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_10_14 = 7
+    {{5, 10}}, NameMap_XREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_16_20 = 8
+    {{5, 16}}, NameMap_XREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_0_4 = 9
+    {{5, 0}}, NameMap_SREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_5_9 = 10
+    {{5, 5}}, NameMap_SREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_10_14 = 11
+    {{5, 10}}, NameMap_SREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SREG_16_20 = 12
+    {{5, 16}}, NameMap_SREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // DREG_0_4 = 13
+    {{5, 0}}, NameMap_DREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // DREG_5_9 = 14
+    {{5, 5}}, NameMap_DREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // DREG_10_14 = 15
+    {{5, 10}}, NameMap_DREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // DREG_16_20 = 16
+    {{5, 16}}, NameMap_DREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // BREG_0_4 = 17
+    {{5, 0}}, NameMap_BREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // BREG_5_9 = 18
+    {{5, 5}}, NameMap_BREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // BREG_10_14 = 19
+    {{5, 10}}, NameMap_BREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // BREG_16_20 = 20
+    {{5, 16}}, NameMap_BREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // HREG_0_4 = 21
+    {{5, 0}}, NameMap_HREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // HREG_5_9 = 22
+    {{5, 5}}, NameMap_HREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // HREG_10_14 = 23
+    {{5, 10}}, NameMap_HREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // HREG_16_20 = 24
+    {{5, 16}}, NameMap_HREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // QREG_0_4 = 25
+    {{5, 0}}, NameMap_QREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // QREG_5_9 = 26
+    {{5, 5}}, NameMap_QREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // QREG_10_14 = 27
+    {{5, 10}}, NameMap_QREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // QREG_16_20 = 28
+    {{5, 16}}, NameMap_QREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_0_4_SP = 29
+    {{5, 0}}, NameMap_WREG_0_4_SP,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_5_9_SP = 30
+    {{5, 5}}, NameMap_WREG_0_4_SP,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_0_4_SP = 31
+    {{5, 0}}, NameMap_XREG_0_4_SP,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // XREG_5_9_SP = 32
+    {{5, 5}}, NameMap_XREG_0_4_SP,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // SHIFT_22_23 = 33
+    {{2, 22}}, NameMap_SHIFT_22_23,
+    nullptr, nullptr, 2, FK::LIST, 1, 4},
+  {  // SHIFT_22_23_NO_ROR = 34
+    {{2, 22}}, NameMap_SHIFT_22_23_NO_ROR,
+    nullptr, nullptr, 2, FK::LIST, 1, 3},
+  {  // SHIFT_15_W = 35
+    {{1, 15}}, NameMap_SHIFT_15_W,
+    nullptr, nullptr, 1, FK::LIST, 1, 2},
+  {  // SHIFT_15_X = 36
+    {{1, 15}}, NameMap_SHIFT_15_X,
+    nullptr, nullptr, 1, FK::LIST, 1, 2},
+  {  // SIMM_PCREL_0_25 = 37
+    {{26, 0}}, nullptr,
+    nullptr, nullptr, 26, FK::INT_SIGNED, 1, 0},
+  {  // SIMM_12_20 = 38
+    {{9, 12}}, nullptr,
+    nullptr, nullptr, 9, FK::INT_SIGNED, 1, 0},
+  {  // SIMM_15_21_TIMES_16 = 39
+    {{7, 15}}, nullptr,
+    nullptr, nullptr, 7, FK::INT_SIGNED, 16, 0},
+  {  // SIMM_15_21_TIMES_4 = 40
+    {{7, 15}}, nullptr,
+    nullptr, nullptr, 7, FK::INT_SIGNED, 4, 0},
+  {  // SIMM_15_21_TIMES_8 = 41
+    {{7, 15}}, nullptr,
+    nullptr, nullptr, 7, FK::INT_SIGNED, 8, 0},
+  {  // SIMM_PCREL_5_18 = 42
+    {{14, 5}}, nullptr,
+    nullptr, nullptr, 14, FK::INT_SIGNED, 1, 0},
+  {  // SIMM_PCREL_5_23 = 43
+    {{19, 5}}, nullptr,
+    nullptr, nullptr, 19, FK::INT_SIGNED, 1, 0},
+  {  // SIMM_PCREL_5_23_29_30 = 44
+    {{19, 5}, {2, 29}}, nullptr,
+    nullptr, nullptr, 21, FK::INT_SIGNED, 1, 0},
+  {  // IMM_10_12_LIMIT4 = 45
+    {{3, 10}}, nullptr,
+    nullptr, nullptr, 3, FK::INT, 1, 0},
+  {  // IMM_10_15 = 46
+    {{6, 10}}, nullptr,
+    nullptr, nullptr, 6, FK::INT, 1, 0},
+  {  // IMM_10_15_16_22_W = 47
+    {{13, 10}}, nullptr,
+    Decode_10_15_16_22_W, Encode_10_15_16_22_W, 13, FK::INT_HEX_CUSTOM, 1, 0},
+  {  // IMM_10_15_16_22_X = 48
+    {{13, 10}}, nullptr,
+    Decode_10_15_16_22_X, Encode_10_15_16_22_X, 13, FK::INT_HEX_CUSTOM, 1, 0},
+  {  // IMM_10_21 = 49
+    {{12, 10}}, nullptr,
+    nullptr, nullptr, 12, FK::INT, 1, 0},
+  {  // IMM_SHIFTED_10_21_22 = 50
+    {{13, 10}}, nullptr,
+    DecodeShifted_10_21_22, EncodeShifted_10_21_22, 13, FK::INT_HEX_CUSTOM, 1, 0},
+  {  // IMM_10_21_TIMES_16 = 51
+    {{12, 10}}, nullptr,
+    nullptr, nullptr, 12, FK::INT, 16, 0},
+  {  // IMM_10_21_TIMES_2 = 52
+    {{12, 10}}, nullptr,
+    nullptr, nullptr, 12, FK::INT, 2, 0},
+  {  // IMM_10_21_TIMES_4 = 53
+    {{12, 10}}, nullptr,
+    nullptr, nullptr, 12, FK::INT, 4, 0},
+  {  // IMM_10_21_TIMES_8 = 54
+    {{12, 10}}, nullptr,
+    nullptr, nullptr, 12, FK::INT, 8, 0},
+  {  // IMM_12_MAYBE_SHIFT_0 = 55
+    {{1, 12}}, nullptr,
+    nullptr, nullptr, 1, FK::INT, 0, 0},
+  {  // IMM_12_MAYBE_SHIFT_1 = 56
+    {{1, 12}}, nullptr,
+    nullptr, nullptr, 1, FK::INT, 1, 0},
+  {  // IMM_12_MAYBE_SHIFT_2 = 57
+    {{1, 12}}, nullptr,
+    nullptr, nullptr, 1, FK::INT, 2, 0},
+  {  // IMM_12_MAYBE_SHIFT_3 = 58
+    {{1, 12}}, nullptr,
+    nullptr, nullptr, 1, FK::INT, 3, 0},
+  {  // IMM_12_MAYBE_SHIFT_4 = 59
+    {{1, 12}}, nullptr,
+    nullptr, nullptr, 1, FK::INT, 4, 0},
+  {  // IMM_16_20 = 60
+    {{5, 16}}, nullptr,
+    nullptr, nullptr, 5, FK::INT_HEX, 1, 0},
+  {  // IMM_16_21 = 61
+    {{6, 16}}, nullptr,
+    nullptr, nullptr, 6, FK::INT, 1, 0},
+  {  // IMM_19_23_31 = 62
+    {{1, 31}, {5, 19}}, nullptr,
+    nullptr, nullptr, 6, FK::INT, 1, 0},
+  {  // IMM_5_20 = 63
+    {{16, 5}}, nullptr,
+    nullptr, nullptr, 16, FK::INT_HEX, 1, 0},
+  {  // IMM_COND_0_3 = 64
+    {{4, 0}}, nullptr,
+    nullptr, nullptr, 4, FK::INT_HEX, 1, 0},
+  {  // IMM_FLT_ZERO = 65
+    {}, nullptr,
+    DecodeFltZero, EncodeFltZero, 0, FK::FLT_CUSTOM, 1, 0},
+  {  // IMM_SHIFTED_5_20_21_22 = 66
+    {{18, 5}}, nullptr,
+    DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22, 18, FK::INT_HEX_CUSTOM, 1, 0},
+  {  // FLT_13_20 = 67
+    {{8, 13}}, nullptr,
+    Decode8BitFlt, Encode8BitFlt, 8, FK::FLT_CUSTOM, 1, 0},
 };
 
 constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = 2048;
@@ -4418,7 +4792,7 @@ const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]
 /* @AUTOGEN-END@ */
 
 const Opcode* FindOpcode(uint32_t bit_value) {
-  uint32_t discriminant = (bit_value >> 24) & 0xff;
+  const uint32_t discriminant = (bit_value >> 24U) & 0xff;
   const unsigned start = OpcodeTableJumper[discriminant];
   const unsigned end = OpcodeTableJumper[discriminant + 1];
   for (unsigned i = start; i < end; ++i) {
@@ -4431,13 +4805,13 @@ const Opcode* FindOpcode(uint32_t bit_value) {
 }
 
 uint32_t ExtractOperand(uint32_t data, OK field_kind) {
-  const BitRange* bit_ranges = FieldTable[uint8_t(field_kind)].bit_ranges;
+  const BitRange* bit_ranges = FieldInfoTable[uint8_t(field_kind)].ranges;
 
-  int32_t out = 0;
+  uint32_t out = 0;
   for (unsigned i = 0; i < MAX_BIT_RANGES; ++i) {
     const BitRange* range = bit_ranges + i;
     if (range->width == 0) break;
-    uint32_t mask = (1 << range->width) - 1;
+    uint32_t mask = (1U << range->width) - 1;
     uint32_t x = (data >> range->position) & mask;
     out = x | out << range->width;
   }
@@ -4445,10 +4819,10 @@ uint32_t ExtractOperand(uint32_t data, OK field_kind) {
 }
 
 void InsertOperand(int32_t x,
-                   const Field* field,
+                   OK ok,
                    uint32_t* bits_value,
                    uint32_t* bits_mask) {
-  const BitRange* bit_ranges = field->bit_ranges;
+  const BitRange* bit_ranges = FieldInfoTable[uint8_t(ok)].ranges;
   // backwards is important
   for (int i = MAX_BIT_RANGES - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
@@ -4479,7 +4853,7 @@ uint32_t Assemble(const Ins& ins) {
   for (unsigned i = 0; i < opcode->num_fields; ++i) {
     const OK kind = ins.opcode->fields[i];
     ASSERT(kind != OK::Invalid, "");
-    InsertOperand(ins.operands[i], &FieldTable[uint8_t(kind)], &value, &mask);
+    InsertOperand(ins.operands[i], kind, &value, &mask);
   }
   ASSERT(mask == 0xffffffff, "problems encoding " << opcode->name);
   return value;
@@ -4511,4 +4885,61 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   return nullptr;
 }
 
-}  // namespace cwerg::a32
+uint64_t SignedInt64FromBits(uint64_t data, unsigned n_bits) {
+  uint64_t mask = (1 << n_bits) - 1;
+  data &= mask;
+  bool is_neg = data & (1ULL << (n_bits - 1));
+  return is_neg ? data - (1ULL << n_bits) : data;
+}
+
+uint64_t DecodeOperand(OK ok, uint32_t data) {
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  switch (fi.kind) {
+    default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return 0;
+    case FK::INT_HEX_CUSTOM:
+    case FK::FLT_CUSTOM:
+      return fi.decoder(data);
+    case FK::INT_SIGNED:
+      return SignedInt64FromBits(data, fi.bitwidth) * fi.scale;
+    case FK::INT:
+    case FK::INT_HEX:
+      return (uint64_t)data * fi.scale;
+    case FK::LIST:
+      // check length
+      return (uint64_t)data;
+  }
+}
+
+uint32_t EncodeOperand(OK ok, uint64_t data) {
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  if (fi.scale > 1) {
+    if (data % fi.scale != 0) return kEncodeFailure;
+    data = ((int64_t)data / (int64_t)fi.scale);  // we want signed division!
+  }
+  switch (fi.kind) {
+    default:
+    case FK::NONE:
+      ASSERT(false, "unreachable");
+      return 0;
+    case FK::INT_HEX_CUSTOM:
+    case FK::FLT_CUSTOM:
+      return fi.encoder(data);
+    case FK::LIST:
+      ASSERT(data < fi.num_names, "");
+      return data;
+    case FK::INT_SIGNED: {
+      uint64_t rest = data >> (fi.bitwidth - 1);
+      ASSERT(rest == 0 || rest + 1 == (1 << (64 - fi.bitwidth + 1)), "");
+      return data & ((1 << fi.bitwidth) - 1);
+    }
+    case FK::INT:
+    case FK::INT_HEX:
+      ASSERT(data >> fi.bitwidth == 0, "");
+      return data;
+  }
+}
+
+}  // namespace cwerg::a64

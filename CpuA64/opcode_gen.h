@@ -15,6 +15,16 @@ using namespace cwerg;
 constexpr const unsigned MAX_OPERANDS = 5;
 constexpr const unsigned MAX_BIT_RANGES = 2;
 
+enum class FK : uint8_t {
+    NONE = 0,
+    LIST = 1,
+    INT = 2,
+    INT_HEX = 3,
+    INT_SIGNED = 4,
+    INT_HEX_CUSTOM = 5,
+    FLT_CUSTOM = 6,
+};
+
 enum class OK : uint8_t {
     Invalid = 0,
     WREG_0_4 = 1,
@@ -49,42 +59,41 @@ enum class OK : uint8_t {
     WREG_5_9_SP = 30,
     XREG_0_4_SP = 31,
     XREG_5_9_SP = 32,
-    REG_LINK = 33,
-    SHIFT_22_23 = 34,
-    SHIFT_22_23_NO_ROR = 35,
-    SHIFT_15_W = 36,
-    SHIFT_15_X = 37,
-    SIMM_PCREL_0_25 = 38,
-    SIMM_12_20 = 39,
-    SIMM_15_21_TIMES16 = 40,
-    SIMM_15_21_TIMES4 = 41,
-    SIMM_15_21_TIMES8 = 42,
-    SIMM_PCREL_5_18 = 43,
-    SIMM_PCREL_5_23 = 44,
-    SIMM_PCREL_5_23_29_30 = 45,
-    IMM_10_12_LIMIT4 = 46,
-    IMM_10_15 = 47,
-    IMM_10_15_16_22_W = 48,
-    IMM_10_15_16_22_X = 49,
-    IMM_10_21 = 50,
-    IMM_SHIFTED_10_21_22 = 51,
-    IMM_10_21_times_16 = 52,
-    IMM_10_21_times_2 = 53,
-    IMM_10_21_times_4 = 54,
-    IMM_10_21_times_8 = 55,
-    IMM_12_MAYBE_SHIFT_0 = 56,
-    IMM_12_MAYBE_SHIFT_1 = 57,
-    IMM_12_MAYBE_SHIFT_2 = 58,
-    IMM_12_MAYBE_SHIFT_3 = 59,
-    IMM_12_MAYBE_SHIFT_4 = 60,
-    IMM_16_20 = 61,
-    IMM_16_21 = 62,
-    IMM_19_23_31 = 63,
-    IMM_5_20 = 64,
-    IMM_COND_0_3 = 65,
-    IMM_FLT_ZERO = 66,
-    IMM_SHIFTED_5_20_21_22 = 67,
-    FLT_13_20 = 68,
+    SHIFT_22_23 = 33,
+    SHIFT_22_23_NO_ROR = 34,
+    SHIFT_15_W = 35,
+    SHIFT_15_X = 36,
+    SIMM_PCREL_0_25 = 37,
+    SIMM_12_20 = 38,
+    SIMM_15_21_TIMES_16 = 39,
+    SIMM_15_21_TIMES_4 = 40,
+    SIMM_15_21_TIMES_8 = 41,
+    SIMM_PCREL_5_18 = 42,
+    SIMM_PCREL_5_23 = 43,
+    SIMM_PCREL_5_23_29_30 = 44,
+    IMM_10_12_LIMIT4 = 45,
+    IMM_10_15 = 46,
+    IMM_10_15_16_22_W = 47,
+    IMM_10_15_16_22_X = 48,
+    IMM_10_21 = 49,
+    IMM_SHIFTED_10_21_22 = 50,
+    IMM_10_21_TIMES_16 = 51,
+    IMM_10_21_TIMES_2 = 52,
+    IMM_10_21_TIMES_4 = 53,
+    IMM_10_21_TIMES_8 = 54,
+    IMM_12_MAYBE_SHIFT_0 = 55,
+    IMM_12_MAYBE_SHIFT_1 = 56,
+    IMM_12_MAYBE_SHIFT_2 = 57,
+    IMM_12_MAYBE_SHIFT_3 = 58,
+    IMM_12_MAYBE_SHIFT_4 = 59,
+    IMM_16_20 = 60,
+    IMM_16_21 = 61,
+    IMM_19_23_31 = 62,
+    IMM_5_20 = 63,
+    IMM_COND_0_3 = 64,
+    IMM_FLT_ZERO = 65,
+    IMM_SHIFTED_5_20_21_22 = 66,
+    FLT_13_20 = 67,
 };
 
 enum class MEM_WIDTH : uint8_t {
@@ -113,13 +122,12 @@ enum OPC_FLAG {
     BRANCH_INDIRECT = 0x2000,
     CALL = 0x8000,
     CALL_INDIRECT = 0x100000,
-    MOVEFROMSR = 0x10000,
     TEST = 0x20000,
     PREFETCH = 0x40000,
     MULTIPLE = 0x80000,
     SYSCALL = 0x200000,
-    BYTEREORDER = 0x400000,
-    MISC = 0x800000,
+    IMPLICIT_LINK_REG = 0x800000,
+    SR_UPDATE = 0x1000000,
     REG_PAIR = 0x2000000,
     COND_PARAM = 0x4000000,
     DOMAIN_PARAM = 0x8000000,
@@ -954,10 +962,7 @@ extern const Opcode* FindOpcodeForMnemonic(std::string_view name);
 struct Ins {
   const Opcode* opcode;
   // number of used entries is ArmOpcode.num_fields
-  // branch offset, but this is not ideal since immediates
-  // for add/sub/and etc can produce unsigned immediates with
-  // high order bit set.
-  int32_t operands[MAX_OPERANDS];
+  uint32_t operands[MAX_OPERANDS];
   // Relocation info
   std::string_view reloc_symbol;
   elf::RELOC_TYPE_AARCH64 reloc_kind = elf::RELOC_TYPE_AARCH64::NONE;
@@ -981,7 +986,44 @@ extern bool Disassemble(Ins* ins, uint32_t data);
 // Returns the instruction word. Asserts if unsuccessful
 extern uint32_t Assemble(const Ins& ins);
 
+
 extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
+
+struct BitRange {
+  uint8_t width;  // if this is zero , the bitrange is invalid
+  uint8_t position;
+};
+
+
+struct FieldInfo {
+  BitRange ranges[MAX_BIT_RANGES];
+  const char* const* names;  // points  PRED_ToStringMap, SHIFT_ToStringMap etc
+  uint64_t (*decoder)(uint32_t);
+  uint32_t (*encoder)(uint64_t);
+  uint8_t bitwidth;
+  FK kind;
+  uint8_t scale;
+  uint8_t num_names;
+};
+
+// Indexed by OK
+extern const FieldInfo FieldInfoTable[];
+
+const uint32_t kEncodeFailure = 0xffffffff;
+
+// Note, this returns the unsigned equivalent of the signed quantity
+extern uint64_t SignedInt64FromBits(uint64_t data, unsigned n_bits);
+
+extern uint64_t Decode_10_15_16_22_W(uint32_t x);
+extern uint64_t Decode_10_15_16_22_X(uint32_t x);
+extern uint32_t Encode_10_15_16_22_W(uint64_t x);
+extern uint32_t Encode_10_15_16_22_X(uint64_t x);
+
+extern uint32_t Encode8BitFlt(uint64_t ieee64);
+extern uint64_t Decode8BitFlt(uint32_t x);
+
+extern uint64_t DecodeOperand(OK ok, uint32_t data);
+extern uint32_t EncodeOperand(OK ok, uint64_t data);
 
 template <typename Flag>
 const char* EnumToString(Flag f);
