@@ -2622,11 +2622,11 @@ uint32_t EncodeRotatedImm(uint32_t x) {
 uint32_t ExtractOperand(uint32_t data, OK ok) {
   const BitRange* bit_ranges = FieldInfoTable[uint8_t(ok)].ranges;
 
-  int32_t out = 0;
+  uint32_t out = 0;
   for (unsigned i = 0; i < MAX_BIT_RANGES; ++i) {
     const BitRange* range = bit_ranges + i;
     if (range->width == 0) break;
-    uint32_t mask = (1 << range->width) - 1;
+    uint32_t mask = (1U << range->width) - 1;
     uint32_t x = (data >> range->position) & mask;
     out = x | out << range->width;
   }

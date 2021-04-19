@@ -639,10 +639,6 @@ struct BitRange {
   uint8_t position;
 };
 
-struct Field {
-  BitRange bit_ranges[MAX_BIT_RANGES];
-};
-
 
 typedef uint32_t (*ENC_DEC_FUN)(uint32_t);
 
@@ -658,6 +654,7 @@ struct FieldInfo {
   uint8_t num_names;
 };
 
+// Indexed by OK
 extern const FieldInfo FieldInfoTable[];
 
 extern uint32_t  DecodeRotatedImm(uint32_t data);
