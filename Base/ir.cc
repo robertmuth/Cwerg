@@ -241,7 +241,7 @@ Const ConstNewUint(std::string_view v_str) {
 Const ConstNew(DK kind, std::string_view v_str) {
   // std::cerr << "@@@ConstNew [" << RKToString(kind) <<  " " << v_str << "]\n";
   if (DKFlavor(kind) == DK_FLAVOR_F) {
-    std::optional<double> val = ParseDouble(v_str);
+    std::optional<double> val = ParseFlt64(v_str);
     if (!val) return Const(0);
     return ConstNewF(kind, val.value());
   } else if (DKFlavor(kind) == DK_FLAVOR_U) {
