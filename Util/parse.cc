@@ -7,7 +7,6 @@
 #include "Util/parse.h"
 #include "Util/assert.h"
 
-
 namespace cwerg {
 namespace {
 
@@ -273,7 +272,20 @@ bool IsLikelyNum(std::string_view s) {
   return Ctype.isnumfirst(s[0]);
 }
 
-std::optional<double> ParseDouble(std::string_view s) {
+static bool IsHex(std::string_view s) {
+  return s.size() > 1 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X');
+}
+
+std::optional<double> ParseFlt64(std::string_view s) {
+  if (IsHex(s)) {
+    auto val = ParseInt<uint64_t>(s);
+    if (!val) return val;
+    union {
+      uint64_t val_u;
+      double val_d;
+    } u = {val.value()};
+    return u.val_d;
+  }
   ASSERT(s.size() < 63, "");
   char buf[64];
   s.copy(buf, s.size());
@@ -282,6 +294,18 @@ std::optional<double> ParseDouble(std::string_view s) {
   double out = strtod(buf, &end);
   if (end != buf + s.size()) return std::nullopt;
   return out;
+}
+
+std::optional<int64_t> ParseInt64(std::string_view s) {
+  if (IsHex(s)) {
+    // ParseInt<int64_t> does not support hex
+    return ParseInt<uint64_t>(s);
+  }
+  return ParseInt<int64_t>(s);
+}
+
+std::optional<uint64_t> ParseUint64(std::string_view s) {
+  return ParseInt<uint64_t>(s);
 }
 
 std::string_view ToDecString(uint64_t v, char buf[32]) {
@@ -296,6 +320,16 @@ std::string_view ToDecString(uint64_t v, char buf[32]) {
   int end = i - 1;
   while (start < end) std::swap(buf[start++], buf[end--]);
   return {buf, i};
+}
+
+std::string_view ToDecSignedString(int64_t v, char buf[32]) {
+  unsigned offset = 0;
+  if (v < 0) {
+    buf[0] = '-';
+    offset = 1;
+    v = -v;  // this also works for -(1 << 63)
+  }
+  return {buf, ToDecString(v, buf + offset).size() + offset};
 }
 
 std::string_view ToHexString(uint64_t v, char buf[32]) {
@@ -313,26 +347,19 @@ std::string_view ToHexString(uint64_t v, char buf[32]) {
   return {buf, i};
 }
 
-std::string_view PosToHexString(uint64_t v, char buf[32]) {
-  buf[0] = '#';
-  buf[1] = 'U';
-  return {buf, ToHexString(v, buf + 2).size() + 2};
+std::string_view ToFltString(double val, char buf[32]) {
+  // TODO: deal with potential overflow
+  auto len = snprintf(buf, 32, "%g", val);
+  ASSERT(len < 32, "");
+  return {buf, (size_t)len};
 }
 
-std::string_view NegToHexString(uint64_t v, char buf[32]) {
-  buf[0] = '#';
-  buf[1] = 'N';
-  return {buf, ToHexString(v, buf + 2).size() + 2};
-}
-
-std::string_view FltToHexString(double v, char buf[32]) {
+std::string_view ToFltHexString(double v, char buf[32]) {
   union {
-    double val_f;
+    double val_d;
     uint64_t val_u;
   } u = {v};
-  buf[0] = '#';
-  buf[1] = 'F';
-  return {buf, ToHexString(u.val_u, buf + 2).size() + 2};
+  return ToHexString(u.val_u, buf);
 }
 
 std::string_view ToHexDataStringWithSep(std::string_view data,
@@ -430,4 +457,21 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   out.resize(current_offset);
   return out;
 }
+
+double Flt64FromBits(uint32_t i) {
+  union {
+    uint64_t i;
+    double d;
+  } u = {i};
+  return u.d;
+}
+
+uint64_t Flt64ToBits(double d) {
+  union {
+    double d;
+    uint64_t i;
+  } u = {d};
+  return u.i;
+}
+
 }  // namespace cwerg

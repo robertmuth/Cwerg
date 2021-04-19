@@ -5,7 +5,6 @@
 """
 from typing import List
 import sys
-import re
 
 from Util import parse
 
@@ -18,18 +17,6 @@ def EmitString(s: str):
 
 def EmitId(s: str):
     print("{" + t + "}", end="")
-
-
-def EmitNum(s: str):
-    if parse.IsInt(s):
-        x = int(s)
-        if x < 0:
-            print(parse.NegToHexString(-x) + "#", end="")
-        else:
-            print(parse.PosToHexString(x) + "#", end="")
-    else:
-        x = float(s)
-        print(parse.FltToHexString(x) + "#", end="")
 
 
 if __name__ == '__main__':
@@ -46,10 +33,27 @@ if __name__ == '__main__':
                 sep = " "
                 if t.startswith('"'):
                     EmitString(t)
-                elif parse.IsNum(t):
-                    EmitNum(t)
                 else:
                     EmitId(t)
             print()
+            if len(token) > 1:
+                if token[0] == "uint64":
+                    val = parse.ParseUint64(token[1])
+                    if val is None:
+                        print(f"[UINT64] @BAD VALUE@")
+                    else:
+                        print(f"[UINT64] {val} {val:x}")
+                elif token[0] == "int64":
+                    val = parse.ParseInt64(token[1])
+                    if val is None:
+                        print(f"[INT64] @BAD VALUE@")
+                    else:
+                        print(f"[INT64] {val} {val & ((1 << 64) - 1):x}")
+                elif token[0] == "flt64":
+                    val = parse.ParseFlt64(token[1])
+                    if val is None:
+                        print(f"[FLT64] @BAD VALUE@")
+                    else:
+                        print(f"[FLT64] {val:g} {parse.Flt64ToBits(val):x}")
         except Exception as err:
             print("@FAILED@")

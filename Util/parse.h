@@ -24,6 +24,9 @@ extern bool IsNum(std::string_view s);
 
 extern bool IsLikelyNum(std::string_view s);  // just looks at first char
 
+extern double Flt64FromBits(uint32_t i);
+extern uint64_t Flt64ToBits(double d);
+
 template <typename INT>
 std::optional<INT> ParseInt(std::string_view s) {
   INT out;
@@ -41,7 +44,9 @@ std::optional<INT> ParseInt(std::string_view s) {
   return std::nullopt;
 }
 
-extern std::optional<double> ParseDouble(std::string_view s);
+extern std::optional<double> ParseFlt64(std::string_view s);
+extern std::optional<int64_t> ParseInt64(std::string_view s);
+extern std::optional<uint64_t> ParseUint64(std::string_view s);
 
 extern char HexDigit(char c);
 
@@ -50,10 +55,10 @@ extern char HexDigit(char c);
 // =================================================================================
 extern std::string_view ToHexString(uint64_t v, char buf[32]);
 extern std::string_view ToDecString(uint64_t v, char buf[32]);
+extern std::string_view ToDecSignedString(int64_t v, char buf[32]);
 
-extern std::string_view PosToHexString(uint64_t v, char buf[32]);
-extern std::string_view NegToHexString(uint64_t v, char buf[32]);
-extern std::string_view FltToHexString(double v, char buf[32]);
+extern std::string_view ToFltString(double v, char buf[32]);
+extern std::string_view ToFltHexString(double v, char buf[32]);
 
 extern std::string_view ToHexDataStringWithSep(std::string_view data,
                                                char sep,

@@ -203,17 +203,6 @@ std::vector<int> Shuffle(const std::vector<int>& names, uint32_t prime) {
   return out;
 }
 
-void TestToHexStr() {
-  char buffer[20];
-  ASSERT("#U0" == PosToHexString(0, buffer), "unexpected " << buffer);
-  ASSERT("#Uff00ff00" == PosToHexString(0xff00ff00, buffer),
-         "unexpected " << buffer);
-  ASSERT("#Nc" == NegToHexString(12, buffer), "unexpected " << buffer);
-  ASSERT("#F0" == FltToHexString(0.0, buffer), "unexpected " << buffer);
-  ASSERT("#F4059000000000000" == FltToHexString(100.0, buffer),
-         "unexpected " << buffer);
-}
-
 }  // namespace cwerg
 
 int main() {
@@ -229,8 +218,6 @@ int main() {
   cwerg::SingleTableTest(cwerg::Flip(names));
   cwerg::SingleTableTest(cwerg::Shuffle(names, 65521));
   cwerg::SingleTableTest(cwerg::Shuffle(names, 65537));
-
-  cwerg::TestToHexStr();
 
   return 0;
 }

@@ -2,7 +2,7 @@ import codecs
 import re
 import struct
 
-from typing import List
+from typing import List, Optional
 
 
 def EscapedStringToBytes(s) -> bytes:
@@ -109,6 +109,44 @@ def IsInt(s):
     return RE_INTEGER.match(s)
 
 
+def ParseInt64(s) -> Optional[int]:
+    try:
+        val = int(s, 0)
+        if (1 << 63) <= val < (1 << 64):
+            val -= (1 << 64)
+        return val
+    except Exception:
+        return None
+
+
+def ParseUint64(s) -> Optional[int]:
+    try:
+        val = int(s, 0)
+        return val
+    except Exception:
+        return None
+
+
+def Flt64FromBits(data: int) -> float:
+    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
+
+
+def Flt64ToBits(num: float) -> int:
+    b = struct.pack('<d', num)
+    assert len(b) == 8
+    return int.from_bytes(b, "little")
+
+
+def ParseFlt64(s) -> Optional[float]:
+    try:
+        if s.startswith("0x") or s.startswith("0X"):
+            val = int(s, 0)
+            return Flt64FromBits(val)
+        return float(s)
+    except Exception as err:
+        return None
+
+
 def ParseLine(line: str) -> List[str]:
     # TODO: hackish
 
@@ -144,14 +182,6 @@ def ToHexString(key, n):
         n >>= 4
         if n == 0: break
     return "#" + key + "".join(reversed(out))
-
-
-def PosToHexString(n):
-    return ToHexString('U', n)
-
-
-def NegToHexString(n):
-    return ToHexString('N', n)
 
 
 def FltToHexString(n):
