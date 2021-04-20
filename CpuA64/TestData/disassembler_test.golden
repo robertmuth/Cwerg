@@ -27,3 +27,9 @@ OPCODE b.eq
     SIMM_PCREL_5_23                     10         (10)
 flags: OPC_FLAG.COND_BRANCH
 
+1e201004 fmov_s_imm s4 2.0
+OPCODE fmov s_imm
+    SREG_0_4                            s4         (4)
+    FLT_13_20                           2.0        (0)
+flags: OPC_FLAG.0
+

@@ -200,8 +200,22 @@ int HandleOneInstruction(std::string_view line,
               << data_expected << std::dec << " in: " << line;
     return 1;
   }
+  std::vector<std::string> expected_ops;
+  std::string_view mnemonic = InsSymbolize(ins, &expected_ops);
+  {
+    std::vector<std::string_view> combo;
+    combo.push_back(mnemonic);
+    for (const auto& s : expected_ops) {
+      combo.push_back(s);
+    }
+    a64::Ins ins2;
+    if (!InsFromSymbolized(combo, &ins2)) {
+      ASSERT(false, " symbolization failure " << line);
+    }
 
+  }
   MassageOperandsAndCheckName(line, data, ins, token);
+
 
   return 0;
 }

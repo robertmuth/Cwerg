@@ -3,7 +3,7 @@
 
 TESTS = TestData/exit.asm TestData/hello.asm TestData/fib.asm
 
-TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140
+TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004
 
 .PHONY: $(TESTS)
 
@@ -63,5 +63,12 @@ objdump_compat_test_c: TestData/a64_test.regular.dis opcode_gen.h opcode_gen.cc
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_opcode_test.exe
 	$(BUILD_DIR)/a64_opcode_test.exe TestData/a64_test.regular.dis
+
+
+disassembler_test_c: disassembler_tool.cc
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
+	$(DISASSEMBLER_TOOL) disass $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual.out TestData/$@.golden
 
 clean:

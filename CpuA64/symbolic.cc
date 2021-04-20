@@ -8,29 +8,27 @@ namespace cwerg::a64 {
 using namespace cwerg;
 
 char* strappend(char* dst, std::string_view src) {
-  memcpy(dst, src.data(), src.size());
+  std::memcpy(dst, src.data(), src.size());
   dst[src.size()] = 0;
   return dst + src.size();
 }
 
 char* strappenddec(char* dst, int64_t n) {
   if (n >= 0) {
-    ToDecString(n, dst);
+    return dst + ToDecString(n, dst).size();
   } else {
     *dst++ = '-';
-    ToDecString(-n, dst);
+    return dst + ToDecString(-n, dst).size();
   }
-  return dst + strlen(dst);
 }
 
 char* strappendhex(char* dst, int64_t n) {
-  ToHexString(n, dst);
-  return dst + strlen(dst);
+  dst = strappend(dst, "0x");
+  return  dst + ToHexString(n, dst).size();
 }
 
 char* strappendflt(char* dst, double d) {
-  ToFltString(d, dst);
-  return dst + strlen(dst);
+  return  dst + ToFltString(d, dst).size();
 }
 
 char* SymbolizeOperand(char* buf, uint32_t data, OK ok) {
@@ -73,7 +71,41 @@ std::string_view InsSymbolize(const a64::Ins& ins,
 }
 
 uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
-  return  kEncodeFailure;
+  const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
+  uint64_t val;
+  switch (fi.kind) {
+    default:
+      ASSERT(false, "");
+      return kEncodeFailure;
+    case FK::LIST:
+      for (val = 0; val < fi.num_names; val++) {
+        if (fi.names[val] == op) break;
+      }
+      if (val == fi.num_names) return kEncodeFailure;
+      break;
+    case FK::FLT_CUSTOM: {
+      auto maybe = ParseFlt64(op);
+      if (!maybe) return kEncodeFailure;
+      val = Flt64ToBits(maybe.value());
+      break;
+    }
+    case FK::INT_SIGNED: {
+      auto maybe = ParseInt64(op);
+      if (!maybe) return kEncodeFailure;
+      val = maybe.value();
+      break;
+    }
+    case FK::INT:  // TODO: add unsigned version
+    case FK::INT_HEX_CUSTOM:
+    case FK::INT_HEX: {
+      auto maybe = ParseUint64(op);
+      if (!maybe) return kEncodeFailure;
+      val = maybe.value();
+      break;
+    }
+  }
+
+  return EncodeOperand(ok, val);
 }
 
 bool HandleRelocation(std::string_view, uint32_t pos, Ins* ins) {
@@ -87,27 +119,25 @@ bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
     std::cerr << "unknown opcode " << token[0] << "\n";
     return false;
   }
-  uint32_t operand_count = 0;
-  // CodeGenA32 relies on this
-  if (token.size() == ins->opcode->num_fields) {
-    ins->operands[operand_count++] = 14;  // predicate 'al'
-  }
-  ASSERT(token.size() - 1 + operand_count == ins->opcode->num_fields, "");
-  for (unsigned i = 1; i < token.size(); ++i, ++operand_count) {
+  ASSERT(token.size() - 1 == ins->opcode->num_fields,
+         "bad number of token " << token.size() << " expected "
+                                << ins->opcode->num_fields + 1 << " for "
+                                << token[0]);
+  for (unsigned i = 1; i < token.size(); ++i) {
     if (token[i].substr(0, 5) == "expr:") {
-      if (!HandleRelocation(token[i].substr(5), operand_count, ins)) {
+      if (!HandleRelocation(token[i].substr(5), i - 1, ins)) {
         std::cerr << "malformed relocation expression " << token[i] << "\n";
         return false;
       }
     } else {
-      const OK ok = ins->opcode->fields[operand_count];
+      const OK ok = ins->opcode->fields[i - 1];
       auto val = UnsymbolizeOperand(ok, token[i]);
       if (val == kEncodeFailure) {
-        std::cerr << "cannot parse " << token[i] << " "
-                  << "\n";
+        std::cerr << "cannot parse " << token[i] << " for ok [" << int(ok)
+                  << "]\n";
         return false;
       }
-      ins->operands[operand_count] = val;
+      ins->operands[i - 1] = val;
     }
   }
   return true;

@@ -6,10 +6,7 @@ import struct
 
 from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
-
-
-def _FloatFrom64BitRepresentation(data: int) -> float:
-    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
+from Util import  parse
 
 
 def SymbolizeOperand(ok: a64.OK, data: int) -> str:
@@ -20,7 +17,7 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         return t.names[data]
     elif t.kind == a64.FK.FLT_CUSTOM:
         # we only care about the float aspect
-        data = _FloatFrom64BitRepresentation(data)
+        data = parse.Flt64FromBits(data)
         return str(data)
     elif t.kind == a64.FK.INT_SIGNED:
         # we only care about the signed aspect
@@ -55,7 +52,7 @@ def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
         data = t.names.index(op)
     elif t.kind == a64.FK.FLT_CUSTOM:
         # we only care about the float aspect
-        data = _FloatTo64BitRepresentation(float(op))
+        data = parse.Flt64ToBits(float(op))
     else:
         data = int(op, 0)  # skip "#", must handle "0x" prefix
         # note we intentionally allow negative numbers here

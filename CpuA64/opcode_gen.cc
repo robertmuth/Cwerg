@@ -47,7 +47,7 @@ uint32_t Encode8BitFlt(uint64_t ieee64) {
   ieee64 >>= 52;
   uint64_t exponent = (ieee64 & ((1U << 11U) - 1)) - 1023 + 3;
   uint64_t sign = ieee64 >> 11U;
-  if (0 <= exponent <= 7 && ((mantissa >> 48U) << 48U) == mantissa) {
+  if (0 <= exponent && exponent <= 7 && ((mantissa >> 48U) << 48U) == mantissa) {
     return (sign << 7U) | ((exponent ^ 4U) << 4U) | (mantissa >> 48U);
   }
   return kEncodeFailure;
@@ -125,7 +125,7 @@ uint32_t Encode_10_15_16_22_X(uint64_t x) {
       sm += size;
     }
   }
-  ASSERT(size != 1, "");
+  if (size == 1) return kEncodeFailure;
   // const uint32_t sm = size > 16 ? 0 :
   const uint32_t n = size == 64 ? 1 : 0;
   const uint32_t ones = __builtin_popcountll(x);
@@ -159,7 +159,7 @@ uint32_t Encode_10_15_16_22_W(uint64_t x) {
       sm += size;
     }
   }
-  ASSERT(size != 1, "");
+  if (size == 1) return kEncodeFailure;
   // const uint32_t sm = size > 16 ? 0 :
   const uint32_t n = size == 64 ? 1 : 0;
   const uint32_t ones = __builtin_popcountll(x);
@@ -4932,7 +4932,7 @@ uint32_t EncodeOperand(OK ok, uint64_t data) {
       return data;
     case FK::INT_SIGNED: {
       uint64_t rest = data >> (fi.bitwidth - 1);
-      ASSERT(rest == 0 || rest + 1 == (1 << (64 - fi.bitwidth + 1)), "");
+      ASSERT(rest == 0 || rest + 1 == (1ULL << (64 - fi.bitwidth + 1)), "bad signed int for ok " << int(ok) << ": " << data);
       return data & ((1 << fi.bitwidth) - 1);
     }
     case FK::INT:

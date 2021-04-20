@@ -109,6 +109,12 @@ add_executable(a64_opcode_test.exe
         CpuA64/opcode_test.cc
         )
 
+add_executable(a64_disassembler_tool.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUA64_LITE_LIB>
+        CpuA64/disassembler_tool.cc
+        )
+
 add_library(ELF_LIB OBJECT
         Elf/enum_gen.cc
         Elf/enum_gen.h
