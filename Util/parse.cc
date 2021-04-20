@@ -458,7 +458,7 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
-double Flt64FromBits(uint32_t i) {
+double Flt64FromBits(uint64_t i) {
   union {
     uint64_t i;
     double d;
