@@ -11,28 +11,21 @@
 namespace cwerg::a32 {
 namespace {
 
-char* strappend(char* dst, const char* src) {
-  strcpy(dst, src);
-  return dst + strlen(dst);
-}
-
 char* strappenddec(char* dst, uint32_t n) {
   if (n <= 0x7fffffff) {
-    ToDecString(n, dst);
+    return dst + ToDecString(n, dst).size();
   } else {
     *dst++ = '-';
-    ToDecString(~n + 1, dst);
+    return dst + ToDecString(~n + 1, dst).size();
   }
-  return dst + strlen(dst);
 }
 
 char* strappendhex(char* dst, uint32_t n) {
-  ToHexString(n, dst);
-  return dst + strlen(dst);
+  return dst + ToHexString(n, dst).size();
 }
 
 char* strappend(char* dst, std::string_view src) {
-  memcpy(dst, src.data(), src.size());
+  std::memcpy(dst, src.data(), src.size());
   dst[src.size()] = 0;
   return dst + src.size();
 }
@@ -69,7 +62,7 @@ bool has_prefix(std::string_view name, std::string_view prefix) {
   return name.substr(0, prefix.size()) == prefix;
 }
 
-uint32_t UnsymbolizeOperandString(const FieldInfo& fi,  std::string_view s) {
+uint32_t UnsymbolizeOperandString(const FieldInfo& fi, std::string_view s) {
   switch (fi.kind) {
     default:
     case FK::NONE:
@@ -83,7 +76,7 @@ uint32_t UnsymbolizeOperandString(const FieldInfo& fi,  std::string_view s) {
     }
     case FK::FLT_CUSTOM:
       if (s != "0.0" && s != ".0" && s != "0") return kEncodeFailure;
-      return 0; // this is really the bit representation of float(0.0)
+      return 0;  // this is really the bit representation of float(0.0)
     case FK::LIST:
       for (unsigned i = 0; i < fi.num_names; ++i) {
         if (s == fi.names[i]) return i;
@@ -92,7 +85,7 @@ uint32_t UnsymbolizeOperandString(const FieldInfo& fi,  std::string_view s) {
     case FK::INT:
     case FK::INT_HEX: {
       auto val = ParseInt<uint32_t>(s);
-      if (!val) return  kEncodeFailure;
+      if (!val) return kEncodeFailure;
       return val.value();
     }
   }
@@ -218,9 +211,10 @@ bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
       }
     } else {
       const OK ok = ins->opcode->fields[operand_count];
-      auto val = UnsymbolizeOperand(ok , token[i]);
+      auto val = UnsymbolizeOperand(ok, token[i]);
       if (val == kEncodeFailure) {
-        std::cerr << "cannot parse " << token[i] << " " << "\n";
+        std::cerr << "cannot parse " << token[i] << " "
+                  << "\n";
         return false;
       }
       ins->operands[operand_count] = val;
