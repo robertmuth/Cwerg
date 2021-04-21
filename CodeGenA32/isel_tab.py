@@ -1019,7 +1019,7 @@ def _EmitCodeC(fout):
                 num_ins += 1
                 print(f"  {{ {{{', '.join(ops)}}},", file=fout)
                 print(
-                    f"    a32::OPC::{tmpl.opcode.NameForEnum()}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
+                    f"    a32::OPC::{tmpl.opcode.name}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
                     file=fout)
     print(f"}};", file=fout)
 
