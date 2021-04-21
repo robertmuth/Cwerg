@@ -113,8 +113,8 @@ uint32_t Encode_10_15_16_22_X(uint64_t x) {
   uint32_t sm = 0;
   for (size = 64; size >= 2; size >>= 1U) {
     const uint32_t shift = size >> 1U;
-    const uint32_t a = x & ((1U << shift) - 1);
-    const uint32_t b = x >> shift;
+    const uint64_t a = x & ((1ULL << shift) - 1);
+    const uint64_t b = x >> shift;
     if (a == b) {
       x = a;
     } else {

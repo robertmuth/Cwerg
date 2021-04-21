@@ -250,11 +250,13 @@ void CheckEncodeDecode() {
         const uint32_t s = sm | (ones - 1);
         const uint32_t i = (n << 12) | (r << 6) | s;
         uint64_t x = a64::Decode_10_15_16_22_X(i);
+        // std::cout << std::hex << i << " " << x << std::dec << "\n";
         // std::cout << std::hex << n << " " << r << " " << s << " pattern " <<
         // x
         //          << "\n";
         uint32_t j = a64::Encode_10_15_16_22_X(x);
-        ASSERT(i == j, "bad logic imm " << i << " vs " << j);
+        ASSERT(i == j, "bad logic imm " << i << " vs " << j
+                                        << " decoded was " << x);
       }
     }
 
