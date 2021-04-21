@@ -8,12 +8,13 @@ based Linux distributions.
 To setup the python environment run this inside the
 top level repo directory.
 ```
+# make sure all the packages defined by Cwerg can be imported
 export PYTHONPATH=$(pwd)
 
 # confirm python interpreter version, you need at least Python 3.7
 python3 -V
-# you may need to install the c-parser
 
+# install the c-parser if you want to use the code in FrontEndC/
 sudo apt install python3-pycparser
 ```
 
@@ -30,7 +31,7 @@ cd ..
 # you may need to install the unwind library (used by the ASSERT macro
 sudo apt install libunwind-dev
 
-# order to use the 32bit memory model ("-m32") on x86-64 you need to install
+# in order to use the 32bit memory model ("-m32") on x86-64 you need to install
 
 sudo apt install gcc-multilib
 
@@ -87,10 +88,18 @@ and may be useful for other projects as well.
 
 Implementations: Python, C++ 
 
+#### [CpuA64/](../CpuA64)  (work in progress)
+
+contains the (dis-)assemblers for the Arm 64-bit ISA. They are based
+on a tabular description of the ISA which is also used by 
+and may be useful for other projects as well.
+
+Implementations: Python, C++ 
+
 #### [Elf/](../Elf)
 
 contains the (dis-)assemblers for the Elf object code format.
-Currently, only basic features necessary to deal with static exectables
+Currently, only basic features necessary to deal with static executables
 are supported but it is more or less "standalone" and may be useful for
  other projects as well
  
@@ -120,10 +129,6 @@ contains basic helpers for parsing and elementary datastructures
 Implementations: Python, C++
 
 ## Vaporware
-
-#### [CpuA64/](../CpuA64)
-
-future home of the (dis-)assemblers for the Arm 64-bit ISA
 
 
 #### [CpuX64/](../CpuX64)

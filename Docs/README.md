@@ -32,9 +32,7 @@
 
 [ARM32 ISA](../CpuA32/README.md)
 
-[ARM64 (AArch64) ISA](../CpuA64/README.md)- nothing really here yet 
-
-[X64 ISA](../CpuX64/README.md) - nothing really here yet 
+[ARM64 (AArch64) ISA](../CpuA64/README.md) (work in progress)
 
 ### Object File Formats
 
