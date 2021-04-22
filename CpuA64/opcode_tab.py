@@ -339,7 +339,7 @@ class OK(enum.Enum):
     IMM_FLT_ZERO = 65
     IMM_SHIFTED_5_20_21_22 = 66
     #
-    FLT_13_20 = 67
+    IMM_FLT_13_20 = 67
 
 
 ############################################################
@@ -441,9 +441,9 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
                                          decoder=DecodeShifted_5_20_21_22,
                                          encoder=EncodeShifted_5_20_21_22),
     #
-    OK.FLT_13_20: FieldInfo([(8, 13)], FK.FLT_CUSTOM,
-                            decoder=Decode8BitFlt,
-                            encoder=Encode8BitFlt),
+    OK.IMM_FLT_13_20: FieldInfo([(8, 13)], FK.FLT_CUSTOM,
+                                decoder=Decode8BitFlt,
+                                encoder=Encode8BitFlt),
     OK.IMM_FLT_ZERO: FieldInfo([], FK.FLT_CUSTOM,
                                decoder=DecodeFltZero,
                                encoder=EncodeFltZero),
@@ -1108,7 +1108,7 @@ for ext, w_bit in [("s", (1, 0, 22)),
     src3_reg = OK.DREG_10_14 if ext == "d" else OK.SREG_10_14
 
     Opcode("fmov", ext + "_imm", [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xff, 0x80, 5)],
-           [dst_reg, OK.FLT_13_20], OPC_FLAG(0))
+           [dst_reg, OK.IMM_FLT_13_20], OPC_FLAG(0))
 
     for name, bits in [
         ("fmul", (0x3f, 2, 10)),
@@ -1487,6 +1487,9 @@ def _EmitCodeC(fout):
     # what about REG/SREG/DREG
     cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
     cgen.RenderEnumToStringFun("SHIFT", fout)
+
+    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
+    cgen.RenderEnumToStringFun("OK", fout)
 
 
 def _MnemonicHashingExperiments():

@@ -2,8 +2,10 @@
 
 #include "CpuA64/symbolic.h"
 #include "Util/assert.h"
+#include "Util/parse.h"
 
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <string_view>
 
@@ -14,9 +16,11 @@ int main(int argc, char* argv[]) {
     std::cout << "no command specified\n";
     return 1;
   }
-  if (std::string_view("disass") == argv[1]) {
-    for (unsigned i = 2; i < argc; ++i) {
-      const uint32_t data = strtoul(argv[i], nullptr, 16);
+  if (std::string_view("batch") == argv[1]) {
+    unsigned count = 0;
+    for (std::string line; getline(std::cin, line);) {
+      if (line.size() < 8 || line[0] == '#') continue;
+      const uint32_t data = strtoul(line.data(), nullptr, 16);
       Ins ins;
       if (!Disassemble(&ins, data)) {
         std::cout << "could not find opcode for: " << std::hex << data << "\n";
@@ -24,23 +28,17 @@ int main(int argc, char* argv[]) {
       }
       std::vector<std::string> ops;
       std::string_view enum_name = InsSymbolize(ins, &ops);
-      std::cout << argv[i] << " " << enum_name;
+      std::cout << std::hex << std::setfill('0') << std::setw(8) << data
+                << std::dec << " " << enum_name;
       std::string_view sep = " ";
       for (const std::string& op : ops) {
         std::cout << sep << op;
         sep = ", ";
       }
       std::cout << "\n";
-      // check that the assembler works - this is not strictly
-      // necessary but useful for debuggging the assembler
-      const uint32_t data2 = Assemble(ins);
-      if (data != data2) {
-        std::cout << "Disassembler failure " << std::hex << data << " vs "
-                  << data2 << "\n";
-        return 1;
-      }
-      ASSERT(data == data2, "");
+      ++count;
     }
+    std::cout << "processed " << count << " instructions\n";
   } else if (std::string_view("benchmark") == argv[1]) {
     // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate
     // "eq"
@@ -74,7 +72,41 @@ int main(int argc, char* argv[]) {
     std::cout << "unsupported opcodes: " << std::dec << num_bad << "\n";
     return 0;
   } else {
-    std::cout << "unknown command specified: " << argv[1] << "\n";
-    return 1;
+    for (unsigned i = 1; i < argc; ++i) {
+      const uint32_t data = strtoul(argv[i], nullptr, 16);
+      Ins ins;
+      if (!Disassemble(&ins, data)) {
+        std::cout << "could not disassemble " << std::hex << data << std::dec
+                  << "\n";
+        continue;
+      }
+      std::vector<std::string> ops;
+      std::string_view enum_name = InsSymbolize(ins, &ops);
+      std::cout << argv[i] << " " << enum_name;
+      std::string_view sep = " ";
+      for (const std::string& op : ops) {
+        std::cout << sep << op;
+        sep = " ";
+      }
+      std::cout << "\n";
+      std::cout << "OPCODE " << enum_name << "\n";
+      for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
+        std::cout << "    " << std::left << std::setw(35)
+                  << EnumToString(ins.opcode->fields[x]) << " " << std::setw(10)
+                  << ops[x] << " (" << ins.operands[x] << ")\n";
+      }
+      std::cout << "\n";
+      // check that the assembler works - this is not strictly
+      // necessary but useful for debuggging the assembler
+      const uint32_t data2 = Assemble(ins);
+      if (data != data2) {
+        std::cout << "Disassembler failure " << std::hex << data << " vs "
+                  << data2 << "\n";
+        return 1;
+      }
+      ASSERT(data == data2, "");
+    }
+
+    return 0;
   }
 }

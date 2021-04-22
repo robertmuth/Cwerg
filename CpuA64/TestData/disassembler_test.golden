@@ -1,35 +1,29 @@
 could not disassemble 0
 90000440 adrp x0 136
-OPCODE adrp 
+OPCODE adrp
     XREG_0_4                            x0         (0)
     SIMM_PCREL_5_23_29_30               136        (136)
-flags: OPC_FLAG.0
 
 9126c000 add_x_imm x0 x0 0x9b0
-OPCODE add x_imm
+OPCODE add_x_imm
     XREG_0_4_SP                         x0         (0)
     XREG_5_9_SP                         x0         (0)
     IMM_SHIFTED_10_21_22                0x9b0      (2480)
-flags: OPC_FLAG.STACK_OPS
 
 14014192 b 82322
-OPCODE b 
+OPCODE b
     SIMM_PCREL_0_25                     82322      (82322)
-flags: OPC_FLAG.BRANCH
 
 97fffcf7 bl -777
-OPCODE bl 
+OPCODE bl
     SIMM_PCREL_0_25                     -777       (67108087)
-flags: OPC_FLAG.IMPLICIT_LINK_REG|CALL
 
 54000140 b_eq 10
-OPCODE b.eq 
+OPCODE b_eq
     SIMM_PCREL_5_23                     10         (10)
-flags: OPC_FLAG.COND_BRANCH
 
-1e201004 fmov_s_imm s4 2.0
-OPCODE fmov s_imm
+1e201004 fmov_s_imm s4 2
+OPCODE fmov_s_imm
     SREG_0_4                            s4         (4)
-    FLT_13_20                           2.0        (0)
-flags: OPC_FLAG.0
+    IMM_FLT_13_20                       2          (0)
 

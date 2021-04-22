@@ -2166,7 +2166,7 @@ const Opcode OpcodeTable[] = {
  
 },
 {"fmov_d_imm", 0xffe01fe0, 0x1e601000,
- 2, {OK::DREG_0_4, OK::FLT_13_20},
+ 2, {OK::DREG_0_4, OK::IMM_FLT_13_20},
  
 },
 {"fmov_s_from_w", 0xfffffc00, 0x1e270000,
@@ -2174,7 +2174,7 @@ const Opcode OpcodeTable[] = {
  
 },
 {"fmov_s_imm", 0xffe01fe0, 0x1e201000,
- 2, {OK::SREG_0_4, OK::FLT_13_20},
+ 2, {OK::SREG_0_4, OK::IMM_FLT_13_20},
  
 },
 {"fmov_w_from_s", 0xfffffc00, 0x1e260000,
@@ -4256,7 +4256,7 @@ const FieldInfo FieldInfoTable[] = {
   {  // IMM_SHIFTED_5_20_21_22 = 66
     {{18, 5}}, nullptr,
     DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22, 18, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // FLT_13_20 = 67
+  {  // IMM_FLT_13_20 = 67
     {{8, 13}}, nullptr,
     Decode8BitFlt, Encode8BitFlt, 8, FK::FLT_CUSTOM, 1, 0},
 };
@@ -4788,6 +4788,81 @@ const char* const SHIFT_ToStringMap[] = {
 
 template<>  // template specialization for SHIFT
 const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
+
+
+const char* const OK_ToStringMap[] = {
+    "Invalid", // 0
+    "WREG_0_4", // 1
+    "WREG_5_9", // 2
+    "WREG_10_14", // 3
+    "WREG_16_20", // 4
+    "XREG_0_4", // 5
+    "XREG_5_9", // 6
+    "XREG_10_14", // 7
+    "XREG_16_20", // 8
+    "SREG_0_4", // 9
+    "SREG_5_9", // 10
+    "SREG_10_14", // 11
+    "SREG_16_20", // 12
+    "DREG_0_4", // 13
+    "DREG_5_9", // 14
+    "DREG_10_14", // 15
+    "DREG_16_20", // 16
+    "BREG_0_4", // 17
+    "BREG_5_9", // 18
+    "BREG_10_14", // 19
+    "BREG_16_20", // 20
+    "HREG_0_4", // 21
+    "HREG_5_9", // 22
+    "HREG_10_14", // 23
+    "HREG_16_20", // 24
+    "QREG_0_4", // 25
+    "QREG_5_9", // 26
+    "QREG_10_14", // 27
+    "QREG_16_20", // 28
+    "WREG_0_4_SP", // 29
+    "WREG_5_9_SP", // 30
+    "XREG_0_4_SP", // 31
+    "XREG_5_9_SP", // 32
+    "SHIFT_22_23", // 33
+    "SHIFT_22_23_NO_ROR", // 34
+    "SHIFT_15_W", // 35
+    "SHIFT_15_X", // 36
+    "SIMM_PCREL_0_25", // 37
+    "SIMM_12_20", // 38
+    "SIMM_15_21_TIMES_16", // 39
+    "SIMM_15_21_TIMES_4", // 40
+    "SIMM_15_21_TIMES_8", // 41
+    "SIMM_PCREL_5_18", // 42
+    "SIMM_PCREL_5_23", // 43
+    "SIMM_PCREL_5_23_29_30", // 44
+    "IMM_10_12_LIMIT4", // 45
+    "IMM_10_15", // 46
+    "IMM_10_15_16_22_W", // 47
+    "IMM_10_15_16_22_X", // 48
+    "IMM_10_21", // 49
+    "IMM_SHIFTED_10_21_22", // 50
+    "IMM_10_21_TIMES_16", // 51
+    "IMM_10_21_TIMES_2", // 52
+    "IMM_10_21_TIMES_4", // 53
+    "IMM_10_21_TIMES_8", // 54
+    "IMM_12_MAYBE_SHIFT_0", // 55
+    "IMM_12_MAYBE_SHIFT_1", // 56
+    "IMM_12_MAYBE_SHIFT_2", // 57
+    "IMM_12_MAYBE_SHIFT_3", // 58
+    "IMM_12_MAYBE_SHIFT_4", // 59
+    "IMM_16_20", // 60
+    "IMM_16_21", // 61
+    "IMM_19_23_31", // 62
+    "IMM_5_20", // 63
+    "IMM_COND_0_3", // 64
+    "IMM_FLT_ZERO", // 65
+    "IMM_SHIFTED_5_20_21_22", // 66
+    "IMM_FLT_13_20", // 67
+};
+
+template<>  // template specialization for OK
+const char* EnumToString<OK>(OK x) { return OK_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 

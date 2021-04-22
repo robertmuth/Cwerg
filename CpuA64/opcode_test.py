@@ -94,12 +94,14 @@ COMPLEX_ALIASES = {
     ("umull", "umaddl"),
 }
 
+NO_OP = "@@"
+
 
 def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) -> bool:
     if std_ops == objdump_ops: return True
     j = 0
     for i, op in enumerate(std_ops):
-        op_actual = "@@"
+        op_actual = NO_OP
         if j < len(objdump_ops):
             op_actual = objdump_ops[j]
             if op_actual[0] == "#":
@@ -109,10 +111,10 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
         elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
                                   OK.SIMM_PCREL_5_23, OK.SIMM_PCREL_5_23_29_30}:
             j += 1
-        elif op == "lsl" or op == "0" or op == "lr":
+        elif opcode.fields[i] in {OK.IMM_FLT_ZERO, OK.IMM_FLT_13_20} and float(op) == float(op_actual):
+            j += 1
+        elif op == "lsl" or op == "0":
             pass
-        elif opcode.fields[i] == OK.FLT_13_20:
-            return float(op) == float(op_actual)
         elif opcode.fields[i] in {OK.IMM_SHIFTED_5_20_21_22, OK.IMM_SHIFTED_10_21_22}:  # movz etc
             v = int(op_actual, 0)
             if opcode.name == "movn":
@@ -258,13 +260,13 @@ def MassageOperandsAndCheckName(name, opcode, operands):
 def HandleOneInstruction(count: int, line: str,
                          data: int, ins: Ins,
                          actual_name: str, actual_ops: List[str]):
-    MassageOperandsAndCheckName(actual_name, ins.opcode, actual_ops)
     name, ops_str = symbolic.InsSymbolize(ins)
-    assert OperandsMatch(ins.opcode, ops_str,
-                         actual_ops), f"[{name}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
-
     ins2 = symbolic.InsFromSymbolized(name, ops_str)
     assert tuple(ins.operands) == tuple(ins2.operands), f"{ins.operands} vs {ins2.operands}"
+
+    MassageOperandsAndCheckName(actual_name, ins.opcode, actual_ops)
+    assert OperandsMatch(ins.opcode, ops_str,
+                         actual_ops), f"[{name}] mismatch in [{count}]:  {ops_str} vs {actual_ops}: {line}"
 
 
 def main(argv):

@@ -11,10 +11,10 @@ tests: tests_py tests_c
 	@echo
 
 
-tests_py: objdump_compat_test argv_test disassembler_test  $(TESTS:.asm=.test)
+tests_py: disassembler_test objdump_compat_test argv_test  $(TESTS:.asm=.test)
 
 
-tests_c: objdump_compat_test_c
+tests_c: opcode_test_c
 
 objdump_compat_test:
 	@echo "[$@]"
@@ -59,16 +59,21 @@ opcode_gen.h: opcode_tab.py
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
 	@mv $@.tmp $@
 
-objdump_compat_test_c: TestData/a64_test.regular.dis opcode_gen.h opcode_gen.cc
+opcode_test_c: opcode_gen.h opcode_gen.cc
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_opcode_test.exe
-	$(BUILD_DIR)/a64_opcode_test.exe TestData/a64_test.regular.dis
+	$(BUILD_DIR)/a64_opcode_test.exe
 
 
-disassembler_test_c: disassembler_tool.cc
+symbolize_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
-	$(DISASSEMBLER_TOOL) disass $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff $@.actual.out TestData/$@.golden
 
+	$(DISASSEMBLER_TOOL) $(TEST_INSTRUCTIONS) > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
+	#
+	$(DISASSEMBLER_TOOL) batch < TestData/a64_test.regular.dis > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py batch < TestData/a64_test.regular.dis  > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
 clean:

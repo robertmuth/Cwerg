@@ -18,7 +18,7 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
     elif t.kind == a64.FK.FLT_CUSTOM:
         # we only care about the float aspect
         data = parse.Flt64FromBits(data)
-        return str(data)
+        return f"{data:g}"
     elif t.kind == a64.FK.INT_SIGNED:
         # we only care about the signed aspect
         if data >= 1 << 63:
