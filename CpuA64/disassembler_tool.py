@@ -34,11 +34,11 @@ def batch():
         if ins.opcode is None:
             print(f"could not disassemble {data:x}")
             continue
-        enum_name, operands_str = symbolic.InsSymbolize(ins)
-        print(f"{data:08x} {enum_name} {', '.join(operands_str)}")
+        enum_name, ops_str = symbolic.InsSymbolize(ins)
+        print(f"{data:08x} {enum_name}{' ' if ops_str else ''}{', '.join(ops_str)}")
         data2 = a64.Assemble(ins)
         assert data == data2
-        ins2 = symbolic.InsFromSymbolized(enum_name, operands_str)
+        ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)
         assert tuple(ins.operands) == tuple(
             ins2.operands), f"{ins.operands} vs {ins2.operands}"
 

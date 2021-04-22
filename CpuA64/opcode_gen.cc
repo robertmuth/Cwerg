@@ -23,13 +23,13 @@ uint32_t EncodeShifted_10_21_22(uint64_t x) {
 }
 
 uint64_t DecodeShifted_5_20_21_22(uint32_t x) {
-  return (x & 0xffff) << (16U * (x >> 16U));
+  return ((uint64_t )x & 0xffffULL) << (16ULL * (x >> 16ULL));
 }
 
 uint32_t EncodeShifted_5_20_21_22(uint64_t x) {
   for (unsigned i = 0; i < 4; i++) {
     if ((x & 0xffff) == x) {
-      return x | (i << 16U);
+      return x | (i << 16ULL);
     }
     x >>= 16U;
   }

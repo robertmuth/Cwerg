@@ -3,7 +3,7 @@
 
 TESTS = TestData/exit.asm TestData/hello.asm TestData/fib.asm
 
-TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004
+TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a
 
 .PHONY: $(TESTS)
 
@@ -14,7 +14,7 @@ tests: tests_py tests_c
 tests_py: disassembler_test objdump_compat_test argv_test  $(TESTS:.asm=.test)
 
 
-tests_c: opcode_test_c
+tests_c: opcode_test_c symbolize_parity
 
 objdump_compat_test:
 	@echo "[$@]"

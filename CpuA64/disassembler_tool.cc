@@ -17,7 +17,6 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   if (std::string_view("batch") == argv[1]) {
-    unsigned count = 0;
     for (std::string line; getline(std::cin, line);) {
       if (line.size() < 8 || line[0] == '#') continue;
       const uint32_t data = strtoul(line.data(), nullptr, 16);
@@ -36,9 +35,7 @@ int main(int argc, char* argv[]) {
         sep = ", ";
       }
       std::cout << "\n";
-      ++count;
     }
-    std::cout << "processed " << count << " instructions\n";
   } else if (std::string_view("benchmark") == argv[1]) {
     // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate
     // "eq"
