@@ -24,34 +24,6 @@ std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
 const char ARM_ATTRIBUTES[] = {0x41, 0x11, 0, 0, 0, 0x61, 0x65, 0x61, 0x62,
                                0x69, 0,    1, 7, 0, 0,    0,    8,    1};
 
-void Unit::AddFunAddr(unsigned size, uint8_t reloc_kind, std::string_view fun_name) {
-  ASSERT(current_mem_sec != nullptr, "");
-  ASSERT(size == 4, "");
-  auto* sym = FindOrAddSymbol(fun_name, false);
-  AddReloc(reloc_kind, current_mem_sec, sym, 0);
-  current_mem_sec->AddData(padding_four_zero);
-}
-
-void Unit::AddBblAddr(unsigned size, uint8_t reloc_kind, std::string_view bbl_name) {
-  ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem directive");
-  ASSERT(size == 4, "");
-  auto* sym = FindOrAddSymbol(bbl_name, true);
-  AddReloc(reloc_kind, current_mem_sec, sym, 0);
-  current_mem_sec->AddData(padding_four_zero);
-}
-
-void Unit::AddMemAddr(unsigned size,
-                      uint8_t reloc_kind,
-                      std::string_view mem_name,
-                      uint32_t addend) {
-  ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
-  ASSERT(size == 4, "");
-  ASSERT(addend == 0, "NYI");
-  auto* sym = FindOrAddSymbol(mem_name, false);
-  AddReloc(reloc_kind, current_mem_sec, sym, 0);
-  current_mem_sec->AddData(padding_four_zero);
-}
-
 void Unit::AddIns(Ins* ins) {
   if (ins->has_reloc()) {
     const elf::Symbol<uint32_t>* sym =

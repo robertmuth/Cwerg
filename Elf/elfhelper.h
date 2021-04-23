@@ -52,6 +52,11 @@ struct Chunk {
     storage_rw_.append(bytes);
   }
 
+  void AddDataRepeatedByte(unsigned count, uint8_t byte) {
+    ASSERT(!is_read_only_, "");
+    storage_rw_.append(count, byte);
+  }
+
   void PadData(size_t alignment, std::string_view padding) {
     ASSERT(!is_read_only_, "");
     if (alignment <= 1) return;
@@ -200,6 +205,11 @@ struct Section {
   void AddData(std::string_view bytes) {
     ASSERT(bytes.size() > 0, "");
     data->AddData(bytes);
+    shdr.sh_size = data->size();
+  }
+
+  void AddDataRepeatedBytes(unsigned count, uint8_t byte) {
+    data->AddDataRepeatedByte(count, byte);
     shdr.sh_size = data->size();
   }
 

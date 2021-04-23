@@ -116,7 +116,7 @@ class Unit:
         self.AddSymbol(name, self.sec_text, True)
 
     def AddLinkerDefs(self):
-        """must be called last"""
+        """must be called last - do we really need linkerdefs?"""
         if self.sec_bss.sh_size > 0:
             self.sec_bss.PadData(16, ZERO_BYTE)
             self.AddSymbol("$$rw_data_end", self.sec_bss, False)
