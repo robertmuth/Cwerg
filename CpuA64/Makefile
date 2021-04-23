@@ -76,4 +76,5 @@ symbolize_parity:
 	$(DISASSEMBLER_TOOL) batch < TestData/a64_test.regular.dis > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py batch < TestData/a64_test.regular.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
+
 clean:

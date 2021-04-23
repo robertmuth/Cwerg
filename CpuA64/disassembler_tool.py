@@ -14,7 +14,6 @@ def disass(data):
 
     enum_name, ops_str = symbolic.InsSymbolize(ins)
     print(f"{data:08x}", f"{ins.opcode.NameForEnum()} {' '.join(ops_str)}")
-    print("OPCODE", ins.opcode.NameForEnum())
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         print(f"    {f.name:35s} {o_str:10} ({o})")
     # print(f"flags: {ins.opcode.classes}")

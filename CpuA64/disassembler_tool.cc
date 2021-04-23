@@ -86,13 +86,13 @@ int main(int argc, char* argv[]) {
         sep = " ";
       }
       std::cout << "\n";
-      std::cout << "OPCODE " << enum_name << "\n";
       for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
         std::cout << "    " << std::left << std::setw(35)
                   << EnumToString(ins.opcode->fields[x]) << " " << std::setw(10)
                   << ops[x] << " (" << ins.operands[x] << ")\n";
       }
       std::cout << "\n";
+
       // check that the assembler works - this is not strictly
       // necessary but useful for debuggging the assembler
       const uint32_t data2 = Assemble(ins);

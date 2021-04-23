@@ -1,34 +1,27 @@
 could not disassemble 0
 90000440 adrp x0 136
-OPCODE adrp
     XREG_0_4                            x0         (0)
     SIMM_PCREL_5_23_29_30               136        (136)
 
 9126c000 add_x_imm x0 x0 0x9b0
-OPCODE add_x_imm
     XREG_0_4_SP                         x0         (0)
     XREG_5_9_SP                         x0         (0)
     IMM_SHIFTED_10_21_22                0x9b0      (2480)
 
 14014192 b 82322
-OPCODE b
     SIMM_PCREL_0_25                     82322      (82322)
 
 97fffcf7 bl -777
-OPCODE bl
     SIMM_PCREL_0_25                     -777       (67108087)
 
 54000140 b_eq 10
-OPCODE b_eq
     SIMM_PCREL_5_23                     10         (10)
 
 1e201004 fmov_s_imm s4 2
-OPCODE fmov_s_imm
     SREG_0_4                            s4         (4)
     IMM_FLT_13_20                       2          (0)
 
 f2c7f84a movk_x x10 0x3fc200000000
-OPCODE movk_x
     XREG_0_4                            x10        (10)
     IMM_SHIFTED_5_20_21_22              0x3fc200000000 (147394)
 
