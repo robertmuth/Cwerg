@@ -2499,6 +2499,40 @@ const char* const SHIFT_ToStringMap[] = {
 template<>  // template specialization for SHIFT
 const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
 
+
+const char* const OK_ToStringMap[] = {
+    "Invalid", // 0
+    "REG_0_3", // 1
+    "REG_8_11", // 2
+    "REG_12_15", // 3
+    "REG_16_19", // 4
+    "REG_PAIR_12_15", // 5
+    "DREG_0_3_5", // 6
+    "DREG_12_15_22", // 7
+    "DREG_16_19_7", // 8
+    "SREG_0_3_5", // 9
+    "SREG_12_15_22", // 10
+    "SREG_16_19_7", // 11
+    "SHIFT_MODE_5_6", // 12
+    "REGLIST_0_15", // 13
+    "REG_RANGE_0_7", // 14
+    "REG_RANGE_1_7", // 15
+    "PRED_28_31", // 16
+    "IMM_0_7_TIMES_4", // 17
+    "IMM_0_11", // 18
+    "IMM_0_3_8_11", // 19
+    "IMM_7_11", // 20
+    "IMM_10_11_TIMES_8", // 21
+    "IMM_0_23", // 22
+    "IMM_0_7_8_11", // 23
+    "IMM_FLT_ZERO", // 24
+    "IMM_0_11_16_19", // 25
+    "SIMM_0_23", // 26
+};
+
+template<>  // template specialization for OK
+const char* EnumToString<OK>(OK x) { return OK_ToStringMap[unsigned(x)]; }
+
 // Indexed by OK
 const FieldInfo FieldInfoTable[] = {
   {  // Invalid = 0

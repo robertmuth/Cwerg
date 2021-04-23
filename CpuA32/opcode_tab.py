@@ -1363,6 +1363,8 @@ def _EmitCodeC(fout):
     cgen.RenderEnumToStringFun("PRED", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
     cgen.RenderEnumToStringFun("SHIFT", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
+    cgen.RenderEnumToStringFun("OK", fout)
 
     # Note this also uses the string tables from the enums above
     print("// Indexed by OK", file=fout)

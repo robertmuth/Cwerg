@@ -1,71 +1,60 @@
 eefdbbc0 vcvt_s32_f64 al, s23, d0
-    PRED_28_31          al (14)
-    SREG_12_15_22       s23 (23)
-    DREG_0_3_5          d0 (0)
-flags: OPC_FLAG.VFP
+    PRED_28_31                al              (14)
+    SREG_12_15_22             s23             (23)
+    DREG_0_3_5                d0              (0)
 
 e12fff31 blx_reg al, r1
-    PRED_28_31          al (14)
-    REG_0_3             r1 (1)
-flags: OPC_FLAG.THUMB|LINK|JUMP
+    PRED_28_31                al              (14)
+    REG_0_3                   r1              (1)
 
 924aa001 sub_imm ls, sl, sl, 1
-    PRED_28_31          ls (9)
-    REG_12_15           sl (10)
-    REG_16_19           sl (10)
-    IMM_0_7_8_11        1 (1)
-flags: OPC_FLAG.ALU
+    PRED_28_31                ls              (9)
+    REG_12_15                 sl              (10)
+    REG_16_19                 sl              (10)
+    IMM_0_7_8_11              1               (1)
 
 ebffdc62 bl al, -9118
-    PRED_28_31          al (14)
-    SIMM_0_23           -9118 (16768098)
-flags: OPC_FLAG.LINK|JUMP
+    PRED_28_31                al              (14)
+    SIMM_0_23                 -9118           (16768098)
 
 e8bd87f0 ldmia_update al, reglist:0x87f0, sp
-    PRED_28_31          al (14)
-    REGLIST_0_15        reglist:0x87f0 (34800)
-    REG_16_19           sp (13)
-flags: OPC_FLAG.ADDR_UPDATE|ADDR_INC|ADDR_POST|MULTIPLE|LOAD
+    PRED_28_31                al              (14)
+    REGLIST_0_15              reglist:0x87f0  (34800)
+    REG_16_19                 sp              (13)
 
 ecbd8b08 vldmia_f_update al, d8, regrange:4, sp
-    PRED_28_31          al (14)
-    DREG_12_15_22       d8 (8)
-    REG_RANGE_1_7       regrange:4 (4)
-    REG_16_19           sp (13)
-flags: OPC_FLAG.ADDR_UPDATE|ADDR_INC|ADDR_POST|VFP|MULTIPLE|LOAD
+    PRED_28_31                al              (14)
+    DREG_12_15_22             d8              (8)
+    REG_RANGE_1_7             regrange:4      (4)
+    REG_16_19                 sp              (13)
 
 08bd81f0 ldmia_update eq, reglist:0x81f0, sp
-    PRED_28_31          eq (0)
-    REGLIST_0_15        reglist:0x81f0 (33264)
-    REG_16_19           sp (13)
-flags: OPC_FLAG.ADDR_UPDATE|ADDR_INC|ADDR_POST|MULTIPLE|LOAD
+    PRED_28_31                eq              (0)
+    REGLIST_0_15              reglist:0x81f0  (33264)
+    REG_16_19                 sp              (13)
 
 e1920f9f ldrex al, r0, r2
-    PRED_28_31          al (14)
-    REG_12_15           r0 (0)
-    REG_16_19           r2 (2)
-flags: OPC_FLAG.ATOMIC|LOAD
+    PRED_28_31                al              (14)
+    REG_12_15                 r0              (0)
+    REG_16_19                 r2              (2)
 
 015461fa ldrsh_imm_sub eq, r6, r4, 26
-    PRED_28_31          eq (0)
-    REG_12_15           r6 (6)
-    REG_16_19           r4 (4)
-    IMM_0_3_8_11        26 (26)
-flags: OPC_FLAG.ADDR_DEC|ADDR_PRE|LOAD
+    PRED_28_31                eq              (0)
+    REG_12_15                 r6              (6)
+    REG_16_19                 r4              (4)
+    IMM_0_3_8_11              26              (26)
 
 e3c70102 bic_imm al, r0, r7, -2147483648
-    PRED_28_31          al (14)
-    REG_12_15           r0 (0)
-    REG_16_19           r7 (7)
-    IMM_0_7_8_11        -2147483648 (258)
-flags: OPC_FLAG.ALU
+    PRED_28_31                al              (14)
+    REG_12_15                 r0              (0)
+    REG_16_19                 r7              (7)
+    IMM_0_7_8_11              -2147483648     (258)
 
 00000000 and_regimm eq, r0, r0, r0, lsl, 0
-    PRED_28_31          eq (0)
-    REG_12_15           r0 (0)
-    REG_16_19           r0 (0)
-    REG_0_3             r0 (0)
-    SHIFT_MODE_5_6      lsl (0)
-    IMM_7_11            0 (0)
-flags: OPC_FLAG.ALU
+    PRED_28_31                eq              (0)
+    REG_12_15                 r0              (0)
+    REG_16_19                 r0              (0)
+    REG_0_3                   r0              (0)
+    SHIFT_MODE_5_6            lsl             (0)
+    IMM_7_11                  0               (0)
 

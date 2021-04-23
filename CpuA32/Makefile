@@ -18,7 +18,7 @@ tests: tests_py tests_c
 tests_py: objdump_compat_test disassembler_test disassembler_test jit_test \
               argv_test $(TESTS:.asm=.test)
 
-tests_c: objdump_compat_test_c disassembler_test_c build_test_c \
+tests_c: symbolize_parity build_test_c \
          $(TESTS:.asm=.test_c) codegen_parity
 
 tests_cross: jit_example_cross
@@ -88,16 +88,6 @@ opcode_gen.h: opcode_tab.py
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
 	@mv $@.tmp $@
 
-objdump_compat_test_c: TestData/arm_test.dis opcode_gen.h opcode_gen.cc
-	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a32_opcode_test.exe
-	$(BUILD_DIR)/a32_opcode_test.exe TestData/arm_test.dis
-
-disassembler_test_c: opcode_gen.h opcode_gen.cc $(DISASSEMBLER_TOOL)
-	@echo "[$@]"
-	$(DISASSEMBLER_TOOL) disass $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff $@.actual.out TestData/$@.golden
-
 build_test_c:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s  a32_assembler_tool.exe a32_jit_example.exe
@@ -116,6 +106,18 @@ codegen_parity: $(ASSEMBLER_TOOL)
 	$(ASSEMBLER_TOOL) assemble TestData/nanojpeg.asm $@_c.exe > $@_c.exe.out
 	$(PYPY)	./assembler_tool.py assemble  TestData/nanojpeg.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
+
+symbolize_parity:
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
+	#
+	$(DISASSEMBLER_TOOL) $(TEST_INSTRUCTIONS) > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
+	#
+	$(DISASSEMBLER_TOOL) batch < TestData/arm_test.dis > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py batch < TestData/arm_test.dis  > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
 
 ############################################################
 # Cross Compile
