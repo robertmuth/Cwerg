@@ -10,7 +10,12 @@
 namespace cwerg::a32 {
 using namespace cwerg::elf;
 
-
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
+}
 
 std::string_view padding_four_zero("\0\0\0\0", 4);
 std::string_view padding_zero("\0", 1);
@@ -19,110 +24,39 @@ std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
 const char ARM_ATTRIBUTES[] = {0x41, 0x11, 0, 0, 0, 0x61, 0x65, 0x61, 0x62,
                                0x69, 0,    1, 7, 0, 0,    0,    8,    1};
 
-Symbol<uint32_t>* Unit::AddSymbol(std::string_view name,
-                                  Section<uint32_t>* sec,
-                                  bool is_local) {
-  name = InternString(name);
-  auto* the_map = is_local ? &local_symbol_map : &global_symbol_map;
-  auto it = the_map->find(name);
-  Symbol<uint32_t>* sym = it == the_map->end() ? nullptr : it->second;
-  if (sym == nullptr) {
-    sym = new Symbol<uint32_t>();
-    sym->Init(name, is_local, sec, sec == nullptr ? ~0U : sec->data->size());
-    symbols.emplace_back(std::unique_ptr<Symbol<uint32_t>>(sym));
-    (*the_map)[name] = sym;
-    return sym;
-  }
-  if (sec != nullptr) {
-    ASSERT(sym->section == nullptr,
-           "Symbol " << name << " already has sec local:" << is_local);
-    sym->section = sec;
-    sym->sym.st_value = sec->data->size();
-  }
-  return sym;
-}
-
-void Unit::FunStart(std::string_view name, unsigned alignment) {
-  ASSERT(current_fun_name.empty(), "");
-  current_fun_name = name;
-  sec_text->PadData(alignment, padding_nop);
-  AddSymbol(name, sec_text, false);
-}
-
-void Unit::FunEnd() {
-  ASSERT(!current_fun_name.empty(), "");
-  current_fun_name = "";
-  local_symbol_map.clear();
-}
-
-void Unit::MemStart(std::string_view name,
-                    unsigned alignment,
-                    std::string_view kind,
-                    bool is_local) {
-  ASSERT(current_mem_sec == nullptr, "");
-  if (kind == "rodata") {
-    current_mem_sec = sec_rodata;
-  } else if (kind == "data") {
-    current_mem_sec = sec_data;
-  } else if (kind == "bss") {
-    current_mem_sec = sec_bss;
-  } else {
-    ASSERT(false, "bad mem kind " << kind);
-  }
-  current_mem_sec->PadData(alignment, padding_zero);
-  AddSymbol(name, current_mem_sec, is_local);
-}
-
-void Unit::MemEnd() {
-  ASSERT(current_mem_sec != nullptr, "");
-  current_mem_sec = nullptr;
-}
-
-void Unit::AddData(unsigned repeats, const void* data, size_t len) {
-  ASSERT(current_mem_sec != nullptr, "");
-  for (unsigned i = 0; i < repeats; ++i) {
-    current_mem_sec->AddData({(const char*)data, len});
-  }
-}
-
-void Unit::AddFunAddr(unsigned size, std::string_view fun_name) {
+void Unit::AddFunAddr(unsigned size, uint8_t reloc_kind, std::string_view fun_name) {
   ASSERT(current_mem_sec != nullptr, "");
   ASSERT(size == 4, "");
   auto* sym = FindOrAddSymbol(fun_name, false);
-  AddReloc(RELOC_TYPE_ARM::ABS32, current_mem_sec, sym, 0);
+  AddReloc(reloc_kind, current_mem_sec, sym, 0);
   current_mem_sec->AddData(padding_four_zero);
 }
 
-void Unit::AddBblAddr(unsigned size, std::string_view bbl_name) {
-  ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem diretive");
+void Unit::AddBblAddr(unsigned size, uint8_t reloc_kind, std::string_view bbl_name) {
+  ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem directive");
   ASSERT(size == 4, "");
   auto* sym = FindOrAddSymbol(bbl_name, true);
-  AddReloc(RELOC_TYPE_ARM::ABS32, current_mem_sec, sym, 0);
+  AddReloc(reloc_kind, current_mem_sec, sym, 0);
   current_mem_sec->AddData(padding_four_zero);
 }
 
 void Unit::AddMemAddr(unsigned size,
+                      uint8_t reloc_kind,
                       std::string_view mem_name,
                       uint32_t addend) {
   ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
   ASSERT(size == 4, "");
   ASSERT(addend == 0, "NYI");
   auto* sym = FindOrAddSymbol(mem_name, false);
-  AddReloc(RELOC_TYPE_ARM::ABS32, current_mem_sec, sym, 0);
+  AddReloc(reloc_kind, current_mem_sec, sym, 0);
   current_mem_sec->AddData(padding_four_zero);
-}
-
-void Unit::AddLabel(std::string_view name, unsigned alignment) {
-  sec_text->PadData(alignment, padding_nop);
-  ASSERT(!current_fun_name.empty(), "");
-  AddSymbol(name, sec_text, true);
 }
 
 void Unit::AddIns(Ins* ins) {
   if (ins->has_reloc()) {
     const elf::Symbol<uint32_t>* sym =
         FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
-    AddReloc(ins->reloc_kind, sec_text, sym, ins->operands[ins->reloc_pos]);
+    AddReloc(+ins->reloc_kind, sec_text, sym, ins->operands[ins->reloc_pos]);
     ins->clear_reloc();
   }
   uint32_t data = Assemble(*ins);
@@ -138,7 +72,7 @@ std::array<std::string_view, 6> kStartupCode = {  //
     "ud2 al"};
 
 void Unit::AddStartupCode() {
-  FunStart("_start", 16);
+  FunStart("_start", 16, padding_nop);
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
     token.clear();
@@ -168,17 +102,17 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
   const auto mnemonic = token[0];
   if (mnemonic == ".fun") {
     ASSERT(token.size() == 3, "");
-    unit->FunStart(token[1], ParseInt<uint32_t>(token[2]).value());
+    unit->FunStart(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
   } else if (mnemonic == ".endfun") {
     unit->FunEnd();
   } else if (mnemonic == ".mem") {
     ASSERT(token.size() == 4, "");
     unit->MemStart(token[1], ParseInt<uint32_t>(token[2]).value(), token[3],
-                   false);
+                   padding_zero, false);
   } else if (mnemonic == ".localmem") {
     ASSERT(token.size() == 4, "");
     unit->MemStart(token[1], ParseInt<uint32_t>(token[2]).value(), token[3],
-                   true);
+                   padding_zero, true);
   } else if (mnemonic == ".endmem") {
     unit->MemEnd();
   } else if (mnemonic == ".data") {
@@ -197,17 +131,17 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
     unit->AddData(ParseInt<uint32_t>(token[1]).value(), buffer, len);
   } else if (mnemonic == ".addr.mem") {
     ASSERT(token.size() == 4, "");
-    unit->AddMemAddr(ParseInt<uint32_t>(token[1]).value(), token[2],
+    unit->AddMemAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2],
                      ParseInt<uint32_t>(token[3]).value());
   } else if (mnemonic == ".addr.fun") {
     ASSERT(token.size() == 3, "");
-    unit->AddFunAddr(ParseInt<uint32_t>(token[1]).value(), token[2]);
+    unit->AddFunAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2]);
   } else if (mnemonic == ".addr.bbl") {
     ASSERT(token.size() == 3, "");
-    unit->AddBblAddr(ParseInt<uint32_t>(token[1]).value(), token[2]);
+    unit->AddBblAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2]);
   } else if (mnemonic == ".bbl") {
     ASSERT(token.size() == 3, "");
-    unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value());
+    unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
   } else {
     std::cerr << "unknown directive " << mnemonic << "\n";
     return false;

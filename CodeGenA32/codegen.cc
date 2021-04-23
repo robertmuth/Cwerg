@@ -16,6 +16,16 @@ using namespace cwerg::base;
 
 namespace {
 
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+-> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
+}
+
+std::string_view padding_zero("\0", 1);
+std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
+
 void JtbCodeGen(Jtb jtb, std::ostream* output) {
   std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
   for (Jen jen : JtbJenIter(jtb)) {
@@ -133,7 +143,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   for (Mem mem : UnitMemIter(unit)) {
     if (MemKind(mem) == MEM_KIND::EXTERN) continue;
     out.MemStart(StrData(Name(mem)), MemAlignment(mem),
-                 MemKindToSectionName(MemKind(mem)), false);
+                 MemKindToSectionName(MemKind(mem)), padding_zero, false);
     for (Data data : MemDataIter(mem)) {
       uint32_t size = DataSize(data);
       Handle target = DataTarget(data);
@@ -141,10 +151,10 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       if (target.kind() == RefKind::STR) {
         out.AddData(extra, StrData(Str(target)), size);
       } else if (target.kind() == RefKind::FUN) {
-        out.AddFunAddr(size, StrData(Name(Fun(target))));
+        out.AddFunAddr(size, +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(Fun(target))));
       } else {
         ASSERT(target.kind() == RefKind::MEM, "");
-        out.AddMemAddr(size, StrData(Name(Mem(target))), extra);
+        out.AddMemAddr(size,  +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(Mem(target))), extra);
       }
     }
     out.MemEnd();
@@ -159,15 +169,15 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   };
 
   for (Fun fun : UnitFunIter(unit)) {
-    out.FunStart(StrData(Name(fun)), 16);
+    out.FunStart(StrData(Name(fun)), 16, padding_nop);
     for (Jtb jtb : FunJtbIter(fun)) {
       std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
       for (Jen jen : JtbJenIter(jtb)) {
         table[JenPos(jen)] = JenBbl(jen);
       }
-      out.MemStart(StrData(Name(jtb)), 4, "rodata", true);
+      out.MemStart(StrData(Name(jtb)), 4, "rodata", padding_zero, true);
       for (Bbl bbl : table) {
-        out.AddBblAddr(4, StrData(Name(bbl)));
+        out.AddBblAddr(4, +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(bbl)));
       }
       out.MemEnd();
     }
@@ -175,7 +185,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
     EmitFunProlog(ctx, &inss);
     drain();
     for (Bbl bbl : FunBblIter(fun)) {
-      out.AddLabel(StrData(Name(bbl)), 4);
+      out.AddLabel(StrData(Name(bbl)), 4, padding_nop);
       for (Ins ins : BblInsIter(bbl)) {
         if (InsOPC(ins) == OPC::NOP1) {
           ctx.scratch_cpu_reg = RegCpuReg(Reg(InsOperand(ins, 0)));

@@ -292,12 +292,12 @@ struct Reloc {
   const Section<elfsize_t>* section = nullptr;
   const Symbol<elfsize_t>* symbol = nullptr;
 
-  void Init(RELOC_TYPE_ARM reloc_type,
+  void Init(uint8_t reloc_kind,
             const Section<elfsize_t>* sec,
             elfsize_t offset,
             const Symbol<elfsize_t>* sym,
             typename std::make_signed<elfsize_t>::type addend) {
-    rel.r_type = uint32_t(reloc_type);
+    rel.r_type = reloc_kind;
     section = sec;
     rel.r_offset = offset;
     rel.r_addend = addend;
