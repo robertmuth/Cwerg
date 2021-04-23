@@ -219,7 +219,7 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
   *(uint32_t*)patch_addr = new_data;
 }
 
-Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
+Executable<uint32_t> MakeExe(Unit* unit, bool create_sym_tab) {
   std::vector<Section<uint32_t>*> sections;
   std::vector<Segment<uint32_t>*> segments;
 
@@ -233,36 +233,36 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
     sections.push_back(sec_null);
     seg_exe->sections.push_back(sec_null);
 
-    ASSERT(sec_text->data->size() > 0, "");
-    sections.push_back(sec_text);
-    seg_exe->sections.push_back(sec_text);
+    ASSERT(unit->sec_text->data->size() > 0, "");
+    sections.push_back(unit->sec_text);
+    seg_exe->sections.push_back(unit->sec_text);
   }
 
-  if (sec_rodata->data->size() > 0) {
+  if (unit->sec_rodata->data->size() > 0) {
     auto seg_ro = new Segment<uint32_t>();
     seg_ro->InitRO(65536);
     segments.push_back(seg_ro);
 
-    sections.push_back(sec_rodata);
-    seg_ro->sections.push_back(sec_rodata);
+    sections.push_back(unit->sec_rodata);
+    seg_ro->sections.push_back(unit->sec_rodata);
   }
 
   Segment<uint32_t>* seg_rw = nullptr;
 
-  if (sec_data->data->size() + sec_bss->data->size() > 0) {
+  if (unit->sec_data->data->size() + unit->sec_bss->data->size() > 0) {
     seg_rw = new Segment<uint32_t>();
     seg_rw->InitRW(65536);
     segments.push_back(seg_rw);
   }
 
-  if (sec_data->data->size() > 0) {
-    sections.push_back(sec_data);
-    seg_rw->sections.push_back(sec_data);
+  if (unit->sec_data->data->size() > 0) {
+    sections.push_back(unit->sec_data);
+    seg_rw->sections.push_back(unit->sec_data);
   }
 
-  if (sec_bss->data->size() > 0) {
-    sections.push_back(sec_bss);
-    seg_rw->sections.push_back(sec_bss);
+  if (unit->sec_bss->data->size() > 0) {
+    sections.push_back(unit->sec_bss);
+    seg_rw->sections.push_back(unit->sec_bss);
   }
 
   Section<uint32_t>* sec_symtab = nullptr;
@@ -281,15 +281,15 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
       sec_symtab = new Section<uint32_t>();
       sec_symtab->InitSymTab(".symtab", sizeof(Elf_Sym<uint32_t>),
                              sections.size() + 1);
-      sec_symtab->shdr.sh_info = symbols.size();
-      std::string dummy(sizeof(Elf_Sym<uint32_t>) * symbols.size(), '\0');
+      sec_symtab->shdr.sh_info = unit->symbols.size();
+      std::string dummy(sizeof(Elf_Sym<uint32_t>) * unit->symbols.size(), '\0');
       auto* sym_data = new Chunk(dummy, false);
       sec_symtab->SetData(sym_data);
       sections.push_back(sec_symtab);
       seg_pseudo->sections.push_back(sec_symtab);
 
       auto* names = new Chunk(padding_zero, false);
-      for (auto& sym : symbols) {
+      for (auto& sym : unit->symbols) {
         if (!sym->name.empty()) {
           sym->sym.st_name = names->size();
           names->AddData(sym->name);
@@ -314,7 +314,7 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
 
   Executable<uint32_t> exe = MakeExecutableA32(0x20000, sections, segments);
   exe.UpdateVaddrsAndOffsets();
-  for (auto& sym : symbols) {
+  for (auto& sym : unit->symbols) {
     ASSERT(sym->sym.st_value != ~0, "undefined symbol " << sym->name);
     if (sym->section != nullptr) {
       ASSERT(sym->section->shdr.sh_addr != ~0,
@@ -324,7 +324,7 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
     }
   }
 
-  for (auto& rel : relocations) {
+  for (auto& rel :unit-> relocations) {
     ApplyRelocation(rel);
   }
 
@@ -332,14 +332,14 @@ Executable<uint32_t> Unit::MakeExe(bool create_sym_tab) {
     ASSERT(sec_symtab != nullptr, "");
 
     auto* sym_data = new Chunk("", false);
-    for (auto& sym : symbols) {
+    for (auto& sym : unit->symbols) {
       sym_data->AddData({(const char*)&sym->sym, sizeof(sym->sym)});
     }
     ASSERT(sec_symtab->shdr.sh_size == sym_data->size(), "");
     sec_symtab->SetData(sym_data);
   }
 
-  auto* entry = global_symbol_map["_start"];
+  auto* entry = unit->global_symbol_map["_start"];
   ASSERT(entry != nullptr, "_start is not defined");
   exe.ehdr.e_entry = entry->sym.st_value;
   return exe;

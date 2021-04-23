@@ -19,7 +19,7 @@ bool Assemble(std::string_view input, std::string_view output, bool add_startup_
     std::cerr << "cannot parse input file " << input << "\n";
     return false;
   }
-  auto exe = unit.MakeExe(true);
+  auto exe = MakeExe(&unit, true);
   std::cout << exe;
 
   std::ofstream foutFile;

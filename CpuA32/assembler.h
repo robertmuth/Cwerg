@@ -163,7 +163,6 @@ struct Unit {
 
   void AddLinkerDefs();
 
-  elf::Executable<uint32_t> MakeExe(bool create_sym_tab);
 
  private:
   std::string_view current_fun_name = "";
@@ -176,6 +175,8 @@ extern bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit);
 extern void AddIns(Unit* unit, Ins* ins);
 
 extern void AddStartupCode(Unit* unit);
+
+extern elf::Executable<uint32_t> MakeExe(Unit* unit, bool create_sym_tab);
 
 extern std::ostream& operator<<(std::ostream& os, const Unit& s);
 
