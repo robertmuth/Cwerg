@@ -78,3 +78,4 @@ symbolize_parity:
 	diff $@.actual_c.out $@.actual.out
 
 clean:
+	rm -f  TestData/*.out TestData/*.exe *.exe *.out
