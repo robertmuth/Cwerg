@@ -163,10 +163,6 @@ struct Unit {
 
   void AddLinkerDefs();
 
-  void AddIns(a32::Ins* ins);
-
-  void AddStartupCode();
-
   elf::Executable<uint32_t> MakeExe(bool create_sym_tab);
 
  private:
@@ -176,6 +172,10 @@ struct Unit {
 
 // Initialize a pristine A32Unit from a textual assembly content
 extern bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit);
+
+extern void AddIns(Unit* unit, Ins* ins);
+
+extern void AddStartupCode(Unit* unit);
 
 extern std::ostream& operator<<(std::ostream& os, const Unit& s);
 

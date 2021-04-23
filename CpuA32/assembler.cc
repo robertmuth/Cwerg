@@ -24,15 +24,15 @@ std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
 const char ARM_ATTRIBUTES[] = {0x41, 0x11, 0, 0, 0, 0x61, 0x65, 0x61, 0x62,
                                0x69, 0,    1, 7, 0, 0,    0,    8,    1};
 
-void Unit::AddIns(Ins* ins) {
+void AddIns(Unit* unit, Ins* ins) {
   if (ins->has_reloc()) {
     const elf::Symbol<uint32_t>* sym =
-        FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
-    AddReloc(+ins->reloc_kind, sec_text, sym, ins->operands[ins->reloc_pos]);
+        unit->FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
+    unit->AddReloc(+ins->reloc_kind, unit->sec_text, sym, ins->operands[ins->reloc_pos]);
     ins->clear_reloc();
   }
   uint32_t data = Assemble(*ins);
-  sec_text->AddData({(const char*)&data, 4});
+  unit->sec_text->AddData({(const char*)&data, 4});
 }
 
 std::array<std::string_view, 6> kStartupCode = {  //
@@ -43,8 +43,8 @@ std::array<std::string_view, 6> kStartupCode = {  //
     "svc al 0",                                   //
     "ud2 al"};
 
-void Unit::AddStartupCode() {
-  FunStart("_start", 16, padding_nop);
+void AddStartupCode(Unit* unit) {
+  unit->FunStart("_start", 16, padding_nop);
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
     token.clear();
@@ -55,9 +55,9 @@ void Unit::AddStartupCode() {
     if (!InsFromSymbolized(token, &ins)) {
       ASSERT(false, "internal parse error " << token[0]);
     }
-    AddIns(&ins);
+    AddIns(unit, &ins);
   }
-  FunEnd();
+  unit->FunEnd();
 }
 
 void Unit::AddLinkerDefs() {
@@ -130,7 +130,7 @@ bool HandleOpcode(Unit* unit, const std::vector<std::string_view>& token) {
     std::cerr << "parse error " << token[0] << "\n";
     return false;
   }
-  unit->AddIns(&ins);
+  AddIns(unit, &ins);
   return true;
 }
 
@@ -173,7 +173,7 @@ bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit) {
   }
   unit->AddLinkerDefs();
   if (add_startup_code) {
-    unit->AddStartupCode();
+    AddStartupCode(unit);
   }
   return true;
 }

@@ -163,7 +163,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   std::vector<a32::Ins> inss;
   auto drain = [&]() {
     for (auto& ins : inss) {
-      out.AddIns(&ins);
+      AddIns(&out, &ins);
     }
     inss.clear();
   };
@@ -205,7 +205,7 @@ a32::Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   }
   out.AddLinkerDefs();
   if (add_startup_code) {
-    out.AddStartupCode();
+    AddStartupCode(&out);
   }
   return out;
 }
