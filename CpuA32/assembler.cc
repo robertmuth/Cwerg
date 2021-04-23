@@ -24,7 +24,7 @@ std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
 const char ARM_ATTRIBUTES[] = {0x41, 0x11, 0, 0, 0, 0x61, 0x65, 0x61, 0x62,
                                0x69, 0,    1, 7, 0, 0,    0,    8,    1};
 
-void AddIns(Unit* unit, Ins* ins) {
+void AddIns(A32Unit* unit, Ins* ins) {
   if (ins->has_reloc()) {
     const elf::Symbol<uint32_t>* sym =
         unit->FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
@@ -43,7 +43,7 @@ std::array<std::string_view, 6> kStartupCode = {  //
     "svc al 0",                                   //
     "ud2 al"};
 
-void AddStartupCode(Unit* unit) {
+void AddStartupCode(A32Unit* unit) {
   unit->FunStart("_start", 16, padding_nop);
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
@@ -60,17 +60,9 @@ void AddStartupCode(Unit* unit) {
   unit->FunEnd();
 }
 
-void Unit::AddLinkerDefs() {
-  if (sec_bss->shdr.sh_size > 0) {
-    sec_bss->PadData(16, padding_zero);
-    AddSymbol("$$rw_data_end", sec_bss, false);
-  } else if (sec_data->shdr.sh_size > 0) {
-    sec_data->PadData(16, padding_zero);
-    AddSymbol("$$rw_data_end", sec_data, false);
-  }
-}
 
-bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
+
+bool HandleDirective(A32Unit* unit, const std::vector<std::string_view>& token) {
   const auto mnemonic = token[0];
   if (mnemonic == ".fun") {
     ASSERT(token.size() == 3, "");
@@ -121,10 +113,7 @@ bool HandleDirective(Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-
-
-
-bool HandleOpcode(Unit* unit, const std::vector<std::string_view>& token) {
+bool HandleOpcode(A32Unit* unit, const std::vector<std::string_view>& token) {
   Ins ins;
   if (!InsFromSymbolized(token, &ins)) {
     std::cerr << "parse error " << token[0] << "\n";
@@ -134,22 +123,8 @@ bool HandleOpcode(Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-Unit::Unit()
-    : sec_rodata(new Section<uint32_t>()),
-      sec_text(new Section<uint32_t>()),
-      sec_data(new Section<uint32_t>()),
-      sec_bss(new Section<uint32_t>()) {
-  sec_rodata->InitRodata(1);
-
-  sec_text->InitText(1);
-
-  sec_data->InitData(1);
-
-  sec_bss->InitBss(1);
-}
-
-bool UnitParse(std::istream* input, bool add_startup_code, Unit* unit) {
-  Unit out;
+bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit) {
+  A32Unit out;
   int line_num = 0;
   std::vector<std::string_view> token;
   for (std::string line; getline(*input, line);) {
@@ -219,7 +194,7 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
   *(uint32_t*)patch_addr = new_data;
 }
 
-Executable<uint32_t> MakeExe(Unit* unit, bool create_sym_tab) {
+Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab) {
   std::vector<Section<uint32_t>*> sections;
   std::vector<Segment<uint32_t>*> segments;
 
@@ -345,7 +320,7 @@ Executable<uint32_t> MakeExe(Unit* unit, bool create_sym_tab) {
   return exe;
 }
 
-std::ostream& operator<<(std::ostream& os, const Unit& s) {
+std::ostream& operator<<(std::ostream& os, const A32Unit& s) {
   os << *s.sec_text << "\n"
      << *s.sec_rodata << "\n"
      << *s.sec_data << "\n"

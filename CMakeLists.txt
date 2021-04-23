@@ -115,7 +115,7 @@ add_library(ELF_LIB OBJECT
         Elf/enum_gen.h
         Elf/elfhelper.cc
         Elf/elfhelper.h
-        )
+        Elf/elf_unit.h)
 
 add_library(BASE_LIB OBJECT
         Base/canonicalize.cc

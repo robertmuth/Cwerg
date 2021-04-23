@@ -14,12 +14,12 @@ bool Assemble(std::string_view input, std::string_view output, bool add_startup_
     fin = &finFile;
   }
 
-  a32::Unit unit;
+  a32::A32Unit unit;
   if (!a32::UnitParse(fin, add_startup_code, &unit)) {
     std::cerr << "cannot parse input file " << input << "\n";
     return false;
   }
-  auto exe = MakeExe(&unit, true);
+  auto exe = a32::MakeExe(&unit, true);
   std::cout << exe;
 
   std::ofstream foutFile;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   }
 
   if (argv[1] == std::string_view("lint")) {
-    a32::Unit unit;
+    a32::A32Unit unit;
     a32::UnitParse(&std::cin, false, &unit);
     std::cout << unit << "\n";
   } else if (argv[1] == std::string_view("assemble_raw")) {

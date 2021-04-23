@@ -197,6 +197,7 @@ struct Section {
   }
 
   void PadData(size_t alignment, std::string_view padding) {
+    ASSERT(padding.size() > 0, "");
     data->PadData(alignment, padding);
     if (alignment > shdr.sh_addralign) shdr.sh_addralign = alignment;
     shdr.sh_size = data->size();

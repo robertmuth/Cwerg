@@ -224,8 +224,8 @@ int main(int argc, const char* argv[]) {
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
-    a32::Unit armunit = EmitUnitAsBinary(unit, true);
-    auto exe = MakeExe(&armunit, true);
+    a32::A32Unit armunit = EmitUnitAsBinary(unit, true);
+    auto exe = a32::MakeExe(&armunit, true);
     std::vector<std::string_view> chunks = exe.Save();
     for (const auto& c : chunks) {
       fout->write((const char*)c.data(), c.size());
