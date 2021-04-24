@@ -14,9 +14,9 @@ The project is very much "work in progress" and  currently consists of:
 * RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
 * [C frontend](FrontEndC/README.md)  (supports a subset of C)
-* [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF files)
+* [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
-* [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions - WIP)
+* [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions)
 * [A32 backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
 * [C backend](CodeGenC/README.md) (code generator emitting C code)
 
@@ -49,9 +49,10 @@ The goal for the c++ implementation is to translate the IR to an Elf executable 
 Whole program translation and parallel translation at the function level are 
 explicit design goals for the c++ implementations.
 
-Cwerg does not have linker at this point. Instead the responsibility of 
+Cwerg does not have a linker. Instead the responsibility of 
 generating executables and resolving relocations rests with the assembler
-components of the various backends.
+components of the various backends. An ELF library helps with the generation of
+ELF executables, which is the only object format currently supported.
 
 ## Intentional Limitations
 
@@ -64,7 +65,7 @@ any work on these):
   2's complement integers.
 * Variable number of function parameters (var-args). Basically only used for
   printf/scanf and responsible for a disproportionate amount of complexity in 
-   ABIs
+  ABIs. (This will preclude a fullblown C frontend.)
 * Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
   to fit into the complexity budget. Line numbers will likely be supported.
 * C++ exception. A lot of code and complexity that only benefits one language.
@@ -72,14 +73,12 @@ any work on these):
 * Shared libs. The extra indirection and
   PC relative addressing adds complexity and slows programs down, not
   to mention the DLL hell problem.
-* Sophisticated instruction scheduling which is less important from memory 
+* Sophisticated instruction scheduling which is less important for memory 
   bound code and out-of-order CPUs.
-* Sophisticated loop optimizations.
-* Variable sized stack frames (alloca). This
-  would require a frame pointer and makes it more difficult to reason about
-  stack overflows.
-* Tail call optimizations 
-* A standard library with unicode and locale support. Those add a lot of 
+* Sophisticated loop optimizations. Probably best left to the frontend.
+* Variable sized stack frames (alloca). This requires a frame pointer, wasting a register,
+  and makes it more difficult to reason about stack overflows.
+* A large standard library with unicode and locale support. Those add a lot of 
   complexity and are better left to dedicated libraries.
  
 It is not clear if an [X86-64 backend](CpuX64/README.md) will fit into the 

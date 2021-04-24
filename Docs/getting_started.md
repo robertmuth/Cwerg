@@ -88,7 +88,7 @@ and may be useful for other projects as well.
 
 Implementations: Python, C++ 
 
-#### [CpuA64/](../CpuA64)  (work in progress)
+#### [CpuA64/](../CpuA64)
 
 contains the (dis-)assemblers for the Arm 64-bit ISA. They are based
 on a tabular description of the ISA which is also used by 
@@ -130,6 +130,9 @@ Implementations: Python, C++
 
 ## Vaporware
 
+#### [CodeGenA32/](../CodeGenA32)
+
+future home of the Arm 64 bit backends.
 
 #### [CpuX64/](../CpuX64)
 
