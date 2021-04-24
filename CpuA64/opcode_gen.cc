@@ -4934,15 +4934,13 @@ uint32_t Assemble(const Ins& ins) {
   return value;
 }
 
-#if 0
-uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
+uint32_t Patch(uint32_t ins_old, unsigned pos, int32_t value) {
   Ins ins;
-  CHECK(DecodeIns(&ins, ins_old), "");
+  CHECK(Disassemble(&ins, ins_old), "");
 
   ins.operands[pos] = value;
-  return EncodeIns(ins);
+  return Assemble(ins);
 }
-#endif
 
 const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   uint32_t h = 5381;

@@ -542,12 +542,16 @@ def ExtractOperand(ok: OK, value: int) -> int:
 
 def InsertOperand(ok: OK, val) -> List[Tuple[int, int, int]]:
     """ Encodes an int into a list of bit-fields"""
+    # TODO: fix this
+    # assert val >= 0
     bits: List[Tuple[int, int, int]] = []
     # Note: going reverse is crucial
     for width, pos in reversed(FIELD_DETAILS[ok].ranges):
         mask = (1 << width) - 1
         bits.append((mask, val & mask, pos))
         val = val >> width
+    # TODO: fix this
+    # assert val == 0, f"value was too large for field {ok}"
     return bits
 
 
@@ -1291,6 +1295,11 @@ def Assemble(ins: Ins) -> int:
     assert ins.reloc_kind == _RELOC_TYPE_AARCH64M_NONE, "reloc has not been resolved"
     return ins.opcode.AssembleOperands(ins.operands)
 
+
+def Patch(data: int, opcode: Opcode, pos: int, value: int):
+    ops = opcode.DisassembleOperands(data)
+    ops[pos] = value
+    return opcode.AssembleOperands(ops)
 
 ############################################################
 # code below is only used if this file is run as an executable

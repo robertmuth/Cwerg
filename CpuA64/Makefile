@@ -14,7 +14,7 @@ tests: tests_py tests_c
 tests_py: disassembler_test objdump_compat_test argv_test  $(TESTS:.asm=.test)
 
 
-tests_c: opcode_test_c symbolize_parity
+tests_c: opcode_test_c symbolize_parity codegen_parity
 
 objdump_compat_test:
 	@echo "[$@]"
@@ -76,6 +76,10 @@ symbolize_parity:
 	$(DISASSEMBLER_TOOL) batch < TestData/a64_test.regular.dis > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py batch < TestData/a64_test.regular.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
+
+codegen_parity: $(ASSEMBLER_TOOL)
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
 
 clean:
 	rm -f  TestData/*.out TestData/*.exe *.exe *.out

@@ -130,12 +130,6 @@ _OPCODE_BL: a64.Opcode = a64.Opcode.name_to_opcode["bl"]
 _OPCODE_COND_BR = [a64.Opcode.name_to_opcode[f"b_{cond}"] for cond in a64.CONDITION_CODES]
 
 
-def _patch_ins(ins_old: int, opcode: a64.Opcode, pos: int, value: int):
-    ops = opcode.DisassembleOperands(ins_old)
-    ops[pos] = value
-    return opcode.AssembleOperands(ops)
-
-
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
     return (sym_val - (rel.section.sh_addr + rel.r_offset)) >> 2
 
@@ -151,15 +145,15 @@ def _ApplyRelocation(rel: elf.Reloc):
     old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
     if rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21.value:
-        new_data = _patch_ins(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC.value:
-        new_data = _patch_ins(old_data, _OPCODE_ADD_X_IMM, 2, sym_val & 0xfff)
+        new_data = a64.Patch(old_data, _OPCODE_ADD_X_IMM, 2, sym_val & 0xfff)
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CONDBR19.value:
-        new_data = _patch_ins(old_data, _OPCODE_COND_BR[old_data & 0xf], 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_COND_BR[old_data & 0xf], 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.JUMP26.value:
-        new_data = _patch_ins(old_data, _OPCODE_B, 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_B, 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.CALL26.value:
-        new_data = _patch_ins(old_data, _OPCODE_BL, 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_BL, 0, _branch_offset(rel, sym_val))
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS32.value:
         new_data = sym_val
     elif rel.r_type == elf_enum.RELOC_TYPE_AARCH64.ABS64.value:

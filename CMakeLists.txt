@@ -90,6 +90,14 @@ add_executable(a32_jit_example.exe
         CpuA32/jit_example.cc
         )
 
+add_library(CPUA64_LIB OBJECT
+        CpuA64/symbolic.cc
+        CpuA64/symbolic.h
+        CpuA64/assembler.cc
+        CpuA64/assembler.h
+        CpuA64/opcode_gen.cc
+        CpuA64/opcode_gen.h
+        )
 
 add_library(CPUA64_LITE_LIB OBJECT
         CpuA64/symbolic.cc
@@ -108,6 +116,13 @@ add_executable(a64_disassembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA64_LITE_LIB>
         CpuA64/disassembler_tool.cc
+        )
+
+add_executable(a64_assembler_tool.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUA64_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        CpuA64/assembler_tool.cc
         )
 
 add_library(ELF_LIB OBJECT
