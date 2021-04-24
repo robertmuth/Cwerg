@@ -80,6 +80,18 @@ symbolize_parity:
 codegen_parity: $(ASSEMBLER_TOOL)
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
+	@echo
+	$(ASSEMBLER_TOOL) assemble_raw TestData/exit.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble_raw  TestData/exit.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
+	@echo
+	$(ASSEMBLER_TOOL) assemble_raw TestData/hello.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble_raw  TestData/hello.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
+	@echo
+	$(ASSEMBLER_TOOL) assemble_raw TestData/fib.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble_raw  TestData/fib.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
 
 clean:
 	rm -f  TestData/*.out TestData/*.exe *.exe *.out

@@ -303,7 +303,7 @@ struct Reloc {
   const Section<elfsize_t>* section = nullptr;
   const Symbol<elfsize_t>* symbol = nullptr;
 
-  void Init(uint8_t reloc_kind,
+  void Init(uint32_t reloc_kind,
             const Section<elfsize_t>* sec,
             elfsize_t offset,
             const Symbol<elfsize_t>* sym,

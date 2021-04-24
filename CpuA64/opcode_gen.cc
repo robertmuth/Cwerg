@@ -4934,10 +4934,10 @@ uint32_t Assemble(const Ins& ins) {
   return value;
 }
 
+
 uint32_t Patch(uint32_t ins_old, unsigned pos, int32_t value) {
   Ins ins;
   CHECK(Disassemble(&ins, ins_old), "");
-
   ins.operands[pos] = value;
   return Assemble(ins);
 }

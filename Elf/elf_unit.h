@@ -91,7 +91,7 @@ struct Unit {
     }
   }
 
-  void AddFunAddr(unsigned size, uint8_t reloc_kind, std::string_view fun_name) {
+  void AddFunAddr(unsigned size, uint32_t reloc_kind, std::string_view fun_name) {
     ASSERT(current_mem_sec != nullptr, "");
     ASSERT(size == 4, "");
     auto* sym = FindOrAddSymbol(fun_name, false);
@@ -99,7 +99,7 @@ struct Unit {
     current_mem_sec->AddDataRepeatedBytes(size, 0);
   }
 
-  void AddBblAddr(unsigned size, uint8_t reloc_kind, std::string_view bbl_name) {
+  void AddBblAddr(unsigned size, uint32_t reloc_kind, std::string_view bbl_name) {
     ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem directive");
     ASSERT(size == 4, "");
     auto* sym = FindOrAddSymbol(bbl_name, true);
@@ -107,7 +107,7 @@ struct Unit {
     current_mem_sec->AddDataRepeatedBytes(size, 0);
   }
 
-  void AddMemAddr(unsigned size, uint8_t reloc_kind, std::string_view mem_name, uint32_t addend) {  ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
+  void AddMemAddr(unsigned size, uint32_t reloc_kind, std::string_view mem_name, uint32_t addend) {  ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
     ASSERT(size == 4, "");
     ASSERT(addend == 0, "NYI");
     auto* sym = FindOrAddSymbol(mem_name, false);
@@ -164,7 +164,7 @@ struct Unit {
   }
 
   // Add a Reloc for Section sec at the current offset
-  void AddReloc(uint8_t reloc_kind,
+  void AddReloc(uint32_t reloc_kind,
                 const Section<elfsize_t>* sec,
                 const Symbol<elfsize_t>* sym,
                 uint32_t addend) {

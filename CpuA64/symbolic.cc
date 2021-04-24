@@ -108,9 +108,49 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
   return EncodeOperand(ok, val);
 }
 
-bool HandleRelocation(std::string_view, uint32_t pos, Ins* ins) {
-  ASSERT(false, "NYI");
-  return false;
+bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
+  ins->reloc_pos = pos;
+  const size_t colon_sym = expr.find(':');
+  if (colon_sym == std::string_view::npos) return false;
+  const std::string_view kind_name = expr.substr(0, colon_sym);
+  elf::RELOC_TYPE_AARCH64 rel_type;
+  if (kind_name == "abs32") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ABS32;
+  } else if (kind_name == "abs64") {
+      ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ABS64;
+  } else if (kind_name == "jump26") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::JUMP26;
+    ins->is_local_sym = true;
+  } else if (kind_name == "condbr19") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::CONDBR19;
+    ins->is_local_sym = true;
+  } else if (kind_name == "call26") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::CALL26;
+  } else if (kind_name == "adr_prel_pg_hi21") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
+  } else if (kind_name == "add_abs_lo12_nc") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
+  } else if (kind_name == "loc_adr_prel_pg_hi21") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
+    ins->is_local_sym = true;
+  } else if (kind_name == "loc_add_abs_lo12_nc") {
+    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::TLSGD_ADD_LO12_NC;
+    ins->is_local_sym = true;
+  } else {
+    return false;
+  }
+  //
+  std::string_view rest = expr.substr(colon_sym + 1);
+  const size_t colon_addend = rest.find(':');
+  ins->reloc_symbol = rest.substr(0, colon_addend);
+
+  ins->operands[pos] = 0;
+  if (colon_addend != std::string_view::npos) {
+    auto val = ParseInt<int32_t>(rest.substr(colon_addend + 1));
+    if (!val.has_value()) return false;
+    ins->operands[pos] = val.value();
+  }
+  return true;
 }
 
 bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {

@@ -162,7 +162,7 @@ def _ApplyRelocation(rel: elf.Reloc):
         assert False, f"unknown kind reloc {rel}"
 
     sec_data[rel.r_offset:rel.r_offset + 4] = new_data.to_bytes(4, "little")
-    print(f"PATCH INS {rel.r_type} {rel.r_offset:x} {sym_val:x} {old_data:x} {new_data:x} {rel.symbol.name}")
+    # print(f"PATCH INS {rel.r_type} {rel.r_offset:x} {sym_val:x} {old_data:x} {new_data:x} {rel.symbol.name}")
 
 
 def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:

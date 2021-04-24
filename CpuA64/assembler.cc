@@ -160,14 +160,13 @@ int64_t AdrpOffset(const Reloc<uint64_t>& rel, int64_t sym_val) {
 }
 
 void ApplyInsReloc(uint32_t* patch_addr, unsigned pos, uint32_t val) {
-  *patch_addr = a64::Patch(*patch_addr, 1, val);
+  *patch_addr = a64::Patch(*patch_addr, pos, val);
 }
 
 void ApplyRelocation(const Reloc<uint64_t>& rel) {
   void* patch_addr = (char*)rel.section->data->data() + rel.rel.r_offset;
   const int64_t sym_val = rel.symbol->sym.st_value + rel.rel.r_addend;
 
-  uint64_t new_data;
   switch (RELOC_TYPE_AARCH64(rel.rel.r_type)) {
     case RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21:
       ApplyInsReloc((uint32_t*)patch_addr, 1, AdrpOffset(rel, sym_val));
