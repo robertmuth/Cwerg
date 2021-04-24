@@ -2718,7 +2718,7 @@ uint32_t EncodeOperand(uint32_t data, OK ok) {
   }
 }
 
-void InsertOperand(uint32_t x,
+void InsertOperand(int32_t x,
                    OK ok,
                    uint32_t* bits_value,
                    uint32_t* bits_mask) {
