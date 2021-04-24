@@ -32,7 +32,7 @@ Currently, the `width` is one of 8, 16, 32, 64 bits and the `flavor` is one of:
 * **S** signed int (2's complement, wrap around - no overflow)
 * **F** floating point (ieee formats)
 * **A** data address 
-* **C** code address (only function addresses are currently exposed)
+* **C** code address (only function but not bbl addresses are currently exposed)
 
 Registers must be declared before use so that their type is known.
 The declaration can happen in one of two ways: 
@@ -79,7 +79,7 @@ push 0:C64          # pushes  a 64 bit wide code null pointer
 * The type of operands must agree for most instructions
 * The modified register, if any, is always the first operand.
 * Target architectures may not support all width and types
-* New types, e.g. for vector operations, may be added in the future.
+* New types, e.g. for vector and SIMD operations, may be added in the future.
 
 
 ### Addressing Modes
@@ -96,14 +96,14 @@ The `lea` (load effective address) family of opcodes allows for the
 addition of integers to addresses. This is only possible for data addresses
 not code addresses.
 
-This limitation is intentional to help the optimizer reason about memory
+Limited address arithmetic helps the optimizer to better reason about memory
 conflicts. It can be worked around via bitcasts between 
 integers of addresses of the same size.
 
 ###  How to read the Opcode descriptions below
 
 ```
-OPCODE OPERAND_1 [contraint_1]  ...  OPERAND_n [constraint_n] 
+OPCODE OPERAND_1 [constraint_1]  ...  OPERAND_n [constraint_n] 
 ```
 
 The `constraint` describes the kind of the operand as shown below:
@@ -135,8 +135,9 @@ For REG and CONST operands there is an additional  type constraint (seperated by
 
 
 All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-zA-Z0-9]*`
-  `$` should be used for name-space management and `%` to avoid name
-   clashes with the original source language
+
+ `$` should be used for name-space management and 
+ `%` to avoid name clashes with the original source language
    
 
 <!--- @AUTOGEN-START@ --->
@@ -206,7 +207,7 @@ Conditional branch if less or equal.
 ## Other Control Flow
 
 #### [28] switch *index* <sub>[REG:UINT]</sub> *table* <sub>[JTB]</sub>
-Multi target computer jump. 
+Multi target computed jump. 
                 
                 The register argument must be less than the jtb `size`.
                 
@@ -259,7 +260,7 @@ Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 Some
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective Address. dst  := base + offset  
              
-             (note: dst and base are addresses)
+             (note: dst and base are addresses but offset is not)
 
 #### [39] lea.mem *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective memory address with offset, dst := base + offset
@@ -298,7 +299,7 @@ Store to stack base with offset. RAM[base + offset] := src
 nop - internal use.
 
 #### [f2] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
-nop with one reg - internal use. can be used to `reserve` a reg
+nop with one reg - internal use. can be used to `reserve` a reg for code generation
 
 ## Directives
 
