@@ -58,7 +58,7 @@ ELF executables, which is the only object format currently supported.
 
 To keep the project lightweight the feature set must be curtailed.
 Since the project is still evolving, these are not entirely cast in stone but 
-the following features are unlikely to be supported (contact us before starting 
+**the following features are unlikely to be supported** (contact us before starting 
 any work on these):
 
 * Instruction sets other than little endian (host and target) with 
