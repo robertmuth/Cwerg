@@ -632,7 +632,7 @@ extern bool Disassemble(Ins* ins, uint32_t data);
 // Returns the instruction word. Asserts if unsuccessful
 extern uint32_t Assemble(const Ins& ins);
 
-extern uint32_t PatchIns(uint32_t data, unsigned pos, int32_t value);
+extern uint32_t Patch(uint32_t data, unsigned pos, int32_t value);
 
 struct BitRange {
   uint8_t width;  // if this is zero , the bitrange is invalid

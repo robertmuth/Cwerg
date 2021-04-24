@@ -1194,6 +1194,8 @@ def Assemble(ins: Ins) -> int:
 
 
 def Patch(data: int, opcode: Opcode, pos: int, value: int):
+    """For relocation patching - note that the value is not run through the Encoder.
+    But there will still be some range checking."""
     ops = opcode.DisassembleOperandsRaw(data)
     ops[pos] = value
     return opcode.AssembleOperandsRaw(ops)

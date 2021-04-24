@@ -171,16 +171,16 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       new_data = sym_val;
       break;
     case RELOC_TYPE_ARM::JUMP24:
-      new_data = PatchIns(old_data, 1, BranchOffset(rel, sym_val));
+      new_data = Patch(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::CALL:
-      new_data = PatchIns(old_data, 1, BranchOffset(rel, sym_val));
+      new_data = Patch(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::MOVW_ABS_NC:
-      new_data = PatchIns(old_data, 2, sym_val & 0xffff);
+      new_data = Patch(old_data, 2, sym_val & 0xffff);
       break;
     case RELOC_TYPE_ARM::MOVT_ABS:
-      new_data = PatchIns(old_data, 2, (sym_val >> 16) & 0xffff);
+      new_data = Patch(old_data, 2, (sym_val >> 16) & 0xffff);
       break;
     default:
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);
@@ -318,23 +318,6 @@ Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab) {
   ASSERT(entry != nullptr, "_start is not defined");
   exe.ehdr.e_entry = entry->sym.st_value;
   return exe;
-}
-
-std::ostream& operator<<(std::ostream& os, const A32Unit& s) {
-  os << *s.sec_text << "\n"
-     << *s.sec_rodata << "\n"
-     << *s.sec_data << "\n"
-     << *s.sec_bss << "\n";
-
-  os << "String Table\n";
-  for (const auto& sym : s.symbols) {
-    os << *sym << "\n";
-  }
-  os << "Reloc Table\n";
-  for (const auto& rel : s.relocations) {
-    os << rel << "\n";
-  }
-  return os;
 }
 
 }  // namespace cwerg::a32

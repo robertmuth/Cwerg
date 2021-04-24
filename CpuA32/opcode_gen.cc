@@ -2718,7 +2718,7 @@ uint32_t EncodeOperand(uint32_t data, OK ok) {
   }
 }
 
-void InsertOperand(int32_t x,
+void InsertOperand(uint32_t x,
                    OK ok,
                    uint32_t* bits_value,
                    uint32_t* bits_mask) {
@@ -2733,6 +2733,8 @@ void InsertOperand(int32_t x,
     *bits_value |= (x & mask) << range->position;
     x >>= range->width;
   }
+  // TODO: fix this
+  // ASSERT (x == 0, "overflow for: " << EnumToString(ok));
 }
 
 bool Disassemble(Ins* ins, uint32_t data) {
@@ -2759,7 +2761,7 @@ uint32_t Assemble(const Ins& ins) {
   return value;
 }
 
-uint32_t PatchIns(uint32_t ins_old, unsigned pos, int32_t value) {
+uint32_t Patch(uint32_t ins_old, unsigned pos, int32_t value) {
   Ins ins;
   CHECK(Disassemble(&ins, ins_old), "");
 
