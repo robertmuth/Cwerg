@@ -28,8 +28,8 @@ Examples programs can be found in [../TestData](../TestData)
 Registers and constants are typed. Where a type is a tuple of `flavor` and `width`.
 
 Currently, the `width` is one of 8, 16, 32, 64 bits and the `flavor` is one of:
-* **U** unsigned int (wrap around - no overflow)
-* **S** signed int (2's complement, wrap around - no overflow)
+* **U** unsigned int (wrap around - no trap on overflow)
+* **S** signed int (2's complement, wrap around - no trap on overflow)
 * **F** floating point (ieee formats)
 * **A** data address 
 * **C** code address (only function but not bbl addresses are currently exposed)
