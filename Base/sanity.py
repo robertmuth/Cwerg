@@ -91,7 +91,7 @@ def _CheckIns(ins, fun, unit):
         ot = ins.opcode.operand_kinds[n]
         if isinstance(op, ir.Reg):
             assert ot is o.OP_KIND.REG or ot is o.OP_KIND.REG_OR_CONST
-            assert op.name in fun.reg_syms, f"{ins} {op} {fun.reg_syms}"
+            assert op.name in fun.reg_syms, f"UNKNOWN REG: {ins} {op} {fun.reg_syms}"
         elif isinstance(op, ir.Fun):
             assert ot is o.OP_KIND.FUN
             assert (op.kind in {o.FUN_KIND.BUILTIN, o.FUN_KIND.SIGNATURE} or
