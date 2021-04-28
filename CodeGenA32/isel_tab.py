@@ -153,10 +153,10 @@ class PARAM(enum.Enum):
     stk1_offset2_hi = 41
 
 
-_RELOC_ARGS = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
-               PARAM.mem1_num2_lo16, PARAM.mem1_num2_hi16,
-               PARAM.fun1_lo16, PARAM.fun1_hi16,
-               PARAM.jtb1_lo16, PARAM.jtb1_hi16}
+_RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
+                           PARAM.mem1_num2_lo16, PARAM.mem1_num2_hi16,
+                           PARAM.fun1_lo16, PARAM.fun1_hi16,
+                           PARAM.jtb1_lo16, PARAM.jtb1_hi16}
 
 
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
@@ -249,7 +249,7 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
         assert False, f"unknown param {repr(op)}"
 
 
-_RAW_ENOCDER : Dict [arm.OK, Any] = {
+_RAW_ENOCDER: Dict[arm.OK, Any] = {
     arm.OK.IMM_0_7_8_11: arm.EncodeRotatedImm,
     arm.OK.SIMM_0_23: lambda x: x & 0xffffff,
     arm.OK.IMM_10_11_TIMES_8: lambda x: x // 8,
@@ -312,6 +312,8 @@ class InsTmpl:
 
     The template args will be converted into A32 instruction operands by
     substituting data derived from the IR instruction operands as needed.
+
+    args: a list of registers/constants/placeholders
     """
 
     def __init__(self, opcode_name: str, args: List[Any], pred=arm.PRED.al):
@@ -324,7 +326,7 @@ class InsTmpl:
             assert isinstance(op, (int, PARAM, arm.PRED, arm.REG, arm.SHIFT)), (
                 f"unknown op {op} for {opcode.name} {args}")
         self.opcode = opcode
-        self.args = args
+        self.args: List[Any] = args
 
     def MakeInsFromTmpl(self, ins: Optional[ir.Ins], ctx: regs.EmitContext) -> arm.Ins:
         out = arm.Ins(self.opcode)
@@ -408,7 +410,16 @@ MATCH_IMPOSSIBLE = 255
 
 
 class Pattern:
-    Table: Dict[o.Opcode, List["Pattern"]] = collections.defaultdict(list)
+    """
+    A pattern translates an IR instructions into zero or target instructions
+
+    Whether a pattern matches the IR instructions is decides as follows:
+    * the opcode must match
+    * the operand types must match
+    * operands that are constants must satisfy a "range constraint"
+    """
+    # groups all the patterns for a given opcode number together
+    Table: Dict[int, List["Pattern"]] = collections.defaultdict(list)
 
     def __init__(self, opcode: o.Opcode, type_constraints: List[o.DK],
                  imm_constraints: List[IMM_KIND],
@@ -434,6 +445,7 @@ class Pattern:
 
         self.type_constraints = type_constraints
         self.imm_constraints = imm_constraints
+        # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
 
     def MatchesTypeConstraints(self, ins: ir.Ins) -> bool:
@@ -504,8 +516,8 @@ def InitCondBra():
         for opc, cond in [(o.BEQ, arm.PRED.eq), (o.BNE, arm.PRED.ne)]:
             type_constraints = [kind, kind, o.DK.INVALID]
             Pattern(opc, type_constraints, _NO_IMM3,
-                    [InsTmpl("cmp_regimm", [PARAM.reg0,PARAM.reg1, arm.SHIFT.lsl, 0]),
-            InsTmpl("b", [PARAM.bbl2], pred=cond)])
+                    [InsTmpl("cmp_regimm", [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, 0]),
+                     InsTmpl("b", [PARAM.bbl2], pred=cond)])
             imm_constraints = [IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted,
                                IMM_KIND.invalid]
             Pattern(opc, type_constraints, imm_constraints,
@@ -1064,10 +1076,14 @@ def _DumpCodeSelTable():
         opcode = o.Opcode.TableByNo[i]
         print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
         for pat in patterns:
-            print(f"  [{' '.join([o.name if o else '*' for o in pat.constraints])}]")
-            for opcode, operands in pat.emit:
-                ops = [str(x) if isinstance(x, int) else x.name for x in operands]
-                print(f"    {opcode.name} [{' '.join(ops)}]")
+            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
+            imm_constraints = [x.name if x else '*' for x in pat.imm_constraints]
+
+            print(f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
+            for tmpl in pat.emit:
+                ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
+                print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
+        print()
 
 
 if __name__ == "__main__":
