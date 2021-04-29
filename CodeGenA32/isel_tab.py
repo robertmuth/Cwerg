@@ -431,13 +431,13 @@ class Pattern:
         # the template, usually contains ArmIns except for the nop1 pattern
         self.emit = emit
         # how to fill the template params
-
+        imm_constraints = [imm_kind0, imm_kind1, imm_kind2, imm_kind3, imm_kind4]
+        imm_constraints = imm_constraints[:len(type_constraints)]
         self.type_constraints = type_constraints
-        self.imm_constraints = [imm_kind0, imm_kind1, imm_kind2, imm_kind3, imm_kind4]
-        self.imm_constraints = self.imm_constraints[:len(self.type_constraints)]
+        self.imm_constraints = imm_constraints
         assert len(type_constraints) == len(
             opcode.operand_kinds), f"{opcode.name} {type_constraints} {opcode.operand_kinds}"
-        for type_constr, imm_constr, kind in zip(type_constraints, self.imm_constraints,
+        for type_constr, imm_constr, kind in zip(type_constraints, imm_constraints,
                                                  opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
@@ -906,8 +906,6 @@ def InitMiscBra():
 def InitVFP():
     for kind, suffix in [(o.DK.F32, "_f32"), (o.DK.F64, "_f64")]:
         Pattern(o.MOV, [kind] * 2,
-                [InsTmpl("vmov" + suffix, [PARAM.reg0, PARAM.reg1])])
-        Pattern(o.TRUNC, [kind] * 2,
                 [InsTmpl("vmov" + suffix, [PARAM.reg0, PARAM.reg1])])
         Pattern(o.ADD, [kind] * 3,
                 [InsTmpl("vadd" + suffix, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])

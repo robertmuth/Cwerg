@@ -1,6 +1,6 @@
 # A32 (aka ARM32) Backend
 
-This directory contains the A32 backend which  targets ISA ARMv6T2 and above.
+This directory contains the A32 backend which targets ISA ARMv6T2 and above.
 Additionally, support for the following instructions is required:
 * idiva idivt 
 * movw, movt
@@ -79,7 +79,7 @@ blt [BBL REG_OR_CONST REG_OR_CONST]       # IR opcode to expand (with operand ki
 If the expansion requires a scratch register, the register allocator
 will be told to reserve on via the insertion of a `nop1` IR opcode.
 
-This simplistic approach leaves some opportunities on the table, e.g.:
+This simplistic approach to code selection leaves some opportunities on the table, e.g.:
 
 * combining ALU opcodes with shifts of their source operands
 * combining loads/stores with shifts of their offsets
