@@ -1113,6 +1113,8 @@ for ext, w_bit in [("s", (1, 0, 22)),
 
     Opcode("fmov", ext + "_imm", [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0xff, 0x80, 5)],
            [dst_reg, OK.IMM_FLT_13_20], OPC_FLAG(0))
+    Opcode("fmov", ext + "_reg", [(7, 0, 29), root111, (7, 4, 23), w_bit, (1, 1, 21), (0x7ff, 0x10, 10)],
+           [dst_reg, src1_reg], OPC_FLAG(0))
 
     for name, bits in [
         ("fmul", (0x3f, 2, 10)),
@@ -1149,6 +1151,11 @@ for ext, w_bit in [("s", (1, 0, 22)),
            [(7, 4, 23), (0x1f, 0, 16), (0x3f, 8, 10), (0x1f, 8, 0)],
            [src1_reg, OK.IMM_FLT_ZERO], OPC_FLAG(0))
     Opcode("fcmp", ext, [root111, (7, 0, 29), w_bit, (1, 1, 21)] + [(7, 4, 23), (0x3f, 8, 10), (0x1f, 0, 0)],
+           [src1_reg, src2_reg], OPC_FLAG(0))
+    Opcode("fcmpe", ext + "_zero", [root111, (7, 0, 29), w_bit, (1, 1, 21)] +
+           [(7, 4, 23), (0x1f, 0, 16), (0x3f, 8, 10), (0x1f, 24, 0)],
+           [src1_reg, OK.IMM_FLT_ZERO], OPC_FLAG(0))
+    Opcode("fcmpe", ext, [root111, (7, 0, 29), w_bit, (1, 1, 21)] + [(7, 4, 23), (0x3f, 8, 10), (0x1f, 16, 0)],
            [src1_reg, src2_reg], OPC_FLAG(0))
 
     for name, bits in [
