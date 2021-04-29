@@ -2799,7 +2799,7 @@ const Pattern kPatterns[] = {
     {IK::invalid, IK::invalid},
     &kInsTemplates[651], 1 },  // trunc [428]
 };
-}  // namspace
+}  // namespace
 
 const char* const IMM_KIND_ToStringMap[] = {
     "invalid", // 0

@@ -1064,7 +1064,7 @@ def _EmitCodeC(fout):
             num_pattern += 1
     print(f"}};", file=fout)
 
-    print("}  // namspace", file=fout)
+    print("}  // namespace", file=fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(IMM_KIND), "IMM_KIND", fout)
     cgen.RenderEnumToStringFun("IMM_KIND", fout)
 
