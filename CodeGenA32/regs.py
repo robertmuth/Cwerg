@@ -175,7 +175,7 @@ def FunPushargConversion(fun: ir.Fun):
                                        params=[])
 
 
-class RegPoolArm(reg_alloc.RegPool):
+class RegPoolA32(reg_alloc.RegPool):
     """
     We also distinguish if the register is  lac (live across calls)
     """
@@ -183,7 +183,7 @@ class RegPoolArm(reg_alloc.RegPool):
     def __init__(self, fun: ir.Fun, bbl: ir.Bbl, allow_spilling,
                  gpr_available_lac: int, gpr_available_not_lac: int, flt_available_lac: int,
                  flt_available_not_lac: int):
-        super(RegPoolArm, self).__init__()
+        super(RegPoolA32, self).__init__()
         self._fun = fun
         self._bbl = bbl
         self._allow_spilling = allow_spilling
@@ -203,7 +203,7 @@ class RegPoolArm(reg_alloc.RegPool):
             reg_alloc.PreAllocation() for _ in range(len(_FLT_REGS))]
 
     def get_available(self, lac, is_gpr) -> int:
-        # TODO: use lac as fallabck if no not_lac is available
+        # TODO: use lac as fallback if no not_lac is available
         if is_gpr:
             return self._gpr_available_lac if lac else self._gpr_available_not_lac
         else:
@@ -314,7 +314,7 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges, allow_spilling,
                    flt_regs_lac: int,
                    flt_regs_not_lac: int):
     # print("\n".join(serialize.BblRenderToAsm(bbl)))
-    pool = RegPoolArm(fun, bbl, allow_spilling,
+    pool = RegPoolA32(fun, bbl, allow_spilling,
                       gpr_regs_lac, gpr_regs_not_lac, flt_regs_lac, flt_regs_not_lac)
     for lr in live_ranges:
         # since we are operating on a BBL we cannot change LifeRanges
