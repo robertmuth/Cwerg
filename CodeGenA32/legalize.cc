@@ -28,10 +28,7 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::ST_STK ||   // we compute stack offsets in a separate pass
-         opc == OPC::LD_STK ||   // ditto
-         opc == OPC::LEA_STK ||  // ditto
-         opc == OPC::POPARG ||   // will be rewritten later
+  return opc == OPC::POPARG ||   // will be rewritten later
          opc == OPC::PUSHARG ||  // ditto
          opc == OPC::RET ||      // handled via special epilog code
          opc == OPC::NOP1;       // pseudo instruction
@@ -90,7 +87,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
     for (Ins ins : BblInsIter(bbl)) {
       if (!InsRequiresSpecialHandling(ins)) {
         const uint8_t mismatches =
-            code_gen_a32::FindtImmediateMismatchesInBestMatchPattern(ins);
+            code_gen_a32::FindtImmediateMismatchesInBestMatchPattern(ins, true);
         if (mismatches != 0) {
           ASSERT(mismatches != code_gen_a32::MATCH_IMPOSSIBLE,
                  "cannot match: " << ins);
@@ -178,55 +175,6 @@ DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
   return out;
 }
 
-void FunRewriteOutOfBoundsOffsetsStk(Fun fun, std::vector<Ins>* inss) {
-  Const zero_offset = ConstNewU(DK::U32, 0);
-  for (Bbl bbl : FunBblIter(fun)) {
-    inss->clear();
-    bool dirty = false;
-    for (Ins ins : BblInsIter(bbl)) {
-      OPC opc = InsOPC(ins);
-      if (opc != OPC::ST_STK && opc != OPC::LD_STK) {
-        inss->push_back(ins);
-        continue;
-      }
-      const uint8_t mismatches =
-          code_gen_a32::FindtImmediateMismatchesInBestMatchPattern(ins);
-      ASSERT(mismatches != code_gen_a32::MATCH_IMPOSSIBLE,
-             "cannot match: " << ins);
-      if (mismatches == 0) {
-        inss->push_back(ins);
-        continue;
-      }
-      dirty = true;
-      Reg tmp = FunGetScratchReg(fun, DK::A32, "imm_stk", false);
-      if (opc == OPC::ST_STK) {
-        ASSERT(mismatches == (1 << 1), "");
-        Handle st_offset = InsOperand(ins, 1);
-        Handle lea_offset = zero_offset;
-        if (st_offset.kind() == RefKind::CONST) {
-          std::swap(st_offset, lea_offset);
-        }
-        inss->push_back(
-            InsNew(OPC::LEA_STK, tmp, InsOperand(ins, 0), lea_offset));
-        InsInit(ins, OPC::ST, tmp, st_offset, InsOperand(ins, 2));
-      } else {
-        ASSERT(opc == OPC::LD_STK, "");
-        ASSERT(mismatches == (1 << 2), "");
-        Handle ld_offset = InsOperand(ins, 2);
-        Handle lea_offset = zero_offset;
-        if (ld_offset.kind() == RefKind::CONST) {
-          std::swap(ld_offset, lea_offset);
-        }
-        inss->push_back(
-            InsNew(OPC::LEA_STK, tmp, InsOperand(ins, 1), lea_offset));
-        InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset);
-      }
-      inss->push_back(ins);
-    }
-
-    if (dirty) BblReplaceInss(bbl, *inss);
-  }
-}
 
 int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   to_delete->clear();
@@ -396,7 +344,6 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   // COND_RRA instruction possibly with immediates.
   FunCfgExit(fun);
 
-  FunEliminateImmediateStores(fun, &inss);
   FunRewriteOutOfBoundsImmediates(fun, &inss);
 
   FunAddNop1ForCodeSel(fun, &inss);
@@ -549,11 +496,10 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
     }
     FunSpillRegs(fun, DK::U32, to_be_spilled, &inss);
   }
-  FunFinalizeStackSlots(fun);
-  FunRewriteOutOfBoundsOffsetsStk(fun, &inss);
+
   FunLocalRegAlloc(fun, &inss);
-  FunMoveEliminationCpu(fun, &inss);
   FunFinalizeStackSlots(fun);
+  FunMoveEliminationCpu(fun, &inss);
 }
 
 }  // namespace  cwerg::code_gen_a32

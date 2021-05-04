@@ -36,5 +36,4 @@ extern void BblReplaceInss(Bbl bbl, const std::vector<Ins>& inss);
 
 extern Ins InsEliminateImmediate(Ins ins, unsigned pos, Fun fun);
 
-extern void FunEliminateImmediateStores(Fun fun, std::vector<Ins>* inss);
 }  // namespace cwerg::base

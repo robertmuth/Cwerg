@@ -251,8 +251,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
 
     # Handle most overflowing immediates.
-    # This excludes immediates related to stack offsets which have not been determined yet
-    lowering.FunEliminateImmediateStores(fun)  # handles st_stk immediates
     _FunRewriteOutOfBoundsImmediates(fun)
     # hack: some of the code expansion templates need a scratch reg
     # we do not want to reserve registers for this globally, so instead

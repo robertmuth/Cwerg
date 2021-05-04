@@ -450,24 +450,4 @@ Ins InsEliminateImmediate(Ins ins, unsigned pos, Fun fun) {
   return InsNew(OPC::MOV, tmp, num);
 }
 
-void FunEliminateImmediateStores(Fun fun, std::vector<Ins>* inss) {
-  for (Bbl bbl : FunBblIter(fun)) {
-    inss->clear();
-    bool dirty = false;
-    for (Ins ins : BblInsIter(bbl)) {
-      OPC opc = InsOPC(ins);
-      if ((opc == OPC::ST || opc == OPC::ST_STK || opc == OPC::ST_MEM) &&
-          InsOperand(ins, 2).kind() == RefKind::CONST) {
-        Const num(InsOperand(ins, 2));
-        dirty = true;
-        Reg tmp = FunGetScratchReg(fun, ConstKind(num), "st_imm", false);
-        inss->push_back(InsNew(OPC::MOV, tmp, num));
-        InsOperand(ins, 2) = tmp;
-      }
-      inss->push_back(ins);
-    }
-    if (dirty) BblReplaceInss(bbl, *inss);
-  }
-}
-
 }  // namespace cwerg::base

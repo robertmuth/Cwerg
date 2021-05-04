@@ -23,7 +23,10 @@ using a32::PRED;
 using a32::REG;
 using a32::SHIFT;
 
-bool ImmFitsConstraint(IMM_KIND constr, int64_t x, int32_t last_stack_offset) {
+bool ImmFitsConstraint(IMM_KIND constr,
+                       int64_t x,
+                       int32_t last_stack_offset,
+                       bool assume_stk_op_matches) {
   switch (constr) {
     default:
     case IK::invalid:
@@ -41,6 +44,7 @@ bool ImmFitsConstraint(IMM_KIND constr, int64_t x, int32_t last_stack_offset) {
     case IK::pos_5_bits:
       return 0 <= x && x < (1 << 5);
     case IK::pos_stk_combo_12_bits:
+      if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IK::pos_12_bits:
@@ -48,11 +52,13 @@ bool ImmFitsConstraint(IMM_KIND constr, int64_t x, int32_t last_stack_offset) {
     case IK::neg_12_bits:
       return 0 <= -x && -x < (1 << 12);
     case IK::pos_stk_combo_8_bits:
+      if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IK::pos_8_bits:
       return 0 <= x && x < (1 << 8);
     case IK::pos_stk_combo_8_bits_times_4:
+      if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IK::pos_8_bits_times_4:
@@ -62,6 +68,7 @@ bool ImmFitsConstraint(IMM_KIND constr, int64_t x, int32_t last_stack_offset) {
     case IK::neg_8_bits:
       return 0 <= -x && -x < (1 << 8);
     case IK::pos_stk_combo_16_bits:
+      if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IK::pos_16_bits:
@@ -87,7 +94,8 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
 
 bool IsConstMatch(Const num,
                   IMM_KIND imm_constraint,
-                  int32_t last_stack_offset) {
+                  int32_t last_stack_offset,
+                  bool assume_stk_op_matches) {
   if (imm_constraint == IMM_KIND::invalid) return false;
 
   int64_t x;
@@ -105,14 +113,17 @@ bool IsConstMatch(Const num,
       x = ConstValueACS(num);
       break;
   }
-  return ImmFitsConstraint(imm_constraint, x, last_stack_offset);
+  return ImmFitsConstraint(imm_constraint, x, last_stack_offset,
+                           assume_stk_op_matches);
 }
 
 bool PatternMatchesTypeConstraints(const Pattern& pat, uint64_t type_mask) {
   return type_mask == *(uint64_t*)pat.reg_constraints;
 }
 
-uint8_t PatternMismatchesImmConstraints(const Pattern& pat, Ins ins) {
+uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
+                                        Ins ins,
+                                        bool assume_stk_op_matches) {
   unsigned num_ops = InsOpcode(ins).num_operands;
   uint8_t out = 0;
   int32_t last_stack_offset = 0;
@@ -120,15 +131,21 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat, Ins ins) {
     const Const op(InsOperand(ins, i));
     const IK imm_constraint = pat.imm_constraints[i];
     if (op.kind() == RefKind::STK) {
-      last_stack_offset = StkSlot(Stk(op));
+      if (assume_stk_op_matches) {
+        last_stack_offset = 0;
+      } else {
+        last_stack_offset = StkSlot(Stk(op));
+      }
     } else if (op.kind() == RefKind::REG) {
       if (imm_constraint != IMM_KIND::invalid)
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
-      if (imm_constraint == IK::invalid ||
-          !IsConstMatch(op, imm_constraint, last_stack_offset)) {
-        // we have an imm that does not fit or need a reg
+      if (imm_constraint == IK::invalid) {
+        // we have an imm but need a reg - this can be accomodated.
         out |= 1 << i;
+      } else if (!IsConstMatch(op, imm_constraint, last_stack_offset,
+                               assume_stk_op_matches)) {
+        return MATCH_IMPOSSIBLE;
       }
     }
   }
@@ -1247,196 +1264,564 @@ const InsTmpl kInsTemplates[] = {
     a32::OPC::ldrsh_imm_add, 0xe },  // ld [554]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
     a32::OPC::ldr_imm_add, 0xa },  // ld.stk [555]
-  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [556]
-  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [557]
-  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [558]
-  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [559]
-  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [560]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [556]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [557]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [558]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [559]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [560]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
     a32::OPC::ldr_imm_add, 0xa },  // ld.stk [561]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [562]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [563]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [564]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [565]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [566]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [562]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [567]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [568]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [569]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [570]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [571]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [572]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrb_imm_add, 0xa },  // ld.stk [563]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [573]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [574]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [575]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [576]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [577]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [578]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrb_imm_add, 0xa },  // ld.stk [564]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [579]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [580]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [581]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [582]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [583]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [584]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::vldr_f32_add, 0xa },  // ld.stk [565]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [585]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [586]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [587]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [588]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [589]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [590]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::vldr_f32_add, 0xa },  // ld.stk [566]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [591]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [592]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [593]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [594]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [595]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [596]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::vldr_f64_add, 0xa },  // ld.stk [567]
+    a32::OPC::ldr_imm_add, 0xa },  // ld.stk [597]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [598]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [599]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [600]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [601]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldr_reg_add, 0xa },  // ld.stk [602]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::vldr_f64_add, 0xa },  // ld.stk [568]
+    a32::OPC::ldrb_imm_add, 0xa },  // ld.stk [603]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [604]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldrb_reg_add, 0xa },  // ld.stk [605]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [606]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [607]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldrb_reg_add, 0xa },  // ld.stk [608]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrsb_imm_add, 0xa },  // ld.stk [569]
+    a32::OPC::ldrb_imm_add, 0xa },  // ld.stk [609]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [610]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldrb_reg_add, 0xa },  // ld.stk [611]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [612]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [613]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0, +SHIFT::lsl, 0},
+    a32::OPC::ldrb_reg_add, 0xa },  // ld.stk [614]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrsb_imm_add, 0xa },  // ld.stk [570]
+    a32::OPC::vldr_f32_add, 0xa },  // ld.stk [615]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [616]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // ld.stk [617]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a32::OPC::vldr_f32_add, 0x6 },  // ld.stk [618]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrh_imm_add, 0xa },  // ld.stk [571]
+    a32::OPC::vldr_f32_add, 0xa },  // ld.stk [619]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [620]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // ld.stk [621]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a32::OPC::vldr_f32_add, 0x6 },  // ld.stk [622]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrh_imm_add, 0xa },  // ld.stk [572]
+    a32::OPC::vldr_f64_add, 0xa },  // ld.stk [623]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [624]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // ld.stk [625]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a32::OPC::vldr_f64_add, 0x6 },  // ld.stk [626]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrsh_imm_add, 0xa },  // ld.stk [573]
+    a32::OPC::vldr_f64_add, 0xa },  // ld.stk [627]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [628]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // ld.stk [629]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a32::OPC::vldr_f64_add, 0x6 },  // ld.stk [630]
   { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
-    a32::OPC::ldrsh_imm_add, 0xa },  // ld.stk [574]
+    a32::OPC::ldrsb_imm_add, 0xa },  // ld.stk [631]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [632]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsb_reg_add, 0xa },  // ld.stk [633]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [634]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [635]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsb_reg_add, 0xa },  // ld.stk [636]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
+    a32::OPC::ldrsb_imm_add, 0xa },  // ld.stk [637]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [638]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsb_reg_add, 0xa },  // ld.stk [639]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [640]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [641]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsb_reg_add, 0xa },  // ld.stk [642]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
+    a32::OPC::ldrh_imm_add, 0xa },  // ld.stk [643]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [644]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrh_reg_add, 0xa },  // ld.stk [645]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [646]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [647]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrh_reg_add, 0xa },  // ld.stk [648]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
+    a32::OPC::ldrh_imm_add, 0xa },  // ld.stk [649]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [650]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrh_reg_add, 0xa },  // ld.stk [651]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [652]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [653]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrh_reg_add, 0xa },  // ld.stk [654]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
+    a32::OPC::ldrsh_imm_add, 0xa },  // ld.stk [655]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [656]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsh_reg_add, 0xa },  // ld.stk [657]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [658]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [659]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsh_reg_add, 0xa },  // ld.stk [660]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::stk1_offset2},
+    a32::OPC::ldrsh_imm_add, 0xa },  // ld.stk [661]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2},
+    a32::OPC::movw, 0x6 },  // ld.stk [662]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsh_reg_add, 0xa },  // ld.stk [663]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_lo},
+    a32::OPC::movw, 0x6 },  // ld.stk [664]
+  { {+PRED::al, +PARAM::reg0, +PARAM::stk1_offset2_hi},
+    a32::OPC::movt, 0x6 },  // ld.stk [665]
+  { {+PRED::al, +PARAM::reg0, +REG::sp, +PARAM::reg0},
+    a32::OPC::ldrsh_reg_add, 0xa },  // ld.stk [666]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [575]
+    a32::OPC::str_reg_add, 0x26 },  // st [667]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [576]
+    a32::OPC::str_imm_add, 0xe },  // st [668]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [577]
+    a32::OPC::str_imm_sub, 0xe },  // st [669]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [578]
+    a32::OPC::str_reg_add, 0x26 },  // st [670]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [579]
+    a32::OPC::str_imm_add, 0xe },  // st [671]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [580]
+    a32::OPC::str_imm_sub, 0xe },  // st [672]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [581]
+    a32::OPC::str_reg_add, 0x26 },  // st [673]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [582]
+    a32::OPC::str_imm_add, 0xe },  // st [674]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [583]
+    a32::OPC::str_imm_sub, 0xe },  // st [675]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [584]
+    a32::OPC::str_reg_add, 0x26 },  // st [676]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [585]
+    a32::OPC::str_imm_add, 0xe },  // st [677]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [586]
+    a32::OPC::str_imm_sub, 0xe },  // st [678]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [587]
+    a32::OPC::str_reg_add, 0x26 },  // st [679]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [588]
+    a32::OPC::str_imm_add, 0xe },  // st [680]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [589]
+    a32::OPC::str_imm_sub, 0xe },  // st [681]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [590]
+    a32::OPC::str_reg_add, 0x26 },  // st [682]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [591]
+    a32::OPC::str_imm_add, 0xe },  // st [683]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [592]
+    a32::OPC::str_imm_sub, 0xe },  // st [684]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [593]
+    a32::OPC::str_reg_add, 0x26 },  // st [685]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [594]
+    a32::OPC::str_imm_add, 0xe },  // st [686]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [595]
+    a32::OPC::str_imm_sub, 0xe },  // st [687]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::str_reg_add, 0x26 },  // st [596]
+    a32::OPC::str_reg_add, 0x26 },  // st [688]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xe },  // st [597]
+    a32::OPC::str_imm_add, 0xe },  // st [689]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::str_imm_sub, 0xe },  // st [598]
+    a32::OPC::str_imm_sub, 0xe },  // st [690]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::strb_reg_add, 0x26 },  // st [599]
+    a32::OPC::strb_reg_add, 0x26 },  // st [691]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xe },  // st [600]
+    a32::OPC::strb_imm_add, 0xe },  // st [692]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strb_imm_sub, 0xe },  // st [601]
+    a32::OPC::strb_imm_sub, 0xe },  // st [693]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::strb_reg_add, 0x26 },  // st [602]
+    a32::OPC::strb_reg_add, 0x26 },  // st [694]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xe },  // st [603]
+    a32::OPC::strb_imm_add, 0xe },  // st [695]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strb_imm_sub, 0xe },  // st [604]
+    a32::OPC::strb_imm_sub, 0xe },  // st [696]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::strb_reg_add, 0x26 },  // st [605]
+    a32::OPC::strb_reg_add, 0x26 },  // st [697]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xe },  // st [606]
+    a32::OPC::strb_imm_add, 0xe },  // st [698]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strb_imm_sub, 0xe },  // st [607]
+    a32::OPC::strb_imm_sub, 0xe },  // st [699]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a32::OPC::strb_reg_add, 0x26 },  // st [608]
+    a32::OPC::strb_reg_add, 0x26 },  // st [700]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xe },  // st [609]
+    a32::OPC::strb_imm_add, 0xe },  // st [701]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strb_imm_sub, 0xe },  // st [610]
+    a32::OPC::strb_imm_sub, 0xe },  // st [702]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::vstr_f32_add, 0xe },  // st [611]
+    a32::OPC::vstr_f32_add, 0xe },  // st [703]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::vstr_f32_sub, 0xe },  // st [612]
+    a32::OPC::vstr_f32_sub, 0xe },  // st [704]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::vstr_f32_add, 0xe },  // st [613]
+    a32::OPC::vstr_f32_add, 0xe },  // st [705]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::vstr_f32_sub, 0xe },  // st [614]
+    a32::OPC::vstr_f32_sub, 0xe },  // st [706]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::vstr_f64_add, 0xe },  // st [615]
+    a32::OPC::vstr_f64_add, 0xe },  // st [707]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::vstr_f64_sub, 0xe },  // st [616]
+    a32::OPC::vstr_f64_sub, 0xe },  // st [708]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::vstr_f64_add, 0xe },  // st [617]
+    a32::OPC::vstr_f64_add, 0xe },  // st [709]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::vstr_f64_sub, 0xe },  // st [618]
+    a32::OPC::vstr_f64_sub, 0xe },  // st [710]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +PARAM::reg2},
-    a32::OPC::strh_reg_add, 0xe },  // st [619]
+    a32::OPC::strh_reg_add, 0xe },  // st [711]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xe },  // st [620]
+    a32::OPC::strh_imm_add, 0xe },  // st [712]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strh_imm_sub, 0xe },  // st [621]
+    a32::OPC::strh_imm_sub, 0xe },  // st [713]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +PARAM::reg2},
-    a32::OPC::strh_reg_add, 0xe },  // st [622]
+    a32::OPC::strh_reg_add, 0xe },  // st [714]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xe },  // st [623]
+    a32::OPC::strh_imm_add, 0xe },  // st [715]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strh_imm_sub, 0xe },  // st [624]
+    a32::OPC::strh_imm_sub, 0xe },  // st [716]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +PARAM::reg2},
-    a32::OPC::strh_reg_add, 0xe },  // st [625]
+    a32::OPC::strh_reg_add, 0xe },  // st [717]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xe },  // st [626]
+    a32::OPC::strh_imm_add, 0xe },  // st [718]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strh_imm_sub, 0xe },  // st [627]
+    a32::OPC::strh_imm_sub, 0xe },  // st [719]
   { {+PRED::al, +PARAM::reg0, +PARAM::reg1, +PARAM::reg2},
-    a32::OPC::strh_reg_add, 0xe },  // st [628]
+    a32::OPC::strh_reg_add, 0xe },  // st [720]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xe },  // st [629]
+    a32::OPC::strh_imm_add, 0xe },  // st [721]
   { {+PRED::al, +PARAM::reg0, +PARAM::num1_neg, +PARAM::reg2},
-    a32::OPC::strh_imm_sub, 0xe },  // st [630]
+    a32::OPC::strh_imm_sub, 0xe },  // st [722]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [631]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [723]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [724]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [725]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [726]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [727]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [728]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [632]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [729]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [730]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [731]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [732]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [733]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [734]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [633]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [735]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [736]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [737]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [738]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [739]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [740]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [634]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [741]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [742]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [743]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [744]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [745]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [746]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [635]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [747]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [748]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [749]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [750]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [751]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [752]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [636]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [753]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [754]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [755]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [756]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [757]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [758]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [637]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [759]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [760]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [761]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [762]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [763]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [764]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::str_imm_add, 0xc },  // st.stk [638]
+    a32::OPC::str_imm_add, 0xc },  // st.stk [765]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [766]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [767]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [768]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [769]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::str_reg_add, 0x24 },  // st.stk [770]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xc },  // st.stk [639]
+    a32::OPC::strb_imm_add, 0xc },  // st.stk [771]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [772]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [773]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [774]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [775]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [776]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xc },  // st.stk [640]
+    a32::OPC::strb_imm_add, 0xc },  // st.stk [777]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [778]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [779]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [780]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [781]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [782]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xc },  // st.stk [641]
+    a32::OPC::strb_imm_add, 0xc },  // st.stk [783]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [784]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [785]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [786]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [787]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [788]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strb_imm_add, 0xc },  // st.stk [642]
+    a32::OPC::strb_imm_add, 0xc },  // st.stk [789]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [790]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [791]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [792]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [793]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0, +PARAM::reg2},
+    a32::OPC::strb_reg_add, 0x24 },  // st.stk [794]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::vstr_f32_add, 0xc },  // st.stk [643]
+    a32::OPC::vstr_f32_add, 0xc },  // st.stk [795]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [796]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // st.stk [797]
+  { {+PRED::al, +PARAM::scratch_gpr, 0, +PARAM::reg2},
+    a32::OPC::vstr_f32_add, 0xa },  // st.stk [798]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::vstr_f32_add, 0xc },  // st.stk [644]
+    a32::OPC::vstr_f32_add, 0xc },  // st.stk [799]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [800]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // st.stk [801]
+  { {+PRED::al, +PARAM::scratch_gpr, 0, +PARAM::reg2},
+    a32::OPC::vstr_f32_add, 0xa },  // st.stk [802]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::vstr_f64_add, 0xc },  // st.stk [645]
+    a32::OPC::vstr_f64_add, 0xc },  // st.stk [803]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [804]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // st.stk [805]
+  { {+PRED::al, +PARAM::scratch_gpr, 0, +PARAM::reg2},
+    a32::OPC::vstr_f64_add, 0xa },  // st.stk [806]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::vstr_f64_add, 0xc },  // st.stk [646]
+    a32::OPC::vstr_f64_add, 0xc },  // st.stk [807]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [808]
+  { {+PRED::al, +PARAM::scratch_gpr, +REG::sp, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a32::OPC::add_regimm, 0xa },  // st.stk [809]
+  { {+PRED::al, +PARAM::scratch_gpr, 0, +PARAM::reg2},
+    a32::OPC::vstr_f64_add, 0xa },  // st.stk [810]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xc },  // st.stk [647]
+    a32::OPC::strh_imm_add, 0xc },  // st.stk [811]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [812]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [813]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [814]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [815]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [816]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xc },  // st.stk [648]
+    a32::OPC::strh_imm_add, 0xc },  // st.stk [817]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [818]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [819]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [820]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [821]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [822]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xc },  // st.stk [649]
+    a32::OPC::strh_imm_add, 0xc },  // st.stk [823]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [824]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [825]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [826]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [827]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [828]
   { {+PRED::al, +REG::sp, +PARAM::stk0_offset1, +PARAM::reg2},
-    a32::OPC::strh_imm_add, 0xc },  // st.stk [650]
+    a32::OPC::strh_imm_add, 0xc },  // st.stk [829]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [830]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [831]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_lo},
+    a32::OPC::movw, 0x6 },  // st.stk [832]
+  { {+PRED::al, +PARAM::scratch_gpr, +PARAM::stk0_offset1_hi},
+    a32::OPC::movt, 0x6 },  // st.stk [833]
+  { {+PRED::al, +REG::sp, +PARAM::scratch_gpr, +PARAM::reg2},
+    a32::OPC::strh_reg_add, 0xc },  // st.stk [834]
 };
 
 const uint16_t kPatternJumper[256] = {
@@ -1456,54 +1841,54 @@ const uint16_t kPatternJumper[256] = {
  150 /* mov */,  192 /* cmpeq */,  224 /* cmplt */,  260 /* --- */, 
  260 /* lea */,  266 /* lea.mem */,  268 /* lea.stk */,  274 /* lea.fun */, 
  275 /* --- */,  275 /* --- */,  275 /* --- */,  275 /* --- */, 
- 275 /* ld */,  331 /* ld.mem */,  331 /* ld.stk */,  351 /* --- */, 
- 351 /* --- */,  351 /* --- */,  351 /* --- */,  351 /* --- */, 
- 351 /* st */,  407 /* st.mem */,  407 /* st.stk */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* sqrt */,  427 /* abs */,  427 /* sign */,  427 /* ceil */, 
- 427 /* floor */,  427 /* trunc */,  427 /* round */,  427 /* sin */, 
- 427 /* cos */,  427 /* tan */,  427 /* asin */,  427 /* acos */, 
- 427 /* atan */,  427 /* exp */,  427 /* log */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* cntpop */,  427 /* cntlz */,  427 /* cnttz */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* bcopy */,  427 /* --- */,  427 /* bzero */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* st.stks */,  427 /* ld.stks */,  427 /* lea.stks */,  427 /* lds */, 
- 427 /* sts */,  427 /* adds */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* .struct */,  427 /* .field */,  427 /* .endstruct */,  427 /* .stk.s */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* nop */,  427 /* nop1 */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
- 427 /* --- */,  427 /* --- */,  427 /* --- */,  427 /* --- */, 
+ 275 /* ld */,  331 /* ld.mem */,  331 /* ld.stk */,  387 /* --- */, 
+ 387 /* --- */,  387 /* --- */,  387 /* --- */,  387 /* --- */, 
+ 387 /* st */,  443 /* st.mem */,  443 /* st.stk */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* sqrt */,  499 /* abs */,  499 /* sign */,  499 /* ceil */, 
+ 499 /* floor */,  499 /* trunc */,  499 /* round */,  499 /* sin */, 
+ 499 /* cos */,  499 /* tan */,  499 /* asin */,  499 /* acos */, 
+ 499 /* atan */,  499 /* exp */,  499 /* log */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* cntpop */,  499 /* cntlz */,  499 /* cnttz */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* bcopy */,  499 /* --- */,  499 /* bzero */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* st.stks */,  499 /* ld.stks */,  499 /* lea.stks */,  499 /* lds */, 
+ 499 /* sts */,  499 /* adds */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* .struct */,  499 /* .field */,  499 /* .endstruct */,  499 /* .stk.s */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* nop */,  499 /* nop1 */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
+ 499 /* --- */,  499 /* --- */,  499 /* --- */,  499 /* --- */, 
 };
 
 const Pattern kPatterns[] = {
@@ -2503,291 +2888,507 @@ const Pattern kPatterns[] = {
   { {DK::U32, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
     &kInsTemplates[554], 1 },  // ld.stk [331]
+  { {DK::U32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[555], 2 },  // ld.stk [332]
+  { {DK::U32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[557], 3 },  // ld.stk [333]
   { {DK::U32, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[555], 1 },  // ld.stk [332]
+    &kInsTemplates[560], 1 },  // ld.stk [334]
+  { {DK::U32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[561], 2 },  // ld.stk [335]
+  { {DK::U32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[563], 3 },  // ld.stk [336]
   { {DK::S32, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[556], 1 },  // ld.stk [333]
+    &kInsTemplates[566], 1 },  // ld.stk [337]
+  { {DK::S32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[567], 2 },  // ld.stk [338]
+  { {DK::S32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[569], 3 },  // ld.stk [339]
   { {DK::S32, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[557], 1 },  // ld.stk [334]
+    &kInsTemplates[572], 1 },  // ld.stk [340]
+  { {DK::S32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[573], 2 },  // ld.stk [341]
+  { {DK::S32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[575], 3 },  // ld.stk [342]
   { {DK::A32, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[558], 1 },  // ld.stk [335]
+    &kInsTemplates[578], 1 },  // ld.stk [343]
+  { {DK::A32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[579], 2 },  // ld.stk [344]
+  { {DK::A32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[581], 3 },  // ld.stk [345]
   { {DK::A32, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[559], 1 },  // ld.stk [336]
+    &kInsTemplates[584], 1 },  // ld.stk [346]
+  { {DK::A32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[585], 2 },  // ld.stk [347]
+  { {DK::A32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[587], 3 },  // ld.stk [348]
   { {DK::C32, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[560], 1 },  // ld.stk [337]
+    &kInsTemplates[590], 1 },  // ld.stk [349]
+  { {DK::C32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[591], 2 },  // ld.stk [350]
+  { {DK::C32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[593], 3 },  // ld.stk [351]
   { {DK::C32, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[561], 1 },  // ld.stk [338]
+    &kInsTemplates[596], 1 },  // ld.stk [352]
+  { {DK::C32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[597], 2 },  // ld.stk [353]
+  { {DK::C32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[599], 3 },  // ld.stk [354]
   { {DK::U8, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[562], 1 },  // ld.stk [339]
+    &kInsTemplates[602], 1 },  // ld.stk [355]
+  { {DK::U8, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[603], 2 },  // ld.stk [356]
+  { {DK::U8, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[605], 3 },  // ld.stk [357]
   { {DK::U8, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
-    &kInsTemplates[563], 1 },  // ld.stk [340]
+    &kInsTemplates[608], 1 },  // ld.stk [358]
+  { {DK::U8, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[609], 2 },  // ld.stk [359]
+  { {DK::U8, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[611], 3 },  // ld.stk [360]
   { {DK::F32, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
-    &kInsTemplates[564], 1 },  // ld.stk [341]
+    &kInsTemplates[614], 1 },  // ld.stk [361]
+  { {DK::F32, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[615], 3 },  // ld.stk [362]
   { {DK::F32, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
-    &kInsTemplates[565], 1 },  // ld.stk [342]
+    &kInsTemplates[618], 1 },  // ld.stk [363]
+  { {DK::F32, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[619], 3 },  // ld.stk [364]
   { {DK::F64, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
-    &kInsTemplates[566], 1 },  // ld.stk [343]
+    &kInsTemplates[622], 1 },  // ld.stk [365]
+  { {DK::F64, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[623], 3 },  // ld.stk [366]
   { {DK::F64, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
-    &kInsTemplates[567], 1 },  // ld.stk [344]
+    &kInsTemplates[626], 1 },  // ld.stk [367]
+  { {DK::F64, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[627], 3 },  // ld.stk [368]
   { {DK::S8, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[568], 1 },  // ld.stk [345]
+    &kInsTemplates[630], 1 },  // ld.stk [369]
+  { {DK::S8, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[631], 2 },  // ld.stk [370]
+  { {DK::S8, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[633], 3 },  // ld.stk [371]
   { {DK::S8, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[569], 1 },  // ld.stk [346]
+    &kInsTemplates[636], 1 },  // ld.stk [372]
+  { {DK::S8, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[637], 2 },  // ld.stk [373]
+  { {DK::S8, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[639], 3 },  // ld.stk [374]
   { {DK::U16, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[570], 1 },  // ld.stk [347]
+    &kInsTemplates[642], 1 },  // ld.stk [375]
+  { {DK::U16, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[643], 2 },  // ld.stk [376]
+  { {DK::U16, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[645], 3 },  // ld.stk [377]
   { {DK::U16, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[571], 1 },  // ld.stk [348]
+    &kInsTemplates[648], 1 },  // ld.stk [378]
+  { {DK::U16, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[649], 2 },  // ld.stk [379]
+  { {DK::U16, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[651], 3 },  // ld.stk [380]
   { {DK::S16, DK::INVALID, DK::U32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[572], 1 },  // ld.stk [349]
+    &kInsTemplates[654], 1 },  // ld.stk [381]
+  { {DK::S16, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[655], 2 },  // ld.stk [382]
+  { {DK::S16, DK::INVALID, DK::U32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[657], 3 },  // ld.stk [383]
   { {DK::S16, DK::INVALID, DK::S32},
     {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
-    &kInsTemplates[573], 1 },  // ld.stk [350]
+    &kInsTemplates[660], 1 },  // ld.stk [384]
+  { {DK::S16, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[661], 2 },  // ld.stk [385]
+  { {DK::S16, DK::INVALID, DK::S32},
+    {IK::invalid, IK::invalid, IK::any_32_bits},
+    &kInsTemplates[663], 3 },  // ld.stk [386]
   { {DK::A32, DK::U32, DK::U32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[574], 1 },  // st [351]
+    &kInsTemplates[666], 1 },  // st [387]
   { {DK::A32, DK::U32, DK::U32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[575], 1 },  // st [352]
+    &kInsTemplates[667], 1 },  // st [388]
   { {DK::A32, DK::U32, DK::U32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[576], 1 },  // st [353]
+    &kInsTemplates[668], 1 },  // st [389]
   { {DK::A32, DK::S32, DK::U32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[577], 1 },  // st [354]
+    &kInsTemplates[669], 1 },  // st [390]
   { {DK::A32, DK::S32, DK::U32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[578], 1 },  // st [355]
+    &kInsTemplates[670], 1 },  // st [391]
   { {DK::A32, DK::S32, DK::U32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[579], 1 },  // st [356]
+    &kInsTemplates[671], 1 },  // st [392]
   { {DK::A32, DK::U32, DK::S32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[580], 1 },  // st [357]
+    &kInsTemplates[672], 1 },  // st [393]
   { {DK::A32, DK::U32, DK::S32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[581], 1 },  // st [358]
+    &kInsTemplates[673], 1 },  // st [394]
   { {DK::A32, DK::U32, DK::S32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[582], 1 },  // st [359]
+    &kInsTemplates[674], 1 },  // st [395]
   { {DK::A32, DK::S32, DK::S32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[583], 1 },  // st [360]
+    &kInsTemplates[675], 1 },  // st [396]
   { {DK::A32, DK::S32, DK::S32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[584], 1 },  // st [361]
+    &kInsTemplates[676], 1 },  // st [397]
   { {DK::A32, DK::S32, DK::S32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[585], 1 },  // st [362]
+    &kInsTemplates[677], 1 },  // st [398]
   { {DK::A32, DK::U32, DK::A32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[586], 1 },  // st [363]
+    &kInsTemplates[678], 1 },  // st [399]
   { {DK::A32, DK::U32, DK::A32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[587], 1 },  // st [364]
+    &kInsTemplates[679], 1 },  // st [400]
   { {DK::A32, DK::U32, DK::A32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[588], 1 },  // st [365]
+    &kInsTemplates[680], 1 },  // st [401]
   { {DK::A32, DK::S32, DK::A32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[589], 1 },  // st [366]
+    &kInsTemplates[681], 1 },  // st [402]
   { {DK::A32, DK::S32, DK::A32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[590], 1 },  // st [367]
+    &kInsTemplates[682], 1 },  // st [403]
   { {DK::A32, DK::S32, DK::A32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[591], 1 },  // st [368]
+    &kInsTemplates[683], 1 },  // st [404]
   { {DK::A32, DK::U32, DK::C32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[592], 1 },  // st [369]
+    &kInsTemplates[684], 1 },  // st [405]
   { {DK::A32, DK::U32, DK::C32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[593], 1 },  // st [370]
+    &kInsTemplates[685], 1 },  // st [406]
   { {DK::A32, DK::U32, DK::C32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[594], 1 },  // st [371]
+    &kInsTemplates[686], 1 },  // st [407]
   { {DK::A32, DK::S32, DK::C32},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[595], 1 },  // st [372]
+    &kInsTemplates[687], 1 },  // st [408]
   { {DK::A32, DK::S32, DK::C32},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[596], 1 },  // st [373]
+    &kInsTemplates[688], 1 },  // st [409]
   { {DK::A32, DK::S32, DK::C32},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[597], 1 },  // st [374]
+    &kInsTemplates[689], 1 },  // st [410]
   { {DK::A32, DK::U32, DK::U8},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[598], 1 },  // st [375]
+    &kInsTemplates[690], 1 },  // st [411]
   { {DK::A32, DK::U32, DK::U8},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[599], 1 },  // st [376]
+    &kInsTemplates[691], 1 },  // st [412]
   { {DK::A32, DK::U32, DK::U8},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[600], 1 },  // st [377]
+    &kInsTemplates[692], 1 },  // st [413]
   { {DK::A32, DK::S32, DK::U8},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[601], 1 },  // st [378]
+    &kInsTemplates[693], 1 },  // st [414]
   { {DK::A32, DK::S32, DK::U8},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[602], 1 },  // st [379]
+    &kInsTemplates[694], 1 },  // st [415]
   { {DK::A32, DK::S32, DK::U8},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[603], 1 },  // st [380]
+    &kInsTemplates[695], 1 },  // st [416]
   { {DK::A32, DK::U32, DK::S8},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[604], 1 },  // st [381]
+    &kInsTemplates[696], 1 },  // st [417]
   { {DK::A32, DK::U32, DK::S8},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[605], 1 },  // st [382]
+    &kInsTemplates[697], 1 },  // st [418]
   { {DK::A32, DK::U32, DK::S8},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[606], 1 },  // st [383]
+    &kInsTemplates[698], 1 },  // st [419]
   { {DK::A32, DK::S32, DK::S8},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[607], 1 },  // st [384]
+    &kInsTemplates[699], 1 },  // st [420]
   { {DK::A32, DK::S32, DK::S8},
     {IK::invalid, IK::pos_12_bits, IK::invalid},
-    &kInsTemplates[608], 1 },  // st [385]
+    &kInsTemplates[700], 1 },  // st [421]
   { {DK::A32, DK::S32, DK::S8},
     {IK::invalid, IK::neg_12_bits, IK::invalid},
-    &kInsTemplates[609], 1 },  // st [386]
+    &kInsTemplates[701], 1 },  // st [422]
   { {DK::A32, DK::U32, DK::F32},
     {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
-    &kInsTemplates[610], 1 },  // st [387]
+    &kInsTemplates[702], 1 },  // st [423]
   { {DK::A32, DK::U32, DK::F32},
     {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
-    &kInsTemplates[611], 1 },  // st [388]
+    &kInsTemplates[703], 1 },  // st [424]
   { {DK::A32, DK::S32, DK::F32},
     {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
-    &kInsTemplates[612], 1 },  // st [389]
+    &kInsTemplates[704], 1 },  // st [425]
   { {DK::A32, DK::S32, DK::F32},
     {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
-    &kInsTemplates[613], 1 },  // st [390]
+    &kInsTemplates[705], 1 },  // st [426]
   { {DK::A32, DK::U32, DK::F64},
     {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
-    &kInsTemplates[614], 1 },  // st [391]
+    &kInsTemplates[706], 1 },  // st [427]
   { {DK::A32, DK::U32, DK::F64},
     {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
-    &kInsTemplates[615], 1 },  // st [392]
+    &kInsTemplates[707], 1 },  // st [428]
   { {DK::A32, DK::S32, DK::F64},
     {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
-    &kInsTemplates[616], 1 },  // st [393]
+    &kInsTemplates[708], 1 },  // st [429]
   { {DK::A32, DK::S32, DK::F64},
     {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
-    &kInsTemplates[617], 1 },  // st [394]
+    &kInsTemplates[709], 1 },  // st [430]
   { {DK::A32, DK::U32, DK::U16},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[618], 1 },  // st [395]
+    &kInsTemplates[710], 1 },  // st [431]
   { {DK::A32, DK::U32, DK::U16},
     {IK::invalid, IK::pos_8_bits, IK::invalid},
-    &kInsTemplates[619], 1 },  // st [396]
+    &kInsTemplates[711], 1 },  // st [432]
   { {DK::A32, DK::U32, DK::U16},
     {IK::invalid, IK::neg_8_bits, IK::invalid},
-    &kInsTemplates[620], 1 },  // st [397]
+    &kInsTemplates[712], 1 },  // st [433]
   { {DK::A32, DK::S32, DK::U16},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[621], 1 },  // st [398]
+    &kInsTemplates[713], 1 },  // st [434]
   { {DK::A32, DK::S32, DK::U16},
     {IK::invalid, IK::pos_8_bits, IK::invalid},
-    &kInsTemplates[622], 1 },  // st [399]
+    &kInsTemplates[714], 1 },  // st [435]
   { {DK::A32, DK::S32, DK::U16},
     {IK::invalid, IK::neg_8_bits, IK::invalid},
-    &kInsTemplates[623], 1 },  // st [400]
+    &kInsTemplates[715], 1 },  // st [436]
   { {DK::A32, DK::U32, DK::S16},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[624], 1 },  // st [401]
+    &kInsTemplates[716], 1 },  // st [437]
   { {DK::A32, DK::U32, DK::S16},
     {IK::invalid, IK::pos_8_bits, IK::invalid},
-    &kInsTemplates[625], 1 },  // st [402]
+    &kInsTemplates[717], 1 },  // st [438]
   { {DK::A32, DK::U32, DK::S16},
     {IK::invalid, IK::neg_8_bits, IK::invalid},
-    &kInsTemplates[626], 1 },  // st [403]
+    &kInsTemplates[718], 1 },  // st [439]
   { {DK::A32, DK::S32, DK::S16},
     {IK::invalid, IK::invalid, IK::invalid},
-    &kInsTemplates[627], 1 },  // st [404]
+    &kInsTemplates[719], 1 },  // st [440]
   { {DK::A32, DK::S32, DK::S16},
     {IK::invalid, IK::pos_8_bits, IK::invalid},
-    &kInsTemplates[628], 1 },  // st [405]
+    &kInsTemplates[720], 1 },  // st [441]
   { {DK::A32, DK::S32, DK::S16},
     {IK::invalid, IK::neg_8_bits, IK::invalid},
-    &kInsTemplates[629], 1 },  // st [406]
+    &kInsTemplates[721], 1 },  // st [442]
   { {DK::INVALID, DK::U32, DK::U32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[630], 1 },  // st.stk [407]
+    &kInsTemplates[722], 1 },  // st.stk [443]
+  { {DK::INVALID, DK::U32, DK::U32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[723], 2 },  // st.stk [444]
+  { {DK::INVALID, DK::U32, DK::U32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[725], 3 },  // st.stk [445]
   { {DK::INVALID, DK::S32, DK::U32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[631], 1 },  // st.stk [408]
+    &kInsTemplates[728], 1 },  // st.stk [446]
+  { {DK::INVALID, DK::S32, DK::U32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[729], 2 },  // st.stk [447]
+  { {DK::INVALID, DK::S32, DK::U32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[731], 3 },  // st.stk [448]
   { {DK::INVALID, DK::U32, DK::S32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[632], 1 },  // st.stk [409]
+    &kInsTemplates[734], 1 },  // st.stk [449]
+  { {DK::INVALID, DK::U32, DK::S32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[735], 2 },  // st.stk [450]
+  { {DK::INVALID, DK::U32, DK::S32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[737], 3 },  // st.stk [451]
   { {DK::INVALID, DK::S32, DK::S32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[633], 1 },  // st.stk [410]
+    &kInsTemplates[740], 1 },  // st.stk [452]
+  { {DK::INVALID, DK::S32, DK::S32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[741], 2 },  // st.stk [453]
+  { {DK::INVALID, DK::S32, DK::S32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[743], 3 },  // st.stk [454]
   { {DK::INVALID, DK::U32, DK::A32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[634], 1 },  // st.stk [411]
+    &kInsTemplates[746], 1 },  // st.stk [455]
+  { {DK::INVALID, DK::U32, DK::A32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[747], 2 },  // st.stk [456]
+  { {DK::INVALID, DK::U32, DK::A32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[749], 3 },  // st.stk [457]
   { {DK::INVALID, DK::S32, DK::A32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[635], 1 },  // st.stk [412]
+    &kInsTemplates[752], 1 },  // st.stk [458]
+  { {DK::INVALID, DK::S32, DK::A32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[753], 2 },  // st.stk [459]
+  { {DK::INVALID, DK::S32, DK::A32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[755], 3 },  // st.stk [460]
   { {DK::INVALID, DK::U32, DK::C32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[636], 1 },  // st.stk [413]
+    &kInsTemplates[758], 1 },  // st.stk [461]
+  { {DK::INVALID, DK::U32, DK::C32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[759], 2 },  // st.stk [462]
+  { {DK::INVALID, DK::U32, DK::C32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[761], 3 },  // st.stk [463]
   { {DK::INVALID, DK::S32, DK::C32},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[637], 1 },  // st.stk [414]
+    &kInsTemplates[764], 1 },  // st.stk [464]
+  { {DK::INVALID, DK::S32, DK::C32},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[765], 2 },  // st.stk [465]
+  { {DK::INVALID, DK::S32, DK::C32},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[767], 3 },  // st.stk [466]
   { {DK::INVALID, DK::U32, DK::U8},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[638], 1 },  // st.stk [415]
+    &kInsTemplates[770], 1 },  // st.stk [467]
+  { {DK::INVALID, DK::U32, DK::U8},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[771], 2 },  // st.stk [468]
+  { {DK::INVALID, DK::U32, DK::U8},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[773], 3 },  // st.stk [469]
   { {DK::INVALID, DK::S32, DK::U8},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[639], 1 },  // st.stk [416]
+    &kInsTemplates[776], 1 },  // st.stk [470]
+  { {DK::INVALID, DK::S32, DK::U8},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[777], 2 },  // st.stk [471]
+  { {DK::INVALID, DK::S32, DK::U8},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[779], 3 },  // st.stk [472]
   { {DK::INVALID, DK::U32, DK::S8},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[640], 1 },  // st.stk [417]
+    &kInsTemplates[782], 1 },  // st.stk [473]
+  { {DK::INVALID, DK::U32, DK::S8},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[783], 2 },  // st.stk [474]
+  { {DK::INVALID, DK::U32, DK::S8},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[785], 3 },  // st.stk [475]
   { {DK::INVALID, DK::S32, DK::S8},
     {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
-    &kInsTemplates[641], 1 },  // st.stk [418]
+    &kInsTemplates[788], 1 },  // st.stk [476]
+  { {DK::INVALID, DK::S32, DK::S8},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[789], 2 },  // st.stk [477]
+  { {DK::INVALID, DK::S32, DK::S8},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[791], 3 },  // st.stk [478]
   { {DK::INVALID, DK::U32, DK::F32},
     {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
-    &kInsTemplates[642], 1 },  // st.stk [419]
+    &kInsTemplates[794], 1 },  // st.stk [479]
+  { {DK::INVALID, DK::U32, DK::F32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[795], 3 },  // st.stk [480]
   { {DK::INVALID, DK::S32, DK::F32},
     {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
-    &kInsTemplates[643], 1 },  // st.stk [420]
+    &kInsTemplates[798], 1 },  // st.stk [481]
+  { {DK::INVALID, DK::S32, DK::F32},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[799], 3 },  // st.stk [482]
   { {DK::INVALID, DK::U32, DK::F64},
     {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
-    &kInsTemplates[644], 1 },  // st.stk [421]
+    &kInsTemplates[802], 1 },  // st.stk [483]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[803], 3 },  // st.stk [484]
   { {DK::INVALID, DK::S32, DK::F64},
     {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
-    &kInsTemplates[645], 1 },  // st.stk [422]
+    &kInsTemplates[806], 1 },  // st.stk [485]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    &kInsTemplates[807], 3 },  // st.stk [486]
   { {DK::INVALID, DK::U32, DK::U16},
     {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
-    &kInsTemplates[646], 1 },  // st.stk [423]
+    &kInsTemplates[810], 1 },  // st.stk [487]
+  { {DK::INVALID, DK::U32, DK::U16},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[811], 2 },  // st.stk [488]
+  { {DK::INVALID, DK::U32, DK::U16},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[813], 3 },  // st.stk [489]
   { {DK::INVALID, DK::S32, DK::U16},
     {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
-    &kInsTemplates[647], 1 },  // st.stk [424]
+    &kInsTemplates[816], 1 },  // st.stk [490]
+  { {DK::INVALID, DK::S32, DK::U16},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[817], 2 },  // st.stk [491]
+  { {DK::INVALID, DK::S32, DK::U16},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[819], 3 },  // st.stk [492]
   { {DK::INVALID, DK::U32, DK::S16},
     {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
-    &kInsTemplates[648], 1 },  // st.stk [425]
+    &kInsTemplates[822], 1 },  // st.stk [493]
+  { {DK::INVALID, DK::U32, DK::S16},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[823], 2 },  // st.stk [494]
+  { {DK::INVALID, DK::U32, DK::S16},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[825], 3 },  // st.stk [495]
   { {DK::INVALID, DK::S32, DK::S16},
     {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
-    &kInsTemplates[649], 1 },  // st.stk [426]
+    &kInsTemplates[828], 1 },  // st.stk [496]
+  { {DK::INVALID, DK::S32, DK::S16},
+    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    &kInsTemplates[829], 2 },  // st.stk [497]
+  { {DK::INVALID, DK::S32, DK::S16},
+    {IK::invalid, IK::any_32_bits, IK::invalid},
+    &kInsTemplates[831], 3 },  // st.stk [498]
 };
 }  // namespace
 
@@ -2824,14 +3425,15 @@ const Pattern* FindMatchingPattern(Ins ins) {
   for (unsigned p = kPatternJumper[unsigned(opc)]; p < end; ++p) {
     const Pattern& pat = kPatterns[p];
     if (PatternMatchesTypeConstraints(pat, reg_matcher) &&
-        0 == PatternMismatchesImmConstraints(pat, ins)) {
+        0 == PatternMismatchesImmConstraints(pat, ins, false)) {
       return &pat;
     }
   }
   return nullptr;
 }
 
-uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins) {
+uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins,
+                                                   bool assume_stk_op_matches) {
   uint8_t best = MATCH_IMPOSSIBLE;
   uint8_t best_num_bits = __builtin_popcount(best);
   const uint64_t type_matcher = ExtractTypeMaskForPattern(ins);
@@ -2841,7 +3443,8 @@ uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins) {
   for (unsigned p = kPatternJumper[unsigned(opc)]; p < end; ++p) {
     const Pattern& pat = kPatterns[p];
     if (!PatternMatchesTypeConstraints(pat, type_matcher)) continue;
-    const uint8_t mismatches = PatternMismatchesImmConstraints(pat, ins);
+    const uint8_t mismatches =
+        PatternMismatchesImmConstraints(pat, ins, assume_stk_op_matches);
     const uint8_t num_bits = __builtin_popcount(mismatches);
     if (num_bits < best_num_bits) {
       best = mismatches;
@@ -2928,6 +3531,12 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
       return (ExtractNum(Const(InsOperand(ins, 1))) >> 16) & 0xffff;
     case PARAM::stk0_offset1:
       return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1));
+    case PARAM::stk0_offset1_lo:
+      return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) & 0xffff;
+
+    case PARAM::stk0_offset1_hi:
+      return (GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) >> 16) &
+             0xffff;
     case PARAM::stk1_offset2:
       return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2));
 
@@ -2937,9 +3546,14 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::stk1_offset2_hi:
       return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16) &
              0xffff;
-    case PARAM::scratch_flt:
-      return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::scratch_gpr:
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR,
+             "expected gpr reg");
+      return CpuRegNo(ctx.scratch_cpu_reg);
+    case PARAM::scratch_flt:
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::DBL ||
+                 CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT,
+             "expected not gpr reg");
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::bbl0:
     case PARAM::bbl2:

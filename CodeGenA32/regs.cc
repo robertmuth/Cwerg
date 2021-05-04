@@ -4,14 +4,8 @@
 #include "Base/serialize.h"
 #include "Util/parse.h"
 
-#include <array>
 
 namespace cwerg::code_gen_a32 {
-namespace {
-
-const constexpr uint8_t GPR = 1;
-const constexpr uint8_t FLT = 2;
-const constexpr uint8_t DBL = 3;
 
 using namespace cwerg;
 using namespace cwerg::base;
@@ -31,6 +25,17 @@ std::array<CpuReg, 8> DBL_PARAM_REGS;
 std::array<CpuReg, 6> GPR_CALLEE_SAVE_REGS;
 std::array<CpuReg, 16> FLT_CALLEE_SAVE_REGS;
 std::array<CpuReg, 8> DBL_CALLEE_SAVE_REGS;
+
+namespace {
+
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+-> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
+}
+
+
 
 const uint32_t LINK_REG_MASK = 0x4000;
 
@@ -101,7 +106,7 @@ class RegPoolArm : public RegPool {
   }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
-    bool is_gpr = CpuRegKind(cpu_reg) == GPR;
+    bool is_gpr = CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR;
     uint32_t mask = A32RegToAllocMask(cpu_reg);
     bool lac = 0 != (mask & (is_gpr ? GPR_CALLEE_SAVE_REGS_MASK
                                     : FLT_CALLEE_SAVE_REGS_MASK));
@@ -283,7 +288,7 @@ A32RegMasks FunCpuRegStats(Fun fun) {
                  "found unallocated reg " << Name(reg) << " in " << Name(fun));
         }
         const uint32_t mask = A32RegToAllocMask(cpu_reg);
-        if (CpuRegKind(cpu_reg) == GPR) {
+        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR) {
           gpr_mask |= mask;
         } else {
           flt_mask |= mask;
@@ -316,7 +321,7 @@ ArmFltRegRange ArmGetFltRegRanges(uint32_t flt_mask) {
 }  // namespace
 
 uint32_t A32RegToAllocMask(CpuReg cpu_reg) {
-  if (CpuRegKind(cpu_reg) == DBL) {
+  if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::DBL) {
     return 3 << (CpuRegNo(cpu_reg) * 2);
   } else {
     return 1 << CpuRegNo(cpu_reg);
@@ -476,13 +481,6 @@ uint32_t HighByte(uint32_t x) {
   return x << shift;
 }
 
-// +-prefix converts an enum the underlying type
-template <typename T>
-constexpr auto operator+(T e) noexcept
-    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
-  return static_cast<std::underlying_type_t<T>>(e);
-}
-
 void EmitFunProlog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
   if (ctx.stm_regs > 0) {
     output->emplace_back(MakeIns(a32::OPC::stmdb_update, +a32::PRED::al,
@@ -532,7 +530,7 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
 void InitCodeGenA32() {
   // GPR
   for (size_t i = 0; i < 16; ++i) {
-    GPR_REGS[i] = CpuRegNew(i, GPR, StrNew(GPR_NAMES[i]));
+    GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(GPR_NAMES[i]));
     uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
     if (i < GPR_PARAM_REGS.size()) {
       ASSERT((GPR_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
@@ -553,7 +551,7 @@ void InitCodeGenA32() {
     char buffer[8];
     buffer[0] = 's';
     ToDecString(i, buffer + 1);
-    FLT_REGS[i] = CpuRegNew(i, FLT, StrNew(buffer));
+    FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
     uint32_t mask = A32RegToAllocMask(FLT_REGS[i]);
     if (i < FLT_PARAM_REGS.size()) {
       ASSERT((FLT_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
@@ -569,7 +567,7 @@ void InitCodeGenA32() {
     char buffer[8];
     buffer[0] = 'd';
     ToDecString(i, buffer + 1);
-    DBL_REGS[i] = CpuRegNew(i, DBL, StrNew(buffer));
+    DBL_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::DBL, StrNew(buffer));
     if (i < DBL_PARAM_REGS.size()) {
       DBL_PARAM_REGS[i] = DBL_REGS[i];
     } else {

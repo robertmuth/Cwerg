@@ -24,7 +24,7 @@ const char* OpTypeString(Handle op) {
   }
 }
 
-void HandleIns(Ins ins) {
+void HandleIns(Ins ins, const code_gen_a32::EmitContext& ctx) {
   std::cout << "INS: ";
   InsRenderToAsm(ins, &std::cout);
   std::cout << "  [";
@@ -40,7 +40,7 @@ void HandleIns(Ins ins) {
   }
 
   const uint8_t mismatches =
-      code_gen_a32::FindtImmediateMismatchesInBestMatchPattern(ins);
+      code_gen_a32::FindtImmediateMismatchesInBestMatchPattern(ins, false);
   if (mismatches == code_gen_a32::MATCH_IMPOSSIBLE) {
     std::cout << "    MATCH_IMPOSSIBLE\n";
   } else if (mismatches > 0) {
@@ -63,7 +63,6 @@ void HandleIns(Ins ins) {
     }
     std::cout << "]\n";
 
-    code_gen_a32::EmitContext ctx;
     std::vector<std::string> ops;
     for (unsigned i = 0; i < pat->length; ++i) {
       const code_gen_a32::InsTmpl& tmpl = pat->start[i];
@@ -83,12 +82,18 @@ void Process(std::istream* input) {
 
   Unit unit = UnitParseFromAsm("unit", {data.data(), data.size()},
                                code_gen_a32::GetAllRegs());
+  code_gen_a32::EmitContext ctx;
   // UnitRenderToAsm(unit, &std::cout);
   for (Fun fun : UnitFunIter(unit)) {
+    FunFinalizeStackSlots(fun);
+    std::string_view name(StrData(Name(fun)));
+    if (name.find("gpr_scratch")) {
+      ctx.scratch_cpu_reg =  code_gen_a32::GPR_CALLEE_SAVE_REGS[0];
+    }
     for (Bbl bbl : FunBblIter(fun)) {
       for (Ins ins : BblInsIter(bbl)) {
         std::cout << "\n";
-        HandleIns(ins);
+        HandleIns(ins, ctx);
       }
     }
   }

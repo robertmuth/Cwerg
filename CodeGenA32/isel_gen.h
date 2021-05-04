@@ -73,9 +73,11 @@ enum class PARAM : uint8_t {
     vstm_start = 36,
     vstm_count = 37,
     stk0_offset1 = 38,
-    stk1_offset2 = 39,
-    stk1_offset2_lo = 40,
-    stk1_offset2_hi = 41,
+    stk0_offset1_lo = 49,
+    stk0_offset1_hi = 40,
+    stk1_offset2 = 41,
+    stk1_offset2_lo = 42,
+    stk1_offset2_hi = 43,
 };
 /* @AUTOGEN-END@ */
 
@@ -96,7 +98,8 @@ extern const Pattern* FindMatchingPattern(base::Ins ins);
 
 const constexpr uint8_t MATCH_IMPOSSIBLE = 255;
 
-extern uint8_t FindtImmediateMismatchesInBestMatchPattern(base::Ins ins);
+extern uint8_t FindtImmediateMismatchesInBestMatchPattern(base::Ins ins,
+                                                          bool assume_stk_op_matches);
 
 extern a32::Ins MakeIns(a32::OPC opc_enum,
                  uint32_t x0 = 0,

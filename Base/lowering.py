@@ -195,6 +195,8 @@ def _InsEliminateStkLoadStoreWithRegOffset(
         return [lea, ins]
     elif opc is o.LEA_STK and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
+        # TODO: maybe reverse the order so that we can tell that ops[0] holds a stack
+        # location
         lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
         ins.Init(o.LEA, [ops[0], scratch_reg, ops[2]])
         return [lea, ins]
@@ -246,26 +248,6 @@ def FunEliminateMemLoadStore(fun: ir.Fun, base_kind: o.DK, offset_kind: o.DK) ->
     # assert ir.FUN_FLAG.STACK_FINALIZED not in fun.flags
     return ir.FunGenericRewrite(
         fun, _InsEliminateMemLoadStore, base_kind=base_kind, offset_kind=offset_kind)
-
-
-def _InsEliminateImmediateStores(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-    """RISC architectures typically do not allow immediates to be stored directly
-
-    TODO: maybe allow zero immediates
-    """
-    opc = ins.opcode
-    ops = ins.operands
-    if opc in {o.ST_MEM, o.ST, o.ST_STK} and isinstance(ops[2], ir.Const):
-        scratch_reg = fun.GetScratchReg(ops[2].kind, "st_imm", False)
-        mov = ir.Ins(o.MOV, [scratch_reg, ops[2]])
-        ops[2] = scratch_reg
-        return [mov, ins]
-    else:
-        return None
-
-
-def FunEliminateImmediateStores(fun: ir.Fun) -> int:
-    return ir.FunGenericRewrite(fun, _InsEliminateImmediateStores)
 
 
 def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
