@@ -19,9 +19,7 @@ _DUMMY_A32 = ir.Reg("dummy", o.DK.A32)
 _ZERO_OFFSET = ir.Const(o.DK.U32, 0)
 
 _OPCODES_IGNORED_BY_IMMEDIATE_REWRITER = isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING | {
-    o.ST_STK, o.LD_STK, o.LEA_STK,
-    # we compute stack offsets in a separate pass
-    o.POPARG, o.PUSHARG,  # will be rewritten later
+    o.POPARG, o.PUSHARG,  # will be rewritten later and not expanded
 }
 
 
@@ -30,7 +28,7 @@ def _InsRewriteOutOfBoundsImmediates(
     if ins.opcode in _OPCODES_IGNORED_BY_IMMEDIATE_REWRITER:
         return None
     inss = []
-    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins)
+    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins, True)
     assert mismatches != isel_tab.MATCH_IMPOSSIBLE, f"could not match opcode {ins} {ins.operands}"
 
     if mismatches == 0:
@@ -65,48 +63,6 @@ def _InsRewriteFltImmediates(
 
 def _FunRewriteFltImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteFltImmediates, unit=unit)
-
-
-def _InsRewriteOutOfBoundsOffsetsStk(
-        ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-    # Note, we can handle any LEA_STK as long as it is adding a constant
-    if ins.opcode not in {o.LD_STK, o.ST_STK}:
-        return None
-    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins)
-    assert mismatches != isel_tab.MATCH_IMPOSSIBLE, f"could not match opcode {ins} {ins.operands}"
-
-    if mismatches == 0:
-        return None
-
-    inss = []
-    tmp = fun.GetScratchReg(o.DK.A32, "imm_stk", False)
-    if ins.opcode is o.ST_STK:
-        # note we do not have to worry about ins.operands[2] being Const
-        # because those were dealt with by FunEliminateImmediateStores
-        assert mismatches == (1 << 1)
-        if isinstance(ins.operands[1], ir.Const):
-            inss.append(
-                ir.Ins(o.LEA_STK, [tmp, ins.operands[0], ins.operands[1]]))
-            ins.Init(o.ST, [tmp, _ZERO_OFFSET, ins.operands[2]])
-        else:
-            inss.append(ir.Ins(o.LEA_STK, [tmp, ins.operands[0], _ZERO_OFFSET]))
-            ins.Init(o.ST, [tmp, ins.operands[1], ins.operands[2]])
-    else:
-        assert ins.opcode is o.LD_STK
-        assert mismatches & (1 << 2)
-        if isinstance(ins.operands[2], ir.Const):
-            inss.append(
-                ir.Ins(o.LEA_STK, [tmp, ins.operands[1], ins.operands[2]]))
-            ins.Init(o.LD, [ins.operands[0], tmp, _ZERO_OFFSET])
-        else:
-            inss.append(ir.Ins(o.LEA_STK, [tmp, ins.operands[1], _ZERO_OFFSET]))
-            ins.Init(o.LD, [ins.operands[0], tmp, ins.operands[2]])
-    inss.append(ins)
-    return inss
-
-
-def _FunRewriteOutOfBoundsOffsetsStk(fun: ir.Fun):
-    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsOffsetsStk)
 
 
 def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
@@ -279,7 +235,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # ARM has no mod instruction
     lowering.FunEliminateRem(fun)
 
-    # ARM has not support for these addressing modes
+    # A32 has not support for these addressing modes.
+    # They will be rewritten  using lea.stk
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A32,
                                                    offset_kind=o.DK.S32)
     # No floating point immediates
@@ -445,16 +402,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
         to_be_spillled.sort()
         reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spillled)
 
-    fun.FinalizeStackSlots()
-    # DumpFun("@@@ aaa", fun)
-    # Special flavor out-of-bound immediate rewriter that is stack aware
-    # In rare cases this could introduce the need for another gpr reg
-    _FunRewriteOutOfBoundsOffsetsStk(fun)
-    # DumpFun("@@@@ before reg-alloc", fun)
-    # Assign regs to local var
-
     regs.FunLocalRegAlloc(fun)
-    fun.flags &= ~ir.FUN_FLAG.STACK_FINALIZED
     fun.FinalizeStackSlots()
     # cleanup
     FunMoveEliminationCpu(fun)

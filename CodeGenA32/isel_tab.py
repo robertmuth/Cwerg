@@ -148,9 +148,11 @@ class PARAM(enum.Enum):
     vstm_start = 36
     vstm_count = 37
     stk0_offset1 = 38
-    stk1_offset2 = 39
-    stk1_offset2_lo = 40
-    stk1_offset2_hi = 41
+    stk0_offset1_lo = 49
+    stk0_offset1_hi = 40
+    stk1_offset2 = 41
+    stk1_offset2_lo = 42
+    stk1_offset2_hi = 43
 
 
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
@@ -173,7 +175,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         n = arg.value - PARAM.reg0.value
         reg = ins.operands[n]
         assert isinstance(reg,
-                          ir.Reg) and reg.HasCpuReg(), f"unexpected op {ins} {ins.operands} [{reg}]"
+                          ir.Reg) and reg.HasCpuReg(), f"unexpected op {ins} {ins.operands} should be reg with cpu-reg [{reg}]"
         return reg.cpu_reg.no
     elif arg in {PARAM.num0, PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4}:
         n = arg.value - PARAM.num0.value
@@ -204,7 +206,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert ctx.scratch_cpu_reg.kind is not regs.A32RegKind.GPR
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR
+        assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR, f"{ctx.scratch_cpu_reg} not gpr"
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.stm_regmask:
         return ctx.stm_regs
@@ -224,6 +226,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         return count
     elif arg is PARAM.stk0_offset1:
         return GetStackOffset(ins.operands[0], ins.operands[1])
+    elif arg is PARAM.stk0_offset1_lo:
+        return GetStackOffset(ins.operands[0], ins.operands[1]) & 0xffff
+    elif arg is PARAM.stk0_offset1_hi:
+        return (GetStackOffset(ins.operands[0], ins.operands[1]) >> 16) & 0xffff
     elif arg is PARAM.stk1_offset2:
         return GetStackOffset(ins.operands[1], ins.operands[2])
     elif arg is PARAM.stk1_offset2_lo:
@@ -468,7 +474,7 @@ class Pattern:
                 assert False
         return True
 
-    def MatchesImmConstraints(self, ins: ir.Ins) -> int:
+    def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches) -> int:
         """Returns bit positions that hsve a mismatch
 
         assumes that MatchesTypeConstraints return true"""
@@ -476,6 +482,7 @@ class Pattern:
         for pos, (imm_constr, op) in enumerate(zip(self.imm_constraints, ins.operands)):
             if isinstance(op, ir.Const):
                 if imm_constr is IMM_KIND.invalid:
+                    # have a constant but need a reg
                     out |= 1 << pos
                     continue
                 val = op.value
@@ -483,12 +490,16 @@ class Pattern:
                     stk = ins.operands[pos - 1]
                     if not isinstance(stk, ir.Stk):
                         return MATCH_IMPOSSIBLE
+                    if assume_stk_op_matches:
+                        continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
                 if not _NUM_MATCHERS[imm_constr](val):
-                    out |= 1 << pos
+                    # have constant that does not fit
+                    return MATCH_IMPOSSIBLE
             elif isinstance(op, ir.Reg):
                 if imm_constr is not IMM_KIND.invalid:
+                    # have a reg but need a const
                     return MATCH_IMPOSSIBLE
         return out
 
@@ -685,24 +696,49 @@ def InitLoad():
                     [InsTmpl(opc + "_imm_sub",
                              [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])],
                     imm_kind2=IMM_KIND.neg_12_bits)
+            # STACK VARIANTS
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
                     [InsTmpl(opc + "_imm_add",
                              [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])],
                     imm_kind2=IMM_KIND.pos_stk_combo_12_bits)
+            Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
+                    [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2]),
+                     InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])],
+                    imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
+            Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
+                    [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2_lo]),
+                     InsTmpl("movt", [PARAM.reg0, PARAM.stk1_offset2_hi]),
+                     InsTmpl(opc + "_reg_add",
+                             [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])],
+                    imm_kind2=IMM_KIND.any_32_bits)
 
-    for kind1, opc in [(o.DK.F32, "vldr_f32_"), (o.DK.F64, "vldr_f64_")]:
+    for kind1, opc in [(o.DK.F32, "vldr_f32"), (o.DK.F64, "vldr_f64")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2],
-                    [InsTmpl(opc + "add", [PARAM.reg0, PARAM.reg1, PARAM.num2])],
+                    [InsTmpl(opc + "_add", [PARAM.reg0, PARAM.reg1, PARAM.num2])],
                     imm_kind2=IMM_KIND.pos_8_bits_times_4)
             Pattern(o.LD, [kind1, o.DK.A32, kind2],
-                    [InsTmpl(opc + "sub", [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])],
+                    [InsTmpl(opc + "_sub", [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])],
                     imm_kind2=IMM_KIND.neg_8_bits_times_4)
+            # STACK VARIANTS
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
-                    [InsTmpl(opc + "add", [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])],
+                    [InsTmpl(opc + "_add", [PARAM.reg0, arm.REG.sp,
+                                            PARAM.stk1_offset2])],
                     imm_kind2=IMM_KIND.pos_stk_combo_8_bits_times_4)
+            # Note, the pattern below could be improved to cover 24 or 26 bits
+            # by shifting the first 16 bit and then utilizing the offset in the load
+            # instructions. This will be enough so we do not bother here with
+            # and movw/movt pattern
+            Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk1_offset2_lo]),
+                     InsTmpl("add_regimm", [PARAM.scratch_gpr, arm.REG.sp,
+                                            PARAM.scratch_gpr, arm.SHIFT.lsl, 0]),
+                     InsTmpl(opc + "_add",
+                             [PARAM.scratch_gpr, PARAM.scratch_gpr, 0])],
+                    imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
 
     for kind1, opc in [(o.DK.S8, "ldrsb"), (o.DK.U16, "ldrh"), (o.DK.S16, "ldrsh")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
@@ -717,11 +753,21 @@ def InitLoad():
                     [InsTmpl(opc + "_imm_add",
                              [PARAM.reg0, PARAM.reg1, PARAM.num2])],
                     imm_kind2=IMM_KIND.pos_8_bits)
+            # STACK VARIANTS
             # note: the second and third op are combined in the generated code
             Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
                     [InsTmpl(opc + "_imm_add",
                              [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])],
                     imm_kind2=IMM_KIND.pos_stk_combo_8_bits)
+            Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
+                    [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2]),
+                     InsTmpl(opc + "_reg_add", [PARAM.reg0, arm.REG.sp, PARAM.reg0])],
+                    imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
+            Pattern(o.LD_STK, [kind1, o.DK.INVALID, kind2],
+                    [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2_lo]),
+                     InsTmpl("movt", [PARAM.reg0, PARAM.stk1_offset2_hi]),
+                     InsTmpl(opc + "_reg_add", [PARAM.reg0, arm.REG.sp, PARAM.reg0])],
+                    imm_kind2=IMM_KIND.any_32_bits)
 
 
 def InitStore():
@@ -740,25 +786,49 @@ def InitStore():
                     [InsTmpl(opc + "_imm_sub",
                              [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])],
                     imm_kind1=IMM_KIND.neg_12_bits)
+            # STACK VARIANTS: note we cover all reasonable offsets
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [InsTmpl(opc + "_imm_add",
                              [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])],
                     imm_kind1=IMM_KIND.pos_stk_combo_12_bits)
+            Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
+                     InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
+                                                arm.SHIFT.lsl, 0, PARAM.reg2])],
+                    imm_kind1=IMM_KIND.pos_stk_combo_16_bits)
+            Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
+                     InsTmpl("movt", [PARAM.scratch_gpr, PARAM.stk0_offset1_hi]),
+                     InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
+                                                arm.SHIFT.lsl, 0, PARAM.reg2])],
+                    imm_kind1=IMM_KIND.any_32_bits)
 
-    for kind1, opc in [(o.DK.F32, "vstr_f32_"), (o.DK.F64, "vstr_f64_")]:
+    for kind1, opc in [(o.DK.F32, "vstr_f32"), (o.DK.F64, "vstr_f64")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind2, kind1],
-                    [InsTmpl(opc + "add", [PARAM.reg0, PARAM.num1, PARAM.reg2])],
+                    [InsTmpl(opc + "_add", [PARAM.reg0, PARAM.num1, PARAM.reg2])],
                     imm_kind1=IMM_KIND.pos_8_bits_times_4)
             Pattern(o.ST, [o.DK.A32, kind2, kind1],
-                    [InsTmpl(opc + "sub", [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])],
+                    [InsTmpl(opc + "_sub", [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])],
                     imm_kind1=IMM_KIND.neg_8_bits_times_4)
-
+            # STACK VARIANTS
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind2, kind1],
-                    [InsTmpl(opc + "add", [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])],
+                    [InsTmpl(opc + "_add", [arm.REG.sp, PARAM.stk0_offset1,
+                                            PARAM.reg2])],
                     imm_kind1=IMM_KIND.pos_stk_combo_8_bits_times_4)
+            # Note, the pattern below could be improved to cover 24 or 26 bits
+            # by shifting the first 16 bit and then utilizing the offset in the load
+            # instructions. This will be enough so we do not bother here with
+            # and movw/movt pattern
+            Pattern(o.ST_STK, [o.DK.INVALID, kind2, kind1],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
+                     InsTmpl("add_regimm", [PARAM.scratch_gpr, arm.REG.sp,
+                                            PARAM.scratch_gpr, arm.SHIFT.lsl, 0]),
+                     InsTmpl(opc + "_add",
+                             [PARAM.scratch_gpr, 0, PARAM.reg2])],
+                    imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
 
     for kind2, opc in [(o.DK.U16, "strh"), (o.DK.S16, "strh")]:
         for kind1 in [o.DK.U32, o.DK.S32]:
@@ -773,12 +843,23 @@ def InitStore():
                     [InsTmpl(opc + "_imm_sub",
                              [PARAM.reg0, PARAM.num1_neg, PARAM.reg2])],
                     imm_kind1=IMM_KIND.neg_8_bits)
+            # STACK VARIANTS
             # note: the second and third op are combined in the generated code
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [InsTmpl(opc + "_imm_add",
                              [arm.REG.sp, PARAM.stk0_offset1, PARAM.reg2])],
                     imm_kind1=IMM_KIND.pos_stk_combo_8_bits)
-
+            Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
+                     InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
+                                                PARAM.reg2])],
+                    imm_kind1=IMM_KIND.pos_stk_combo_16_bits)
+            Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
+                    [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
+                     InsTmpl("movt", [PARAM.scratch_gpr, PARAM.stk0_offset1_hi]),
+                     InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
+                                                PARAM.reg2])],
+                    imm_kind1=IMM_KIND.any_32_bits)
 
 def InitLea():
     Pattern(o.LEA_FUN, [o.DK.C32, o.DK.INVALID],
@@ -802,8 +883,7 @@ def InitLea():
                 [InsTmpl("movw", [PARAM.reg0, PARAM.mem1_num2_lo16]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.mem1_num2_hi16])],
                 imm_kind2=IMM_KIND.any_32_bits)
-
-        # Note, lea_stks are our last resort and MUST support ALL possible immediates
+        # STACK VARIANTS: note we cover all reasonable offsets
         # note: the second and third op are combined in the generated code
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
                 [InsTmpl("add_imm", [PARAM.reg0, arm.REG.sp, PARAM.stk1_offset2])],
@@ -890,8 +970,8 @@ def InitMiscBra():
              InsTmpl("movw", [arm.REG.r7, PARAM.num1]),
              InsTmpl("svc", [0]),
              InsTmpl("ldr_imm_add_post",
-                     [arm.REG.r7, arm.REG.sp, 4])], # pop r7 from stack
-        imm_kind1=IMM_KIND.pos_16_bits)
+                     [arm.REG.r7, arm.REG.sp, 4])],  # pop r7 from stack
+            imm_kind1=IMM_KIND.pos_16_bits)
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
@@ -965,14 +1045,15 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     # print(f"@ {ins} {ins.operands}")
     for p in patterns:
         # print(f"@trying pattern {p}")
-        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmConstraints(ins):
+        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmConstraints(ins, False):
             return p
     else:
         # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"
         return None
 
 
-def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins) -> int:
+def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins,
+                                               assume_stk_op_matches: bool) -> int:
     """Returns a list of operand positions that need to be rewritten
 
     None means there was an error
@@ -983,7 +1064,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins) -> int:
     for p in patterns:
         if not p.MatchesTypeConstraints(ins):
             continue
-        mismatches = p.MatchesImmConstraints(ins)
+        mismatches = p.MatchesImmConstraints(ins, assume_stk_op_matches)
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits

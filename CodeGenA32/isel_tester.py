@@ -34,7 +34,7 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
     if ins.opcode in isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING:
         print(f"    SPECIAL")
         return
-    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins)
+    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins, False)
     if mismatches == isel_tab.MATCH_IMPOSSIBLE:
         print(f"    MATCH_IMPOSSIBLE")
     elif mismatches != 0:
@@ -53,10 +53,12 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
 
 
 def Translate(fin):
-    scratch = regs.FLT_CALLEE_SAVE_REGS[0]
-    ctx = regs.EmitContext(0xfc0, 0xfc0, 0xffff0000, 0xffff0000, 66, scratch)
     unit = serialize.UnitParseFromAsm(fin, cpu_regs=regs.CPU_REGS)
     for fun in unit.funs:
+        ctx = regs.EmitContext(0xfc0, 0xfc0, 0xffff0000, 0xffff0000, 66)
+        if "gpr_scratch" in fun.name:
+            ctx.scratch_cpu_reg = regs.GPR_CALLEE_SAVE_REGS[0]
+        fun.FinalizeStackSlots()
         for bbl in fun.bbls:
             for ins in bbl.inss:
                 print()

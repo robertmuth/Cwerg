@@ -668,3 +668,138 @@ PAT: reg:[A32 A32 S32]  imm:[invalid invalid neg_8_bits_shifted]
 
 INS: ret  []
     SPECIAL
+
+INS: st.stk buffer 0 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 0 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid pos_stk_combo_12_bits invalid]
+    str_imm_add al sp 0 r1
+
+INS: st.stk buffer 0 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid pos_stk_combo_8_bits invalid]
+    strh_imm_add al sp 0 r2
+
+INS: ld.stk x@r1 buffer 0  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid pos_stk_combo_12_bits]
+    ldr_imm_add al r1 sp 0
+
+INS: ld.stk y@r2 buffer 0  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid pos_stk_combo_8_bits]
+    ldrsh_imm_add al r2 sp 0
+
+INS: st.stk buffer 10 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 10 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid pos_stk_combo_12_bits invalid]
+    str_imm_add al sp 10 r1
+
+INS: st.stk buffer 10 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid pos_stk_combo_8_bits invalid]
+    strh_imm_add al sp 10 r2
+
+INS: ld.stk x@r1 buffer 10  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid pos_stk_combo_12_bits]
+    ldr_imm_add al r1 sp 10
+
+INS: ld.stk y@r2 buffer 10  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid pos_stk_combo_8_bits]
+    ldrsh_imm_add al r2 sp 10
+
+INS: st.stk buffer 100 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 100 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid pos_stk_combo_12_bits invalid]
+    str_imm_add al sp 100 r1
+
+INS: st.stk buffer 100 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid pos_stk_combo_8_bits invalid]
+    strh_imm_add al sp 100 r2
+
+INS: ld.stk x@r1 buffer 100  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid pos_stk_combo_12_bits]
+    ldr_imm_add al r1 sp 100
+
+INS: ld.stk y@r2 buffer 100  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid pos_stk_combo_8_bits]
+    ldrsh_imm_add al r2 sp 100
+
+INS: st.stk buffer 1000 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 1000 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid pos_stk_combo_12_bits invalid]
+    str_imm_add al sp 1000 r1
+
+INS: st.stk buffer 1000 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid pos_stk_combo_16_bits invalid]
+    movw al r6 1000
+    strh_reg_add al sp r6 r2
+
+INS: ld.stk x@r1 buffer 1000  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid pos_stk_combo_12_bits]
+    ldr_imm_add al r1 sp 1000
+
+INS: ld.stk y@r2 buffer 1000  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid pos_stk_combo_16_bits]
+    movw al r2 1000
+    ldrsh_reg_add al r2 sp r2
+
+INS: st.stk buffer 100000 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 100000 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid any_32_bits invalid]
+    movw al r6 34464
+    movt al r6 1
+    str_reg_add al sp r6 lsl 0 r1
+
+INS: st.stk buffer 100000 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid any_32_bits invalid]
+    movw al r6 34464
+    movt al r6 1
+    strh_reg_add al sp r6 r2
+
+INS: ld.stk x@r1 buffer 100000  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid any_32_bits]
+    movw al r1 34464
+    movt al r1 1
+    ldr_reg_add al r1 sp r1 lsl 0
+
+INS: ld.stk y@r2 buffer 100000  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid any_32_bits]
+    movw al r2 34464
+    movt al r2 1
+    ldrsh_reg_add al r2 sp r2
+
+INS: st.stk buffer 1000000 66:S32  [_ U32 S32]
+    mismatches: 4
+
+INS: st.stk buffer 1000000 x@r1  [_ U32 S32]
+PAT: reg:[INVALID U32 S32]  imm:[invalid any_32_bits invalid]
+    movw al r6 16960
+    movt al r6 15
+    str_reg_add al sp r6 lsl 0 r1
+
+INS: st.stk buffer 1000000 y@r2  [_ U32 S16]
+PAT: reg:[INVALID U32 S16]  imm:[invalid any_32_bits invalid]
+    movw al r6 16960
+    movt al r6 15
+    strh_reg_add al sp r6 r2
+
+INS: ld.stk x@r1 buffer 1000000  [S32 _ U32]
+PAT: reg:[S32 INVALID U32]  imm:[invalid invalid any_32_bits]
+    movw al r1 16960
+    movt al r1 15
+    ldr_reg_add al r1 sp r1 lsl 0
+
+INS: ld.stk y@r2 buffer 1000000  [S16 _ U32]
+PAT: reg:[S16 INVALID U32]  imm:[invalid invalid any_32_bits]
+    movw al r2 16960
+    movt al r2 15
+    ldrsh_reg_add al r2 sp r2
+
+INS: ret  []
+    SPECIAL

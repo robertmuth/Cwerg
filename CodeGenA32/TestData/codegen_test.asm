@@ -322,3 +322,50 @@
     lea base@r6 base@r6 66:S32
     lea base@r6 base@r6 -66:S32
     ret
+
+# TODO: add flt ld/st tests
+.fun TestStk_gpr_scratch NORMAL [] = []
+.reg S32 [x]
+.reg S16 [y]
+.stk buffer 4 1000004
+
+.bbl start
+    st.stk buffer 0:U32 66:S32
+    st.stk buffer 0:U32 x@r1
+    st.stk buffer 0:U32 y@r2
+    ld.stk x buffer 0:U32
+    ld.stk y buffer 0:U32
+
+
+    st.stk buffer 10:U32  66:S32
+    st.stk buffer 10:U32  x@r1
+    st.stk buffer 10:U32  y@r2
+    ld.stk x buffer 10:U32
+    ld.stk y buffer 10:U32
+
+
+    st.stk buffer 100:U32  66:S32
+    st.stk buffer 100:U32  x@r1
+    st.stk buffer 100:U32  y@r2
+    ld.stk x buffer 100:U32
+    ld.stk y buffer 100:U32
+
+
+    st.stk buffer 1000:U32  66:S32
+    st.stk buffer 1000:U32  x@r1
+    st.stk buffer 1000:U32  y@r2
+    ld.stk x buffer 1000:U32
+    ld.stk y buffer 1000:U32
+
+    st.stk buffer 100000:U32  66:S32
+    st.stk buffer 100000:U32  x@r1
+    st.stk buffer 100000:U32  y@r2
+    ld.stk x buffer 100000:U32
+    ld.stk y buffer 100000:U32
+
+    st.stk buffer 1000000:U32  66:S32
+    st.stk buffer 1000000:U32  x@r1
+    st.stk buffer 1000000:U32  y@r2
+    ld.stk x buffer 1000000:U32
+    ld.stk y buffer 1000000:U32
+    ret
