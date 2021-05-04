@@ -2,7 +2,7 @@
 
 """Code Generation (Instruction Selection) for  ARMv6T2 and above
 
-See `ARM32.md` for more details.
+See `README.md` for more details.
 """
 
 import CpuA32.opcode_tab as a32
@@ -64,7 +64,7 @@ _MEMKIND_TO_SECTION = {
 }
 
 
-def _MemCodeGenArm32(mem: ir.Mem, _mod: ir.Unit) -> List[str]:
+def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit) -> List[str]:
     out = [f"# size {mem.Size()}",
            f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"]
     for d in mem.datas:
@@ -90,7 +90,7 @@ def _JtbCodeGen(jtb: ir.Jtb):
     return out
 
 
-def _RenderArmIns(ins: a32.Ins):
+def _RenderIns(ins: a32.Ins):
     name, ops = symbolic.InsSymbolize(ins)
     return f"    {name} {' '.join(ops)}"
 
@@ -109,7 +109,7 @@ def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
 
     ctx = regs.FunComputeEmitContext(fun)
 
-    out += [_RenderArmIns(tmpl.MakeInsFromTmpl(None, ctx))
+    out += [_RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
             for tmpl in isel_tab.EmitFunProlog(ctx)]
     for bbl in fun.bbls:
         live_out = sorted([r.name for r in bbl.live_out])
@@ -118,14 +118,14 @@ def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
             if ins.opcode is o.NOP1:
                 isel_tab.HandlePseudoNop1(ins, ctx)
             elif ins.opcode is o.RET:
-                out += [_RenderArmIns(tmpl.MakeInsFromTmpl(None, ctx))
+                out += [_RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
                         for tmpl in isel_tab.EmitFunEpilog(ctx)]
             else:
                 pattern = isel_tab.FindMatchingPattern(ins)
                 assert pattern, (f"could not find pattern for\n{ins} {ins.operands} "
                                  f"in {fun.name}:{bbl.name}")
 
-                out += [_RenderArmIns(tmpl.MakeInsFromTmpl(ins, ctx))
+                out += [_RenderIns(tmpl.MakeInsFromTmpl(ins, ctx))
                         for tmpl in pattern.emit]
     out.append(f".endfun")
     return out
@@ -137,7 +137,7 @@ def EmitUnitAsText(unit: ir.Unit, fout):
     for mem in unit.mems:
         if mem.kind == o.MEM_KIND.EXTERN:
             continue
-        for s in _MemCodeGenArm32(mem, unit):
+        for s in _MemCodeGenText(mem, unit):
             print(s, file=fout)
     for fun in unit.funs:
         if fun.kind in {o.FUN_KIND.SIGNATURE}:
@@ -159,7 +159,7 @@ class Unit:
 def codegen(unit: ir.Unit) -> Unit:
     out = Unit()
     for mem in unit.mems:
-        arm_mem = _MemCodeGenArm32(mem, unit)
+        arm_mem = _MemCodeGenText(mem, unit)
         out.mems.append((mem.name, arm_mem))
         out.mem_syms[mem.name] = arm_mem
     for fun in unit.funs:
@@ -176,58 +176,58 @@ def codegen(unit: ir.Unit) -> Unit:
 ############################################################
 
 def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
-    armunit = elf_unit.Unit()
+    elfunit = elf_unit.Unit()
     for mem in unit.mems:
         if mem.kind == o.MEM_KIND.EXTERN:
             continue
-        armunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
+        elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
-                armunit.AddData(d.count, d.data)
+                elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                armunit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
+                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                armunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.mem.name, d.offset)
             else:
                 assert False
-        armunit.MemEnd()
+        elfunit.MemEnd()
 
-    sec_text = armunit.sec_text
+    sec_text = elfunit.sec_text
     for fun in unit.funs:
-        armunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
+        elfunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
         for jtb in fun.jtbs:
-            armunit.MemStart(jtb.name, 4, "rodata", True)
+            elfunit.MemStart(jtb.name, 4, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                armunit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, 4, bbl.name)
-            armunit.MemEnd()
+                elfunit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, 4, bbl.name)
+            elfunit.MemEnd()
 
         ctx = regs.FunComputeEmitContext(fun)
 
         for tmpl in isel_tab.EmitFunProlog(ctx):
-            assembler.AddIns(armunit, tmpl.MakeInsFromTmpl(None, ctx))
+            assembler.AddIns(elfunit, tmpl.MakeInsFromTmpl(None, ctx))
 
         for bbl in fun.bbls:
-            armunit.AddLabel(bbl.name, 4, assembler.NOP_BYTES)
+            elfunit.AddLabel(bbl.name, 4, assembler.NOP_BYTES)
             for ins in bbl.inss:
                 if ins.opcode is o.NOP1:
                     isel_tab.HandlePseudoNop1(ins, ctx)
                 elif ins.opcode is o.RET:
                     for tmpl in isel_tab.EmitFunEpilog(ctx):
-                        assembler.AddIns(armunit,
+                        assembler.AddIns(elfunit,
                                          tmpl.MakeInsFromTmpl(None, ctx))
 
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
                     assert pattern, f"could not find pattern for\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
-                        assembler.AddIns(armunit,
+                        assembler.AddIns(elfunit,
                                          tmpl.MakeInsFromTmpl(ins, ctx))
-        armunit.FunEnd()
-    armunit.AddLinkerDefs()
+        elfunit.FunEnd()
+    elfunit.AddLinkerDefs()
     if add_startup_code:
-        assembler.AddStartUpCode(armunit)
-    return armunit
+        assembler.AddStartUpCode(elfunit)
+    return elfunit
 
 
 if __name__ == "__main__":

@@ -59,9 +59,9 @@ TODO: add this
 ### Code Selection
 
 The code selection is a straight forward expansion of
-the IR opcodes into zero or more A32 opcodes (see [codesel_tab.py])
+the IR opcodes into zero or more A32 opcodes (see [isel_tab.py])
 
-All the expansion patterns can be listed using `./codesel_tab.py`:
+All the expansion patterns can be listed using `./isel_tab.py`:
 ```
 blt [BBL REG_OR_CONST REG_OR_CONST]       # IR opcode to expand (with operand kinds)
   [* U32 U32]                             #   pattern 1 (with constraints on the IR operands): 2 reg case
@@ -78,6 +78,8 @@ blt [BBL REG_OR_CONST REG_OR_CONST]       # IR opcode to expand (with operand ki
 
 If the expansion requires a scratch register, the register allocator
 will be told to reserve on via the insertion of a `nop1` IR opcode.
+
+To test the code selection run `make isel_test`.
 
 This simplistic approach to code selection leaves some opportunities on the table, e.g.:
 
