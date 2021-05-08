@@ -242,10 +242,7 @@
     bsr test
     poparg y:U32
     pusharg y
-    bsr print_num
-    
-    pusharg 10:U8
-    bsr putchar
+    bsr print_u_ln
 
     pusharg 0:U32
     ret

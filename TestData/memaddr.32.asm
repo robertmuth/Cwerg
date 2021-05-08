@@ -23,18 +23,18 @@
     ld s x 0
     pusharg 10:U32
     pusharg s
-    bsr writeln
+    bsr print_ln
 
     ld s x 4
     pusharg 10:U32
     pusharg s
-    bsr writeln
+    bsr print_ln
 
     lea.mem x string_pointers 8
     ld s x 0
     pusharg 10:U32
     pusharg s
-    bsr writeln
+    bsr print_ln
 
     pusharg 0:S32
     ret

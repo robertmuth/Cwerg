@@ -3845,7 +3845,7 @@
 .data 1 "Usage: nanojpeg <input.jpg> <output.ppm>\x00"
   lea %A32_1768:A32 = string_const_1
   pusharg %A32_1768
-  bsr puts
+  bsr print_s_ln
   mov %out = 2
   pusharg %out
   ret
@@ -3869,7 +3869,7 @@
 .data 1 "Error opening the input file.\x00"
   lea %A32_1774:A32 = string_const_2
   pusharg %A32_1774
-  bsr puts
+  bsr print_s_ln
   mov %out = 1
   pusharg %out
   ret
@@ -3920,7 +3920,7 @@
 .data 1 "Error decoding the input file.\x00"
   lea %A32_1787:A32 = string_const_3
   pusharg %A32_1787
-  bsr puts
+  bsr print_s_ln
   mov %out = 1
   pusharg %out
   ret
@@ -3948,7 +3948,7 @@
 .data 1 "Error opening the output file.\x00"
   lea %A32_1795:A32 = string_const_4
   pusharg %A32_1795
-  bsr puts
+  bsr print_s_ln
   mov %out = 1
   pusharg %out
   ret

@@ -33,14 +33,14 @@ TEST_OPT_EXES = $(TESTS:.asm=.asm.opt.exe)
 .PHONY: $(TESTS) CLOC.txt
 
 %.asm.exe : %.asm
-	echo "[integration $@]"
+	echo "[ir>c.64 $@]"
 	cat  StdLib/std_lib.64.asm $< | $(PYPY) CodeGenC/codegen.py - > $<.c
 	clang -Wall -Wno-unused-variable -Wno-unused-label -IStdLib $<.c -lm -o $@
 	$@ > $<.actual.out
 	diff $<.actual.out $<.golden
 
 %.asm.opt.exe : %.asm
-	echo "[integration $@]"
+	echo "[ir->opt->c.64 $@]"
 	cat  StdLib/std_lib.64.asm $< | ${PYPY} Base/optimize.py > $<.opt
 	$(PYPY) CodeGenC/codegen.py $<.opt  > $<.opt.c
 	clang -Wall -Wno-unused-variable -Wno-unused-label -I StdLib $<.opt.c -lm -o $@

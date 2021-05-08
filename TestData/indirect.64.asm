@@ -6,21 +6,21 @@
     # load constant into new register x
     mov x:U32 1
     pusharg x
-    bsr print_num_ln
+    bsr print_u_ln
     ret
 
 .fun fun2 NORMAL [] = []
 .bbl start
     mov x:U32 2
     pusharg x
-    bsr print_num_ln
+    bsr print_u_ln
     ret
 
 .fun fun3 NORMAL [] = []
 .bbl start
     mov x:U32 3
     pusharg x
-    bsr print_num_ln
+    bsr print_u_ln
     ret
 
 .mem fun_pointers 8 RO

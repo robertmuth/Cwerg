@@ -40,7 +40,7 @@
     poparg x
 
     pusharg x
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg 0:S32
     ret

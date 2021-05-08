@@ -23,7 +23,8 @@
     poparg y
 
     pusharg y
-    bsr print_num_ln
+    bsr print_u_ln
+
     add x x 1
     blt x 10 loop
     pusharg 0:S32

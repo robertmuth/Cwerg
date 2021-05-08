@@ -1,14 +1,5 @@
 # Prepend this to cwerg IR code  before running it through CodeGenA32/codegen.py
 
-# syscall overview here: https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
-.fun arm_syscall_write SIGNATURE [S32] = [S32 A32 U32]
-.fun arm_syscall_read SIGNATURE [S32] = [S32 A32 U32]
-.fun arm_syscall_open SIGNATURE [S32] = [A32 S32 S32]
-.fun arm_syscall_close SIGNATURE [S32] = [S32]
-.fun arm_syscall_lseek SIGNATURE [S32] = [S32 S32 S32]
-
-.fun arm_syscall_brk SIGNATURE [A32] = [A32]
-.fun arm_syscall_exit SIGNATURE [] = [U32]
 
 ############################################################
 # linkerdefs
@@ -17,91 +8,10 @@
 .mem $$rw_data_end 4 EXTERN
 
 ############################################################
-# Syscall wrappers
-############################################################
-	
-.fun exit NORMAL [] = [U32]
-.bbl start
-    poparg out:U32
-    pusharg out
-    syscall arm_syscall_exit 1:U32
-    trap
-
-.fun brk NORMAL [A32] = [A32]
-.bbl start
-    poparg addr:A32
-    pusharg addr
-    syscall arm_syscall_brk 45:U32
-    poparg res:A32
-    pusharg res
-    ret
-
-.fun open NORMAL [S32] = [A32 S32 S32]
-.bbl start
-    poparg path:A32
-    poparg flags:S32
-    poparg mode:S32
-    pusharg mode
-    pusharg flags
-    pusharg path
-    syscall arm_syscall_open 5:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-.fun close NORMAL [S32] = [S32]
-.bbl start
-    poparg fh:S32
-    pusharg fh
-    syscall arm_syscall_close 6:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-.fun write NORMAL [S32] = [S32 A32 U32]
-.bbl start
-    poparg fh:S32
-    poparg buf:A32
-    poparg len:U32
-    pusharg len
-    pusharg buf
-    pusharg fh
-    syscall arm_syscall_write 4:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-.fun read NORMAL [S32] = [S32 A32 U32]
-.bbl start
-    poparg fh:S32
-    poparg buf:A32
-    poparg len:U32
-    pusharg len
-    pusharg buf
-    pusharg fh
-    syscall arm_syscall_read 3:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-.fun lseek NORMAL [S32] = [S32 S32 S32]
-.bbl start
-    poparg fd:S32
-    poparg offset:S32
-    poparg mode:S32
-    pusharg mode
-    pusharg offset
-    pusharg fd
-    syscall arm_syscall_lseek 19:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-############################################################
 # libc like helpers
 ############################################################	
 
-.fun putchar NORMAL [] = [U8]
+.fun print_c NORMAL [] = [U8]
     .stk buffer 1 1
 .bbl start
     poparg char:U8
@@ -110,12 +20,22 @@
     pusharg 1:U32
     pusharg buf
     pusharg 1:S32 # stdout
-    syscall arm_syscall_write 4:U32
+    bsr write
     poparg dummy:S32
     ret
 
+.fun print_c_ln NORMAL [] = [U8]
+    .stk buffer 1 1
+.bbl start
+    poparg c:U8
+    pusharg c
+    bsr print_c
+    pusharg 10:U8 # line feed
+    bsr print_c
+    ret
+
 # ========================================
-.fun writeln NORMAL [] = [A32 U32]
+.fun print_ln NORMAL [] = [A32 U32]
 .bbl start
     poparg buf:A32
     poparg len:U32
@@ -123,14 +43,14 @@
     pusharg len
     pusharg buf
     pusharg 1:S32 # stdout
-    syscall arm_syscall_write 4:U32
+    bsr write
     poparg dummy:S32
     pusharg 10:U8 # line feed
-    bsr putchar
+    bsr print_c
     ret
 
 # ========================================
-.fun puts NORMAL [] = [A32]
+.fun print_s_ln NORMAL [] = [A32]
 .bbl start
     poparg buf:A32
     mov len:U32 0
@@ -142,11 +62,11 @@
     bne c 0 loop
     pusharg len
     pusharg buf
-    bsr writeln
+    bsr print_ln
     ret
 
 # ========================================
-.fun print_num NORMAL [] = [U32]
+.fun print_u NORMAL [] = [U32]
 .bbl start
       poparg x:U32
       rem rem:U32 = x 10
@@ -154,26 +74,26 @@
       beq div 0 skip
 .bbl ddd
       pusharg div
-      bsr print_num
+      bsr print_u
 .bbl skip
       add rem rem 48
       conv rem8:U8 rem
       pusharg rem8
-      bsr putchar
+      bsr print_c
       ret
 
 # ========================================
-.fun print_num_ln NORMAL [] = [U32]
+.fun print_u_ln NORMAL [] = [U32]
 .bbl start
     poparg x:U32
     pusharg x
-    bsr print_num
+    bsr print_u
     pusharg 10:U8 # line feed
-    bsr putchar
+    bsr print_c
     ret
 
 # ========================================
-.fun print_hex_num NORMAL [] = [U32]
+.fun print_x NORMAL [] = [U32]
 .bbl start
       poparg x:U32
       and rem:U32 = x 0xf
@@ -181,23 +101,23 @@
       beq div 0 skip
 .bbl ddd
       pusharg div
-      bsr print_hex_num
+      bsr print_x
 .bbl skip
       cmplt addend:U32 48 55 rem 10
       add rem rem addend
       conv rem8:U8 rem
       pusharg rem8
-      bsr putchar
+      bsr print_c
       ret
 
 # ========================================
-.fun print_hex_num_ln NORMAL [] = [U32]
+.fun print_x_ln NORMAL [] = [U32]
 .bbl start
     poparg x:U32
     pusharg x
-    bsr print_hex_num
+    bsr print_x
     pusharg 10:U8 # line feed
-    bsr putchar
+    bsr print_c
     ret
 
 # state for malloc. Another way of doing this without linkerdefs

@@ -36,19 +36,19 @@
     poparg M
 
     pusharg a
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg s
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg m
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg d
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg M
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg 0:S32
     ret

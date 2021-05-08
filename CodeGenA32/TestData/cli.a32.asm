@@ -7,7 +7,7 @@
     poparg argv:A32
 
     pusharg argc
-    bsr print_num_ln
+    bsr print_u_ln
 
     mov i:U32 0
     bra check
@@ -15,7 +15,7 @@
     shl index:U32 i 2
     ld  arg:A32 argv index
     pusharg arg
-    bsr puts
+    bsr print_s_ln
     add i i 1
 .bbl check
     blt i argc loop

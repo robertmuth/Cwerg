@@ -15,30 +15,22 @@
 
 .bbl labelA
     pusharg 65:U8  # 'A'
-    bsr putchar
-    pusharg 10:U8 #newline
-    bsr putchar
+    bsr print_c_ln
     bra tail
 
 .bbl labelB
     pusharg 66:U8 # 'B'
-    bsr putchar
-    pusharg 10:U8 #newline
-    bsr putchar
+    bsr print_c_ln
     bra tail
 
 .bbl labelC
     pusharg 67:U8 # 'C'
-    bsr putchar
-    pusharg  10:U8 #newline
-    bsr putchar
+    bsr print_c_ln
     bra tail
 
 .bbl labelD
     pusharg 68:U8  # 'D'
-    bsr putchar
-    pusharg  10:U8 #newline
-    bsr putchar
+    bsr print_c_ln
     bra tail
 
 .bbl tail

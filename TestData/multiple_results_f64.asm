@@ -41,19 +41,19 @@
 
     conv a2:U32 a
     pusharg a2
-    bsr print_num_ln
+    bsr print_u_ln
 
     conv s2:U32 s
     pusharg s2
-    bsr print_num_ln
+    bsr print_u_ln
 
     conv m2:U32 m
     pusharg m2
-    bsr print_num_ln
+    bsr print_u_ln
 
     conv d2:U32 d
     pusharg d2
-    bsr print_num_ln
+    bsr print_u_ln
 
     # conv M2:U32 M
     # pusharg M2

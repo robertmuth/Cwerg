@@ -27,7 +27,7 @@
      lea line:A64 = LINE
      pusharg len
      pusharg line
-     bsr writeln
+     bsr print_ln
 
      lea board:A64 = BOARD
      mov dim = 8
@@ -35,7 +35,7 @@
 .bbl loop
      pusharg dim
      pusharg board
-     bsr writeln
+     bsr print_ln
      lea board = board dim
      add i = i 1
      blt i 8 loop
@@ -120,7 +120,7 @@
     lea counter = COUNTER
     ld count:U32 = counter 0
     pusharg count
-    bsr print_num_ln
+    bsr print_u_ln
 
     pusharg 0:S32
     ret

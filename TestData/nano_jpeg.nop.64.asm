@@ -37,19 +37,17 @@
 
 .fun lseek BUILTIN [S64] = [S32 S64 S32]
 
-.fun putchar BUILTIN [] = [U8]
+.fun print_ln BUILTIN [] = [A64 U32]
 
-.fun writeln BUILTIN [] = [A64 U32]
+.fun print_c_ln BUILTIN [] = [U8]
 
-.fun puts BUILTIN [] = [A64]
+.fun print_s_ln BUILTIN [] = [A64]
 
-.fun print_num BUILTIN [] = [U32]
+.fun print_u_ln BUILTIN [] = [U32]
 
-.fun print_num_ln BUILTIN [] = [U32]
+.fun print_d_ln BUILTIN [] = [S32]
 
-.fun print_hex_num BUILTIN [] = [U32]
-
-.fun print_hex_num_ln BUILTIN [] = [U32]
+.fun print_x_len BUILTIN [] = [U32]
 
 .fun free BUILTIN [] = [A64]
 
@@ -3489,7 +3487,7 @@
 .bbl if_1_true
     lea.mem %A64_1769 string_const_1 0
     pusharg %A64_1769
-    bsr puts
+    bsr print_s_ln
     mov %out 2
     pusharg %out
     ret
@@ -3509,7 +3507,7 @@
 .bbl if_2_true
     lea.mem %A64_1775 string_const_2 0
     pusharg %A64_1775
-    bsr puts
+    bsr print_s_ln
     mov %out 1
     pusharg %out
     ret
@@ -3558,7 +3556,7 @@
     bsr free
     lea.mem %A64_1790 string_const_3 0
     pusharg %A64_1790
-    bsr puts
+    bsr print_s_ln
     mov %out 1
     pusharg %out
     ret
@@ -3582,7 +3580,7 @@
 .bbl if_4_true
     lea.mem %A64_1798 string_const_4 0
     pusharg %A64_1798
-    bsr puts
+    bsr print_s_ln
     mov %out 1
     pusharg %out
     ret

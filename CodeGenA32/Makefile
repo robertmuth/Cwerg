@@ -30,7 +30,7 @@ tests_py:  $(TEST_EXES) ../TestData/queens.32.asm.s.exe TestData/syscall.a32.asm
 tests_c: $(TEST_C_EXES) isel_test isel_test_c codegen_parity nanojpeg_c
 
 
-STD_LIB = ../StdLib/std_lib.a32.asm
+STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.a32.asm
 
 ############################################################
 # Python
@@ -175,6 +175,12 @@ codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - TestData/$@.out
 	diff TestData/$@_c.out   TestData/$@.out
 
+
+regenerate_cpua32_tests:
+	#cat $(STD_LIB) ../TestData/memaddr.32.asm |  $(CODEGEN_TOOL) -mode normal - ../CpuA32/TestData/memaddr.asm
+	#cat $(STD_LIB) ../TestData/fib.asm |  $(CODEGEN_TOOL) -mode normal - ../CpuA32/TestData/fib.asm
+	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm |  $(CODEGEN_TOOL) -mode normal - ../CpuA32/TestData/nanojpeg.asm
+	#cat $(STD_LIB) ../TestData/switch.asm |  $(CODEGEN_TOOL) -mode normal - ../CpuA32/TestData/switch.asm
 ############################################################
 # Misc
 ############################################################

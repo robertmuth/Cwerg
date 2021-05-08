@@ -244,10 +244,7 @@
     poparg y:F32
     conv z:U32 y
     pusharg z
-    bsr print_num
-    
-    pusharg 10:U8
-    bsr putchar
+    bsr print_u_ln
 
     pusharg 0:U32
     ret
