@@ -12,6 +12,11 @@ If you are looking for something more mature, you might save yourself some time 
 
 * the supported part of the C language is whatever is in `TestData/*c`
   (this implies that the development is test driven) 
+  Expect the following **not** to work
+  * typedefs 
+  * bitfields
+  * vararg (except for limited support of printf)
+  * post --/++
 * the canonicalizer is already useful. It transforms C programs into
   equivalents programs that use a smaller subset of the C language. 
   For example, canonicalized programs do not

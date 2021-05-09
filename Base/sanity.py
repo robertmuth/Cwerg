@@ -142,7 +142,7 @@ class FunArgState:
         self.push_args.reverse()
         assert self.push_args == callee.input_types, (f"parameter mismatch for {callee.name} "
                                                       f"in {fun.name}:{bbl.name} "
-                                                      f"{self.push_args} vs {callee.input_types}")
+                                                      f"actual:{self.push_args} vs expected:{callee.input_types}")
         self.push_args = []
 
     def handle_ret(self, ins, bbl, fun):
