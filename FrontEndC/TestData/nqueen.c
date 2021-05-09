@@ -1,3 +1,4 @@
+#include "std_lib.h"   // needed because printf may be rewritten to call helpers defined here
 
 int printf( const char *restrict format, ... );
 

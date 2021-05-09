@@ -8,13 +8,46 @@ NANO_SRC = FrontEndC/TestData/nanojpeg.c
 STDLIB_DIR=${PWD}/StdLib
 
 CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
+   -Wno-maybe-uninitialized \
    -Wno-builtin-declaration-mismatch -Wno-unused-but-set-variable -Wno-main \
    -Wno-misleading-indentation -Wno-builtin-declaration-mismatch \
    -Wno-non-literal-null-conversion -I$(STDLIB_DIR)
 
-tests: nano itests
+tests: itests nano32 nano64
 
-nano:
+nano64:
+	@echo "[$@"]
+	#
+	@echo cwerg 64 test
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64 $(NANO_SRC) > $@.64.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg optimize 64 test
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64 $(NANO_SRC) > $@.64.asm
+	$(PYPY) Base/optimize.py < $@.64.asm > $@.64.opt.asm
+	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo cwerg canned 64 test
+	cat $(STDLIB_DIR)/std_lib.64.asm TestData/nano_jpeg.64.asm |$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
+	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
+	@rm -f $@.ppm.out
+	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
+	md5sum $@.ppm.out
+	@cmp -l $@.ppm.out TestData/ash_tree.ppm
+	#
+	@echo OK
+
+nano32:
 	@echo "[$@"]
 	#
 	md5sum TestData/ash_tree.ppm
@@ -26,7 +59,7 @@ nano:
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
 	@echo cwerg 32 test
-	$(PYPY) FrontEndC/translate.py 32  $(NANO_SRC) > $@.32.asm
+	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=32  $(NANO_SRC) > $@.32.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
 	@rm -f $@.ppm.out
@@ -34,17 +67,8 @@ nano:
 	md5sum $@.ppm.out
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
-	@echo cwerg 64 test
-	$(PYPY) FrontEndC/translate.py 64  $(NANO_SRC) > $@.64.asm
-	$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
-	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
-	@rm -f $@.ppm.out
-	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
-	md5sum $@.ppm.out
-	@cmp -l $@.ppm.out TestData/ash_tree.ppm
-	#
 	@echo cwerg optimize 32 test
-	$(PYPY) FrontEndC/translate.py 32  $(NANO_SRC) > $@.32.asm
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $(NANO_SRC) > $@.32.asm
 	$(PYPY) Base/optimize.py < $@.32.asm > $@.32.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
@@ -53,29 +77,11 @@ nano:
 	md5sum $@.ppm.out
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
-	@echo cwerg optimize 64 test
-	$(PYPY) FrontEndC/translate.py 64  $(NANO_SRC) > $@.64.asm
-	$(PYPY) Base/optimize.py < $@.64.asm > $@.64.opt.asm
-	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
-	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
-	@rm -f $@.ppm.out
-	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
-	md5sum $@.ppm.out
-	@cmp -l $@.ppm.out TestData/ash_tree.ppm
-	#
 	@echo cwerg canned 32 test
 	 cat $(STDLIB_DIR)/std_lib.32.asm TestData/nano_jpeg.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
 	$(CC) $(CC_FLAGS) -m32 -O $@.32.out.c -o $@.32.cc.exe
 	@rm -f $@.ppm.out
 	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
-	md5sum $@.ppm.out
-	@cmp -l $@.ppm.out TestData/ash_tree.ppm
-	#
-	@echo cwerg canned 64 test
-	cat $(STDLIB_DIR)/std_lib.64.asm TestData/nano_jpeg.64.asm |$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
-	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
-	@rm -f $@.ppm.out
-	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
 	md5sum $@.ppm.out
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
@@ -92,29 +98,31 @@ FrontEndC/TestData/nqueen.c \
 FrontEndC/TestData/20020129-1.c
 
 
+# takes a c source files, translates to either 32bit or 64bit Cwerg IR
+# optionally optimizes the IR and then translates the IR back to C code
 %.itest : %.c
 	@echo "[$@]"
 	#
-	$(PYPY) FrontEndC/translate.py 64  $? > $@.64.asm
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64 $? > $@.64.asm
 	$(PYPY) CodeGenC/codegen.py $@.64.asm > $@.64.out.c
 	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
 	./$@.64.cc.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 	#
-	$(PYPY) FrontEndC/translate.py 32  $? > $@.32.asm
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $? > $@.32.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -m64 -O $@.32.out.c -o $@.32.cc.exe
 	./$@.32.cc.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 	#
-	$(PYPY) FrontEndC/translate.py 64  $? > $@.64.asm
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64  $? > $@.64.asm
 	$(PYPY) Base/optimize.py < $@.64.asm > $@.64.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
 	$(CC) $(CC_FLAGS) -m64 -O $@.64.out.c -o $@.64.cc.exe
 	./$@.64.cc.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 	#
-	$(PYPY) FrontEndC/translate.py 32  $? > $@.32.asm
+	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $? > $@.32.asm
 	$(PYPY) Base/optimize.py < $@.32.asm > $@.32.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -m64 -O $@.32.out.c -o $@.32.cc.exe

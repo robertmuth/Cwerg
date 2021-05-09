@@ -1,7 +1,6 @@
 
 void* malloc(unsigned long size);
 void free(void* mem);
-void puts(const char* s);
 
 
 #define SEEK_END  2
@@ -15,7 +14,7 @@ void puts(const char* s);
 int open(char*, int, int);
 int close(int);
 long read(int, const void* buf, unsigned long size);
-long write(int, void* buf, unsigned long size);
+long write(int, const void* buf, unsigned long size);
 long lseek(int , long, int);
 
 void mymemset(void * ptr, int value, unsigned long num ) {
@@ -26,6 +25,14 @@ void mymemcpy ( void * destination, const void * source, unsigned long num ) {
   for (int i = 0; i < num; ++i) {
     ((char*) destination)[i] = ((char*) source)[i];
   }
+}
+
+
+void print_s_ln(const char* s) {
+  unsigned long len = 0;
+  while (s[len] != 0)  len += 1;
+  write(1, s, len);
+  write(1, "\n", (unsigned long)1);
 }
 
 
@@ -818,12 +825,12 @@ int main(int argc, char* argv[]) {
     int fd;
 
     if (argc < 3) {
-        puts("Usage: nanojpeg <input.jpg> <output.ppm>");
+        print_s_ln("Usage: nanojpeg <input.jpg> <output.ppm>");
         return 2;
     }
     fd = open(argv[1], O_RDONLY, 0);
     if (fd < 0) {
-        puts("Error opening the input file.");
+        print_s_ln("Error opening the input file.");
         return 1;
     }
     size = lseek(fd, (long)0, SEEK_END);
@@ -835,14 +842,14 @@ int main(int argc, char* argv[]) {
     njInit();
     if (njDecode(buf, size)) {
         free((void*)buf);
-        puts("Error decoding the input file.");
+        print_s_ln("Error decoding the input file.");
         return 1;
     }
     free((void*)buf);
 
     fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, (2 + 4) * 64);
     if (fd < 0) {
-        puts("Error opening the output file.");
+        print_s_ln("Error opening the output file.");
         return 1;
     }
     if (njIsColor()) write_str("P6\n", fd);

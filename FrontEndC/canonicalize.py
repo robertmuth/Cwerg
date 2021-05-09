@@ -427,11 +427,14 @@ def CanonicalizeFun(ast: c_ast.FuncDef, meta_info: meta.MetaInfo):
     if "void" not in type_decl.type.names:
         return
 
+    if ast.body.block_items is None:
+        ast.body.block_items = []
     stmts = ast.body.block_items
+
     if not stmts or not isinstance(stmts[-1], c_ast.Return):
         ret = c_ast.Return(None)
         meta_info.type_links[ret] = meta.GetTypeForDecl(ast.decl.type)
-    stmts.append(ret)
+        stmts.append(ret)
 
 
 # ================================================================================
@@ -487,9 +490,11 @@ if __name__ == "__main__":
                             help='use special printf rewrite')
         parser.add_argument('filename', type=str,
                             help='file to canonicalize')
+        parser.add_argument('--cpp_args', type=str, default=[], action='append',
+                            help='arge passed through to the pycparser')
         args = parser.parse_args()
 
-        ast = parse_file(args.filename, use_cpp=True)
+        ast = parse_file(args.filename, use_cpp=True, cpp_args=args.cpp_args)
 
         SimpleCanonicalize(ast, use_specialized_printf=args.printf)
         meta_info = meta.MetaInfo(ast)

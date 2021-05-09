@@ -12,15 +12,17 @@ __all__ = ["LiftStaticAndExternToGlobalScope", "UniquifyLocalVars"]
 
 def RenameSymbol(decl, new_name, meta_info):
     decl.name = new_name
-
     if isinstance(decl.type, c_ast.FuncDecl):
         decl.type.type.declname = new_name
     elif isinstance(decl.type, c_ast.TypeDecl):
         decl.type.declname = new_name
     elif isinstance(decl.type, c_ast.ArrayDecl):
         decl.type.type.declname = new_name
+    elif isinstance(decl.type, c_ast.PtrDecl):
+        # probably needs to be recursive
+        decl.type.type.declname = new_name
     else:
-        assert False, decl
+        assert False, f"unexpected decl: {decl}"
 
     for id, sym in meta_info.sym_links.items():
         if sym == decl:
@@ -46,7 +48,7 @@ def LiftStaticAndExternToGlobalScope(ast: c_ast.FileAST, meta_info: meta.MetaInf
             new_name = id_gen.next("__static") + "_" + decl.name
             decl.storage.remove("static")
             RenameSymbol(decl, new_name, meta_info)
-            if isinstance(decl.type, (c_ast.TypeDecl, c_ast.ArrayDecl)) and parent != ast:
+            if isinstance(decl.type, (c_ast.TypeDecl, c_ast.ArrayDecl, c_ast.PtrDecl)) and parent != ast:
                 # rip it out
                 stmts = common.GetStatementList(parent)
                 assert stmts, parent

@@ -115,7 +115,7 @@ int write_d(int fd, int32_t sval) {
   return write(fd, &buffer[pos], sizeof(buffer) - pos);
 }
 
-int write_c(int fd, char c) {
+int write_c(int fd, uint8_t c) {
   char buffer[16];
   buffer[0] = c;
   return (int)write(fd, buffer, (size_t)1);
@@ -173,7 +173,7 @@ void abort() {
   exit(1);
 }
 
-void print_ln(const char* s, uint32_t n) {
+void print_ln(const char* s, size_t n) {
   write(1, s, n);
   write_s(1, "\n");
 }

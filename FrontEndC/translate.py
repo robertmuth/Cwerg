@@ -15,6 +15,7 @@ For some node types, however, we follow a pre-order approach.
 """
 import re
 import sys
+import argparse
 
 from pycparser import c_ast, parse_file
 
@@ -95,8 +96,13 @@ def StripNumberSuffix(s):
 
 def ExtractNumber(s):
     if s[0] == "'" and s[-1] == "'":
-        assert len(s) == 3
-        return ord(s[1])
+        if s[1] == "\\":
+            if s[2] == "n":
+                return 10
+            assert False, "add escapes as needed"
+        else:
+            assert len(s) == 3, f"unexpected number: [{s}]"
+            return ord(s[1])
     s = StripNumberSuffix(s)
     try:
         return int(s, 0)
@@ -146,7 +152,7 @@ def SizeOfAndAlignmentUnion(struct: c_ast.Union, meta_info):
             alignment = a
         if s > size:
             size = s
-    #assert False, f"SizeOfAndAlignmentUnion {struct}"
+    # assert False, f"SizeOfAndAlignmentUnion {struct}"
     return size, alignment
 
 
@@ -160,6 +166,7 @@ def SizeOfAndAlignment(node, meta_info):
         return SizeOfAndAlignmentUnion(node, meta_info)
     elif isinstance(node, c_ast.IdentifierType):
         type_name = TYPE_TRANSLATION[tuple(node.names)]
+        assert type_name, f"could determine sizeof {node}"
         bitsize = int(type_name[1:])
         return bitsize // 8, bitsize // 8
     elif isinstance(node, c_ast.ArrayDecl):
@@ -172,10 +179,6 @@ def SizeOfAndAlignment(node, meta_info):
         return bitsize // 8, bitsize // 8
     else:
         assert False, node
-
-
-def IsGlobalDecl(node, parent):
-    return isinstance(parent, c_ast.FileAST)
 
 
 def IsLocalDecl(_node, parent):
@@ -271,7 +274,7 @@ TAB = "  "
 #       Constant: int, 0
 
 
-def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
+def GetLValueAddress(lvalue, meta_info: meta.MetaInfo, node_value, id_gen):
     if isinstance(lvalue, c_ast.UnaryOp) and lvalue.op == "*":
         EmitIR([lvalue, lvalue.expr], meta_info, node_value, id_gen)
         node_value[lvalue] = node_value[lvalue.expr]
@@ -295,9 +298,10 @@ def GetLValueAddress(lvalue, meta_info, node_value, id_gen):
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
+        symbol = meta_info.sym_links[lvalue]
         assert isinstance(
             type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union)), type
-        if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
+        if symbol in meta_info.heap_syms or isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
             print(f"{TAB}lea {tmp}:{kind} = {lvalue.name}")
@@ -314,26 +318,18 @@ def RenderList(items):
 
 
 SPECIAL_FUNCTIONS = {
-    "abort": "BUILTIN",
     "malloc": "BUILTIN",
     "free": "BUILTIN",
-    "memset": "BUILTIN",
-    "memcpy": "BUILTIN",
-    "print": "BUILTIN",
-    "printf_u": "BUILTIN",
-    "printf_d": "BUILTIN",
-    "printf_lu": "BUILTIN",
-    "printf_ld": "BUILTIN",
-    "printf_f": "BUILTIN",
-    "printf_c": "BUILTIN",
-    "printf_s": "BUILTIN",
-    "printf_p": "BUILTIN",
-    "puts": "BUILTIN",
     "open": "BUILTIN",
     "close": "BUILTIN",
     "lseek": "BUILTIN",
+    "lseek64": "BUILTIN",
     "read": "BUILTIN",
     "write": "BUILTIN",
+    "raise": "BUILTIN",
+    "exit": "BUILTIN",
+    "sbrk": "BUILTIN",
+    "print_s_ln": "BUILTIN",
     # "": "BUILTIN",
 }
 
@@ -350,7 +346,7 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
     print(f"\n\n.fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
 
-def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
+def HandleAssignment(node: c_ast.Assignment, meta_info: meta.MetaInfo, node_value, id_gen):
     assert node.op == "=", node
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
@@ -359,15 +355,19 @@ def HandleAssignment(node: c_ast.Assignment, meta_info, node_value, id_gen):
     # naked like this
     if isinstance(lvalue, c_ast.ID):
         # but if address is taken
-        print(f"{TAB}mov {lvalue.name} = {tmp}")
-    else:
-        GetLValueAddress(lvalue, meta_info, node_value, id_gen)
-        if isinstance(tmp, _NUMBER_TYPES):
-            kind = meta_info.type_links[node.rvalue]
-            tmp2 = GetTmp(kind)
-            print(f"{TAB}mov {tmp2}:{StringifyType(kind)} = {tmp}")
-            tmp = tmp2
-        print(f"{TAB}st {node_value[lvalue]} 0 = {tmp}")
+        symbol = meta_info.sym_links[lvalue]
+        if symbol not in meta_info.heap_syms:
+            print(f"{TAB}mov {lvalue.name} = {tmp}")
+            node_value[node] = tmp
+            return
+
+    GetLValueAddress(lvalue, meta_info, node_value, id_gen)
+    if isinstance(tmp, _NUMBER_TYPES):
+        kind = meta_info.type_links[node.rvalue]
+        tmp2 = GetTmp(kind)
+        print(f"{TAB}mov {tmp2}:{StringifyType(kind)} = {tmp}")
+        tmp = tmp2
+    print(f"{TAB}st {node_value[lvalue]} 0 = {tmp}")
     node_value[node] = tmp
 
 
@@ -388,12 +388,12 @@ def EmitInitData(init: c_ast.InitList, type_decl):
     print(f'.data 1 [{" ".join(values)}]')
 
 
-def HandleDecl(node_stack, meta_info, node_value, id_gen):
+def HandleDecl(node_stack, meta_info: meta.MetaInfo, node_value, id_gen):
     decl: c_ast.Decl = node_stack[-1]
     parent = node_stack[-2]
     name = decl.name
 
-    if IsGlobalDecl(decl, parent):
+    if decl in meta_info.heap_syms:
         size, align = SizeOfAndAlignment(decl, meta_info)
         assert name is not None
         print(f"\n.mem {name} {align} RW")
@@ -560,7 +560,8 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     elif isinstance(type_info, c_ast.FuncDecl):
         node_value[node] = node.name
         return
-    elif not isinstance(type_info, c_ast.ArrayDecl):
+    elif (not isinstance(type_info, c_ast.ArrayDecl) and
+          meta_info.sym_links[node] not in meta_info.heap_syms):
         node_value[node] = node.name
         return
     elif isinstance(type_info, c_ast.ArrayDecl):
@@ -591,17 +592,25 @@ BIN_OP_MAP = {
 def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value,
                 _id_gen: common.UniqueId):
     node_kind = meta_info.type_links[node]
-    assert node.op in BIN_OP_MAP, node.op
+    assert node.op in BIN_OP_MAP, f"unexpected binop {node}"
     left = node_value[node.left]
     right = node_value[node.right]
+
+    if (node.op == "-" and
+            isinstance(meta_info.type_links[node.left], (c_ast.PtrDecl, c_ast.ArrayDecl)) and
+            isinstance(meta_info.type_links[node.right], (c_ast.PtrDecl, c_ast.ArrayDecl))):
+        assert False, f"pointer substracting not yet supported {node}"
 
     op = BIN_OP_MAP[node.op]
     if isinstance(node_kind, (c_ast.PtrDecl, c_ast.ArrayDecl)):
         # need to scale
-        assert node.op == "+"  # support this when we see it:  node.op == "-"
         op = "lea"
         element_size, _ = SizeOfAndAlignment(node_kind.type, meta_info)
-        if element_size == 1:
+        if node.op == "-":
+            element_size *= -1
+        else:
+            assert node.op == "+"
+        if element_size == 1 and node.op == "+":
             pass
         elif isinstance(right, _NUMBER_TYPES):
             right = str(right * element_size)
@@ -776,33 +785,40 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
     elif isinstance(node, c_ast.ExprList):
         node_value[node] = node_value[node.exprs[-1]]
     elif isinstance(node, (
-    c_ast.TypeDecl, c_ast.PtrDecl, c_ast.ArrayDecl, c_ast.FuncDecl, c_ast.Typename)):
+            c_ast.TypeDecl, c_ast.PtrDecl, c_ast.ArrayDecl, c_ast.FuncDecl, c_ast.Typename)):
         pass
     elif isinstance(node, (
-    c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
+            c_ast.EllipsisParam, c_ast.ParamList, c_ast.Compound, c_ast.FuncDef, c_ast.FileAST)):
         pass
     else:
         assert False, node
 
 
 def main(argv):
+    parser = argparse.ArgumentParser(description='translate')
+    parser.add_argument('--mode', type=int,
+                        default=0,
+                        help='mode 32 or 64 bit')
+    parser.add_argument('--cpp_args', type=str, default=[], action='append',
+                        help='args passed through to the pycparser')
+    parser.add_argument('filename', type=str,
+                        help='c-files to translate')
+    args = parser.parse_args()
+
+    if args.mode not in {32, 64}:
+        print("no valid mode specified. Use --mode=32 or --mode-64")
+        exit(1)
     global TYPE_TRANSLATION
-    mode = argv.pop(0)
-    assert mode in {"32", "64"}
-    if mode == "32":
-        TYPE_TRANSLATION = TYPE_TRANSLATION_32
-    else:
-        TYPE_TRANSLATION = TYPE_TRANSLATION_64
-    for filename in argv:
-        print("#" * 60)
-        print("#", filename)
-        print("#" * 60)
-        ast = parse_file(filename, use_cpp=True)
-        canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
-        meta_info = meta.MetaInfo(ast)
-        canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=False)
-        global_id_gen = common.UniqueId()
-        EmitIR([ast], meta_info, {}, global_id_gen)
+    TYPE_TRANSLATION = TYPE_TRANSLATION_32 if args.mode == 32 else TYPE_TRANSLATION_64
+    print("#" * 60)
+    print("#", args.filename)
+    print("#" * 60)
+    ast = parse_file(args.filename, use_cpp=True, cpp_args=args.cpp_args)
+    canonicalize.SimpleCanonicalize(ast, use_specialized_printf=True)
+    meta_info = meta.MetaInfo(ast)
+    canonicalize.Canonicalize(ast, meta_info, skip_constant_casts=False)
+    global_id_gen = common.UniqueId()
+    EmitIR([ast], meta_info, {}, global_id_gen)
 
 
 if __name__ == "__main__":

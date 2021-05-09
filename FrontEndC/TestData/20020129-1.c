@@ -1,9 +1,10 @@
+#include "std_lib.h"   // needed because printf may be rewritten to call helpers defined here
+
 struct D { int d1; struct D *d2; };
 struct C { struct D c1; long c2, c3, c4, c5, c6; };
 struct A { struct A *a1; struct C *a2; };
 struct B { struct C b1; struct A *b2; };
 
-extern void abort (void);
 
 void foo (struct B *x, struct B *y)
 {

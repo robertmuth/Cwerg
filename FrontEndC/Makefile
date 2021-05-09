@@ -52,7 +52,6 @@ TestData/sumarray.c
 EASY_TESTS = \
 TestData/20000523-1.c \
 TestData/20020129-1.c \
-TestData/2005-05-12-Int64ToFP.c \
 TestData/corner_cases.c \
 TestData/2002-05-02-CastTest.c \
 TestData/2005-05-13-SDivTwo.c \
@@ -65,47 +64,55 @@ TestData/20080424-1.c \
 TestData/2003-07-08-BitOpsTest.c
 # TestData/2006-01-29-SimpleIndirectCall.c 
 # TestData/2003-05-14-initialize-string.c 
+# TestData/2005-05-12-Int64ToFP.c
 
 tests: tests_py tests_c
 	@echo
 
 tests_py:  meta_tests translate_tests
 
-tests_c: canonicalize_tests TestData/nano
+tests_c: canonicalize_tests nano32 nano64
 
 # exercise meta data generation
 %.meta_test : %.c
 	@echo "[meta $@]"
-	$(PYPY)	./meta.py  $< >$@.out
+	$(PYPY)	./meta.py --cpp_args=-I../StdLib $< >$@.out
 
 
 meta_tests:: $(META_TESTS:.c=.meta_test)
 
-# make sure we can translation without crashing
+# make sure we can translate without crashing
 %.translate_test : %.c
 	@echo "[translate $@]"
-	$(PYPY)	./translate.py  32 $< >$@.out
+	$(PYPY)	./translate.py --mode=32 --cpp_args=-I../StdLib $< >$@.out
 
 translate_tests:: $(EASY_TESTS:.c=.translate_test)
 
-
+# make sure the canocalized code still compiles
 %.canonicalize_test : %.c
 	@echo "[compile $@]"
-	$(PYPY)	./canonicalize.py  $< >$@.out.c
+	$(PYPY)	./canonicalize.py --cpp_args=-I../StdLib  $< >$@.out.c
 	$(CC) -Wno-builtin-declaration-mismatch $@.out.c -o $@.exe
 	./$@.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 
 canonicalize_tests: $(ALL_TESTS:.c=.canonicalize_test)
 
-
-TestData/nano: TestData/nanojpeg.c
+# This also tests StdLib
+nano64: TestData/nanojpeg.c
 	@echo "[compile $@]"
-	$(PYPY)	./canonicalize.py TestData/nanojpeg.c > $@.out.c
-	$(CC) -Wno-builtin-declaration-mismatch $@.out.c -o $@.exe
+	$(PYPY)	./canonicalize.py --cpp_args=-I../StdLib TestData/nanojpeg.c > $@.out.c
+	$(CC) -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m64 -o $@.exe
 	./$@.exe TestData/ash_tree.jpg $@.ppm
 	cmp  $@.ppm TestData/ash_tree.ppm
 
+# This also tests StdLib
+nano32: TestData/nanojpeg.c
+	@echo "[compile $@]"
+	$(PYPY)	./canonicalize.py --cpp_args=-I../StdLib TestData/nanojpeg.c > $@.out.c
+	$(CC) -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m32 -o $@.exe
+	./$@.exe TestData/ash_tree.jpg $@.ppm
+	cmp  $@.ppm TestData/ash_tree.ppm
 
 clean:
 	rm -f *.exe *_gen.c TestData/*exe TestData/*out   TestData/*.out.c TestData/*.asm

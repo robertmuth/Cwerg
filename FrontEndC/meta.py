@@ -49,12 +49,20 @@ _ALLOWED_SYMBOL_LINKS = (c_ast.Decl, c_ast.Struct, c_ast.Union)
 _STRUCT_OR_UNION = (c_ast.Struct, c_ast.Union)
 
 
+def MustBeHeapAllocated(decl):
+    if isinstance(decl, (c_ast.Struct, c_ast.Union)):  # debatable
+        return True
+    assert isinstance(decl, c_ast.Decl)
+    return  "static" in decl.storage or "extern" in decl.storage
+
+
 class SymTab:
 
     def __init__(self):
         # we currently lump vars and funs together, this may not be quite right
         self.global_syms = {}
         self.local_syms = []
+        self.heap_syms = set()  # only contains c_ast.Decl, c_ast.Struct, c_ast.Union
         #
         self.links = {}
 
@@ -66,6 +74,8 @@ class SymTab:
 
     def add_symbol(self, decl, is_global: bool):
         assert isinstance(decl, (c_ast.Decl, c_ast.Struct, c_ast.Union))
+        if is_global or MustBeHeapAllocated(decl):
+            self.heap_syms.add(decl)
         if is_global:
             self.global_syms[decl.name] = decl
         else:
@@ -271,7 +281,9 @@ def GetTypeForFunArg(arg: c_ast.Node):
         assert False, arg
 
 
-SIZE_T_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["int", "unsigned"])
+SIZE_T_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["long", "unsigned"])
+
+SSIZE_T_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["long", "signed"])
 
 INT_IDENTIFIER_TYPE = common.GetCanonicalIdentifierType(["int"])
 
@@ -309,6 +321,9 @@ def GetBinopType(node, t1, t2):
     if node.op in common.BOOL_INT_TYPE_BINARY_OPS:
         return INT_IDENTIFIER_TYPE
 
+    if (node.op == "-" and isinstance(t1, (c_ast.PtrDecl, c_ast.ArrayDecl))
+            and isinstance(t2, (c_ast.PtrDecl, c_ast.ArrayDecl))):
+        return SSIZE_T_IDENTIFIER_TYPE
     if node.op not in common.SAME_TYPE_BINARY_OPS:
         assert False, node
 
@@ -480,8 +495,10 @@ class MetaInfo:
         VerifySymbolLinks(ast, stab.links, strict=True)
 
         self.sym_links = stab.links
+        self.heap_syms = stab.heap_syms
         self.struct_links = su_tab.links
         self.type_links = type_tab.links
+
 
     def GetDecl(self, sym: c_ast.Node):
         return self.sym_links[sym]
@@ -496,17 +513,21 @@ class MetaInfo:
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
-    #logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser(description='meta')
+    parser.add_argument('--debug', action='store_const',
+                              const=True, default=False,
+                              help='increase looging')
+    parser.add_argument('--cpp_args', type=str, default=[], action='append',
+                        help='args passed through to the pycparser')
+    parser.add_argument('filename', type=str,
+                        help='c-files to translate')
+    args = parser.parse_args()
 
-    def process(filename):
-        ast = parse_file(filename, use_cpp=True)
-        meta_info = MetaInfo(ast)
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
-    for filename in sys.argv[1:]:
-        print("=" * 60)
-        print(filename)
-        print("=" * 60)
-        process(filename)
-    sys.exit(0)
+    ast = parse_file(args.filename, use_cpp=True, cpp_args=args.cpp_args)
+    meta_info = MetaInfo(ast)
+    exit(0)

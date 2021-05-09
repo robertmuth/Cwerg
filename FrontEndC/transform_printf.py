@@ -26,57 +26,36 @@ def MakeSimpleTypeDecl(name, type_names):
 
 
 def MakePrintfStyleDecl(name: str, type_names: List[str], is_pointer=False):
-    parameter_format = c_ast.Decl("format", [], [], [],
-                                  c_ast.PtrDecl([], MakeSimpleTypeDecl("format", ["char"])), None, None)
+    parameter_fd = c_ast.Decl("fd", [], [], [],
+                              MakeSimpleTypeDecl("fd", ["int"]), None, None)
 
-    parameter_value = c_ast.Decl("value", [], [], [], MakeSimpleTypeDecl("value", type_names), None, None)
+    parameter_value = c_ast.Decl("value", [], [], [],
+                                 MakeSimpleTypeDecl("value", type_names), None, None)
     if is_pointer:
         parameter_value.type = c_ast.PtrDecl([], parameter_value.type)
 
     fun_result = MakeSimpleTypeDecl(name, ["int"])
     return c_ast.Decl(
         name, [], [], [], c_ast.FuncDecl(
-            c_ast.ParamList([parameter_format, parameter_value]),
+            c_ast.ParamList([parameter_fd, parameter_value]),
             fun_result), None, None)
 
 
-PUTS = c_ast.Decl(
-    "print", [], [], [], c_ast.FuncDecl(
-        c_ast.ParamList([
-            c_ast.Decl("s", [], [], [],
-                       c_ast.PtrDecl([], MakeSimpleTypeDecl("s", ["char"])), None, None)
-        ]),
-        MakeSimpleTypeDecl("print", ["int"])), None, None)
-
 PRINTF_PROTOTYPES = {
-    "printf_u": MakePrintfStyleDecl("printf_u", ["int", "unsigned"]),
-    "printf_d": MakePrintfStyleDecl("printf_d", ["int"]),
-    "printf_lu": MakePrintfStyleDecl("printf_lu", ["long", "long", "unsigned"]),
-    "printf_ld": MakePrintfStyleDecl("printf_ld", ["long", "long"]),
-    "printf_f": MakePrintfStyleDecl("printf_f", ["double"]),
-    "printf_c": MakePrintfStyleDecl("printf_c", ["char"]),
-    "printf_p": MakePrintfStyleDecl("printf_p", ["void"], True),
-    "printf_s": MakePrintfStyleDecl("printf_s", ["char"], True)
+    "write_u": MakePrintfStyleDecl("write_u", ["int", "unsigned"]),
+    "write_d": MakePrintfStyleDecl("write_d", ["int"]),
+    "write_x": MakePrintfStyleDecl("write_x", ["int", "unsigned"]),
+    "write_c": MakePrintfStyleDecl("write_c", ["char"]),
+    "write_s": MakePrintfStyleDecl("write_s", ["char"], True)
 }
 
 _PRINTF_DISPATCH = {
-    "c": "printf_c",
-    "s": "printf_s",
-    "d": "printf_d",
-    "p": "printf_p",
+    "c": "write_c",
+    "s": "write_s",
+    "d": "write_d",
     #
-    "u": "printf_u",
-    "o": "printf_u",
-    "x": "printf_u",
-    #
-    "lu": "printf_lu",
-    "lo": "printf_lu",
-    "lx": "printf_lu",
-    "ld": "printf_ld",
-    #
-    "e": "printf_e",
-    "f": "printf_f",
-    "g": "printf_g",
+    "u": "write_u",
+    "x": "write_x",
 }
 
 
@@ -84,9 +63,12 @@ def GetSingleArgPrintForFormat(fmt):
     key = fmt[-2:]
     if key[0] != "l":
         key = key[-1]
-    return _PRINTF_DISPATCH[key]
+    name = _PRINTF_DISPATCH.get(key)
+    assert name is not None, f"format string [{fmt}] is not yet supported"
+    return name
 
 
+# Not used yet
 class FormatOptions:
 
     def __init__(self, s: str) -> None:
@@ -161,29 +143,38 @@ def _IsSuitablePrintf(node: c_ast.Node, _):
     return True
 
 
+CONST_STDOUT = c_ast.Constant("int", "1")
+
+
 def MakePrintfCall(fmt_str, arg_node: Optional[c_ast.Node], use_specialized_printf):
-    args = [c_ast.Constant("string", '"' + fmt_str + '"')]
-    if arg_node:
-        args.append(arg_node)
-        name = GetSingleArgPrintForFormat(fmt_str)
+    if use_specialized_printf:
+        if arg_node:
+            args = [CONST_STDOUT, arg_node]
+            name = GetSingleArgPrintForFormat(fmt_str)
+        else:
+            args = [CONST_STDOUT, c_ast.Constant("string", '"' + fmt_str + '"')]
+            name = "write_s"
     else:
-        name = "print"
-    if not use_specialized_printf:
+        args = [c_ast.Constant("string", '"' + fmt_str + '"')]
+        if arg_node:
+            args.append(arg_node)
         name = "printf"
     return c_ast.FuncCall(c_ast.ID(name), c_ast.ExprList(args))
 
 
 def _DoPrintfSplitter(call: c_ast.FuncCall, parent, use_specialized_printf):
-    args = call.args.exprs
+    args: List = call.args.exprs
     fmt_pieces = TokenizeFormatString(args[0].value[1:-1])
     assert len(fmt_pieces) >= 1
     if use_specialized_printf and len(fmt_pieces) == 1:
         s = fmt_pieces[0]
         if len(s) <= 1 or s[0] != "%":
-            call.name.name = "print"
+            call.name.name = "write_s"
+            args.insert(0, CONST_STDOUT)
             return
         else:
             call.name.name = GetSingleArgPrintForFormat(s)
+            args[0] = CONST_STDOUT
             return
 
     stmts = common.GetStatementList(parent)
@@ -213,16 +204,16 @@ def PrintfSplitterTransform(ast: c_ast.FileAST, use_specialized_printf):
         _DoPrintfSplitter(call, parent, use_specialized_printf)
     if not use_specialized_printf or len(candidates) == 0:
         return
-    # remove old prototypes
+    # remove old printf prototype (use ellipsis)
     ext = ast.ext
     to_be_deleted = []
     for node in ext:
-        if isinstance(node, c_ast.Decl) and node.name in {"puts", "printf"}:
+        if isinstance(node, c_ast.Decl) and node.name == "printf":
             to_be_deleted.append(node)
     for node in to_be_deleted:
         ext.remove(node)
     # prepend protos
-    ext[0:0] = [PUTS] + list(PRINTF_PROTOTYPES.values())
+    # ext[0:0] = list(PRINTF_PROTOTYPES.values())
 
 
 if __name__ == "__main__":
