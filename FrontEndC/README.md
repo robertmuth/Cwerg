@@ -21,6 +21,11 @@ If you are looking for something more mature, you might save yourself some time 
   equivalents programs that use a smaller subset of the C language. 
   For example, canonicalized programs do not
   use pre/post in-/decrement and do not have for or while loops. 
+* translate.py contains a somewhat hacky Cwerg backend
+
+Note: the tests in this directory are only testing the canonicalizer
+
+The Cwerg code generation is exercised by ../Makefile.integration
 
 ## High Level Overview
 
@@ -231,6 +236,16 @@ Links
 
 https://github.com/ShivamSarodia/ShivyC
 
+
+## SmallerC
+
+* implemented in C (self-hosting)
+* targets: x86 (32 + 16bit), Mips
+* includes libc
+
+Links
+
+https://github.com/alexfru/SmallerC
 
 ## tcc
 

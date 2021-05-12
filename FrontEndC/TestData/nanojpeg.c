@@ -1,32 +1,4 @@
-
-void* malloc(unsigned long size);
-void free(void* mem);
-
-
-#define SEEK_END  2
-#define SEEK_SET  0
-#define O_RDONLY 0
-#define O_WRONLY 1
-#define O_RDWR   2
-#define O_CREAT  64
-#define O_TRUNC  512
-
-int open(char*, int, int);
-int close(int);
-long read(int, const void* buf, unsigned long size);
-long write(int, const void* buf, unsigned long size);
-long lseek(int , long, int);
-
-void mymemset(void * ptr, int value, unsigned long num ) {
-  for (int i = 0; i < num; ++i)  ((char*) ptr)[i] = value;
-}
-
-void mymemcpy ( void * destination, const void * source, unsigned long num ) {
-  for (int i = 0; i < num; ++i) {
-    ((char*) destination)[i] = ((char*) source)[i];
-  }
-}
-
+#include "std_lib.h"
 
 void print_s_ln(const char* s) {
   unsigned long len = 0;
@@ -566,7 +538,7 @@ void njDecodeBlock(struct nj_component* c, unsigned char* out) {
   unsigned char code;
   code = 0;
     int value, coef = 0;
-    mymemset(nj.block, 0, (unsigned long)sizeof(nj.block));
+    memset(nj.block, 0, (unsigned long)sizeof(nj.block));
     c->dcpred = c->dcpred + njGetVLC(&nj.vlctab[c->dctabsel][0], (void* )0);
     nj.block[0] = (c->dcpred) * nj.qtab[c->qtsel][0];
     do {
@@ -735,7 +707,7 @@ void njConvert(void) {
         unsigned char *pout = &nj.comp[0].pixels[nj.comp[0].width];
         int y;
         for (y = nj.comp[0].height - 1;  y;  --y) {
-	  mymemcpy(pout, pin, (unsigned long)nj.comp[0].width);
+	  memcpy(pout, pin, (unsigned long)nj.comp[0].width);
             pin += nj.comp[0].stride;
             pout += nj.comp[0].width;
         }
@@ -747,7 +719,7 @@ void njConvert(void) {
 // For safety reasons, this should be called at least one time before using
 // using any of the other NanoJPEG functions.
 void njInit(void) {
-  mymemset(&nj, 0, (unsigned long)sizeof(struct nj_ctx));
+  memset(&nj, 0, (unsigned long)sizeof(struct nj_ctx));
 }
 
 // njDone: Uninitialize NanoJPEG.
