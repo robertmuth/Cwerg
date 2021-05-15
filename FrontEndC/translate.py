@@ -66,6 +66,19 @@ TYPE_TRANSLATION = None
 
 tmp_counter = 0
 
+
+def GetUnique():
+    global tmp_counter
+    tmp_counter += 1
+    return tmp_counter
+
+
+def RestTmpCounter():
+    global tmp_counter
+    # for debugging it can be useful to disable this because it makes everyname unique
+    tmp_counter = 0
+
+
 ALL_BITS_SET = {
     "S8": -1,
     "S16": -1,
@@ -233,12 +246,6 @@ def StringifyType(type_or_decl):
         # return str(type_or_decl)
 
 
-def GetUnique():
-    global tmp_counter
-    tmp_counter += 1
-    return tmp_counter
-
-
 def GetTmp(type):
     assert type is not None
     return "%%%s_%s" % (StringifyType(type), GetUnique())
@@ -316,24 +323,7 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-SPECIAL_FUNCTIONS = {
-    "open": "BUILTIN",
-    "close": "BUILTIN",
-    "lseek": "BUILTIN",
-    "lseek64": "BUILTIN",
-    "read": "BUILTIN",
-    "write": "BUILTIN",
-    "raise": "BUILTIN",
-    "exit": "BUILTIN",
-    "xbrk": "BUILTIN",
-    "kill": "BUILTIN",
-    "getpid": "BUILTIN",
-
-    # "": "BUILTIN",
-}
-
-
-def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
+def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl, kind):
     return_type = StringifyType(fun_decl.type)
     params = fun_decl.args.params if fun_decl.args else []
     ins = []
@@ -341,7 +331,6 @@ def EmitFunctionHeader(fun_name: str, fun_decl: c_ast.FuncDecl):
         ins += [StringifyType(p)]
     outs = [return_type] if return_type else []
 
-    kind = SPECIAL_FUNCTIONS.get(fun_name, "NORMAL")
     print(f"\n\n.fun {fun_name} {kind} {RenderList(outs)} = {RenderList(ins)}")
 
 
@@ -632,8 +621,9 @@ def HandleBinop(node: c_ast.BinaryOp, meta_info: meta.MetaInfo, node_value,
 def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.UniqueId):
     node = node_stack[-1]
     if isinstance(node, c_ast.FuncDef):
+        RestTmpCounter()
         fun_decl = node.decl.type
-        EmitFunctionHeader(node.decl.name, fun_decl)
+        EmitFunctionHeader(node.decl.name, fun_decl, "NORMAL")
         return_type = StringifyType(fun_decl.type)
         if return_type:
             print(f".reg {return_type} [%out]")
