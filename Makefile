@@ -149,6 +149,12 @@ format:
 	clang-format -i --style=Chromium */*.cc */*.h
 
 
+TestData/nano_jpeg.32.asm::
+	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=32  FrontEndC/TestData/nanojpeg.c > $@
+
+TestData/nano_jpeg.64.asm::
+	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=64  FrontEndC/TestData/nanojpeg.c > $@
+
 #@ opcodes - list opcodes and their fields
 #@
 opcodes:
