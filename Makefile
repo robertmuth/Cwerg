@@ -32,18 +32,23 @@ TEST_OPT_EXES = $(TESTS:.asm=.asm.opt.exe)
 
 .PHONY: $(TESTS) CLOC.txt
 
+CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
+   -Wno-uninitialized -Wno-main -Wno-unused-but-set-variable \
+   -Wno-misleading-indentation \
+   -Wno-non-literal-null-conversion -IStdLib
+
 %.asm.exe : %.asm
-	echo "[ir>c.64 $@]"
-	cat  StdLib/std_lib.64.asm $< | $(PYPY) CodeGenC/codegen.py - > $<.c
-	clang -Wall -Wno-unused-variable -Wno-unused-label -IStdLib $<.c -lm -o $@
+	echo "[ir -> c.64 $@]"
+	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $< | $(PYPY) CodeGenC/codegen.py - > $<.c
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $<.c  -o $@
 	$@ > $<.actual.out
 	diff $<.actual.out $<.golden
 
 %.asm.opt.exe : %.asm
-	echo "[ir->opt->c.64 $@]"
-	cat  StdLib/std_lib.64.asm $< | ${PYPY} Base/optimize.py > $<.opt
+	echo "[ir -> opt -> c.64 $@]"
+	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $< | ${PYPY} Base/optimize.py > $<.opt
 	$(PYPY) CodeGenC/codegen.py $<.opt  > $<.opt.c
-	clang -Wall -Wno-unused-variable -Wno-unused-label -I StdLib $<.opt.c -lm -o $@
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $<.opt.c -lm -o $@
 	$@ > $<.actual.opt.out
 	diff $<.actual.opt.out $<.golden
 

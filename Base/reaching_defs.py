@@ -408,7 +408,6 @@ def FunLoadStoreSimplify(fun: ir.Fun) -> int:
 
 def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
     """
-
     Requires reaching definitions both per bbl and per ins
     """
     defs: ir.REG_DEF_MAP = bbl.defs_in.copy()
@@ -420,14 +419,17 @@ def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
                 continue
             src_reg = mov.operands[1]
             src_def = mov.operand_defs[1]
+            # constant propagation is done by another pass
+            if not isinstance(src_reg, ir.Reg): continue
             # we do not want to extend live ranges for allocated regs
-            if (not isinstance(src_reg, ir.Reg) or src_reg.cpu_reg or
-                    defs[src_reg] != src_def):
-                continue
+            if src_reg.cpu_reg: continue
+            # register content for src_def is no longer available
+            if defs[src_reg] != src_def: continue
             ins.operands[n] = src_reg
             ins.operand_defs[n] = src_def
             count += 1
 
+        # update defined regs
         num_defs = ins.opcode.def_ops_count()
         for n, reg in enumerate(ins.operands):
             if n < num_defs:

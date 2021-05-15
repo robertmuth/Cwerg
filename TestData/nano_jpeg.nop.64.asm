@@ -1,3 +1,7 @@
+.mem __static_2__malloc_end 8 RW
+    .data 8 "\x00"
+.mem __static_1__malloc_start 8 RW
+    .data 8 "\x00"
 .mem __static_4_counts 1 RW
     .data 16 "\x00"
 .mem nj 8 RW
@@ -23,9 +27,9 @@
 .mem string_const_9 4 RO
     .data 1 "255\n\x00"
 
-.fun exit BUILTIN [] = [U32]
+.fun exit BUILTIN [] = [S32]
 
-.fun brk BUILTIN [A64] = [A64]
+.fun xbrk BUILTIN [A64] = [A64]
 
 .fun open BUILTIN [S32] = [A64 S32 S32]
 
@@ -37,21 +41,493 @@
 
 .fun lseek BUILTIN [S64] = [S32 S64 S32]
 
-.fun print_ln BUILTIN [] = [A64 U32]
+.fun raise BUILTIN [S32] = [S32]
 
-.fun print_c_ln BUILTIN [] = [U8]
+.fun kill BUILTIN [S32] = [S32 S32]
 
-.fun print_s_ln BUILTIN [] = [A64]
+.fun getpid BUILTIN [S32] = []
 
-.fun print_u_ln BUILTIN [] = [U32]
+.fun write_s NORMAL [S64] = [S32 A64]
+.reg S8 [%S8_3]
+.reg S32 [%S32_4 fd]
+.reg S64 [%S64_5 %out]
+.reg U64 [%U64_1 len]
+.reg A64 [%A64_2 s]
+.bbl %start
+    poparg fd
+    poparg s
+    mov len 0
+    bra while_1_cond
+.bbl while_1
+    add %U64_1 len 1
+    mov len %U64_1
+.bbl while_1_cond
+    lea %A64_2 s len
+    ld %S8_3 %A64_2 0
+    conv %S32_4 %S8_3
+    bne %S32_4 0 while_1
+    bra while_1_exit
+.bbl while_1_exit
+    pusharg len
+    pusharg s
+    pusharg fd
+    bsr write
+    poparg %S64_5
+    mov %out %S64_5
+    pusharg %out
+    ret
 
-.fun print_d_ln BUILTIN [] = [S32]
+.fun write_x NORMAL [S64] = [S32 U32]
+.reg S8 [%S8_10 %S8_16]
+.reg S32 [%S32_13 fd]
+.reg S64 [%S64_24 %out]
+.reg U32 [%U32_14 %U32_15 %U32_19 %U32_8 %U32_9 digit val]
+.reg U64 [%U64_23 %U64_7 pos]
+.reg A64 [%A64_11 %A64_12 %A64_17 %A64_18 %A64_20 %A64_21 %A64_22 %A64_6]
+.stk buffer 1 16
+.bbl %start
+    poparg fd
+    poparg val
+    lea.stk %A64_6 buffer 0
+    mov pos 16
+.bbl while_1
+    sub %U64_7 pos 1
+    mov pos %U64_7
+    rem %U32_8 val 16
+    mov digit %U32_8
+    ble digit 9 if_2_true
+    bra if_2_false
+.bbl if_2_true
+    add %U32_9 48 digit
+    conv %S8_10 %U32_9
+    lea.stk %A64_11 buffer 0
+    lea %A64_12 %A64_11 pos
+    st %A64_12 0 %S8_10
+    bra if_2_end
+.bbl if_2_false
+    sub %S32_13 97 10
+    conv %U32_14 %S32_13
+    add %U32_15 %U32_14 digit
+    conv %S8_16 %U32_15
+    lea.stk %A64_17 buffer 0
+    lea %A64_18 %A64_17 pos
+    st %A64_18 0 %S8_16
+.bbl if_2_end
+    div %U32_19 val 16
+    mov val %U32_19
+.bbl while_1_cond
+    bne val 0 while_1
+    bra while_1_exit
+.bbl while_1_exit
+    lea.stk %A64_20 buffer 0
+    lea %A64_21 %A64_20 pos
+    lea.stk %A64_22 buffer 0
+    sub %U64_23 16 pos
+    pusharg %U64_23
+    pusharg %A64_21
+    pusharg fd
+    bsr write
+    poparg %S64_24
+    mov %out %S64_24
+    pusharg %out
+    ret
 
-.fun print_x_len BUILTIN [] = [U32]
+.fun write_u NORMAL [S64] = [S32 U32]
+.reg S8 [%S8_29]
+.reg S32 [fd]
+.reg S64 [%S64_37 %out]
+.reg U32 [%U32_27 %U32_28 %U32_32 val]
+.reg U64 [%U64_26 %U64_36 pos]
+.reg A64 [%A64_25 %A64_30 %A64_31 %A64_33 %A64_34 %A64_35]
+.stk buffer 1 16
+.bbl %start
+    poparg fd
+    poparg val
+    lea.stk %A64_25 buffer 0
+    mov pos 16
+.bbl while_1
+    sub %U64_26 pos 1
+    mov pos %U64_26
+    rem %U32_27 val 10
+    add %U32_28 48 %U32_27
+    conv %S8_29 %U32_28
+    lea.stk %A64_30 buffer 0
+    lea %A64_31 %A64_30 pos
+    st %A64_31 0 %S8_29
+    div %U32_32 val 10
+    mov val %U32_32
+.bbl while_1_cond
+    bne val 0 while_1
+    bra while_1_exit
+.bbl while_1_exit
+    lea.stk %A64_33 buffer 0
+    lea %A64_34 %A64_33 pos
+    lea.stk %A64_35 buffer 0
+    sub %U64_36 16 pos
+    pusharg %U64_36
+    pusharg %A64_34
+    pusharg fd
+    bsr write
+    poparg %S64_37
+    mov %out %S64_37
+    pusharg %out
+    ret
 
-.fun free BUILTIN [] = [A64]
+.fun write_d NORMAL [S64] = [S32 S32]
+.reg S8 [%S8_46 %S8_53]
+.reg S32 [%S32_40 fd sval]
+.reg S64 [%S64_39 %S64_58 %out]
+.reg U32 [%U32_38 %U32_41 %U32_44 %U32_45 %U32_49 val]
+.reg U64 [%U64_43 %U64_50 %U64_57 pos]
+.reg A64 [%A64_42 %A64_47 %A64_48 %A64_51 %A64_52 %A64_54 %A64_55 %A64_56]
+.stk buffer 1 16
+.bbl %start
+    poparg fd
+    poparg sval
+    ble 0:S32 sval if_2_true
+    bra if_2_end
+.bbl if_2_true
+    conv %U32_38 sval
+    pusharg %U32_38
+    pusharg fd
+    bsr write_u
+    poparg %S64_39
+    mov %out %S64_39
+    pusharg %out
+    ret
+.bbl if_2_end
+    sub %S32_40 0 sval
+    conv %U32_41 %S32_40
+    mov val %U32_41
+    lea.stk %A64_42 buffer 0
+    mov pos 16
+.bbl while_1
+    sub %U64_43 pos 1
+    mov pos %U64_43
+    rem %U32_44 val 10
+    add %U32_45 48 %U32_44
+    conv %S8_46 %U32_45
+    lea.stk %A64_47 buffer 0
+    lea %A64_48 %A64_47 pos
+    st %A64_48 0 %S8_46
+    div %U32_49 val 10
+    mov val %U32_49
+.bbl while_1_cond
+    bne val 0 while_1
+    bra while_1_exit
+.bbl while_1_exit
+    sub %U64_50 pos 1
+    mov pos %U64_50
+    lea.stk %A64_51 buffer 0
+    lea %A64_52 %A64_51 pos
+    mov %S8_53 45
+    st %A64_52 0 %S8_53
+    lea.stk %A64_54 buffer 0
+    lea %A64_55 %A64_54 pos
+    lea.stk %A64_56 buffer 0
+    sub %U64_57 16 pos
+    pusharg %U64_57
+    pusharg %A64_55
+    pusharg fd
+    bsr write
+    poparg %S64_58
+    mov %out %S64_58
+    pusharg %out
+    ret
 
-.fun malloc BUILTIN [A64] = [U64]
+.fun write_c NORMAL [S64] = [S32 U8]
+.reg S8 [%S8_59]
+.reg S32 [%S32_64 fd]
+.reg S64 [%S64_62 %S64_65 %out]
+.reg U8 [c]
+.reg U64 [%U64_63]
+.reg A64 [%A64_60 %A64_61]
+.stk buffer 1 16
+.bbl %start
+    poparg fd
+    poparg c
+    conv %S8_59 c
+    lea.stk %A64_60 buffer 0
+    st %A64_60 0 %S8_59
+    lea.stk %A64_61 buffer 0
+    mov %U64_63 1
+    pusharg %U64_63
+    pusharg %A64_61
+    pusharg fd
+    bsr write
+    poparg %S64_62
+    conv %S32_64 %S64_62
+    conv %S64_65 %S32_64
+    mov %out %S64_65
+    pusharg %out
+    ret
+
+.fun print_ln NORMAL [] = [A64 U64]
+.reg S32 [%S32_67 %S32_69]
+.reg S64 [%S64_66 %S64_68]
+.reg U8 [%U8_70]
+.reg U64 [n]
+.reg A64 [s]
+.bbl %start
+    poparg s
+    poparg n
+    mov %S32_67 1
+    pusharg n
+    pusharg s
+    pusharg %S32_67
+    bsr write
+    poparg %S64_66
+    mov %S32_69 1
+    mov %U8_70 10
+    pusharg %U8_70
+    pusharg %S32_69
+    bsr write_c
+    poparg %S64_68
+    ret
+
+.fun print_s_ln NORMAL [] = [A64]
+.reg S32 [%S32_72 %S32_74]
+.reg S64 [%S64_71 %S64_73]
+.reg U8 [%U8_75]
+.reg A64 [s]
+.bbl %start
+    poparg s
+    mov %S32_72 1
+    pusharg s
+    pusharg %S32_72
+    bsr write_s
+    poparg %S64_71
+    mov %S32_74 1
+    mov %U8_75 10
+    pusharg %U8_75
+    pusharg %S32_74
+    bsr write_c
+    poparg %S64_73
+    ret
+
+.fun print_d_ln NORMAL [] = [S32]
+.reg S32 [%S32_77 %S32_79 n]
+.reg S64 [%S64_76 %S64_78]
+.reg U8 [%U8_80]
+.bbl %start
+    poparg n
+    mov %S32_77 1
+    pusharg n
+    pusharg %S32_77
+    bsr write_d
+    poparg %S64_76
+    mov %S32_79 1
+    mov %U8_80 10
+    pusharg %U8_80
+    pusharg %S32_79
+    bsr write_c
+    poparg %S64_78
+    ret
+
+.fun print_u_ln NORMAL [] = [U32]
+.reg S32 [%S32_82 %S32_84]
+.reg S64 [%S64_81 %S64_83]
+.reg U8 [%U8_85]
+.reg U32 [n]
+.bbl %start
+    poparg n
+    mov %S32_82 1
+    pusharg n
+    pusharg %S32_82
+    bsr write_u
+    poparg %S64_81
+    mov %S32_84 1
+    mov %U8_85 10
+    pusharg %U8_85
+    pusharg %S32_84
+    bsr write_c
+    poparg %S64_83
+    ret
+
+.fun print_x_ln NORMAL [] = [U32]
+.reg S32 [%S32_87 %S32_89]
+.reg S64 [%S64_86 %S64_88]
+.reg U8 [%U8_90]
+.reg U32 [n]
+.bbl %start
+    poparg n
+    mov %S32_87 1
+    pusharg n
+    pusharg %S32_87
+    bsr write_x
+    poparg %S64_86
+    mov %S32_89 1
+    mov %U8_90 10
+    pusharg %U8_90
+    pusharg %S32_89
+    bsr write_c
+    poparg %S64_88
+    ret
+
+.fun print_c_ln NORMAL [] = [U8]
+.reg S32 [%S32_92 %S32_94]
+.reg S64 [%S64_91 %S64_93]
+.reg U8 [%U8_95 c]
+.bbl %start
+    poparg c
+    mov %S32_92 1
+    pusharg c
+    pusharg %S32_92
+    bsr write_c
+    poparg %S64_91
+    mov %S32_94 1
+    mov %U8_95 10
+    pusharg %U8_95
+    pusharg %S32_94
+    bsr write_c
+    poparg %S64_93
+    ret
+
+.fun memset NORMAL [A64] = [A64 S32 U64]
+.reg S8 [%S8_96]
+.reg S32 [%S32_98 i value]
+.reg U64 [%U64_99 n]
+.reg A64 [%A64_97 %out ptr]
+.bbl %start
+    poparg ptr
+    poparg value
+    poparg n
+    mov i 0
+    bra for_1_cond
+.bbl for_1
+    conv %S8_96 value
+    lea %A64_97 ptr i
+    st %A64_97 0 %S8_96
+.bbl for_1_next
+    add %S32_98 i 1
+    mov i %S32_98
+.bbl for_1_cond
+    conv %U64_99 i
+    blt %U64_99 n for_1
+    bra for_1_exit
+.bbl for_1_exit
+    mov %out ptr
+    pusharg %out
+    ret
+
+.fun memcpy NORMAL [A64] = [A64 A64 U64]
+.reg S8 [%S8_101]
+.reg S32 [%S32_103 i]
+.reg U64 [%U64_104 n]
+.reg A64 [%A64_100 %A64_102 %out dst src]
+.bbl %start
+    poparg dst
+    poparg src
+    poparg n
+    mov i 0
+    bra for_1_cond
+.bbl for_1
+    lea %A64_100 src i
+    ld %S8_101 %A64_100 0
+    lea %A64_102 dst i
+    st %A64_102 0 %S8_101
+.bbl for_1_next
+    add %S32_103 i 1
+    mov i %S32_103
+.bbl for_1_cond
+    conv %U64_104 i
+    blt %U64_104 n for_1
+    bra for_1_exit
+.bbl for_1_exit
+    mov %out dst
+    pusharg %out
+    ret
+
+.fun abort NORMAL [] = []
+.reg S32 [%S32_105 %S32_106 %S32_107 %S32_108]
+.bbl %start
+    bsr getpid
+    poparg %S32_105
+    mov %S32_107 3
+    pusharg %S32_107
+    pusharg %S32_105
+    bsr kill
+    poparg %S32_106
+    mov %S32_108 1
+    pusharg %S32_108
+    bsr exit
+    ret
+
+.fun malloc NORMAL [A64] = [U64]
+.reg S32 [%S32_109]
+.reg U64 [%U64_110 %U64_119 %U64_120 %U64_121 %U64_127 %U64_128 %U64_129 %U64_130 increment page_size rounded_size size]
+.reg A64 [%A64_111 %A64_112 %A64_113 %A64_114 %A64_115 %A64_116 %A64_117 %A64_118 %A64_122 %A64_123 %A64_124 %A64_125 %A64_126 %A64_131 %A64_132 %A64_133 %A64_134 %A64_135 %A64_136 %A64_137 %A64_138 %A64_139 %A64_140 %A64_141 %A64_142 %A64_143 %out new_end result]
+.bbl %start
+    poparg size
+    shl %S32_109 1 20
+    conv %U64_110 %S32_109
+    mov page_size %U64_110
+    lea.mem %A64_111 __static_1__malloc_start 0
+    ld %A64_112 %A64_111 0
+    beq %A64_112 0 if_1_true
+    bra if_1_end
+.bbl if_1_true
+    lea %A64_114 0 0
+    pusharg %A64_114
+    bsr xbrk
+    poparg %A64_113
+    lea.mem %A64_115 __static_1__malloc_start 0
+    st %A64_115 0 %A64_113
+    lea.mem %A64_116 __static_1__malloc_start 0
+    ld %A64_117 %A64_116 0
+    lea.mem %A64_118 __static_2__malloc_end 0
+    st %A64_118 0 %A64_117
+.bbl if_1_end
+    add %U64_119 size 15
+    div %U64_120 %U64_119 16
+    mul %U64_121 %U64_120 16
+    mov rounded_size %U64_121
+    lea.mem %A64_122 __static_1__malloc_start 0
+    ld %A64_123 %A64_122 0
+    lea %A64_124 %A64_123 rounded_size
+    lea.mem %A64_125 __static_2__malloc_end 0
+    ld %A64_126 %A64_125 0
+    blt %A64_126 %A64_124 if_3_true
+    bra if_3_end
+.bbl if_3_true
+    add %U64_127 rounded_size page_size
+    sub %U64_128 %U64_127 1
+    div %U64_129 %U64_128 page_size
+    mul %U64_130 %U64_129 page_size
+    mov increment %U64_130
+    lea.mem %A64_131 __static_2__malloc_end 0
+    ld %A64_132 %A64_131 0
+    lea %A64_133 %A64_132 increment
+    mov new_end %A64_133
+    pusharg new_end
+    bsr xbrk
+    poparg %A64_134
+    lea.mem %A64_135 __static_2__malloc_end 0
+    st %A64_135 0 %A64_134
+    lea.mem %A64_136 __static_2__malloc_end 0
+    ld %A64_137 %A64_136 0
+    bne %A64_137 new_end if_2_true
+    bra if_3_end
+.bbl if_2_true
+    bsr abort
+.bbl if_3_end
+    lea.mem %A64_138 __static_1__malloc_start 0
+    ld %A64_139 %A64_138 0
+    mov result %A64_139
+    lea.mem %A64_140 __static_1__malloc_start 0
+    ld %A64_141 %A64_140 0
+    lea %A64_142 %A64_141 rounded_size
+    lea.mem %A64_143 __static_1__malloc_start 0
+    st %A64_143 0 %A64_142
+    mov %out result
+    pusharg %out
+    ret
+
+.fun free NORMAL [] = [A64]
+.reg A64 [ptr]
+.bbl %start
+    poparg ptr
+    ret
 
 .fun mymemset NORMAL [] = [A64 S32 U64]
 .reg S8 [%S8_1]

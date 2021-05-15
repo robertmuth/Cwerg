@@ -11,7 +11,7 @@ tests_c:  serialize_regression_test_c  cfg_regression_test_c \
           cfg2_regression_test_c optlite_regression_test_c \
           optimize_regression_test_c
 
-STDLIB64 = ../StdLib/std_lib.64.asm
+STDLIB64 = ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm
 
 ############################################################
 # Python Port
@@ -105,6 +105,7 @@ optimize_regression_test_c:  $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode optimize > $@.out
 	diff  $@.out ../TestData/nano_jpeg.opt.64.asm
+
 
 ############################################################
 # Misc

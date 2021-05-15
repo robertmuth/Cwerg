@@ -1,12 +1,5 @@
 #include "std_lib.h"
 
-void print_s_ln(const char* s) {
-  unsigned long len = 0;
-  while (s[len] != 0)  len += 1;
-  write(1, s, len);
-  write(1, "\n", (unsigned long)1);
-}
-
 
 // NanoJPEG -- KeyJ's Tiny Baseline JPEG Decoder
 // version 1.3.5 (2016-11-14)
@@ -792,7 +785,7 @@ void write_dec(int fd, int a) {
 }
 
 int main(int argc, char* argv[]) {
-    int size;
+    long size;
     char *buf;
     int fd;
 
@@ -812,7 +805,7 @@ int main(int argc, char* argv[]) {
     close(fd);
 
     njInit();
-    if (njDecode(buf, size)) {
+    if (njDecode(buf, (int) size)) {
         free((void*)buf);
         print_s_ln("Error decoding the input file.");
         return 1;

@@ -10,20 +10,23 @@ import meta
 __all__ = ["LiftStaticAndExternToGlobalScope", "UniquifyLocalVars"]
 
 
-def RenameSymbol(decl, new_name, meta_info):
-    decl.name = new_name
-    if isinstance(decl.type, c_ast.FuncDecl):
-        decl.type.type.declname = new_name
-    elif isinstance(decl.type, c_ast.TypeDecl):
+def RenameDecl(decl, new_name):
+    if isinstance(decl.type, c_ast.TypeDecl):
         decl.type.declname = new_name
+        return
+    if isinstance(decl.type, c_ast.FuncDecl):
+        RenameDecl(decl.type, new_name)
     elif isinstance(decl.type, c_ast.ArrayDecl):
-        decl.type.type.declname = new_name
+        RenameDecl(decl.type, new_name)
     elif isinstance(decl.type, c_ast.PtrDecl):
         # probably needs to be recursive
-        decl.type.type.declname = new_name
+        RenameDecl(decl.type, new_name)
     else:
         assert False, f"unexpected decl: {decl}"
 
+def RenameSymbol(decl, new_name, meta_info):
+    decl.name = new_name
+    RenameDecl(decl, new_name)
     for id, sym in meta_info.sym_links.items():
         if sym == decl:
             assert isinstance(id, c_ast.ID)

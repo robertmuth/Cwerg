@@ -21,7 +21,8 @@ TestData/nqueen.c \
 TestData/pr19606.c \
 TestData/rename.c \
 TestData/struct2.c \
-TestData/sumarray.c
+TestData/sumarray.c \
+TestData/do_while.c
 
 
 META_TESTS = \
@@ -61,7 +62,9 @@ TestData/2003-04-22-Switch.c \
 TestData/sumarray.c \
 TestData/2003-05-22-LocalTypeTest.c \
 TestData/20080424-1.c \
-TestData/2003-07-08-BitOpsTest.c
+TestData/2003-07-08-BitOpsTest.c \
+TestData/do_while.c
+
 # TestData/2006-01-29-SimpleIndirectCall.c 
 # TestData/2003-05-14-initialize-string.c 
 # TestData/2005-05-12-Int64ToFP.c
@@ -98,19 +101,19 @@ translate_tests:: $(EASY_TESTS:.c=.translate_test)
 
 canonicalize_tests: $(ALL_TESTS:.c=.canonicalize_test)
 
-# This also tests StdLib
+# This uses std lib proto types but no implementation - note the hack around print_s_ln
 nano64: TestData/nanojpeg.c
 	@echo "[compile $@]"
 	$(PYPY)	./canonicalize.py --cpp_args=-I../StdLib TestData/nanojpeg.c > $@.out.c
-	$(CC) -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m64 -o $@.exe
+	$(CC) -Dprint_s_ln=puts -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m64 -o $@.exe
 	./$@.exe TestData/ash_tree.jpg $@.ppm
 	cmp  $@.ppm TestData/ash_tree.ppm
 
-# This also tests StdLib
+# This uses std lib proto types but no implementation - note the hack around print_s_ln
 nano32: TestData/nanojpeg.c
 	@echo "[compile $@]"
 	$(PYPY)	./canonicalize.py --cpp_args=-I../StdLib TestData/nanojpeg.c > $@.out.c
-	$(CC) -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m32 -o $@.exe
+	$(CC) -Dprint_s_ln=puts -I ../StdLib -Wno-builtin-declaration-mismatch $@.out.c -m32 -o $@.exe
 	./$@.exe TestData/ash_tree.jpg $@.ppm
 	cmp  $@.ppm TestData/ash_tree.ppm
 

@@ -21,18 +21,18 @@
 .bbl start
     lea.mem x:A64  string_pointers 0
     ld s x 0
-    pusharg 10:U32
+    pusharg 10:U64
     pusharg s
     bsr print_ln
 
     ld s x 8
-    pusharg 10:U32
+    pusharg 10:U64
     pusharg s
     bsr print_ln
 
     lea.mem x string_pointers 16
     ld s x 0
-    pusharg 10:U32
+    pusharg 10:U64
     pusharg s
     bsr print_ln
 

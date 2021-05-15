@@ -49,20 +49,12 @@ _ALLOWED_SYMBOL_LINKS = (c_ast.Decl, c_ast.Struct, c_ast.Union)
 _STRUCT_OR_UNION = (c_ast.Struct, c_ast.Union)
 
 
-def MustBeHeapAllocated(decl):
-    if isinstance(decl, (c_ast.Struct, c_ast.Union)):  # debatable
-        return True
-    assert isinstance(decl, c_ast.Decl)
-    return  "static" in decl.storage or "extern" in decl.storage
-
-
 class SymTab:
 
     def __init__(self):
         # we currently lump vars and funs together, this may not be quite right
         self.global_syms = {}
         self.local_syms = []
-        self.heap_syms = set()  # only contains c_ast.Decl, c_ast.Struct, c_ast.Union
         #
         self.links = {}
 
@@ -74,8 +66,6 @@ class SymTab:
 
     def add_symbol(self, decl, is_global: bool):
         assert isinstance(decl, (c_ast.Decl, c_ast.Struct, c_ast.Union))
-        if is_global or MustBeHeapAllocated(decl):
-            self.heap_syms.add(decl)
         if is_global:
             self.global_syms[decl.name] = decl
         else:
@@ -495,10 +485,8 @@ class MetaInfo:
         VerifySymbolLinks(ast, stab.links, strict=True)
 
         self.sym_links = stab.links
-        self.heap_syms = stab.heap_syms
         self.struct_links = su_tab.links
         self.type_links = type_tab.links
-
 
     def GetDecl(self, sym: c_ast.Node):
         return self.sym_links[sym]
@@ -517,8 +505,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='meta')
     parser.add_argument('--debug', action='store_const',
-                              const=True, default=False,
-                              help='increase looging')
+                        const=True, default=False,
+                        help='increase looging')
     parser.add_argument('--cpp_args', type=str, default=[], action='append',
                         help='args passed through to the pycparser')
     parser.add_argument('filename', type=str,

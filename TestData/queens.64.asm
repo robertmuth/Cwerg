@@ -15,7 +15,7 @@
 # ========================================
 .fun dump NORMAL [] = []
 .bbl start
-     .reg U32 [i dim count len]
+     .reg U64 [i dim count len]
 
      # inc counter
      lea counter:A64 = COUNTER

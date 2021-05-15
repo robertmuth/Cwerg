@@ -14,7 +14,7 @@ __all__ = ["PruneUselessLabels"]
 #
 # ================================================================================
 def IsStateChange(node):
-    if isinstance(node, (c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Return)):
+    if isinstance(node, (c_ast.Decl, c_ast.FuncCall, c_ast.Assignment, c_ast.ArrayRef, c_ast.Return)):
         return True
     if isinstance(node, c_ast.UnaryOp) and node.op in ["*", "p++", "p--"]:
         return True
@@ -41,6 +41,9 @@ def SerializeLabelsAndGotos(node: c_ast.Node):
         out.append(node)
     elif isinstance(node, c_ast.EmptyStatement):
         pass
+    elif isinstance(node, c_ast.Compound):
+        for c in node:
+            out += SerializeLabelsAndGotos(c)
     elif IsStateChange(node):
         out.append(node.__class__.__name__)
     elif isinstance(node, (c_ast.For, c_ast.While, c_ast.If, c_ast.DoWhile)):
@@ -69,7 +72,7 @@ def ForwardGotosAndRemoveUnusedLabels(node: c_ast.Node, forwards: Mapping[str, s
             stmts.remove(node)
 
 
-def ComputeLabelForwards(serialized):
+def ComputeLabelForwards(serialized) -> Mapping[str, str]:
     forwards = {}
     last = None
     for item in serialized:

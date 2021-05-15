@@ -30,7 +30,7 @@ tests_py:  $(TEST_EXES) ../TestData/queens.32.asm.s.exe TestData/syscall.a32.asm
 tests_c: $(TEST_C_EXES) isel_test isel_test_c codegen_parity nanojpeg_c
 
 
-STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.a32.asm
+STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 ############################################################
 # Python

@@ -166,7 +166,7 @@ def SizeOfAndAlignment(node, meta_info):
         return SizeOfAndAlignmentUnion(node, meta_info)
     elif isinstance(node, c_ast.IdentifierType):
         type_name = TYPE_TRANSLATION[tuple(node.names)]
-        assert type_name, f"could determine sizeof {node}"
+        assert type_name, f"could not determine sizeof {node}"
         bitsize = int(type_name[1:])
         return bitsize // 8, bitsize // 8
     elif isinstance(node, c_ast.ArrayDecl):
@@ -298,10 +298,9 @@ def GetLValueAddress(lvalue, meta_info: meta.MetaInfo, node_value, id_gen):
         node_value[lvalue] = tmp
     elif isinstance(lvalue, c_ast.ID):
         type = meta_info.type_links[lvalue]
-        symbol = meta_info.sym_links[lvalue]
         assert isinstance(
             type, (c_ast.PtrDecl, c_ast.Struct, c_ast.Union)), type
-        if symbol in meta_info.heap_syms or isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
+        if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
             print(f"{TAB}lea {tmp}:{kind} = {lvalue.name}")
@@ -318,8 +317,6 @@ def RenderList(items):
 
 
 SPECIAL_FUNCTIONS = {
-    "malloc": "BUILTIN",
-    "free": "BUILTIN",
     "open": "BUILTIN",
     "close": "BUILTIN",
     "lseek": "BUILTIN",
@@ -328,8 +325,10 @@ SPECIAL_FUNCTIONS = {
     "write": "BUILTIN",
     "raise": "BUILTIN",
     "exit": "BUILTIN",
-    "sbrk": "BUILTIN",
-    "print_s_ln": "BUILTIN",
+    "xbrk": "BUILTIN",
+    "kill": "BUILTIN",
+    "getpid": "BUILTIN",
+
     # "": "BUILTIN",
 }
 
@@ -351,15 +350,13 @@ def HandleAssignment(node: c_ast.Assignment, meta_info: meta.MetaInfo, node_valu
     lvalue = node.lvalue
     EmitIR([node, node.rvalue], meta_info, node_value, id_gen)
     tmp = node_value[node.rvalue]
-    # because of the canonicalization step only register promotable scalars will
-    # naked like this
     if isinstance(lvalue, c_ast.ID):
-        # but if address is taken
+        # because of the canonicalization step only register promotable scalars will
+        # naked like this
         symbol = meta_info.sym_links[lvalue]
-        if symbol not in meta_info.heap_syms:
-            print(f"{TAB}mov {lvalue.name} = {tmp}")
-            node_value[node] = tmp
-            return
+        print(f"{TAB}mov {lvalue.name} = {tmp}")
+        node_value[node] = tmp
+        return
 
     GetLValueAddress(lvalue, meta_info, node_value, id_gen)
     if isinstance(tmp, _NUMBER_TYPES):
@@ -388,12 +385,16 @@ def EmitInitData(init: c_ast.InitList, type_decl):
     print(f'.data 1 [{" ".join(values)}]')
 
 
+def IsGlobalDecl(node, parent):
+    return isinstance(parent, c_ast.FileAST)
+
+
 def HandleDecl(node_stack, meta_info: meta.MetaInfo, node_value, id_gen):
     decl: c_ast.Decl = node_stack[-1]
     parent = node_stack[-2]
     name = decl.name
 
-    if decl in meta_info.heap_syms:
+    if IsGlobalDecl(decl, parent):
         size, align = SizeOfAndAlignment(decl, meta_info)
         assert name is not None
         print(f"\n.mem {name} {align} RW")
@@ -560,8 +561,7 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
     elif isinstance(type_info, c_ast.FuncDecl):
         node_value[node] = node.name
         return
-    elif (not isinstance(type_info, c_ast.ArrayDecl) and
-          meta_info.sym_links[node] not in meta_info.heap_syms):
+    elif not isinstance(type_info, c_ast.ArrayDecl):
         node_value[node] = node.name
         return
     elif isinstance(type_info, c_ast.ArrayDecl):
@@ -646,7 +646,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
         EmitIR(node_stack + [node.body], meta_info, node_value, id_gen)
         return
     elif isinstance(node, c_ast.Decl) and isinstance(node.type, c_ast.FuncDecl):
-        EmitFunctionHeader(node.name, node.type)
+        # EmitFunctionHeader(node.name, node.type)
         return
     elif isinstance(node, c_ast.Decl):
         if node.name is not None:

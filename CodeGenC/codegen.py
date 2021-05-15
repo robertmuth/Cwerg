@@ -8,6 +8,7 @@ import sys
 from Base import ir
 from Base import opcode_tab as o
 from Base import serialize
+from Base import sanity
 
 KIND_MAP = {
     o.DK.S8: "int8_t",
@@ -201,6 +202,7 @@ def EmitCall(target, caller, target_expr, ctx):
 
 def Handle_BSR(fun: ir.Fun, _, ops: List, ctx):
     target: ir.Fun = ops[0]
+    assert target.kind != o.FUN_KIND.INVALID, f"call to undefined function {target.name}"
     EmitCall(target, fun, MangleFun(target), ctx)
 
 
@@ -215,7 +217,11 @@ def Handle_LEA(fun: ir.Fun, opcode, ops: List, _ctx):
         dst = RegOrNum(fun, ops[0])
         src1 = RegOrNum(fun, ops[1])
         src2 = RegOrNum(fun, ops[2])
-        print(f"    {dst} = {src1} + {src2};")
+        if src2 == "0":
+            src2 = ""
+        else:
+            src2 = f" + {src2}"
+        print(f"    {dst} = {src1}{src2};")
     elif opcode is o.LEA_FUN:
         print(
             f"    {RegOrNum(fun, ops[0])} = (FUN_POINTER)&{MangleFun(ops[1])};")
@@ -223,11 +229,15 @@ def Handle_LEA(fun: ir.Fun, opcode, ops: List, _ctx):
         dst = RegOrNum(fun, ops[0])
         base = ops[1]
         src2 = RegOrNum(fun, ops[2])
+        if src2 == "0":
+            src2 = ""
+        else:
+            src2 = f" + {src2}"
         if isinstance(base, ir.Mem) and base.kind == o.MEM_KIND.FIX:
-            print(f"    {dst} = ((char*) {base.alignment}) + {src2};")
+            print(f"    {dst} = ((char*) {base.alignment}){src2};")
 
         else:
-            print(f"    {dst} = ((char*)&{ops[1].name}) + {src2};")
+            print(f"    {dst} = ((char*)&{ops[1].name}){src2};")
 
 
 def Handle_LD(fun: ir.Fun, _, ops: List, _ctx):
@@ -315,7 +325,7 @@ INS_HANDLER = {
 }
 
 PROLOG = """
-#include "std_lib.h"
+#include "std_types.h"
 
 typedef void (*FUN_POINTER)(void);
 """
@@ -460,17 +470,18 @@ if __name__ == "__main__":
             fin = sys.stdin
         else:
             fin = open(args.filename)
-        mod = serialize.UnitParseFromAsm(fin, args.debug_parser)
-        assert "main" in mod.fun_syms
+        unit = serialize.UnitParseFromAsm(fin, args.debug_parser)
+        assert "main" in unit.fun_syms
         print(PROLOG)
-        for fun in mod.funs:
+        for fun in unit.funs:
             if fun.kind is o.FUN_KIND.BUILTIN:
                 continue
+            sanity.FunCheck(fun, unit, check_push_pop=True, check_cfg=False)
             EmitFunctionProto(fun, True)
             print(";")
-        for mem in mod.mems:
+        for mem in unit.mems:
             EmitMemory(mem)
-        for fun in mod.funs:
+        for fun in unit.funs:
             if fun.kind is o.FUN_KIND.BUILTIN:
                 continue
             EmitFunction(fun)

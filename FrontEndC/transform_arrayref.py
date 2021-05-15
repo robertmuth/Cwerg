@@ -176,7 +176,7 @@ def ConvertArrayIndexToPointerDereference(ast, meta_info):
 
 
 def IsScalarType(type):
-    if isinstance(type, c_ast.TypeDecl):
+    if isinstance(type, (c_ast.TypeDecl, c_ast.PtrDecl)):
         return IsScalarType(type.type)
 
     return isinstance(type, c_ast.IdentifierType)
