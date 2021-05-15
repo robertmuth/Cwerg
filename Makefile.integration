@@ -31,7 +31,7 @@ nano64:
 	#
 	@echo "[$@: cwerg 64 test]"
 	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=64  $(NANO_SRC) > $@.64.asm
-	$(PYPY) cat StdLib/syscall.extern64.asm  StdLib/std_lib.64.asm $@.64.asm | CodeGenC/codegen.py - > $@.64.out.c
+	cat StdLib/syscall.extern64.asm  StdLib/std_lib.64.asm $@.64.asm | $(PYPY)  CodeGenC/codegen.py - > $@.64.out.c
 	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $@.64.out.c -o $@.64.cc.exe
 	@rm -f $@.ppm.out
 	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
@@ -40,7 +40,7 @@ nano64:
 	#
 	@echo "[$@: cwerg optimize 64 test]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64 $(NANO_SRC) > $@.64.asm
-	$(PYPY) cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $@.64.asm | Base/optimize.py  > $@.64.opt.asm
+	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $@.64.asm | $(PYPY)  Base/optimize.py  > $@.64.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
 	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $@.64.out.c -o $@.64.cc.exe
 	@rm -f $@.ppm.out
@@ -49,7 +49,7 @@ nano64:
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
 	@echo "[$@: cwerg canned 64 test]"
-	 cat $(STDLIB_DIR)/syscall.extern64.asm $(STDLIB_DIR)/std_lib.64.asm TestData/nano_jpeg.64.asm | $(PYPY) CodeGenC/codegen.py - > $@.64.out.c
+	cat $(STDLIB_DIR)/syscall.extern64.asm $(STDLIB_DIR)/std_lib.64.asm TestData/nano_jpeg.64.asm | $(PYPY) CodeGenC/codegen.py - > $@.64.out.c
 	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $@.64.out.c -o $@.64.cc.exe
 	@rm -f $@.ppm.out
 	./$@.64.cc.exe TestData/ash_tree.jpg $@.ppm.out
@@ -72,7 +72,7 @@ nano32:
 	#
 	@echo "[$@: cwerg 32 test]"
 	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=32  $(NANO_SRC) > $@.32.asm
-	$(PYPY) cat StdLib/syscall.extern32.asm  StdLib/std_lib.32.asm $@.32.asm | CodeGenC/codegen.py - > $@.32.out.c
+	cat StdLib/syscall.extern32.asm  StdLib/std_lib.32.asm $@.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
 	$(CC) $(CC_FLAGS) -O -static -m32 -nostdlib StdLib/syscall.c $@.32.out.c -o $@.32.cc.exe
 	@rm -f $@.ppm.out
 	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
@@ -81,7 +81,7 @@ nano32:
 	#
 	@echo "[$@: cwerg optimize 32 test]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $(NANO_SRC) > $@.32.asm
-	$(PYPY) cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm $@.32.asm | Base/optimize.py  > $@.32.opt.asm
+	cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm $@.32.asm | $(PYPY) Base/optimize.py  > $@.32.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -O -static -m32 -nostdlib StdLib/syscall.c $@.32.out.c -o $@.32.cc.exe
 	@rm -f $@.ppm.out
@@ -90,7 +90,7 @@ nano32:
 	@cmp -l $@.ppm.out TestData/ash_tree.ppm
 	#
 	@echo "[$@: cwerg canned 32 test]"
-	 cat $(STDLIB_DIR)/syscall.extern32.asm $(STDLIB_DIR)/std_lib.32.asm TestData/nano_jpeg.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
+	cat $(STDLIB_DIR)/syscall.extern32.asm $(STDLIB_DIR)/std_lib.32.asm TestData/nano_jpeg.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
 	$(CC) $(CC_FLAGS) -O -static -m32 -nostdlib StdLib/syscall.c $@.32.out.c -o $@.32.cc.exe
 	@rm -f $@.ppm.out
 	./$@.32.cc.exe TestData/ash_tree.jpg $@.ppm.out
@@ -118,21 +118,21 @@ FrontEndC/TestData/20020129-1.c
 	#
 	@echo "[$@ - 64]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64 $? > $@.64.asm
-	$(PYPY) cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm  $@.64.asm | CodeGenC/codegen.py - >$@.64.out.c
+	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm  $@.64.asm | $(PYPY) CodeGenC/codegen.py - >$@.64.out.c
 	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $@.64.out.c -o $@.64.cc.exe
 	./$@.64.cc.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 	#
 	@echo "[$@ - 32]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $? > $@.32.asm
-	$(PYPY) cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm  $@.32.asm | CodeGenC/codegen.py - > $@.32.out.c
+	cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm  $@.32.asm | $(PYPY) CodeGenC/codegen.py - > $@.32.out.c
 	$(CC) $(CC_FLAGS) -O -static -m32 -nostdlib StdLib/syscall.c $@.32.out.c -o $@.32.cc.exe
 	./$@.32.cc.exe > $@.run.out
 	diff $@.run.out $*.reference_output
 	#
 	@echo "[$@ - 64 opt]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=64  $? > $@.64.asm
-	$(PYPY) cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm  $@.64.asm | Base/optimize.py > $@.64.opt.asm
+	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm  $@.64.asm | $(PYPY) Base/optimize.py > $@.64.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.64.opt.asm > $@.64.out.c
 	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $@.64.out.c -o $@.64.cc.exe
 	./$@.64.cc.exe > $@.run.out
@@ -140,7 +140,7 @@ FrontEndC/TestData/20020129-1.c
 	#
 	@echo "[$@ - 32 opt]"
 	$(PYPY) FrontEndC/translate.py --cpp_args=-IStdLib --mode=32 $? > $@.32.asm
-	$(PYPY) cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm  $@.32.asm |  Base/optimize.py > $@.32.opt.asm
+	cat StdLib/syscall.extern32.asm StdLib/std_lib.32.asm  $@.32.asm | $(PYPY) Base/optimize.py > $@.32.opt.asm
 	$(PYPY) CodeGenC/codegen.py $@.32.opt.asm > $@.32.out.c
 	$(CC) $(CC_FLAGS) -O -static -m32 -nostdlib StdLib/syscall.c $@.32.out.c -o $@.32.cc.exe
 	./$@.32.cc.exe > $@.run.out
