@@ -157,7 +157,7 @@ def ParseLine(line: str) -> List[str]:
         if t == "=":
             continue
         if t == "," or t == ";":
-            raise ValueError(f"commas and semicolons are not allowed")
+            raise ValueError(f"commas and semicolons are not allowed {line}")
         elif t == "[":
             assert not in_list
             in_list = True
