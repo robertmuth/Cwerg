@@ -538,10 +538,11 @@ SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              dst: = src1 >> (src2 mod bitwidth(src2))""")
 
 # do we need both directions, do we need a reverse version?
-ROTL = Opcode(0x1d, "rotl", OPC_KIND.ALU,
-              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-              "Rotation Left")
+# should we rather use a funnel shift?
+# ROTL = Opcode(0x1d, "rotl", OPC_KIND.ALU,
+#               [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+#               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+#               "Rotation Left")
 
 ############################################################
 # CONDITIONAL BRANCHES 0x20
