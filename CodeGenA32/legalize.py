@@ -378,7 +378,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                                                     global_reg_stats[(o.DK.F32, False)],
                                                     flt_global_not_lac)
 
-    reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled)
+    reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
     # Recompute Everything (TODO: make this more selective)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
@@ -398,7 +398,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     if False:
         to_be_spillled = [reg for reg in fun.regs if not reg.HasCpuReg()]
         to_be_spillled.sort()
-        reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spillled)
+        reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spillled, prefix="$gspill")
 
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()

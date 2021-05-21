@@ -51,6 +51,20 @@ def A32RegsToAllocMask(regs: List[ir.CpuReg]) -> int:
                             (A32RegToAllocMask(r) for r in regs), 0)
 
 
+def RenderMaskGPR(mask: int) -> str:
+    out = []
+    for i, name in enumerate(_GPR_REG_NAMES):
+        if (mask & (1 << i)) != 0: out.append(name)
+    return " ".join(out)
+
+
+def RenderMaskFLT(mask: int) -> str:
+    out = []
+    for i in range(32):
+        if (mask & (1 << i)) != 0: out.append(f"s{i}")
+    return " ".join(name)
+
+
 PC_REG = _GPR_REGS[15]
 LINK_REG = _GPR_REGS[14]
 STACK_REG = _GPR_REGS[13]
@@ -278,9 +292,13 @@ class RegPoolA32(reg_alloc.RegPool):
         if self._allow_spilling:
             return ir.CPU_REG_SPILL
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        print("\n".join(serialize.BblRenderToAsm(self._bbl)))
+        lines = [f"{n-1:2} {x}" for n, x in enumerate(serialize.BblRenderToAsm(self._bbl))]
+        print("\n".join(lines))
+        print(f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
+        print(f"# {lr}")
+        print(f"# ALLOCATOR status: {self}")
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        assert False, f"in {self._fun.name}:{self._bbl.name} no reg available for {lr} in {self}"
+        assert False
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         mask = A32RegToAllocMask(cpu_reg)
@@ -297,7 +315,7 @@ class RegPoolA32(reg_alloc.RegPool):
     def __str__(self):
         gpr_lac, gpr_not_lac = self._gpr_available_lac, self._gpr_available_not_lac
         flt_lac, flt_not_lac = self._flt_available_lac, self._flt_available_not_lac
-        return f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"
+        return f"POOL  (lac/not_lac)  gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"
 
 
 _SUPPORTED_FLT_REGS = {o.DK.F64, o.DK.F32}
@@ -309,7 +327,7 @@ _SUPPORTED_GPR_REGS = {o.DK.A32, o.DK.C32,
 _SUPPORTED_REGS = _SUPPORTED_FLT_REGS | _SUPPORTED_GPR_REGS
 
 
-def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges, allow_spilling,
+def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRange], allow_spilling,
                    gpr_regs_lac: int, gpr_regs_not_lac: int,
                    flt_regs_lac: int,
                    flt_regs_not_lac: int):
@@ -317,7 +335,7 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges, allow_spilling,
     pool = RegPoolA32(fun, bbl, allow_spilling,
                       gpr_regs_lac, gpr_regs_not_lac, flt_regs_lac, flt_regs_not_lac)
     for lr in live_ranges:
-        # since we are operating on a BBL we cannot change LifeRanges
+        # since we are operating on a BBL we cannot change LiveRanges
         # extending beyond the BBL.
         # reg_kinds_fixed (e.g. Machine) regs are assumed to be
         # pre-allocated and will not change
@@ -398,7 +416,8 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
     live_ranges.sort()
     for lr in live_ranges:
-        # since we are operating on a BBL we cannot change LifeRanges
+        assert liveness.LiveRangeFlag.IGNORE not in lr.flags
+        # since we are operating on a BBL we cannot change LiveRanges
         # extending beyond the BBL.
         # reg_kinds_fixed (e.g. Machine) regs are assumed to be
         # pre-allocated and will not change
@@ -406,18 +425,52 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
             lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
             lr.cpu_reg = lr.reg.cpu_reg
         # print (repr(lr))
+
+    if False:
+        print ("@@@@@@@@@@@@@@@@@@@")
+        for lr in live_ranges:
+            ins = ""
+            if lr.def_pos >= 0 and not lr.is_use_lr():
+                ins = "\t# " + serialize.InsRenderToAsm(bbl.inss[lr.def_pos])
+            print (str(lr) + ins)
+
+
+    # for lr in live_ranges:
+    #
+    #     if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags  or lr.is_use_lr():
+    #         continue
+    #     if lr.last_use_pos - lr.def_pos > 0:
+    #         lr.flags |= liveness.LiveRangeFlag.IGNORE
+    #
+    # _RunLinearScan(bbl, fun, live_ranges, False,
+    #                _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
+    #                _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
+    #
+    # for lr in live_ranges:
+    #     if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags or lr.is_use_lr():
+    #         continue
+    #     if liveness.LiveRangeFlag.IGNORE in lr.flags:
+    #         lr.flags &= ~liveness.LiveRangeFlag.IGNORE
+    #     else:
+    #         assert lr.cpu_reg is not ir.CPU_REG_INVALID and lr.cpu_reg is not ir.CPU_REG_SPILL, f"{lr}"
+    #         lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
+    #         lr.reg.cpu_reg = lr.cpu_reg
+
+    # First reg-alloc path to determine if spilling is needed.
+    # Note, global and fixed registers have already been assigned and will
+    # be respected by the allocator.
     _RunLinearScan(bbl, fun, live_ranges, True,
                    _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
                    _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
     spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
     if spilled_regs:
         # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
-        reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32)
+        reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
         live_ranges.sort()
         for lr in live_ranges:
-            # since we are operating on a BBL we cannot change LifeRanges
+            # since we are operating on a BBL we cannot change LiveRanges
             # extending beyond the BBL.
             # reg_kinds_fixed (e.g. Machine) regs are assumed to be
             # pre-allocated and will not change

@@ -244,7 +244,7 @@ void BblRegAllocOrSpill(Bbl bbl,
       AssignAllocatedRegsAndReturnSpilledRegs(ranges);
   if (!spilled_regs.empty()) {
     for (Reg reg : spilled_regs) {
-      RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun);
+      RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun, "$spill");
     }
     BblSpillRegs(bbl, fun, DK::U32, inss);
     // This cleanup should not be strictly necessary since we only deal

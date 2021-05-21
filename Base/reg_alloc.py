@@ -121,13 +121,18 @@ def RegisterAssignerLinearScan(live_ranges: List[LiveRange], pool: RegPool, debu
 
 
 def _SpillEarlierLiveRange(reg: ir.Reg, pos: int, i: int, live_ranges: List[LiveRange],
-                           pool: RegPool, debug) -> int:
+                           pool: RegPool, do_not_spill: List[LiveRange], debug) -> int:
+
     kind_wanted = pool.get_cpu_reg_family(reg.kind)
     for i in range(i, -1, -1):  # count down to zero!
         lr = live_ranges[i]
-        if (
-                lr.is_use_lr() or IGNORE in lr.flags or PRE_ALLOC in lr.flags or lr.cpu_reg is ir.CPU_REG_SPILL
-                or lr.last_use_pos <= pos or pool.get_cpu_reg_family(lr.reg.kind) != kind_wanted):
+        if (lr in do_not_spill or
+                lr.is_use_lr() or
+                IGNORE in lr.flags or
+                PRE_ALLOC in lr.flags or
+                lr.cpu_reg is ir.CPU_REG_SPILL or
+                lr.last_use_pos <= pos or
+                pool.get_cpu_reg_family(lr.reg.kind) != kind_wanted):
             continue
         if debug:
             debug(lr, f"spilling previously assigned {lr.cpu_reg.name}")
@@ -168,7 +173,7 @@ def _HandleDefLiveRangeFancy(i: int, lr: LiveRange, live_ranges: List[LiveRange]
             if debug:
                 debug(lr, "no spill scratch reg for def")
             # backtracking provides better allocation but is slow (potentially exponentially so)
-            _SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, live_ranges, pool, debug)
+            _SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, live_ranges, pool, [], debug)
             tmp_reg = pool.get_available_reg(tmp_lr)
             assert tmp_reg is not ir.CPU_REG_SPILL
         if debug:
@@ -181,8 +186,10 @@ def _HandleUseLiveRangeFancy(i: int, lr_use: LiveRange, live_ranges: List[LiveRa
                              debug):
     """return are reg """
     spill_tmp_regs: List[ir.CpuReg] = []
+    do_not_spill = []
     for x, lr in enumerate(lr_use.uses):
         if IGNORE in lr.flags or PRE_ALLOC in lr.flags or lr.cpu_reg is not ir.CPU_REG_SPILL:
+            do_not_spill.append(lr)
             continue
         # The reg in question was spilled and we have a use here.
         # we need a tmp reg to load the spilled reg - make sure we can get one
@@ -196,13 +203,13 @@ def _HandleUseLiveRangeFancy(i: int, lr_use: LiveRange, live_ranges: List[LiveRa
             # backtracking provides better allocation but is slow (potentially exponentially so)
             # TODO: make a second pass to maybe undo some spilling
             # TODO: the earlier spilled reg may be a "lac" but we may request a non_lac
-            _SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, live_ranges, pool, debug)
+            _SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, live_ranges, pool, do_not_spill, debug)
             tmp_reg = pool.get_available_reg(tmp_lr)
             assert tmp_reg is not ir.CPU_REG_SPILL
 
         spill_tmp_regs.append(tmp_reg)
         if debug:
-            debug(lr, f"[{x}, def:{lr_use.def_pos}] spill scratch reg for use: {tmp_reg.name}")
+            debug(lr, f"[{x}, def:{lr_use.def_pos} {lr.reg}] spill scratch reg for use: {tmp_reg.name}")
     _HandleUseLiveRange(lr_use, pool, debug)
 
     for tmp_reg in spill_tmp_regs:
@@ -264,22 +271,22 @@ def InsSpillRegs(ins: ir.Ins, fun: ir.Fun, zero_const, reg_to_stk) -> Optional[L
         return None
 
 
-def BblSpillRegs(bbl: ir.Bbl, fun: ir.Bbl, regs: List[ir.Reg], offset_kind: o.DK) -> int:
+def BblSpillRegs(bbl: ir.Bbl, fun: ir.Bbl, regs: List[ir.Reg], offset_kind: o.DK, prefix) -> int:
     reg_to_stk: Dict[ir.Reg, ir.Stk] = {}
     for reg in regs:
         size = ir.OffsetConst(reg.kind.bitwidth() // 8)
-        stk = ir.Stk(f"$spill_{reg.name}", size, size)
+        stk = ir.Stk(f"{prefix}_{reg.name}", size, size)
         reg_to_stk[reg] = stk
         fun.AddStk(stk)
     ir.BblGenericRewrite(bbl, fun, InsSpillRegs, zero_const=ir.Const(offset_kind, 0),
                          reg_to_stk=reg_to_stk)
 
 
-def FunSpillRegs(fun: ir.Fun, offset_kind: o.DK, regs: List[ir.Reg]) -> int:
+def FunSpillRegs(fun: ir.Fun, offset_kind: o.DK, regs: List[ir.Reg], prefix) -> int:
     reg_to_stk: Dict[ir.Reg, ir.Stk] = {}
     for reg in regs:
         size = ir.OffsetConst(reg.kind.bitwidth() // 8)
-        stk = ir.Stk(f"$spill_{reg.name}", size, size)
+        stk = ir.Stk(f"{prefix}_{reg.name}", size, size)
         reg_to_stk[reg] = stk
         fun.AddStk(stk)
     return ir.FunGenericRewrite(fun, InsSpillRegs, zero_const=ir.Const(offset_kind, 0),

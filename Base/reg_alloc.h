@@ -46,7 +46,7 @@ extern void RegisterAssignerLinearScanFancy(const std::vector<LiveRange*>& order
                                             RegPool* pool,
                                             RegAllocLoggerFun debug = nullptr);
 
-extern Stk RegCreateSpillSlot(Reg reg, Fun fun);
+extern Stk RegCreateSpillSlot(Reg reg, Fun fun, std::string_view prefix);
 
 // assumes RegSpillSlot() has been initialized
 extern void BblSpillRegs(Bbl bbl,
@@ -58,5 +58,6 @@ extern void BblSpillRegs(Bbl bbl,
 extern void FunSpillRegs(Fun fun,
                          DK offset_kind,
                          const std::vector<Reg>& regs,
-                         std::vector<Ins>* inss);
+                         std::vector<Ins>* ins,
+                         std::string_view prefix);
 }  // namespace cwerg::base

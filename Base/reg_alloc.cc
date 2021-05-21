@@ -44,17 +44,31 @@ void HandleDefLiveRange(LiveRange* lr,
   }
 }
 
+bool is_disallowed_range(LiveRange* candidate,
+                         std::vector<LiveRange>* ranges,
+                         const uint16_t* disallowed_ranges,
+                         uint32_t disallowed_ranges_size) {
+  for (unsigned i = 0; i < disallowed_ranges_size; ++i) {
+    if (&(*ranges)[disallowed_ranges[i]] == candidate) return true;
+  }
+  return false;
+}
+
 void SpillEarlierLiveRange(Reg reg,
                            unsigned def_pos,
                            int i,
                            const std::vector<LiveRange*>& ordered,
                            std::vector<LiveRange>* ranges,
                            RegPool* pool,
+                           const uint16_t* disallowed_ranges,
+                           uint32_t disallowed_ranges_size,
                            RegAllocLoggerFun debug) {
   const int kind_wanted = pool->get_cpu_reg_family(RegKind(reg));
   for (; i >= 0; --i) {
     LiveRange& lr = *ordered[i];
     if (lr.is_use_lr() || lr.HasFlag(LR_FLAG::IGNORE) ||
+        is_disallowed_range(&lr, ranges, disallowed_ranges,
+                            disallowed_ranges_size) ||
         lr.HasFlag(LR_FLAG::PRE_ALLOC) || lr.cpu_reg == CPU_REG_SPILL ||
         lr.last_use_pos <= def_pos ||
         pool->get_cpu_reg_family(RegKind(lr.reg)) != kind_wanted) {
@@ -81,7 +95,7 @@ int HandleDefLiveRangeFancy(int i,
     if (tmp_reg == CPU_REG_SPILL) {
       if (debug) debug(*lr, "no scratch reg for spilled def");
       SpillEarlierLiveRange(lr->reg, lr->def_pos, i - 1, ordered, ranges, pool,
-                            debug);
+                            nullptr, 0, debug);
       tmp_reg = pool->get_available_reg(tmp_lr);
       ASSERT(tmp_reg != CPU_REG_SPILL, "cannot find tmp_reg");
     } else {
@@ -121,7 +135,7 @@ int HandleUseLiveRangeFancy(int i,
         debug(lr, os.str());
       }
       SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, ordered, ranges, pool,
-                            debug);
+                            &lr.use_def[0], x, debug);
       tmp_reg = pool->get_available_reg(tmp_lr);
       ASSERT(tmp_reg != CPU_REG_SPILL, "cannot find tmp_reg");
     }
@@ -240,21 +254,20 @@ void BblSpillRegs(Bbl bbl, Fun fun, DK offset, std::vector<Ins>* inss) {
   }
 }
 
-Stk RegCreateSpillSlot(Reg reg, Fun fun) {
+Stk RegCreateSpillSlot(Reg reg, Fun fun, std::string_view prefix) {
   uint32_t size = DKBitWidth(RegKind(reg)) / 8;
   char buf[kMaxIdLength];
-  Str name =
-      StrNew(StrCat(buf, sizeof(buf), "$spill", "_", StrData(Name(reg))));
+  Str name = StrNew(StrCat(buf, sizeof(buf), prefix, "_", StrData(Name(reg))));
   Stk stk = StkNew(name, size, size);
   FunStkAdd(fun, stk);
   return stk;
 }
 
-void FunCreateStackSlotsForMarkedRegs(Fun fun) {
+void FunCreateStackSlotsForMarkedRegs(Fun fun, std::string_view prefix) {
   for (Reg reg : FunRegIter(fun)) {
     if (RegHasFlag(reg, REG_FLAG::MARKED)) {
       RegClearFlag(reg, REG_FLAG::MARKED);
-      RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun);
+      RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun, prefix);
     } else {
       RegSpillSlot(reg) = Stk(0);
     }
@@ -264,10 +277,11 @@ void FunCreateStackSlotsForMarkedRegs(Fun fun) {
 void FunSpillRegs(Fun fun,
                   DK offset_kind,
                   const std::vector<Reg>& regs,
-                  std::vector<Ins>* inss) {
+                  std::vector<Ins>* inss,
+                  std::string_view prefix) {
   for (Reg reg : FunRegIter(fun)) RegSpillSlot(reg) = Stk(0);
 
-  for (Reg reg : regs) RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun);
+  for (Reg reg : regs) RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun, prefix);
 
   for (Bbl bbl : FunBblIter(fun)) {
     BblSpillRegs(bbl, fun, offset_kind, inss);

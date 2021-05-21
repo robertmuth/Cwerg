@@ -477,7 +477,7 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac, 0, &to_be_spilled);
   }
 
-  FunSpillRegs(fun, DK::U32, to_be_spilled, &inss);
+  FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$gspill");
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);
@@ -494,7 +494,7 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
     for (Reg reg : FunRegIter(fun)) {
       if (RegCpuReg(reg).isnull()) to_be_spilled.push_back(reg);
     }
-    FunSpillRegs(fun, DK::U32, to_be_spilled, &inss);
+    FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$spill");
   }
 
   FunLocalRegAlloc(fun, &inss);
