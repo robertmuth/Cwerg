@@ -18,9 +18,13 @@
 
 [FAQ](FAQ.md)
 
+### Runtime Library
+
+[StdLib](../StdLib/README.md)
+
 ### Frontends
 
-[C (Lite) Frontend](../FrontEndC)
+[C (Lite) Frontend](../FrontEndC/README.md)
 
 ### Backends
 
