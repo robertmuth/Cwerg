@@ -22,7 +22,7 @@ test_qemu_env_a64:
 	aarch64-linux-gnu-ld hello_barebones.a64.o -o hello_barebones.a64.exe
 	qemu-aarch64-static  ./hello_barebones.a64.exe
 	@echo c-hello
-	aarch64-linux-gnu-gcc -static  -Wl,-z,norelro  -O2 hello.c -o hello.a64.exe
+	aarch64-linux-gnu-gcc-8 -static  -Wl,-z,norelro  -O2 hello.c -o hello.a64.exe
 	qemu-aarch64-static  ./hello.a64.exe
 	@echo OK
 
