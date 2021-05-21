@@ -77,21 +77,15 @@ def _HandleUseLiveRange(lr_use: LiveRange, pool, debug):
             continue
         if IGNORE in lr.flags:
             continue
-        elif PRE_ALLOC in lr.flags:
-            assert lr.cpu_reg is not ir.CPU_REG_INVALID
-            assert lr.cpu_reg == lr.reg.cpu_reg
-            if debug:
-                debug(lr, "end pre-alloc")
-            # we want to use registers even after the reserved region
-            pool.give_back_available_reg(lr.cpu_reg)
-        else:
-            c = lr.cpu_reg
-            if debug:
-                debug(lr, "end")
-            # Many RegPool implementations will never return NO_REG_AVAILABLE
-            # but rather assert but we to make partial allocations possible
-            if c is not ir.CPU_REG_SPILL:
-                pool.give_back_available_reg(c)
+        c = lr.cpu_reg
+        if PRE_ALLOC in lr.flags:
+            assert c is not ir.CPU_REG_INVALID
+            assert c is not ir.CPU_REG_SPILL
+            assert c == lr.reg.cpu_reg
+        if c is not ir.CPU_REG_SPILL:
+            pool.give_back_available_reg(c)
+        if debug:
+            debug(lr, f"end {c.name}")
 
 
 def _HandleDefLiveRange(lr: LiveRange, pool, debug):
@@ -99,11 +93,11 @@ def _HandleDefLiveRange(lr: LiveRange, pool, debug):
     lr.cpu_reg = pool.get_available_reg(lr)
     assert lr.cpu_reg is not ir.CPU_REG_INVALID
     if debug:
-        debug(lr, "start")
+        debug(lr, f"start {lr.cpu_reg.name}")
     if lr.last_use_pos is liveness.NO_USE and lr.cpu_reg is not ir.CPU_REG_SPILL:
-        if debug:
-            debug(lr, "no use")
         pool.give_back_available_reg(lr.cpu_reg)
+        if debug:
+            debug(lr, f"no use {lr.cpu_reg.name}")
 
 
 def RegisterAssignerLinearScan(live_ranges: List[LiveRange], pool: RegPool, debug=None):
@@ -136,7 +130,7 @@ def _SpillEarlierLiveRange(reg: ir.Reg, pos: int, i: int, live_ranges: List[Live
                 or lr.last_use_pos <= pos or pool.get_cpu_reg_family(lr.reg.kind) != kind_wanted):
             continue
         if debug:
-            debug(lr, f"spilling this to free up reg")
+            debug(lr, f"spilling previously assigned {lr.cpu_reg.name}")
 
         pool.give_back_available_reg(lr.cpu_reg)
         lr.cpu_reg = ir.CPU_REG_SPILL
@@ -172,14 +166,13 @@ def _HandleDefLiveRangeFancy(i: int, lr: LiveRange, live_ranges: List[LiveRange]
         tmp_reg = pool.get_available_reg(tmp_lr)
         if tmp_reg is ir.CPU_REG_SPILL:
             if debug:
-                debug(lr, "no scratch reg for spilled def")
+                debug(lr, "no spill scratch reg for def")
             # backtracking provides better allocation but is slow (potentially exponentially so)
             _SpillEarlierLiveRange(lr.reg, lr.def_pos, i - 1, live_ranges, pool, debug)
             tmp_reg = pool.get_available_reg(tmp_lr)
             assert tmp_reg is not ir.CPU_REG_SPILL
-        else:
-            if debug:
-                debug(lr, f"scratch for spilled reg: {tmp_reg.name}")
+        if debug:
+            debug(lr, f"spill scratch reg for def: {tmp_reg.name}")
         pool.give_back_available_reg(tmp_reg)
     return i + 1
 
@@ -199,7 +192,7 @@ def _HandleUseLiveRangeFancy(i: int, lr_use: LiveRange, live_ranges: List[LiveRa
         tmp_reg = pool.get_available_reg(tmp_lr)
         if tmp_reg is ir.CPU_REG_SPILL:
             if debug:
-                debug(lr, f"[{x}] no scratch reg for spilled use at {lr_use.def_pos}")
+                debug(lr, f"[{x}, def:{lr_use.def_pos}] no spill scratch reg for use")
             # backtracking provides better allocation but is slow (potentially exponentially so)
             # TODO: make a second pass to maybe undo some spilling
             # TODO: the earlier spilled reg may be a "lac" but we may request a non_lac
@@ -209,7 +202,7 @@ def _HandleUseLiveRangeFancy(i: int, lr_use: LiveRange, live_ranges: List[LiveRa
 
         spill_tmp_regs.append(tmp_reg)
         if debug:
-            debug(lr, f"[{x}] scratch reg for spilled use at {lr_use.def_pos}: {tmp_reg.name}")
+            debug(lr, f"[{x}, def:{lr_use.def_pos}] spill scratch reg for use: {tmp_reg.name}")
     _HandleUseLiveRange(lr_use, pool, debug)
 
     for tmp_reg in spill_tmp_regs:
@@ -230,6 +223,9 @@ def RegisterAssignerLinearScanFancy(live_ranges: List[LiveRange], pool: RegPool,
 
     As long as there are at least 4 register available per register class this should
     always work as the worst case for spilling are the cmp opcodes which have 4 inputs.
+
+    After this function has run all liveranges which are not PRE_ALLOCATED or IGNORE should
+    have lr.cpu_reg is ir.CPU_REG_INVALID
     """
     live_ranges.sort()
     i = 0
@@ -288,3 +284,4 @@ def FunSpillRegs(fun: ir.Fun, offset_kind: o.DK, regs: List[ir.Reg]) -> int:
         fun.AddStk(stk)
     return ir.FunGenericRewrite(fun, InsSpillRegs, zero_const=ir.Const(offset_kind, 0),
                                 reg_to_stk=reg_to_stk)
+

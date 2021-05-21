@@ -226,10 +226,7 @@ class LiveRangeFlag(enum.Flag):
 class LiveRange:
     """Represents and intra Bbl live-range
 
-    `reg_allowed `can be used to mark this range to be ignored by a register
-     allocator
-     `lac` (live across call) live range crosses a call. This is important when
-     we allocate machine registers.
+    if reg == REG_INVALID - this is a fake liverange
     """
     def_pos: int
     last_use_pos: int
@@ -265,13 +262,12 @@ class LiveRange:
             flags_str = f" {' '.join(f.name for f in LiveRangeFlag if f in self.flags)}"
 
         if self.is_use_lr():
-            flags_str += " USE_DEF"
             # commented to make output compatible with c++ implementation
-            #starts = ",".join([f"{lr.reg.name}:{lr.def_pos}" for lr in self.uses])
-            #extra_str = f"{starts}"
-            extra_str = f" {len(self.uses)}"
+            starts = ",".join([f"{lr.reg.name}:{lr.def_pos}" for lr in self.uses])
+            extra_str = f" uses:{starts}"
+            #extra_str = f" uses:{len(self.uses)}"
         else:
-            extra_str = f" {self.reg.name}:{self.reg.kind.name}"
+            extra_str = f" def:{self.reg.name}:{self.reg.kind.name}"
             if self.cpu_reg is ir.CPU_REG_SPILL:
                 flags_str += " SPILLED"
             elif self.cpu_reg != ir.CPU_REG_INVALID:
@@ -282,7 +278,12 @@ class LiveRange:
 def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses: bool) -> List[LiveRange]:
     """ LiveRanges are use to do register allocation
 
-    Note: function call handling is quite adhoc and likely has bugs
+    Note: function call handling is quite adhoc and likely has bugs.
+    The output contains the following special LiveRanges
+    * LRs without a last_use if the register is used outside the Bbl (based on live_out)
+    * LRs without a def of the register is defined outside the Bbl
+    * [if emit_uses] use-def LRs contain the LRs of all the used regs in the instruction at point p.
+                     (def=p last_use=p,  reg=REG_INVALID)
     """
     out = []
     bbl_size = len(bbl.inss)
@@ -331,7 +332,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
         uses = []
         for n, reg in enumerate(ins.operands):
             if not isinstance(reg, ir.Reg): continue
-            if n < num_defs:
+            if n < num_defs: # define reg
                 lr = last_use.get(reg)
                 if lr:
                     finalize_lr(lr, pos)
@@ -342,7 +343,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
                     if reg.HasCpuReg() and reg.cpu_reg in last_call_cpu_live_in:
                         last_use_pos = last_call_pos
                     out.append(LiveRange(pos, last_use_pos, reg, 0))
-            else:
+            else:  # used reg
                 lr = last_use.get(reg)
                 if lr:
                     lr.num_uses += 1
