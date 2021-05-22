@@ -48,62 +48,13 @@ void RegAllocLocal(Unit unit, bool verbose, std::ostream* fout) {
   }
 }
 
-WebResponse ResumeHandler(const WebRequest& request) {
-  std::string_view path = request.raw_path.substr(1);
-  auto pos = path.find("/");
-  bool success = false;
-  if (pos != std::string_view::npos) {
-    path.remove_prefix(pos + 1);
-    success = BreakPoint::ResumeByName(path);
-  }
-  WebResponse out;
-  if (success) {
-    out.body << "<html><body>resuming breakpoint [" << path
-             << "]</body></html>";
-  } else {
-    out.body << "<html><body>failed to resume breakpoint [" << path
-             << "]</body></html>";
-  }
-  return out;
-}
-
-const std::string_view kHtmlProlog(R"(<!doctype html>
-<html>
-<head>
-<meta charset=utf-8">
-<style>
-body {
-    font-family: sans-serif;
-}
-</style>
-</head>
-<body>
-)");
-
-const std::string_view kHtmlEpilog(R"(
-</body>
-</html>
-)");
-
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;
 
-  out.body << kHtmlProlog;
+  out.body << WebServer::kHtmlProlog;
   out.body << "<h1>Debug Console</h1>\n";
 
-  out.body << "<h2>Breakpoints</h2>\n";
-  out.body << "<table>\n";
-  for (const BreakPoint* w : BreakPoint::GetAll()) {
-    out.body << "<tr>\n"
-             << "<td>" << w->name() << "</td>";
-    if (w->ready()) {
-      out.body << "<td>inactive<td></td>";
-    } else {
-      out.body << "<td><a href='/resume/" << w->name() << "'>Resume</a></td>";
-    }
-    out.body << "</tr>\n";
-  }
-  out.body << "</table>\n";
+  RenderBreakPointHTML(&out.body);
 
   out.body << "<h2>Code</h2>\n";
   out.body << "<a href='/code'>Code</a>\n";
@@ -118,13 +69,13 @@ WebResponse DefaultHandler(const WebRequest& request) {
   cwerg::StripeGroup::DumpAllGroups(out.body);
   out.body << "</pre>\n";
 
-  out.body << kHtmlEpilog;
+  out.body << WebServer::kHtmlEpilog;
   return out;
 }
 
 WebResponse CodeHandler(base::Unit unit, const WebRequest& request) {
   WebResponse out;
-  out.body << kHtmlProlog;
+  out.body << WebServer::kHtmlProlog;
 
   for (Mem mem : UnitMemIter(unit)) {
     out.body << "<hr>\n";
@@ -138,7 +89,7 @@ WebResponse CodeHandler(base::Unit unit, const WebRequest& request) {
     FunRenderToAsm(fun, &out.body, true);
     out.body << "</pre>";
   }
-  out.body << kHtmlEpilog;
+  out.body << WebServer::kHtmlEpilog;
   return out;
 }
 
@@ -207,7 +158,8 @@ int main(int argc, const char* argv[]) {
     webserver = std::make_unique<cwerg::WebServer>();
     webserver->handler.push_back(
         WebHandler{"/code", "GET", std::bind(CodeHandler, unit, _1)});
-    webserver->handler.push_back(WebHandler{"/resume/", "GET", ResumeHandler});
+    webserver->handler.push_back(
+        WebHandler{"/resume/", "GET", ResumeBreakpointHandler});
     webserver->handler.push_back(WebHandler{"/", "GET", DefaultHandler});
 
     webserver_thread =

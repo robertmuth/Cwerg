@@ -131,6 +131,29 @@ bool WebServer::Start(int port, std::string_view host) {
   return true;
 }
 
+void WebServer::Shutdown(){
+  shut_down = true;
+}
+
+
+const std::string_view WebServer::kHtmlProlog(R"(<!doctype html>
+<html>
+<head>
+<meta charset=utf-8">
+<style>
+body {
+    font-family: sans-serif;
+}
+</style>
+</head>
+<body>
+)");
+
+const std::string_view WebServer::kHtmlEpilog(R"(
+</body>
+</html>
+)");
+
 }  // namespace cwerg
 
 #if 0

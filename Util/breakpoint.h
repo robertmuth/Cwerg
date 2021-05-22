@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mutex>
 #include <vector>
+#include "Util/webserver.h"
 
 namespace cwerg {
 
@@ -15,6 +16,7 @@ class BreakPoint {
 
   std::string_view name() const { return name_; }
   bool ready() const { return ready_; }  // benign race
+  static bool HaveBreakPoints() { return head != nullptr; }
 
   void Break() {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -60,5 +62,12 @@ class BreakPoint {
 
   static BreakPoint* head;
 };
+
+// This must be registered with the webserver to handle break points like so
+// webserver->handler.push_back(WebHandler{"/resume/", "GET", ResumeHandler});
+extern WebResponse ResumeBreakpointHandler(const WebRequest& request);
+
+// Renders the breakpoint overview
+extern void RenderBreakPointHTML(std::ostream* out);
 
 }  // namespace cwerg

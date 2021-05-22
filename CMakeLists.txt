@@ -222,3 +222,9 @@ add_executable(a32_codegen_tool.exe
         CodeGenA32/codegen_tool.cc
         )
 
+
+add_executable(builder_example.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        Examples/builder_example.cc
+        )

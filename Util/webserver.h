@@ -47,5 +47,9 @@ struct WebServer {
 
   bool shut_down = false;
   bool Start(int port, std::string_view host);
+
+  void Shutdown();
+  static const std::string_view kHtmlProlog;
+  static const std::string_view kHtmlEpilog;
 };
 }  // namespace cwerg
