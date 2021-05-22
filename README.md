@@ -4,10 +4,10 @@
 
 
 
-Cwerg started off as an experimental C compiler but has morphed into a
-lightweight compiler backend aimed at experimental programming 
+Cwerg lightweight compiler backend aimed at experimental programming 
 language implementations that want to avoid heavy dependencies like
-[LLVM](https://llvm.org).
+[LLVM](https://llvm.org). It has no dependencies and can directly generate
+ELF executables for Arm32 and soon Arm64 ISAs.
 
 The project is very much "work in progress" and  currently consists of:
 
@@ -18,6 +18,8 @@ The project is very much "work in progress" and  currently consists of:
 * [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions)
 * [A32 backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
+* [A64 backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions - 
+                                       incomplete)
 * [C backend](CodeGenC/README.md) (code generator emitting C code)
 
 It can be used for both AOT compilation and JITing.
@@ -70,9 +72,9 @@ any work on these):
   to fit into the complexity budget. Line numbers will likely be supported.
 * C++ exception. A lot of code and complexity that only benefits one language.
 * Linking against code produced with other toolchains.
-* Shared libs. The extra indirection and
-  PC relative addressing adds complexity and slows programs down, not
-  to mention the DLL hell problem.
+* Shared libs/dynamic linking adds complexity and slows programs down (both because
+  of slower code idioms and prevention of optimizations), not
+  to mention the DLL hell problem. (see also: https://drewdevault.com/dynlib)
 * Sophisticated instruction scheduling which is less important for memory 
   bound code and out-of-order CPUs.
 * Sophisticated loop optimizations. Probably best left to the frontend.

@@ -18,6 +18,8 @@
 
 [FAQ](FAQ.md)
 
+[Debugging Hints](debugging.md)
+
 ### Runtime Library
 
 [StdLib](../StdLib/README.md)
@@ -41,3 +43,7 @@
 ### Object File Formats
 
 [ELF](../Elf/README.md) - 32 and 64 bit Elf support
+
+### Examples
+
+[Examples](../Examples/README.md)

@@ -10,7 +10,28 @@
     print(serialize.InsRenderToAsm(ins))
     ```
   
-* the Tools/  directory contains debugging aids
+* the Tools/  directory contains several debugging aids
+  
+  * reg_alloc_explorer.py - for debugging the (A32) register allocator
+  * inspector.py - for browsing the IR before and after various transformations
+
 
 * C++ built-in web browser
+
+Several of the c++ binaries have a built-in webserver (e.g. Base/optimize_tool and 
+CodeGenA32/codegen_tool).
+The webserver needs to be explicitly activated via a commandline flag that specifies the port 
+the server is listening on, e.g. `-webserver_port=8080`.
+
+The webserver let's you browse the current IR. You can add software breakpoints by defining global 
+objects like
+```
+BreakPoint bp_after_load("after_load");
+```
+and then call 
+```
+bp_after_load.Break();
+```
+at the point where you want to inspect the IR. 
+The breakpoint can be resumed via the Web interface.
 
