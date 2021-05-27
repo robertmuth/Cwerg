@@ -373,6 +373,9 @@ class FieldInfo:
         self.encoder = encoder
         assert scale == 1 or kind in {FK.INT, FK.INT_SIGNED}
 
+    def __str__(self):
+        return f"[{self.kind.name}]"
+
 
 REG_WZR = [f"w{i}" for i in range(31)] + ["wzr"]
 REG_WSP = [f"w{i}" for i in range(31)] + ["sp"]
@@ -490,11 +493,11 @@ for ok in OK:
 
 
 def EncodeOperand(ok: OK, val: int) -> int:
-    """Expects an unsigned 32 bit integer and emit it raw encoded equivalent
+    """Expects an unsigned 64 bit integer and emit it raw encoded equivalent
        to be insert into an a32 instruction as an operand
 
-    The val can be interpreted as 32 bit signed ot even a 32bit float depending
-    on t.kind.
+    The val can be interpreted as 64 bit signed or even as the bitcast of a  64bit
+    float depending on t.kind.
     """
     # assert (1 << 64) > val >= 0
     t = FIELD_DETAILS[ok]

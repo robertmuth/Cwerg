@@ -6,7 +6,7 @@ import struct
 
 from Elf import enum_tab
 from CpuA64 import opcode_tab as a64
-from Util import  parse
+from Util import parse
 
 
 def SymbolizeOperand(ok: a64.OK, data: int) -> str:
@@ -74,12 +74,32 @@ _RELOC_KIND_MAP = {
 }
 
 _RELOC_OK = set([
-    a64.OK.SIMM_PCREL_0_25, a64.OK.SIMM_PCREL_5_23, a64.OK.SIMM_PCREL_5_23_29_30
+    a64.OK.SIMM_PCREL_0_25, # RELOC_TYPE_AARCH64.JUMP26
+    a64.OK.SIMM_PCREL_5_23,
+    a64.OK.SIMM_PCREL_5_23_29_30,
+    a64.OK.IMM_SHIFTED_10_21_22,  # RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC
 ])
 
 
 def _EmitReloc(ins: a64.Ins, pos: int) -> str:
-    assert False, "NYI"
+    if ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.JUMP26:
+        assert ins.is_local_sym, f"expected local symbol"
+        return f"expr:jump64:{ins.reloc_symbol}"
+    elif ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21:
+        loc = "loc_" if ins.is_local_sym else ""
+        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
+        return f"expr:{loc}adr_prel_pg_hi21:{ins.reloc_symbol}{offset}"
+    elif ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC:
+        loc = "loc_" if ins.is_local_sym else ""
+        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
+        return f"expr:{loc}add_abs_lo12_nc:{ins.reloc_symbol}{offset}"
+    elif ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.CALL26:
+        return f"expr:call26:{ins.reloc_symbol}"
+    if ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.CONDBR19:
+        assert ins.is_local_sym, f"expected local symbol"
+        return f"expr:condbr19:{ins.reloc_symbol}"
+    else:
+        assert False
 
 
 def InsSymbolize(ins: a64.Ins) -> Tuple[str, List[str]]:
@@ -87,9 +107,9 @@ def InsSymbolize(ins: a64.Ins) -> Tuple[str, List[str]]:
     """
     ops = []
     for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
-        if (ok in _RELOC_OK and
-                ins.reloc_kind != enum_tab.RELOC_TYPE_AARCH64.NONE and
+        if (ins.reloc_kind != enum_tab.RELOC_TYPE_AARCH64.NONE and
                 ins.reloc_pos == pos):
+            assert ok in _RELOC_OK
             ops.append(_EmitReloc(ins, pos))
         else:
             ops.append(SymbolizeOperand(ok, value))
