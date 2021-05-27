@@ -38,8 +38,11 @@ class IMM_KIND(enum.IntEnum):
 
 _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
     IMM_KIND.ZERO: lambda x: x == 0,
-
+    IMM_KIND.ANY: lambda x: True,
+    IMM_KIND.IMM_SHIFTED_5_20_21_22: lambda x: a64.EncodeShifted_5_20_21_22(x) is not None
 }
+
+_IMM_KIND_STK: Set[IMM_KIND] = {}
 
 
 def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
@@ -89,10 +92,15 @@ class PARAM(enum.Enum):
     scratch_flt = 23
     num2_rsb_width = 24
     num2_rsb_width_minus1 = 25
-    any = 26
+    mem1_num2_prel_hi21 = 26
+    mem1_num2_lo12 = 27
+    any = 28
 
 
-_RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0}
+_RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
+                           PARAM.mem1_num2_prel_hi21,
+                           PARAM.mem1_num2_lo12,
+                           }
 
 
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
@@ -145,20 +153,14 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
         return op
     elif isinstance(op, PARAM):
         return _ExtractTmplArgOp(ins, op, ctx)
+    elif isinstance(op, FIXARG):
+        return  op.value
     else:
         assert False, f"unknown param {repr(op)}"
 
 
-# _RAW_ENOCDER: Dict[arm.OK, Any] = {
-#     arm.OK.IMM_0_7_8_11: arm.EncodeRotatedImm,
-#     arm.OK.SIMM_0_23: lambda x: x & 0xffffff,
-#     arm.OK.IMM_10_11_TIMES_8: lambda x: x // 8,
-#     arm.OK.IMM_0_7_TIMES_4: lambda x: x // 4,
-# }
-
-
 def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
-    assert armins.reloc_kind == 0
+    assert armins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.NONE, f"{armins.reloc_kind}"
     armins.reloc_pos = pos
 
     if op is PARAM.bbl0:
@@ -178,6 +180,16 @@ def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         armins.reloc_symbol = fun.name
+    elif op in {PARAM.mem1_num2_prel_hi21, PARAM.mem1_num2_lo12}:
+        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.mem1_num2_lo12
+                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
+        mem = ins.operands[1]
+        assert isinstance(mem, ir.Mem), f"{ins} {mem}"
+        armins.reloc_symbol = mem.name
+        num = ins.operands[2]
+        assert isinstance(num, ir.Const), f"{ins} {num}"
+        assert armins.operands[pos] == 0
+        armins.operands[pos] = num.value
     else:
         assert False
 
@@ -205,10 +217,7 @@ class InsTmpl:
         out = a64.Ins(self.opcode)
         for n, arg in enumerate(self.args):
             val = _TranslateTmplOpInt(ins, arg, ctx)
-            assert False
-            # enc = _RAW_ENOCDER.get(self.opcode.fields[n])
-            # if enc:
-            #    val = enc(val)
+            val = a64.EncodeOperand(self.opcode.fields[n], val)
             assert val is not None
             out.operands.append(val)
             # note: this may alter the value we just appended
@@ -233,51 +242,6 @@ def _HighByte(x):
         x >>= 2
         shift += 2
     return x << shift
-
-
-# def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
-#     out = []
-#     stk_size = ctx.stk_size
-#     while stk_size > 0:
-#         high_byte = _HighByte(stk_size)
-#         out.append(InsTmpl("add_imm", [a64.REG.sp, a64.REG.sp, high_byte]))
-#         stk_size -= high_byte
-#     if ctx.vldm_regs > 0:
-#         out.append(
-#             InsTmpl("vldmia_s_update", [PARAM.vldm_start, PARAM.vldm_count, a64.REG.sp]))
-#     if ctx.ldm_regs > 0:
-#         out.append(InsTmpl("ldmia_update", [PARAM.ldm_regmask, a64.REG.sp]))
-#     if (regs.A32RegToAllocMask(regs.PC_REG) & ctx.ldm_regs) == 0:
-#         out.append(InsTmpl("bx", [a64.REG.lr]))
-#     return out
-
-
-def HandlePseudoNop1(ins: ir.Ins, ctx: regs.EmitContext):
-    """This does not emit any code but copies the register assigned to the nop into the ctx
-
-The idea is that the next instruction can use this register as a scratch. But this
-only works if the next instruction was not assigned the register itself.
-"""
-    # assert ctx.scratch_reg is ir.REG_INVALID
-    ctx.scratch_cpu_reg = ins.operands[0].cpu_reg
-    return []
-
-
-# def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
-#     out = []
-#     # TODO: make sure stack is 8 byte aligned
-#     if ctx.stm_regs:
-#         out.append(InsTmpl("stmdb_update", [a64.REG.sp, PARAM.stm_regmask]))
-#     if ctx.vstm_regs > 0:
-#         out.append(InsTmpl(
-#             "vstmdb_s_update",
-#             [a64.REG.sp, PARAM.vstm_start, PARAM.vstm_count]))
-#     stk_size = ctx.stk_size
-#     while stk_size > 0:
-#         high_byte = _HighByte(stk_size)
-#         out.append(InsTmpl("sub_imm", [a64.REG.sp, a64.REG.sp, high_byte]))
-#         stk_size -= high_byte
-#     return out
 
 
 # not this must have more bits set than MAX_OPERANDS
@@ -344,13 +308,21 @@ class Pattern:
         return True
 
     def MatchesImmConstraints(self, ins: ir.Ins) -> int:
-        """Returns bit positions that hsve a mismatch
+        """Returns bit positions that have a mismatch
 
-        assumes that MatchesTypeConstraints return true"""
+        assumes that MatchesTypeConstraints return true
+        Possible return values:
+        * 0: perfect match, pattern can be used directly for code generation
+        * MATCH_IMPOSSBILE: pattern is not suitable
+        * other: partial match, pattern can be used if the operands at the bit positions which are set
+                would live in a register instead of being an immediate
+        """
         out = 0
         for pos, (imm_constr, op) in enumerate(zip(self.imm_constraints, ins.operands)):
             if isinstance(op, ir.Const):
-                if imm_constr is IMM_KIND.invalid:
+                if imm_constr is IMM_KIND.INVALID:
+                    # have constant but need a reg (we know the op must be a reg because ow there would
+                    #  not be a match at all
                     out |= 1 << pos
                     continue
                 val = op.value
@@ -361,9 +333,11 @@ class Pattern:
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
                 if not _NUM_MATCHERS[imm_constr](val):
-                    out |= 1 << pos
+                    # have constant that does not fit
+                    return MATCH_IMPOSSIBLE
             elif isinstance(op, ir.Reg):
-                if imm_constr is not IMM_KIND.invalid:
+                if imm_constr is not IMM_KIND.INVALID:
+                    # have a reg but need a const
                     return MATCH_IMPOSSIBLE
         return out
 
@@ -372,6 +346,85 @@ class Pattern:
 
     def __repr__(self):
         return f"[PATTERN {self.type_constraints} {self.imm_constraints}]"
+
+
+def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
+    out = []
+    stk_size = ctx.total_stk_size
+    assert (stk_size >> 24) == 0
+    if stk_size & 0xfff != 0:
+        out.append(InsTmpl("sub_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+    if stk_size & 0xfff000 != 0:
+        out.append(InsTmpl("sub_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+
+    restores = []
+    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
+    while gpr_regs:
+        r1 = gpr_regs.pop(-1)
+        if not gpr_regs:
+            restores.append(InsTmpl("ldr_x_imm_post", [r1.no, 31, 16]))
+            break
+        else:
+            r2 = gpr_regs.pop(-1)
+            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1, 31, 16]))
+    flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
+    while flt_regs:
+        r1 = flt_regs.pop(-1)
+        if not flt_regs:
+            restores.append(InsTmpl("fldr_d_imm_post", [r1.no, 31, 16]))
+            break
+        else:
+            r2 = flt_regs.pop(-1)
+            restores.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, 31, 16]))
+    out += reversed(restores)
+
+    # a9bf7bfd 	stp	x29, x30, [sp, #-16]!
+
+
+    out.append(InsTmpl("ret", [30]))
+    return out
+
+
+def HandlePseudoNop1(ins: ir.Ins, ctx: regs.EmitContext):
+    """This does not emit any code but copies the register assigned to the nop into the ctx
+
+The idea is that the next instruction can use this register as a scratch. But this
+only works if the next instruction was not assigned the register itself.
+"""
+    # assert ctx.scratch_reg is ir.REG_INVALID
+    ctx.scratch_cpu_reg = ins.operands[0].cpu_reg
+    return []
+
+
+def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
+    out = []
+    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
+    while gpr_regs:
+        r1 = gpr_regs.pop(-1)
+        if not gpr_regs:
+            out.append(InsTmpl("str_x_imm_pre", [31, -16, r1.no]))
+            break
+        else:
+            r2 = gpr_regs.pop(-1)
+            out.append(InsTmpl("stp_x_imm_pre", [31, -16, r2.no, r1.no]))
+    flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
+    while flt_regs:
+        r1 = flt_regs.pop(-1)
+        if not flt_regs:
+            out.append(InsTmpl("fstr_d_imm_pre", [31, -16, r1.no]))
+            break
+        else:
+            r2 = flt_regs.pop(-1)
+            out.append(InsTmpl("fstp_d_imm_pre", [31, -16, r2.no, r1.no]))
+
+    stk_size = ctx.total_stk_size
+    assert (stk_size >> 24) == 0
+    if stk_size & 0xfff000 != 0:
+        out.append(InsTmpl("add_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+    if stk_size & 0xfff != 0:
+        out.append(InsTmpl("add_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+
+    return out
 
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
@@ -719,13 +772,18 @@ def InitStore():
 
 
 def InitLea():
+    for kind1 in [o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
+                [InsTmpl("adrp", [PARAM.reg0, PARAM.mem1_num2_prel_hi21]),
+                 InsTmpl("add_x_imm", [PARAM.reg0, PARAM.reg0, PARAM.mem1_num2_lo12])],
+                imm_kind2=IMM_KIND.ANY)
     return
-    Pattern(o.LEA_FUN, [o.DK.C32, o.DK.INVALID], _NO_IMM2,
+    Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID], _NO_IMM2,
             [InsTmpl("movw", [PARAM.reg0, PARAM.fun1_lo16]),
              InsTmpl("movt", [PARAM.reg0, PARAM.fun1_hi16])])
 
     for kind1 in [o.DK.U32, o.DK.S32]:
-        Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1], _NO_IMM3,
+        Pattern(o.LEA, [o.DK.A32, o.DK.A64, kind1], _NO_IMM3,
                 [InsTmpl("add_regimm",
                          [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl, 0])])
         Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
@@ -777,6 +835,13 @@ def InsTmplMove(dst, src, kind):
 
 # Note, moves are our last resort and MUST support ALL possible immediates
 def InitMove():
+    for kind1 in [o.DK.A64, o.DK.C64, o.DK.U64, #
+                  o.DK.S64, o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+        Pattern(o.MOV, [kind1, kind1],
+                    [InsTmpl("orr_x_reg",[PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+        Pattern(o.MOV, [kind1, kind1],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1])],
+                imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22)
     return
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         for num, src_kind in [(PARAM.num1, IMM_KIND.pos_8_bits_shifted),
