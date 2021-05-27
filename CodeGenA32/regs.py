@@ -62,7 +62,7 @@ def RenderMaskFLT(mask: int) -> str:
     out = []
     for i in range(32):
         if (mask & (1 << i)) != 0: out.append(f"s{i}")
-    return " ".join(name)
+    return " ".join(out)
 
 
 PC_REG = _GPR_REGS[15]
@@ -525,18 +525,9 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
     return gpr, flt
 
 
-def _FunMustSaveLinkReg(fun) -> bool:
-    for bbl in fun.bbls:
-        for ins in bbl.inss:
-            # Note, syscalls do not clobber lr
-            if ins.opcode is o.BSR or ins.opcode is o.JSR:
-                return True
-    return False
-
-
-def FunComputeEmitContext(fun: ir.Fun):
+def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
-    must_save_link = _FunMustSaveLinkReg(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
+    must_save_link = not ir.FunIsLeaf(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
     gpr_mask &= _GPR_CALLEE_SAVE_REGS_MASK
     flt_mask &= _FLT_CALLEE_SAVE_REGS_MASK
     ctx = EmitContext()

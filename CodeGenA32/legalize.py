@@ -360,7 +360,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     needed_flt = RegsNeeded(len(global_reg_stats[(o.DK.F32, True)]) + 2 *
                             len(global_reg_stats[(o.DK.F64, True)]),
                             len(global_reg_stats[(o.DK.F32, False)]) + 2 *
-                            len(global_reg_stats[(o.DK.F64, True)]),
+                            len(global_reg_stats[(o.DK.F64, False)]),
                             local_reg_stats.get((o.DK.F32, True), 0) + 2 *
                             local_reg_stats.get((o.DK.F64, True), 0),
                             # TODO: avoid fudge factor

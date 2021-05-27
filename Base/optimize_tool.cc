@@ -105,8 +105,6 @@ WebResponse ResumeHandler(const WebRequest& request) {
   return out;
 }
 
-
-
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;
 
@@ -114,7 +112,6 @@ WebResponse DefaultHandler(const WebRequest& request) {
   out.body << "<h1>Debug Console</h1>\n";
 
   RenderBreakPointHTML(&out.body);
-
 
   out.body << "<h2>Code</h2>\n";
   out.body << "<a href='/code'>Code</a>\n";

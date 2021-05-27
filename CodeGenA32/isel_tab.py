@@ -475,9 +475,16 @@ class Pattern:
         return True
 
     def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches) -> int:
-        """Returns bit positions that hsve a mismatch
+        """Returns bit positions that have a mismatch
 
-        assumes that MatchesTypeConstraints return true"""
+        assumes that MatchesTypeConstraints return true
+
+        Possible return values:
+        0 - perfect match, pattern can be used directly for code generation
+        MATCH_IMPOSSBILE - pattern is not suitable
+        other - partial match, pattern can be used if the operands at the bit positions which are set
+                would live in a register instead of being an immediate
+        """
         out = 0
         for pos, (imm_constr, op) in enumerate(zip(self.imm_constraints, ins.operands)):
             if isinstance(op, ir.Const):

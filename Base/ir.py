@@ -717,3 +717,11 @@ class FunInsKindHistogram:
 
     def has_stk_aliases(self):
         return self.h[o.OPC_KIND.LEA_IMM] == 0
+
+
+def FunIsLeaf(fun) -> bool:
+    for bbl in fun.bbls:
+        for ins in bbl.inss:
+            if ins.opcode is o.BSR or ins.opcode is o.JSR:
+                return False
+    return True
