@@ -13,7 +13,7 @@
     pusharg m
     pusharg 1:S32
     syscall a64_syscall_write 64:U8
-	poparg dummy:S32
+    poparg dummy:S32
 	
     pusharg 0:S32
     syscall a64_syscall_exit 93:U8

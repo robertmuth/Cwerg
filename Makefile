@@ -83,6 +83,7 @@ tests_github:
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
+	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
 	cd FrontEndC && $(MAKE) -s tests && $(MAKE) -s clean
 
