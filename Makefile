@@ -14,57 +14,19 @@ export LC_ALL=C
 
 .SUFFIXES:
 
-TESTS = TestData/cmp.asm \
-        TestData/multiple_results.asm \
-        TestData/multiple_results_f32.asm \
-        TestData/multiple_results_f64.asm \
-        TestData//fib.asm \
-        TestData/queens.64.asm \
-        TestData/switch.asm \
-        TestData/indirect.64.asm \
-        TestData/memaddr.64.asm \
-        TestData/stack.asm 
 
-# TestData/struct.asm
 
-TEST_EXES = $(TESTS:.asm=.asm.exe)
-TEST_OPT_EXES = $(TESTS:.asm=.asm.opt.exe)
-
-.PHONY: $(TESTS) CLOC.txt
-
-CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
-   -Wno-uninitialized -Wno-main -Wno-unused-but-set-variable \
-   -Wno-misleading-indentation \
-   -Wno-non-literal-null-conversion -IStdLib
-
-%.asm.exe : %.asm
-	echo "[ir -> c.64 $@]"
-	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $< | $(PYPY) CodeGenC/codegen.py - > $<.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $<.c  -o $@
-	$@ > $<.actual.out
-	diff $<.actual.out $<.golden
-
-%.asm.opt.exe : %.asm
-	echo "[ir -> opt -> c.64 $@]"
-	cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm $< | ${PYPY} Base/optimize.py > $<.opt
-	$(PYPY) CodeGenC/codegen.py $<.opt  > $<.opt.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib StdLib/syscall.c $<.opt.c -lm -o $@
-	$@ > $<.actual.opt.out
-	diff $<.actual.opt.out $<.golden
-
+.PHONY: CLOC.txt
 
 tests: 
-	$(MAKE) -s $(TEST_EXES)
-	@echo
-	$(MAKE) -s $(TEST_OPT_EXES)
-	$(MAKE) -s clean
-	@echo
 	mkdir -p build && cd build && cmake .. && $(MAKE) -s
 	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
+	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
+	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
 
 
@@ -111,7 +73,7 @@ lint:
 
 
 # --by-file
-CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGenC|CpuA32|CpuA64|Elf|Tools|Util'
+CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGenA64|CodeGenC|CpuA32|CpuA64|Elf|Tools|Util'
 
 #@ cloc - print lines of code stats
 #@
