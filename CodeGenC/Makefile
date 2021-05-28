@@ -1,46 +1,49 @@
 
 
 .SUFFIXES:  # no built-in rules
+DIR=build
 
-TESTS = ../TestData/cmp.asm \
-        ../TestData/multiple_results.asm \
-        ../TestData/multiple_results_f32.asm \
-        ../TestData/multiple_results_f64.asm \
-        ../TestData//fib.asm \
-        ../TestData/queens.64.asm \
-        ../TestData/switch.asm \
-        ../TestData/indirect.64.asm \
-        ../TestData/memaddr.64.asm \
-        ../TestData/stack.asm
+$(info $(shell mkdir -p $(DIR)))
 
-        # TestData/struct.asm
+TESTS = cmp.asm \
+        multiple_results.asm \
+        multiple_results_f32.asm \
+        multiple_results_f64.asm \
+        fib.asm \
+        queens.64.asm \
+        switch.asm \
+        indirect.64.asm \
+        memaddr.64.asm \
+        stack.asm
 
-TEST_EXES = $(TESTS:.asm=.asm.exe)
-TEST_OPT_EXES = $(TESTS:.asm=.asm.opt.exe)
+        # struct.asm
+
+TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
+TEST_OPT_EXES = $(TESTS:%.asm=$(DIR)/%.asm.opt.exe)
 
 
 tests: $(TEST_EXES)  $(TEST_OPT_EXES)
-	@echo OK
+	@echo "[OK CodeGenC]"
 
 CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
    -Wno-uninitialized -Wno-main -Wno-unused-but-set-variable \
    -Wno-misleading-indentation \
    -Wno-non-literal-null-conversion -I../StdLib
 
-%.asm.exe : %.asm
+$(DIR)/%.asm.exe : ../TestData/%.asm
 	echo "[ir -> c.64 $@]"
-	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | $(PYPY) ./codegen.py - > $<.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $<.c  -o $@
-	$@ > $<.actual.out
-	diff $<.actual.out $<.golden
+	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | $(PYPY) ./codegen.py - > $@.c
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.c  -o $@
+	$@ > $@.actual.out
+	diff $@.actual.out $<.golden
 
-%.asm.opt.exe : %.asm
+$(DIR)/%.asm.opt.exe : ../TestData/%.asm
 	echo "[ir -> opt -> c.64 $@]"
-	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | ${PYPY} ../Base/optimize.py > $<.opt
-	$(PYPY) ./codegen.py $<.opt  > $<.opt.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $<.opt.c -lm -o $@
-	$@ > $<.actual.opt.out
-	diff $<.actual.opt.out $<.golden
+	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | ${PYPY} ../Base/optimize.py > $@.opt
+	$(PYPY) ./codegen.py $@.opt  > $@.opt.c
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.opt.c -lm -o $@
+	$@ > $@.actual.opt.out
+	diff $@.actual.opt.out $<.golden
 
 clean:
-	rm -f  ../TestData/*.out ../TestData/*.exe ../TestData/*.c ../TestData/*.opt
+	rm -f  build/*
