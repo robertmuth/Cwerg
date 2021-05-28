@@ -1,57 +1,52 @@
+.SUFFIXES:  # no built-in rules
+DIR=build
 
-.SUFFIXES:
+$(info $(shell mkdir -p $(DIR)))
 
-TESTS = TestData/memaddr.asm \
-    TestData/exit.asm \
-	TestData/hello.asm \
-	TestData/fib.asm \
-	TestData/switch.asm
+TESTS = memaddr.asm exit.asm hello.asm fib.asm switch.asm
 
-.PHONY: $(TESTS)
 
 TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81f0 e1920f9f 015461fa e3c70102 0
 
 tests: tests_py tests_c
-	@echo
+	@echo "[OK CpuA32]"
 
+tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
+              $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
 
-tests_py: objdump_compat_test disassembler_test disassembler_test jit_test \
-              argv_test $(TESTS:.asm=.test)
-
-tests_c: symbolize_parity build_test_c \
-         $(TESTS:.asm=.test_c) codegen_parity
+tests_c: $(DIR)/symbolize_parity build_test_c $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
 
 tests_cross: jit_example_cross
 ############################################################
 # Python Port
 ############################################################
-%.test : %.asm
+$(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $<.out
-	$@.exe > $<.actual.out
-	diff $<.actual.out $<.golden
+	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
+	$@.exe > $@.actual.out
+	diff $@.actual.out $<.golden
 
 
-argv_test: TestData/argv.asm
+$(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble $< TestData/$@.exe > $<.out
-	TestData/$@.exe argv1 argv2 arvg3 argv4 ... argn > $<.actual.out
-	diff $<.actual.out $<.golden
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	$@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	diff $@.actual.out $<.golden
 
 objdump_compat_test:
 	@echo "[$@]"
 	$(PYPY) ./opcode_test.py TestData/arm_test.dis
 
-jit_test:
+$(DIR)/jit_test:
 	@echo "[$@]"
 	$(PYPY) ./jit.py > $@.actual.out
-	diff $@.actual.out TestData/$@.golden
+	diff $@.actual.out TestData/jit_test.golden
 
 
-disassembler_test:
+$(DIR)/disassembler_test:
 	@echo "[$@]"
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff $@.actual.out TestData/$@.golden
+	diff $@.actual.out TestData/disassembler_test.golden
 
 # dump opcode table
 opcodes:
@@ -69,31 +64,31 @@ $(DISASSEMBLER_TOOL)::
 	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
 
 
-%.test_c : %.asm
+$(DIR)/%.test_c : TestData/%.asm
 	echo "[integration $@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a32_assembler_tool.exe
-	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $<.out
+	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $@.out
 	chmod a+x $@.exe
-	$@.exe > $<.actual_c.out
-	diff $<.actual_c.out $<.golden
+	$@.exe > $@.actual_c.out
+	diff $@.actual_c.out $<.golden
 
 
 opcode_gen.cc: opcode_tab.py
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c <$@ > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
 opcode_gen.h: opcode_tab.py
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
 build_test_c:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s  a32_assembler_tool.exe a32_jit_example.exe
 
 
-codegen_parity: $(ASSEMBLER_TOOL)
+$(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	@echo "[$@]"
 	$(ASSEMBLER_TOOL) assemble_raw TestData/fib.asm $@_c.exe > $@_c.exe.out
 	$(PYPY)	./assembler_tool.py assemble_raw  TestData/fib.asm $@.exe > $@.exe.out
@@ -107,7 +102,7 @@ codegen_parity: $(ASSEMBLER_TOOL)
 	$(PYPY)	./assembler_tool.py assemble  TestData/nanojpeg.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 
-symbolize_parity:
+$(DIR)/symbolize_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
 	#
@@ -136,7 +131,7 @@ jit_example_cross: $(A32_LIB_DIS) jit_example.cc
 ############################################################
 
 clean:
-	rm -f  TestData/*.out TestData/*.exe *.exe *.out
+	rm -f  $(DIR)/*
 
 
 
