@@ -60,13 +60,14 @@ BUILD_DIR=../build
 ASSEMBLER_TOOL=$(BUILD_DIR)/a32_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a32_disassembler_tool.exe
 
-$(DISASSEMBLER_TOOL)::
+$(DISASSEMBLER_TOOL):
 	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
 
-
-$(DIR)/%.test_c : TestData/%.asm
-	echo "[integration $@]"
+$(ASSEMBLER_TOOL):
 	@cd $(BUILD_DIR); $(MAKE) -s a32_assembler_tool.exe
+
+$(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
+	echo "[integration $@]"
 	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $@.out
 	chmod a+x $@.exe
 	$@.exe > $@.actual_c.out
@@ -102,10 +103,8 @@ $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	$(PYPY)	./assembler_tool.py assemble  TestData/nanojpeg.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 
-$(DIR)/symbolize_parity:
+$(DIR)/symbolize_parity: $(DISASSEMBLER_TOOL)
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
-	#
 	$(DISASSEMBLER_TOOL) $(TEST_INSTRUCTIONS) > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
 	diff $@.actual_c.out $@.actual.out

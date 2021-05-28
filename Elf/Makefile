@@ -51,6 +51,12 @@ $(DIR)/gen_a64_test:
 ############################################################
 BUILD_DIR=../build
 
+ELF_TOOL = $(BUILD_DIR)/elf_tool.exe
+
+$(ELF_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s elf_tool.exe
+
+
 GEN_ELF_TEST=$(BUILD_DIR)/gen_elf_test.exe
 
 $(GEN_ELF_TEST):: enum_gen.cc enum_gen.h gen_elf_test.cc
@@ -66,16 +72,13 @@ enum_gen.cc: enum_tab.py enum_gen.h
 	$(PYPY) ./enum_tab.py gen_c  < enum_gen.cc > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-$(DIR)/clone_a32_test_c:
+$(DIR)/clone_a32_test_c: $(ELF_TOOL)
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s elf_tool.exe
-	$(BUILD_DIR)/elf_tool.exe TestData/hello_barebones-a32
+	$(ELF_TOOL) TestData/hello_barebones-a32
 
 $(DIR)/clone_x64_test_c:
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s elf_tool.exe
-	$(BUILD_DIR)/elf_tool.exe TestData/hello-x64
-
+	$(ELF_TOOL) TestData/hello-x64
 
 $(DIR)/gen_a32_test_c: $(GEN_ELF_TEST)
 	@echo "[$@]"

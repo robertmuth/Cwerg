@@ -90,21 +90,19 @@ $(DIR)/nanojpeg:
 BUILD_DIR=../build
 CODEGEN_TOOL=$(BUILD_DIR)/a32_codegen_tool.exe
 
-$(CODEGEN_TOOL)::
+$(CODEGEN_TOOL):
 	@cd $(BUILD_DIR); $(MAKE) -s a32_codegen_tool.exe
 
-$(DIR)/%.asm.c.exe: ../TestData/%.asm
+$(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a32_codegen_tool.exe
 	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # same as above but from local TestData dir
-$(DIR)/%.asm.c.exe: TestData/%.asm
+$(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a32_codegen_tool.exe
 	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
