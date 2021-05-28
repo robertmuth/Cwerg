@@ -1,15 +1,19 @@
+.SUFFIXES:  # no built-in rules
+DIR=build
+
+$(info $(shell mkdir -p $(DIR)))
 
 tests: tests_py tests_c
-	@echo
+	@echo "[OK Base]"
 
-tests_py: reaching_defs_test  liveness_test reg_alloc_test.py \
-          opcode_contraints_test serialize_regression_test \
-          cfg_regression_test cfg2_regression_test  \
-          optlite_regression_test optimize_regression_test
+tests_py: $(DIR)/reaching_defs_test $(DIR)/liveness_test reg_alloc_test.py \
+          $(DIR)/opcode_contraints_test $(DIR)/serialize_regression_test \
+          $(DIR)/cfg_regression_test $(DIR)/cfg2_regression_test  \
+          $(DIR)/optlite_regression_test $(DIR)/optimize_regression_test
 
-tests_c:  serialize_regression_test_c  cfg_regression_test_c \
-          cfg2_regression_test_c optlite_regression_test_c \
-          optimize_regression_test_c
+tests_c:  $(DIR)/serialize_regression_test_c  $(DIR)/cfg_regression_test_c \
+          $(DIR)/cfg2_regression_test_c $(DIR)/optlite_regression_test_c \
+          $(DIR)/optimize_regression_test_c
 
 STDLIB64 = ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm
 
@@ -17,45 +21,45 @@ STDLIB64 = ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm
 # Python Port
 ############################################################
 
-reaching_defs_test:
+$(DIR)/reaching_defs_test:
 	@echo "[$@]"
 	$(PYPY) ./reaching_defs_test.py > $@.out 2>&1
 
-liveness_test:
+$(DIR)/liveness_test:
 	@echo "[$@]"
 	$(PYPY) ./liveness_test.py > $@.out 2>&1
 
-reg_stats_test:
+$(DIR)/reg_stats_test:
 	@echo "[$@]"
 	$(PYPY) ./reg_stats_test.py > $@.out 2>&1
 
-opcode_contraints_test:
+$(DIR)/opcode_contraints_test:
 	@echo "[$@]"
 	$(PYPY) ./opcode_contraints_test.py >@.out 2>&1
 
-serialize_regression_test:
+$(DIR)/serialize_regression_test:
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(PYPY) ./optimize.py serialize > $@.1.out
 	$(PYPY) ./optimize.py serialize < $@.1.out > $@.2.out
 	diff  $@.1.out $@.2.out
 	diff  $@.2.out ../TestData/nano_jpeg.nop.64.asm
 
-cfg_regression_test:
+$(DIR)/cfg_regression_test:
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(PYPY) ./optimize.py cfg > $@.out
 	diff  $@.out ../TestData/nano_jpeg.cfg.64.asm
 
-cfg2_regression_test:
+$(DIR)/cfg2_regression_test:
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(PYPY) ./optimize.py cfg2 > $@.out
 	diff  $@.out ../TestData/nano_jpeg.cfg2.64.asm
 
-optlite_regression_test:
+$(DIR)/optlite_regression_test:
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(PYPY) ./optimize.py optlite > $@.1.out
 	diff  $@.1.out ../TestData/nano_jpeg.optlite.64.asm
 
-optimize_regression_test:
+$(DIR)/optimize_regression_test:
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(PYPY) ./optimize.py optimize > $@.1.out
 	diff  $@.1.out ../TestData/nano_jpeg.opt.64.asm
@@ -71,37 +75,37 @@ $(OPTIMIZE_TOOL)::
 
 opcode_gen.h: opcode_tab.py
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h < opcode_gen.h > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_h < opcode_gen.h > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
 opcode_gen.cc: opcode_tab.py opcode_gen.h
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c  < opcode_gen.cc > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_c  < opcode_gen.cc > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
-serialize_regression_test_c: opcode_gen.h opcode_gen.cc $(OPTIMIZE_TOOL)
+$(DIR)/serialize_regression_test_c: opcode_gen.h opcode_gen.cc $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode serialize > $@.1.out
 	$(BUILD_DIR)/optimize_tool.exe  -mode serialize < $@.1.out > $@.2.out
 	diff  $@.1.out $@.2.out
 	diff  $@.2.out ../TestData/nano_jpeg.nop.64.asm
 
-cfg_regression_test_c: $(OPTIMIZE_TOOL)
+$(DIR)/cfg_regression_test_c: $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode cfg > $@.out
 	diff  $@.out ../TestData/nano_jpeg.cfg.64.asm
 
-cfg2_regression_test_c: $(OPTIMIZE_TOOL)
+$(DIR)/cfg2_regression_test_c: $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode cfg2 > $@.out
 	diff  $@.out ../TestData/nano_jpeg.cfg2.64.asm
 
-optlite_regression_test_c: $(OPTIMIZE_TOOL)
+$(DIR)/optlite_regression_test_c: $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode optlite > $@.out
 	diff  $@.out ../TestData/nano_jpeg.optlite.64.asm
 
-optimize_regression_test_c:  $(OPTIMIZE_TOOL)
+$(DIR)/optimize_regression_test_c:  $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode optimize > $@.out
 	diff  $@.out ../TestData/nano_jpeg.opt.64.asm
@@ -111,4 +115,4 @@ optimize_regression_test_c:  $(OPTIMIZE_TOOL)
 # Misc
 ############################################################
 clean:
-	rm -f *.out *.exe 
+	rm -f  $(DIR)/*
