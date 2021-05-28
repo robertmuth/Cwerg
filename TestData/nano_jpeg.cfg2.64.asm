@@ -77,311 +77,311 @@
     ret
 
 .fun write_x NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_10 %S8_16]
-.reg S32 [%S32_13 fd]
-.reg S64 [%S64_24 %out]
-.reg U32 [%U32_14 %U32_15 %U32_19 %U32_8 %U32_9 digit val]
-.reg U64 [%U64_23 %U64_7 pos]
-.reg A64 [%A64_11 %A64_12 %A64_17 %A64_18 %A64_20 %A64_21 %A64_22 %A64_6]
+.reg S8 [%S8_11 %S8_5]
+.reg S32 [%S32_8 fd]
+.reg S64 [%S64_19 %out]
+.reg U32 [%U32_10 %U32_14 %U32_3 %U32_4 %U32_9 digit val]
+.reg U64 [%U64_18 %U64_2 pos]
+.reg A64 [%A64_1 %A64_12 %A64_13 %A64_15 %A64_16 %A64_17 %A64_6 %A64_7]
 .stk buffer 1 16
 .bbl %start  #  edge_out[while_1]
     poparg fd
     poparg val
-    lea.stk %A64_6 buffer 0
+    lea.stk %A64_1 buffer 0
     mov pos 16
 .bbl while_1  #  edge_out[if_2_false  if_2_true]
-    sub %U64_7 pos 1
-    mov pos %U64_7
-    rem %U32_8 val 16
-    mov digit %U32_8
+    sub %U64_2 pos 1
+    mov pos %U64_2
+    rem %U32_3 val 16
+    mov digit %U32_3
     blt 9:U32 digit if_2_false
 .bbl if_2_true  #  edge_out[if_2_end]
-    add %U32_9 48 digit
-    conv %S8_10 %U32_9
-    lea.stk %A64_11 buffer 0
-    lea %A64_12 %A64_11 pos
-    st %A64_12 0 %S8_10
+    add %U32_4 48 digit
+    conv %S8_5 %U32_4
+    lea.stk %A64_6 buffer 0
+    lea %A64_7 %A64_6 pos
+    st %A64_7 0 %S8_5
     bra if_2_end
 .bbl if_2_false  #  edge_out[if_2_end]
-    sub %S32_13 97 10
-    conv %U32_14 %S32_13
-    add %U32_15 %U32_14 digit
-    conv %S8_16 %U32_15
-    lea.stk %A64_17 buffer 0
-    lea %A64_18 %A64_17 pos
-    st %A64_18 0 %S8_16
+    sub %S32_8 97 10
+    conv %U32_9 %S32_8
+    add %U32_10 %U32_9 digit
+    conv %S8_11 %U32_10
+    lea.stk %A64_12 buffer 0
+    lea %A64_13 %A64_12 pos
+    st %A64_13 0 %S8_11
 .bbl if_2_end  #  edge_out[while_1_cond]
-    div %U32_19 val 16
-    mov val %U32_19
+    div %U32_14 val 16
+    mov val %U32_14
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]
     bne val 0 while_1
 .bbl while_1_exit
-    lea.stk %A64_20 buffer 0
-    lea %A64_21 %A64_20 pos
-    lea.stk %A64_22 buffer 0
-    sub %U64_23 16 pos
-    pusharg %U64_23
-    pusharg %A64_21
+    lea.stk %A64_15 buffer 0
+    lea %A64_16 %A64_15 pos
+    lea.stk %A64_17 buffer 0
+    sub %U64_18 16 pos
+    pusharg %U64_18
+    pusharg %A64_16
     pusharg fd
     bsr write
-    poparg %S64_24
-    mov %out %S64_24
+    poparg %S64_19
+    mov %out %S64_19
     pusharg %out
     ret
 
 .fun write_u NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_29]
+.reg S8 [%S8_5]
 .reg S32 [fd]
-.reg S64 [%S64_37 %out]
-.reg U32 [%U32_27 %U32_28 %U32_32 val]
-.reg U64 [%U64_26 %U64_36 pos]
-.reg A64 [%A64_25 %A64_30 %A64_31 %A64_33 %A64_34 %A64_35]
+.reg S64 [%S64_13 %out]
+.reg U32 [%U32_3 %U32_4 %U32_8 val]
+.reg U64 [%U64_12 %U64_2 pos]
+.reg A64 [%A64_1 %A64_10 %A64_11 %A64_6 %A64_7 %A64_9]
 .stk buffer 1 16
 .bbl %start  #  edge_out[while_1]
     poparg fd
     poparg val
-    lea.stk %A64_25 buffer 0
+    lea.stk %A64_1 buffer 0
     mov pos 16
 .bbl while_1  #  edge_out[while_1_cond]
-    sub %U64_26 pos 1
-    mov pos %U64_26
-    rem %U32_27 val 10
-    add %U32_28 48 %U32_27
-    conv %S8_29 %U32_28
-    lea.stk %A64_30 buffer 0
-    lea %A64_31 %A64_30 pos
-    st %A64_31 0 %S8_29
-    div %U32_32 val 10
-    mov val %U32_32
+    sub %U64_2 pos 1
+    mov pos %U64_2
+    rem %U32_3 val 10
+    add %U32_4 48 %U32_3
+    conv %S8_5 %U32_4
+    lea.stk %A64_6 buffer 0
+    lea %A64_7 %A64_6 pos
+    st %A64_7 0 %S8_5
+    div %U32_8 val 10
+    mov val %U32_8
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]
     bne val 0 while_1
 .bbl while_1_exit
-    lea.stk %A64_33 buffer 0
-    lea %A64_34 %A64_33 pos
-    lea.stk %A64_35 buffer 0
-    sub %U64_36 16 pos
-    pusharg %U64_36
-    pusharg %A64_34
+    lea.stk %A64_9 buffer 0
+    lea %A64_10 %A64_9 pos
+    lea.stk %A64_11 buffer 0
+    sub %U64_12 16 pos
+    pusharg %U64_12
+    pusharg %A64_10
     pusharg fd
     bsr write
-    poparg %S64_37
-    mov %out %S64_37
+    poparg %S64_13
+    mov %out %S64_13
     pusharg %out
     ret
 
 .fun write_d NORMAL [S64] = [S32 S32]
-.reg S8 [%S8_46 %S8_53]
-.reg S32 [%S32_40 fd sval]
-.reg S64 [%S64_39 %S64_58 %out]
-.reg U32 [%U32_38 %U32_41 %U32_44 %U32_45 %U32_49 val]
-.reg U64 [%U64_43 %U64_50 %U64_57 pos]
-.reg A64 [%A64_42 %A64_47 %A64_48 %A64_51 %A64_52 %A64_54 %A64_55 %A64_56]
+.reg S8 [%S8_16 %S8_9]
+.reg S32 [%S32_3 fd sval]
+.reg S64 [%S64_2 %S64_21 %out]
+.reg U32 [%U32_1 %U32_12 %U32_4 %U32_7 %U32_8 val]
+.reg U64 [%U64_13 %U64_20 %U64_6 pos]
+.reg A64 [%A64_10 %A64_11 %A64_14 %A64_15 %A64_17 %A64_18 %A64_19 %A64_5]
 .stk buffer 1 16
 .bbl %start  #  edge_out[if_2_end  if_2_true]
     poparg fd
     poparg sval
     blt sval 0 if_2_end
 .bbl if_2_true
-    conv %U32_38 sval
-    pusharg %U32_38
+    conv %U32_1 sval
+    pusharg %U32_1
     pusharg fd
     bsr write_u
-    poparg %S64_39
-    mov %out %S64_39
+    poparg %S64_2
+    mov %out %S64_2
     pusharg %out
     ret
 .bbl if_2_end  #  edge_out[while_1]
-    sub %S32_40 0 sval
-    conv %U32_41 %S32_40
-    mov val %U32_41
-    lea.stk %A64_42 buffer 0
+    sub %S32_3 0 sval
+    conv %U32_4 %S32_3
+    mov val %U32_4
+    lea.stk %A64_5 buffer 0
     mov pos 16
 .bbl while_1  #  edge_out[while_1_cond]
-    sub %U64_43 pos 1
-    mov pos %U64_43
-    rem %U32_44 val 10
-    add %U32_45 48 %U32_44
-    conv %S8_46 %U32_45
-    lea.stk %A64_47 buffer 0
-    lea %A64_48 %A64_47 pos
-    st %A64_48 0 %S8_46
-    div %U32_49 val 10
-    mov val %U32_49
+    sub %U64_6 pos 1
+    mov pos %U64_6
+    rem %U32_7 val 10
+    add %U32_8 48 %U32_7
+    conv %S8_9 %U32_8
+    lea.stk %A64_10 buffer 0
+    lea %A64_11 %A64_10 pos
+    st %A64_11 0 %S8_9
+    div %U32_12 val 10
+    mov val %U32_12
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]
     bne val 0 while_1
 .bbl while_1_exit
-    sub %U64_50 pos 1
-    mov pos %U64_50
-    lea.stk %A64_51 buffer 0
-    lea %A64_52 %A64_51 pos
-    mov %S8_53 45
-    st %A64_52 0 %S8_53
-    lea.stk %A64_54 buffer 0
-    lea %A64_55 %A64_54 pos
-    lea.stk %A64_56 buffer 0
-    sub %U64_57 16 pos
-    pusharg %U64_57
-    pusharg %A64_55
+    sub %U64_13 pos 1
+    mov pos %U64_13
+    lea.stk %A64_14 buffer 0
+    lea %A64_15 %A64_14 pos
+    mov %S8_16 45
+    st %A64_15 0 %S8_16
+    lea.stk %A64_17 buffer 0
+    lea %A64_18 %A64_17 pos
+    lea.stk %A64_19 buffer 0
+    sub %U64_20 16 pos
+    pusharg %U64_20
+    pusharg %A64_18
     pusharg fd
     bsr write
-    poparg %S64_58
-    mov %out %S64_58
+    poparg %S64_21
+    mov %out %S64_21
     pusharg %out
     ret
 
 .fun write_c NORMAL [S64] = [S32 U8]
-.reg S8 [%S8_59]
-.reg S32 [%S32_64 fd]
-.reg S64 [%S64_62 %S64_65 %out]
+.reg S8 [%S8_1]
+.reg S32 [%S32_6 fd]
+.reg S64 [%S64_4 %S64_7 %out]
 .reg U8 [c]
-.reg U64 [%U64_63]
-.reg A64 [%A64_60 %A64_61]
+.reg U64 [%U64_5]
+.reg A64 [%A64_2 %A64_3]
 .stk buffer 1 16
 .bbl %start
     poparg fd
     poparg c
-    conv %S8_59 c
-    lea.stk %A64_60 buffer 0
-    st %A64_60 0 %S8_59
-    lea.stk %A64_61 buffer 0
-    mov %U64_63 1
-    pusharg %U64_63
-    pusharg %A64_61
+    conv %S8_1 c
+    lea.stk %A64_2 buffer 0
+    st %A64_2 0 %S8_1
+    lea.stk %A64_3 buffer 0
+    mov %U64_5 1
+    pusharg %U64_5
+    pusharg %A64_3
     pusharg fd
     bsr write
-    poparg %S64_62
-    conv %S32_64 %S64_62
-    conv %S64_65 %S32_64
-    mov %out %S64_65
+    poparg %S64_4
+    conv %S32_6 %S64_4
+    conv %S64_7 %S32_6
+    mov %out %S64_7
     pusharg %out
     ret
 
 .fun print_ln NORMAL [] = [A64 U64]
-.reg S32 [%S32_67 %S32_69]
-.reg S64 [%S64_66 %S64_68]
-.reg U8 [%U8_70]
+.reg S32 [%S32_2 %S32_4]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5]
 .reg U64 [n]
 .reg A64 [s]
 .bbl %start
     poparg s
     poparg n
-    mov %S32_67 1
+    mov %S32_2 1
     pusharg n
     pusharg s
-    pusharg %S32_67
+    pusharg %S32_2
     bsr write
-    poparg %S64_66
-    mov %S32_69 1
-    mov %U8_70 10
-    pusharg %U8_70
-    pusharg %S32_69
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_68
+    poparg %S64_3
     ret
 
 .fun print_s_ln NORMAL [] = [A64]
-.reg S32 [%S32_72 %S32_74]
-.reg S64 [%S64_71 %S64_73]
-.reg U8 [%U8_75]
+.reg S32 [%S32_2 %S32_4]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5]
 .reg A64 [s]
 .bbl %start
     poparg s
-    mov %S32_72 1
+    mov %S32_2 1
     pusharg s
-    pusharg %S32_72
+    pusharg %S32_2
     bsr write_s
-    poparg %S64_71
-    mov %S32_74 1
-    mov %U8_75 10
-    pusharg %U8_75
-    pusharg %S32_74
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_73
+    poparg %S64_3
     ret
 
 .fun print_d_ln NORMAL [] = [S32]
-.reg S32 [%S32_77 %S32_79 n]
-.reg S64 [%S64_76 %S64_78]
-.reg U8 [%U8_80]
+.reg S32 [%S32_2 %S32_4 n]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5]
 .bbl %start
     poparg n
-    mov %S32_77 1
+    mov %S32_2 1
     pusharg n
-    pusharg %S32_77
+    pusharg %S32_2
     bsr write_d
-    poparg %S64_76
-    mov %S32_79 1
-    mov %U8_80 10
-    pusharg %U8_80
-    pusharg %S32_79
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_78
+    poparg %S64_3
     ret
 
 .fun print_u_ln NORMAL [] = [U32]
-.reg S32 [%S32_82 %S32_84]
-.reg S64 [%S64_81 %S64_83]
-.reg U8 [%U8_85]
+.reg S32 [%S32_2 %S32_4]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5]
 .reg U32 [n]
 .bbl %start
     poparg n
-    mov %S32_82 1
+    mov %S32_2 1
     pusharg n
-    pusharg %S32_82
+    pusharg %S32_2
     bsr write_u
-    poparg %S64_81
-    mov %S32_84 1
-    mov %U8_85 10
-    pusharg %U8_85
-    pusharg %S32_84
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_83
+    poparg %S64_3
     ret
 
 .fun print_x_ln NORMAL [] = [U32]
-.reg S32 [%S32_87 %S32_89]
-.reg S64 [%S64_86 %S64_88]
-.reg U8 [%U8_90]
+.reg S32 [%S32_2 %S32_4]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5]
 .reg U32 [n]
 .bbl %start
     poparg n
-    mov %S32_87 1
+    mov %S32_2 1
     pusharg n
-    pusharg %S32_87
+    pusharg %S32_2
     bsr write_x
-    poparg %S64_86
-    mov %S32_89 1
-    mov %U8_90 10
-    pusharg %U8_90
-    pusharg %S32_89
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_88
+    poparg %S64_3
     ret
 
 .fun print_c_ln NORMAL [] = [U8]
-.reg S32 [%S32_92 %S32_94]
-.reg S64 [%S64_91 %S64_93]
-.reg U8 [%U8_95 c]
+.reg S32 [%S32_2 %S32_4]
+.reg S64 [%S64_1 %S64_3]
+.reg U8 [%U8_5 c]
 .bbl %start
     poparg c
-    mov %S32_92 1
+    mov %S32_2 1
     pusharg c
-    pusharg %S32_92
+    pusharg %S32_2
     bsr write_c
-    poparg %S64_91
-    mov %S32_94 1
-    mov %U8_95 10
-    pusharg %U8_95
-    pusharg %S32_94
+    poparg %S64_1
+    mov %S32_4 1
+    mov %U8_5 10
+    pusharg %U8_5
+    pusharg %S32_4
     bsr write_c
-    poparg %S64_93
+    poparg %S64_3
     ret
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
-.reg S8 [%S8_96]
-.reg S32 [%S32_98 i value]
-.reg U64 [%U64_99 n]
-.reg A64 [%A64_97 %out ptr]
+.reg S8 [%S8_1]
+.reg S32 [%S32_3 i value]
+.reg U64 [%U64_4 n]
+.reg A64 [%A64_2 %out ptr]
 .bbl %start  #  edge_out[for_1_cond]
     poparg ptr
     poparg value
@@ -389,25 +389,25 @@
     mov i 0
     bra for_1_cond
 .bbl for_1  #  edge_out[for_1_next]
-    conv %S8_96 value
-    lea %A64_97 ptr i
-    st %A64_97 0 %S8_96
+    conv %S8_1 value
+    lea %A64_2 ptr i
+    st %A64_2 0 %S8_1
 .bbl for_1_next  #  edge_out[for_1_cond]
-    add %S32_98 i 1
-    mov i %S32_98
+    add %S32_3 i 1
+    mov i %S32_3
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]
-    conv %U64_99 i
-    blt %U64_99 n for_1
+    conv %U64_4 i
+    blt %U64_4 n for_1
 .bbl for_1_exit
     mov %out ptr
     pusharg %out
     ret
 
 .fun memcpy NORMAL [A64] = [A64 A64 U64]
-.reg S8 [%S8_101]
-.reg S32 [%S32_103 i]
-.reg U64 [%U64_104 n]
-.reg A64 [%A64_100 %A64_102 %out dst src]
+.reg S8 [%S8_2]
+.reg S32 [%S32_4 i]
+.reg U64 [%U64_5 n]
+.reg A64 [%A64_1 %A64_3 %out dst src]
 .bbl %start  #  edge_out[for_1_cond]
     poparg dst
     poparg src
@@ -415,99 +415,99 @@
     mov i 0
     bra for_1_cond
 .bbl for_1  #  edge_out[for_1_next]
-    lea %A64_100 src i
-    ld %S8_101 %A64_100 0
-    lea %A64_102 dst i
-    st %A64_102 0 %S8_101
+    lea %A64_1 src i
+    ld %S8_2 %A64_1 0
+    lea %A64_3 dst i
+    st %A64_3 0 %S8_2
 .bbl for_1_next  #  edge_out[for_1_cond]
-    add %S32_103 i 1
-    mov i %S32_103
+    add %S32_4 i 1
+    mov i %S32_4
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]
-    conv %U64_104 i
-    blt %U64_104 n for_1
+    conv %U64_5 i
+    blt %U64_5 n for_1
 .bbl for_1_exit
     mov %out dst
     pusharg %out
     ret
 
 .fun abort NORMAL [] = []
-.reg S32 [%S32_105 %S32_106 %S32_107 %S32_108]
+.reg S32 [%S32_1 %S32_2 %S32_3 %S32_4]
 .bbl %start
     bsr getpid
-    poparg %S32_105
-    mov %S32_107 3
-    pusharg %S32_107
-    pusharg %S32_105
+    poparg %S32_1
+    mov %S32_3 3
+    pusharg %S32_3
+    pusharg %S32_1
     bsr kill
-    poparg %S32_106
-    mov %S32_108 1
-    pusharg %S32_108
+    poparg %S32_2
+    mov %S32_4 1
+    pusharg %S32_4
     bsr exit
     ret
 
 .fun malloc NORMAL [A64] = [U64]
-.reg S32 [%S32_109]
-.reg U64 [%U64_110 %U64_119 %U64_120 %U64_121 %U64_127 %U64_128 %U64_129 %U64_130 increment page_size rounded_size size]
-.reg A64 [%A64_111 %A64_112 %A64_113 %A64_114 %A64_115 %A64_116 %A64_117 %A64_118 %A64_122 %A64_123 %A64_124 %A64_125 %A64_126 %A64_131 %A64_132 %A64_133 %A64_134 %A64_135 %A64_136 %A64_137 %A64_138 %A64_139 %A64_140 %A64_141 %A64_142 %A64_143 %out new_end result]
+.reg S32 [%S32_1]
+.reg U64 [%U64_11 %U64_12 %U64_13 %U64_19 %U64_2 %U64_20 %U64_21 %U64_22 increment page_size rounded_size size]
+.reg A64 [%A64_10 %A64_14 %A64_15 %A64_16 %A64_17 %A64_18 %A64_23 %A64_24 %A64_25 %A64_26 %A64_27 %A64_28 %A64_29 %A64_3 %A64_30 %A64_31 %A64_32 %A64_33 %A64_34 %A64_35 %A64_4 %A64_5 %A64_6 %A64_7 %A64_8 %A64_9 %out new_end result]
 .bbl %start  #  edge_out[if_1_end  if_1_true]
     poparg size
-    shl %S32_109 1 20
-    conv %U64_110 %S32_109
-    mov page_size %U64_110
-    lea.mem %A64_111 __static_1__malloc_start 0
-    ld %A64_112 %A64_111 0
-    bne %A64_112 0 if_1_end
+    shl %S32_1 1 20
+    conv %U64_2 %S32_1
+    mov page_size %U64_2
+    lea.mem %A64_3 __static_1__malloc_start 0
+    ld %A64_4 %A64_3 0
+    bne %A64_4 0 if_1_end
 .bbl if_1_true  #  edge_out[if_1_end]
-    lea %A64_114 0 0
-    pusharg %A64_114
+    lea %A64_6 0 0
+    pusharg %A64_6
     bsr xbrk
-    poparg %A64_113
-    lea.mem %A64_115 __static_1__malloc_start 0
-    st %A64_115 0 %A64_113
-    lea.mem %A64_116 __static_1__malloc_start 0
-    ld %A64_117 %A64_116 0
-    lea.mem %A64_118 __static_2__malloc_end 0
-    st %A64_118 0 %A64_117
+    poparg %A64_5
+    lea.mem %A64_7 __static_1__malloc_start 0
+    st %A64_7 0 %A64_5
+    lea.mem %A64_8 __static_1__malloc_start 0
+    ld %A64_9 %A64_8 0
+    lea.mem %A64_10 __static_2__malloc_end 0
+    st %A64_10 0 %A64_9
 .bbl if_1_end  #  edge_out[if_3_end  if_3_true]
-    add %U64_119 size 15
-    div %U64_120 %U64_119 16
-    mul %U64_121 %U64_120 16
-    mov rounded_size %U64_121
-    lea.mem %A64_122 __static_1__malloc_start 0
-    ld %A64_123 %A64_122 0
-    lea %A64_124 %A64_123 rounded_size
-    lea.mem %A64_125 __static_2__malloc_end 0
-    ld %A64_126 %A64_125 0
-    ble %A64_124 %A64_126 if_3_end
+    add %U64_11 size 15
+    div %U64_12 %U64_11 16
+    mul %U64_13 %U64_12 16
+    mov rounded_size %U64_13
+    lea.mem %A64_14 __static_1__malloc_start 0
+    ld %A64_15 %A64_14 0
+    lea %A64_16 %A64_15 rounded_size
+    lea.mem %A64_17 __static_2__malloc_end 0
+    ld %A64_18 %A64_17 0
+    ble %A64_16 %A64_18 if_3_end
 .bbl if_3_true  #  edge_out[if_2_true  if_3_end]
-    add %U64_127 rounded_size page_size
-    sub %U64_128 %U64_127 1
-    div %U64_129 %U64_128 page_size
-    mul %U64_130 %U64_129 page_size
-    mov increment %U64_130
-    lea.mem %A64_131 __static_2__malloc_end 0
-    ld %A64_132 %A64_131 0
-    lea %A64_133 %A64_132 increment
-    mov new_end %A64_133
+    add %U64_19 rounded_size page_size
+    sub %U64_20 %U64_19 1
+    div %U64_21 %U64_20 page_size
+    mul %U64_22 %U64_21 page_size
+    mov increment %U64_22
+    lea.mem %A64_23 __static_2__malloc_end 0
+    ld %A64_24 %A64_23 0
+    lea %A64_25 %A64_24 increment
+    mov new_end %A64_25
     pusharg new_end
     bsr xbrk
-    poparg %A64_134
-    lea.mem %A64_135 __static_2__malloc_end 0
-    st %A64_135 0 %A64_134
-    lea.mem %A64_136 __static_2__malloc_end 0
-    ld %A64_137 %A64_136 0
-    beq %A64_137 new_end if_3_end
+    poparg %A64_26
+    lea.mem %A64_27 __static_2__malloc_end 0
+    st %A64_27 0 %A64_26
+    lea.mem %A64_28 __static_2__malloc_end 0
+    ld %A64_29 %A64_28 0
+    beq %A64_29 new_end if_3_end
 .bbl if_2_true  #  edge_out[if_3_end]
     bsr abort
 .bbl if_3_end
-    lea.mem %A64_138 __static_1__malloc_start 0
-    ld %A64_139 %A64_138 0
-    mov result %A64_139
-    lea.mem %A64_140 __static_1__malloc_start 0
-    ld %A64_141 %A64_140 0
-    lea %A64_142 %A64_141 rounded_size
-    lea.mem %A64_143 __static_1__malloc_start 0
-    st %A64_143 0 %A64_142
+    lea.mem %A64_30 __static_1__malloc_start 0
+    ld %A64_31 %A64_30 0
+    mov result %A64_31
+    lea.mem %A64_32 __static_1__malloc_start 0
+    ld %A64_33 %A64_32 0
+    lea %A64_34 %A64_33 rounded_size
+    lea.mem %A64_35 __static_1__malloc_start 0
+    st %A64_35 0 %A64_34
     mov %out result
     pusharg %out
     ret

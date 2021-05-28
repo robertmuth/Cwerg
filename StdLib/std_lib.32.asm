@@ -49,54 +49,54 @@
   poparg val:U32
 .stk buffer 1 16
   .reg U32 [pos]
-  lea %A32_6:A32 = buffer
+  lea %A32_1:A32 = buffer
   mov pos = 16
 
 .bbl while_1
-  sub %U32_7:U32 = pos 1
-  mov pos = %U32_7
+  sub %U32_2:U32 = pos 1
+  mov pos = %U32_2
   .reg U32 [digit]
-  rem %U32_8:U32 = val 16
-  mov digit = %U32_8
+  rem %U32_3:U32 = val 16
+  mov digit = %U32_3
   ble digit 9 if_2_true
   bra if_2_false
 
 .bbl if_2_true
-  add %U32_9:U32 = 48:U32 digit
-  conv %S8_10:S8 = %U32_9
-  lea %A32_11:A32 = buffer
-  lea %A32_12:A32 = %A32_11 pos
-  st %A32_12 0 = %S8_10
+  add %U32_4:U32 = 48:U32 digit
+  conv %S8_5:S8 = %U32_4
+  lea %A32_6:A32 = buffer
+  lea %A32_7:A32 = %A32_6 pos
+  st %A32_7 0 = %S8_5
   bra if_2_end
 
 .bbl if_2_false
-  sub %S32_13:S32 = 97:S32 10
-  conv %U32_14:U32 = %S32_13
-  add %U32_15:U32 = %U32_14 digit
-  conv %S8_16:S8 = %U32_15
-  lea %A32_17:A32 = buffer
-  lea %A32_18:A32 = %A32_17 pos
-  st %A32_18 0 = %S8_16
+  sub %S32_8:S32 = 97:S32 10
+  conv %U32_9:U32 = %S32_8
+  add %U32_10:U32 = %U32_9 digit
+  conv %S8_11:S8 = %U32_10
+  lea %A32_12:A32 = buffer
+  lea %A32_13:A32 = %A32_12 pos
+  st %A32_13 0 = %S8_11
 
 .bbl if_2_end
-  div %U32_19:U32 = val 16
-  mov val = %U32_19
+  div %U32_14:U32 = val 16
+  mov val = %U32_14
 
 .bbl while_1_cond
   bne val 0 while_1
   bra while_1_exit
 
 .bbl while_1_exit
-  lea %A32_20:A32 = buffer
-  lea %A32_21:A32 = %A32_20 pos
-  lea %A32_22:A32 = buffer
-  sub %U32_23:U32 = 16:U32 pos
-  pusharg %U32_23
-  pusharg %A32_21
+  lea %A32_15:A32 = buffer
+  lea %A32_16:A32 = %A32_15 pos
+  lea %A32_17:A32 = buffer
+  sub %U32_18:U32 = 16:U32 pos
+  pusharg %U32_18
+  pusharg %A32_16
   pusharg fd
   bsr write
-  poparg %S32_24:S32
-  mov %out = %S32_24
+  poparg %S32_19:S32
+  mov %out = %S32_19
   pusharg %out
   ret
 
@@ -109,36 +109,36 @@
   poparg val:U32
 .stk buffer 1 16
   .reg U32 [pos]
-  lea %A32_25:A32 = buffer
+  lea %A32_1:A32 = buffer
   mov pos = 16
 
 .bbl while_1
-  sub %U32_26:U32 = pos 1
-  mov pos = %U32_26
-  rem %U32_27:U32 = val 10
-  add %U32_28:U32 = 48:U32 %U32_27
-  conv %S8_29:S8 = %U32_28
-  lea %A32_30:A32 = buffer
-  lea %A32_31:A32 = %A32_30 pos
-  st %A32_31 0 = %S8_29
-  div %U32_32:U32 = val 10
-  mov val = %U32_32
+  sub %U32_2:U32 = pos 1
+  mov pos = %U32_2
+  rem %U32_3:U32 = val 10
+  add %U32_4:U32 = 48:U32 %U32_3
+  conv %S8_5:S8 = %U32_4
+  lea %A32_6:A32 = buffer
+  lea %A32_7:A32 = %A32_6 pos
+  st %A32_7 0 = %S8_5
+  div %U32_8:U32 = val 10
+  mov val = %U32_8
 
 .bbl while_1_cond
   bne val 0 while_1
   bra while_1_exit
 
 .bbl while_1_exit
-  lea %A32_33:A32 = buffer
-  lea %A32_34:A32 = %A32_33 pos
-  lea %A32_35:A32 = buffer
-  sub %U32_36:U32 = 16:U32 pos
-  pusharg %U32_36
-  pusharg %A32_34
+  lea %A32_9:A32 = buffer
+  lea %A32_10:A32 = %A32_9 pos
+  lea %A32_11:A32 = buffer
+  sub %U32_12:U32 = 16:U32 pos
+  pusharg %U32_12
+  pusharg %A32_10
   pusharg fd
   bsr write
-  poparg %S32_37:S32
-  mov %out = %S32_37
+  poparg %S32_13:S32
+  mov %out = %S32_13
   pusharg %out
   ret
 
@@ -153,58 +153,58 @@
   bra if_2_end
 
 .bbl if_2_true
-  conv %U32_38:U32 = sval
-  pusharg %U32_38
+  conv %U32_1:U32 = sval
+  pusharg %U32_1
   pusharg fd
   bsr write_u
-  poparg %S32_39:S32
-  mov %out = %S32_39
+  poparg %S32_2:S32
+  mov %out = %S32_2
   pusharg %out
   ret
 
 .bbl if_2_end
   .reg U32 [val]
-  sub %S32_40:S32 = 0  sval
-  conv %U32_41:U32 = %S32_40
-  mov val = %U32_41
+  sub %S32_3:S32 = 0  sval
+  conv %U32_4:U32 = %S32_3
+  mov val = %U32_4
 .stk buffer 1 16
   .reg U32 [pos]
-  lea %A32_42:A32 = buffer
+  lea %A32_5:A32 = buffer
   mov pos = 16
 
 .bbl while_1
-  sub %U32_43:U32 = pos 1
-  mov pos = %U32_43
-  rem %U32_44:U32 = val 10
-  add %U32_45:U32 = 48:U32 %U32_44
-  conv %S8_46:S8 = %U32_45
-  lea %A32_47:A32 = buffer
-  lea %A32_48:A32 = %A32_47 pos
-  st %A32_48 0 = %S8_46
-  div %U32_49:U32 = val 10
-  mov val = %U32_49
+  sub %U32_6:U32 = pos 1
+  mov pos = %U32_6
+  rem %U32_7:U32 = val 10
+  add %U32_8:U32 = 48:U32 %U32_7
+  conv %S8_9:S8 = %U32_8
+  lea %A32_10:A32 = buffer
+  lea %A32_11:A32 = %A32_10 pos
+  st %A32_11 0 = %S8_9
+  div %U32_12:U32 = val 10
+  mov val = %U32_12
 
 .bbl while_1_cond
   bne val 0 while_1
   bra while_1_exit
 
 .bbl while_1_exit
-  sub %U32_50:U32 = pos 1
-  mov pos = %U32_50
-  lea %A32_51:A32 = buffer
-  lea %A32_52:A32 = %A32_51 pos
-  mov %S8_53:S8 = 45
-  st %A32_52 0 = %S8_53
-  lea %A32_54:A32 = buffer
-  lea %A32_55:A32 = %A32_54 pos
-  lea %A32_56:A32 = buffer
-  sub %U32_57:U32 = 16:U32 pos
-  pusharg %U32_57
-  pusharg %A32_55
+  sub %U32_13:U32 = pos 1
+  mov pos = %U32_13
+  lea %A32_14:A32 = buffer
+  lea %A32_15:A32 = %A32_14 pos
+  mov %S8_16:S8 = 45
+  st %A32_15 0 = %S8_16
+  lea %A32_17:A32 = buffer
+  lea %A32_18:A32 = %A32_17 pos
+  lea %A32_19:A32 = buffer
+  sub %U32_20:U32 = 16:U32 pos
+  pusharg %U32_20
+  pusharg %A32_18
   pusharg fd
   bsr write
-  poparg %S32_58:S32
-  mov %out = %S32_58
+  poparg %S32_21:S32
+  mov %out = %S32_21
   pusharg %out
   ret
 
@@ -216,17 +216,17 @@
   poparg fd:S32
   poparg c:U8
 .stk buffer 1 16
-  conv %S8_59:S8 = c
-  lea %A32_60:A32 = buffer
-  st %A32_60 0 = %S8_59
-  lea %A32_61:A32 = buffer
-  mov %U32_63:U32 = 1
-  pusharg %U32_63
-  pusharg %A32_61
+  conv %S8_1:S8 = c
+  lea %A32_2:A32 = buffer
+  st %A32_2 0 = %S8_1
+  lea %A32_3:A32 = buffer
+  mov %U32_5:U32 = 1
+  pusharg %U32_5
+  pusharg %A32_3
   pusharg fd
   bsr write
-  poparg %S32_62:S32
-  mov %out = %S32_62
+  poparg %S32_4:S32
+  mov %out = %S32_4
   pusharg %out
   ret
 
@@ -236,18 +236,18 @@
 .bbl %start
   poparg s:A32
   poparg n:U32
-  mov %S32_65:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg n
   pusharg s
-  pusharg %S32_65
+  pusharg %S32_2
   bsr write
-  poparg %S32_64:S32
-  mov %S32_67:S32 = 1
-  mov %U8_68:U8 = 10
-  pusharg %U8_68
-  pusharg %S32_67
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_66:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -255,17 +255,17 @@
 
 .bbl %start
   poparg s:A32
-  mov %S32_70:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg s
-  pusharg %S32_70
+  pusharg %S32_2
   bsr write_s
-  poparg %S32_69:S32
-  mov %S32_72:S32 = 1
-  mov %U8_73:U8 = 10
-  pusharg %U8_73
-  pusharg %S32_72
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_71:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -273,17 +273,17 @@
 
 .bbl %start
   poparg n:S32
-  mov %S32_75:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg n
-  pusharg %S32_75
+  pusharg %S32_2
   bsr write_d
-  poparg %S32_74:S32
-  mov %S32_77:S32 = 1
-  mov %U8_78:U8 = 10
-  pusharg %U8_78
-  pusharg %S32_77
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_76:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -291,17 +291,17 @@
 
 .bbl %start
   poparg n:U32
-  mov %S32_80:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg n
-  pusharg %S32_80
+  pusharg %S32_2
   bsr write_u
-  poparg %S32_79:S32
-  mov %S32_82:S32 = 1
-  mov %U8_83:U8 = 10
-  pusharg %U8_83
-  pusharg %S32_82
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_81:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -309,17 +309,17 @@
 
 .bbl %start
   poparg n:U32
-  mov %S32_85:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg n
-  pusharg %S32_85
+  pusharg %S32_2
   bsr write_x
-  poparg %S32_84:S32
-  mov %S32_87:S32 = 1
-  mov %U8_88:U8 = 10
-  pusharg %U8_88
-  pusharg %S32_87
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_86:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -327,17 +327,17 @@
 
 .bbl %start
   poparg c:U8
-  mov %S32_90:S32 = 1
+  mov %S32_2:S32 = 1
   pusharg c
-  pusharg %S32_90
+  pusharg %S32_2
   bsr write_c
-  poparg %S32_89:S32
-  mov %S32_92:S32 = 1
-  mov %U8_93:U8 = 10
-  pusharg %U8_93
-  pusharg %S32_92
+  poparg %S32_1:S32
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
   bsr write_c
-  poparg %S32_91:S32
+  poparg %S32_3:S32
   ret
 
 
@@ -353,17 +353,17 @@
   bra for_1_cond
 
 .bbl for_1
-  conv %S8_94:S8 = value
-  lea %A32_95:A32 = ptr i
-  st %A32_95 0 = %S8_94
+  conv %S8_1:S8 = value
+  lea %A32_2:A32 = ptr i
+  st %A32_2 0 = %S8_1
 
 .bbl for_1_next
-  add %S32_96:S32 = i 1
-  mov i = %S32_96
+  add %S32_3:S32 = i 1
+  mov i = %S32_3
 
 .bbl for_1_cond
-  conv %U32_97:U32 = i
-  blt %U32_97 n for_1
+  conv %U32_4:U32 = i
+  blt %U32_4 n for_1
   bra for_1_exit
 
 .bbl for_1_exit
@@ -384,18 +384,18 @@
   bra for_1_cond
 
 .bbl for_1
-  lea %A32_98:A32 = src i
-  ld %S8_99:S8 = %A32_98 0
-  lea %A32_100:A32 = dst i
-  st %A32_100 0 = %S8_99
+  lea %A32_1:A32 = src i
+  ld %S8_2:S8 = %A32_1 0
+  lea %A32_3:A32 = dst i
+  st %A32_3 0 = %S8_2
 
 .bbl for_1_next
-  add %S32_101:S32 = i 1
-  mov i = %S32_101
+  add %S32_4:S32 = i 1
+  mov i = %S32_4
 
 .bbl for_1_cond
-  conv %U32_102:U32 = i
-  blt %U32_102 n for_1
+  conv %U32_5:U32 = i
+  blt %U32_5 n for_1
   bra for_1_exit
 
 .bbl for_1_exit
@@ -408,14 +408,14 @@
 
 .bbl %start
   bsr getpid
-  poparg %S32_103:S32
-  mov %S32_105:S32 = 3
-  pusharg %S32_105
-  pusharg %S32_103
+  poparg %S32_1:S32
+  mov %S32_3:S32 = 3
+  pusharg %S32_3
+  pusharg %S32_1
   bsr kill
-  poparg %S32_104:S32
-  mov %S32_106:S32 = 1
-  pusharg %S32_106
+  poparg %S32_2:S32
+  mov %S32_4:S32 = 1
+  pusharg %S32_4
   bsr exit
   ret
 
@@ -426,60 +426,60 @@
 .bbl %start
   poparg size:U32
   .reg U32 [page_size]
-  shl %S32_107:S32 = 1:S32 20
-  conv %U32_108:U32 = %S32_107
-  mov page_size = %U32_108
-  lea %A32_109:A32 = __static_1__malloc_start
-  ld %A32_110:A32 = %A32_109 0
-  beq %A32_110 0 if_1_true
+  shl %S32_1:S32 = 1:S32 20
+  conv %U32_2:U32 = %S32_1
+  mov page_size = %U32_2
+  lea %A32_3:A32 = __static_1__malloc_start
+  ld %A32_4:A32 = %A32_3 0
+  beq %A32_4 0 if_1_true
   bra if_1_end
 
 .bbl if_1_true
-  lea %A32_112:A32 = 0:A32
-  pusharg %A32_112
+  lea %A32_6:A32 = 0:A32
+  pusharg %A32_6
   bsr xbrk
-  poparg %A32_111:A32
-  lea %A32_113:A32 = __static_1__malloc_start
-  st %A32_113 0 = %A32_111
-  lea %A32_114:A32 = __static_1__malloc_start
-  ld %A32_115:A32 = %A32_114 0
-  lea %A32_116:A32 = __static_2__malloc_end
-  st %A32_116 0 = %A32_115
+  poparg %A32_5:A32
+  lea %A32_7:A32 = __static_1__malloc_start
+  st %A32_7 0 = %A32_5
+  lea %A32_8:A32 = __static_1__malloc_start
+  ld %A32_9:A32 = %A32_8 0
+  lea %A32_10:A32 = __static_2__malloc_end
+  st %A32_10 0 = %A32_9
 
 .bbl if_1_end
   .reg U32 [rounded_size]
-  add %U32_117:U32 = size 15
-  div %U32_118:U32 = %U32_117 16
-  mul %U32_119:U32 = %U32_118 16
-  mov rounded_size = %U32_119
-  lea %A32_120:A32 = __static_1__malloc_start
-  ld %A32_121:A32 = %A32_120 0
-  lea %A32_122:A32 = %A32_121 rounded_size
-  lea %A32_123:A32 = __static_2__malloc_end
-  ld %A32_124:A32 = %A32_123 0
-  blt %A32_124 %A32_122 if_3_true
+  add %U32_11:U32 = size 15
+  div %U32_12:U32 = %U32_11 16
+  mul %U32_13:U32 = %U32_12 16
+  mov rounded_size = %U32_13
+  lea %A32_14:A32 = __static_1__malloc_start
+  ld %A32_15:A32 = %A32_14 0
+  lea %A32_16:A32 = %A32_15 rounded_size
+  lea %A32_17:A32 = __static_2__malloc_end
+  ld %A32_18:A32 = %A32_17 0
+  blt %A32_18 %A32_16 if_3_true
   bra if_3_end
 
 .bbl if_3_true
   .reg U32 [increment]
-  add %U32_125:U32 = rounded_size page_size
-  sub %U32_126:U32 = %U32_125 1
-  div %U32_127:U32 = %U32_126 page_size
-  mul %U32_128:U32 = %U32_127 page_size
-  mov increment = %U32_128
+  add %U32_19:U32 = rounded_size page_size
+  sub %U32_20:U32 = %U32_19 1
+  div %U32_21:U32 = %U32_20 page_size
+  mul %U32_22:U32 = %U32_21 page_size
+  mov increment = %U32_22
   .reg A32 [new_end]
-  lea %A32_129:A32 = __static_2__malloc_end
-  ld %A32_130:A32 = %A32_129 0
-  lea %A32_131:A32 = %A32_130 increment
-  mov new_end = %A32_131
+  lea %A32_23:A32 = __static_2__malloc_end
+  ld %A32_24:A32 = %A32_23 0
+  lea %A32_25:A32 = %A32_24 increment
+  mov new_end = %A32_25
   pusharg new_end
   bsr xbrk
-  poparg %A32_132:A32
-  lea %A32_133:A32 = __static_2__malloc_end
-  st %A32_133 0 = %A32_132
-  lea %A32_134:A32 = __static_2__malloc_end
-  ld %A32_135:A32 = %A32_134 0
-  bne %A32_135 new_end if_2_true
+  poparg %A32_26:A32
+  lea %A32_27:A32 = __static_2__malloc_end
+  st %A32_27 0 = %A32_26
+  lea %A32_28:A32 = __static_2__malloc_end
+  ld %A32_29:A32 = %A32_28 0
+  bne %A32_29 new_end if_2_true
   bra if_3_end
 
 .bbl if_2_true
@@ -487,14 +487,14 @@
 
 .bbl if_3_end
   .reg A32 [result]
-  lea %A32_136:A32 = __static_1__malloc_start
-  ld %A32_137:A32 = %A32_136 0
-  mov result = %A32_137
-  lea %A32_138:A32 = __static_1__malloc_start
-  ld %A32_139:A32 = %A32_138 0
-  lea %A32_140:A32 = %A32_139 rounded_size
-  lea %A32_141:A32 = __static_1__malloc_start
-  st %A32_141 0 = %A32_140
+  lea %A32_30:A32 = __static_1__malloc_start
+  ld %A32_31:A32 = %A32_30 0
+  mov result = %A32_31
+  lea %A32_32:A32 = __static_1__malloc_start
+  ld %A32_33:A32 = %A32_32 0
+  lea %A32_34:A32 = %A32_33 rounded_size
+  lea %A32_35:A32 = __static_1__malloc_start
+  st %A32_35 0 = %A32_34
   mov %out = result
   pusharg %out
   ret
