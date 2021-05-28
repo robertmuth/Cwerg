@@ -1,20 +1,21 @@
 
 .SUFFIXES:
+DIR=build
 
-TESTS = TestData/exit.asm TestData/hello.asm TestData/fib.asm
+$(info $(shell mkdir -p $(DIR)))
+
+TESTS = exit.asm hello.asm fib.asm
 
 TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a
 
-.PHONY: $(TESTS)
-
 tests: tests_py tests_c
-	@echo
+	@echo "[OK CpuA64]"
 
 
-tests_py: disassembler_test objdump_compat_test argv_test  $(TESTS:.asm=.test)
+tests_py: $(DIR)/disassembler_test objdump_compat_test $(DIR)/argv_test  $(TESTS:%.asm=$(DIR)/%.test)
 
 
-tests_c: opcode_test_c symbolize_parity codegen_parity
+tests_c: opcode_test_c $(DIR)/symbolize_parity $(DIR)/codegen_parity
 
 objdump_compat_test:
 	@echo "[$@]"
@@ -23,22 +24,22 @@ objdump_compat_test:
 ############################################################
 # Python Port
 ############################################################
-%.test : %.asm
+$(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $<.out
-	$@.exe > $<.actual.out
-	diff $<.actual.out $<.golden
+	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
+	$@.exe > $@.actual.out
+	diff $@.actual.out $<.golden
 
-argv_test: TestData/argv.asm
+$(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble $< TestData/$@.exe > $<.out
-	TestData/$@.exe argv1 argv2 arvg3 argv4 ... argn > $<.actual.out
-	diff $<.actual.out $<.golden
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	$@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	diff $@.actual.out $<.golden
 
-disassembler_test:
+$(DIR)/disassembler_test:
 	@echo "[$@]"
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff $@.actual.out TestData/$@.golden
+	diff $@.actual.out TestData/disassembler_test.golden
 
 ############################################################
 # C++ Port
@@ -51,13 +52,13 @@ DISASSEMBLER_TOOL=$(BUILD_DIR)/a64_disassembler_tool.exe
 
 opcode_gen.cc: opcode_tab.py
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c <$@ > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
 opcode_gen.h: opcode_tab.py
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h <$@ > $@.tmp
-	@mv $@.tmp $@
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
 
 opcode_test_c: opcode_gen.h opcode_gen.cc
 	@echo "[$@]"
@@ -65,7 +66,7 @@ opcode_test_c: opcode_gen.h opcode_gen.cc
 	$(BUILD_DIR)/a64_opcode_test.exe
 
 
-symbolize_parity:
+$(DIR)/symbolize_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
 
@@ -77,7 +78,7 @@ symbolize_parity:
 	$(PYPY) ./disassembler_tool.py batch < TestData/a64_test.regular.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
 
-codegen_parity: $(ASSEMBLER_TOOL)
+$(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
 	@echo
@@ -94,4 +95,4 @@ codegen_parity: $(ASSEMBLER_TOOL)
 	cmp -l  $@_c.exe $@.exe
 
 clean:
-	rm -f  TestData/*.out TestData/*.exe *.exe *.out
+	rm -f $(DIR)/*
