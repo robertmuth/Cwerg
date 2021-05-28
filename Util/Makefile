@@ -1,18 +1,21 @@
+.SUFFIXES:  # no built-in rules
+DIR=build
+
+$(info $(shell mkdir -p $(DIR)))
 
 tests: tests_py tests_c
-	@echo
+	@echo "[OK Util]"
 
-tests_py:  parse_test
+tests_py:  $(DIR)/parse_test
 
 
-tests_c: parse_test_c handle_test bitvec_test handlevec_test mem_pool_test immutable_test
-
+tests_c:  $(DIR)/parse_test_c handle_test bitvec_test handlevec_test mem_pool_test immutable_test
 
 ############################################################
 # Python Port
 ############################################################
 
-parse_test: parse_test.py
+ $(DIR)/parse_test: parse_test.py
 	@echo "[$@]"
 	$(PYPY) ./parse_test.py < TestData/lines.txt  > $@.actual.out
 	diff $@.actual.out TestData/lines.golden
@@ -22,7 +25,7 @@ parse_test: parse_test.py
 ############################################################
 BUILD_DIR=../build
 
-parse_test_c:
+ $(DIR)/parse_test_c:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s parse_test.exe
 	$(BUILD_DIR)/parse_test.exe < TestData/lines.txt  > $@.actual.out
@@ -54,5 +57,5 @@ immutable_test:
 	$(BUILD_DIR)/immutable_test.exe
 
 clean:
-	rm -f *.out
+	rm -f $(DIR)/*
 
