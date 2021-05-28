@@ -46,4 +46,4 @@ $(DIR)/%.asm.opt.exe : ../TestData/%.asm
 	diff $@.actual.opt.out $<.golden
 
 clean:
-	rm -f  build/*
+	rm -f  $(DIR)/*

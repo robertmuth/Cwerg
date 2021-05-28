@@ -35,7 +35,7 @@ $(DIR)/reg_stats_test:
 
 $(DIR)/opcode_contraints_test:
 	@echo "[$@]"
-	$(PYPY) ./opcode_contraints_test.py >@.out 2>&1
+	$(PYPY) ./opcode_contraints_test.py > $@.out 2>&1
 
 $(DIR)/serialize_regression_test:
 	@echo "[$@]"

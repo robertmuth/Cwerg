@@ -16,20 +16,20 @@ tests_c: $(DIR)/clone_a32_test_c $(DIR)/clone_x64_test_c $(DIR)/gen_a32_test_c  
 
 $(DIR)/clone_x64_test:
 	@echo "[$@]"
-	$(PYPY) ./elfhelper.py clone TestData/hello-x64 hello-x64.clone.out> $@.out 2>&1
-	cmp -l  TestData/hello-x64 hello-x64.clone.out
+	$(PYPY) ./elfhelper.py clone TestData/hello-x64 $@.clone.out > $@.out 2>&1
+	cmp -l $@.clone.out TestData/hello-x64
 
 $(DIR)/clone_a32_test:
 	@echo "[$@]"
-	$(PYPY) ./elfhelper.py clone TestData/hello_barebones-a32 hello_barebones-a32.clone.out > $@.out 2>&1
-	cmp -l TestData/hello_barebones-a32 hello_barebones-a32.clone.out
+	$(PYPY) ./elfhelper.py clone TestData/hello_barebones-a32 $@.clone.out > $@.out 2>&1
+	cmp -l  $@.clone.out TestData/hello_barebones-a32
 
 
 $(DIR)/gen_x64_test:
 	@echo "[$@]"
-	$(PYPY) ./gen_elf_test.py genx64 gen.x64.exe.out > $@.log.out 2>&1
-	chmod a+rx gen.x64.exe.out
-	./gen.x64.exe.out > $@.out
+	$(PYPY) ./gen_elf_test.py genx64 $@.exe > $@.log.out 2>&1
+	chmod a+rx $@.exe
+	./$@.exe > $@.out
 	diff $@.out TestData/gen.x64.golden
 
 $(DIR)/gen_a32_test:
