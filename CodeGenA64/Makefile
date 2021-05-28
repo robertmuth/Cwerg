@@ -22,4 +22,4 @@ $(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
 	diff $@.actual.out $<.golden
 
 clean:
-	@rm -f build/*
+	@rm -f $(DIR)/*
