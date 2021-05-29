@@ -448,8 +448,7 @@ class EmitContext:
     """Grab bag of data needed for emitting instructions"""
     gpr64_reg_mask: int = 0  # bitmask for saved gpr
     flt64_reg_mask: int = 0  # bitmask for saved flt (dbl, etc.) only lower 64bits are saved
-    total_stk_size: int = 0
-    callee_save_stk_size: int = 0
+    stk_size: int = 0
 
     scratch_cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
 

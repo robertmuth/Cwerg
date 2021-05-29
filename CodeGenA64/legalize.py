@@ -389,47 +389,37 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
 
-    assert len(global_reg_stats[(o.DK.S64, True)]) +  len(global_reg_stats[(o.DK.S64, False)]) == 0
-    if False:
-        # Handle GPR regs
-        needed_gpr = RegsNeeded(len(global_reg_stats[(o.DK.S64, True)]),
-                                len(global_reg_stats[(o.DK.S64, False)]),
-                                local_reg_stats.get((o.DK.S64, True), 0),
-                                # TODO: avoid fudge factor
-                                1 + local_reg_stats.get((o.DK.S64, False), 0))
-        gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-            needed_gpr, regs.GPR_CALLEE_SAVE_REGS.copy(),
-            regs.GPR_NOT_LAC_REGS.copy(), pre_allocated)
+    # Handle GPR regs
+    needed_gpr = RegsNeeded(len(global_reg_stats[(o.DK.S64, True)]),
+                            len(global_reg_stats[(o.DK.S64, False)]),
+                            local_reg_stats.get((o.DK.S64, True), 0),
+                            local_reg_stats.get((o.DK.S64, False), 0))
+    gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
+        needed_gpr, regs.GPR64_CALLEE_SAVE_REGS.copy(),
+        regs.GPR64_PARAMETER_REGS.copy(), pre_allocated)
 
-        to_be_spilled: List[ir.Reg] = []
-        to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, True)],
-                                                        gpr_global_lac)
-        to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, False)],
-                                                        gpr_global_not_lac)
+    to_be_spilled: List[ir.Reg] = []
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, True)],
+                                                    gpr_global_lac)
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, False)],
+                                                    gpr_global_not_lac)
 
-        # Handle Float regs
-        needed_flt = RegsNeeded(len(global_reg_stats[(o.DK.F32, True)]) + 2 *
-                                len(global_reg_stats[(o.DK.F64, True)]),
-                                len(global_reg_stats[(o.DK.F32, False)]) + 2 *
-                                len(global_reg_stats[(o.DK.F64, True)]),
-                                local_reg_stats.get((o.DK.F32, True), 0) + 2 *
-                                local_reg_stats.get((o.DK.F64, True), 0),
-                                # TODO: avoid fudge factor
-                                2 + local_reg_stats.get((o.DK.F32, False), 0) + 2 *
-                                local_reg_stats.get((o.DK.F64, False), 0))
+    # Handle Float regs
+    needed_flt = RegsNeeded(len(global_reg_stats[(o.DK.F64, True)]),
+                            len(global_reg_stats[(o.DK.F64, True)]),
+                            local_reg_stats.get((o.DK.F64, True), 0),
+                            local_reg_stats.get((o.DK.F64, False), 0))
 
-        flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-            needed_flt, regs.FLT_CALLEE_SAVE_REGS.copy(),
-            regs.FLT_PARAMETER_REGS.copy(), pre_allocated)
+    flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
+        needed_flt, regs.FLT64_CALLEE_SAVE_REGS.copy(),
+        regs.FLT64_PARAMETER_REGS.copy(), pre_allocated)
 
-        to_be_spilled += _AssignCpuRegOrMarkForSpilling(
-            global_reg_stats[(o.DK.F64, True)] + global_reg_stats[(o.DK.F32, True)],
-            flt_global_lac)
-        to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, False)] +
-                                                        global_reg_stats[(o.DK.F32, False)],
-                                                        flt_global_not_lac)
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, True)],
+                                                    flt_global_lac)
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, False)],
+                                                    flt_global_not_lac)
 
-        reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled)
+    reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
     # Recompute Everything (TODO: make this more selective)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
@@ -450,7 +440,6 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
         to_be_spillled = [reg for reg in fun.regs if not reg.HasCpuReg()]
         to_be_spillled.sort()
         reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spillled)
-
 
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
