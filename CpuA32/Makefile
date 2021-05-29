@@ -14,7 +14,7 @@ tests: tests_py tests_c
 tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
               $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
 
-tests_c: $(DIR)/symbolize_parity build_test_c $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
+tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
 
 ############################################################
 # Python Port
@@ -82,10 +82,6 @@ opcode_gen.h: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
-
-build_test_c:
-	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s  a32_assembler_tool.exe a32_jit_example.exe
 
 
 $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
