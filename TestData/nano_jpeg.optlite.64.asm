@@ -9,10 +9,10 @@
 # print_u_ln                     RegStats:  0/ 0   0/ 3
 # print_x_ln                     RegStats:  0/ 0   0/ 3
 # print_c_ln                     RegStats:  0/ 0   0/ 3
-# memset                         RegStats:  0/ 4   0/ 3
-# memcpy                         RegStats:  0/ 4   0/ 3
+# memset                         RegStats:  0/ 4   0/ 2
+# memcpy                         RegStats:  0/ 4   0/ 2
 # abort                          RegStats:  0/ 0   0/ 2
-# malloc                         RegStats:  3/ 0   1/19
+# malloc                         RegStats:  3/ 0   1/18
 # free                           RegStats:  0/ 0   0/ 1
 # mymemset                       RegStats:  0/ 4   0/ 3
 # mymemcpy                       RegStats:  0/ 4   0/ 3
@@ -369,8 +369,8 @@
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
 .reg S8 [%S8_1]
-.reg S32 [%S32_3 i value]
-.reg U64 [%U64_4 n]
+.reg S32 [value]
+.reg U64 [%U64_3 i n]
 .reg A64 [ptr]
 .bbl %start  #  edge_out[for_1_cond]  live_out[i  n  ptr  value]
     poparg ptr
@@ -382,19 +382,17 @@
     conv %S8_1 value
     st ptr i %S8_1
 .bbl for_1_next  #  edge_out[for_1_cond]  live_out[i  n  ptr  value]
-    add %S32_3 i 1
-    mov i %S32_3
+    add %U64_3 i 1
+    mov i %U64_3
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]  live_out[i  n  ptr  value]
-    conv %U64_4 i
-    blt %U64_4 n for_1
+    blt i n for_1
 .bbl for_1_exit
     pusharg ptr
     ret
 
 .fun memcpy NORMAL [A64] = [A64 A64 U64]
 .reg S8 [%S8_2]
-.reg S32 [%S32_4 i]
-.reg U64 [%U64_5 n]
+.reg U64 [%U64_4 i n]
 .reg A64 [dst src]
 .bbl %start  #  edge_out[for_1_cond]  live_out[dst  i  n  src]
     poparg dst
@@ -406,11 +404,10 @@
     ld %S8_2 src i
     st dst i %S8_2
 .bbl for_1_next  #  edge_out[for_1_cond]  live_out[dst  i  n  src]
-    add %S32_4 i 1
-    mov i %S32_4
+    add %U64_4 i 1
+    mov i %U64_4
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]  live_out[dst  i  n  src]
-    conv %U64_5 i
-    blt %U64_5 n for_1
+    blt i n for_1
 .bbl for_1_exit
     pusharg dst
     ret
@@ -429,51 +426,49 @@
     ret
 
 .fun malloc NORMAL [A64] = [U64]
-.reg S32 [%S32_1]
-.reg U64 [%U64_11 %U64_12 %U64_13 %U64_19 %U64_2 %U64_20 %U64_21 %U64_22 size]
-.reg A64 [%A64_15 %A64_16 %A64_18 %A64_24 %A64_25 %A64_26 %A64_29 %A64_31 %A64_33 %A64_34 %A64_4 %A64_5 %A64_9]
-.bbl %start  #  edge_out[if_1_end  if_1_true]  live_out[%U64_2  size]
+.reg U64 [%U64_1 %U64_10 %U64_11 %U64_12 %U64_18 %U64_19 %U64_20 %U64_21 size]
+.reg A64 [%A64_14 %A64_15 %A64_17 %A64_23 %A64_24 %A64_25 %A64_28 %A64_3 %A64_30 %A64_32 %A64_33 %A64_4 %A64_8]
+.bbl %start  #  edge_out[if_1_end  if_1_true]  live_out[%U64_1  size]
     poparg size
-    mov %S32_1 1048576
-    conv %U64_2 %S32_1
-    ld.mem %A64_4 __static_1__malloc_start 0
-    bne %A64_4 0 if_1_end
-.bbl if_1_true  #  edge_out[if_1_end]  live_out[%U64_2  size]
+    mov %U64_1 1048576
+    ld.mem %A64_3 __static_1__malloc_start 0
+    bne %A64_3 0 if_1_end
+.bbl if_1_true  #  edge_out[if_1_end]  live_out[%U64_1  size]
     pusharg 0:A64
     bsr xbrk
-    poparg %A64_5
-    st.mem __static_1__malloc_start 0 %A64_5
-    ld.mem %A64_9 __static_1__malloc_start 0
-    st.mem __static_2__malloc_end 0 %A64_9
-.bbl if_1_end  #  edge_out[if_3_end  if_3_true]  live_out[%U64_13  %U64_2]
-    add %U64_11 size 15
-    div %U64_12 %U64_11 16
-    shl %U64_13 %U64_12 4
-    ld.mem %A64_15 __static_1__malloc_start 0
-    lea %A64_16 %A64_15 %U64_13
-    ld.mem %A64_18 __static_2__malloc_end 0
-    ble %A64_16 %A64_18 if_3_end
-.bbl if_3_true  #  edge_out[if_2_true  if_3_end]  live_out[%U64_13]
-    add %U64_19 %U64_13 %U64_2
-    sub %U64_20 %U64_19 1
-    div %U64_21 %U64_20 %U64_2
-    mul %U64_22 %U64_21 %U64_2
-    ld.mem %A64_24 __static_2__malloc_end 0
-    lea %A64_25 %A64_24 %U64_22
-    pusharg %A64_25
+    poparg %A64_4
+    st.mem __static_1__malloc_start 0 %A64_4
+    ld.mem %A64_8 __static_1__malloc_start 0
+    st.mem __static_2__malloc_end 0 %A64_8
+.bbl if_1_end  #  edge_out[if_3_end  if_3_true]  live_out[%U64_1  %U64_12]
+    add %U64_10 size 15
+    div %U64_11 %U64_10 16
+    shl %U64_12 %U64_11 4
+    ld.mem %A64_14 __static_1__malloc_start 0
+    lea %A64_15 %A64_14 %U64_12
+    ld.mem %A64_17 __static_2__malloc_end 0
+    ble %A64_15 %A64_17 if_3_end
+.bbl if_3_true  #  edge_out[if_2_true  if_3_end]  live_out[%U64_12]
+    add %U64_18 %U64_12 %U64_1
+    sub %U64_19 %U64_18 1
+    div %U64_20 %U64_19 %U64_1
+    mul %U64_21 %U64_20 %U64_1
+    ld.mem %A64_23 __static_2__malloc_end 0
+    lea %A64_24 %A64_23 %U64_21
+    pusharg %A64_24
     bsr xbrk
-    poparg %A64_26
-    st.mem __static_2__malloc_end 0 %A64_26
-    ld.mem %A64_29 __static_2__malloc_end 0
-    beq %A64_29 %A64_25 if_3_end
-.bbl if_2_true  #  edge_out[if_3_end]  live_out[%U64_13]
+    poparg %A64_25
+    st.mem __static_2__malloc_end 0 %A64_25
+    ld.mem %A64_28 __static_2__malloc_end 0
+    beq %A64_28 %A64_24 if_3_end
+.bbl if_2_true  #  edge_out[if_3_end]  live_out[%U64_12]
     bsr abort
 .bbl if_3_end
-    ld.mem %A64_31 __static_1__malloc_start 0
-    ld.mem %A64_33 __static_1__malloc_start 0
-    lea %A64_34 %A64_33 %U64_13
-    st.mem __static_1__malloc_start 0 %A64_34
-    pusharg %A64_31
+    ld.mem %A64_30 __static_1__malloc_start 0
+    ld.mem %A64_32 __static_1__malloc_start 0
+    lea %A64_33 %A64_32 %U64_12
+    st.mem __static_1__malloc_start 0 %A64_33
+    pusharg %A64_30
     ret
 
 .fun free NORMAL [] = [A64]

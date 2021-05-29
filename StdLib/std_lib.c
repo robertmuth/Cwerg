@@ -100,14 +100,14 @@ void print_c_ln(uint8_t c) {
 }
 
 void* memset(void* ptr, int value, size_t n) {
-  for (int i = 0; i < n; i += 1) {
+  for (size_t i = 0; i < n; i += 1) {
     ((char*)ptr)[i] = value;
   }
   return ptr;
 }
 
 void* memcpy(void* dst, const void* src, size_t n) {
-  for (int i = 0; i < n; i += 1) {
+  for (size_t i = 0; i < n; i += 1) {
     ((char*)dst)[i] = ((char*)src)[i];
   }
   return dst;
@@ -125,7 +125,7 @@ void* malloc(size_t size) {
   // obviously not thread-safe, zero initialized
   static char* _malloc_start;
   static char* _malloc_end;
-  const size_t page_size = 1 << 20;  // 1Mi
+  const size_t page_size = 1UL << 20UL;  // 1Mi
 
   if (_malloc_start == 0) {
     // Note: we could call this with 0 but since we may co-exist with libc

@@ -348,7 +348,7 @@
   poparg ptr:A32
   poparg value:S32
   poparg n:U32
-  .reg S32 [i]
+  .reg U32 [i]
   mov i = 0
   bra for_1_cond
 
@@ -358,12 +358,11 @@
   st %A32_2 0 = %S8_1
 
 .bbl for_1_next
-  add %S32_3:S32 = i 1
-  mov i = %S32_3
+  add %U32_3:U32 = i 1
+  mov i = %U32_3
 
 .bbl for_1_cond
-  conv %U32_4:U32 = i
-  blt %U32_4 n for_1
+  blt i n for_1
   bra for_1_exit
 
 .bbl for_1_exit
@@ -379,7 +378,7 @@
   poparg dst:A32
   poparg src:A32
   poparg n:U32
-  .reg S32 [i]
+  .reg U32 [i]
   mov i = 0
   bra for_1_cond
 
@@ -390,12 +389,11 @@
   st %A32_3 0 = %S8_2
 
 .bbl for_1_next
-  add %S32_4:S32 = i 1
-  mov i = %S32_4
+  add %U32_4:U32 = i 1
+  mov i = %U32_4
 
 .bbl for_1_cond
-  conv %U32_5:U32 = i
-  blt %U32_5 n for_1
+  blt i n for_1
   bra for_1_exit
 
 .bbl for_1_exit
@@ -426,60 +424,59 @@
 .bbl %start
   poparg size:U32
   .reg U32 [page_size]
-  shl %S32_1:S32 = 1:S32 20
-  conv %U32_2:U32 = %S32_1
-  mov page_size = %U32_2
-  lea %A32_3:A32 = __static_1__malloc_start
-  ld %A32_4:A32 = %A32_3 0
-  beq %A32_4 0 if_1_true
+  shl %U32_1:U32 = 1:U32 20
+  mov page_size = %U32_1
+  lea %A32_2:A32 = __static_1__malloc_start
+  ld %A32_3:A32 = %A32_2 0
+  beq %A32_3 0 if_1_true
   bra if_1_end
 
 .bbl if_1_true
-  lea %A32_6:A32 = 0:A32
-  pusharg %A32_6
+  lea %A32_5:A32 = 0:A32
+  pusharg %A32_5
   bsr xbrk
-  poparg %A32_5:A32
+  poparg %A32_4:A32
+  lea %A32_6:A32 = __static_1__malloc_start
+  st %A32_6 0 = %A32_4
   lea %A32_7:A32 = __static_1__malloc_start
-  st %A32_7 0 = %A32_5
-  lea %A32_8:A32 = __static_1__malloc_start
-  ld %A32_9:A32 = %A32_8 0
-  lea %A32_10:A32 = __static_2__malloc_end
-  st %A32_10 0 = %A32_9
+  ld %A32_8:A32 = %A32_7 0
+  lea %A32_9:A32 = __static_2__malloc_end
+  st %A32_9 0 = %A32_8
 
 .bbl if_1_end
   .reg U32 [rounded_size]
-  add %U32_11:U32 = size 15
-  div %U32_12:U32 = %U32_11 16
-  mul %U32_13:U32 = %U32_12 16
-  mov rounded_size = %U32_13
-  lea %A32_14:A32 = __static_1__malloc_start
-  ld %A32_15:A32 = %A32_14 0
-  lea %A32_16:A32 = %A32_15 rounded_size
-  lea %A32_17:A32 = __static_2__malloc_end
-  ld %A32_18:A32 = %A32_17 0
-  blt %A32_18 %A32_16 if_3_true
+  add %U32_10:U32 = size 15
+  div %U32_11:U32 = %U32_10 16
+  mul %U32_12:U32 = %U32_11 16
+  mov rounded_size = %U32_12
+  lea %A32_13:A32 = __static_1__malloc_start
+  ld %A32_14:A32 = %A32_13 0
+  lea %A32_15:A32 = %A32_14 rounded_size
+  lea %A32_16:A32 = __static_2__malloc_end
+  ld %A32_17:A32 = %A32_16 0
+  blt %A32_17 %A32_15 if_3_true
   bra if_3_end
 
 .bbl if_3_true
   .reg U32 [increment]
-  add %U32_19:U32 = rounded_size page_size
-  sub %U32_20:U32 = %U32_19 1
-  div %U32_21:U32 = %U32_20 page_size
-  mul %U32_22:U32 = %U32_21 page_size
-  mov increment = %U32_22
+  add %U32_18:U32 = rounded_size page_size
+  sub %U32_19:U32 = %U32_18 1
+  div %U32_20:U32 = %U32_19 page_size
+  mul %U32_21:U32 = %U32_20 page_size
+  mov increment = %U32_21
   .reg A32 [new_end]
-  lea %A32_23:A32 = __static_2__malloc_end
-  ld %A32_24:A32 = %A32_23 0
-  lea %A32_25:A32 = %A32_24 increment
-  mov new_end = %A32_25
+  lea %A32_22:A32 = __static_2__malloc_end
+  ld %A32_23:A32 = %A32_22 0
+  lea %A32_24:A32 = %A32_23 increment
+  mov new_end = %A32_24
   pusharg new_end
   bsr xbrk
-  poparg %A32_26:A32
+  poparg %A32_25:A32
+  lea %A32_26:A32 = __static_2__malloc_end
+  st %A32_26 0 = %A32_25
   lea %A32_27:A32 = __static_2__malloc_end
-  st %A32_27 0 = %A32_26
-  lea %A32_28:A32 = __static_2__malloc_end
-  ld %A32_29:A32 = %A32_28 0
-  bne %A32_29 new_end if_2_true
+  ld %A32_28:A32 = %A32_27 0
+  bne %A32_28 new_end if_2_true
   bra if_3_end
 
 .bbl if_2_true
@@ -487,14 +484,14 @@
 
 .bbl if_3_end
   .reg A32 [result]
-  lea %A32_30:A32 = __static_1__malloc_start
-  ld %A32_31:A32 = %A32_30 0
-  mov result = %A32_31
-  lea %A32_32:A32 = __static_1__malloc_start
-  ld %A32_33:A32 = %A32_32 0
-  lea %A32_34:A32 = %A32_33 rounded_size
-  lea %A32_35:A32 = __static_1__malloc_start
-  st %A32_35 0 = %A32_34
+  lea %A32_29:A32 = __static_1__malloc_start
+  ld %A32_30:A32 = %A32_29 0
+  mov result = %A32_30
+  lea %A32_31:A32 = __static_1__malloc_start
+  ld %A32_32:A32 = %A32_31 0
+  lea %A32_33:A32 = %A32_32 rounded_size
+  lea %A32_34:A32 = __static_1__malloc_start
+  st %A32_34 0 = %A32_33
   mov %out = result
   pusharg %out
   ret

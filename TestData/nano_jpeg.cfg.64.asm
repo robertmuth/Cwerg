@@ -377,8 +377,8 @@
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
 .reg S8 [%S8_1]
-.reg S32 [%S32_3 i value]
-.reg U64 [%U64_4 n]
+.reg S32 [value]
+.reg U64 [%U64_3 i n]
 .reg A64 [%A64_2 %out ptr]
 .bbl %start  #  edge_out[for_1_cond]
     poparg ptr
@@ -390,11 +390,10 @@
     lea %A64_2 ptr i
     st %A64_2 0 %S8_1
 .bbl for_1_next  #  edge_out[for_1_cond]
-    add %S32_3 i 1
-    mov i %S32_3
+    add %U64_3 i 1
+    mov i %U64_3
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]
-    conv %U64_4 i
-    blt %U64_4 n for_1
+    blt i n for_1
 .bbl for_1_exit
     mov %out ptr
     pusharg %out
@@ -402,8 +401,7 @@
 
 .fun memcpy NORMAL [A64] = [A64 A64 U64]
 .reg S8 [%S8_2]
-.reg S32 [%S32_4 i]
-.reg U64 [%U64_5 n]
+.reg U64 [%U64_4 i n]
 .reg A64 [%A64_1 %A64_3 %out dst src]
 .bbl %start  #  edge_out[for_1_cond]
     poparg dst
@@ -416,11 +414,10 @@
     lea %A64_3 dst i
     st %A64_3 0 %S8_2
 .bbl for_1_next  #  edge_out[for_1_cond]
-    add %S32_4 i 1
-    mov i %S32_4
+    add %U64_4 i 1
+    mov i %U64_4
 .bbl for_1_cond  #  edge_out[for_1  for_1_exit]
-    conv %U64_5 i
-    blt %U64_5 n for_1
+    blt i n for_1
 .bbl for_1_exit
     mov %out dst
     pusharg %out
@@ -442,68 +439,66 @@
     ret
 
 .fun malloc NORMAL [A64] = [U64]
-.reg S32 [%S32_1]
-.reg U64 [%U64_11 %U64_12 %U64_13 %U64_19 %U64_2 %U64_20 %U64_21 %U64_22 increment page_size rounded_size size]
-.reg A64 [%A64_10 %A64_14 %A64_15 %A64_16 %A64_17 %A64_18 %A64_23 %A64_24 %A64_25 %A64_26 %A64_27 %A64_28 %A64_29 %A64_3 %A64_30 %A64_31 %A64_32 %A64_33 %A64_34 %A64_35 %A64_4 %A64_5 %A64_6 %A64_7 %A64_8 %A64_9 %out new_end result]
+.reg U64 [%U64_1 %U64_10 %U64_11 %U64_12 %U64_18 %U64_19 %U64_20 %U64_21 increment page_size rounded_size size]
+.reg A64 [%A64_13 %A64_14 %A64_15 %A64_16 %A64_17 %A64_2 %A64_22 %A64_23 %A64_24 %A64_25 %A64_26 %A64_27 %A64_28 %A64_29 %A64_3 %A64_30 %A64_31 %A64_32 %A64_33 %A64_34 %A64_4 %A64_5 %A64_6 %A64_7 %A64_8 %A64_9 %out new_end result]
 .bbl %start  #  edge_out[if_1_end  if_1_true]
     poparg size
-    shl %S32_1 1 20
-    conv %U64_2 %S32_1
-    mov page_size %U64_2
-    lea.mem %A64_3 __static_1__malloc_start 0
-    ld %A64_4 %A64_3 0
-    beq %A64_4 0 if_1_true
+    shl %U64_1 1 20
+    mov page_size %U64_1
+    lea.mem %A64_2 __static_1__malloc_start 0
+    ld %A64_3 %A64_2 0
+    beq %A64_3 0 if_1_true
 .bbl if_1_true  #  edge_out[if_1_end]
-    lea %A64_6 0 0
-    pusharg %A64_6
+    lea %A64_5 0 0
+    pusharg %A64_5
     bsr xbrk
-    poparg %A64_5
+    poparg %A64_4
+    lea.mem %A64_6 __static_1__malloc_start 0
+    st %A64_6 0 %A64_4
     lea.mem %A64_7 __static_1__malloc_start 0
-    st %A64_7 0 %A64_5
-    lea.mem %A64_8 __static_1__malloc_start 0
-    ld %A64_9 %A64_8 0
-    lea.mem %A64_10 __static_2__malloc_end 0
-    st %A64_10 0 %A64_9
+    ld %A64_8 %A64_7 0
+    lea.mem %A64_9 __static_2__malloc_end 0
+    st %A64_9 0 %A64_8
 .bbl if_1_end  #  edge_out[if_3_end  if_3_true]
-    add %U64_11 size 15
-    div %U64_12 %U64_11 16
-    mul %U64_13 %U64_12 16
-    mov rounded_size %U64_13
-    lea.mem %A64_14 __static_1__malloc_start 0
-    ld %A64_15 %A64_14 0
-    lea %A64_16 %A64_15 rounded_size
-    lea.mem %A64_17 __static_2__malloc_end 0
-    ld %A64_18 %A64_17 0
-    blt %A64_18 %A64_16 if_3_true
+    add %U64_10 size 15
+    div %U64_11 %U64_10 16
+    mul %U64_12 %U64_11 16
+    mov rounded_size %U64_12
+    lea.mem %A64_13 __static_1__malloc_start 0
+    ld %A64_14 %A64_13 0
+    lea %A64_15 %A64_14 rounded_size
+    lea.mem %A64_16 __static_2__malloc_end 0
+    ld %A64_17 %A64_16 0
+    blt %A64_17 %A64_15 if_3_true
 .bbl if_3_true  #  edge_out[if_2_true  if_3_end]
-    add %U64_19 rounded_size page_size
-    sub %U64_20 %U64_19 1
-    div %U64_21 %U64_20 page_size
-    mul %U64_22 %U64_21 page_size
-    mov increment %U64_22
-    lea.mem %A64_23 __static_2__malloc_end 0
-    ld %A64_24 %A64_23 0
-    lea %A64_25 %A64_24 increment
-    mov new_end %A64_25
+    add %U64_18 rounded_size page_size
+    sub %U64_19 %U64_18 1
+    div %U64_20 %U64_19 page_size
+    mul %U64_21 %U64_20 page_size
+    mov increment %U64_21
+    lea.mem %A64_22 __static_2__malloc_end 0
+    ld %A64_23 %A64_22 0
+    lea %A64_24 %A64_23 increment
+    mov new_end %A64_24
     pusharg new_end
     bsr xbrk
-    poparg %A64_26
+    poparg %A64_25
+    lea.mem %A64_26 __static_2__malloc_end 0
+    st %A64_26 0 %A64_25
     lea.mem %A64_27 __static_2__malloc_end 0
-    st %A64_27 0 %A64_26
-    lea.mem %A64_28 __static_2__malloc_end 0
-    ld %A64_29 %A64_28 0
-    bne %A64_29 new_end if_2_true
+    ld %A64_28 %A64_27 0
+    bne %A64_28 new_end if_2_true
 .bbl if_2_true  #  edge_out[if_3_end]
     bsr abort
 .bbl if_3_end
-    lea.mem %A64_30 __static_1__malloc_start 0
-    ld %A64_31 %A64_30 0
-    mov result %A64_31
-    lea.mem %A64_32 __static_1__malloc_start 0
-    ld %A64_33 %A64_32 0
-    lea %A64_34 %A64_33 rounded_size
-    lea.mem %A64_35 __static_1__malloc_start 0
-    st %A64_35 0 %A64_34
+    lea.mem %A64_29 __static_1__malloc_start 0
+    ld %A64_30 %A64_29 0
+    mov result %A64_30
+    lea.mem %A64_31 __static_1__malloc_start 0
+    ld %A64_32 %A64_31 0
+    lea %A64_33 %A64_32 rounded_size
+    lea.mem %A64_34 __static_1__malloc_start 0
+    st %A64_34 0 %A64_33
     mov %out result
     pusharg %out
     ret

@@ -27,6 +27,8 @@ cases of the C language.
 """
 
 import logging
+import re
+
 from typing import Optional, Union
 
 from pycparser import c_ast, parse_file
@@ -388,8 +390,20 @@ def GetFunReturnType(fun_or_fun_ptr):
     return GetTypeForDecl(fun_or_fun_ptr.type)
 
 
+# TODO: very incomplete list of suffices
+_RE_NUMBER_SUFFIX = re.compile("(ull|ll|ul|l|u)$", re.IGNORECASE)
+_SUFFIX_MAP = {
+    "l": "long",
+    "u": "unsigned",
+}
+
+
 def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fundef):
     if isinstance(node, c_ast.Constant):
+        m = _RE_NUMBER_SUFFIX.search(node.value)
+        if m:
+            kinds = [_SUFFIX_MAP[c] for c in m.group().lower()]
+            return common.GetCanonicalIdentifierType(kinds)
         return common.GetCanonicalIdentifierType(node.type.split())
     elif isinstance(node, c_ast.ID):
         if isinstance(parent, c_ast.StructRef) and parent.field == node:
