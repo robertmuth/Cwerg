@@ -16,7 +16,6 @@ tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
 
 tests_c: $(DIR)/symbolize_parity build_test_c $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
 
-tests_cross: jit_example_cross
 ############################################################
 # Python Port
 ############################################################
@@ -112,18 +111,6 @@ $(DIR)/symbolize_parity: $(DISASSEMBLER_TOOL)
 	$(DISASSEMBLER_TOOL) batch < TestData/arm_test.dis > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py batch < TestData/arm_test.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
-
-############################################################
-# Cross Compile
-############################################################
-
-CC_FLAGS_CROSS =  -static  -Wl,-z,norelro -marm -march=armv7ve $(CC_FLAGS) -DCWERG_DISABLE_UNWIND
-A32_LIB_DIS = opcode_gen.cc disassembler.cc
-UTIL_LITE_LIB = ../Util/assert.cc ../Util/parse.cc
-
-jit_example_cross: $(A32_LIB_DIS) jit_example.cc
-	arm-linux-gnueabihf-g++ $(CC_FLAGS_CROSS) $(UTIL_LITE_LIB) $(A32_LIB_DIS) jit_example.cc  -o $@.exe
-	./$@.exe
 
 ############################################################
 # Misc

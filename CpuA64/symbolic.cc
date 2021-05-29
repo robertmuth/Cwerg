@@ -113,7 +113,6 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
   const size_t colon_sym = expr.find(':');
   if (colon_sym == std::string_view::npos) return false;
   const std::string_view kind_name = expr.substr(0, colon_sym);
-  elf::RELOC_TYPE_AARCH64 rel_type;
   if (kind_name == "abs32") {
     ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ABS32;
   } else if (kind_name == "abs64") {

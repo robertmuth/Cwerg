@@ -1,4 +1,4 @@
-
+// This examples shows how to jit a32 assembly directly (not cwerg IR)
 #include "CpuA32/opcode_gen.h"
 #include "CpuA32/symbolic.h"
 #include "Util/assert.h"
@@ -17,7 +17,7 @@ constexpr auto operator+(T e) noexcept
 
 using FunPtr = uint32_t (*)(uint32_t);
 
-void DumpA32Ins(uint32_t data) {
+void DumpIns(uint32_t data) {
   Ins ins;
   Disassemble(&ins, data);
   std::vector<std::string> ops;
@@ -36,29 +36,29 @@ constexpr uint32_t encode_branch_offset(int32_t offset) {
   return offset & 0xffffff;
 }
 
+#define OPCODE(o) &OpcodeTable[+OPC::o]
+
 int main(int argc, char* argv[]) {
   const Ins Fibonacci[] = {
       //
-      {&OpcodeTable[+OPC::stmdb_update], {+PRED::al, +REG::sp, 0x4030}},
-      {&OpcodeTable[+OPC::cmp_imm], {+PRED::al, +REG::r0, 1}},
-      {&OpcodeTable[+OPC::b], {+PRED::le, encode_branch_offset(7)}},
+      {OPCODE(stmdb_update), {+PRED::al, +REG::sp, 0x4030}},
+      {OPCODE(cmp_imm), {+PRED::al, +REG::r0, 1}},
+      {OPCODE(b), {+PRED::le, encode_branch_offset(7)}},
       //
-      {&OpcodeTable[+OPC::mov_imm], {+PRED::al, +REG::r4, 0}},
-      {&OpcodeTable[+OPC::mov_regimm],
-       {+PRED::al, +REG::r5, +REG::r0, +SHIFT::lsl, 0}},
+      {OPCODE(mov_imm), {+PRED::al, +REG::r4, 0}},
+      {OPCODE(mov_regimm), {+PRED::al, +REG::r5, +REG::r0, +SHIFT::lsl, 0}},
       //
-      {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 1}},
-      {&OpcodeTable[+OPC::bl], {+PRED::al, +REG::lr, encode_branch_offset(-8)}},
-      {&OpcodeTable[+OPC::add_regimm],
+      {OPCODE(sub_imm), {+PRED::al, +REG::r0, +REG::r5, 1}},
+      {OPCODE(bl), {+PRED::al, encode_branch_offset(-8)}},
+      {OPCODE(add_regimm),
        {+PRED::al, +REG::r4, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
       //
-      {&OpcodeTable[+OPC::sub_imm], {+PRED::al, +REG::r0, +REG::r5, 2}},
-      {&OpcodeTable[+OPC::bl],
-       {+PRED::al, +REG::lr, encode_branch_offset(-11)}},
-      {&OpcodeTable[+OPC::add_regimm],
+      {OPCODE(sub_imm), {+PRED::al, +REG::r0, +REG::r5, 2}},
+      {OPCODE(bl), {+PRED::al,encode_branch_offset(-11)}},
+      {OPCODE(add_regimm),
        {+PRED::al, +REG::r0, +REG::r4, +REG::r0, +SHIFT::lsl, 0}},
       //
-      {&OpcodeTable[+OPC::ldmia_update], {+PRED::al, 0x8030, +REG::sp}}
+      {OPCODE(ldmia_update), {+PRED::al, 0x8030, +REG::sp}}
 
   };
 
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
   unsigned i = 0;
   for (const auto& ins : Fibonacci) {
     memory[i] = Assemble(ins);
-    DumpA32Ins(memory[i]);
+    DumpIns(memory[i]);
     ++i;
   }
 

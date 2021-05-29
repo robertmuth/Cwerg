@@ -2704,7 +2704,8 @@ uint32_t EncodeOperand(uint32_t data, OK ok) {
       return data;
     case FK::INT_SIGNED: {
       uint32_t rest = data >> (fi.bitwidth - 1);
-      ASSERT(rest == 0 || rest + 1 == (1 << (32 - fi.bitwidth + 1)), "");
+      // rest must be all zeros or all ones.
+      ASSERT(rest == 0 || rest + 1 == (1U << (32 - fi.bitwidth + 1)), "");
       return data & ((1 << fi.bitwidth) - 1);
     }
     case FK::INT:
