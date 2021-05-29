@@ -83,13 +83,6 @@ add_library(CPUA32_LITE_LIB OBJECT
         CpuA32/opcode_gen.h
         )
 
-
-add_executable(a32_jit_example.exe
-        $<TARGET_OBJECTS:UTIL_LIB>
-        $<TARGET_OBJECTS:CPUA32_LITE_LIB>
-        CpuA32/jit_example.cc
-        )
-
 add_library(CPUA64_LIB OBJECT
         CpuA64/symbolic.cc
         CpuA64/symbolic.h
