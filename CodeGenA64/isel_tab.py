@@ -29,21 +29,33 @@ class IMM_KIND(enum.IntEnum):
     """
     INVALID = 0
     ZERO = 1
-    SHIFTED_10_21_22 = 2
+    IMM_SHIFTED_10_21_22 = 2
     IMM_10_15_16_22_W = 3
     IMM_10_15_16_22_X = 4
     IMM_SHIFTED_5_20_21_22 = 5
-    ANY = 6
+    IMM_SHIFTED_5_20_21_22_NOT = 6
+    pos_stk_combo_shifted_10_21_22 = 7
+    pos_stk_combo_16_bits = 8
+    pos_stk_combo_32_bits = 9
+    ANY = 10
 
 
 _NUM_MATCHERS: Dict[IMM_KIND, Any] = {
     IMM_KIND.ZERO: lambda x: x == 0,
     IMM_KIND.ANY: lambda x: True,
     IMM_KIND.IMM_SHIFTED_5_20_21_22: lambda x: a64.EncodeShifted_5_20_21_22(x) is not None,
-    IMM_KIND.SHIFTED_10_21_22: lambda x: a64.EncodeShifted_10_21_22(x) is not None,
+    IMM_KIND.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(~x) is not None,
+    IMM_KIND.IMM_SHIFTED_10_21_22: lambda x: a64.EncodeShifted_10_21_22(x) is not None,
+    IMM_KIND.pos_stk_combo_shifted_10_21_22: lambda x: a64.EncodeShifted_10_21_22(x) is not None,
+    IMM_KIND.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
+    IMM_KIND.pos_stk_combo_32_bits: lambda x: 0 <= x < (1 << 32),
 }
 
-_IMM_KIND_STK: Set[IMM_KIND] = {}
+_IMM_KIND_STK: Set[IMM_KIND] = {
+    IMM_KIND.pos_stk_combo_shifted_10_21_22,
+    IMM_KIND.pos_stk_combo_16_bits,
+    IMM_KIND.pos_stk_combo_32_bits,
+}
 
 
 def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
@@ -95,7 +107,11 @@ class PARAM(enum.Enum):
     num2_rsb_width_minus1 = 25
     mem1_num2_prel_hi21 = 26
     mem1_num2_lo12 = 27
-    any = 28
+    #
+    stk1_offset2 = 28,
+    stk1_offset2_lo = 29
+    stk1_offset2_hi = 30
+    any = 31
 
 
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
@@ -145,6 +161,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert False
         # assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR
         # return ctx.scratch_cpu_reg.no
+    elif arg is PARAM.stk1_offset2:
+        return GetStackOffset(ins.operands[1], ins.operands[2])
     else:
         assert False, f"unknown ARG {repr(arg)}"
 
@@ -155,6 +173,8 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
     elif isinstance(op, PARAM):
         return _ExtractTmplArgOp(ins, op, ctx)
     elif isinstance(op, FIXARG):
+        return op.value
+    elif isinstance(op, a64.SHIFT):
         return op.value
     else:
         assert False, f"unknown param {repr(op)}"
@@ -308,7 +328,7 @@ class Pattern:
                 assert False
         return True
 
-    def MatchesImmConstraints(self, ins: ir.Ins) -> int:
+    def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches: bool) -> int:
         """Returns bit positions that have a mismatch
 
         assumes that MatchesTypeConstraints return true
@@ -331,6 +351,10 @@ class Pattern:
                     stk = ins.operands[pos - 1]
                     if not isinstance(stk, ir.Stk):
                         return MATCH_IMPOSSIBLE
+                    if assume_stk_op_matches:
+                        # we have not finalized the stack yet but by design we know that
+                        # all stack operands can be matched
+                        continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
                 if not _NUM_MATCHERS[imm_constr](val):
@@ -459,7 +483,7 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for opc, a64_opc in [(o.BEQ, "b_eq"), (o.BNE, "b_ne")]:
@@ -470,7 +494,7 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U32, o.DK.S32]:
         xlate = _CMP_SIGNED if kind == o.DK.S32 else _CMP_UNSIGNED
@@ -484,11 +508,11 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
-                    imm_kind0=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind0=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.A64, o.DK.C64, o.DK.S64]:
         xlate = _CMP_SIGNED if kind == o.DK.S32 else _CMP_UNSIGNED
@@ -502,11 +526,11 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
-                    imm_kind0=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind0=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     # * we do not have a story for the unordered case
     # * comparison against zero should be special cased
@@ -527,7 +551,7 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         Pattern(o.CMPEQ, [kind] * 5,
@@ -536,7 +560,7 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind, csel, inv_csel in [
         (o.DK.U32, "csel_w_cc", "csel_w_cs"),
@@ -547,11 +571,11 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind3=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind3=IMM_KIND.IMM_SHIFTED_10_21_22)
 
     for kind, csel, inv_csel in [
         (o.DK.U64, "csel_x_cc", "csel_x_cs"),
@@ -563,11 +587,11 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind3=IMM_KIND.SHIFTED_10_21_22)
+                imm_kind3=IMM_KIND.IMM_SHIFTED_10_21_22)
 
 
 def InitAlu():
@@ -589,9 +613,9 @@ def InitAlu():
         for opc, a64_opc in [(o.SUB, "sub_w_imm"), (o.ADD, "add_w_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind2=IMM_KIND.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
-                [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR, PARAM.reg2])],
+                [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_kind1=IMM_KIND.ZERO)
 
     for kind1 in [o.DK.U64, o.DK.S64]:
@@ -612,7 +636,7 @@ def InitAlu():
         for opc, a64_opc in [(o.SUB, "sub_x_imm"), (o.ADD, "add_x_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.SHIFTED_10_21_22)
+                    imm_kind2=IMM_KIND.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
                 [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2])],
                 imm_kind1=IMM_KIND.ZERO)
@@ -670,7 +694,7 @@ def InitLoad():
         for kind2 in [o.DK.S64, o.DK.U64]:
             Pattern(o.LD, [kind1, o.DK.A64, kind2],
                     [InsTmpl(opc + "_reg_x",
-                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, FIXARG.LSL,
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl,
                               0])])
         for shift, kind2 in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
             Pattern(o.LD, [kind1, o.DK.A64, kind2],
@@ -689,7 +713,7 @@ def InitStore():
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.ST, [o.DK.A64, offset_kind, kind1],
                     [InsTmpl(opc + "_reg_x",
-                             [PARAM.reg0, PARAM.reg1, FIXARG.LSL,
+                             [PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl,
                               0, PARAM.reg2])])
         for shift, offset_kind in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
             Pattern(o.ST, [o.DK.A64, offset_kind, kind1],
@@ -709,10 +733,28 @@ def InitLea():
     for kind1 in [o.DK.U64, o.DK.S64]:
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [InsTmpl("add_x_reg",
-                         [PARAM.reg0, PARAM.reg1, PARAM.reg2, FIXARG.LSL, 0])])
+                         [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl, 0])])
     for offset_kind, opc in [(o.DK.U32, "add_x_reg_uxtw"), (o.DK.S32, "add_x_reg_sxtw")]:
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, offset_kind],
                 [InsTmpl(opc, [PARAM.reg0, PARAM.reg1, PARAM.reg2, 0])])
+
+    for offset_kind in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32]:
+        # Note, lea_stks are our last resort and MUST support ALL possible immediates
+        #        that occur in practice
+        # note: the second and third op are combined in the generated code
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
+                [InsTmpl("add_x_imm", [PARAM.reg0, FIXARG.SP, PARAM.stk1_offset2])],
+                imm_kind2=IMM_KIND.pos_stk_combo_shifted_10_21_22)
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2]),
+                 InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
+                imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
+                 InsTmpl("movk_x", [PARAM.reg0, PARAM.stk1_offset2_hi]),
+                 InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
+                imm_kind2=IMM_KIND.pos_stk_combo_32_bits)
+        # TODO: we we really need to support stack offsets > 32 bits?
 
     return
     Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID], _NO_IMM2,
@@ -770,15 +812,19 @@ def InsTmplMove(dst, src, kind):
         assert False, f"unsupported mov combination {kind.name}"
 
 
-# Note, moves are our last resort and MUST support ALL possible immediates
+# Note, moves are our last resort and MUST support 64bit immediates
 def InitMove():
     for kind1 in [o.DK.A64, o.DK.C64, o.DK.U64,  #
                   o.DK.S64, o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         Pattern(o.MOV, [kind1, kind1],
-                [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1])],
                 imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22)
+        Pattern(o.MOV, [kind1, kind1],
+                [InsTmpl("movn_x_imm", [PARAM.reg0, PARAM.num1_not])],
+                imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22_NOT)
+
     return
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         for num, src_kind in [(PARAM.num1, IMM_KIND.pos_8_bits_shifted),
@@ -798,32 +844,32 @@ def InitConv():
     for kind1 in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         for kind2 in [o.DK.U64, o.DK.S64]:
             Pattern(o.CONV, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.CONV, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
     for kind1 in [o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         for kind2 in [o.DK.U16, o.DK.S16]:
             Pattern(o.CONV, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     # bitcast between equal bit  width ops: nothing to be done here
     for kind1 in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for kind2 in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
             Pattern(o.BITCAST, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
     for kind1 in [o.DK.U32, o.DK.S32]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.BITCAST, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     # sign change from 8it: nothing to be done here
     # TODO: explain when this happens - why only got 8bit?
     for kind1 in [o.DK.U8, o.DK.S8]:
         for kind2 in [o.DK.U8, o.DK.S8]:
             Pattern(o.CONV, [kind1, kind2],
-                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+                    [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     for kind in [o.DK.U64, o.DK.U32]:
         Pattern(o.CONV, [kind, o.DK.U8],
@@ -838,9 +884,8 @@ def InitConv():
         Pattern(o.CONV, [kind, o.DK.S16],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 15])])
 
-
     Pattern(o.CONV, [o.DK.U64, o.DK.U32],
-            [InsTmpl("orr_w_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, FIXARG.LSL, 0])])
+            [InsTmpl("orr_w_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     Pattern(o.CONV, [o.DK.S64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
@@ -921,19 +966,22 @@ InitVFP()
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
-    """Returns the best pattern matching `ins` or None"""
+    """Returns the best pattern matching `ins` or None
+
+    This can only be called AFTER the stack has been finalized
+    """
     patterns = Pattern.Table[ins.opcode.no]
     # print(f"@ {ins} {ins.operands}")
     for p in patterns:
         # print(f"@trying pattern {p}")
-        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmConstraints(ins):
+        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmConstraints(ins, False):
             return p
     else:
         # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"
         return None
 
 
-def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins) -> int:
+def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matches: bool) -> int:
     """Returns a list of operand positions that need to be rewritten
 
     None means there was an error
@@ -944,7 +992,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins) -> int:
     for p in patterns:
         if not p.MatchesTypeConstraints(ins):
             continue
-        mismatches = p.MatchesImmConstraints(ins)
+        mismatches = p.MatchesImmConstraints(ins, assume_stk_op_matches)
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits

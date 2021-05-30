@@ -30,7 +30,7 @@ def _InsRewriteOutOfBoundsImmediates(
     if ins.opcode in _OPCODES_IGNORED_BY_IMMEDIATE_REWRITER:
         return None
     inss = []
-    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins)
+    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins, True)
     assert mismatches != isel_tab.MATCH_IMPOSSIBLE, f"could not match opcode {ins} {ins.operands}"
 
     if mismatches == 0:
