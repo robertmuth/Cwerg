@@ -492,13 +492,14 @@ for ok in OK:
     assert ok in FIELD_DETAILS
 
 
-def EncodeOperand(ok: OK, val: int) -> int:
+def EncodeOperand(ok: OK, val_orig: int) -> int:
     """Expects an unsigned 64 bit integer and emit it raw encoded equivalent
        to be insert into an a32 instruction as an operand
 
     The val can be interpreted as 64 bit signed or even as the bitcast of a  64bit
     float depending on t.kind.
     """
+    val = val_orig
     # assert (1 << 64) > val >= 0
     t = FIELD_DETAILS[ok]
     if t.scale > 1:
@@ -514,7 +515,40 @@ def EncodeOperand(ok: OK, val: int) -> int:
         assert rest == 0 or rest + 1 == (1 << (64 - t.bitwidth + 1))
         val &= ((1 << t.bitwidth) - 1)
 
-    assert (val >> t.bitwidth) == 0
+    assert (val >> t.bitwidth) == 0, f"value out of bounds [{val_orig}] for {ok}"
+    return val
+
+
+def TryEncodeOperand(ok: OK, val_orig: int) -> Optional[int]:
+    """Expects an unsigned 64 bit integer and emit it raw encoded equivalent
+       to be insert into an a32 instruction as an operand
+
+    The val can be interpreted as 64 bit signed or even as the bitcast of a  64bit
+    float depending on t.kind.
+    """
+    val = val_orig
+    # assert (1 << 64) > val >= 0
+    t = FIELD_DETAILS[ok]
+    if t.scale > 1:
+        if val % t.scale != 0:
+            return None
+        val //= t.scale
+    if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
+        val = t.encoder(val)
+        if val is None:
+            return None
+    elif t.kind == FK.LIST:
+        if val >= len(t.names):
+            return None
+    elif t.kind == FK.INT_SIGNED:
+        if val < 0: val += 1 << 64
+        rest = val >> (t.bitwidth - 1)
+        if rest != 0 and rest + 1 != (1 << (64 - t.bitwidth + 1)):
+            return None
+        val &= ((1 << t.bitwidth) - 1)
+
+    if (val >> t.bitwidth) != 0:
+        return None
     return val
 
 
@@ -680,7 +714,7 @@ class Opcode:
 
     def AssembleOperands(self, operands: List[int]):
         assert len(operands) == len(
-            self.fields), f"not enough operands for {self.NameForEnum()}"
+            self.fields), f"not enough operands for {self.NameForEnum()} want: {len(self.fields)} ops: {operands}"
         bits = [(self.bit_mask, self.bit_value, 0)]
         for f, o in zip(self.fields, operands):
             bits += InsertOperand(f, o)

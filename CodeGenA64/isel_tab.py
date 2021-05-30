@@ -428,7 +428,7 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
             break
         else:
             r2 = gpr_regs.pop(-1)
-            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1, 31, 16]))
+            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, 31, 16]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)

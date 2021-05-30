@@ -455,15 +455,10 @@ class EmitContext:
 
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
-    must_save_link = not ir.FunIsLeaf(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
+
     gpr_mask &= _GPR64_CALLEE_SAVE_REGS_MASK
     flt_mask &= _FLT64_CALLEE_SAVE_REGS_MASK
-    ctx = EmitContext()
-    ctx.gpr64_reg_mask = gpr_mask
-    ctx.flt64_reg_mask = flt_mask
-    # Python 3.10 has int.bit_count():
-    num_saved_regs = bin(ctx.gpr64_reg_mask).count('1') + bin(ctx.flt64_reg_mask).count('1')
-    # ctx.callee_save_stk_size = (8 * num_saved_regs + 15) // 16 * 16
-    # ctx.total_stk_size = ctx.callee_save_stk_size + (fun.stk_size + 15) // 16 * 16
-    ctx.stk_size = (fun.stk_size + 15) // 16 * 16
-    return ctx
+    if not ir.FunIsLeaf(fun):
+        gpr_mask |= _LINK_REG_MASK
+    stk_size = (fun.stk_size + 15) // 16 * 16
+    return EmitContext(gpr_mask, flt_mask, stk_size)
