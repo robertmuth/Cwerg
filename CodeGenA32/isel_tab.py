@@ -474,7 +474,7 @@ class Pattern:
                 assert False
         return True
 
-    def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches) -> int:
+    def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches: bool) -> int:
         """Returns bit positions that have a mismatch
 
         assumes that MatchesTypeConstraints return true
@@ -498,6 +498,8 @@ class Pattern:
                     if not isinstance(stk, ir.Stk):
                         return MATCH_IMPOSSIBLE
                     if assume_stk_op_matches:
+                        # we have not finalized the stack yet but by design we know that
+                        # all stack operands can be matched
                         continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
@@ -1047,7 +1049,10 @@ InitVFP()
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
-    """Returns the best pattern matching `ins` or None"""
+    """Returns the best pattern matching `ins` or None
+
+    This can only be called AFTER the stack has been finalized
+    """
     patterns = Pattern.Table[ins.opcode.no]
     # print(f"@ {ins} {ins.operands}")
     for p in patterns:

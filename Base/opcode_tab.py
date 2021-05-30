@@ -632,7 +632,9 @@ CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.NUM, TC.NUM], OPC_GENUS.BASE,
               # TODO: specify rounding and overflow for float <-> int conversions
               "Conversion of numerical regs which do not have to be of same size. "
-              "Bits may change. Note: Use mov if both regs have the same kind.")
+              "Bits may change. Note: Use mov if both regs have the same kind. "
+              "This is not completely stable yet. "
+               "We may disallow sign - unsigned conversions at some point.")
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],

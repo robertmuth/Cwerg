@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 """
-Tests the creation of ELF executables for both x64 and a32
+Tests the creation of ELF executables for: a32, a64, x64
+Use commandline parameter gena32, gena64, genx64 to select the architecture
 """
 import io
 import sys
