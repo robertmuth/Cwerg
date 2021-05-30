@@ -159,10 +159,11 @@ Division: dst := src1 / src2
              
              dst := 0 if src2 == 0 else src1 / src2
 
-#### [14] rem *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [14] rem *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Modulo: dst := a % b
               
               Some day the sign of the result might be more strictly defined.
+              Note: does not apply to floating point numbers
 
 #### [18] xor *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise exclusive or: dst := src1 ^ src2
@@ -186,9 +187,6 @@ Shift right: dst := src1 >> src2
              Some day the operation might more strictly defined as:
              
              dst: = src1 >> (src2 mod bitwidth(src2))
-
-#### [1d] rotl *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Rotation Left
 
 ## Conditional Branches
 
@@ -241,7 +239,7 @@ push call or return arg - must immediately precede bsr/jsr or ret
 pop call or return arg - must immediately follow fun entry or bsr/jsr
 
 #### [32] conv *dst* <sub>[REG:NUM]</sub> = *src* <sub>[REG/CONST:NUM]</sub>
-Conversion of numerical regs which do not have to be of same size. Bits may change. Note: Use mov if both regs have the same kind.
+Conversion of numerical regs which do not have to be of same size. Bits may change. Note: Use mov if both regs have the same kind. Note: This is not completely stable/well-defined yet and may change.
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
 Cast between regs of same size. Bits will be re-interpreted but do not change. This can be used to manipulated addresses im unusual ways.
@@ -260,7 +258,7 @@ Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 Some
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective Address. dst  := base + offset  
              
-             (note: dst and base are addresses but offset is not)
+             (note: dst and base are addresses but offset is not))
 
 #### [39] lea.mem *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective memory address with offset, dst := base + offset

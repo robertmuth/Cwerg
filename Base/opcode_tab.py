@@ -578,7 +578,7 @@ BLE = Opcode(0x23, "ble", OPC_KIND.COND_BRA,
 
 SWITCH = Opcode(0x28, "switch", OPC_KIND.SWITCH, [OP_KIND.REG, OP_KIND.JTB],
                 [TC.UINT, TC.INVALID], OPC_GENUS.BASE,
-                """Multi target computer jump. 
+                """Multi target computed jump. 
                 
                 The register argument must be less than the jtb `size`.
                 
@@ -633,8 +633,7 @@ CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               # TODO: specify rounding and overflow for float <-> int conversions
               "Conversion of numerical regs which do not have to be of same size. "
               "Bits may change. Note: Use mov if both regs have the same kind. "
-              "This is not completely stable yet. "
-               "We may disallow sign - unsigned conversions at some point.")
+              "Note: This is not completely stable/well-defined yet and may change.")
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
@@ -673,7 +672,7 @@ LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
              [TC.ADDR, TC.SAME_AS_PREV, TC.OFFSET], OPC_GENUS.BASE,
              """Load effective Address. dst  := base + offset  
              
-             (note: dst and base are addresses)""")
+             (note: dst and base are addresses but offset is not))""")
 
 LEA_MEM = Opcode(0x39, "lea.mem", OPC_KIND.LEA,
                  [OP_KIND.REG, OP_KIND.MEM, OP_KIND.REG_OR_CONST],
@@ -854,7 +853,7 @@ NOP = Opcode(0xf1, "nop", OPC_KIND.NOP, [],
 
 NOP1 = Opcode(0xf2, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
               [TC.ANY], OPC_GENUS.BASE,
-              "nop with one reg - internal use. can be used to `reserve` a reg",
+              "nop with one reg - internal use. can be used to `reserve` a reg for code generation",
               OA.SPECIAL)
 
 
