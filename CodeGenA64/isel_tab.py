@@ -22,39 +22,59 @@ class SYMOP(enum.IntEnum):
 
 
 @enum.unique
-class IMM_KIND(enum.IntEnum):
-    """Immediate Kind
+class IMM_CURB(enum.IntEnum):
+    """Immediate Curbs - describes constraints on the immediate values involved in patterns
 
-    Helps determine if a pattern is a suitable match
+    Used to determine if a pattern is a suitable match for a Cwerg IR instruction
     """
     INVALID = 0
     ZERO = 1
-    IMM_SHIFTED_10_21_22 = 2
-    IMM_10_15_16_22_W = 3
-    IMM_10_15_16_22_X = 4
-    IMM_SHIFTED_5_20_21_22 = 5
-    IMM_SHIFTED_5_20_21_22_NOT = 6
-    pos_stk_combo_shifted_10_21_22 = 7
-    pos_stk_combo_16_bits = 8
-    pos_stk_combo_32_bits = 9
-    ANY = 10
+    ANY = 2
+    IMM_SHIFTED_10_21_22 = 3
+    IMM_10_15_16_22_W = 4
+    IMM_10_15_16_22_X = 5
+    IMM_SHIFTED_5_20_21_22 = 6
+    IMM_SHIFTED_5_20_21_22_NOT = 7
+    #
+    pos_stk_combo_shifted_10_21_22 = 8
+    pos_stk_combo_16_bits = 9
+    pos_stk_combo_32_bits = 10
+    pos_stk_combo_10_21 = 11
+    pos_stk_combo_10_21_times_2 = 12
+    pos_stk_combo_10_21_times_4 = 13
+    pos_stk_combo_10_21_times_8 = 14
 
 
-_NUM_MATCHERS: Dict[IMM_KIND, Any] = {
-    IMM_KIND.ZERO: lambda x: x == 0,
-    IMM_KIND.ANY: lambda x: True,
-    IMM_KIND.IMM_SHIFTED_5_20_21_22: lambda x: a64.EncodeShifted_5_20_21_22(x) is not None,
-    IMM_KIND.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(~x) is not None,
-    IMM_KIND.IMM_SHIFTED_10_21_22: lambda x: a64.EncodeShifted_10_21_22(x) is not None,
-    IMM_KIND.pos_stk_combo_shifted_10_21_22: lambda x: a64.EncodeShifted_10_21_22(x) is not None,
-    IMM_KIND.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
-    IMM_KIND.pos_stk_combo_32_bits: lambda x: 0 <= x < (1 << 32),
+_NUM_MATCHERS: Dict[IMM_CURB, Any] = {
+    IMM_CURB.ZERO: lambda x: x == 0,
+    IMM_CURB.ANY: lambda x: True,
+    IMM_CURB.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
+    IMM_CURB.pos_stk_combo_32_bits: lambda x: 0 <= x < (1 << 32),
+    IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(~x) is not None,
+    # The curbs below map directly to an a64.OK
+    IMM_CURB.IMM_SHIFTED_5_20_21_22: a64.OK.IMM_SHIFTED_5_20_21_22,
+    IMM_CURB.IMM_SHIFTED_10_21_22: a64.OK.IMM_SHIFTED_10_21_22,
+    IMM_CURB.pos_stk_combo_shifted_10_21_22: a64.OK.IMM_SHIFTED_10_21_22,
+    IMM_CURB.pos_stk_combo_10_21: a64.OK.IMM_10_21,
+    IMM_CURB.pos_stk_combo_10_21_times_2: a64.OK.IMM_10_21_TIMES_2,
+    IMM_CURB.pos_stk_combo_10_21_times_4: a64.OK.IMM_10_21_TIMES_4,
+    IMM_CURB.pos_stk_combo_10_21_times_8: a64.OK.IMM_10_21_TIMES_8,
 }
 
-_IMM_KIND_STK: Set[IMM_KIND] = {
-    IMM_KIND.pos_stk_combo_shifted_10_21_22,
-    IMM_KIND.pos_stk_combo_16_bits,
-    IMM_KIND.pos_stk_combo_32_bits,
+
+def ValueMatchesConstraint(constraint: IMM_CURB, val) -> bool:
+    m = _NUM_MATCHERS[constraint]
+    if isinstance(m, a64.OK):
+        return a64.TryEncodeOperand(m, val) is not None
+    else:
+        assert callable(m)
+        return m(val) is not None
+
+
+_IMM_KIND_STK: Set[IMM_CURB] = {
+    IMM_CURB.pos_stk_combo_shifted_10_21_22,
+    IMM_CURB.pos_stk_combo_16_bits,
+    IMM_CURB.pos_stk_combo_32_bits,
 }
 
 
@@ -105,12 +125,16 @@ class PARAM(enum.Enum):
     scratch_flt = 23
     num2_rsb_width = 24
     num2_rsb_width_minus1 = 25
+    # The value is computed by combining the Mem operand with the constant offset operand
     mem1_num2_prel_hi21 = 26
     mem1_num2_lo12 = 27
-    #
+    # The value is computed by combining the STK operand with the constant offset operand
     stk1_offset2 = 28,
     stk1_offset2_lo = 29
     stk1_offset2_hi = 30
+    stk0_offset1 = 31,
+    stk0_offset1_lo = 32
+    stk0_offset1_hi = 33
     any = 31
 
 
@@ -161,8 +185,20 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert False
         # assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR
         # return ctx.scratch_cpu_reg.no
-    elif arg is PARAM.stk1_offset2:
+    elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])
+    elif arg in {PARAM.stk0_offset1, PARAM.stk0_offset1_hi, PARAM.stk0_offset1_lo}:
+        return GetStackOffset(ins.operands[0], ins.operands[1])
+    elif arg is PARAM.num2_rsb_width:
+         num = ins.operands[2]
+         width = num.kind.bitwidth()
+         assert 1 <= num.value <= width
+         return width - num.value
+    elif arg is PARAM.num2_rsb_width_minus1:
+        num = ins.operands[2]
+        # note - does not depend on num.value
+        width = num.kind.bitwidth()
+        return width - 1
     else:
         assert False, f"unknown ARG {repr(arg)}"
 
@@ -283,33 +319,34 @@ class Pattern:
 
     def __init__(self, opcode: o.Opcode, type_constraints: List[o.DK],
                  emit: List[InsTmpl],
-                 imm_kind0=IMM_KIND.INVALID,
-                 imm_kind1=IMM_KIND.INVALID,
-                 imm_kind2=IMM_KIND.INVALID,
-                 imm_kind3=IMM_KIND.INVALID,
-                 imm_kind4=IMM_KIND.INVALID):
+                 imm_curb0=IMM_CURB.INVALID,
+                 imm_curb1=IMM_CURB.INVALID,
+                 imm_curb2=IMM_CURB.INVALID,
+                 imm_curb3=IMM_CURB.INVALID,
+                 imm_curb4=IMM_CURB.INVALID):
         # the template, usually contains ArmIns except for the nop1 pattern
         self.emit = emit
         # how to fill the template params
         assert len(type_constraints) == len(
             opcode.operand_kinds), f"{opcode.name} {type_constraints} {opcode.operand_kinds}"
-        imm_constraints = [imm_kind0, imm_kind1, imm_kind2, imm_kind3, imm_kind4]
-        imm_constraints = imm_constraints[:len(type_constraints)]
+        imm_curbs = [imm_curb0, imm_curb1, imm_curb2, imm_curb3, imm_curb4]
+        imm_curbs = imm_curbs[:len(type_constraints)]
         self.type_constraints = type_constraints
-        self.imm_constraints = imm_constraints
-        for type_constr, imm_constr, kind in zip(type_constraints, imm_constraints,
+        self.opcode = opcode
+        self.imm_curbs = imm_curbs
+        for type_constr, imm_constr, kind in zip(type_constraints, imm_curbs,
                                                  opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert imm_constr is IMM_KIND.INVALID
+                assert imm_constr is IMM_CURB.INVALID
             elif kind is o.OP_KIND.CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert imm_constr != IMM_KIND.INVALID
+                assert imm_constr != IMM_CURB.INVALID
             elif kind is o.OP_KIND.REG_OR_CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
             else:
                 assert type_constr is o.DK.INVALID
-                assert imm_constr is IMM_KIND.INVALID, f"bad pattern for {opcode}"
+                assert imm_constr is IMM_CURB.INVALID, f"bad pattern for {opcode}"
 
         # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
@@ -328,7 +365,7 @@ class Pattern:
                 assert False
         return True
 
-    def MatchesImmConstraints(self, ins: ir.Ins, assume_stk_op_matches: bool) -> int:
+    def MatchesImmCurbs(self, ins: ir.Ins, assume_stk_op_matches: bool) -> int:
         """Returns bit positions that have a mismatch
 
         assumes that MatchesTypeConstraints return true
@@ -339,9 +376,9 @@ class Pattern:
                 would live in a register instead of being an immediate
         """
         out = 0
-        for pos, (imm_constr, op) in enumerate(zip(self.imm_constraints, ins.operands)):
+        for pos, (imm_constr, op) in enumerate(zip(self.imm_curbs, ins.operands)):
             if isinstance(op, ir.Const):
-                if imm_constr is IMM_KIND.INVALID:
+                if imm_constr is IMM_CURB.INVALID:
                     # have constant but need a reg (we know the op must be a reg because ow there would
                     #  not be a match at all
                     out |= 1 << pos
@@ -357,20 +394,20 @@ class Pattern:
                         continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
-                if not _NUM_MATCHERS[imm_constr](val):
+
+                if not ValueMatchesConstraint(imm_constr, val):
                     # have constant that does not fit
                     return MATCH_IMPOSSIBLE
             elif isinstance(op, ir.Reg):
-                if imm_constr is not IMM_KIND.INVALID:
+                if imm_constr is not IMM_CURB.INVALID:
                     # have a reg but need a const
                     return MATCH_IMPOSSIBLE
         return out
 
     def __str__(self):
-        return f"[PATTERN {self.type_constraints} {self.imm_constraints}]"
-
-    def __repr__(self):
-        return f"[PATTERN {self.type_constraints} {self.imm_constraints}]"
+        types = [x.name for x in self.type_constraints]
+        curbs = [x.name for x in self.imm_curbs]
+        return f"PATTERN {self.opcode.name} [{' '.join(types)}] [{' '.join(curbs)}]"
 
 
 def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
@@ -483,7 +520,7 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for opc, a64_opc in [(o.BEQ, "b_eq"), (o.BNE, "b_ne")]:
@@ -494,7 +531,7 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U32, o.DK.S32]:
         xlate = _CMP_SIGNED if kind == o.DK.S32 else _CMP_UNSIGNED
@@ -508,11 +545,11 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
-                    imm_kind0=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.A64, o.DK.C64, o.DK.S64]:
         xlate = _CMP_SIGNED if kind == o.DK.S32 else _CMP_UNSIGNED
@@ -526,11 +563,11 @@ def InitCondBra():
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
-                    imm_kind1=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
                     [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
-                    imm_kind0=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     # * we do not have a story for the unordered case
     # * comparison against zero should be special cased
@@ -551,7 +588,7 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         Pattern(o.CMPEQ, [kind] * 5,
@@ -560,7 +597,7 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind, csel, inv_csel in [
         (o.DK.U32, "csel_w_cc", "csel_w_cs"),
@@ -571,11 +608,11 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind3=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind, csel, inv_csel in [
         (o.DK.U64, "csel_x_cc", "csel_x_cs"),
@@ -587,11 +624,11 @@ def InitCmp():
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind4=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
                 [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
-                imm_kind3=IMM_KIND.IMM_SHIFTED_10_21_22)
+                imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
 
 
 def InitAlu():
@@ -609,14 +646,14 @@ def InitAlu():
                              (o.OR, "orr_w_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.IMM_10_15_16_22_W)
+                    imm_curb2=IMM_CURB.IMM_10_15_16_22_W)
         for opc, a64_opc in [(o.SUB, "sub_w_imm"), (o.ADD, "add_w_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
                 [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
-                imm_kind1=IMM_KIND.ZERO)
+                imm_curb1=IMM_CURB.ZERO)
 
     for kind1 in [o.DK.U64, o.DK.S64]:
         for opc, a64_opc in [(o.AND, "and_x_reg"),
@@ -632,14 +669,14 @@ def InitAlu():
                              (o.OR, "orr_x_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.IMM_10_15_16_22_W)
+                    imm_curb2=IMM_CURB.IMM_10_15_16_22_W)
         for opc, a64_opc in [(o.SUB, "sub_x_imm"), (o.ADD, "add_x_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_kind2=IMM_KIND.IMM_SHIFTED_10_21_22)
+                    imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
                 [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2])],
-                imm_kind1=IMM_KIND.ZERO)
+                imm_curb1=IMM_CURB.ZERO)
 
     for kind1 in [o.DK.U32, o.DK.S32]:
         Pattern(o.MUL, [kind1] * 3,
@@ -672,7 +709,7 @@ def InitAlu():
         Pattern(opc, [kind1] * 3,
                 [InsTmpl(a64_opc,
                          [PARAM.reg0, PARAM.reg1, PARAM.num2, n])],
-                imm_kind2=IMM_KIND.ANY)  # pick better constraint
+                imm_curb2=IMM_CURB.ANY)  # pick better constraint
 
     for kind1, a64_opc in [(o.DK.U32, "ubfm_w"),
                            (o.DK.S32, "ubfm_w"),
@@ -682,22 +719,22 @@ def InitAlu():
                 [InsTmpl(a64_opc,
                          [PARAM.reg0, PARAM.reg1, PARAM.num2_rsb_width,
                           PARAM.num2_rsb_width_minus1])],
-                imm_kind2=IMM_KIND.ANY)  # pick better constraint
+                imm_curb2=IMM_CURB.ANY)  # pick better constraint
 
 
 def InitLoad():
-    for kind1, opc in [(o.DK.U64, "ldr_x"), (o.DK.S64, "ldr_x"),
-                       (o.DK.A64, "ldr_x"), (o.DK.C64, "ldr_x"),
-                       (o.DK.U32, "ldr_w"), (o.DK.S32, "ldrsw"),
-                       (o.DK.U16, "ldr_h"), (o.DK.S16, "ldrsh_x"),
-                       (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x")]:
-        for kind2 in [o.DK.S64, o.DK.U64]:
-            Pattern(o.LD, [kind1, o.DK.A64, kind2],
+    for dst_kind, opc in [(o.DK.U64, "ldr_x"), (o.DK.S64, "ldr_x"),
+                          (o.DK.A64, "ldr_x"), (o.DK.C64, "ldr_x"),
+                          (o.DK.U32, "ldr_w"), (o.DK.S32, "ldrsw"),
+                          (o.DK.U16, "ldr_h"), (o.DK.S16, "ldrsh_x"),
+                          (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x")]:
+        for offset_kind in [o.DK.S64, o.DK.U64]:
+            Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_x",
                              [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl,
                               0])])
-        for shift, kind2 in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
-            Pattern(o.LD, [kind1, o.DK.A64, kind2],
+        for shift, offset_kind in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
+            Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_w",
                              [PARAM.reg0, PARAM.reg1, PARAM.reg2, shift, 0])])
 
@@ -705,22 +742,42 @@ def InitLoad():
 
 
 def InitStore():
-    for kind1, opc in [(o.DK.U64, "str_x"), (o.DK.S64, "str_x"),
-                       (o.DK.A64, "str_x"), (o.DK.C64, "str_x"),
-                       (o.DK.U32, "str_w"), (o.DK.S32, "str_w"),
-                       (o.DK.U16, "str_h"), (o.DK.S16, "str_h"),
-                       (o.DK.U8, "str_b"), (o.DK.S8, "str_b")]:
+    for src_kind, opc in [(o.DK.U64, "str_x"), (o.DK.S64, "str_x"),
+                          (o.DK.A64, "str_x"), (o.DK.C64, "str_x"),
+                          (o.DK.U32, "str_w"), (o.DK.S32, "str_w"),
+                          (o.DK.U16, "str_h"), (o.DK.S16, "str_h"),
+                          (o.DK.U8, "str_b"), (o.DK.S8, "str_b")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
-            Pattern(o.ST, [o.DK.A64, offset_kind, kind1],
+            Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_x",
                              [PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl,
                               0, PARAM.reg2])])
         for shift, offset_kind in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
-            Pattern(o.ST, [o.DK.A64, offset_kind, kind1],
+            Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_w",
                              [PARAM.reg0, PARAM.reg1, shift, 0, PARAM.reg2])])
-
         # TODO: add immediate flavors
+
+
+def InitStackStore():
+    for src_kind, opc, imm in [
+        (o.DK.U64, "str_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.S64, "str_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.A64, "str_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.C64, "str_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.U32, "str_w_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.S32, "str_w_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.U16, "str_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
+        (o.DK.S16, "str_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
+        (o.DK.U8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
+        (o.DK.S8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21)]:
+        # STACK VARIANTS: note we cover all reasonable offsets
+        # note: the first and second op are combined in the generated code
+        # The offset_kind does not really matter, what matters is actual values
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            Pattern(o.ST_STK, [o.DK.INVALID, offset_kind, src_kind],
+                    [InsTmpl(opc, [FIXARG.SP, PARAM.stk0_offset1, PARAM.reg2])],
+                    imm_curb1=imm)
 
 
 def InitLea():
@@ -728,7 +785,7 @@ def InitLea():
         Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
                 [InsTmpl("adrp", [PARAM.reg0, PARAM.mem1_num2_prel_hi21]),
                  InsTmpl("add_x_imm", [PARAM.reg0, PARAM.reg0, PARAM.mem1_num2_lo12])],
-                imm_kind2=IMM_KIND.ANY)
+                imm_curb2=IMM_CURB.ANY)
 
     for kind1 in [o.DK.U64, o.DK.S64]:
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
@@ -744,16 +801,16 @@ def InitLea():
         # note: the second and third op are combined in the generated code
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("add_x_imm", [PARAM.reg0, FIXARG.SP, PARAM.stk1_offset2])],
-                imm_kind2=IMM_KIND.pos_stk_combo_shifted_10_21_22)
+                imm_curb2=IMM_CURB.pos_stk_combo_shifted_10_21_22)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2]),
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
-                imm_kind2=IMM_KIND.pos_stk_combo_16_bits)
+                imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
                  InsTmpl("movk_x", [PARAM.reg0, PARAM.stk1_offset2_hi]),
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
-                imm_kind2=IMM_KIND.pos_stk_combo_32_bits)
+                imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
 
     return
@@ -766,30 +823,30 @@ def InitLea():
                 [InsTmpl("add_regimm",
                          [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl, 0])])
         Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_8_bits_shifted],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_8_bits_shifted],
                 [InsTmpl("add_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2])])
 
         Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.neg_8_bits_shifted],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.neg_8_bits_shifted],
                 [InsTmpl("sub_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])])
 
         # note: the second and third op are combined in the generated code
         Pattern(o.LEA_MEM, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.any_32_bits],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.any_32_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.mem1_num2_lo16]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.mem1_num2_hi16])])
 
         # Note, lea_stks are our last resort and MUST support ALL possible immediates
         # note: the second and third op are combined in the generated code
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_8_bits_shifted],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_stk_combo_8_bits_shifted],
                 [InsTmpl("add_imm", [PARAM.reg0, a64.REG.sp, PARAM.stk1_offset2])])
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.pos_stk_combo_16_bits],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_stk_combo_16_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2]),
                  InsTmpl("add_regimm", [PARAM.reg0, a64.REG.sp, PARAM.reg0, a64.SHIFT.lsl, 0])])
         Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_KIND.invalid, IMM_KIND.invalid, IMM_KIND.any_32_bits],
+                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.any_32_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2_lo]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.stk1_offset2_hi]),
                  InsTmpl("add_regimm", [PARAM.reg0, a64.REG.sp, PARAM.reg0, a64.SHIFT.lsl, 0])])
@@ -802,11 +859,11 @@ def InsTmplMove(dst, src, kind):
         return InsTmpl("mov_regimm", [dst, src, a64.SHIFT.lsl, 0], pred)
 
     assert src in {PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4, PARAM.num1_not}
-    if kind is IMM_KIND.pos_16_bits:
+    if kind is IMM_CURB.pos_16_bits:
         return InsTmpl("movw", [dst, src], pred)
-    elif kind is IMM_KIND.pos_8_bits_shifted:
+    elif kind is IMM_CURB.pos_8_bits_shifted:
         return InsTmpl("mov_imm", [dst, src], pred)
-    elif kind is IMM_KIND.not_8_bits_shifted:
+    elif kind is IMM_CURB.not_8_bits_shifted:
         return InsTmpl("mvn_imm", [dst, src], pred)
     else:
         assert False, f"unsupported mov combination {kind.name}"
@@ -820,21 +877,21 @@ def InitMove():
                 [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1])],
-                imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22)
+                imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22)
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movn_x_imm", [PARAM.reg0, PARAM.num1_not])],
-                imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22_NOT)
+                imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT)
 
     return
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for num, src_kind in [(PARAM.num1, IMM_KIND.pos_8_bits_shifted),
-                              (PARAM.num1_not, IMM_KIND.not_8_bits_shifted),
-                              (PARAM.num1, IMM_KIND.pos_16_bits)]:
-            Pattern(o.MOV, [kind1] * 2, [IMM_KIND.invalid, src_kind],
+        for num, src_kind in [(PARAM.num1, IMM_CURB.pos_8_bits_shifted),
+                              (PARAM.num1_not, IMM_CURB.not_8_bits_shifted),
+                              (PARAM.num1, IMM_CURB.pos_16_bits)]:
+            Pattern(o.MOV, [kind1] * 2, [IMM_CURB.invalid, src_kind],
                     [InsTmplMove(PARAM.reg0, num, src_kind)])
         Pattern(o.MOV, [kind1] * 2, _NO_IMM2,
                 [InsTmplMove(PARAM.reg0, PARAM.reg1, kind1)])
-        Pattern(o.MOV, [kind1] * 2, [IMM_KIND.invalid, IMM_KIND.any_32_bits],
+        Pattern(o.MOV, [kind1] * 2, [IMM_CURB.invalid, IMM_CURB.any_32_bits],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.num1_lo16]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.num1_hi16])])
 
@@ -906,7 +963,7 @@ def InitMiscBra():
     Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
             [InsTmpl("movz_x_imm", [FIXARG.X8, PARAM.num1]),
              InsTmpl("svc", [0])],
-            imm_kind1=IMM_KIND.IMM_SHIFTED_5_20_21_22)
+            imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22)
 
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
@@ -955,6 +1012,7 @@ def InitVFP():
 
 InitLoad()
 InitStore()
+InitStackStore()
 InitAlu()
 InitLea()
 InitMove()
@@ -971,10 +1029,10 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     This can only be called AFTER the stack has been finalized
     """
     patterns = Pattern.Table[ins.opcode.no]
-    # print(f"@ {ins} {ins.operands}")
+    # print(f"@@ {ins} {ins.operands}")
     for p in patterns:
-        # print(f"@trying pattern {p}")
-        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmConstraints(ins, False):
+        # print(f"@@ trying pattern {p}")
+        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmCurbs(ins, False):
             return p
     else:
         # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"
@@ -992,7 +1050,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
     for p in patterns:
         if not p.MatchesTypeConstraints(ins):
             continue
-        mismatches = p.MatchesImmConstraints(ins, assume_stk_op_matches)
+        mismatches = p.MatchesImmCurbs(ins, assume_stk_op_matches)
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits
@@ -1000,7 +1058,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
 
 
 def _EmitCodeH(fout):
-    for cls in [IMM_KIND, PARAM]:
+    for cls in [IMM_CURB, PARAM]:
         cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
 
 
@@ -1061,7 +1119,7 @@ def _EmitCodeC(fout):
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
-            imm_constraints = [f"IK::{c.name}" for c in pat.imm_constraints]
+            imm_constraints = [f"IK::{c.name}" for c in pat.imm_curbs]
             print(f"  {{ {{{', '.join(reg_constraints)}}},")
             print(f"    {{{', '.join(imm_constraints)}}},")
             print(
@@ -1071,7 +1129,7 @@ def _EmitCodeC(fout):
     print(f"}};", file=fout)
 
     print("}  // namespace", file=fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_KIND), "IMM_KIND", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_KIND", fout)
     cgen.RenderEnumToStringFun("IMM_KIND", fout)
 
 
@@ -1083,7 +1141,7 @@ def _DumpCodeSelTable():
         print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
         for pat in patterns:
             type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
-            imm_constraints = [x.name if x else '*' for x in pat.imm_constraints]
+            imm_constraints = [x.name if x else '*' for x in pat.imm_curbs]
 
             print(f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
             for tmpl in pat.emit:
