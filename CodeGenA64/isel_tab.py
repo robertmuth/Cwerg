@@ -734,7 +734,8 @@ def InitLoad():
                           (o.DK.A64, "ldr_x"), (o.DK.C64, "ldr_x"),
                           (o.DK.U32, "ldr_w"), (o.DK.S32, "ldrsw"),
                           (o.DK.U16, "ldr_h"), (o.DK.S16, "ldrsh_x"),
-                          (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x")]:
+                          (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x"),
+                          (o.DK.F32, "fldr_s"), (o.DK.F32, "fldr_d")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_x",
@@ -759,7 +760,9 @@ def InitStackLoad():
         (o.DK.U16, "ldrsh_x_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.S16, "ldr_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.U8, "ldr_b_imm", IMM_CURB.pos_stk_combo_10_21),
-        (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21)]:
+        (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21),
+        (o.DK.F32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.F32, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
@@ -798,7 +801,9 @@ def InitStackStore():
         (o.DK.U16, "str_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.S16, "str_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.U8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
-        (o.DK.S8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21)]:
+        (o.DK.S8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
+        (o.DK.F32, "fstr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.F32, "fstr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
