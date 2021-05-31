@@ -25,7 +25,7 @@ TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm
 tests: tests_py tests_c
 	@echo "[OK CodeGenA32]"
 
-tests_py: $(TEST_EXES) $(DIR)/queens.32.asm.s.exe $(DIR)/syscall.a32.asm.exe $(DIR)/cli.asm.a32.exe $(DIR)/isel_test $(DIR)/nanojpeg
+tests_py: $(TEST_EXES) $(DIR)/queens.32.asm.s.exe $(DIR)/syscall.a32.asm.exe $(DIR)/cli.a32.asm.exe $(DIR)/isel_test $(DIR)/nanojpeg
 
 tests_c: $(TEST_C_EXES) $(DIR)/isel_test $(DIR)/isel_test_c  $(DIR)/codegen_parity $(DIR)/nanojpeg_c
 
@@ -65,7 +65,7 @@ $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
-$(DIR)/cli.asm.a32.exe: TestData/cli.a32.asm
+$(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ > $@.out
 	$@ 1 2 3 aa bbb ccc > $@.actual.out
