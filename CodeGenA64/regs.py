@@ -25,8 +25,8 @@ _GPR32_REGS = [ir.CpuReg(f"w{i}", i, A64RegKind.GPR32) for i in range(31)]
 _GPR64_REGS = [ir.CpuReg(f"x{i}" if i != 31 else "sp", i, A64RegKind.GPR64)
                for i in range(32)]
 
-_FLT32_REGS = [ir.CpuReg(f"s{i}", i, A64RegKind.GPR32) for i in range(32)]
-_FLT64_REGS = [ir.CpuReg(f"d{i}", i, A64RegKind.GPR64) for i in range(32)]
+_FLT32_REGS = [ir.CpuReg(f"s{i}", i, A64RegKind.FLT32) for i in range(32)]
+_FLT64_REGS = [ir.CpuReg(f"d{i}", i, A64RegKind.FLT64) for i in range(32)]
 
 # note: our calling convention does not completely match the official one
 GPR32_PARAMETER_REGS = _GPR32_REGS[0:16]
