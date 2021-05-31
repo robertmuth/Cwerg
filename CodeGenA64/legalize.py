@@ -19,8 +19,6 @@ _DUMMY_A32 = ir.Reg("dummy", o.DK.A32)
 _ZERO_OFFSET = ir.Const(o.DK.U32, 0)
 
 _OPCODES_IGNORED_BY_IMMEDIATE_REWRITER = isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING | {
-    o.ST_STK, o.LD_STK, o.LEA_STK,
-    # we compute stack offsets in a separate pass
     o.POPARG, o.PUSHARG,  # will be rewritten later
 }
 

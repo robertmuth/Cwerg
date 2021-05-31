@@ -193,9 +193,9 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         return width - num.value
     elif arg is PARAM.num2_rsb_width_minus1:
         num = ins.operands[2]
-        # note - does not depend on num.value
         width = num.kind.bitwidth()
-        return width - 1
+        assert 1 <= num.value <= width
+        return width - num.value - 1
     else:
         assert False, f"unknown ARG {repr(arg)}"
 
@@ -737,6 +737,27 @@ def InitLoad():
         # TODO: add immediate flavors
 
 
+def InitStackLoad():
+    for dst_kind, opc, curb in [
+        (o.DK.U64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.S64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.A64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.C64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
+        (o.DK.U32, "ldr_w_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.S32, "ldrsw_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+        (o.DK.U16, "ldrsh_x_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
+        (o.DK.S16, "ldr_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
+        (o.DK.U8, "ldr_b_imm", IMM_CURB.pos_stk_combo_10_21),
+        (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21)]:
+        # STACK VARIANTS: note we cover all reasonable offsets
+        # note: the first and second op are combined in the generated code
+        # The offset_kind does not really matter, what matters is actual values
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            Pattern(o.LD_STK, [dst_kind, o.DK.INVALID, offset_kind],
+                    [InsTmpl(opc, [PARAM.reg0, FIXARG.SP, PARAM.stk1_offset2])],
+                    imm_curb2=curb)
+
+
 def InitStore():
     for src_kind, opc in [(o.DK.U64, "str_x"), (o.DK.S64, "str_x"),
                           (o.DK.A64, "str_x"), (o.DK.C64, "str_x"),
@@ -952,6 +973,7 @@ def InitVFP():
 
 
 InitLoad()
+InitStackLoad()
 InitStore()
 InitStackStore()
 InitAlu()
