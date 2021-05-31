@@ -13,10 +13,10 @@ require even more specialized opcodes.
 
 An early version of Cwerg did exactly that but it caused a stark imbalance between
 the complexity of call and other instructions.
-In the C++ implementation this also caused a noticeable increase in memory usage.
+In the C++ implementation this caused a noticeable increase in memory usage.
 
 The pusharg/poparg opcodes also serve as start and end points for live ranges and at least
-for not all opcode write at most one register.
+for now all opcode write at most one register.
 
 ### Is there a style guide for the C++ code?
 

@@ -18,9 +18,10 @@ python3 -V
 sudo apt install python3-pycparser
 ```
 
-To prepare the c++ build (you need at least a C++17 compatible compiler) run his inside the top level repo directory.
-```
+To prepare the c++ build (you need at least a C++17 compatible compiler) run his 
+inside the top level repo directory. Both Gcc and Clang should work.
 
+```
 sudo apt install cmake
 
 mkdir build
@@ -34,8 +35,6 @@ sudo apt install libunwind-dev
 # in order to use the 32bit memory model ("-m32") on x86-64 you need to install
 
 sudo apt install gcc-multilib
-
-
 ```
 
 To set up and an Arm cross-compilation and testing environment please check
@@ -104,6 +103,10 @@ are supported but it is more or less "standalone" and may be useful for
  other projects as well
  
 Implementations: Python, C++ 
+
+#### [Elf/](../Elf)
+
+Examples illustrating the use of Cwerg.
 
 #### [FrontEndC/](../FrontEndC)
  

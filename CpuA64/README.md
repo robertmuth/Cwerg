@@ -26,6 +26,29 @@ A list of all opcodes and their operands can be obtained by running
 ./opcode_tab.py 
 ```
 
+To get slightly more details provide the prefix of an opcode as an argument:
+```
+./opcode_tab.py orr
+name=orr_w_imm
+mask=ff800000 value=32000000
+fields with bit ranges:
+	 WREG_0_4_SP [LIST]
+	 WREG_5_9 [LIST]
+	 IMM_10_15_16_22_W [INT_HEX_CUSTOM]
+
+name=orr_w_reg
+mask=ff200000 value=2a000000
+fields with bit ranges:
+	 WREG_0_4 [LIST]
+	 WREG_5_9 [LIST]
+	 WREG_16_20 [LIST]
+	 SHIFT_22_23 [LIST]
+	 IMM_10_15 [INT]
+...
+```
+
+
+
 To look up the concrete decomposition of an instruction word run
 ```
  ./disassembler.py f11fe29f

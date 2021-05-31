@@ -4,6 +4,7 @@
   most of the (unit) tests.
   
 * for print(f) debugging use the following idioms to print Fun/Bbl/Ins
+
     ```
     print("\n".join(serialize.FunRenderToAsm(fun)))
     print ("\n".join(serialize.BblRenderToAsm(bbl)))
@@ -16,7 +17,7 @@
   * inspector.py - for browsing the IR before and after various transformations
 
 
-* C++ built-in web browser
+### Built-in Web Datastructure browser 
 
 Several of the c++ binaries have a built-in webserver (e.g. Base/optimize_tool and 
 CodeGenA32/codegen_tool).
@@ -34,4 +35,26 @@ bp_after_load.Break();
 ```
 at the point where you want to inspect the IR. 
 The breakpoint can be resumed via the Web interface.
+
+### GDB
+
+Read up on tui mode
+
+https://sourceware.org/gdb/current/onlinedocs/gdb/TUI.html
+
+Sample session
+```
+break main
+run
+c-x 2    [two window view]
+layout asm
+layout regs
+c-x s    [toggle single key mode]
+i        [stepi]
+i
+i
+c-x s
+```
+
+
 

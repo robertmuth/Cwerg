@@ -13,16 +13,16 @@ The project is very much "work in progress" and  currently consists of:
 
 * RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
-* [C frontend](FrontEndC/README.md)  (supports a subset of C)
+* [C Frontend](FrontEndC/README.md)  (supports a subset of C)
 * [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions)
-* [A32 backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
-* [A64 backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions - 
+* [A32 Backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
+* [A64 Backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions - 
                                        incomplete)
-* [C backend](CodeGenC/README.md) (code generator emitting C code)
+* [C Backend](CodeGenC/README.md) (code generator emitting C code)
 
-It can be used for both AOT compilation and JITing.
+It is primarily aimed AOT compilation but JITing will also be supported.
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
 1. spec/reference implementation: Python 3.8
@@ -31,7 +31,7 @@ Most components are implemented twice (see [rationale](Docs/why_python.md)):
 Re-implementations in other languages are explicitly encouraged. A lot of
 code is table driven to facilitate that.
 
-Cwerg de-emphasizes quality of the generated code (we hope to come within 30%
+Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
 of state of the art  compilers) in favor of a small code base that can be
 understood by a single developer and  very fast translation times.
 
@@ -49,7 +49,7 @@ The goal for the c++ implementation is to translate the IR to an Elf executable 
 500k IR instructions per sec using at most 4 cores on a 2020 era midrange desktop or high end laptop.
 
 Whole program translation and parallel translation at the function level are 
-explicit design goals for the c++ implementations.
+explicit design goals for the C++ implementations.
 
 Cwerg does not have a linker. Instead the responsibility of 
 generating executables and resolving relocations rests with the assembler
@@ -67,11 +67,12 @@ any work on these):
   2's complement integers.
 * Variable number of function parameters (var-args). Basically only used for
   printf/scanf and responsible for a disproportionate amount of complexity in 
-  ABIs. (This will preclude a fullblown C frontend.)
+  ABIs. (Note, this precludes a fullblown C frontend.)
 * Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
   to fit into the complexity budget. Line numbers will likely be supported.
 * C++ exception. A lot of code and complexity that only benefits one language.
-* Linking against code produced with other toolchains.
+* Linking against code produced with other toolchains. There are currently no plans
+  to emit linkable object code. And there is no ABI compatibility except for simple cases. 
 * Shared libs/dynamic linking adds complexity and slows programs down (both because
   of slower code idioms and prevention of optimizations), not
   to mention the DLL hell problem. (see also: https://drewdevault.com/dynlib)
