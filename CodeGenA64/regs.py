@@ -97,7 +97,7 @@ _KIND_TO_CPU_REG_LIST = {
     o.DK.C64: _GPR64_REGS,
     #
     o.DK.F32: _FLT32_REGS,
-    o.DK.F64: _FLT32_REGS,
+    o.DK.F64: _FLT64_REGS,
 }
 
 
