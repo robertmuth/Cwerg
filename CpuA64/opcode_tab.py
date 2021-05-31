@@ -5,12 +5,11 @@ ARM 64bit assembler + disassembler + side-effects table
 """
 from Util import cgen
 
-from typing import List, Dict, Tuple, Optional, Set, Any
+from typing import List, Dict, Tuple, Optional
 
 import collections
 import dataclasses
 import enum
-import struct
 import re
 import sys
 

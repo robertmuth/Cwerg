@@ -46,12 +46,13 @@ class IMM_CURB(enum.IntEnum):
 
 
 _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
+    # return False on non-match
     IMM_CURB.ZERO: lambda x: x == 0,
     IMM_CURB.ANY: lambda x: True,
     IMM_CURB.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
     IMM_CURB.pos_stk_combo_32_bits: lambda x: 0 <= x < (1 << 32),
     IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(~x) is not None,
-    # The curbs below map directly to an a64.OK
+    # The curbs below map directly to an a64.OK. return None on non-match
     IMM_CURB.IMM_SHIFTED_5_20_21_22: a64.OK.IMM_SHIFTED_5_20_21_22,
     IMM_CURB.IMM_SHIFTED_10_21_22: a64.OK.IMM_SHIFTED_10_21_22,
     IMM_CURB.pos_stk_combo_shifted_10_21_22: a64.OK.IMM_SHIFTED_10_21_22,
@@ -68,7 +69,7 @@ def ValueMatchesConstraint(constraint: IMM_CURB, val) -> bool:
         return a64.TryEncodeOperand(m, val) is not None
     else:
         assert callable(m)
-        return m(val) is not None
+        return m(val)
 
 
 _IMM_KIND_STK: Set[IMM_CURB] = {
@@ -221,13 +222,13 @@ def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
     armins.reloc_pos = pos
 
     if op is PARAM.bbl0:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CONDBR19
+        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.JUMP26
         armins.is_local_sym = True
         bbl = ins.operands[0]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
         armins.reloc_symbol = bbl.name
     elif op is PARAM.bbl2:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.JUMP26
+        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CONDBR19
         armins.is_local_sym = True
         bbl = ins.operands[2]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
@@ -394,7 +395,6 @@ class Pattern:
                         continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
-
                 if not ValueMatchesConstraint(imm_constr, val):
                     # have constant that does not fit
                     return MATCH_IMPOSSIBLE
@@ -415,29 +415,29 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("sub_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP,  a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("sub_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP,  a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
 
     restores = []
     gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
-            restores.append(InsTmpl("ldr_x_imm_post", [r1.no, 31, 16]))
+            restores.append(InsTmpl("ldr_x_imm_post", [r1.no, FIXARG.SP, 16]))
             break
         else:
             r2 = gpr_regs.pop(-1)
-            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, 31, 16]))
+            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
         if not flt_regs:
-            restores.append(InsTmpl("fldr_d_imm_post", [r1.no, 31, 16]))
+            restores.append(InsTmpl("fldr_d_imm_post", [r1.no, FIXARG.SP, 16]))
             break
         else:
             r2 = flt_regs.pop(-1)
-            restores.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, 31, 16]))
+            restores.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
     out += reversed(restores)
 
     # a9bf7bfd 	stp	x29, x30, [sp, #-16]!
@@ -463,27 +463,27 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
-            out.append(InsTmpl("str_x_imm_pre", [31, -16, r1.no]))
+            out.append(InsTmpl("str_x_imm_pre", [FIXARG.SP, -16, r1.no]))
             break
         else:
             r2 = gpr_regs.pop(-1)
-            out.append(InsTmpl("stp_x_imm_pre", [31, -16, r2.no, r1.no]))
+            out.append(InsTmpl("stp_x_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
         if not flt_regs:
-            out.append(InsTmpl("fstr_d_imm_pre", [31, -16, r1.no]))
+            out.append(InsTmpl("fstr_d_imm_pre", [FIXARG.SP, -16, r1.no]))
             break
         else:
             r2 = flt_regs.pop(-1)
-            out.append(InsTmpl("fstp_d_imm_pre", [31, -16, r2.no, r1.no]))
+            out.append(InsTmpl("fstp_d_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
 
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("add_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("add_x_imm", [31, 31, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
 
     return out
 
@@ -518,7 +518,7 @@ def InitCondBra():
                     [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
                      InsTmpl(a64_opc, [PARAM.bbl2])])
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
+                    [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
                     imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -529,7 +529,7 @@ def InitCondBra():
                     [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
                      InsTmpl(a64_opc, [PARAM.bbl2])])
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
+                    [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(a64_opc, [PARAM.bbl2])],
                     imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -540,14 +540,14 @@ def InitCondBra():
         for opc in [o.BLT, o.BLE]:
             type_constraints = [kind, kind, o.DK.INVALID]
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_w_reg", [FIXARG.WZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                    [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])])
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
+                    [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
                     imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg1, PARAM.num0]),
+                    [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
                     imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -558,14 +558,14 @@ def InitCondBra():
         for opc in [o.BLT, o.BLE]:
             type_constraints = [kind, kind, o.DK.INVALID]
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_x_reg", [FIXARG.XZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                    [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg0, PARAM.reg1, a64.SHIFT.lsl, 0]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])])
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
+                    [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.reg0, PARAM.num1]),
                      InsTmpl(xlate[opc], [PARAM.bbl2])],
                     imm_curb1=IMM_CURB.IMM_SHIFTED_10_21_22)
             Pattern(opc, type_constraints,
-                    [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg1, PARAM.num0]),
+                    [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.reg1, PARAM.num0]),
                      InsTmpl(xlate_inv[opc], [PARAM.bbl2])],
                     imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -583,19 +583,19 @@ def InitCmp():
     # TODO: cover the floating points ones
     for kind in [o.DK.U32, o.DK.S32]:
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
+                [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                  InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
+                [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
+                [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                  InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
+                [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -603,14 +603,14 @@ def InitCmp():
         (o.DK.U32, "csel_w_cc", "csel_w_cs"),
         (o.DK.S32, "csel_w_lt", "csel_w_ge")]:
         Pattern(o.CMPLT, [kind] * 5,
-                [InsTmpl("sub_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
+                [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
+                [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_w_imm", [FIXARG.WZR, PARAM.num3, PARAM.reg4]),
+                [InsTmpl("subs_w_imm", [FIXARG.WZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -619,14 +619,14 @@ def InitCmp():
         (o.DK.A64, "csel_x_cc", "csel_x_cs"),  # should this be signed?
         (o.DK.S64, "csel_x_lt", "csel_x_ge")]:
         Pattern(o.CMPLT, [kind] * 5,
-                [InsTmpl("sub_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
+                [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
+                [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.reg3, PARAM.num4]),
                  InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb4=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.CMPEQ, [kind] * 5,
-                [InsTmpl("sub_x_imm", [FIXARG.XZR, PARAM.num3, PARAM.reg4]),
+                [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.num3, PARAM.reg4]),
                  InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                 imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
 
@@ -675,7 +675,7 @@ def InitAlu():
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
                     imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
-                [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2])],
+                [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_curb1=IMM_CURB.ZERO)
 
     for kind1 in [o.DK.U32, o.DK.S32]:

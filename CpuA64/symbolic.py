@@ -84,7 +84,7 @@ _RELOC_OK = set([
 def _EmitReloc(ins: a64.Ins, pos: int) -> str:
     if ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.JUMP26:
         assert ins.is_local_sym, f"expected local symbol"
-        return f"expr:jump64:{ins.reloc_symbol}"
+        return f"expr:jump26:{ins.reloc_symbol}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21:
         loc = "loc_" if ins.is_local_sym else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"

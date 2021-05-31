@@ -67,48 +67,6 @@ def _FunRewriteFltImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteFltImmediates, unit=unit)
 
 
-def _InsRewriteOutOfBoundsOffsetsStk(
-        ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-    # Note, we can handle any LEA_STK as long as it is adding a constant
-    if ins.opcode not in {o.LD_STK, o.ST_STK}:
-        return None
-    mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins)
-    assert mismatches != isel_tab.MATCH_IMPOSSIBLE, f"could not match opcode {ins} {ins.operands}"
-
-    if mismatches == 0:
-        return None
-
-    inss = []
-    tmp = fun.GetScratchReg(o.DK.A32, "imm_stk", False)
-    if ins.opcode is o.ST_STK:
-        # note we do not have to worry about ins.operands[2] being Const
-        # because those were dealt with by FunEliminateImmediateStores
-        assert mismatches == (1 << 1)
-        if isinstance(ins.operands[1], ir.Const):
-            inss.append(
-                ir.Ins(o.LEA_STK, [tmp, ins.operands[0], ins.operands[1]]))
-            ins.Init(o.ST, [tmp, _ZERO_OFFSET, ins.operands[2]])
-        else:
-            inss.append(ir.Ins(o.LEA_STK, [tmp, ins.operands[0], _ZERO_OFFSET]))
-            ins.Init(o.ST, [tmp, ins.operands[1], ins.operands[2]])
-    else:
-        assert ins.opcode is o.LD_STK
-        assert mismatches & (1 << 2)
-        if isinstance(ins.operands[2], ir.Const):
-            inss.append(
-                ir.Ins(o.LEA_STK, [tmp, ins.operands[1], ins.operands[2]]))
-            ins.Init(o.LD, [ins.operands[0], tmp, _ZERO_OFFSET])
-        else:
-            inss.append(ir.Ins(o.LEA_STK, [tmp, ins.operands[1], _ZERO_OFFSET]))
-            ins.Init(o.LD, [ins.operands[0], tmp, ins.operands[2]])
-    inss.append(ins)
-    return inss
-
-
-def _FunRewriteOutOfBoundsOffsetsStk(fun: ir.Fun):
-    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsOffsetsStk)
-
-
 def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
     # TODO: handle conv
     if ins.opcode not in {o.MOV}:
@@ -336,15 +294,8 @@ def _AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
     for reg in assign_to:
         if n < len(cpu_regs):
             assert reg.cpu_reg is None
-            if reg.kind is o.DK.F64:
-                no = cpu_regs[n].no
-                assert no % 1 == 0
-                assert cpu_regs[n + 1].no == no + 1
-                reg.cpu_reg = regs.DBL_REGS[no // 2]
-                n += 2
-            else:
-                reg.cpu_reg = cpu_regs[n]
-                n += 1
+            reg.cpu_reg = cpu_regs[n]
+            n += 1
         else:
             out.append(reg)
     return out
