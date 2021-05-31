@@ -185,9 +185,9 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
+                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.mem.name, d.offset)
             else:
                 assert False
         elfunit.MemEnd()

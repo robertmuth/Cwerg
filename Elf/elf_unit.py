@@ -103,7 +103,6 @@ class Unit:
         self.mem_sec.AddData(b"\0" * size)
 
     def AddMemAddr(self, reloc_type, size: int, mem_name: str, addend: int):
-        assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(mem_name, False)
         self.AddReloc(reloc_type, self.mem_sec, symbol, addend)
