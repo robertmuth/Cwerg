@@ -88,7 +88,6 @@ class Unit:
         self.mem_sec.AddData(data * repeats)
 
     def AddFunAddr(self, reloc_type, size: int, fun_name: str):
-        assert size == 4
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(fun_name, False)
         self.AddReloc(reloc_type, self.mem_sec, symbol, 0)

@@ -132,12 +132,17 @@ class PARAM(enum.Enum):
     stk0_offset1 = 31,
     stk0_offset1_lo = 32
     stk0_offset1_hi = 33
-    any = 31
+    #
+    fun1_prel_hi21 = 34
+    fun1_lo12 = 35
+    any = 36
 
 
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
                            PARAM.mem1_num2_prel_hi21,
                            PARAM.mem1_num2_lo12,
+                           PARAM.fun1_lo12,
+                           PARAM.fun1_prel_hi21,
                            }
 
 
@@ -244,6 +249,12 @@ def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
         assert isinstance(num, ir.Const), f"{ins} {num}"
         assert armins.operands[pos] == 0
         armins.operands[pos] = num.value
+    elif op in {PARAM.fun1_prel_hi21, PARAM.fun1_lo12}:
+        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.fun1_lo12
+                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
+        fun = ins.operands[1]
+        assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        armins.reloc_symbol = fun.name
     else:
         assert False
 
@@ -798,6 +809,9 @@ def InitStackStore():
 
 
 def InitLea():
+    Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID],
+            [InsTmpl("adrp", [PARAM.reg0, PARAM.fun1_prel_hi21]),
+             InsTmpl("add_x_imm", [PARAM.reg0, PARAM.reg0, PARAM.fun1_lo12])])
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
                 [InsTmpl("adrp", [PARAM.reg0, PARAM.mem1_num2_prel_hi21]),

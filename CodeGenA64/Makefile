@@ -6,7 +6,7 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = stack.asm  memaddr.64.asm fib.asm multiple_results.asm cmp.asm
+TESTS =  indirect.64.asm queens.64.asm stack.asm memaddr.64.asm fib.asm multiple_results.asm cmp.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm.exe)
 
