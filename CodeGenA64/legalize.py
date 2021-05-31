@@ -387,11 +387,6 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     could increase register usage.
 
     """
-    if False:
-        to_be_spillled = [reg for reg in fun.regs if not reg.HasCpuReg()]
-        to_be_spillled.sort()
-        reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spillled)
-
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup

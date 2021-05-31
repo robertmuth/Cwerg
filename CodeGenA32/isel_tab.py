@@ -870,6 +870,7 @@ def InitStore():
                                                 PARAM.reg2])],
                     imm_kind1=IMM_KIND.any_32_bits)
 
+
 def InitLea():
     Pattern(o.LEA_FUN, [o.DK.C32, o.DK.INVALID],
             [InsTmpl("movw", [PARAM.reg0, PARAM.fun1_lo16]),

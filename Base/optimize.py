@@ -78,7 +78,7 @@ class RegPoolSimple(reg_alloc.RegPool):
             if reserved is None or not reserved.has_conflict(lr):
                 return available.pop(-n - 1)
         assert False
-        return ir.CPU_REG_UNAVAILABLE
+        return ir.CPU_REG_INVALID
 
     def give_back_available_reg(self, reg: ir.Reg, lr: reg_alloc.LiveRange):
         available = self._available[reg.kind]

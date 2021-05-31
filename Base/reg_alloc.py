@@ -54,7 +54,7 @@ class RegPool:
 
     def get_available_reg(self, lr: LiveRange) -> ir.CpuReg:
         assert False, "must be implemented by subclass"
-        return ir.CPU_REG_UNAVAILABLE
+        return ir.CPU_REG_INVALID
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         assert False, "must be implemented by subclass"
@@ -271,7 +271,7 @@ def InsSpillRegs(ins: ir.Ins, fun: ir.Fun, zero_const, reg_to_stk) -> Optional[L
         return None
 
 
-def BblSpillRegs(bbl: ir.Bbl, fun: ir.Bbl, regs: List[ir.Reg], offset_kind: o.DK, prefix) -> int:
+def BblSpillRegs(bbl: ir.Bbl, fun: ir.Fun, regs: List[ir.Reg], offset_kind: o.DK, prefix) -> int:
     reg_to_stk: Dict[ir.Reg, ir.Stk] = {}
     for reg in regs:
         size = ir.OffsetConst(reg.kind.bitwidth() // 8)

@@ -218,7 +218,7 @@ NO_USE = AFTER_BBL + 1
 @enum.unique
 class LiveRangeFlag(enum.Flag):
     LAC = 1  # live across call
-    PRE_ALLOC = 2 # already allocated - re-use reg after last_use
+    PRE_ALLOC = 2  # already allocated - re-use reg after last_use
     IGNORE = 4  # ignore completely
 
 
@@ -252,10 +252,10 @@ class LiveRange:
 
     def __repr__(self):
         def render_pos(pos):
-             if pos == BEFORE_BBL: return "BB"
-             if pos == AFTER_BBL: return "AB"
-             if pos == NO_USE: return "NU"
-             return f"{pos:2d}"
+            if pos == BEFORE_BBL: return "BB"
+            if pos == AFTER_BBL: return "AB"
+            if pos == NO_USE: return "NU"
+            return f"{pos:2d}"
 
         flags_str = ""
         if self.flags:
@@ -265,7 +265,7 @@ class LiveRange:
             # commented to make output compatible with c++ implementation
             starts = ",".join([f"{lr.reg.name}:{lr.def_pos}" for lr in self.uses])
             extra_str = f" uses:{starts}"
-            #extra_str = f" uses:{len(self.uses)}"
+            # extra_str = f" uses:{len(self.uses)}"
         else:
             extra_str = f" def:{self.reg.name}:{self.reg.kind.name}"
             if self.cpu_reg is ir.CPU_REG_SPILL:
@@ -332,7 +332,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
         uses = []
         for n, reg in enumerate(ins.operands):
             if not isinstance(reg, ir.Reg): continue
-            if n < num_defs: # define reg
+            if n < num_defs:  # define reg
                 lr = last_use.get(reg)
                 if lr:
                     finalize_lr(lr, pos)

@@ -196,7 +196,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     for fun in unit.funs:
         elfunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
         for jtb in fun.jtbs:
-            armunit.MemStart(jtb.name, 8, "rodata", True)
+            elfunit.MemStart(jtb.name, 8, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
                 elfunit.AddBblAddr(elf_enum.RELOC_TYPE_AARCH64.ABS64, 8, bbl.name)

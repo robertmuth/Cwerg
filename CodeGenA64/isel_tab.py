@@ -17,10 +17,6 @@ from Elf import enum_tab
 from Util import cgen
 
 
-class SYMOP(enum.IntEnum):
-    pass
-
-
 @enum.unique
 class IMM_CURB(enum.IntEnum):
     """Immediate Curbs - describes constraints on the immediate values involved in patterns
@@ -191,10 +187,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.stk0_offset1, PARAM.stk0_offset1_hi, PARAM.stk0_offset1_lo}:
         return GetStackOffset(ins.operands[0], ins.operands[1])
     elif arg is PARAM.num2_rsb_width:
-         num = ins.operands[2]
-         width = num.kind.bitwidth()
-         assert 1 <= num.value <= width
-         return width - num.value
+        num = ins.operands[2]
+        width = num.kind.bitwidth()
+        assert 1 <= num.value <= width
+        return width - num.value
     elif arg is PARAM.num2_rsb_width_minus1:
         num = ins.operands[2]
         # note - does not depend on num.value
@@ -415,9 +411,9 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP,  a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP,  a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
 
     restores = []
     gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
@@ -812,61 +808,6 @@ def InitLea():
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
-
-    return
-    Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID], _NO_IMM2,
-            [InsTmpl("movw", [PARAM.reg0, PARAM.fun1_lo16]),
-             InsTmpl("movt", [PARAM.reg0, PARAM.fun1_hi16])])
-
-    for kind1 in [o.DK.U32, o.DK.S32]:
-        Pattern(o.LEA, [o.DK.A32, o.DK.A64, kind1], _NO_IMM3,
-                [InsTmpl("add_regimm",
-                         [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl, 0])])
-        Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_8_bits_shifted],
-                [InsTmpl("add_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2])])
-
-        Pattern(o.LEA, [o.DK.A32, o.DK.A32, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.neg_8_bits_shifted],
-                [InsTmpl("sub_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2_neg])])
-
-        # note: the second and third op are combined in the generated code
-        Pattern(o.LEA_MEM, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.any_32_bits],
-                [InsTmpl("movw", [PARAM.reg0, PARAM.mem1_num2_lo16]),
-                 InsTmpl("movt", [PARAM.reg0, PARAM.mem1_num2_hi16])])
-
-        # Note, lea_stks are our last resort and MUST support ALL possible immediates
-        # note: the second and third op are combined in the generated code
-        Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_stk_combo_8_bits_shifted],
-                [InsTmpl("add_imm", [PARAM.reg0, a64.REG.sp, PARAM.stk1_offset2])])
-        Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.pos_stk_combo_16_bits],
-                [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2]),
-                 InsTmpl("add_regimm", [PARAM.reg0, a64.REG.sp, PARAM.reg0, a64.SHIFT.lsl, 0])])
-        Pattern(o.LEA_STK, [o.DK.A32, o.DK.INVALID, kind1],
-                [IMM_CURB.invalid, IMM_CURB.invalid, IMM_CURB.any_32_bits],
-                [InsTmpl("movw", [PARAM.reg0, PARAM.stk1_offset2_lo]),
-                 InsTmpl("movt", [PARAM.reg0, PARAM.stk1_offset2_hi]),
-                 InsTmpl("add_regimm", [PARAM.reg0, a64.REG.sp, PARAM.reg0, a64.SHIFT.lsl, 0])])
-
-
-def InsTmplMove(dst, src, kind):
-    return
-    assert dst is PARAM.reg0
-    if src in {PARAM.reg1, PARAM.reg2, PARAM.reg3, PARAM.reg4}:
-        return InsTmpl("mov_regimm", [dst, src, a64.SHIFT.lsl, 0], pred)
-
-    assert src in {PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4, PARAM.num1_not}
-    if kind is IMM_CURB.pos_16_bits:
-        return InsTmpl("movw", [dst, src], pred)
-    elif kind is IMM_CURB.pos_8_bits_shifted:
-        return InsTmpl("mov_imm", [dst, src], pred)
-    elif kind is IMM_CURB.not_8_bits_shifted:
-        return InsTmpl("mvn_imm", [dst, src], pred)
-    else:
-        assert False, f"unsupported mov combination {kind.name}"
 
 
 # Note, moves are our last resort and MUST support 64bit immediates
