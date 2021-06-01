@@ -56,6 +56,8 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
     IMM_CURB.pos_stk_combo_10_21_times_2: a64.OK.IMM_10_21_TIMES_2,
     IMM_CURB.pos_stk_combo_10_21_times_4: a64.OK.IMM_10_21_TIMES_4,
     IMM_CURB.pos_stk_combo_10_21_times_8: a64.OK.IMM_10_21_TIMES_8,
+    IMM_CURB.IMM_10_15_16_22_W: a64.OK.IMM_10_15_16_22_W,
+    IMM_CURB.IMM_10_15_16_22_X: a64.OK.IMM_10_15_16_22_X,
 }
 
 
@@ -882,47 +884,51 @@ def InitMove():
 
 def InitConv():
     # truncation to operand of smaller bit width: nothing to be done here
-    for kind1 in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U64, o.DK.S64]:
-            Pattern(o.CONV, [kind1, kind2],
+    for dst_kind in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U64, o.DK.S64]:
+            Pattern(o.CONV, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
-    for kind1 in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U32, o.DK.S32]:
-            Pattern(o.CONV, [kind1, kind2],
+    for dst_kind in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U32, o.DK.S32]:
+            Pattern(o.CONV, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
-    for kind1 in [o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U16, o.DK.S16]:
-            Pattern(o.CONV, [kind1, kind2],
+    for dst_kind in [o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U16, o.DK.S16]:
+            Pattern(o.CONV, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     # bitcast between equal bit  width ops: nothing to be done here
-    for kind1 in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
-        for kind2 in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
-            Pattern(o.BITCAST, [kind1, kind2],
+    for dst_kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
+        for src_kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
+            Pattern(o.BITCAST, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
-    for kind1 in [o.DK.U32, o.DK.S32]:
-        for kind2 in [o.DK.U32, o.DK.S32]:
-            Pattern(o.BITCAST, [kind1, kind2],
+    for dst_kind in [o.DK.U32, o.DK.S32]:
+        for src_kind in [o.DK.U32, o.DK.S32]:
+            Pattern(o.BITCAST, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     # sign change from 8it: nothing to be done here
     # TODO: explain when this happens - why only got 8bit?
-    for kind1 in [o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U8, o.DK.S8]:
-            Pattern(o.CONV, [kind1, kind2],
+    for dst_kind in [o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U8, o.DK.S8]:
+            Pattern(o.CONV, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
-    for kind in [o.DK.U64, o.DK.U32]:
-        Pattern(o.CONV, [kind, o.DK.U8],
+    for dst_kind in [o.DK.U64, o.DK.U32]:
+        Pattern(o.CONV, [dst_kind, o.DK.U8],
                 [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
-        Pattern(o.CONV, [kind, o.DK.U16],
+        Pattern(o.CONV, [dst_kind, o.DK.U16],
                 [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
 
-    for kind in [o.DK.S64, o.DK.S32]:
-        Pattern(o.CONV, [kind, o.DK.S8],
+    # TODO: this is iffy
+    Pattern(o.CONV, [o.DK.U64, o.DK.S32],
+                [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
+
+    for dst_kind in [o.DK.S64, o.DK.S32]:
+        Pattern(o.CONV, [dst_kind, o.DK.S8],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 7])])
 
-        Pattern(o.CONV, [kind, o.DK.S16],
+        Pattern(o.CONV, [dst_kind, o.DK.S16],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 15])])
 
     Pattern(o.CONV, [o.DK.U64, o.DK.U32],

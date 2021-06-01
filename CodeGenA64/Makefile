@@ -27,7 +27,7 @@ tests: tests_py tests_c
 	@echo "[OK CodeGenA64]"
 
 
-tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe
+tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg
 
 tests_c:
 
@@ -57,6 +57,13 @@ $(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ > $@.out
 	$@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
+
+$(DIR)/nanojpeg:
+	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py binary - $@.exe >$@.out
+	./$@.exe ../TestData/ash_tree.jpg $@.ppm
+	md5sum  $@.ppm > $@.actual
+	diff $@.actual TestData/nano_jpeg.golden
 
 clean:
 	@rm -f $(DIR)/*
