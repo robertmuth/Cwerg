@@ -12,6 +12,7 @@ Supporting Thumb(2) is an explicit non-goal.
 
 ## Code Generation Stages
 
+TODO: this is a bit out of date
 
 Code generation goes through the following stages which 
 massages the IR until it becomes almost trivial to generate
@@ -33,8 +34,6 @@ TODO: add this
 ###  Stack Finalization And Fixed Register Assignment
 
 * compute offsets of stack objects
-* convert `ld.stk`/`st.stk`/`lea.stk` to `ld`/`st`/`lea` by introducing
-  the `sp`  machine register
 * convert `pusharg`/`poparg` to `mov`s by introducing machine registers
   as per calling convention
 * run basic optimizations (mostly to help with `mov` elimination)
@@ -59,7 +58,8 @@ TODO: add this
 ### Code Selection
 
 The code selection is a straight forward expansion of
-the IR opcodes into zero or more A32 opcodes (see [isel_tab.py])
+the IR opcodes into zero or more A32 opcodes (see [isel_tab.py] and 
+[../Docs/instruction_selection.md])
 
 All the expansion patterns can be listed using `./isel_tab.py`:
 ```

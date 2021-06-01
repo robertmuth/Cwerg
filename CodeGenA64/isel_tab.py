@@ -331,12 +331,7 @@ MATCH_IMPOSSIBLE = 255
 
 class Pattern:
     """
-    A pattern translates an IR instructions into zero or target instructions
-
-    Whether a pattern matches the IR instructions is decides as follows:
-    * the opcode must match
-    * the operand types must match
-    * operands that are constants must satisfy a "range constraint"
+    See ../Docs/instruction_selection.md
     """
     # groups all the patterns for a given opcode number together
     Table: Dict[int, List["Pattern"]] = collections.defaultdict(list)
