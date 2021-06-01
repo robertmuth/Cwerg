@@ -324,6 +324,9 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     regs.FunPushargConversion(fun)
     regs.FunPopargConversion(fun)
 
+    # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
+
+
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
@@ -370,7 +373,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
-    # Recompute Everything (TODO: make this more selective)
+    # Recompute Everything (TODO: make this more selective to reduce work)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
@@ -389,3 +392,4 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     fun.FinalizeStackSlots()
     # cleanup
     FunMoveEliminationCpu(fun)
+    # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))

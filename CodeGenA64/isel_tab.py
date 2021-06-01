@@ -85,6 +85,10 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
 
 
 def FunAddNop1ForCodeSel(fun: ir.Fun):
+    """Add dummy instruction to ensure we have a scratch register for the next instruction
+
+    Currently, SWITCH needs a scratch register
+    """
     return ir.FunGenericRewrite(fun, _InsAddNop1ForCodeSel)
 
 
@@ -135,7 +139,10 @@ class PARAM(enum.Enum):
     #
     fun1_prel_hi21 = 34
     fun1_lo12 = 35
-    any = 36
+    #
+    jtb1_prel_hi21 = 36
+    jtb1_lo12 = 37
+    any = 38
 
 
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
@@ -143,6 +150,8 @@ _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
                            PARAM.mem1_num2_lo12,
                            PARAM.fun1_lo12,
                            PARAM.fun1_prel_hi21,
+                           PARAM.jtb1_lo12,
+                           PARAM.jtb1_prel_hi21,
                            }
 
 
@@ -180,13 +189,11 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in _RELOC_ARGS:
         return 0
     elif arg is PARAM.scratch_flt:
-        assert False
-        # assert ctx.scratch_cpu_reg.kind is not regs.A32RegKind.GPR
-        # return ctx.scratch_cpu_reg.no
+        assert ctx.scratch_cpu_reg.kind  in{regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}
+        return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert False
-        # assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR
-        # return ctx.scratch_cpu_reg.no
+        assert ctx.scratch_cpu_reg.kind in{regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}
+        return ctx.scratch_cpu_reg.no
     elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])
     elif arg in {PARAM.stk0_offset1, PARAM.stk0_offset1_hi, PARAM.stk0_offset1_lo}:
@@ -255,6 +262,13 @@ def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         armins.reloc_symbol = fun.name
+    elif op in {PARAM.jtb1_prel_hi21, PARAM.jtb1_lo12}:
+        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
+                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
+        jtb = ins.operands[1]
+        assert isinstance(jtb, ir.Jtb), f"{ins} {fun}"
+        armins.reloc_symbol = jtb.name
+        armins.is_local_sym = True
     else:
         assert False
 
@@ -863,18 +877,7 @@ def InitMove():
                 [InsTmpl("movn_x_imm", [PARAM.reg0, PARAM.num1_not])],
                 imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT)
 
-    return
-    for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for num, src_kind in [(PARAM.num1, IMM_CURB.pos_8_bits_shifted),
-                              (PARAM.num1_not, IMM_CURB.not_8_bits_shifted),
-                              (PARAM.num1, IMM_CURB.pos_16_bits)]:
-            Pattern(o.MOV, [kind1] * 2, [IMM_CURB.invalid, src_kind],
-                    [InsTmplMove(PARAM.reg0, num, src_kind)])
-        Pattern(o.MOV, [kind1] * 2, _NO_IMM2,
-                [InsTmplMove(PARAM.reg0, PARAM.reg1, kind1)])
-        Pattern(o.MOV, [kind1] * 2, [IMM_CURB.invalid, IMM_CURB.any_32_bits],
-                [InsTmpl("movw", [PARAM.reg0, PARAM.num1_lo16]),
-                 InsTmpl("movt", [PARAM.reg0, PARAM.num1_hi16])])
+    # TODO: add implementaions for arbitrary 32 and 64bit immediates
 
 
 def InitConv():
@@ -948,13 +951,12 @@ def InitMiscBra():
 
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
-    # Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
-    #         [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.jtb1_lo16]),
-    #          InsTmpl("movt", [PARAM.scratch_gpr, PARAM.jtb1_hi16]),
-    #          InsTmpl("ldr_reg_add",
-    #                  [a64.REG.pc, PARAM.scratch_gpr, PARAM.reg0, a64.SHIFT.lsl,
-    #                   2]),
-    #          ])
+    Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
+            [InsTmpl("adrp", [PARAM.scratch_gpr, PARAM.jtb1_prel_hi21]),
+             InsTmpl("add_x_imm", [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.jtb1_lo12]),
+             InsTmpl("ldr_x_reg_w",
+                     [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg0, FIXARG.UXTW, 3]),
+            InsTmpl("br", [PARAM.scratch_gpr])])
 
 
 def InitVFP():

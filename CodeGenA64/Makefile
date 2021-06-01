@@ -10,6 +10,7 @@ TESTS = reg_torture_f32.asm \
         reg_torture.asm \
         cmp.asm \
         memaddr.64.asm \
+        switch.asm \
         indirect.64.asm \
         fib.asm \
         queens.64.asm \

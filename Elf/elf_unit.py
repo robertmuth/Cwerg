@@ -94,7 +94,6 @@ class Unit:
         self.mem_sec.AddData(b"\0" * size)
 
     def AddBblAddr(self, reloc_type, size: int, bbl_name: str):
-        assert size == 4
         assert self.current_fun is not None
         assert self.mem_sec is not None
         symbol = self.FindOrAddSymbol(bbl_name, True)

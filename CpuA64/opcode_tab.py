@@ -502,7 +502,7 @@ def EncodeOperand(ok: OK, val_orig: int) -> int:
     # assert (1 << 64) > val >= 0
     t = FIELD_DETAILS[ok]
     if t.scale > 1:
-        assert val % t.scale == 0
+        assert val % t.scale == 0, f"{ok}: {val_orig} not multiple of {t.scale}"
         val //= t.scale
     if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
         val = t.encoder(val)
