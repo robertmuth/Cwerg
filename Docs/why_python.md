@@ -40,7 +40,7 @@ Implementing the everything twice has additional benefits:
 * The code is very compact (often only half the size of equivalent C++ code)
   without sacrificing readability. Thanks to the (relatively) new type
   annotations mechanism, Python programs also scale much better than they
-  used.
+  used to.
 
 ## Why not plain C?
 
