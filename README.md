@@ -4,10 +4,10 @@
 
 
 
-Cwerg lightweight compiler backend aimed at experimental programming 
+Cwerg is a lightweight compiler backend aimed at experimental programming 
 language implementations that want to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
-ELF executables for Arm32 and soon Arm64 ISAs.
+ELF executables for Arm32 and Arm64 ISAs.
 
 The project is very much "work in progress" and  currently consists of:
 
@@ -18,8 +18,7 @@ The project is very much "work in progress" and  currently consists of:
 * [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions)
 * [A32 Backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
-* [A64 Backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions - 
-                                       incomplete)
+* [A64 Backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions)
 * [C Backend](CodeGenC/README.md) (code generator emitting C code)
 
 It is primarily aimed AOT compilation but JITing will also be supported.
@@ -33,7 +32,7 @@ code is table driven to facilitate that.
 
 Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
 of state of the art  compilers) in favor of a small code base that can be
-understood by a single developer and  very fast translation times.
+understood by a single developer and very fast translation times.
 
 ### Size Targets
 
@@ -59,7 +58,7 @@ ELF executables, which is the only object format currently supported.
 ## Intentional Limitations
 
 To keep the project lightweight the feature set must be curtailed.
-Since the project is still evolving, these are not entirely cast in stone but 
+Since the project is still evolving, the details are not entirely cast in stone but 
 **the following features are unlikely to be supported** (contact us before starting 
 any work on these):
 
@@ -67,7 +66,7 @@ any work on these):
   2's complement integers.
 * Variable number of function parameters (var-args). Basically only used for
   printf/scanf and responsible for a disproportionate amount of complexity in 
-  ABIs. (Note, this precludes a fullblown C frontend.)
+  ABIs. (Note, this precludes a proper C frontend.)
 * Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
   to fit into the complexity budget. Line numbers will likely be supported.
 * C++ exception. A lot of code and complexity that only benefits one language.
@@ -90,7 +89,7 @@ complexity into the generic layers.
 
 The IR optimizer currently does not use a full-blown Single Static Assigment
 (SSA) form. Instead it uses a [modified use-def chain approach](Docs/use_def.md)
-to get some of the benefits of SSA.
+to get some of the benefits of SSA. 
 
 ## Dependencies
 
