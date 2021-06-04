@@ -27,7 +27,8 @@ pr19606.c \
 rename.c \
 struct2.c \
 sumarray.c \
-do_while.c
+do_while.c \
+sieve.c
 
 META_TESTS = \
 20000523-1.c \
@@ -67,7 +68,8 @@ sumarray.c \
 2003-05-22-LocalTypeTest.c \
 20080424-1.c \
 2003-07-08-BitOpsTest.c \
-do_while.c
+do_while.c \
+sieve.c
 
 # T2006-01-29-SimpleIndirectCall.c
 # T2003-05-14-initialize-string.c
