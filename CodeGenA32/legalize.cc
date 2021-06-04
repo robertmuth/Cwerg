@@ -236,6 +236,8 @@ constexpr auto make_array_helper(Function f, std::index_sequence<Indices...>)
 const DK_MAP kA32RKMap =
     make_array_helper(A32RKMapping, std::make_index_sequence<256>{});
 
+// Return all global regs in `fun` that map to `rk` after applying `rk_map`
+// and whose `lac-ness` matches `is_lac`
 void FunFilterGlobalRegs(Fun fun,
                          DK rk,
                          bool is_lac,
@@ -398,7 +400,6 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
           << "# GlobalRegAlloc " << Name(fun) << "\n"
           << "############################################################\n";
   }
-  std::vector<Ins> inss;
 
   FunPushargConversion(fun);
   FunPopargConversion(fun);
@@ -428,7 +429,7 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     const FunRegStats needed_gpr{global_reg_stats.lac[+DK::S32],      //
                                  global_reg_stats.not_lac[+DK::S32],  //
                                  local_reg_stats.lac[+DK::S32],       //
-                                 1 + local_reg_stats.not_lac[+DK::S32]};
+                                 local_reg_stats.not_lac[+DK::S32]};
 
     //*fout << "@@ GPR NEEDED " << needed_gpr.global_lac << " "
     //      << needed_gpr.global_not_lac << " " << needed_gpr.local_lac << " "
@@ -441,10 +442,12 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     //*fout << "@@ GPR POOL " << std::hex << global_lac << " " << global_not_lac
     //      << "\n";
 
+    // handle is_lac gloabal regs
     regs.clear();
     FunFilterGlobalRegs(fun, DK::S32, true, kA32RKMap, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
+    // handle not is_lac global regs
     regs.clear();
     FunFilterGlobalRegs(fun, DK::S32, false, kA32RKMap, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
@@ -459,7 +462,7 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
         global_reg_stats.not_lac[+DK::F32] +
             2 * global_reg_stats.not_lac[+DK::F64],
         local_reg_stats.lac[+DK::F32] + 2 * local_reg_stats.lac[+DK::F64],
-        2 + local_reg_stats.not_lac[+DK::F32] +
+        local_reg_stats.not_lac[+DK::F32] +
             2 * local_reg_stats.not_lac[+DK::F64]};
 
     const auto [global_lac, global_not_lac] =
@@ -477,6 +480,7 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac, 0, &to_be_spilled);
   }
 
+  std::vector<Ins> inss;
   FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$gspill");
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
@@ -489,14 +493,6 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
                                         Unit unit,
                                         std::ostream* fout) {
   std::vector<Ins> inss;
-  if (false) {
-    std::vector<Reg> to_be_spilled;
-    for (Reg reg : FunRegIter(fun)) {
-      if (RegCpuReg(reg).isnull()) to_be_spilled.push_back(reg);
-    }
-    FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$spill");
-  }
-
   FunLocalRegAlloc(fun, &inss);
   FunFinalizeStackSlots(fun);
   FunMoveEliminationCpu(fun, &inss);

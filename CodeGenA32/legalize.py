@@ -344,8 +344,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     needed_gpr = RegsNeeded(len(global_reg_stats[(o.DK.S32, True)]),
                             len(global_reg_stats[(o.DK.S32, False)]),
                             local_reg_stats.get((o.DK.S32, True), 0),
-                            # TODO: avoid fudge factor
-                            1 + local_reg_stats.get((o.DK.S32, False), 0))
+                            local_reg_stats.get((o.DK.S32, False), 0))
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR_CALLEE_SAVE_REGS.copy(),
         regs.GPR_NOT_LAC_REGS.copy(), pre_allocated)
@@ -363,8 +362,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             len(global_reg_stats[(o.DK.F64, False)]),
                             local_reg_stats.get((o.DK.F32, True), 0) + 2 *
                             local_reg_stats.get((o.DK.F64, True), 0),
-                            # TODO: avoid fudge factor
-                            2 + local_reg_stats.get((o.DK.F32, False), 0) + 2 *
+                            local_reg_stats.get((o.DK.F32, False), 0) + 2 *
                             local_reg_stats.get((o.DK.F64, False), 0))
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
