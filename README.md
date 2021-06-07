@@ -62,7 +62,7 @@ Since the project is still evolving, the details are not entirely cast in stone 
 **the following features are unlikely to be supported** (contact us before starting 
 any work on these):
 
-* Instruction sets other than little endian (host and target) with 
+* Instruction sets other than [little endian](https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures) (host and target) with 
   2's complement integers.
 * Variable number of function parameters (var-args). Basically only used for
   printf/scanf and responsible for a disproportionate amount of complexity in 
