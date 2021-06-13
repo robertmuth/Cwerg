@@ -482,9 +482,11 @@ struct Executable {
 
   std::vector<std::string_view> Save() const;
 
-  void VerifyVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr) const;
+  // Return offset for section headers
+  elfsize_t VerifyVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr) const;
 
-  void UpdateVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr);
+  // Returns offset for section headers
+  elfsize_t UpdateVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr);
 };
 
 template <typename elfsize_t>

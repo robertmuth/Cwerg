@@ -382,7 +382,7 @@ void SectionVerifVaddrAndOffset(const Section<elfsize_t>* sec,
 }
 
 template <typename elfsize_t>
-void Executable<elfsize_t>::VerifyVaddrsAndOffsets(
+elfsize_t Executable<elfsize_t>::VerifyVaddrsAndOffsets(
     elfsize_t header_size,
     elfsize_t start_vaddr) const {
   size_t offset = 0;
@@ -402,9 +402,8 @@ void Executable<elfsize_t>::VerifyVaddrsAndOffsets(
       SectionVerifVaddrAndOffset<elfsize_t>(sec, &vaddr, &offset);
     }
   }
+  // compute beginning of section headers
   offset = Align(offset, sizeof(elfsize_t) == 8 ? 16 : 4);
-  ASSERT(ehdr.e_shoff == offset, "");
-  ASSERT(ehdr.e_phoff == sizeof(ident) + sizeof(ehdr), "");
 
   bool is_first_load = true;
   for (const auto& seg : segments) {
@@ -428,14 +427,15 @@ void Executable<elfsize_t>::VerifyVaddrsAndOffsets(
                last_shdr.sh_addr + last_shdr.sh_size - seg->phdr.p_vaddr,
            "");
   }
+  return offset;
 }
 
 // force instantiation of VerifyVaddrsAndOffsets()
-template void Executable<uint32_t>::VerifyVaddrsAndOffsets(
+template uint32_t Executable<uint32_t>::VerifyVaddrsAndOffsets(
     uint32_t header_size,
     uint32_t start_vaddr) const;
 
-template void Executable<uint64_t>::VerifyVaddrsAndOffsets(
+template uint64_t Executable<uint64_t>::VerifyVaddrsAndOffsets(
     uint64_t header_size,
     uint64_t start_vaddr) const;
 
@@ -471,7 +471,7 @@ void SectionUpdateVaddrAndOffset(Section<elfsize_t>* sec,
 }
 
 template <typename elfsize_t>
-void Executable<elfsize_t>::UpdateVaddrsAndOffsets(elfsize_t header_size,
+elfsize_t Executable<elfsize_t>::UpdateVaddrsAndOffsets(elfsize_t header_size,
                                                    elfsize_t start_vaddr) {
   size_t offset = 0;
   elfsize_t vaddr = 0;
@@ -491,9 +491,8 @@ void Executable<elfsize_t>::UpdateVaddrsAndOffsets(elfsize_t header_size,
     }
   }
 
+  // compute the section header offset
   offset = Align(offset, sizeof(elfsize_t) == 8 ? 16 : 4);
-  ehdr.e_shoff = offset;
-  ehdr.e_phoff = sizeof(ident) + sizeof(ehdr);
 
   bool is_first_load = true;
   for (auto& seg : segments) {
@@ -516,14 +515,15 @@ void Executable<elfsize_t>::UpdateVaddrsAndOffsets(elfsize_t header_size,
     seg->phdr.p_memsz =
         last_shdr.sh_addr + last_shdr.sh_size - seg->phdr.p_vaddr;
   }
+  return offset;
 }
 
 // force instantiation of UpdateVaddrsAndOffsets()
-template void Executable<uint32_t>::UpdateVaddrsAndOffsets(
+template uint32_t Executable<uint32_t>::UpdateVaddrsAndOffsets(
     uint32_t header_size,
     uint32_t start_vaddr);
 
-template void Executable<uint64_t>::UpdateVaddrsAndOffsets(
+template uint64_t Executable<uint64_t>::UpdateVaddrsAndOffsets(
     uint64_t header_size,
     uint64_t start_vaddr);
 

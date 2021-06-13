@@ -10,7 +10,8 @@
 using namespace cwerg::elf;
 using namespace cwerg;
 
-void VerifyChunks(const std::vector<std::string_view>& chunks, std::string_view data) {
+void VerifyChunks(const std::vector<std::string_view>& chunks,
+                  std::string_view data) {
   size_t offset = 0;
   for (const auto& chunk : chunks) {
     // std::cout << "Checking " << std::hex << chunk.size() << "\n";
@@ -47,26 +48,35 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     const uint64_t header_size = CombinedElfHeaderSize<uint64_t>(exe.segments);
-    exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
-    exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
+    const uint64_t section_header_offset =
+        exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
+    ASSERT(exe.ehdr.e_shoff == section_header_offset, "");
+    ASSERT(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
+    exe.ehdr.e_shoff = exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
+    exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
+
+
     std::vector<std::string_view> chunks = exe.Save();
     VerifyChunks(chunks, data);
     // std::cout << exe;
   } else if (cls == EI_CLASS::X_32) {
-      Executable<uint32_t> exe;
-      if (!exe.Load(data)) {
-        std::cout << "cannot load " << argv[1] << "\n";
-        return 1;
-      }
-      const uint32_t header_size = CombinedElfHeaderSize<uint32_t>(exe.segments);
-      exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
-      exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
-      std::vector<std::string_view> chunks = exe.Save();
-      VerifyChunks(chunks, data);
-      // std::cout << exe;
-  } else {
-      std::cout << "unsupported EI_CLASS in " << argv[1] << "\n";
+    Executable<uint32_t> exe;
+    if (!exe.Load(data)) {
+      std::cout << "cannot load " << argv[1] << "\n";
       return 1;
+    }
+    const uint32_t header_size = CombinedElfHeaderSize<uint32_t>(exe.segments);
+    const uint32_t section_header_offset =
+        exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
+    ASSERT(exe.ehdr.e_shoff == section_header_offset, "");
+    ASSERT(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
+    exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
+    std::vector<std::string_view> chunks = exe.Save();
+    VerifyChunks(chunks, data);
+    // std::cout << exe;
+  } else {
+    std::cout << "unsupported EI_CLASS in " << argv[1] << "\n";
+    return 1;
   }
   return 0;
 }

@@ -28,7 +28,8 @@ void AddIns(A32Unit* unit, Ins* ins) {
   if (ins->has_reloc()) {
     const elf::Symbol<uint32_t>* sym =
         unit->FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
-    unit->AddReloc(+ins->reloc_kind, unit->sec_text, sym, ins->operands[ins->reloc_pos]);
+    unit->AddReloc(+ins->reloc_kind, unit->sec_text, sym,
+                   ins->operands[ins->reloc_pos]);
     ins->clear_reloc();
   }
   uint32_t data = Assemble(*ins);
@@ -38,7 +39,7 @@ void AddIns(A32Unit* unit, Ins* ins) {
 std::array<std::string_view, 6> kStartupCode = {  //
     "ldr_imm_add al r0 sp 0",                     //
     "add_imm al r1 sp 4",                         //
-    "bl expr:call:main",                       //
+    "bl expr:call:main",                          //
     "movw al r7 1",                               //
     "svc al 0",                                   //
     "ud2 al"};
@@ -60,9 +61,8 @@ void AddStartupCode(A32Unit* unit) {
   unit->FunEnd();
 }
 
-
-
-bool HandleDirective(A32Unit* unit, const std::vector<std::string_view>& token) {
+bool HandleDirective(A32Unit* unit,
+                     const std::vector<std::string_view>& token) {
   const auto mnemonic = token[0];
   if (mnemonic == ".fun") {
     ASSERT(token.size() == 3, "");
@@ -95,14 +95,17 @@ bool HandleDirective(A32Unit* unit, const std::vector<std::string_view>& token) 
     unit->AddData(ParseInt<uint32_t>(token[1]).value(), buffer, len);
   } else if (mnemonic == ".addr.mem") {
     ASSERT(token.size() == 4, "");
-    unit->AddMemAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2],
+    unit->AddMemAddr(ParseInt<uint32_t>(token[1]).value(),
+                     +RELOC_TYPE_ARM::ABS32, token[2],
                      ParseInt<uint32_t>(token[3]).value());
   } else if (mnemonic == ".addr.fun") {
     ASSERT(token.size() == 3, "");
-    unit->AddFunAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2]);
+    unit->AddFunAddr(ParseInt<uint32_t>(token[1]).value(),
+                     +RELOC_TYPE_ARM::ABS32, token[2]);
   } else if (mnemonic == ".addr.bbl") {
     ASSERT(token.size() == 3, "");
-    unit->AddBblAddr(ParseInt<uint32_t>(token[1]).value(), +RELOC_TYPE_ARM::ABS32, token[2]);
+    unit->AddBblAddr(ParseInt<uint32_t>(token[1]).value(),
+                     +RELOC_TYPE_ARM::ABS32, token[2]);
   } else if (mnemonic == ".bbl") {
     ASSERT(token.size() == 3, "");
     unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
@@ -152,8 +155,6 @@ bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit) {
   }
   return true;
 }
-
-
 
 int32_t BranchOffset(const Reloc<uint32_t>& rel, int32_t sym_val) {
   return int32_t(sym_val - rel.section->shdr.sh_addr - rel.rel.r_offset - 8) >>
@@ -288,7 +289,9 @@ Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab) {
   }
 
   Executable<uint32_t> exe = MakeExecutableA32(0x20000, sections, segments);
-  exe.UpdateVaddrsAndOffsets(CombinedElfHeaderSize(exe.segments), exe.start_vaddr);
+  exe.ehdr.e_shoff = exe.UpdateVaddrsAndOffsets(
+      CombinedElfHeaderSize(exe.segments), exe.start_vaddr);
+  exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
   for (auto& sym : unit->symbols) {
     ASSERT(sym->sym.st_value != ~0, "undefined symbol " << sym->name);
     if (sym->section != nullptr) {
@@ -299,7 +302,7 @@ Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab) {
     }
   }
 
-  for (auto& rel :unit-> relocations) {
+  for (auto& rel : unit->relocations) {
     ApplyRelocation(rel);
   }
 
