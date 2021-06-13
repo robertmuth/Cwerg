@@ -284,7 +284,7 @@ Executable<uint64_t> MakeExe(A64Unit* unit, bool create_sym_tab) {
   }
 
   Executable<uint64_t> exe = MakeExecutableA64(0x400000, sections, segments);
-  exe.UpdateVaddrsAndOffsets();
+  exe.UpdateVaddrsAndOffsets(CombinedElfHeaderSize<uint64_t>(exe.segments), exe.start_vaddr);
   for (auto& sym : unit->symbols) {
     ASSERT(sym->sym.st_value != ~0, "undefined symbol " << sym->name);
     if (sym->section != nullptr) {

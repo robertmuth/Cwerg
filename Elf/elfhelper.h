@@ -176,7 +176,9 @@ struct Section {
     shdr.sh_addralign = 1;
   }
 
-  void InitSymTab(std::string_view sec_name, size_t entsize, unsigned strtab_ndx) {
+  void InitSymTab(std::string_view sec_name,
+                  size_t entsize,
+                  unsigned strtab_ndx) {
     name = sec_name;
     shdr.sh_type = SH_TYPE::SYMTAB;
     shdr.sh_addralign = 4;
@@ -445,6 +447,14 @@ struct Elf_Ehdr {
 extern EI_CLASS ElfDetermineClass(std::string_view data);
 
 template <typename elfsize_t>
+elfsize_t CombinedElfHeaderSize(
+    const std::vector<std::unique_ptr<Segment<elfsize_t>>>& segments) {
+  unsigned n = segments.size() - (segments.back()->is_pseudo);
+  return sizeof(Elf_EhdrIdent) + sizeof(Elf_Ehdr<elfsize_t>) +
+         n * sizeof(Elf_Phdr<elfsize_t>);
+}
+
+template <typename elfsize_t>
 struct Executable {
   Elf_EhdrIdent ident;
   Elf_Ehdr<elfsize_t> ehdr;
@@ -465,20 +475,16 @@ struct Executable {
   // fail).
   bool Load(std::string_view data);
 
-  size_t CombinedHeaderSize() const {
-    unsigned n = segments.size() - (segments.back()->is_pseudo);
-    return sizeof(ident) + sizeof(ehdr) + n * sizeof(Elf_Phdr<elfsize_t>);
-  }
-
-  void InitWithSectionsAndSegments(elfsize_t start_address,
+  void InitWithSectionsAndSegments(
+      elfsize_t start_address,
       std::vector<Section<elfsize_t>*>& all_sections,
       std::vector<Segment<elfsize_t>*>& all_segments);
 
   std::vector<std::string_view> Save() const;
 
-  void VerifyVaddrsAndOffsets() const;
+  void VerifyVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr) const;
 
-  void UpdateVaddrsAndOffsets();
+  void UpdateVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr);
 };
 
 template <typename elfsize_t>

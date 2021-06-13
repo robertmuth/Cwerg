@@ -68,7 +68,7 @@ Executable<uint64_t> GenBareBonesX64() {
   Executable<uint64_t> exe =
       MakeExecutableX64(0x400000, all_sections, all_segments);
 
-  exe.UpdateVaddrsAndOffsets();
+  exe.UpdateVaddrsAndOffsets(CombinedElfHeaderSize<uint64_t>(exe.segments), exe.start_vaddr);
   exe.ehdr.e_entry = sec_text->shdr.sh_addr;
   // patch the message address
   unsigned char* data = (unsigned char*)sec_text->data->data() + 17;
@@ -126,7 +126,7 @@ Executable<uint64_t> GenBareBonesA64() {
   Executable<uint64_t> exe =
       MakeExecutableA64(0x400000, all_sections, all_segments);
 
-  exe.UpdateVaddrsAndOffsets();
+  exe.UpdateVaddrsAndOffsets(CombinedElfHeaderSize<uint64_t>(exe.segments), exe.start_vaddr);
   exe.ehdr.e_entry = sec_text->shdr.sh_addr;
   void* data = sec_text->data->rwdata();
   uint64_t msg_addr = sec_text->shdr.sh_addr + 9 * 4;
@@ -181,7 +181,7 @@ Executable<uint32_t> GenBareBonesA32() {
   Executable<uint32_t> exe =
       MakeExecutableA32(0x20000, all_sections, all_segments);
 
-  exe.UpdateVaddrsAndOffsets();
+  exe.UpdateVaddrsAndOffsets(CombinedElfHeaderSize<uint32_t>(exe.segments), exe.start_vaddr);
   exe.ehdr.e_entry = sec_text->shdr.sh_addr;
   return exe;
 }

@@ -46,8 +46,9 @@ int main(int argc, char* argv[]) {
       std::cout << "cannot load " << argv[1] << "\n";
       return 1;
     }
-    exe.VerifyVaddrsAndOffsets();
-    exe.UpdateVaddrsAndOffsets();
+    const uint64_t header_size = CombinedElfHeaderSize<uint64_t>(exe.segments);
+    exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
+    exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
     std::vector<std::string_view> chunks = exe.Save();
     VerifyChunks(chunks, data);
     // std::cout << exe;
@@ -57,8 +58,9 @@ int main(int argc, char* argv[]) {
         std::cout << "cannot load " << argv[1] << "\n";
         return 1;
       }
-      exe.VerifyVaddrsAndOffsets();
-      exe.UpdateVaddrsAndOffsets();
+      const uint32_t header_size = CombinedElfHeaderSize<uint32_t>(exe.segments);
+      exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
+      exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
       std::vector<std::string_view> chunks = exe.Save();
       VerifyChunks(chunks, data);
       // std::cout << exe;

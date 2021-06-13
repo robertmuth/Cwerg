@@ -4,9 +4,9 @@
 #include "Elf/enum_gen.h"
 #include "Util/assert.h"
 
-#include <string_view>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 
 namespace cwerg::elf {
 
@@ -382,14 +382,16 @@ void SectionVerifVaddrAndOffset(const Section<elfsize_t>* sec,
 }
 
 template <typename elfsize_t>
-void Executable<elfsize_t>::VerifyVaddrsAndOffsets() const {
+void Executable<elfsize_t>::VerifyVaddrsAndOffsets(
+    elfsize_t header_size,
+    elfsize_t start_vaddr) const {
   size_t offset = 0;
   elfsize_t vaddr = 0;
   for (const auto& seg : segments) {
     if (seg->is_auxiliary) continue;
     if (offset == 0) {
-      offset += CombinedHeaderSize();
-      vaddr += CombinedHeaderSize() + start_vaddr;
+      offset += header_size;
+      vaddr += header_size + start_vaddr;
     } else if (seg->hard_align) {
       vaddr = Align(vaddr + 1, seg->phdr.p_align);
       offset = Align(offset + 1, seg->phdr.p_align);
@@ -429,9 +431,13 @@ void Executable<elfsize_t>::VerifyVaddrsAndOffsets() const {
 }
 
 // force instantiation of VerifyVaddrsAndOffsets()
-template void Executable<uint32_t>::VerifyVaddrsAndOffsets() const;
+template void Executable<uint32_t>::VerifyVaddrsAndOffsets(
+    uint32_t header_size,
+    uint32_t start_vaddr) const;
 
-template void Executable<uint64_t>::VerifyVaddrsAndOffsets() const;
+template void Executable<uint64_t>::VerifyVaddrsAndOffsets(
+    uint64_t header_size,
+    uint64_t start_vaddr) const;
 
 template <typename elfsize_t>
 void SectionUpdateVaddrAndOffset(Section<elfsize_t>* sec,
@@ -465,14 +471,15 @@ void SectionUpdateVaddrAndOffset(Section<elfsize_t>* sec,
 }
 
 template <typename elfsize_t>
-void Executable<elfsize_t>::UpdateVaddrsAndOffsets() {
+void Executable<elfsize_t>::UpdateVaddrsAndOffsets(elfsize_t header_size,
+                                                   elfsize_t start_vaddr) {
   size_t offset = 0;
   elfsize_t vaddr = 0;
   for (auto& seg : segments) {
     if (seg->is_auxiliary) continue;
     if (offset == 0) {
-      offset = CombinedHeaderSize();
-      vaddr = CombinedHeaderSize() + start_vaddr;
+      offset = header_size;
+      vaddr = header_size + start_vaddr;
     } else if (seg->hard_align) {
       vaddr = Align(vaddr + 1, seg->phdr.p_align);
       offset = Align(offset + 1, seg->phdr.p_align);
@@ -512,9 +519,13 @@ void Executable<elfsize_t>::UpdateVaddrsAndOffsets() {
 }
 
 // force instantiation of UpdateVaddrsAndOffsets()
-template void Executable<uint32_t>::UpdateVaddrsAndOffsets();
+template void Executable<uint32_t>::UpdateVaddrsAndOffsets(
+    uint32_t header_size,
+    uint32_t start_vaddr);
 
-template void Executable<uint64_t>::UpdateVaddrsAndOffsets();
+template void Executable<uint64_t>::UpdateVaddrsAndOffsets(
+    uint64_t header_size,
+    uint64_t start_vaddr);
 
 template <typename elfsize_t>
 std::ostream& operator<<(std::ostream& os, const Executable<elfsize_t>& e) {
