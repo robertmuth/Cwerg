@@ -20,16 +20,16 @@ export LC_ALL=C
 
 tests: 
 	mkdir -p build && cd build && cmake .. && $(MAKE) -s
-	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
+	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
 
-
+# includes version dumping and frontend tests
 tests_github:
 	@echo Tool Versions
 	python3 -V
@@ -40,14 +40,15 @@ tests_github:
 	@echo Build Native Exes
 	mkdir -p build && cd build && cmake .. && $(MAKE) -s
 	@echo Run Tests
-	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
+	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
+	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd FrontEndC && $(MAKE) -s tests && $(MAKE) -s clean
+	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
 
 integration_tests:
 	$(MAKE) -f Makefile.integration -s tests clean
