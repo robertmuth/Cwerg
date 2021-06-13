@@ -19,7 +19,7 @@ TESTS = reg_torture_f32.asm \
         multiple_results_f32.asm \
         multiple_results_f64.asm
 
-TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm.exe)
+TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 
 STD_LIB = ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
 

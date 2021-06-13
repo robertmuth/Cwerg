@@ -99,14 +99,18 @@ void print_c_ln(uint8_t c) {
   write_c(1, (uint8_t)'\n');
 }
 
-void* memset(void* ptr, int value, size_t n) {
+// no_builtin attribute prevents replacement of body with call to runtime lib
+// https://clang.llvm.org/docs/AttributeReference.html
+void* memset(void* ptr, int value, size_t n) __attribute__((no_builtin)) {
   for (size_t i = 0; i < n; i += 1) {
     ((char*)ptr)[i] = value;
   }
   return ptr;
 }
 
-void* memcpy(void* dst, const void* src, size_t n) {
+// no_builtin attribute prevents replacement of body with call to runtime lib
+// https://clang.llvm.org/docs/AttributeReference.html
+void* memcpy(void* dst, const void* src, size_t n) __attribute__((no_builtin)) {
   for (size_t i = 0; i < n; i += 1) {
     ((char*)dst)[i] = ((char*)src)[i];
   }
