@@ -216,8 +216,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     simple and table driven.
     * lift almost all regs to 32bit width
     * rewrite Ins that cannot be expanded
-    * rewrite immediates that cannot be expanded except stack offsets which are dealt with in
-      another pass
+    * rewrite immediates that cannot be expanded (stack offsets which are not known yet
+      are ignored and we rely on being able to select all (reasonable) stack offsets)
 
     TODO: missing is a function to change calling signature so that
     """
@@ -323,6 +323,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         print(f"# GlobalRegAlloc {fun.name}", file=fout)
         print("#" * 60, file=fout)
 
+    # replaces pusharg and poparg instructions and replace them with moves
+    # The moves will use pre-allocated regs (the once use for argument/result paassing)
     regs.FunPushargConversion(fun)
     regs.FunPopargConversion(fun)
 
@@ -332,8 +334,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     reg_stats.FunComputeRegStatsLAC(fun)
 
     # Note: REG_KIND_MAP_ARM maps all non-float to registers to S32
-    local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
-                                                           REG_KIND_MAP_ARM)
+    local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun, REG_KIND_MAP_ARM)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
     global_reg_stats = _FunGlobalRegStats(fun, REG_KIND_MAP_ARM)
     DumpRegStats(fun, local_reg_stats, fout)
@@ -341,14 +342,17 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
 
     # Handle GPR regs
+    # compute the number of regs needed if had indeed unlimited regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(o.DK.S32, True)]),
                             len(global_reg_stats[(o.DK.S32, False)]),
                             local_reg_stats.get((o.DK.S32, True), 0),
                             local_reg_stats.get((o.DK.S32, False), 0))
+    # earmark some regs for globals
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR_CALLEE_SAVE_REGS.copy(),
         regs.GPR_NOT_LAC_REGS.copy(), pre_allocated)
 
+    # assign the earmarked regs to some globals and spill the rest
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S32, True)],
                                                     gpr_global_lac)
@@ -356,6 +360,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                                                     gpr_global_not_lac)
 
     # Handle Float regs
+    # repeat the same process as we did for GPR regs
     needed_flt = RegsNeeded(len(global_reg_stats[(o.DK.F32, True)]) + 2 *
                             len(global_reg_stats[(o.DK.F64, True)]),
                             len(global_reg_stats[(o.DK.F32, False)]) + 2 *
@@ -383,6 +388,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
+    # establish per bbl SSA form by splitting liveranges
     reg_stats.FunSeparateLocalRegUsage(fun)
     # DumpRegStats(fun, local_reg_stats)
 

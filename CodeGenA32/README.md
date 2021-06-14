@@ -12,20 +12,26 @@ Supporting Thumb(2) is an explicit non-goal.
 
 ## Code Generation Stages
 
-TODO: this is a bit out of date
-
 Code generation goes through the following stages which 
-massages the IR until it becomes almost trivial to generate
+massage the IR until it becomes almost trivial to generate
 A32 code from it.
 
-### Legalization 
+### `PhaseLegalization()`
 
+* TODO: move parameters that cannot be handled by calling convention
+  onto stk 
 * eliminate addressing modes not supported by ISA, e.g. 
-  `ld.stk`/`st.stk`/`lea.stk` with reg offset
+  - convert `ld.stk`/`st.stk`/`lea.stk` with reg offset
+  - convert `ld.mem`/`st.mem` to  `lea.mem` +`ld`/`st`
 * rewrite opcodes not directly supported by ISA, e.g. `mod`
 * widen most operands to 32bit
-* move parameters that cannot be handled by calling convention
-  onto stk
+* canonicalize instruction to help with the next step
+* add unconditional branches and invert conditional branches to linearize the CFG
+  this may undo the canonicalization occasionally
+* deal with out of range immediates:
+  replace all const operands not supported by ISA with regs that
+   received the immediate via a `mov` (see `InsArm32RewriteOutOfBoundsImmediates`)
+* add `nop1` for those case where we likely need a scratch register 
 
 ### Global Register Allocation
 
@@ -38,14 +44,6 @@ TODO: add this
   as per calling convention
 * run basic optimizations (mostly to help with `mov` elimination)
 
-### Misc + Eliminate Unsupported Immediates  
-
-* convert `ld.mem`/`st.mem` to  `lea.mem` +`ld`/`st`
-* replace all const operands not supported by ISA with regs that
-  received the immediate via a `mov`
-  (see `InsArm32RewriteOutOfBoundsImmediates`)
-
-* add unconditional branches
 
 ### Register Allocation 
 
@@ -134,5 +132,10 @@ Both subroutine calls and regular branches have and offset range of +/-32MiB
 which should be enough to not worry about overflows initially. 
 (For reference X86-64 chrome has a 120MB .text section).
 
+## Comparing against gcc's instruction selector
+
+```
+arm-linux-gnueabihf-gcc-9  test.c -c -O3  -o test.o ; arm-linux-gnueabihf-objdump -D test.o
+```
 
 

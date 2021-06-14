@@ -267,12 +267,12 @@ void BblRegAllocOrSpill(Bbl bbl,
   }
 }
 
-struct A32RegMasks {
+struct CpuRegMasks {
   uint32_t gpr_mask;
   uint32_t flt_mask;
 };
 
-A32RegMasks FunCpuRegStats(Fun fun) {
+CpuRegMasks FunCpuRegStats(Fun fun) {
   uint32_t gpr_mask = 0;
   uint32_t flt_mask = 0;
   for (Bbl bbl : FunBblIter(fun)) {
@@ -452,9 +452,9 @@ bool FunMustSaveLinkReg(Fun fun) {
 }
 
 EmitContext FunComputeEmitContext(Fun fun) {
-  A32RegMasks masks = FunCpuRegStats(fun);
+  CpuRegMasks masks = FunCpuRegStats(fun);
   const bool must_save_link_reg =
-      FunMustSaveLinkReg(fun) || (masks.gpr_mask & LINK_REG_MASK) != 0;
+      !FunIsLeaf(fun) || (masks.gpr_mask & LINK_REG_MASK) != 0;
   masks.gpr_mask &= GPR_CALLEE_SAVE_REGS_MASK;
   masks.flt_mask &= FLT_CALLEE_SAVE_REGS_MASK;
   EmitContext out{masks.gpr_mask, masks.flt_mask, masks.gpr_mask,

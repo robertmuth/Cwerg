@@ -873,6 +873,7 @@ struct FunBblList {
 #define FunBblIter ListIter<FunBblList>
 #define FunBblIterReverse ListIterReverse<FunBblList>
 
+extern bool FunIsLeaf(Fun fun);
 // =======================================
 // Unit
 // =======================================

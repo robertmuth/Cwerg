@@ -398,6 +398,16 @@ void FunFinalizeStackSlots(Fun fun) {
   FunStackSize(fun) = slot;
 }
 
+bool FunIsLeaf(Fun fun) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOPC(ins) == OPC::JSR || InsOPC(ins) == OPC::BSR) return false;
+    }
+  }
+
+  return true;
+}
+
 // =======================================
 // UnitHelpers
 // =======================================
