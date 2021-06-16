@@ -132,10 +132,10 @@ class PARAM(enum.Enum):
     mem1_num2_prel_hi21 = 26
     mem1_num2_lo12 = 27
     # The value is computed by combining the STK operand with the constant offset operand
-    stk1_offset2 = 28,
+    stk1_offset2 = 28
     stk1_offset2_lo = 29
     stk1_offset2_hi = 30
-    stk0_offset1 = 31,
+    stk0_offset1 = 31
     stk0_offset1_lo = 32
     stk0_offset1_hi = 33
     #
@@ -438,7 +438,7 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
         out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
 
     restores = []
-    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
+    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr_reg_mask)
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
@@ -447,7 +447,7 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
         else:
             r2 = gpr_regs.pop(-1)
             restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
-    flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
+    flt_regs = regs.MaskToFlt64Regs(ctx.flt_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
         if not flt_regs:
@@ -477,7 +477,7 @@ only works if the next instruction was not assigned the register itself.
 
 def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     out = []
-    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr64_reg_mask)
+    gpr_regs = regs.MaskToGpr64Regs(ctx.gpr_reg_mask)
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
@@ -486,7 +486,7 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
         else:
             r2 = gpr_regs.pop(-1)
             out.append(InsTmpl("stp_x_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
-    flt_regs = regs.MaskToFlt64Regs(ctx.flt64_reg_mask)
+    flt_regs = regs.MaskToFlt64Regs(ctx.flt_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
         if not flt_regs:
