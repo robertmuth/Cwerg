@@ -62,13 +62,13 @@ the IR opcodes into zero or more A32 opcodes (see [isel_tab.py] and
 All the expansion patterns can be listed using `./isel_tab.py`:
 ```
 blt [BBL REG_OR_CONST REG_OR_CONST]       # IR opcode to expand (with operand kinds)
-  [* U32 U32]                             #   pattern 1 (with constraints on the IR operands): 2 reg case
+  [* U32 U32]                             #   pattern 1: op0 is bbl, op1 is U32 reg, op2 is U32 reg 
     cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]   #     1. A32 instruction of the expansion
     b [PRED.cc ARG.bbl0]                  #     2. A32 instriction of the expansion
-  [* U32 pos_8_bits_shifted]              #   pattern 2: 1 reg, 1 immediate case
+  [* U32 pos_8_bits_shifted]              #   pattern 2: op0 is bbl, op1 is U32 reg, op2 is immediate
     cmp [ARG.reg1 ARG.num2]               #     1. A32 instruction of the expansion
     b [PRED.cc ARG.bbl0]                  #     2. A32 instruction of the expansion
-  [* S32 S32]                             #   pattern 3: 2 regs case (signed)
+  [* S32 S32]                             #   pattern 3: op0 is bbl, op1 is S32 reg, op2 is S32 reg 
     cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]   #     1. A32 instruction of the expansion
     b [PRED.lt ARG.bbl0]                  #     2. A32 instruction of the expansion
   ...
