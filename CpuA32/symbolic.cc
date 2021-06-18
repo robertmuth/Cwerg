@@ -1,7 +1,6 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CpuA32/symbolic.h"
-#include "Elf/elfhelper.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
 
@@ -226,7 +225,7 @@ std::string SymbolizeRegListMask(uint32_t mask) {
   std::string regs = "{";
   std::string_view sep;
   for (unsigned int i = 0; i < 16; ++i) {
-    if (mask & (1 << i)) {
+    if (mask & (1U << i)) {
       regs += sep;
       regs += EnumToString(a32::REG(i));
       sep = ", ";

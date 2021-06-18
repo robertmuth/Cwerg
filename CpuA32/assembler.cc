@@ -293,9 +293,9 @@ Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab) {
       CombinedElfHeaderSize(exe.segments), exe.start_vaddr);
   exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
   for (auto& sym : unit->symbols) {
-    ASSERT(sym->sym.st_value != ~0, "undefined symbol " << sym->name);
+    ASSERT(sym->sym.st_value != ~0U, "undefined symbol " << sym->name);
     if (sym->section != nullptr) {
-      ASSERT(sym->section->shdr.sh_addr != ~0,
+      ASSERT(sym->section->shdr.sh_addr != ~0U,
              sym->name << "has bad sec " << *sym->section);
       sym->sym.st_value += sym->section->shdr.sh_addr;
       sym->sym.st_shndx = sym->section->index;

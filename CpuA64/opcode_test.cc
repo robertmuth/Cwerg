@@ -17,13 +17,13 @@ using namespace cwerg;
 void CheckEncodeDecode() {
   uint32_t count = 0;
   uint32_t sm = 0;
-  for (uint32_t size = 64; size >= 2; size >>= 1) {
+  for (uint32_t size = 64; size >= 2; size >>= 1U) {
     for (uint32_t ones = 1; ones < size; ++ones) {
       for (uint32_t r = 0; r < size; ++r) {
         ++count;
         const uint32_t n = size == 64;
         const uint32_t s = sm | (ones - 1);
-        const uint32_t i = (n << 12) | (r << 6) | s;
+        const uint32_t i = (n << 12U) | (r << 6U) | s;
         uint64_t x = a64::Decode_10_15_16_22_X(i);
         // std::cout << std::hex << i << " " << x << std::dec << "\n";
         // std::cout << std::hex << n << " " << r << " " << s << " pattern " <<

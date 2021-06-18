@@ -4,17 +4,13 @@
 
 namespace cwerg::a64 {
 
-struct Field {
-  BitRange bit_ranges[MAX_BIT_RANGES];
-};
-
 uint64_t DecodeShifted_10_21_22(uint32_t x) {
-  return (x & 0xfff) << (12U * (x >> 12U));
+  return (x & 0xfffU) << (12U * (x >> 12U));
 }
 
 uint32_t EncodeShifted_10_21_22(uint64_t x) {
   for (unsigned i = 0; i < 2; i++) {
-    if ((x & 0xfff) == x) {
+    if ((x & 0xfffU) == x) {
       return x | (i << 12U);
     }
     x >>= 12U;
@@ -28,7 +24,7 @@ uint64_t DecodeShifted_5_20_21_22(uint32_t x) {
 
 uint32_t EncodeShifted_5_20_21_22(uint64_t x) {
   for (unsigned i = 0; i < 4; i++) {
-    if ((x & 0xffff) == x) {
+    if ((x & 0xffffU) == x) {
       return x | (i << 16ULL);
     }
     x >>= 16U;
@@ -44,7 +40,7 @@ uint64_t MakeIeee64(uint64_t sign, uint64_t mantissa, uint64_t exponent) {
 
 uint32_t Encode8BitFlt(uint64_t ieee64) {
   uint64_t mantissa = ieee64 & ((1ULL << 52U) - 1);
-  ieee64 >>= 52;
+  ieee64 >>= 52U;
   uint64_t exponent = (ieee64 & ((1U << 11U) - 1)) - 1023 + 3;
   uint64_t sign = ieee64 >> 11U;
   if (0 <= exponent && exponent <= 7 && ((mantissa >> 48U) << 48U) == mantissa) {
@@ -54,9 +50,9 @@ uint32_t Encode8BitFlt(uint64_t ieee64) {
 }
 
 uint64_t Decode8BitFlt(uint32_t x) {
-  const uint32_t mantissa = (x & 0xf);
-  x >>= 4;
-  const uint32_t exponent = (x & 7U) ^ 4;
+  const uint32_t mantissa = (x & 0xfU);
+  x >>= 4U;
+  const uint32_t exponent = (x & 7U) ^ 4U;
   const uint32_t sign = (x >> 3U);
   return MakeIeee64(sign, mantissa, exponent);
 }
@@ -78,8 +74,8 @@ uint64_t ror(uint64_t x, uint32_t bit_size, uint32_t amount) {
 
 uint64_t Decode_10_15_16_22(uint32_t x, uint32_t reg_size) {
   const uint32_t n = x >> 12U;
-  const uint32_t r = (x >> 6U) & 0x3f;
-  const uint32_t s = x & 0x3f;
+  const uint32_t r = (x >> 6U) & 0x3fU;
+  const uint32_t s = x & 0x3fU;
   uint32_t size = 64;
   uint32_t ones = s + 1;
   if (n != 1) {
@@ -4891,7 +4887,7 @@ const char* EnumToString<OK>(OK x) { return OK_ToStringMap[unsigned(x)]; }
 /* @AUTOGEN-END@ */
 
 const Opcode* FindOpcode(uint32_t bit_value) {
-  const uint32_t discriminant = (bit_value >> 24U) & 0xff;
+  const uint32_t discriminant = (bit_value >> 24U) & 0xffU;
   const unsigned start = OpcodeTableJumper[discriminant];
   const unsigned end = OpcodeTableJumper[discriminant + 1];
   for (unsigned i = start; i < end; ++i) {
@@ -4926,7 +4922,7 @@ void InsertOperand(int32_t x,
   for (int i = MAX_BIT_RANGES - 1; i >= 0; --i) {
     const BitRange* range = bit_ranges + i;
     if (range->width == 0) continue;
-    const uint32_t mask = (1 << range->width) - 1;
+    const uint32_t mask = (1U << range->width) - 1;
     ASSERT(((mask << range->position) & *bits_mask) == 0, "");
     *bits_mask |= mask << range->position;
     *bits_value |= (x & mask) << range->position;
@@ -4969,9 +4965,9 @@ uint32_t Patch(uint32_t ins_old, unsigned pos, int32_t value) {
 const Opcode* FindOpcodeForMnemonic(std::string_view s) {
   uint32_t h = 5381;
   for (uint8_t c : s) {
-    h = (h << 5) + h + c;
+    h = (h << 5U) + h + c;
   }
-  h &= 0xffff;
+  h &= 0xffffU;
 
   for (uint32_t d = 0; d < MNEMONIC_HASH_TABLE_SIZE; ++d) {
     OPC opc = MnemonicHashTable[(h + d) % MNEMONIC_HASH_TABLE_SIZE];
@@ -4983,7 +4979,7 @@ const Opcode* FindOpcodeForMnemonic(std::string_view s) {
 }
 
 uint64_t SignedInt64FromBits(uint64_t data, unsigned n_bits) {
-  uint64_t mask = (1 << n_bits) - 1;
+  uint64_t mask = (1U << n_bits) - 1;
   data &= mask;
   bool is_neg = data & (1ULL << (n_bits - 1));
   return is_neg ? data - (1ULL << n_bits) : data;
@@ -5028,9 +5024,9 @@ uint32_t EncodeOperand(OK ok, uint64_t data) {
       ASSERT(data < fi.num_names, "");
       return data;
     case FK::INT_SIGNED: {
-      uint64_t rest = data >> (fi.bitwidth - 1);
-      ASSERT(rest == 0 || rest + 1 == (1ULL << (64 - fi.bitwidth + 1)), "bad signed int for ok " << int(ok) << ": " << data);
-      return data & ((1 << fi.bitwidth) - 1);
+      uint64_t rest = data >> (fi.bitwidth - 1U);
+      ASSERT(rest == 0 || rest + 1 == (1ULL << (64U - fi.bitwidth + 1)), "bad signed int for ok " << int(ok) << ": " << data);
+      return data & ((1U << fi.bitwidth) - 1);
     }
     case FK::INT:
     case FK::INT_HEX:
