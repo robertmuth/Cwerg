@@ -549,16 +549,16 @@ void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number) {
     std::vector<std::string> succs;
     for (Edg edg : BblSuccEdgIter(bbl)) {
       if (edg.isnull()) {
-        succs.push_back("INVALID_EDG");
+        succs.emplace_back("INVALID_EDG");
         break;
       }
-      succs.push_back(StrData(Name(EdgSuccBbl(edg))));
+      succs.emplace_back(StrData(Name(EdgSuccBbl(edg))));
     }
     std::sort(succs.begin(), succs.end());
     *output << group_sep << "edge_out[";
     group_sep = "  ";
     const char* sep = "";
-    for (const auto str : succs) {
+    for (const auto& str : succs) {
       *output << sep << str;
       sep = "  ";
     }
@@ -741,7 +741,7 @@ Unit UnitParseFromAsm(const char* name,
   Handle operands[MAX_OPERANDS];
   int line_num = 0;
   std::vector<std::string_view> vec;
-  for (unsigned line_num = 0; input.size() > 0; ++line_num) {
+  for (unsigned line_num = 0; !input.empty(); ++line_num) {
     const size_t new_line_pos = input.find('\n');
     std::string_view line = new_line_pos == input.npos
                                 ? input

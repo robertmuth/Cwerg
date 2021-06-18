@@ -86,25 +86,6 @@ void UnitOpt(Unit unit, bool dump_reg_stats) {
   }
 }
 
-WebResponse ResumeHandler(const WebRequest& request) {
-  std::string_view path = request.raw_path.substr(1);
-  auto pos = path.find("/");
-  bool success = false;
-  if (pos != std::string_view::npos) {
-    path.remove_prefix(pos + 1);
-    success = BreakPoint::ResumeByName(path);
-  }
-  WebResponse out;
-  if (success) {
-    out.body << "<html><body>resuming breakpoint [" << path
-             << "]</body></html>";
-  } else {
-    out.body << "<html><body>failed to resume breakpoint [" << path
-             << "]</body></html>";
-  }
-  return out;
-}
-
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;
 

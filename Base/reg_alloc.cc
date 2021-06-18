@@ -263,17 +263,6 @@ Stk RegCreateSpillSlot(Reg reg, Fun fun, std::string_view prefix) {
   return stk;
 }
 
-void FunCreateStackSlotsForMarkedRegs(Fun fun, std::string_view prefix) {
-  for (Reg reg : FunRegIter(fun)) {
-    if (RegHasFlag(reg, REG_FLAG::MARKED)) {
-      RegClearFlag(reg, REG_FLAG::MARKED);
-      RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun, prefix);
-    } else {
-      RegSpillSlot(reg) = Stk(0);
-    }
-  }
-}
-
 void FunSpillRegs(Fun fun,
                   DK offset_kind,
                   const std::vector<Reg>& regs,

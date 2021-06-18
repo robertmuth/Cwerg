@@ -25,9 +25,9 @@ const constexpr int AFTER_BBL = 32000;
 const constexpr int NO_USE = AFTER_BBL + 1;
 
 enum class LR_FLAG : uint8_t {
-  LAC = 1 << 0,
-  PRE_ALLOC = 1 << 1,
-  IGNORE = 1 << 2,
+  LAC = 1U << 0U,
+  PRE_ALLOC = 1U << 1U,
+  IGNORE = 1U << 2U,
 };
 
 // Note these two are subtly different

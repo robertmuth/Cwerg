@@ -102,7 +102,7 @@ Const ConstTryApplyingBinaryLog(Const num) {
     if (v < 0) return Const(HandleInvalid);
     if ((v & (v - 1)) != 0) return Const(HandleInvalid);
     for (unsigned i = 0; i < 64; ++i) {
-      if (v == (1 << i)) {
+      if (v == (1U << i)) {
         return ConstNewACS(ConstKind(num), i);
       }
     }
@@ -111,7 +111,7 @@ Const ConstTryApplyingBinaryLog(Const num) {
     uint64_t v = ConstValueU(num);
     if ((v & (v - 1)) != 0) return Const(HandleInvalid);
     for (unsigned i = 0; i < 64; ++i) {
-      if (v == (1 << i)) {
+      if (v == (1U << i)) {
         return ConstNewU(ConstKind(num), i);
       }
     }

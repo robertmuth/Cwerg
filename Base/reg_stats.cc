@@ -30,7 +30,7 @@ class BblRegUsageStatsRegPool : public RegPool {
     CpuReg reg;
     if (pool.empty()) {
       ++counter_;
-      reg = CpuReg(counter_ | (+dk << 16) | (lac << 15));
+      reg = CpuReg(counter_ | (+dk << 16U) | (lac << 15U));
     } else {
       reg = pool.back();
       pool.pop_back();
@@ -41,8 +41,8 @@ class BblRegUsageStatsRegPool : public RegPool {
   int get_cpu_reg_family(DK dk) override { return +rk_map_[+dk]; }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
-    const DK dk = static_cast<DK>((cpu_reg.index() >> 16) & 0xff);
-    const bool lac = (cpu_reg.index() >> 15) & 1;
+    const DK dk = static_cast<DK>((cpu_reg.index() >> 16U) & 0xff);
+    const bool lac = (cpu_reg.index() >> 15U) & 1U;
     std::vector<CpuReg>& pool = (lac ? available_lac_ : available_not_lac_)[dk];
     pool.push_back(cpu_reg);
   }
