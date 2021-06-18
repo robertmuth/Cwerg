@@ -20,7 +20,6 @@ constexpr auto operator+(T e) noexcept
 
 using IC = IMM_CURB;
 
-
 bool ImmFitsConstraint(IMM_CURB constr,
                        int64_t x,
                        int32_t last_stack_offset,
@@ -3100,12 +3099,11 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
       return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16) &
              0xffff;
     case PARAM::scratch_gpr:
-      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR,
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR64,
              "expected gpr reg");
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::scratch_flt:
-      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::DBL ||
-                 CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT,
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT64,
              "expected not gpr reg");
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::bbl0:
@@ -3120,12 +3118,13 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
   }
 }
 
-void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
+void MaybeHandleReloc(a64::Ins* armins, unsigned pos, Ins ins, PARAM op) {
   Str symbol;
   auto handle_addend = [&](Const num) {
     armins->operands[pos] = ConstValueInt32(num);
   };
   switch (op) {
+#if 0
     case PARAM::bbl0:
       armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
       armins->is_local_sym = true;
@@ -3168,6 +3167,7 @@ void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
       armins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
+#endif
     default:
       return;
   }
@@ -3185,25 +3185,25 @@ a64::Ins MakeIns(a64::OPC opc_enum,
                  uint32_t x3,
                  uint32_t x4) {
   const a64::Opcode* opc = &a64::OpcodeTable[+opc_enum];
-  if (opc->num_fields > 0) x0 = EncodeOperand(x0, opc->fields[0]);
-  if (opc->num_fields > 1) x1 = EncodeOperand(x1, opc->fields[1]);
-  if (opc->num_fields > 2) x2 = EncodeOperand(x2, opc->fields[2]);
-  if (opc->num_fields > 3) x3 = EncodeOperand(x3, opc->fields[3]);
-  if (opc->num_fields > 4) x4 = EncodeOperand(x4, opc->fields[4]);
+  if (opc->num_fields > 0) x0 = EncodeOperand(opc->fields[0], x0);
+  if (opc->num_fields > 1) x1 = EncodeOperand(opc->fields[1], x1);
+  if (opc->num_fields > 2) x2 = EncodeOperand(opc->fields[2], x2);
+  if (opc->num_fields > 3) x3 = EncodeOperand(opc->fields[3], x3);
+  if (opc->num_fields > 4) x4 = EncodeOperand(opc->fields[4], x4);
   return a64::Ins{opc, {x0, x1, x2, x3, x4}};
 }
 a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
   out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];
   for (unsigned o = 0; o < a64::MAX_OPERANDS; ++o) {
-    if ((tmpl.template_mask & (1 << o)) == 0) {
+    if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim
       out.operands[o] = tmpl.operands[o];
     } else {
       // parameters require extra processing
       auto param = PARAM(tmpl.operands[o]);
-      out.operands[o] = a64::EncodeOperand(ExtractParamOp(ins, param, ctx),
-                                           out.opcode->fields[o]);
+      out.operands[o] = a64::EncodeOperand(out.opcode->fields[o], ExtractParamOp(ins, param, ctx)
+                                           );
       // Note: this may overwrite    out.operands[o]
       MaybeHandleReloc(&out, o, ins, param);
     }
@@ -3211,4 +3211,4 @@ a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   return out;
 }
 
-}  // namespace cwerg::code_gen_a32
+}  // namespace cwerg::code_gen_a64
