@@ -18,62 +18,62 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
-using IK = IMM_KIND;
+using IC = IMM_CURB;
 using a32::PRED;
 using a32::REG;
 using a32::SHIFT;
 
-bool ImmFitsConstraint(IMM_KIND constr,
+bool ImmFitsConstraint(IMM_CURB constr,
                        int64_t x,
                        int32_t last_stack_offset,
                        bool assume_stk_op_matches) {
   switch (constr) {
     default:
-    case IK::invalid:
-      ASSERT(false, "unexpected IMM_KIND " << (unsigned)constr);
+    case IC::invalid:
+      ASSERT(false, "unexpected IMM_CURB " << (unsigned)constr);
       return false;
-    case IK::pos_stk_combo_8_bits_shifted:
+    case IC::pos_stk_combo_8_bits_shifted:
       x += last_stack_offset;
       // fallthrough
-    case IK::pos_8_bits_shifted:
+    case IC::pos_8_bits_shifted:
       return a32::EncodeRotatedImm(x) != a32::kEncodeFailure;
-    case IK::neg_8_bits_shifted:
+    case IC::neg_8_bits_shifted:
       return a32::EncodeRotatedImm(-x) != a32::kEncodeFailure;
-    case IK::not_8_bits_shifted:
+    case IC::not_8_bits_shifted:
       return a32::EncodeRotatedImm(~x) != a32::kEncodeFailure;
-    case IK::pos_5_bits:
+    case IC::pos_5_bits:
       return 0 <= x && x < (1 << 5);
-    case IK::pos_stk_combo_12_bits:
+    case IC::pos_stk_combo_12_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
-    case IK::pos_12_bits:
+    case IC::pos_12_bits:
       return 0 <= x && x < (1 << 12);
-    case IK::neg_12_bits:
+    case IC::neg_12_bits:
       return 0 <= -x && -x < (1 << 12);
-    case IK::pos_stk_combo_8_bits:
+    case IC::pos_stk_combo_8_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
-    case IK::pos_8_bits:
+    case IC::pos_8_bits:
       return 0 <= x && x < (1 << 8);
-    case IK::pos_stk_combo_8_bits_times_4:
+    case IC::pos_stk_combo_8_bits_times_4:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
-    case IK::pos_8_bits_times_4:
+    case IC::pos_8_bits_times_4:
       return (x & 3) == 0 && 0 <= (x / 2) && (x / 2) < (1 << 8);
-    case IK::neg_8_bits_times_4:
+    case IC::neg_8_bits_times_4:
       return (x & 3) == 0 && -(1 << 8) < (x / 2) && (x / 2) <= 0;
-    case IK::neg_8_bits:
+    case IC::neg_8_bits:
       return 0 <= -x && -x < (1 << 8);
-    case IK::pos_stk_combo_16_bits:
+    case IC::pos_stk_combo_16_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
-    case IK::pos_16_bits:
+    case IC::pos_16_bits:
       return 0 <= x && x < (1 << 16);
-    case IK::any_32_bits:
+    case IC::any_32_bits:
       return true;
   }
 }
@@ -93,10 +93,10 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
 }
 
 bool IsConstMatch(Const num,
-                  IMM_KIND imm_constraint,
+                  IMM_CURB imm_constraint,
                   int32_t last_stack_offset,
                   bool assume_stk_op_matches) {
-  if (imm_constraint == IMM_KIND::invalid) return false;
+  if (imm_constraint == IMM_CURB::invalid) return false;
 
   int64_t x;
   switch (DKFlavor(ConstKind(num))) {
@@ -129,7 +129,7 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
   int32_t last_stack_offset = 0;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Const op(InsOperand(ins, i));
-    const IK imm_constraint = pat.imm_constraints[i];
+    const IC imm_constraint = pat.imm_constraints[i];
     if (op.kind() == RefKind::STK) {
       if (assume_stk_op_matches) {
         last_stack_offset = 0;
@@ -137,10 +137,10 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
         last_stack_offset = StkSlot(Stk(op));
       }
     } else if (op.kind() == RefKind::REG) {
-      if (imm_constraint != IMM_KIND::invalid)
+      if (imm_constraint != IC::invalid)
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
-      if (imm_constraint == IK::invalid) {
+      if (imm_constraint == IC::invalid) {
         // we have an imm but need a reg - this can be accomodated.
         out |= 1 << i;
       } else if (!IsConstMatch(op, imm_constraint, last_stack_offset,
@@ -1893,1506 +1893,1506 @@ const uint16_t kPatternJumper[256] = {
 
 const Pattern kPatterns[] = {
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[1], 1 },  // add [0]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[2], 1 },  // add [1]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[3], 1 },  // add [2]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[4], 1 },  // add [3]
   { {DK::F32, DK::F32, DK::F32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[5], 1 },  // add [4]
   { {DK::F64, DK::F64, DK::F64},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[6], 1 },  // add [5]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[7], 1 },  // sub [6]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[8], 1 },  // sub [7]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[9], 1 },  // sub [8]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[10], 1 },  // sub [9]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[11], 1 },  // sub [10]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[12], 1 },  // sub [11]
   { {DK::F32, DK::F32, DK::F32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[13], 1 },  // sub [12]
   { {DK::F64, DK::F64, DK::F64},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[14], 1 },  // sub [13]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[15], 1 },  // mul [14]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[16], 1 },  // mul [15]
   { {DK::F32, DK::F32, DK::F32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[17], 1 },  // mul [16]
   { {DK::F64, DK::F64, DK::F64},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[18], 1 },  // mul [17]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[19], 1 },  // div [18]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[20], 1 },  // div [19]
   { {DK::F32, DK::F32, DK::F32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[21], 1 },  // div [20]
   { {DK::F64, DK::F64, DK::F64},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[22], 1 },  // div [21]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[23], 1 },  // xor [22]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[24], 1 },  // xor [23]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[25], 1 },  // xor [24]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[26], 1 },  // xor [25]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[27], 1 },  // and [26]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[28], 1 },  // and [27]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[29], 1 },  // and [28]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[30], 1 },  // and [29]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[31], 1 },  // and [30]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[32], 1 },  // and [31]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[33], 1 },  // or [32]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[34], 1 },  // or [33]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[35], 1 },  // or [34]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[36], 1 },  // or [35]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[37], 1 },  // shl [36]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_5_bits},
+    {IC::invalid, IC::invalid, IC::pos_5_bits},
     &kInsTemplates[38], 1 },  // shl [37]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[39], 1 },  // shl [38]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_5_bits},
+    {IC::invalid, IC::invalid, IC::pos_5_bits},
     &kInsTemplates[40], 1 },  // shl [39]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[41], 1 },  // shr [40]
   { {DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_5_bits},
+    {IC::invalid, IC::invalid, IC::pos_5_bits},
     &kInsTemplates[42], 1 },  // shr [41]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[43], 1 },  // shr [42]
   { {DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_5_bits},
+    {IC::invalid, IC::invalid, IC::pos_5_bits},
     &kInsTemplates[44], 1 },  // shr [43]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[45], 2 },  // beq [44]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[47], 2 },  // beq [45]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[49], 2 },  // beq [46]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[51], 2 },  // beq [47]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[53], 2 },  // beq [48]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[55], 2 },  // beq [49]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[57], 2 },  // beq [50]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[59], 2 },  // beq [51]
   { {DK::F32, DK::F32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[61], 3 },  // beq [52]
   { {DK::F64, DK::F64, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[64], 3 },  // beq [53]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[67], 2 },  // bne [54]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[69], 2 },  // bne [55]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[71], 2 },  // bne [56]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[73], 2 },  // bne [57]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[75], 2 },  // bne [58]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[77], 2 },  // bne [59]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[79], 2 },  // bne [60]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[81], 2 },  // bne [61]
   { {DK::F32, DK::F32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[83], 3 },  // bne [62]
   { {DK::F64, DK::F64, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[86], 3 },  // bne [63]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[89], 2 },  // blt [64]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[91], 2 },  // blt [65]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[93], 2 },  // blt [66]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[95], 2 },  // blt [67]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[97], 2 },  // blt [68]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[99], 2 },  // blt [69]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[101], 2 },  // blt [70]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[103], 2 },  // blt [71]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[105], 2 },  // blt [72]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[107], 2 },  // blt [73]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[109], 2 },  // blt [74]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[111], 2 },  // blt [75]
   { {DK::F32, DK::F32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[113], 3 },  // blt [76]
   { {DK::F64, DK::F64, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[116], 3 },  // blt [77]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[119], 2 },  // ble [78]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[121], 2 },  // ble [79]
   { {DK::U32, DK::U32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[123], 2 },  // ble [80]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[125], 2 },  // ble [81]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[127], 2 },  // ble [82]
   { {DK::A32, DK::A32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[129], 2 },  // ble [83]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[131], 2 },  // ble [84]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[133], 2 },  // ble [85]
   { {DK::C32, DK::C32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[135], 2 },  // ble [86]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[137], 2 },  // ble [87]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[139], 2 },  // ble [88]
   { {DK::S32, DK::S32, DK::INVALID},
-    {IK::pos_8_bits_shifted, IK::invalid, IK::invalid},
+    {IC::pos_8_bits_shifted, IC::invalid, IC::invalid},
     &kInsTemplates[141], 2 },  // ble [89]
   { {DK::F32, DK::F32, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[143], 3 },  // ble [90]
   { {DK::F64, DK::F64, DK::INVALID},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[146], 3 },  // ble [91]
   { {DK::U32, DK::INVALID},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[149], 3 },  // switch [92]
   { {DK::INVALID},
-    {IK::invalid},
+    {IC::invalid},
     &kInsTemplates[152], 1 },  // bra [93]
   { {DK::INVALID},
-    {IK::invalid},
+    {IC::invalid},
     &kInsTemplates[153], 1 },  // bsr [94]
   { {DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[154], 1 },  // jsr [95]
   { {DK::INVALID, DK::U32},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[155], 4 },  // syscall [96]
   { {},
     {},
     &kInsTemplates[159], 1 },  // trap [97]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[160], 1 },  // conv [98]
   { {DK::U32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[161], 1 },  // conv [99]
   { {DK::S32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[162], 1 },  // conv [100]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[163], 1 },  // conv [101]
   { {DK::U16, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[164], 1 },  // conv [102]
   { {DK::U16, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[165], 1 },  // conv [103]
   { {DK::S16, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[166], 1 },  // conv [104]
   { {DK::S16, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[167], 1 },  // conv [105]
   { {DK::U8, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[168], 1 },  // conv [106]
   { {DK::U8, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[169], 1 },  // conv [107]
   { {DK::S8, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[170], 1 },  // conv [108]
   { {DK::S8, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[171], 1 },  // conv [109]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[172], 1 },  // conv [110]
   { {DK::U16, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[173], 1 },  // conv [111]
   { {DK::S16, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[174], 1 },  // conv [112]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[175], 1 },  // conv [113]
   { {DK::U8, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[176], 1 },  // conv [114]
   { {DK::U8, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[177], 1 },  // conv [115]
   { {DK::S8, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[178], 1 },  // conv [116]
   { {DK::S8, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[179], 1 },  // conv [117]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[180], 1 },  // conv [118]
   { {DK::U8, DK::S8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[181], 1 },  // conv [119]
   { {DK::S8, DK::U8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[182], 1 },  // conv [120]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[183], 1 },  // conv [121]
   { {DK::U32, DK::U8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[184], 1 },  // conv [122]
   { {DK::S32, DK::S8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[185], 1 },  // conv [123]
   { {DK::U32, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[186], 1 },  // conv [124]
   { {DK::S32, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[187], 1 },  // conv [125]
   { {DK::S32, DK::F32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[188], 2 },  // conv [126]
   { {DK::U32, DK::F32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[190], 2 },  // conv [127]
   { {DK::S32, DK::F64},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[192], 2 },  // conv [128]
   { {DK::U32, DK::F64},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[194], 2 },  // conv [129]
   { {DK::F32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[196], 2 },  // conv [130]
   { {DK::F32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[198], 2 },  // conv [131]
   { {DK::F64, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[200], 2 },  // conv [132]
   { {DK::F64, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[202], 2 },  // conv [133]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[204], 1 },  // bitcast [134]
   { {DK::U32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[205], 1 },  // bitcast [135]
   { {DK::U32, DK::A32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[206], 1 },  // bitcast [136]
   { {DK::U32, DK::C32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[207], 1 },  // bitcast [137]
   { {DK::S32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[208], 1 },  // bitcast [138]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[209], 1 },  // bitcast [139]
   { {DK::S32, DK::A32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[210], 1 },  // bitcast [140]
   { {DK::S32, DK::C32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[211], 1 },  // bitcast [141]
   { {DK::A32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[212], 1 },  // bitcast [142]
   { {DK::A32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[213], 1 },  // bitcast [143]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[214], 1 },  // bitcast [144]
   { {DK::A32, DK::C32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[215], 1 },  // bitcast [145]
   { {DK::C32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[216], 1 },  // bitcast [146]
   { {DK::C32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[217], 1 },  // bitcast [147]
   { {DK::C32, DK::A32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[218], 1 },  // bitcast [148]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[219], 1 },  // bitcast [149]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[220], 1 },  // mov [150]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[221], 1 },  // mov [151]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[222], 1 },  // mov [152]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[223], 1 },  // mov [153]
   { {DK::U32, DK::U32},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[224], 2 },  // mov [154]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[226], 1 },  // mov [155]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[227], 1 },  // mov [156]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[228], 1 },  // mov [157]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[229], 1 },  // mov [158]
   { {DK::S32, DK::S32},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[230], 2 },  // mov [159]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[232], 1 },  // mov [160]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[233], 1 },  // mov [161]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[234], 1 },  // mov [162]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[235], 1 },  // mov [163]
   { {DK::A32, DK::A32},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[236], 2 },  // mov [164]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[238], 1 },  // mov [165]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[239], 1 },  // mov [166]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[240], 1 },  // mov [167]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[241], 1 },  // mov [168]
   { {DK::C32, DK::C32},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[242], 2 },  // mov [169]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[244], 1 },  // mov [170]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[245], 1 },  // mov [171]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[246], 1 },  // mov [172]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[247], 1 },  // mov [173]
   { {DK::U16, DK::U16},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[248], 2 },  // mov [174]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[250], 1 },  // mov [175]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[251], 1 },  // mov [176]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[252], 1 },  // mov [177]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[253], 1 },  // mov [178]
   { {DK::S16, DK::S16},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[254], 2 },  // mov [179]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[256], 1 },  // mov [180]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[257], 1 },  // mov [181]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[258], 1 },  // mov [182]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[259], 1 },  // mov [183]
   { {DK::U8, DK::U8},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[260], 2 },  // mov [184]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[262], 1 },  // mov [185]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::not_8_bits_shifted},
+    {IC::invalid, IC::not_8_bits_shifted},
     &kInsTemplates[263], 1 },  // mov [186]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::pos_16_bits},
+    {IC::invalid, IC::pos_16_bits},
     &kInsTemplates[264], 1 },  // mov [187]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[265], 1 },  // mov [188]
   { {DK::S8, DK::S8},
-    {IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::any_32_bits},
     &kInsTemplates[266], 2 },  // mov [189]
   { {DK::F32, DK::F32},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[268], 1 },  // mov [190]
   { {DK::F64, DK::F64},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[269], 1 },  // mov [191]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[270], 3 },  // cmpeq [192]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[273], 3 },  // cmpeq [193]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[276], 3 },  // cmpeq [194]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[279], 3 },  // cmpeq [195]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[282], 3 },  // cmpeq [196]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[285], 3 },  // cmpeq [197]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[288], 3 },  // cmpeq [198]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[291], 3 },  // cmpeq [199]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[294], 3 },  // cmpeq [200]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[297], 3 },  // cmpeq [201]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[300], 3 },  // cmpeq [202]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[303], 3 },  // cmpeq [203]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[306], 3 },  // cmpeq [204]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[309], 3 },  // cmpeq [205]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[312], 3 },  // cmpeq [206]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[315], 3 },  // cmpeq [207]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[318], 3 },  // cmpeq [208]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[321], 3 },  // cmpeq [209]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[324], 3 },  // cmpeq [210]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[327], 3 },  // cmpeq [211]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[330], 3 },  // cmpeq [212]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[333], 3 },  // cmpeq [213]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[336], 3 },  // cmpeq [214]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[339], 3 },  // cmpeq [215]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[342], 3 },  // cmpeq [216]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[345], 3 },  // cmpeq [217]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[348], 3 },  // cmpeq [218]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[351], 3 },  // cmpeq [219]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[354], 3 },  // cmpeq [220]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[357], 3 },  // cmpeq [221]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[360], 3 },  // cmpeq [222]
   { {DK::C32, DK::C32, DK::C32, DK::C32, DK::C32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[363], 3 },  // cmpeq [223]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[366], 3 },  // cmplt [224]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[369], 3 },  // cmplt [225]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[372], 3 },  // cmplt [226]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[375], 3 },  // cmplt [227]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[378], 3 },  // cmplt [228]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[381], 3 },  // cmplt [229]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[384], 3 },  // cmplt [230]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[387], 3 },  // cmplt [231]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[390], 3 },  // cmplt [232]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[393], 3 },  // cmplt [233]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[396], 3 },  // cmplt [234]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[399], 3 },  // cmplt [235]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[402], 3 },  // cmplt [236]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[405], 3 },  // cmplt [237]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[408], 3 },  // cmplt [238]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[411], 3 },  // cmplt [239]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[414], 3 },  // cmplt [240]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[417], 3 },  // cmplt [241]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[420], 3 },  // cmplt [242]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[423], 3 },  // cmplt [243]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[426], 3 },  // cmplt [244]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[429], 3 },  // cmplt [245]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::invalid},
     &kInsTemplates[432], 3 },  // cmplt [246]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[435], 3 },  // cmplt [247]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[438], 3 },  // cmplt [248]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[441], 3 },  // cmplt [249]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[444], 3 },  // cmplt [250]
   { {DK::U32, DK::U32, DK::U32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[447], 3 },  // cmplt [251]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[450], 3 },  // cmplt [252]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[453], 3 },  // cmplt [253]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[456], 3 },  // cmplt [254]
   { {DK::A32, DK::A32, DK::A32, DK::A32, DK::A32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[459], 3 },  // cmplt [255]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[462], 3 },  // cmplt [256]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::invalid, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[465], 3 },  // cmplt [257]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::invalid, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::invalid, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[468], 3 },  // cmplt [258]
   { {DK::S32, DK::S32, DK::S32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_16_bits, IK::pos_16_bits, IK::pos_8_bits_shifted, IK::invalid},
+    {IC::invalid, IC::pos_16_bits, IC::pos_16_bits, IC::pos_8_bits_shifted, IC::invalid},
     &kInsTemplates[471], 3 },  // cmplt [259]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[474], 1 },  // lea [260]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[475], 1 },  // lea [261]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_shifted},
     &kInsTemplates[476], 1 },  // lea [262]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[477], 1 },  // lea [263]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_shifted},
     &kInsTemplates[478], 1 },  // lea [264]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_shifted},
     &kInsTemplates[479], 1 },  // lea [265]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[480], 2 },  // lea.mem [266]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[482], 2 },  // lea.mem [267]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_shifted},
     &kInsTemplates[484], 1 },  // lea.stk [268]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[485], 2 },  // lea.stk [269]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[487], 3 },  // lea.stk [270]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_shifted},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_shifted},
     &kInsTemplates[490], 1 },  // lea.stk [271]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[491], 2 },  // lea.stk [272]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[493], 3 },  // lea.stk [273]
   { {DK::C32, DK::INVALID},
-    {IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid},
     &kInsTemplates[496], 2 },  // lea.fun [274]
   { {DK::U32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[498], 1 },  // ld [275]
   { {DK::U32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[499], 1 },  // ld [276]
   { {DK::U32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[500], 1 },  // ld [277]
   { {DK::U32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[501], 1 },  // ld [278]
   { {DK::U32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[502], 1 },  // ld [279]
   { {DK::U32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[503], 1 },  // ld [280]
   { {DK::S32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[504], 1 },  // ld [281]
   { {DK::S32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[505], 1 },  // ld [282]
   { {DK::S32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[506], 1 },  // ld [283]
   { {DK::S32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[507], 1 },  // ld [284]
   { {DK::S32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[508], 1 },  // ld [285]
   { {DK::S32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[509], 1 },  // ld [286]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[510], 1 },  // ld [287]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[511], 1 },  // ld [288]
   { {DK::A32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[512], 1 },  // ld [289]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[513], 1 },  // ld [290]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[514], 1 },  // ld [291]
   { {DK::A32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[515], 1 },  // ld [292]
   { {DK::C32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[516], 1 },  // ld [293]
   { {DK::C32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[517], 1 },  // ld [294]
   { {DK::C32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[518], 1 },  // ld [295]
   { {DK::C32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[519], 1 },  // ld [296]
   { {DK::C32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[520], 1 },  // ld [297]
   { {DK::C32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[521], 1 },  // ld [298]
   { {DK::U8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[522], 1 },  // ld [299]
   { {DK::U8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[523], 1 },  // ld [300]
   { {DK::U8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[524], 1 },  // ld [301]
   { {DK::U8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[525], 1 },  // ld [302]
   { {DK::U8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_12_bits},
     &kInsTemplates[526], 1 },  // ld [303]
   { {DK::U8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_12_bits},
+    {IC::invalid, IC::invalid, IC::neg_12_bits},
     &kInsTemplates[527], 1 },  // ld [304]
   { {DK::F32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_times_4},
     &kInsTemplates[528], 1 },  // ld [305]
   { {DK::F32, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_times_4},
     &kInsTemplates[529], 1 },  // ld [306]
   { {DK::F32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_times_4},
     &kInsTemplates[530], 1 },  // ld [307]
   { {DK::F32, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_times_4},
     &kInsTemplates[531], 1 },  // ld [308]
   { {DK::F64, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_times_4},
     &kInsTemplates[532], 1 },  // ld [309]
   { {DK::F64, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_times_4},
     &kInsTemplates[533], 1 },  // ld [310]
   { {DK::F64, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_8_bits_times_4},
     &kInsTemplates[534], 1 },  // ld [311]
   { {DK::F64, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::neg_8_bits_times_4},
     &kInsTemplates[535], 1 },  // ld [312]
   { {DK::S8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[536], 1 },  // ld [313]
   { {DK::S8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[537], 1 },  // ld [314]
   { {DK::S8, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[538], 1 },  // ld [315]
   { {DK::S8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[539], 1 },  // ld [316]
   { {DK::S8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[540], 1 },  // ld [317]
   { {DK::S8, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[541], 1 },  // ld [318]
   { {DK::U16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[542], 1 },  // ld [319]
   { {DK::U16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[543], 1 },  // ld [320]
   { {DK::U16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[544], 1 },  // ld [321]
   { {DK::U16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[545], 1 },  // ld [322]
   { {DK::U16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[546], 1 },  // ld [323]
   { {DK::U16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[547], 1 },  // ld [324]
   { {DK::S16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[548], 1 },  // ld [325]
   { {DK::S16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[549], 1 },  // ld [326]
   { {DK::S16, DK::A32, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[550], 1 },  // ld [327]
   { {DK::S16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[551], 1 },  // ld [328]
   { {DK::S16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::neg_8_bits},
+    {IC::invalid, IC::invalid, IC::neg_8_bits},
     &kInsTemplates[552], 1 },  // ld [329]
   { {DK::S16, DK::A32, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_8_bits},
     &kInsTemplates[553], 1 },  // ld [330]
   { {DK::U32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[554], 1 },  // ld.stk [331]
   { {DK::U32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[555], 2 },  // ld.stk [332]
   { {DK::U32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[557], 3 },  // ld.stk [333]
   { {DK::U32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[560], 1 },  // ld.stk [334]
   { {DK::U32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[561], 2 },  // ld.stk [335]
   { {DK::U32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[563], 3 },  // ld.stk [336]
   { {DK::S32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[566], 1 },  // ld.stk [337]
   { {DK::S32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[567], 2 },  // ld.stk [338]
   { {DK::S32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[569], 3 },  // ld.stk [339]
   { {DK::S32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[572], 1 },  // ld.stk [340]
   { {DK::S32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[573], 2 },  // ld.stk [341]
   { {DK::S32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[575], 3 },  // ld.stk [342]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[578], 1 },  // ld.stk [343]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[579], 2 },  // ld.stk [344]
   { {DK::A32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[581], 3 },  // ld.stk [345]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[584], 1 },  // ld.stk [346]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[585], 2 },  // ld.stk [347]
   { {DK::A32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[587], 3 },  // ld.stk [348]
   { {DK::C32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[590], 1 },  // ld.stk [349]
   { {DK::C32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[591], 2 },  // ld.stk [350]
   { {DK::C32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[593], 3 },  // ld.stk [351]
   { {DK::C32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[596], 1 },  // ld.stk [352]
   { {DK::C32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[597], 2 },  // ld.stk [353]
   { {DK::C32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[599], 3 },  // ld.stk [354]
   { {DK::U8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[602], 1 },  // ld.stk [355]
   { {DK::U8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[603], 2 },  // ld.stk [356]
   { {DK::U8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[605], 3 },  // ld.stk [357]
   { {DK::U8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_12_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_12_bits},
     &kInsTemplates[608], 1 },  // ld.stk [358]
   { {DK::U8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[609], 2 },  // ld.stk [359]
   { {DK::U8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[611], 3 },  // ld.stk [360]
   { {DK::F32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_times_4},
     &kInsTemplates[614], 1 },  // ld.stk [361]
   { {DK::F32, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[615], 3 },  // ld.stk [362]
   { {DK::F32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_times_4},
     &kInsTemplates[618], 1 },  // ld.stk [363]
   { {DK::F32, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[619], 3 },  // ld.stk [364]
   { {DK::F64, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_times_4},
     &kInsTemplates[622], 1 },  // ld.stk [365]
   { {DK::F64, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[623], 3 },  // ld.stk [366]
   { {DK::F64, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits_times_4},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits_times_4},
     &kInsTemplates[626], 1 },  // ld.stk [367]
   { {DK::F64, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[627], 3 },  // ld.stk [368]
   { {DK::S8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[630], 1 },  // ld.stk [369]
   { {DK::S8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[631], 2 },  // ld.stk [370]
   { {DK::S8, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[633], 3 },  // ld.stk [371]
   { {DK::S8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[636], 1 },  // ld.stk [372]
   { {DK::S8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[637], 2 },  // ld.stk [373]
   { {DK::S8, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[639], 3 },  // ld.stk [374]
   { {DK::U16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[642], 1 },  // ld.stk [375]
   { {DK::U16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[643], 2 },  // ld.stk [376]
   { {DK::U16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[645], 3 },  // ld.stk [377]
   { {DK::U16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[648], 1 },  // ld.stk [378]
   { {DK::U16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[649], 2 },  // ld.stk [379]
   { {DK::U16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[651], 3 },  // ld.stk [380]
   { {DK::S16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[654], 1 },  // ld.stk [381]
   { {DK::S16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[655], 2 },  // ld.stk [382]
   { {DK::S16, DK::INVALID, DK::U32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[657], 3 },  // ld.stk [383]
   { {DK::S16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_8_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_8_bits},
     &kInsTemplates[660], 1 },  // ld.stk [384]
   { {DK::S16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[661], 2 },  // ld.stk [385]
   { {DK::S16, DK::INVALID, DK::S32},
-    {IK::invalid, IK::invalid, IK::any_32_bits},
+    {IC::invalid, IC::invalid, IC::any_32_bits},
     &kInsTemplates[663], 3 },  // ld.stk [386]
   { {DK::A32, DK::U32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[666], 1 },  // st [387]
   { {DK::A32, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[667], 1 },  // st [388]
   { {DK::A32, DK::U32, DK::U32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[668], 1 },  // st [389]
   { {DK::A32, DK::S32, DK::U32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[669], 1 },  // st [390]
   { {DK::A32, DK::S32, DK::U32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[670], 1 },  // st [391]
   { {DK::A32, DK::S32, DK::U32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[671], 1 },  // st [392]
   { {DK::A32, DK::U32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[672], 1 },  // st [393]
   { {DK::A32, DK::U32, DK::S32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[673], 1 },  // st [394]
   { {DK::A32, DK::U32, DK::S32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[674], 1 },  // st [395]
   { {DK::A32, DK::S32, DK::S32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[675], 1 },  // st [396]
   { {DK::A32, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[676], 1 },  // st [397]
   { {DK::A32, DK::S32, DK::S32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[677], 1 },  // st [398]
   { {DK::A32, DK::U32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[678], 1 },  // st [399]
   { {DK::A32, DK::U32, DK::A32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[679], 1 },  // st [400]
   { {DK::A32, DK::U32, DK::A32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[680], 1 },  // st [401]
   { {DK::A32, DK::S32, DK::A32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[681], 1 },  // st [402]
   { {DK::A32, DK::S32, DK::A32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[682], 1 },  // st [403]
   { {DK::A32, DK::S32, DK::A32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[683], 1 },  // st [404]
   { {DK::A32, DK::U32, DK::C32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[684], 1 },  // st [405]
   { {DK::A32, DK::U32, DK::C32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[685], 1 },  // st [406]
   { {DK::A32, DK::U32, DK::C32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[686], 1 },  // st [407]
   { {DK::A32, DK::S32, DK::C32},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[687], 1 },  // st [408]
   { {DK::A32, DK::S32, DK::C32},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[688], 1 },  // st [409]
   { {DK::A32, DK::S32, DK::C32},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[689], 1 },  // st [410]
   { {DK::A32, DK::U32, DK::U8},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[690], 1 },  // st [411]
   { {DK::A32, DK::U32, DK::U8},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[691], 1 },  // st [412]
   { {DK::A32, DK::U32, DK::U8},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[692], 1 },  // st [413]
   { {DK::A32, DK::S32, DK::U8},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[693], 1 },  // st [414]
   { {DK::A32, DK::S32, DK::U8},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[694], 1 },  // st [415]
   { {DK::A32, DK::S32, DK::U8},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[695], 1 },  // st [416]
   { {DK::A32, DK::U32, DK::S8},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[696], 1 },  // st [417]
   { {DK::A32, DK::U32, DK::S8},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[697], 1 },  // st [418]
   { {DK::A32, DK::U32, DK::S8},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[698], 1 },  // st [419]
   { {DK::A32, DK::S32, DK::S8},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[699], 1 },  // st [420]
   { {DK::A32, DK::S32, DK::S8},
-    {IK::invalid, IK::pos_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_12_bits, IC::invalid},
     &kInsTemplates[700], 1 },  // st [421]
   { {DK::A32, DK::S32, DK::S8},
-    {IK::invalid, IK::neg_12_bits, IK::invalid},
+    {IC::invalid, IC::neg_12_bits, IC::invalid},
     &kInsTemplates[701], 1 },  // st [422]
   { {DK::A32, DK::U32, DK::F32},
-    {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_times_4, IC::invalid},
     &kInsTemplates[702], 1 },  // st [423]
   { {DK::A32, DK::U32, DK::F32},
-    {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::neg_8_bits_times_4, IC::invalid},
     &kInsTemplates[703], 1 },  // st [424]
   { {DK::A32, DK::S32, DK::F32},
-    {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_times_4, IC::invalid},
     &kInsTemplates[704], 1 },  // st [425]
   { {DK::A32, DK::S32, DK::F32},
-    {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::neg_8_bits_times_4, IC::invalid},
     &kInsTemplates[705], 1 },  // st [426]
   { {DK::A32, DK::U32, DK::F64},
-    {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_times_4, IC::invalid},
     &kInsTemplates[706], 1 },  // st [427]
   { {DK::A32, DK::U32, DK::F64},
-    {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::neg_8_bits_times_4, IC::invalid},
     &kInsTemplates[707], 1 },  // st [428]
   { {DK::A32, DK::S32, DK::F64},
-    {IK::invalid, IK::pos_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_8_bits_times_4, IC::invalid},
     &kInsTemplates[708], 1 },  // st [429]
   { {DK::A32, DK::S32, DK::F64},
-    {IK::invalid, IK::neg_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::neg_8_bits_times_4, IC::invalid},
     &kInsTemplates[709], 1 },  // st [430]
   { {DK::A32, DK::U32, DK::U16},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[710], 1 },  // st [431]
   { {DK::A32, DK::U32, DK::U16},
-    {IK::invalid, IK::pos_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_8_bits, IC::invalid},
     &kInsTemplates[711], 1 },  // st [432]
   { {DK::A32, DK::U32, DK::U16},
-    {IK::invalid, IK::neg_8_bits, IK::invalid},
+    {IC::invalid, IC::neg_8_bits, IC::invalid},
     &kInsTemplates[712], 1 },  // st [433]
   { {DK::A32, DK::S32, DK::U16},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[713], 1 },  // st [434]
   { {DK::A32, DK::S32, DK::U16},
-    {IK::invalid, IK::pos_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_8_bits, IC::invalid},
     &kInsTemplates[714], 1 },  // st [435]
   { {DK::A32, DK::S32, DK::U16},
-    {IK::invalid, IK::neg_8_bits, IK::invalid},
+    {IC::invalid, IC::neg_8_bits, IC::invalid},
     &kInsTemplates[715], 1 },  // st [436]
   { {DK::A32, DK::U32, DK::S16},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[716], 1 },  // st [437]
   { {DK::A32, DK::U32, DK::S16},
-    {IK::invalid, IK::pos_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_8_bits, IC::invalid},
     &kInsTemplates[717], 1 },  // st [438]
   { {DK::A32, DK::U32, DK::S16},
-    {IK::invalid, IK::neg_8_bits, IK::invalid},
+    {IC::invalid, IC::neg_8_bits, IC::invalid},
     &kInsTemplates[718], 1 },  // st [439]
   { {DK::A32, DK::S32, DK::S16},
-    {IK::invalid, IK::invalid, IK::invalid},
+    {IC::invalid, IC::invalid, IC::invalid},
     &kInsTemplates[719], 1 },  // st [440]
   { {DK::A32, DK::S32, DK::S16},
-    {IK::invalid, IK::pos_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_8_bits, IC::invalid},
     &kInsTemplates[720], 1 },  // st [441]
   { {DK::A32, DK::S32, DK::S16},
-    {IK::invalid, IK::neg_8_bits, IK::invalid},
+    {IC::invalid, IC::neg_8_bits, IC::invalid},
     &kInsTemplates[721], 1 },  // st [442]
   { {DK::INVALID, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[722], 1 },  // st.stk [443]
   { {DK::INVALID, DK::U32, DK::U32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[723], 2 },  // st.stk [444]
   { {DK::INVALID, DK::U32, DK::U32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[725], 3 },  // st.stk [445]
   { {DK::INVALID, DK::S32, DK::U32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[728], 1 },  // st.stk [446]
   { {DK::INVALID, DK::S32, DK::U32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[729], 2 },  // st.stk [447]
   { {DK::INVALID, DK::S32, DK::U32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[731], 3 },  // st.stk [448]
   { {DK::INVALID, DK::U32, DK::S32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[734], 1 },  // st.stk [449]
   { {DK::INVALID, DK::U32, DK::S32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[735], 2 },  // st.stk [450]
   { {DK::INVALID, DK::U32, DK::S32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[737], 3 },  // st.stk [451]
   { {DK::INVALID, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[740], 1 },  // st.stk [452]
   { {DK::INVALID, DK::S32, DK::S32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[741], 2 },  // st.stk [453]
   { {DK::INVALID, DK::S32, DK::S32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[743], 3 },  // st.stk [454]
   { {DK::INVALID, DK::U32, DK::A32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[746], 1 },  // st.stk [455]
   { {DK::INVALID, DK::U32, DK::A32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[747], 2 },  // st.stk [456]
   { {DK::INVALID, DK::U32, DK::A32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[749], 3 },  // st.stk [457]
   { {DK::INVALID, DK::S32, DK::A32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[752], 1 },  // st.stk [458]
   { {DK::INVALID, DK::S32, DK::A32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[753], 2 },  // st.stk [459]
   { {DK::INVALID, DK::S32, DK::A32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[755], 3 },  // st.stk [460]
   { {DK::INVALID, DK::U32, DK::C32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[758], 1 },  // st.stk [461]
   { {DK::INVALID, DK::U32, DK::C32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[759], 2 },  // st.stk [462]
   { {DK::INVALID, DK::U32, DK::C32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[761], 3 },  // st.stk [463]
   { {DK::INVALID, DK::S32, DK::C32},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[764], 1 },  // st.stk [464]
   { {DK::INVALID, DK::S32, DK::C32},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[765], 2 },  // st.stk [465]
   { {DK::INVALID, DK::S32, DK::C32},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[767], 3 },  // st.stk [466]
   { {DK::INVALID, DK::U32, DK::U8},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[770], 1 },  // st.stk [467]
   { {DK::INVALID, DK::U32, DK::U8},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[771], 2 },  // st.stk [468]
   { {DK::INVALID, DK::U32, DK::U8},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[773], 3 },  // st.stk [469]
   { {DK::INVALID, DK::S32, DK::U8},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[776], 1 },  // st.stk [470]
   { {DK::INVALID, DK::S32, DK::U8},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[777], 2 },  // st.stk [471]
   { {DK::INVALID, DK::S32, DK::U8},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[779], 3 },  // st.stk [472]
   { {DK::INVALID, DK::U32, DK::S8},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[782], 1 },  // st.stk [473]
   { {DK::INVALID, DK::U32, DK::S8},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[783], 2 },  // st.stk [474]
   { {DK::INVALID, DK::U32, DK::S8},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[785], 3 },  // st.stk [475]
   { {DK::INVALID, DK::S32, DK::S8},
-    {IK::invalid, IK::pos_stk_combo_12_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_12_bits, IC::invalid},
     &kInsTemplates[788], 1 },  // st.stk [476]
   { {DK::INVALID, DK::S32, DK::S8},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[789], 2 },  // st.stk [477]
   { {DK::INVALID, DK::S32, DK::S8},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[791], 3 },  // st.stk [478]
   { {DK::INVALID, DK::U32, DK::F32},
-    {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits_times_4, IC::invalid},
     &kInsTemplates[794], 1 },  // st.stk [479]
   { {DK::INVALID, DK::U32, DK::F32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[795], 3 },  // st.stk [480]
   { {DK::INVALID, DK::S32, DK::F32},
-    {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits_times_4, IC::invalid},
     &kInsTemplates[798], 1 },  // st.stk [481]
   { {DK::INVALID, DK::S32, DK::F32},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[799], 3 },  // st.stk [482]
   { {DK::INVALID, DK::U32, DK::F64},
-    {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits_times_4, IC::invalid},
     &kInsTemplates[802], 1 },  // st.stk [483]
   { {DK::INVALID, DK::U32, DK::F64},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[803], 3 },  // st.stk [484]
   { {DK::INVALID, DK::S32, DK::F64},
-    {IK::invalid, IK::pos_stk_combo_8_bits_times_4, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits_times_4, IC::invalid},
     &kInsTemplates[806], 1 },  // st.stk [485]
   { {DK::INVALID, DK::S32, DK::F64},
-    {IK::invalid, IK::invalid, IK::pos_stk_combo_16_bits},
+    {IC::invalid, IC::invalid, IC::pos_stk_combo_16_bits},
     &kInsTemplates[807], 3 },  // st.stk [486]
   { {DK::INVALID, DK::U32, DK::U16},
-    {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits, IC::invalid},
     &kInsTemplates[810], 1 },  // st.stk [487]
   { {DK::INVALID, DK::U32, DK::U16},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[811], 2 },  // st.stk [488]
   { {DK::INVALID, DK::U32, DK::U16},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[813], 3 },  // st.stk [489]
   { {DK::INVALID, DK::S32, DK::U16},
-    {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits, IC::invalid},
     &kInsTemplates[816], 1 },  // st.stk [490]
   { {DK::INVALID, DK::S32, DK::U16},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[817], 2 },  // st.stk [491]
   { {DK::INVALID, DK::S32, DK::U16},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[819], 3 },  // st.stk [492]
   { {DK::INVALID, DK::U32, DK::S16},
-    {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits, IC::invalid},
     &kInsTemplates[822], 1 },  // st.stk [493]
   { {DK::INVALID, DK::U32, DK::S16},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[823], 2 },  // st.stk [494]
   { {DK::INVALID, DK::U32, DK::S16},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[825], 3 },  // st.stk [495]
   { {DK::INVALID, DK::S32, DK::S16},
-    {IK::invalid, IK::pos_stk_combo_8_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_8_bits, IC::invalid},
     &kInsTemplates[828], 1 },  // st.stk [496]
   { {DK::INVALID, DK::S32, DK::S16},
-    {IK::invalid, IK::pos_stk_combo_16_bits, IK::invalid},
+    {IC::invalid, IC::pos_stk_combo_16_bits, IC::invalid},
     &kInsTemplates[829], 2 },  // st.stk [497]
   { {DK::INVALID, DK::S32, DK::S16},
-    {IK::invalid, IK::any_32_bits, IK::invalid},
+    {IC::invalid, IC::any_32_bits, IC::invalid},
     &kInsTemplates[831], 3 },  // st.stk [498]
 };
 }  // namespace
 
-const char* const IMM_KIND_ToStringMap[] = {
+const char* const IMM_CURB_ToStringMap[] = {
     "invalid", // 0
     "pos_8_bits_shifted", // 1
     "neg_8_bits_shifted", // 2
@@ -3413,8 +3413,8 @@ const char* const IMM_KIND_ToStringMap[] = {
     "pos_stk_combo_16_bits", // 17
 };
 
-template<>  // template specialization for IMM_KIND
-const char* EnumToString<IMM_KIND>(IMM_KIND x) { return IMM_KIND_ToStringMap[unsigned(x)]; }
+template<>  // template specialization for IMM_CURB
+const char* EnumToString<IMM_CURB>(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 

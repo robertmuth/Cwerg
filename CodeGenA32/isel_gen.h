@@ -12,7 +12,7 @@
 namespace cwerg::code_gen_a32 {
 /* @AUTOGEN-START@ */
 
-enum class IMM_KIND : uint8_t {
+enum class IMM_CURB : uint8_t {
     invalid = 0,
     pos_8_bits_shifted = 1,
     neg_8_bits_shifted = 2,
@@ -84,12 +84,14 @@ enum class PARAM : uint8_t {
 struct InsTmpl {
   int32_t operands[a32::MAX_OPERANDS];  // signed because some operands need that (e.g. offsets)
   a32::OPC opcode;
-  uint16_t template_mask;  // operands with a bit set here are of enum type Param
+  // bit i set: operands[i] is of enum type Param
+  // bit i clr: operands[i] contains a number
+  uint16_t template_mask;
 };
 
 struct Pattern {
   base::DK reg_constraints[8];  // 8 >= MAX_OPERANDS
-  IMM_KIND imm_constraints[8];    // 8 >= MAX_OPERANDS
+  IMM_CURB imm_constraints[8];    // 8 >= MAX_OPERANDS
   const InsTmpl* start;
   uint8_t length;
 };
