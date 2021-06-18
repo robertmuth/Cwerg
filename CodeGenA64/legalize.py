@@ -347,8 +347,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((o.DK.S64, True), 0),
                             local_reg_stats.get((o.DK.S64, False), 0))
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR64_CALLEE_SAVE_REGS.copy(),
-        regs.GPR64_PARAMETER_REGS.copy(), pre_allocated)
+        needed_gpr, regs.GPR64_LAC_REGS.copy(),
+        regs.GPR64_NOT_LAC_REGS.copy(), pre_allocated)
 
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, True)],
@@ -363,8 +363,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((o.DK.F64, False), 0))
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT64_CALLEE_SAVE_REGS.copy(),
-        regs.FLT64_PARAMETER_REGS.copy(), pre_allocated)
+        needed_flt, regs.FLT64_LAC_REGS.copy(),
+        regs.FLT64_NOT_LAC_REGS.copy(), pre_allocated)
 
     to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, True)],
                                                     flt_global_lac)
