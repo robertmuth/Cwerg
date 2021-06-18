@@ -71,7 +71,7 @@ class RegPoolArm : public RegPool {
     const uint32_t available = get_available(lac, is_gpr);
     if (kind == DK::F64) {
       for (unsigned n = 0; n < 32; n += 2) {
-        const uint32_t mask = 3 << n;
+        const uint32_t mask = 3U << n;
         if ((mask & available) == mask) {
           if (!flt_reserved_[n].has_conflict(lr) &&
               !flt_reserved_[n + 1].has_conflict(lr)) {
@@ -82,7 +82,7 @@ class RegPoolArm : public RegPool {
       }
     } else if (kind == DK::F32) {
       for (unsigned n = 0; n < 32; ++n) {
-        const uint32_t mask = 1 << n;
+        const uint32_t mask = 1U << n;
         if ((mask & available) == mask) {
           if (!flt_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
@@ -92,7 +92,7 @@ class RegPoolArm : public RegPool {
       }
     } else {
       for (unsigned n = 0; n <= 14; ++n) {
-        const uint32_t mask = 1 << n;
+        const uint32_t mask = 1U << n;
         if ((mask & available) == mask) {
           if (!gpr_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
@@ -216,7 +216,7 @@ std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
       out.push_back(lr.reg);
     } else {
       ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
-      ASSERT(lr.cpu_reg.value != ~0, "");
+      ASSERT(lr.cpu_reg.value != ~0U, "");
       RegCpuReg(lr.reg) = lr.cpu_reg;
     }
   }
@@ -306,13 +306,13 @@ struct ArmFltRegRange {
 
 ArmFltRegRange ArmGetFltRegRanges(uint32_t flt_mask) {
   uint32_t start = 0;
-  while ((flt_mask & 1) == 0) {
-    flt_mask >>= 1;
+  while ((flt_mask & 1U) == 0) {
+    flt_mask >>= 1U;
     ++start;
   }
   uint32_t count = 0;
   while (flt_mask > 0) {
-    flt_mask >>= 1;
+    flt_mask >>= 1U;
     ++count;
   }
   return {start, count};
@@ -322,16 +322,10 @@ ArmFltRegRange ArmGetFltRegRanges(uint32_t flt_mask) {
 
 uint32_t A32RegToAllocMask(CpuReg cpu_reg) {
   if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::DBL) {
-    return 3 << (CpuRegNo(cpu_reg) * 2);
+    return 3U << (CpuRegNo(cpu_reg) * 2U);
   } else {
-    return 1 << CpuRegNo(cpu_reg);
+    return 1U << CpuRegNo(cpu_reg);
   }
-}
-
-uint32_t A32RegsToAllocMask(const std::vector<CpuReg>& regs) {
-  uint32_t out = 0;
-  for (CpuReg cpu_reg : regs) out |= A32RegToAllocMask(cpu_reg);
-  return out;
 }
 
 void FunLocalRegAlloc(Fun fun, std::vector<Ins>* inss) {
@@ -382,7 +376,7 @@ std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
         ++next_flt;
         break;
       case DK::F64:
-        if ((next_flt & 1) == 1) ++next_flt;
+        if ((next_flt & 1U) == 1) ++next_flt;
         ASSERT(next_flt / 2 < DBL_PARAM_REGS.size(), "");
         out.push_back(DBL_PARAM_REGS[next_flt / 2]);
         next_flt += 2;
@@ -415,19 +409,19 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
       continue;
     }
     if (RegKind(reg) != DK::F64) {
-      while (((1 << pos) & cpu_reg_mask) == 0) ++pos;
+      while (((1U << pos) & cpu_reg_mask) == 0) ++pos;
       if (RegKind(reg) == DK::F32) {
         RegCpuReg(reg) = FLT_REGS[pos];
       } else {
         RegCpuReg(reg) = GPR_REGS[pos];
       }
-      cpu_reg_mask &= ~(1 << pos);
+      cpu_reg_mask &= ~(1U << pos);
       ++pos;
       continue;
     }
 
     for (unsigned pos_dbl = pos / 2; pos_dbl < 32; pos_dbl += 2) {
-      unsigned mask = 3 << pos_dbl;
+      unsigned mask = 3U << pos_dbl;
       if ((mask & cpu_reg_mask) == mask) {
         RegCpuReg(reg) = DBL_REGS[pos_dbl / 2];
         cpu_reg_mask &= ~mask;
@@ -440,15 +434,6 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
     }
     to_be_spilled->push_back(reg);
   }
-}
-
-bool FunMustSaveLinkReg(Fun fun) {
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIter(bbl)) {
-      if (InsOPC(ins) == OPC::JSR || InsOPC(ins) == OPC::BSR) return true;
-    }
-  }
-  return false;
 }
 
 EmitContext FunComputeEmitContext(Fun fun) {
@@ -475,7 +460,7 @@ EmitContext FunComputeEmitContext(Fun fun) {
 uint32_t HighByte(uint32_t x) {
   unsigned shift = 0;
   while (x > 255) {
-    x >>= 2;
+    x >>= 2U;
     shift += 2;
   }
   return x << shift;

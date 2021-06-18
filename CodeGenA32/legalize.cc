@@ -92,7 +92,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
           ASSERT(mismatches != code_gen_a32::MATCH_IMPOSSIBLE,
                  "cannot match: " << ins);
           for (unsigned pos = 0; pos < a32::MAX_OPERANDS; ++pos) {
-            if (mismatches & (1 << pos)) {
+            if (mismatches & (1U << pos)) {
               inss->push_back(InsEliminateImmediate(ins, pos, fun));
               dirty = true;
             }
@@ -268,7 +268,7 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
   unsigned n = 0;
   while (n < count) {
     if ((mask & bits) != 0) ++n;
-    mask <<= 1;
+    mask <<= 1U;
   }
   return mask - 1;
 }
