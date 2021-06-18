@@ -522,7 +522,6 @@ class FIXARG(enum.Enum):
     XZR = 31
     X8 = 8
     SP = 31
-    LSL = 0
     UXTW = 0
     SXTW = 1
 
@@ -1054,8 +1053,8 @@ def _RenderOperands(operands: List[Any]):
         if isinstance(op, PARAM):
             mask |= 1 << n
             s = f"+PARAM::{op.name}"
-        elif isinstance(op, a64.REG):
-            s = f"+REG::{op.name}"
+        elif isinstance(op, FIXARG):
+            s = f"+FIXARG::{op.name}"
         elif isinstance(op, a64.SHIFT):
             s = f"+SHIFT::{op.name}"
         elif isinstance(op, int):
@@ -1067,6 +1066,9 @@ def _RenderOperands(operands: List[Any]):
 
 
 def _EmitCodeC(fout):
+    for cls in [FIXARG, a64.SHIFT]:
+        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+
     print(f"\nconst InsTmpl kInsTemplates[] = {{", file=fout)
     print("  { /*used first entry*/ },", file=fout)
     num_ins = 1
@@ -1080,7 +1082,7 @@ def _EmitCodeC(fout):
                 num_ins += 1
                 print(f"  {{ {{{', '.join(ops)}}},", file=fout)
                 print(
-                    f"    a32::OPC::{tmpl.opcode.name}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
+                    f"    a64::OPC::{tmpl.opcode.NameForEnum()}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
                     file=fout)
     print(f"}};", file=fout)
 
@@ -1104,7 +1106,7 @@ def _EmitCodeC(fout):
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
-            imm_constraints = [f"IK::{c.name}" for c in pat.imm_curbs]
+            imm_constraints = [f"IC::{c.name}" for c in pat.imm_curbs]
             print(f"  {{ {{{', '.join(reg_constraints)}}},")
             print(f"    {{{', '.join(imm_constraints)}}},")
             print(
@@ -1114,8 +1116,8 @@ def _EmitCodeC(fout):
     print(f"}};", file=fout)
 
     print("}  // namespace", file=fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_KIND", fout)
-    cgen.RenderEnumToStringFun("IMM_KIND", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_CURB", fout)
+    cgen.RenderEnumToStringFun("IMM_CURB", fout)
 
 
 def _DumpCodeSelTable():
