@@ -83,8 +83,8 @@ struct InsTmpl {
 };
 
 struct Pattern {
-  base::DK reg_constraints[8];  // 8 >= MAX_OPERANDS
-  IMM_CURB imm_constraints[8];    // 8 >= MAX_OPERANDS
+  base::DK type_curbs[8];  // 8 >= MAX_OPERANDS
+  IMM_CURB imm_curbs[8];    // 8 >= MAX_OPERANDS
   const InsTmpl* start;
   uint8_t length;
 };
@@ -97,11 +97,11 @@ extern uint8_t FindtImmediateMismatchesInBestMatchPattern(base::Ins ins,
                                                           bool assume_stk_op_matches);
 
 extern a64::Ins MakeIns(a64::OPC opc_enum,
-                 uint64_t x0 = 0,
-                 uint64_t x1 = 0,
-                 uint64_t x2 = 0,
-                 uint64_t x3 = 0,
-                 uint64_t x4 = 0);
+                 int64_t x0 = 0,
+                 int64_t x1 = 0,
+                 int64_t x2 = 0,
+                 int64_t x3 = 0,
+                 int64_t x4 = 0);
 
 extern a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl,
                  base::Ins ins,

@@ -70,6 +70,11 @@ $(DIR)/isel_test:
 	$(PYPY) ./isel_tester.py < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
+############################################################
+# C++
+############################################################
+BUILD_DIR=../build
+
 isel_gen.cc: isel_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
@@ -79,6 +84,12 @@ isel_gen.h: isel_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
+
+$(DIR)/isel_test_c: isel_gen.h isel_gen.cc
+	@echo "[integration $@]"
+	@cd $(BUILD_DIR); $(MAKE) -s a64_isel_tester.exe
+	$(BUILD_DIR)/a64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
+	diff $@.actual.out TestData/codegen_test.asm.golden
 
 clean:
 	@rm -f $(DIR)/*

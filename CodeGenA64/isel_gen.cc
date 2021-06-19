@@ -89,7 +89,7 @@ bool IsConstMatch(Const num,
 }
 
 bool PatternMatchesTypeConstraints(const Pattern& pat, uint64_t type_mask) {
-  return type_mask == *(uint64_t*)pat.reg_constraints;
+  return type_mask == *(uint64_t*)pat.type_curbs;
 }
 
 uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
@@ -100,7 +100,7 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
   int32_t last_stack_offset = 0;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Const op(InsOperand(ins, i));
-    const IC imm_constraint = pat.imm_constraints[i];
+    const IC imm_curb = pat.imm_curbs[i];
     if (op.kind() == RefKind::STK) {
       if (assume_stk_op_matches) {
         last_stack_offset = 0;
@@ -108,13 +108,13 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
         last_stack_offset = StkSlot(Stk(op));
       }
     } else if (op.kind() == RefKind::REG) {
-      if (imm_constraint != IC::INVALID)
+      if (imm_curb != IC::INVALID)
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
-      if (imm_constraint == IC::INVALID) {
+      if (imm_curb == IC::INVALID) {
         // we have an imm but need a reg - this can be accomodated.
         out |= 1 << i;
-      } else if (!IsConstMatch(op, imm_constraint, last_stack_offset,
+      } else if (!IsConstMatch(op, imm_curb, last_stack_offset,
                                assume_stk_op_matches)) {
         return MATCH_IMPOSSIBLE;
       }

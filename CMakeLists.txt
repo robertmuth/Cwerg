@@ -201,7 +201,6 @@ add_executable(a32_isel_tester.exe
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        ${CODEGENA32_LIB}
         CodeGenA32/isel_tester.cc
         )
 
@@ -220,4 +219,24 @@ add_executable(builder_example.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         Examples/builder_example.cc
+        )
+
+add_library(CODEGENA64_LIB OBJECT
+        CodeGenA64/isel_gen.cc
+        CodeGenA64/isel_gen.h
+       # CodeGenA64/codegen.cc
+       # CodeGenA64/codegen.h
+       # CodeGenA64/legalize.cc
+       # CodeGenA64/legalize.h
+        CodeGenA64/regs.cc
+        CodeGenA64/regs.h
+        )
+
+add_executable(a64_isel_tester.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUA64_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        CodeGenA64/isel_tester.cc
         )

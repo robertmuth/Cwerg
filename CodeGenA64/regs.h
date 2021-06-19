@@ -18,8 +18,8 @@ enum class CPU_REG_KIND : uint8_t {
   FLT64,
 };
 
-extern std::array<base::CpuReg, 32> GPR32_REGS;
-extern std::array<base::CpuReg, 32> GPR64_REGS;
+extern std::array<base::CpuReg, 31> GPR32_REGS;
+extern std::array<base::CpuReg, 31> GPR64_REGS;
 
 extern std::array<base::CpuReg, 32> FLT32_REGS;
 extern std::array<base::CpuReg, 32> FLT64_REGS;
@@ -49,6 +49,8 @@ extern void AssignCpuRegOrMarkForSpilling(
     uint32_t cpu_reg_mask_second_choice,
     std::vector<base::Reg>* to_be_spilled);
 
+// Return a list of all cpu regs - this is primarily used by tests that
+// parse IR fragments with pre-allocated regs.
 extern std::vector<base::CpuReg> GetAllRegs();
 
 extern void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss);

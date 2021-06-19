@@ -11,12 +11,13 @@ using namespace cwerg;
 using namespace cwerg::base;
 
 // The std:arrays below will be initialized by  InitCodeGenA64();
-std::array<CpuReg, 32> GPR32_REGS;
-std::array<CpuReg, 32> GPR64_REGS;
+std::array<CpuReg, 31> GPR32_REGS;
+std::array<CpuReg, 31> GPR64_REGS;
 
 std::array<CpuReg, 32> FLT32_REGS;
 std::array<CpuReg, 32> FLT64_REGS;
 
+// For register allocation
 std::array<base::CpuReg, 14> GPR64_LAC_REGS;
 std::array<base::CpuReg, 8> FLT64_LAC_REGS;
 std::array<base::CpuReg, 16> GPR64_NOT_LAC_REGS;
@@ -24,6 +25,7 @@ std::array<base::CpuReg, 24> FLT64_NOT_LAC;
 
 namespace {
 
+// For push/pop conversion
 std::array<CpuReg, 16> GPR32_PARAM_REGS;
 std::array<CpuReg, 16> GPR64_PARAM_REGS;
 std::array<CpuReg, 24> FLT32_PARAM_REGS;
@@ -461,61 +463,58 @@ EmitContext FunComputeEmitContext(Fun fun) {
 
 
 
+std::vector<CpuReg> GetAllRegs() {
+  std::vector<CpuReg> out;
+  for (CpuReg cpu_reg : GPR32_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : GPR64_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : FLT32_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : FLT64_REGS) out.push_back(cpu_reg);
+  return out;
+}
 
 
 
-
-
-#if 0
-
-void InitCodeGenA32() {
-  // GPR
-  for (size_t i = 0; i < 16; ++i) {
-    GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(GPR_NAMES[i]));
-    uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
-    if (i < GPR_PARAM_REGS.size()) {
-      ASSERT((GPR_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
-      GPR_PARAM_REGS[i] = GPR_REGS[i];
-      GPR_NOT_LAC_REGS[i] = GPR_REGS[i];
-    } else if (i < GPR_PARAM_REGS.size() + GPR_CALLEE_SAVE_REGS.size()) {
-      ASSERT((GPR_CALLEE_SAVE_REGS_MASK & mask) == mask, "");
-      GPR_CALLEE_SAVE_REGS[i - GPR_PARAM_REGS.size()] = GPR_REGS[i];
-    } else if (i == 12) {  // IP
-      GPR_NOT_LAC_REGS[6] = GPR_REGS[i];
-    } else if (i == 14) {  // LR
-      GPR_NOT_LAC_REGS[7] = GPR_REGS[i];
-    }
+void InitCodeGenA64() {
+  // GPR32
+  for (unsigned i = 0; i < 31; ++i) {
+    char buffer[8];
+    buffer[0] = 'w';
+    ToDecString(i, buffer + 1);
+    GPR32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR32, StrNew(buffer));
+  }
+   // GPR64
+  for (unsigned i = 0; i < 31; ++i) {
+    char buffer[8];
+    buffer[0] = 'w';
+    ToDecString(i, buffer + 1);
+    GPR64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR64, StrNew(buffer));
   }
 
-  // FLT
+  // FLT32
   for (unsigned i = 0; i < 32; ++i) {
     char buffer[8];
-    buffer[0] = 's';
+    buffer[0] = 'w';
     ToDecString(i, buffer + 1);
-    FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
-    uint32_t mask = A32RegToAllocMask(FLT_REGS[i]);
-    if (i < FLT_PARAM_REGS.size()) {
-      ASSERT((FLT_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
-      FLT_PARAM_REGS[i] = FLT_REGS[i];
-    } else {
-      ASSERT((FLT_CALLEE_SAVE_REGS_MASK & mask) == mask, "");
-      FLT_CALLEE_SAVE_REGS[i - FLT_PARAM_REGS.size()] = FLT_REGS[i];
-    }
+    FLT32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT32, StrNew(buffer));
   }
-
-  // DBL
-  for (unsigned i = 0; i < 16; ++i) {
+   // GPR64
+  for (unsigned i = 0; i < 32; ++i) {
     char buffer[8];
-    buffer[0] = 'd';
+    buffer[0] = 'w';
     ToDecString(i, buffer + 1);
-    DBL_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::DBL, StrNew(buffer));
-    if (i < DBL_PARAM_REGS.size()) {
-      DBL_PARAM_REGS[i] = DBL_REGS[i];
-    } else {
-      DBL_CALLEE_SAVE_REGS[i - DBL_PARAM_REGS.size()] = DBL_REGS[i];
-    }
+    FLT64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT64, StrNew(buffer));
   }
+  // TODO:
+  // extern std::array<base::CpuReg,14 > GPR64_LAC_REGS;
+  // extern std::array<base::CpuReg, 8> FLT64_LAC_REGS;
+  // extern std::array<base::CpuReg,16> GPR64_NOT_LAC_REGS;
+  // extern std::array<base::CpuReg, 24> FLT64_NOT_LAC_REGS;
+  // std::array<CpuReg, 16> GPR32_PARAM_REGS;
+  // std::array<CpuReg, 16> GPR64_PARAM_REGS;
+  // std::array<CpuReg, 24> FLT32_PARAM_REGS;
+  // std::array<CpuReg, 24> FLT64_PARAM_REGS;
+  // std::array<CPU_REG_KIND, 256> KIND_TO_CPU_KIND;
 }
-#endif
+
 
 }  // namespace cwerg::code_gen_a64
