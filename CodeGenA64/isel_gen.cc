@@ -3118,79 +3118,79 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
   }
 }
 
-void MaybeHandleReloc(a64::Ins* armins, unsigned pos, Ins ins, PARAM op) {
+void MaybeHandleReloc(a64::Ins* cpuins, unsigned pos, Ins ins, PARAM op) {
   Str symbol;
   auto handle_addend = [&](Const num) {
-    armins->operands[pos] = ConstValueInt32(num);
+    cpuins->operands[pos] = ConstValueInt32(num);
   };
   switch (op) {
-#if 0
     case PARAM::bbl0:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::JUMP26;
+      cpuins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 0)));
       break;
     case PARAM::bbl2:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::CONDBR19;
+      cpuins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 2)));
       break;
     case PARAM::fun0:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::CALL;
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::CALL26;
       symbol = Name(Fun(InsOperand(ins, 0)));
       break;
-    case PARAM::mem1_num2_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+    case PARAM::mem1_num2_lo12:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
       symbol = Name(Mem(InsOperand(ins, 1)));
       handle_addend(Const(InsOperand(ins, 2)));
       break;
-    case PARAM::mem1_num2_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+    case PARAM::mem1_num2_prel_hi21:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
       symbol = Name(Mem(InsOperand(ins, 1)));
       handle_addend(Const(InsOperand(ins, 2)));
       break;
-    case PARAM::fun1_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+    case PARAM::fun1_lo12:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
       symbol = Name(Fun(InsOperand(ins, 1)));
       break;
-    case PARAM::fun1_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+    case PARAM::fun1_prel_hi21:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
       symbol = Name(Fun(InsOperand(ins, 1)));
       break;
-    case PARAM::jtb1_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
-      armins->is_local_sym = true;
+    case PARAM::jtb1_lo12:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
+      cpuins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
-    case PARAM::jtb1_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
-      armins->is_local_sym = true;
+    case PARAM::jtb1_prel_hi21:
+      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
+      cpuins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
-#endif
     default:
       return;
   }
-  armins->reloc_pos = pos;
-  armins->reloc_symbol = StrData(symbol);
+  cpuins->reloc_pos = pos;
+  cpuins->reloc_symbol = StrData(symbol);
 }
 
 }  // namespace
 
 // number of args == MAX_OPERANDS
 a64::Ins MakeIns(a64::OPC opc_enum,
-                 uint32_t x0,
-                 uint32_t x1,
-                 uint32_t x2,
-                 uint32_t x3,
-                 uint32_t x4) {
+                 int64_t x0,
+                 int64_t x1,
+                 int64_t x2,
+                 int64_t x3,
+                 int64_t x4) {
   const a64::Opcode* opc = &a64::OpcodeTable[+opc_enum];
   if (opc->num_fields > 0) x0 = EncodeOperand(opc->fields[0], x0);
   if (opc->num_fields > 1) x1 = EncodeOperand(opc->fields[1], x1);
   if (opc->num_fields > 2) x2 = EncodeOperand(opc->fields[2], x2);
   if (opc->num_fields > 3) x3 = EncodeOperand(opc->fields[3], x3);
   if (opc->num_fields > 4) x4 = EncodeOperand(opc->fields[4], x4);
-  return a64::Ins{opc, {x0, x1, x2, x3, x4}};
+  return a64::Ins{
+      opc,
+      {(uint32_t)x0, (uint32_t)x1, (uint32_t)x2, (uint32_t)x3, (uint32_t)x4}};
 }
 a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
@@ -3202,13 +3202,121 @@ a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
     } else {
       // parameters require extra processing
       auto param = PARAM(tmpl.operands[o]);
-      out.operands[o] = a64::EncodeOperand(out.opcode->fields[o], ExtractParamOp(ins, param, ctx)
-                                           );
+      out.operands[o] = a64::EncodeOperand(out.opcode->fields[o],
+                                           ExtractParamOp(ins, param, ctx));
       // Note: this may overwrite    out.operands[o]
       MaybeHandleReloc(&out, o, ins, param);
     }
   }
   return out;
+}
+
+class RegBitVec {
+ public:
+  RegBitVec(uint32_t reg_bits) : reg_bits_(reg_bits), pos_(31) {}
+
+  bool empty() const { return reg_bits_ != 0; }
+  uint32_t next_reg_no() {
+    while ((1U << pos_) & reg_bits_ == 0) --pos_;
+    reg_bits_ &= ~(1U << pos_);
+    --pos_;
+    return pos_ + 1;
+  }
+
+ private:
+  uint32_t reg_bits_;
+  uint32_t pos_;
+};
+
+void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
+  RegBitVec gpr_regs(ctx.gpr_reg_mask);
+  if (!gpr_regs.empty()) {
+    while (!gpr_regs.empty()) {
+      uint32_t r1 = gpr_regs.next_reg_no();
+      if (gpr_regs.empty()) {
+        output->push_back(
+            MakeIns(a64::OPC::str_x_imm_pre, +FIXARG::WZR, -16, r1));
+        break;
+      }
+      uint32_t r2 = gpr_regs.next_reg_no();
+      output->push_back(
+          MakeIns(a64::OPC::stp_x_imm_pre, +FIXARG::WZR, -16, r2, r1));
+    }
+  }
+
+  RegBitVec flt_regs(ctx.flt_reg_mask);
+  if (!flt_regs.empty()) {
+    while (!flt_regs.empty()) {
+      uint32_t r1 = flt_regs.next_reg_no();
+      if (flt_regs.empty()) {
+        output->push_back(
+            MakeIns(a64::OPC::fstr_d_imm_pre, +FIXARG::WZR, -16, r1));
+        break;
+      }
+      uint32_t r2 = flt_regs.next_reg_no();
+      output->push_back(
+          MakeIns(a64::OPC::fstp_d_imm_pre, +FIXARG::WZR, -16, r2, r1));
+    }
+  }
+  uint32_t stk_size = ctx.stk_size;
+  ASSERT((stk_size >> 24U) == 0, "stack too large");
+  if ((stk_size & 0xfff000U) != 0) {
+    output->push_back(MakeIns(a64::OPC::sub_x_imm, +FIXARG::WZR, +FIXARG::WZR,
+                              stk_size & 0xfff000U));
+  }
+
+  if ((stk_size & 0xfffU) != 0) {
+    output->push_back(MakeIns(a64::OPC::sub_x_imm, +FIXARG::WZR, +FIXARG::WZR,
+                              stk_size & 0xfffU));
+  }
+}
+
+void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
+  const size_t start = output->size();
+ // we will revert everything at the end
+ output->push_back(MakeIns(a64::OPC::ret));
+
+  RegBitVec gpr_regs(ctx.gpr_reg_mask);
+  if (!gpr_regs.empty()) {
+    while (!gpr_regs.empty()) {
+      uint32_t r1 = gpr_regs.next_reg_no();
+      if (gpr_regs.empty()) {
+        output->push_back(
+            MakeIns(a64::OPC::ldr_x_imm_post, r1, +FIXARG::WZR, -16));
+        break;
+      }
+      uint32_t r2 = gpr_regs.next_reg_no();
+      output->push_back(
+          MakeIns(a64::OPC::ldp_x_imm_post, r2, r1, +FIXARG::WZR, -16));
+    }
+  }
+
+  RegBitVec flt_regs(ctx.flt_reg_mask);
+  if (!flt_regs.empty()) {
+    while (!flt_regs.empty()) {
+      uint32_t r1 = flt_regs.next_reg_no();
+      if (flt_regs.empty()) {
+        output->push_back(
+            MakeIns(a64::OPC::fldr_d_imm_post, r1, +FIXARG::WZR, -16));
+        break;
+      }
+      uint32_t r2 = flt_regs.next_reg_no();
+      output->push_back(
+          MakeIns(a64::OPC::fldp_d_imm_post, r2, r1, +FIXARG::WZR, -16));
+    }
+  }
+  uint32_t stk_size = ctx.stk_size;
+  ASSERT((stk_size >> 24U) == 0, "stack too large");
+  if ((stk_size & 0xfffU) != 0) {
+    output->push_back(MakeIns(a64::OPC::add_x_imm, +FIXARG::WZR, +FIXARG::WZR,
+                              stk_size & 0xfffU));
+  }
+
+  if ((stk_size & 0xfff000U) != 0) {
+    output->push_back(MakeIns(a64::OPC::add_x_imm, +FIXARG::WZR, +FIXARG::WZR,
+                              stk_size & 0xfff000U));
+  }
+  std::reverse(output->begin() + start, output->end());
 }
 
 }  // namespace cwerg::code_gen_a64

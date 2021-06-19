@@ -431,15 +431,6 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
     return gpr, flt
 
 
-def _FunMustSaveLinkReg(fun) -> bool:
-    for bbl in fun.bbls:
-        for ins in bbl.inss:
-            # Note, syscalls do not clobber lr
-            if ins.opcode is o.BSR or ins.opcode is o.JSR:
-                return True
-    return False
-
-
 @dataclasses.dataclass()
 class EmitContext:
     """Grab bag of data needed for emitting instructions"""

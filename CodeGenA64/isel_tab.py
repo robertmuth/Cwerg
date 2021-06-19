@@ -227,50 +227,50 @@ def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
         assert False, f"unknown param {repr(op)}"
 
 
-def _HandleReloc(armins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
-    assert armins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.NONE, f"{armins.reloc_kind}"
-    armins.reloc_pos = pos
+def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
+    assert cpuins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.NONE, f"{cpuins.reloc_kind}"
+    cpuins.reloc_pos = pos
 
     if op is PARAM.bbl0:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.JUMP26
-        armins.is_local_sym = True
+        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.JUMP26
+        cpuins.is_local_sym = True
         bbl = ins.operands[0]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        armins.reloc_symbol = bbl.name
+        cpuins.reloc_symbol = bbl.name
     elif op is PARAM.bbl2:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CONDBR19
-        armins.is_local_sym = True
+        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CONDBR19
+        cpuins.is_local_sym = True
         bbl = ins.operands[2]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        armins.reloc_symbol = bbl.name
+        cpuins.reloc_symbol = bbl.name
     elif op is PARAM.fun0:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CALL26
+        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CALL26
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
-        armins.reloc_symbol = fun.name
+        cpuins.reloc_symbol = fun.name
     elif op in {PARAM.mem1_num2_prel_hi21, PARAM.mem1_num2_lo12}:
-        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.mem1_num2_lo12
+        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.mem1_num2_lo12
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         mem = ins.operands[1]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
-        armins.reloc_symbol = mem.name
+        cpuins.reloc_symbol = mem.name
         num = ins.operands[2]
         assert isinstance(num, ir.Const), f"{ins} {num}"
-        assert armins.operands[pos] == 0
-        armins.operands[pos] = num.value
+        assert cpuins.operands[pos] == 0
+        cpuins.operands[pos] = num.value
     elif op in {PARAM.fun1_prel_hi21, PARAM.fun1_lo12}:
-        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.fun1_lo12
+        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.fun1_lo12
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
-        armins.reloc_symbol = fun.name
+        cpuins.reloc_symbol = fun.name
     elif op in {PARAM.jtb1_prel_hi21, PARAM.jtb1_lo12}:
-        armins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
+        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         jtb = ins.operands[1]
         assert isinstance(jtb, ir.Jtb), f"{ins} {fun}"
-        armins.reloc_symbol = jtb.name
-        armins.is_local_sym = True
+        cpuins.reloc_symbol = jtb.name
+        cpuins.is_local_sym = True
     else:
         assert False
 
@@ -430,37 +430,37 @@ class Pattern:
 
 def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
     out = []
-    stk_size = ctx.stk_size
-    assert (stk_size >> 24) == 0
-    if stk_size & 0xfff != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
-    if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+    # we reverse everything at the end
+    out.append(InsTmpl("ret", [30]))
 
-    restores = []
     gpr_regs = regs.MaskToGpr64Regs(ctx.gpr_reg_mask)
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
-            restores.append(InsTmpl("ldr_x_imm_post", [r1.no, FIXARG.SP, 16]))
+            out.append(InsTmpl("ldr_x_imm_post", [r1.no, FIXARG.SP, 16]))
             break
         else:
             r2 = gpr_regs.pop(-1)
-            restores.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
+            out.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
         if not flt_regs:
-            restores.append(InsTmpl("fldr_d_imm_post", [r1.no, FIXARG.SP, 16]))
+            out.append(InsTmpl("fldr_d_imm_post", [r1.no, FIXARG.SP, 16]))
             break
         else:
             r2 = flt_regs.pop(-1)
-            restores.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
-    out += reversed(restores)
-
+            out.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
     # a9bf7bfd 	stp	x29, x30, [sp, #-16]!
 
-    out.append(InsTmpl("ret", [30]))
+    stk_size = ctx.stk_size
+    assert (stk_size >> 24) == 0
+    if stk_size & 0xfff000 != 0:
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
+    if stk_size & 0xfff != 0:
+        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
+    # Note: we need to reverse these
+    out.reverse()
     return out
 
 
@@ -481,11 +481,11 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     while gpr_regs:
         r1 = gpr_regs.pop(-1)
         if not gpr_regs:
+            # rethink this if we want a predictable stack location of the return address
             out.append(InsTmpl("str_x_imm_pre", [FIXARG.SP, -16, r1.no]))
             break
-        else:
-            r2 = gpr_regs.pop(-1)
-            out.append(InsTmpl("stp_x_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
+        r2 = gpr_regs.pop(-1)
+        out.append(InsTmpl("stp_x_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
@@ -497,11 +497,11 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
             out.append(InsTmpl("fstp_d_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
 
     stk_size = ctx.stk_size
-    assert (stk_size >> 24) == 0
+    assert (stk_size >> 24) == 0, f"stack is too large {stk_size}"
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff000)]))
+        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, a64.EncodeShifted_10_21_22(stk_size & 0xfff)]))
+        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
 
     return out
 

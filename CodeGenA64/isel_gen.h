@@ -73,6 +73,7 @@ enum class PARAM : uint8_t {
 };
 /* @AUTOGEN-END@ */
 
+
 struct InsTmpl {
   int32_t operands[a64::MAX_OPERANDS];  // signed because some operands need that (e.g. offsets)
   a64::OPC opcode;
@@ -96,15 +97,19 @@ extern uint8_t FindtImmediateMismatchesInBestMatchPattern(base::Ins ins,
                                                           bool assume_stk_op_matches);
 
 extern a64::Ins MakeIns(a64::OPC opc_enum,
-                 uint32_t x0 = 0,
-                 uint32_t x1 = 0,
-                 uint32_t x2 = 0,
-                 uint32_t x3 = 0,
-                 uint32_t x4 = 0);
+                 uint64_t x0 = 0,
+                 uint64_t x1 = 0,
+                 uint64_t x2 = 0,
+                 uint64_t x3 = 0,
+                 uint64_t x4 = 0);
 
 extern a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl,
                  base::Ins ins,
                  const EmitContext& ctx);
+
+extern void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output);
+extern void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output);
+
 template <typename Flag>
 const char* EnumToString(Flag f);
 

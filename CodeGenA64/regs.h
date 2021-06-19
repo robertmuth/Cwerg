@@ -53,7 +53,6 @@ extern std::vector<base::CpuReg> GetAllRegs();
 
 extern void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss);
 
-extern bool FunMustSaveLinkReg(base::Fun fun);
 
 struct EmitContext {
   uint32_t gpr_reg_mask = 0;
@@ -63,12 +62,6 @@ struct EmitContext {
 };
 
 extern EmitContext FunComputeEmitContext(base::Fun fun);
-
-extern void EmitFunProlog(const EmitContext& ctx,
-                          std::vector<a64::Ins>* output);
-extern void EmitFunEpilog(const EmitContext& ctx,
-                          std::vector<a64::Ins>* output);
-
 
 
 extern void FunPushargConversion(base::Fun fun);

@@ -10,6 +10,7 @@ namespace cwerg::code_gen_a64 {
 using namespace cwerg;
 using namespace cwerg::base;
 
+// The std:arrays below will be initialized by  InitCodeGenA64();
 std::array<CpuReg, 32> GPR32_REGS;
 std::array<CpuReg, 32> GPR64_REGS;
 
@@ -27,6 +28,7 @@ std::array<CpuReg, 16> GPR32_PARAM_REGS;
 std::array<CpuReg, 16> GPR64_PARAM_REGS;
 std::array<CpuReg, 24> FLT32_PARAM_REGS;
 std::array<CpuReg, 24> FLT64_PARAM_REGS;
+std::array<CPU_REG_KIND, 256> KIND_TO_CPU_KIND;
 
 // +-prefix converts an enum the underlying type
 template <typename T>
@@ -275,7 +277,8 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
                  "found unallocated reg " << Name(reg) << " in " << Name(fun));
         }
         const uint32_t mask = CpuRegToAllocMask(cpu_reg);
-        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR32 || CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR64) {
+        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR32 ||
+            CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR64) {
           gpr_mask |= mask;
         } else {
           flt_mask |= mask;
@@ -329,8 +332,6 @@ std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
 
   return out;
 }
-
-
 
 void FunPushargConversion(Fun fun) {
   std::vector<CpuReg> parameter;
@@ -405,7 +406,7 @@ void FunLocalRegAlloc(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-#if 0
+
 void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
                                    uint32_t cpu_reg_mask_first_choice,
                                    uint32_t cpu_reg_mask_second_choice,
@@ -425,110 +426,47 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
       to_be_spilled->push_back(reg);
       continue;
     }
-    if (RegKind(reg) != DK::F64) {
-      while (((1 << pos) & cpu_reg_mask) == 0) ++pos;
-      if (RegKind(reg) == DK::F32) {
-        RegCpuReg(reg) = FLT_REGS[pos];
-      } else {
-        RegCpuReg(reg) = GPR_REGS[pos];
-      }
-      cpu_reg_mask &= ~(1 << pos);
-      ++pos;
-      continue;
+    while (((1U << pos) & cpu_reg_mask) == 0) ++pos;
+    CPU_REG_KIND cpu_reg_kind = KIND_TO_CPU_KIND[+RegKind(reg)];
+    if (cpu_reg_kind == CPU_REG_KIND::FLT32) {
+      RegCpuReg(reg) = FLT32_REGS[pos];
+    } else if (cpu_reg_kind == CPU_REG_KIND::FLT64) {
+      RegCpuReg(reg) = FLT64_REGS[pos];
+    } else if (cpu_reg_kind == CPU_REG_KIND::GPR32) {
+      RegCpuReg(reg) = GPR32_REGS[pos];
+    } else if (cpu_reg_kind == CPU_REG_KIND::GPR64) {
+      RegCpuReg(reg) = GPR64_REGS[pos];
+    } else {
+      ASSERT(false, "unexpected reg kind");
     }
-
-    for (unsigned pos_dbl = pos / 2; pos_dbl < 32; pos_dbl += 2) {
-      unsigned mask = 3 << pos_dbl;
-      if ((mask & cpu_reg_mask) == mask) {
-        RegCpuReg(reg) = DBL_REGS[pos_dbl / 2];
-        cpu_reg_mask &= ~mask;
-        continue;
-      } else if ((mask & cpu_reg_mask) == 0) {
-        if (pos_dbl == pos) {
-          pos += 2;
-        }
-      }
-    }
-    to_be_spilled->push_back(reg);
   }
+  cpu_reg_mask &= ~(1 << pos);
+  ++pos;
 }
 
 
 EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);
-  const bool must_save_link_reg =
-      FunMustSaveLinkReg(fun) || (masks.gpr_mask & LINK_REG_MASK) != 0;
-  masks.gpr_mask &= GPR_LAC_SAVE_REGS_MASK;
-  masks.flt_mask &= FLT_LAC_SAVE_REGS_MASK;
-  EmitContext out{masks.gpr_mask, masks.flt_mask, masks.gpr_mask,
-                  masks.flt_mask};
-  if (must_save_link_reg) {
-    out.stm_regs |= A32RegToAllocMask(GPR_REGS[14]);
-    out.ldm_regs |= A32RegToAllocMask(GPR_REGS[15]);
+  masks.gpr_mask &= GPR_LAC_REGS_MASK;
+  masks.flt_mask &= FLT_LAC_REGS_MASK;
+  if (FunIsLeaf(fun)) {
+    // add link regs if it is not already inlcuded
+    masks.gpr_mask |= 1U << 30;
   }
-  uint32_t num_saved_regs =
-      __builtin_popcount(out.ldm_regs) + __builtin_popcount(out.vldm_regs);
-  uint32_t stk_size = FunStackSize(fun) + 4 * num_saved_regs;
-  stk_size = (stk_size + 15) / 16 * 16;
-  stk_size -= 4 * num_saved_regs;
-  out.stk_size = stk_size;
-  return out;
+
+  const uint32_t stk_size = (FunStackSize(fun) + 15) / 16 * 16;
+  return EmitContext{masks.gpr_mask, masks.flt_mask, stk_size};
 }
 
-uint32_t HighByte(uint32_t x) {
-  unsigned shift = 0;
-  while (x > 255) {
-    x >>= 2;
-    shift += 2;
-  }
-  return x << shift;
-}
 
-void EmitFunProlog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
-  if (ctx.stm_regs > 0) {
-    output->emplace_back(MakeIns(a32::OPC::stmdb_update, +a32::PRED::al,
-                                 +a32::REG::sp, ctx.stm_regs));
-  }
 
-  if (ctx.vstm_regs > 0) {
-    const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vstm_regs);
-    output->emplace_back(MakeIns(a32::OPC::vstmdb_s_update, +a32::PRED::al,
-                                 +a32::REG::sp, range.start, range.count));
-  }
 
-  uint32_t stk_size = ctx.stk_size;
-  while (stk_size > 0) {
-    uint32_t high_byte = HighByte(stk_size);
-    output->emplace_back(MakeIns(a32::OPC::sub_imm, +a32::PRED::al,
-                                 +a32::REG::sp, +a32::REG::sp, high_byte));
-    stk_size -= high_byte;
-  }
-}
 
-void EmitFunEpilog(const EmitContext& ctx, std::vector<a32::Ins>* output) {
-  uint32_t stk_size = ctx.stk_size;
-  while (stk_size > 0) {
-    uint32_t high_byte = HighByte(stk_size);
-    output->emplace_back(MakeIns(a32::OPC::add_imm, +a32::PRED::al,
-                                 +a32::REG::sp, +a32::REG::sp, high_byte));
-    stk_size -= high_byte;
-  }
 
-  if (ctx.vldm_regs > 0) {
-    const ArmFltRegRange range = ArmGetFltRegRanges(ctx.vldm_regs);
-    output->emplace_back(MakeIns(a32::OPC::vldmia_s_update, +a32::PRED::al,
-                                 range.start, range.count, +a32::REG::sp));
-  }
 
-  if (ctx.ldm_regs > 0) {
-    output->emplace_back(MakeIns(a32::OPC::ldmia_update, +a32::PRED::al,
-                                 +ctx.ldm_regs, +a32::REG::sp));
-  }
 
-  if ((A32RegToAllocMask(GPR_REGS[15]) & ctx.ldm_regs) == 0) {
-    output->emplace_back(MakeIns(a32::OPC::bx, +a32::PRED::al, +a32::REG::lr));
-  }
-}
+
+#if 0
 
 void InitCodeGenA32() {
   // GPR
