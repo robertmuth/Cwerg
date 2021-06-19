@@ -422,7 +422,7 @@ class Pattern:
     # groups all the patterns for a given opcode number together
     Table: Dict[int, List["Pattern"]] = collections.defaultdict(list)
 
-    def __init__(self, opcode: o.Opcode, type_constraints: List[o.DK],
+    def __init__(self, opcode: o.Opcode, type_curbs: List[o.DK],
                  emit: List[InsTmpl],
                  imm_kind0=IMM_CURB.invalid,
                  imm_kind1=IMM_CURB.invalid,
@@ -432,13 +432,13 @@ class Pattern:
         # the template, usually contains ArmIns except for the nop1 pattern
         self.emit = emit
         # how to fill the template params
-        imm_constraints = [imm_kind0, imm_kind1, imm_kind2, imm_kind3, imm_kind4]
-        imm_constraints = imm_constraints[:len(type_constraints)]
-        self.type_constraints = type_constraints
-        self.imm_constraints = imm_constraints
-        assert len(type_constraints) == len(
-            opcode.operand_kinds), f"{opcode.name} {type_constraints} {opcode.operand_kinds}"
-        for type_constr, imm_constr, kind in zip(type_constraints, imm_constraints,
+        imm_curbs = [imm_kind0, imm_kind1, imm_kind2, imm_kind3, imm_kind4]
+        imm_curbs = imm_curbs[:len(type_curbs)]
+        self.type_curbs = type_curbs
+        self.imm_curbs = imm_curbs
+        assert len(type_curbs) == len(
+            opcode.operand_kinds), f"{opcode.name} {type_curbs} {opcode.operand_kinds}"
+        for type_constr, imm_constr, kind in zip(type_curbs, imm_curbs,
                                                  opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
@@ -456,7 +456,7 @@ class Pattern:
         Pattern.Table[opcode.no].append(self)
 
     def MatchesTypeConstraints(self, ins: ir.Ins) -> bool:
-        for type_constr, op in zip(self.type_constraints, ins.operands):
+        for type_constr, op in zip(self.type_curbs, ins.operands):
             if type_constr is o.DK.INVALID:
                 continue
             if isinstance(op, ir.Reg):
@@ -481,7 +481,7 @@ class Pattern:
                 would live in a register instead of being an immediate
         """
         out = 0
-        for pos, (imm_constr, op) in enumerate(zip(self.imm_constraints, ins.operands)):
+        for pos, (imm_constr, op) in enumerate(zip(self.imm_curbs, ins.operands)):
             if isinstance(op, ir.Const):
                 if imm_constr is IMM_CURB.invalid:
                     # have a constant but need a reg
@@ -508,10 +508,10 @@ class Pattern:
         return out
 
     def __str__(self):
-        return f"[PATTERN {self.type_constraints} {self.imm_constraints}]"
+        return f"[PATTERN {self.type_curbs} {self.imm_curbs}]"
 
     def __repr__(self):
-        return f"[PATTERN {self.type_constraints} {self.imm_constraints}]"
+        return f"[PATTERN {self.type_curbs} {self.imm_curbs}]"
 
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
@@ -1142,8 +1142,8 @@ def _EmitCodeC(fout):
         if patterns is None: continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
-            reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
-            imm_constraints = [f"IC::{c.name}" for c in pat.imm_constraints]
+            reg_constraints = [f"DK::{c.name}" for c in pat.type_curbs]
+            imm_constraints = [f"IC::{c.name}" for c in pat.imm_curbs]
             print(f"  {{ {{{', '.join(reg_constraints)}}},")
             print(f"    {{{', '.join(imm_constraints)}}},")
             print(
@@ -1164,8 +1164,8 @@ def _DumpCodeSelTable():
         opcode = o.Opcode.TableByNo[i]
         print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
         for pat in patterns:
-            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
-            imm_constraints = [x.name if x else '*' for x in pat.imm_constraints]
+            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_curbs]
+            imm_constraints = [x.name if x else '*' for x in pat.imm_curbs]
 
             print(f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
             for tmpl in pat.emit:

@@ -44,8 +44,8 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
     else:
         pattern = isel_tab.FindMatchingPattern(ins)
         print(
-            f"PAT: reg:[{' '.join(a.name for a in pattern.type_constraints)}]  "
-            f"imm:[{' '.join(a.name for a in pattern.imm_constraints)}]")
+            f"PAT: reg:[{' '.join(a.name for a in pattern.type_curbs)}]  "
+            f"imm:[{' '.join(a.name for a in pattern.imm_curbs)}]")
         for tmpl in pattern.emit:
             armins = tmpl.MakeInsFromTmpl(ins, ctx)
             name, ops = symbolic.InsSymbolize(armins)

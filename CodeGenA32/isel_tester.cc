@@ -52,13 +52,13 @@ void HandleIns(Ins ins, const code_gen_a32::EmitContext& ctx) {
     std::cout << "PAT: reg:[";
     sep = "";
     for (unsigned i = 0; i < InsOpcode(ins).num_operands; ++i) {
-      std::cout << sep << EnumToString(pat->reg_constraints[i]);
+      std::cout << sep << EnumToString(pat->type_curbs[i]);
       sep = " ";
     }
     std::cout << "]  imm:[";
     sep = "";
     for (unsigned i = 0; i < InsOpcode(ins).num_operands; ++i) {
-      std::cout << sep << code_gen_a32::EnumToString(pat->imm_constraints[i]);
+      std::cout << sep << code_gen_a32::EnumToString(pat->imm_curbs[i]);
       sep = " ";
     }
     std::cout << "]\n";

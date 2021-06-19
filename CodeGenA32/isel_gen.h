@@ -90,8 +90,8 @@ struct InsTmpl {
 };
 
 struct Pattern {
-  base::DK reg_constraints[8];  // 8 >= MAX_OPERANDS
-  IMM_CURB imm_constraints[8];    // 8 >= MAX_OPERANDS
+  base::DK type_curbs[8];  // 8 >= MAX_OPERANDS
+  IMM_CURB imm_curbs[8];    // 8 >= MAX_OPERANDS
   const InsTmpl* start;
   uint8_t length;
 };

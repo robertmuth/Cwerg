@@ -292,7 +292,7 @@ class RegPoolA32(reg_alloc.RegPool):
         if self._allow_spilling:
             return ir.CPU_REG_SPILL
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        lines = [f"{n-1:2} {x}" for n, x in enumerate(serialize.BblRenderToAsm(self._bbl))]
+        lines = [f"{n - 1:2} {x}" for n, x in enumerate(serialize.BblRenderToAsm(self._bbl))]
         print("\n".join(lines))
         print(f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
         print(f"# {lr}")
@@ -427,13 +427,12 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
         # print (repr(lr))
 
     if False:
-        print ("@@@@@@@@@@@@@@@@@@@")
+        print("@@@@@@@@@@@@@@@@@@@")
         for lr in live_ranges:
             ins = ""
             if lr.def_pos >= 0 and not lr.is_use_lr():
                 ins = "\t# " + serialize.InsRenderToAsm(bbl.inss[lr.def_pos])
-            print (str(lr) + ins)
-
+            print(str(lr) + ins)
 
     # for lr in live_ranges:
     #
