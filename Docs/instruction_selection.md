@@ -15,9 +15,9 @@ We iterate over the catalog of Patterns specified for that opcode in order.
 The first pattern that matches will be used to expand the Cwerg IR instruction into 
 zero or more target CPU instructions.
 
-The Pattern specifies two constraints for each register/immediate operand
-* a type constraint, e.g. U32, S64, F32, ...
-* an immediate constraint (aka "curb"), e.g. "must fit in 16bit", "must be zero", "no immediate"
+The Pattern specifies two constraints called **curbs** for each register/immediate operand
+* a type curb, e.g. U32, S64, F32, ...
+* an immediate curb, e.g. "must fit in 16bit", "must be zero", "no immediate"
    (must be a register), ...
 
 If the operand cannot be a register/immediate the constraint is ignored.
@@ -25,21 +25,55 @@ Note, that:
 * the IR opcode dictates which operands are registers/immediates
 * both registers and immediates are typed
 
+### Matching
 
-#### Matching
+First we check if the pattern's type curbs are satisfied: For each register or immediate operand
+the type must match the type curb.
 
-First we match operand types of the Cwerg IR instruction against the type constraints.
-If the types match we proceed to check the constraints for immediates.
+Next we check if the pattern's immediate curbs are satisfied: For each register operand there must NOT 
+be an immediate curb. For each immediate operand there must be an immediate curb AND the value of the 
+immediate must satifies the actual kind of curb.
+
+### Examples
+
+Note, all patterns can be listed using `./isel_tab.py`. Here is a commented subset for a32.
+
+We show three patterns for expanding the *blt* opcode  (`blt [BBL REG_OR_CONST REG_OR_CONST]`)
+
+```
+type:[* U32 U32] imm:[* * *]                 #   pattern 1: op0 is bbl, op1 is U32 reg, op2 is U32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #     1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                       #     2. A32 instriction of the expansion
+
+type:[* U32 U32 imm:[* * pos_8_bits_shifted] #   pattern 2: op0 is bbl, op1 is U32 reg, op2 is immediate
+  cmp [ARG.reg1 ARG.num2]                    #     1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                       #     2. A32 instruction of the expansion
+
+type:[* S32 S32] imm:[* * *]                 #   pattern 3: op0 is bbl, op1 is S32 reg, op2 is S32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #     1. A32 instruction of the expansion
+  b [PRED.lt ARG.bbl0]                       #     2. A32 instruction of the expansion
+```
+
+| Cwerg Instruction | Matching Pattern |
+|-------------------| -----------------|
+|`blt target x:U32 y:U32` | Pattern 1 |
+|`blt target x:U32 10:U32` | Pattern 2 (assuming 10 satisfies `pos_8_bits_shifted`) |
+|`blt target 10:U32 y:U32` | No Match |
+|`blt target x:U32 1000:U32` | Pattern 2 (assuming 10 does not satisfy `pos_8_bits_shifted`) |
+|`blt target x:S32 y:S32` | Pattern 3 |
+|`blt target x:S32 10:s32` | No Match |
+
+### Additional Uses of Patterns for Legalization
 
 The matching mechanism is used by two compiler passes.
 In an earlier pass we use it to rewrite Cwerg IR instruction that have no real match but a
 "close" one. Example, suppose
 ```
-ADD x:U32 y:U32 369:U32
+add x:U32 y:U32 369:U32
 ```
 has no match but this Pattern matches closely:
 ```
-ADD type-constr:[U32 U32 U32] imm_constr=[no-immediate no-immediate  no-immediate] 
+add type:[U32 U32 U32] imm:[* * *] 
 ```
 This triggers a rewrite of the original instruction to:
 ```
