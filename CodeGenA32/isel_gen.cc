@@ -4853,59 +4853,59 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
   }
 }
 
-void MaybeHandleReloc(a32::Ins* armins, unsigned pos, Ins ins, PARAM op) {
+void MaybeHandleReloc(a32::Ins* cpuins, unsigned pos, Ins ins, PARAM op) {
   Str symbol;
   auto handle_addend = [&](Const num) {
-    armins->operands[pos] = ConstValueInt32(num);
+    cpuins->operands[pos] = ConstValueInt32(num);
   };
   switch (op) {
     case PARAM::bbl0:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
+      cpuins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 0)));
       break;
     case PARAM::bbl2:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
+      cpuins->is_local_sym = true;
       symbol = Name(Bbl(InsOperand(ins, 2)));
       break;
     case PARAM::fun0:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::CALL;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::CALL;
       symbol = Name(Fun(InsOperand(ins, 0)));
       break;
     case PARAM::mem1_num2_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
       symbol = Name(Mem(InsOperand(ins, 1)));
       handle_addend(Const(InsOperand(ins, 2)));
       break;
     case PARAM::mem1_num2_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
       symbol = Name(Mem(InsOperand(ins, 1)));
       handle_addend(Const(InsOperand(ins, 2)));
       break;
     case PARAM::fun1_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
       symbol = Name(Fun(InsOperand(ins, 1)));
       break;
     case PARAM::fun1_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
       symbol = Name(Fun(InsOperand(ins, 1)));
       break;
     case PARAM::jtb1_lo16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
+      cpuins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
     case PARAM::jtb1_hi16:
-      armins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
-      armins->is_local_sym = true;
+      cpuins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
+      cpuins->is_local_sym = true;
       symbol = Name(Jtb(InsOperand(ins, 1)));
       break;
     default:
       return;
   }
-  armins->reloc_pos = pos;
-  armins->reloc_symbol = StrData(symbol);
+  cpuins->reloc_pos = pos;
+  cpuins->reloc_symbol = StrData(symbol);
 }
 
 }  // namespace
