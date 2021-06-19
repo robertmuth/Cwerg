@@ -41,17 +41,15 @@ Note, all patterns can be listed using `./isel_tab.py`. Here is a commented subs
 We show three patterns for expanding the *blt* opcode  (`blt [BBL REG_OR_CONST REG_OR_CONST]`)
 
 ```
-type:[* U32 U32] imm:[* * *]                 #   pattern 1: op0 is bbl, op1 is U32 reg, op2 is U32 reg 
-  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #     1. A32 instruction of the expansion
-  b [PRED.cc ARG.bbl0]                       #     2. A32 instriction of the expansion
-
-type:[* U32 U32 imm:[* * pos_8_bits_shifted] #   pattern 2: op0 is bbl, op1 is U32 reg, op2 is immediate
-  cmp [ARG.reg1 ARG.num2]                    #     1. A32 instruction of the expansion
-  b [PRED.cc ARG.bbl0]                       #     2. A32 instruction of the expansion
-
-type:[* S32 S32] imm:[* * *]                 #   pattern 3: op0 is bbl, op1 is S32 reg, op2 is S32 reg 
-  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #     1. A32 instruction of the expansion
-  b [PRED.lt ARG.bbl0]                       #     2. A32 instruction of the expansion
+type:[* U32 U32] imm:[* * *]                 #  Pattern 1: op0 is bbl, op1 is U32 reg, op2 is U32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #    1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                       #    2. A32 instriction of the expansion
+type:[* U32 U32 imm:[* * pos_8_bits_shifted] #  Pattern 2: op0 is bbl, op1 is U32 reg, op2 is immediate
+  cmp [ARG.reg1 ARG.num2]                    #    1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                       #    2. A32 instruction of the expansion
+type:[* S32 S32] imm:[* * *]                 #  Pattern 3: op0 is bbl, op1 is S32 reg, op2 is S32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #    1. A32 instruction of the expansion
+  b [PRED.lt ARG.bbl0]                       #    2. A32 instruction of the expansion
 ```
 
 | Cwerg Instruction | Matching Pattern |
@@ -59,7 +57,7 @@ type:[* S32 S32] imm:[* * *]                 #   pattern 3: op0 is bbl, op1 is S
 |`blt target x:U32 y:U32` | Pattern 1 |
 |`blt target x:U32 10:U32` | Pattern 2 (assuming 10 satisfies `pos_8_bits_shifted`) |
 |`blt target 10:U32 y:U32` | No Match |
-|`blt target x:U32 1000:U32` | Pattern 2 (assuming 10 does not satisfy `pos_8_bits_shifted`) |
+|`blt target x:U32 1000:U32` | No Match (assuming 1000 does not satisfy `pos_8_bits_shifted`) |
 |`blt target x:S32 y:S32` | Pattern 3 |
 |`blt target x:S32 10:s32` | No Match |
 
