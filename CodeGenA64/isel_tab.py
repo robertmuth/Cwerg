@@ -171,7 +171,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         n = arg.value - PARAM.reg0.value
         reg = ins.operands[n]
         assert isinstance(reg,
-                          ir.Reg) and reg.HasCpuReg(), f"unexpected op {ins} {ins.operands} [{reg}]"
+                          ir.Reg) and reg.HasCpuReg(), f"unexpected op {reg} in {ins} {ins.operands}"
         return reg.cpu_reg.no
     elif arg in {PARAM.num0, PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4}:
         n = arg.value - PARAM.num0.value

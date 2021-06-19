@@ -1,0 +1,46 @@
+
+INS: mov $r1_U32@w11 $r0_U32@w10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[INVALID INVALID]
+    orr_x_reg x11 xzr x10 lsl 0
+
+INS: mov $r0_U32@w10 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[INVALID IMM_SHIFTED_5_20_21_22]
+    movz_x_imm x10 0xa
+
+INS: div rem@w5 $r1_U32@w11 $r0_U32@w10  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]
+    udiv_w w5 w11 w10
+
+INS: mov $r0_U32@w10 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[INVALID IMM_SHIFTED_5_20_21_22]
+    movz_x_imm x10 0xa
+
+INS: mul rem@w5 rem@w5 $r0_U32@w10  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]
+    madd_w w5 w5 w10 wzr
+
+INS: sub rem@w5 $r1_U32@w11 rem@w5  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]
+    sub_w_reg w5 w11 w5 lsl 0
+
+INS: mov $r0_U32@w10 10  [U32 U32]
+PAT: reg:[U32 U32]  imm:[INVALID IMM_SHIFTED_5_20_21_22]
+    movz_x_imm x10 0xa
+
+INS: div div@w6 $r1_U32@w11 $r0_U32@w10  [U32 U32 U32]
+PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]
+    udiv_w w6 w11 w10
+
+INS: beq div@w6 0 skip  [U32 U32 _]
+PAT: reg:[U32 U32 INVALID]  imm:[INVALID IMM_SHIFTED_10_21_22 INVALID]
+    subs_w_imm wzr w6 0x0
+    b_eq expr:condbr19:skip
+
+INS: poparg base  [A64]
+    MATCH_IMPOSSIBLE
+
+INS: ld add base 0  [A64 A64 U32]
+    mismatches: 4
+
+INS: ret  []
+    SPECIAL

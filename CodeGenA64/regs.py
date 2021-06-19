@@ -42,6 +42,11 @@ FLT64_LAC_REGS = _FLT64_REGS[8:16]
 GPR64_NOT_LAC_REGS = _GPR64_PARAMETER_REGS  # + [_GPR64_REGS[30]]
 FLT64_NOT_LAC_REGS = _FLT64_PARAMETER_REGS
 
+CPU_REGS_MAP = {**{r.name: r for r in _GPR32_REGS},
+            **{r.name: r for r in _GPR64_REGS},
+            **{r.name: r for r in _FLT32_REGS},
+            **{r.name: r for r in _FLT64_REGS}}
+
 
 def RegsToMask(regs: List[ir.CpuReg]) -> int:
     return functools.reduce(operator.or_, (1 << r.no for r in regs), 0)
