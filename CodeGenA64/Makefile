@@ -65,6 +65,11 @@ $(DIR)/nanojpeg:
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
 
+$(DIR)/isel_test:
+	@echo "[integration $@]"
+	$(PYPY) ./isel_tester.py < TestData/codegen_test.asm  > $@.actual.out
+	diff $@.actual.out TestData/codegen_test.asm.golden
+
 isel_gen.cc: isel_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
