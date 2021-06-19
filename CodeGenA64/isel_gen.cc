@@ -20,7 +20,7 @@ constexpr auto operator+(T e) noexcept
 
 using IC = IMM_CURB;
 
-bool ImmFitsConstraint(IMM_CURB constr,
+bool ImmFitsCurb(IMM_CURB constr,
                        int64_t x,
                        int32_t last_stack_offset,
                        bool assume_stk_op_matches) {
@@ -33,18 +33,25 @@ bool ImmFitsConstraint(IMM_CURB constr,
       return x == 0;
     case IC::ANY:
       return true;
-    case IC::IMM_SHIFTED_10_21_22:
-    case IC::IMM_10_15_16_22_W:
-    case IC::IMM_10_15_16_22_X:
-    case IC::IMM_SHIFTED_5_20_21_22:
-    case IC::IMM_SHIFTED_5_20_21_22_NOT:
-    case IC::pos_stk_combo_shifted_10_21_22:
     case IC::pos_stk_combo_16_bits:
     case IC::pos_stk_combo_32_bits:
     case IC::pos_stk_combo_10_21:
+    case IC::pos_stk_combo_shifted_10_21_22:
     case IC::pos_stk_combo_10_21_times_2:
     case IC::pos_stk_combo_10_21_times_4:
     case IC::pos_stk_combo_10_21_times_8:
+      return false;
+
+    case IC::IMM_SHIFTED_10_21_22:
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_10_21_22, x) != a64::kEncodeFailure;
+    case IC::IMM_10_15_16_22_W:
+      return a64::Encode_10_15_16_22_W(x) != a64::kEncodeFailure;
+    case IC::IMM_10_15_16_22_X:
+      return a64::Encode_10_15_16_22_X(x) != a64::kEncodeFailure;
+    case IC::IMM_SHIFTED_5_20_21_22:
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, x) != a64::kEncodeFailure;
+    case IC::IMM_SHIFTED_5_20_21_22_NOT:
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, ~x) != a64::kEncodeFailure;
       return false;
   }
 }
@@ -84,15 +91,15 @@ bool IsConstMatch(Const num,
       x = ConstValueACS(num);
       break;
   }
-  return ImmFitsConstraint(imm_constraint, x, last_stack_offset,
-                           assume_stk_op_matches);
+  return ImmFitsCurb(imm_constraint, x, last_stack_offset,
+                     assume_stk_op_matches);
 }
 
-bool PatternMatchesTypeConstraints(const Pattern& pat, uint64_t type_mask) {
+bool PatternMatchesTypeCurbs(const Pattern& pat, uint64_t type_mask) {
   return type_mask == *(uint64_t*)pat.type_curbs;
 }
 
-uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
+uint8_t PatternMismatchesImmCurbs(const Pattern& pat,
                                         Ins ins,
                                         bool assume_stk_op_matches) {
   unsigned num_ops = InsOpcode(ins).num_operands;
@@ -112,7 +119,7 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
       if (imm_curb == IC::INVALID) {
-        // we have an imm but need a reg - this can be accomodated.
+        // we have an imm but need a reg - this can be accommodated.
         out |= 1 << i;
       } else if (!IsConstMatch(op, imm_curb, last_stack_offset,
                                assume_stk_op_matches)) {
@@ -2980,8 +2987,8 @@ const Pattern* FindMatchingPattern(Ins ins) {
   const uint16_t end = kPatternJumper[unsigned(opc) + 1];
   for (unsigned p = kPatternJumper[unsigned(opc)]; p < end; ++p) {
     const Pattern& pat = kPatterns[p];
-    if (PatternMatchesTypeConstraints(pat, reg_matcher) &&
-        0 == PatternMismatchesImmConstraints(pat, ins, false)) {
+    if (PatternMatchesTypeCurbs(pat, reg_matcher) &&
+        0 == PatternMismatchesImmCurbs(pat, ins, false)) {
       return &pat;
     }
   }
@@ -2998,9 +3005,9 @@ uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins,
   const uint16_t end = kPatternJumper[unsigned(opc) + 1];
   for (unsigned p = kPatternJumper[unsigned(opc)]; p < end; ++p) {
     const Pattern& pat = kPatterns[p];
-    if (!PatternMatchesTypeConstraints(pat, type_matcher)) continue;
+    if (!PatternMatchesTypeCurbs(pat, type_matcher)) continue;
     const uint8_t mismatches =
-        PatternMismatchesImmConstraints(pat, ins, assume_stk_op_matches);
+        PatternMismatchesImmCurbs(pat, ins, assume_stk_op_matches);
     const uint8_t num_bits = __builtin_popcount(mismatches);
     if (num_bits < best_num_bits) {
       best = mismatches;

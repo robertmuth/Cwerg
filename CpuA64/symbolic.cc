@@ -53,7 +53,37 @@ char* SymbolizeOperand(char* buf, uint32_t data, OK ok) {
 }
 
 void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
-  ASSERT(false, "NYI");
+  cp = strappend(cp, "expr:");
+  switch (ins.reloc_kind) {
+    case elf::RELOC_TYPE_AARCH64::JUMP26:
+      ASSERT(ins.is_local_sym, "");
+      cp = strappend(cp, "jump26:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21:
+      cp = strappend(cp, ins.is_local_sym ? "loc_adr_prel_pg_hi21:": "adr_prel_pg_hi21:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC:
+      cp = strappend(cp, ins.is_local_sym ? "loc_add_abs_lo12_nc:": "add_abs_lo12_nc:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_AARCH64::CALL26:
+      cp = strappend(cp, "call26:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    case elf::RELOC_TYPE_AARCH64::CONDBR19:
+      ASSERT(ins.is_local_sym, "");
+      cp = strappend(cp, "condbr19:");
+      cp = strappend(cp, ins.reloc_symbol);
+      break;
+    default:
+      ASSERT(false, "");
+  }
+  if (addend != 0) {
+    *cp++ = ':';
+    cp = strappenddec(cp, addend);
+  }
 }
 
 std::string_view InsSymbolize(const a64::Ins& ins,

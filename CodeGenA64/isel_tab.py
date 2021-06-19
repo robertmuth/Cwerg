@@ -191,10 +191,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in _RELOC_ARGS:
         return 0
     elif arg is PARAM.scratch_flt:
-        assert ctx.scratch_cpu_reg.kind  in{regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}
+        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind in{regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}
+        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}
         return ctx.scratch_cpu_reg.no
     elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])
@@ -370,7 +370,7 @@ class Pattern:
         # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
 
-    def MatchesTypeConstraints(self, ins: ir.Ins) -> bool:
+    def MatchesTypeCurbs(self, ins: ir.Ins) -> bool:
         for type_constr, op in zip(self.type_constraints, ins.operands):
             if type_constr is o.DK.INVALID:
                 continue
@@ -916,7 +916,7 @@ def InitConv():
 
     # TODO: this is iffy
     Pattern(o.CONV, [o.DK.U64, o.DK.S32],
-                [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
+            [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
     for dst_kind in [o.DK.S64, o.DK.S32]:
         Pattern(o.CONV, [dst_kind, o.DK.S8],
@@ -956,7 +956,7 @@ def InitMiscBra():
              InsTmpl("add_x_imm", [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.jtb1_lo12]),
              InsTmpl("ldr_x_reg_w",
                      [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg0, FIXARG.UXTW, 3]),
-            InsTmpl("br", [PARAM.scratch_gpr])])
+             InsTmpl("br", [PARAM.scratch_gpr])])
 
 
 def InitVFP():
@@ -1016,7 +1016,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     # print(f"@@ {ins} {ins.operands}")
     for p in patterns:
         # print(f"@@ trying pattern {p}")
-        if p.MatchesTypeConstraints(ins) and 0 == p.MatchesImmCurbs(ins, False):
+        if p.MatchesTypeCurbs(ins) and 0 == p.MatchesImmCurbs(ins, False):
             return p
     else:
         # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"
@@ -1032,7 +1032,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
     best_num_bits = bin(best).count('1')
     patterns = Pattern.Table[ins.opcode.no]
     for p in patterns:
-        if not p.MatchesTypeConstraints(ins):
+        if not p.MatchesTypeCurbs(ins):
             continue
         mismatches = p.MatchesImmCurbs(ins, assume_stk_op_matches)
         num_bits = bin(mismatches).count('1')
