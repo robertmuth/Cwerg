@@ -13,13 +13,13 @@ The project is very much "work in progress" and  currently consists of:
 
 * RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
-* [C Frontend](FrontEndC/README.md)  (supports a subset of C)
-* [Elf Support Lib](Elf/README.md)   ((de-)compiler for ELF object files)
-* [A32 Support Lib](CpuA32/README.md) ((dis-) assembler for ARM32 instructions)
-* [A64 Support Lib](CpuA64/README.md) ((dis-) assembler for ARM64 instructions)
-* [A32 Backend](CodeGenA32/README.md) (code generator emitting ARM32 instructions)
-* [A64 Backend](CodeGenA64/README.md) (code generator emitting ARM64 instructions)
-* [C Backend](CodeGenC/README.md) (code generator emitting C code)
+* [C Frontend](FrontEndC/)  (supports a subset of C)
+* [Elf Support Lib](Elf/)   ((de-)compiler for ELF object files)
+* [A32 Support Lib](CpuA32/) ((dis-) assembler for ARM32 instructions)
+* [A64 Support Lib](CpuA64/) ((dis-) assembler for ARM64 instructions)
+* [A32 Backend](CodeGenA32/) (code generator emitting ARM32 instructions)
+* [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
+* [C Backend](CodeGenC/) (code generator emitting C code)
 
 It is primarily aimed AOT compilation but JITing will also be supported.
 
