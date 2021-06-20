@@ -30,7 +30,10 @@ class RegPool {
 
   virtual void give_back_available_reg(CpuReg reg) = 0;
 
-  virtual int get_cpu_reg_family(DK dk) = 0;
+  // This is used for spilling decisions. If we do not have a free cpu reg
+  // for a reg of type dk, we may try to spill another live-range of the same
+  // family
+  virtual uint8_t get_cpu_reg_family(DK dk) = 0;
 };
 
 using RegAllocLoggerFun =

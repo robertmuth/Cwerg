@@ -17,6 +17,7 @@ enum class CPU_REG_KIND : uint8_t {
   DBL,
 };
 
+// Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called
 extern std::array<base::CpuReg, 16> GPR_REGS;
 extern std::array<base::CpuReg, 32> FLT_REGS;
 extern std::array<base::CpuReg, 16> DBL_REGS;
@@ -32,6 +33,9 @@ extern std::array<base::CpuReg, 8> DBL_PARAM_REGS;
 extern std::array<base::CpuReg, 6> GPR_CALLEE_SAVE_REGS;
 extern std::array<base::CpuReg, 16> FLT_CALLEE_SAVE_REGS;
 extern std::array<base::CpuReg, 8> DBL_CALLEE_SAVE_REGS;
+
+// maps the DK of Cwerg reg to the CPU_REG_KIND needed for a cpu reg
+extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 // must be called early in main()
 extern void InitCodeGenA32();

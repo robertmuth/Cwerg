@@ -38,7 +38,7 @@ class BblRegUsageStatsRegPool : public RegPool {
     return reg;
   }
 
-  int get_cpu_reg_family(DK dk) override { return +rk_map_[+dk]; }
+  uint8_t get_cpu_reg_family(DK dk) override { return rk_map_[+dk]; }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
     const DK dk = static_cast<DK>((cpu_reg.index() >> 16U) & 0xff);
@@ -64,7 +64,7 @@ class BblRegUsageStatsRegPool : public RegPool {
 
  private:
   DK get_rk(Reg reg) {
-    DK out = rk_map_[+RegKind(reg)];
+    const DK out = DK(rk_map_[+RegKind(reg)]);
     ASSERT(out != DK::INVALID, "reg has untracked type: " << Name(reg));
     return out;
   }
@@ -79,7 +79,7 @@ class BblRegUsageStatsRegPool : public RegPool {
 bool LiveRangeShouldBeIgnored(const LiveRange& lr, const DK_MAP& rk_map) {
   if (lr.is_cross_bbl()) return true;
   if (lr.is_use_lr()) return false;
-  if (rk_map[+RegKind(lr.reg)] == DK::INVALID) return true;
+  if (rk_map[+RegKind(lr.reg)] == +DK::INVALID) return true;
   return !RegCpuReg(lr.reg).isnull();
 }
 

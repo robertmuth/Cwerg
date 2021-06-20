@@ -18,6 +18,13 @@ namespace {
 using namespace cwerg;
 using namespace cwerg::base;
 
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
+}
+
 void UnitCfgInit(Unit unit) {
   for (Fun fun : UnitFunIter(unit)) FunCfgInit(fun);
 }
@@ -42,17 +49,17 @@ void UnitOptBasic(Unit unit, bool dump_reg_stats) {
   }
 }
 
-constexpr DK StdDKMapping(uint8_t i) {
+constexpr uint8_t StdDKMapping64(uint8_t i) {
   const DK rk = DK(i);
   if (rk == DK::S8 || rk == DK::S16 || rk == DK::S32 || rk == DK::A32 ||
       rk == DK::U8 || rk == DK::U16 || rk == DK::U32 || rk == DK::C32) {
-    return DK::S32;
+    return +DK::S32;
   } else if (rk == DK::S64 || rk == DK::U64 || rk == DK::A64 || rk == DK::C64) {
-    return DK::S64;
+    return +DK::S64;
   } else if (rk == DK::F32 || rk == DK::F64) {
-    return rk;
+    return +rk;
   } else {
-    return DK::INVALID;
+    return +DK::INVALID;
   }
 }
 
@@ -65,13 +72,13 @@ constexpr auto make_array_helper(Function f, std::index_sequence<Indices...>)
   return {{f(Indices)...}};
 }
 
-const DK_MAP kStdRKMap =
-    make_array_helper(StdDKMapping, std::make_index_sequence<256>{});
+const DK_MAP kStdRKMap64 =
+    make_array_helper(StdDKMapping64, std::make_index_sequence<256>{});
 
 void UnitOpt(Unit unit, bool dump_reg_stats) {
   for (Fun fun : UnitFunIter(unit)) {
     if (FunKind(fun) != FUN_KIND::NORMAL) continue;
-    FunOpt(fun, kStdRKMap);
+    FunOpt(fun, kStdRKMap64);
     if (dump_reg_stats) {
       FunComputeRegStatsExceptLAC(fun);
       FunNumberReg(fun);
@@ -79,7 +86,7 @@ void UnitOpt(Unit unit, bool dump_reg_stats) {
       FunComputeRegStatsLAC(fun);
       const FunRegStats rs = FunCalculateRegStats(fun);
 
-      DK_LAC_COUNTS local_stats = FunComputeBblRegUsageStats(fun, kStdRKMap);
+      DK_LAC_COUNTS local_stats = FunComputeBblRegUsageStats(fun, kStdRKMap64);
       std::cout << "# " << std::setw(30) << std::left << Name(fun)
                 << " RegStats: " << rs << "  " << local_stats << "\n";
     }

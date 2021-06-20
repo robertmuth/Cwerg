@@ -165,12 +165,12 @@ DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
     if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
       continue;
     }
-    DK rk = rk_map[+RegKind(reg)];
-    ASSERT(rk != DK::INVALID, "");
+    const CPU_REG_KIND kind = CPU_REG_KIND(rk_map[+RegKind(reg)]);
+    ASSERT(kind != CPU_REG_KIND::INVALID, "");
     if (RegHasFlag(reg, REG_FLAG::LAC))
-      ++out.lac[+rk];
+      ++out.lac[+kind];
     else
-      ++out.not_lac[+rk];
+      ++out.not_lac[+kind];
   }
   return out;
 }
@@ -211,42 +211,17 @@ void FunSetInOutCpuRegs(Fun fun) {
   memcpy(FunCpuLiveOut(fun), cpu_out.data(), cpu_out.size() * sizeof(CpuReg));
 }
 
-constexpr DK A32RKMapping(uint8_t i) {
-  const DK rk = DK(i);
-  if (rk == DK::S8 || rk == DK::S16 || rk == DK::S32 || rk == DK::A32 ||
-      rk == DK::U8 || rk == DK::U16 || rk == DK::U32 || rk == DK::C32) {
-    return DK::S32;
-  } else if (rk == DK::F32 || rk == DK::F64) {
-    return rk;
-  } else {
-    return DK::INVALID;
-  }
-}
-
-// based on:
-// https://stackoverflow.com/questions/19019252/create-n-element-constexpr-array-in-c11
-template <class Function, std::size_t... Indices>
-constexpr auto make_array_helper(Function f, std::index_sequence<Indices...>)
-    -> std::array<typename std::result_of<Function(std::size_t)>::type,
-                  sizeof...(Indices)> {
-  return {{f(Indices)...}};
-}
-
-// template magic above is so that we can compute this at compile time:
-const DK_MAP kA32RKMap =
-    make_array_helper(A32RKMapping, std::make_index_sequence<256>{});
-
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
 // and whose `lac-ness` matches `is_lac`
 void FunFilterGlobalRegs(Fun fun,
-                         DK rk,
+                         CPU_REG_KIND rk,
                          bool is_lac,
                          const DK_MAP& rk_map,
                          std::vector<Reg>* out) {
   for (Reg reg : FunRegIter(fun)) {
     if (RegHasFlag(reg, REG_FLAG::GLOBAL) && RegCpuReg(reg).isnull() &&
         RegHasFlag(reg, REG_FLAG::LAC) == is_lac &&
-        rk_map[+RegKind(reg)] == rk) {
+        rk_map[+RegKind(reg)] == +rk) {
       out->push_back(reg);
     }
   }
@@ -410,8 +385,8 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   FunComputeLivenessInfo(fun);
   FunComputeRegStatsLAC(fun);
   const DK_LAC_COUNTS local_reg_stats =
-      FunComputeBblRegUsageStats(fun, kA32RKMap);
-  const DK_LAC_COUNTS global_reg_stats = FunGlobalRegStats(fun, kA32RKMap);
+      FunComputeBblRegUsageStats(fun, DK_TO_CPU_REG_KIND_MAP);
+  const DK_LAC_COUNTS global_reg_stats = FunGlobalRegStats(fun, DK_TO_CPU_REG_KIND_MAP);
   if (fout != nullptr) {
     DumpRegStats(fun, local_reg_stats, fout);
   }
@@ -426,10 +401,10 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
   {
     // GPR
-    const FunRegStats needed_gpr{global_reg_stats.lac[+DK::S32],      //
-                                 global_reg_stats.not_lac[+DK::S32],  //
-                                 local_reg_stats.lac[+DK::S32],       //
-                                 local_reg_stats.not_lac[+DK::S32]};
+    const FunRegStats needed_gpr{global_reg_stats.lac[+CPU_REG_KIND::GPR],      //
+                                 global_reg_stats.not_lac[+CPU_REG_KIND::GPR],  //
+                                 local_reg_stats.lac[+CPU_REG_KIND::GPR],       //
+                                 local_reg_stats.not_lac[+CPU_REG_KIND::GPR]};
 
     //*fout << "@@ GPR NEEDED " << needed_gpr.global_lac << " "
     //      << needed_gpr.global_not_lac << " " << needed_gpr.local_lac << " "
@@ -444,12 +419,12 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
     // handle is_lac gloabal regs
     regs.clear();
-    FunFilterGlobalRegs(fun, DK::S32, true, kA32RKMap, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     // handle not is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, DK::S32, false, kA32RKMap, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac & GPR_NOT_LAC_REGS_MASK,
                                   global_not_lac & GPR_CALLEE_SAVE_REGS_MASK,
@@ -458,24 +433,24 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   {
     // FLT + DBL
     const FunRegStats needed_flt{
-        global_reg_stats.lac[+DK::F32] + 2 * global_reg_stats.lac[+DK::F64],
-        global_reg_stats.not_lac[+DK::F32] +
-            2 * global_reg_stats.not_lac[+DK::F64],
-        local_reg_stats.lac[+DK::F32] + 2 * local_reg_stats.lac[+DK::F64],
-        local_reg_stats.not_lac[+DK::F32] +
-            2 * local_reg_stats.not_lac[+DK::F64]};
+        global_reg_stats.lac[+CPU_REG_KIND::FLT] + 2 * global_reg_stats.lac[+CPU_REG_KIND::DBL],
+        global_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
+            2 * global_reg_stats.not_lac[+CPU_REG_KIND::DBL],
+        local_reg_stats.lac[+CPU_REG_KIND::FLT] + 2 * local_reg_stats.lac[+CPU_REG_KIND::DBL],
+        local_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
+            2 * local_reg_stats.not_lac[+CPU_REG_KIND::DBL]};
 
     const auto [global_lac, global_not_lac] =
         GetRegPoolsForGlobals(needed_flt, FLT_CALLEE_SAVE_REGS_MASK,
                               FLT_PARAM_REGS_REGS_MASK, prealloc_flt);
     regs.clear();
-    FunFilterGlobalRegs(fun, DK::F64, true, kA32RKMap, &regs);
-    FunFilterGlobalRegs(fun, DK::F32, true, kA32RKMap, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, true, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     regs.clear();
-    FunFilterGlobalRegs(fun, DK::F64, false, kA32RKMap, &regs);
-    FunFilterGlobalRegs(fun, DK::F32, false, kA32RKMap, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, false, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac, 0, &to_be_spilled);
   }

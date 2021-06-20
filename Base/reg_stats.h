@@ -8,8 +8,9 @@
 namespace cwerg::base {
 
 
-// maps one DK to another - used for simplifying register allocation
-using DK_MAP = std::array<DK, 256>;
+// maps DK to an integer - usually either another DK or a CPU_REG_KIND
+// used for simplifying register allocation
+using DK_MAP = std::array<uint8_t , 256>;
 
 // reg count per DK
 using DK_COUNTS = std::array<uint16_t , 256>;

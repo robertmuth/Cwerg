@@ -1,9 +1,8 @@
 #include "CodeGenA32/regs.h"
-#include "CodeGenA32/isel_gen.h"
 #include "Base/reg_alloc.h"
 #include "Base/serialize.h"
+#include "CodeGenA32/isel_gen.h"
 #include "Util/parse.h"
-
 
 namespace cwerg::code_gen_a32 {
 
@@ -26,16 +25,16 @@ std::array<CpuReg, 6> GPR_CALLEE_SAVE_REGS;
 std::array<CpuReg, 16> FLT_CALLEE_SAVE_REGS;
 std::array<CpuReg, 8> DBL_CALLEE_SAVE_REGS;
 
+base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
+
 namespace {
 
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
--> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
 }
-
-
 
 const uint32_t LINK_REG_MASK = 0x4000;
 
@@ -60,7 +59,7 @@ class RegPoolArm : public RegPool {
         flt_available_lac_(flt_available_lac),
         flt_available_not_lac_(flt_available_not_lac) {}
 
-  int get_cpu_reg_family(DK dk) override {
+  uint8_t get_cpu_reg_family(DK dk) override {
     return (dk == DK::F64 or dk == DK::F32) ? 2 : 1;
   }
 
@@ -559,6 +558,20 @@ void InitCodeGenA32() {
       DBL_CALLEE_SAVE_REGS[i - DBL_PARAM_REGS.size()] = DBL_REGS[i];
     }
   }
+
+  for (unsigned i = 0; i < DK_TO_CPU_REG_KIND_MAP.size(); ++i) {
+    DK_TO_CPU_REG_KIND_MAP[i] = +CPU_REG_KIND::INVALID;
+  }
+  DK_TO_CPU_REG_KIND_MAP[+DK::S8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::A32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::C32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::DBL;
 }
 
 }  // namespace cwerg::code_gen_a32
