@@ -10,15 +10,19 @@
 
 [Why Python](why_python.md)
 
-[Liveness Analysis](liveness.md)
-
-[Reaching Defs](use_def.md)
-
 [TODOs](todo.md)
 
 [FAQ](FAQ.md)
 
 [Debugging Hints](debugging.md)
+
+### Implementation Details
+
+[Liveness Analysis](liveness.md)
+
+[Reaching Defs](use_def.md)
+
+[Instruction Selection](instruction_selection.md)
 
 ### Runtime Library
 
