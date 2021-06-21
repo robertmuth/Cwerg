@@ -39,7 +39,6 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
-uint32_t CpuRegToAllocMask(CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
 
 class CpuRegPool : public RegPool {
  public:
@@ -58,7 +57,7 @@ class CpuRegPool : public RegPool {
         flt_available_lac_(flt_available_lac),
         flt_available_not_lac_(flt_available_not_lac) {}
 
-  int get_cpu_reg_family(DK dk) override {
+  uint8_t get_cpu_reg_family(DK dk) override {
     return (dk == DK::F64 or dk == DK::F32) ? 2 : 1;
   }
 

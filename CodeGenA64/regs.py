@@ -48,6 +48,27 @@ CPU_REGS_MAP = {**{r.name: r for r in _GPR32_REGS},
             **{r.name: r for r in _FLT32_REGS},
             **{r.name: r for r in _FLT64_REGS}}
 
+GPR_FAMILY = A64RegKind.GPR64.value
+FLT_FAMILY = A64RegKind.FLT64.value
+
+REG_KIND_TO_CPU_REG_FAMILY = {
+    o.DK.S8: GPR_FAMILY,
+    o.DK.S16: GPR_FAMILY,
+    o.DK.S32: GPR_FAMILY,
+    o.DK.S64: GPR_FAMILY,
+    #
+    o.DK.U8: GPR_FAMILY,
+    o.DK.U16: GPR_FAMILY,
+    o.DK.U32: GPR_FAMILY,
+    o.DK.U64: GPR_FAMILY,
+    #
+    o.DK.A64: GPR_FAMILY,
+    o.DK.C64: GPR_FAMILY,
+    #
+    o.DK.F32: FLT_FAMILY,
+    o.DK.F64: FLT_FAMILY,
+}
+
 
 def RegsToMask(regs: List[ir.CpuReg]) -> int:
     return functools.reduce(operator.or_, (1 << r.no for r in regs), 0)

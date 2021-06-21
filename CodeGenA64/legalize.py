@@ -93,26 +93,6 @@ def DumpFun(reason: str, fun: ir.Fun):
     print("\n".join(serialize.FunRenderToAsm(fun)))
 
 
-# map all int regs to S32 which will then be allocated to gpr A32 regs
-REG_KIND_MAP_ARM = {
-    o.DK.S8: o.DK.S64,
-    o.DK.S16: o.DK.S64,
-    o.DK.S32: o.DK.S64,
-    o.DK.S64: o.DK.S64,
-    #
-    o.DK.U8: o.DK.S64,
-    o.DK.U16: o.DK.S64,
-    o.DK.U32: o.DK.S64,
-    o.DK.U64: o.DK.S64,
-    #
-    o.DK.A64: o.DK.S64,
-    o.DK.C64: o.DK.S64,
-    #
-    o.DK.F32: o.DK.F64,
-    o.DK.F64: o.DK.F64,
-}
-
-
 def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
     local_lac = 0
     local_not_lac = 0
@@ -326,7 +306,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
 
-
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
@@ -334,41 +313,41 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # Note: REG_KIND_MAP_ARM maps all non-float to registers to S64
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
-                                                           REG_KIND_MAP_ARM)
+                                                           regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
-    global_reg_stats = _FunGlobalRegStats(fun, REG_KIND_MAP_ARM)
+    global_reg_stats = _FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
     DumpRegStats(fun, local_reg_stats, fout)
 
     pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
 
     # Handle GPR regs
-    needed_gpr = RegsNeeded(len(global_reg_stats[(o.DK.S64, True)]),
-                            len(global_reg_stats[(o.DK.S64, False)]),
-                            local_reg_stats.get((o.DK.S64, True), 0),
-                            local_reg_stats.get((o.DK.S64, False), 0))
+    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.GPR_FAMILY, True)]),
+                            len(global_reg_stats[(regs.GPR_FAMILY, False)]),
+                            local_reg_stats.get((regs.GPR_FAMILY, True), 0),
+                            local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR64_LAC_REGS.copy(),
         regs.GPR64_NOT_LAC_REGS.copy(), pre_allocated)
 
     to_be_spilled: List[ir.Reg] = []
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, True)],
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)],
                                                     gpr_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.S64, False)],
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, False)],
                                                     gpr_global_not_lac)
 
     # Handle Float regs
-    needed_flt = RegsNeeded(len(global_reg_stats[(o.DK.F64, True)]),
-                            len(global_reg_stats[(o.DK.F64, True)]),
-                            local_reg_stats.get((o.DK.F64, True), 0),
-                            local_reg_stats.get((o.DK.F64, False), 0))
+    needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
+                            len(global_reg_stats[(regs.FLT_FAMILY, True)]),
+                            local_reg_stats.get((regs.FLT_FAMILY, True), 0),
+                            local_reg_stats.get((regs.FLT_FAMILY, False), 0))
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
         needed_flt, regs.FLT64_LAC_REGS.copy(),
         regs.FLT64_NOT_LAC_REGS.copy(), pre_allocated)
 
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, True)],
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, True)],
                                                     flt_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(o.DK.F64, False)],
+    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, False)],
                                                     flt_global_not_lac)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")

@@ -35,6 +35,8 @@ const constexpr uint32_t GPR_NOT_LAC_REGS_MASK = 0x0000ffff;
 const constexpr uint32_t FLT_LAC_REGS_MASK = 0x0000ff00;
 const constexpr uint32_t FLT_NOT_LAC_REGS_MASK = 0xffff00ff;
 
+inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
+
 // must be called early in main()
 extern void InitCodeGenA64();
 
