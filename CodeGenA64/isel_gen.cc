@@ -52,7 +52,6 @@ bool ImmFitsCurb(IMM_CURB constr,
       return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, x) != a64::kEncodeFailure;
     case IC::IMM_SHIFTED_5_20_21_22_NOT:
       return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, ~x) != a64::kEncodeFailure;
-      return false;
   }
 }
 

@@ -224,10 +224,10 @@ add_executable(builder_example.exe
 add_library(CODEGENA64_LIB OBJECT
         CodeGenA64/isel_gen.cc
         CodeGenA64/isel_gen.h
-       # CodeGenA64/codegen.cc
-       # CodeGenA64/codegen.h
-       # CodeGenA64/legalize.cc
-       # CodeGenA64/legalize.h
+        CodeGenA64/codegen.cc
+        CodeGenA64/codegen.h
+        CodeGenA64/legalize.cc
+        CodeGenA64/legalize.h
         CodeGenA64/regs.cc
         CodeGenA64/regs.h
         )

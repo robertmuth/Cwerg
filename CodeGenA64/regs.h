@@ -18,22 +18,24 @@ enum class CPU_REG_KIND : uint8_t {
   FLT64,
 };
 
+constexpr CPU_REG_KIND GPR_FAMILY =  CPU_REG_KIND::GPR64;
+constexpr CPU_REG_KIND FLT_FAMILY =  CPU_REG_KIND::FLT64;
+
+// Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called
 extern std::array<base::CpuReg, 31> GPR32_REGS;
 extern std::array<base::CpuReg, 31> GPR64_REGS;
 
 extern std::array<base::CpuReg, 32> FLT32_REGS;
 extern std::array<base::CpuReg, 32> FLT64_REGS;
 
-extern std::array<base::CpuReg,14 > GPR64_LAC_REGS;
-extern std::array<base::CpuReg, 8> FLT64_LAC_REGS;
-extern std::array<base::CpuReg,16> GPR64_NOT_LAC_REGS;
-extern std::array<base::CpuReg, 24> FLT64_NOT_LAC_REGS;
-
 const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3fff0000;
 const constexpr uint32_t GPR_NOT_LAC_REGS_MASK = 0x0000ffff;
 
 const constexpr uint32_t FLT_LAC_REGS_MASK = 0x0000ff00;
 const constexpr uint32_t FLT_NOT_LAC_REGS_MASK = 0xffff00ff;
+
+// maps the DK of Cwerg reg to the CPU_REG_KIND needed for a cpu reg
+extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
 
