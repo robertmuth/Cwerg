@@ -6,12 +6,13 @@ from Base import reg_alloc
 from Base import serialize
 
 import dataclasses
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import enum
 import functools
 import operator
 
 
+# This must mimic the DK enum (0: invalid, no more than 255 entries)
 @enum.unique
 class A64RegKind(enum.IntEnum):
     INVALID = 0
@@ -75,22 +76,6 @@ _FLT_PARAMETER_REGS_MASK = RegsToMask(_FLT64_PARAMETER_REGS)
 _GPR_CALLEE_SAVE_REGS_MASK = RegsToMask(GPR64_LAC_REGS)
 _FLT_CALLEE_SAVE_REGS_MASK = RegsToMask(FLT64_LAC_REGS)
 
-_KIND_TO_CPU_KIND = {
-    o.DK.S8: A64RegKind.GPR32,
-    o.DK.S16: A64RegKind.GPR32,
-    o.DK.S32: A64RegKind.GPR32,
-    o.DK.U8: A64RegKind.GPR32,
-    o.DK.U16: A64RegKind.GPR32,
-    o.DK.U32: A64RegKind.GPR32,
-    #
-    o.DK.U64: A64RegKind.GPR64,
-    o.DK.S64: A64RegKind.GPR64,
-    o.DK.A64: A64RegKind.GPR64,
-    o.DK.C64: A64RegKind.GPR64,
-    #
-    o.DK.F32: A64RegKind.FLT32,
-    o.DK.F64: A64RegKind.FLT64,
-}
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR32_REGS,
@@ -224,6 +209,10 @@ class CpuRegPool(reg_alloc.RegPool):
             reg_alloc.PreAllocation() for _ in range(len(_GPR64_REGS))]
         self._flt_reserved: List[reg_alloc.PreAllocation] = [
             reg_alloc.PreAllocation() for _ in range(len(_FLT64_REGS))]
+
+    def get_cpu_reg_family(self, kind: o.DK) -> int:
+        # we have not observed spilling yet it appears
+        assert False, f"@@@@@@@@"
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available

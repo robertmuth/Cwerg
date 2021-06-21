@@ -18,7 +18,7 @@ from Base import liveness
 from Base import reg_alloc
 import Base.opcode_tab as o
 
-REG_KIND_LAC = Tuple[o.DK, bool]
+REG_KIND_LAC = Tuple[int, bool]
 
 
 class BblRegUsageStatsRegPool(reg_alloc.RegPool):
@@ -28,7 +28,7 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
     register pressure over a set of Bbls
     """
 
-    def __init__(self, reg_kind_map: Dict[o.DK, o.DK]):
+    def __init__(self, reg_kind_map: Dict[o.DK, int]):
         super(BblRegUsageStatsRegPool, self).__init__()
         self.counter = 0
         self.reg_kind_map = reg_kind_map
@@ -47,7 +47,7 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
         else:
             # manufacture a new register
             self.counter += 1
-            return ir.CpuReg(f"z{self.counter}", key[1], key[0].value)
+            return ir.CpuReg(f"z{self.counter}", key[1], key[0])
 
     def usage(self) -> Dict[REG_KIND_LAC, int]:
         assert sum(len(val)
@@ -56,11 +56,11 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
 
     # @override
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
-        key: REG_KIND_LAC = (o.DK(cpu_reg.kind), bool(cpu_reg.no))
+        key: REG_KIND_LAC = (cpu_reg.kind, bool(cpu_reg.no))
         self._available[key].append(cpu_reg)
 
 
-def LiveRangeShouldBeIgnored(lr: liveness.LiveRange, reg_kind_map) -> bool:
+def LiveRangeShouldBeIgnored(lr: liveness.LiveRange, reg_kind_map: Dict[o.DK, int]) -> bool:
     if lr.is_cross_bbl(): return True
     if lr.is_use_lr(): return False  # this is an entry for "uses"
     if lr.reg.kind not in reg_kind_map: return True
@@ -68,11 +68,11 @@ def LiveRangeShouldBeIgnored(lr: liveness.LiveRange, reg_kind_map) -> bool:
 
 
 def FunComputeBblRegUsageStats(fun: ir.Fun,
-                               reg_kind_map: Dict[o.DK, o.DK]) -> Dict[REG_KIND_LAC, int]:
+                               reg_kind_map: Dict[o.DK, int]) -> Dict[REG_KIND_LAC, int]:
     """
     Computes maximum number of register needed for locals across all Bbls
 
-    Requires liveness
+    Requires liveness.
     """
     pool = BblRegUsageStatsRegPool(reg_kind_map)
     for bbl in fun.bbls:
@@ -172,6 +172,10 @@ class FunRegStats:
 
 
 def FunCalculateRegStats(fun: ir.Fun) -> FunRegStats:
+    """Computed the number of global and local registers and their LACness
+
+    This is very cheap as it just iterates over all the registers.
+    """
     rs = FunRegStats()
     for reg in fun.regs:
         if ir.REG_FLAG.GLOBAL in reg.flags:

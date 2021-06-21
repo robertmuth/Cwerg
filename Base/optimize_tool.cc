@@ -49,7 +49,7 @@ void UnitOptBasic(Unit unit, bool dump_reg_stats) {
   }
 }
 
-constexpr uint8_t StdDKMapping64(uint8_t i) {
+constexpr uint8_t StdDKMapping(uint8_t i) {
   const DK rk = DK(i);
   if (rk == DK::S8 || rk == DK::S16 || rk == DK::S32 || rk == DK::A32 ||
       rk == DK::U8 || rk == DK::U16 || rk == DK::U32 || rk == DK::C32) {
@@ -72,13 +72,13 @@ constexpr auto make_array_helper(Function f, std::index_sequence<Indices...>)
   return {{f(Indices)...}};
 }
 
-const DK_MAP kStdRKMap64 =
-    make_array_helper(StdDKMapping64, std::make_index_sequence<256>{});
+const DK_MAP kStdRKMap =
+    make_array_helper(StdDKMapping, std::make_index_sequence<256>{});
 
 void UnitOpt(Unit unit, bool dump_reg_stats) {
   for (Fun fun : UnitFunIter(unit)) {
     if (FunKind(fun) != FUN_KIND::NORMAL) continue;
-    FunOpt(fun, kStdRKMap64);
+    FunOpt(fun, kStdRKMap);
     if (dump_reg_stats) {
       FunComputeRegStatsExceptLAC(fun);
       FunNumberReg(fun);
@@ -86,7 +86,7 @@ void UnitOpt(Unit unit, bool dump_reg_stats) {
       FunComputeRegStatsLAC(fun);
       const FunRegStats rs = FunCalculateRegStats(fun);
 
-      DK_LAC_COUNTS local_stats = FunComputeBblRegUsageStats(fun, kStdRKMap64);
+      DK_LAC_COUNTS local_stats = FunComputeBblRegUsageStats(fun, kStdRKMap);
       std::cout << "# " << std::setw(30) << std::left << Name(fun)
                 << " RegStats: " << rs << "  " << local_stats << "\n";
     }

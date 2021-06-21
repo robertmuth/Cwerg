@@ -18,23 +18,25 @@ from Base import canonicalize
 
 # This is just to get an idea of how much registers we need
 # it is only used for informational purposes
-REG_KIND_MAP_TYPICAL = {
-    # TODO: add mapping for floats
-    o.DK.S8: o.DK.S32,
-    o.DK.S16: o.DK.S32,
-    o.DK.S32: o.DK.S32,
-    o.DK.S64: o.DK.S64,
+REG_KIND_MAP_TYPICAL: Dict[o.DK, int] = {
+    o.DK.S8: o.DK.S32.value,
+    o.DK.S16: o.DK.S32.value,
+    o.DK.S32: o.DK.S32.value,
+    o.DK.S64: o.DK.S64.value,
 
-    o.DK.U8: o.DK.S32,
-    o.DK.U16: o.DK.S32,
-    o.DK.U32: o.DK.S32,
-    o.DK.U64: o.DK.S64,
+    o.DK.U8: o.DK.S32.value,
+    o.DK.U16: o.DK.S32.value,
+    o.DK.U32: o.DK.S32.value,
+    o.DK.U64: o.DK.S64.value,
 
-    o.DK.A32: o.DK.S32,
-    o.DK.A64: o.DK.S64,
+    o.DK.A32: o.DK.S32.value,
+    o.DK.A64: o.DK.S64.value,
 
-    o.DK.C32: o.DK.S32,
-    o.DK.C64: o.DK.S64,
+    o.DK.C32: o.DK.S32.value,
+    o.DK.C64: o.DK.S64.value,
+
+    o.DK.F32: o.DK.F32.value,
+    o.DK.F64: o.DK.F64.value,
 }
 
 
@@ -191,6 +193,7 @@ def UnitOpt(unit: ir.Unit, dump_reg_stats) -> Dict[str, int]:
             loc_not_lac = sum(
                 count for (kind, lac), count in local_stats.items() if not lac)
 
+            # computes max number of
             reg_stats.FunComputeRegStatsExceptLAC(fun)
             reg_stats.FunComputeRegStatsLAC(fun)
             rs = reg_stats.FunCalculateRegStats(fun)

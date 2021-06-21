@@ -17,6 +17,7 @@ _GPR_REG_NAMES = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
                   "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"]
 
 
+# This must mimic the DK enum (0: invalid, no more than 255 entries)
 @enum.unique
 class A32RegKind(enum.IntEnum):
     INVALID = 0
@@ -316,15 +317,6 @@ class RegPoolA32(reg_alloc.RegPool):
         gpr_lac, gpr_not_lac = self._gpr_available_lac, self._gpr_available_not_lac
         flt_lac, flt_not_lac = self._flt_available_lac, self._flt_available_not_lac
         return f"POOL  (lac/not_lac)  gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"
-
-
-_SUPPORTED_FLT_REGS = {o.DK.F64, o.DK.F32}
-
-_SUPPORTED_GPR_REGS = {o.DK.A32, o.DK.C32,
-                       o.DK.S8, o.DK.S16, o.DK.S32,
-                       o.DK.U8, o.DK.U16, o.DK.U32}
-
-_SUPPORTED_REGS = _SUPPORTED_FLT_REGS | _SUPPORTED_GPR_REGS
 
 
 def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRange], allow_spilling,
