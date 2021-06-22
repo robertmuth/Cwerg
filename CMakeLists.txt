@@ -240,3 +240,12 @@ add_executable(a64_isel_tester.exe
         $<TARGET_OBJECTS:BASE_LIB>
         CodeGenA64/isel_tester.cc
         )
+
+add_executable(a64_codegen_tool.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUA64_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        CodeGenA64/codegen_tool.cc
+        )
