@@ -74,6 +74,25 @@ $(DIR)/isel_test:
 # C++
 ############################################################
 BUILD_DIR=../build
+CODEGEN_TOOL=$(BUILD_DIR)/a64_codegen_tool.exe
+
+$(CODEGEN_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s a64_codegen_tool.exe
+
+$(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
+	@echo "[integration $@]"
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	@chmod a+rx $@
+	$@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+# same as above but from local TestData dir
+$(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
+	@echo "[integration $@]"
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	@chmod a+rx $@
+	$@ > $@.actual.out
+	diff $@.actual.out $<.golden
 
 isel_gen.cc: isel_tab.py
 	@echo "[$@]"

@@ -16,12 +16,6 @@ std::array<CpuReg, 31> GPR64_REGS;
 std::array<CpuReg, 32> FLT32_REGS;
 std::array<CpuReg, 32> FLT64_REGS;
 
-// For register allocation
-std::array<base::CpuReg, 14> GPR64_LAC_REGS;
-std::array<base::CpuReg, 8> FLT64_LAC_REGS;
-std::array<base::CpuReg, 16> GPR64_NOT_LAC_REGS;
-std::array<base::CpuReg, 24> FLT64_NOT_LAC;
-
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 namespace {
@@ -441,7 +435,7 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
       }
     }
   }
-  cpu_reg_mask &= ~(1 << pos);
+  cpu_reg_mask &= ~(1U << pos);
   ++pos;
 }
 
@@ -449,8 +443,8 @@ EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);
   masks.gpr_mask &= GPR_LAC_REGS_MASK;
   masks.flt_mask &= FLT_LAC_REGS_MASK;
-  if (FunIsLeaf(fun)) {
-    // add link regs if it is not already inlcuded
+  if (!FunIsLeaf(fun)) {
+    // add link regs if it is not already included
     masks.gpr_mask |= 1U << 30;
   }
 
@@ -468,15 +462,15 @@ std::vector<CpuReg> GetAllRegs() {
 }
 
 void InitCodeGenA64() {
-  // GPR32
-  for (unsigned i = 0; i < 31; ++i) {
+  // GPR64
+  for (unsigned i = 0; i < GPR64_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'w';
     ToDecString(i, buffer + 1);
     GPR32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR32, StrNew(buffer));
   }
   // GPR64
-  for (unsigned i = 0; i < 31; ++i) {
+  for (unsigned i = 0; i < GPR32_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'w';
     ToDecString(i, buffer + 1);
@@ -484,20 +478,41 @@ void InitCodeGenA64() {
   }
 
   // FLT32
-  for (unsigned i = 0; i < 32; ++i) {
+  for (unsigned i = 0; i < FLT32_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'w';
     ToDecString(i, buffer + 1);
     FLT32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT32, StrNew(buffer));
   }
-  // GPR64
-  for (unsigned i = 0; i < 32; ++i) {
+  // FLT64
+  for (unsigned i = 0; i < FLT64_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'w';
     ToDecString(i, buffer + 1);
     FLT64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT64, StrNew(buffer));
   }
+  // ==================================================
+  // GPR64_PARAM_REGS
+  for (unsigned i = 0; i < GPR64_PARAM_REGS.size(); ++i) {
+    GPR64_PARAM_REGS[i] = GPR64_REGS[i];
+  }
 
+  // GPR32_PARAM_REGS
+  for (unsigned i = 0; i < GPR32_PARAM_REGS.size(); ++i) {
+    GPR32_PARAM_REGS[i] = GPR32_REGS[i];
+  }
+
+  // FLT64_PARAM_REGS
+  for (unsigned i = 0; i < FLT64_PARAM_REGS.size(); ++i) {
+    FLT64_PARAM_REGS[i] = FLT64_REGS[i < 8 ? i : 8 + i];
+  }
+
+  // FLT32_PARAM_REGS
+  for (unsigned i = 0; i < FLT32_PARAM_REGS.size(); ++i) {
+    FLT32_PARAM_REGS[i] = FLT32_REGS[i < 8 ? i : 8 + i];
+  }
+
+  // ==================================================
   for (unsigned i = 0; i < DK_TO_CPU_REG_KIND_MAP.size(); ++i) {
     DK_TO_CPU_REG_KIND_MAP[i] = +CPU_REG_KIND::INVALID;
   }
@@ -514,16 +529,6 @@ void InitCodeGenA64() {
   //
   DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +FLT_FAMILY;
   DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +FLT_FAMILY;
-  // TODO:
-  // extern std::array<base::CpuReg,14 > GPR64_LAC_REGS;
-  // extern std::array<base::CpuReg, 8> FLT64_LAC_REGS;
-  // extern std::array<base::CpuReg,16> GPR64_NOT_LAC_REGS;
-  // extern std::array<base::CpuReg, 24> FLT64_NOT_LAC_REGS;
-  // std::array<CpuReg, 16> GPR32_PARAM_REGS;
-  // std::array<CpuReg, 16> GPR64_PARAM_REGS;
-  // std::array<CpuReg, 24> FLT32_PARAM_REGS;
-  // std::array<CpuReg, 24> FLT64_PARAM_REGS;
-  // std::array<CPU_REG_KIND, 256> KIND_TO_CPU_KIND;
 }
 
 }  // namespace cwerg::code_gen_a64

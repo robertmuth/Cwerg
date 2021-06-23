@@ -5021,7 +5021,8 @@ uint32_t EncodeOperand(OK ok, uint64_t data) {
     case FK::FLT_CUSTOM:
       return fi.encoder(data);
     case FK::LIST:
-      ASSERT(data < fi.num_names, "");
+      ASSERT(data < fi.num_names, "out of range enum " << data << " for "
+             << EnumToString(ok));
       return data;
     case FK::INT_SIGNED: {
       uint64_t rest = data >> (fi.bitwidth - 1U);

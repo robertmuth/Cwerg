@@ -2,10 +2,10 @@
 #include "Base/optimize.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
-#include "CodeGenA32/codegen.h"
-#include "CodeGenA32/legalize.h"
-#include "CodeGenA32/regs.h"
-#include "CpuA32/assembler.h"
+#include "CodeGenA64/codegen.h"
+#include "CodeGenA64/legalize.h"
+#include "CodeGenA64/regs.h"
+#include "CpuA64/assembler.h"
 #include "Util/breakpoint.h"
 #include "Util/parse.h"
 #include "Util/switch.h"
@@ -20,7 +20,7 @@ namespace {
 
 using namespace cwerg;
 using namespace cwerg::base;
-using namespace cwerg::code_gen_a32;
+using namespace cwerg::code_gen_a64;
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
   for (Fun fun : UnitFunIter(unit)) {
@@ -129,7 +129,7 @@ int main(int argc, const char* argv[]) {
   std::ios_base::sync_with_stdio(false);
 
   InitStripes(sw_multiplier.Value());
-  InitCodeGenA32();
+  InitCodeGenA64();
 
   std::ifstream finFile;
   std::istream* fin = &std::cin;
@@ -176,8 +176,8 @@ int main(int argc, const char* argv[]) {
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
-    a32::A32Unit armunit = EmitUnitAsBinary(unit, true);
-    auto exe = a32::MakeExe(&armunit, true);
+    a64::A64Unit armunit = EmitUnitAsBinary(unit, true);
+    auto exe = a64::MakeExe(&armunit, true);
     std::vector<std::string_view> chunks = exe.Save();
     for (const auto& c : chunks) {
       fout->write((const char*)c.data(), c.size());
