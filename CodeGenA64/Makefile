@@ -79,7 +79,7 @@ $(CODEGEN_TOOL):
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary --add_startup_code - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
@@ -87,7 +87,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 # same as above but from local TestData dir
 # $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) --add_startup_code -mode binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -add_startup_code -mode binary - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden

@@ -45,7 +45,7 @@ bool ImmFitsCurb(IMM_CURB constr,
     case IC::pos_stk_combo_10_21_times_2:
     case IC::pos_stk_combo_10_21_times_4:
     case IC::pos_stk_combo_10_21_times_8:
-      ASSERT(false, "NYI " << base::EnumToString(constr));
+      ASSERT(false, "NYI " << EnumToString(constr));
       return false;
     case IC::pos_stk_combo_shifted_10_21_22:
       if (assume_stk_op_matches) return true;

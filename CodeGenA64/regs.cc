@@ -472,7 +472,7 @@ void InitCodeGenA64() {
   // GPR64
   for (unsigned i = 0; i < GPR32_REGS.size(); ++i) {
     char buffer[8];
-    buffer[0] = 'w';
+    buffer[0] = 'x';
     ToDecString(i, buffer + 1);
     GPR64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR64, StrNew(buffer));
   }
