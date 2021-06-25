@@ -603,6 +603,21 @@ enum class RELOC_TYPE_AARCH64 : uint16_t {
 };
 /* @AUTOGEN-END@ */
 
-template <typename Flag> const char* EnumToString(Flag f);
+extern const char* EnumToString(EI_CLASS x);
+extern const char* EnumToString(EI_DATA x);
+extern const char* EnumToString(EI_VERSION x);
+extern const char* EnumToString(EI_OSABI x);
+extern const char* EnumToString(E_TYPE x);
+extern const char* EnumToString(E_MACHINE x);
+extern const char* EnumToString(E_FLAGS_ARM x);
+extern const char* EnumToString(SH_FLAGS x);
+extern const char* EnumToString(P_FLAGS x);
+extern const char* EnumToString(ST_INFO_BIND x);
+extern const char* EnumToString(ST_INFO_TYPE x);
+extern const char* EnumToString(ST_VISIBILITY x);
+extern const char* EnumToString(RELOC_TYPE_ARM x) ;
+extern const char* EnumToString(RELOC_TYPE_AARCH64 x);
+extern const char* EnumToString(P_TYPE x);
+extern const char* EnumToString(SH_TYPE x);
 
 }  // namespace cwerg::elf

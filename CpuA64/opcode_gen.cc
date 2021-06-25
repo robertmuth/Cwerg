@@ -4805,9 +4805,7 @@ const char* const SHIFT_ToStringMap[] = {
     "asr", // 2
     "ror", // 3
 };
-
-template<>  // template specialization for SHIFT
-const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
+const char* EnumToString(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
 
 
 const char* const OK_ToStringMap[] = {
@@ -4880,9 +4878,7 @@ const char* const OK_ToStringMap[] = {
     "IMM_SHIFTED_5_20_21_22", // 66
     "IMM_FLT_13_20", // 67
 };
-
-template<>  // template specialization for OK
-const char* EnumToString<OK>(OK x) { return OK_ToStringMap[unsigned(x)]; }
+const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 

@@ -23,10 +23,10 @@ using a32::PRED;
 using a32::REG;
 using a32::SHIFT;
 
-bool ImmFitsConstraint(IMM_CURB constr,
-                       int64_t x,
-                       int32_t last_stack_offset,
-                       bool assume_stk_op_matches) {
+bool ImmFitsCurb(IMM_CURB constr,
+                 int64_t x,
+                 int32_t last_stack_offset,
+                 bool assume_stk_op_matches) {
   switch (constr) {
     default:
     case IC::invalid:
@@ -92,15 +92,6 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
   return reg_matcher;
 }
 
-bool IsConstMatch(Const num,
-                  IMM_CURB imm_constraint,
-                  int32_t last_stack_offset,
-                  bool assume_stk_op_matches) {
-  if (imm_constraint == IMM_CURB::invalid) return false;
-  return ImmFitsConstraint(imm_constraint, ConstValueInt64(num), last_stack_offset,
-                           assume_stk_op_matches);
-}
-
 bool PatternMatchesTypeConstraints(const Pattern& pat, uint64_t type_mask) {
   return type_mask == *(uint64_t*)pat.type_curbs;
 }
@@ -113,7 +104,7 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
   int32_t last_stack_offset = 0;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Const op(InsOperand(ins, i));
-    const IC imm_constraint = pat.imm_curbs[i];
+    const IC imm_curb = pat.imm_curbs[i];
     if (op.kind() == RefKind::STK) {
       if (assume_stk_op_matches) {
         last_stack_offset = 0;
@@ -121,14 +112,14 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
         last_stack_offset = StkSlot(Stk(op));
       }
     } else if (op.kind() == RefKind::REG) {
-      if (imm_constraint != IC::invalid)
+      if (imm_curb != IC::invalid)
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
-      if (imm_constraint == IC::invalid) {
+      if (imm_curb == IC::invalid) {
         // we have an imm but need a reg - this can be accommodated.
         out |= 1U << i;
-      } else if (!ImmFitsConstraint(imm_constraint, ConstValueInt64(op), last_stack_offset,
-                           assume_stk_op_matches)) {
+      } else if (!ImmFitsCurb(imm_curb, ConstValueInt64(op), last_stack_offset,
+                              assume_stk_op_matches)) {
         // imm does not not fit
         return MATCH_IMPOSSIBLE;
       }
@@ -3397,9 +3388,56 @@ const char* const IMM_CURB_ToStringMap[] = {
     "pos_stk_combo_12_bits", // 16
     "pos_stk_combo_16_bits", // 17
 };
+const char* EnumToString(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
 
-template<>  // template specialization for IMM_CURB
-const char* EnumToString<IMM_CURB>(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
+
+const char* const PARAM_ToStringMap[] = {
+    "invalid", // 0
+    "reg0", // 1
+    "reg1", // 2
+    "reg2", // 3
+    "reg3", // 4
+    "reg4", // 5
+    "num0", // 6
+    "num1", // 7
+    "num2", // 8
+    "num3", // 9
+    "num4", // 10
+    "num0_neg", // 11
+    "num1_neg", // 12
+    "num2_neg", // 13
+    "num3_neg", // 14
+    "num4_neg", // 15
+    "num0_not", // 16
+    "num1_not", // 17
+    "num2_not", // 18
+    "num1_lo16", // 19
+    "num1_hi16", // 20
+    "mem1_num2_lo16", // 21
+    "mem1_num2_hi16", // 22
+    "fun1_lo16", // 23
+    "fun1_hi16", // 24
+    "bbl0", // 25
+    "bbl2", // 26
+    "fun0", // 27
+    "jtb1_lo16", // 28
+    "jtb1_hi16", // 29
+    "scratch_flt", // 30
+    "scratch_gpr", // 31
+    "ldm_regmask", // 32
+    "stm_regmask", // 33
+    "vldm_start", // 34
+    "vldm_count", // 35
+    "vstm_start", // 36
+    "vstm_count", // 37
+    "stk0_offset1", // 38
+    "stk0_offset1_lo", // 39
+    "stk0_offset1_hi", // 40
+    "stk1_offset2", // 41
+    "stk1_offset2_lo", // 42
+    "stk1_offset2_hi", // 43
+};
+const char* EnumToString(PARAM x) { return PARAM_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 

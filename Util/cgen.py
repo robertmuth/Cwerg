@@ -65,8 +65,7 @@ def RenderStringToEnumMap(cls, map_name, jumper_name, fout):
 
 
 def RenderEnumToStringFun(name, fout):
-    print(f"\ntemplate<>  // template specialization for {name}\n"
-          f"const char* EnumToString<{name}>({name} x) {{"
+    print(f"const char* EnumToString({name} x) {{"
           f" return {name}_ToStringMap[unsigned(x)]; }}\n", file=fout)
 
 

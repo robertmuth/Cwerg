@@ -13,9 +13,7 @@ const char* const EI_CLASS_ToStringMap[] = {
     "X_32", // 1
     "X_64", // 2
 };
-
-template<>  // template specialization for EI_CLASS
-const char* EnumToString<EI_CLASS>(EI_CLASS x) { return EI_CLASS_ToStringMap[unsigned(x)]; }
+const char* EnumToString(EI_CLASS x) { return EI_CLASS_ToStringMap[unsigned(x)]; }
 
 
 const char* const EI_DATA_ToStringMap[] = {
@@ -23,18 +21,14 @@ const char* const EI_DATA_ToStringMap[] = {
     "LSB2", // 1
     "MSB2", // 2
 };
-
-template<>  // template specialization for EI_DATA
-const char* EnumToString<EI_DATA>(EI_DATA x) { return EI_DATA_ToStringMap[unsigned(x)]; }
+const char* EnumToString(EI_DATA x) { return EI_DATA_ToStringMap[unsigned(x)]; }
 
 
 const char* const EI_VERSION_ToStringMap[] = {
     "NONE", // 0
     "CURRENT", // 1
 };
-
-template<>  // template specialization for EI_VERSION
-const char* EnumToString<EI_VERSION>(EI_VERSION x) { return EI_VERSION_ToStringMap[unsigned(x)]; }
+const char* EnumToString(EI_VERSION x) { return EI_VERSION_ToStringMap[unsigned(x)]; }
 
 
 const char* const EI_OSABI_ToStringMap[] = {
@@ -137,9 +131,7 @@ const char* const EI_OSABI_ToStringMap[] = {
     "", // 96
     "ARM", // 97
 };
-
-template<>  // template specialization for EI_OSABI
-const char* EnumToString<EI_OSABI>(EI_OSABI x) { return EI_OSABI_ToStringMap[unsigned(x)]; }
+const char* EnumToString(EI_OSABI x) { return EI_OSABI_ToStringMap[unsigned(x)]; }
 
 
 const char* const E_TYPE_ToStringMap[] = {
@@ -149,9 +141,7 @@ const char* const E_TYPE_ToStringMap[] = {
     "DYN", // 3
     "CORE", // 4
 };
-
-template<>  // template specialization for E_TYPE
-const char* EnumToString<E_TYPE>(E_TYPE x) { return E_TYPE_ToStringMap[unsigned(x)]; }
+const char* EnumToString(E_TYPE x) { return E_TYPE_ToStringMap[unsigned(x)]; }
 
 
 const char* const E_MACHINE_ToStringMap[] = {
@@ -400,9 +390,7 @@ const char* const E_MACHINE_ToStringMap[] = {
     "", // 242
     "RISCV", // 243
 };
-
-template<>  // template specialization for E_MACHINE
-const char* EnumToString<E_MACHINE>(E_MACHINE x) { return E_MACHINE_ToStringMap[unsigned(x)]; }
+const char* EnumToString(E_MACHINE x) { return E_MACHINE_ToStringMap[unsigned(x)]; }
 
 
 const char* const E_FLAGS_ARM_ToStringMap[] = {
@@ -419,9 +407,7 @@ const char* const E_FLAGS_ARM_ToStringMap[] = {
     "EABI_VER2", // 0x2000000,
     "EABI_VER4", // 0x4000000,
 };
-
-template<>  // template specialization for E_FLAGS_ARM
-const char* EnumToString<E_FLAGS_ARM>(E_FLAGS_ARM x) { return E_FLAGS_ARM_ToStringMap[unsigned(x)]; }
+const char* EnumToString(E_FLAGS_ARM x) { return E_FLAGS_ARM_ToStringMap[unsigned(x)]; }
 
 
 const char* const SH_TYPE_0_ToStringMap[] = {
@@ -479,9 +465,7 @@ const char* const SH_FLAGS_ToStringMap[] = {
     "TLS", // 0x400,
     "COMPRESSED", // 0x800,
 };
-
-template<>  // template specialization for SH_FLAGS
-const char* EnumToString<SH_FLAGS>(SH_FLAGS x) { return SH_FLAGS_ToStringMap[unsigned(x)]; }
+const char* EnumToString(SH_FLAGS x) { return SH_FLAGS_ToStringMap[unsigned(x)]; }
 
 
 const char* const P_TYPE_0_ToStringMap[] = {
@@ -514,9 +498,7 @@ const char* const P_FLAGS_ToStringMap[] = {
     "W", // 2,
     "R", // 4,
 };
-
-template<>  // template specialization for P_FLAGS
-const char* EnumToString<P_FLAGS>(P_FLAGS x) { return P_FLAGS_ToStringMap[unsigned(x)]; }
+const char* EnumToString(P_FLAGS x) { return P_FLAGS_ToStringMap[unsigned(x)]; }
 
 
 const char* const ST_INFO_BIND_ToStringMap[] = {
@@ -525,9 +507,7 @@ const char* const ST_INFO_BIND_ToStringMap[] = {
     "WEAK", // 2
     "NUM", // 3
 };
-
-template<>  // template specialization for ST_INFO_BIND
-const char* EnumToString<ST_INFO_BIND>(ST_INFO_BIND x) { return ST_INFO_BIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString(ST_INFO_BIND x) { return ST_INFO_BIND_ToStringMap[unsigned(x)]; }
 
 
 const char* const ST_INFO_TYPE_ToStringMap[] = {
@@ -548,9 +528,7 @@ const char* const ST_INFO_TYPE_ToStringMap[] = {
     "", // 14
     "HIPROC", // 15
 };
-
-template<>  // template specialization for ST_INFO_TYPE
-const char* EnumToString<ST_INFO_TYPE>(ST_INFO_TYPE x) { return ST_INFO_TYPE_ToStringMap[unsigned(x)]; }
+const char* EnumToString(ST_INFO_TYPE x) { return ST_INFO_TYPE_ToStringMap[unsigned(x)]; }
 
 
 const char* const ST_VISIBILITY_ToStringMap[] = {
@@ -562,9 +540,7 @@ const char* const ST_VISIBILITY_ToStringMap[] = {
     "SINGLETON", // 5
     "ELIMINATE", // 6
 };
-
-template<>  // template specialization for ST_VISIBILITY
-const char* EnumToString<ST_VISIBILITY>(ST_VISIBILITY x) { return ST_VISIBILITY_ToStringMap[unsigned(x)]; }
+const char* EnumToString(ST_VISIBILITY x) { return ST_VISIBILITY_ToStringMap[unsigned(x)]; }
 
 
 const char* const RELOC_TYPE_ARM_ToStringMap[] = {
@@ -710,9 +686,7 @@ const char* const RELOC_TYPE_ARM_ToStringMap[] = {
     "", // 139
     "IRELATIVE", // 140
 };
-
-template<>  // template specialization for RELOC_TYPE_ARM
-const char* EnumToString<RELOC_TYPE_ARM>(RELOC_TYPE_ARM x) { return RELOC_TYPE_ARM_ToStringMap[unsigned(x)]; }
+const char* EnumToString(RELOC_TYPE_ARM x) { return RELOC_TYPE_ARM_ToStringMap[unsigned(x)]; }
 
 
 const char* const RELOC_TYPE_AARCH64_ToStringMap[] = {
@@ -1751,14 +1725,11 @@ const char* const RELOC_TYPE_AARCH64_ToStringMap[] = {
     "TLS_DTPMOD32", // 0x408
     "TLS_TPREL32", // 0x409
 };
-
-template<>  // template specialization for RELOC_TYPE_AARCH64
-const char* EnumToString<RELOC_TYPE_AARCH64>(RELOC_TYPE_AARCH64 x) { return RELOC_TYPE_AARCH64_ToStringMap[unsigned(x)]; }
+const char* EnumToString(RELOC_TYPE_AARCH64 x) { return RELOC_TYPE_AARCH64_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 
-template<>
-const char* EnumToString<P_TYPE>(P_TYPE x) {
+const char* EnumToString(P_TYPE x) {
   if (x < P_TYPE::GNU_EH_FRAME) {
     return P_TYPE_0_ToStringMap[unsigned(x)];
   } else if (x < P_TYPE::ARM_ARCHEXT) {
@@ -1768,8 +1739,7 @@ const char* EnumToString<P_TYPE>(P_TYPE x) {
   }
 }
 
-template<>
-const char* EnumToString<SH_TYPE>(SH_TYPE x) {
+const char* EnumToString(SH_TYPE x) {
   if (x < SH_TYPE::GNU_ATTRIBUTES) {
     return SH_TYPE_0_ToStringMap[unsigned(x)];
   } else {

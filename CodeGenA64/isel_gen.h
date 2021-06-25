@@ -110,7 +110,8 @@ extern a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl,
 extern void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output);
 extern void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output);
 
-template <typename Flag>
-const char* EnumToString(Flag f);
+
+extern const char* EnumToString(IMM_CURB f);
+extern const char* EnumToString(PARAM f);
 
 }  // namespace cwerg::code_gen_a32

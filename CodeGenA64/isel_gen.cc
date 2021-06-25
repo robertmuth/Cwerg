@@ -27,21 +27,30 @@ bool ImmFitsCurb(IMM_CURB constr,
   switch (constr) {
     default:
     case IC::INVALID:
-      ASSERT(false, "unexpected IMM_KIND " << (unsigned)constr);
+      ASSERT(false, "unexpected IMM_CURB " << EnumToString(constr));
       return false;
     case IC::ZERO:
       return x == 0;
     case IC::ANY:
       return true;
     case IC::pos_stk_combo_16_bits:
+      if (assume_stk_op_matches) return true;
+      x += last_stack_offset;
+      return 0 <= x && x < (1U << 16);
     case IC::pos_stk_combo_32_bits:
+      if (assume_stk_op_matches) return true;
+      x += last_stack_offset;
+      return 0 <= x && x < (1ULL << 32);
     case IC::pos_stk_combo_10_21:
-    case IC::pos_stk_combo_shifted_10_21_22:
     case IC::pos_stk_combo_10_21_times_2:
     case IC::pos_stk_combo_10_21_times_4:
     case IC::pos_stk_combo_10_21_times_8:
+      ASSERT(false, "NYI " << base::EnumToString(constr));
       return false;
-
+    case IC::pos_stk_combo_shifted_10_21_22:
+      if (assume_stk_op_matches) return true;
+      x += last_stack_offset;
+      // fall through
     case IC::IMM_SHIFTED_10_21_22:
       return a64::EncodeOperand(a64::OK::IMM_SHIFTED_10_21_22, x) !=
              a64::kEncodeFailure;
@@ -72,31 +81,6 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
   return reg_matcher;
 }
 
-bool IsConstMatch(Const num,
-                  IMM_CURB imm_constraint,
-                  int32_t last_stack_offset,
-                  bool assume_stk_op_matches) {
-  if (imm_constraint == IMM_CURB::INVALID) return false;
-
-  int64_t x;
-  switch (DKFlavor(ConstKind(num))) {
-    default:
-      return MATCH_IMPOSSIBLE;
-    case DK_FLAVOR_U:
-      // it is ok to convert to signed since we can handle at most 32 bit
-      // immediates
-      x = ConstValueU(num);
-      break;
-    case DK_FLAVOR_A:
-    case DK_FLAVOR_C:
-    case DK_FLAVOR_S:
-      x = ConstValueACS(num);
-      break;
-  }
-  return ImmFitsCurb(imm_constraint, x, last_stack_offset,
-                     assume_stk_op_matches);
-}
-
 bool PatternMatchesTypeCurbs(const Pattern& pat, uint64_t type_mask) {
   return type_mask == *(uint64_t*)pat.type_curbs;
 }
@@ -106,6 +90,7 @@ uint8_t PatternMismatchesImmCurbs(const Pattern& pat,
                                   bool assume_stk_op_matches) {
   unsigned num_ops = InsOpcode(ins).num_operands;
   uint8_t out = 0;
+  // Should this be int64_t?
   int32_t last_stack_offset = 0;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Const op(InsOperand(ins, i));
@@ -122,9 +107,10 @@ uint8_t PatternMismatchesImmCurbs(const Pattern& pat,
     } else if (op.kind() == RefKind::CONST) {
       if (imm_curb == IC::INVALID) {
         // we have an imm but need a reg - this can be accommodated.
-        out |= 1 << i;
-      } else if (!IsConstMatch(op, imm_curb, last_stack_offset,
-                               assume_stk_op_matches)) {
+        out |= 1U << i;
+      } else if (!ImmFitsCurb(imm_curb, ConstValueInt64(op), last_stack_offset,
+                              assume_stk_op_matches)) {
+        // imm does not not fit
         return MATCH_IMPOSSIBLE;
       }
     }
@@ -2977,9 +2963,7 @@ const char* const IMM_CURB_ToStringMap[] = {
     "pos_stk_combo_10_21_times_4", // 13
     "pos_stk_combo_10_21_times_8", // 14
 };
-
-template<>  // template specialization for IMM_CURB
-const char* EnumToString<IMM_CURB>(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
+const char* EnumToString(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
 
 
 const char* const PARAM_ToStringMap[] = {
@@ -3023,9 +3007,7 @@ const char* const PARAM_ToStringMap[] = {
     "jtb1_lo12", // 37
     "any", // 38
 };
-
-template<>  // template specialization for PARAM
-const char* EnumToString<PARAM>(PARAM x) { return PARAM_ToStringMap[unsigned(x)]; }
+const char* EnumToString(PARAM x) { return PARAM_ToStringMap[unsigned(x)]; }
 
 /* @AUTOGEN-END@ */
 
@@ -3176,8 +3158,7 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::invalid:
       return 0;
   }
-  ASSERT(false,
-         "unsupported parmm " << +param << " " << EnumToString(param));
+  ASSERT(false, "unsupported parmm " << +param << " " << EnumToString(param));
   return 0;
 }
 
@@ -3258,7 +3239,7 @@ a64::Ins MakeIns(a64::OPC opc_enum,
 a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
   out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];
-  //std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
+  // std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
   for (unsigned o = 0; o < a64::MAX_OPERANDS; ++o) {
     if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim

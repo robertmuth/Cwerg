@@ -44,7 +44,7 @@ template <typename Flag>
 std::string_view FirstCharFlagString(uint32_t flag, char buf[64]) {
   size_t pos = 0;
   for (unsigned i = 0; i < 32; ++i) {
-    if ((flag & (1 << i)) != 0) buf[pos++] = EnumToString<Flag>(Flag(i))[0];
+    if ((flag & (1 << i)) != 0) buf[pos++] = EnumToString(Flag(i))[0];
   }
   return {buf, pos};
 }

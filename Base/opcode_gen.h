@@ -234,6 +234,11 @@ extern MEM_KIND MKFromString(std::string_view name);
 extern TC TCFromString(std::string_view name);
 extern DK DKFromString(std::string_view name);
 
-template <typename Flag> const char* EnumToString(Flag f);
+extern const char* EnumToString(OPC_GENUS x);
+extern const char* EnumToString(FUN_KIND x);
+extern const char* EnumToString(MEM_KIND x);
+extern const char* EnumToString(TC x);
+extern const char* EnumToString(DK x);
+extern const char* EnumToString(OP_KIND x);
 
 }  // namespace cwerg

@@ -21,9 +21,7 @@ const char* const OPC_GENUS_ToStringMap[] = {
     "STRUCT", // 3
     "TBD", // 4
 };
-
-template<>  // template specialization for OPC_GENUS
-const char* EnumToString<OPC_GENUS>(OPC_GENUS x) { return OPC_GENUS_ToStringMap[unsigned(x)]; }
+const char* EnumToString(OPC_GENUS x) { return OPC_GENUS_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind OPC_GENUSFromStringMap[] = {
@@ -45,9 +43,7 @@ const char* const FUN_KIND_ToStringMap[] = {
     "NORMAL", // 3
     "SIGNATURE", // 4
 };
-
-template<>  // template specialization for FUN_KIND
-const char* EnumToString<FUN_KIND>(FUN_KIND x) { return FUN_KIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString(FUN_KIND x) { return FUN_KIND_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind FUN_KINDFromStringMap[] = {
@@ -70,9 +66,7 @@ const char* const MEM_KIND_ToStringMap[] = {
     "FIX", // 4
     "EXTERN", // 5
 };
-
-template<>  // template specialization for MEM_KIND
-const char* EnumToString<MEM_KIND>(MEM_KIND x) { return MEM_KIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString(MEM_KIND x) { return MEM_KIND_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind MEM_KINDFromStringMap[] = {
@@ -113,9 +107,7 @@ const char* const TC_ToStringMap[] = {
     "", // 21
     "SAME_SIZE_AS_PREV", // 22
 };
-
-template<>  // template specialization for TC
-const char* EnumToString<TC>(TC x) { return TC_ToStringMap[unsigned(x)]; }
+const char* EnumToString(TC x) { return TC_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind TCFromStringMap[] = {
@@ -305,9 +297,7 @@ const char* const DK_ToStringMap[] = {
     "C32", // 162
     "C64", // 163
 };
-
-template<>  // template specialization for DK
-const char* EnumToString<DK>(DK x) { return DK_ToStringMap[unsigned(x)]; }
+const char* EnumToString(DK x) { return DK_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind DKFromStringMap[] = {
@@ -367,9 +357,7 @@ const char* const OP_KIND_ToStringMap[] = {
     "BBL_TAB", // 29
     "BYTES", // 30
 };
-
-template<>  // template specialization for OP_KIND
-const char* EnumToString<OP_KIND>(OP_KIND x) { return OP_KIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString(OP_KIND x) { return OP_KIND_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind OPCFromStringMap[] = {

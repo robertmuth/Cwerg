@@ -674,9 +674,13 @@ extern uint32_t SignedIntFromBits(uint32_t data, unsigned n_bits);
 extern uint32_t EncodeOperand(uint32_t data, OK ok);
 extern uint32_t DecodeOperand(uint32_t data, OK ok);
 
+extern const char* EnumToString(REG x);
+extern const char* EnumToString(DREG x);
+extern const char* EnumToString(SREG x);
+extern const char* EnumToString(PRED x);
+extern const char* EnumToString(SHIFT x);
+extern const char* EnumToString(OK x);
 
-template <typename Flag>
-const char* EnumToString(Flag f);
 
 }  // namespace cwerg::a32
 

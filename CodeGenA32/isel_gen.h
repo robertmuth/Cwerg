@@ -114,7 +114,9 @@ extern a32::Ins MakeIns(a32::OPC opc_enum,
 extern a32::Ins MakeInsFromTmpl(const InsTmpl& tmpl,
                  base::Ins ins,
                  const EmitContext& ctx);
-template <typename Flag>
-const char* EnumToString(Flag f);
+
+
+extern const char* EnumToString(IMM_CURB x);
+extern const char* EnumToString(PARAM x);
 
 }  // namespace cwerg::code_gen_a32

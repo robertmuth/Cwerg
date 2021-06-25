@@ -1031,8 +1031,8 @@ extern uint64_t Decode8BitFlt(uint32_t x);
 extern uint64_t DecodeOperand(OK ok, uint32_t data);
 extern uint32_t EncodeOperand(OK ok, uint64_t data);
 
-template <typename Flag>
-const char* EnumToString(Flag f);
+extern const char* EnumToString(SHIFT x);
+extern const char* EnumToString(OK x);
 
 }  // namespace cwerg::a32
 

@@ -148,7 +148,7 @@ class PARAM(enum.Enum):
     vstm_start = 36
     vstm_count = 37
     stk0_offset1 = 38
-    stk0_offset1_lo = 49
+    stk0_offset1_lo = 39
     stk0_offset1_hi = 40
     stk1_offset2 = 41
     stk1_offset2_lo = 42
@@ -1155,6 +1155,8 @@ def _EmitCodeC(fout):
     print("}  // namespace", file=fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_CURB", fout)
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM", fout)
+    cgen.RenderEnumToStringFun("PARAM", fout)
 
 
 def _DumpCodeSelTable():

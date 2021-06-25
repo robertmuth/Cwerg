@@ -2399,9 +2399,7 @@ const char* const REG_ToStringMap[] = {
     "lr", // 14
     "pc", // 15
 };
-
-template<>  // template specialization for REG
-const char* EnumToString<REG>(REG x) { return REG_ToStringMap[unsigned(x)]; }
+const char* EnumToString(REG x) { return REG_ToStringMap[unsigned(x)]; }
 
 
 const char* const DREG_ToStringMap[] = {
@@ -2422,9 +2420,7 @@ const char* const DREG_ToStringMap[] = {
     "d14", // 14
     "d15", // 15
 };
-
-template<>  // template specialization for DREG
-const char* EnumToString<DREG>(DREG x) { return DREG_ToStringMap[unsigned(x)]; }
+const char* EnumToString(DREG x) { return DREG_ToStringMap[unsigned(x)]; }
 
 
 const char* const SREG_ToStringMap[] = {
@@ -2461,9 +2457,7 @@ const char* const SREG_ToStringMap[] = {
     "s30", // 30
     "s31", // 31
 };
-
-template<>  // template specialization for SREG
-const char* EnumToString<SREG>(SREG x) { return SREG_ToStringMap[unsigned(x)]; }
+const char* EnumToString(SREG x) { return SREG_ToStringMap[unsigned(x)]; }
 
 
 const char* const PRED_ToStringMap[] = {
@@ -2484,9 +2478,7 @@ const char* const PRED_ToStringMap[] = {
     "al", // 14
     "invalid_pred", // 15
 };
-
-template<>  // template specialization for PRED
-const char* EnumToString<PRED>(PRED x) { return PRED_ToStringMap[unsigned(x)]; }
+const char* EnumToString(PRED x) { return PRED_ToStringMap[unsigned(x)]; }
 
 
 const char* const SHIFT_ToStringMap[] = {
@@ -2495,9 +2487,7 @@ const char* const SHIFT_ToStringMap[] = {
     "asr", // 2
     "ror", // 3
 };
-
-template<>  // template specialization for SHIFT
-const char* EnumToString<SHIFT>(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
+const char* EnumToString(SHIFT x) { return SHIFT_ToStringMap[unsigned(x)]; }
 
 
 const char* const OK_ToStringMap[] = {
@@ -2529,9 +2519,7 @@ const char* const OK_ToStringMap[] = {
     "IMM_0_11_16_19", // 25
     "SIMM_0_23", // 26
 };
-
-template<>  // template specialization for OK
-const char* EnumToString<OK>(OK x) { return OK_ToStringMap[unsigned(x)]; }
+const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 
 // Indexed by OK
 const FieldInfo FieldInfoTable[] = {
