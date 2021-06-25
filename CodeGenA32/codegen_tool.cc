@@ -101,6 +101,8 @@ SwitchString sw_mode("mode", "mode indicating what to do", "optimize");
 
 SwitchBool sw_show_stats("show_stats", "emit stats to cout");
 
+SwitchBool sw_add_startup_code("add_startup_code", "Add startup code");
+
 SwitchBool sw_break_after_load("break_after_load", "break after load IR");
 
 SwitchInt32 sw_webserver_port("webserver_port",
@@ -176,7 +178,7 @@ int main(int argc, const char* argv[]) {
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
-    a32::A32Unit armunit = EmitUnitAsBinary(unit, true);
+    a32::A32Unit armunit = EmitUnitAsBinary(unit, sw_add_startup_code.Value());
     auto exe = a32::MakeExe(&armunit, true);
     std::vector<std::string_view> chunks = exe.Save();
     for (const auto& c : chunks) {

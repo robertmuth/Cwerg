@@ -3648,12 +3648,13 @@ a32::Ins MakeIns(a32::OPC opc_enum,
                  uint32_t x4,
                  uint32_t x5) {
   const a32::Opcode* opc = &a32::OpcodeTable[+opc_enum];
-  if (opc->num_fields > 0) x0 = EncodeOperand(x0, opc->fields[0]);
-  if (opc->num_fields > 1) x1 = EncodeOperand(x1, opc->fields[1]);
-  if (opc->num_fields > 2) x2 = EncodeOperand(x2, opc->fields[2]);
-  if (opc->num_fields > 3) x3 = EncodeOperand(x3, opc->fields[3]);
-  if (opc->num_fields > 4) x4 = EncodeOperand(x4, opc->fields[4]);
-  if (opc->num_fields > 5) x5 = EncodeOperand(x5, opc->fields[5]);
+  // TODO: reverse EncodeOperand params
+  if (opc->num_fields > 0) x0 = a32::EncodeOperand(x0, opc->fields[0]);
+  if (opc->num_fields > 1) x1 = a32::EncodeOperand(x1, opc->fields[1]);
+  if (opc->num_fields > 2) x2 = a32::EncodeOperand(x2, opc->fields[2]);
+  if (opc->num_fields > 3) x3 = a32::EncodeOperand(x3, opc->fields[3]);
+  if (opc->num_fields > 4) x4 = a32::EncodeOperand(x4, opc->fields[4]);
+  if (opc->num_fields > 5) x5 = a32::EncodeOperand(x5, opc->fields[5]);
   return a32::Ins{opc, {x0, x1, x2, x3, x4, x5}};
 }
 a32::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {

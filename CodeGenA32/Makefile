@@ -39,35 +39,34 @@ STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ >$@.out
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # sames as above but local TestData dir
 $(DIR)/%.asm.exe: TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ >$@.out
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/syscall.a32.asm.exe: TestData/syscall.a32.asm
 	@echo "[integration $@]"
-	$(PYPY) ./codegen.py normal $<  $@.s
-	$(PYPY)	../CpuA32/assembler_tool.py assemble_raw $@.s $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary $<  $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
 $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py normal - $@.s
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode normal - $@.s
 	$(PYPY)	../CpuA32/assembler_tool.py assemble $@.s $@ > $@.out
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ > $@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
 	$@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -79,7 +78,7 @@ $(DIR)/isel_test:
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py binary - $@.exe >$@.out
+	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@.exe >$@.out
 	./$@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
@@ -95,7 +94,7 @@ $(CODEGEN_TOOL):
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
@@ -103,7 +102,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 # same as above but from local TestData dir
 $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
@@ -126,7 +125,7 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 
 $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm  |  $(CODEGEN_TOOL) -mode binary  - $@.exe >$@.out
+	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@.exe >$@.out
 	@chmod a+rx $@.exe
 	./$@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
@@ -146,48 +145,48 @@ TEST_MODE = normal
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
 	@echo
-	cat $(STD_LIB) ../TestData/reg_torture.asm | $(PYPY) ./codegen.py $(TEST_MODE) -  $@.out
+	cat $(STD_LIB) ../TestData/reg_torture.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
 	cat $(STD_LIB) ../TestData/reg_torture.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) TestData/linkerdef.a32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) TestData/linkerdef.a32.asm | $(PYPY) ./codegen.py $(TEST_MODE) -  $@.out
+	cat $(STD_LIB) TestData/linkerdef.a32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/multiple_results_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/multiple_results_f32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/multiple_results_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/fib.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/fib.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/fib.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/queens.32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/queens.32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/queens.32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/reg_torture_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/reg_torture_f32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/reg_torture_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/stack.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/stack.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/stack.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/switch.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/switch.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/switch.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/memaddr.32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/memaddr.32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/memaddr.32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(PYPY) ./codegen.py $(TEST_MODE) - $@.out
+	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 
 
