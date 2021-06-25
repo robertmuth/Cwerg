@@ -234,6 +234,7 @@ extern double ConstValueF(Const num);
 
 // asserts if value is out of range
 extern int32_t ConstValueInt32(Const num);
+extern int64_t ConstValueInt64(Const num);
 
 extern DK ConstKind(Const num);
 extern std::string_view ConstToBytes(Const num);

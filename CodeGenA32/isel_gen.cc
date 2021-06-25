@@ -42,37 +42,37 @@ bool ImmFitsConstraint(IMM_CURB constr,
     case IC::not_8_bits_shifted:
       return a32::EncodeRotatedImm(~x) != a32::kEncodeFailure;
     case IC::pos_5_bits:
-      return 0 <= x && x < (1 << 5);
+      return 0 <= x && x < (1U << 5U);
     case IC::pos_stk_combo_12_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IC::pos_12_bits:
-      return 0 <= x && x < (1 << 12);
+      return 0 <= x && x < (1U << 12U);
     case IC::neg_12_bits:
-      return 0 <= -x && -x < (1 << 12);
+      return 0 <= -x && -x < (1U << 12U);
     case IC::pos_stk_combo_8_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IC::pos_8_bits:
-      return 0 <= x && x < (1 << 8);
+      return 0 <= x && x < (1U << 8U);
     case IC::pos_stk_combo_8_bits_times_4:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IC::pos_8_bits_times_4:
-      return (x & 3) == 0 && 0 <= (x / 2) && (x / 2) < (1 << 8);
+      return (x & 3U) == 0 && 0 <= (x / 2) && (x / 2) < (1U << 8);
     case IC::neg_8_bits_times_4:
-      return (x & 3) == 0 && -(1 << 8) < (x / 2) && (x / 2) <= 0;
+      return (x & 3U) == 0 && -(1U << 8U) < (x / 2) && (x / 2) <= 0;
     case IC::neg_8_bits:
-      return 0 <= -x && -x < (1 << 8);
+      return 0 <= -x && -x < (1U << 8U);
     case IC::pos_stk_combo_16_bits:
       if (assume_stk_op_matches) return true;
       x += last_stack_offset;
       // fallthrough
     case IC::pos_16_bits:
-      return 0 <= x && x < (1 << 16);
+      return 0 <= x && x < (1U << 16U);
     case IC::any_32_bits:
       return true;
   }
@@ -97,23 +97,7 @@ bool IsConstMatch(Const num,
                   int32_t last_stack_offset,
                   bool assume_stk_op_matches) {
   if (imm_constraint == IMM_CURB::invalid) return false;
-
-  int64_t x;
-  switch (DKFlavor(ConstKind(num))) {
-    default:
-      return MATCH_IMPOSSIBLE;
-    case DK_FLAVOR_U:
-      // it is ok to convert to signed since we can handle at most 32 bit
-      // immediates
-      x = ConstValueU(num);
-      break;
-    case DK_FLAVOR_A:
-    case DK_FLAVOR_C:
-    case DK_FLAVOR_S:
-      x = ConstValueACS(num);
-      break;
-  }
-  return ImmFitsConstraint(imm_constraint, x, last_stack_offset,
+  return ImmFitsConstraint(imm_constraint, ConstValueInt64(num), last_stack_offset,
                            assume_stk_op_matches);
 }
 
@@ -141,10 +125,11 @@ uint8_t PatternMismatchesImmConstraints(const Pattern& pat,
         return MATCH_IMPOSSIBLE;  // we have a reg but need an imm
     } else if (op.kind() == RefKind::CONST) {
       if (imm_constraint == IC::invalid) {
-        // we have an imm but need a reg - this can be accomodated.
-        out |= 1 << i;
-      } else if (!IsConstMatch(op, imm_constraint, last_stack_offset,
-                               assume_stk_op_matches)) {
+        // we have an imm but need a reg - this can be accommodated.
+        out |= 1U << i;
+      } else if (!ImmFitsConstraint(imm_constraint, ConstValueInt64(op), last_stack_offset,
+                           assume_stk_op_matches)) {
+        // imm does not not fit
         return MATCH_IMPOSSIBLE;
       }
     }
@@ -3526,26 +3511,26 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::num4_neg:
       return ExtractNumNeg(Const(InsOperand(ins, 4)));
     case PARAM::num1_lo16:
-      return ExtractNum(Const(InsOperand(ins, 1))) & 0xffff;
+      return ExtractNum(Const(InsOperand(ins, 1))) & 0xffffU;
     case PARAM::num1_hi16:
-      return (ExtractNum(Const(InsOperand(ins, 1))) >> 16) & 0xffff;
+      return (ExtractNum(Const(InsOperand(ins, 1))) >> 16) & 0xffffU;
     case PARAM::stk0_offset1:
       return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1));
     case PARAM::stk0_offset1_lo:
-      return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) & 0xffff;
+      return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) & 0xffffU;
 
     case PARAM::stk0_offset1_hi:
-      return (GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) >> 16) &
-             0xffff;
+      return (GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) >> 16U) &
+             0xffffU;
     case PARAM::stk1_offset2:
       return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2));
 
     case PARAM::stk1_offset2_lo:
-      return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) & 0xffff;
+      return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) & 0xffffU;
 
     case PARAM::stk1_offset2_hi:
-      return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16) &
-             0xffff;
+      return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16U) &
+             0xffffU;
     case PARAM::scratch_gpr:
       ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR,
              "expected gpr reg");
@@ -3661,7 +3646,7 @@ a32::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a32::Ins out;
   out.opcode = &a32::OpcodeTable[unsigned(tmpl.opcode)];
   for (unsigned o = 0; o < a32::MAX_OPERANDS; ++o) {
-    if ((tmpl.template_mask & (1 << o)) == 0) {
+    if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim
       out.operands[o] = tmpl.operands[o];
     } else {

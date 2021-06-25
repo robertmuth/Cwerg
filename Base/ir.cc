@@ -150,6 +150,21 @@ int32_t ConstValueInt32(Const num) {
   }
 }
 
+int64_t ConstValueInt64(Const num) {
+  int64_t  val;
+  switch (DKFlavor(ConstKind(num))) {
+    case DK_FLAVOR_U:
+      return ConstValueU(num);
+    case DK_FLAVOR_A:
+    case DK_FLAVOR_C:
+    case DK_FLAVOR_S:
+        return ConstValueACS(num);
+    default:
+      ASSERT(false, "bad const " << num);
+      return 0;
+  }
+}
+
 double ConstValueF(Const num) {
   switch (ConstKind(num)) {
     case DK::F32:
