@@ -1118,7 +1118,8 @@ def _EmitCodeC(fout):
     print("}  // namespace", file=fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_CURB", fout)
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
-
+    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM", fout)
+    cgen.RenderEnumToStringFun("PARAM", fout)
 
 def _DumpCodeSelTable():
     for i in range(256):

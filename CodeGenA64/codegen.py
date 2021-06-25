@@ -239,7 +239,10 @@ if __name__ == "__main__":
 
     def main():
         parser = argparse.ArgumentParser(description='CodeGenA64')
-        parser.add_argument('mode', type=str, help='mode')
+        parser.add_argument('-mode', type=str, help='mode')
+        parser.add_argument('-add_startup_code', action='store_true', help=
+            'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
+
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
@@ -256,7 +259,7 @@ if __name__ == "__main__":
             LegalizeAll(unit, opt_stats, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
-            armunit = EmitUnitAsBinary(unit, True)
+            armunit = EmitUnitAsBinary(unit, args.add_startup_code)
             exe = assembler.Assemble(armunit, True)
             exe.save(open(args.output, "wb"))
             os.chmod(args.output, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)

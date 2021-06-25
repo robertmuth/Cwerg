@@ -29,38 +29,36 @@ tests: tests_py tests_c
 
 tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test
 
-tests_c: $(DIR)/isel_test_c
+tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ >$@.out
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
 	@echo "[integration $@]"
-	$(PYPY) ./codegen.py normal $<  $@.s
-	$(PYPY)	../CpuA64/assembler_tool.py assemble_raw $@.s $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary $<  $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/queens.64.asm.s.exe: ../TestData/queens.64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py normal - $@.s
-	$(PYPY)	../CpuA64/assembler_tool.py assemble $@.s $@ > $@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py binary - $@ > $@.out
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
 	$@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py binary - $@.exe >$@.out
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary  -add_startup_code - $@.exe >$@.out
 	./$@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
@@ -81,15 +79,22 @@ $(CODEGEN_TOOL):
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary --add_startup_code - $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # same as above but from local TestData dir
-$(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
+# $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	cat $(STD_LIB) $< | $(CODEGEN_TOOL) --add_startup_code -mode binary - $@ >$@.out
+	@chmod a+rx $@
+	$@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/syscall.a64.asm.c.exe: TestData/syscall.a64.asm $(CODEGEN_TOOL)
+	@echo "[integration $@]"
+	$(CODEGEN_TOOL) -mode binary $< $@ >$@.out
 	@chmod a+rx $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden

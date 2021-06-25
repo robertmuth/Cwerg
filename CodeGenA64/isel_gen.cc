@@ -21,9 +21,9 @@ constexpr auto operator+(T e) noexcept
 using IC = IMM_CURB;
 
 bool ImmFitsCurb(IMM_CURB constr,
-                       int64_t x,
-                       int32_t last_stack_offset,
-                       bool assume_stk_op_matches) {
+                 int64_t x,
+                 int32_t last_stack_offset,
+                 bool assume_stk_op_matches) {
   switch (constr) {
     default:
     case IC::INVALID:
@@ -43,15 +43,18 @@ bool ImmFitsCurb(IMM_CURB constr,
       return false;
 
     case IC::IMM_SHIFTED_10_21_22:
-      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_10_21_22, x) != a64::kEncodeFailure;
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_10_21_22, x) !=
+             a64::kEncodeFailure;
     case IC::IMM_10_15_16_22_W:
       return a64::Encode_10_15_16_22_W(x) != a64::kEncodeFailure;
     case IC::IMM_10_15_16_22_X:
       return a64::Encode_10_15_16_22_X(x) != a64::kEncodeFailure;
     case IC::IMM_SHIFTED_5_20_21_22:
-      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, x) != a64::kEncodeFailure;
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, x) !=
+             a64::kEncodeFailure;
     case IC::IMM_SHIFTED_5_20_21_22_NOT:
-      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, ~x) != a64::kEncodeFailure;
+      return a64::EncodeOperand(a64::OK::IMM_SHIFTED_5_20_21_22, ~x) !=
+             a64::kEncodeFailure;
   }
 }
 
@@ -99,8 +102,8 @@ bool PatternMatchesTypeCurbs(const Pattern& pat, uint64_t type_mask) {
 }
 
 uint8_t PatternMismatchesImmCurbs(const Pattern& pat,
-                                        Ins ins,
-                                        bool assume_stk_op_matches) {
+                                  Ins ins,
+                                  bool assume_stk_op_matches) {
   unsigned num_ops = InsOpcode(ins).num_operands;
   uint8_t out = 0;
   int32_t last_stack_offset = 0;
@@ -2978,6 +2981,52 @@ const char* const IMM_CURB_ToStringMap[] = {
 template<>  // template specialization for IMM_CURB
 const char* EnumToString<IMM_CURB>(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
 
+
+const char* const PARAM_ToStringMap[] = {
+    "invalid", // 0
+    "reg0", // 1
+    "reg1", // 2
+    "reg2", // 3
+    "reg3", // 4
+    "reg4", // 5
+    "num0", // 6
+    "num1", // 7
+    "num2", // 8
+    "num3", // 9
+    "num4", // 10
+    "num0_neg", // 11
+    "num1_neg", // 12
+    "num2_neg", // 13
+    "num3_neg", // 14
+    "num4_neg", // 15
+    "num0_not", // 16
+    "num1_not", // 17
+    "num2_not", // 18
+    "bbl0", // 19
+    "bbl2", // 20
+    "fun0", // 21
+    "scratch_gpr", // 22
+    "scratch_flt", // 23
+    "num2_rsb_width", // 24
+    "num2_rsb_width_minus1", // 25
+    "mem1_num2_prel_hi21", // 26
+    "mem1_num2_lo12", // 27
+    "stk1_offset2", // 28
+    "stk1_offset2_lo", // 29
+    "stk1_offset2_hi", // 30
+    "stk0_offset1", // 31
+    "stk0_offset1_lo", // 32
+    "stk0_offset1_hi", // 33
+    "fun1_prel_hi21", // 34
+    "fun1_lo12", // 35
+    "jtb1_prel_hi21", // 36
+    "jtb1_lo12", // 37
+    "any", // 38
+};
+
+template<>  // template specialization for PARAM
+const char* EnumToString<PARAM>(PARAM x) { return PARAM_ToStringMap[unsigned(x)]; }
+
 /* @AUTOGEN-END@ */
 
 const Pattern* FindMatchingPattern(Ins ins) {
@@ -3090,20 +3139,20 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::stk0_offset1:
       return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1));
     case PARAM::stk0_offset1_lo:
-      return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) & 0xffff;
+      return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) & 0xffffU;
 
     case PARAM::stk0_offset1_hi:
-      return (GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) >> 16) &
+      return (GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1)) >> 16U) &
              0xffff;
     case PARAM::stk1_offset2:
       return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2));
 
     case PARAM::stk1_offset2_lo:
-      return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) & 0xffff;
+      return GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) & 0xffffU;
 
     case PARAM::stk1_offset2_hi:
-      return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16) &
-             0xffff;
+      return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16U) &
+             0xffffU;
     case PARAM::scratch_gpr:
       ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR64,
              "expected gpr reg");
@@ -3115,13 +3164,21 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::bbl0:
     case PARAM::bbl2:
     case PARAM::fun0:
-
-      // relocs
+    case PARAM::mem1_num2_lo12:
+    case PARAM::mem1_num2_prel_hi21:
+    case PARAM::fun1_lo12:
+    case PARAM::fun1_prel_hi21:
+    case PARAM::jtb1_lo12:
+    case PARAM::jtb1_prel_hi21:
+      // relocs, we return 0, as the value is irrelevant. MaybeHandleReloc()
+      // does the heavy lifting
       return 0;
-    default:
-      ASSERT(false, "unsupported parmm " << unsigned(param));
+    case PARAM::invalid:
       return 0;
   }
+  ASSERT(false,
+         "unsupported parmm " << +param << " " << EnumToString(param));
+  return 0;
 }
 
 void MaybeHandleReloc(a64::Ins* cpuins, unsigned pos, Ins ins, PARAM op) {
@@ -3189,11 +3246,11 @@ a64::Ins MakeIns(a64::OPC opc_enum,
                  int64_t x3,
                  int64_t x4) {
   const a64::Opcode* opc = &a64::OpcodeTable[+opc_enum];
-  if (opc->num_fields > 0) x0 = EncodeOperand(opc->fields[0], x0);
-  if (opc->num_fields > 1) x1 = EncodeOperand(opc->fields[1], x1);
-  if (opc->num_fields > 2) x2 = EncodeOperand(opc->fields[2], x2);
-  if (opc->num_fields > 3) x3 = EncodeOperand(opc->fields[3], x3);
-  if (opc->num_fields > 4) x4 = EncodeOperand(opc->fields[4], x4);
+  if (opc->num_fields > 0) x0 = a64::EncodeOperand(opc->fields[0], x0);
+  if (opc->num_fields > 1) x1 = a64::EncodeOperand(opc->fields[1], x1);
+  if (opc->num_fields > 2) x2 = a64::EncodeOperand(opc->fields[2], x2);
+  if (opc->num_fields > 3) x3 = a64::EncodeOperand(opc->fields[3], x3);
+  if (opc->num_fields > 4) x4 = a64::EncodeOperand(opc->fields[4], x4);
   return a64::Ins{
       opc,
       {(uint32_t)x0, (uint32_t)x1, (uint32_t)x2, (uint32_t)x3, (uint32_t)x4}};
@@ -3201,11 +3258,14 @@ a64::Ins MakeIns(a64::OPC opc_enum,
 a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
   out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];
+  //std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
   for (unsigned o = 0; o < a64::MAX_OPERANDS; ++o) {
     if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim
       out.operands[o] = tmpl.operands[o];
     } else {
+      // std::cout << "@@Handle " << o << " " <<
+      // a64::EnumToString(out.opcode->fields[o]) <<  "\n";
       // parameters require extra processing
       auto param = PARAM(tmpl.operands[o]);
       out.operands[o] = a64::EncodeOperand(out.opcode->fields[o],
@@ -3221,9 +3281,10 @@ class RegBitVec {
  public:
   RegBitVec(uint32_t reg_bits) : reg_bits_(reg_bits), pos_(31) {}
 
-  bool empty() const { return reg_bits_ != 0; }
+  bool empty() const { return reg_bits_ == 0; }
+
   uint32_t next_reg_no() {
-    while ((1U << pos_) & reg_bits_ == 0) --pos_;
+    while (((1U << pos_) & reg_bits_) == 0) --pos_;
     reg_bits_ &= ~(1U << pos_);
     --pos_;
     return pos_ + 1;
@@ -3279,8 +3340,8 @@ void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
 
 void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
   const size_t start = output->size();
- // we will revert everything at the end
- output->push_back(MakeIns(a64::OPC::ret));
+  // we will revert everything at the end
+  output->push_back(MakeIns(a64::OPC::ret));
 
   RegBitVec gpr_regs(ctx.gpr_reg_mask);
   if (!gpr_regs.empty()) {
