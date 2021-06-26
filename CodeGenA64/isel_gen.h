@@ -28,6 +28,7 @@ enum class IMM_CURB : uint8_t {
     pos_stk_combo_10_21_times_2 = 12,
     pos_stk_combo_10_21_times_4 = 13,
     pos_stk_combo_10_21_times_8 = 14,
+    IMM_POS_32 = 15,
 };
 
 enum class PARAM : uint8_t {
@@ -69,7 +70,10 @@ enum class PARAM : uint8_t {
     fun1_lo12 = 35,
     jtb1_prel_hi21 = 36,
     jtb1_lo12 = 37,
-    any = 38,
+    num1_0_16 = 38,
+    num1_16_32 = 39,
+    num1_32_48 = 40,
+    num1_48_64 = 41,
 };
 /* @AUTOGEN-END@ */
 

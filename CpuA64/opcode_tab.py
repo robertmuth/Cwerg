@@ -192,8 +192,11 @@ def DecodeShifted_5_20_21_22(x: int) -> int:
 
 def EncodeShifted_5_20_21_22(x: int) -> Optional[int]:
     for i in range(4):
-        if (x & 0xffff) == x:
+        lo16 = x & 0xffff
+        if lo16 == x:
             return x | (i << 16)
+        if lo16 != 0:
+            return None
         x >>= 16
     return None
 
@@ -907,7 +910,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
     Opcode("extr", ext, [w_bit, (3, 0, 29), root100, (7, 7, 23), (1, ext == "x", 22), (1, 0, 21)],
            [dst_reg, src1_reg, src2_reg, OK.IMM_10_15], OPC_FLAG(0))
 
-    Opcode("movk", ext, [w_bit, (3, 3, 29), root100, (7, 5, 23)],
+    Opcode("movk", ext + "_imm", [w_bit, (3, 3, 29), root100, (7, 5, 23)],
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
 
     Opcode("movz", ext + "_imm", [w_bit, (3, 2, 29), root100, (7, 5, 23)],

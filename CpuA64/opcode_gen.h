@@ -804,8 +804,8 @@ enum class OPC : uint16_t {
     lsrv_x,
     madd_w,
     madd_x,
-    movk_w,
-    movk_x,
+    movk_w_imm,
+    movk_x_imm,
     movn_w_imm,
     movn_x_imm,
     movz_w_imm,
@@ -1022,13 +1022,19 @@ extern uint64_t SignedInt64FromBits(uint64_t data, unsigned n_bits);
 
 extern uint64_t Decode_10_15_16_22_W(uint32_t x);
 extern uint64_t Decode_10_15_16_22_X(uint32_t x);
+
+// will return  kEncodeFailure if the value cannot be encoded
 extern uint32_t Encode_10_15_16_22_W(uint64_t x);
 extern uint32_t Encode_10_15_16_22_X(uint64_t x);
 
+// will return  kEncodeFailure if the value cannot be encoded
 extern uint32_t Encode8BitFlt(uint64_t ieee64);
+
 extern uint64_t Decode8BitFlt(uint32_t x);
 
 extern uint64_t DecodeOperand(OK ok, uint32_t data);
+
+// will return  kEncodeFailure if the value cannot be encoded
 extern uint32_t EncodeOperand(OK ok, uint64_t data);
 
 extern const char* EnumToString(SHIFT x);

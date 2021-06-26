@@ -39,6 +39,7 @@ class IMM_CURB(enum.IntEnum):
     pos_stk_combo_10_21_times_2 = 12
     pos_stk_combo_10_21_times_4 = 13
     pos_stk_combo_10_21_times_8 = 14
+    IMM_POS_32 = 15
 
 
 _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
@@ -58,6 +59,7 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
     IMM_CURB.pos_stk_combo_10_21_times_8: a64.OK.IMM_10_21_TIMES_8,
     IMM_CURB.IMM_10_15_16_22_W: a64.OK.IMM_10_15_16_22_W,
     IMM_CURB.IMM_10_15_16_22_X: a64.OK.IMM_10_15_16_22_X,
+    IMM_CURB.IMM_POS_32: lambda x: 0 <= x < (1 << 32),
 }
 
 
@@ -144,8 +146,10 @@ class PARAM(enum.Enum):
     #
     jtb1_prel_hi21 = 36
     jtb1_lo12 = 37
-    any = 38
-
+    num1_0_16 = 38
+    num1_16_32 = 39
+    num1_32_48 = 40
+    num1_48_64 = 41
 
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
                            PARAM.mem1_num2_prel_hi21,
@@ -188,6 +192,9 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         num = ins.operands[n]
         assert isinstance(num, ir.Const), f"{ins} {num}"
         return ~num.value & ((1 << num.kind.bitwidth()) - 1)
+    elif arg in {PARAM.num1_0_16, PARAM.num1_16_32, PARAM.num1_32_48, PARAM.num1_48_64}:
+        mask = 0xffff << ((arg.value - PARAM.num1_0_16.value) * 16)
+        return ins.operands[1].value & mask
     elif arg in _RELOC_ARGS:
         return 0
     elif arg is PARAM.scratch_flt:
@@ -431,7 +438,7 @@ class Pattern:
 def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
     out = []
     # we reverse everything at the end
-    out.append(InsTmpl("ret", [30]))
+    out.append(InsTmpl("ret", [FIXARG.LR]))
 
     gpr_regs = regs.MaskToGpr64Regs(ctx.gpr_reg_mask)
     while gpr_regs:
@@ -521,6 +528,7 @@ class FIXARG(enum.Enum):
     WZR = 31
     XZR = 31
     X8 = 8
+    LR = 30
     SP = 31
     UXTW = 0
     SXTW = 1
@@ -854,7 +862,7 @@ def InitLea():
                 imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
-                 InsTmpl("movk_x", [PARAM.reg0, PARAM.stk1_offset2_hi]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.stk1_offset2_hi]),
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
@@ -872,7 +880,17 @@ def InitMove():
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movn_x_imm", [PARAM.reg0, PARAM.num1_not])],
                 imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT)
+        Pattern(o.MOV, [kind1, kind1],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1_0_16]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32])],
+                imm_curb1=IMM_CURB.IMM_POS_32)
+        Pattern(o.MOV, [kind1, kind1],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1_0_16]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_32_48]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_48_64])],
 
+                 imm_curb1=IMM_CURB.ANY)
     # TODO: add implementaions for arbitrary 32 and 64bit immediates
 
 
@@ -1035,6 +1053,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
         if not p.MatchesTypeCurbs(ins):
             continue
         mismatches = p.MatchesImmCurbs(ins, assume_stk_op_matches)
+        if mismatches == 0: return 0;
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits

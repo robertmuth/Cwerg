@@ -21,7 +21,7 @@ could not disassemble 0
     SREG_0_4                            s4         (4)
     IMM_FLT_13_20                       2          (0)
 
-f2c7f84a movk_x x10 0x3fc200000000
+f2c7f84a movk_x_imm x10 0x3fc200000000
     XREG_0_4                            x10        (10)
     IMM_SHIFTED_5_20_21_22              0x3fc200000000 (147394)
 
