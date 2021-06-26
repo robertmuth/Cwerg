@@ -73,7 +73,7 @@ enum class PARAM : uint8_t {
     vstm_start = 36,
     vstm_count = 37,
     stk0_offset1 = 38,
-    stk0_offset1_lo = 49,
+    stk0_offset1_lo = 39,
     stk0_offset1_hi = 40,
     stk1_offset2 = 41,
     stk1_offset2_lo = 42,

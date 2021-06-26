@@ -3468,6 +3468,7 @@ uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins,
     if (!PatternMatchesTypeConstraints(pat, type_matcher)) continue;
     const uint8_t mismatches =
         PatternMismatchesImmConstraints(pat, ins, assume_stk_op_matches);
+    if (mismatches == 0) return 0;
     const uint8_t num_bits = __builtin_popcount(mismatches);
     if (num_bits < best_num_bits) {
       best = mismatches;
