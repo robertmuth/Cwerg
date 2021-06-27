@@ -59,9 +59,9 @@ class CpuRegPool : public RegPool {
     const DK kind = RegKind(lr.reg);
     const bool is_gpr = DKFlavor(kind) != DK_FLAVOR_F;
     const uint32_t available = get_available(lac, is_gpr);
-    if (kind == DK::F64 || kind == DK::F32) {
+    if (!is_gpr) {
       for (unsigned n = 0; n < 32; ++n) {
-        const uint32_t mask = 1 << n;
+        const uint32_t mask = 1U << n;
         if ((mask & available) == mask) {
           if (!flt_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
@@ -71,7 +71,7 @@ class CpuRegPool : public RegPool {
       }
     } else {
       for (unsigned n = 0; n <= 30; ++n) {
-        const uint32_t mask = 1 << n;
+        const uint32_t mask = 1U << n;
         if ((mask & available) == mask) {
           if (!gpr_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
@@ -85,7 +85,7 @@ class CpuRegPool : public RegPool {
   }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
-    const uint32_t mask = 1 << CpuRegNo(cpu_reg);
+    const uint32_t mask = 1U << CpuRegNo(cpu_reg);
     bool is_gpr;
     bool is_lac;
     if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::FLT64 ||
@@ -434,9 +434,10 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
         RegCpuReg(reg) = GPR32_REGS[pos];
       }
     }
+
+    cpu_reg_mask &= ~(1U << pos);
+    ++pos;
   }
-  cpu_reg_mask &= ~(1U << pos);
-  ++pos;
 }
 
 EmitContext FunComputeEmitContext(Fun fun) {
