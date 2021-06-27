@@ -28,9 +28,9 @@ tests: tests_py tests_c
 	@echo "[OK CodeGenA64]"
 
 
-tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test $(DIR)/multiple_results_f64.asm 
+tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test 
 
-tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe  $(DIR)/stack.asm.c.exe  $(DIR)/cmp.asm.c.exe  $(DIR)/fib.asm.c.exe
+tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe  $(DIR)/stack.asm.c.exe  $(DIR)/cmp.asm.c.exe  $(DIR)/fib.asm.c.exe $(DIR)/multiple_results_f64.asm.c.exe 
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
