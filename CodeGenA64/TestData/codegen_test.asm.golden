@@ -1,4 +1,8 @@
 
+INS: conv $r0_U32@w10 $r0_U8@w10  [U32 U8]
+PAT: reg:[U32 U8]  imm:[INVALID INVALID]
+    and_x_imm x10 x10 0xff
+
 INS: mov $r0_S32@w11 -100  [S32 S32]
 PAT: reg:[S32 S32]  imm:[INVALID IMM_SHIFTED_5_20_21_22_NOT]
     movn_x_imm x11 0x63

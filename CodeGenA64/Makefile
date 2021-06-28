@@ -30,7 +30,7 @@ tests: tests_py tests_c
 
 tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test 
 
-tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe  $(DIR)/stack.asm.c.exe  $(DIR)/cmp.asm.c.exe  $(DIR)/fib.asm.c.exe $(DIR)/multiple_results_f64.asm.c.exe 
+tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe $(TEST_C_EXES)
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
@@ -75,7 +75,7 @@ $(DIR)/isel_test:
 BUILD_DIR=../build
 CODEGEN_TOOL=$(BUILD_DIR)/a64_codegen_tool.exe
 
-$(CODEGEN_TOOL):
+$(CODEGEN_TOOL)::
 	@cd $(BUILD_DIR); $(MAKE) -s a64_codegen_tool.exe
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
@@ -124,6 +124,10 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
+	@echo
+	cat $(STD_LIB) ../TestData/queens.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/queens.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/fib.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	cat $(STD_LIB) ../TestData/fib.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out

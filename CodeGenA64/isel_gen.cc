@@ -672,13 +672,13 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::orr_x_reg, 0x5 },  // conv [262]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // conv [263]
-  { {+PARAM::reg0, +PARAM::reg1, 255},
+  { {+PARAM::reg0, +PARAM::reg1, 4103},
     a64::OPC::and_x_imm, 0x3 },  // conv [264]
-  { {+PARAM::reg0, +PARAM::reg1, 65535},
+  { {+PARAM::reg0, +PARAM::reg1, 4111},
     a64::OPC::and_x_imm, 0x3 },  // conv [265]
-  { {+PARAM::reg0, +PARAM::reg1, 255},
+  { {+PARAM::reg0, +PARAM::reg1, 4103},
     a64::OPC::and_x_imm, 0x3 },  // conv [266]
-  { {+PARAM::reg0, +PARAM::reg1, 65535},
+  { {+PARAM::reg0, +PARAM::reg1, 4111},
     a64::OPC::and_x_imm, 0x3 },  // conv [267]
   { {+PARAM::reg0, +PARAM::reg1, 0, 31},
     a64::OPC::sbfm_x, 0x3 },  // conv [268]
@@ -3342,11 +3342,11 @@ int64_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
              0xffffU;
     case PARAM::scratch_gpr:
       ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR64,
-             "expected gpr reg");
+             "expected gpr64 reg got " << Name(ctx.scratch_cpu_reg));
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::scratch_flt:
       ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT64,
-             "expected not gpr reg");
+             "expected flt64 reg got " << Name(ctx.scratch_cpu_reg));
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::bbl0:
     case PARAM::bbl2:

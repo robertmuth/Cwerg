@@ -42,35 +42,11 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
     for (Ins ins : BblInsIter(bbl)) {
       switch (InsOPC(ins)) {
         case OPC::SWITCH:
-          tmp = FunGetScratchReg(fun, DK::C32, "switch", false);
+          tmp = FunGetScratchReg(fun, DK::C64, "switch", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
           inss->push_back(ins);
           dirty = true;
           break;
-
-        case OPC::CONV:
-          if (InsOperand(ins, 1).kind() == RefKind::REG) {
-            DK src_kind = RegKind(Reg(InsOperand(ins, 1)));
-            int src_fl = DKFlavor(src_kind);
-            DK dst_kind = RegKind(Reg(InsOperand(ins, 0)));
-            int dst_fl = DKFlavor(dst_kind);
-            if (src_fl == DK_FLAVOR_F &&
-                (dst_fl == DK_FLAVOR_S || dst_fl == DK_FLAVOR_U)) {
-              tmp = FunGetScratchReg(fun, DK::F32, "ftoi", false);
-              inss->push_back(InsNew(OPC::NOP1, tmp));
-              inss->push_back(ins);
-              dirty = true;
-              break;
-            } else if ((src_fl == DK_FLAVOR_S || src_fl == DK_FLAVOR_U) &&
-                       dst_kind == DK::F64) {
-              tmp = FunGetScratchReg(fun, DK::F32, "itof", false);
-              inss->push_back(InsNew(OPC::NOP1, tmp));
-              inss->push_back(ins);
-              dirty = true;
-              break;
-            }
-          }
-          // fallthrough
         default:
           inss->push_back(ins);
           break;

@@ -221,19 +221,6 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert False, f"unknown ARG {repr(arg)}"
 
 
-def _TranslateTmplOpInt(ins: ir.Ins, op: Any, ctx: regs.EmitContext) -> int:
-    if type(op) == int:
-        return op
-    elif isinstance(op, PARAM):
-        return _ExtractTmplArgOp(ins, op, ctx)
-    elif isinstance(op, FIXARG):
-        return op.value
-    elif isinstance(op, a64.SHIFT):
-        return op.value
-    else:
-        assert False, f"unknown param {repr(op)}"
-
-
 def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
     assert cpuins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.NONE, f"{cpuins.reloc_kind}"
     cpuins.reloc_pos = pos
@@ -304,8 +291,17 @@ class InsTmpl:
     def MakeInsFromTmpl(self, ins: Optional[ir.Ins], ctx: regs.EmitContext) -> a64.Ins:
         out = a64.Ins(self.opcode)
         for n, arg in enumerate(self.args):
-            val = _TranslateTmplOpInt(ins, arg, ctx)
-            val = a64.EncodeOperand(self.opcode.fields[n], val)
+            if type(arg) == int:
+                val = arg
+            elif isinstance(arg, PARAM):
+                val = a64.EncodeOperand(self.opcode.fields[n], _ExtractTmplArgOp(ins, arg, ctx))
+            elif isinstance(arg, FIXARG):
+                val = arg.value
+            elif isinstance(arg, a64.SHIFT):
+                val = arg.value
+            else:
+                assert False, f"unknown param {repr(arg)}"
+
             assert val is not None
             out.operands.append(val)
             # note: this may alter the value we just appended
@@ -928,9 +924,9 @@ def InitConv():
 
     for dst_kind in [o.DK.U64, o.DK.U32]:
         Pattern(o.CONV, [dst_kind, o.DK.U8],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, a64.Encode_10_15_16_22_X(0xff)])])
         Pattern(o.CONV, [dst_kind, o.DK.U16],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, a64.Encode_10_15_16_22_X(0xffff)])])
 
     # TODO: this is iffy
     Pattern(o.CONV, [o.DK.U64, o.DK.S32],

@@ -31,9 +31,9 @@ void JtbCodeGen(Jtb jtb, std::ostream* output) {
   for (Jen jen : JtbJenIter(jtb)) {
     table[JenPos(jen)] = JenBbl(jen);
   }
-  *output << ".localmem " << Name(jtb) << " 4 rodata\n";
+  *output << ".localmem " << Name(jtb) << " 8 rodata\n";
   for (Bbl bbl : table) {
-    *output << "    .addr.bbl 4 " << Name(bbl) << "\n";
+    *output << "    .addr.bbl 8 " << Name(bbl) << "\n";
   }
   *output << ".endmem\n";
 }
@@ -127,7 +127,7 @@ void MemCodeGen(Mem mem, std::ostream* output) {
 
 }  // namespace
 
-void EmitUnitAsText(Unit unit, std::ostream* output) {
+void EmitUnitAsText(base::Unit unit, std::ostream* output) {
   for (Mem mem : UnitMemIter(unit)) {
     if (MemKind(mem) == MEM_KIND::EXTERN) continue;
     MemCodeGen(mem, output);
@@ -175,9 +175,9 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       for (Jen jen : JtbJenIter(jtb)) {
         table[JenPos(jen)] = JenBbl(jen);
       }
-      out.MemStart(StrData(Name(jtb)), 4, "rodata", padding_zero, true);
+      out.MemStart(StrData(Name(jtb)), 8, "rodata", padding_zero, true);
       for (Bbl bbl : table) {
-        out.AddBblAddr(4, +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(bbl)));
+        out.AddBblAddr(8, +elf::RELOC_TYPE_AARCH64::ABS64, StrData(Name(bbl)));
       }
       out.MemEnd();
     }
