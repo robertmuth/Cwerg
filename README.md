@@ -24,7 +24,7 @@ The project is very much "work in progress" and  currently consists of:
 It is primarily aimed AOT compilation but JITing will also be supported.
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
-1. spec/reference implementation: Python 3.8
+1. spec/reference implementation: Python 3.7
 2. high performance implementation: C++17 (with limited STL usage)
 
 Re-implementations in other languages are explicitly encouraged. A lot of

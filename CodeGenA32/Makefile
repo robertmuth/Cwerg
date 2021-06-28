@@ -27,7 +27,7 @@ tests: tests_py tests_c
 
 tests_py: $(TEST_EXES) $(DIR)/queens.32.asm.s.exe $(DIR)/syscall.a32.asm.exe $(DIR)/cli.a32.asm.exe $(DIR)/isel_test $(DIR)/nanojpeg
 
-tests_c: $(TEST_C_EXES) $(DIR)/isel_test $(DIR)/isel_test_c  $(DIR)/codegen_parity $(DIR)/nanojpeg_c
+tests_c: $(TEST_C_EXES) $(DIR)/isel_test_c $(DIR)/codegen_parity $(DIR)/nanojpeg_c
 
 
 STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm

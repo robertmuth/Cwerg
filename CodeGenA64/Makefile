@@ -30,7 +30,7 @@ tests: tests_py tests_c
 
 tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test 
 
-tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe $(TEST_C_EXES)
+tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe $(TEST_C_EXES) $(DIR)/nanojpeg_c
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
@@ -115,6 +115,14 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@cd $(BUILD_DIR); $(MAKE) -s a64_isel_tester.exe
 	$(BUILD_DIR)/a64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
+
+$(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
+	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@.exe >$@.out
+	@chmod a+rx $@.exe
+	./$@.exe ../TestData/ash_tree.jpg $@.ppm
+	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
+	diff $@.actual ../TestData/nano_jpeg.golden
 
 TEST_MODE = normal
 #TEST_MODE = reg_alloc_local
