@@ -49,6 +49,11 @@ BUILD_DIR=../build
 ASSEMBLER_TOOL=$(BUILD_DIR)/a64_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a64_disassembler_tool.exe
 
+$(ASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
+
+$(DISASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
 
 opcode_gen.cc: opcode_tab.py
 	@echo "[$@]"

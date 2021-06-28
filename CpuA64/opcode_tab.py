@@ -88,6 +88,7 @@ def ror(x: int, bit_size: int, amount: int) -> int:
 # https://stackoverflow.com/questions/30904718/range-of-immediate-values-in-armv8-a64-assembly/33265035#33265035
 # table: https://gist.github.com/dinfuehr/51a01ac58c0b23e4de9aac313ed6a06a
 def DecodeLogicImmediate(x: int, reg_size: int) -> int:
+    """Note, this may assert on some values, e.g. x=255 and reg_size=64"""
     n = x >> 12
     r = (x >> 6) & 0x3f
     s = x & 0x3f
@@ -101,7 +102,7 @@ def DecodeLogicImmediate(x: int, reg_size: int) -> int:
             size >>= 1
         ones = 1 + (s & (size - 1))
         assert ones != size
-
+        assert size >= 2
     pattern = (1 << ones) - 1
     # print (f"@@ pattern: {pattern:x} {size}")
     # Note: pattern is of the form 0+1+

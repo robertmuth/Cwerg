@@ -91,16 +91,16 @@ bool HandleDirective(A64Unit* unit,
   } else if (mnemonic == ".addr.mem") {
     ASSERT(token.size() == 4, "");
     unit->AddMemAddr(ParseInt<uint32_t>(token[1]).value(),
-                     +RELOC_TYPE_ARM::ABS32, token[2],
+                     +RELOC_TYPE_AARCH64::ABS64, token[2],
                      ParseInt<uint32_t>(token[3]).value());
   } else if (mnemonic == ".addr.fun") {
     ASSERT(token.size() == 3, "");
     unit->AddFunAddr(ParseInt<uint32_t>(token[1]).value(),
-                     +RELOC_TYPE_ARM::ABS32, token[2]);
+                     +RELOC_TYPE_AARCH64::ABS64, token[2]);
   } else if (mnemonic == ".addr.bbl") {
     ASSERT(token.size() == 3, "");
     unit->AddBblAddr(ParseInt<uint32_t>(token[1]).value(),
-                     +RELOC_TYPE_ARM::ABS32, token[2]);
+                     +RELOC_TYPE_AARCH64::ABS64, token[2]);
   } else if (mnemonic == ".bbl") {
     ASSERT(token.size() == 3, "");
     unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
