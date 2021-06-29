@@ -79,7 +79,9 @@ enum class PARAM : uint8_t {
 
 
 struct InsTmpl {
-  int32_t operands[a64::MAX_OPERANDS];  // signed because some operands need that (e.g. offsets)
+  // signed because some operands need that (e.g. offsets)
+  // the values need to be processed with EncodeOperand
+  int64_t operands[a64::MAX_OPERANDS];
   a64::OPC opcode;
   // bit i set: operands[i] is of enum type Param
   // bit i clr: operands[i] contains a number

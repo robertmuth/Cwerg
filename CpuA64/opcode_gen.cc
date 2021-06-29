@@ -5013,7 +5013,7 @@ uint32_t EncodeOperand(OK ok, uint64_t data) {
   switch (fi.kind) {
     default:
     case FK::NONE:
-      ASSERT(false, "unreachable");
+      ASSERT(false, "unreachable field type NONE");
       return kEncodeFailure;
     case FK::INT_HEX_CUSTOM:
     case FK::FLT_CUSTOM:

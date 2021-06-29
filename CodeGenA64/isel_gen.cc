@@ -672,13 +672,13 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::orr_x_reg, 0x5 },  // conv [262]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // conv [263]
-  { {+PARAM::reg0, +PARAM::reg1, 4103},
+  { {+PARAM::reg0, +PARAM::reg1, 255},
     a64::OPC::and_x_imm, 0x3 },  // conv [264]
-  { {+PARAM::reg0, +PARAM::reg1, 4111},
+  { {+PARAM::reg0, +PARAM::reg1, 65535},
     a64::OPC::and_x_imm, 0x3 },  // conv [265]
-  { {+PARAM::reg0, +PARAM::reg1, 4103},
+  { {+PARAM::reg0, +PARAM::reg1, 255},
     a64::OPC::and_x_imm, 0x3 },  // conv [266]
-  { {+PARAM::reg0, +PARAM::reg1, 4111},
+  { {+PARAM::reg0, +PARAM::reg1, 65535},
     a64::OPC::and_x_imm, 0x3 },  // conv [267]
   { {+PARAM::reg0, +PARAM::reg1, 0, 31},
     a64::OPC::sbfm_x, 0x3 },  // conv [268]
@@ -3445,10 +3445,10 @@ a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
   out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];
   // std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
-  for (unsigned o = 0; o < a64::MAX_OPERANDS; ++o) {
+  for (unsigned o = 0; o < out.opcode->num_fields; ++o) {
     if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim
-      out.operands[o] = tmpl.operands[o];
+      out.operands[o] = a64::EncodeOperand(out.opcode->fields[o], tmpl.operands[o]);
     } else {
       // std::cout << "@@Handle " << o << " " <<
       // a64::EnumToString(out.opcode->fields[o]) <<  "\n";

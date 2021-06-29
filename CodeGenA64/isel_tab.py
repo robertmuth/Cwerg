@@ -151,6 +151,7 @@ class PARAM(enum.Enum):
     num1_32_48 = 40
     num1_48_64 = 41
 
+
 _RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
                            PARAM.mem1_num2_prel_hi21,
                            PARAM.mem1_num2_lo12,
@@ -277,7 +278,7 @@ class InsTmpl:
     The template args will be converted into A32 instruction operands by
     substituting data derived from the IR instruction operands as needed.
 
-    args: a list of registers/constants/placeholders
+    args: a list of registers/constants/placeholders all values must be run through EncodeOperand
     """
 
     def __init__(self, opcode_name: str, args: List[Any]):
@@ -294,7 +295,7 @@ class InsTmpl:
             if type(arg) == int:
                 val = arg
             elif isinstance(arg, PARAM):
-                val = a64.EncodeOperand(self.opcode.fields[n], _ExtractTmplArgOp(ins, arg, ctx))
+                val = _ExtractTmplArgOp(ins, arg, ctx)
             elif isinstance(arg, FIXARG):
                 val = arg.value
             elif isinstance(arg, a64.SHIFT):
@@ -303,7 +304,7 @@ class InsTmpl:
                 assert False, f"unknown param {repr(arg)}"
 
             assert val is not None
-            out.operands.append(val)
+            out.operands.append(a64.EncodeOperand(self.opcode.fields[n], val))
             # note: this may alter the value we just appended
             if arg in _RELOC_ARGS:
                 _HandleReloc(out, n, ins, arg)
@@ -886,7 +887,7 @@ def InitMove():
                  InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_32_48]),
                  InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_48_64])],
 
-                 imm_curb1=IMM_CURB.ANY)
+                imm_curb1=IMM_CURB.ANY)
     # TODO: add implementaions for arbitrary 32 and 64bit immediates
 
 
@@ -924,9 +925,9 @@ def InitConv():
 
     for dst_kind in [o.DK.U64, o.DK.U32]:
         Pattern(o.CONV, [dst_kind, o.DK.U8],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, a64.Encode_10_15_16_22_X(0xff)])])
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
         Pattern(o.CONV, [dst_kind, o.DK.U16],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, a64.Encode_10_15_16_22_X(0xffff)])])
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
 
     # TODO: this is iffy
     Pattern(o.CONV, [o.DK.U64, o.DK.S32],
@@ -1135,6 +1136,7 @@ def _EmitCodeC(fout):
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM", fout)
     cgen.RenderEnumToStringFun("PARAM", fout)
+
 
 def _DumpCodeSelTable():
     for i in range(256):

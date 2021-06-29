@@ -90,7 +90,7 @@ def _JtbCodeGen(jtb: ir.Jtb):
     return out
 
 
-def _RenderIns(ins: a64.Ins):
+def _RenderIns(ins: a64.Ins) ->str:
     name, ops = symbolic.InsSymbolize(ins)
     return f"    {name} {' '.join(ops)}"
 

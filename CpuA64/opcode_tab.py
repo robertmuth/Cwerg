@@ -1319,6 +1319,8 @@ class Ins:
     There can be at most one relocation associated with an Ins
     """
     opcode: Opcode
+    # Note the operands must have been pre-encoded with EncodeOperand
+    # Use MakeIns below is necessary
     operands: List[int] = dataclasses.field(default_factory=list)
     #
     # Note the addend is store in `operands[reloc_pos]
@@ -1326,6 +1328,10 @@ class Ins:
     reloc_kind: int = _RELOC_TYPE_AARCH64M_NONE
     reloc_pos = 0
     is_local_sym = False
+
+
+def MakeIns(opcode: Opcode, operands: List[int]):
+    return Ins(opcode, [EncodeOperand(opcode.fields[n], x) for n, x in enumerate(operands)])
 
 
 def Disassemble(data: int) -> Optional[Ins]:
