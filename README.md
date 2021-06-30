@@ -102,7 +102,8 @@ Cwerg controls dependencies carefully to keep them at a bare minimum:
 * [LLVM](https://llvm.org) 
 * [QBE](https://c9x.me/compile/) ([QBE vs LLVM](https://c9x.me/compile/doc/llvm.html))
 * [Mir](https://github.com/vnmakarov/mir) ([blog post](https://developers.redhat.com/blog/2020/01/20/mir-a-lightweight-jit-compiler-project/))
-* [Oberon](http://www.projectoberon.com/) ([compiler implementation](http://www.inf.ethz.ch/personal/wirth/ProjectOberon/PO.System.pdf)) 
+* [Wirth: A Plea for Lean Software](https://cr.yp.to/bib/1995/wirth.pdf),
+  [Oberon](http://www.projectoberon.com/) ([compiler implementation](http://www.inf.ethz.ch/personal/wirth/ProjectOberon/PO.System.pdf)) 
 * [Delphi's compilation speed](https://news.ycombinator.com/item?id=24735366)
 * [gcc code size](https://www.phoronix.com/scan.php?page=news_item&px=MTg3OTQ)
 
