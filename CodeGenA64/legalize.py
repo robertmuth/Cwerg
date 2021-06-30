@@ -156,7 +156,7 @@ def _maybe_move_excess(src, dst, n):
 
 def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
                            regs_not_lac: List[ir.CpuReg],
-                           pre_allocated: Set[ir.CpuReg]) -> Tuple[
+                           pre_allocated_mask: int) -> Tuple[
     List[ir.CpuReg], List[ir.CpuReg]]:
     """
     Partitions all the CPU registers into 4 categories
@@ -181,7 +181,7 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
     local_not_lac = []
     global_not_lac = []
     for n, cpu_reg in enumerate(regs_not_lac):
-        if n < needed.local_not_lac + spill_reg_needed or cpu_reg in pre_allocated:
+        if n < needed.local_not_lac + spill_reg_needed or 0 != ((1 << cpu_reg.no) & pre_allocated_mask):
             local_not_lac.append(cpu_reg)
         else:
             global_not_lac.append(cpu_reg)
@@ -318,7 +318,11 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     global_reg_stats = _FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
     DumpRegStats(fun, local_reg_stats, fout)
 
-    pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
+    pre_allocated_mask_gpr = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and (reg.cpu_reg.kind == regs.A64RegKind.GPR32 or
+                                reg.cpu_reg.kind == regs.A64RegKind.GPR64):
+            pre_allocated_mask_gpr |= 1 << reg.cpu_reg.no
 
     # Handle GPR regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.GPR_FAMILY, True)]),
@@ -327,7 +331,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR64_LAC_REGS.copy(),
-        regs.GPR64_NOT_LAC_REGS.copy(), pre_allocated)
+        regs.GPR64_NOT_LAC_REGS.copy(), pre_allocated_mask_gpr)
 
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)],
@@ -336,6 +340,12 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                                                     gpr_global_not_lac)
 
     # Handle Float regs
+    pre_allocated_mask_flt = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and (reg.cpu_reg.kind == regs.A64RegKind.FLT32 or
+                                reg.cpu_reg.kind == regs.A64RegKind.FLT64):
+            pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
+
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
                             len(global_reg_stats[(regs.FLT_FAMILY, True)]),
                             local_reg_stats.get((regs.FLT_FAMILY, True), 0),
@@ -343,7 +353,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
         needed_flt, regs.FLT64_LAC_REGS.copy(),
-        regs.FLT64_NOT_LAC_REGS.copy(), pre_allocated)
+        regs.FLT64_NOT_LAC_REGS.copy(), pre_allocated_mask_flt)
 
     to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, True)],
                                                     flt_global_lac)
