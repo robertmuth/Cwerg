@@ -139,12 +139,12 @@ class RegsNeeded:
         return f"RegNeeded: {self.global_lac} {self.global_not_lac} {self.local_lac} {self.local_not_lac}"
 
 
-def _spilling_needed(needed: RegsNeeded, global_lac: List[ir.CpuReg],
-                     local_not_lac: List[ir.CpuReg]) -> bool:
+def _spilling_needed(needed: RegsNeeded, num_global_lac: int,
+                     num_local_not_lac: int) -> bool:
     """ Note: this assumes the early condition of the pools with only two lists populated"""
-    return (needed.global_lac + needed.local_lac > len(global_lac) or
+    return (needed.global_lac + needed.local_lac > num_global_lac or
             needed.global_lac + needed.local_lac + needed.global_not_lac + needed.local_not_lac >
-            len(global_lac) + len(local_not_lac))
+            num_global_lac + num_local_not_lac)
 
 
 def _maybe_move_excess(src, dst, n):
@@ -154,39 +154,57 @@ def _maybe_move_excess(src, dst, n):
         del src[n:]
 
 
-def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
-                           regs_not_lac: List[ir.CpuReg],
-                           pre_allocated_mask: int) -> Tuple[
-    List[ir.CpuReg], List[ir.CpuReg]]:
+def _popcount(x):
+    return bin(x).count('1')
+
+
+def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
+    if count == 0: return 0
+    mask = 1
+    n = 0
+    while n < count:
+        if (mask & bits) != 0:
+            n += 1
+        mask <<= 1
+    return mask - 1
+
+
+def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
+                           regs_not_lac: int, regs_preallocated: int) -> Tuple[int, int]:
     """
     Partitions all the CPU registers into 4 categories
 
     Initially all allocatable regs are either in pools.global_lac and pools.local_not_local
 
     We want the low numbers regs to stay in pools.local_not_lac as much as possible
-    to avoid moves as this is where the paramters arrive and results get returned
+    to avoid moves as this is where the parameters arrive and results get returned
 
     We also want to use as few callee saved registers as possible
 
     If we need to spill, earmark one more local_not_lac reg to handle the spilling
     TODO: this needs some more thinking - the worst case could require more regs
     """
-    spill_reg_needed = _spilling_needed(needed, regs_lac, regs_not_lac)
+    num_regs_lac = _popcount(regs_lac)
+    num_regs_not_lac = _popcount(regs_not_lac)
+    spilling_needed = _spilling_needed(needed, num_regs_lac, num_regs_not_lac)
     global_lac = regs_lac
-    local_lac = []
+    local_lac = 0
     # excess lac globals can be used for lac locals
-    _maybe_move_excess(regs_lac, local_lac, needed.global_lac)
+    if num_regs_lac > needed.global_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        local_lac = global_lac & ~mask;
+        global_lac = global_lac & mask;
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
     # because the global allocator does not check for live range conflicts
-    local_not_lac = []
-    global_not_lac = []
-    for n, cpu_reg in enumerate(regs_not_lac):
-        if n < needed.local_not_lac + spill_reg_needed or 0 != ((1 << cpu_reg.no) & pre_allocated_mask):
-            local_not_lac.append(cpu_reg)
-        else:
-            global_not_lac.append(cpu_reg)
-    # xxx_lac can also be  used in place of  xxx_not_lac
-    _maybe_move_excess(local_lac, global_not_lac, needed.local_lac)
+    global_not_lac = 0
+    if num_regs_not_lac > needed.local_not_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            regs_not_lac, needed.local_not_lac + spilling_needed)
+        global_not_lac = regs_not_lac & ~(mask | regs_preallocated)
+
+    if _popcount(local_lac) > needed.local_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(local_lac, needed.local_lac)
+        global_not_lac |= local_lac & ~mask
     return global_lac, global_not_lac
 
 
@@ -261,24 +279,6 @@ def _FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, o.DK]) -> Dict[
     return out
 
 
-def _AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
-                                   cpu_regs: List[ir.CpuReg]) -> List[ir.Reg]:
-    """This is pretty simplistic and has lots of assumptions
-
-    E.g. for the floating points regs F64 should precedw F32"""
-    # print (f"@@@@@@@ assign {global_regs} {cpu_regs}")
-    out: List[ir.Reg] = []
-    n = 0
-    for reg in assign_to:
-        if n < len(cpu_regs):
-            assert reg.cpu_reg is None
-            reg.cpu_reg = cpu_regs[n]
-            n += 1
-        else:
-            out.append(reg)
-    return out
-
-
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
@@ -330,14 +330,17 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.GPR_FAMILY, True), 0),
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR64_LAC_REGS.copy(),
-        regs.GPR64_NOT_LAC_REGS.copy(), pre_allocated_mask_gpr)
+        needed_gpr, regs.GPR_LAC_REGS_MASK,
+        regs.GPR_NOT_LAC_REGS_MASK, pre_allocated_mask_gpr)
 
     to_be_spilled: List[ir.Reg] = []
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)],
-                                                    gpr_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, False)],
-                                                    gpr_global_not_lac)
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
+
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.GPR_FAMILY, False)],
+        gpr_global_not_lac & regs.GPR_NOT_LAC_REGS_MASK,
+        gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
     pre_allocated_mask_flt = 0
@@ -352,13 +355,15 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.FLT_FAMILY, False), 0))
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT64_LAC_REGS.copy(),
-        regs.FLT64_NOT_LAC_REGS.copy(), pre_allocated_mask_flt)
+        needed_flt, regs.FLT_LAC_REGS_MASK,
+        regs.FLT_NOT_LAC_REGS_MASK, pre_allocated_mask_flt)
 
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, True)],
-                                                    flt_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, False)],
-                                                    flt_global_not_lac)
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.FLT_FAMILY, False)],
+        flt_global_not_lac & regs.FLT_NOT_LAC_REGS_MASK,
+        flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
@@ -377,6 +382,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     could increase register usage.
 
     """
+    #print("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)), file=fout)
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup

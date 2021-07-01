@@ -408,8 +408,6 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
   unsigned pos = 0;
   for (Reg reg : regs) {
     ASSERT(RegCpuReg(reg).isnull(), "");
-    // This ugly hack is necessary because we prefer to use reg lr and XX
-    // over r6-r11 despite them being "numerically higher".
     if (cpu_reg_mask == 0 && cpu_reg_mask_second_choice != 0) {
       cpu_reg_mask = cpu_reg_mask_second_choice;
       cpu_reg_mask_second_choice = 0;

@@ -36,17 +36,10 @@ _GPR64_PARAMETER_REGS = _GPR64_REGS[0:16]
 _FLT32_PARAMETER_REGS = _FLT32_REGS[0:8] + _FLT32_REGS[16:32]
 _FLT64_PARAMETER_REGS = _FLT64_REGS[0:8] + _FLT64_REGS[16:32]
 
-# We do not really care about the 32 vs 64 bit for these
-GPR64_LAC_REGS = _GPR64_REGS[16:30]
-FLT64_LAC_REGS = _FLT64_REGS[8:16]
-# TODO: add the link register here
-GPR64_NOT_LAC_REGS = _GPR64_PARAMETER_REGS  # + [_GPR64_REGS[30]]
-FLT64_NOT_LAC_REGS = _FLT64_PARAMETER_REGS
-
 CPU_REGS_MAP = {**{r.name: r for r in _GPR32_REGS},
-            **{r.name: r for r in _GPR64_REGS},
-            **{r.name: r for r in _FLT32_REGS},
-            **{r.name: r for r in _FLT64_REGS}}
+                **{r.name: r for r in _GPR64_REGS},
+                **{r.name: r for r in _FLT32_REGS},
+                **{r.name: r for r in _FLT64_REGS}}
 
 GPR_FAMILY = A64RegKind.GPR64.value
 FLT_FAMILY = A64RegKind.FLT64.value
@@ -90,13 +83,21 @@ def MaskToFlt64Regs(mask: int) -> List[ir.CpuReg]:
     return out
 
 
+# We do not really care about the 32 vs 64 bit for these
 _LINK_REG_MASK = 1 << 30
 _GPR_PARAMETER_REGS_MASK = RegsToMask(_GPR64_PARAMETER_REGS)
 _FLT_PARAMETER_REGS_MASK = RegsToMask(_FLT64_PARAMETER_REGS)
+_GPR_CALLEE_SAVE_REGS_MASK = RegsToMask(_GPR64_REGS[16:30])
+_FLT_CALLEE_SAVE_REGS_MASK = RegsToMask(_FLT64_REGS[8:16])
 
-_GPR_CALLEE_SAVE_REGS_MASK = RegsToMask(GPR64_LAC_REGS)
-_FLT_CALLEE_SAVE_REGS_MASK = RegsToMask(FLT64_LAC_REGS)
-
+# TODO: add the link register here
+GPR_NOT_LAC_REGS_MASK = RegsToMask(_GPR64_PARAMETER_REGS)  # + [_GPR64_REGS[30]]
+GPR_LAC_REGS_MASK = RegsToMask(_GPR64_REGS[16:30])
+#
+FLT_NOT_LAC_REGS_MASK = 0xffff00ff
+FLT_LAC_REGS_MASK = 0x0000ff00
+assert FLT_NOT_LAC_REGS_MASK == RegsToMask(_FLT64_PARAMETER_REGS)
+assert FLT_LAC_REGS_MASK == RegsToMask(_FLT64_REGS[8:16])
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR32_REGS,
@@ -444,6 +445,32 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
                     else:
                         flt |= 1 << reg.cpu_reg.no
     return gpr, flt
+
+
+def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
+                                  cpu_reg_mask_first_choice: int,
+                                  cpu_reg_mask_second_choice: int) -> List[ir.Reg]:
+    """
+    Returns the regs that could not be assigned.
+    """
+    #print (f"@@ AssignCpuRegOrMarkForSpilling {len(assign_to)} {cpu_reg_mask_first_choice:x} {cpu_reg_mask_second_choice:x}")
+    out: List[ir.Reg] = []
+    mask = cpu_reg_mask_first_choice
+    pos = 0
+    for reg in assign_to:
+        if mask == 0 and cpu_reg_mask_second_choice != 0:
+            mask = cpu_reg_mask_second_choice
+            cpu_reg_mask_second_choice = 0
+            pos = 0
+        if mask == 0:
+            out.append(reg)
+            continue
+        while ((1 << pos) & mask) == 0: pos += 1
+        assert reg.cpu_reg is None
+        reg.cpu_reg = _KIND_TO_CPU_REG_LIST[reg.kind][pos]
+        mask &= ~(1 << pos)
+        pos += 1
+    return out
 
 
 @dataclasses.dataclass()
