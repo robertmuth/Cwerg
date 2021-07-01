@@ -47,8 +47,10 @@ extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
 
 // Note: regs must match the class of  cpu_reg_mask, e.g. be all
 // floating point or all GPR
+// This will use up the "first_choice" regs first.  "second_choice"
+// may incur additional cost, e.g. due to the registers being "callee save".
 extern void AssignCpuRegOrMarkForSpilling(
-    const std::vector<base::Reg>& regs,
+    const std::vector<base::Reg>& assign_to,
     uint32_t cpu_reg_mask_first_choice,
     uint32_t cpu_reg_mask_second_choice,
     std::vector<base::Reg>* to_be_spilled);

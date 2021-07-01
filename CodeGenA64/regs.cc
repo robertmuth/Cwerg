@@ -51,7 +51,7 @@ class CpuRegPool : public RegPool {
         flt_available_not_lac_(flt_available_not_lac) {}
 
   uint8_t get_cpu_reg_family(DK dk) override {
-    return (dk == DK::F64 or dk == DK::F32) ? 2 : 1;
+    return (dk == DK::F64 or dk == DK::F32) ? +FLT_FAMILY : +GPR_FAMILY;
   }
 
   CpuReg get_available_reg(const LiveRange& lr) override {
@@ -481,14 +481,14 @@ void InitCodeGenA64() {
   // FLT32
   for (unsigned i = 0; i < FLT32_REGS.size(); ++i) {
     char buffer[8];
-    buffer[0] = 'w';
+    buffer[0] = 's';
     ToDecString(i, buffer + 1);
     FLT32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT32, StrNew(buffer));
   }
   // FLT64
   for (unsigned i = 0; i < FLT64_REGS.size(); ++i) {
     char buffer[8];
-    buffer[0] = 'w';
+    buffer[0] = 'd';
     ToDecString(i, buffer + 1);
     FLT64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT64, StrNew(buffer));
   }
