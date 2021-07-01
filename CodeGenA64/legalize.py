@@ -295,7 +295,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     forward linear scan allocator for the locals. This allocator assumes that
     each register is defined exactly once and hence does not work for globals.
     """
-
+    debug = False
     if fout:
         print("#" * 60, file=fout)
         print(f"# GlobalRegAlloc {fun.name}", file=fout)
@@ -329,6 +329,9 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             len(global_reg_stats[(regs.GPR_FAMILY, False)]),
                             local_reg_stats.get((regs.GPR_FAMILY, True), 0),
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
+    if debug:
+        print(f"@@ GPR NEEDED {needed_gpr.global_lac} {needed_gpr.global_not_lac} "
+              f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}")
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR_LAC_REGS_MASK,
         regs.GPR_NOT_LAC_REGS_MASK, pre_allocated_mask_gpr)
@@ -350,9 +353,12 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
             pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
 
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
-                            len(global_reg_stats[(regs.FLT_FAMILY, True)]),
+                            len(global_reg_stats[(regs.FLT_FAMILY, False)]),
                             local_reg_stats.get((regs.FLT_FAMILY, True), 0),
                             local_reg_stats.get((regs.FLT_FAMILY, False), 0))
+    if debug:
+        print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
+              f"{needed_flt.local_lac} {needed_flt.local_not_lac}")
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
         needed_flt, regs.FLT_LAC_REGS_MASK,

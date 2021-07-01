@@ -51,7 +51,7 @@ class CpuRegPool : public RegPool {
         flt_available_not_lac_(flt_available_not_lac) {}
 
   uint8_t get_cpu_reg_family(DK dk) override {
-    return (dk == DK::F64 or dk == DK::F32) ? +FLT_FAMILY : +GPR_FAMILY;
+    return DKFlavor(dk) == DK_FLAVOR_F ? +FLT_FAMILY : +GPR_FAMILY;
   }
 
   CpuReg get_available_reg(const LiveRange& lr) override {
@@ -400,13 +400,16 @@ void FunLocalRegAlloc(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
+void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
                                    uint32_t cpu_reg_mask_first_choice,
                                    uint32_t cpu_reg_mask_second_choice,
                                    std::vector<Reg>* to_be_spilled) {
+  // std::cout << "@@ AssignCpuRegOrMarkForSpilling " << assign_to.size() << " "
+  //         << std::hex
+  //    << cpu_reg_mask_first_choice << " " << cpu_reg_mask_second_choice << "\n";
   uint32_t cpu_reg_mask = cpu_reg_mask_first_choice;
   unsigned pos = 0;
-  for (Reg reg : regs) {
+  for (Reg reg : assign_to) {
     ASSERT(RegCpuReg(reg).isnull(), "");
     if (cpu_reg_mask == 0 && cpu_reg_mask_second_choice != 0) {
       cpu_reg_mask = cpu_reg_mask_second_choice;
@@ -432,7 +435,8 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
         RegCpuReg(reg) = GPR32_REGS[pos];
       }
     }
-
+    //std::cout << "@@@@ ASSIGN " << Name(reg) << " " <<
+    //    EnumToString(dk) << " " << Name(RegCpuReg(reg)) << "\n";
     cpu_reg_mask &= ~(1U << pos);
     ++pos;
   }
