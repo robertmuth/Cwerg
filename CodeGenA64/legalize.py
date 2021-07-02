@@ -295,7 +295,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     forward linear scan allocator for the locals. This allocator assumes that
     each register is defined exactly once and hence does not work for globals.
     """
-    debug = False
+    debug = None
     if fout:
         print("#" * 60, file=fout)
         print(f"# GlobalRegAlloc {fun.name}", file=fout)
@@ -331,10 +331,13 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     if debug:
         print(f"@@ GPR NEEDED {needed_gpr.global_lac} {needed_gpr.global_not_lac} "
-              f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}")
+              f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}", file=debug)
+
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR_LAC_REGS_MASK,
-        regs.GPR_NOT_LAC_REGS_MASK, pre_allocated_mask_gpr)
+        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
+                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
+    if debug:
+        print(f"@@ GPR POOL {gpr_global_lac:x} {gpr_global_not_lac:x}", file=debug)
 
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
@@ -342,7 +345,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.GPR_FAMILY, False)],
-        gpr_global_not_lac & regs.GPR_NOT_LAC_REGS_MASK,
+        gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
         gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
@@ -358,17 +361,19 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.FLT_FAMILY, False), 0))
     if debug:
         print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
-              f"{needed_flt.local_lac} {needed_flt.local_not_lac}")
+              f"{needed_flt.local_lac} {needed_flt.local_not_lac}", file=debug)
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT_LAC_REGS_MASK,
-        regs.FLT_NOT_LAC_REGS_MASK, pre_allocated_mask_flt)
+        needed_flt, regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+                    regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK, pre_allocated_mask_flt)
+    if debug:
+        print(f"@@ FLT POOL {flt_global_lac:x} {flt_global_not_lac:x}", file=debug)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.FLT_FAMILY, False)],
-        flt_global_not_lac & regs.FLT_NOT_LAC_REGS_MASK,
+        flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
         flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
@@ -388,7 +393,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     could increase register usage.
 
     """
-    #print("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)), file=fout)
+    # print("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)), file=fout)
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup

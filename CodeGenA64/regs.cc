@@ -240,9 +240,10 @@ void BblRegAllocOrSpill(Bbl bbl,
     }
   }
 
-  RunLinearScan(bbl, fun, true, &ranges, GPR_LAC_REGS_MASK,
-                GPR_NOT_LAC_REGS_MASK, FLT_LAC_REGS_MASK,
-                FLT_NOT_LAC_REGS_MASK);
+  RunLinearScan(bbl, fun, true, &ranges, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
 
   std::vector<Reg> spilled_regs =
       AssignAllocatedRegsAndReturnSpilledRegs(ranges);
@@ -263,9 +264,11 @@ void BblRegAllocOrSpill(Bbl bbl,
         lr.cpu_reg = RegCpuReg(lr.reg);
       }
     }
-    RunLinearScan(bbl, fun, true, &ranges, GPR_LAC_REGS_MASK,
-                  GPR_NOT_LAC_REGS_MASK, FLT_LAC_REGS_MASK,
-                  FLT_NOT_LAC_REGS_MASK);
+    RunLinearScan(bbl, fun, true, &ranges,
+                  GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                  GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                  FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                  FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
     spilled_regs = AssignAllocatedRegsAndReturnSpilledRegs(ranges);
     ASSERT(spilled_regs.empty(), "");
   }
@@ -466,7 +469,7 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
 
 EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);
-  masks.gpr_mask &= GPR_LAC_REGS_MASK;
+  masks.gpr_mask &= GPR_LAC_REGS_MASK_WITH_LR;
   masks.flt_mask &= FLT_LAC_REGS_MASK;
   if (!FunIsLeaf(fun)) {
     // add link regs if it is not already included

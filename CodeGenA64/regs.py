@@ -63,10 +63,6 @@ REG_KIND_TO_CPU_REG_FAMILY = {
 }
 
 
-def RegsToMask(regs: List[ir.CpuReg]) -> int:
-    return functools.reduce(operator.or_, (1 << r.no for r in regs), 0)
-
-
 def MaskToGpr64Regs(mask: int) -> List[ir.CpuReg]:
     out = []
     for reg in _GPR64_REGS:
@@ -85,23 +81,13 @@ def MaskToFlt64Regs(mask: int) -> List[ir.CpuReg]:
 
 # We do not really care about the 32 vs 64 bit for these
 _LINK_REG_MASK = 1 << 30
-_GPR_PARAMETER_REGS_MASK = RegsToMask(_GPR64_PARAMETER_REGS)
-_FLT_PARAMETER_REGS_MASK = RegsToMask(_FLT64_PARAMETER_REGS)
-_GPR_CALLEE_SAVE_REGS_MASK = RegsToMask(_GPR64_REGS[16:30])
-_FLT_CALLEE_SAVE_REGS_MASK = RegsToMask(_FLT64_REGS[8:16])
 
-# TODO: add the link register here
-GPR_NOT_LAC_REGS_MASK = RegsToMask(_GPR64_PARAMETER_REGS)  # + [_GPR64_REGS[30]]
-GPR_LAC_REGS_MASK = RegsToMask(_GPR64_REGS[16:30])
-#
-FLT_NOT_LAC_REGS_MASK = 0xffff00ff
+GPR_REGS_MASK = 0x7fffffff
+GPR_LAC_REGS_MASK = 0x3fff0000
+GPR_LAC_REGS_MASK_WITH_LR = 0x7fff0000
+
+FLT_REGS_MASK = 0xffffffff
 FLT_LAC_REGS_MASK = 0x0000ff00
-
-assert _GPR_CALLEE_SAVE_REGS_MASK == 0x3fff0000, f"{_GPR_CALLEE_SAVE_REGS_MASK:x}"
-assert _FLT_CALLEE_SAVE_REGS_MASK == 0xff00
-
-assert FLT_NOT_LAC_REGS_MASK == RegsToMask(_FLT64_PARAMETER_REGS)
-assert FLT_LAC_REGS_MASK == RegsToMask(_FLT64_REGS[8:16])
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR32_REGS,
@@ -128,20 +114,20 @@ def GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     out = []
     for k in kinds:
         if k == o.DK.F32:
-            assert next_flt < len(_FLT32_PARAMETER_REGS)
+            assert next_flt < len(_FLT32_PARAMETER_REGS), "too many flt arguments"
             cpu_reg = _FLT32_PARAMETER_REGS[next_flt]
             next_flt += 1
         elif k == o.DK.F64:
-            assert next_flt < len(_FLT64_PARAMETER_REGS)
+            assert next_flt < len(_FLT64_PARAMETER_REGS), "too many flt arguments"
             cpu_reg = _FLT64_PARAMETER_REGS[next_flt]
             next_flt += 1
         elif k == o.DK.S32 or k == o.DK.U32:
-            assert next_gpr < len(_GPR32_PARAMETER_REGS)
+            assert next_gpr < len(_GPR32_PARAMETER_REGS), "too many gpr arguments"
             cpu_reg = _GPR32_PARAMETER_REGS[next_gpr]
             next_gpr += 1
         else:
             assert k in {o.DK.C64, o.DK.S64, o.DK.A64, o.DK.U64}
-            assert next_gpr <= len(_GPR64_PARAMETER_REGS)
+            assert next_gpr <= len(_GPR64_PARAMETER_REGS), "too many gpr arguments"
             cpu_reg = _GPR64_PARAMETER_REGS[next_gpr]
             next_gpr += 1
         out.append(cpu_reg)
@@ -317,10 +303,10 @@ class CpuRegPool(reg_alloc.RegPool):
         reg_mask = 1 << cpu_reg.no
         if cpu_reg.kind is A64RegKind.FLT32 or cpu_reg.kind is A64RegKind.FLT64:
             is_gpr = False
-            is_lac = (reg_mask & _FLT_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (reg_mask & FLT_LAC_REGS_MASK) != 0
         else:
             is_gpr = True
-            is_lac = (reg_mask & _GPR_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (reg_mask & GPR_LAC_REGS_MASK) != 0
         available = self.get_available(is_lac, is_gpr)
         self.set_available(is_lac, is_gpr, available | reg_mask)
         # print (f"@@@@ adding {lac} {cpu_reg} {available | mask:x}")
@@ -412,8 +398,8 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     # Note, global and fixed registers have already been assigned and will
     # be respected by the allocator.
     _RunLinearScan(bbl, fun, live_ranges, True,
-                   _GPR_CALLEE_SAVE_REGS_MASK, _GPR_PARAMETER_REGS_MASK,
-                   _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
+                   GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                   FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
     spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
     if spilled_regs:
         assert False
@@ -431,8 +417,8 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
                 lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
                 lr.cpu_reg = lr.reg.cpu_reg
         _RunLinearScan(bbl, fun, live_ranges, False,
-                       _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
-                       _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
+                       GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                       FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
         spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
         assert not spilled_regs
     return 0
@@ -505,8 +491,8 @@ class EmitContext:
 
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
-    gpr_mask &= _GPR_CALLEE_SAVE_REGS_MASK
-    flt_mask &= _FLT_CALLEE_SAVE_REGS_MASK
+    gpr_mask &= GPR_LAC_REGS_MASK_WITH_LR
+    flt_mask &= FLT_LAC_REGS_MASK
     if not ir.FunIsLeaf(fun):
         gpr_mask |= _LINK_REG_MASK
     stk_size = (fun.stk_size + 15) // 16 * 16
