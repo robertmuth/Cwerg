@@ -23,8 +23,6 @@ std::array<CpuReg, 8> DBL_PARAM_REGS;
 // unlike other ABIs r12 is callee_save
 std::array<CpuReg, 6> GPR_CALLEE_SAVE_REGS;
 std::array<CpuReg, 16> FLT_CALLEE_SAVE_REGS;
-std::array<CpuReg, 8> DBL_CALLEE_SAVE_REGS;
-
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 namespace {
@@ -554,8 +552,6 @@ void InitCodeGenA32() {
     DBL_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::DBL, StrNew(buffer));
     if (i < DBL_PARAM_REGS.size()) {
       DBL_PARAM_REGS[i] = DBL_REGS[i];
-    } else {
-      DBL_CALLEE_SAVE_REGS[i - DBL_PARAM_REGS.size()] = DBL_REGS[i];
     }
   }
 

@@ -26,13 +26,11 @@ extern std::array<base::CpuReg, 6> GPR_PARAM_REGS;
 extern std::array<base::CpuReg, 8> GPR_NOT_LAC_REGS;
 
 extern std::array<base::CpuReg, 16> FLT_PARAM_REGS;
-extern std::array<base::CpuReg, 8> DBL_PARAM_REGS;
 
 // r13-r15 are special: sp, lr, pc
 // unlike other ABIs r12 is callee_save
 extern std::array<base::CpuReg, 6> GPR_CALLEE_SAVE_REGS;
 extern std::array<base::CpuReg, 16> FLT_CALLEE_SAVE_REGS;
-extern std::array<base::CpuReg, 8> DBL_CALLEE_SAVE_REGS;
 
 // maps the DK of Cwerg reg to the CPU_REG_KIND needed for a cpu reg
 extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;

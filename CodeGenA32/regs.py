@@ -71,10 +71,14 @@ LINK_REG = _GPR_REGS[14]
 STACK_REG = _GPR_REGS[13]
 GPR_SCRATCH_REG = _GPR_REGS[12]
 
+
+GPR_REGS_MASK = 0x5fff # excludes pc and sp
+GPR_LAC_REGS_MASK = 0x0fc0
+GPR_LAC_REGS_MASK_WITH_LR = 0x4fc0
+
 # this not compatible with any ABI
 GPR_CALLEE_SAVE_REGS = _GPR_REGS[6:12]
 FLT_CALLEE_SAVE_REGS = _FLT_REGS[16:]
-DBL_CALLEE_SAVE_REGS = DBL_REGS[8:]
 
 GPR_PARAMETER_REGS = _GPR_REGS[0:6]
 GPR_NOT_LAC_REGS = GPR_PARAMETER_REGS + [GPR_SCRATCH_REG, LINK_REG]
@@ -83,6 +87,8 @@ FLT_PARAMETER_REGS = _FLT_REGS[0:16]
 DBL_PARAMETER_REGS = DBL_REGS[0:8]
 
 _LINK_REG_MASK = A32RegToAllocMask(LINK_REG)
+_PC_REG_MASK = A32RegToAllocMask(PC_REG)
+
 _FLT_CALLEE_SAVE_REGS_MASK = A32RegsToAllocMask(FLT_CALLEE_SAVE_REGS)
 _GPR_CALLEE_SAVE_REGS_MASK = A32RegsToAllocMask(GPR_CALLEE_SAVE_REGS)
 
@@ -521,14 +527,16 @@ def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     must_save_link = not ir.FunIsLeaf(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
     gpr_mask &= _GPR_CALLEE_SAVE_REGS_MASK
     flt_mask &= _FLT_CALLEE_SAVE_REGS_MASK
+
     ctx = EmitContext()
     ctx.stm_regs = gpr_mask
     ctx.ldm_regs = gpr_mask
+
     ctx.vstm_regs = flt_mask
     ctx.vldm_regs = flt_mask
     if must_save_link:
-        ctx.stm_regs |= A32RegToAllocMask(LINK_REG)
-        ctx.ldm_regs |= A32RegToAllocMask(PC_REG)
+        ctx.stm_regs |= _LINK_REG_MASK
+        ctx.ldm_regs |= _PC_REG_MASK
     # Python 3.10 has int.bit_count():
     num_saved_regs = bin(ctx.ldm_regs).count('1') + bin(ctx.vldm_regs).count('1')
     stk_size = fun.stk_size + 4 * num_saved_regs
