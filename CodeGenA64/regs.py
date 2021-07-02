@@ -96,6 +96,10 @@ GPR_LAC_REGS_MASK = RegsToMask(_GPR64_REGS[16:30])
 #
 FLT_NOT_LAC_REGS_MASK = 0xffff00ff
 FLT_LAC_REGS_MASK = 0x0000ff00
+
+assert _GPR_CALLEE_SAVE_REGS_MASK == 0x3fff0000, f"{_GPR_CALLEE_SAVE_REGS_MASK:x}"
+assert _FLT_CALLEE_SAVE_REGS_MASK == 0xff00
+
 assert FLT_NOT_LAC_REGS_MASK == RegsToMask(_FLT64_PARAMETER_REGS)
 assert FLT_LAC_REGS_MASK == RegsToMask(_FLT64_REGS[8:16])
 
@@ -243,6 +247,11 @@ class CpuRegPool(reg_alloc.RegPool):
         else:
             return self._flt_available_lac if lac else self._flt_available_not_lac
 
+    def render_available(self, lac, is_gpr) -> str:
+        """used by debugging tools"""
+        l = " lac" if lac else ""
+        return f"{self.get_available(True, is_gpr):08x} {self.get_available(False, is_gpr):08x}"
+
     def set_available(self, lac, is_gpr, available):
         if is_gpr:
             if lac:
@@ -308,10 +317,10 @@ class CpuRegPool(reg_alloc.RegPool):
         reg_mask = 1 << cpu_reg.no
         if cpu_reg.kind is A64RegKind.FLT32 or cpu_reg.kind is A64RegKind.FLT64:
             is_gpr = False
-            is_lac = (reg_mask & _GPR_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (reg_mask & _FLT_CALLEE_SAVE_REGS_MASK) != 0
         else:
             is_gpr = True
-            is_lac = (reg_mask & _FLT_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (reg_mask & _GPR_CALLEE_SAVE_REGS_MASK) != 0
         available = self.get_available(is_lac, is_gpr)
         self.set_available(is_lac, is_gpr, available | reg_mask)
         # print (f"@@@@ adding {lac} {cpu_reg} {available | mask:x}")
@@ -319,14 +328,20 @@ class CpuRegPool(reg_alloc.RegPool):
     def __str__(self):
         gpr_lac, gpr_not_lac = self._gpr_available_lac, self._gpr_available_not_lac
         flt_lac, flt_not_lac = self._flt_available_lac, self._flt_available_not_lac
-        return f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"
+        out = [f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"]
+        for n, pa in  enumerate(self._gpr_reserved):
+            if pa.ranges:
+                out.append(f"gpr{n} {len(pa.ranges)}")
+        for n, pa in  enumerate(self._flt_reserved):
+            if pa.ranges:
+                out.append(f"flt{n} {len(pa.ranges)}")
+        return "\n".join(out)
 
 
 def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRange], allow_spilling,
                    gpr_regs_lac: int, gpr_regs_not_lac: int,
                    flt_regs_lac: int,
                    flt_regs_not_lac: int):
-    # print("\n".join(serialize.BblRenderToAsm(bbl)))
     pool = CpuRegPool(fun, bbl, allow_spilling,
                       gpr_regs_lac, gpr_regs_not_lac, flt_regs_lac, flt_regs_not_lac)
     for lr in live_ranges:
@@ -342,13 +357,18 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRang
         else:
             lr.cpu_reg = ir.CPU_REG_INVALID
 
+    # print (f"{pool}")
+    # print(f"\nPY {bbl.name}")
+    # for lr in live_ranges:
+    #    print(f"{lr}")
+
     # print ("\n".join(serialize.BblRenderToAsm(bbl)))
     n = [0]
-
     def logger(lr, message):
         m = f"{n[0]} {lr} {message}"
         n[0] += 1
         print(m)
+
 
     reg_alloc.RegisterAssignerLinearScanFancy(live_ranges, pool, None)
 
@@ -485,7 +505,6 @@ class EmitContext:
 
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
-
     gpr_mask &= _GPR_CALLEE_SAVE_REGS_MASK
     flt_mask &= _FLT_CALLEE_SAVE_REGS_MASK
     if not ir.FunIsLeaf(fun):

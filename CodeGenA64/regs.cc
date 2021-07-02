@@ -112,6 +112,21 @@ class CpuRegPool : public RegPool {
     }
   }
 
+  void Render(std::ostream* out) {
+    *out << "POOL gpr:" << std::hex << gpr_available_lac_ << "/"
+         << gpr_available_not_lac_ << " flt:" << flt_available_lac_ << "/"
+         << flt_available_not_lac_ << std::dec << "\n";
+
+    for (unsigned i = 0; i < gpr_reserved_.size(); ++i) {
+      if (gpr_reserved_[i].size() > 0)
+        *out << "gpr" << i << " " << gpr_reserved_[i].size() << "\n";
+    }
+    for (unsigned i = 0; i < flt_reserved_.size(); ++i) {
+      if (flt_reserved_[i].size() > 0)
+        *out << "flt" << i << " " << gpr_reserved_[i].size() << "\n";
+    }
+  }
+
  private:
   uint32_t get_available(bool lac, bool is_gpr) const {
     if (is_gpr) {
@@ -160,7 +175,6 @@ void RunLinearScan(Bbl bbl,
   CpuRegPool pool(fun, bbl, allow_spilling, mask_gpr_regs_lac,
                   mask_gpr_regs_not_lac, mask_flt_regs_lac,
                   mask_flt_regs_not_lac);
-
   std::vector<LiveRange*> ordered;
   for (unsigned i = 1; i < ranges->size(); ++i)
     ordered.push_back(&(*ranges)[i]);
@@ -168,15 +182,22 @@ void RunLinearScan(Bbl bbl,
             [](LiveRange* lhs, LiveRange* rhs) { return *lhs < *rhs; });
 
   for (LiveRange* lr : ordered) {
-    if (!lr->cpu_reg.isnull()) {
+    if (lr->HasFlag(LR_FLAG::PRE_ALLOC)) {
       pool.add_reserved_range(*lr);
+    } else {
+      lr->cpu_reg = CPU_REG_INVALID;
     }
   }
-
+  // pool.Render(&std::cout);
+  // std::cout << "\nCC" << Name(bbl) << "\n";
+  // for (const LiveRange* lr : ordered) {
+  //  std::cout << *lr << "\n";
+  // }
   unsigned n = 0;
   auto logger = [&](const LiveRange& lr, std::string_view msg) {
     std::cout << n++ << " " << lr << " " << msg << "\n";
   };
+
   RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
 }
 
@@ -406,7 +427,8 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
                                    std::vector<Reg>* to_be_spilled) {
   // std::cout << "@@ AssignCpuRegOrMarkForSpilling " << assign_to.size() << " "
   //         << std::hex
-  //    << cpu_reg_mask_first_choice << " " << cpu_reg_mask_second_choice << "\n";
+  //    << cpu_reg_mask_first_choice << " " << cpu_reg_mask_second_choice <<
+  //    "\n";
   uint32_t cpu_reg_mask = cpu_reg_mask_first_choice;
   unsigned pos = 0;
   for (Reg reg : assign_to) {
@@ -435,7 +457,7 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
         RegCpuReg(reg) = GPR32_REGS[pos];
       }
     }
-    //std::cout << "@@@@ ASSIGN " << Name(reg) << " " <<
+    // std::cout << "@@@@ ASSIGN " << Name(reg) << " " <<
     //    EnumToString(dk) << " " << Name(RegCpuReg(reg)) << "\n";
     cpu_reg_mask &= ~(1U << pos);
     ++pos;
