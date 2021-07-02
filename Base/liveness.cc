@@ -398,11 +398,11 @@ std::ostream& operator<<(std::ostream& os, const LiveRange& lr) {
     for (unsigned i = 0; i < MAX_USES_PER_OPCODE; ++i) {
       if (lr.use_def[i] != 0) ++n;
     }
-    std::cout << " USE_DEF " << n;
+    std::cout << " uses:" << n;
 
   } else {
     if (lr.cpu_reg == CPU_REG_SPILL) std::cout << " SPILLED";
-    os << " " << Name(lr.reg) << ":" << EnumToString(RegKind(lr.reg));
+    os << " def:" << Name(lr.reg) << ":" << EnumToString(RegKind(lr.reg));
     if (!lr.cpu_reg.isnull()) {
       os << "@" << Name(lr.cpu_reg);
     }

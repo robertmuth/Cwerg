@@ -18,7 +18,7 @@ class PreAllocation {
 
   void add(const LiveRange* lr);
   bool has_conflict(const LiveRange& lr);
-
+  unsigned size() const { return  ranges_.size(); }
  private:
   std::vector<const LiveRange*> ranges_;
   unsigned current_ = 0;
