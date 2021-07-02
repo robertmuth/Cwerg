@@ -27,10 +27,11 @@ extern std::array<base::CpuReg, 8> GPR_NOT_LAC_REGS;
 
 extern std::array<base::CpuReg, 16> FLT_PARAM_REGS;
 
-// r13-r15 are special: sp, lr, pc
-// unlike other ABIs r12 is callee_save
-extern std::array<base::CpuReg, 6> GPR_CALLEE_SAVE_REGS;
-extern std::array<base::CpuReg, 16> FLT_CALLEE_SAVE_REGS;
+const constexpr uint32_t GPR_REGS_MASK = 0x5fff;
+const constexpr uint32_t GPR_LAC_REGS_MASK = 0x0fc0;
+
+const constexpr uint32_t FLT_REGS_MASK = 0xffffffff;
+const constexpr uint32_t FLT_LAC_REGS_MASK = 0xffff0000;
 
 // maps the DK of Cwerg reg to the CPU_REG_KIND needed for a cpu reg
 extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
@@ -71,11 +72,7 @@ extern void EmitFunProlog(const EmitContext& ctx,
 extern void EmitFunEpilog(const EmitContext& ctx,
                           std::vector<a32::Ins>* output);
 
-const constexpr uint32_t GPR_CALLEE_SAVE_REGS_MASK = 0x0fc0;
-const constexpr uint32_t GPR_NOT_LAC_REGS_MASK = 0x503f;
 
-const constexpr uint32_t FLT_CALLEE_SAVE_REGS_MASK = 0xffff0000;
-const constexpr uint32_t FLT_PARAM_REGS_REGS_MASK = 0x0000ffff;
 
 extern uint32_t A32RegToAllocMask(base::CpuReg cpu_reg);
 

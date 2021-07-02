@@ -71,10 +71,15 @@ LINK_REG = _GPR_REGS[14]
 STACK_REG = _GPR_REGS[13]
 GPR_SCRATCH_REG = _GPR_REGS[12]
 
-
-GPR_REGS_MASK = 0x5fff # excludes pc and sp
+GPR_REGS_MASK = 0x5fff  # excludes pc and sp
 GPR_LAC_REGS_MASK = 0x0fc0
 GPR_LAC_REGS_MASK_WITH_LR = 0x4fc0
+
+_LINK_REG_MASK = A32RegToAllocMask(LINK_REG)
+_PC_REG_MASK = A32RegToAllocMask(PC_REG)
+
+FLT_REGS_MASK = 0xffffffff
+FLT_LAC_REGS_MASK = 0xffff0000
 
 # this not compatible with any ABI
 GPR_CALLEE_SAVE_REGS = _GPR_REGS[6:12]
@@ -85,15 +90,6 @@ GPR_NOT_LAC_REGS = GPR_PARAMETER_REGS + [GPR_SCRATCH_REG, LINK_REG]
 
 FLT_PARAMETER_REGS = _FLT_REGS[0:16]
 DBL_PARAMETER_REGS = DBL_REGS[0:8]
-
-_LINK_REG_MASK = A32RegToAllocMask(LINK_REG)
-_PC_REG_MASK = A32RegToAllocMask(PC_REG)
-
-_FLT_CALLEE_SAVE_REGS_MASK = A32RegsToAllocMask(FLT_CALLEE_SAVE_REGS)
-_GPR_CALLEE_SAVE_REGS_MASK = A32RegsToAllocMask(GPR_CALLEE_SAVE_REGS)
-
-_GPR_NOT_LAC_REGS_MASK = A32RegsToAllocMask(GPR_NOT_LAC_REGS)
-_FLT_PARAMETER_REGS_MASK = A32RegsToAllocMask(FLT_PARAMETER_REGS)
 
 
 def ArmGetFltRegRanges(x: int) -> Tuple[ir.CpuReg, int]:
@@ -311,10 +307,10 @@ class RegPoolA32(reg_alloc.RegPool):
         mask = A32RegToAllocMask(cpu_reg)
         if cpu_reg.kind == A32RegKind.GPR:
             is_gpr = True
-            is_lac = (mask & _GPR_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (mask & GPR_LAC_REGS_MASK) != 0
         else:
             is_gpr = False
-            is_lac = (mask & _FLT_CALLEE_SAVE_REGS_MASK) != 0
+            is_lac = (mask & FLT_LAC_REGS_MASK) != 0
         available = self.get_available(is_lac, is_gpr)
         self.set_available(is_lac, is_gpr, available | mask)
         # print (f"@@@@ adding {lac} {cpu_reg} {available | mask:x}")
@@ -432,33 +428,9 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
                 ins = "\t# " + serialize.InsRenderToAsm(bbl.inss[lr.def_pos])
             print(str(lr) + ins)
 
-    # for lr in live_ranges:
-    #
-    #     if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags  or lr.is_use_lr():
-    #         continue
-    #     if lr.last_use_pos - lr.def_pos > 0:
-    #         lr.flags |= liveness.LiveRangeFlag.IGNORE
-    #
-    # _RunLinearScan(bbl, fun, live_ranges, False,
-    #                _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
-    #                _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
-    #
-    # for lr in live_ranges:
-    #     if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags or lr.is_use_lr():
-    #         continue
-    #     if liveness.LiveRangeFlag.IGNORE in lr.flags:
-    #         lr.flags &= ~liveness.LiveRangeFlag.IGNORE
-    #     else:
-    #         assert lr.cpu_reg is not ir.CPU_REG_INVALID and lr.cpu_reg is not ir.CPU_REG_SPILL, f"{lr}"
-    #         lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
-    #         lr.reg.cpu_reg = lr.cpu_reg
-
-    # First reg-alloc path to determine if spilling is needed.
-    # Note, global and fixed registers have already been assigned and will
-    # be respected by the allocator.
     _RunLinearScan(bbl, fun, live_ranges, True,
-                   _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
-                   _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
+                   GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                   FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
     spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
     if spilled_regs:
         # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
@@ -475,8 +447,8 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
                 lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
                 lr.cpu_reg = lr.reg.cpu_reg
         _RunLinearScan(bbl, fun, live_ranges, False,
-                       _GPR_CALLEE_SAVE_REGS_MASK, _GPR_NOT_LAC_REGS_MASK,
-                       _FLT_CALLEE_SAVE_REGS_MASK, _FLT_PARAMETER_REGS_MASK)
+                       GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                       FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
         spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
         assert not spilled_regs
     return 0
@@ -525,8 +497,8 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
     must_save_link = not ir.FunIsLeaf(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
-    gpr_mask &= _GPR_CALLEE_SAVE_REGS_MASK
-    flt_mask &= _FLT_CALLEE_SAVE_REGS_MASK
+    gpr_mask &= GPR_LAC_REGS_MASK
+    flt_mask &= FLT_LAC_REGS_MASK
 
     ctx = EmitContext()
     ctx.stm_regs = gpr_mask

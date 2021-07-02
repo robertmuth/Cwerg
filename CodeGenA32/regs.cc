@@ -14,15 +14,9 @@ std::array<CpuReg, 32> FLT_REGS;
 std::array<CpuReg, 16> DBL_REGS;
 
 std::array<CpuReg, 6> GPR_PARAM_REGS;
-std::array<CpuReg, 8> GPR_NOT_LAC_REGS;
-
 std::array<CpuReg, 16> FLT_PARAM_REGS;
 std::array<CpuReg, 8> DBL_PARAM_REGS;
 
-// r13-r15 are special: sp, lr, pc
-// unlike other ABIs r12 is callee_save
-std::array<CpuReg, 6> GPR_CALLEE_SAVE_REGS;
-std::array<CpuReg, 16> FLT_CALLEE_SAVE_REGS;
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 namespace {
@@ -105,8 +99,8 @@ class RegPoolArm : public RegPool {
   void give_back_available_reg(CpuReg cpu_reg) override {
     bool is_gpr = CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR;
     uint32_t mask = A32RegToAllocMask(cpu_reg);
-    bool lac = 0 != (mask & (is_gpr ? GPR_CALLEE_SAVE_REGS_MASK
-                                    : FLT_CALLEE_SAVE_REGS_MASK));
+    bool lac = 0 != (mask & (is_gpr ? GPR_LAC_REGS_MASK
+                                    : FLT_LAC_REGS_MASK));
 
     uint32_t available = get_available(lac, is_gpr);
     set_available(lac, is_gpr, available | mask);
@@ -233,9 +227,11 @@ void BblRegAllocOrSpill(Bbl bbl,
     }
   }
 
-  RunLinearScan(bbl, fun, true, &ranges, GPR_CALLEE_SAVE_REGS_MASK,
-                GPR_NOT_LAC_REGS_MASK, FLT_CALLEE_SAVE_REGS_MASK,
-                FLT_PARAM_REGS_REGS_MASK);
+  RunLinearScan(bbl, fun, true, &ranges,
+                GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
 
   std::vector<Reg> spilled_regs =
       AssignAllocatedRegsAndReturnSpilledRegs(ranges);
@@ -256,9 +252,11 @@ void BblRegAllocOrSpill(Bbl bbl,
         lr.cpu_reg = RegCpuReg(lr.reg);
       }
     }
-    RunLinearScan(bbl, fun, true, &ranges, GPR_CALLEE_SAVE_REGS_MASK,
-                  GPR_NOT_LAC_REGS_MASK, FLT_CALLEE_SAVE_REGS_MASK,
-                  FLT_PARAM_REGS_REGS_MASK);
+    RunLinearScan(bbl, fun, true, &ranges,
+                  GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                  GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                  FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                  FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
     spilled_regs = AssignAllocatedRegsAndReturnSpilledRegs(ranges);
     ASSERT(spilled_regs.empty(), "");
   }
@@ -437,8 +435,8 @@ EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);
   const bool must_save_link_reg =
       !FunIsLeaf(fun) || (masks.gpr_mask & LINK_REG_MASK) != 0;
-  masks.gpr_mask &= GPR_CALLEE_SAVE_REGS_MASK;
-  masks.flt_mask &= FLT_CALLEE_SAVE_REGS_MASK;
+  masks.gpr_mask &= GPR_LAC_REGS_MASK;
+  masks.flt_mask &= FLT_LAC_REGS_MASK;
   EmitContext out{masks.gpr_mask, masks.flt_mask, masks.gpr_mask,
                   masks.flt_mask};
   if (must_save_link_reg) {
@@ -513,18 +511,10 @@ void InitCodeGenA32() {
   // GPR
   for (size_t i = 0; i < 16; ++i) {
     GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(GPR_NAMES[i]));
-    uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
+    const uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
     if (i < GPR_PARAM_REGS.size()) {
-      ASSERT((GPR_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
+      ASSERT((GPR_LAC_REGS_MASK & mask) == 0, "" << i << " " << GPR_LAC_REGS_MASK);
       GPR_PARAM_REGS[i] = GPR_REGS[i];
-      GPR_NOT_LAC_REGS[i] = GPR_REGS[i];
-    } else if (i < GPR_PARAM_REGS.size() + GPR_CALLEE_SAVE_REGS.size()) {
-      ASSERT((GPR_CALLEE_SAVE_REGS_MASK & mask) == mask, "");
-      GPR_CALLEE_SAVE_REGS[i - GPR_PARAM_REGS.size()] = GPR_REGS[i];
-    } else if (i == 12) {  // IP
-      GPR_NOT_LAC_REGS[6] = GPR_REGS[i];
-    } else if (i == 14) {  // LR
-      GPR_NOT_LAC_REGS[7] = GPR_REGS[i];
     }
   }
 
@@ -536,11 +526,8 @@ void InitCodeGenA32() {
     FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
     uint32_t mask = A32RegToAllocMask(FLT_REGS[i]);
     if (i < FLT_PARAM_REGS.size()) {
-      ASSERT((FLT_CALLEE_SAVE_REGS_MASK & mask) == 0, "");
+      ASSERT((FLT_LAC_REGS_MASK & mask) == 0, "");
       FLT_PARAM_REGS[i] = FLT_REGS[i];
-    } else {
-      ASSERT((FLT_CALLEE_SAVE_REGS_MASK & mask) == mask, "");
-      FLT_CALLEE_SAVE_REGS[i - FLT_PARAM_REGS.size()] = FLT_REGS[i];
     }
   }
 
