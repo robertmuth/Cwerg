@@ -155,12 +155,12 @@ class RegsNeeded:
         return f"RegNeeded: {self.global_lac} {self.global_not_lac} {self.local_lac} {self.local_not_lac}"
 
 
-def _spilling_needed(needed: RegsNeeded, global_lac: List[ir.CpuReg],
-                     local_not_lac: List[ir.CpuReg]) -> bool:
+def _spilling_needed(needed: RegsNeeded, num_global_lac: int,
+                     num_local_not_lac: int) -> bool:
     """ Note: this assumes the early condition of the pools with only two lists populated"""
-    return (needed.global_lac + needed.local_lac > len(global_lac) or
+    return (needed.global_lac + needed.local_lac > num_global_lac or
             needed.global_lac + needed.local_lac + needed.global_not_lac + needed.local_not_lac >
-            len(global_lac) + len(local_not_lac))
+            num_global_lac + num_local_not_lac)
 
 
 def _maybe_move_excess(src, dst, n):
@@ -172,7 +172,7 @@ def _maybe_move_excess(src, dst, n):
 
 def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
                            regs_not_lac: List[ir.CpuReg],
-                           pre_allocated: Set[ir.CpuReg]) -> Tuple[
+                           pre_allocated: int) -> Tuple[
     List[ir.CpuReg], List[ir.CpuReg]]:
     """
     Partitions all the CPU registers into 4 categories
@@ -187,7 +187,7 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
     If we need to spill, earmark one more local_not_lac reg to handle the spilling
     TODO: this needs some more thinking - the worst case could require more regs
     """
-    spill_reg_needed = _spilling_needed(needed, regs_lac, regs_not_lac)
+    spill_reg_needed = _spilling_needed(needed, len(regs_lac), len(regs_not_lac))
     global_lac = regs_lac
     local_lac = []
     # excess lac globals can be used for lac locals
@@ -197,7 +197,7 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
     local_not_lac = []
     global_not_lac = []
     for n, cpu_reg in enumerate(regs_not_lac):
-        if n < needed.local_not_lac + spill_reg_needed or cpu_reg in pre_allocated:
+        if n < needed.local_not_lac + spill_reg_needed or (1 << cpu_reg.no & pre_allocated) != 0:
             local_not_lac.append(cpu_reg)
         else:
             global_not_lac.append(cpu_reg)
@@ -318,6 +318,10 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
 
     # Handle GPR regs
+    pre_allocated_mask_gpr = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.A32RegKind.GPR:
+            pre_allocated_mask_gpr |= regs.A32RegToAllocMask(reg.cpu_reg)
     # compute the number of regs needed if had indeed unlimited regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.A32RegKind.GPR, True)]),
                             len(global_reg_stats[(regs.A32RegKind.GPR, False)]),
@@ -326,7 +330,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     # earmark some regs for globals
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR_CALLEE_SAVE_REGS.copy(),
-        regs.GPR_NOT_LAC_REGS.copy(), pre_allocated)
+        regs.GPR_NOT_LAC_REGS.copy(), pre_allocated_mask_gpr)
 
     # assign the earmarked regs to some globals and spill the rest
     to_be_spilled: List[ir.Reg] = []
@@ -340,6 +344,10 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         regs.A32RegsToAllocMask(gpr_global_not_lac) & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
+    pre_allocated_mask_flt = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind != regs.A32RegKind.GPR:
+            pre_allocated_mask_flt |= regs.A32RegToAllocMask(reg.cpu_reg)
     # repeat the same process as we did for GPR regs
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.A32RegKind.FLT, True)]) + 2 *
                             len(global_reg_stats[(regs.A32RegKind.DBL, True)]),
@@ -352,7 +360,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
         needed_flt, regs.FLT_CALLEE_SAVE_REGS.copy(),
-        regs.FLT_PARAMETER_REGS.copy(), pre_allocated)
+        regs.FLT_PARAMETER_REGS.copy(), pre_allocated_mask_flt)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.A32RegKind.DBL, True)] +
