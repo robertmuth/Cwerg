@@ -420,8 +420,9 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
       if ((mask & cpu_reg_mask) == mask) {
         RegCpuReg(reg) = DBL_REGS[pos_dbl / 2];
         cpu_reg_mask &= ~mask;
-        continue;
+        break;
       } else if ((mask & cpu_reg_mask) == 0) {
+        // advance pos if we did not skip any set bits
         if (pos_dbl == pos) {
           pos += 2;
         }

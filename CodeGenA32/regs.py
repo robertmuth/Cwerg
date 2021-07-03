@@ -25,6 +25,8 @@ class A32RegKind(enum.IntEnum):
     FLT = 2
     DBL = 2 + 16
 
+GPR_FAMILY = 1
+FLT_FAMILY = 2 #  (includes FLT + DBL )
 
 _GPR_REGS = [ir.CpuReg(name, i, A32RegKind.GPR) for i, name in
              enumerate(_GPR_REG_NAMES)]
@@ -228,7 +230,6 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def render_available(self, lac, is_gpr) -> str:
         """used by debugging tools"""
-        l = " lac" if lac else ""
         return f"{self.get_available(True, is_gpr):x} {self.get_available(False, is_gpr):x}"
 
     def set_available(self, lac, is_gpr, available):
@@ -258,7 +259,7 @@ class CpuRegPool(reg_alloc.RegPool):
             self._flt_reserved[cpu_reg.no * 2 + 1].add(lr)
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return 2 if kind == o.DK.F64 or kind == o.DK.F32 else 1
+        return FLT_FAMILY if kind == o.DK.F64 or kind == o.DK.F32 else GPR_FAMILY
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
@@ -471,6 +472,46 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
 
 def FunLocalRegAlloc(fun):
     return ir.FunGenericRewriteBbl(fun, _BblRegAllocOrSpill)
+
+
+def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
+                                  cpu_reg_mask_first_choice: int,
+                                  cpu_reg_mask_second_choice: int) -> List[ir.Reg]:
+    """
+    Returns the regs that could not be assigned.
+    Each invocation is for one register family (GPR or FLT)
+    If used with family FLT, make sure the F64 regs precede the F32 regs
+
+    """
+    # print (f"@@ AssignCpuRegOrMarkForSpilling {len(assign_to)} {cpu_reg_mask_first_choice:x} {cpu_reg_mask_second_choice:x}")
+    out: List[ir.Reg] = []
+    mask = cpu_reg_mask_first_choice
+    pos = 0
+    for reg in assign_to:
+        if mask == 0 and cpu_reg_mask_second_choice != 0:
+            mask = cpu_reg_mask_second_choice
+            cpu_reg_mask_second_choice = 0
+            pos = 0
+        if mask == 0:
+            out.append(reg)
+            continue
+        if reg.kind is not o.DK.F64:
+            while ((1 << pos) & mask) == 0: pos += 1
+            assert reg.cpu_reg is None
+            reg.cpu_reg = _FLT_REGS[pos] if reg.kind is o.DK.F32 else _GPR_REGS[pos]
+            mask &= ~(1 << pos)
+            pos += 1
+        else:
+            for pos_dbl in range(pos // 2, 32, 2):
+                mask_dbl = 3 << pos_dbl
+                if (mask & mask_dbl) == mask_dbl:
+                    reg.cpu_reg = DBL_REGS[pos_dbl // 2]
+                    mask &= ~mask_dbl
+                    break
+                elif (mask & mask_dbl) == 0 and pos == pos_dbl:
+                    # advance pos if we did not skip any set bits
+                    pos += 2
+    return out
 
 
 @dataclasses.dataclass()
