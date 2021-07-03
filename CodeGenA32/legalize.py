@@ -277,31 +277,6 @@ def _FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, int]) -> Dict[
     return out
 
 
-def _AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
-                                   cpu_regs: List[ir.CpuReg]) -> List[ir.Reg]:
-    """This is pretty simplistic and has lots of assumptions
-
-    E.g. for the floating points regs F64 should precedw F32"""
-    # print (f"@@@@@@@ assign {global_regs} {cpu_regs}")
-    out: List[ir.Reg] = []
-    n = 0
-    for reg in assign_to:
-        if n < len(cpu_regs):
-            assert reg.cpu_reg is None
-            if reg.kind is o.DK.F64:
-                no = cpu_regs[n].no
-                assert no % 1 == 0
-                assert cpu_regs[n + 1].no == no + 1
-                reg.cpu_reg = regs.DBL_REGS[no // 2]
-                n += 2
-            else:
-                reg.cpu_reg = cpu_regs[n]
-                n += 1
-        else:
-            out.append(reg)
-    return out
-
-
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
@@ -355,10 +330,14 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # assign the earmarked regs to some globals and spill the rest
     to_be_spilled: List[ir.Reg] = []
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.A32RegKind.GPR, True)],
-                                                    gpr_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.A32RegKind.GPR, False)],
-                                                    gpr_global_not_lac)
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.A32RegKind.GPR, True)],
+        regs.A32RegsToAllocMask(gpr_global_lac), 0)
+
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.A32RegKind.GPR, False)],
+        regs.A32RegsToAllocMask(gpr_global_not_lac) & ~regs.GPR_LAC_REGS_MASK,
+        regs.A32RegsToAllocMask(gpr_global_not_lac) & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
     # repeat the same process as we did for GPR regs
@@ -375,12 +354,16 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         needed_flt, regs.FLT_CALLEE_SAVE_REGS.copy(),
         regs.FLT_PARAMETER_REGS.copy(), pre_allocated)
 
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.A32RegKind.DBL, True)] + global_reg_stats[(regs.A32RegKind.FLT, True)],
-        flt_global_lac)
-    to_be_spilled += _AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.A32RegKind.DBL, False)] +
-                                                    global_reg_stats[(regs.A32RegKind.FLT, False)],
-                                                    flt_global_not_lac)
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.A32RegKind.DBL, True)] +
+        global_reg_stats[(regs.A32RegKind.FLT, True)],
+        regs.A32RegsToAllocMask(flt_global_lac), 0)
+
+    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.A32RegKind.DBL, False)] +
+        global_reg_stats[(regs.A32RegKind.FLT, False)],
+        regs.A32RegsToAllocMask(flt_global_not_lac) & ~regs.FLT_LAC_REGS_MASK,
+        regs.A32RegsToAllocMask(flt_global_not_lac) & regs.FLT_LAC_REGS_MASK)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
