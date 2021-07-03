@@ -31,9 +31,9 @@ _GPR_REGS = [ir.CpuReg(name, i, A32RegKind.GPR) for i, name in
 _FLT_REGS = [ir.CpuReg(f"s{i}", i, A32RegKind.FLT) for i in range(32)]
 DBL_REGS = [ir.CpuReg(f"d{i}", i, A32RegKind.DBL) for i in range(16)]
 
-CPU_REGS = {**{r.name: r for r in _GPR_REGS},
-            **{r.name: r for r in _FLT_REGS},
-            **{r.name: r for r in DBL_REGS}}
+CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
+                **{r.name: r for r in _FLT_REGS},
+                **{r.name: r for r in DBL_REGS}}
 
 
 def A32RegToAllocMask(reg: ir.CpuReg) -> int:
@@ -192,7 +192,7 @@ def FunPushargConversion(fun: ir.Fun):
                                        params=[])
 
 
-class RegPoolA32(reg_alloc.RegPool):
+class CpuRegPool(reg_alloc.RegPool):
     """
     We also distinguish if the register is  lac (live across calls)
     """
@@ -200,7 +200,7 @@ class RegPoolA32(reg_alloc.RegPool):
     def __init__(self, fun: ir.Fun, bbl: ir.Bbl, allow_spilling,
                  gpr_available_lac: int, gpr_available_not_lac: int, flt_available_lac: int,
                  flt_available_not_lac: int):
-        super(RegPoolA32, self).__init__()
+        super(CpuRegPool, self).__init__()
         self._fun = fun
         self._bbl = bbl
         self._allow_spilling = allow_spilling
@@ -225,6 +225,11 @@ class RegPoolA32(reg_alloc.RegPool):
             return self._gpr_available_lac if lac else self._gpr_available_not_lac
         else:
             return self._flt_available_lac if lac else self._flt_available_not_lac
+
+    def render_available(self, lac, is_gpr) -> str:
+        """used by debugging tools"""
+        l = " lac" if lac else ""
+        return f"{self.get_available(True, is_gpr):x} {self.get_available(False, is_gpr):x}"
 
     def set_available(self, lac, is_gpr, available):
         if is_gpr:
@@ -326,7 +331,7 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRang
                    flt_regs_lac: int,
                    flt_regs_not_lac: int):
     # print("\n".join(serialize.BblRenderToAsm(bbl)))
-    pool = RegPoolA32(fun, bbl, allow_spilling,
+    pool = CpuRegPool(fun, bbl, allow_spilling,
                       gpr_regs_lac, gpr_regs_not_lac, flt_regs_lac, flt_regs_not_lac)
     for lr in live_ranges:
         # since we are operating on a BBL we cannot change LiveRanges

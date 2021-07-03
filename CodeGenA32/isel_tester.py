@@ -53,7 +53,7 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
 
 
 def Translate(fin):
-    unit = serialize.UnitParseFromAsm(fin, cpu_regs=regs.CPU_REGS)
+    unit = serialize.UnitParseFromAsm(fin, cpu_regs=regs.CPU_REGS_MAP)
     for fun in unit.funs:
         ctx = regs.EmitContext(0xfc0, 0xfc0, 0xffff0000, 0xffff0000, 66)
         if "gpr_scratch" in fun.name:

@@ -13,14 +13,16 @@ An annotated liverange dump can be obtained like so:
 
 
 Usage:
-./Tools/reg_alloc_explorer.py TestData/live_ranges.txt
+./reg_alloc_explorer.py TestData/live_ranges.a64.txt  # you need to change the import to CodeGenA64
+
+./reg_alloc_explorer.py TestData/live_ranges.txt   # you need to change the import to CodeGenA32
 """
 
 # import difflib
 
 import json
 import heapq
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Optional
 import argparse
 import http.server
 
@@ -28,7 +30,12 @@ from Base import ir
 from Base import reg_alloc
 from Base.liveness import LiveRange, LiveRangeFlag, BEFORE_BBL, AFTER_BBL
 from Base import opcode_tab as o
-from CodeGenA32 import regs
+
+# NOTE NOTE NOTE: you must change this to reflect the  backend where he liveranges originate
+if False:
+    from CodeGenA32 import regs
+else:
+    from CodeGenA64 import regs
 
 # language=css
 STYLE = """
@@ -249,7 +256,7 @@ def ParseLiveRanges(fin, cpu_reg_map: Dict[str, ir.CpuReg]) -> List[LiveRange]:
     return out
 
 
-POOL: Optional[regs.RegPoolA32] = None
+POOL: Optional[regs.CpuRegPool] = None
 TRACES = []
 LIVE_RANGES = []
 
@@ -259,10 +266,7 @@ def logger(lr: LiveRange, message: str):
     if not lr.is_use_lr():
         lac = LiveRangeFlag.LAC in lr.flags
         is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
-        if is_gpr:
-            available = regs.RenderMaskGPR(POOL.get_available(lac, is_gpr))
-        else:
-            available = regs.RenderMaskFLT(POOL.get_available(lac, is_gpr))
+        available = POOL.render_available(lac, is_gpr)
     TRACES.append((str(lr), message, available))
     # print(m)
     assert len(TRACES) < 300, f"target LiveRange reached"
@@ -271,8 +275,11 @@ def logger(lr: LiveRange, message: str):
 def GetData():
     global TRACES, POOL, LIVE_RANGES
     TRACES = []
-    POOL = regs.RegPoolA32(None, None, True, regs._GPR_CALLEE_SAVE_REGS_MASK, regs._GPR_NOT_LAC_REGS_MASK,
-                           regs._FLT_CALLEE_SAVE_REGS_MASK, regs._FLT_PARAMETER_REGS_MASK)
+    POOL = regs.CpuRegPool(None, None, True,
+                           regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,  #
+                           regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, #
+                           regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,  #
+                           regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK)
     for lr in LIVE_RANGES:
         if LiveRangeFlag.PRE_ALLOC in lr.flags:
             POOL.add_reserved_range(lr)
@@ -339,7 +346,7 @@ def main():
     parser.add_argument('input', type=str, help='input file')
     args = parser.parse_args()
 
-    LIVE_RANGES = ParseLiveRanges(open(args.input), regs.CPU_REGS)
+    LIVE_RANGES = ParseLiveRanges(open(args.input), regs.CPU_REGS_MAP)
     # print(f"read {len(LIVE_RANGES)} LiveRanges")
 
     http_server = http.server.HTTPServer(('', args.port), MyRequestHandler)
