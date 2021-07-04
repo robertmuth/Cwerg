@@ -57,7 +57,7 @@ def Translate(fin):
     for fun in unit.funs:
         ctx = regs.EmitContext(0xfc0, 0xfc0, 0xffff0000, 0xffff0000, 66)
         if "gpr_scratch" in fun.name:
-            ctx.scratch_cpu_reg = regs.GPR_CALLEE_SAVE_REGS[0]
+            ctx.scratch_cpu_reg = regs.GPR_REGS[6]
         fun.FinalizeStackSlots()
         for bbl in fun.bbls:
             for ins in bbl.inss:

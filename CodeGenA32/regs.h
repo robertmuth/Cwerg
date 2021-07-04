@@ -23,8 +23,6 @@ extern std::array<base::CpuReg, 32> FLT_REGS;
 extern std::array<base::CpuReg, 16> DBL_REGS;
 
 extern std::array<base::CpuReg, 6> GPR_PARAM_REGS;
-extern std::array<base::CpuReg, 8> GPR_NOT_LAC_REGS;
-
 extern std::array<base::CpuReg, 16> FLT_PARAM_REGS;
 
 const constexpr uint32_t GPR_REGS_MASK = 0x5fff;

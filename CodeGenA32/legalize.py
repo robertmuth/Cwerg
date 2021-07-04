@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple
 
 from Base import canonicalize
 from Base import reg_alloc

@@ -25,16 +25,17 @@ class A32RegKind(enum.IntEnum):
     FLT = 2
     DBL = 2 + 16
 
-GPR_FAMILY = 1
-FLT_FAMILY = 2 #  (includes FLT + DBL )
 
-_GPR_REGS = [ir.CpuReg(name, i, A32RegKind.GPR) for i, name in
-             enumerate(_GPR_REG_NAMES)]
-_FLT_REGS = [ir.CpuReg(f"s{i}", i, A32RegKind.FLT) for i in range(32)]
+GPR_FAMILY = 1
+FLT_FAMILY = 2  # (includes FLT + DBL )
+
+GPR_REGS = [ir.CpuReg(name, i, A32RegKind.GPR) for i, name in
+            enumerate(_GPR_REG_NAMES)]
+FLT_REGS = [ir.CpuReg(f"s{i}", i, A32RegKind.FLT) for i in range(32)]
 DBL_REGS = [ir.CpuReg(f"d{i}", i, A32RegKind.DBL) for i in range(16)]
 
-CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
-                **{r.name: r for r in _FLT_REGS},
+CPU_REGS_MAP = {**{r.name: r for r in GPR_REGS},
+                **{r.name: r for r in FLT_REGS},
                 **{r.name: r for r in DBL_REGS}}
 
 
@@ -68,10 +69,10 @@ def RenderMaskFLT(mask: int) -> str:
     return " ".join(out)
 
 
-PC_REG = _GPR_REGS[15]
-LINK_REG = _GPR_REGS[14]
-STACK_REG = _GPR_REGS[13]
-GPR_SCRATCH_REG = _GPR_REGS[12]
+PC_REG = GPR_REGS[15]
+LINK_REG = GPR_REGS[14]
+STACK_REG = GPR_REGS[13]
+GPR_SCRATCH_REG = GPR_REGS[12]
 
 GPR_REGS_MASK = 0x5fff  # excludes pc and sp
 GPR_LAC_REGS_MASK = 0x0fc0
@@ -83,14 +84,8 @@ _PC_REG_MASK = A32RegToAllocMask(PC_REG)
 FLT_REGS_MASK = 0xffffffff
 FLT_LAC_REGS_MASK = 0xffff0000
 
-# this not compatible with any ABI
-GPR_CALLEE_SAVE_REGS = _GPR_REGS[6:12]
-FLT_CALLEE_SAVE_REGS = _FLT_REGS[16:]
-
-GPR_PARAMETER_REGS = _GPR_REGS[0:6]
-GPR_NOT_LAC_REGS = GPR_PARAMETER_REGS + [GPR_SCRATCH_REG, LINK_REG]
-
-FLT_PARAMETER_REGS = _FLT_REGS[0:16]
+GPR_PARAMETER_REGS = GPR_REGS[0:6]
+FLT_PARAMETER_REGS = FLT_REGS[0:16]
 DBL_PARAMETER_REGS = DBL_REGS[0:8]
 
 
@@ -104,7 +99,7 @@ def ArmGetFltRegRanges(x: int) -> Tuple[ir.CpuReg, int]:
     while x != 0:
         x >>= 1
         count += 1
-    return _FLT_REGS[start], count
+    return FLT_REGS[start], count
 
 
 # Same for input and output refs
@@ -217,9 +212,9 @@ class CpuRegPool(reg_alloc.RegPool):
         self._flt_available_not_lac: int = flt_available_not_lac
 
         self._gpr_reserved: List[reg_alloc.PreAllocation] = [
-            reg_alloc.PreAllocation() for _ in range(len(_GPR_REGS))]
+            reg_alloc.PreAllocation() for _ in range(len(GPR_REGS))]
         self._flt_reserved: List[reg_alloc.PreAllocation] = [
-            reg_alloc.PreAllocation() for _ in range(len(_FLT_REGS))]
+            reg_alloc.PreAllocation() for _ in range(len(FLT_REGS))]
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available
@@ -285,19 +280,19 @@ class CpuRegPool(reg_alloc.RegPool):
                         self.set_available(lac, is_gpr, available & ~mask)
                         return DBL_REGS[n]
         elif lr.reg.kind == o.DK.F32:
-            for n in range(len(_FLT_REGS)):
+            for n in range(len(FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
                     if not self._flt_reserved[n].has_conflict(lr):
                         self.set_available(lac, is_gpr, available & ~mask)
-                        return _FLT_REGS[n]
+                        return FLT_REGS[n]
         else:
-            for n in range(len(_GPR_REGS)):
+            for n in range(len(GPR_REGS)):
                 mask = 1 << n
                 if mask & available == mask:
                     if not self._gpr_reserved[n].has_conflict(lr):
                         self.set_available(lac, is_gpr, available & ~mask)
-                        return _GPR_REGS[n]
+                        return GPR_REGS[n]
         if self._allow_spilling:
             return ir.CPU_REG_SPILL
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -498,7 +493,7 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
         if reg.kind is not o.DK.F64:
             while ((1 << pos) & mask) == 0: pos += 1
             assert reg.cpu_reg is None
-            reg.cpu_reg = _FLT_REGS[pos] if reg.kind is o.DK.F32 else _GPR_REGS[pos]
+            reg.cpu_reg = FLT_REGS[pos] if reg.kind is o.DK.F32 else GPR_REGS[pos]
             mask &= ~(1 << pos)
             pos += 1
         else:
