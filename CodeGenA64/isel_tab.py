@@ -263,7 +263,7 @@ def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
         cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         jtb = ins.operands[1]
-        assert isinstance(jtb, ir.Jtb), f"{ins} {fun}"
+        assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
         cpuins.reloc_symbol = jtb.name
         cpuins.is_local_sym = True
     else:

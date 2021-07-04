@@ -27,7 +27,7 @@ bool ImmStackFits(int64_t x,
   if (assume_stk_op_matches) return true;
   if (x < 0) return false;
   if (x >= 1U << (bits + scale_log)) return false;
-  return (x & ((1 << scale_log) - 1)) == 0;
+  return (x & ((1U << scale_log) - 1)) == 0;
 }
 
 bool ImmFitsCurb(IMM_CURB constr,
@@ -3256,6 +3256,7 @@ int64_t ExtractNumNeg(Const num) { return -ConstValueInt64(num); }
 
 int64_t ExtractNumNot(Const num) { return ~ConstValueInt64(num); }
 
+// TODO: should this return an uint32_t
 int32_t GetStackOffset(Handle stk, Handle num) {
   ASSERT(stk.kind() == RefKind::STK, "");
   ASSERT(num.kind() == RefKind::CONST, "");

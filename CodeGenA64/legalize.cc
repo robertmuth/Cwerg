@@ -188,7 +188,7 @@ std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
   }
 
   uint32_t global_not_lac = 0;
-  if (num_regs_not_lac > needed.local_not_lac) {
+  if (num_regs_not_lac > needed.local_not_lac + spilling_needed) {
     const uint32_t mask = FindMaskCoveringTheLowOrderSetBits(
         regs_not_lac, needed.local_not_lac + spilling_needed);
     global_not_lac = regs_not_lac & ~(mask | regs_preallocated);

@@ -6,10 +6,8 @@ from Base import reg_alloc
 from Base import serialize
 
 import dataclasses
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 import enum
-import functools
-import operator
 
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)

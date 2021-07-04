@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Testing helper for table driven code selection"""
 
-import CpuA64.opcode_tab as a64
 from CpuA64 import symbolic
 from Base import serialize
 from Base import ir

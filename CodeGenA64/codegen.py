@@ -90,7 +90,7 @@ def _JtbCodeGen(jtb: ir.Jtb):
     return out
 
 
-def _RenderIns(ins: a64.Ins) ->str:
+def _RenderIns(ins: a64.Ins) -> str:
     name, ops = symbolic.InsSymbolize(ins)
     return f"    {name} {' '.join(ops)}"
 
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='CodeGenA64')
         parser.add_argument('-mode', type=str, help='mode')
         parser.add_argument('-add_startup_code', action='store_true', help=
-            'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
+        'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
 
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')

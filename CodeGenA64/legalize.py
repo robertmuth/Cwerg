@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple
 
 from Base import canonicalize
 from Base import reg_alloc
@@ -192,12 +192,12 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     # excess lac globals can be used for lac locals
     if num_regs_lac > needed.global_lac:
         mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
-        local_lac = global_lac & ~mask;
-        global_lac = global_lac & mask;
+        local_lac = global_lac & ~mask
+        global_lac = global_lac & mask
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
     # because the global allocator does not check for live range conflicts
     global_not_lac = 0
-    if num_regs_not_lac > needed.local_not_lac:
+    if num_regs_not_lac > needed.local_not_lac + spilling_needed:
         mask = _FindMaskCoveringTheLowOrderSetBits(
             regs_not_lac, needed.local_not_lac + spilling_needed)
         global_not_lac = regs_not_lac & ~(mask | regs_preallocated)
@@ -286,12 +286,14 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     After this function has been run all globals will have a valid cpu_reg and
     we have to be careful to not introduce new globals subsequently.
-    IF not enough cpu_regs are available for all globals, some of them will be spilled.
+    If not enough cpu_regs are available for all globals, some of them will be spilled.
+    We err on the site of spilling more, the biggest danger is to over-allocate and then
+    lack registers for intra-bbl register allocation.
 
     The whole global allocator is terrible and so is the the decision which globals
     to spill is extremely simplistic at this time.
 
-    We sepatate global from local register allocation so that we can use a straight
+    We separate global from local register allocation so that we can use a straight
     forward linear scan allocator for the locals. This allocator assumes that
     each register is defined exactly once and hence does not work for globals.
     """
