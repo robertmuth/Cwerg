@@ -267,7 +267,7 @@ std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
   }
 
   uint32_t global_not_lac = 0;
-  if (num_regs_not_lac > needed.local_not_lac) {
+  if (num_regs_not_lac > needed.local_not_lac + spilling_needed) {
     const uint32_t mask = FindMaskCoveringTheLowOrderSetBits(
         regs_not_lac, needed.local_not_lac + spilling_needed);
     global_not_lac = regs_not_lac & ~(mask | regs_preallocated);
@@ -417,7 +417,7 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     //*fout << "@@ GPR POOL " << std::hex << global_lac << " " << global_not_lac
     //      << "\n";
 
-    // handle is_lac gloabal regs
+    // handle is_lac global regs
     regs.clear();
     FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP, &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic

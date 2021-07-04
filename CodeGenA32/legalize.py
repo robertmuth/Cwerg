@@ -170,39 +170,57 @@ def _maybe_move_excess(src, dst, n):
         del src[n:]
 
 
-def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: List[ir.CpuReg],
-                           regs_not_lac: List[ir.CpuReg],
-                           pre_allocated: int) -> Tuple[
-    List[ir.CpuReg], List[ir.CpuReg]]:
+def _popcount(x):
+    return bin(x).count('1')
+
+
+def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
+    if count == 0: return 0
+    mask = 1
+    n = 0
+    while n < count:
+        if (mask & bits) != 0:
+            n += 1
+        mask <<= 1
+    return mask - 1
+
+
+def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
+                           regs_not_lac: int, regs_preallocated: int) -> Tuple[int, int]:
     """
     Partitions all the CPU registers into 4 categories
 
     Initially all allocatable regs are either in pools.global_lac and pools.local_not_local
 
     We want the low numbers regs to stay in pools.local_not_lac as much as possible
-    to avoid moves as this is where the paramters arrive and results get returned
+    to avoid moves as this is where the parameters arrive and results get returned
 
     We also want to use as few callee saved registers as possible
 
     If we need to spill, earmark one more local_not_lac reg to handle the spilling
     TODO: this needs some more thinking - the worst case could require more regs
     """
-    spill_reg_needed = _spilling_needed(needed, len(regs_lac), len(regs_not_lac))
+    num_regs_lac = _popcount(regs_lac)
+    num_regs_not_lac = _popcount(regs_not_lac)
+    spilling_needed = _spilling_needed(needed, num_regs_lac, num_regs_not_lac)
     global_lac = regs_lac
-    local_lac = []
+    local_lac = 0
     # excess lac globals can be used for lac locals
-    _maybe_move_excess(regs_lac, local_lac, needed.global_lac)
+    if num_regs_lac > needed.global_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        local_lac = global_lac & ~mask
+        global_lac = global_lac & mask
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
     # because the global allocator does not check for live range conflicts
-    local_not_lac = []
-    global_not_lac = []
-    for n, cpu_reg in enumerate(regs_not_lac):
-        if n < needed.local_not_lac + spill_reg_needed or (1 << cpu_reg.no & pre_allocated) != 0:
-            local_not_lac.append(cpu_reg)
-        else:
-            global_not_lac.append(cpu_reg)
-    # xxx_lac can also be  used in place of  xxx_not_lac
-    _maybe_move_excess(local_lac, global_not_lac, needed.local_lac)
+    global_not_lac = 0
+    if num_regs_not_lac > needed.local_not_lac + spilling_needed:
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            regs_not_lac, needed.local_not_lac + spilling_needed)
+        global_not_lac = regs_not_lac & ~(mask | regs_preallocated)
+
+    if _popcount(local_lac) > needed.local_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(local_lac, needed.local_lac)
+        global_not_lac |= local_lac & ~mask
     return global_lac, global_not_lac
 
 
@@ -284,12 +302,14 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     After this function has been run all globals will have a valid cpu_reg and
     we have to be careful to not introduce new globals subsequently.
-    IF not enough cpu_regs are available for all globals, some of them will be spilled.
+    If not enough cpu_regs are available for all globals, some of them will be spilled.
+    We err on the site of spilling more, the biggest danger is to over-allocate and then
+    lack registers for intra-bbl register allocation.
 
     The whole global allocator is terrible and so is the the decision which globals
     to spill is extremely simplistic at this time.
 
-    We sepatate global from local register allocation so that we can use a straight
+    We separate global from local register allocation so that we can use a straight
     forward linear scan allocator for the locals. This allocator assumes that
     each register is defined exactly once and hence does not work for globals.
     """
@@ -315,8 +335,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     global_reg_stats = _FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
     DumpRegStats(fun, local_reg_stats, fout)
 
-    pre_allocated: Set[ir.CpuReg] = {reg.cpu_reg for reg in fun.regs if reg.HasCpuReg()}
-
     # Handle GPR regs
     pre_allocated_mask_gpr = 0
     for reg in fun.regs:
@@ -329,19 +347,21 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.A32RegKind.GPR, False), 0))
     # earmark some regs for globals
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR_CALLEE_SAVE_REGS.copy(),
-        regs.GPR_NOT_LAC_REGS.copy(), pre_allocated_mask_gpr)
+        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
+                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
+
+
 
     # assign the earmarked regs to some globals and spill the rest
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.A32RegKind.GPR, True)],
-        regs.A32RegsToAllocMask(gpr_global_lac), 0)
+        gpr_global_lac, 0)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.A32RegKind.GPR, False)],
-        regs.A32RegsToAllocMask(gpr_global_not_lac) & ~regs.GPR_LAC_REGS_MASK,
-        regs.A32RegsToAllocMask(gpr_global_not_lac) & regs.GPR_LAC_REGS_MASK)
+        gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
+        gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
     pre_allocated_mask_flt = 0
@@ -357,21 +377,20 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.A32RegKind.DBL, True), 0),
                             local_reg_stats.get((regs.A32RegKind.FLT, False), 0) + 2 *
                             local_reg_stats.get((regs.A32RegKind.DBL, False), 0))
-
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT_CALLEE_SAVE_REGS.copy(),
-        regs.FLT_PARAMETER_REGS.copy(), pre_allocated_mask_flt)
+        needed_flt, regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+                    regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK, pre_allocated_mask_flt)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.A32RegKind.DBL, True)] +
         global_reg_stats[(regs.A32RegKind.FLT, True)],
-        regs.A32RegsToAllocMask(flt_global_lac), 0)
+        flt_global_lac, 0)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.A32RegKind.DBL, False)] +
         global_reg_stats[(regs.A32RegKind.FLT, False)],
-        regs.A32RegsToAllocMask(flt_global_not_lac) & ~regs.FLT_LAC_REGS_MASK,
-        regs.A32RegsToAllocMask(flt_global_not_lac) & regs.FLT_LAC_REGS_MASK)
+        flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
+        flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 
