@@ -118,7 +118,7 @@ bool ConstIsShort(Const num) { return int32_t(num.value) < 0; }
 
 uint64_t ConstValueU(Const num) {
   if (ConstIsShort(num)) {
-    return (num.value << 1) >> 17;
+    return (num.value << 1U) >> 17U;
   }
   return ((ConstCore*)ConstantPool.Data(num.index()))->val_u64;
 }
@@ -126,7 +126,7 @@ uint64_t ConstValueU(Const num) {
 int64_t ConstValueACS(Const num) {
   if (ConstIsShort(num)) {
     // force sign extension
-    return (int32_t(num.value << 1) >> 17);
+    return (int32_t(num.value << 1U) >> 17U);
   }
   return ((ConstCore*)ConstantPool.Data(num.index()))->val_acs64;
 }
@@ -181,7 +181,7 @@ double ConstValueF(Const num) {
 
 DK ConstKind(Const num) {
   if (ConstIsShort(num)) {
-    return DK(num.index() & 0xff);
+    return DK(num.index() & 0xffU);
   }
   return ((ConstCore*)ConstantPool.Data(num.index()))->kind;
 }
@@ -199,8 +199,8 @@ Const ConstNewF(DK kind, double v) {
 }
 
 Const ConstNewU(DK kind, uint64_t v) {
-  if (v < 1 << 15) {
-    return Const(Handle(1 << 23 | (v << 8) | uint32_t(kind), RefKind::CONST));
+  if (v < (1U << 15U)) {
+    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
   }
   ConstCore num;
   num.kind = kind;
@@ -209,8 +209,8 @@ Const ConstNewU(DK kind, uint64_t v) {
 }
 
 Const ConstNewACS(DK kind, int64_t v) {
-  if (-(1 << 14) <= v && v < (1 << 14)) {
-    return Const(Handle(1 << 23 | (v << 8) | uint32_t(kind), RefKind::CONST));
+  if (-(1U << 14U) <= v && v < (1U << 14U)) {
+    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
   }
   ConstCore num;
   num.kind = kind;
@@ -219,22 +219,22 @@ Const ConstNewACS(DK kind, int64_t v) {
 }
 
 Const ConstNewUint(uint64_t val) {
-  if (val < (1LL << 8)) return ConstNewU(DK::U8, val);
-  if (val < (1LL << 16)) return ConstNewU(DK::U16, val);
-  if (val < (1LL << 32)) return ConstNewU(DK::U32, val);
+  if (val < (1ULL << 8U)) return ConstNewU(DK::U8, val);
+  if (val < (1ULL << 16U)) return ConstNewU(DK::U16, val);
+  if (val < (1ULL << 32U)) return ConstNewU(DK::U32, val);
   return ConstNewU(DK::U64, val);
 }
 
 Const ConstNewOffset(int64_t val) {
   if (val >= 0) {
-    if (val < (1LL << 7)) return ConstNewACS(DK::S8, val);
-    if (val < (1LL << 15)) return ConstNewACS(DK::S16, val);
-    if (val < (1LL << 31)) return ConstNewACS(DK::S32, val);
+    if (val < (1ULL << 7U)) return ConstNewACS(DK::S8, val);
+    if (val < (1ULL << 15U)) return ConstNewACS(DK::S16, val);
+    if (val < (1ULL << 31U)) return ConstNewACS(DK::S32, val);
     return ConstNewACS(DK::S64, val);
   } else {
-    if (val >= -(1LL << 7)) return ConstNewACS(DK::S8, val);
-    if (val >= -(1LL << 15)) return ConstNewACS(DK::S16, val);
-    if (val >= -(1LL << 31)) return ConstNewACS(DK::S32, val);
+    if (val >= -(1ULL << 7U)) return ConstNewACS(DK::S8, val);
+    if (val >= -(1ULL << 15U)) return ConstNewACS(DK::S16, val);
+    if (val >= -(1ULL << 31U)) return ConstNewACS(DK::S32, val);
     return ConstNewACS(DK::S64, val);
   }
 }

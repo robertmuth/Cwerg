@@ -106,7 +106,7 @@ class TestRanges(unittest.TestCase):
 
         DumpBbl(bbl)
 
-        live_ranges = BblGetLiveRanges(bbl, fun, {}, True)
+        live_ranges = BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
 
         pool = TestRegPool(MakeGenericCpuRegs(4))
@@ -116,7 +116,7 @@ class TestRanges(unittest.TestCase):
             if not lr.uses:
                 assert lr.cpu_reg.no == n, f"unexpected reg {lr}"
 
-        live_ranges = BblGetLiveRanges(bbl, fun, {}, True)
+        live_ranges = BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
         pool = TestRegPool(MakeGenericCpuRegs(3))
         reg_alloc.RegisterAssignerLinearScan(live_ranges, pool)
@@ -159,7 +159,7 @@ class TestRanges(unittest.TestCase):
 
         DumpBbl(bbl)
 
-        live_ranges = BblGetLiveRanges(bbl, fun, {}, True)
+        live_ranges = BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
 
         pool = TestRegPool(MakeGenericCpuRegs(4))
@@ -172,7 +172,7 @@ class TestRanges(unittest.TestCase):
                 else:
                     assert lr.cpu_reg is ir.CPU_REG_SPILL, f"unexpected reg {lr}"
 
-        live_ranges = BblGetLiveRanges(bbl, fun, {}, True)
+        live_ranges = BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
         # pool = TestRegPool(6, 6)
         reg_alloc.RegisterAssignerLinearScanFancy(live_ranges, pool, False)
