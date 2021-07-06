@@ -181,8 +181,11 @@ def DecodeShifted_10_21_22(x: int) -> int:
 
 def EncodeShifted_10_21_22(x: int) -> Optional[int]:
     for i in range(2):
-        if (x & 0xfff) == x:
+        lo12 = x & 0xfff
+        if lo12 == x:
             return x | (i << 12)
+        if lo12 != 0:
+            return None
         x >>= 12
     return None
 

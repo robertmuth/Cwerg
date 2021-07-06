@@ -19,6 +19,8 @@
       mul rem@w5 rem@w5 $r0_U32@w10
       sub rem@w5 $r1_U32@w11 rem@w5
       mov $r0_U32@w10 10
+      bne  $r0_U32@w10 148932 skip
+      mov $r0_U32@w10 148932
       div div@w6 $r1_U32@w11 $r0_U32@w10
       beq div@w6 0 skip
 .bbl skip

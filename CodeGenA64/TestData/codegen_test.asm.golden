@@ -51,6 +51,14 @@ INS: mov $r0_U32@w10 10  [U32 U32]
 PAT: reg:[U32 U32]  imm:[INVALID IMM_SHIFTED_5_20_21_22]
     movz_x_imm x10 0xa
 
+INS: bne $r0_U32@w10 148932 skip  [U32 U32 _]
+    mismatches: 2
+
+INS: mov $r0_U32@w10 148932  [U32 U32]
+PAT: reg:[U32 U32]  imm:[INVALID IMM_POS_32]
+    movz_x_imm x10 0x45c4
+    movk_x_imm x10 0x20000
+
 INS: div div@w6 $r1_U32@w11 $r0_U32@w10  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]
     udiv_w w6 w11 w10

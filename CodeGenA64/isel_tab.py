@@ -63,7 +63,9 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
 }
 
 
-def ValueMatchesConstraint(constraint: IMM_CURB, val) -> bool:
+def ValueMatchesConstraint(constraint: IMM_CURB, val: int) -> bool:
+    assert a64.TryEncodeOperand(a64.OK.IMM_SHIFTED_10_21_22, 0x245c4) is None
+
     m = _NUM_MATCHERS[constraint]
     if isinstance(m, a64.OK):
         return a64.TryEncodeOperand(m, val) is not None

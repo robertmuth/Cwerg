@@ -14,6 +14,7 @@ uint32_t EncodeShifted_10_21_22(uint64_t x) {
     if ((x & 0xfffU) == x) {
       return x | (i << 12U);
     }
+    if ((x & 0xfffU) != 0) return kEncodeFailure;
     x >>= 12U;
   }
   return kEncodeFailure;
