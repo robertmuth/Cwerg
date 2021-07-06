@@ -228,7 +228,7 @@ yielding this (somewhat horrible) code:
 
 We translate it to Arm32 assembler using
 ```
-cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py normal - sieve.a32.s
+cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py -mode normal - sieve.a32.s
 ```
  yielding (only relevant parts shown):
 
@@ -342,7 +342,7 @@ cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.
 We can also generate an executable directly with:
 
 ```
-cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py binary - sieve.a32.exe
+cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py -mode binary -add_startup_code - sieve.a32.exe
 ```
 
 And, assuming you have installed qemu or run on an Arm system, you can run this executable like so
@@ -482,6 +482,30 @@ yielding:
    20824:	e7f000f0 	udf	#0
 ```
 </details>
+
+### Summary Of Commands For Generating an Executable
+
+Note, the frontend is really brittle and if you do not get the supported subset of C 
+right, will result in crashes/obscure error messages.
+
+#### Arm32
+
+```
+FrontEndC/translate.py --mode 32 FrontEndC/TestData/sieve.c --cpp_args=-IStdLib > sieve.asm 
+cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py -mode binary -add_startup_code - sieve.a32.exe
+  
+arm-linux-gnueabihf-objdump -d ./sieve.a32.exe
+```
+
+#### Arm64
+
+```
+FrontEndC/translate.py --mode 64 FrontEndC/TestData/sieve.c --cpp_args=-IStdLib > sieve.asm
+cat StdLib/syscall.a64.asm StdLib/std_lib.64.asm sieve.asm | CodeGenA64/codegen.py -mode binary -add_startup_code - sieve.a64.exe
+
+aarch64-linux-gnu-objdump -d ./sieve.a64.exe 
+```
+
 ### Directory Organization
 
 The directory organization reflects the architecture of the Cwerg:
