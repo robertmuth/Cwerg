@@ -1,7 +1,7 @@
 """
 This module contains code for (un-)symbolizing the a64 ISA operands
 """
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 import struct
 
 from Elf import enum_tab
@@ -73,12 +73,12 @@ _RELOC_KIND_MAP = {
     "add_abs_lo12_nc": enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
 }
 
-_RELOC_OK = set([
-    a64.OK.SIMM_PCREL_0_25, # RELOC_TYPE_AARCH64.JUMP26
+_RELOC_OK = {
+    a64.OK.SIMM_PCREL_0_25,  # RELOC_TYPE_AARCH64.JUMP26
     a64.OK.SIMM_PCREL_5_23,
     a64.OK.SIMM_PCREL_5_23_29_30,
     a64.OK.IMM_SHIFTED_10_21_22,  # RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC
-])
+}
 
 
 def _EmitReloc(ins: a64.Ins, pos: int) -> str:

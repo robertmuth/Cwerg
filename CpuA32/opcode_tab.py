@@ -1210,7 +1210,7 @@ def Query(opcode: str):
         for opc in opc_list:
             if opc.name != opcode:
                 continue
-            print(f"name={opc.name} variant={opc.variant}")
+            print(f"name={opc.name}")
             print(f"mask={opc.bit_mask:08x} value={opc.bit_value:08x}")
             print("fields with bit ranges:")
             for f in opc.fields:

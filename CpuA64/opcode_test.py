@@ -7,7 +7,6 @@ found in `arm_test.dis` and similar dumps obtained via `objdump`
 
 import re
 import sys
-import collections
 from typing import List, Dict
 
 from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP, Assemble, Disassemble, Ins

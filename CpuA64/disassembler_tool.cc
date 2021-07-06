@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
       std::cout << "\n";
 
       // check that the assembler works - this is not strictly
-      // necessary but useful for debuggging the assembler
+      // necessary but useful for debugging the assembler
       const uint32_t data2 = Assemble(ins);
       if (data != data2) {
         std::cout << "Disassembler failure " << std::hex << data << " vs "

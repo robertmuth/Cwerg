@@ -128,7 +128,7 @@ def HandleOneInstruction(count: int, line: str,
     assert ins is not None, f"cannot disassemble [{count}]: {line}"
     assert ins.opcode is not None and ins.operands is not None, f"unknown opcode {line}"
     data2 = a32.Assemble(ins)
-    assert data == data2, f"disass mismatch [{ins.opcode.NameForEnum()}] {data:x} vs {data2:x}"
+    assert data == data2, f"disass mismatch [{ins.opcode.name}] {data:x} vs {data2:x}"
     actual_name = FixupAliases(ins.opcode, actual_name, actual_ops)
     if not actual_name.startswith(ins.opcode.official_name):
         print("BAD NAME", ins.opcode.name, actual_name, line, end="")

@@ -158,7 +158,7 @@ bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit) {
 
 int32_t BranchOffset(const Reloc<uint32_t>& rel, int32_t sym_val) {
   return int32_t(sym_val - rel.section->shdr.sh_addr - rel.rel.r_offset - 8) >>
-         2;
+         2U;
 }
 
 void ApplyRelocation(const Reloc<uint32_t>& rel) {
@@ -178,10 +178,10 @@ void ApplyRelocation(const Reloc<uint32_t>& rel) {
       new_data = Patch(old_data, 1, BranchOffset(rel, sym_val));
       break;
     case RELOC_TYPE_ARM::MOVW_ABS_NC:
-      new_data = Patch(old_data, 2, sym_val & 0xffff);
+      new_data = Patch(old_data, 2, sym_val & 0xffffU);
       break;
     case RELOC_TYPE_ARM::MOVT_ABS:
-      new_data = Patch(old_data, 2, (sym_val >> 16) & 0xffff);
+      new_data = Patch(old_data, 2, (sym_val >> 16U) & 0xffffU);
       break;
     default:
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);

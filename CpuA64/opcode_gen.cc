@@ -4912,6 +4912,7 @@ uint32_t ExtractOperand(uint32_t data, OK field_kind) {
   return out;
 }
 
+// Should x be unsigned?
 void InsertOperand(int32_t x,
                    OK ok,
                    uint32_t* bits_value,

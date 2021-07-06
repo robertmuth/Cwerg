@@ -69,7 +69,7 @@ any work on these):
   ABIs. (Note, this precludes a proper C frontend.)
 * Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
   to fit into the complexity budget. Line numbers will likely be supported.
-* C++ exception. A lot of code and complexity that only benefits one language.
+* C++ exception/unwind tables. A lot of code and complexity that only benefits one language.
 * Linking against code produced with other toolchains. There are currently no plans
   to emit linkable object code. And there is no ABI compatibility except for simple cases. 
 * Shared libs/dynamic linking adds complexity and slows programs down (both because
