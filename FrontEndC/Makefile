@@ -28,7 +28,8 @@ rename.c \
 struct2.c \
 sumarray.c \
 do_while.c \
-sieve.c
+sieve.c \
+pfannkuchen.c
 
 META_TESTS = \
 20000523-1.c \

@@ -47,7 +47,7 @@ int flip(elem *s, elem* t)
    return i;
 }
 
-static inline void rotate(int n, elem* s)
+void rotate(int n, elem* s)
 {
    elem c;
    register int i;
@@ -100,6 +100,7 @@ int main(int argc, char **v)
 
    for (i = 0; i < max_n; i++) s[i] = i;
    tk(max_n, s, t);
+   printf("max_n: %d crc: %d  flips: %d\n", max_n, checksum,maxflips);
    if (checksum != 556355) abort();
    if (maxflips != 51) abort();
 
