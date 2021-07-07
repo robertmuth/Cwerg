@@ -205,7 +205,10 @@ def IsEmpty(node):
 
 
 def ReplaceNode(parent, old_node, new_node):
-    """Sadly pycparser does not offer a proper helper for this"""
+    """
+    Replaces `old_node` with `new_node` inside `parent`
+
+    Sadly pycparser does not offer a proper helper for this"""
     # TODO: add nodes as needed
     if isinstance(parent, c_ast.ExprList):
         for n, e in enumerate(parent.exprs):

@@ -316,6 +316,8 @@ def GetBinopType(node, t1, t2):
     if (node.op == "-" and isinstance(t1, (c_ast.PtrDecl, c_ast.ArrayDecl))
             and isinstance(t2, (c_ast.PtrDecl, c_ast.ArrayDecl))):
         return SSIZE_T_IDENTIFIER_TYPE
+    if (node.op == "+" and isinstance(t1, (c_ast.PtrDecl, c_ast.ArrayDecl))):
+            return t1
     if node.op not in common.SAME_TYPE_BINARY_OPS:
         assert False, node
 
@@ -451,23 +453,26 @@ def TypeForNode(node, parent, sym_links, struct_links, type_tab, child_types, fu
 def Typify(node: c_ast.Node, parent: Optional[c_ast.Node], type_tab, sym_links, struct_links,
            fundef: Optional[c_ast.FuncDef]):
     """Determine the type of all expression  nodes and record it in type_tab"""
-    if isinstance(node, c_ast.FuncDef):
-        logging.info("\nFUNCTION [%s]", node.decl.name)
-        fundef = node
+    try:
+        if isinstance(node, c_ast.FuncDef):
+            logging.info("\nFUNCTION [%s]", node.decl.name)
+            fundef = node
 
-    child_types = [Typify(c, node, type_tab, sym_links,
-                          struct_links, fundef) for c in node]
-    # print("@@@@", [TypePrettyPrint(x) for x in child_types])
-    if not isinstance(node, common.EXPRESSION_NODES):
-        return None
+        child_types = [Typify(c, node, type_tab, sym_links,
+                              struct_links, fundef) for c in node]
+        # print("@@@@", [TypePrettyPrint(x) for x in child_types])
+        if not isinstance(node, common.EXPRESSION_NODES):
+            return None
 
-    t = TypeForNode(node, parent, sym_links, struct_links,
-                    type_tab, child_types, fundef)
+        t = TypeForNode(node, parent, sym_links, struct_links,
+                        type_tab, child_types, fundef)
 
-    logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t),
-                 [TypePrettyPrint(x) for x in child_types])
-    type_tab.link_expr(node, t)
-    return t
+        logging.info("%s %s %s", common.NodePrettyPrint(node), TypePrettyPrint(t),
+                     [TypePrettyPrint(x) for x in child_types])
+        type_tab.link_expr(node, t)
+        return t
+    except Exception as err:
+        print ("Cannot typify ", node)
 
 
 def VerifyTypeLinks(node: c_ast.Node, type_links):

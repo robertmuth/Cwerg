@@ -357,6 +357,25 @@ def HandleAssignment(node: c_ast.Assignment, meta_info: meta.MetaInfo, node_valu
     node_value[node] = tmp
 
 
+def byte_encode_values(scalar: str, values):
+    if scalar in {"S8", "U8"}:
+        return values
+    elif scalar in {"S16", "U16"}:
+        out = []
+        for x in values:
+            i = int(x) & 0xffff
+            out += [i & 0xff, (i >> 8) & 0xff]
+        return [str(x) for x in out]
+    elif scalar in {"S32", "U32"}:
+        out = []
+        for x in values:
+            i = int(x) & 0xffffffff
+            out += [i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff]
+        return [str(x) for x in out]
+    else:
+        assert False, f"unsupported initializer"
+
+
 # hack - just good enough to handle nanojpeg.c
 def EmitInitData(init: c_ast.InitList, type_decl):
     assert isinstance(init, c_ast.InitList)
@@ -367,11 +386,9 @@ def EmitInitData(init: c_ast.InitList, type_decl):
         values.append(str(ExtractNumber(v.value)))
     assert isinstance(type_decl, c_ast.ArrayDecl), f"unexpected initializer {type_decl}"
     scalar = ScalarDeclType(type_decl.type)
-    assert scalar in {"S8", "U8"}
     dim = ExtractNumber(type_decl.dim.value)
     assert dim == len(values)
-
-    print(f'.data 1 [{" ".join(values)}]')
+    print(f'.data 1 [{" ".join(byte_encode_values(scalar, values))}]')
 
 
 def IsGlobalDecl(node, parent):

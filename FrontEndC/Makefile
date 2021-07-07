@@ -69,7 +69,8 @@ sumarray.c \
 20080424-1.c \
 2003-07-08-BitOpsTest.c \
 do_while.c \
-sieve.c
+sieve.c \
+pfannkuchen.c
 
 # T2006-01-29-SimpleIndirectCall.c
 # T2003-05-14-initialize-string.c
