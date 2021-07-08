@@ -350,8 +350,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
                     regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
 
-
-
     # assign the earmarked regs to some globals and spill the rest
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(

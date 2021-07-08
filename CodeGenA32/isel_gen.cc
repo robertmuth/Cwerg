@@ -3552,7 +3552,7 @@ int32_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::num1_lo16:
       return ExtractNum(Const(InsOperand(ins, 1))) & 0xffffU;
     case PARAM::num1_hi16:
-      return (ExtractNum(Const(InsOperand(ins, 1))) >> 16) & 0xffffU;
+      return (ExtractNum(Const(InsOperand(ins, 1))) >> 16U) & 0xffffU;
     case PARAM::stk0_offset1:
       return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1));
     case PARAM::stk0_offset1_lo:

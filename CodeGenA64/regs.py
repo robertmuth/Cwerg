@@ -313,10 +313,10 @@ class CpuRegPool(reg_alloc.RegPool):
         gpr_lac, gpr_not_lac = self._gpr_available_lac, self._gpr_available_not_lac
         flt_lac, flt_not_lac = self._flt_available_lac, self._flt_available_not_lac
         out = [f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"]
-        for n, pa in  enumerate(self._gpr_reserved):
+        for n, pa in enumerate(self._gpr_reserved):
             if pa.ranges:
                 out.append(f"gpr{n} {len(pa.ranges)}")
-        for n, pa in  enumerate(self._flt_reserved):
+        for n, pa in enumerate(self._flt_reserved):
             if pa.ranges:
                 out.append(f"flt{n} {len(pa.ranges)}")
         return "\n".join(out)
@@ -348,11 +348,11 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRang
 
     # print ("\n".join(serialize.BblRenderToAsm(bbl)))
     n = [0]
+
     def logger(lr, message):
         m = f"{n[0]} {lr} {message}"
         n[0] += 1
         print(m)
-
 
     reg_alloc.RegisterAssignerLinearScanFancy(live_ranges, pool, None)
 

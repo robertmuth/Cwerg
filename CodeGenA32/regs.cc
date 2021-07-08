@@ -188,16 +188,6 @@ void RunLinearScan(Bbl bbl,
   RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
 }
 
-void AssignRegs(const std::vector<LiveRange>& ranges) {
-  for (const LiveRange& lr : ranges) {
-    if (lr.HasFlag(LR_FLAG::PRE_ALLOC) || lr.is_use_lr()) continue;
-    ASSERT(RegCpuReg(lr.reg).isnull(), "Reg already allocated" << lr);
-    if (!lr.cpu_reg.isnull()) {  // covers both CPU_REG_SPILL/-INVALID
-      RegCpuReg(lr.reg) = lr.cpu_reg;
-    }
-  }
-}
-
 std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
     const std::vector<LiveRange>& ranges) {
   std::vector<Reg> out;

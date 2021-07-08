@@ -1052,7 +1052,7 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
         if not p.MatchesTypeCurbs(ins):
             continue
         mismatches = p.MatchesImmCurbs(ins, assume_stk_op_matches)
-        if mismatches == 0: return 0;
+        if mismatches == 0: return 0
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits

@@ -201,16 +201,6 @@ void RunLinearScan(Bbl bbl,
   RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
 }
 
-void AssignRegs(const std::vector<LiveRange>& ranges) {
-  for (const LiveRange& lr : ranges) {
-    if (lr.HasFlag(LR_FLAG::PRE_ALLOC) || lr.is_use_lr()) continue;
-    ASSERT(RegCpuReg(lr.reg).isnull(), "Reg already allocated" << lr);
-    if (!lr.cpu_reg.isnull()) {  // covers both CPU_REG_SPILL/-INVALID
-      RegCpuReg(lr.reg) = lr.cpu_reg;
-    }
-  }
-}
-
 std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
     const std::vector<LiveRange>& ranges) {
   std::vector<Reg> out;
@@ -220,7 +210,7 @@ std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
       out.push_back(lr.reg);
     } else {
       ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
-      ASSERT(lr.cpu_reg.value != ~0, "");
+      ASSERT(lr.cpu_reg.value != ~0U, "");
       RegCpuReg(lr.reg) = lr.cpu_reg;
     }
   }
@@ -473,7 +463,7 @@ EmitContext FunComputeEmitContext(Fun fun) {
   masks.flt_mask &= FLT_LAC_REGS_MASK;
   if (!FunIsLeaf(fun)) {
     // add link regs if it is not already included
-    masks.gpr_mask |= 1U << 30;
+    masks.gpr_mask |= 1U << 30U;
   }
 
   const uint32_t stk_size = (FunStackSize(fun) + 15) / 16 * 16;
