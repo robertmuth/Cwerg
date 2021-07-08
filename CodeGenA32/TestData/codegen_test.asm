@@ -146,6 +146,7 @@
     mov $r1_U32@r1 9
     bsr writeln
     lea.mem board@r6 BOARD 0
+    lea.mem board@r6 BOARD $r1_U32@r1
     mov i@r7 0
 .bbl loop  #  edge_out[loop  loop_1]  live_out[r6  r7]
     mov $r1_U32@r1 8

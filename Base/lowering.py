@@ -240,6 +240,13 @@ def _InsEliminateMemLoadStore(
         lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1], lea_offset])
         ins.Init(o.LD, [ops[0], scratch_reg, ld_offset])
         return [lea, ins]
+    elif opc is o.LEA_MEM and isinstance(ops[2], ir.Reg):
+        scratch_reg = fun.GetScratchReg(base_kind, "base", False)
+        # TODO: maybe reverse the order so that we can tell that ops[0] holds a stack
+        # location
+        lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
+        ins.Init(o.LEA, [ops[0], scratch_reg, ops[2]])
+        return [lea, ins]
     else:
         return None
 

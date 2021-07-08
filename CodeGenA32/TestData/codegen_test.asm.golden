@@ -231,6 +231,9 @@ PAT: reg:[INVALID]  imm:[invalid]
 INS: lea.mem board@r6 BOARD 0  [A32 _ U8]
     MATCH_IMPOSSIBLE
 
+INS: lea.mem board@r6 BOARD $r1_U32@r1  [A32 _ U32]
+    MATCH_IMPOSSIBLE
+
 INS: mov i@r7 0  [U32 U32]
 PAT: reg:[U32 U32]  imm:[invalid pos_8_bits_shifted]
     mov_imm al r7 0
