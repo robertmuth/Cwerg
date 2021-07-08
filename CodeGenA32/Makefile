@@ -16,7 +16,8 @@ TESTS = reg_torture_f32.asm \
         stack.asm \
         multiple_results.asm \
         multiple_results_f32.asm \
-        multiple_results_f64.asm
+        multiple_results_f64.asm \
+        pfannkuchen.32.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm.exe)
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm.c.exe)

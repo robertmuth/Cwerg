@@ -17,7 +17,8 @@ TESTS = reg_torture_f32.asm \
         memaddr.64.asm \
         switch.asm \
         indirect.64.asm \
-        queens.64.asm
+        queens.64.asm \
+        pfannkuchen.64.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe)

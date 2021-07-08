@@ -350,32 +350,42 @@ void FunEliminateMemLoadStore(Fun fun,
                               DK base_kind,
                               DK offset_kind,
                               std::vector<Ins>* inss) {
+  auto add_lea_mem = [&](Handle mem, Handle offset) -> Reg {
+    Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
+    inss->push_back(InsNew(OPC::LEA_MEM, tmp, mem, offset));
+    return tmp;
+  };
+
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
-      if (InsOPC(ins) == OPC::ST_MEM) {
+      const OPC opc = InsOPC(ins);
+      if (opc == OPC::ST_MEM) {
         Handle st_offset = InsOperand(ins, 1);
         Handle lea_offset = ConstNewU(offset_kind, 0);
         // TODO: small st_offset/ld_offset should probably stay with the `st`
         if (st_offset.kind() == RefKind::CONST)
           std::swap(st_offset, lea_offset);
-        Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
-        inss->push_back(
-            InsNew(OPC::LEA_MEM, tmp, InsOperand(ins, 0), lea_offset));
+        Reg tmp = add_lea_mem(InsOperand(ins, 0), lea_offset);
         inss->push_back(
             InsInit(ins, OPC::ST, tmp, st_offset, InsOperand(ins, 2)));
         dirty = true;
-      } else if (InsOPC(ins) == OPC::LD_MEM) {
-          Handle ld_offset = InsOperand(ins, 2);
-          Handle lea_offset = ConstNewU(offset_kind, 0);
-          if (ld_offset.kind() == RefKind::CONST)
-            std::swap(ld_offset, lea_offset);
-          Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
-          inss->push_back(InsNew(OPC::LEA_MEM, tmp, InsOperand(ins, 1),
-                                 lea_offset));
-          inss->push_back(InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset));
-          dirty = true;
+      } else if (opc == OPC::LD_MEM) {
+        Handle ld_offset = InsOperand(ins, 2);
+        Handle lea_offset = ConstNewU(offset_kind, 0);
+        if (ld_offset.kind() == RefKind::CONST)
+          std::swap(ld_offset, lea_offset);
+        Reg tmp = add_lea_mem(InsOperand(ins, 1), lea_offset);
+        inss->push_back(
+            InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset));
+        dirty = true;
+      } else if (opc == OPC::LEA_MEM &&
+                 InsOperand(ins, 2).kind() == RefKind::REG) {
+        dirty = true;
+        Reg tmp = add_lea_mem(InsOperand(ins, 1), ConstNewU(offset_kind, 0));
+        inss->push_back(InsInit(ins, OPC::LEA, InsOperand(ins, 0), tmp,
+                                InsOperand(ins, 2)));
       } else {
         inss->push_back(ins);
       }
