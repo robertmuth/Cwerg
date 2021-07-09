@@ -4,7 +4,6 @@
 Tests the creation of ELF executables for: a32, a64, x64
 Use commandline parameter gena32, gena64, genx64 to select the architecture
 """
-import io
 import sys
 
 from Elf import elfhelper
@@ -148,8 +147,7 @@ def GenBareBonesA32():
     sec_text.sh_size = len(sec_text.data)
 
     sec_shstrtab = elfhelper.Section.MakeSectionStrTab(".shstrtab")
-    sec_shstrtab.data = elfhelper.MakeSecStrTabContents \
-        ([sec_null, sec_text, sec_shstrtab])
+    sec_shstrtab.data = elfhelper.MakeSecStrTabContents([sec_null, sec_text, sec_shstrtab])
     sec_shstrtab.sh_size = len(sec_shstrtab.data)
 
     seg_exe = elfhelper.Segment.MakeExeSegment(65536)

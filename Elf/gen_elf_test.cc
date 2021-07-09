@@ -75,7 +75,7 @@ Executable<uint64_t> GenBareBonesX64() {
   // patch the message address
   unsigned char* data = (unsigned char*)sec_text->data->data() + 17;
   for (unsigned i = 0; i < 4; ++i) {
-    data[i] = (sec_rodata->shdr.sh_addr >> (i * 8)) & 0xff;
+    data[i] = (sec_rodata->shdr.sh_addr >> (i * 8)) & 0xffU;
   }
   return exe;
 }
@@ -134,7 +134,7 @@ Executable<uint64_t> GenBareBonesA64() {
   exe.ehdr.e_entry = sec_text->shdr.sh_addr;
   void* data = sec_text->data->rwdata();
   uint64_t msg_addr = sec_text->shdr.sh_addr + 9 * 4;
-  uint32_t ins = 0x91035021 & 0xff0003ff | ((msg_addr & 0xfff) << 10);
+  uint32_t ins = 0x91035021 & 0xff0003ff | ((msg_addr & 0xfffU) << 10U);
   ((uint32_t*)sec_text->data->rwdata())[2] = ins;
   return exe;
 }
