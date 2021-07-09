@@ -307,7 +307,7 @@ def _GetRegOrConstOperand(fun: ir.Fun, last_kind: o.DK,
         pos = token.find("@")
         if pos > 0:
             cpu_reg = regs_cpu.get(token[pos + 1:])
-            assert cpu_reg is not None, f"unknown cpu_reg {token[pos + 1:]} {regs_cpu}"
+            assert cpu_reg is not None, f"unknown cpu_reg {token[pos + 1:]} known regs {regs_cpu.keys()}"
             token = token[:pos]
         pos = token.find(":")
         if pos < 0:
@@ -418,7 +418,9 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
     if not opc:
         raise ir.ParseError(f"unknown opcode/directive: {token}")
     if opc == o.LEA:
-        if token[2] in unit.fun_syms:
+        if token[2] in fun.reg_syms:
+            pass  # in case the register name is shadows a global
+        elif token[2] in unit.fun_syms:
             opc = o.LEA_FUN
         elif token[2] in unit.mem_syms:
             opc = o.LEA_MEM
@@ -484,11 +486,25 @@ def UnitParseFromAsm(fin, verbose=False, cpu_regs: Dict[str, ir.CpuReg] = {}) ->
     return out
 
 
+def SynthesizeBenchmark(unit: ir.Unit, repeats: int):
+    """Re-emits a given asm file multiple times with different prefices
+
+    This is useful to for generating really large programs for benchmarking the
+    compiler speed
+    """
+    global PREFIX
+    for i in range(repeats):
+        PREFIX = f"a{i:03d}_"
+        print("\n".join(UnitRenderToASM(unit)))
+
+
 if __name__ == "__main__":
     import sys
 
-    PREFIX = sys.argv[1]
-
+    if len(sys.argv) == 2:
+        unit = UnitParseFromAsm(sys.stdin)
+        SynthesizeBenchmark(unit, int(sys.argv[1]))
+        sys.exit(1)
 
     def process(fin):
         unit = UnitParseFromAsm(fin)

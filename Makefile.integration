@@ -107,7 +107,9 @@ FrontEndC/TestData/20080424-1.c\
 FrontEndC/TestData/20000523-1.c \
 FrontEndC/TestData/sumarray.c \
 FrontEndC/TestData/nqueen.c \
-FrontEndC/TestData/20020129-1.c
+FrontEndC/TestData/20020129-1.c \
+FrontEndC/TestData/sieve.c \
+FrontEndC/TestData/pfannkuchen.c
 
 
 
@@ -149,4 +151,4 @@ FrontEndC/TestData/20020129-1.c
 itests: $(ITESTS:.c=.itest)
 
 clean:
-	rm -f nano.*
+	rm -f nano.* FrontEndC/TestData/*exe  FrontEndC/TestData/*out FrontEndC/TestData/*out.c FrontEndC/TestData/*asm

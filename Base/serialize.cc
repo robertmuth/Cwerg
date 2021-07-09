@@ -466,12 +466,17 @@ OPC MaybeRewritePseudoOpcodes(std::vector<std::string_view>* token,
   if (token->size() == 3) {
     token->push_back("0");
   }
-  if (!FunStkFind(fun, src).isnull())
-    return OPC::LEA_STK;
-  else if (!UnitMemFind(unit, src).isnull())
-    return OPC::LEA_MEM;
-  else
+  if (!FunRegFind(fun, src).isnull()) {
+    // in case the register name is shadows a global
     return OPC::LEA;
+  } else if (!FunStkFind(fun, src).isnull()) {
+    return OPC::LEA_STK;
+  } else if (!UnitMemFind(unit, src).isnull()) {
+    return OPC::LEA_MEM;
+  } else {
+    // could be a constant
+    return OPC::LEA;
+  }
 }
 
 }  // namespace
@@ -601,7 +606,7 @@ void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number) {
   unsigned count = 0;
   for (Ins ins : BblInsIter(bbl)) {
     if (number) {
-       *output << std::setw(3) << count++ << " ";
+      *output << std::setw(3) << count++ << " ";
     } else {
       *output << "    ";
     }
