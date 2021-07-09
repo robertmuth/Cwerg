@@ -310,6 +310,7 @@ def GetLValueAddress(lvalue, meta_info: meta.MetaInfo, node_value, id_gen):
         if isinstance(type, (c_ast.Struct, c_ast.Union, c_ast.FuncDecl)):
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
+            # TODO: this needs to select the right lea/lea.mem/lea.stk
             print(f"{TAB}lea {tmp}:{kind} = {lvalue.name}")
             node_value[lvalue] = tmp
         else:
@@ -577,6 +578,7 @@ def EmitID(parent, node: c_ast.ID, meta_info: meta.MetaInfo, node_value):
 
     kind = TYPE_TRANSLATION[POINTER]
     tmp = GetTmp(kind)
+    # TODO: this needs to select the right lea/lea.mem/lea.stk
     print(f"{TAB}lea {tmp}:{kind} = {node.name}")
     node_value[node] = tmp
 
@@ -710,7 +712,7 @@ def EmitIR(node_stack, meta_info: meta.MetaInfo, node_value, id_gen: common.Uniq
             print(".data", "1", node.value[:-1] + '\\x00"')
             kind = TYPE_TRANSLATION[POINTER]
             tmp = GetTmp(kind)
-            print(f"{TAB}lea {tmp}:{kind} = {name}")
+            print(f"{TAB}lea.mem {tmp}:{kind} = {name} 0")
             node_value[node] = tmp
             node_value[node] = tmp
         else:

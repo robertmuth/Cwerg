@@ -453,6 +453,7 @@ bool GetAllInsOperands(const Opcode& opcode,
   return true;
 }
 
+// TODO: get rid of this hack which simplifies FrontEndC/translate.py a bit
 OPC MaybeRewritePseudoOpcodes(std::vector<std::string_view>* token,
                               Unit unit,
                               Fun fun) {

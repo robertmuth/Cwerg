@@ -417,6 +417,7 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
     opc = o.Opcode.Table.get(token[0])
     if not opc:
         raise ir.ParseError(f"unknown opcode/directive: {token}")
+    # TODO: get rid of this hack which simplifies FrontEndC/translate.py a bit
     if opc == o.LEA:
         if token[2] in fun.reg_syms:
             pass  # in case the register name is shadows a global
