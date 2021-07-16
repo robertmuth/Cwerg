@@ -45,18 +45,14 @@ from Base import optimize
 
 def BuildExample() -> ir.Unit:
     unit = ir.Unit("fib")
-    fun_fib = ir.Fun("fib", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32])
-    unit.AddFun(fun_fib)
-    bbl_start = ir.Bbl("start")
-    fun_fib.AddBbl(bbl_start)
-    bbl_difficult = ir.Bbl("difficult")
-    fun_fib.AddBbl(bbl_difficult)
+    fun_fib = unit.AddFun(ir.Fun("fib", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32]))
+    bbl_start =  fun_fib.AddBbl(ir.Bbl("start"))
+    bbl_difficult = fun_fib.AddBbl(ir.Bbl("difficult"))
 
-    reg_in = ir.Reg("in", o.DK.U32)
-    reg_x = ir.Reg("x", o.DK.U32)
-    reg_out = ir.Reg("out", o.DK.U32)
-    for r in [reg_in, reg_x, reg_out]:
-        fun_fib.AddReg(r)
+    reg_in = fun_fib.AddReg(ir.Reg("in", o.DK.U32))
+    reg_x = fun_fib.AddReg(ir.Reg("x", o.DK.U32))
+    reg_out = fun_fib.AddReg(ir.Reg("out", o.DK.U32))
+
     bbl_start.AddIns(ir.Ins(o.POPARG, [reg_in]))
     bbl_start.AddIns(ir.Ins(o.BLT, [ir.Const(o.DK.U32, 1), reg_in, bbl_difficult]))
     bbl_start.AddIns(ir.Ins(o.PUSHARG, [reg_in]))
@@ -134,6 +130,8 @@ def main():
             pass
         print('Stopping HTTP server')
         http_server.server_close()
+    else:
+        print ("\n".join(serialize.UnitRenderToASM(UNIT)))
 
 
 if __name__ == "__main__":
