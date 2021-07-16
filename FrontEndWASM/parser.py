@@ -314,6 +314,9 @@ class Mem:
 class Expression:
     instructions: typing.List[Instruction]
 
+    def __repr__(self):
+        return "\n".join([repr(i) for i in self.instructions])
+
     @classmethod
     def read(cls, r: typing.BinaryIO):
         instructions = []
@@ -376,6 +379,9 @@ class Locals:
 class Code:
     local_list: typing.List[Locals]
     expr: Expression
+
+    def __repr__(self):
+        return f"locals: {self.local_list}\nexpr:\n{self.expr}"
 
     @classmethod
     def read(cls, rr: typing.BinaryIO):
@@ -511,4 +517,9 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     logging.info(f"Reading {sys.argv[1]}")
     with open(sys.argv[1], "rb") as fin:
-        Module.read(fin)
+        mod = Module.read(fin)
+        for sec_id, sec in sorted(mod.sections.items()):
+            print (f"\nsection {sec_id.name}")
+            # but some exceptions in for sectiontype where this does not work
+            for n, item in enumerate(sec.items):
+                print (f"{n} {item}")
