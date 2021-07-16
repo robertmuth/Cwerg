@@ -79,6 +79,7 @@ class VAL_TYPE(enum.IntEnum):
     def is_32bit(self):
         return self is VAL_TYPE.I32 or self is VAL_TYPE.F32
 
+
 @enum.unique
 class MUT(enum.IntEnum):
     CONST = 0
@@ -266,6 +267,7 @@ class LocalIdx(Idx):
 class LabelIdx(Idx):
     pass
 
+
 ###########################################################
 # SECTIONS Elements
 # https://webassembly.github.io/spec/core/binary/modules.html#sections
@@ -417,26 +419,22 @@ class Data:
             assert False
 
 
-# TODO
 @dataclasses.dataclass(frozen=True)
 class Elem:
-    # The initial contents of a table is uninitialized. The elem component of a module defines a vector of element
-    # segments that initialize a subrange of a table, at a given offset, from a static vector of elements.
-    #
-    # elem ::= {table tableidx, offset expr, init vec(funcidx)}
-    #
-    # The offset is given by a constant expression.
-    table_index: TableIdx
-    offset: Expression
-    init: typing.List[FuncIdx]
+    flags: int
+    expr: Expression
+    funcidxs: typing.List[FuncIdx]
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
-        table_index = TableIdx.read(r)
-        offset = Expression.read(r)
-        n = read_leb128(r)
-        init = [FuncIdx.read(r) for _ in range(n)]
-        return Elem(table_index, offset, init)
+        flags = ord(r.read(1))
+        if flags == 0:
+            expr = Expression.read(r)
+            funcidxs = read_vec(r, FuncIdx)
+            return Elem(flags, expr, funcidxs)
+        else:
+            assert False, f"NYI {flags}"
+        return Elem(flags)
 
 
 ###########################################################
@@ -518,12 +516,13 @@ class Module:
 
 if __name__ == '__main__':
     import sys
+
     logging.basicConfig(level=logging.DEBUG)
     logging.info(f"Reading {sys.argv[1]}")
     with open(sys.argv[1], "rb") as fin:
         mod = Module.read(fin)
         for sec_id, sec in sorted(mod.sections.items()):
-            print (f"\nsection {sec_id.name}")
+            print(f"\nsection {sec_id.name}")
             # but some exceptions in for sectiontype where this does not work
             for n, item in enumerate(sec.items):
-                print (f"{n} {item}")
+                print(f"{n} {item}")
