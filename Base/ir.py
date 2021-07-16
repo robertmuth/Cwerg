@@ -391,6 +391,7 @@ class Fun:
             raise ParseError(f"duplicate register {reg.name}")
         self.reg_syms[reg.name] = reg
         self.regs.append(reg)
+        return reg
 
     def FindOrAddCpuReg(self, cpu_reg: CpuReg, kind: o.DK) -> Reg:
         name = f"${cpu_reg.name}_{kind.name}"
@@ -450,6 +451,7 @@ class Fun:
             raise ParseError(f"duplicate Bbl {bbl.name}")
         self.bbl_syms[bbl.name] = bbl
         self.bbls.append(bbl)
+        return bbl
 
     def InitForwardDeclaredBbl(self, bbl):
         assert bbl.forward_declared
@@ -551,6 +553,7 @@ class Unit:
             raise ParseError(f"duplicate Mem {mem.name}")
         self.mem_syms[mem.name] = mem
         self.mems.append(mem)
+        return mem
 
     def GetMem(self, name) -> Mem:
         return self.mem_syms[name]
@@ -560,6 +563,7 @@ class Unit:
             raise ParseError(f"duplicate Fun {fun.name}")
         self.funs.append(fun)
         self.fun_syms[fun.name] = fun
+        return fun
 
     def InitForwardDeclaredFun(self, fun, kind, outputs, inputs):
         assert fun.forward_declared

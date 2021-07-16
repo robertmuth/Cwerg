@@ -33,6 +33,7 @@ class ARG_TYPE(enum.IntEnum):
 class FLAGS(enum.IntFlag):
     BLOCK_START = 1
     BLOCK_END = 2
+    CONST = 4
 
 
 ###########################################################
@@ -42,7 +43,6 @@ class Opcode:
     Table: typing.Dict[int, "Opcode"] = {}
 
     def __init__(self, no, name, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID, flags=FLAGS(0)):
-
         self.no = no
         self.name = name
         self.flags = flags
@@ -52,7 +52,7 @@ class Opcode:
 
 
 def OpConst(no, name, arg):
-    return Opcode(no, name, arg)
+    return Opcode(no, name, arg, flags=FLAGS.CONST)
 
 
 def OpVar(no, name, arg):
@@ -103,16 +103,16 @@ def OpBlk(no, name, arg1=ARG_TYPE.INVALID):
 Opcode(0x00, 'unreachable')
 Opcode(0x01, 'nop')
 
-OpBlk(0x02, 'block', ARG_TYPE.BLOCK_TYPE)
-OpBlk(0x03, 'loop', ARG_TYPE.BLOCK_TYPE)
-OpBlk(0x04, 'if', ARG_TYPE.BLOCK_TYPE)
-Opcode(0x05, 'else')
-Opcode(0x0b, 'end', flags=FLAGS.BLOCK_END)
+BLOCK = OpBlk(0x02, 'block', ARG_TYPE.BLOCK_TYPE)
+LOOP = OpBlk(0x03, 'loop', ARG_TYPE.BLOCK_TYPE)
+IF = OpBlk(0x04, 'if', ARG_TYPE.BLOCK_TYPE)
+ELSE = Opcode(0x05, 'else')
+END = Opcode(0x0b, 'end', flags=FLAGS.BLOCK_END)
 
 OpCfg(0x0c, 'br', ARG_TYPE.LABEL_IDX)
 OpCfg(0x0d, 'br_if', ARG_TYPE.LABEL_IDX)
 OpCfg(0x0e, 'br_table', ARG_TYPE.VEC_LABEL_IDX, ARG_TYPE.LABEL_IDX)
-OpCfg(0x0f, 'return')
+RETURN = OpCfg(0x0f, 'return')
 OpCfg(0x10, 'call', ARG_TYPE.FUNC_IDX)
 OpCfg(0x11, 'call_indirect', ARG_TYPE.TYPE_IDX, ARG_TYPE.TABLE_IDX)
 
@@ -125,7 +125,7 @@ Opcode(0x1b, 'select')
 OpVar(0x20, 'local.get', ARG_TYPE.LOCAL_IDX)
 OpVar(0x21, 'local.set', ARG_TYPE.LOCAL_IDX)
 OpVar(0x22, 'local.tee', ARG_TYPE.LOCAL_IDX)
-OpVar(0x23, 'global.get', ARG_TYPE.GLOBAL_IDX)
+GLOBAL_GET = OpVar(0x23, 'global.get', ARG_TYPE.GLOBAL_IDX)
 OpVar(0x24, 'global.set', ARG_TYPE.GLOBAL_IDX)
 
 OpTable(0x25, "table.get", ARG_TYPE.TABLE_IDX)
@@ -170,10 +170,10 @@ OpMem(0x0afc, 'memory.copy', ARG_TYPE.BYTE1_ZERO, ARG_TYPE.BYTE1_ZERO)
 OpMem(0x0bfc, 'memory.fill', ARG_TYPE.BYTE1_ZERO)
 
 # numeric instructions
-OpConst(0x41, 'i32.const', ARG_TYPE.SINT)
-OpConst(0x42, 'i64.const', ARG_TYPE.SINT)
-OpConst(0x43, 'f32.const', ARG_TYPE.BYTE4)
-OpConst(0x44, 'f64.const', ARG_TYPE.BYTE8)
+I32_CONST = OpConst(0x41, 'i32.const', ARG_TYPE.SINT)
+I64_CONST = OpConst(0x42, 'i64.const', ARG_TYPE.SINT)
+F32_CONST = OpConst(0x43, 'f32.const', ARG_TYPE.BYTE4)
+F64_CONST = OpConst(0x44, 'f64.const', ARG_TYPE.BYTE8)
 
 OpCmp(0x45, 'i32.eqz')
 OpCmp(0x46, 'i32.eq')

@@ -76,6 +76,8 @@ class VAL_TYPE(enum.IntEnum):
     I64 = 0x7e
     I32 = 0x7f
 
+    def is_32bit(self):
+        return self is VAL_TYPE.I32 or self is VAL_TYPE.F32
 
 @enum.unique
 class MUT(enum.IntEnum):
@@ -330,6 +332,7 @@ class Expression:
             if FLAGS.BLOCK_END in i.opcode.flags:
                 nesting -= 1
             if nesting == 0:
+                instructions.pop(-1)  # get rid of the trailing "end"
                 break
 
         return Expression(instructions)
@@ -406,6 +409,7 @@ class Data:
         if flags == 0:
             return Data(MemIdx(0), Expression.read(r), read_bytes(r))
         elif flags == 1:
+            # can this still happen?
             return Data(None, None, read_bytes(r))
         elif flags == 2:
             return Data(MemIdx.read(r), Expression.read(r), read_bytes(r))
