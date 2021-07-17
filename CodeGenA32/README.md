@@ -57,8 +57,10 @@ TODO: add this
 
 The code selection is a straight forward expansion of
 the IR opcodes into zero or more A32 opcodes described in
-[../Docs/instruction_selection.md])
+[instruction_selection.md](../Docs/instruction_selection.md)
 
+[isel_tab.py](isel_tab.py) contains the necessary tables which 
+are also use to generate C++ code.
 
 If the expansion requires a scratch register, the register allocator
 will be told to reserve on via the insertion of a `nop1` IR opcode.
