@@ -34,6 +34,8 @@ class FLAGS(enum.IntFlag):
     BLOCK_START = 1
     BLOCK_END = 2
     CONST = 4
+    SIGNED = 8
+    UNSIGNED =16
 
 
 ###########################################################

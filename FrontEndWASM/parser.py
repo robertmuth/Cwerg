@@ -483,9 +483,45 @@ _sec_id_to_reader = {
 
 
 @dataclasses.dataclass(frozen=True)
+class Function:
+    name: str
+    func_type: FunctionType
+    impl: typing.Union[Code, Import]
+
+
+def ExtractFunctions(sections):
+    out: typing.List[Function] = []
+    import_sec = sections.get(SECTION_ID.IMPORT)
+    type_sec = sections.get(SECTION_ID.TYPE)
+
+    if import_sec:
+        for i in import_sec.items:
+            if isinstance(i.desc, TypeIdx):
+                out.append(Function(f"${i.module}${i.name}", type_sec.items[int(i.desc)] ,i))
+
+    function_sec = sections.get(SECTION_ID.FUNCTION)
+    code_sec = sections.get(SECTION_ID.CODE)
+
+    if function_sec:
+        start_index = len(out)
+        assert len(code_sec.items) == len(function_sec.items)
+        names = [""] * len(code_sec.items)
+        export_sec = sections.get(SECTION_ID.EXPORT)
+        if export_sec:
+            for e in export_sec.items:
+                if isinstance(e.desc, FuncIdx):
+                    names[int(e.desc) - start_index] = e.name
+        for n, (c, f) in enumerate(zip(code_sec.items, function_sec.items)):
+            out.append(Function(names[n], type_sec.items[int(f)] , c))
+
+    return out
+
+
+@dataclasses.dataclass(frozen=True)
 class Module:
     version: typing.List[int]
-    sections: typing.Dict[SECTION_ID, typing.List[Section]] = dataclasses.field(default_factory=dict)
+    sections: typing.Dict[SECTION_ID, typing.List[Section]]
+    functions: typing.List[typing.Union[Code, Import]]
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
@@ -511,7 +547,7 @@ class Module:
             if io_data.read(1):
                 raise Exception(f'not all section data was consumed for {sec_id}')
 
-        return Module(version, sections)
+        return Module(version, sections, ExtractFunctions(sections))
 
 
 if __name__ == '__main__':
@@ -523,6 +559,9 @@ if __name__ == '__main__':
         mod = Module.read(fin)
         for sec_id, sec in sorted(mod.sections.items()):
             print(f"\nsection {sec_id.name}")
-            # but some exceptions in for sectiontype where this does not work
+            # make  some exceptions in for section types where this does not work
             for n, item in enumerate(sec.items):
                 print(f"{n} {item}")
+        print ("\nFunctions:")
+        for n, f in enumerate(mod.functions):
+            print (f"{n}: [{f.name:30}] {type(f.impl).__name__:15}  {f.func_type}")
