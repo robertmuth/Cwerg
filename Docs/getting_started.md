@@ -560,16 +560,22 @@ are supported but it is more or less "standalone" and may be useful for
  
 Implementations: Python, C++ 
 
-#### [Elf/](../Elf)
+#### [Examples/](../Examples)
 
 Examples illustrating the use of Cwerg.
 
 #### [FrontEndC/](../FrontEndC)
  
-contains a C frontend that translates a subset of the C language to the IR.
+contains a frontend that translates a subset of the C language to the IR.
  
 Implementations: Python
  
+#### [FrontEndWASM/](../FrontEndWASM)
+ 
+contains a frontend that translates WASM modules to the IR.
+This includes implementations of parts of a WASI API
+ 
+Implementations: Python
 
 #### [TestQemu/](../TestQemu)
 
