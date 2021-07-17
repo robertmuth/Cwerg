@@ -4,16 +4,20 @@ This directory contains code for encoding and decoding A32 instructions.
 
 We only support the regular 32 bit ISA.
 Neither Thumb nor Thumb-2 are supported. Nor are there plans to do so.
+[opcode_tab.py](opcode_tab.py) contains the necessary encoding tables
+which  are also use to generate C++ code.
 
-The implementation is far more complete than what is needed by [../CodeGenA32]
-and might be useful by itself.
 
-It also contains an assembler that can directly generate Elf executables.
+The implementation is far more complete than what is needed by the 
+[CodeGenA32 component](../CodeGenA32) and might be useful by itself.
 
-Note: we deviate from the official notation in several places.
+It also contains an assembler that can directly generate Elf executables, which 
+depends on the [Elf component](../Elf). Otherwise, there are no dependencies. 
+
+Note: we deviate from the official assembler notation in several places.
 
 If you are working on this on a non-A32 platform installing Qemu 
-will be invaluable see  [../TestQemu] .
+will be invaluable see  [../TestQemu](../TestQemu).
 
 ## Concepts 
 

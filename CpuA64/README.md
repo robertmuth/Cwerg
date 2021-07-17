@@ -1,14 +1,19 @@
 # A64 (AArch64) Encoder/Decoder
 
 This directory contains code for encoding and decoding A64 instructions.
+[opcode_tab.py](opcode_tab.py) contains the necessary encoding tables which 
+are also use to generate C++ code.
 
-The implementation is far more complete than what is needed by [../CodeGenA64]
-and might be useful by itself.
+The implementation is far more complete than what is needed by the 
+[CodeGenA64 component](../CodeGenA64) and might be useful by itself.
 
-It also contains an assembler that can directly generate Elf executables.
+It also contains an assembler that can directly generate Elf executables, which 
+depends on the [Elf component](../Elf). Otherwise, there are no dependencies.
+
+Note: we deviate from the official assembler notation in several places.
 
 If you are working on this on a non-A64 platform installing Qemu 
-will be invaluable see  [../TestQemu] .
+will be invaluable see  [../TestQemu](../TestQemu).
 
 ## Concepts
 
