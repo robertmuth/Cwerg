@@ -22,7 +22,7 @@ The project is very much "work in progress" and  currently consists of:
 * [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
 
-It is primarily aimed AOT compilation but JITing will also be supported.
+It is primarily aimed at AOT compilation but JITing will also be supported.
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
 1. spec/reference implementation: Python 3.7
