@@ -56,44 +56,38 @@ using namespace cwerg::base;
 
 Unit MakeFibonacci() {
   Unit unit = UnitNew(StrNew("fibonacci"));
-  Fun fun = FunNew(StrNew("fib"), FUN_KIND::NORMAL);
+  Fun fun = UnitFunAdd(unit, FunNew(StrNew("fib"), FUN_KIND::NORMAL));
   FunOutputTypes(fun)[0] = DK::U32;
   FunNumOutputTypes(fun) = 1;
   FunInputTypes(fun)[0] = DK::U32;
   FunNumInputTypes(fun) = 1;
-  UnitFunAdd(unit, fun);
-  UnitFunAppend(unit, fun);
-  Bbl bbl_start = BblNew(StrNew("start"));
-  FunBblAdd(fun, bbl_start);
-  FunBblAppend(fun, bbl_start);
-  Bbl bbl_difficult = BblNew(StrNew("difficult"));
-  FunBblAdd(fun, bbl_difficult);
-  FunBblAppend(fun, bbl_difficult);
-  Reg reg_in = RegNew(DK::U32, StrNew("in"));
-  Reg reg_out = RegNew(DK::U32, StrNew("out"));
-  Reg reg_x = RegNew(DK::U32, StrNew("x"));
+  Bbl bbl_start = FunBblAdd(fun, BblNew(StrNew("start")));
+  Bbl bbl_difficult = FunBblAdd(fun, BblNew(StrNew("difficult")));
+  Reg reg_in = FunRegAdd(fun, RegNew(DK::U32, StrNew("in")));
+  Reg reg_out = FunRegAdd(fun, RegNew(DK::U32, StrNew("out")));
+  Reg reg_x = FunRegAdd(fun, RegNew(DK::U32, StrNew("x")));
   Const zero = ConstNewU(DK::U32, 0);
   Const one = ConstNewU(DK::U32, 1);
   Const two = ConstNewU(DK::U32, 2);
   // start
-  BblInsAppend(bbl_start, InsNew(OPC::POPARG, reg_in));
-  BblInsAppend(bbl_start, InsNew(OPC::BLT, one, reg_in, bbl_difficult));
-  BblInsAppend(bbl_start, InsNew(OPC::PUSHARG, reg_in));
-  BblInsAppend(bbl_start, InsNew(OPC::RET));
+  BblInsAdd(bbl_start, InsNew(OPC::POPARG, reg_in));
+  BblInsAdd(bbl_start, InsNew(OPC::BLT, one, reg_in, bbl_difficult));
+  BblInsAdd(bbl_start, InsNew(OPC::PUSHARG, reg_in));
+  BblInsAdd(bbl_start, InsNew(OPC::RET));
   // difficult
-  BblInsAppend(bbl_difficult, InsNew(OPC::MOV, reg_out, zero));
-  BblInsAppend(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, one));
-  BblInsAppend(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::BSR, fun));
-  BblInsAppend(bbl_difficult, InsNew(OPC::POPARG, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, two));
-  BblInsAppend(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::BSR, fun));
-  BblInsAppend(bbl_difficult, InsNew(OPC::POPARG, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
-  BblInsAppend(bbl_difficult, InsNew(OPC::PUSHARG, reg_out));
-  BblInsAppend(bbl_difficult, InsNew(OPC::RET));
+  BblInsAdd(bbl_difficult, InsNew(OPC::MOV, reg_out, zero));
+  BblInsAdd(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, one));
+  BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::BSR, fun));
+  BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, two));
+  BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::BSR, fun));
+  BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
+  BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_out));
+  BblInsAdd(bbl_difficult, InsNew(OPC::RET));
 
   return unit;
 }

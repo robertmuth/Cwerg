@@ -43,7 +43,7 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
   Fun fun = UnitFunFind(unit, name);
   if (fun.isnull()) {
     fun = FunNew(name, kind);
-    UnitFunAdd(unit, fun);
+    UnitFunAddBst(unit, fun);
   } else {
     ASSERT(UnitFunList::Prev(fun).isnull(), "must be unlinked");
     FunKind(fun) = kind;
@@ -58,7 +58,7 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
   if (num_inputs < 0) return false;
   FunNumInputTypes(fun) = num_inputs;
 
-  UnitFunAppend(unit, fun);
+  UnitFunAddList(unit, fun);
   return true;
 }
 
@@ -168,7 +168,7 @@ bool BblHandler(const std::vector<std::string_view>& token, Unit unit) {
   }
   Bbl bbl = FunBblFindOrForwardDeclare(fun, name);
   ASSERT(FunBblList::Prev(bbl).isnull(), "must be unlinked");
-  FunBblAppend(fun, bbl);
+  FunBblAddList(fun, bbl);
   return true;
 }
 
@@ -363,7 +363,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
       Bbl bbl = FunBblFind(fun, name);
       if (bbl.isnull()) {
         bbl = BblNew(name);
-        FunBblAdd(fun, bbl);
+        FunBblAddBst(fun, bbl);
       }
       return bbl;
     }
@@ -390,7 +390,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
       Fun fun_op = UnitFunFind(mod, name);
       if (fun_op.isnull()) {
         fun_op = FunNew(name, FUN_KIND::INVALID);
-        UnitFunAdd(mod, fun_op);
+        UnitFunAddBst(mod, fun_op);
       }
       return fun_op;
     }
@@ -801,7 +801,7 @@ Unit UnitParseFromAsm(const char* name,
       const Ins ins = InsNew(opc, operands[0], operands[1], operands[2],
                              operands[3], operands[4]);
 
-      BblInsAppend(bbl, ins);
+      BblInsAdd(bbl, ins);
       // std::cerr << opcode.name << "\n";
     }
   }

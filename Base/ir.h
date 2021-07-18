@@ -622,12 +622,17 @@ struct BblInsList {
 };
 
 #define BblInsInsertBefore ListInsertBefore<BblInsList>
-#define BblInsAppend ListAppend<BblInsList>
+#define BblInsAddList ListAppend<BblInsList>
 #define BblInsInsertAfter ListInsertAfter<BblInsList>
 #define BblInsPrepend ListPrepend<BblInsList>
 #define BblInsUnlink ListUnlink<BblInsList>
 #define BblInsIter ListIter<BblInsList>
 #define BblInsIterReverse ListIterReverse<BblInsList>
+
+inline Ins BblInsAdd(Bbl bbl, Ins ins) {
+  BblInsAddList(bbl, ins);
+  return ins;
+}
 
 struct BblSuccEdgList {
   using ITEM = Edg;
@@ -789,8 +794,13 @@ extern Bbl FunBblFindOrForwardDeclare(Fun fun, Str bbl_name);
 
 #define FunRegIter BstIter<FunRegBst>
 #define FunRegFind BstFind<FunRegBst>
-#define FunRegAdd BstAdd<FunRegBst>
+#define FunRegAddBst BstAdd<FunRegBst>
 #define FunRegDel BstDel<FunRegBst>
+
+inline Reg FunRegAdd(Fun fun, Reg reg) {
+    FunRegAddBst(fun, reg);
+    return reg;
+}
 
 inline bool FunHasReg(Fun fun, Str reg_name) {
   return !FunRegFind(fun, reg_name).isnull();
@@ -851,7 +861,7 @@ struct FunBblBst {
 };
 
 #define FunBblFind BstFind<FunBblBst>
-#define FunBblAdd BstAdd<FunBblBst>
+#define FunBblAddBst BstAdd<FunBblBst>
 #define FunBblDel BstDel<FunBblBst>
 
 struct FunBblList {
@@ -867,12 +877,18 @@ struct FunBblList {
 };
 
 #define FunBblInsertBefore ListInsertBefore<FunBblList>
-#define FunBblAppend ListAppend<FunBblList>
+#define FunBblAddList ListAppend<FunBblList>
 #define FunBblInsertAfter ListInsertAfter<FunBblList>
 #define FunBblPrepend ListPrepend<FunBblList>
 #define FunBblUnlink ListUnlink<FunBblList>
 #define FunBblIter ListIter<FunBblList>
 #define FunBblIterReverse ListIterReverse<FunBblList>
+
+inline Bbl FunBblAdd(Fun fun, Bbl bbl) {
+  FunBblAddBst(fun, bbl);
+  FunBblAddList(fun, bbl);
+  return bbl;
+}
 
 extern bool FunIsLeaf(Fun fun);
 // =======================================
@@ -916,7 +932,7 @@ struct UnitFunBst {
 };
 
 #define UnitFunFind BstFind<UnitFunBst>
-#define UnitFunAdd BstAdd<UnitFunBst>
+#define UnitFunAddBst BstAdd<UnitFunBst>
 
 struct UnitFunList {
   using ITEM = Fun;
@@ -930,11 +946,17 @@ struct UnitFunList {
 };
 
 #define UnitFunInsertBefore ListInsertBefore<UnitFunList>
-#define UnitFunAppend ListAppend<UnitFunList>
+#define UnitFunAddList ListAppend<UnitFunList>
 #define UnitFunInsertAfter ListInsertAfter<UnitFunList>
 #define UnitFunPrepend ListPrepend<UniFunList>
 #define UnitFunUnlink ListUnlink<UnitFunList>
 #define UnitFunIter ListIter<UnitFunList>
+
+inline Fun  UnitFunAdd(Unit unit, Fun fun) {
+  UnitFunAddBst(unit, fun);
+  UnitFunAddList(unit, fun);
+  return fun;
+}
 
 struct UnitMemBst {
   using ITEM = Mem;

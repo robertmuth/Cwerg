@@ -398,7 +398,7 @@ Bbl FunBblFindOrForwardDeclare(Fun fun, Str bbl_name) {
   Bbl bbl = FunBblFind(fun, bbl_name);
   if (bbl.isnull()) {
     bbl = BblNew(bbl_name);
-    FunBblAdd(fun, bbl);  // We intentionally to do call FunBblAppend() here
+    FunBblAddBst(fun, bbl);  // We intentionally to do call FunBblAppend() here
   }
   return bbl;
 }

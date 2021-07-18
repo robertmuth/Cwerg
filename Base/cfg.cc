@@ -195,7 +195,7 @@ void FunSplitBbls(Fun fun) {
       BblInsList::Prev(first_ins) = BblInsList::MakeSentinel(new_bbl);
       BblInsList::Next(last_ins) = BblInsList::MakeSentinel(new_bbl);
       //
-      FunBblAdd(fun, new_bbl);
+      FunBblAddBst(fun, new_bbl);
       bbls.push_back(new_bbl);
     }
   }
@@ -316,7 +316,7 @@ void FunAddUnconditionalBranches(Fun fun) {
     // Single Edge case:
     if (edg1 == edg2) {
       if (next != EdgSuccBbl(edg1)) {
-        BblInsAppend(bbl, InsNewBra(EdgSuccBbl(edg1)));
+        BblInsAdd(bbl, InsNewBra(EdgSuccBbl(edg1)));
       }
     } else {
       ASSERT(InsOpcode(last).kind == OPC_KIND::COND_BRA, "");
@@ -332,8 +332,8 @@ void FunAddUnconditionalBranches(Fun fun) {
       dirty = true;
       // Add bbl with bra
       const Bbl bbl_bra = BblNew(NewDerivedBblName(Name(bbl), "bra", fun));
-      BblInsAppend(bbl_bra, InsNewBra(other));
-      FunBblAdd(fun, bbl_bra);
+      BblInsAdd(bbl_bra, InsNewBra(other));
+      FunBblAddBst(fun, bbl_bra);
       // Note we intentionally do NOT call FunBblAppend(fun, bbl_bra)
       // because it would invalidate the iterator and we call FunReplaceBbls()
       // at the end
