@@ -77,8 +77,8 @@ bool MemHandler(const std::vector<std::string_view>& token, Unit unit) {
   }
   mem = MemNew(kind, num.value(), name);
 
-  UnitMemAdd(unit, mem);
-  UnitMemAppend(unit, mem);
+  UnitMemAddBst(unit, mem);
+  UnitMemAddList(unit, mem);
   return true;
 }
 

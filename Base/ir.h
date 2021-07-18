@@ -952,7 +952,7 @@ struct UnitFunList {
 #define UnitFunUnlink ListUnlink<UnitFunList>
 #define UnitFunIter ListIter<UnitFunList>
 
-inline Fun  UnitFunAdd(Unit unit, Fun fun) {
+inline Fun UnitFunAdd(Unit unit, Fun fun) {
   UnitFunAddBst(unit, fun);
   UnitFunAddList(unit, fun);
   return fun;
@@ -973,7 +973,7 @@ struct UnitMemBst {
 };
 
 #define UnitMemFind BstFind<UnitMemBst>
-#define UnitMemAdd BstAdd<UnitMemBst>
+#define UnitMemAddBst BstAdd<UnitMemBst>
 
 struct UnitMemList {
   using ITEM = Mem;
@@ -987,11 +987,17 @@ struct UnitMemList {
 };
 
 #define UnitMemInsertBefore ListInsertBefore<UnitMemList>
-#define UnitMemAppend ListAppend<UnitMemList>
+#define UnitMemAddList ListAppend<UnitMemList>
 #define UnitMemInsertAfter ListInsertAfter<UnitMemList>
 #define UnitMemPrepend ListPrepend<UnitMemList>
 #define UnitMemUnlink ListUnlink<UnitMemList>
 #define UnitMemIter ListIter<UnitMemList>
+
+inline Mem UnitMemAdd(Unit unit, Mem mem) {
+  UnitMemAddBst(unit, mem);
+  UnitMemAddList(unit, mem);
+  return mem;
+}
 
 extern Mem UnitFindOrAddConstMem(Unit unit, Const num);
 

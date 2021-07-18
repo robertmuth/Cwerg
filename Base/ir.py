@@ -446,6 +446,9 @@ class Fun:
     def GetReg(self, name: str) -> Reg:
         return self.reg_syms[name]
 
+    def MaybeGetReg(self, name: str) -> Reg:
+        return self.reg_syms.get(name)
+
     def AddBbl(self, bbl: Bbl):
         if bbl.name in self.bbl_syms:
             raise ParseError(f"duplicate Bbl {bbl.name}")
