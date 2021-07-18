@@ -7,9 +7,16 @@ There will only be a Python implementation.
 The [parser](parser.py) and the [instructions table](opcode_tab.py) do not have any other dependencies and might be useful by themselves.
 
 ### References 
+
+https://mvolkmann.github.io/blog/webassembly/
+
+https://github.com/mbasso/awesome-wasm
+
 https://github.com/WebAssembly/spec
 
 https://github.com/bytecodealliance/wasmtime
+
+* https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#modules
 
 https://github.com/WebAssembly/wabt  
 

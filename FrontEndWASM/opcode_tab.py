@@ -34,13 +34,23 @@ class FLAGS(enum.IntFlag):
     BLOCK_START = 1
     BLOCK_END = 2
     CONST = 4
-    SIGNED = 8
-    UNSIGNED =16
+    STORE = 8
+    LOAD = 16
+    SIGNED = 32
+    UNSIGNED = 64
 
 
 ###########################################################
 # OPCODES
 ############################################################
+def op_type(name):
+    x = name.split(".")[0]
+    if x in {"i32", "i64", "f32", "f64"}:
+        return x
+    else:
+        return None
+
+
 class Opcode:
     Table: typing.Dict[int, "Opcode"] = {}
 
@@ -48,9 +58,11 @@ class Opcode:
         self.no = no
         self.name = name
         self.flags = flags
+        self.op_type = op_type(name)
         self.args = [a for a in (arg1, arg2, arg3) if a != ARG_TYPE.INVALID]
         assert no not in Opcode.Table
         Opcode.Table[no] = self
+
 
 
 def OpConst(no, name, arg):
@@ -74,11 +86,11 @@ def OpBinOp(no, name):
 
 
 def OpLoad(no, name):
-    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT)
+    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT, flags=FLAGS.LOAD)
 
 
 def OpStore(no, name):
-    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT)
+    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT, flags=FLAGS.STORE)
 
 
 def OpTable(no, name, arg1, arg2=ARG_TYPE.INVALID):
@@ -111,15 +123,15 @@ IF = OpBlk(0x04, 'if', ARG_TYPE.BLOCK_TYPE)
 ELSE = Opcode(0x05, 'else')
 END = Opcode(0x0b, 'end', flags=FLAGS.BLOCK_END)
 
-OpCfg(0x0c, 'br', ARG_TYPE.LABEL_IDX)
-OpCfg(0x0d, 'br_if', ARG_TYPE.LABEL_IDX)
-OpCfg(0x0e, 'br_table', ARG_TYPE.VEC_LABEL_IDX, ARG_TYPE.LABEL_IDX)
+BR = OpCfg(0x0c, 'br', ARG_TYPE.LABEL_IDX)
+BR_IF = OpCfg(0x0d, 'br_if', ARG_TYPE.LABEL_IDX)
+BR_TABLE = OpCfg(0x0e, 'br_table', ARG_TYPE.VEC_LABEL_IDX, ARG_TYPE.LABEL_IDX)
 RETURN = OpCfg(0x0f, 'return')
-OpCfg(0x10, 'call', ARG_TYPE.FUNC_IDX)
-OpCfg(0x11, 'call_indirect', ARG_TYPE.TYPE_IDX, ARG_TYPE.TABLE_IDX)
+CALL = OpCfg(0x10, 'call', ARG_TYPE.FUNC_IDX)
+CALL_INDIRECT = OpCfg(0x11, 'call_indirect', ARG_TYPE.TYPE_IDX, ARG_TYPE.TABLE_IDX)
 
 # parametric Instructions
-Opcode(0x1a, 'drop')
+DROP = Opcode(0x1a, 'drop')
 Opcode(0x1b, 'select')
 # op(0x1c, 'select_val')
 

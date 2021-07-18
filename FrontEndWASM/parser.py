@@ -96,7 +96,7 @@ class EXTERN(enum.IntEnum):
 
 @dataclasses.dataclass(frozen=True)
 class ResultType:
-    typed: typing.List[VAL_TYPE] = dataclasses.field(default_factory=list)
+    types: typing.List[VAL_TYPE] = dataclasses.field(default_factory=list)
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
@@ -489,7 +489,7 @@ class Function:
     impl: typing.Union[Code, Import]
 
 
-def ExtractFunctions(sections):
+def ExtractFunctions(sections) -> typing.List[Function]:
     out: typing.List[Function] = []
     import_sec = sections.get(SECTION_ID.IMPORT)
     type_sec = sections.get(SECTION_ID.TYPE)
@@ -521,7 +521,7 @@ def ExtractFunctions(sections):
 class Module:
     version: typing.List[int]
     sections: typing.Dict[SECTION_ID, typing.List[Section]]
-    functions: typing.List[typing.Union[Code, Import]]
+    functions: typing.List[Function]
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
