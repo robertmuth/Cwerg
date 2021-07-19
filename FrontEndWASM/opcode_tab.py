@@ -184,6 +184,8 @@ OpMem(0x0afc, 'memory.copy', ARG_TYPE.BYTE1_ZERO, ARG_TYPE.BYTE1_ZERO)
 OpMem(0x0bfc, 'memory.fill', ARG_TYPE.BYTE1_ZERO)
 
 # numeric instructions
+# Note, potential issue with floating point constants:
+# https://stackoverflow.com/questions/47961537/webassembly-f32-const-nan0x200000-means-0x7fa00000-or-0x7fe00000
 I32_CONST = OpConst(0x41, 'i32.const', ARG_TYPE.SINT)
 I64_CONST = OpConst(0x42, 'i64.const', ARG_TYPE.SINT)
 F32_CONST = OpConst(0x43, 'f32.const', ARG_TYPE.BYTE4)

@@ -14,9 +14,12 @@ import FrontEndWASM.parser as wasm
 from Base import ir
 from Base import opcode_tab as o
 from Base import serialize
+from Base import sanity
 
 ZERO = ir.Const(o.DK.U32, 0)
 ONE = ir.Const(o.DK.U32, 1)
+
+PAGE_SIZE = 64 * 1024
 
 WASI_FUNCTIONS = {
     "$wasi_unstable$fd_write",
@@ -35,6 +38,31 @@ def ExtractBytesFromConstIns(wasm_ins: wasm.Instruction, val_type: wasm.NUM_TYPE
         return v
     else:
         assert False, f"unexpected instruction {wasm_ins}"
+
+
+def GenerateMemcopyFun(unit: ir.Unit, addr_type: o.DK) -> ir.Fun:
+    fun = unit.AddFun(ir.Fun("$memcpy", o.FUN_KIND.NORMAL, [], [addr_type, addr_type, o.DK.U32]))
+    dst = fun.AddReg(ir.Reg("dst", addr_type))
+    src = fun.AddReg(ir.Reg("src", addr_type))
+    cnt = fun.AddReg(ir.Reg("cnt", o.DK.U32))
+    data = fun.AddReg(ir.Reg("data", o.DK.U8))
+
+    prolog = fun.AddBbl(ir.Bbl("prolog"))
+    loop = fun.AddBbl(ir.Bbl("loop"))
+    epilog = fun.AddBbl(ir.Bbl("epilog"))
+
+    prolog.AddIns(ir.Ins(o.POPARG, [dst]))
+    prolog.AddIns(ir.Ins(o.POPARG, [src]))
+    prolog.AddIns(ir.Ins(o.POPARG, [cnt]))
+    prolog.AddIns(ir.Ins(o.BRA, [epilog]))
+
+    loop.AddIns(ir.Ins(o.SUB, [cnt, cnt, ONE]))
+    loop.AddIns(ir.Ins(o.LD, [data, src, cnt]))
+    loop.AddIns(ir.Ins(o.ST, [dst, cnt, data]))
+
+    epilog.AddIns(ir.Ins(o.BLT, [ZERO, cnt, loop]))
+    epilog.AddIns(ir.Ins(o.RET, []))
+    return fun
 
 
 def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) -> ir.Fun:
@@ -69,7 +97,7 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
 
 
 def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit, global_mem_base: ir.Mem,
-                        addr_type: o.DK) -> ir.Fun:
+                        memcpy: ir.Fun, addr_type: o.DK) -> ir.Fun:
     fun = unit.AddFun(ir.Fun("init_data_fun", o.FUN_KIND.NORMAL, [], []))
     bbl = fun.AddBbl(ir.Bbl("start"))
     epilog = fun.AddBbl(ir.Bbl("end"))
@@ -100,7 +128,10 @@ def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit, global_mem_base: ir.Mem
             assert False, f"unsupported init instructions {ins}"
         bbl.AddIns(ir.Ins(o.LEA, [dst, mem_base, offset]))
         bbl.AddIns(ir.Ins(o.LEA_MEM, [src, init, ZERO]))
-        # insert memcpy call
+        bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.U32, len(data.init))]))
+        bbl.AddIns(ir.Ins(o.PUSHARG, [src]))
+        bbl.AddIns(ir.Ins(o.PUSHARG, [dst]))
+        bbl.AddIns(ir.Ins(o.BSR, [memcpy]))
     return fun
 
 
@@ -132,7 +163,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
     op_stack: typing.List[typing.Union[ir.Reg, ir.Const]] = []
-    block_stack = [(None, len(op_stack))]
+    block_stack = []
     for wasm_ins in wasm_fun.impl.expr.instructions:
         opc = wasm_ins.opcode
         if wasm_opc.FLAGS.CONST in opc.flags:
@@ -140,20 +171,18 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             val = wasm_ins.args[0]
             op_stack.append(ir.Const(OPC_TYPE_TO_CWERG_TYPE[opc.op_type], val))
         elif wasm_opc.FLAGS.STORE in opc.flags:
-            offset = op_stack.pop(-1)
             val = op_stack.pop(-1)
+            offset = op_stack.pop(-1)
             bbl.AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
         elif opc is wasm_opc.DROP:
             op_stack.pop(-1)
         elif opc is wasm_opc.CALL:
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
-            args = op_stack[-len(callee.input_types) + 1:]
-            del op_stack[-len(callee.input_types) + 1:]
-            for a in args:
-                bbl.AddIns(ir.Ins(o.PUSHARG, [a]))
-            if callee.kind is o.FUN_KIND.EXTERN:
-                bbl.AddIns(ir.Ins(o.PUSHARG, [global_mem_base]))
+            for _ in range(len(callee.input_types) - 1):
+                bbl.AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
+            if callee.kind is o.FUN_KIND.BUILTIN:
+                bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
             bbl.AddIns(ir.Ins(o.BSR, [callee]))
             # TODO check order
             for dk in reversed(callee.output_types):
@@ -168,17 +197,38 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             assert False, f"unsupported opcode {opc.name}"
     if op_stack:
         assert False
+    assert not block_stack
     bbl.AddIns(ir.Ins(o.RET, []))
     return fun
 
 
 def GenerateStartup(unit: ir.Unit, global_mem_base, main: ir.Fun, init_global: ir.Fun,
-                    init_data: ir.Fun) -> ir.Fun:
+                    init_data: ir.Fun, initial_heap_size: int, addr_type: o.DK) -> ir.Fun:
     fun = unit.AddFun(ir.Fun("_start", o.FUN_KIND.NORMAL, [], []))
+    addr = fun.AddReg(ir.Reg("addr", addr_type))
+
+    xbrk = unit.AddFun(ir.Fun("xbrk", o.FUN_KIND.EXTERN, [addr_type], [addr_type]))
+    exit = unit.AddFun(ir.Fun("exit", o.FUN_KIND.EXTERN, [], [o.DK.S32]))
+
     bbl = fun.AddBbl(ir.Bbl("start"))
+    if initial_heap_size:
+        bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(addr_type, 0)]))
+        bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
+        bbl.AddIns(ir.Ins(o.POPARG, [addr]))
+        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ZERO, addr]))
+        bbl.AddIns(ir.Ins(o.LEA, [addr, addr, ir.Const(o.DK.S32, initial_heap_size)]))
+        bbl.AddIns(ir.Ins(o.PUSHARG, [addr]))
+        bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
+        bbl.AddIns(ir.Ins(o.POPARG, [addr]))
+        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ir.Const(o.DK.S32, addr_type.bitwidth()
+                                                               // 8), addr]))
+
     bbl.AddIns(ir.Ins(o.BSR, [init_global]))
     bbl.AddIns(ir.Ins(o.BSR, [init_data]))
     bbl.AddIns(ir.Ins(o.BSR, [main]))
+    bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, 0)]))
+    bbl.AddIns(ir.Ins(o.BSR, [exit]))
+    # unreachable
     bbl.AddIns(ir.Ins(o.RET, []))
     return fun
 
@@ -187,25 +237,35 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     bit_width = addr_type.bitwidth()
     unit = ir.Unit("unit")
     global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
-                                         ir.Const(o.DK.U32, bit_width // 8), o.MEM_KIND.RW))
+                                         ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
+    memcpy = GenerateMemcopyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
-    init_data = GenerateInitDataFun(mod, unit, global_mem_base, addr_type)
+    init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
     main = None
     for wasm_fun in mod.functions:
         if isinstance(wasm_fun.impl, wasm.Import):
             assert wasm_fun.name in WASI_FUNCTIONS, f"unimplemented external function: {wasm_fun.name}"
             arguments = [addr_type] + TranslateTypeList(wasm_fun.func_type.args)
             returns = TranslateTypeList(wasm_fun.func_type.rets)
-            wasm_fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
+            wasm_fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.BUILTIN, returns, arguments))
         else:
             assert isinstance(wasm_fun.impl, wasm.Code)
             if wasm_fun.name == "_start":
                 wasm_fun = wasm.Function("$main", wasm_fun.func_type, wasm_fun.impl)
             fun = GenerateFun(unit, mod, wasm_fun, global_mem_base, addr_type)
+            sanity.FunCheck(fun, unit)
             if wasm_fun.name == "$main":
                 main = fun
 
-    GenerateStartup(unit, global_mem_base, main, init_global, init_data)
+    initial_heap_size = 0
+    sec_memory = mod.sections.get(wasm.SECTION_ID.MEMORY)
+    if sec_memory:
+        assert len(sec_memory.items) == 1
+        heap: wasm.Mem = sec_memory.items[0]
+        initial_heap_size = heap.mem_type.limits.min
+    assert main, f"missing main function"
+    GenerateStartup(unit, global_mem_base, main, init_global, init_data,
+                    initial_heap_size * PAGE_SIZE, addr_type)
 
     return unit
 
