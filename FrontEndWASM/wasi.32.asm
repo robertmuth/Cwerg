@@ -1,7 +1,7 @@
 # based on
 # https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md
 
-.fun fd_write NORMAL [S32] = [A32 S32 S32 S32 S32]
+.fun $wasi_unstable$fd_write NORMAL [S32] = [A32 S32 S32 S32 S32]
 
   .bbl %start
     poparg mem_base:A32
@@ -17,7 +17,8 @@
     bra check
 
   .bbl loop
-    ld buf:A32 array 0:U32
+    ld buf_offset:S32 array 0:U32
+    lea buf:A32 mem_base buf_offset
     ld len:U32 array 4:U32
     lea array array 8:U32
     sub array_size array_size 1
@@ -29,7 +30,7 @@
     blt errno 0 epilog
     add count count errno
   .bbl check
-    blt 0:U32 array_size loop
+    blt 0:S32 array_size loop
   .bbl epilog
     st result 0:U32 count
     pusharg errno

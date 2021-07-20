@@ -181,7 +181,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             callee = unit.GetFun(wasm_callee.name)
             for _ in range(len(callee.input_types) - 1):
                 bbl.AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
-            if callee.kind is o.FUN_KIND.BUILTIN:
+            if callee.kind is o.FUN_KIND.EXTERN:
                 bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
             bbl.AddIns(ir.Ins(o.BSR, [callee]))
             # TODO check order
@@ -238,6 +238,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     unit = ir.Unit("unit")
     global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
                                          ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
+    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
     memcpy = GenerateMemcopyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
     init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
@@ -247,7 +248,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
             assert wasm_fun.name in WASI_FUNCTIONS, f"unimplemented external function: {wasm_fun.name}"
             arguments = [addr_type] + TranslateTypeList(wasm_fun.func_type.args)
             returns = TranslateTypeList(wasm_fun.func_type.rets)
-            wasm_fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.BUILTIN, returns, arguments))
+            wasm_fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
         else:
             assert isinstance(wasm_fun.impl, wasm.Code)
             if wasm_fun.name == "_start":
