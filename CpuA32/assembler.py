@@ -239,7 +239,7 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
 
     for sym in unit.symbols:
         if sym.section:
-            assert sym.section.sh_addr > 0
+            assert sym.section.sh_addr > 0, f"for sym {sym.name}: sec {sym.section.name} is not mapped"
             assert sym.st_value != elf.TO_BE_FILLED_IN_LATER
             sym.st_value += sym.section.sh_addr
             sym.st_shndx = sym.section.index
