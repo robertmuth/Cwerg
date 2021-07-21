@@ -274,8 +274,12 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
 if __name__ == '__main__':
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
-    logging.info(f"Reading {sys.argv[1]}")
-    with open(sys.argv[1], "rb") as fin:
-        unit = Translate(wasm.Module.read(fin), o.DK.A32)
+    logging.basicConfig(level=logging.INFO)
+    if len(sys.argv) != 3:
+        print(f"not enough arguments. Need:  [32|64]  <wasm-file>", file=sys.stderr)
+        sys.exit(1)
+    assert sys.argv[1] in {"32", "64"}
+    logging.debug(f"Reading {sys.argv[2]}")
+    with open(sys.argv[2], "rb") as fin:
+        unit = Translate(wasm.Module.read(fin), o.DK.A64 if sys.argv[1] == "64" else o.DK.A32)
         print("\n".join(serialize.UnitRenderToASM(unit)))

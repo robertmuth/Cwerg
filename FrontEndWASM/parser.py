@@ -539,7 +539,7 @@ class Module:
             if not id_byte:
                 break
             sec_id = SECTION_ID(ord(id_byte))
-            logging.info(f"Reading section of type {sec_id.name}")
+            logging.debug(f"Reading section of type {sec_id.name}")
             io_data = io.BytesIO(read_bytes(r))
             data = _sec_id_to_reader[sec_id](io_data)
             sections[sec_id] = Section(sec_id, data)
@@ -553,7 +553,7 @@ class Module:
 if __name__ == '__main__':
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logging.info(f"Reading {sys.argv[1]}")
     with open(sys.argv[1], "rb") as fin:
         mod = Module.read(fin)
