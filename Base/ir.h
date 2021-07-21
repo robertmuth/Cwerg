@@ -172,7 +172,7 @@ struct MemDataList {
 };
 
 #define MemDataInsertBefore ListInsertBefore<MemDataList>
-#define MemDataAppend ListAppend<MemDataList>
+#define MemDataAdd ListAppend<MemDataList>
 #define MemDataInsertAfter ListInsertAfter<MemDataList>
 #define MemDataPrepend ListPrepend<MemDataList>
 #define MemDataUnlink ListUnlink<MemDataList>

@@ -331,8 +331,7 @@ class Fun:
     """Function"""
 
     def __init__(self, name: str, kind=o.FUN_KIND.INVALID,
-                 output_types=None, input_types=None,
-                 forward_declared=False):
+                 output_types=None, input_types=None):
         self.name = name
         self.kind: o.FUN_KIND = o.FUN_KIND.INVALID
         self.flags = FUN_FLAG(0)
@@ -361,15 +360,12 @@ class Fun:
         #        we usually use an approximation, i.e. caller-save regs
         self.cpu_live_clobber: List[CpuReg] = []
 
-        if forward_declared:
-            self.forward_declared = True
-        else:
+        if kind != o.FUN_KIND.INVALID:   # not  forward_declared
             self.Init(kind, output_types, input_types)
 
     def Init(self, kind: o.FUN_KIND, output_types, input_types):
         assert self.kind is o.FUN_KIND.INVALID
         assert kind is not o.FUN_KIND.INVALID
-        self.forward_declared = False
         self.kind = kind
         self.input_types = input_types
         self.output_types = output_types
@@ -482,8 +478,7 @@ class Fun:
         return f"[FUN {self.name} {self.render_signature()}  BBLs: {bbls}]"
 
     def __repr__(self):
-        return "FUN[%s] %s" % (
-            self.name, "FORWARD" if self.forward_declared else "")
+        return f"FUN[{self.name}] {self.kind.name}"
 
 
 class Mem:
@@ -569,7 +564,7 @@ class Unit:
         return fun
 
     def InitForwardDeclaredFun(self, fun, kind, outputs, inputs):
-        assert fun.forward_declared
+        assert fun.kind == o.FUN_KIND.INVALID
         fun.Init(kind, outputs, inputs)
         self.funs.append(fun)
 
@@ -579,7 +574,7 @@ class Unit:
     def GetFunOrAddForwardDeclaration(self, name):
         fun = self.fun_syms.get(name)
         if fun is None:
-            fun = Fun(name, forward_declared=True)
+            fun = Fun(name)   # forward declared
             self.fun_syms[name] = fun
             # note we do not add it to self.funs
         return fun

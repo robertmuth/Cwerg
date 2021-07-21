@@ -444,9 +444,8 @@ Mem UnitFindOrAddConstMem(Unit unit, Const num) {
   Mem mem = UnitMemFind(unit, name);
   if (mem.isnull()) {
     mem = MemNew(MEM_KIND::RO, data.size(), name);
-    MemDataAppend(mem, DataNew(StrNew(data), data.size(), 1));
-    UnitMemAddBst(unit, mem);
-    UnitMemAddList(unit, mem);
+    MemDataAdd(mem, DataNew(StrNew(data), data.size(), 1));
+    UnitMemAdd(unit, mem);
   }
   return mem;
 }

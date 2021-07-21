@@ -140,8 +140,19 @@ def DirFun(unit: ir.Unit, operands: List):
     if fun is None:
         fun = ir.Fun(name, kind, output_types, input_types)
         unit.AddFun(fun)
-    elif fun.forward_declared:
+    elif fun.kind is o.FUN_KIND.INVALID:    # forward_declared
         unit.InitForwardDeclaredFun(fun, kind, output_types, input_types)
+    elif fun.kind is o.FUN_KIND.EXTERN or kind is o.FUN_KIND.EXTERN:
+        assert output_types == fun.output_types
+        assert input_types == fun.input_types
+        if kind is o.FUN_KIND.EXTERN:
+            # we already have a proper function
+            return
+        # definition of a formerly extern functions
+        fun.kind = kind
+        # move fun to make it current
+        unit.funs.remove(fun)
+        unit.funs.append(fun)
     else:
         raise ParseError(f"duplicate Fun {name}")
 
@@ -187,48 +198,6 @@ def DirAddrFun(unit: ir.Unit, operands: List):
 
 def DirAddrMem(unit: ir.Unit, operands: List):
     unit.AddData(ir.DataAddrMem(*operands))
-
-
-# TODO: remove ugly globals
-# gCurrentStructName = ""
-# gCurrentStructOffset = 0
-# gCurrentStructAlignment = 0
-#
-#
-# def align(x, alignment):
-#     return (x + alignment - 1) // alignment * alignment
-#
-#
-# def DirStruct(_mod: ir.Unit, operands: List):
-#     global gCurrentStructName, gCurrentStructOffset, gCurrentStructAlignment
-#     assert not gCurrentStructName
-#     gCurrentStructName = operands[0]
-#     gCurrentStructOffset = 0
-#     gCurrentStructAlignment = 0
-#
-#
-# def DirEndStruct(unit: ir.Unit, _operands: List):
-#     global gCurrentStructName, gCurrentStructOffset, gCurrentStructAlignment
-#     assert gCurrentStructName
-#     gCurrentStructOffset = align(gCurrentStructOffset, gCurrentStructAlignment)
-#     unit.AddNum(ir.Num(f"{gCurrentStructName}.sizeof", o.NumKind.POS,
-#                        gCurrentStructOffset))
-#     unit.AddNum(ir.Num(f"{gCurrentStructName}.alignment", o.NumKind.POS,
-#                        gCurrentStructAlignment))
-#     gCurrentStructName = ""
-#
-#
-# def DirField(mod: ir.Unit, operands: List):
-#     global gCurrentStructName, gCurrentStructOffset, gCurrentStructAlignment
-#     assert gCurrentStructName
-#     alignment = operands[1].value
-#     size = operands[2].value
-#     gCurrentStructOffset = align(gCurrentStructOffset, alignment)
-#     mod.AddNum(ir.Num(f"{gCurrentStructName}.{operands[0]}",
-#                       o.NumKind.POS, gCurrentStructOffset))
-#     gCurrentStructOffset += size
-#     if alignment > gCurrentStructAlignment:
-#         gCurrentStructAlignment = alignment
 
 
 def DirJtb(unit: ir.Unit, operands: List):
@@ -481,7 +450,7 @@ def UnitParseFromAsm(fin, verbose=False, cpu_regs: Dict[str, ir.CpuReg] = {}) ->
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
 
     for fun in out.funs:
-        assert not fun.forward_declared
+        assert fun.kind != o.FUN_KIND.INVALID
         for bbl in fun.bbls:
             assert not bbl.forward_declared
     return out

@@ -44,9 +44,23 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
   if (fun.isnull()) {
     fun = FunNew(name, kind);
     UnitFunAddBst(unit, fun);
-  } else {
+  } else if (FunKind(fun) == FUN_KIND::INVALID) {
     ASSERT(UnitFunList::Prev(fun).isnull(), "must be unlinked");
     FunKind(fun) = kind;
+  } else if (FunKind(fun) == FUN_KIND::EXTERN || kind == FUN_KIND::EXTERN) {
+    unsigned  t = 3;
+    for (unsigned i = 0; i <  FunNumOutputTypes(fun); ++i, ++t) {
+      ASSERT(FunOutputTypes(fun)[i] == DKFromString(token[t]), "");
+    }
+    t += 2;  // skip brackets
+    for (unsigned i = 0; i <  FunNumInputTypes(fun); ++i, ++t) {
+      ASSERT(FunInputTypes(fun)[i] == DKFromString(token[t]), "");
+    }
+    if (kind == FUN_KIND::EXTERN) return true;  // ignore extern
+    // fun.kind  is extern and kind is not. Make sure fun is current by
+    // moving it to the end of the list
+    UnitFunUnlink(fun);
+    UnitFunAddList(unit, fun);
   }
 
   // handle input/output sig
@@ -230,7 +244,7 @@ bool DataHandler(const std::vector<std::string_view>& token, Unit unit) {
 
   Str target = StrNew({buffer, len});  // note this is not really a str
   Data data = DataNew(target, len, repeat.value());
-  MemDataAppend(mem, data);
+  MemDataAdd(mem, data);
   return true;
 }
 
@@ -246,7 +260,7 @@ bool AddrMemHandler(const std::vector<std::string_view>& token, Unit unit) {
   const auto extra = ParseInt<int64_t>(token[3]);
   if (!size || target.isnull() || !extra) return false;
   Data data = DataNew(target, size.value(), extra.value());
-  MemDataAppend(mem, data);
+  MemDataAdd(mem, data);
   return true;
 }
 
@@ -262,7 +276,7 @@ bool AddrFunHandler(const std::vector<std::string_view>& token, Unit unit) {
   const Fun target = UnitFunFind(unit, name);
   if (!size || target.isnull()) return false;
   Data data = DataNew(target, size.value(), 0);
-  MemDataAppend(mem, data);
+  MemDataAdd(mem, data);
   return true;
 }
 
