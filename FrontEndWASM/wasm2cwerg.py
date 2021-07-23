@@ -28,7 +28,7 @@ WASI_FUNCTIONS = {
     "$wasi$fd_close",
     "$wasi$proc_exit",
     # pseudo (cwerg specific)
-    "$wasi$print_s32_line",
+    "$wasi$print_i32_ln",
 }
 
 
@@ -185,6 +185,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.CALL:
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
+            assert callee
             for _ in range(len(callee.input_types) - 1):
                 bbl.AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
             if callee.kind is o.FUN_KIND.EXTERN:
@@ -229,8 +230,10 @@ def GenerateStartup(unit: ir.Unit, global_mem_base, main: ir.Fun, init_global: i
         bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ir.Const(o.DK.S32, addr_type.bitwidth()
                                                                // 8), addr]))
 
-    bbl.AddIns(ir.Ins(o.BSR, [init_global]))
-    bbl.AddIns(ir.Ins(o.BSR, [init_data]))
+    if init_global:
+        bbl.AddIns(ir.Ins(o.BSR, [init_global]))
+    if init_data:
+        bbl.AddIns(ir.Ins(o.BSR, [init_data]))
     bbl.AddIns(ir.Ins(o.BSR, [main]))
     bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, 0)]))
     bbl.AddIns(ir.Ins(o.BSR, [exit]))

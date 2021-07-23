@@ -176,7 +176,7 @@
 # PSEUDO WASI
 ######################################################################
 
-.fun $wasi$print_s32_line NORMAL [] = [A32 S32]
+.fun $wasi$print_i32_ln NORMAL [] = [A32 S32]
 .bbl %start
   poparg dummy:A32
   poparg n:S32
