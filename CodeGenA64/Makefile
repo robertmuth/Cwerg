@@ -146,10 +146,6 @@ $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	cat $(STD_LIB) ../TestData/reg_torture.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB) TestData/linkerdef.a64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB) TestData/linkerdef.a64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
-	diff $@_c.out $@.out
-	@echo
 	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out

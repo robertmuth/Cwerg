@@ -28,6 +28,7 @@ tests:
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
+	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
 
 # includes version dumping and frontend tests
 tests_github:
@@ -48,6 +49,7 @@ tests_github:
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd FrontEndC && $(MAKE) -s tests && $(MAKE) -s clean
+	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
 
 integration_tests:
