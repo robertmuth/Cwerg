@@ -14,9 +14,12 @@ https://github.com/mbasso/awesome-wasm
 
 https://github.com/WebAssembly/spec
 
-https://github.com/bytecodealliance/wasmtime
 
-* https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#modules
+Runtime (WASI)
+
+* https://github.com/bytecodealliance/wasmtime
+* wasi test suite https://github.com/caspervonb/wasi-test-suite
+* wasi API https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#modules
 
 https://github.com/WebAssembly/wabt  
 

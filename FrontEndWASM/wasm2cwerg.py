@@ -22,7 +22,13 @@ ONE = ir.Const(o.DK.U32, 1)
 PAGE_SIZE = 64 * 1024
 
 WASI_FUNCTIONS = {
-    "$wasi_unstable$fd_write",
+    "$wasi$fd_write",
+    "$wasi$fd_read",
+    "$wasi$fd_seek",
+    "$wasi$fd_close",
+    "$wasi$proc_exit",
+    # pseudo (cwerg specific)
+    "$wasi$print_s32_line",
 }
 
 
