@@ -31,13 +31,28 @@ class ARG_TYPE(enum.IntEnum):
 
 @enum.unique
 class FLAGS(enum.IntFlag):
+
+    SIGNED = 1
+    UNSIGNED = 2
+    UNARY = 4
+
+
+@enum.unique
+class OPC_KIND(enum.Enum):
     BLOCK_START = 1
     BLOCK_END = 2
-    CONST = 4
-    STORE = 8
-    LOAD = 16
-    SIGNED = 32
-    UNSIGNED = 64
+    CONST = 3
+    STORE = 4
+    LOAD = 5
+    CMP = 6
+    UNARY = 7
+    ALU = 8
+    CFG = 9
+    VAR = 10
+    TABLE = 11
+    MEM = 12
+    CONV = 13
+    MISC = 14
 
 
 ###########################################################
@@ -54,9 +69,12 @@ def op_type(name):
 class Opcode:
     Table: typing.Dict[int, "Opcode"] = {}
 
-    def __init__(self, no, name, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID, flags=FLAGS(0)):
+    def __init__(self, no, name, kind, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID, flags=FLAGS(0)):
+        # assert flags != 0, f"{name}: no flags set"
         self.no = no
         self.name = name
+        self.basename = name.split(".")[-1]
+        self.kind = kind
         self.flags = flags
         self.op_type = op_type(name)
         self.args = [a for a in (arg1, arg2, arg3) if a != ARG_TYPE.INVALID]
@@ -64,64 +82,59 @@ class Opcode:
         Opcode.Table[no] = self
 
 
-
 def OpConst(no, name, arg):
-    return Opcode(no, name, arg, flags=FLAGS.CONST)
+    return Opcode(no, name, OPC_KIND.CONST, arg)
 
 
 def OpVar(no, name, arg):
-    return Opcode(no, name, arg)
+    return Opcode(no, name, OPC_KIND.VAR, arg)
 
 
-def OpCmp(no, name):
-    return Opcode(no, name)
+def OpCmp(no, name, flags=FLAGS(0)):
+    return Opcode(no, name, OPC_KIND.CMP, flags=flags)
 
 
-def OpUnaryOp(no, name):
-    return Opcode(no, name)
+def OpAlu(no, name, flags=FLAGS(0)):
+    return Opcode(no, name, OPC_KIND.ALU, flags=flags)
 
 
-def OpBinOp(no, name):
-    return Opcode(no, name)
-
-
-def OpLoad(no, name):
-    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT, flags=FLAGS.LOAD)
+def OpLoad(no, name, flags=FLAGS(0)):
+    return Opcode(no, name, OPC_KIND.LOAD, ARG_TYPE.UINT, ARG_TYPE.UINT, flags=flags)
 
 
 def OpStore(no, name):
-    return Opcode(no, name, ARG_TYPE.UINT, ARG_TYPE.UINT, flags=FLAGS.STORE)
+    return Opcode(no, name, OPC_KIND.STORE, ARG_TYPE.UINT, ARG_TYPE.UINT)
 
 
 def OpTable(no, name, arg1, arg2=ARG_TYPE.INVALID):
-    return Opcode(no, name, arg1, arg2)
+    return Opcode(no, name, OPC_KIND.TABLE, arg1, arg2)
 
 
 def OpMem(no, name, arg1, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID):
-    return Opcode(no, name, arg1, arg2, arg3)
+    return Opcode(no, name, OPC_KIND.MEM, arg1, arg2, arg3)
 
 
 def OpCfg(no, name, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID):
-    return Opcode(no, name, arg1, arg2)
+    return Opcode(no, name, OPC_KIND.CFG, arg1, arg2)
 
 
 def OpConv(no, name):
-    return Opcode(no, name)
+    return Opcode(no, name, OPC_KIND.CONV)
 
 
 def OpBlk(no, name, arg1=ARG_TYPE.INVALID):
-    return Opcode(no, name, arg1, flags=FLAGS.BLOCK_START)
+    return Opcode(no, name, OPC_KIND.BLOCK_START, arg1)
 
 
 # control Instructions
-Opcode(0x00, 'unreachable')
-Opcode(0x01, 'nop')
+OpCfg(0x00, 'unreachable')
+OpCfg(0x01, 'nop')
 
 BLOCK = OpBlk(0x02, 'block', ARG_TYPE.BLOCK_TYPE)
 LOOP = OpBlk(0x03, 'loop', ARG_TYPE.BLOCK_TYPE)
 IF = OpBlk(0x04, 'if', ARG_TYPE.BLOCK_TYPE)
-ELSE = Opcode(0x05, 'else')
-END = Opcode(0x0b, 'end', flags=FLAGS.BLOCK_END)
+ELSE = OpCfg(0x05, 'else')
+END = Opcode(0x0b, 'end', OPC_KIND.BLOCK_END)
 
 BR = OpCfg(0x0c, 'br', ARG_TYPE.LABEL_IDX)
 BR_IF = OpCfg(0x0d, 'br_if', ARG_TYPE.LABEL_IDX)
@@ -131,16 +144,16 @@ CALL = OpCfg(0x10, 'call', ARG_TYPE.FUNC_IDX)
 CALL_INDIRECT = OpCfg(0x11, 'call_indirect', ARG_TYPE.TYPE_IDX, ARG_TYPE.TABLE_IDX)
 
 # parametric Instructions
-DROP = Opcode(0x1a, 'drop')
-Opcode(0x1b, 'select')
+DROP = Opcode(0x1a, 'drop', OPC_KIND.MISC)
+Opcode(0x1b, 'select', OPC_KIND.MISC)
 # op(0x1c, 'select_val')
 
 
-OpVar(0x20, 'local.get', ARG_TYPE.LOCAL_IDX)
-OpVar(0x21, 'local.set', ARG_TYPE.LOCAL_IDX)
-OpVar(0x22, 'local.tee', ARG_TYPE.LOCAL_IDX)
+LOCAL_GET = OpVar(0x20, 'local.get', ARG_TYPE.LOCAL_IDX)
+LOCAL_SET = OpVar(0x21, 'local.set', ARG_TYPE.LOCAL_IDX)
+LOCAL_TEE = OpVar(0x22, 'local.tee', ARG_TYPE.LOCAL_IDX)
 GLOBAL_GET = OpVar(0x23, 'global.get', ARG_TYPE.GLOBAL_IDX)
-OpVar(0x24, 'global.set', ARG_TYPE.GLOBAL_IDX)
+GLOBAL_SET = OpVar(0x24, 'global.set', ARG_TYPE.GLOBAL_IDX)
 
 OpTable(0x25, "table.get", ARG_TYPE.TABLE_IDX)
 OpTable(0x26, "table.set", ARG_TYPE.TABLE_IDX)
@@ -156,15 +169,15 @@ OpLoad(0x29, 'i64.load')
 OpLoad(0x2a, 'f32.load')
 OpLoad(0x2b, 'f64.load')
 OpLoad(0x2c, 'i32.load8_s')
-OpLoad(0x2d, 'i32.load8_u')
+OpLoad(0x2d, 'i32.load8_u', FLAGS.UNSIGNED)
 OpLoad(0x2e, 'i32.load16_s')
-OpLoad(0x2f, 'i32.load16_u')
+OpLoad(0x2f, 'i32.load16_u', FLAGS.UNSIGNED)
 OpLoad(0x30, 'i64.load8_s')
-OpLoad(0x31, 'i64.load8_u')
+OpLoad(0x31, 'i64.load8_u', FLAGS.UNSIGNED)
 OpLoad(0x32, 'i64.load16_s')
 OpLoad(0x33, 'i64.load16_u')
 OpLoad(0x34, 'i64.load32_s')
-OpLoad(0x35, 'i64.load32_u')
+OpLoad(0x35, 'i64.load32_u', FLAGS.UNSIGNED)
 
 OpStore(0x36, 'i32.store')
 OpStore(0x37, 'i64.store')
@@ -191,26 +204,27 @@ I64_CONST = OpConst(0x42, 'i64.const', ARG_TYPE.SINT)
 F32_CONST = OpConst(0x43, 'f32.const', ARG_TYPE.BYTE4)
 F64_CONST = OpConst(0x44, 'f64.const', ARG_TYPE.BYTE8)
 
-OpCmp(0x45, 'i32.eqz')
+OpCmp(0x45, 'i32.eqz', FLAGS.UNARY)
+OpCmp(0x50, 'i64.eqz', FLAGS.UNARY)
+
 OpCmp(0x46, 'i32.eq')
 OpCmp(0x47, 'i32.ne')
 OpCmp(0x48, 'i32.lt_s')
-OpCmp(0x49, 'i32.lt_u')
+OpCmp(0x49, 'i32.lt_u', FLAGS.UNSIGNED)
 OpCmp(0x4a, 'i32.gt_s')
-OpCmp(0x4b, 'i32.gt_u')
+OpCmp(0x4b, 'i32.gt_u', FLAGS.UNSIGNED)
 OpCmp(0x4c, 'i32.le_s')
-OpCmp(0x4d, 'i32.le_u')
+OpCmp(0x4d, 'i32.le_u', FLAGS.UNSIGNED)
 OpCmp(0x4e, 'i32.ge_s')
 OpCmp(0x4f, 'i32.ge_u')
-OpCmp(0x50, 'i64.eqz')
 OpCmp(0x51, 'i64.eq')
 OpCmp(0x52, 'i64.ne')
 OpCmp(0x53, 'i64.lt_s')
-OpCmp(0x54, 'i64.lt_u')
+OpCmp(0x54, 'i64.lt_u', FLAGS.UNSIGNED)
 OpCmp(0x55, 'i64.gt_s')
-OpCmp(0x56, 'i64.gt_u')
+OpCmp(0x56, 'i64.gt_u', FLAGS.UNSIGNED)
 OpCmp(0x57, 'i64.le_s')
-OpCmp(0x58, 'i64.le_u')
+OpCmp(0x58, 'i64.le_u', FLAGS.UNSIGNED)
 OpCmp(0x59, 'i64.ge_s')
 OpCmp(0x5a, 'i64.ge_u')
 OpCmp(0x5b, 'f32.eq')
@@ -226,78 +240,78 @@ OpCmp(0x64, 'f64.gt')
 OpCmp(0x65, 'f64.le')
 OpCmp(0x66, 'f64.ge')
 
-OpUnaryOp(0x67, 'i32.clz')
-OpUnaryOp(0x68, 'i32.ctz')
-OpUnaryOp(0x69, 'i32.popcnt')
+OpAlu(0x67, 'i32.clz', FLAGS.UNARY)
+OpAlu(0x68, 'i32.ctz', FLAGS.UNARY)
+OpAlu(0x69, 'i32.popcnt', FLAGS.UNARY)
 
-OpBinOp(0x6a, 'i32.add')
-OpBinOp(0x6b, 'i32.sub')
-OpBinOp(0x6c, 'i32.mul')
-OpBinOp(0x6d, 'i32.div_s')
-OpBinOp(0x6e, 'i32.div_u')
-OpBinOp(0x6f, 'i32.rem_s')
-OpBinOp(0x70, 'i32.rem_u')
-OpBinOp(0x71, 'i32.and')
-OpBinOp(0x72, 'i32.or')
-OpBinOp(0x73, 'i32.xor')
-OpBinOp(0x74, 'i32.shl')
-OpBinOp(0x75, 'i32.shr_s')
-OpBinOp(0x76, 'i32.shr_u')
-OpBinOp(0x77, 'i32.rotl')
-OpBinOp(0x78, 'i32.rotr')
+OpAlu(0x6a, 'i32.add')
+OpAlu(0x6b, 'i32.sub')
+OpAlu(0x6c, 'i32.mul')
+OpAlu(0x6d, 'i32.div_s')
+OpAlu(0x6e, 'i32.div_u', FLAGS.UNSIGNED)
+OpAlu(0x6f, 'i32.rem_s')
+OpAlu(0x70, 'i32.rem_u', FLAGS.UNSIGNED)
+OpAlu(0x71, 'i32.and')
+OpAlu(0x72, 'i32.or')
+OpAlu(0x73, 'i32.xor')
+OpAlu(0x74, 'i32.shl')
+OpAlu(0x75, 'i32.shr_s')
+OpAlu(0x76, 'i32.shr_u', FLAGS.UNSIGNED)
+OpAlu(0x77, 'i32.rotl')
+OpAlu(0x78, 'i32.rotr')
 
-OpUnaryOp(0x79, 'i64.clz')
-OpUnaryOp(0x7a, 'i64.ctz')
-OpUnaryOp(0x7b, 'i64.popcnt')
+OpAlu(0x79, 'i64.clz')
+OpAlu(0x7a, 'i64.ctz')
+OpAlu(0x7b, 'i64.popcnt')
 
-OpBinOp(0x7c, 'i64.add')
-OpBinOp(0x7d, 'i64.sub')
-OpBinOp(0x7e, 'i64.mul')
-OpBinOp(0x7f, 'i64.div_s')
-OpBinOp(0x80, 'i64.div_u')
-OpBinOp(0x81, 'i64.rem_s')
-OpBinOp(0x82, 'i64.rem_u')
-OpBinOp(0x83, 'i64.and')
-OpBinOp(0x84, 'i64.or')
-OpBinOp(0x85, 'i64.xor')
-OpBinOp(0x86, 'i64.shl')
-OpBinOp(0x87, 'i64.shr_s')
-OpBinOp(0x88, 'i64.shr_u')
-OpBinOp(0x89, 'i64.rotl')
-OpBinOp(0x8a, 'i64.rotr')
+OpAlu(0x7c, 'i64.add')
+OpAlu(0x7d, 'i64.sub')
+OpAlu(0x7e, 'i64.mul')
+OpAlu(0x7f, 'i64.div_s')
+OpAlu(0x80, 'i64.div_u', FLAGS.UNSIGNED)
+OpAlu(0x81, 'i64.rem_s')
+OpAlu(0x82, 'i64.rem_u', FLAGS.UNSIGNED)
+OpAlu(0x83, 'i64.and')
+OpAlu(0x84, 'i64.or')
+OpAlu(0x85, 'i64.xor')
+OpAlu(0x86, 'i64.shl')
+OpAlu(0x87, 'i64.shr_s')
+OpAlu(0x88, 'i64.shr_u', FLAGS.UNSIGNED)
+OpAlu(0x89, 'i64.rotl')
+OpAlu(0x8a, 'i64.rotr')
 
-OpUnaryOp(0x8b, 'f32.abs')
-OpUnaryOp(0x8c, 'f32.neg')
-OpUnaryOp(0x8d, 'f32.ceil')
-OpUnaryOp(0x8e, 'f32.floor')
-OpUnaryOp(0x8f, 'f32.trunc')
-OpUnaryOp(0x90, 'f32.nearest')
-OpUnaryOp(0x91, 'f32.sqrt')
+OpAlu(0x8b, 'f32.abs', FLAGS.UNARY)
+OpAlu(0x8c, 'f32.neg', FLAGS.UNARY)
+OpAlu(0x8d, 'f32.ceil', FLAGS.UNARY)
+OpAlu(0x8e, 'f32.floor', FLAGS.UNARY)
+OpAlu(0x8f, 'f32.trunc', FLAGS.UNARY)
+OpAlu(0x90, 'f32.nearest', FLAGS.UNARY)
+OpAlu(0x91, 'f32.sqrt', FLAGS.UNARY)
 
-OpBinOp(0x92, 'f32.add')
-OpBinOp(0x93, 'f32.sub')
-OpBinOp(0x94, 'f32.mul')
-OpBinOp(0x95, 'f32.div')
-OpBinOp(0x96, 'f32.min')
-OpBinOp(0x97, 'f32.max')
+OpAlu(0x92, 'f32.add')
+OpAlu(0x93, 'f32.sub')
+OpAlu(0x94, 'f32.mul')
+OpAlu(0x95, 'f32.div')
+OpAlu(0x96, 'f32.min')
+OpAlu(0x97, 'f32.max')
 
-OpUnaryOp(0x98, 'f32.copysign')
-OpUnaryOp(0x99, 'f64.abs')
-OpUnaryOp(0x9a, 'f64.neg')
-OpUnaryOp(0x9b, 'f64.ceil')
-OpUnaryOp(0x9c, 'f64.floor')
-OpUnaryOp(0x9d, 'f64.trunc')
-OpUnaryOp(0x9e, 'f64.nearest')
-OpUnaryOp(0x9f, 'f64.sqrt')
+OpAlu(0x98, 'f32.copysign', FLAGS.UNARY)
+OpAlu(0x99, 'f64.abs', FLAGS.UNARY)
+OpAlu(0x9a, 'f64.neg', FLAGS.UNARY)
+OpAlu(0x9b, 'f64.ceil', FLAGS.UNARY)
+OpAlu(0x9c, 'f64.floor', FLAGS.UNARY)
+OpAlu(0x9d, 'f64.trunc', FLAGS.UNARY)
+OpAlu(0x9e, 'f64.nearest', FLAGS.UNARY)
+OpAlu(0x9f, 'f64.sqrt', FLAGS.UNARY)
 
-OpBinOp(0xa0, 'f64.add')
-OpBinOp(0xa1, 'f64.sub')
-OpBinOp(0xa2, 'f64.mul')
-OpBinOp(0xa3, 'f64.div')
-OpBinOp(0xa4, 'f64.min')
-OpBinOp(0xa5, 'f64.max')
+OpAlu(0xa0, 'f64.add')
+OpAlu(0xa1, 'f64.sub')
+OpAlu(0xa2, 'f64.mul')
+OpAlu(0xa3, 'f64.div')
+OpAlu(0xa4, 'f64.min')
+OpAlu(0xa5, 'f64.max')
 
-OpUnaryOp(0xa6, 'f64.copysign')
+OpAlu(0xa6, 'f64.copysign', FLAGS.UNARY)
 
 OpConv(0xa7, 'i32.wrap_i64')
 OpConv(0xa8, 'i32.trunc_f32_s')
@@ -330,7 +344,7 @@ if __name__ == '__main__':
     def dump():
         for no, opcode in sorted(Opcode.Table.items()):
             args = [a.name for a in opcode.args]
-            print(f"{opcode.no:02x} {opcode.name:20} {' '.join(args)}")
+            print(f"{opcode.no:02x} {opcode.name:20} {' '.join(args)}  {int(opcode.flags):x}")
 
 
     dump()

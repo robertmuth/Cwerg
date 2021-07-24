@@ -12,7 +12,7 @@ import io
 import typing
 import enum
 import dataclasses
-from FrontEndWASM.opcode_tab import Opcode, ARG_TYPE, FLAGS
+from FrontEndWASM.opcode_tab import Opcode, ARG_TYPE, FLAGS, OPC_KIND
 
 
 def read_leb128(r: typing.BinaryIO, signed: bool = False) -> int:
@@ -329,12 +329,11 @@ class Expression:
             i = Instruction.read(r)
             # print ("@@", nesting, i)
             instructions.append(i)
-            if FLAGS.BLOCK_START in i.opcode.flags:
+            if i.opcode.kind is OPC_KIND.BLOCK_START:
                 nesting += 1
-            if FLAGS.BLOCK_END in i.opcode.flags:
+            if i.opcode.kind is OPC_KIND.BLOCK_END:
                 nesting -= 1
             if nesting == 0:
-                instructions.pop(-1)  # get rid of the trailing "end"
                 break
 
         return Expression(instructions)
@@ -505,7 +504,7 @@ def ExtractFunctions(sections) -> typing.List[Function]:
     if function_sec:
         start_index = len(out)
         assert len(code_sec.items) == len(function_sec.items)
-        names = [""] * len(code_sec.items)
+        names = [f"$fun_{i + len(out)}" for i in  range(len(code_sec.items))]
         export_sec = sections.get(SECTION_ID.EXPORT)
         if export_sec:
             for e in export_sec.items:

@@ -5,7 +5,7 @@ DIR=build
 $(info $(shell mkdir -p $(DIR)))
 
 
-TESTS = fd_write.wasm print_i32_ln.wasm
+TESTS = fd_write.wasm print_i32_ln.wasm factorial.wasm
 
 TEST_32_EXES =  $(TESTS:%.wasm=$(DIR)/%.32.exe)
 TEST_64_EXES =  $(TESTS:%.wasm=$(DIR)/%.64.exe)
@@ -14,10 +14,7 @@ tests: $(DIR)/parse_test $(TEST_32_EXES) $(TEST_64_EXES)
 
 $(DIR)/parse_test:
 	@echo "[$@]"
-	./parser.py TestData/fac.wasm > $@.out
-	./parser.py TestData/hello.wasm >> $@.out
-	./parser.py TestData/print_i32_ln.wasm >> $@.out
-	./parser.py TestData/fd_write.wasm >> $@.out
+	./parser.py TestData/hello.wasm > $@.out
 
 $(DIR)/%.32.exe: TestData/%.wasm
 	@echo "[$@]"
