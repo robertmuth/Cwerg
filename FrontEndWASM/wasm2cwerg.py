@@ -194,6 +194,15 @@ class Block:
     no: int
     bbl: ir.Bbl
     reg: typing.Optional[ir.Reg]  # for results
+    head: typing.Optional[ir.Bbl] = None
+
+
+def GetTargetBlock(block_stack, offset):
+    for block in reversed(block_stack):
+        if offset == 0:
+            return block
+        offset -= 1
+    assert False
 
 
 def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
@@ -218,7 +227,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
 
     arguments = TranslateTypeList(wasm_fun.func_type.args)
     returns = TranslateTypeList(wasm_fun.func_type.rets)
-    fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.NORMAL, arguments, returns))
+    fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.NORMAL, returns, arguments))
     bbl = fun.AddBbl(ir.Bbl("start"))
     for n, dk in enumerate(arguments):
         reg = fun.AddReg(ir.Reg(f"$loc_{n}", dk))
@@ -226,6 +235,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
 
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
+
 
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
@@ -241,6 +251,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             op_stack.pop(-1)
         elif opc is wasm_opc.LOCAL_GET:
             op_stack.append(GetLocalReg(int(args[0])))
+        elif opc is wasm_opc.LOCAL_SET:
+            op = op_stack.pop(-1)
+            bbl.AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
                 op = op_stack.pop(-1)
@@ -259,6 +272,14 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             succ = wasm_fun.impl.expr.instructions[n + 1]
             assert succ.opcode is wasm_opc.IF
             # push the can down the road
+        elif opc is wasm_opc.LOOP:
+            bbl = fun.AddBbl(ir.Bbl(f"loop_{bbl_count}"))
+            next_bbl = fun.AddBbl(ir.Bbl(f"endloop_{bbl_count}"))
+            reg = None
+            if args[0]:
+                reg = fun.AddReg(ir.Reg(f"$loop_result_{bbl_count}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
+            block_stack.append(Block(opc, bbl_count, next_bbl, reg, bbl))
+            bbl_count += 1
         elif opc is wasm_opc.IF:
             next_bbl = fun.AddBbl(ir.Bbl(f"if_{bbl_count}"))
             target = fun.AddBbl(ir.Bbl(f"else_{bbl_count}"))
@@ -308,10 +329,11 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                     if block.reg:
                         op = op_stack.pop(-1)
                         bbl.AddIns(ir.Ins(o.MOV, [block.reg, op]))
-                        bbl = block.bbl
                         op_stack.append(block.reg)
+                    bbl = block.bbl
                 else:
-                    assert False
+                    assert block.opcode is wasm_opc.BLOCK or block.opcode is wasm_opc.LOOP
+                    bbl = block.bbl
             else:
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 if returns:
@@ -335,6 +357,20 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 reg = GetOpReg(dk, len(op_stack))
                 op_stack.append(reg)
                 bbl.AddIns(ir.Ins(o.POPARG, [reg]))
+        elif opc is wasm_opc.RETURN:
+            if returns:
+                assert len(returns) == 1
+                op = op_stack.pop(-1)
+                bbl.AddIns(ir.Ins(o.PUSHARG, [op]))
+            bbl.AddIns(ir.Ins(o.RET, []))
+        elif opc is wasm_opc.BR:
+            assert isinstance(args[0], wasm.LabelIdx)
+            block = GetTargetBlock(block_stack, int(args[0]))
+            if block.opcode is wasm_opc.LOOP:
+                bbl.AddIns(ir.Ins(o.BRA, [block.head]))
+            else:
+                bbl.AddIns(ir.Ins(o.BRA, [block.bbl]))
+
 
         else:
             assert False, f"unsupported opcode {opc.name}"
@@ -398,7 +434,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
             if wasm_fun.name == "_start":
                 wasm_fun = wasm.Function("$main", wasm_fun.func_type, wasm_fun.impl)
             fun = GenerateFun(unit, mod, wasm_fun, global_mem_base, addr_type)
-            # print ("\n".join(serialize.FunRenderToAsm(fun)))
+            #print ("\n".join(serialize.FunRenderToAsm(fun)))
             sanity.FunCheck(fun, unit, check_cfg=False)
             if wasm_fun.name == "$main":
                 main = fun
