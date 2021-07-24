@@ -5,9 +5,7 @@ Convert WASM files to Cwerg
 """
 
 import logging
-import io
 import typing
-import enum
 import dataclasses
 from FrontEndWASM import opcode_tab as wasm_opc
 import FrontEndWASM.parser as wasm
@@ -189,6 +187,15 @@ WASM_ALU_TO_CWERG = {
     "rem_u": o.REM,
 }
 
+
+@dataclasses.dataclass
+class Block:
+    opcode: wasm_opc.Opcode
+    no: int
+    bbl: ir.Bbl
+    reg: typing.Optional[ir.Reg]  # for results
+
+
 def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
     return [WASM_TYPE_TO_CWERG_TYPE[x] for x in result_type.types]
 
@@ -196,7 +203,7 @@ def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
 def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 global_mem_base, addr_type) -> ir.Fun:
     op_stack: typing.List[typing.Union[ir.Reg, ir.Const]] = []
-    block_stack = []
+    block_stack: typing.List[Block] = []
     bbl_count = 0
     def GetOpReg(dk: o.DK, pos: int):
         reg_name = f"$op_{pos}_{dk.name}"
@@ -258,7 +265,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             reg = None
             if args[0]:
                 reg = fun.AddReg(ir.Reg(f"$if_result_{bbl_count}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
-            block_stack.append((opc, reg, target))
+            block_stack.append(Block(opc, bbl_count, target, reg))
             bbl_count += 1
             # this always works because the stack cannot be empty at  this point
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
@@ -284,26 +291,25 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbl.AddIns(ir.Ins(br, [op1, op2, target]))
             bbl = next_bbl
         elif opc is wasm_opc.ELSE:
-            block_opc, reg, next_bbl = block_stack.pop(-1)
-            endif_bbl = fun.AddBbl(ir.Bbl(f"endif_{bbl_count}"))
-            bbl_count += 1
-            block_stack.append((block_opc, reg, endif_bbl))
-            assert block_opc is wasm_opc.IF
-            if reg:
+            block = block_stack[-1]
+            assert block.opcode is wasm_opc.IF
+            if block.reg:
                 op = op_stack.pop(-1)
-                bbl.AddIns(ir.Ins(o.MOV, [reg, op]))
+                bbl.AddIns(ir.Ins(o.MOV, [block.reg, op]))
+            endif_bbl = fun.AddBbl(ir.Bbl(f"endif_{block.no}"))
             bbl.AddIns(ir.Ins(o.BRA, [endif_bbl]))
-            bbl = next_bbl
+            bbl = block.bbl
+            block.bbl = endif_bbl
 
         elif opc is wasm_opc.END:
             if block_stack:
-                block_opc, reg, next_bbl = block_stack.pop(-1)
-                if block_opc is wasm_opc.IF:
-                    if reg:
+                block = block_stack.pop(-1)
+                if block.opcode is wasm_opc.IF:
+                    if block.reg:
                         op = op_stack.pop(-1)
-                        bbl.AddIns(ir.Ins(o.MOV, [reg, op]))
-                        bbl = next_bbl
-                        op_stack.append(reg)
+                        bbl.AddIns(ir.Ins(o.MOV, [block.reg, op]))
+                        bbl = block.bbl
+                        op_stack.append(block.reg)
                 else:
                     assert False
             else:
