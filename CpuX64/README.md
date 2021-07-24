@@ -11,6 +11,8 @@ Know difficulties:
   here.
   Meaning a register is used in multiple slots, ARM32 also has a few of those.
   Memory operands aggravate the problem.
+  On the other hand, doing away with register allocation and just keeping all
+  locals on the stack may be good enough. 
 * Variable length instructions, especially for branches, require a relaxation
   pass to pick the shortest encoding possible
 * Some registers are [implicit](https://reverseengineering.stackexchange.com/questions/12379/xclist-of-x86-x64-instructions-that-implicitly-access-registers)

@@ -1,6 +1,7 @@
 ## WASM Frontend 
 
-This is still in a very early stage.
+The WASM Frontend is work in progress. It consists of a transpiler that
+convert WASM into Cwerg IR and support libraries which will provide a WASI API.
 
 There will only be a Python implementation.
 
