@@ -48,7 +48,8 @@ def FunCheckCFG(fun: ir.Fun, check_fallthroughs):
             assert x.name in fun.bbl_syms, f"missing {x}"
         # check everything but the last Ins
         for ins in bbl.inss[:-1]:
-            assert not ins.opcode.is_bbl_terminator(), f"{fun.name} {bbl} {ins} {bbl.inss[-1]}"
+            assert not ins.opcode.is_bbl_terminator(), (
+                f"{fun.name} {bbl}: bbl terminator in middle of bbl {ins} {bbl.inss[-1]}")
             InsCheckConstraints(ins)
         if not bbl.inss:
             assert len(bbl.edge_out) == 1, f"{bbl} {bbl.edge_out}"
@@ -62,7 +63,7 @@ def FunCheckCFG(fun: ir.Fun, check_fallthroughs):
                 # TODO
                 pass
             elif last_ins_kind is o.OPC_KIND.COND_BRA:
-                assert len(bbl.edge_out) == 2
+                assert len(bbl.edge_out) == 2, f"expected two out edges for bbl {bbl.name} {fun.name}"
                 succ1 = bbl.edge_out[0]
                 assert bbl in succ1.edge_in
                 succ2 = bbl.edge_out[1]

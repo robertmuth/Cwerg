@@ -124,6 +124,8 @@ def FunOptBasic(fun: ir.Fun, opt_stats: Dict[str, int],
     opt_stats["canonicalized"] += canonicalize.FunCanonicalize(fun)
     opt_stats["strength_red"] += lowering.FunStrengthReduction(fun)
 
+    opt_stats["empty_bbls"] = cfg.FunRemoveEmptyBbls(fun)
+    opt_stats["unreachable_bbls"] = cfg.FunRemoveUnreachableBbls(fun)
     reaching_defs.FunComputeReachingDefs(fun)
     reaching_defs.FunCheckReachingDefs(fun)
     opt_stats["reg_prop"] = reaching_defs.FunPropagateRegs(fun)

@@ -19,6 +19,8 @@ extern void FunRemoveUnconditionalBranches(Fun fun);
 
 extern void FunRemoveEmptyBbls(Fun fun);
 
+extern void FunRemoveUnreachableBbls(Fun fun);
+
 extern void FunAddUnconditionalBranches(Fun fun);
 
 }  // namespace cwerg

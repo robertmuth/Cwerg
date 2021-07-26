@@ -1056,7 +1056,6 @@
 .bbl while_1
     st.mem nj 0 5:S32
     ret
-.bbl while_1_cond  #  edge_out[if_4_end]
 .bbl if_4_end  #  edge_out[if_6_end  while_2]
     ld.mem %A64_437 nj 4
     pusharg %A64_437
@@ -1070,7 +1069,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_6_end]
 .bbl if_6_end
     pusharg 2:S32
     bsr __static_2_njSkip
@@ -1109,7 +1107,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_20_end]  live_out[ssxmax  ssymax]
 .bbl if_20_end  #  edge_out[if_22_end  while_3]  live_out[ssxmax  ssymax]
     ld.mem %A64_464 nj 4
     ld %U8_465 %A64_464 0
@@ -1118,7 +1115,6 @@
 .bbl while_3
     st.mem nj 0 2:S32
     ret
-.bbl while_3_cond  #  edge_out[if_22_end]  live_out[ssxmax  ssymax]
 .bbl if_22_end  #  edge_out[branch_50  while_4]  live_out[ssxmax  ssymax]
     ld.mem %A64_471 nj 4
     lea %A64_472 %A64_471 1
@@ -1142,7 +1138,6 @@
 .bbl while_4
     st.mem nj 0 5:S32
     ret
-.bbl while_4_cond  #  edge_out[if_24_end]  live_out[ssxmax  ssymax]
 .bbl if_24_end  #  edge_out[if_24_end_1  while_5]  live_out[%U32_504  ssxmax  ssymax]
     ld.mem %A64_495 nj 4
     ld %U8_497 %A64_495 5
@@ -1157,7 +1152,6 @@
 .bbl while_5
     st.mem nj 0 2:S32
     ret
-.bbl while_5_cond  #  edge_out[switch_505_end]  live_out[ssxmax  ssymax]
 .bbl switch_505_end  #  edge_out[if_27_end  while_6]  live_out[ssxmax  ssymax]
     ld.mem %S32_510 nj 20
     conv %U32_511 %S32_510
@@ -1167,7 +1161,6 @@
 .bbl while_6
     st.mem nj 0 5:S32
     ret
-.bbl while_6_cond  #  edge_out[if_27_end]  live_out[ssxmax  ssymax]
 .bbl if_27_end  #  edge_out[for_15_cond]  live_out[c  i  ssxmax  ssymax]
     mov i 0
     lea.mem %A64_519 nj 52
@@ -1187,7 +1180,6 @@
 .bbl while_7
     st.mem nj 0 5:S32
     ret
-.bbl while_7_cond  #  edge_out[if_29_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_29_end  #  edge_out[if_31_end  while_8]  live_out[c  i  ssxmax  ssymax]
     ld %S32_536 c 4
     ld %S32_538 c 4
@@ -1197,7 +1189,6 @@
 .bbl while_8
     st.mem nj 0 2:S32
     ret
-.bbl while_8_cond  #  edge_out[if_31_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_31_end  #  edge_out[if_33_end  while_9]  live_out[c  i  ssxmax  ssymax]
     ld.mem %A64_545 nj 4
     ld %U8_547 %A64_545 1
@@ -1208,7 +1199,6 @@
 .bbl while_9
     st.mem nj 0 5:S32
     ret
-.bbl while_9_cond  #  edge_out[if_33_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_33_end  #  edge_out[if_35_end  while_10]  live_out[c  i  ssxmax  ssymax]
     ld %S32_554 c 8
     ld %S32_556 c 8
@@ -1218,7 +1208,6 @@
 .bbl while_10
     st.mem nj 0 2:S32
     ret
-.bbl while_10_cond  #  edge_out[if_35_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_35_end  #  edge_out[if_37_end  while_11]  live_out[c  i  ssxmax  ssymax]
     ld.mem %A64_563 nj 4
     ld %U8_565 %A64_563 2
@@ -1229,7 +1218,6 @@
 .bbl while_11
     st.mem nj 0 5:S32
     ret
-.bbl while_11_cond  #  edge_out[if_37_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_37_end  #  edge_out[if_38_end  if_38_true]  live_out[c  i  ssxmax  ssymax]
     pusharg 3:S32
     bsr __static_2_njSkip
@@ -1323,7 +1311,6 @@
 .bbl while_12
     st.mem nj 0 2:S32
     ret
-.bbl while_12_cond  #  edge_out[if_43_end]  live_out[c  i  ssxmax  ssymax]
 .bbl if_43_end  #  edge_out[for_16_next  while_13]  live_out[c  i  ssxmax  ssymax]
     ld %S32_678 c 20
     ld.mem %S32_681 nj 36
@@ -1340,7 +1327,6 @@
 .bbl while_13
     st.mem nj 0 3:S32
     ret
-.bbl while_13_cond  #  edge_out[for_16_next]  live_out[c  i  ssxmax  ssymax]
 .bbl for_16_next  #  edge_out[for_16_cond]  live_out[c  i  ssxmax  ssymax]
     add %S32_692 i 1
     mov i %S32_692
@@ -1370,7 +1356,6 @@
 .bbl while_14
     st.mem nj 0 3:S32
     ret
-.bbl while_14_cond  #  edge_out[if_49_end]
 .bbl if_49_end
     ld.mem %S32_724 nj 20
     pusharg %S32_724
@@ -1399,14 +1384,12 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_16_end]  live_out[%S32_732]
 .bbl if_16_end  #  edge_out[if_18_end  while_3]  live_out[%S32_732]
     and %S32_736 %S32_732 2
     beq %S32_736 0 if_18_end
 .bbl while_3
     st.mem nj 0 2:S32
     ret
-.bbl while_3_cond  #  edge_out[if_18_end]  live_out[%S32_732]
 .bbl if_18_end  #  edge_out[for_9_cond]  live_out[%S32_741  codelen]
     shr %S32_739 %S32_732 3
     or %S32_740 %S32_732 %S32_739
@@ -1448,7 +1431,6 @@
 .bbl while_4
     st.mem nj 0 5:S32
     ret
-.bbl while_4_cond  #  edge_out[if_22_end]  live_out[%S32_757  %S32_762  codelen  remain  spread  vlc]
 .bbl if_22_end  #  edge_out[if_24_end  while_5]  live_out[%S32_757  %S32_762  codelen  remain  spread  vlc]
     sub %S32_768 16 codelen
     shl %S32_769 %S32_762 %S32_768
@@ -1458,7 +1440,6 @@
 .bbl while_5
     st.mem nj 0 5:S32
     ret
-.bbl while_5_cond  #  edge_out[if_24_end]  live_out[%S32_757  %S32_762  codelen  remain  spread  vlc]
 .bbl if_24_end  #  edge_out[for_11_cond]  live_out[%S32_757  %S32_762  codelen  i  remain  spread  vlc]
     mov i 0
     bra for_11_cond
@@ -1510,7 +1491,6 @@
 .bbl while_8
     st.mem nj 0 5:S32
     ret
-.bbl while_8_cond  #  edge_out[if_31_end]
 .bbl if_31_end
     ret
 
@@ -1536,7 +1516,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_9_end]  live_out[%S32_802]
 .bbl if_9_end  #  edge_out[for_5_cond]  live_out[%A64_816  i]
     ld.mem %S32_808 nj 204
     shl %S32_809 1 %S32_802
@@ -1569,7 +1548,6 @@
 .bbl while_4
     st.mem nj 0 5:S32
     ret
-.bbl while_4_cond  #  edge_out[if_13_end]
 .bbl if_13_end
     ret
 
@@ -1591,7 +1569,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_6_end]
 .bbl if_6_end
     ld.mem %A64_844 nj 4
     pusharg %A64_844
@@ -1718,7 +1695,6 @@
 .bbl while_1
     st.mem nj 0 5:S32
     ret
-.bbl while_1_cond  #  edge_out[if_8_end]  live_out[%S32_916  c  coef  out]
 .bbl if_8_end  #  edge_out[if_10_end  while_2]  live_out[%S32_916  %S32_934  c  coef  out]
     ld.stk %U8_930 code 0
     conv %S32_931 %U8_930
@@ -1730,7 +1706,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_10_end]  live_out[%S32_916  %S32_934  c  coef  out]
 .bbl if_10_end  #  edge_out[while_3_cond]  live_out[%S32_934  c  coef  out]
     lea.mem %A64_938 nj 208
     ld %S32_940 c 24
@@ -1807,7 +1782,6 @@
 .bbl while_2
     st.mem nj 0 5:S32
     ret
-.bbl while_2_cond  #  edge_out[if_18_end]  live_out[nextrst  rstcount]
 .bbl if_18_end  #  edge_out[if_20_end  while_3]  live_out[nextrst  rstcount]
     ld.mem %A64_987 nj 4
     ld %U8_988 %A64_987 0
@@ -1817,7 +1791,6 @@
 .bbl while_3
     st.mem nj 0 2:S32
     ret
-.bbl while_3_cond  #  edge_out[if_20_end]  live_out[nextrst  rstcount]
 .bbl if_20_end  #  edge_out[for_9_cond]  live_out[c  i  nextrst  rstcount]
     pusharg 1:S32
     bsr __static_2_njSkip
@@ -1834,7 +1807,6 @@
 .bbl while_4
     st.mem nj 0 5:S32
     ret
-.bbl while_4_cond  #  edge_out[if_22_end]  live_out[c  i  nextrst  rstcount]
 .bbl if_22_end  #  edge_out[if_24_end  while_5]  live_out[c  i  nextrst  rstcount]
     ld.mem %A64_1009 nj 4
     ld %U8_1011 %A64_1009 1
@@ -1844,7 +1816,6 @@
 .bbl while_5
     st.mem nj 0 5:S32
     ret
-.bbl while_5_cond  #  edge_out[if_24_end]  live_out[c  i  nextrst  rstcount]
 .bbl if_24_end  #  edge_out[for_9_next]  live_out[c  i  nextrst  rstcount]
     ld.mem %A64_1018 nj 4
     ld %U8_1020 %A64_1018 1
@@ -1886,7 +1857,6 @@
 .bbl while_6
     st.mem nj 0 2:S32
     ret
-.bbl while_6_cond  #  edge_out[if_27_end]  live_out[nextrst  rstcount]
 .bbl if_27_end  #  edge_out[for_14]  live_out[mbx  mby  nextrst  rstcount]
     ld.mem %S32_1061 nj 20
     pusharg %S32_1061
@@ -1978,7 +1948,6 @@
 .bbl while_8
     st.mem nj 0 5:S32
     ret
-.bbl while_8_cond  #  edge_out[if_36_end]  live_out[mbx  mby  nextrst]
 .bbl if_36_end  #  edge_out[for_13_cond]  live_out[i  mbx  mby  nextrst  rstcount]
     add %S32_1113 nextrst 1
     and %S32_1114 %S32_1113 7
@@ -2024,7 +1993,6 @@
 .bbl while_1
     st.mem nj 0 3:S32
     ret
-.bbl while_1_cond  #  edge_out[if_5_end]  live_out[%A64_1137  %S32_1129  c]
 .bbl if_5_end  #  edge_out[for_3_cond]  live_out[%A64_1137  %S32_1129  c  lin  lout  y]
     ld %A64_1141 c 40
     mov lin %A64_1141
@@ -2234,7 +2202,6 @@
 .bbl while_1
     st.mem nj 0 3:S32
     ret
-.bbl while_1_cond  #  edge_out[if_5_end]  live_out[%A64_1325  %S32_1314  %S32_1316  %S32_1317  c]
 .bbl if_5_end  #  edge_out[for_3_cond]  live_out[%A64_1325  %S32_1314  %S32_1316  %S32_1317  c  x]
     mov x 0
     bra for_3_cond
@@ -2482,7 +2449,6 @@
 .bbl while_4
     st.mem nj 0 4:S32
     ret
-.bbl while_4_cond  #  edge_out[for_5_next]  live_out[c  i]
 .bbl for_5_next  #  edge_out[for_5_cond]  live_out[c  i]
     add %S32_1532 i 1
     mov i %S32_1532

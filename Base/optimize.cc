@@ -8,6 +8,7 @@
 #include "Base/opcode_gen.h"
 #include "Base/reaching_defs.h"
 #include "Base/reg_stats.h"
+#include "Base/sanity.h"
 #include "Base/serialize.h"
 
 namespace cwerg::base {
@@ -22,10 +23,13 @@ void FunCfgInit(Fun fun) {
 void FunCfgExit(Fun fun) { FunAddUnconditionalBranches(fun); }
 
 void FunOptBasic(Fun fun, bool allow_conv_conversions) {
+
   std::vector<Ins> inss;
   FunCanonicalize(fun);
   FunStrengthReduction(fun);  // generates more MOVs which help
 
+  FunRemoveEmptyBbls(fun);
+  FunRemoveUnreachableBbls(fun);  // remove unreachable code before reaching-def
   FunNumberReg(fun);
   FunComputeReachingDefs(fun);
   FunPropagateRegs(fun);

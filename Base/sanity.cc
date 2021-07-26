@@ -1,6 +1,6 @@
 #include "Base/sanity.h"
-#include "Base/serialize.h"
 #include "Base/cfg.h"
+#include "Base/serialize.h"
 
 #include <set>
 
@@ -33,10 +33,11 @@ void BblCheck(Bbl bbl, Fun fun) {
     }
 
     if (InsOpcode(ins).IsCall()) {
-        Fun callee = InsCallee(ins);
-        ASSERT(FunKind(callee) ==  FUN_KIND::BUILTIN ||
-        FunKind(callee) == FUN_KIND::SIGNATURE || !FunBblList::IsEmpty(callee),
-        "undefined function " << Name(callee) << " in " << Name(fun));
+      Fun callee = InsCallee(ins);
+      ASSERT(FunKind(callee) == FUN_KIND::BUILTIN ||
+                 FunKind(callee) == FUN_KIND::SIGNATURE ||
+                 !FunBblList::IsEmpty(callee),
+             "undefined function " << Name(callee) << " in " << Name(fun));
     }
     ++count;
   }
@@ -46,6 +47,17 @@ void FunCheck(Fun fun) {
   std::set<Bbl> bbls;
   for (Bbl bbl : FunBblIter(fun)) {
     bbls.insert(bbl);
+  }
+
+  const Bbl head = FunBblList::Head(fun);
+  const Bbl tail = FunBblList::Tail(fun);
+
+  if (FunBblList::IsSentinel(head)) {
+    ASSERT(FunBblList::IsSentinel(head), "");
+    ASSERT(head == tail, "");
+  } else {
+    ASSERT(FunBblList::IsSentinel(FunBblList::Prev(head)), "");
+    ASSERT(FunBblList::IsSentinel(FunBblList::Next(tail)), "");
   }
 
   for (Bbl bbl : FunBblIter(fun)) {
@@ -61,17 +73,20 @@ void FunCheck(Fun fun) {
 
     if (FunBblList::IsSentinel(next)) {
       ASSERT(next == fun, "");
-      ASSERT(FunBblList::Tail(fun) == bbl, "");
+      ASSERT(FunBblList::Tail(fun) == bbl,
+             " FUN BBL list corrupeted " << Name(fun));
     } else {
-      ASSERT(FunBblList::Prev(next) == bbl, "");
+      ASSERT(FunBblList::Prev(next) == bbl,
+             "FUN BBL list corrupted " << Name(fun));
     }
 
     // cfg checks
     for (Edg edg : BblPredEdgIter(bbl)) {
       Bbl pred = EdgPredBbl(edg);
       Bbl succ = EdgSuccBbl(edg);
-      ASSERT(bbls.find(pred) != bbls.end(),
-             "[" << Name(fun) << "] bad " << Name(pred) << " -> " << Name(succ));
+      ASSERT(bbls.find(pred) != bbls.end(), "[" << Name(fun) << "] bad "
+                                                << Name(pred) << " -> "
+                                                << Name(succ));
       ASSERT(bbls.find(succ) != bbls.end(),
              "bad " << Name(pred) << " -> " << Name(succ));
       ASSERT(succ == bbl,

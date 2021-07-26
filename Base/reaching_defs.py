@@ -66,6 +66,10 @@ def _MergeReachingDefs(defs: ir.REG_DEF_MAP, other: ir.REG_DEF_MAP,
 
 
 def _BblPropagateDefs(bbl: ir.Bbl, defs_in: ir.REG_DEF_MAP):
+    """
+    Given a map of definitions that hold at the bbl beginning
+    propagate it to al the ins
+    """
     bbl.defs_in = {reg: ins for reg, ins in defs_in.items()
                    if ins is not ir.INS_INVALID}
     for ins in bbl.inss:
@@ -94,7 +98,7 @@ def FunComputeReachingDefs(fun: ir.Fun):
     Poor man's SSA we compute reaching defs at the Bbl beginning and
     for each operand use.
 
-    This should be run after unreachable code has been removed/
+    This should be run after unreachable code has been removed.
     """
     # Step 1: Initialization
     all_defs: Dict[str, ReachingDefs] = {}
@@ -126,6 +130,9 @@ def FunComputeReachingDefs(fun: ir.Fun):
 
     # Step 3: Make analysis results accessible
     for bbl in fun.bbls:
+        if bbl != fun.bbls[0] and not bbl.edge_in:
+            bbl_str = '\n'.join(serialize.BblRenderToAsm(bbl))
+            assert False, f"found unreachable bbl in fun {fun.name}:\n{bbl_str}"
         _BblPropagateDefs(bbl, all_defs[bbl.name].defs_in.copy())
 
 

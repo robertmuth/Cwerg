@@ -276,6 +276,7 @@ void FunRemoveEmptyBbls(Fun fun) {
                << fun);
     const Bbl succ = EdgSuccBbl(out_edg);
     EdgUnlink(out_edg);
+    EdgDel(out_edg);
     // For each incoming edge forward bbl to succ
     // We want to handle each predecessor only once.
     std::set<Bbl> preds;
@@ -299,13 +300,49 @@ void FunRemoveEmptyBbls(Fun fun) {
   }
 }
 
+void FunRemoveUnreachableBbls(Fun fun) {
+  std::set<Bbl> reachable;
+  std::vector<Bbl> stack;
+  stack.push_back(FunBblList::Head(fun));
+  while (!stack.empty()) {
+    Bbl bbl = stack.back();
+    stack.pop_back();
+    if (reachable.find(bbl) != reachable.end()) continue;
+    reachable.insert(bbl);
+    for (Edg edg : BblSuccEdgIter(bbl)) {
+      stack.push_back(EdgSuccBbl(edg));
+    }
+  }
+
+  Bbl bbl = FunBblList::Head(fun);
+  while (!FunBblList::IsSentinel(bbl)) {
+    const Bbl next = FunBblList::Next(bbl);  // permit deletions while iterating
+    if (reachable.find(bbl) == reachable.end()) {
+      Edg edg = BblSuccEdgList::Head(bbl);
+      while (!BblSuccEdgList::IsSentinel(edg)) {
+        const Edg next = BblSuccEdgList::Next(edg);
+        EdgUnlink(edg);
+        EdgDel(edg);
+        edg = next;
+      }
+
+      FunBblUnlink(bbl);
+      FunBblDel(fun, bbl);
+      BblDel(bbl);
+    }
+
+    bbl = next;
+  }
+}
+
 void FunAddUnconditionalBranches(Fun fun) {
   std::vector<Bbl> bbls;
   bool dirty = false;
   for (Bbl bbl : FunBblIter(fun)) {
     bbls.push_back(bbl);
     const Ins last = BblInsList::Tail(bbl);
-    if (!BblInsList::IsSentinel(last) && !InsOpcode(last).HasFallthrough()) continue;
+    if (!BblInsList::IsSentinel(last) && !InsOpcode(last).HasFallthrough())
+      continue;
     const Edg edg1 = BblSuccEdgList::Head(bbl);
     const Edg edg2 = BblSuccEdgList::Tail(bbl);
     // If it has a fall-through there is at least one succ edge

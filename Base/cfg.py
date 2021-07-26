@@ -179,7 +179,7 @@ def InsMaybePatchNewSuccessor(last_ins: ir.Ins, old_succ: ir.Bbl,
         return False
 
 
-def FunRemoveEmptyBbls(fun: ir.Fun):
+def FunRemoveEmptyBbls(fun: ir.Fun) -> int:
     keep = []
     for bbl in fun.bbls:
         if bbl.inss:
@@ -202,7 +202,30 @@ def FunRemoveEmptyBbls(fun: ir.Fun):
                                           succ)  # patch ins/jtb
             pred.ReplaceEdgeOut(bbl, succ)  # patch edg
 
+    discarded = len(fun.bbls) - len(keep)
     fun.bbls = keep
+    return discarded
+
+
+def FunRemoveUnreachableBbls(fun: ir.Fun) -> int:
+    reachable = set()
+    stack: List[ir.Bbl] = [fun.bbls[0]]
+    while stack:
+        curr = stack.pop(-1)
+        if curr.name in reachable:
+            continue
+        reachable.add(curr.name)
+        stack += curr.edge_out
+
+    discarded = len(fun.bbls) - len(reachable)
+    for bbl in fun.bbls:
+        if bbl.name in reachable:
+            continue
+        for succ in bbl.edge_out:
+            succ.edge_in.remove(bbl)
+    fun.bbls = [bbl for bbl in fun.bbls if bbl.name in reachable]
+    fun.bbl_syms = {bbl.name: bbl for bbl in fun.bbls}
+    return discarded
 
 
 def FunAddUnconditionalBranches(fun: ir.Fun):
