@@ -241,7 +241,7 @@ def FunAddUnconditionalBranches(fun: ir.Fun):
         if len(bbl.edge_out) == 1:
             assert len(fun.bbls) > n
             succ = bbl.edge_out[0]
-            if fun.bbls[n + 1] != succ:
+            if n + 1 == len(fun.bbls) or fun.bbls[n + 1] != succ:
                 bbl.inss.append(ir.Ins(o.BRA, [succ]))
             continue
 

@@ -192,9 +192,23 @@ WASM_ALU_TO_CWERG = {
 class Block:
     opcode: wasm_opc.Opcode
     no: int
-    bbl: ir.Bbl
+    start_bbl: ir.Bbl
+    end_bbl: ir.Bbl
     reg: typing.Optional[ir.Reg]  # for results
-    head: typing.Optional[ir.Bbl] = None
+    else_bbl: typing.Optional[ir.Bbl] = None
+
+
+def MakeBlock(no: int, opc, args, fun) -> Block:
+    prefix = opc.name
+    reg = None
+    if args[0]:
+        reg = fun.AddReg(ir.Reg(f"${prefix}_result_{no}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
+    start_bbl = fun.AddBbl(ir.Bbl(f"{prefix}_{no}"))
+    else_bbl = None
+    if opc is wasm_opc.IF:
+        else_bbl = fun.AddBbl(ir.Bbl(f"else_{no}"))
+    next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
+    return Block(opc, no, start_bbl, next_bbl, reg, else_bbl)
 
 
 def GetTargetBlock(block_stack, offset):
@@ -213,7 +227,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 global_mem_base, addr_type) -> ir.Fun:
     op_stack: typing.List[typing.Union[ir.Reg, ir.Const]] = []
     block_stack: typing.List[Block] = []
+    bbls: typing.List[ir.Bbl] = []
     bbl_count = 0
+
     def GetOpReg(dk: o.DK, pos: int):
         reg_name = f"$op_{pos}_{dk.name}"
         reg = fun.MaybeGetReg(reg_name)
@@ -228,14 +244,13 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     arguments = TranslateTypeList(wasm_fun.func_type.args)
     returns = TranslateTypeList(wasm_fun.func_type.rets)
     fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.NORMAL, returns, arguments))
-    bbl = fun.AddBbl(ir.Bbl("start"))
+    bbls.append(fun.AddBbl(ir.Bbl("start")))
     for n, dk in enumerate(arguments):
         reg = fun.AddReg(ir.Reg(f"$loc_{n}", dk))
-        bbl.AddIns(ir.Ins(o.POPARG, [reg]))
+        bbls[-1].AddIns(ir.Ins(o.POPARG, [reg]))
 
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
-    bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
-
+    bbls[-1].AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
@@ -246,14 +261,14 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc.kind is wasm_opc.OPC_KIND.STORE:
             val = op_stack.pop(-1)
             offset = op_stack.pop(-1)
-            bbl.AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
+            bbls[-1].AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
         elif opc is wasm_opc.DROP:
             op_stack.pop(-1)
         elif opc is wasm_opc.LOCAL_GET:
             op_stack.append(GetLocalReg(int(args[0])))
         elif opc is wasm_opc.LOCAL_SET:
             op = op_stack.pop(-1)
-            bbl.AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
+            bbls[-1].AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
                 op = op_stack.pop(-1)
@@ -265,29 +280,21 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 dst = GetOpReg(op1.kind, len(op_stack))
                 op_stack.append(dst)
                 assert wasm_opc.FLAGS.UNSIGNED not in opc.flags
-                bbl.AddIns(ir.Ins(WASM_ALU_TO_CWERG[opc.basename], [dst, op1, op2]))
+                bbls[-1].AddIns(ir.Ins(WASM_ALU_TO_CWERG[opc.basename], [dst, op1, op2]))
 
         elif opc.kind is wasm_opc.OPC_KIND.CMP:
             # this always works because of the sentinel: "end"
             succ = wasm_fun.impl.expr.instructions[n + 1]
             assert succ.opcode is wasm_opc.IF
             # push the can down the road
-        elif opc is wasm_opc.LOOP:
-            bbl = fun.AddBbl(ir.Bbl(f"loop_{bbl_count}"))
-            next_bbl = fun.AddBbl(ir.Bbl(f"endloop_{bbl_count}"))
-            reg = None
-            if args[0]:
-                reg = fun.AddReg(ir.Reg(f"$loop_result_{bbl_count}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
-            block_stack.append(Block(opc, bbl_count, next_bbl, reg, bbl))
+        elif opc is wasm_opc.LOOP or opc is wasm_opc.BLOCK:
+            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
             bbl_count += 1
+            bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.IF:
-            next_bbl = fun.AddBbl(ir.Bbl(f"if_{bbl_count}"))
-            target = fun.AddBbl(ir.Bbl(f"else_{bbl_count}"))
-            reg = None
-            if args[0]:
-                reg = fun.AddReg(ir.Reg(f"$if_result_{bbl_count}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
-            block_stack.append(Block(opc, bbl_count, target, reg))
+            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
             bbl_count += 1
+            # note we do set the new bbl right away because we add some instructions to the old one
             # this always works because the stack cannot be empty at  this point
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
             if pred.kind is wasm_opc.OPC_KIND.CMP:
@@ -308,75 +315,73 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 br = o.BEQ
                 op1 = op_stack.pop(-1)
                 op2 = ir.Const(op1.kind, 0)
-
-            bbl.AddIns(ir.Ins(br, [op1, op2, target]))
-            bbl = next_bbl
+            bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
+            bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
             block = block_stack[-1]
             assert block.opcode is wasm_opc.IF
             if block.reg:
                 op = op_stack.pop(-1)
-                bbl.AddIns(ir.Ins(o.MOV, [block.reg, op]))
-            endif_bbl = fun.AddBbl(ir.Bbl(f"endif_{block.no}"))
-            bbl.AddIns(ir.Ins(o.BRA, [endif_bbl]))
-            bbl = block.bbl
-            block.bbl = endif_bbl
-
+                bbls[-1].AddIns(ir.Ins(o.MOV, [block.reg, op]))
+            bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
+            assert block.else_bbl is not None
+            bbls.append(block.else_bbl)
+            block.else_bbl = None
         elif opc is wasm_opc.END:
             if block_stack:
                 block = block_stack.pop(-1)
-                if block.opcode is wasm_opc.IF:
-                    if block.reg:
-                        op = op_stack.pop(-1)
-                        bbl.AddIns(ir.Ins(o.MOV, [block.reg, op]))
-                        op_stack.append(block.reg)
-                    bbl = block.bbl
-                else:
-                    assert block.opcode is wasm_opc.BLOCK or block.opcode is wasm_opc.LOOP
-                    bbl = block.bbl
+                if block.reg:
+                    op = op_stack.pop(-1)
+                    bbls[-1].AddIns(ir.Ins(o.MOV, [block.reg, op]))
+                    op_stack.append(block.reg)
+                if block.else_bbl:
+                    bbls.append(block.else_bbl)
+                bbls.append(block.end_bbl)
             else:
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 if returns:
                     assert len(returns) == 1
                     op = op_stack.pop(-1)
-                    bbl.AddIns(ir.Ins(o.PUSHARG, [op]))
+                    bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
         elif opc is wasm_opc.CALL:
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
             assert callee
             if callee.kind is o.FUN_KIND.EXTERN:
                 for _ in range(len(callee.input_types) - 1):
-                    bbl.AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
-                bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
+                    bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
+                bbls[-1].AddIns(ir.Ins(o.PUSHARG, [mem_base]))
             else:
                 for _ in range(len(callee.input_types)):
-                    bbl.AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
-            bbl.AddIns(ir.Ins(o.BSR, [callee]))
+                    bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
+            bbls[-1].AddIns(ir.Ins(o.BSR, [callee]))
             # TODO check order
             for dk in reversed(callee.output_types):
                 reg = GetOpReg(dk, len(op_stack))
                 op_stack.append(reg)
-                bbl.AddIns(ir.Ins(o.POPARG, [reg]))
+                bbls[-1].AddIns(ir.Ins(o.POPARG, [reg]))
         elif opc is wasm_opc.RETURN:
             if returns:
                 assert len(returns) == 1
                 op = op_stack.pop(-1)
-                bbl.AddIns(ir.Ins(o.PUSHARG, [op]))
-            bbl.AddIns(ir.Ins(o.RET, []))
+                bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
+            bbls[-1].AddIns(ir.Ins(o.RET, []))
         elif opc is wasm_opc.BR:
             assert isinstance(args[0], wasm.LabelIdx)
             block = GetTargetBlock(block_stack, int(args[0]))
             if block.opcode is wasm_opc.LOOP:
-                bbl.AddIns(ir.Ins(o.BRA, [block.head]))
+                bbls[-1].AddIns(ir.Ins(o.BRA, [block.start_bbl]))
             else:
-                bbl.AddIns(ir.Ins(o.BRA, [block.bbl]))
+                bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
 
 
         else:
             assert False, f"unsupported opcode {opc.name}"
     assert not op_stack
     assert not block_stack
-    bbl.AddIns(ir.Ins(o.RET, []))
+    bbls[-1].AddIns(ir.Ins(o.RET, []))
+    assert len(bbls) == len(fun.bbls)
+    fun.bbls = bbls
     return fun
 
 
@@ -434,7 +439,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
             if wasm_fun.name == "_start":
                 wasm_fun = wasm.Function("$main", wasm_fun.func_type, wasm_fun.impl)
             fun = GenerateFun(unit, mod, wasm_fun, global_mem_base, addr_type)
-            #print ("\n".join(serialize.FunRenderToAsm(fun)))
+            # print ("\n".join(serialize.FunRenderToAsm(fun)))
             sanity.FunCheck(fun, unit, check_cfg=False)
             if wasm_fun.name == "$main":
                 main = fun
