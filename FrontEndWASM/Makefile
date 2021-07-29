@@ -19,7 +19,7 @@ $(DIR)/parse_test:
 $(DIR)/%.32.exe: TestData/%.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 32 $< > $@.asm
-	cat ../StdLib/syscall.a32.asm wasi.32.asm  $@.asm  | $(PYPY) ../CodeGenA32/codegen.py -mode binary  - $@
+	cat ../StdLib/syscall.a32.asm wasi.32.asm  $@.asm  | $(PYPY) ../CodeGenA32/codegen.py -mode binary  -add_startup_code - $@
 	./$@ >$@.out
 	diff $@.out $<.golden
 
@@ -27,7 +27,7 @@ $(DIR)/%.32.exe: TestData/%.wasm
 $(DIR)/%.64.exe: TestData/%.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  - $@
+	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	./$@ >$@.out
 	diff $@.out $<.golden
 

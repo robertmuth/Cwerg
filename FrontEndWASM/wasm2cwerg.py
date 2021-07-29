@@ -20,10 +20,16 @@ ONE = ir.Const(o.DK.U32, 1)
 PAGE_SIZE = 64 * 1024
 
 WASI_FUNCTIONS = {
+    "$wasi$args_get",
+    "$wasi$args_sizes_get",
+    "$wasi$environ_get",
+    "$wasi$environ_sizes_get",
+    #
     "$wasi$fd_write",
     "$wasi$fd_read",
     "$wasi$fd_seek",
     "$wasi$fd_close",
+    #
     "$wasi$proc_exit",
     # pseudo (cwerg specific)
     "$wasi$print_i32_ln",
@@ -44,7 +50,7 @@ def ExtractBytesFromConstIns(wasm_ins: wasm.Instruction, val_type: wasm.NUM_TYPE
         assert False, f"unexpected instruction {wasm_ins}"
 
 
-def GenerateMemcopyFun(unit: ir.Unit, addr_type: o.DK) -> ir.Fun:
+def GenerateMemcpyFun(unit: ir.Unit, addr_type: o.DK) -> ir.Fun:
     fun = unit.AddFun(ir.Fun("$memcpy", o.FUN_KIND.NORMAL, [], [addr_type, addr_type, o.DK.U32]))
     dst = fun.AddReg(ir.Reg("dst", addr_type))
     src = fun.AddReg(ir.Reg("src", addr_type))
@@ -385,15 +391,23 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     return fun
 
 
-def GenerateStartup(unit: ir.Unit, global_mem_base, main: ir.Fun, init_global: ir.Fun,
-                    init_data: ir.Fun, initial_heap_size: int, addr_type: o.DK) -> ir.Fun:
-    fun = unit.AddFun(ir.Fun("_start", o.FUN_KIND.NORMAL, [], []))
-    addr = fun.AddReg(ir.Reg("addr", addr_type))
-
+def GenerateStartup(unit: ir.Unit, global_mem_base, global_argc, global_argv, main: ir.Fun,
+                    init_global: ir.Fun, init_data: ir.Fun, initial_heap_size: int,
+                    addr_type: o.DK) -> ir.Fun:
     xbrk = unit.AddFun(ir.Fun("xbrk", o.FUN_KIND.EXTERN, [addr_type], [addr_type]))
     exit = unit.AddFun(ir.Fun("exit", o.FUN_KIND.EXTERN, [], [o.DK.S32]))
 
+    fun = unit.AddFun(ir.Fun("main", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32, addr_type]))
+    addr = fun.AddReg(ir.Reg("addr", addr_type))
+    argc = fun.AddReg(ir.Reg("argc", o.DK.U32))
+    argv = fun.AddReg(ir.Reg("argv", addr_type))
+
     bbl = fun.AddBbl(ir.Bbl("start"))
+    bbl.AddIns(ir.Ins(o.POPARG, [argc]))
+    bbl.AddIns(ir.Ins(o.POPARG, [argv]))
+    bbl.AddIns(ir.Ins(o.ST_MEM, [global_argc, ZERO, argc]))
+    bbl.AddIns(ir.Ins(o.ST_MEM, [global_argv, ZERO, argv]))
+
     if initial_heap_size:
         bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(addr_type, 0)]))
         bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
@@ -411,9 +425,7 @@ def GenerateStartup(unit: ir.Unit, global_mem_base, main: ir.Fun, init_global: i
     if init_data:
         bbl.AddIns(ir.Ins(o.BSR, [init_data]))
     bbl.AddIns(ir.Ins(o.BSR, [main]))
-    bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, 0)]))
-    bbl.AddIns(ir.Ins(o.BSR, [exit]))
-    # unreachable
+    bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.U32, 0)]))
     bbl.AddIns(ir.Ins(o.RET, []))
     return fun
 
@@ -424,7 +436,15 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
                                          ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
     global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
-    memcpy = GenerateMemcopyFun(unit, addr_type)
+
+    global_argv = unit.AddMem(ir.Mem("global_argv",
+                                     ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
+    global_argv.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
+
+    global_argc = unit.AddMem(ir.Mem("global_argc", ir.Const(o.DK.U32, 4), o.MEM_KIND.RW))
+    global_argc.AddData(ir.DataBytes(ir.Const(o.DK.U32, 4), b"\0"))
+
+    memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
     init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
     main = None
@@ -451,7 +471,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
         heap: wasm.Mem = sec_memory.items[0]
         initial_heap_size = heap.mem_type.limits.min
     assert main, f"missing main function"
-    GenerateStartup(unit, global_mem_base, main, init_global, init_data,
+    GenerateStartup(unit, global_mem_base, global_argc, global_argv, main, init_global, init_data,
                     initial_heap_size * PAGE_SIZE, addr_type)
 
     return unit
