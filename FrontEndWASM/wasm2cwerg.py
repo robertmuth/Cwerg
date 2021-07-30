@@ -90,7 +90,8 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
         print(data)
         kind = o.MEM_KIND.RO if data.global_type.mut is wasm.MUT.CONST else o.MEM_KIND.RW
         mem = unit.AddMem(ir.Mem(f"global_vars_{n}", ir.Const(o.DK.U32, 16), kind))
-        assert len(data.expr.instructions) == 1
+        assert len(data.expr.instructions) == 2
+        assert data.expr.instructions[1].opcode is wasm_opc.END
         ins = data.expr.instructions[0]
         var_type = data.global_type.value_type
         if ins.opcode is wasm_opc.GLOBAL_GET:
@@ -99,7 +100,7 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
             reg = val32 if var_type.is_32bit() else val64
             bbl.AddIns(ir.Ins(o.LD_MEM, [reg, src_mem, ZERO]))
             bbl.AddIns(ir.Ins(o.ST_MEM, [mem, ZERO, reg]))
-        elif wasm_opc.FLAGS.CONST in ins.opcode.flags:
+        elif ins.opcode.kind is wasm_opc.OPC_KIND.CONST:
             mem.AddData(ir.DataBytes(ONE, ExtractBytesFromConstIns(ins, var_type)))
         else:
             assert False, f"unsupported init instructions {ins}"
@@ -182,6 +183,8 @@ WASM_CMP_TO_CWERG = {
 }
 
 WASM_ALU_TO_CWERG = {
+    "and": o.AND,
+    #
     "sub": o.SUB,
     "add": o.ADD,
     "mul": o.MUL,
@@ -250,10 +253,21 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     arguments = TranslateTypeList(wasm_fun.func_type.args)
     returns = TranslateTypeList(wasm_fun.func_type.rets)
     fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.NORMAL, returns, arguments))
+    val32 = fun.AddReg(ir.Reg("val32", o.DK.U32))
+    val64 = fun.AddReg(ir.Reg("val64", o.DK.U64))
     bbls.append(fun.AddBbl(ir.Bbl("start")))
-    for n, dk in enumerate(arguments):
-        reg = fun.AddReg(ir.Reg(f"$loc_{n}", dk))
+
+    loc_index = 0
+    for dk in arguments:
+        reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", dk))
+        loc_index += 1
         bbls[-1].AddIns(ir.Ins(o.POPARG, [reg]))
+
+    for locals in wasm_fun.impl.locals_list:
+        for i in range(locals.count):
+            reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", WASM_TYPE_TO_CWERG_TYPE[locals.kind]))
+            loc_index += 1
+
 
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbls[-1].AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
@@ -275,6 +289,14 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.LOCAL_SET:
             op = op_stack.pop(-1)
             bbls[-1].AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
+        elif opc is wasm_opc.GLOBAL_GET:
+            var_index = int(args[0])
+            var: wasm.Glob = mod.sections.get(wasm.SECTION_ID.GLOBAL).items[var_index]
+            var_mem = unit.GetMem(f"global_vars_{var_index}")
+            reg = val32 if var.global_type.value_type.is_32bit() else val64
+            bbls[-1].AddIns(ir.Ins(o.LD_MEM, [reg, var_mem, ZERO]))
+            bbls[-1].AddIns(ir.Ins(o.ST_MEM, [var_mem, ZERO, reg]))
+            op_stack.append(reg)
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
                 op = op_stack.pop(-1)

@@ -381,11 +381,11 @@ class Locals:
 
 @dataclasses.dataclass(frozen=True)
 class Code:
-    local_list: typing.List[Locals]
+    locals_list: typing.List[Locals]
     expr: Expression
 
     def __repr__(self):
-        return f"locals: {self.local_list}\nexpr:\n{self.expr}"
+        return f"locals: {self.locals_list}\nexpr:\n{self.expr}"
 
     @classmethod
     def read(cls, rr: typing.BinaryIO):
@@ -496,7 +496,10 @@ def ExtractFunctions(sections) -> typing.List[Function]:
     if import_sec:
         for i in import_sec.items:
             if isinstance(i.desc, TypeIdx):
-                out.append(Function(f"${i.module}${i.name}", type_sec.items[int(i.desc)] ,i))
+                fun_name = f"${i.module}${i.name}"
+                # HACK
+                fun_name = fun_name.replace("wasi_unstable", "wasi")
+                out.append(Function(fun_name, type_sec.items[int(i.desc)], i))
 
     function_sec = sections.get(SECTION_ID.FUNCTION)
     code_sec = sections.get(SECTION_ID.CODE)
