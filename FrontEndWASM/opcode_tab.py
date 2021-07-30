@@ -145,7 +145,7 @@ CALL_INDIRECT = OpCfg(0x11, 'call_indirect', ARG_TYPE.TYPE_IDX, ARG_TYPE.TABLE_I
 
 # parametric Instructions
 DROP = Opcode(0x1a, 'drop', OPC_KIND.MISC)
-Opcode(0x1b, 'select', OPC_KIND.MISC)
+SELECT = Opcode(0x1b, 'select', OPC_KIND.MISC)
 # op(0x1c, 'select_val')
 
 
