@@ -87,7 +87,6 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
     val32 = fun.AddReg(ir.Reg("val32", o.DK.U32))
     val64 = fun.AddReg(ir.Reg("val64", o.DK.U64))
     for n, data in enumerate(section.items):
-        print(data)
         kind = o.MEM_KIND.RO if data.global_type.mut is wasm.MUT.CONST else o.MEM_KIND.RW
         mem = unit.AddMem(ir.Mem(f"global_vars_{n}", ir.Const(o.DK.U32, 16), kind))
         assert len(data.expr.instructions) == 2
@@ -413,10 +412,13 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             else:
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 pred = wasm_fun.impl.expr.instructions[n - 1].opcode
-                if returns and pred != wasm_opc.RETURN:
-                    assert len(returns) == 1
-                    op = op_stack.pop(-1)
-                    bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
+                if pred != wasm_opc.RETURN:
+                    if returns:
+                        assert len(returns) == 1
+                        op = op_stack.pop(-1)
+                        bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
+                    bbls[-1].AddIns(ir.Ins(o.RET, []))
+
         elif opc is wasm_opc.CALL:
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
@@ -484,7 +486,6 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             assert False, f"unsupported opcode {opc.name}"
     assert not op_stack
     assert not block_stack
-    bbls[-1].AddIns(ir.Ins(o.RET, []))
     assert len(bbls) == len(fun.bbls)
     fun.bbls = bbls
     return fun
