@@ -554,7 +554,7 @@ class Unit:
         return mem
 
     def GetMem(self, name) -> Mem:
-        return self.mem_syms[name]
+        return self.mem_syms.get(name)
 
     def AddFun(self, fun: Fun):
         if fun.name in self.fun_syms:

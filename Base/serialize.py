@@ -185,7 +185,20 @@ def DirStk(unit: ir.Unit, operands: List):
 
 
 def DirMem(unit: ir.Unit, operands: List):
-    unit.AddMem(ir.Mem(*operands))
+    name, alignment, kind = operands
+    mem = unit.GetMem(name)
+    if mem is None:
+        unit.AddMem(ir.Mem(name, alignment, kind))
+    elif kind is o.MEM_KIND.EXTERN:
+        return
+    elif mem.kind is o.MEM_KIND.EXTERN:
+        mem.kind = kind
+        mem.alignment = alignment.value
+        # move fun to make it current
+        unit.mems.remove(mem)
+        unit.mems.append(mem)
+    else:
+        raise ParseError(f"Duplicate Mem symbol: {name}")
 
 
 def DirData(unit: ir.Unit, operands: List):
