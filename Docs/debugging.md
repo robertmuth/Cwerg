@@ -11,13 +11,25 @@
     print(serialize.InsRenderToAsm(ins))
     ```
   
-* the Tools/  directory contains several debugging aids
-  
-  * reg_alloc_explorer.py - for debugging the (A32) register allocator
-  * inspector.py - for browsing the IR before and after various transformations
+## Tools
 
+the Tools/  directory contains several debugging aids
 
-### Built-in Web Datastructure browser 
+### inspector.py 
+
+For browsing the IR before and after various transformations.
+Manually change the hard-coded `MODE=` line, then invoke it like so:
+
+```
+cat StdLib/syscall.extern64.asm StdLib/std_lib.64.asm TestData/queens.64.asm > test.asm
+Tools/inspector.py test.asm
+```
+
+### reg_alloc_explorer.py 
+
+For debugging the (A32) register allocator.
+
+## Built-in Web Datastructure browser 
 
 Several of the c++ binaries have a built-in webserver (e.g. Base/optimize_tool and 
 CodeGenA32/codegen_tool).
@@ -26,23 +38,26 @@ the server is listening on, e.g. `-webserver_port=8080`.
 
 The webserver let's you browse the current IR. You can add software breakpoints by defining global 
 objects like
+
 ```
 BreakPoint bp_after_load("after_load");
 ```
 and then call 
+
 ```
 bp_after_load.Break();
 ```
 at the point where you want to inspect the IR. 
 The breakpoint can be resumed via the Web interface.
 
-### GDB
+## GDB
 
 Read up on tui mode
 
 https://sourceware.org/gdb/current/onlinedocs/gdb/TUI.html
 
 Sample session
+
 ```
 break main
 run

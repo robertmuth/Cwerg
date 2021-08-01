@@ -6,6 +6,10 @@ Usage:
 ./Tools/inspector.py TestData/nano_jpeg.a32.asm
 """
 
+MODE = "opt"     # only run optimizer
+# MODE = "a32"   # run everything and generate a32 code
+# MODE = "a64"   # run everything and generate a64 code
+
 from typing import List, Dict, Tuple, Any
 import argparse
 import collections
@@ -17,8 +21,10 @@ import json
 from Base import ir
 from Base import optimize
 from Base import serialize
-from CodeGenA32 import codegen
-import CpuA32.opcode_tab as arm
+if MODE == "a32":
+    from CodeGenA32 import codegen
+if MODE == "A64":
+    import CpuA32.opcode_tab as arm
 
 # language=css
 STYLE = """
@@ -433,6 +439,16 @@ class MyRequestHandler(http.server.BaseHTTPRequestHandler):
         self._handle_methods(GET_ROUTES)
 
 
+# Deepcopy does not work without this - maybe we have dangling refs?
+def CleanUnit(unit: ir.Unit):
+    for fun in unit.funs:
+        for bbl in fun.bbls:
+            for ins in  bbl.inss:
+                for op in ins.operands:
+                    if isinstance(op, ir.Reg):
+                        op.def_bbl = None
+                        op.def_ins = None
+
 def main():
     parser = argparse.ArgumentParser(description='inspector')
     parser.add_argument('-debug', help='enable webserver debugging',
@@ -446,26 +462,31 @@ def main():
     # Note, deepcopy has all kinds of issues and we do not expect
     # to use a copy in further computations
     MODS.append(("orig", copy.deepcopy(unit)))
-    if True:
+    if MODE  == "opt":
         optimize.UnitCfgInit(unit)
         MODS.append(("prepped", copy.deepcopy(unit)))
         optimize.UnitOpt(unit, False)
-        # MODS.append(("optimized", copy.deepcopy(unit)))
-        # optimize.UnitCfgExit(unit)
-        # MODS.append(("final", copy.deepcopy(unit)))
+        CleanUnit(unit)
+        MODS.append(("optimized", copy.deepcopy(unit)))
+        optimize.UnitCfgExit(unit)
+        CleanUnit(unit)
+        MODS.append(("final", copy.deepcopy(unit)))
     else:
         stats: Dict[str, int] = collections.defaultdict(int)
-        codegen.optimize_all(unit, stats)
-        MODS.append(("optimized", copy.deepcopy(unit)))
-
-        codegen.legalize_all(unit, stats)
+        codegen.LegalizeAll(unit, stats, None)
+        CleanUnit(unit)
         MODS.append(("legalized", copy.deepcopy(unit)))
 
-        codegen.reg_alloc_all(unit, stats)
-        MODS.append(("reg_allocated", copy.deepcopy(unit)))
+        codegen.RegAllocGlobal(unit, stats, None)
+        CleanUnit(unit)
+        MODS.append(("global_allocated", copy.deepcopy(unit)))
 
-        arm_mod = codegen.codegen(unit)
-        MODS.append(("assembler", arm_mod))
+        codegen.RegAllocLocal(unit, stats, None)
+        CleanUnit(unit)
+        MODS.append(("locals_allocated", copy.deepcopy(unit)))
+
+        # arm_mod = codegen.codegen(unit)
+        # MODS.append(("assembler", arm_mod))
 
     http_server = http.server.HTTPServer(('', args.port), MyRequestHandler)
     print(f'Starting HTTP server at http://localhost:{args.port}')
