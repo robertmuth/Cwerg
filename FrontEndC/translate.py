@@ -16,6 +16,7 @@ For some node types, however, we follow a pre-order approach.
 import re
 import sys
 import argparse
+from typing import List
 
 from pycparser import c_ast, parse_file
 
@@ -117,10 +118,16 @@ def ExtractNumber(s):
             assert len(s) == 3, f"unexpected number: [{s}]"
             return ord(s[1])
     s = StripNumberSuffix(s)
+    # gross hack - try a few conversions
     try:
         return int(s, 0)
     except ValueError:
+        pass
+    try:
         return float(s)
+    except ValueError:
+        pass
+    return float.fromhex(s)
 
 
 def align(x, a):
@@ -358,6 +365,16 @@ def HandleAssignment(node: c_ast.Assignment, meta_info: meta.MetaInfo, node_valu
     node_value[node] = tmp
 
 
+def extract_bytes(val: int, num_bytes: int) -> List[str]:
+    mask = (1 << (num_bytes * 8)) - 1
+    val = val & mask
+    out = []
+    for _ in range(num_bytes):
+        out.append(val & 0xff)
+        val >>= 8
+    return out
+
+
 def byte_encode_values(scalar: str, values):
     if scalar in {"S8", "U8"}:
         return values
@@ -373,8 +390,15 @@ def byte_encode_values(scalar: str, values):
             i = int(x) & 0xffffffff
             out += [i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff]
         return [str(x) for x in out]
+    elif scalar in {"S64", "U64"}:
+        out = []
+        for x in values:
+            i = int(x) & 0xffffffff
+            out += [i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff]
+        return [str(x) for x in out]
     else:
-        assert False, f"unsupported initializer"
+        assert False, f"unsupported initializer {scalar}: {values}"
+
 
 
 # hack - just good enough to handle nanojpeg.c
