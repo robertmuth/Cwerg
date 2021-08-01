@@ -14,8 +14,8 @@ TESTS = cmp.asm \
         switch.asm \
         indirect.64.asm \
         memaddr.64.asm \
-        stack.asm
-
+        stack.asm \
+        add_const.asm
         # struct.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)

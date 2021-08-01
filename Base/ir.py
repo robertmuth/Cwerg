@@ -190,8 +190,8 @@ class Reg:
     kind: o.DK
     cpu_reg: CpuReg = None
     flags: REG_FLAG = REG_FLAG(0)
-    def_ins: "Ins" = INS_INVALID  # first definition
-    def_bbl: "Bbl" = BBL_INVALID  # first definition
+    def_ins: "Ins" = INS_INVALID  # first definition used by reg_stats
+    def_bbl: "Bbl" = BBL_INVALID  # first definition used by reg_stats
 
     def IsIntReg(self):
         flavor = self.kind.flavor()
@@ -237,6 +237,10 @@ class Ins:
         self.operands = operands
         self.operand_defs = [INS_INVALID] * len(operands)
         return self
+
+    # for reaching defs etc, this has cause subtle bugs
+    def __eq__(self, other):
+        assert False, "do not compare Ins directly. Use 'is' if appropriate"
 
     def __repr__(self):
         return f"[INS {self.opcode.name}]"

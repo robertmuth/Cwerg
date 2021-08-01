@@ -49,6 +49,22 @@ class ReachingDefs:
     defs_out: ir.REG_DEF_MAP = dataclasses.field(default_factory=dict)
 
 
+def UpdateReachingDefsOut(defs: ReachingDefs) -> bool:
+    """Return true if there was a change"""
+    new_out = defs.defs_in.copy()
+    new_out.update(defs.defs_bbl)
+    old_out = defs.defs_out
+    if len(new_out) != len(old_out):
+        defs.defs_out = new_out
+        return True
+    for k, v in new_out.items():
+        if old_out.get(k) is not v:
+            defs.defs_out = new_out
+            return True
+    return False
+        
+    
+
 def _MergeReachingDefs(defs: ir.REG_DEF_MAP, other: ir.REG_DEF_MAP,
                        top) -> bool:
     change = False
@@ -56,10 +72,10 @@ def _MergeReachingDefs(defs: ir.REG_DEF_MAP, other: ir.REG_DEF_MAP,
     for k, v in other.items():
         if k not in defs:
             change = True
-            defs[k] = v if v != ir.INS_INVALID else top
+            defs[k] = (v if v is not ir.INS_INVALID else top)
         else:
             v2 = defs[k]
-            if v != v2:
+            if v is not v2:
                 defs[k] = top
                 change = True
     return change
@@ -115,13 +131,9 @@ def FunComputeReachingDefs(fun: ir.Fun):
     active = list(reversed(fun.bbls))
     while active:
         bbl = active.pop(-1)
-        defs: ReachingDefs = all_defs[bbl.name]
-        new_out = defs.defs_in.copy()
-        new_out.update(defs.defs_bbl)
-        # dictionary comparison is element-wise
-        if new_out == defs.defs_out:
+        if not UpdateReachingDefsOut(all_defs[bbl.name]):
             continue
-        defs.defs_out = new_out
+        new_out = all_defs[bbl.name].defs_out
         for succ in bbl.edge_out:
             succ_in = all_defs[succ.name].defs_in
             change = _MergeReachingDefs(succ_in, new_out, succ)
@@ -145,7 +157,7 @@ def FunCheckReachingDefs(fun: ir.Fun):
                     assert isinstance(ins.operand_defs[n], (ir.Ins, ir.Bbl)), (
                         f"unexpected def in {ins} {ins.operands}  {ins.operand_defs}")
                 else:
-                    assert ins.operand_defs[n] == ir.INS_INVALID
+                    assert ins.operand_defs[n] is ir.INS_INVALID
 
 
 def _InsPropagateConsts(ins: ir.Ins, _fun: ir.Fun):
@@ -335,7 +347,7 @@ def _DefAvailable(op: Any, op_def: Any, defs: ir.REG_DEF_MAP) -> bool:
     assert isinstance(op, ir.Reg), f"unexpected operand {op}"
     if op_def is ir.INS_INVALID:
         return False
-    return defs[op] == op_def
+    return defs[op] is op_def
 
 
 def _InsTryLoadStoreSimplify(ins: ir.Ins, defs: ir.REG_DEF_MAP) -> int:
@@ -431,7 +443,7 @@ def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
             # we do not want to extend live ranges for allocated regs
             if src_reg.cpu_reg: continue
             # register content for src_def is no longer available
-            if defs[src_reg] != src_def: continue
+            if defs[src_reg] is not src_def: continue
             ins.operands[n] = src_reg
             ins.operand_defs[n] = src_def
             count += 1

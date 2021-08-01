@@ -150,7 +150,7 @@ def FunDropUnreferencedRegs(fun: ir.Fun) -> int:
     """Remove all regs which are no longer referenced"""
     to_be_removed: List[ir.Reg] = []
     for reg in fun.regs:
-        if reg.def_ins == ir.INS_INVALID and ir.REG_FLAG.IS_READ not in reg.flags:
+        if reg.def_ins is ir.INS_INVALID and ir.REG_FLAG.IS_READ not in reg.flags:
             to_be_removed.append(reg)
     for reg in to_be_removed:
         fun.regs.remove(reg)
