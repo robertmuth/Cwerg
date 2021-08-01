@@ -15,6 +15,7 @@ https://github.com/mbasso/awesome-wasm
 
 https://github.com/WebAssembly/spec
 
+https://rsms.me/wasm-intro
 
 Runtime (WASI)
 

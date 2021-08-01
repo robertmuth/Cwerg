@@ -244,6 +244,7 @@ def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
         cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CALL26
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
         cpuins.reloc_symbol = fun.name
     elif op in {PARAM.mem1_num2_prel_hi21, PARAM.mem1_num2_lo12}:
         cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.mem1_num2_lo12

@@ -156,6 +156,14 @@
 ######################################################################
 # REAL WASI
 ######################################################################
+# (mem-addr, status) ->
+.fun $wasi$proc_exit NORMAL [] = [A32 S32]
+  .bbl %start
+    poparg dummy:A32
+    poparg status:S32
+    pusharg status
+    bsr exit
+    ret
 
 # (mem-addr, fd, start-of-array-offset, length-of-array, result-offset) -> errro
 .fun $wasi$fd_write NORMAL [S32] = [A32 S32 S32 S32 S32]
@@ -232,6 +240,7 @@
     poparg mem_base:A32
     poparg argv_offset:S32
     poparg string_data_offset:S32
+
     ld.mem argv:A32 global_argv 0
     ld.mem argc:S32 global_argc 0
 

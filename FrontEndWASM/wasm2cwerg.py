@@ -337,6 +337,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc.kind is wasm_opc.OPC_KIND.STORE:
             val = op_stack.pop(-1)
             offset = op_stack.pop(-1)
+            if args[1] != 0:
+                tmp = GetTmpReg(offset.kind)
+                bbls[-1].AddIns(ir.Ins(o.ADD, [tmp, offset, ir.Const(offset.kind, args[1])]))
+                offset = tmp
             bbls[-1].AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
         elif opc is wasm_opc.DROP:
             op_stack.pop(-1)
@@ -472,6 +476,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-2].AddIns(ir.Ins(br, [op1, op2, bbls[-1]]))
             bbls[-2].AddIns(ir.Ins(o.MOV, [reg, val_f]))
         elif opc.kind is wasm_opc.OPC_KIND.LOAD:
+            assert args[1] == 0
             addr = op_stack.pop(-1)
             reg = GetOpReg(OPC_TYPE_TO_CWERG_TYPE[opc.op_type], len(op_stack))
             op_stack.append(reg)

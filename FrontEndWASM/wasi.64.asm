@@ -138,8 +138,38 @@
   ret
 
 ######################################################################
+# PSEUDO WASI
+######################################################################
+.fun $wasi$print_i32_ln NORMAL [] = [A64 S32]
+
+.bbl %start
+  poparg dummy:A64
+  poparg n:S32
+  mov %S32_2:S32 = 1
+  pusharg n
+  pusharg %S32_2
+  bsr write_d
+  poparg %S64_1:S64
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
+  bsr write_c
+  poparg %S64_3:S64
+  ret
+
+######################################################################
 # REAL WASI
 ######################################################################
+# (mem-addr, status) ->
+.fun $wasi$proc_exit NORMAL [] = [A64 S32]
+  .bbl %start
+    poparg dummy:A64
+    poparg status:S32
+    pusharg status
+    bsr exit
+    ret
+
 .fun $wasi$fd_write NORMAL [S32] = [A64 S32 S32 S32 S32]
 
   .bbl %start
@@ -177,23 +207,67 @@
     pusharg errno
     ret
 
-######################################################################
-# PSEUDO WASI
-######################################################################
-.fun $wasi$print_i32_ln NORMAL [] = [A64 S32]
+.mem global_argc 0 EXTERN
+.mem global_argv 0 EXTERN
 
-.bbl %start
-  poparg dummy:A64
-  poparg n:S32
-  mov %S32_2:S32 = 1
-  pusharg n
-  pusharg %S32_2
-  bsr write_d
-  poparg %S64_1:S64
-  mov %S32_4:S32 = 1
-  mov %U8_5:U8 = 10
-  pusharg %U8_5
-  pusharg %S32_4
-  bsr write_c
-  poparg %S64_3:S64
-  ret
+# (mem-addr, argc-offset, total-size-offset) -> errro
+.fun $wasi$args_sizes_get NORMAL [S32] = [A64 S32 S32]
+.bbl prolog
+    poparg mem_base:A64
+    poparg argc_offset:S32
+    poparg total_size_offset:S32
+    # handle argc
+    ld.mem argc:S32 global_argc 0
+    st mem_base argc_offset argc
+    # handle total-size
+    mov total_size:S32 0:S32
+    ld.mem argv:A64 global_argv 0
+.bbl loop_argv
+    beq argc 0 done_argv
+    sub argc argc 1
+
+    ld s:A64 argv 0
+    lea argv argv 8
+
+.bbl strlen
+    add total_size total_size 1
+    ld b:U8 s 0
+    lea s s 1
+    bne b 0:U8 strlen
+    bra loop_argv
+.bbl done_argv
+    st mem_base total_size_offset total_size
+    pusharg 0:S32
+    ret
+
+# (mem-addr, argv-offset, string-data-offset) -> errro
+.fun $wasi$args_get NORMAL [S32] = [A64 S32 S32]
+.bbl prolog
+    poparg mem_base:A64
+    poparg argv_offset:S32
+    poparg string_data_offset:S32
+
+    ld.mem argv:A64 global_argv 0
+    ld.mem argc:S32 global_argc 0
+
+.bbl loop_argv
+    beq argc 0 done_argv
+    sub argc argc 1
+    st mem_base argv_offset string_data_offset
+    add argv_offset argv_offset 4
+    ld s:A64 argv 0
+    lea argv argv 8
+
+.bbl strcpy
+    ld b:U8 s 0
+    lea s s 1
+    st mem_base string_data_offset b
+    add string_data_offset string_data_offset 1
+    bne b 0:U8 strcpy
+    bra loop_argv
+
+.bbl done_argv
+    pusharg 0:S32
+    ret
+
+
