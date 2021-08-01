@@ -279,8 +279,8 @@ class MEM_KIND(enum.Enum):
     RW = 2
     TLS = 3
     FIX = 4  # a fixed address provide via
-    EXTERN = 5
-
+    EXTERN = 5 # forward declaration must be defined before code emission
+    BUILTIN = 6 # linker defined
 
 SHORT_STR_TO_MK = {x.name: x for x in MEM_KIND}
 
@@ -289,8 +289,8 @@ SHORT_STR_TO_MK = {x.name: x for x in MEM_KIND}
 class FUN_KIND(enum.Enum):
     """Function Kinds"""
     INVALID = 0
-    BUILTIN = 1
-    EXTERN = 2
+    BUILTIN = 1  # linker defined
+    EXTERN = 2  # forward declaration must be defined before code emission
     NORMAL = 3
     SIGNATURE = 4
 

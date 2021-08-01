@@ -3,7 +3,7 @@
 # syscall overview here: https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
 
 # This linkerdef may go away since we can query it with the xbrk syscall
-.mem $$rw_data_end 4 EXTERN
+.mem $$rw_data_end 4 BUILTIN
 
 .fun a32_syscall_close SIGNATURE [S32] = [S32]
 .fun a32_syscall_exit SIGNATURE [] = [S32]

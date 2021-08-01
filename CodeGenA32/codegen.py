@@ -96,6 +96,7 @@ def _RenderIns(ins: a32.Ins):
 
 
 def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
+    assert fun.kind is not o.FUN_KIND.EXTERN
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
     assert fun.stk_size >= 0, f"did you call FinalizeStk?"
     # DumpFun("codegen", fun)
@@ -135,7 +136,8 @@ def EmitUnitAsText(unit: ir.Unit, fout):
     # we emit the memory stuff AFTER the code since the code generation may add new
     # memory for Consts
     for mem in unit.mems:
-        if mem.kind == o.MEM_KIND.EXTERN:
+        assert mem.kind is not o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         for s in _MemCodeGenText(mem, unit):
             print(s, file=fout)
@@ -178,7 +180,8 @@ def codegen(unit: ir.Unit) -> Unit:
 def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
-        if mem.kind == o.MEM_KIND.EXTERN:
+        assert mem.kind is not o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:

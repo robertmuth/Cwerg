@@ -93,6 +93,7 @@ enum class MEM_KIND : uint8_t {
     TLS = 3,
     FIX = 4,
     EXTERN = 5,
+    BUILTIN = 6,
 };
 
 enum class TC : uint8_t {

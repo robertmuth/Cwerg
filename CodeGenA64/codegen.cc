@@ -39,6 +39,7 @@ void JtbCodeGen(Jtb jtb, std::ostream* output) {
 }
 
 void FunCodeGen(Fun fun, std::ostream* output) {
+  ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
   *output << "# sig: IN: ";
   EmitParamList(FunNumInputTypes(fun), FunInputTypes(fun), output);
   *output << " -> OUT: ";
@@ -129,7 +130,8 @@ void MemCodeGen(Mem mem, std::ostream* output) {
 
 void EmitUnitAsText(base::Unit unit, std::ostream* output) {
   for (Mem mem : UnitMemIter(unit)) {
-    if (MemKind(mem) == MEM_KIND::EXTERN) continue;
+    ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
+    if (MemKind(mem) == MEM_KIND::BUILTIN) continue;
     MemCodeGen(mem, output);
   }
   for (Fun fun : UnitFunIter(unit)) {
@@ -141,7 +143,8 @@ void EmitUnitAsText(base::Unit unit, std::ostream* output) {
 a64::A64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   a64::A64Unit out;
   for (Mem mem : UnitMemIter(unit)) {
-    if (MemKind(mem) == MEM_KIND::EXTERN) continue;
+    ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
+    if (MemKind(mem) == MEM_KIND::BUILTIN) continue;
     out.MemStart(StrData(Name(mem)), MemAlignment(mem),
                  MemKindToSectionName(MemKind(mem)), padding_zero, false);
     for (Data data : MemDataIter(mem)) {
@@ -169,6 +172,7 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
   };
 
   for (Fun fun : UnitFunIter(unit)) {
+    ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
     out.FunStart(StrData(Name(fun)), 16, padding_nop);
     for (Jtb jtb : FunJtbIter(fun)) {
       std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));

@@ -135,7 +135,8 @@ def EmitUnitAsText(unit: ir.Unit, fout):
     # we emit the memory stuff AFTER the code since the code generation may add new
     # memory for Consts
     for mem in unit.mems:
-        if mem.kind == o.MEM_KIND.EXTERN:
+        assert  mem.kind != o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         for s in _MemCodeGenText(mem, unit):
             print(s, file=fout)
@@ -178,7 +179,8 @@ def codegen(unit: ir.Unit) -> Unit:
 def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
-        if mem.kind == o.MEM_KIND.EXTERN:
+        assert  mem.kind != o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
