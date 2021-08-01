@@ -274,6 +274,7 @@ def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
         armins.reloc_kind = movt_or_movw_rel(op is PARAM.mem1_num2_lo16)
         mem = ins.operands[1]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
+        assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
         armins.reloc_symbol = mem.name
         num = ins.operands[2]
         assert isinstance(num, ir.Const), f"{ins} {num}"
@@ -306,6 +307,7 @@ def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
         armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.CALL
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
         armins.reloc_symbol = fun.name
     else:
         assert False

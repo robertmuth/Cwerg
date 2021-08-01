@@ -250,6 +250,7 @@ def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         mem = ins.operands[1]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
+        assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
         cpuins.reloc_symbol = mem.name
         num = ins.operands[2]
         assert isinstance(num, ir.Const), f"{ins} {num}"
@@ -260,6 +261,7 @@ def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
                              else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
         cpuins.reloc_symbol = fun.name
     elif op in {PARAM.jtb1_prel_hi21, PARAM.jtb1_lo12}:
         cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
