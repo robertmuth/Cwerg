@@ -96,7 +96,7 @@ def _CheckIns(ins, fun, unit):
         elif isinstance(op, ir.Fun):
             assert ot is o.OP_KIND.FUN
             assert (op.kind in {o.FUN_KIND.BUILTIN, o.FUN_KIND.SIGNATURE, o.FUN_KIND.EXTERN} or
-                    op.bbls), f"undefined call to {op.name} in {fun.name}"
+                    op.bbls), f"undefined call to {op.name} in {fun.name} [{fun.kind}]"
             if unit:
                 assert op.name in unit.fun_syms
         elif isinstance(op, ir.Bbl):

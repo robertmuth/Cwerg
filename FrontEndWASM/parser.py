@@ -498,6 +498,7 @@ def ExtractFunctions(sections) -> typing.List[Function]:
             if isinstance(i.desc, TypeIdx):
                 fun_name = f"${i.module}${i.name}"
                 # HACK
+                fun_name = fun_name.replace("wasi_snapshot_preview1", "wasi")
                 fun_name = fun_name.replace("wasi_unstable", "wasi")
                 out.append(Function(fun_name, type_sec.items[int(i.desc)], i))
 

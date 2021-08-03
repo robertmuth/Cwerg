@@ -29,6 +29,14 @@ WASI_FUNCTIONS = {
     "$wasi$fd_read",
     "$wasi$fd_seek",
     "$wasi$fd_close",
+    "$wasi$fd_fdstat_get",
+    "$wasi$fd_prestat_get",
+    "$wasi$fd_prestat_dir_name",
+    "$wasi$fd_fdstat_set_flags",
+    #
+    "$wasi$path_open",
+    #
+    "$wasi$clock_time_get",
     #
     "$wasi$proc_exit",
     # pseudo (cwerg specific)
@@ -215,6 +223,7 @@ WASM_CMP_TO_CWERG = {
 
 WASM_ALU_TO_CWERG = {
     "and": o.AND,
+    "shl": o.SHL,
     #
     "sub": o.SUB,
     "add": o.ADD,
@@ -287,7 +296,7 @@ def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
 
 
 def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
-                global_mem_base, addr_type) -> ir.Fun:
+                fun: ir.Fun, global_mem_base, addr_type):
     op_stack: typing.List[typing.Union[ir.Reg, ir.Const]] = []
     block_stack: typing.List[Block] = []
     bbls: typing.List[ir.Bbl] = []
@@ -309,13 +318,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         assert reg, f"unknown reg {reg_name}"
         return reg
 
-    arguments = TranslateTypeList(wasm_fun.func_type.args)
-    returns = TranslateTypeList(wasm_fun.func_type.rets)
-    fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.NORMAL, returns, arguments))
     bbls.append(fun.AddBbl(ir.Bbl("start")))
 
     loc_index = 0
-    for dk in arguments:
+    for dk in fun.input_types:
         reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", dk))
         loc_index += 1
         bbls[-1].AddIns(ir.Ins(o.POPARG, [reg]))
@@ -348,6 +354,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             op_stack.append(GetLocalReg(int(args[0])))
         elif opc is wasm_opc.LOCAL_SET:
             op = op_stack.pop(-1)
+            bbls[-1].AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
+        elif opc is wasm_opc.LOCAL_TEE:
+            op = op_stack[-1]  # no pop!
             bbls[-1].AddIns(ir.Ins(o.MOV, [GetLocalReg(int(args[0])), op]))
         elif opc is wasm_opc.GLOBAL_GET:
             var_index = int(args[0])
@@ -417,8 +426,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 pred = wasm_fun.impl.expr.instructions[n - 1].opcode
                 if pred != wasm_opc.RETURN:
-                    if returns:
-                        assert len(returns) == 1
+                    if fun.output_types:
+                        assert len(fun.output_types) == 1
                         op = op_stack.pop(-1)
                         bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
                     bbls[-1].AddIns(ir.Ins(o.RET, []))
@@ -426,7 +435,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.CALL:
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
-            assert callee
+            assert callee, f"unknown fun: {wasm_callee.name}"
             if callee.kind is o.FUN_KIND.EXTERN:
                 for _ in range(len(callee.input_types) - 1):
                     bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
@@ -441,8 +450,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op_stack.append(reg)
                 bbls[-1].AddIns(ir.Ins(o.POPARG, [reg]))
         elif opc is wasm_opc.RETURN:
-            if returns:
-                assert len(returns) == 1
+            if fun.output_types:
+                assert len(fun.output_types) == 1
                 op = op_stack.pop(-1)
                 bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
             bbls[-1].AddIns(ir.Ins(o.RET, []))
@@ -476,24 +485,30 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-2].AddIns(ir.Ins(br, [op1, op2, bbls[-1]]))
             bbls[-2].AddIns(ir.Ins(o.MOV, [reg, val_f]))
         elif opc.kind is wasm_opc.OPC_KIND.LOAD:
-            assert args[1] == 0
-            addr = op_stack.pop(-1)
+            offset = op_stack.pop(-1)
+            if args[1] != 0:
+                tmp = GetTmpReg(offset.kind)
+                bbls[-1].AddIns(ir.Ins(o.ADD, [tmp, offset, ir.Const(offset.kind, args[1])]))
+                offset = tmp
             reg = GetOpReg(OPC_TYPE_TO_CWERG_TYPE[opc.op_type], len(op_stack))
             op_stack.append(reg)
             dk_tmp = LOAD_TO_CWERG_TYPE.get(opc.basename)
             if dk_tmp:
                 tmp = GetTmpReg(dk_tmp)
-                bbls[-1].AddIns(ir.Ins(o.LD, [tmp, mem_base, addr]))
+                bbls[-1].AddIns(ir.Ins(o.LD, [tmp, mem_base, offset]))
                 bbls[-1].AddIns(ir.Ins(o.CONV, [reg, tmp]))
             else:
-                bbls[-1].AddIns(ir.Ins(o.LD, [reg, mem_base, addr]))
+                bbls[-1].AddIns(ir.Ins(o.LD, [reg, mem_base, offset]))
+        elif opc is wasm_opc.BR_TABLE:
+            assert False
+        elif opc is wasm_opc.UNREACHABLE:
+            bbls[-1].AddIns(ir.Ins(o.TRAP, []))
         else:
-            assert False, f"unsupported opcode {opc.name}"
+            assert False, f"unsupported opcode [{opc.name}]"
     assert not op_stack
     assert not block_stack
     assert len(bbls) == len(fun.bbls)
     fun.bbls = bbls
-    return fun
 
 
 def GenerateStartup(unit: ir.Unit, global_mem_base, global_argc, global_argv, main: ir.Fun,
@@ -554,20 +569,27 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
     main = None
     for wasm_fun in mod.functions:
+        # forward declare everything since we cannot rely on a topological sort of the funs
         if isinstance(wasm_fun.impl, wasm.Import):
             assert wasm_fun.name in WASI_FUNCTIONS, f"unimplemented external function: {wasm_fun.name}"
             arguments = [addr_type] + TranslateTypeList(wasm_fun.func_type.args)
-            returns = TranslateTypeList(wasm_fun.func_type.rets)
-            wasm_fun = unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
         else:
-            assert isinstance(wasm_fun.impl, wasm.Code)
-            if wasm_fun.name == "_start":
-                wasm_fun = wasm.Function("$main", wasm_fun.func_type, wasm_fun.impl)
-            fun = GenerateFun(unit, mod, wasm_fun, global_mem_base, addr_type)
-            # print ("\n".join(serialize.FunRenderToAsm(fun)))
-            sanity.FunCheck(fun, unit, check_cfg=False)
-            if wasm_fun.name == "$main":
-                main = fun
+            arguments = TranslateTypeList(wasm_fun.func_type.args)
+        returns = TranslateTypeList(wasm_fun.func_type.rets)
+        unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
+
+    for wasm_fun in mod.functions:
+        if isinstance(wasm_fun.impl, wasm.Import):
+            continue
+        fun = unit.GetFun(wasm_fun.name)
+        fun.kind = o.FUN_KIND.NORMAL
+        if fun.name == "_start":
+            fun.name = "$main"
+            main = fun
+        GenerateFun(unit, mod, wasm_fun, fun, global_mem_base, addr_type)
+        # print ("\n".join(serialize.FunRenderToAsm(fun)))
+        sanity.FunCheck(fun, unit, check_cfg=False)
+
 
     initial_heap_size = 0
     sec_memory = mod.sections.get(wasm.SECTION_ID.MEMORY)

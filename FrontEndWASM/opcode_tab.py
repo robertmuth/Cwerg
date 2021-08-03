@@ -127,7 +127,7 @@ def OpBlk(no, name, arg1=ARG_TYPE.INVALID):
 
 
 # control Instructions
-OpCfg(0x00, 'unreachable')
+UNREACHABLE = OpCfg(0x00, 'unreachable')
 OpCfg(0x01, 'nop')
 
 BLOCK = OpBlk(0x02, 'block', ARG_TYPE.BLOCK_TYPE)
