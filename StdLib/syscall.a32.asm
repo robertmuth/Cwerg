@@ -5,6 +5,7 @@
 # This linkerdef may go away since we can query it with the xbrk syscall
 .mem $$rw_data_end 4 BUILTIN
 
+.fun a32_syscall_clock_gettime SIGNATURE [S32] = [S32 A32]
 .fun a32_syscall_close SIGNATURE [S32] = [S32]
 .fun a32_syscall_exit SIGNATURE [] = [S32]
 .fun a32_syscall_getpid SIGNATURE [S32] = []
@@ -19,6 +20,17 @@
 ############################################################
 # Syscall wrappers
 ############################################################
+.fun clock_gettime NORMAL [S32] = [S32 A32]
+.bbl start
+    poparg clk_id:S32
+    poparg timespec:A32
+    pusharg timespec
+    pusharg clk_id
+    syscall a32_syscall_clock_gettime 0xe4:U32
+    poparg res:S32
+    pusharg res
+    ret
+
 .fun close NORMAL [S32] = [S32]
 .bbl start
     poparg fh:S32

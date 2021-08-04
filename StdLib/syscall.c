@@ -101,6 +101,10 @@ long _x64_syscall6(long n,
   return ret;
 }
 
+int clock_gettime(int  clk_id, void* timespec) {
+   return _x64_syscall2(0x107, clk_id, timespec);
+}
+
 int close(int fd) { return _x64_syscall1(3, fd); }
 
 void exit(int status) {
@@ -216,6 +220,10 @@ long _x32_syscall6(long n,
       : "a"(n), "b"(a1), "c"(a2), "d"(a3), "S"(a4), "D"(a5), "g"(a6)
       : "memory");
   return ret;
+}
+
+int clock_gettime(int  clk_id, void* timespec) {
+   return _x32_syscall2(0x109, clk_id, timespec);
 }
 
 int close(int fd) { return _x32_syscall1(6, fd); }
@@ -337,6 +345,10 @@ long _a64_syscall6(long n, long a, long b, long c, long d, long e, long f) {
                        : "r"(x8), "0"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4),
                          "r"(x5)
                        : "memory", "cc");
+}
+
+int clock_gettime(int  clk_id, void* timespec) {
+   return _a64_syscall2(0x71, clk_id, timespec);
 }
 
 int close(int fd) { return _a64_syscall1(57, fd); }
@@ -465,6 +477,10 @@ long _a32_syscall6(long n, long a, long b, long c, long d, long e, long f) {
                          "r"(r5)
                        : "memory");
   return r0;
+}
+
+int clock_gettime(int  clk_id, void* timespec) {
+   return _a32_syscall2(0xe4, clk_id, timespec);
 }
 
 int close(int fd) { return _a32_syscall1(6, fd); }
