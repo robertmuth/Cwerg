@@ -162,6 +162,28 @@
 # REAL WASI
 ######################################################################
 # (mem-addr, status) ->
+.fun $wasi$clock_time_get NORMAL [S32] = [A64 S32 S64 S32]
+  .bbl %start
+    .stk timespec 8 16
+    poparg membase:A64
+    poparg clk_id:S32
+    poparg precision_dummy:S64
+    poparg result_offset:S32
+    lea.stk ts:A64 timespec 0
+    pusharg ts
+    pusharg clk_id
+    bsr clock_gettime
+    poparg status:S32
+    ld sec:U64 ts 0
+    ld nsec:U64 ts 8
+    mul sec sec 1000000000:U64
+    add sec sec nsec
+    st membase result_offset sec
+    pusharg statu:S32
+    ret
+
+
+# (mem-addr, status) ->
 .fun $wasi$proc_exit NORMAL [] = [A64 S32]
   .bbl %start
     poparg dummy:A64

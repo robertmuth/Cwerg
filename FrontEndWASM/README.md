@@ -7,6 +7,16 @@ There will only be a Python implementation.
 
 The [parser](parser.py) and the [instructions table](opcode_tab.py) do not have any other dependencies and might be useful by themselves.
 
+### WASI Support
+
+Currently implemented are:
+
+* args_get
+* args_sizes_get
+* clock_time_get (a64 only)
+* fd_write
+* proc_exit
+
 ### References 
 
 https://mvolkmann.github.io/blog/webassembly/
