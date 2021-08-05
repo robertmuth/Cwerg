@@ -44,13 +44,13 @@ WASI_FUNCTIONS = {
 }
 
 
-def ExtractBytesFromConstIns(wasm_ins: wasm.Instruction, val_type: wasm.NUM_TYPE):
+def ExtractBytesFromConstIns(wasm_ins: wasm.Instruction, val_type: wasm.NUM_TYPE) -> bytes:
     o = wasm_ins.opcode
     v = wasm_ins.args[0]
     if o is wasm_opc.I32_CONST:
-        return v.to_bytes(4, 'little')
+        return v.to_bytes(4, 'little', signed=True)
     elif o is wasm_opc.I64_CONST:
-        return v.to_bytes(8, 'little')
+        return v.to_bytes(8, 'little', signed=True)
     elif o is wasm_opc.F32_CONST or o is wasm_opc.F64_CONST:
         assert isinstance(v, bytes)
         return v
@@ -334,9 +334,12 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbls[-1].AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
+    # print ()
+    # print (fun.name)
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
         args = wasm_ins.args
+        # print (f"@@ {opc.name}", args, len(op_stack))
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
             op_stack.append(ir.Const(OPC_TYPE_TO_CWERG_TYPE[opc.op_type], args[0]))
@@ -368,7 +371,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.GLOBAL_SET:
             op = op_stack.pop(-1)
             var_index = int(args[0])
-            var: wasm.Glob = mod.sections.get(wasm.SECTION_ID.GLOBAL).items[var_index]
+            var_mem = unit.GetMem(f"global_vars_{var_index}")
             bbls[-1].AddIns(ir.Ins(o.ST_MEM, [var_mem, ZERO, op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
@@ -380,7 +383,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op1 = op_stack.pop(-1)
                 dst = GetOpReg(op1.kind, len(op_stack))
                 op_stack.append(dst)
-                assert wasm_opc.FLAGS.UNSIGNED not in opc.flags
+                assert wasm_opc.FLAGS.UNSIGNED not in opc.flags, f"unsupported {opc.name}"
                 bbls[-1].AddIns(ir.Ins(WASM_ALU_TO_CWERG[opc.basename], [dst, op1, op2]))
 
         elif opc.kind is wasm_opc.OPC_KIND.CMP:
@@ -436,7 +439,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
             assert callee, f"unknown fun: {wasm_callee.name}"
-            if callee.kind is o.FUN_KIND.EXTERN:
+            if isinstance(wasm_callee.impl, wasm.Import):
                 for _ in range(len(callee.input_types) - 1):
                     bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
                 bbls[-1].AddIns(ir.Ins(o.PUSHARG, [mem_base]))
@@ -505,8 +508,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
         else:
             assert False, f"unsupported opcode [{opc.name}]"
-    assert not op_stack
-    assert not block_stack
+    assert not op_stack, f"op_stack not empty in {fun.name}: {op_stack}"
+    assert not block_stack, f"block_stack not empty in {fun.name}: {block_stack}"
     assert len(bbls) == len(fun.bbls)
     fun.bbls = bbls
 
@@ -576,6 +579,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
         else:
             arguments = TranslateTypeList(wasm_fun.func_type.args)
         returns = TranslateTypeList(wasm_fun.func_type.rets)
+        assert len(returns) <= 1
         unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
 
     for wasm_fun in mod.functions:
