@@ -252,24 +252,24 @@ WASM_ALU1_TO_CWERG = {
 }
 
 WASM_ALU_TO_CWERG = {
-    "xor": (o.XOR, False),
-    "and": (o.AND, False),
-    "or": (o.OR, False),
+    "xor": o.XOR,
+    "and": o.AND,
+    "or": o.OR,
 
-    "shl": (o.SHL, True),
-    "shr_u": (o.SHR, True),
-    "shr_s": (o.SHR, True),
-#    "rotl": (o.ROTL, True),
+    "shl": o.SHL,
+    "shr_u": o.SHR,
+    "shr_s": o.SHR,
+#    "rotl": o.ROTL,
     #
-    "sub": (o.SUB, False),
-    "add": (o.ADD, False),
-    "mul": (o.MUL, False),
-    "div": (o.DIV, False),
-    "div_s": (o.DIV, False),
-    "div_u": (o.DIV, False),
-    "rem": (o.REM, False),
-    "rem_s": (o.REM, False),
-    "rem_u": (o.REM, False),
+    "sub": o.SUB,
+    "add": o.ADD,
+    "mul": o.MUL,
+    "div": o.DIV,
+    "div_s": o.DIV,
+    "div_u": o.DIV,
+    "rem": o.REM,
+    "rem_s": o.REM,
+    "rem_u": o.REM,
     #
 }
 
@@ -410,8 +410,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     bbls[-1].AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
     # print ()
-    # print (fun.name)
-    if fun.name in ["$fun_9", "$fun_11", "$fun_12"]: return
+    # print (fun.name, len(wasm_fun.impl.expr.instructions))
 
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
@@ -461,9 +460,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op2 = op_stack.pop(-1)
                 op1 = op_stack.pop(-1)
                 dst = GetOpReg(op1.kind, len(op_stack))
-                alu, swap = WASM_ALU_TO_CWERG[opc.basename]
-                #if swap:
-                #    op1, op2 = op2, op1
+                alu = WASM_ALU_TO_CWERG[opc.basename]
                 if wasm_opc.FLAGS.UNSIGNED in opc.flags:
                     tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
                     tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
