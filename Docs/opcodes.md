@@ -247,10 +247,10 @@ Cast between regs of same size. Bits will be re-interpreted but do not change. T
 #### [34] mov *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Move between registers. While a mov can be emulated via a `zero add`, having a dedicated instruction make some optimizations easier to implement when combined with a canonicalization.
 
-#### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ANY]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 Some day cmp1/cmp2 may be of a different type.
 
-#### [36] cmplt *dst* <sub>[REG:ADDR_NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [36] cmplt *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ADDR_NUM]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 Some day cmp1/cmp2 may be of a different type.
 
 ## Address Arithmetic
@@ -290,6 +290,12 @@ Store to memory base with offset. RAM[base + offset] := src
 
 #### [4a] st.stk *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
 Store to stack base with offset. RAM[base + offset] := src
+
+#### [60] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Compute the sqrt of floating point value
+
+#### [61] abs *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Compute the absolute value of floating point value
 
 ## Misc
 

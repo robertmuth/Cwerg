@@ -56,6 +56,9 @@ enum class OPC : uint8_t {
     ST_MEM = 0x49,
     ST_STK = 0x4a,
 
+    SQRT = 0x60,
+    ABS = 0x61,
+
     NOP = 0xf1,
     NOP1 = 0xf2,
 

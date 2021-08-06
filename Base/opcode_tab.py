@@ -541,7 +541,7 @@ SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
 # should we rather use a funnel shift?
 # ROTL = Opcode(0x1d, "rotl", OPC_KIND.ALU,
 #               [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-#               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+#               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.TBD,
 #               "Rotation Left")
 
 ############################################################
@@ -651,7 +651,7 @@ MOV = Opcode(0x34, "mov", OPC_KIND.MOV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
 CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST,
                 OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-               [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
+               [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ANY,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
                "Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 "
@@ -661,7 +661,7 @@ CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
 CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST,
                 OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-               [TC.ADDR_NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
+               [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ADDR_NUM,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
                "Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 "
@@ -731,11 +731,11 @@ ST_STK = Opcode(0x4a, "st.stk", OPC_KIND.ST,
 ############################################################
 # FLOAT ALU OPERAND: 0x70, 0x80
 SQRT = Opcode(0x60, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-              "TBD")
+              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+              "Compute the sqrt of floating point value")
 ABS = Opcode(0x61, "abs", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-             [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-             "TBD")
+             [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+             "Compute the absolute value of floating point value")
 SIGN = Opcode(0x62, "sign", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
               "TBD")

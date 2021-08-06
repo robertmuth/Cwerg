@@ -17,6 +17,9 @@ from Base import sanity
 ZERO = ir.Const(o.DK.U32, 0)
 ONE = ir.Const(o.DK.U32, 1)
 
+ZERO_S = ir.Const(o.DK.S32, 0)
+ONE_S = ir.Const(o.DK.S32, 1)
+
 PAGE_SIZE = 64 * 1024
 
 WASI_FUNCTIONS = {
@@ -178,7 +181,7 @@ WASM_TYPE_TO_CWERG_TYPE = {
 }
 
 # value:  (br, swap, unsigned)
-WASM_CMP_TO_CWERG_INV = {
+WASM_CMP_TO_CWERG_CBR_INV = {
     "eq": (o.BNE, False, False),
     "ne": (o.BEQ, False, False),
     #
@@ -200,7 +203,7 @@ WASM_CMP_TO_CWERG_INV = {
 }
 
 # value:  (br, swap, unsigned)
-WASM_CMP_TO_CWERG = {
+WASM_CMP_TO_CWERG_CBR = {
     "eq": (o.BEQ, False, False),
     "ne": (o.BNE, False, False),
     #
@@ -221,25 +224,69 @@ WASM_CMP_TO_CWERG = {
     "ge_s": (o.BLE, True, False),
 }
 
-WASM_ALU_TO_CWERG = {
-    "and": o.AND,
-    "shl": o.SHL,
-    "shr_u": o.SHR,
+# value: (cmp, swap_op, swap_res, unsigned)
+WASM_CMP_TO_CWERG_CMP = {
+    "eq": (o.CMPEQ, False, False, False),
+    "ne": (o.CMPEQ, False, True, False),
     #
-    "sub": o.SUB,
-    "add": o.ADD,
-    "mul": o.MUL,
-    "div": o.DIV,
-    "div_s": o.DIV,
-    "div_u": o.DIV,
-    "rem": o.REM,
-    "rem_s": o.REM,
-    "rem_u": o.REM,
+    "lt": (o.CMPLT, False, False, False),
+    "lt_u": (o.CMPLT, False, False, True),
+    "lt_s": (o.CMPLT, False, False, False),
+    #
+    "le": (o.CMPLT, True, True, False),
+    "le_u": (o.CMPLT, True, True, True),
+    "le_s": (o.CMPLT, True, True, False),
+    #
+    "gt": (o.CMPLT, True, False, False),
+    "gt_u": (o.CMPLT, True, False, True),
+    "gt_s": (o.CMPLT, True, False, False),
+    #
+    "ge": (o.CMPLT, False, True, False),
+    "ge_u": (o.CMPLT, False, True, True),
+    "ge_s": (o.CMPLT, False, True, False),
+}
+
+WASM_ALU1_TO_CWERG = {
+    "sqrt": o.SQRT,
+    "abs": o.ABS,
+}
+
+WASM_ALU_TO_CWERG = {
+    "xor": (o.XOR, False),
+    "and": (o.AND, False),
+    "or": (o.OR, False),
+
+    "shl": (o.SHL, True),
+    "shr_u": (o.SHR, True),
+    "shr_s": (o.SHR, True),
+#    "rotl": (o.ROTL, True),
+    #
+    "sub": (o.SUB, False),
+    "add": (o.ADD, False),
+    "mul": (o.MUL, False),
+    "div": (o.DIV, False),
+    "div_s": (o.DIV, False),
+    "div_u": (o.DIV, False),
+    "rem": (o.REM, False),
+    "rem_s": (o.REM, False),
+    "rem_u": (o.REM, False),
     #
 }
 
 WASM_CONV_TO_CWERG = {
-    'i32.wrap_i64': o.CONV,
+    #
+    "f64.convert_i32_u": (o.CONV, True),
+    "f32.convert_i32_u": (o.CONV, True),
+    "i64.extend_i32_u": (o.CONV, True),
+    #
+    "i32.wrap_i64": (o.CONV, False),
+    "f64.convert_i32_s": (o.CONV, False),
+    "f32.convert_i32_s": (o.CONV, False),
+    "i32.trunc_f64_s": (o.CONV, False),
+    "i64.trunc_f64_s": (o.CONV, False),
+    "i32.trunc_f32_s": (o.CONV, False),
+    "i64.trunc_f32_s": (o.CONV, False),
+    "f64.promote_f32": (o.CONV, False),
 }
 
 
@@ -254,7 +301,7 @@ def MakeBranch(pred: wasm_opc.Opcode, op_stack, inverse):
             # std two op cmp
             op2 = op_stack.pop(-1)
             op1 = op_stack.pop(-1)
-            tab = WASM_CMP_TO_CWERG_INV if inverse else WASM_CMP_TO_CWERG
+            tab = WASM_CMP_TO_CWERG_CBR_INV if inverse else WASM_CMP_TO_CWERG_CBR
             br, swap, unsigned = tab[pred.basename]
             if swap:
                 op1, op2 = op2, op1
@@ -263,6 +310,25 @@ def MakeBranch(pred: wasm_opc.Opcode, op_stack, inverse):
         op1 = op_stack.pop(-1)
         op2 = ir.Const(op1.kind, 0)
         return o.BEQ if inverse else o.BNE, op1, op2, False
+
+
+def MakeCompare(opc: wasm_opc.Opcode, op_stack):
+    if wasm_opc.FLAGS.UNARY in opc.flags:
+        # eqz
+        op1 = op_stack.pop(-1)
+        op2 = ir.Const(op1.kind, 0)
+        return o.CMPEQ, ONE_S, ZERO_S, op1, op2, False
+
+    cmp, swap_op, swap_res, unsigned = WASM_CMP_TO_CWERG_CMP[opc.basename]
+    op2 = op_stack.pop(-1)
+    op1 = op_stack.pop(-1)
+    if swap_op:
+        op1, op2 = op2, op1
+    res1 = ONE_S
+    res2 = ZERO_S
+    if swap_res:
+        res1, res2 = res2, res1
+    return cmp, res1, res2, op1, op2, unsigned
 
 
 @dataclasses.dataclass
@@ -289,7 +355,7 @@ def MakeBlock(no: int, opc, args, fun) -> Block:
 
 
 def GetTargetBbl(block_stack: typing.List[Block], offset: wasm.LabelIdx):
-    block = block_stack[-offset -1]
+    block = block_stack[-offset - 1]
     if block.opcode is wasm_opc.LOOP:
         return block.start_bbl
     else:
@@ -345,9 +411,12 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
 
     # print ()
     # print (fun.name)
+    if fun.name in ["$fun_9", "$fun_11", "$fun_12"]: return
+
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
         args = wasm_ins.args
+        op_stack_size_before = len(op_stack)
         # print (f"@@ {opc.name}", args, len(op_stack))
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
@@ -383,36 +452,53 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             var_mem = unit.GetMem(f"global_vars_{var_index}")
             bbls[-1].AddIns(ir.Ins(o.ST_MEM, [var_mem, ZERO, op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
-            op_stack_size = len(op_stack)
             if wasm_opc.FLAGS.UNARY in opc.flags:
                 op = op_stack.pop(-1)
                 dst = GetOpReg(op.kind, len(op_stack))
-                assert False
+                bbls[-1].AddIns(ir.Ins(WASM_ALU1_TO_CWERG[opc.basename], [dst, op]))
+                op_stack.append(dst)
             else:
                 op2 = op_stack.pop(-1)
                 op1 = op_stack.pop(-1)
                 dst = GetOpReg(op1.kind, len(op_stack))
+                alu, swap = WASM_ALU_TO_CWERG[opc.basename]
+                #if swap:
+                #    op1, op2 = op2, op1
                 if wasm_opc.FLAGS.UNSIGNED in opc.flags:
-                    tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size + 1)
-                    tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size + 2)
+                    tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
+                    tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
                     bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
                     bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
-                    bbls[-1].AddIns(ir.Ins(WASM_ALU_TO_CWERG[opc.basename], [tmp1, tmp1, tmp2]))
+                    bbls[-1].AddIns(ir.Ins(alu, [tmp1, tmp1, tmp2]))
                     bbls[-1].AddIns(ir.Ins(o.CONV, [dst, tmp1]))
                 else:
-                    bbls[-1].AddIns(ir.Ins(WASM_ALU_TO_CWERG[opc.basename], [dst, op1, op2]))
+                    bbls[-1].AddIns(ir.Ins(alu, [dst, op1, op2]))
                 op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CONV:
             op = op_stack.pop(-1)
             dst = GetOpReg(op.kind, len(op_stack))
-            bbls[-1].AddIns(ir.Ins(WASM_CONV_TO_CWERG[opc.name], [dst, op]))
+            conv, unsigned = WASM_CONV_TO_CWERG[opc.name]
+            if unsigned:
+                tmp = GetOpReg(ToUnsigned(op.kind), op_stack_size_before + 1)
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp, op]))
+                op = tmp
+            bbls[-1].AddIns(ir.Ins(conv, [dst, op]))
             op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CMP:
             # this always works because of the sentinel: "end"
             succ = wasm_fun.impl.expr.instructions[n + 1]
-            assert succ.opcode in (wasm_opc.IF, wasm_opc.BR_IF, wasm_opc.SELECT), (
-                f"{wasm_ins} {succ}")
-            # push the can down the road
+            if succ.opcode not in {wasm_opc.IF, wasm_opc.BR_IF, wasm_opc.SELECT}:
+                cmp, res1, res2, op1, op2, unsigned = MakeCompare(opc, op_stack)
+                if unsigned:
+                    tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
+                    tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
+                    bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
+                    bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
+                    op1 = tmp1
+                    op2 = tmp2
+                dst = GetOpReg(o.DK.S32, len(op_stack))
+                bbls[-1].AddIns(ir.Ins(cmp, [dst, res1, res2, op1, op2]))
+                op_stack.append(dst)
         elif opc is wasm_opc.LOOP or opc is wasm_opc.BLOCK:
             block_stack.append(MakeBlock(bbl_count, opc, args, fun))
             bbl_count += 1
@@ -424,7 +510,13 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             # this always works because the stack cannot be empty at this point
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
             br, op1, op2, unsigned = MakeBranch(pred, op_stack, True)
-            assert not unsigned
+            if unsigned:
+                tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
+                tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
+                op1 = tmp1
+                op2 = tmp2
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
@@ -488,11 +580,16 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             assert isinstance(args[0], wasm.LabelIdx)
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
             br, op1, op2, unsigned = MakeBranch(pred, op_stack, False)
-            assert not unsigned
+            if unsigned:
+                tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
+                tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
+                op1 = tmp1
+                op2 = tmp2
             target = GetTargetBbl(block_stack, args[0])
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, target]))
         elif opc is wasm_opc.SELECT:
-            op_stack_size = len(op_stack)
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
             br, op1, op2, unsigned = MakeBranch(pred, op_stack, False)
             val_f = op_stack.pop(-1)
@@ -504,8 +601,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls.append(fun.AddBbl(ir.Bbl(f"select_{bbl_count}")))
             bbl_count += 1
             if unsigned:
-                tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size + 1)
-                tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size + 2)
+                tmp1 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 1)
+                tmp2 = GetOpReg(ToUnsigned(op1.kind), op_stack_size_before + 2)
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
                 op1 = tmp1

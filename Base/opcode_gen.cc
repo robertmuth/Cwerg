@@ -718,12 +718,12 @@ const Opcode GlobalOpcodes[256] = {
      {  // 35 cmpeq
        {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
        OPC_KIND::CMP, OPC_GENUS::BASE, 5, 1,
-       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
+       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::ANY, TC::SAME_AS_PREV}, 
        "cmpeq", OA::COMMUTATIVE },
      {  // 36 cmplt
        {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
        OPC_KIND::CMP, OPC_GENUS::BASE, 5, 1,
-       {TC::ADDR_NUM, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
+       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::ADDR_NUM, TC::SAME_AS_PREV}, 
        "cmplt", 0 },
      {  // 37 
        {}, 
@@ -930,16 +930,16 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
        {}, 
        "", 0 },
-     {  // 60 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 61 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 60 sqrt
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "sqrt", 0 },
+     {  // 61 abs
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "abs", 0 },
      {  // 62 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,

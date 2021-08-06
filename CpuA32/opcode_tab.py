@@ -111,6 +111,8 @@ def EncodeRotatedImm(x) -> Optional[int]:
 
      return None if that os is not possible
      """
+    if x < 0:
+        x += (1 << 32)
     assert x >= 0
     x += x << 32  # duplicate the bit pattern
     for r in range(16):

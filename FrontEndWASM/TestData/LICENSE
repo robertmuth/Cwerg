@@ -1,0 +1,11 @@
+Licenses for specific test files
+
+
+i32.wast
+derived from: https://github.com/WebAssembly/spec
+license: Apache License 2.0
+
+
+echo.wasm
+derived from: https://github.com/WebAssembly/wasm-jit-prototype
+license: https://github.com/WebAssembly/wasm-jit-prototype/blob/master/LICENSE.txt

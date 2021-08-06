@@ -23,9 +23,15 @@ https://mvolkmann.github.io/blog/webassembly/
 
 https://github.com/mbasso/awesome-wasm
 
-https://github.com/WebAssembly/spec
 
 https://rsms.me/wasm-intro
+
+
+Spec
+
+https://github.com/WebAssembly/spec
+
+https://github.com/WebAssembly/design/blob/main/Semantics.md
 
 Runtime (WASI)
 

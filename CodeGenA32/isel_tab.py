@@ -338,6 +338,7 @@ class InsTmpl:
 
     def MakeInsFromTmpl(self, ins: Optional[ir.Ins], ctx: regs.EmitContext) -> arm.Ins:
         out = arm.Ins(self.opcode)
+        #if ins: print (f"{ins} {ins.operands}")
         for n, arg in enumerate(self.args):
             val = _TranslateTmplOpInt(ins, arg, ctx)
             enc = _RAW_ENOCDER.get(self.opcode.fields[n])
@@ -591,53 +592,56 @@ def InitCmp():
                (IMM_CURB.pos_16_bits, IMM_CURB.pos_16_bits)]
     # TODO: cover the floating points ones
     for kind in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
-        cond, inv_cond = arm.PRED.eq, arm.PRED.ne
-        for imm1, imm2 in IMM_1_2:
-            Pattern(o.CMPEQ, [kind] * 5,
-                    [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
-                                 imm1, cond),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
-                                 imm2, inv_cond)],
-                    imm_kind1=imm1, imm_kind2=imm2)
-            Pattern(o.CMPEQ, [kind] * 5,
-                    [InsTmpl("cmp_imm", [PARAM.reg3, PARAM.num4]),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
-                                 imm1, cond),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
-                                 imm2, inv_cond)],
-                    imm_kind1=imm1, imm_kind2=imm2, imm_kind4=IMM_CURB.pos_8_bits_shifted)
+        for kind2 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
+            cond, inv_cond = arm.PRED.eq, arm.PRED.ne
+            for imm1, imm2 in IMM_1_2:
+                Pattern(o.CMPEQ, [kind] * 3 + [kind2] * 2,
+                        [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
+                         InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
+                                     imm1, cond),
+                         InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
+                                     imm2, inv_cond)],
+                        imm_kind1=imm1, imm_kind2=imm2)
+                Pattern(o.CMPEQ, [kind] * 3 + [kind2] * 2,
+                        [InsTmpl("cmp_imm", [PARAM.reg3, PARAM.num4]),
+                         InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
+                                     imm1, cond),
+                         InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
+                                     imm2, inv_cond)],
+                        imm_kind1=imm1, imm_kind2=imm2, imm_kind4=IMM_CURB.pos_8_bits_shifted)
 
-    for kind in [o.DK.U32, o.DK.A32, o.DK.S32]:
-        cond, inv_cond = (arm.PRED.lt, arm.PRED.ge) if kind == o.DK.S32 else (
-            arm.PRED.cc, arm.PRED.cs)
-        for imm1, imm2 in IMM_1_2:
-            Pattern(o.CMPLT, [kind] * 5,
-                    [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
-                                 imm1, cond),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
-                                 imm2, inv_cond)],
-                    imm_kind1=imm1, imm_kind2=imm2)
-            Pattern(o.CMPLT, [kind] * 5,
-                    [InsTmpl("cmp_imm", [PARAM.reg3, PARAM.num4]),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
-                                 imm1, cond),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
-                                 imm2, inv_cond)],
-                    imm_kind1=imm1, imm_kind2=imm2, imm_kind4=IMM_CURB.pos_8_bits_shifted)
+    for kind in [o.DK.U32, o.DK.A32, o.DK.S32, o.DK.C32]:
+        for kind2 in [o.DK.U32, o.DK.S32, o.DK.A32]:
+            cond, inv_cond = (arm.PRED.lt, arm.PRED.ge) if kind2 == o.DK.S32 else (
+                arm.PRED.cc, arm.PRED.cs)
+            for imm1, imm2 in IMM_1_2:
+                Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
+                        [InsTmpl("cmp_regimm", [PARAM.reg3, PARAM.reg4, arm.SHIFT.lsl, 0]),
+                         InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
+                                     imm1, cond),
+                         InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
+                                     imm2, inv_cond)],
+                        imm_kind1=imm1, imm_kind2=imm2)
+                Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
+                        [InsTmpl("cmp_imm", [PARAM.reg3, PARAM.num4]),
+                         InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
+                                     imm1, cond),
+                         InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
+                                     imm2, inv_cond)],
+                        imm_kind1=imm1, imm_kind2=imm2, imm_kind4=IMM_CURB.pos_8_bits_shifted)
 
-    for kind in [o.DK.U32, o.DK.A32, o.DK.S32]:
-        cond, inv_cond = (arm.PRED.gt, arm.PRED.le) if kind == o.DK.S32 else (
-            arm.PRED.hi, arm.PRED.ls)
-        for imm1, imm2 in IMM_1_2:
-            Pattern(o.CMPLT, [kind] * 5,
-                    [InsTmpl("cmp_imm", [PARAM.reg4, PARAM.num3]),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
-                                 imm1, cond),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
-                                 imm2, inv_cond)],
-                    imm_kind1=imm1, imm_kind2=imm2, imm_kind3=IMM_CURB.pos_8_bits_shifted)
+    for kind in [o.DK.U32, o.DK.A32, o.DK.S32, o.DK.C32]:
+        for kind2 in [o.DK.U32, o.DK.S32, o.DK.A32]:
+            cond, inv_cond = (arm.PRED.gt, arm.PRED.le) if kind2 == o.DK.S32 else (
+                arm.PRED.hi, arm.PRED.ls)
+            for imm1, imm2 in IMM_1_2:
+                Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
+                        [InsTmpl("cmp_imm", [PARAM.reg4, PARAM.num3]),
+                         InsTmplMove(PARAM.reg0, PARAM.reg1 if imm1 == IMM_CURB.invalid else PARAM.num1,
+                                     imm1, cond),
+                         InsTmplMove(PARAM.reg0, PARAM.reg2 if imm2 == IMM_CURB.invalid else PARAM.num2,
+                                     imm2, inv_cond)],
+                        imm_kind1=imm1, imm_kind2=imm2, imm_kind3=IMM_CURB.pos_8_bits_shifted)
 
 
 def InitAlu():
