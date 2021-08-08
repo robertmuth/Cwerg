@@ -1,21 +1,12 @@
 # Cwerg TODO List
 
-## High Priority
 
-* define a binary representation of the IR
-* legalize long parameter list
-* implement LLVM or WASM or improved C frontend
+Also check the issue tracker: https://github.com/robertmuth/Cwerg/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc
 
-## Medium Priority
+## Tasks
 
-* add file/line number tracking mechanism to IR
 * augment IR with opcodes for shared memory multiprocessing (ld_l, st_v, 
-  atomic operations, etc.)
-* refine the semantics of some of the opcodes ( mul/div/mod/conv overflow + see
-  comments interleaved with opcode description)
-
-## Low Priority
-
+  atomic operations, cas, etc.)
 * explore adding SIMD or vector data types
 * explore ways to have inline assembly mixed with the IR
 * maybe implement X64-64 backend
