@@ -388,7 +388,7 @@ class Code:
         return f"locals: {self.locals_list}\nexpr:\n{self.expr}"
 
     @classmethod
-    def read(cls, rr: typing.BinaryIO):q
+    def read(cls, rr: typing.BinaryIO):
         r = io.BytesIO(read_bytes(rr))
         local_list = read_vec(r, Locals)
         expr = Expression.read(r)

@@ -337,25 +337,25 @@ class Block:
     no: int
     start_bbl: ir.Bbl
     end_bbl: ir.Bbl
-    reg: typing.Optional[ir.Reg]  # for results
     num_results: int
+    op_stack: typing.List[typing.Any]
     else_bbl: typing.Optional[ir.Bbl]
 
 
-def MakeBlock(no: int, opc, args, fun) -> Block:
+def MakeBlock(no: int, opc, args, fun, op_stack) -> Block:
     prefix = opc.name
-    num_result = 0
-    reg = None
-    if args[0]:
-        reg = fun.AddReg(ir.Reg(f"${prefix}_result_{no}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
-    if opc is wasm_opc.IF and args[0]:
-        num_result = 1
     start_bbl = fun.AddBbl(ir.Bbl(f"{prefix}_{no}"))
     else_bbl = None
+    num_result = 0
     if opc is wasm_opc.IF:
         else_bbl = fun.AddBbl(ir.Bbl(f"else_{no}"))
+        if args[0] is not None:
+            num_result = 1
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
-    return Block(opc, no, start_bbl, next_bbl, reg, num_result, else_bbl)
+    if op_stack is not None:
+        op_stack = op_stack[:]
+    return Block(opc, no, start_bbl, next_bbl, num_result, op_stack,
+                 else_bbl)
 
 
 def GetTargetBbl(block_stack: typing.List[Block], offset: wasm.LabelIdx):
@@ -381,6 +381,10 @@ def ToUnsigned(dk: o.DK):
 
 def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 fun: ir.Fun, global_mem_base, addr_type):
+    # op_stack contains one these three:
+    # * a const
+    # * a reg produced by GetOpReg (it may only occur a the position encoding in its name
+    # * a reg produced by GetLocalReg
     op_stack: typing.List[typing.Union[ir.Reg, ir.Const]] = []
     block_stack: typing.List[Block] = []
     bbls: typing.List[ir.Bbl] = []
@@ -503,7 +507,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 bbls[-1].AddIns(ir.Ins(cmp, [dst, res1, res2, op1, op2]))
                 op_stack.append(dst)
         elif opc is wasm_opc.LOOP or opc is wasm_opc.BLOCK:
-            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
+            block_stack.append(MakeBlock(bbl_count, opc, args, fun, None))
             bbl_count += 1
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.IF:
@@ -518,27 +522,34 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
                 op1 = tmp1
                 op2 = tmp2
-            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
+            block_stack.append(MakeBlock(bbl_count, opc, args, fun, op_stack))
             bbl_count += 1
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
             block = block_stack[-1]
             assert block.opcode is wasm_opc.IF
-            if block.reg:
+            for i in range(block.num_results):
                 op = op_stack.pop(-1)
-                bbls[-1].AddIns(ir.Ins(o.MOV, [block.reg, op]))
+                dst = GetOpReg(op.kind, len(op_stack))
+                if dst != op:
+                    bbls[-1].AddIns(ir.Ins(o.MOV, [dst, op]))
             bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
+            op_stack = block.op_stack
             assert block.else_bbl is not None
             bbls.append(block.else_bbl)
             block.else_bbl = None
         elif opc is wasm_opc.END:
             if block_stack:
                 block = block_stack.pop(-1)
-                if block.reg:
-                    op = op_stack.pop(-1)
-                    bbls[-1].AddIns(ir.Ins(o.MOV, [block.reg, op]))
-                    op_stack.append(block.reg)
+                if block.op_stack is not None:
+                    for i in range(block.num_results):
+                        pos = len(op_stack) - i -1
+                        op = op_stack[pos]
+                        dst = GetOpReg(op.kind, pos)
+                        if dst != op:
+                            bbls[-1].AddIns(ir.Ins(o.MOV, [dst, op]))
+                            op_stack[pos] = dst
                 if block.else_bbl:
                     bbls.append(block.else_bbl)
                 bbls.append(block.end_bbl)
