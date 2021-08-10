@@ -193,7 +193,7 @@ def ReadArg(r: typing.BinaryIO, at: ARG_TYPE) -> typing.Any:
         return read_vec(r, LabelIdx)
     elif at is ARG_TYPE.BLOCK_TYPE:
         block_type = read_leb128(r, True)
-        if block_type > 0:
+        if block_type >= 0:
             return TypeIdx(block_type)
         block_type += 0x80
         if block_type == 0x40:
@@ -388,7 +388,7 @@ class Code:
         return f"locals: {self.locals_list}\nexpr:\n{self.expr}"
 
     @classmethod
-    def read(cls, rr: typing.BinaryIO):
+    def read(cls, rr: typing.BinaryIO):q
         r = io.BytesIO(read_bytes(rr))
         local_list = read_vec(r, Locals)
         expr = Expression.read(r)

@@ -338,20 +338,24 @@ class Block:
     start_bbl: ir.Bbl
     end_bbl: ir.Bbl
     reg: typing.Optional[ir.Reg]  # for results
-    else_bbl: typing.Optional[ir.Bbl] = None
+    num_results: int
+    else_bbl: typing.Optional[ir.Bbl]
 
 
 def MakeBlock(no: int, opc, args, fun) -> Block:
     prefix = opc.name
+    num_result = 0
     reg = None
     if args[0]:
         reg = fun.AddReg(ir.Reg(f"${prefix}_result_{no}", WASM_TYPE_TO_CWERG_TYPE[args[0]]))
+    if opc is wasm_opc.IF and args[0]:
+        num_result = 1
     start_bbl = fun.AddBbl(ir.Bbl(f"{prefix}_{no}"))
     else_bbl = None
     if opc is wasm_opc.IF:
         else_bbl = fun.AddBbl(ir.Bbl(f"else_{no}"))
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
-    return Block(opc, no, start_bbl, next_bbl, reg, else_bbl)
+    return Block(opc, no, start_bbl, next_bbl, reg, num_result, else_bbl)
 
 
 def GetTargetBbl(block_stack: typing.List[Block], offset: wasm.LabelIdx):
@@ -420,6 +424,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
             op_stack.append(ir.Const(OPC_TYPE_TO_CWERG_TYPE[opc.op_type], args[0]))
+        elif opc is wasm_opc.NOP:
+            pass
         elif opc.kind is wasm_opc.OPC_KIND.STORE:
             val = op_stack.pop(-1)
             offset = op_stack.pop(-1)
@@ -501,8 +507,6 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbl_count += 1
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.IF:
-            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
-            bbl_count += 1
             # note we do set the new bbl right away because we add some instructions to the old one
             # this always works because the stack cannot be empty at this point
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
@@ -514,6 +518,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
                 op1 = tmp1
                 op2 = tmp2
+            block_stack.append(MakeBlock(bbl_count, opc, args, fun))
+            bbl_count += 1
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
