@@ -111,7 +111,7 @@ def _CheckIns(ins, fun, unit):
             assert ot is o.OP_KIND.JTB
             assert op.name in fun.jtb_syms
         elif isinstance(op, ir.Const):
-            assert ot is o.OP_KIND.CONST or ot is o.OP_KIND.REG_OR_CONST
+            assert ot is o.OP_KIND.CONST or ot is o.OP_KIND.REG_OR_CONST, f"got const wanted {ot} for {ins}"
         else:
             raise ir.ParseError(f"cannot read op type: {op} {ot}")
 

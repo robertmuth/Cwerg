@@ -401,11 +401,12 @@ class Fun:
             self.AddReg(reg)
         return reg
 
-    def AddJtb(self, jtb: Jtb):
+    def AddJtb(self, jtb: Jtb) -> Jtb:
         if jtb.name in self.jtb_syms:
             raise ParseError(f"duplicate Jtb {jtb.name}")
         self.jtb_syms[jtb.name] = jtb
         self.jtbs.append(jtb)
+        return jtb
 
     def GetJbl(self, name: str) -> Jtb:
         return self.jtb_syms[name]

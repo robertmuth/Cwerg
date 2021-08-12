@@ -523,7 +523,7 @@ def ExtractFunctions(sections) -> typing.List[Function]:
 @dataclasses.dataclass(frozen=True)
 class Module:
     version: typing.List[int]
-    sections: typing.Dict[SECTION_ID, typing.List[Section]]
+    sections: typing.Dict[SECTION_ID, Section]
     functions: typing.List[Function]
 
     @classmethod
@@ -535,7 +535,7 @@ class Module:
         # if version != [0x01, 0x00, 0x00, 0x00]:
         #    raise Exception(f'unknown binary version: {version}')
 
-        sections: typing.Dict[SECTION_ID, typing.List[Section]] = {}
+        sections: typing.Dict[SECTION_ID, Section] = {}
 
         while True:
             id_byte = r.read(1)
