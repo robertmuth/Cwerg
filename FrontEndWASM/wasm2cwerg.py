@@ -355,6 +355,7 @@ class Block:
     else_bbl: typing.Optional[ir.Bbl]
 
     def FinalizeResultsPop(self, op_stack, bbl: ir.Bbl, fun: ir.Fun):
+        #print (f"@@ Finalize {fun.name}:  {self.num_results}")
         dst_pos = self.stack_start + self.num_results
         for i in range(self.num_results):
             dst_pos -= 1
@@ -371,9 +372,9 @@ def MakeBlock(no: int, opc, args, fun, op_stack) -> Block:
     num_result = 0
     if opc is wasm_opc.IF:
         else_bbl = fun.AddBbl(ir.Bbl(f"else_{no}"))
-        if args[0] is not None:
-            assert isinstance(args[0], wasm.VAL_TYPE), f"{type(args[0])}"
-            num_result = 1
+    if args[0] is not None:
+        assert isinstance(args[0], wasm.VAL_TYPE), f"{type(args[0])}"
+        num_result = 1
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
     return Block(opc, no, start_bbl, next_bbl, num_result, len(op_stack),
                  else_bbl)
@@ -385,6 +386,10 @@ def GetTargetBbl(block_stack: typing.List[Block], offset: wasm.LabelIdx):
         return block.start_bbl
     else:
         return block.end_bbl
+
+
+def GetTargetBlock(block_stack: typing.List[Block], offset: wasm.LabelIdx):
+    return block_stack[-offset - 1]
 
 
 def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
@@ -590,7 +595,11 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.RET, []))
         elif opc is wasm_opc.BR:
             assert isinstance(args[0], wasm.LabelIdx)
-            target = GetTargetBbl(block_stack, args[0])
+            block = GetTargetBlock(block_stack, args[0])
+            target = block.start_bbl
+            if block.opcode is not wasm_opc.LOOP:
+                target = block.end_bbl
+                block.FinalizeResultsPop(op_stack, bbls[-1], fun)
             bbls[-1].AddIns(ir.Ins(o.BRA, [target]))
         elif opc is wasm_opc.BR_IF:
             assert isinstance(args[0], wasm.LabelIdx)
@@ -603,7 +612,11 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
                 op1 = tmp1
                 op2 = tmp2
-            target = GetTargetBbl(block_stack, args[0])
+            block = GetTargetBlock(block_stack, args[0])
+            target = block.start_bbl
+            if block.opcode is not wasm_opc.LOOP:
+                target = block.end_bbl
+                block.FinalizeResultsPop(op_stack, bbls[-1], fun)
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, target]))
         elif opc is wasm_opc.SELECT:
             pred = wasm_fun.impl.expr.instructions[n - 1].opcode
