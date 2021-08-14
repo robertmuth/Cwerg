@@ -8,6 +8,7 @@ https://webassembly.github.io/spec/core/syntax/types.html
 """
 
 import logging
+import struct
 import io
 import typing
 import enum
@@ -169,10 +170,12 @@ def ReadArg(r: typing.BinaryIO, at: ARG_TYPE) -> typing.Any:
         return read_leb128(r, True)
     elif at is ARG_TYPE.BYTE1_ZERO:
         return ord(r.read(1))
-    elif at is ARG_TYPE.BYTE4:
-        return r.read(4)
-    elif at is ARG_TYPE.BYTE8:
-        return r.read(8)
+    elif at is ARG_TYPE.FLOAT:
+        v = r.read(4)
+        return struct.unpack("<f", v)[0]
+    elif at is ARG_TYPE.DOUBLE:
+        v = r.read(8)
+        return struct.unpack("<d", v)[0]
     elif at is ARG_TYPE.LOCAL_IDX:
         return LocalIdx.read(r)
     elif at is ARG_TYPE.GLOBAL_IDX:

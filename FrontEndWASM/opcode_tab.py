@@ -14,8 +14,8 @@ class ARG_TYPE(enum.IntEnum):
     INVALID = 0
     UINT = 1
     BYTE1_ZERO = 2
-    BYTE4 = 3
-    BYTE8 = 4
+    FLOAT = 3
+    DOUBLE = 4
     LOCAL_IDX = 5
     GLOBAL_IDX = 6
     TABLE_IDX = 7
@@ -27,6 +27,7 @@ class ARG_TYPE(enum.IntEnum):
     VEC_LABEL_IDX = 13
     BLOCK_TYPE = 14
     SINT = 15
+
 
 
 @enum.unique
@@ -201,8 +202,8 @@ OpMem(0x0bfc, 'memory.fill', ARG_TYPE.BYTE1_ZERO)
 # https://stackoverflow.com/questions/47961537/webassembly-f32-const-nan0x200000-means-0x7fa00000-or-0x7fe00000
 I32_CONST = OpConst(0x41, 'i32.const', ARG_TYPE.SINT)
 I64_CONST = OpConst(0x42, 'i64.const', ARG_TYPE.SINT)
-F32_CONST = OpConst(0x43, 'f32.const', ARG_TYPE.BYTE4)
-F64_CONST = OpConst(0x44, 'f64.const', ARG_TYPE.BYTE8)
+F32_CONST = OpConst(0x43, 'f32.const', ARG_TYPE.FLOAT)
+F64_CONST = OpConst(0x44, 'f64.const', ARG_TYPE.DOUBLE)
 
 OpCmp(0x45, 'i32.eqz', FLAGS.UNARY)
 OpCmp(0x50, 'i64.eqz', FLAGS.UNARY)
