@@ -28,9 +28,7 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::POPARG ||   // will be rewritten later
-         opc == OPC::PUSHARG ||  // ditto
-         opc == OPC::RET ||      // handled via special epilog code
+  retur opc == OPC::RET ||      // handled via special epilog code
          opc == OPC::NOP1;       // pseudo instruction
 }
 
@@ -309,6 +307,9 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
 
+  FunPushargConversion(fun);
+  FunPopargConversion(fun);
+
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A32, DK::S32, &inss);
@@ -376,9 +377,6 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
           << "############################################################\n";
   }
 
-  FunPushargConversion(fun);
-  FunPopargConversion(fun);
-  //
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);

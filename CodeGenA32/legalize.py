@@ -18,14 +18,10 @@ from CodeGenA32 import regs
 _DUMMY_A32 = ir.Reg("dummy", o.DK.A32)
 _ZERO_OFFSET = ir.Const(o.DK.U32, 0)
 
-_OPCODES_IGNORED_BY_IMMEDIATE_REWRITER = isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING | {
-    o.POPARG, o.PUSHARG,  # will be rewritten later and not expanded
-}
-
 
 def _InsRewriteOutOfBoundsImmediates(
         ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-    if ins.opcode in _OPCODES_IGNORED_BY_IMMEDIATE_REWRITER:
+    if ins.opcode in isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING:
         return None
     inss = []
     mismatches = isel_tab.FindtImmediateMismatchesInBestMatchPattern(ins, True)
@@ -250,6 +246,13 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     fun.cpu_live_out = regs.GetCpuRegsForSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
+    # replaces pusharg and poparg instructions and replace them with moves
+    # The moves will use pre-allocated regs (the once use for argument/result passing)
+    # We eliminate pusharg/poparg early because out immediate elimination code may
+    # introduce addtional instructions which make it difficult to perserve the invariant
+    # that all poparg/pusharg related to a call be adjecent.
+    regs.FunPushargConversion(fun)
+    regs.FunPopargConversion(fun)
 
     # ARM has no mod instruction
     lowering.FunEliminateRem(fun)
@@ -321,8 +324,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # replaces pusharg and poparg instructions and replace them with moves
     # The moves will use pre-allocated regs (the once use for argument/result paassing)
-    regs.FunPushargConversion(fun)
-    regs.FunPopargConversion(fun)
+    # regs.FunPushargConversion(fun)
+    # regs.FunPopargConversion(fun)
 
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)

@@ -132,6 +132,8 @@ def InsEliminateImmediate(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
     registers like the sp.
     Hence we are careful to use and update ins.orig_operand
     """
+    # support of PUSHARG would require additional work because they need to stay consecutive
+    assert ins.opcode is not o.PUSHARG
     const = ins.operands[pos]
     assert isinstance(const, ir.Const)
     reg = fun.GetScratchReg(const.kind, "imm", True)
@@ -342,4 +344,8 @@ def _InsMoveImmediatesToMemory(
 
 
 def FunMoveImmediatesToMemory(fun: ir.Fun, unit: ir.Unit, kind: o.DK) -> int:
+    """Move immediates to memory wholesale. E.g. all F32 or all F64
+
+    It is not clear if this is a great idea
+    """
     return ir.FunGenericRewrite(fun, _InsMoveImmediatesToMemory, unit=unit, kind=kind)
