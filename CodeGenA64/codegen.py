@@ -40,7 +40,7 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
 
 def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
     for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
+        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
         legalize.PhaseGlobalRegAlloc(fun, opt_stats, fout)
         if verbose:
             legalize.DumpFun("after global_reg_alloc", fun)

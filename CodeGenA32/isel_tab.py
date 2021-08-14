@@ -643,6 +643,20 @@ def InitCmp():
                                      imm2, inv_cond)],
                         imm_kind1=imm1, imm_kind2=imm2, imm_kind3=IMM_CURB.pos_8_bits_shifted)
 
+    for kind in [o.DK.U32, o.DK.A32, o.DK.S32, o.DK.C32]:
+        for kind2, cmp in [(o.DK.F32, "vcmpe_f32"), (o.DK.F64, "vcmpe_f64")]:
+            Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("vmrs_APSR_nzcv_fpscr", []),
+                     InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.lt),
+                     InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.pl),
+                    ])
+            Pattern(o.CMPEQ, [kind] * 3 + [kind2] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("vmrs_APSR_nzcv_fpscr", []),
+                     InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.eq),
+                     InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.ne),
+                     ])
 
 def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:

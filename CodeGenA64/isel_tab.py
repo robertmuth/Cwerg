@@ -706,6 +706,25 @@ def InitCmp():
                     [InsTmpl("subs_x_imm", [FIXARG.XZR, PARAM.num3, PARAM.reg4]),
                      InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                     imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
+    for kind in [o.DK.U32, o.DK.S32]:
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("csel_w_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
+                [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                 InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+
+    for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("csel_x_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
 
 def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:
@@ -804,7 +823,7 @@ def InitLoad():
                           (o.DK.U32, "ldr_w"), (o.DK.S32, "ldrsw"),
                           (o.DK.U16, "ldr_h"), (o.DK.S16, "ldrsh_x"),
                           (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x"),
-                          (o.DK.F32, "fldr_s"), (o.DK.F32, "fldr_d")]:
+                          (o.DK.F32, "fldr_s"), (o.DK.F64, "fldr_d")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_x",

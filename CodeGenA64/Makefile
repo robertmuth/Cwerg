@@ -133,6 +133,9 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/queens.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	cat $(STD_LIB) ../TestData/queens.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out

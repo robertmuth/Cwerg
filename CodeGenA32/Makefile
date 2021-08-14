@@ -146,6 +146,10 @@ TEST_MODE = normal
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
 	@echo
+	cat $(STD_LIB) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
+	cat $(STD_LIB) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	diff $@_c.out $@.out
+	@echo
 	cat $(STD_LIB) ../TestData/reg_torture.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
 	cat $(STD_LIB) ../TestData/reg_torture.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	diff $@_c.out $@.out
