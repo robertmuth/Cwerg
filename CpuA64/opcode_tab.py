@@ -344,8 +344,9 @@ class OK(enum.Enum):
     IMM_COND_0_3 = 64
     IMM_FLT_ZERO = 65
     IMM_SHIFTED_5_20_21_22 = 66
+    SHIFT_21_22_TIMES_16 = 67
     #
-    IMM_FLT_13_20 = 67
+    IMM_FLT_13_20 = 68
 
 
 ############################################################
@@ -492,6 +493,7 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.SHIFT_22_23_NO_ROR: FieldInfo([(2, 22)], FK.LIST, names=["lsl", "lsr", "asr"]),
     OK.SHIFT_15_W: FieldInfo([(1, 15)], FK.LIST, names=["uxtw", "sxtw"]),
     OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST, names=["lsl", "sxtx"]),
+    OK.SHIFT_21_22_TIMES_16: FieldInfo([(2, 21)], FK.INT, scale=16),
 }
 
 for ok in OK:
@@ -915,7 +917,7 @@ for ext, w_bit, w_bit2 in [("w", (1, 0, 31), (1, 0, 22)),
            [dst_reg, src1_reg, src2_reg, OK.IMM_10_15], OPC_FLAG(0))
 
     Opcode("movk", ext + "_imm", [w_bit, (3, 3, 29), root100, (7, 5, 23)],
-           [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))
+           [dst_reg, OK.IMM_5_20, OK.SHIFT_21_22_TIMES_16], OPC_FLAG(0))
 
     Opcode("movz", ext + "_imm", [w_bit, (3, 2, 29), root100, (7, 5, 23)],
            [dst_reg, OK.IMM_SHIFTED_5_20_21_22], OPC_FLAG(0))

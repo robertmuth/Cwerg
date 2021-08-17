@@ -93,7 +93,8 @@ enum class OK : uint8_t {
     IMM_COND_0_3 = 64,
     IMM_FLT_ZERO = 65,
     IMM_SHIFTED_5_20_21_22 = 66,
-    IMM_FLT_13_20 = 67,
+    SHIFT_21_22_TIMES_16 = 67,
+    IMM_FLT_13_20 = 68,
 };
 
 enum class MEM_WIDTH : uint8_t {

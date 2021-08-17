@@ -2818,11 +2818,11 @@ const Opcode OpcodeTable[] = {
  
 },
 {"movk_w_imm", 0xff800000, 0x72800000,
- 2, {OK::WREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 3, {OK::WREG_0_4, OK::IMM_5_20, OK::SHIFT_21_22_TIMES_16},
  
 },
 {"movk_x_imm", 0xff800000, 0xf2800000,
- 2, {OK::XREG_0_4, OK::IMM_SHIFTED_5_20_21_22},
+ 3, {OK::XREG_0_4, OK::IMM_5_20, OK::SHIFT_21_22_TIMES_16},
  
 },
 {"movn_w_imm", 0xff800000, 0x12800000,
@@ -4280,7 +4280,10 @@ const FieldInfo FieldInfoTable[] = {
   {  // IMM_SHIFTED_5_20_21_22 = 66
     {{18, 5}}, nullptr,
     DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22, 18, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // IMM_FLT_13_20 = 67
+  {  // SHIFT_21_22_TIMES_16 = 67
+    {{2, 21}}, nullptr,
+    nullptr, nullptr, 2, FK::INT, 16, 0},
+  {  // IMM_FLT_13_20 = 68
     {{8, 13}}, nullptr,
     Decode8BitFlt, Encode8BitFlt, 8, FK::FLT_CUSTOM, 1, 0},
 };
@@ -4880,7 +4883,8 @@ const char* const OK_ToStringMap[] = {
     "IMM_COND_0_3", // 64
     "IMM_FLT_ZERO", // 65
     "IMM_SHIFTED_5_20_21_22", // 66
-    "IMM_FLT_13_20", // 67
+    "SHIFT_21_22_TIMES_16", // 67
+    "IMM_FLT_13_20", // 68
 };
 const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 

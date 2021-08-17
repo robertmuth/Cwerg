@@ -102,9 +102,13 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
     for i, op in enumerate(std_ops):
         op_actual = NO_OP
         if j < len(objdump_ops):
+            if opcode.fields[i] is OK.SHIFT_21_22_TIMES_16 and objdump_ops[j] == "lsl":
+                j += 1
+        if j < len(objdump_ops):
             op_actual = objdump_ops[j]
             if op_actual[0] == "#":
                 op_actual = op_actual[1:]
+
         if op == op_actual:
             j += 1
         elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
@@ -114,12 +118,14 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
             j += 1
         elif op == "lsl" or op == "0":
             pass
+
         elif opcode.fields[i] in {OK.IMM_SHIFTED_5_20_21_22, OK.IMM_SHIFTED_10_21_22}:  # movz etc
             v = int(op_actual, 0)
             if opcode.name == "movn":
                 bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
                 return int(op, 0) ^ v == (1 << bits) - 1
             if objdump_ops[j + 1] != "lsl":
+                print ("@@")
                 return False
             shift = int(objdump_ops[j + 2][1:], 0)
             if v << shift != int(op, 0):
@@ -127,7 +133,7 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
                 return False
             j += 3
         else:
-            print(f"Operand mismatch {opcode.fields[i].name}: {op} vs  {objdump_ops}[{j}]")
+            print(f"@@ Operand mismatch {opcode.fields[i].name}: {op} vs  {objdump_ops}[{j}]")
             return False
 
     return j == len(objdump_ops) or opcode.fields[-1] == OK.IMM_SHIFTED_5_20_21_22
@@ -219,7 +225,10 @@ def HandleAliasMassaging(name, opcode, operands):
 
 
 def MassageOperandsAndCheckName(name, opcode, operands):
-    """Deal with aliases and case were we deviate from std notation"""
+    """Deal with aliases and case were we deviate from std notation
+
+    operands are the incoming operands from the dump
+    """
     if OPC_FLAG.STORE in opcode.classes:
         if OPC_FLAG.ATOMIC_WITH_STATUS in opcode.classes:
             operands.append(operands.pop(1))
