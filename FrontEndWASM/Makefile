@@ -5,10 +5,13 @@ DIR=build
 $(info $(shell mkdir -p $(DIR)))
 
 
-TESTS = fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
+TESTS_32_64 = fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
+TESTS_64 = print_i64_ln.wasm
+# call_indirect.wasm
 
-TEST_32_EXES =  $(TESTS:%.wasm=$(DIR)/%.32.exe)
-TEST_64_EXES =  $(TESTS:%.wasm=$(DIR)/%.64.exe)
+TEST_32_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.32.exe)
+TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.64.exe)
+
 
 tests: $(DIR)/parse_test $(TEST_32_EXES) $(TEST_64_EXES)
 

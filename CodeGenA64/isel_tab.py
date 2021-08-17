@@ -579,8 +579,8 @@ def InitCondBra():
                     imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     for kind in [o.DK.U64, o.DK.A64, o.DK.C64, o.DK.S64]:
-        xlate = _CMP_SIGNED if kind == o.DK.S32 else _CMP_UNSIGNED
-        xlate_inv = _CMP_SIGNED_INV if kind == o.DK.S32 else _CMP_UNSIGNED_INV
+        xlate = _CMP_SIGNED if kind == o.DK.S64 else _CMP_UNSIGNED
+        xlate_inv = _CMP_SIGNED_INV if kind == o.DK.S64 else _CMP_UNSIGNED_INV
 
         for opc in [o.BLT, o.BLE]:
             type_constraints = [kind, kind, o.DK.INVALID]

@@ -45,6 +45,7 @@ WASI_FUNCTIONS = {
     "$wasi$proc_exit",
     # pseudo (cwerg specific)
     "$wasi$print_i32_ln",
+    "$wasi$print_i64_ln",
 }
 
 
@@ -55,9 +56,12 @@ def ExtractBytesFromConstIns(wasm_ins: wasm.Instruction, val_type: wasm.NUM_TYPE
         return v.to_bytes(4, 'little', signed=True)
     elif o is wasm_opc.I64_CONST:
         return v.to_bytes(8, 'little', signed=True)
-    elif o is wasm_opc.F32_CONST or o is wasm_opc.F64_CONST:
-        assert isinstance(v, bytes)
-        return v
+    elif o is wasm_opc.F32_CONST:
+        assert isinstance(v, float)
+        return struct.pack("<f", v)
+    elif o is wasm_opc.F64_CONST:
+        assert isinstance(v, float)
+        return struct.pack("<d", v)
     else:
         assert False, f"unexpected instruction {wasm_ins}"
 
@@ -281,8 +285,12 @@ WASM_CONV_TO_CWERG = {
     "i64.extend_i32_u": (o.CONV, True),
     #
     "i32.wrap_i64": (o.CONV, False),
+    #
     "f64.convert_i32_s": (o.CONV, False),
+    "f64.convert_i64_s": (o.CONV, False),
     "f32.convert_i32_s": (o.CONV, False),
+    "f32.convert_i64_s": (o.CONV, False),
+    #
     "i32.trunc_f64_s": (o.CONV, False),
     "i64.trunc_f64_s": (o.CONV, False),
     "i32.trunc_f32_s": (o.CONV, False),
@@ -582,6 +590,11 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.END:
             if block_stack:
                 block = block_stack.pop(-1)
+                expected_op_stack_size = block.stack_start + block.num_results - block.num_params
+                assert expected_op_stack_size <= len(op_stack), (
+                    f"end of block size mismatch {expected_op_stack_size} vs {len(op_stack)}")
+                if expected_op_stack_size < len(op_stack):
+                    op_stack =  op_stack[:expected_op_stack_size]
                 if block.else_bbl:
                     bbls.append(block.else_bbl)
                 bbls.append(block.end_bbl)
@@ -757,6 +770,13 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
     init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
+
+    table_sec = mod.sections.get(wasm.SECTION_ID.TABLE)
+    global_table = None
+    if table_sec:
+        assert len(table_sec.items) == 1
+        global_table = unit.AddMem(ir.Mem("global_table", ir.Const(o.DK.U32, bit_width // 8), o.MEM_KIND.RO))
+
     main = None
     for wasm_fun in mod.functions:
         # forward declare everything since we cannot rely on a topological sort of the funs

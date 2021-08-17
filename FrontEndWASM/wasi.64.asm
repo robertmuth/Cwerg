@@ -6,12 +6,12 @@
 ######################################################################
 
 
-.fun write_u NORMAL [S64] = [S32 U32]
+.fun write_lu NORMAL [S64] = [S32 U64]
 .reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
-  poparg val:U32
+  poparg val:U64
 .stk buffer 1 16
   .reg U64 [pos]
   lea %A64_1:A64 = buffer
@@ -20,13 +20,13 @@
 .bbl while_1
   sub %U64_2:U64 = pos 1
   mov pos = %U64_2
-  rem %U32_3:U32 = val 10
-  add %U32_4:U32 = 48:U32 %U32_3
+  rem %U32_3:U64 = val 10
+  add %U32_4:U64 = 48:U64 %U32_3
   conv %S8_5:S8 = %U32_4
   lea %A64_6:A64 = buffer
   lea %A64_7:A64 = %A64_6 pos
   st %A64_7 0 = %S8_5
-  div %U32_8:U32 = val 10
+  div %U32_8:U64 = val 10
   mov val = %U32_8
 
 .bbl while_1_cond
@@ -48,62 +48,54 @@
   ret
 
 
-.fun write_d NORMAL [S64] = [S32 S32]
+.fun write_ld NORMAL [S64] = [S32 S64]
 .reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
-  poparg sval:S32
-  ble 0:S32 sval if_2_true
+  poparg sval:S64
+  ble 0:S64 sval if_2_true
   bra if_2_end
 
 .bbl if_2_true
-  conv %U32_1:U32 = sval
+  conv %U32_1:U64 = sval
   pusharg %U32_1
   pusharg fd
-  bsr write_u
+  bsr write_lu
   poparg %S64_2:S64
   mov %out = %S64_2
   pusharg %out
   ret
 
 .bbl if_2_end
-  .reg U32 [val]
-  sub %S32_3:S32 = 0  sval
-  conv %U32_4:U32 = %S32_3
-  mov val = %U32_4
-.stk buffer 1 16
+  .reg U64 [val]
+  sub %S32_3:S64 = 0  sval
+  conv val = %S32_3
+.stk buffer 1 32
   .reg U64 [pos]
   lea %A64_5:A64 = buffer
-  mov pos = 16
+  mov pos = 32
 
 .bbl while_1
-  sub %U64_6:U64 = pos 1
-  mov pos = %U64_6
-  rem %U32_7:U32 = val 10
-  add %U32_8:U32 = 48:U32 %U32_7
+  sub pos = pos 1
+  rem %U32_7:U64 = val 10
+  add %U32_8:U64 = 48:U64 %U32_7
   conv %S8_9:S8 = %U32_8
   lea %A64_10:A64 = buffer
   lea %A64_11:A64 = %A64_10 pos
   st %A64_11 0 = %S8_9
-  div %U32_12:U32 = val 10
-  mov val = %U32_12
+  div val = val 10
 
 .bbl while_1_cond
   bne val 0 while_1
-  bra while_1_exit
 
-.bbl while_1_exit
-  sub %U64_13:U64 = pos 1
-  mov pos = %U64_13
-  lea %A64_14:A64 = buffer
-  lea %A64_15:A64 = %A64_14 pos
+  sub pos = pos 1
+  lea %A64_15:A64 = buffer pos
   mov %S8_16:S8 = 45
   st %A64_15 0 = %S8_16
-  lea %A64_17:A64 = buffer
-  lea %A64_18:A64 = %A64_17 pos
+  lea %A64_18:A64 = buffer pos
   lea %A64_19:A64 = buffer
-  sub %U64_20:U64 = 16:U64 pos
+  sub %U64_20:U64 = 32:U64 pos
   pusharg %U64_20
   pusharg %A64_18
   pusharg fd
@@ -140,15 +132,15 @@
 ######################################################################
 # PSEUDO WASI
 ######################################################################
-.fun $wasi$print_i32_ln NORMAL [] = [A64 S32]
 
+.fun $wasi$print_i64_ln NORMAL [] = [A64 S64]
 .bbl %start
   poparg dummy:A64
-  poparg n:S32
+  poparg n:S64
   mov %S32_2:S32 = 1
   pusharg n
   pusharg %S32_2
-  bsr write_d
+  bsr write_ld
   poparg %S64_1:S64
   mov %S32_4:S32 = 1
   mov %U8_5:U8 = 10
@@ -158,6 +150,15 @@
   poparg %S64_3:S64
   ret
 
+ .fun $wasi$print_i32_ln NORMAL [] = [A64 S32]
+  .bbl %start
+    poparg dummy:A64
+    poparg n:S32
+    conv n2:S64 n
+    pusharg n2
+    pusharg dummy
+    bsr $wasi$print_i64_ln
+    ret
 ######################################################################
 # REAL WASI
 ######################################################################
