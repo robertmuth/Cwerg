@@ -10,14 +10,14 @@ PAT: reg:[S32 S32]  imm:[INVALID IMM_SHIFTED_5_20_21_22_NOT]
 INS: mov $r0_U32@w10 525032  [U32 U32]
 PAT: reg:[U32 U32]  imm:[INVALID IMM_POS_32]
     movz_x_imm x10 0x2e8
-    movk_x_imm x10 0x80000
+    movk_x_imm x10 0x8 16
 
 INS: mov addr@x20 1311768467284833366  [A64 A64]
 PAT: reg:[A64 A64]  imm:[INVALID ANY]
     movz_x_imm x20 0x3456
-    movk_x_imm x20 0x90120000
-    movk_x_imm x20 0x567800000000
-    movk_x_imm x20 0x1234000000000000
+    movk_x_imm x20 0x9012 16
+    movk_x_imm x20 0x5678 32
+    movk_x_imm x20 0x1234 48
 
 INS: lea.stk addr@x20 buffer 0  [A64 _ U32]
 PAT: reg:[A64 INVALID U32]  imm:[INVALID INVALID pos_stk_combo_shifted_10_21_22]
@@ -65,7 +65,7 @@ INS: bne $r0_U32@w10 148932 skip  [U32 U32 _]
 INS: mov $r0_U32@w10 148932  [U32 U32]
 PAT: reg:[U32 U32]  imm:[INVALID IMM_POS_32]
     movz_x_imm x10 0x45c4
-    movk_x_imm x10 0x20000
+    movk_x_imm x10 0x2 16
 
 INS: div div@w6 $r1_U32@w11 $r0_U32@w10  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  imm:[INVALID INVALID INVALID]

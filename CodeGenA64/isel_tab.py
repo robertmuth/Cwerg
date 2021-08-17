@@ -196,8 +196,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert isinstance(num, ir.Const), f"{ins} {num}"
         return ~num.value & ((1 << num.kind.bitwidth()) - 1)
     elif arg in {PARAM.num1_0_16, PARAM.num1_16_32, PARAM.num1_32_48, PARAM.num1_48_64}:
-        mask = 0xffff << ((arg.value - PARAM.num1_0_16.value) * 16)
-        return ins.operands[1].value & mask
+        shift = ((arg.value - PARAM.num1_0_16.value) * 16)
+        return (ins.operands[1].value >> shift) & 0xffff
     elif arg in _RELOC_ARGS:
         return 0
     elif arg is PARAM.scratch_flt:
@@ -932,7 +932,7 @@ def InitLea():
                 imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.stk1_offset2_hi]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.stk1_offset2_hi, 16]),
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
@@ -952,16 +952,14 @@ def InitMove():
                 imm_curb1=IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT)
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1_0_16]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32])],
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32, 16])],
                 imm_curb1=IMM_CURB.IMM_POS_32)
         Pattern(o.MOV, [kind1, kind1],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.num1_0_16]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_32_48]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_48_64])],
-
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_16_32, 16]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_32_48, 32]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_48_64, 48])],
                 imm_curb1=IMM_CURB.ANY)
-    # TODO: add implementaions for arbitrary 32 and 64bit immediates
 
 
 def InitConv():

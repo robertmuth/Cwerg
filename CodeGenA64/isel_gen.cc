@@ -774,15 +774,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [313]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [314]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [315]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [316]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [317]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [318]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [319]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [320]
@@ -792,15 +792,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [322]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [323]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [324]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [325]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [326]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [327]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [328]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [329]
@@ -810,15 +810,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [331]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [332]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [333]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [334]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [335]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [336]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [337]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [338]
@@ -828,15 +828,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [340]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [341]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [342]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [343]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [344]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [345]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [346]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [347]
@@ -846,15 +846,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [349]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [350]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [351]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [352]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [353]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [354]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [355]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [356]
@@ -864,15 +864,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [358]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [359]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [360]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [361]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [362]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [363]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [364]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [365]
@@ -882,15 +882,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [367]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [368]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [369]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [370]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [371]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [372]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [373]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [374]
@@ -900,15 +900,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [376]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [377]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [378]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [379]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [380]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [381]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [382]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [383]
@@ -918,15 +918,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [385]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [386]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [387]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [388]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [389]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [390]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [391]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::orr_x_reg, 0x5 },  // mov [392]
@@ -936,15 +936,15 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::movn_x_imm, 0x3 },  // mov [394]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [395]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [396]
   { {+PARAM::reg0, +PARAM::num1_0_16},
     a64::OPC::movz_x_imm, 0x3 },  // mov [397]
-  { {+PARAM::reg0, +PARAM::num1_16_32},
+  { {+PARAM::reg0, +PARAM::num1_16_32, 16},
     a64::OPC::movk_x_imm, 0x3 },  // mov [398]
-  { {+PARAM::reg0, +PARAM::num1_32_48},
+  { {+PARAM::reg0, +PARAM::num1_32_48, 32},
     a64::OPC::movk_x_imm, 0x3 },  // mov [399]
-  { {+PARAM::reg0, +PARAM::num1_48_64},
+  { {+PARAM::reg0, +PARAM::num1_48_64, 48},
     a64::OPC::movk_x_imm, 0x3 },  // mov [400]
   { {+PARAM::reg0, +PARAM::reg1},
     a64::OPC::fmov_s_reg, 0x3 },  // mov [401]
@@ -1726,7 +1726,7 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [789]
   { {+PARAM::reg0, +PARAM::stk1_offset2_lo},
     a64::OPC::movz_x_imm, 0x3 },  // lea.stk [790]
-  { {+PARAM::reg0, +PARAM::stk1_offset2_hi},
+  { {+PARAM::reg0, +PARAM::stk1_offset2_hi, 16},
     a64::OPC::movk_x_imm, 0x3 },  // lea.stk [791]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, +SHIFT::lsl, 0},
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [792]
@@ -1738,7 +1738,7 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [795]
   { {+PARAM::reg0, +PARAM::stk1_offset2_lo},
     a64::OPC::movz_x_imm, 0x3 },  // lea.stk [796]
-  { {+PARAM::reg0, +PARAM::stk1_offset2_hi},
+  { {+PARAM::reg0, +PARAM::stk1_offset2_hi, 16},
     a64::OPC::movk_x_imm, 0x3 },  // lea.stk [797]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, +SHIFT::lsl, 0},
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [798]
@@ -1750,7 +1750,7 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [801]
   { {+PARAM::reg0, +PARAM::stk1_offset2_lo},
     a64::OPC::movz_x_imm, 0x3 },  // lea.stk [802]
-  { {+PARAM::reg0, +PARAM::stk1_offset2_hi},
+  { {+PARAM::reg0, +PARAM::stk1_offset2_hi, 16},
     a64::OPC::movk_x_imm, 0x3 },  // lea.stk [803]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, +SHIFT::lsl, 0},
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [804]
@@ -1762,7 +1762,7 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [807]
   { {+PARAM::reg0, +PARAM::stk1_offset2_lo},
     a64::OPC::movz_x_imm, 0x3 },  // lea.stk [808]
-  { {+PARAM::reg0, +PARAM::stk1_offset2_hi},
+  { {+PARAM::reg0, +PARAM::stk1_offset2_hi, 16},
     a64::OPC::movk_x_imm, 0x3 },  // lea.stk [809]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, +SHIFT::lsl, 0},
     a64::OPC::add_x_reg, 0x5 },  // lea.stk [810]
@@ -4415,13 +4415,13 @@ int64_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
     case PARAM::num2_not:
       return ExtractNumNot(Const(InsOperand(ins, 2)));
     case PARAM::num1_0_16:
-      return ConstValueInt64(Const(InsOperand(ins, 1))) & (0xffffULL << 0ULL);
+      return ConstValueInt64(Const(InsOperand(ins, 1))) & 0xffffULL;
     case PARAM::num1_16_32:
-      return ConstValueInt64(Const(InsOperand(ins, 1))) & (0xffffULL << 16ULL);
+      return (ConstValueInt64(Const(InsOperand(ins, 1))) >> 16ULL) & 0xffffULL;
     case PARAM::num1_32_48:
-      return ConstValueInt64(Const(InsOperand(ins, 1))) & (0xffffULL << 32ULL);
+      return (ConstValueInt64(Const(InsOperand(ins, 1))) >> 32ULL) & 0xffffULL;
     case PARAM::num1_48_64:
-      return ConstValueInt64(Const(InsOperand(ins, 1))) & (0xffffULL << 48ULL);
+      return (ConstValueInt64(Const(InsOperand(ins, 1))) >> 48ULL) & 0xffffULL;
     case PARAM::num2_rsb_width: {
       Const num = Const(InsOperand(ins, 2));
       unsigned width = DKBitWidth(ConstKind(num));
