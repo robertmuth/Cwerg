@@ -300,6 +300,12 @@ WASM_CONV_TO_CWERG = {
     "f64.promote_f32": (o.CONV, False),
 }
 
+def FindFunWithSignature(unit: ir.Unit, arguments: typing.List[o.DK], returns: typing.List[o.DK]) -> ir.Fun:
+    for fun in unit.funs:
+        if fun.output_types == returns and fun.input_types == arguments:
+            return fun
+    assert False
+
 
 def MakeBranch(pred: wasm_opc.Opcode, op_stack, inverse):
     if pred.kind is wasm_opc.OPC_KIND.CMP:
@@ -438,6 +444,41 @@ def ToUnsigned(dk: o.DK):
         assert False
 
 
+def EmitCall(fun: ir.Fun, bbl: ir.Bbl, call_ins: ir.Ins, op_stack, mem_base, callee: ir.Fun):
+    """
+    if the wasm function has the signature:
+    [a b] -> [c d]
+    This means the top of op_stack must be [a b] before the call and will be [c d] after the call
+
+    The called Cwerg function expects the right most input to be pushed on the stack first, so we get
+    pusharg b
+    pusharg a
+    We always pass mem_base as the the first argument so there is also
+    pusharg mem_base
+
+    The called Cwerg function pushes the results also from right to left
+    [callee] pusharg d
+    [callee] pusharg c
+
+
+    """
+    # print (f"########## calling {callee.name} in:{callee.input_types}  out:{callee.output_types}")
+    # print ("# STACK")
+    # print (op_stack)
+    for dk in reversed(callee.input_types[1:]):
+        arg = op_stack.pop(-1)
+        assert arg.kind == dk, f"expected type {dk} [{arg}] got {arg.kind}"
+        bbl.AddIns(ir.Ins(o.PUSHARG, [arg]))
+    bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
+
+    bbl.AddIns(call_ins)
+
+    for dk in callee.output_types:
+        dst = GetOpReg(fun, dk, len(op_stack))
+        op_stack.append(dst)
+        bbl.AddIns(ir.Ins(o.POPARG, [dst]))
+
+
 def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 fun: ir.Fun, global_table, addr_type):
     # op_stack contains regs produced by GetOpReg (it may only occur a the position encoding in its name
@@ -463,8 +504,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", WASM_TYPE_TO_CWERG_TYPE[locals.kind]))
             loc_index += 1
 
-    # print()
-    # print("#", fun.name, len(wasm_fun.impl.expr.instructions))
+    print()
+    print("#", fun.name, len(wasm_fun.impl.expr.instructions))
 
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
         opc = wasm_ins.opcode
@@ -615,18 +656,25 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
             assert callee, f"unknown fun: {wasm_callee.name}"
-            for _ in range(len(callee.input_types) - 1):
-                bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op_stack.pop(-1)]))
-            bbls[-1].AddIns(ir.Ins(o.PUSHARG, [mem_base]))
-
-            bbls[-1].AddIns(ir.Ins(o.BSR, [callee]))
-            # TODO check order
-            for dk in reversed(callee.output_types):
-                dst = GetOpReg(fun, dk, len(op_stack))
-                op_stack.append(dst)
-                bbls[-1].AddIns(ir.Ins(o.POPARG, [dst]))
+            EmitCall(fun , bbls[-1], ir.Ins(o.BSR, [callee]), op_stack, mem_base, callee)
         elif opc is wasm_opc.CALL_INDIRECT:
-            assert False
+            assert isinstance(args[1], wasm.TableIdx), f"{type(args[1])}"
+            assert int(args[1]) == 0, f"only one table supported"
+            assert isinstance(args[0], wasm.TypeIdx), f"{type(args[0])}"
+            type_sec = mod.sections.get(wasm.SECTION_ID.TYPE)
+            func_type: wasm.FunctionType = type_sec.items[int(args[0])]
+            arguments = [addr_type] + TranslateTypeList(func_type.args)
+            returns = TranslateTypeList(func_type.rets)
+            # print (f"# @@@@ CALL INDIRECT {returns} <- {arguments}  [{int(args[0])}] {func_type}")
+            signature = FindFunWithSignature(unit, arguments, returns)
+            table_reg = GetOpReg(fun, addr_type, len(op_stack))
+            code_type = o.DK.C32 if addr_type is o.DK.A32 else o.DK.C64
+            fun_reg = GetOpReg(fun, code_type, len(op_stack) + 1)
+            index = op_stack.pop(-1)
+            assert index.kind is o.DK.S32
+            bbls[-1].AddIns(ir.Ins(o.LEA_MEM, [table_reg, global_table, ZERO]))
+            bbls[-1].AddIns(ir.Ins(o.LD, [fun_reg, table_reg, index]))
+            EmitCall(fun , bbls[-1], ir.Ins(o.JSR, [fun_reg, signature]), op_stack, mem_base, signature)
         elif opc is wasm_opc.RETURN:
             if fun.output_types:
                 assert len(fun.output_types) == 1
