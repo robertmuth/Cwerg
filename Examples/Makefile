@@ -26,3 +26,7 @@ CC_FLAGS_A64_CROSS =  -static  -Wl,-z,norelro $(CC_FLAGS) -DCWERG_DISABLE_UNWIND
 $(DIR)/jit_cpu_a64.exe: jit_cpu_a32.cc $(A64_LIB_DIS) $(UTIL_LITE_LIB)
 	aarch64-linux-gnu-g++-9 $(CC_FLAGS_A64_CROSS) $(UTIL_LITE_LIB) $(A64_LIB_DIS) jit_cpu_a64.cc  -o $@.exe
 	./$@.exe
+
+
+clean:
+	rm -rf $(DIR)/*
