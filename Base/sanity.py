@@ -117,8 +117,31 @@ def _CheckIns(ins, fun, unit):
 
 
 class FunArgState:
+    """
+    Assuming we have Cwerg function, foo,  with the signature inputs:[a b]  outputs:[c d]
 
+    Inside the function we expect the following instruction sequences:
+    prolog-foo:
+    poparg a
+    poparg b
+
+    epilog-foo:
+    pusharg d
+    pusharg c
+    return
+
+    at a call-site we expect
+
+    pusharg b
+    pusharg a
+    bsr foo
+    poparg c
+    poparg d
+
+    Note, that pushargs are always using the reverse order of the typelist
+    """
     def __init__(self, fun):
+        # expected sequence of types for pushargs/popargs while interating forward through the instruction stream
         self.push_args: List[o.DK] = []
         self.pop_args: List[o.DK] = fun.input_types.copy()
         self.callee = "input args"
@@ -127,11 +150,12 @@ class FunArgState:
         assert self.pop_args, (f"stray poparg while processing {self.callee} "
                                f"in {fun.name}:{bbl.name}: {ins.operands}")
         a = self.pop_args.pop(0)
-        assert a == ins.operands[0].kind, (f"wrong poparg type while processing {self.callee}"
-                                           f"{fun.name}:{bbl.name} {self.pop_args} "
+        assert a == ins.operands[0].kind, (f"wrong poparg type while processing callee:{self.callee} "
+                                           f"caller:{fun.name}:{bbl.name} {self.pop_args} "
                                            f"{a} vs {ins.operands[0]}")
 
     def handle_pusharg(self, ins, bbl, fun):
+        # append to the push args list. We check for consistency when we hit a call or return instruction.
         self.push_args.append(ins.operands[0].kind)  # kind works for both regs ans consts
 
     def handle_call(self, ins, bbl, fun):
