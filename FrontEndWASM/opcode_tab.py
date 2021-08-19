@@ -54,6 +54,7 @@ class OPC_KIND(enum.Enum):
     MEM = 12
     CONV = 13
     MISC = 14
+    BITCAST = 15
 
 
 ###########################################################
@@ -123,6 +124,10 @@ def OpConv(no, name):
     return Opcode(no, name, OPC_KIND.CONV)
 
 
+def OpBitcast(no, name):
+    return Opcode(no, name, OPC_KIND.BITCAST)
+
+
 def OpBlk(no, name, arg1=ARG_TYPE.INVALID):
     return Opcode(no, name, OPC_KIND.BLOCK_START, arg1)
 
@@ -190,12 +195,12 @@ OpStore(0x3c, 'i64.store8')
 OpStore(0x3d, 'i64.store16')
 OpStore(0x3e, 'i64.store32')
 
-OpMem(0x3f, 'memory.size', ARG_TYPE.BYTE1_ZERO)
-OpMem(0x40, 'memory.grow', ARG_TYPE.BYTE1_ZERO)
-OpMem(0x08fc, 'memory.init', ARG_TYPE.DATA_IDX, ARG_TYPE.BYTE1_ZERO)
-OpMem(0x09fc, 'data.drop', ARG_TYPE.DATA_IDX)
-OpMem(0x0afc, 'memory.copy', ARG_TYPE.BYTE1_ZERO, ARG_TYPE.BYTE1_ZERO)
-OpMem(0x0bfc, 'memory.fill', ARG_TYPE.BYTE1_ZERO)
+MEMORY_SIZE = OpMem(0x3f, 'memory.size', ARG_TYPE.BYTE1_ZERO)
+MEMORY_GROW = OpMem(0x40, 'memory.grow', ARG_TYPE.BYTE1_ZERO)
+MEMORY_INIT = OpMem(0x08fc, 'memory.init', ARG_TYPE.DATA_IDX, ARG_TYPE.BYTE1_ZERO)
+DATA_DROP = OpMem(0x09fc, 'data.drop', ARG_TYPE.DATA_IDX)
+MEMORY_COPY = OpMem(0x0afc, 'memory.copy', ARG_TYPE.BYTE1_ZERO, ARG_TYPE.BYTE1_ZERO)
+MEMORY_FILL = OpMem(0x0bfc, 'memory.fill', ARG_TYPE.BYTE1_ZERO)
 
 # numeric instructions
 # Note, potential issue with floating point constants:
@@ -336,10 +341,11 @@ OpConv(0xb9, 'f64.convert_i64_s')
 OpConv(0xba, 'f64.convert_i64_u')
 OpConv(0xbb, 'f64.promote_f32')
 
-OpConv(0xbc, 'i32.reinterpret_f32')
-OpConv(0xbd, 'i64.reinterpret_f64')
-OpConv(0xbe, 'f32.reinterpret_i32')
-OpConv(0xbf, 'f64.reinterpret_i64')
+OpBitcast(0xbc, 'i32.reinterpret_f32')
+OpBitcast(0xbd, 'i64.reinterpret_f64')
+OpBitcast(0xbe, 'f32.reinterpret_i32')
+OpBitcast(0xbf, 'f64.reinterpret_i64')
+
 
 if __name__ == '__main__':
     def dump():

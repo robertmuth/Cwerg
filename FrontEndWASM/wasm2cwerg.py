@@ -126,21 +126,22 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
     return fun
 
 
-def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit, global_mem_base: ir.Mem,
+def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit,
                         memcpy: ir.Fun, addr_type: o.DK) -> ir.Fun:
-    fun = unit.AddFun(ir.Fun("init_data_fun", o.FUN_KIND.NORMAL, [], []))
+    fun = unit.AddFun(ir.Fun("init_data_fun", o.FUN_KIND.NORMAL, [], [addr_type]))
     bbl = fun.AddBbl(ir.Bbl("start"))
     epilog = fun.AddBbl(ir.Bbl("end"))
     epilog.AddIns(ir.Ins(o.RET, []))
     section = mod.sections.get(wasm.SECTION_ID.DATA)
+
+    mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
+    bbl.AddIns(ir.Ins(o.POPARG, [mem_base]))
     if not section:
         return
-    mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
+
     offset = fun.AddReg(ir.Reg("offset", o.DK.S32))
     src = fun.AddReg(ir.Reg("src", addr_type))
     dst = fun.AddReg(ir.Reg("dst", addr_type))
-
-    bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
     for n, data in enumerate(section.items):
         assert data.memory_index == 0
@@ -286,6 +287,8 @@ WASM_CONV_TO_CWERG = {
     "f32.convert_i32_u": (o.CONV, True),
     "i64.extend_i32_u": (o.CONV, True),
     #
+    "i64.extend_i32_s": (o.CONV, False),
+    #
     "i32.wrap_i64": (o.CONV, False),
     #
     "f64.convert_i32_s": (o.CONV, False),
@@ -299,6 +302,14 @@ WASM_CONV_TO_CWERG = {
     "i64.trunc_f32_s": (o.CONV, False),
     "f64.promote_f32": (o.CONV, False),
 }
+
+SUPPORTED_BITCAST = {
+    'i32.reinterpret_f32',
+    'i64.reinterpret_f64',
+    'f32.reinterpret_i32',
+    'f64.reinterpret_i64',
+}
+
 
 def FindFunWithSignature(unit: ir.Unit, arguments: typing.List[o.DK], returns: typing.List[o.DK]) -> ir.Fun:
     for fun in unit.funs:
@@ -577,13 +588,19 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CONV:
             op = op_stack.pop(-1)
-            dst = GetOpReg(fun, op.kind, len(op_stack))
+            dst = GetOpReg(fun, OPC_TYPE_TO_CWERG_TYPE[opc.op_type], len(op_stack))
             conv, unsigned = WASM_CONV_TO_CWERG[opc.name]
             if unsigned:
                 tmp = GetOpReg(fun, ToUnsigned(op.kind), op_stack_size_before + 1)
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp, op]))
                 op = tmp
             bbls[-1].AddIns(ir.Ins(conv, [dst, op]))
+            op_stack.append(dst)
+        elif opc.kind is wasm_opc.OPC_KIND.BITCAST:
+            assert opc.name in SUPPORTED_BITCAST
+            op = op_stack.pop(-1)
+            dst = GetOpReg(fun, OPC_TYPE_TO_CWERG_TYPE[opc.op_type], len(op_stack))
+            bbls[-1].AddIns(ir.Ins(o.BITCAST, [dst, op]))
             op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CMP:
             # this always works because of the sentinel: "end"
@@ -637,7 +654,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 assert expected_op_stack_size <= len(op_stack), (
                     f"end of block size mismatch {expected_op_stack_size} vs {len(op_stack)}")
                 if expected_op_stack_size < len(op_stack):
-                    op_stack =  op_stack[:expected_op_stack_size]
+                    op_stack = op_stack[:expected_op_stack_size]
                 if block.else_bbl:
                     bbls.append(block.else_bbl)
                 bbls.append(block.end_bbl)
@@ -656,7 +673,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             wasm_callee = mod.functions[int(wasm_ins.args[0])]
             callee = unit.GetFun(wasm_callee.name)
             assert callee, f"unknown fun: {wasm_callee.name}"
-            EmitCall(fun , bbls[-1], ir.Ins(o.BSR, [callee]), op_stack, mem_base, callee)
+            EmitCall(fun, bbls[-1], ir.Ins(o.BSR, [callee]), op_stack, mem_base, callee)
         elif opc is wasm_opc.CALL_INDIRECT:
             assert isinstance(args[1], wasm.TableIdx), f"{type(args[1])}"
             assert int(args[1]) == 0, f"only one table supported"
@@ -674,7 +691,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             assert index.kind is o.DK.S32
             bbls[-1].AddIns(ir.Ins(o.LEA_MEM, [table_reg, global_table, ZERO]))
             bbls[-1].AddIns(ir.Ins(o.LD, [fun_reg, table_reg, index]))
-            EmitCall(fun , bbls[-1], ir.Ins(o.JSR, [fun_reg, signature]), op_stack, mem_base, signature)
+            EmitCall(fun, bbls[-1], ir.Ins(o.JSR, [fun_reg, signature]), op_stack, mem_base, signature)
         elif opc is wasm_opc.RETURN:
             if fun.output_types:
                 assert len(fun.output_types) == 1
@@ -756,6 +773,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.SWITCH, [reg_unsigned, jtb]))
         elif opc is wasm_opc.UNREACHABLE:
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
+        elif opc is wasm_opc.MEMORY_GROW:
+            # TODO: this is wrong
+            pass
         else:
             assert False, f"unsupported opcode [{opc.name}]"
     assert not op_stack, f"op_stack not empty in {fun.name}: {op_stack}"
@@ -764,9 +784,15 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
     fun.bbls = bbls
 
 
-def GenerateStartup(unit: ir.Unit, global_mem_base, global_argc, global_argv, main: ir.Fun,
+def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
                     init_global: ir.Fun, init_data: ir.Fun, initial_heap_size: int,
                     addr_type: o.DK) -> ir.Fun:
+    bit_width = addr_type.bitwidth()
+
+    global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
+                                         ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
+    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
+    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
     xbrk = unit.AddFun(ir.Fun("xbrk", o.FUN_KIND.EXTERN, [addr_type], [addr_type]))
     exit = unit.AddFun(ir.Fun("exit", o.FUN_KIND.EXTERN, [], [o.DK.S32]))
 
@@ -790,15 +816,16 @@ def GenerateStartup(unit: ir.Unit, global_mem_base, global_argc, global_argv, ma
         bbl.AddIns(ir.Ins(o.PUSHARG, [addr]))
         bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
         bbl.AddIns(ir.Ins(o.POPARG, [addr]))
-        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ir.Const(o.DK.S32, addr_type.bitwidth()
-                                                               // 8), addr]))
+        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ir.Const(o.DK.S32, bit_width // 8), addr]))
+    mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
+    bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
     if init_global:
         bbl.AddIns(ir.Ins(o.BSR, [init_global]))
     if init_data:
+        bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
         bbl.AddIns(ir.Ins(o.BSR, [init_data]))
-    mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
-    bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
+
     bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
     bbl.AddIns(ir.Ins(o.BSR, [main]))
     bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.U32, 0)]))
@@ -841,9 +868,6 @@ def MaybeMakeGlobalTable(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK):
 def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     bit_width = addr_type.bitwidth()
     unit = ir.Unit("unit")
-    global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
-                                         ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
-    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
 
     global_argv = unit.AddMem(ir.Mem("global_argv",
                                      ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
@@ -854,7 +878,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
 
     memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
-    init_data = GenerateInitDataFun(mod, unit, global_mem_base, memcpy, addr_type)
+    init_data = GenerateInitDataFun(mod, unit, memcpy, addr_type)
 
     main = None
     for wasm_fun in mod.functions:
@@ -863,7 +887,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
             assert wasm_fun.name in WASI_FUNCTIONS, f"unimplemented external function: {wasm_fun.name}"
         arguments = [addr_type] + TranslateTypeList(wasm_fun.func_type.args)
         returns = TranslateTypeList(wasm_fun.func_type.rets)
-        #assert len(returns) <= 1
+        # assert len(returns) <= 1
         unit.AddFun(ir.Fun(wasm_fun.name, o.FUN_KIND.EXTERN, returns, arguments))
 
     global_table = MaybeMakeGlobalTable(mod, unit, addr_type)
@@ -887,7 +911,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
         heap: wasm.Mem = sec_memory.items[0]
         initial_heap_size = heap.mem_type.limits.min
     assert main, f"missing main function"
-    GenerateStartup(unit, global_mem_base, global_argc, global_argv, main, init_global, init_data,
+    GenerateStartup(unit, global_argc, global_argv, main, init_global, init_data,
                     initial_heap_size * PAGE_SIZE, addr_type)
 
     return unit
