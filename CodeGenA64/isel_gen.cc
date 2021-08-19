@@ -475,15 +475,15 @@ const InsTmpl kInsTemplates[] = {
   { {+FIXARG::WZR, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::subs_x_reg, 0x6 },  // blt [164]
   { {+PARAM::bbl2},
-    a64::OPC::b_cc, 0x1 },  // blt [165]
+    a64::OPC::b_lt, 0x1 },  // blt [165]
   { {+FIXARG::WZR, +PARAM::reg0, +PARAM::num1},
     a64::OPC::subs_x_imm, 0x6 },  // blt [166]
   { {+PARAM::bbl2},
-    a64::OPC::b_cc, 0x1 },  // blt [167]
+    a64::OPC::b_lt, 0x1 },  // blt [167]
   { {+FIXARG::WZR, +PARAM::reg1, +PARAM::num0},
     a64::OPC::subs_x_imm, 0x6 },  // blt [168]
   { {+PARAM::bbl2},
-    a64::OPC::b_hi, 0x1 },  // blt [169]
+    a64::OPC::b_gt, 0x1 },  // blt [169]
   { {+PARAM::reg0, +PARAM::reg1},
     a64::OPC::fcmpe_s, 0x3 },  // blt [170]
   { {+PARAM::bbl2},
@@ -555,15 +555,15 @@ const InsTmpl kInsTemplates[] = {
   { {+FIXARG::WZR, +PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::subs_x_reg, 0x6 },  // ble [204]
   { {+PARAM::bbl2},
-    a64::OPC::b_ls, 0x1 },  // ble [205]
+    a64::OPC::b_le, 0x1 },  // ble [205]
   { {+FIXARG::WZR, +PARAM::reg0, +PARAM::num1},
     a64::OPC::subs_x_imm, 0x6 },  // ble [206]
   { {+PARAM::bbl2},
-    a64::OPC::b_ls, 0x1 },  // ble [207]
+    a64::OPC::b_le, 0x1 },  // ble [207]
   { {+FIXARG::WZR, +PARAM::reg1, +PARAM::num0},
     a64::OPC::subs_x_imm, 0x6 },  // ble [208]
   { {+PARAM::bbl2},
-    a64::OPC::b_cs, 0x1 },  // ble [209]
+    a64::OPC::b_ge, 0x1 },  // ble [209]
   { {+PARAM::reg0, +PARAM::reg1},
     a64::OPC::fcmpe_s, 0x3 },  // ble [210]
   { {+PARAM::bbl2},
