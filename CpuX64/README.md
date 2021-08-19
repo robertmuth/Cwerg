@@ -5,7 +5,7 @@ Targeting may not be possible within our complexity budget of 5k LOC
 but it is also the dominant ISA on the desktop so it would be really nice
 to support it.
 
-Know difficulties:
+Known difficulties:
 * ISA is closer to a 2-addr than a 3-addr instruction set
   LLVM has a special pass for this. The concept of "tied" registers is helpful
   here.
