@@ -689,6 +689,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             fun_reg = GetOpReg(fun, code_type, len(op_stack) + 1)
             index = op_stack.pop(-1)
             assert index.kind is o.DK.S32
+
+            bbls[-1].AddIns(ir.Ins(o.MUL, [index, index, ir.Const(o.DK.U32, code_type.bitwidth() // 8)]))
             bbls[-1].AddIns(ir.Ins(o.LEA_MEM, [table_reg, global_table, ZERO]))
             bbls[-1].AddIns(ir.Ins(o.LD, [fun_reg, table_reg, index]))
             EmitCall(fun, bbls[-1], ir.Ins(o.JSR, [fun_reg, signature]), op_stack, mem_base, signature)
@@ -774,7 +776,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.UNREACHABLE:
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
         elif opc is wasm_opc.MEMORY_GROW:
-            # TODO: this is wrong
+            # assert False
             pass
         else:
             assert False, f"unsupported opcode [{opc.name}]"
