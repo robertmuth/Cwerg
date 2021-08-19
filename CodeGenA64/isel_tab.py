@@ -865,7 +865,8 @@ def InitStore():
                           (o.DK.A64, "str_x"), (o.DK.C64, "str_x"),
                           (o.DK.U32, "str_w"), (o.DK.S32, "str_w"),
                           (o.DK.U16, "str_h"), (o.DK.S16, "str_h"),
-                          (o.DK.U8, "str_b"), (o.DK.S8, "str_b")]:
+                          (o.DK.U8, "str_b"), (o.DK.S8, "str_b"),
+                          (o.DK.F64, "fstr_q"), (o.DK.F32, "fstr_s")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_x",
@@ -875,7 +876,7 @@ def InitStore():
             Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_w",
                              [PARAM.reg0, PARAM.reg1, shift, 0, PARAM.reg2])])
-        # TODO: add immediate flavors
+    # TODO: add immediate flavors
 
 
 def InitStackStore():
@@ -1057,6 +1058,9 @@ def InitVFP():
                 [InsTmpl("fmul" + suffix, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.DIV, [kind] * 3,
                 [InsTmpl("fdiv" + suffix, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+        # implies fastmath
+        Pattern(o.SQRT, [kind] * 2,
+                [InsTmpl("fsqrt" + suffix, [PARAM.reg0, PARAM.reg1])])
 
     for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
                                         (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),
@@ -1078,6 +1082,16 @@ def InitVFP():
         Pattern(o.CONV, [kind_dst, kind_src],
                 [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1])])
 
+    for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.U64, "fmov_d_from_x"),
+                                        (o.DK.F64, o.DK.S64, "fmov_d_from_x"),
+                                        (o.DK.F32, o.DK.S32, "fmov_s_from_w"),
+                                        (o.DK.F32, o.DK.U32, "fmov_s_from_w"),
+                                        (o.DK.U64, o.DK.F64, "fmov_x_from_d"),
+                                        (o.DK.S64, o.DK.F64, "fmov_x_from_d"),
+                                        (o.DK.U32, o.DK.F32, "fmov_w_from_s"),
+                                        (o.DK.S32, o.DK.F32, "fmov_w_from_s")]:
+        Pattern(o.BITCAST, [kind_dst, kind_src],
+                [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1])])
 
 InitLoad()
 InitStackLoad()
