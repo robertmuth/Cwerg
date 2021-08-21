@@ -267,7 +267,7 @@ WASM_ALU_TO_CWERG = {
     "shl": o.SHL,
     "shr_u": o.SHR,
     "shr_s": o.SHR,
-    #    "rotl": o.ROTL,
+    # "rotl": o.SHL,
     #
     "sub": o.SUB,
     "add": o.ADD,
@@ -378,15 +378,18 @@ class Block:
     no: int
     start_bbl: ir.Bbl
     end_bbl: ir.Bbl
-    num_results: int
-    num_params: int
+    result_types: typing.List[o.DK]
+    param_types: typing.List[o.DK]
     stack_start: int
     else_bbl: typing.Optional[ir.Bbl]
 
-    def FinalizeResultsPop(self, op_stack, bbl: ir.Bbl, fun: ir.Fun):
+    def FinalizeResultsPop(self, op_stack, bbl: ir.Bbl, fun: ir.Fun, unreachable: bool):
+        if unreachable:
+            assert len(op_stack) == self.stack_start
+            return
         # print (f"@@ FinalizePop {fun.name}:  {self.num_results}")
-        dst_pos = self.stack_start + self.num_results
-        for i in range(self.num_results):
+        dst_pos = self.stack_start + len(self.result_types)
+        for i in range(len(self.result_types)):
             dst_pos -= 1
             op = op_stack.pop(-1)
             dst_reg = GetOpReg(fun, op.kind, dst_pos)
@@ -395,9 +398,9 @@ class Block:
 
     def FinalizeResultsCopy(self, op_stack, bbl: ir.Bbl, fun: ir.Fun):
         # print (f"@@ FinalizeCopy {fun.name}:  {self.num_results}")
-        dst_pos = self.stack_start + self.num_results
+        dst_pos = self.stack_start + len(self.result_types)
         src_pos = len(op_stack)
-        for i in range(self.num_results):
+        for i in range(len(self.result_types)):
             dst_pos -= 1
             src_pos -= 1
             op = op_stack[src_pos]
@@ -406,27 +409,31 @@ class Block:
                 bbl.AddIns(ir.Ins(o.MOV, [dst_reg, op]))
 
 
+def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
+    return [WASM_TYPE_TO_CWERG_TYPE[x] for x in result_type.types]
+
+
 def MakeBlock(no: int, opc, args, fun, op_stack, mod: wasm.Module) -> Block:
     prefix = opc.name
     start_bbl = fun.AddBbl(ir.Bbl(f"{prefix}_{no}"))
     else_bbl = None
-    num_results = 0
-    num_params = 0
+    result_types = []
+    param_types = []
     type_arg = args[0]
     if opc is wasm_opc.IF:
         else_bbl = fun.AddBbl(ir.Bbl(f"else_{no}"))
     if type_arg is not None:
         if isinstance(args[0], wasm.VAL_TYPE):
-            num_results = 1
+            result_types = [WASM_TYPE_TO_CWERG_TYPE[args[0]]]
         else:
             assert isinstance(type_arg, wasm.TypeIdx), f"{type(type_arg)}"
             type_sec = mod.sections.get(wasm.SECTION_ID.TYPE)
             block_type: wasm.FunctionType = type_sec.items[int(type_arg)]
-            num_results = len(block_type.rets.types)
-            num_params = len(block_type.args.types)
+            result_types = TranslateTypeList(block_type.rets)
+            param_types = TranslateTypeList(block_type.args)
 
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
-    return Block(opc, no, start_bbl, next_bbl, num_results, num_params, len(op_stack),
+    return Block(opc, no, start_bbl, next_bbl, result_types, param_types, len(op_stack),
                  else_bbl)
 
 
@@ -440,10 +447,6 @@ def GetTargetBbl(block_stack: typing.List[Block], offset: wasm.LabelIdx):
 
 def GetTargetBlock(block_stack: typing.List[Block], offset: wasm.LabelIdx):
     return block_stack[-offset - 1]
-
-
-def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
-    return [WASM_TYPE_TO_CWERG_TYPE[x] for x in result_type.types]
 
 
 def ToUnsigned(dk: o.DK):
@@ -516,13 +519,16 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             loc_index += 1
 
     print()
-    print("#", fun.name, len(wasm_fun.impl.expr.instructions))
+    print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
 
+    opc = None
+    last_opc = None
     for n, wasm_ins in enumerate(wasm_fun.impl.expr.instructions):
+        last_opc = opc
         opc = wasm_ins.opcode
         args = wasm_ins.args
         op_stack_size_before = len(op_stack)
-        # print(f"#@@ {opc.name}", args, len(op_stack))
+        print(f"#@@ {opc.name}", args, len(op_stack))
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
             # breaks for floats
@@ -634,15 +640,15 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op1 = tmp1
                 op2 = tmp2
             block_stack.append(MakeBlock(bbl_count, opc, args, fun, op_stack, mod))
-            assert block_stack[-1].num_params == 0
+            assert len(block_stack[-1].param_types) == 0
             bbl_count += 1
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
             block = block_stack[-1]
-            assert block.num_params == 0
+            assert len(block.param_types) == 0
             assert block.opcode is wasm_opc.IF
-            block.FinalizeResultsPop(op_stack, bbls[-1], fun)
+            block.FinalizeResultsPop(op_stack, bbls[-1], fun, last_opc in {wasm_opc.UNREACHABLE, wasm_opc.BR})
             bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
             assert block.else_bbl is not None
             bbls.append(block.else_bbl)
@@ -650,7 +656,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.END:
             if block_stack:
                 block = block_stack.pop(-1)
-                expected_op_stack_size = block.stack_start + block.num_results - block.num_params
+                expected_op_stack_size = block.stack_start + len(block.result_types) - len(block.param_types)
                 assert expected_op_stack_size <= len(op_stack), (
                     f"end of block size mismatch {expected_op_stack_size} vs {len(op_stack)}")
                 if expected_op_stack_size < len(op_stack):
