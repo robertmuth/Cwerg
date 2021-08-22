@@ -10,6 +10,8 @@ Many SOCs, including the Raspberry Pi 3 and 4, satisfy these requirements.
 
 Supporting Thumb(2) is an explicit non-goal.
 
+64bit integer data type (S64, U64) are not supported. 
+
 ## Code Generation Stages
 
 Code generation goes through the following stages which 
@@ -122,8 +124,13 @@ which should be enough to not worry about overflows initially.
 
 ## Comparing against gcc's instruction selector
 
+https://godbolt.org/  (use ARM gcc or armv7-a clang with flags `-O3 -ffast-math  -marm -march=armv7ve`) 
+
 ```
-arm-linux-gnueabihf-gcc-9  test.c -c -O3  -o test.o ; arm-linux-gnueabihf-objdump -D test.o
+arm-linux-gnueabihf-gcc  test.c -c -O3 -marm -march=armv7ve -o test.o ; arm-linux-gnueabihf-objdump -D test.o
 ```
 
-
+To convert from the hex code reported by objdump to the Cwerg A32 instruction run:
+```
+../CpuA32/disassembler_tool.py <32 bit hex code>
+```

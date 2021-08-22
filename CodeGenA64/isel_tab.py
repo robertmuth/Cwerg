@@ -646,8 +646,8 @@ def InitCmp():
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for cmp_kind, csel, inv_csel in [
-          (o.DK.U32, "csel_x_cc", "csel_x_cs"),
-          (o.DK.S32, "csel_x_lt", "csel_x_ge")]:
+            (o.DK.U32, "csel_x_cc", "csel_x_cs"),
+            (o.DK.S32, "csel_x_lt", "csel_x_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -661,8 +661,8 @@ def InitCmp():
                     imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
     for kind in [o.DK.U32, o.DK.S32]:
         for cmp_kind, csel, inv_csel in [
-          (o.DK.U32, "csel_w_cc", "csel_w_cs"),
-          (o.DK.S32, "csel_w_lt", "csel_w_ge")]:
+            (o.DK.U32, "csel_w_cc", "csel_w_cs"),
+            (o.DK.S32, "csel_w_lt", "csel_w_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -676,9 +676,9 @@ def InitCmp():
                     imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for cmp_kind, csel, inv_csel in [
-          (o.DK.U64, "csel_x_cc", "csel_x_cs"),
-          (o.DK.A64, "csel_x_cc", "csel_x_cs"),  # should this be signed?
-          (o.DK.S64, "csel_x_lt", "csel_x_ge")]:
+            (o.DK.U64, "csel_x_cc", "csel_x_cs"),
+            (o.DK.A64, "csel_x_cc", "csel_x_cs"),  # should this be signed?
+            (o.DK.S64, "csel_x_lt", "csel_x_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -692,9 +692,9 @@ def InitCmp():
                     imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
     for kind in [o.DK.U32, o.DK.S32]:
         for cmp_kind, csel, inv_csel in [
-          (o.DK.U64, "csel_w_cc", "csel_w_cs"),
-          (o.DK.A64, "csel_w_cc", "csel_w_cs"),  # should this be signed?
-          (o.DK.S64, "csel_w_lt", "csel_w_ge")]:
+            (o.DK.U64, "csel_w_cc", "csel_w_cs"),
+            (o.DK.A64, "csel_w_cc", "csel_w_cs"),  # should this be signed?
+            (o.DK.S64, "csel_w_lt", "csel_w_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -713,8 +713,8 @@ def InitCmp():
                      InsTmpl("csel_w_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
             Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
-                [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
-                 InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
@@ -725,6 +725,7 @@ def InitCmp():
             Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+
 
 def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:
@@ -1001,7 +1002,7 @@ def InitConv():
         Pattern(o.CONV, [dst_kind, o.DK.U16],
                 [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
 
-    # TODO: this is iffy
+    # TODO: this is iffy, should we go S32 -> U32 -> U64 or S32 -> S64 -> U64?
     Pattern(o.CONV, [o.DK.U64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
@@ -1012,8 +1013,9 @@ def InitConv():
         Pattern(o.CONV, [dst_kind, o.DK.S16],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 15])])
 
-    Pattern(o.CONV, [o.DK.U64, o.DK.U32],
-            [InsTmpl("orr_w_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
+    for dst_kind in [o.DK.U64, o.DK.S64]:
+        Pattern(o.CONV, [dst_kind, o.DK.U32],
+                [InsTmpl("orr_w_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
     Pattern(o.CONV, [o.DK.S64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
@@ -1092,6 +1094,7 @@ def InitVFP():
                                         (o.DK.S32, o.DK.F32, "fmov_w_from_s")]:
         Pattern(o.BITCAST, [kind_dst, kind_src],
                 [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1])])
+
 
 InitLoad()
 InitStackLoad()

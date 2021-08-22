@@ -9,6 +9,14 @@ which is a straight forward expansion of the IR opcodes into zero or more A64 op
 are also use to generate C++ code.
 
 ## Comparing against gcc's instruction selector
+
+https://godbolt.org/  (use ARM64 gcc or armv8-clang with flags `-O3 -ffast-math`) 
+
 ```
-aarch64-linux-gnu-gcc-8 test.c -c -O3  -o test.o ; aarch64-linux-gnu-objdump -D test.o
+aarch64-linux-gnu-gcc test.c -c -O3  -o test.o ; aarch64-linux-gnu-objdump -D test.o
+```
+
+To convert from the hex code reported by objdump to the Cwerg A64 instruction run:
+```
+../CpuA64/disassembler_tool.py <32 bit hex code>
 ```
