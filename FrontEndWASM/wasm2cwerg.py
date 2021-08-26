@@ -383,18 +383,35 @@ class Block:
     stack_start: int
     else_bbl: typing.Optional[ir.Bbl]
 
-    def FinalizeResultsPop(self, op_stack, bbl: ir.Bbl, fun: ir.Fun, unreachable: bool):
+    def OpStackSizeAfter(self):
+        return self.stack_start + len(self.result_types) - len(self.param_types)
+
+    def FinalizeIf(self, op_stack, bbl: ir.Bbl, fun: ir.Fun, unreachable: bool):
+        expected_op_stack_size = self.OpStackSizeAfter()
         if unreachable:
-            assert len(op_stack) == self.stack_start
+            assert len(op_stack) >= self.stack_start - len(self.param_types)
+            # reset so that the else branch can start at the same place
             return
         # print (f"@@ FinalizePop {fun.name}:  {self.num_results}")
-        dst_pos = self.stack_start + len(self.result_types)
-        for i in range(len(self.result_types)):
-            dst_pos -= 1
-            op = op_stack.pop(-1)
-            dst_reg = GetOpReg(fun, op.kind, dst_pos)
-            if dst_reg != op:
-                bbl.AddIns(ir.Ins(o.MOV, [dst_reg, op]))
+        assert len(op_stack) == expected_op_stack_size
+        # for i in range(len(self.result_types)):
+        #    op = op_stack[-1 - i]
+        #    dst_reg = GetOpReg(fun, op.kind, expected_op_stack_size -1 - i)
+        #    if dst_reg != op:
+        #        bbl.AddIns(ir.Ins(o.MOV, [dst_reg, op]))
+        return
+
+    def FinalizeEnd(self, op_stack, bbl: ir.Bbl, fun: ir.Fun, unreachable: bool):
+        expected_op_stack_size = self.OpStackSizeAfter()
+        if unreachable:
+            assert len(op_stack) >= self.stack_start - len(self.param_types)
+            while len(op_stack) > expected_op_stack_size:
+                op_stack.pop(-1)
+            while len(op_stack) < expected_op_stack_size:
+                dk = self.result_types[len(op_stack) - expected_op_stack_size]
+                op_stack.append(GetOpReg(fun, dk, len(op_stack)))
+            return
+        assert len(op_stack) == expected_op_stack_size, f"[{fun.name}] end of block stack size mismatch wanted:{expected_op_stack_size}  got:{len(op_stack)}"
 
     def FinalizeResultsCopy(self, op_stack, bbl: ir.Bbl, fun: ir.Fun):
         # print (f"@@ FinalizeCopy {fun.name}:  {self.num_results}")
@@ -413,7 +430,7 @@ def TranslateTypeList(result_type: wasm.ResultType) -> typing.List[o.DK]:
     return [WASM_TYPE_TO_CWERG_TYPE[x] for x in result_type.types]
 
 
-def MakeBlock(no: int, opc, args, fun, op_stack, mod: wasm.Module) -> Block:
+def MakeBlock(no: int, opc, args, fun, op_stack: typing.List, mod: wasm.Module) -> Block:
     prefix = opc.name
     start_bbl = fun.AddBbl(ir.Bbl(f"{prefix}_{no}"))
     else_bbl = None
@@ -431,6 +448,8 @@ def MakeBlock(no: int, opc, args, fun, op_stack, mod: wasm.Module) -> Block:
             block_type: wasm.FunctionType = type_sec.items[int(type_arg)]
             result_types = TranslateTypeList(block_type.rets)
             param_types = TranslateTypeList(block_type.args)
+        for op, dk in zip(op_stack[-len(result_types):], result_types):
+            assert op.kind is dk
 
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
     return Block(opc, no, start_bbl, next_bbl, result_types, param_types, len(op_stack),
@@ -517,6 +536,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         for i in range(locals.count):
             reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", WASM_TYPE_TO_CWERG_TYPE[locals.kind]))
             loc_index += 1
+            bbls[-1].AddIns(ir.Ins(o.MOV, [reg,  ir.Const(reg.kind, 0)]))
 
     print()
     print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
@@ -646,9 +666,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls.append(block_stack[-1].start_bbl)
         elif opc is wasm_opc.ELSE:
             block = block_stack[-1]
-            assert len(block.param_types) == 0
             assert block.opcode is wasm_opc.IF
-            block.FinalizeResultsPop(op_stack, bbls[-1], fun, last_opc in {wasm_opc.UNREACHABLE, wasm_opc.BR})
+            block.FinalizeIf(op_stack, bbls[-1], fun, last_opc in {wasm_opc.UNREACHABLE, wasm_opc.BR})
+            op_stack = op_stack[0:block.stack_start]
             bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
             assert block.else_bbl is not None
             bbls.append(block.else_bbl)
@@ -656,11 +676,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.END:
             if block_stack:
                 block = block_stack.pop(-1)
-                expected_op_stack_size = block.stack_start + len(block.result_types) - len(block.param_types)
-                assert expected_op_stack_size <= len(op_stack), (
-                    f"end of block size mismatch {expected_op_stack_size} vs {len(op_stack)}")
-                if expected_op_stack_size < len(op_stack):
-                    op_stack = op_stack[:expected_op_stack_size]
+                block.FinalizeEnd(op_stack, bbls[-1], fun, last_opc in {wasm_opc.UNREACHABLE, wasm_opc.BR})
                 if block.else_bbl:
                     bbls.append(block.else_bbl)
                 bbls.append(block.end_bbl)
@@ -782,7 +798,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.UNREACHABLE:
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
         elif opc is wasm_opc.MEMORY_GROW:
-            # assert False
+            #assert False
             pass
         else:
             assert False, f"unsupported opcode [{opc.name}]"
