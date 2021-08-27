@@ -21,8 +21,6 @@ ONE = ir.Const(o.DK.U32, 1)
 ZERO_S = ir.Const(o.DK.S32, 0)
 ONE_S = ir.Const(o.DK.S32, 1)
 
-PAGE_SIZE = 64 * 1024
-
 WASI_FUNCTIONS = {
     "$wasi$args_get",
     "$wasi$args_sizes_get",
@@ -711,9 +709,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                     bbls.append(block.else_bbl)
                 bbls.append(block.end_bbl)
             else:
+                # end of function
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 pred = wasm_fun.impl.expr.instructions[n - 1].opcode
-                if pred != wasm_opc.RETURN:
+                if pred not in {wasm_opc.RETURN, wasm_opc.UNREACHABLE, wasm_opc.BR}:
                     if fun.output_types:
                         for x in reversed(fun.output_types):
                             op = op_stack.pop(-1)
@@ -827,9 +826,16 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.SWITCH, [reg_unsigned, jtb]))
         elif opc is wasm_opc.UNREACHABLE:
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
-        elif opc is wasm_opc.MEMORY_GROW:
-            # assert False
-            pass
+        elif opc is wasm_opc.MEMORY_GROW or opc is wasm_opc.MEMORY_SIZE:
+            op = ZERO_S
+            if opc is wasm_opc.MEMORY_GROW:
+                op = op_stack.pop(-1)
+            bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
+            assert unit.GetFun("__memory_grow")
+            bbls[-1].AddIns(ir.Ins(o.BSR, [unit.GetFun("__memory_grow")]))
+            dst = GetOpReg(fun, o.DK.S32, len(op_stack))
+            bbls[-1].AddIns(ir.Ins(o.POPARG, [dst]))
+            op_stack.append(dst)
         else:
             assert False, f"unsupported opcode [{opc.name}]"
     assert not op_stack, f"op_stack not empty in {fun.name}: {op_stack}"
@@ -839,19 +845,13 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
 
 
 def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
-                    init_global: ir.Fun, init_data: ir.Fun, initial_heap_size: int,
+                    init_global: ir.Fun, init_data: ir.Fun, initial_heap_size_pages: int,
                     addr_type: o.DK) -> ir.Fun:
     bit_width = addr_type.bitwidth()
 
-    global_mem_base = unit.AddMem(ir.Mem("global_mem_base",
-                                         ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
-    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
-    global_mem_base.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
-    xbrk = unit.AddFun(ir.Fun("xbrk", o.FUN_KIND.EXTERN, [addr_type], [addr_type]))
-    exit = unit.AddFun(ir.Fun("exit", o.FUN_KIND.EXTERN, [], [o.DK.S32]))
+    global_mem_base = unit.AddMem(ir.Mem("__memory_base", ZERO, o.MEM_KIND.EXTERN))
 
     fun = unit.AddFun(ir.Fun("main", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32, addr_type]))
-    addr = fun.AddReg(ir.Reg("addr", addr_type))
     argc = fun.AddReg(ir.Reg("argc", o.DK.U32))
     argv = fun.AddReg(ir.Reg("argv", addr_type))
 
@@ -861,16 +861,12 @@ def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
     bbl.AddIns(ir.Ins(o.ST_MEM, [global_argc, ZERO, argc]))
     bbl.AddIns(ir.Ins(o.ST_MEM, [global_argv, ZERO, argv]))
 
-    if initial_heap_size:
-        bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(addr_type, 0)]))
-        bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
-        bbl.AddIns(ir.Ins(o.POPARG, [addr]))
-        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ZERO, addr]))
-        bbl.AddIns(ir.Ins(o.LEA, [addr, addr, ir.Const(o.DK.S32, initial_heap_size)]))
-        bbl.AddIns(ir.Ins(o.PUSHARG, [addr]))
-        bbl.AddIns(ir.Ins(o.BSR, [xbrk]))
-        bbl.AddIns(ir.Ins(o.POPARG, [addr]))
-        bbl.AddIns(ir.Ins(o.ST_MEM, [global_mem_base, ir.Const(o.DK.S32, bit_width // 8), addr]))
+    bbl.AddIns(ir.Ins(o.BSR, [unit.GetFun("__memory_init")]))
+    if initial_heap_size_pages:
+        bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, initial_heap_size_pages)]))
+        bbl.AddIns(ir.Ins(o.BSR, [unit.GetFun("__memory_grow")]))
+        bbl.AddIns(ir.Ins(o.POPARG, [fun.AddReg(ir.Reg("dummy", o.DK.S32))]))
+
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbl.AddIns(ir.Ins(o.LD_MEM, [mem_base, global_mem_base, ZERO]))
 
@@ -933,6 +929,8 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
     init_data = GenerateInitDataFun(mod, unit, memcpy, addr_type)
+    unit.AddFun(ir.Fun("__memory_init", o.FUN_KIND.EXTERN, [], []))
+    unit.AddFun(ir.Fun("__memory_grow", o.FUN_KIND.EXTERN, [o.DK.S32], [o.DK.S32]))
 
     main = None
     for wasm_fun in mod.functions:
@@ -958,15 +956,15 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
         # print ("\n".join(serialize.FunRenderToAsm(fun)))
         sanity.FunCheck(fun, unit, check_cfg=False)
 
-    initial_heap_size = 0
+    initial_heap_size_pages = 0
     sec_memory = mod.sections.get(wasm.SECTION_ID.MEMORY)
     if sec_memory:
         assert len(sec_memory.items) == 1
         heap: wasm.Mem = sec_memory.items[0]
-        initial_heap_size = heap.mem_type.limits.min
+        initial_heap_size_pages = heap.mem_type.limits.min
     assert main, f"missing main function"
     GenerateStartup(unit, global_argc, global_argv, main, init_global, init_data,
-                    initial_heap_size * PAGE_SIZE, addr_type)
+                    initial_heap_size_pages, addr_type)
 
     return unit
 

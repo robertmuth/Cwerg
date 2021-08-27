@@ -131,6 +131,52 @@
   mov %out = %S32_21
   pusharg %out
   ret
+######################################################################
+# WASM MEMORY MANAGEMENT
+######################################################################
+
+.mem __memory_base 4 RW
+  .data 4 [0]    # base
+  .data 4 [0]    # top
+
+
+.fun __memory_init NORMAL [] = []
+.bbl prolog
+   pusharg 0:A32
+   bsr xbrk
+   poparg addr:A32
+   st.mem __memory_base 0 addr
+   st.mem __memory_base 4 addr
+   ret
+
+.fun __memory_grow NORMAL [S32] = [S32]
+.bbl prolog
+    poparg size:S32
+    ld.mem bot:U32 __memory_base 0
+    ld.mem top:U32 __memory_base 4
+    sub top top bot
+    shr top top 16
+    conv out:S32 top
+    beq size 0 epilog
+    
+    conv usize:U32 size
+    shl usize usize 16
+    ld.mem atop:A32 __memory_base 4
+    lea atop atop usize
+    pusharg atop
+    bsr xbrk
+    poparg res:A32
+    ble atop res success
+    pusharg -1:S32
+    ret
+
+.bbl success
+    st.mem __memory_base 4 atop
+
+.bbl epilog
+
+    pusharg out
+    ret
 
 ######################################################################
 # PSEUDO WASI

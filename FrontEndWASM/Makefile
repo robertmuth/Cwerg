@@ -5,7 +5,7 @@ DIR=build
 $(info $(shell mkdir -p $(DIR)))
 
 
-TESTS_32_64 = fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
+TESTS_32_64 = memory.wasm fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
 TESTS_64 = loop.wasm print_i64_ln.wasm call_indirect.wasm
 
 TEST_32_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.32.exe)

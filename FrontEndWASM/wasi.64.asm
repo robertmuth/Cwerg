@@ -1,5 +1,5 @@
 # based on
-# https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md
+# https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md
 
 ######################################################################
 # HELPERS CLONED FROM StdLib
@@ -130,6 +130,52 @@
   ret
 
 ######################################################################
+# WASM MEMORY MANAGEMENT
+######################################################################
+
+.mem __memory_base 8 RW
+  .data 8 [0]    # base
+  .data 8 [0]    # top
+
+
+.fun __memory_init NORMAL [] = []
+.bbl prolog
+   pusharg 0:A64
+   bsr xbrk
+   poparg addr:A64
+   st.mem __memory_base 0 addr
+   st.mem __memory_base 8 addr
+   ret
+
+.fun __memory_grow NORMAL [S32] = [S32]
+.bbl prolog
+    poparg size:S32
+    ld.mem bot:U64 __memory_base 0
+    ld.mem top:U64 __memory_base 8
+    sub top top bot
+    shr top top 16
+    conv out:S32 top
+    beq size 0 epilog
+
+    conv usize:U32 size
+    shl usize usize 16
+    ld.mem atop:A64 __memory_base 8
+    lea atop atop usize
+    pusharg atop
+    bsr xbrk
+    poparg res:A64
+    ble atop res success
+    pusharg -1:S32
+    ret
+
+.bbl success
+    st.mem __memory_base 8 atop
+
+.bbl epilog
+    pusharg out
+    ret
+
+######################################################################
 # PSEUDO WASI
 ######################################################################
 
@@ -183,6 +229,75 @@
     pusharg statu:S32
     ret
 
+.fun $wasi$path_open NORMAL [S32] = [A64 S32 S32 S32 S32 S32 S64 S64 S32 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg dirfd:S32
+    poparg dirflags:S32
+    poparg path_offset:S32
+    poparg path_size:S32
+    poparg oflags:S32
+    poparg fs_rights_base:S64
+    poparg fs_rights_inheriting:S64
+    poparg fdflags:S32
+    poparg result_offset:S32
+  .stk buffer 1 1024
+    lea.stk dst:A64 buffer 0
+    lea src:A64 mem_base path_offset
+    blt  path_size 1024:S32 copy
+    pusharg -1:S32  # path too long
+    ret
+  .bbl loop
+   ld b:U8 src 0
+   lea src src 1
+   st dst  0 b
+   lea dst dst 1
+   sub path_size path_size 1
+  .bbl copy
+    bne path_size 0 loop
+    st dst 0 0:U32  # zero terminator
+
+   mov mode:S32 420 # 0644
+   mov flag:S32 0
+
+   .reg S32 [f]
+   and f oflags 1 # creat 0100 = 128
+   shl f f 7
+   or flag flag f
+
+   and f oflags 4 # excl 0200  256
+   shl f f 6
+   or flag flag f
+
+   and f oflags 8 # trunc 01000 512
+   shl f f 6
+   or flag flag f
+
+   and f fdflags 1 # append 0x2000 1024
+   shl f f 10
+   or flag flag f
+
+   .reg S64 [g]
+   and g fs_rights_base 64 #  FD_WRITE
+   cmpeq w:S32 0 1 g 0
+   and g fs_rights_base 2 #  FD_READ
+   cmpeq r:S32 0 1 g 0
+   shl f w r      # readonly=0, writeonly=1, readwrite=2
+   or flag flag f
+
+   lea.stk dst buffer 0
+
+   pusharg mode
+   pusharg flag
+   pusharg dst
+   bsr open
+   poparg fd:S32
+   blt fd 0 end
+   st mem_base result_offset fd
+   mov fd 0
+ .bbl end
+   pusharg fd
+   ret
 
 # (mem-addr, status) ->
 .fun $wasi$proc_exit NORMAL [] = [A64 S32]
@@ -191,6 +306,63 @@
     poparg status:S32
     pusharg status
     bsr exit
+    ret
+
+.fun $wasi$fd_prestat_get NORMAL [S32] = [A64 S32 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg result_offset:S32
+    # TODO: unimplemented
+    pusharg -1:S32
+    ret
+
+
+.fun $wasi$fd_prestat_dir_name NORMAL [S32] = [A64 S32 S32 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg path_offset:S32
+    poparg path_size:S32
+    # TODO: unimplemented
+    pusharg -1:S32
+    ret
+
+.fun $wasi$fd_read NORMAL [S32] = [A64 S32 S32 S32 S32]
+
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg array_offset:S32
+    poparg array_size:S32
+    poparg result_offset:S32
+
+    lea array:A64 mem_base array_offset
+    lea result:A64 mem_base result_offset
+    mov count:S32 0:S32
+    mov errno:S32 0:S32
+    bra check
+
+  .bbl loop
+    ld buf_offset:S32 array 0:U32
+    lea buf:A64 mem_base buf_offset
+    ld len:U32 array 4:U32
+    conv len64:U64 len
+    lea array array 8:U32
+    sub array_size array_size 1
+    pusharg len64
+    pusharg buf
+    pusharg fd
+    bsr read
+    poparg errno64:S64
+    blt errno64 0 epilog
+    conv errno errno64
+    add count count errno
+  .bbl check
+    blt 0:S32 array_size loop
+  .bbl epilog
+    st result 0:U32 count
+    pusharg errno
     ret
 
 .fun $wasi$fd_write NORMAL [S32] = [A64 S32 S32 S32 S32]
