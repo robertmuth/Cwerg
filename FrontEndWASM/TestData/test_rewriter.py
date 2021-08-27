@@ -10,7 +10,6 @@ Note: test.rewritten.wast will NOT be a valid wast file
 further hand editing is necessary.
 """
 
-
 import collections
 import sys
 import re
@@ -22,7 +21,7 @@ RE_ASSERT = re.compile(r'^\((assert_[a-z0-9]+)\s+(.*)$')
 
 RE_INVOKE = re.compile(r'\(invoke\s+"([-_.a-zA-Z0-9]+)"\s*(.*)$')
 
-RE_PARAM = re.compile(r'(\([.0-9a-z]+\s+[-.0-9xXeEa-f]+\))\s*(.*)$')
+RE_PARAM = re.compile(r'(\([.0-9a-z]+\s+[-+.0-9xXeEpPa-fA-F]+\))\s*(.*)$')
 
 
 def Rename(s: str):
@@ -49,12 +48,9 @@ def ParseAssertReturn(line):
     rest = rest[1:].strip()
     if rest.startswith("("):
         m = RE_PARAM.match(rest)
-        assert m
+        assert m, f"could not parse return {line}"
         expected = m.group(1)
     return Rename(fun_name), params, expected
-
-
-
 
 
 def main(fin):
@@ -69,7 +65,8 @@ def main(fin):
         m = RE_EXPORT.match(line)
         if m:
             # print(Rename(m.group(1)))
-            line = line.replace("func ", "func " + Rename(m.group(1)) + " ")
+            name = Rename(m.group(1))
+            line = line.replace("func ", "func " + name + " ").replace(m.group(1), name[1:])
             print(line, end="")
             continue
 
@@ -93,6 +90,7 @@ def main(fin):
             continue
 
         print(line, end="")
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.stdin))
