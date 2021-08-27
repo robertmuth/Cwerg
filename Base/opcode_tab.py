@@ -633,7 +633,8 @@ CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               # TODO: specify rounding and overflow for float <-> int conversions
               "Conversion of numerical regs which do not have to be of same size. "
               "Bits may change. Note: Use mov if both regs have the same kind. "
-              "Note: This is not completely stable/well-defined yet and may change.")
+              "Note: This is not completely stable/well-defined yet for case that involve "
+              "a widening change from signed -> unsigned.")
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
@@ -655,7 +656,7 @@ CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
                "Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 "
-               "Some day cmp1/cmp2 may be of a different type.",
+               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2.",
                OA.COMMUTATIVE)
 
 CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
@@ -664,8 +665,9 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ADDR_NUM,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               "Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 "
-               "Some day cmp1/cmp2 may be of a different type.", )
+               "Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 "
+               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2."),
+
 # materialize addresses in a register
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],

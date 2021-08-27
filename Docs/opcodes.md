@@ -239,7 +239,7 @@ push call or return arg - must immediately precede bsr/jsr or ret
 pop call or return arg - must immediately follow fun entry or bsr/jsr
 
 #### [32] conv *dst* <sub>[REG:NUM]</sub> = *src* <sub>[REG/CONST:NUM]</sub>
-Conversion of numerical regs which do not have to be of same size. Bits may change. Note: Use mov if both regs have the same kind. Note: This is not completely stable/well-defined yet and may change.
+Conversion of numerical regs which do not have to be of same size. Bits may change. Note: Use mov if both regs have the same kind. Note: This is not completely stable/well-defined yet for case that involve a widening change from signed -> unsigned.
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
 Cast between regs of same size. Bits will be re-interpreted but do not change. This can be used to manipulated addresses im unusual ways.
@@ -248,10 +248,12 @@ Cast between regs of same size. Bits will be re-interpreted but do not change. T
 Move between registers. While a mov can be emulated via a `zero add`, having a dedicated instruction make some optimizations easier to implement when combined with a canonicalization.
 
 #### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ANY]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 Some day cmp1/cmp2 may be of a different type.
+Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 
+Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 #### [36] cmplt *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ADDR_NUM]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (compare greater than). dst := (cmp1 < cmp2) ? src1 : src2 Some day cmp1/cmp2 may be of a different type.
+Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
+Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 ## Address Arithmetic
 
