@@ -255,9 +255,21 @@ WASM_CMP_TO_CWERG_CMP = {
 }
 
 WASM_ALU1_TO_CWERG = {
-    "sqrt": o.SQRT,
-    "abs": o.ABS,
+    "sqrt": ([], o.SQRT),
+    "abs": ([], o.ABS),
+    "neg": ([ir.Const(o.DK.S32, 0)], o.SUB),
 }
+
+
+def HandleRotl(dst: ir.Reg, op1: ir.Reg, op2: ir.Reg, bbl: ir.Bbl):
+    assert dst != op1
+    assert dst.kind is o.DK.U32 or dst.kind is o.DK.U64, f"{dst}"
+    bitwidth = ir.Const(dst.kind, dst.kind.bitwidth())
+    bbl.AddIns(ir.Ins(o.SHL, [dst, op1, op2]))
+    bbl.AddIns(ir.Ins(o.SUB, [op2, bitwidth, op2]))
+    bbl.AddIns(ir.Ins(o.SHR, [op1, op1, op2]))  # here the unsigned requirement kicks in
+    bbl.AddIns(ir.Ins(o.OR, [dst, dst, op1]))
+
 
 WASM_ALU_TO_CWERG = {
     "xor": o.XOR,
@@ -267,7 +279,7 @@ WASM_ALU_TO_CWERG = {
     "shl": o.SHL,
     "shr_u": o.SHR,
     "shr_s": o.SHR,
-    # "rotl": o.SHL,
+    "rotl": HandleRotl,
     #
     "sub": o.SUB,
     "add": o.ADD,
@@ -281,26 +293,31 @@ WASM_ALU_TO_CWERG = {
     #
 }
 
+
+
 WASM_CONV_TO_CWERG = {
     #
-    "f64.convert_i32_u": (o.CONV, True),
-    "f32.convert_i32_u": (o.CONV, True),
-    "i64.extend_i32_u": (o.CONV, True),
+    "f64.convert_i32_u": (o.CONV, False, True),
+    "f32.convert_i32_u": (o.CONV, False, True),
+    "i64.extend_i32_u": (o.CONV, False, True),
     #
-    "i64.extend_i32_s": (o.CONV, False),
+    "i64.extend_i32_s": (o.CONV, False, False),
     #
-    "i32.wrap_i64": (o.CONV, False),
+    "i32.wrap_i64": (o.CONV, False, False),
     #
-    "f64.convert_i32_s": (o.CONV, False),
-    "f64.convert_i64_s": (o.CONV, False),
-    "f32.convert_i32_s": (o.CONV, False),
-    "f32.convert_i64_s": (o.CONV, False),
+    "f64.convert_i32_s": (o.CONV, False, False),
+    "f64.convert_i64_s": (o.CONV, False, False),
+    "f32.convert_i32_s": (o.CONV, False, False),
+    "f32.convert_i64_s": (o.CONV, False, False),
     #
-    "i32.trunc_f64_s": (o.CONV, False),
-    "i64.trunc_f64_s": (o.CONV, False),
-    "i32.trunc_f32_s": (o.CONV, False),
-    "i64.trunc_f32_s": (o.CONV, False),
-    "f64.promote_f32": (o.CONV, False),
+    "i32.trunc_f64_u": (o.CONV, True, False),
+    "i64.trunc_f64_u": (o.CONV, True, False),
+    "i32.trunc_f64_s": (o.CONV, False, False),
+    "i64.trunc_f64_s": (o.CONV, False, False),
+    "i32.trunc_f32_s": (o.CONV, False, False),
+    "i64.trunc_f32_s": (o.CONV, False, False),
+    "f64.promote_f32": (o.CONV, False, False),
+    "f32.demote_f64": (o.CONV, False, False),
 }
 
 SUPPORTED_BITCAST = {
@@ -411,7 +428,8 @@ class Block:
                 dk = self.result_types[len(op_stack) - expected_op_stack_size]
                 op_stack.append(GetOpReg(fun, dk, len(op_stack)))
             return
-        assert len(op_stack) == expected_op_stack_size, f"[{fun.name}] end of block stack size mismatch wanted:{expected_op_stack_size}  got:{len(op_stack)}"
+        assert len(
+            op_stack) == expected_op_stack_size, f"[{fun.name}] end of block stack size mismatch wanted:{expected_op_stack_size}  got:{len(op_stack)}"
 
     def FinalizeResultsCopy(self, op_stack, bbl: ir.Bbl, fun: ir.Fun):
         # print (f"@@ FinalizeCopy {fun.name}:  {self.num_results}")
@@ -474,7 +492,7 @@ def ToUnsigned(dk: o.DK):
     elif dk is o.DK.S64:
         return o.DK.U64
     else:
-        assert False
+        assert False, f"unexpected operand type {dk}"
 
 
 def EmitCall(fun: ir.Fun, bbl: ir.Bbl, call_ins: ir.Ins, op_stack, mem_base, callee: ir.Fun):
@@ -536,10 +554,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         for i in range(locals.count):
             reg = fun.AddReg(ir.Reg(f"$loc_{loc_index}", WASM_TYPE_TO_CWERG_TYPE[locals.kind]))
             loc_index += 1
-            bbls[-1].AddIns(ir.Ins(o.MOV, [reg,  ir.Const(reg.kind, 0)]))
+            bbls[-1].AddIns(ir.Ins(o.MOV, [reg, ir.Const(reg.kind, 0)]))
 
-    print()
-    print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
+    # print()
+    # print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
 
     opc = None
     last_opc = None
@@ -548,7 +566,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         opc = wasm_ins.opcode
         args = wasm_ins.args
         op_stack_size_before = len(op_stack)
-        print(f"#@@ {opc.name}", args, len(op_stack))
+        # print(f"#@@ {opc.name}", args, len(op_stack))
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
             # breaks for floats
@@ -593,9 +611,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.ST_MEM, [var_mem, ZERO, op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
+                arg, opcode = WASM_ALU1_TO_CWERG[opc.basename]
                 op = op_stack.pop(-1)
                 dst = GetOpReg(fun, op.kind, len(op_stack))
-                bbls[-1].AddIns(ir.Ins(WASM_ALU1_TO_CWERG[opc.basename], [dst, op]))
+                bbls[-1].AddIns(ir.Ins(opcode, [dst] + arg + [op]))
                 op_stack.append(dst)
             else:
                 op2 = op_stack.pop(-1)
@@ -605,22 +624,33 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 if wasm_opc.FLAGS.UNSIGNED in opc.flags:
                     tmp1 = GetOpReg(fun, ToUnsigned(op1.kind), op_stack_size_before + 1)
                     tmp2 = GetOpReg(fun, ToUnsigned(op1.kind), op_stack_size_before + 2)
+                    tmp3 = GetOpReg(fun, ToUnsigned(op1.kind), op_stack_size_before + 3)
                     bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
                     bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
-                    bbls[-1].AddIns(ir.Ins(alu, [tmp1, tmp1, tmp2]))
-                    bbls[-1].AddIns(ir.Ins(o.CONV, [dst, tmp1]))
+                    if isinstance(alu, o.Opcode):
+                        bbls[-1].AddIns(ir.Ins(alu, [tmp3, tmp1, tmp2]))
+                    else:
+                        alu(tmp3, tmp1, tmp2, bbls[-1])
+                    bbls[-1].AddIns(ir.Ins(o.CONV, [dst, tmp3]))
                 else:
+                    assert isinstance(alu, o.Opcode), f"{alu}"
                     bbls[-1].AddIns(ir.Ins(alu, [dst, op1, op2]))
                 op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CONV:
+            conv, dst_unsigned, src_unsigned = WASM_CONV_TO_CWERG[opc.name]
             op = op_stack.pop(-1)
             dst = GetOpReg(fun, OPC_TYPE_TO_CWERG_TYPE[opc.op_type], len(op_stack))
-            conv, unsigned = WASM_CONV_TO_CWERG[opc.name]
-            if unsigned:
+            if src_unsigned:
                 tmp = GetOpReg(fun, ToUnsigned(op.kind), op_stack_size_before + 1)
                 bbls[-1].AddIns(ir.Ins(o.CONV, [tmp, op]))
                 op = tmp
+            if dst_unsigned:
+                tmp = GetOpReg(fun, ToUnsigned(dst.kind), op_stack_size_before + 1)
+                dst, tmp = tmp, dst
             bbls[-1].AddIns(ir.Ins(conv, [dst, op]))
+            if dst_unsigned:
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp, dst]))
+                dst = tmp
             op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.BITCAST:
             assert opc.name in SUPPORTED_BITCAST
@@ -798,7 +828,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         elif opc is wasm_opc.UNREACHABLE:
             bbls[-1].AddIns(ir.Ins(o.TRAP, []))
         elif opc is wasm_opc.MEMORY_GROW:
-            #assert False
+            # assert False
             pass
         else:
             assert False, f"unsupported opcode [{opc.name}]"

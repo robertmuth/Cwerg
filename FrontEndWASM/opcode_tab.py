@@ -29,10 +29,8 @@ class ARG_TYPE(enum.IntEnum):
     SINT = 15
 
 
-
 @enum.unique
 class FLAGS(enum.IntFlag):
-
     SIGNED = 1
     UNSIGNED = 2
     UNARY = 4
@@ -71,7 +69,8 @@ def op_type(name):
 class Opcode:
     Table: typing.Dict[int, "Opcode"] = {}
 
-    def __init__(self, no, name, kind, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID, flags=FLAGS(0)):
+    def __init__(self, no, name, kind, arg1=ARG_TYPE.INVALID, arg2=ARG_TYPE.INVALID, arg3=ARG_TYPE.INVALID,
+                 flags=FLAGS(0)):
         # assert flags != 0, f"{name}: no flags set"
         self.no = no
         self.name = name
@@ -263,8 +262,8 @@ OpAlu(0x73, 'i32.xor')
 OpAlu(0x74, 'i32.shl')
 OpAlu(0x75, 'i32.shr_s')
 OpAlu(0x76, 'i32.shr_u', FLAGS.UNSIGNED)
-OpAlu(0x77, 'i32.rotl')
-OpAlu(0x78, 'i32.rotr')
+OpAlu(0x77, 'i32.rotl', FLAGS.UNSIGNED)  # rotation is messy for signed ints
+OpAlu(0x78, 'i32.rotr', FLAGS.UNSIGNED)  # rotation is messy for signed ints
 
 OpAlu(0x79, 'i64.clz')
 OpAlu(0x7a, 'i64.ctz')
@@ -283,8 +282,8 @@ OpAlu(0x85, 'i64.xor')
 OpAlu(0x86, 'i64.shl')
 OpAlu(0x87, 'i64.shr_s')
 OpAlu(0x88, 'i64.shr_u', FLAGS.UNSIGNED)
-OpAlu(0x89, 'i64.rotl')
-OpAlu(0x8a, 'i64.rotr')
+OpAlu(0x89, 'i64.rotl', FLAGS.UNSIGNED)  # rotation is messy for signed ints
+OpAlu(0x8a, 'i64.rotr', FLAGS.UNSIGNED)  # rotation is messy for signed ints
 
 OpAlu(0x8b, 'f32.abs', FLAGS.UNARY)
 OpAlu(0x8c, 'f32.neg', FLAGS.UNARY)
@@ -345,7 +344,6 @@ OpBitcast(0xbc, 'i32.reinterpret_f32')
 OpBitcast(0xbd, 'i64.reinterpret_f64')
 OpBitcast(0xbe, 'f32.reinterpret_i32')
 OpBitcast(0xbf, 'f64.reinterpret_i64')
-
 
 if __name__ == '__main__':
     def dump():
