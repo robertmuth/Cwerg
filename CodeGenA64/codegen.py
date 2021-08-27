@@ -179,7 +179,7 @@ def codegen(unit: ir.Unit) -> Unit:
 def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
-        assert  mem.kind != o.MEM_KIND.EXTERN
+        assert  mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)

@@ -413,8 +413,7 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
         if opc != o.LEA_FUN and len(token) < 4:
             token.append("0")
     if len(token) - 1 != len(opc.operand_kinds):
-        raise ir.ParseError("operand number %d mismatch: %s" % (
-            len(opc.operand_kinds), token))
+        raise ir.ParseError(f"operand number {len(opc.operand_kinds)} mismatch: {token}")
 
     if token[0].startswith("."):
         operands = RetrieveActualOperands(unit, fun, opc, token, {})

@@ -203,7 +203,7 @@ def FunCheck(fun: ir.Fun, unit: Optional[ir.Unit], check_cfg=True,
     check_fallthroughs will only work after FunAddUnconditionalBranches has been
     called
     """
-    assert len(fun.bbls) == len(fun.bbl_syms)
+    assert len(fun.bbls) == len(fun.bbl_syms), f"partially added bbls in {fun} {len(fun.bbls)} vs {len(fun.bbl_syms)}"
     assert len(fun.regs) == len(fun.reg_syms)
     assert len(fun.jtbs) == len(fun.jtb_syms)
 
