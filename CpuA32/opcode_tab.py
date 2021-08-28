@@ -931,6 +931,11 @@ for ext, n in [("b", 2), ("b16", 0), ("h", 3)]:
            [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3, OK.IMM_10_11_TIMES_8],
            OPC_FLAG.SIGNEXTEND)
 
+Opcode("rbit", "",
+       [root01, (0x3f, 0x2f, 20), (0xf, 0xf, 16), (0xf, 0xf, 8), (0xf, 3, 4)],
+       [OK.REG_12_15, OK.REG_0_3],
+       OPC_FLAG.BYTEREORDER)
+
 for ext, n in [("", 3), ("16", 11)]:
     Opcode("rev" + ext, "",
            [root01, (0x3ff, 0x2bf, 16), (0xf, 0xf, 8), (0xf, n, 4)],

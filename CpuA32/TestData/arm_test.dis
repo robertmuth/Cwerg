@@ -45560,3 +45560,4 @@ e3030210 	movw	r0, #12816
 e3470654 	movt	r0, #30292
 eef1fa10 	vmrs	APSR_nzcv, fpscr
 e7f000f0    ud2
+e6ff0f30 	rbit	r0, r0

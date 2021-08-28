@@ -364,6 +364,7 @@ enum class OPC : uint16_t {
     orrs_imm,
     orrs_regimm,
     orrs_regreg,
+    rbit,
     rev,
     rev16,
     rsb_imm,
