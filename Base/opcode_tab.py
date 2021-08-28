@@ -279,8 +279,9 @@ class MEM_KIND(enum.Enum):
     RW = 2
     TLS = 3
     FIX = 4  # a fixed address provide via
-    EXTERN = 5 # forward declaration must be defined before code emission
-    BUILTIN = 6 # linker defined
+    EXTERN = 5  # forward declaration must be defined before code emission
+    BUILTIN = 6  # linker defined
+
 
 SHORT_STR_TO_MK = {x.name: x for x in MEM_KIND}
 
@@ -370,7 +371,7 @@ class Opcode:
                  operand_kinds: List[OP_KIND],
                  constraints: List[TC], group: OPC_GENUS, desc,
                  attributes=OA(0)):
-        assert name not in Opcode.Table
+        assert name not in Opcode.Table, f"duplicate opcode {name}"
         assert len(operand_kinds) <= MAX_OPERANDS, name
         Opcode.Table[name] = self
         assert no not in Opcode.TableByNo, f"duplicate no: {no} {name}"
@@ -478,19 +479,6 @@ REM = Opcode(0x14, "rem", OPC_KIND.ALU,
               Some day the sign of the result might be more strictly defined.
               Note: does not apply to floating point numbers""")
 
-# min/max can be replaced by cmplt
-MIN = Opcode(0x15, "min", OPC_KIND.ALU,
-             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-             [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-             "Minimum: dst: src1 if src1 <=src2 else src2",
-             OA.COMMUTATIVE)
-
-MAX = Opcode(0x16, "max", OPC_KIND.ALU,
-             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-             [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-             "Maximum: dst: src1 if src1 >= src2 else src2",
-             OA.COMMUTATIVE)
-
 ############################################################
 # LOGIC ALU 0x30
 # INT ONLY (all regs are treated as unsigned except for shr/rshr
@@ -536,6 +524,14 @@ SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              Some day the operation might more strictly defined as:
              
              dst: = src1 >> (src2 mod bitwidth(src2))""")
+
+CNTLZ = Opcode(0x1d, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Count leading zeros.")
+
+CNTTZ = Opcode(0x1e, "cnttz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Count trailing zeros.")
 
 # do we need both directions, do we need a reverse version?
 # should we rather use a funnel shift?
@@ -750,7 +746,7 @@ FLOOR = Opcode(0x64, "floor", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
                "TBD")
-# removes fractional part -> round to zero
+# removes fractional part -> round to zero../
 TRUNC = Opcode(0x65, "trunc", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
@@ -822,14 +818,6 @@ Opcode(0xc5, "adds", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
 # INT SINGLE OPERAND 0xb0
 # the src reg is treated as an unsigned reg
 Opcode(0xb0, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-       [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-       "TBD")
-
-Opcode(0xb1, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-       [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-       "TBD")
-
-Opcode(0xb2, "cnttz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
 

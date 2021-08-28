@@ -188,6 +188,12 @@ Shift right: dst := src1 >> src2
              
              dst: = src1 >> (src2 mod bitwidth(src2))
 
+#### [1d] cntlz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Count leading zeros.
+
+#### [1e] cnttz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Count trailing zeros.
+
 ## Conditional Branches
 
 #### [20] beq *op1* <sub>[REG/CONST:ANY]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>

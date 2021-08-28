@@ -338,7 +338,7 @@ class InsTmpl:
 
     def MakeInsFromTmpl(self, ins: Optional[ir.Ins], ctx: regs.EmitContext) -> arm.Ins:
         out = arm.Ins(self.opcode)
-        #if ins: print (f"{ins} {ins.operands}")
+        # if ins: print (f"{ins} {ins.operands}")
         for n, arg in enumerate(self.args):
             val = _TranslateTmplOpInt(ins, arg, ctx)
             enc = _RAW_ENOCDER.get(self.opcode.fields[n])
@@ -650,13 +650,14 @@ def InitCmp():
                      InsTmpl("vmrs_APSR_nzcv_fpscr", []),
                      InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.lt),
                      InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.pl),
-                    ])
+                     ])
             Pattern(o.CMPEQ, [kind] * 3 + [kind2] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("vmrs_APSR_nzcv_fpscr", []),
                      InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.eq),
                      InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.ne),
                      ])
+
 
 def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:
@@ -685,6 +686,11 @@ def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:
         Pattern(o.MUL, [kind1] * 3,
                 [InsTmpl("mul", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+        Pattern(o.CNTLZ, [kind1] * 2,
+                [InsTmpl("clz", [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.CNTTZ, [kind1] * 2,
+                [InsTmpl("rbit", [PARAM.reg0, PARAM.reg1]),
+                 InsTmpl("clz", [PARAM.reg0, PARAM.reg0])])
 
     for opc, kind1, shift_dir in [(o.SHL, o.DK.U32, arm.SHIFT.lsl),
                                   (o.SHL, o.DK.S32, arm.SHIFT.lsl),

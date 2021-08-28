@@ -24,6 +24,8 @@ enum class OPC : uint8_t {
     OR = 0x1a,
     SHL = 0x1b,
     SHR = 0x1c,
+    CNTLZ = 0x1d,
+    CNTTZ = 0x1e,
 
     BEQ = 0x20,
     BNE = 0x21,

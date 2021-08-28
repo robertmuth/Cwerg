@@ -750,6 +750,11 @@ def InitAlu():
         Pattern(o.SUB, [kind1] * 3,
                 [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_curb1=IMM_CURB.ZERO)
+        Pattern(o.CNTLZ, [kind1] * 2,
+                [InsTmpl("clz_w", [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.CNTTZ, [kind1] * 2,
+                [InsTmpl("rbit_w", [PARAM.reg0, PARAM.reg1]),
+                 InsTmpl("clz_w", [PARAM.reg0, PARAM.reg0])])
 
     for kind1 in [o.DK.U64, o.DK.S64]:
         for opc, a64_opc in [(o.AND, "and_x_reg"),
@@ -773,6 +778,11 @@ def InitAlu():
         Pattern(o.SUB, [kind1] * 3,
                 [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_curb1=IMM_CURB.ZERO)
+        Pattern(o.CNTLZ, [kind1] * 2,
+                [InsTmpl("clz_x", [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.CNTTZ, [kind1] * 2,
+                [InsTmpl("rbit_x", [PARAM.reg0, PARAM.reg1]),
+                 InsTmpl("clz_x", [PARAM.reg0, PARAM.reg0])])
 
     for kind1 in [o.DK.U32, o.DK.S32]:
         Pattern(o.MUL, [kind1] * 3,
