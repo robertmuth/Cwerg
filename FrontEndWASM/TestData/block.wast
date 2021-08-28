@@ -191,9 +191,9 @@
     (i32.load (block (result i32) (i32.const 1)))
   )
 
- ;; (func $as_unary_operand (export "as_unary_operand") (result i32)
- ;;   (i32.ctz (block (result i32) (call $dummy) (i32.const 13)))
- ;; )
+  (func $as_unary_operand (export "as_unary_operand") (result i32)
+    (i32.ctz (block (result i32) (call $dummy) (i32.const 13)))
+  )
   (func $as_binary_operand (export "as_binary_operand") (result i32)
     (i32.mul
       (block (result i32) (call $dummy) (i32.const 3))
@@ -263,19 +263,19 @@
  ;;   )
  ;; )
 
- ;; (func $break_inner (export "break_inner") (result i32)
- ;;   (local i32)
- ;;   (local.set 0 (i32.const 0))
- ;;   (local.set 0 (i32.add (local.get 0) (block (result i32) (block (result i32) (br 1 (i32.const 0x1))))))
- ;;   (local.set 0 (i32.add (local.get 0) (block (result i32) (block (br 0)) (i32.const 0x2))))
- ;;   (local.set 0
- ;;     (i32.add (local.get 0) (block (result i32) (i32.ctz (br 0 (i32.const 0x4)))))
- ;;   )
- ;;   (local.set 0
- ;;     (i32.add (local.get 0) (block (result i32) (i32.ctz (block (result i32) (br 1 (i32.const 0x8))))))
- ;;   )
- ;;   (local.get 0)
- ;; )
+ (func $break_inner (export "break_inner") (result i32)
+   (local i32)
+   (local.set 0 (i32.const 0))
+   (local.set 0 (i32.add (local.get 0) (block (result i32) (block (result i32) (br 1 (i32.const 0x1))))))
+   (local.set 0 (i32.add (local.get 0) (block (result i32) (block (br 0)) (i32.const 0x2))))
+   (local.set 0
+     (i32.add (local.get 0) (block (result i32) (i32.ctz (br 0 (i32.const 0x4)))))
+   )
+   (local.set 0
+     (i32.add (local.get 0) (block (result i32) (i32.ctz (block (result i32) (br 1 (i32.const 0x8))))))
+   )
+   (local.get 0)
+ )
 
   (func $param (export "param") (result i32)
     (i32.const 1)
@@ -406,7 +406,7 @@
   (call $assert_eq_i32 (i32.const 4101) (call $as_global_set_value ) (i32.const 1))
   (call $assert_eq_i32 (i32.const 4201) (call $as_load_operand ) (i32.const 1))
 
-  ;;(call $assert_eq_i32 (i32.const 4301) (call $as_unary_operand ) (i32.const 0))
+  (call $assert_eq_i32 (i32.const 4301) (call $as_unary_operand ) (i32.const 0))
   (call $assert_eq_i32 (i32.const 4401) (call $as_binary_operand ) (i32.const 12))
   (call $assert_eq_i32 (i32.const 4501) (call $as_test_operand ) (i32.const 0))
   (call $assert_eq_i32 (i32.const 4601) (call $as_compare_operand ) (i32.const 0))
@@ -420,7 +420,7 @@
   ;;  (call $assert_eq_i32_i32_i64 (call $break_multi_value) (i32.const 18) (i32.const -18) (i64.const 18))
 
   ;; (call $assert_eq_i32 (i32.const 5301) (call $break_repeated ) (i32.const 18))
-  ;; (call $assert_eq_i32 (i32.const 5401) (call $break_inner ) (i32.const 0xf))
+  (call $assert_eq_i32 (i32.const 5401) (call $break_inner ) (i32.const 0xf))
 
   (call $assert_eq_i32 (i32.const 5501) (call $param ) (i32.const 3))
   (call $assert_eq_i32 (i32.const 5601) (call $params ) (i32.const 3))

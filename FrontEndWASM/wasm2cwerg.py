@@ -256,6 +256,8 @@ WASM_ALU1_TO_CWERG = {
     "sqrt": ([], o.SQRT),
     "abs": ([], o.ABS),
     "neg": ([ir.Const(o.DK.S32, 0)], o.SUB),
+    "clz": ([], o.CNTLZ),
+    "ctz": ([], o.CNTTZ),
 }
 
 
@@ -289,6 +291,7 @@ WASM_ALU_TO_CWERG = {
     "rem_s": o.REM,
     "rem_u": o.REM,
     #
+    # "copysign": o.ADD,
 }
 
 

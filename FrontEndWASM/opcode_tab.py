@@ -265,9 +265,9 @@ OpAlu(0x76, 'i32.shr_u', FLAGS.UNSIGNED)
 OpAlu(0x77, 'i32.rotl', FLAGS.UNSIGNED)  # rotation is messy for signed ints
 OpAlu(0x78, 'i32.rotr', FLAGS.UNSIGNED)  # rotation is messy for signed ints
 
-OpAlu(0x79, 'i64.clz')
-OpAlu(0x7a, 'i64.ctz')
-OpAlu(0x7b, 'i64.popcnt')
+OpAlu(0x79, 'i64.clz', FLAGS.UNARY)
+OpAlu(0x7a, 'i64.ctz', FLAGS.UNARY)
+OpAlu(0x7b, 'i64.popcnt', FLAGS.UNARY)
 
 OpAlu(0x7c, 'i64.add')
 OpAlu(0x7d, 'i64.sub')
@@ -300,7 +300,7 @@ OpAlu(0x95, 'f32.div')
 OpAlu(0x96, 'f32.min')
 OpAlu(0x97, 'f32.max')
 
-OpAlu(0x98, 'f32.copysign', FLAGS.UNARY)
+OpAlu(0x98, 'f32.copysign')
 OpAlu(0x99, 'f64.abs', FLAGS.UNARY)
 OpAlu(0x9a, 'f64.neg', FLAGS.UNARY)
 OpAlu(0x9b, 'f64.ceil', FLAGS.UNARY)
@@ -316,7 +316,7 @@ OpAlu(0xa3, 'f64.div')
 OpAlu(0xa4, 'f64.min')
 OpAlu(0xa5, 'f64.max')
 
-OpAlu(0xa6, 'f64.copysign', FLAGS.UNARY)
+OpAlu(0xa6, 'f64.copysign')
 
 OpConv(0xa7, 'i32.wrap_i64')
 OpConv(0xa8, 'i32.trunc_f32_s')
