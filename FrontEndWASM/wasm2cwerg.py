@@ -716,7 +716,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                     if fun.output_types:
                         for x in reversed(fun.output_types):
                             op = op_stack.pop(-1)
-                            assert op.kind == x, f"{fun.output_types}"
+                            assert op.kind == x, f"ouputs: {fun.output_types} mismatch {op.kind} vs {x}"
                             bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
                     bbls[-1].AddIns(ir.Ins(o.RET, []))
 
@@ -916,6 +916,12 @@ def MaybeMakeGlobalTable(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK):
 
 
 def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
+
+    table_import = mod.sections.get(wasm.SECTION_ID.IMPORT)
+    for i in table_import.items:
+        assert  isinstance(i, wasm.Import)
+        assert isinstance(i.desc, wasm.TypeIdx), f"cannot handle strange imports: {i}"
+
     bit_width = addr_type.bitwidth()
     unit = ir.Unit("unit")
 
