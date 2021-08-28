@@ -666,7 +666,7 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
                "Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 "
-               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2."),
+               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2.")
 
 # materialize addresses in a register
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
