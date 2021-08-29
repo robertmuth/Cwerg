@@ -409,15 +409,13 @@ class Block:
         if unreachable:
             assert len(op_stack) >= self.stack_start - len(self.param_types)
             # reset so that the else branch can start at the same place
-            return
-        # print (f"@@ FinalizePop {fun.name}:  {self.num_results}")
-        assert len(op_stack) == expected_op_stack_size
-        # for i in range(len(self.result_types)):
-        #    op = op_stack[-1 - i]
-        #    dst_reg = GetOpReg(fun, op.kind, expected_op_stack_size -1 - i)
-        #    if dst_reg != op:
-        #        bbl.AddIns(ir.Ins(o.MOV, [dst_reg, op]))
-        return
+        else:
+            # print (f"@@ FinalizePop {fun.name}:  {self.num_results}")
+            assert len(op_stack) == expected_op_stack_size
+        while len(op_stack) >  self.stack_start - len(self.param_types):
+            op_stack.pop(-1)
+        for dk in self.param_types:
+            op_stack.append(GetOpReg(fun, dk, len(op_stack)))
 
     def FinalizeEnd(self, op_stack, bbl: ir.Bbl, fun: ir.Fun, unreachable: bool):
         expected_op_stack_size = self.OpStackSizeAfter()
@@ -557,8 +555,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             loc_index += 1
             bbls[-1].AddIns(ir.Ins(o.MOV, [reg, ir.Const(reg.kind, 0)]))
 
-    # print()
-    # print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
+    DEBUG = False
+    if DEBUG:
+        print()
+        print(f"# {fun.name} #ins:{len(wasm_fun.impl.expr.instructions)} in:{fun.input_types} out:{fun.output_types}")
 
     opc = None
     last_opc = None
@@ -567,7 +567,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
         opc = wasm_ins.opcode
         args = wasm_ins.args
         op_stack_size_before = len(op_stack)
-        # print(f"#@@ {opc.name}", args, len(op_stack))
+        if DEBUG:
+            print(f"#@@ {opc.name}", args, len(op_stack))
         if opc.kind is wasm_opc.OPC_KIND.CONST:
             # breaks for floats
             # breaks for floats
@@ -691,7 +692,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op1 = tmp1
                 op2 = tmp2
             block_stack.append(MakeBlock(bbl_count, opc, args, fun, op_stack, mod))
-            assert len(block_stack[-1].param_types) == 0
+            # assert len(block_stack[-1].param_types) == 0
             bbl_count += 1
             bbls[-1].AddIns(ir.Ins(br, [op1, op2, block_stack[-1].else_bbl]))
             bbls.append(block_stack[-1].start_bbl)
@@ -699,6 +700,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             block = block_stack[-1]
             assert block.opcode is wasm_opc.IF
             block.FinalizeIf(op_stack, bbls[-1], fun, last_opc in {wasm_opc.UNREACHABLE, wasm_opc.BR})
+            if DEBUG:
+                print(f"#@@ AFTER STACK RESTORE", len(op_stack))
             op_stack = op_stack[0:block.stack_start]
             bbls[-1].AddIns(ir.Ins(o.BRA, [block.end_bbl]))
             assert block.else_bbl is not None
@@ -716,11 +719,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 assert n + 1 == len(wasm_fun.impl.expr.instructions)
                 pred = wasm_fun.impl.expr.instructions[n - 1].opcode
                 if pred not in {wasm_opc.RETURN, wasm_opc.UNREACHABLE, wasm_opc.BR}:
-                    if fun.output_types:
-                        for x in reversed(fun.output_types):
-                            op = op_stack.pop(-1)
-                            assert op.kind == x, f"ouputs: {fun.output_types} mismatch {op.kind} vs {x}"
-                            bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
+                    for x in reversed(fun.output_types):
+                        op = op_stack.pop(-1)
+                        assert op.kind == x, f"outputs: {fun.output_types} mismatch {op.kind} vs {x}"
+                        bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
                     bbls[-1].AddIns(ir.Ins(o.RET, []))
 
         elif opc is wasm_opc.CALL:
@@ -749,9 +751,9 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.LD, [fun_reg, table_reg, index]))
             EmitCall(fun, bbls[-1], ir.Ins(o.JSR, [fun_reg, signature]), op_stack, mem_base, signature)
         elif opc is wasm_opc.RETURN:
-            if fun.output_types:
-                assert len(fun.output_types) == 1
+            for x in reversed(fun.output_types):
                 op = op_stack.pop(-1)
+                assert op.kind == x, f"outputs: {fun.output_types} mismatch {op.kind} vs {x}"
                 bbls[-1].AddIns(ir.Ins(o.PUSHARG, [op]))
             bbls[-1].AddIns(ir.Ins(o.RET, []))
         elif opc is wasm_opc.BR:
