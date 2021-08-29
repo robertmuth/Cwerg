@@ -17,6 +17,18 @@ Currently implemented are:
 * fd_write
 * proc_exit
 
+
+### WebAssembly Pain Points
+
+* provides no easy way to do printf debugging in a WASM/WAST files since strings cannot be added easily
+* combines stack machine + local variables
+* follows the LLVM approach of encoding operand type in opcode -> combinatorial explosion of opcode space
+* no rigorous stack invariants at the end of a block, e.g. if there are unconditional branches,
+  so all we can do is patch things up
+* interleaving of code and tests in WAST files (TestData/test_rewriter.py 
+  attempts to help with that but it is adhoc and buggy)  
+* featuritis (e.g. upcoming support for exception handling)
+
 ### References 
 
 https://mvolkmann.github.io/blog/webassembly/
