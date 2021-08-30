@@ -223,6 +223,10 @@ _EVALUATORS_COND_BRA = {
     o.BLE: lambda x, y: x <= y,
 }
 
+_EVALUATORS_ALU1 = {
+#    o.CNTLZ: lambda x, y: x + y,
+#    o.CNTTZ: lambda x, y: x - y,
+}
 
 def _InsConstantFold(
         ins: ir.Ins, bbl: ir.Bbl, _fun: ir.Fun,
@@ -257,6 +261,8 @@ def _InsConstantFold(
     elif kind is o.OPC_KIND.ALU1:
         if not isinstance(ops[1], ir.Const):
             return None
+        # TODO
+        return None
         assert False, f"Evaluator NYI for ALU1: {ins} {ins.operands}"
 
     elif kind is o.OPC_KIND.ALU:
