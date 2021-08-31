@@ -80,7 +80,7 @@ def BytesToEscapedString(data: bytes) -> str:
     return "".join(out)
 
 
-RE_NUMBER = re.compile(r"^[-+]?([0-9.][0-9.a-fA-FpPxX]*|nan|NAN|inf|INF)$")
+RE_NUMBER = re.compile(r"^([-+0-9.][-+0-9.a-fA-FpPxX]*|nan|NAN|inf|INF)$")
 RE_IDENTIFIER = re.compile(r"^[_a-zA-Z$%][_a-zA-Z$%@0-9.:]*$")
 RE_INTEGER = re.compile(r"[-+]?([0-9]+|0[xX][0-9a-fA-F]+)$")
 RE_CONSTANT = re.compile(r"^[-+0-9.].*")
