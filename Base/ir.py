@@ -142,12 +142,12 @@ class Stk:
     # stack offset - will be set by Fun.AssignStackSlots
     slot: Optional[int] = None
 
-    def __init__(self, name: str, alignment: Const, count: Const):
-        assert alignment.value > 0
+    def __init__(self, name: str, alignment: int, count: int):
+        assert alignment > 0
         self.name = name
         # TODO: consider keeping the Nums
-        self.count = count.value
-        self.alignment = alignment.value
+        self.count = count
+        self.alignment = alignment
 
     def __repr__(self):
         return f"[STK {self.name} {self.alignment} {self.count}]"
@@ -313,11 +313,11 @@ class Jtb:
     size: int
 
     def __init__(self, name: str, def_bbl: Bbl, bbl_tab: Dict[int, Bbl],
-                 size: Const):
+                 size: int):
         self.name = name
         self.def_bbl = def_bbl
         self.bbl_tab = bbl_tab
-        self.size = size.value
+        self.size = size
 
     def __repr__(self):
         return f"[JTB {self.name}]"

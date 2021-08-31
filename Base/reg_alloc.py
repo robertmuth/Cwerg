@@ -274,7 +274,7 @@ def InsSpillRegs(ins: ir.Ins, fun: ir.Fun, zero_const, reg_to_stk) -> Optional[L
 def BblSpillRegs(bbl: ir.Bbl, fun: ir.Fun, regs: List[ir.Reg], offset_kind: o.DK, prefix) -> int:
     reg_to_stk: Dict[ir.Reg, ir.Stk] = {}
     for reg in regs:
-        size = ir.OffsetConst(reg.kind.bitwidth() // 8)
+        size = reg.kind.bitwidth() // 8
         stk = ir.Stk(f"{prefix}_{reg.name}", size, size)
         reg_to_stk[reg] = stk
         fun.AddStk(stk)
@@ -285,7 +285,7 @@ def BblSpillRegs(bbl: ir.Bbl, fun: ir.Fun, regs: List[ir.Reg], offset_kind: o.DK
 def FunSpillRegs(fun: ir.Fun, offset_kind: o.DK, regs: List[ir.Reg], prefix) -> int:
     reg_to_stk: Dict[ir.Reg, ir.Stk] = {}
     for reg in regs:
-        size = ir.OffsetConst(reg.kind.bitwidth() // 8)
+        size = reg.kind.bitwidth() // 8
         stk = ir.Stk(f"{prefix}_{reg.name}", size, size)
         reg_to_stk[reg] = stk
         fun.AddStk(stk)

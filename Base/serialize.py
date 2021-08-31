@@ -181,7 +181,7 @@ def DirReg(unit: ir.Unit, operands: List):
 def DirStk(unit: ir.Unit, operands: List):
     fun = unit.funs[-1]
     name, alignment, count = operands
-    fun.AddStk(ir.Stk(name, alignment, count))
+    fun.AddStk(ir.Stk(name, alignment.value, count.value))
 
 
 def DirMem(unit: ir.Unit, operands: List):
@@ -219,7 +219,7 @@ def DirAddrMem(unit: ir.Unit, operands: List):
 def DirJtb(unit: ir.Unit, operands: List):
     fun = unit.funs[-1]
     name, size, def_bbl, tab = operands
-    fun.AddJtb(ir.Jtb(name, def_bbl, tab, size))
+    fun.AddJtb(ir.Jtb(name, def_bbl, tab, size.value))
 
 
 DIR_DISPATCHER = {

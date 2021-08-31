@@ -125,7 +125,7 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
 
 
 def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit,
-                        memcpy: ir.Fun, addr_type: o.DK) -> ir.Fun:
+                        memcpy: ir.Fun, addr_type: o.DK) -> typing.Optional[ir.Fun]:
     fun = unit.AddFun(ir.Fun("init_data_fun", o.FUN_KIND.NORMAL, [], [addr_type]))
     bbl = fun.AddBbl(ir.Bbl("start"))
     epilog = fun.AddBbl(ir.Bbl("end"))
@@ -135,7 +135,7 @@ def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit,
     mem_base = fun.AddReg(ir.Reg("mem_base", addr_type))
     bbl.AddIns(ir.Ins(o.POPARG, [mem_base]))
     if not section:
-        return
+        return None
 
     offset = fun.AddReg(ir.Reg("offset", o.DK.S32))
     src = fun.AddReg(ir.Reg("src", addr_type))
@@ -822,7 +822,7 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             tab_size = ir.Const(ToUnsigned(op.kind), len(bbl_tab))
             jtb_count += 1
             jtb = fun.AddJtb(ir.Jtb(f"jtb_{jtb_count}", bbl_def, bbl_tab,
-                                    tab_size))
+                                    tab_size.value))
             reg_unsigned = GetOpReg(fun, ToUnsigned(op.kind), len(op_stack))
             bbls[-1].AddIns(ir.Ins(o.CONV, [reg_unsigned, op]))
             bbls[-1].AddIns(ir.Ins(o.BLE, [tab_size, reg_unsigned, bbl_def]))
