@@ -115,7 +115,6 @@ def ParseConst(value_str: str, kind: o.DK) -> Const:
 
 def OffsetConst(value: int) -> Const:
     w = 1 + BitWidth(value)
-    kind = o.DK.INVALID
 
     if w <= 8:
         kind = o.DK.S8 if value < 0 else o.DK.U8
@@ -232,7 +231,7 @@ class Ins:
         self.Init(opcode, operands)
 
     def Init(self, opcode: o.Opcode, operands: List[Any]):
-        assert len(operands) == len(opcode.operand_kinds)
+        assert len(operands) == len(opcode.operand_kinds), f"operand num mismatch for {opcode} {operands}"
         self.opcode = opcode
         self.operands = operands
         self.operand_defs = [INS_INVALID] * len(operands)
@@ -490,10 +489,10 @@ class Mem:
     """Memory region in the rodata/data/tls/bss segment that must stay together"""
     __slots__ = ['name', 'alignment', 'kind', 'datas', 'size']
 
-    def __init__(self, name: str, alignment: Const, kind: o.MEM_KIND):
+    def __init__(self, name: str, alignment: int, kind: o.MEM_KIND):
         self.name = name
         # TODO: consider keeping the Num
-        self.alignment: int = alignment.value
+        self.alignment: int = alignment
         self.kind: o.MEM_KIND = kind
         self.datas: List[Any] = []
 
@@ -511,10 +510,10 @@ class Mem:
 class DataBytes:
     __slots__ = ['count', 'data', 'size']
 
-    def __init__(self, count: Const, data: bytes):
+    def __init__(self, count: int, data: bytes):
         assert isinstance(data, bytes)
         # TODO: consider keeping the Num
-        self.count: int = count.value
+        self.count: int = count
         self.data: bytes = data
         self.size: int = self.count * len(data)
 
@@ -522,19 +521,19 @@ class DataBytes:
 class DataAddrFun:
     __slots__ = ['fun', 'size']
 
-    def __init__(self, size: Const, fun: Fun):
-        self.size: int = size.value
+    def __init__(self, size: int, fun: Fun):
+        self.size: int = size
         self.fun: Fun = fun
 
 
 class DataAddrMem:
     __slots__ = ['mem', 'size', 'offset']
 
-    def __init__(self, size: Const, mem: Mem, offset: Const):
+    def __init__(self, size: int, mem: Mem, offset: int):
         # TODO: consider keeping the Nums
-        self.size: int = size.value
+        self.size: int = size
         self.mem = mem
-        self.offset: int = offset.value
+        self.offset: int = offset
 
 
 class Unit:
@@ -594,8 +593,8 @@ class Unit:
         mem = self.mem_syms.get(name)
         if mem:
             return mem
-        mem = Mem(name, Const(o.DK.U8, len(data)), o.MEM_KIND.RO)
-        mem.AddData(DataBytes(Const(o.DK.U8, 1), data))
+        mem = Mem(name, len(data), o.MEM_KIND.RO)
+        mem.AddData(DataBytes(1, data))
         self.AddMem(mem)
         return mem
 

@@ -108,17 +108,17 @@ def GenerateInitGlobalVarsFun(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK) 
     val64 = fun.AddReg(ir.Reg("val64", o.DK.U64))
     for n, data in enumerate(section.items):
         kind = o.MEM_KIND.RO if data.global_type.mut is wasm.MUT.CONST else o.MEM_KIND.RW
-        mem = unit.AddMem(ir.Mem(f"global_vars_{n}", ir.Const(o.DK.U32, 16), kind))
+        mem = unit.AddMem(ir.Mem(f"global_vars_{n}", 16, kind))
         ins = GetInsFromInitializerExpression(data.expr)
         var_type = data.global_type.value_type
         if ins.opcode is wasm_opc.GLOBAL_GET:
-            mem.AddData(ir.DataBytes(ONE, b"\0" * (4 if var_type.is_32bit() else 8)))
+            mem.AddData(ir.DataBytes(1, b"\0" * (4 if var_type.is_32bit() else 8)))
             src_mem = unit.GetMem(f"global_vars_{int(ins.args[0])}")
             reg = val32 if var_type.is_32bit() else val64
             bbl.AddIns(ir.Ins(o.LD_MEM, [reg, src_mem, ZERO]))
             bbl.AddIns(ir.Ins(o.ST_MEM, [mem, ZERO, reg]))
         elif ins.opcode.kind is wasm_opc.OPC_KIND.CONST:
-            mem.AddData(ir.DataBytes(ONE, ExtractBytesFromConstIns(ins, var_type)))
+            mem.AddData(ir.DataBytes(1, ExtractBytesFromConstIns(ins, var_type)))
         else:
             assert False, f"unsupported init instructions {ins}"
     return fun
@@ -145,8 +145,8 @@ def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit,
         assert data.memory_index == 0
         assert isinstance(data.offset, wasm.Expression)
         ins = GetInsFromInitializerExpression(data.offset)
-        init = unit.AddMem(ir.Mem(f"global_init_mem_{n}", ir.Const(o.DK.U32, 16), o.MEM_KIND.RO))
-        init.AddData(ir.DataBytes(ONE, data.init))
+        init = unit.AddMem(ir.Mem(f"global_init_mem_{n}", 16, o.MEM_KIND.RO))
+        init.AddData(ir.DataBytes(1, data.init))
         if ins.opcode is wasm_opc.GLOBAL_GET:
             src_mem = unit.GetMem(f"global_vars_{int(ins.args[0])}")
             bbl.AddIns(ir.Ins(o.LD_MEM, [offset, src_mem, ZERO]))
@@ -294,8 +294,6 @@ WASM_ALU_TO_CWERG = {
     # "copysign": o.ADD,
 }
 
-
-
 WASM_CONV_TO_CWERG = {
     #
     "f64.convert_i32_u": (o.CONV, False, True),
@@ -412,7 +410,7 @@ class Block:
         else:
             # print (f"@@ FinalizePop {fun.name}:  {self.num_results}")
             assert len(op_stack) == expected_op_stack_size
-        while len(op_stack) >  self.stack_start - len(self.param_types):
+        while len(op_stack) > self.stack_start - len(self.param_types):
             op_stack.pop(-1)
         for dk in self.param_types:
             op_stack.append(GetOpReg(fun, dk, len(op_stack)))
@@ -854,7 +852,7 @@ def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
                     addr_type: o.DK) -> ir.Fun:
     bit_width = addr_type.bitwidth()
 
-    global_mem_base = unit.AddMem(ir.Mem("__memory_base", ZERO, o.MEM_KIND.EXTERN))
+    global_mem_base = unit.AddMem(ir.Mem("__memory_base", 0, o.MEM_KIND.EXTERN))
 
     fun = unit.AddFun(ir.Fun("main", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32, addr_type]))
     argc = fun.AddReg(ir.Reg("argc", o.DK.U32))
@@ -908,8 +906,8 @@ def MaybeMakeGlobalTable(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK):
         for n, fun in enumerate(elem.funcidxs):
             table_data[start + n] = fun
 
-    global_table = unit.AddMem(ir.Mem("global_table", ir.Const(o.DK.U32, bit_width // 8), o.MEM_KIND.RO))
-    width = ir.Const(o.DK.U32, addr_type.bitwidth() // 8)
+    global_table = unit.AddMem(ir.Mem("global_table", bit_width // 8, o.MEM_KIND.RO))
+    width = addr_type.bitwidth() // 8
     for fun in table_data:
         if fun is None:
             global_table.AddData(ir.DataBytes(width, b"\0"))
@@ -921,21 +919,20 @@ def MaybeMakeGlobalTable(mod: wasm.Module, unit: ir.Unit, addr_type: o.DK):
 
 
 def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
-
     table_import = mod.sections.get(wasm.SECTION_ID.IMPORT)
     for i in table_import.items:
-        assert  isinstance(i, wasm.Import)
+        assert isinstance(i, wasm.Import)
         assert isinstance(i.desc, wasm.TypeIdx), f"cannot handle strange imports: {i}"
 
     bit_width = addr_type.bitwidth()
     unit = ir.Unit("unit")
 
     global_argv = unit.AddMem(ir.Mem("global_argv",
-                                     ir.Const(o.DK.U32, 2 * bit_width // 8), o.MEM_KIND.RW))
-    global_argv.AddData(ir.DataBytes(ir.Const(o.DK.U32, bit_width // 8), b"\0"))
+                                     2 * bit_width // 8, o.MEM_KIND.RW))
+    global_argv.AddData(ir.DataBytes(bit_width // 8, b"\0"))
 
-    global_argc = unit.AddMem(ir.Mem("global_argc", ir.Const(o.DK.U32, 4), o.MEM_KIND.RW))
-    global_argc.AddData(ir.DataBytes(ir.Const(o.DK.U32, 4), b"\0"))
+    global_argc = unit.AddMem(ir.Mem("global_argc", 4, o.MEM_KIND.RW))
+    global_argc.AddData(ir.DataBytes(4, b"\0"))
 
     memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)

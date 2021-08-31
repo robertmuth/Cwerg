@@ -188,7 +188,7 @@ def DirMem(unit: ir.Unit, operands: List):
     name, alignment, kind = operands
     mem = unit.GetMem(name)
     if mem is None:
-        unit.AddMem(ir.Mem(name, alignment, kind))
+        unit.AddMem(ir.Mem(name, alignment.value, kind))
     elif kind is o.MEM_KIND.EXTERN:
         return
     elif mem.kind is o.MEM_KIND.EXTERN:
@@ -202,15 +202,18 @@ def DirMem(unit: ir.Unit, operands: List):
 
 
 def DirData(unit: ir.Unit, operands: List):
-    unit.AddData(ir.DataBytes(*operands))
+    count, data = operands
+    unit.AddData(ir.DataBytes(count.value, data))
 
 
 def DirAddrFun(unit: ir.Unit, operands: List):
-    unit.AddData(ir.DataAddrFun(*operands))
+    size, fun = operands
+    unit.AddData(ir.DataAddrFun(size.value, fun))
 
 
 def DirAddrMem(unit: ir.Unit, operands: List):
-    unit.AddData(ir.DataAddrMem(*operands))
+    size, mem, offset = operands
+    unit.AddData(ir.DataAddrMem(size.value, mem, offset.value))
 
 
 def DirJtb(unit: ir.Unit, operands: List):
