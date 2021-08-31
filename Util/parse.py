@@ -80,21 +80,18 @@ def BytesToEscapedString(data: bytes) -> str:
     return "".join(out)
 
 
-TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
-
-# TODO: clean this up as in mangles numbers and names
-TOKEN_NAMENUM = r'[-+]?[$@%_.:a-zA-Z0-9]+'
-TOKEN_COMMENT = r'[#].*$'
-TOKEN_OP = r'[=\[\],;]'
-
 RE_NUMBER = re.compile(r"^[-+]?([0-9.][0-9.a-fA-FpPxX]*|nan|NAN|inf|INF)$")
 RE_IDENTIFIER = re.compile(r"^[_a-zA-Z$%][_a-zA-Z$%@0-9.:]*$")
 RE_INTEGER = re.compile(r"[-+]?([0-9]+|0[xX][0-9a-fA-F]+)$")
-
-RE_COMBINED = "|".join(["(?:" + x + ")" for x in [TOKEN_STR, TOKEN_COMMENT,
-                                                  TOKEN_OP, TOKEN_NAMENUM]])
-
 RE_CONSTANT = re.compile(r"^[-+0-9.].*")
+
+# Note: we rely on the matching being done greedily
+TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
+TOKEN_NAMENUM = r'[^=\[\],;"#\' \r\n\t]+'
+TOKEN_COMMENT = r'[#].*$'
+TOKEN_OP = r'[=\[\],;]'
+RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [TOKEN_STR, TOKEN_COMMENT,
+                                                             TOKEN_OP, TOKEN_NAMENUM]]))
 
 
 def IsLikelyConst(s):
