@@ -46,7 +46,7 @@ from Base import optimize
 def BuildExample() -> ir.Unit:
     unit = ir.Unit("fib")
     fun_fib = unit.AddFun(ir.Fun("fib", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32]))
-    bbl_start =  fun_fib.AddBbl(ir.Bbl("start"))
+    bbl_start = fun_fib.AddBbl(ir.Bbl("start"))
     bbl_difficult = fun_fib.AddBbl(ir.Bbl("difficult"))
 
     reg_in = fun_fib.AddReg(ir.Reg("in", o.DK.U32))
@@ -131,7 +131,7 @@ def main():
         print('Stopping HTTP server')
         http_server.server_close()
     else:
-        print ("\n".join(serialize.UnitRenderToASM(UNIT)))
+        print("\n".join(serialize.UnitRenderToASM(UNIT)))
 
 
 if __name__ == "__main__":

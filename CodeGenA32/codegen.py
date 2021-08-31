@@ -245,7 +245,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='CodeGenA32')
         parser.add_argument('-mode', type=str, help='mode')
         parser.add_argument('-add_startup_code', action='store_true', help=
-            'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
+        'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()

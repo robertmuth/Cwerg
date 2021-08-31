@@ -189,7 +189,7 @@ def FunRemoveEmptyBbls(fun: ir.Fun) -> int:
         # print("IN",  bbl.edge_in)
         # print ("OUT", bbl.edge_out)
         del fun.bbl_syms[bbl.name]
-        #assert bbl != fun.bbls[0], f"attempt to delete first bbl in fun {fun.name}"
+        # assert bbl != fun.bbls[0], f"attempt to delete first bbl in fun {fun.name}"
         assert len(bbl.edge_out) == 1, bbl
         succ = bbl.edge_out[0]
         bbl.DelEdgeOut(succ)

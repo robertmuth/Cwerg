@@ -220,4 +220,3 @@ def FunCheck(fun: ir.Fun, unit: Optional[ir.Unit], check_cfg=True,
             _CheckIns(ins, fun, unit)
             if check_push_pop:
                 fun_arg_state.check_ins(ins, bbl, fun)
-

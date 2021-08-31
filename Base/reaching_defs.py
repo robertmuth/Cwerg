@@ -62,8 +62,7 @@ def UpdateReachingDefsOut(defs: ReachingDefs) -> bool:
             defs.defs_out = new_out
             return True
     return False
-        
-    
+
 
 def _MergeReachingDefs(defs: ir.REG_DEF_MAP, other: ir.REG_DEF_MAP,
                        top) -> bool:
@@ -224,9 +223,10 @@ _EVALUATORS_COND_BRA = {
 }
 
 _EVALUATORS_ALU1 = {
-#    o.CNTLZ: lambda x, y: x + y,
-#    o.CNTTZ: lambda x, y: x - y,
+    #    o.CNTLZ: lambda x, y: x + y,
+    #    o.CNTTZ: lambda x, y: x - y,
 }
+
 
 def _InsConstantFold(
         ins: ir.Ins, bbl: ir.Bbl, _fun: ir.Fun,
