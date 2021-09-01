@@ -8,6 +8,9 @@
 .fun a32_syscall_clock_gettime SIGNATURE [S32] = [S32 A32]
 .fun a32_syscall_close SIGNATURE [S32] = [S32]
 .fun a32_syscall_exit SIGNATURE [] = [S32]
+.fun a32_syscall_fcntl SIGNATURE [S32] = [S32 U32 A32]
+.fun a32_syscall_fstat SIGNATURE [S32] = [S32 A32]
+.fun a32_syscall_getcwd SIGNATURE [S32] = [A32 U32]
 .fun a32_syscall_getpid SIGNATURE [S32] = []
 .fun a32_syscall_kill SIGNATURE [S32] = [S32 S32]
 .fun a32_syscall_lseek SIGNATURE [S32] = [S32 S32 S32]
@@ -15,7 +18,6 @@
 .fun a32_syscall_read SIGNATURE [S32] = [S32 A32 U32]
 .fun a32_syscall_write SIGNATURE [S32] = [S32 A32 U32]
 .fun a32_syscall_xbrk SIGNATURE [A32] = [A32]
-
 
 ############################################################
 # Syscall wrappers
@@ -46,6 +48,41 @@
     pusharg out
     syscall a32_syscall_exit 1:U32
     trap
+
+.fun fcntl NORMAL [S32] = [S32 U32 A32]
+.bbl start
+    poparg fd:S32
+    poparg cmd:U32
+    poparg arg:A32
+    pusharg arg
+    pusharg cmd
+    pusharg fd
+    syscall a32_syscall_fcntl 55:U32
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun fstat NORMAL [S32] = [S32 A32]
+.bbl start
+    poparg fd:S32
+    poparg stat:A32
+    pusharg stat
+    pusharg fd
+    syscall a32_syscall_fstat 108:U32
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun getcwd NORMAL [S32] = [A32 U32]
+.bbl start
+    poparg buffer:A32
+    poparg size:U32
+    pusharg size
+    pusharg buffer
+    syscall a32_syscall_getcwd 183:U32
+    poparg res:S32
+    pusharg res
+    ret
 
 .fun getpid NORMAL [S32] = []
 .bbl start
