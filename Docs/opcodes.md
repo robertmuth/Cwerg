@@ -228,10 +228,14 @@ Return from subroutine.
 Branch to subroutine fun
 
 #### [2c] jsr *target_fun_addr* <sub>[REG:CODE]</sub> *target_fun_sig* <sub>[FUN]</sub>
-Jump indirectly to subroutine through register (fun describes the signature). The signature must have been previously defined with the `.fun` directive.
+Jump indirectly to subroutine through register (fun describes the signature). 
+             
+             The signature must have been previously defined with the `.fun` directive.
 
 #### [2d] syscall *target_fun_sig* <sub>[FUN]</sub> *syscall_no* <sub>[CONST:UINT]</sub>
-Syscall to `syscall_no`. (fun describes the signature). The signature must have been previously defined with the `.fun` directive.
+Syscall to `syscall_no`. (fun describes the signature). 
+                 
+                 The signature must have been previously defined with the `.fun` directive.
 
 #### [2e] trap 
 Abort program.
@@ -239,34 +243,46 @@ Abort program.
 ## Move/Conversion
 
 #### [30] pusharg *src* <sub>[REG/CONST:ANY]</sub>
-push call or return arg - must immediately precede bsr/jsr or ret
+push a call or return arg - must immediately precede bsr/jsr or ret.
 
 #### [31] poparg *dst* <sub>[REG:ANY]</sub> =
-pop call or return arg - must immediately follow fun entry or bsr/jsr
+pop a call or return arg - must immediately follow fun entry or bsr/jsr.
 
 #### [32] conv *dst* <sub>[REG:NUM]</sub> = *src* <sub>[REG/CONST:NUM]</sub>
-Conversion of numerical regs which do not have to be of same size. Bits may change. Note: Use mov if both regs have the same kind. Note: This is not completely stable/well-defined yet for case that involve a widening change from signed -> unsigned.
+Conversion of numerical regs which do not have to be of same size. Bits may change. 
+              
+              Note: Use mov if both regs have the same kind. 
+              Note: This is not completely stable/well-defined yet for case that involve 
+              a widening change from signed -> unsigned.
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
-Cast between regs of same size. Bits will be re-interpreted but do not change. This can be used to manipulated addresses im unusual ways.
+Cast between regs of same size. Bits will be re-interpreted but do not change. 
+                 
+                 This can be used to manipulated addresses im unusual ways.
 
 #### [34] mov *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Move between registers. While a mov can be emulated via a `zero add`, having a dedicated instruction make some optimizations easier to implement when combined with a canonicalization.
+Move between registers. 
+             
+             While a mov can be emulated via a `add dst = src 0`, 
+             having a dedicated instruction makes some optimizations easier to 
+             implement when combined with a canonicalization.
 
 #### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ANY]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 
-Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
+Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2
+               
+               Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 #### [36] cmplt *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ADDR_NUM]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
-Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
+               
+               Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 ## Address Arithmetic
 
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective Address. dst  := base + offset  
              
-             (note: dst and base are addresses but offset is not))
+             Note: dst and base are addresses but offset is not.
 
 #### [39] lea.mem *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load effective memory address with offset, dst := base + offset
@@ -311,7 +327,7 @@ Compute the absolute value of floating point value
 nop - internal use.
 
 #### [f2] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
-nop with one reg - internal use. can be used to `reserve` a reg for code generation
+nop with one reg - internal use. Can be used to `reserve` a reg for code generation.
 
 ## Directives
 

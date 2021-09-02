@@ -595,15 +595,17 @@ BSR = Opcode(0x2b, "bsr", OPC_KIND.BSR, [OP_KIND.FUN],
              OA.CALL)
 JSR = Opcode(0x2c, "jsr", OPC_KIND.JSR, [OP_KIND.REG, OP_KIND.FUN],
              [TC.CODE, TC.INVALID], OPC_GENUS.BASE,
-             "Jump indirectly to subroutine through register (fun describes the signature). "
-             "The signature must have been previously defined with the `.fun` directive.",
+             """Jump indirectly to subroutine through register (fun describes the signature). 
+             
+             The signature must have been previously defined with the `.fun` directive.""",
              OA.CALL)
 
 SYSCALL = Opcode(0x2d, "syscall", OPC_KIND.SYSCALL,
                  [OP_KIND.FUN, OP_KIND.CONST],
                  [TC.INVALID, TC.UINT], OPC_GENUS.BASE,
-                 "Syscall to `syscall_no`. (fun describes the signature). "
-                 "The signature must have been previously defined with the `.fun` directive.",
+                 """Syscall to `syscall_no`. (fun describes the signature). 
+                 
+                 The signature must have been previously defined with the `.fun` directive.""",
                  OA.CALL)
 
 TRAP = Opcode(0x2e, "trap", OPC_KIND.RET, [],
@@ -616,34 +618,37 @@ TRAP = Opcode(0x2e, "trap", OPC_KIND.RET, [],
 
 PUSHARG = Opcode(0x30, "pusharg", OPC_KIND.PUSHARG, [OP_KIND.REG_OR_CONST],
                  [TC.ANY], OPC_GENUS.BASE,
-                 "push call or return arg - must immediately precede bsr/jsr or ret",
+                 "push a call or return arg - must immediately precede bsr/jsr or ret.",
                  OA.SPECIAL)
 
 POPARG = Opcode(0x31, "poparg", OPC_KIND.POPARG, [OP_KIND.REG],
                 [TC.ANY], OPC_GENUS.BASE,
-                "pop call or return arg - must immediately follow fun entry or bsr/jsr",
+                "pop a call or return arg - must immediately follow fun entry or bsr/jsr.",
                 OA.SPECIAL)
 
 CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.NUM, TC.NUM], OPC_GENUS.BASE,
               # TODO: specify rounding and overflow for float <-> int conversions
-              "Conversion of numerical regs which do not have to be of same size. "
-              "Bits may change. Note: Use mov if both regs have the same kind. "
-              "Note: This is not completely stable/well-defined yet for case that involve "
-              "a widening change from signed -> unsigned.")
+              """Conversion of numerical regs which do not have to be of same size. Bits may change. 
+              
+              Note: Use mov if both regs have the same kind. 
+              Note: This is not completely stable/well-defined yet for case that involve 
+              a widening change from signed -> unsigned.""")
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_SIZE_AS_PREV], OPC_GENUS.BASE,
-                 "Cast between regs of same size. "
-                 "Bits will be re-interpreted but do not change. This can be used to "
-                 "manipulated addresses im unusual ways.")
+                 """Cast between regs of same size. Bits will be re-interpreted but do not change. 
+                 
+                 This can be used to manipulated addresses im unusual ways.""")
 
 MOV = Opcode(0x34, "mov", OPC_KIND.MOV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             "Move between registers. While a mov can be emulated via a `zero add`, "
-             "having a dedicated instruction make some optimizations easier to "
-             "implement when combined with a canonicalization.")
+             """Move between registers. 
+             
+             While a mov can be emulated via a `add dst = src 0`, 
+             having a dedicated instruction makes some optimizations easier to 
+             implement when combined with a canonicalization.""")
 
 CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST,
@@ -651,8 +656,9 @@ CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ANY,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               "Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2 "
-               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2.",
+               """Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2
+               
+               Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""",
                OA.COMMUTATIVE)
 
 CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
@@ -661,8 +667,9 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ADDR_NUM,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               "Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 "
-               "\nNote: dst/cmp1/cmp2 may be of a different type than src1/src2.")
+               """Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
+               
+               Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
 
 # materialize addresses in a register
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
@@ -670,7 +677,7 @@ LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
              [TC.ADDR, TC.SAME_AS_PREV, TC.OFFSET], OPC_GENUS.BASE,
              """Load effective Address. dst  := base + offset  
              
-             (note: dst and base are addresses but offset is not))""")
+             Note: dst and base are addresses but offset is not.""")
 
 LEA_MEM = Opcode(0x39, "lea.mem", OPC_KIND.LEA,
                  [OP_KIND.REG, OP_KIND.MEM, OP_KIND.REG_OR_CONST],
@@ -797,7 +804,7 @@ Opcode(0xc1, "ld.stks", OPC_KIND.LD, [OP_KIND.REG, OP_KIND.STK, OP_KIND.FIELD],
 
 Opcode(0xc2, "lea.stks", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FIELD],
        [TC.ADDR, TC.INVALID], OPC_GENUS.STRUCT,
-       "Load effective stack address with field offset")
+       "Load effective stack address with field offset.")
 
 # ld/st base address is in register, offset is struct field
 Opcode(0xc3, "lds", OPC_KIND.LD, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
@@ -810,7 +817,7 @@ Opcode(0xc4, "sts", OPC_KIND.ST, [OP_KIND.REG, OP_KIND.FIELD, OP_KIND.REG],
 
 Opcode(0xc5, "adds", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
        [TC.ADDR, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.STRUCT,
-       "Addition with field offset. The first two regs must be address regs ")
+       "Addition with field offset. The first two regs must be address regs.")
 
 ############################################################
 # Misc Experimental
@@ -843,7 +850,7 @@ NOP = Opcode(0xf1, "nop", OPC_KIND.NOP, [],
 
 NOP1 = Opcode(0xf2, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
               [TC.ANY], OPC_GENUS.BASE,
-              "nop with one reg - internal use. can be used to `reserve` a reg for code generation",
+              "nop with one reg - internal use. Can be used to `reserve` a reg for code generation.",
               OA.SPECIAL)
 
 
