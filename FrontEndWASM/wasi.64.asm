@@ -378,7 +378,7 @@
   .data 1 "fd_prestat_get NYI\n\0"
 
 
-# Terrible hack we hard-code
+# Terrible hack we hard-code 2 path
 # fd=3 -> "/"
 # fd=4 -> "./"
 
@@ -401,7 +401,7 @@
     pusharg 0:S32
     ret
   .bbl bad
-    pusharg -1:S32
+    pusharg 8:S32  # __WASI_ERRNO_BADF
     ret
 
 .mem __unimplemented_fd_prestat_dir_name 8 RW
@@ -428,28 +428,80 @@
     pusharg 0:S32
     ret
   .bbl bad
-    pusharg -1:S32
+    pusharg 8:S32  # __WASI_ERRNO_BADF
     ret
 
-.mem __unimplemented_fd_fdstat_get 8 RW
-  .data 1 "fd_fdstat_get NYI\n\0"
+# struct stat {
+#  0 	unsigned long	st_dev;
+#  8	unsigned long	st_ino;
+# 16	unsigned int	st_mode;
+# 20 	unsigned int	st_nlink;
+# 24 	unsigned int	st_uid;
+# 28 	unsigned int	st_gid;
+# 32 	unsigned long	st_rdev;
+# 40 	unsigned long	__pad1;
+# 48 	long		    st_size;
+# 56 	int		        st_blksize;
+# 60 	int		        __pad2;
+# 64 	long		    st_blocks;
+# 72 	long		    st_atime;
+# 80 	unsigned long	st_atime_nsec;
+# 88 	long		    st_mtime;
+# 96 	unsigned long	st_mtime_nsec;
+#104 	long		    st_ctime;
+#112 	unsigned long	st_ctime_nsec;
+#116 	unsigned int	__unused4;
+#120 	unsigned int	__unused5;
+# };
+
+
+# struct fdstat {
+# 0 fs_filetype
+# 2 fs_flags
+# 8 fs_rights_base
+#16 fs_rights_inheriting
+# }
 
 .fun $wasi$fd_fdstat_get NORMAL [S32] = [A64 S32 S32]
   .bbl %start
     poparg mem_base:A64
     poparg fd:S32
     poparg result_offset:S32
-    # TODO: unimplemented
-    pusharg fd
+    #
     pusharg 0:A64
-    bsr $wasi$print_i32_ln
-    lea.mem msg:A64 __unimplemented_fd_fdstat_get 0
-    pusharg msg
-    pusharg 2:S32
-    bsr write_s
-    poparg err:S64
-    trap
-    pusharg -1:S32
+    pusharg 3:U32 # F_GETFL
+    pusharg fd
+    bsr fcntl
+    poparg res:S32
+    ble 0:S32 res ok_fcntl
+    pusharg res
+    ret
+  .bbl ok_fcntl
+    .stk stat 8 256
+    lea.stk stk_stat:A64 stat 0
+    pusharg stk_stat
+    pusharg fd
+    bsr fstat
+    poparg res
+    ble 0:S32 res ok_fstat
+    pusharg res
+    ret
+  .bbl ok_fstat
+    lea wasi_fdstat:A64 mem_base result_offset
+    ld mode:U32 stk_stat 16
+    shr mode mode 12
+    mov fs_filetype:U8 0
+    cmpeq fs_filetype 1:U8 fs_filetype 6:U32 mode   # __WASI_FILETYPE_BLOCK_DEVICE
+    cmpeq fs_filetype 2:U8 fs_filetype 2:U32 mode   # __WASI_FILETYPE_CHARACTER_DEVICE
+    cmpeq fs_filetype 3:U8 fs_filetype 4:U32 mode   # __WASI_FILETYPE_DIRECTORY
+    cmpeq fs_filetype 4:U8 fs_filetype 8:U32 mode   # __WASI_FILETYPE_REGULAR_FILE
+    cmpeq fs_filetype 7:U8 fs_filetype 10:U32 mode  # __WASI_FILETYPE_SYMBOLIC_LINK
+    mov fs_flags:U16 0
+    st wasi_fdstat 0 fs_filetype
+    st wasi_fdstat 2 fs_flags
+    st wasi_fdstat 8 -1:S64  # fs_rights_base
+    st wasi_fdstat 16 -1:S64 # fs_rights_inheriting;
+    pusharg 0:S32
     ret
 
 .fun $wasi$fd_seek NORMAL [S32] = [A64 S32 S64 S32 S32]
