@@ -140,7 +140,7 @@
   .data 4 [0]    # top
 
 
-.fun __memory_init NORMAL [] = []
+.fun __wasi_init NORMAL [] = []
 .bbl prolog
    pusharg 0:A32
    bsr xbrk
@@ -158,7 +158,7 @@
     shr top top 16
     conv out:S32 top
     beq size 0 epilog
-    
+
     conv usize:U32 size
     shl usize usize 16
     ld.mem atop:A32 __memory_base 4

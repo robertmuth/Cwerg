@@ -5,6 +5,36 @@
 # HELPERS CLONED FROM StdLib
 ######################################################################
 
+  .fun write_s NORMAL [S64] = [S32 A64]
+  .reg S64 [%out]
+
+  .bbl %start
+    poparg fd:S32
+    poparg s:A64
+    .reg U64 [len]
+    mov len = 0
+    bra while_1_cond
+
+  .bbl while_1
+    add %U64_1:U64 = len 1
+    mov len = %U64_1
+
+  .bbl while_1_cond
+    lea %A64_2:A64 = s len
+    ld %S8_3:S8 = %A64_2 0
+    conv %S32_4:S32 = %S8_3
+    bne %S32_4 0 while_1
+    bra while_1_exit
+
+  .bbl while_1_exit
+    pusharg len
+    pusharg s
+    pusharg fd
+    bsr write
+    poparg %S64_5:S64
+    mov %out = %S64_5
+    pusharg %out
+    ret
 
 .fun write_lu NORMAL [S64] = [S32 U64]
 .reg S64 [%out]
@@ -138,13 +168,39 @@
   .data 8 [0]    # top
 
 
-.fun __memory_init NORMAL [] = []
+.fun __wasi_init NORMAL [] = []
 .bbl prolog
+   # init memory
    pusharg 0:A64
    bsr xbrk
    poparg addr:A64
    st.mem __memory_base 0 addr
    st.mem __memory_base 8 addr
+   # init pre-open dirs
+   .stk cwd 1 1024
+   lea.stk addr cwd 0
+   pusharg 1024:U64
+   pusharg addr
+   bsr getcwd
+   poparg res:S32
+   # fd3
+   pusharg 0:S32 # mode
+   pusharg 0:S32 # RDONLY
+   pusharg addr
+   bsr open
+   poparg res
+   beq res 3 next
+   trap
+ .bbl next
+   # fd4
+   pusharg 0:S32 # mode
+   pusharg 0:S32 # RDONLY
+   pusharg addr
+   bsr open
+   poparg res
+   beq res 4 end
+   trap
+  .bbl end
    ret
 
 .fun __memory_grow NORMAL [S32] = [S32]
@@ -308,15 +364,48 @@
     bsr exit
     ret
 
+.fun $wasi$fd_close NORMAL [S32] = [A64 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    pusharg fd
+    bsr close
+    poparg err:S32
+    pusharg err
+    ret
+
+.mem __unimplemented_fd_prestat_get 8 RW
+  .data 1 "fd_prestat_get NYI\n\0"
+
+
+# Terrible hack we hard-code
+# fd=3 -> "/"
+# fd=4 -> "./"
+
 .fun $wasi$fd_prestat_get NORMAL [S32] = [A64 S32 S32]
   .bbl %start
     poparg mem_base:A64
     poparg fd:S32
     poparg result_offset:S32
-    # TODO: unimplemented
+    lea result:A64 mem_base result_offset
+  .bbl fd3
+    bne fd 3:S32 fd4
+    st result 0  0:U32 # __WASI_PREOPENTYPE_DIR
+    st result 4  2:U32 # strlen("/") + 1
+    pusharg 0:S32
+    ret
+  .bbl fd4
+    bne fd 4:S32 bad
+    st result 0  0:U32 # __WASI_PREOPENTYPE_DIR
+    st result 4  3:U32 # strlen("./") + 1
+    pusharg 0:S32
+    ret
+  .bbl bad
     pusharg -1:S32
     ret
 
+.mem __unimplemented_fd_prestat_dir_name 8 RW
+  .data 1 "fd_prestat_dir_name NYI\n\0"
 
 .fun $wasi$fd_prestat_dir_name NORMAL [S32] = [A64 S32 S32 S32]
   .bbl %start
@@ -324,7 +413,54 @@
     poparg fd:S32
     poparg path_offset:S32
     poparg path_size:S32
+    lea path:A64 mem_base path_offset
+  .bbl fd3
+    bne fd 3:S32 fd4
+    st mem_base 0 47:U8 # '/'
+    st mem_base 1 0:U8 #
+    pusharg 0:S32
+    ret
+  .bbl fd4
+    bne fd 4:S32 bad
+    st mem_base 0 46:U8  # '.'
+    st mem_base 1 47:U8  # '/'
+    st mem_base 2 0:U8  #
+    pusharg 0:S32
+    ret
+  .bbl bad
+    pusharg -1:S32
+    ret
+
+.mem __unimplemented_fd_fdstat_get 8 RW
+  .data 1 "fd_fdstat_get NYI\n\0"
+
+.fun $wasi$fd_fdstat_get NORMAL [S32] = [A64 S32 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg result_offset:S32
     # TODO: unimplemented
+    pusharg fd
+    pusharg 0:A64
+    bsr $wasi$print_i32_ln
+    lea.mem msg:A64 __unimplemented_fd_fdstat_get 0
+    pusharg msg
+    pusharg 2:S32
+    bsr write_s
+    poparg err:S64
+    trap
+    pusharg -1:S32
+    ret
+
+.fun $wasi$fd_seek NORMAL [S32] = [A64 S32 S64 S32 S32]
+  .bbl %start
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg delta:S64
+    poparg whence:S32
+    poparg result_offset:S32
+    # TODO: unimplemented
+    trap
     pusharg -1:S32
     ret
 

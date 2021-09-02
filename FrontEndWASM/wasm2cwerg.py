@@ -864,7 +864,7 @@ def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
     bbl.AddIns(ir.Ins(o.ST_MEM, [global_argc, ZERO, argc]))
     bbl.AddIns(ir.Ins(o.ST_MEM, [global_argv, ZERO, argv]))
 
-    bbl.AddIns(ir.Ins(o.BSR, [unit.GetFun("__memory_init")]))
+    bbl.AddIns(ir.Ins(o.BSR, [unit.GetFun("__wasi_init")]))
     if initial_heap_size_pages:
         bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, initial_heap_size_pages)]))
         bbl.AddIns(ir.Ins(o.BSR, [unit.GetFun("__memory_grow")]))
@@ -937,7 +937,7 @@ def Translate(mod: wasm.Module, addr_type: o.DK) -> ir.Unit:
     memcpy = GenerateMemcpyFun(unit, addr_type)
     init_global = GenerateInitGlobalVarsFun(mod, unit, addr_type)
     init_data = GenerateInitDataFun(mod, unit, memcpy, addr_type)
-    unit.AddFun(ir.Fun("__memory_init", o.FUN_KIND.EXTERN, [], []))
+    unit.AddFun(ir.Fun("__wasi_init", o.FUN_KIND.EXTERN, [], []))
     unit.AddFun(ir.Fun("__memory_grow", o.FUN_KIND.EXTERN, [o.DK.S32], [o.DK.S32]))
 
     main = None
