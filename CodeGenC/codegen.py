@@ -133,8 +133,8 @@ ALU_INT = {
     #
 
     # need masking for shifts
-    o.SHL: "{src1} << {src2}",
-    o.SHR: "{src1} >> {src2}",
+    o.SHL: "{src1} << ({src2} & {mask})",
+    o.SHR: "{src1} >> ({src2} & {mask})",
     o.MUL: "{src1} * {src2}",
     # needs div by zero handling
     o.DIV: "{src1} / {src2}",
@@ -160,8 +160,9 @@ def Handle_ALU(fun, opcode, ops, _ctx):
         expr = ALU_FLT[opcode]
     else:
         assert False, dst_flavor
+    mask = ops[0].kind.bitwidth() - 1
     computation = expr.format(
-        src1=RegOrNum(fun, ops[1]), src2=RegOrNum(fun, ops[2]))
+        src1=RegOrNum(fun, ops[1]), src2=RegOrNum(fun, ops[2]), mask=mask)
     print(f"    {RegOrNum(fun, ops[0])} = {computation};")
 
 
