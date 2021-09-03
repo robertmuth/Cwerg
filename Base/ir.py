@@ -256,20 +256,16 @@ def InsSwapOps(ins: Ins, a: int, b: int):
     ins.operand_defs[a], ins.operand_defs[b] = ins.operand_defs[b], ins.operand_defs[a]
 
 
+@dataclasses.dataclass()
 class Bbl:
     """Basic Block"""
-    __slots__ = ['name', 'forward_declared', 'inss', 'edge_out',
-                 'edge_in', 'live_out', 'defs_in']
-
-    def __init__(self, name: str, forward_declared=False):
-        self.name = name
-        self.forward_declared = forward_declared
-        self.inss: List[Ins] = []
-        # cfg
-        self.edge_out: List["Bbl"] = []
-        self.edge_in: List["Bbl"] = []
-        # liveness
-        self.live_out: Set[Reg] = set()  # set of reg live at the end of the Bbl
+    name: str
+    forward_declared: bool = False
+    inss: List[Ins] = dataclasses.field(default_factory=list)
+    edge_out: List["Bbl"] = dataclasses.field(default_factory=list)
+    edge_in: List["Bbl"] = dataclasses.field(default_factory=list)
+    live_out: Set[Reg] = dataclasses.field(default_factory=set)  # set of reg live at the end of the Bbl
+    defs_in: Dict[Reg, Ins] = dataclasses.field(default_factory=dict)
 
     def AddIns(self, ins: Ins):
         self.inss.append(ins)
@@ -311,13 +307,6 @@ class Jtb:
     def_bbl: Bbl
     bbl_tab: Dict[int, Bbl]
     size: int
-
-    def __init__(self, name: str, def_bbl: Bbl, bbl_tab: Dict[int, Bbl],
-                 size: int):
-        self.name = name
-        self.def_bbl = def_bbl
-        self.bbl_tab = bbl_tab
-        self.size = size
 
     def __repr__(self):
         return f"[JTB {self.name}]"
@@ -363,7 +352,7 @@ class Fun:
         #        we usually use an approximation, i.e. caller-save regs
         self.cpu_live_clobber: List[CpuReg] = []
 
-        if kind != o.FUN_KIND.INVALID:   # not  forward_declared
+        if kind != o.FUN_KIND.INVALID:  # not  forward_declared
             self.Init(kind, output_types, input_types)
 
     def Init(self, kind: o.FUN_KIND, output_types, input_types):
@@ -485,16 +474,14 @@ class Fun:
         return f"FUN[{self.name}] {self.kind.name}"
 
 
+@dataclasses.dataclass()
 class Mem:
     """Memory region in the rodata/data/tls/bss segment that must stay together"""
-    __slots__ = ['name', 'alignment', 'kind', 'datas', 'size']
 
-    def __init__(self, name: str, alignment: int, kind: o.MEM_KIND):
-        self.name = name
-        # TODO: consider keeping the Num
-        self.alignment: int = alignment
-        self.kind: o.MEM_KIND = kind
-        self.datas: List[Any] = []
+    name: str
+    alignment: int
+    kind: o.MEM_KIND
+    datas: List[Any] = dataclasses.field(default_factory=list)
 
     def AddData(self, data):
         assert isinstance(data, (DataBytes, DataAddrMem, DataAddrFun))
@@ -507,33 +494,30 @@ class Mem:
         return f"[MEM {self.name} {self.alignment} {self.kind} {self.Size()}]"
 
 
+@dataclasses.dataclass()
 class DataBytes:
-    __slots__ = ['count', 'data', 'size']
+    count: int
+    data: bytes
+    size: int
 
     def __init__(self, count: int, data: bytes):
         assert isinstance(data, bytes)
-        # TODO: consider keeping the Num
         self.count: int = count
         self.data: bytes = data
         self.size: int = self.count * len(data)
 
 
+@dataclasses.dataclass()
 class DataAddrFun:
-    __slots__ = ['fun', 'size']
-
-    def __init__(self, size: int, fun: Fun):
-        self.size: int = size
-        self.fun: Fun = fun
+    size: int
+    fun: Fun
 
 
+@dataclasses.dataclass()
 class DataAddrMem:
-    __slots__ = ['mem', 'size', 'offset']
-
-    def __init__(self, size: int, mem: Mem, offset: int):
-        # TODO: consider keeping the Nums
-        self.size: int = size
-        self.mem = mem
-        self.offset: int = offset
+    size: int
+    mem: Mem  # address being referenced
+    offset: int
 
 
 class Unit:
@@ -578,7 +562,7 @@ class Unit:
     def GetFunOrAddForwardDeclaration(self, name):
         fun = self.fun_syms.get(name)
         if fun is None:
-            fun = Fun(name)   # forward declared
+            fun = Fun(name)  # forward declared
             self.fun_syms[name] = fun
             # note we do not add it to self.funs
         return fun

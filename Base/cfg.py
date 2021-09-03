@@ -195,10 +195,12 @@ def FunRemoveEmptyBbls(fun: ir.Fun) -> int:
         bbl.DelEdgeOut(succ)
         # We need to clone the edge list since we have destructive updates
         # but while we are at it let's also process every predecessor only once
-        unique_preds: Set[ir.Bbl] = set(bbl.edge_in)
-        for pred in unique_preds:
-            if pred.inss:
-                InsMaybePatchNewSuccessor(pred.inss[-1], bbl,
+        unique_preds: Set[str] = set(pred.name for pred in bbl.edge_in)
+        for pred_name in unique_preds:
+            pred = fun.bbl_syms[pred_name]
+            inss = pred.inss
+            if inss:
+                InsMaybePatchNewSuccessor(inss[-1], bbl,
                                           succ)  # patch ins/jtb
             pred.ReplaceEdgeOut(bbl, succ)  # patch edg
 
