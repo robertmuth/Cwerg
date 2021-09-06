@@ -43,24 +43,6 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates)
 
 
-def _InsRewriteFltImmediates(
-        ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
-    inss = []
-    for n, op in enumerate(ins.operands):
-        if isinstance(op, ir.Const) and op.kind.flavor() is o.DK_FLAVOR_F:
-            mem = unit.FindOrAddConstMem(op)
-            tmp = fun.GetScratchReg(op.kind, "flt_const", True)
-            inss.append(ir.Ins(o.LD_MEM, [tmp, mem, _ZERO_OFFSET]))
-            ins.operands[n] = tmp
-    if inss:
-        return inss + [ins]
-    return None
-
-
-def _FunRewriteFltImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteFltImmediates, unit=unit)
-
-
 def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
     # TODO: handle conv
     if ins.opcode not in {o.MOV}:
