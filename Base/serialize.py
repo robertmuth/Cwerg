@@ -29,8 +29,12 @@ def RenderOperand(v: Any, tc: o.TC):
         return v.name
     elif isinstance(v, ir.Const):
         if tc in {o.TC.OFFSET, o.TC.SAME_AS_PREV}:
-            return str(v.value)
-        return str(v)
+            s = str(v.value)
+        else:
+            s = str(v)
+        if s.startswith("inf"):
+            s = "+" + s
+        return s
     elif isinstance(v, ir.Jtb):
         return v.name
     else:
