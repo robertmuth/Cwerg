@@ -170,6 +170,8 @@ def FunOpt(fun: ir.Fun, opt_stats: Dict[str, int]):
     FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
     lowering.FunRegWidthWidening(fun, o.DK.U8, o.DK.U32)
     lowering.FunRegWidthWidening(fun, o.DK.S8, o.DK.S32)
+    lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
+    lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
 
     FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 

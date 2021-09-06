@@ -1006,22 +1006,19 @@ def InitConv():
             Pattern(o.CONV, [dst_kind, src_kind],
                     [InsTmpl("orr_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0])])
 
-    for dst_kind in [o.DK.U64, o.DK.U32]:
-        Pattern(o.CONV, [dst_kind, o.DK.U8],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
-        Pattern(o.CONV, [dst_kind, o.DK.U16],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
-
     # TODO: this is iffy, should we go S32 -> U32 -> U64 or S32 -> S64 -> U64?
     Pattern(o.CONV, [o.DK.U64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
-    for dst_kind in [o.DK.S64, o.DK.S32]:
+    for dst_kind in [o.DK.S64, o.DK.S32, o.DK.U64, o.DK.U32]:
         Pattern(o.CONV, [dst_kind, o.DK.S8],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 7])])
-
         Pattern(o.CONV, [dst_kind, o.DK.S16],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 15])])
+        Pattern(o.CONV, [dst_kind, o.DK.U8],
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
+        Pattern(o.CONV, [dst_kind, o.DK.U16],
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
 
     for dst_kind in [o.DK.U64, o.DK.S64]:
         Pattern(o.CONV, [dst_kind, o.DK.U32],

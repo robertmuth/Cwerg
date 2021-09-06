@@ -964,18 +964,15 @@ def InitConv():
         for kind2 in [o.DK.U8, o.DK.S8]:
             Pattern(o.CONV, [kind1, kind2],
                     [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
-
-    Pattern(o.CONV, [o.DK.U32, o.DK.U8],
-            [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
-
-    Pattern(o.CONV, [o.DK.S32, o.DK.S8],
-            [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
-
-    Pattern(o.CONV, [o.DK.U32, o.DK.U16],
-            [InsTmpl("uxth", [PARAM.reg0, PARAM.reg1, 0])])
-
-    Pattern(o.CONV, [o.DK.S32, o.DK.S16],
-            [InsTmpl("sxth", [PARAM.reg0, PARAM.reg1, 0])])
+    for kind1 in [o.DK.U32, o.DK.S32]:
+        Pattern(o.CONV, [kind1, o.DK.U8],
+                [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
+        Pattern(o.CONV, [kind1, o.DK.U16],
+                [InsTmpl("uxth", [PARAM.reg0, PARAM.reg1, 0])])
+        Pattern(o.CONV, [kind1, o.DK.S8],
+                [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
+        Pattern(o.CONV, [kind1, o.DK.S16],
+                [InsTmpl("sxth", [PARAM.reg0, PARAM.reg1, 0])])
 
     # bitcast between 32bit regs: nothing to be done here
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:

@@ -219,6 +219,7 @@ int FunMoveElimination(Fun fun, std::vector<Ins>* to_delete) {
   return to_delete->size();
 }
 
+// This is tricky and probably quite buggy at this point.
 void FunRegWidthWidening(Fun fun,
                          DK narrow_kind,
                          DK wide_kind,
@@ -245,37 +246,62 @@ void FunRegWidthWidening(Fun fun,
     for (Ins ins : BblInsIter(bbl)) {
       const unsigned num_ops = InsOpcode(ins).num_operands;
       const OPC_KIND kind = InsOpcodeKind(ins);
+      bool change = false;
       for (int i = 0; i < num_ops; ++i) {
-        if ((i == 0 && kind == OPC_KIND::LD) ||
-            (i == 2 && kind == OPC_KIND::ST))
-          continue;
         Handle op = InsOperand(ins, i);
         switch (op.kind()) {
-          case RefKind::REG: {
-            Reg reg = Reg(op);
-            if (RegKind(reg) != narrow_kind) continue;
+          case RefKind::REG:
+            if (RegKind(Reg(op)) == narrow_kind) change = true;
             break;
-          }
           case RefKind::CONST: {
             const Const val = Const(op);
-            if (ConstKind(val) != narrow_kind) continue;
-            if (DKFlavor(ConstKind(val)) == DK_FLAVOR_U) {
-              InsOperand(ins, i) = ConstNewU(wide_kind, ConstValueU(val));
-            } else if (DKFlavor(ConstKind(val)) == DK_FLAVOR_S) {
-              InsOperand(ins, i) = ConstNewACS(wide_kind, ConstValueACS(val));
+            if (ConstKind(val) == narrow_kind) {
+              if (i == 2 && kind == OPC_KIND::ST) continue;
+              change = true;
+              if (DKFlavor(ConstKind(val)) == DK_FLAVOR_U) {
+                InsOperand(ins, i) = ConstNewU(wide_kind, ConstValueU(val));
+              } else {
+                ASSERT(DKFlavor(ConstKind(val)) == DK_FLAVOR_S, "");
+                InsOperand(ins, i) = ConstNewACS(wide_kind, ConstValueACS(val));
+              }
             }
+            break;
           }
-          default:
-            continue;
         }
       }
 
-      if (kind == OPC_KIND::LD) {
+      if (!change) {
+        inss->push_back(ins);
+        continue;
+      }
+
+      if (InsOPC(ins) == OPC::SHL || InsOPC(ins) == OPC::SHR) {
+        Reg tmp_reg = FunGetScratchReg(fun, wide_kind, "tricky", false);
+        Const mask;
+        if (DKFlavor(wide_kind) == DK_FLAVOR_U) {
+          mask = ConstNewU(wide_kind, DKBitWidth(narrow_kind) - 1);
+        } else {
+          ASSERT(DKFlavor(wide_kind) == DK_FLAVOR_S, "");
+          mask = ConstNewACS(wide_kind, DKBitWidth(narrow_kind) - 1);
+        }
+        Ins and_ins = InsNew(OPC::AND, tmp_reg, InsOperand(ins, 2), mask);
+        inss->push_back(and_ins);
+        InsOperand(ins, 2) = tmp_reg;
+        if (InsOPC(ins) == OPC::SHR &&
+            InsOperand(ins, 1).kind() == RefKind::REG) {
+          Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
+          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
+          inss->push_back(InsNew(OPC::CONV, tmp_reg, InsOperand(ins, 1)));
+          inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 1), tmp_reg));
+        }
+        inss->push_back(ins);
+        dirty = true;
+      } else if (kind == OPC_KIND::LD) {
         inss->push_back(ins);
         const Reg reg = Reg(InsOperand(ins, 0));
         if (RegKind(reg) == narrow_kind) {
           Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
-          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);
+          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
           Ins conv = InsNew(OPC::CONV, reg, tmp_reg);
           InsOperand(ins, 0) = tmp_reg;
           inss->push_back(conv);
@@ -285,13 +311,19 @@ void FunRegWidthWidening(Fun fun,
         const Reg reg = Reg(InsOperand(ins, 2));
         if (reg.kind() == RefKind::REG && RegKind(reg) == narrow_kind) {
           Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
-          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);
+          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
           Ins conv = InsNew(OPC::CONV, tmp_reg, reg);
           inss->push_back(conv);
           dirty = true;
           InsOperand(ins, 2) = tmp_reg;
         }
         inss->push_back(ins);
+      } else if (InsOPC(ins) == OPC::CONV) {
+        Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
+        RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
+        inss->push_back(InsNew(OPC::CONV, tmp_reg, InsOperand(ins, 1)));
+        inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 0), tmp_reg));
+        dirty = true;
       } else {
         inss->push_back(ins);
       }
@@ -407,8 +439,8 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
             InsNew(OPC::DIV, tmp1, InsOperand(ins, 1), InsOperand(ins, 2)));
         if (DKFlavor(kind) == DK_FLAVOR_F) {
           ASSERT(false, "");
-          //          Reg tmp3 = FunGetScratchReg(fun, kind, "elim_rem3", true);
-          //          inss.push_back(InsNew(OPC::TRUNC, tmp3, tmp1));
+          //          Reg tmp3 = FunGetScratchReg(fun, kind, "elim_rem3",
+          //          true); inss.push_back(InsNew(OPC::TRUNC, tmp3, tmp1));
           //          tmp1 = tmp3
         }
         Reg tmp2 = FunGetScratchReg(fun, kind, "elim_rem2", true);

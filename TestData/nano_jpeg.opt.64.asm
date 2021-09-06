@@ -1,52 +1,52 @@
-# write_s                        RegStats:  0/ 3   0/ 5   0/ 2
-# write_x                        RegStats:  0/ 6   0/10   0/ 3
-# write_u                        RegStats:  0/ 5   0/ 7   0/ 3
-# write_d                        RegStats:  0/ 6   0/12   0/ 3
-# write_c                        RegStats:  0/ 0   0/ 8   0/ 3
+# write_s                        RegStats:  0/ 3   0/ 6   0/ 2
+# write_x                        RegStats:  0/ 6   0/12   0/ 3
+# write_u                        RegStats:  0/ 5   0/ 8   0/ 3
+# write_d                        RegStats:  0/ 6   0/13   0/ 3
+# write_c                        RegStats:  0/ 0   0/10   0/ 3
 # print_ln                       RegStats:  0/ 0   0/ 4   0/ 2
 # print_s_ln                     RegStats:  0/ 0   0/ 3   0/ 1
 # print_d_ln                     RegStats:  0/ 0   0/ 3   0/ 2
 # print_u_ln                     RegStats:  0/ 0   0/ 3   0/ 2
 # print_x_ln                     RegStats:  0/ 0   0/ 3   0/ 2
 # print_c_ln                     RegStats:  0/ 0   0/ 3   0/ 2
-# memset                         RegStats:  0/ 4   0/ 3   0/ 2
+# memset                         RegStats:  0/ 4   0/ 4   0/ 2
 # memcpy                         RegStats:  0/ 4   0/ 4   0/ 2
 # abort                          RegStats:  0/ 0   0/ 2   0/ 1
 # malloc                         RegStats:  2/ 0   1/18   1/ 2
 # free                           RegStats:  0/ 0   0/ 1   0/ 1
-# mymemset                       RegStats:  0/ 4   0/ 4   0/ 2
+# mymemset                       RegStats:  0/ 4   0/ 5   0/ 2
 # mymemcpy                       RegStats:  0/ 4   0/ 5   0/ 2
 # njGetWidth                     RegStats:  0/ 0   0/ 1   0/ 1
 # njGetHeight                    RegStats:  0/ 0   0/ 1   0/ 1
 # njIsColor                      RegStats:  0/ 0   0/ 1   0/ 1
 # njGetImage                     RegStats:  0/ 0   0/ 3   0/ 2
 # njGetImageSize                 RegStats:  0/ 0   0/ 7   0/ 2
-# njClip                         RegStats:  0/ 1   0/ 1   0/ 1
+# njClip                         RegStats:  0/ 1   0/ 2   0/ 1
 # njRowIDCT                      RegStats:  0/ 8   0/64   0/ 9
-# njColIDCT                      RegStats:  2/10  14/102  10/10
-# __static_1_njShowBits          RegStats:  0/ 2   0/43   0/ 4
+# njColIDCT                      RegStats:  2/10  14/104  10/10
+# __static_1_njShowBits          RegStats:  0/ 2   0/47   0/ 4
 # njSkipBits                     RegStats:  1/ 0   0/ 4   0/ 1
 # njGetBits                      RegStats:  0/ 0   2/ 0   2/ 0
 # njByteAlign                    RegStats:  0/ 0   0/ 2   0/ 1
 # __static_2_njSkip              RegStats:  0/ 0   0/ 8   0/ 3
-# njDecode16                     RegStats:  0/ 0   0/10   0/ 3
-# __static_3_njDecodeLength      RegStats:  0/ 0   0/ 6   0/ 3
+# njDecode16                     RegStats:  0/ 0   0/13   0/ 3
+# __static_3_njDecodeLength      RegStats:  0/ 0   0/ 7   0/ 3
 # njSkipMarker                   RegStats:  0/ 0   0/ 1   0/ 1
-# njDecodeSOF                    RegStats:  4/ 1   0/123   0/ 3
-# njDecodeDHT                    RegStats:  5/ 6   0/38   0/ 3
-# njDecodeDQT                    RegStats:  0/ 3   0/18   0/ 3
-# njDecodeDRI                    RegStats:  0/ 0   0/ 6   0/ 2
-# njGetVLC                       RegStats:  4/ 4   0/14   0/ 2
-# njDecodeBlock                  RegStats:  3/ 2   1/60   1/ 4
-# njDecodeScan                   RegStats:  8/ 1   0/88   0/ 3
-# njUpsampleH                    RegStats:  7/ 0   2/171   2/ 3
-# njUpsampleV                    RegStats:  9/ 0   8/168   4/ 3
-# njConvert                      RegStats: 11/ 0   3/82   3/ 3
+# njDecodeSOF                    RegStats:  4/ 1   0/131   0/ 3
+# njDecodeDHT                    RegStats:  5/ 6   0/41   0/ 3
+# njDecodeDQT                    RegStats:  0/ 3   0/19   0/ 3
+# njDecodeDRI                    RegStats:  0/ 0   0/ 7   0/ 2
+# njGetVLC                       RegStats:  4/ 4   0/17   0/ 2
+# njDecodeBlock                  RegStats:  3/ 2   1/67   1/ 4
+# njDecodeScan                   RegStats:  8/ 1   0/96   0/ 3
+# njUpsampleH                    RegStats:  7/ 0   2/195   2/ 3
+# njUpsampleV                    RegStats:  9/ 0   8/192   4/ 3
+# njConvert                      RegStats: 11/ 0   3/85   3/ 3
 # njInit                         RegStats:  0/ 0   0/ 1   0/ 1
 # njDone                         RegStats:  1/ 0   0/11   0/ 2
-# njDecode                       RegStats:  0/ 1   2/29   2/ 3
-# write_str                      RegStats:  0/ 3   0/ 5   0/ 2
-# write_dec                      RegStats:  0/ 5   0/ 6   0/ 2
+# njDecode                       RegStats:  0/ 1   2/33   2/ 3
+# write_str                      RegStats:  0/ 3   0/ 6   0/ 2
+# write_dec                      RegStats:  0/ 5   0/ 7   0/ 2
 # main                           RegStats:  4/ 0   3/28   2/ 3
 .mem __static_2__malloc_end 8 RW
     .data 8 "\x00"
@@ -98,7 +98,7 @@
 .fun getpid BUILTIN [S32] = []
 
 .fun write_s NORMAL [S64] = [S32 A64]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S32_4 %S8_3 fd]
 .reg S64 [%S64_5]
 .reg U64 [%U64_1 len]
@@ -114,7 +114,8 @@
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[fd  len  s]
     ld $1_narrowed_S8 s len
     conv %S8_3 $1_narrowed_S8
-    conv %S32_4 %S8_3
+    conv $2_narrowed_S8 %S8_3
+    conv %S32_4 $2_narrowed_S8
     bne %S32_4 0 while_1
 .bbl while_1_exit
     pusharg len
@@ -126,7 +127,7 @@
     ret
 
 .fun write_x NORMAL [S64] = [S32 U32]
-.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8 $3_narrowed_S8 $4_narrowed_S8]
 .reg S32 [%S8_11 %S8_5 fd]
 .reg S64 [%S64_19]
 .reg U32 [%U32_10 %U32_14 %U32_3 %U32_4 %U32_9 val]
@@ -144,16 +145,18 @@
     blt 9:U32 %U32_3 if_2_false
 .bbl if_2_true  #  edge_out[if_2_end]  live_out[%U64_2  fd  pos  val]
     add %U32_4 %U32_3 48
-    conv %S8_5 %U32_4
-    conv $1_narrowed_S8 %S8_5
-    st.stk buffer %U64_2 $1_narrowed_S8
+    conv $1_narrowed_S8 %U32_4
+    conv %S8_5 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_5
+    st.stk buffer %U64_2 $2_narrowed_S8
     bra if_2_end
 .bbl if_2_false  #  edge_out[if_2_end]  live_out[%U64_2  fd  pos  val]
     conv %U32_9 87:S32
     add %U32_10 %U32_9 %U32_3
-    conv %S8_11 %U32_10
-    conv $2_narrowed_S8 %S8_11
-    st.stk buffer %U64_2 $2_narrowed_S8
+    conv $3_narrowed_S8 %U32_10
+    conv %S8_11 $3_narrowed_S8
+    conv $4_narrowed_S8 %S8_11
+    st.stk buffer %U64_2 $4_narrowed_S8
 .bbl if_2_end  #  edge_out[while_1_cond]  live_out[%U32_14  %U64_2  fd  pos  val]
     div %U32_14 val 16
     mov val %U32_14
@@ -171,7 +174,7 @@
     ret
 
 .fun write_u NORMAL [S64] = [S32 U32]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S8_5 fd]
 .reg S64 [%S64_13]
 .reg U32 [%U32_3 %U32_4 %U32_8 val]
@@ -187,9 +190,10 @@
     mov pos %U64_2
     rem %U32_3 val 10
     add %U32_4 %U32_3 48
-    conv %S8_5 %U32_4
-    conv $1_narrowed_S8 %S8_5
-    st.stk buffer %U64_2 $1_narrowed_S8
+    conv $1_narrowed_S8 %U32_4
+    conv %S8_5 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_5
+    st.stk buffer %U64_2 $2_narrowed_S8
     div %U32_8 val 10
     mov val %U32_8
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[%U64_2  fd  pos  val]
@@ -206,7 +210,7 @@
     ret
 
 .fun write_d NORMAL [S64] = [S32 S32]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S32_3 %S8_9 fd sval]
 .reg S64 [%S64_2 %S64_21]
 .reg U32 [%U32_1 %U32_12 %U32_4 %U32_7 %U32_8 val]
@@ -235,9 +239,10 @@
     mov pos %U64_6
     rem %U32_7 val 10
     add %U32_8 %U32_7 48
-    conv %S8_9 %U32_8
-    conv $1_narrowed_S8 %S8_9
-    st.stk buffer %U64_6 $1_narrowed_S8
+    conv $1_narrowed_S8 %U32_8
+    conv %S8_9 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_9
+    st.stk buffer %U64_6 $2_narrowed_S8
     div %U32_12 val 10
     mov val %U32_12
 .bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[%U64_6  fd  pos  val]
@@ -256,18 +261,21 @@
     ret
 
 .fun write_c NORMAL [S64] = [S32 U32]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$2_narrowed_S8 $3_narrowed_S8]
 .reg S32 [%S32_6 %S8_1 fd]
 .reg S64 [%S64_4 %S64_7]
+.reg U8 [$1_narrowed_U8]
 .reg U32 [c]
 .reg A64 [%A64_3]
 .stk buffer 1 16
 .bbl %start
     poparg fd
     poparg c
-    conv %S8_1 c
-    conv $1_narrowed_S8 %S8_1
-    st.stk buffer 0 $1_narrowed_S8
+    conv $1_narrowed_U8 c
+    conv $2_narrowed_S8 $1_narrowed_U8
+    conv %S8_1 $2_narrowed_S8
+    conv $3_narrowed_S8 %S8_1
+    st.stk buffer 0 $3_narrowed_S8
     lea.stk %A64_3 buffer 0
     pusharg 1:U64
     pusharg %A64_3
@@ -373,7 +381,7 @@
     ret
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S8_1 value]
 .reg U64 [%U64_3 i n]
 .reg A64 [ptr]
@@ -384,9 +392,10 @@
     mov i 0
     bra for_1_cond
 .bbl for_1  #  edge_out[for_1_next]  live_out[i  n  ptr  value]
-    conv %S8_1 value
-    conv $1_narrowed_S8 %S8_1
-    st ptr i $1_narrowed_S8
+    conv $1_narrowed_S8 value
+    conv %S8_1 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_1
+    st ptr i $2_narrowed_S8
 .bbl for_1_next  #  edge_out[for_1_cond]  live_out[i  n  ptr  value]
     add %U64_3 i 1
     mov i %U64_3
@@ -486,7 +495,7 @@
     ret
 
 .fun mymemset NORMAL [] = [A64 S32 U64]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S32_3 %S8_1 i value]
 .reg U64 [%U64_4 num]
 .reg A64 [ptr]
@@ -497,9 +506,10 @@
     mov i 0
     bra for_1_cond
 .bbl for_1  #  edge_out[for_1_next]  live_out[i  num  ptr  value]
-    conv %S8_1 value
-    conv $1_narrowed_S8 %S8_1
-    st ptr i $1_narrowed_S8
+    conv $1_narrowed_S8 value
+    conv %S8_1 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_1
+    st ptr i $2_narrowed_S8
 .bbl for_1_next  #  edge_out[for_1_cond]  live_out[i  num  ptr  value]
     add %S32_3 i 1
     mov i %S32_3
@@ -591,6 +601,7 @@
 
 .fun njClip NORMAL [U32] = [S32]
 .reg S32 [x]
+.reg U8 [$1_narrowed_U8]
 .reg U32 [%U8_42]
 .bbl %start  #  edge_out[if_2_false  if_2_true]  live_out[x]
     poparg x
@@ -604,7 +615,8 @@
     pusharg 255:U32
     ret
 .bbl if_2_end
-    conv %U8_42 x
+    conv $1_narrowed_U8 x
+    conv %U8_42 $1_narrowed_U8
     pusharg %U8_42
     ret
 
@@ -708,7 +720,7 @@
 
 .fun njColIDCT NORMAL [] = [A64 A64 S32]
 .reg S32 [%S32_142 %S32_144 %S32_145 %S32_147 %S32_149 %S32_150 %S32_152 %S32_154 %S32_155 %S32_159 %S32_160 %S32_162 %S32_164 %S32_165 %S32_167 %S32_169 %S32_170 %S32_172 %S32_174 %S32_175 %S32_176 %S32_177 %S32_178 %S32_179 %S32_181 %S32_184 %S32_185 %S32_186 %S32_187 %S32_188 %S32_189 %S32_190 %S32_192 %S32_193 %S32_194 %S32_196 %S32_197 %S32_198 %S32_199 %S32_200 %S32_201 %S32_203 %S32_204 %S32_205 %S32_207 %S32_208 %S32_209 %S32_210 %S32_211 %S32_212 %S32_213 %S32_214 %S32_216 %S32_217 %S32_218 %S32_220 %S32_221 %S32_222 %S32_223 %S32_224 %S32_225 %S32_226 %S32_227 %S32_228 %S32_229 %S32_230 %S32_231 %S32_232 %S32_233 %S32_234 %S32_235 %S32_236 %S32_237 %S32_238 %S32_239 %S32_240 %S32_241 %S32_244 %S32_245 %S32_246 %S32_249 %S32_250 %S32_251 %S32_254 %S32_255 %S32_256 %S32_259 %S32_260 %S32_261 %S32_264 %S32_265 %S32_266 %S32_269 %S32_270 %S32_271 %S32_274 %S32_275 %S32_276 stride x0]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_180 %U8_182 %U8_242 %U8_247 %U8_252 %U8_257 %U8_262 %U8_267 %U8_272 %U8_277]
 .reg A64 [%A64_183 %A64_243 %A64_248 %A64_253 %A64_258 %A64_263 %A64_268 blk out]
 .bbl %start  #  edge_out[if_3_end  if_3_true]  live_out[%S32_145  %S32_149  %S32_154  %S32_159  %S32_164  %S32_169  %S32_174  blk  out  stride]
@@ -744,13 +756,15 @@
     pusharg %S32_179
     bsr njClip
     poparg %U8_180
-    conv %S32_181 %U8_180
+    conv $1_narrowed_U8 %U8_180
+    conv %S32_181 $1_narrowed_U8
     mov x0 8
     bra for_1_cond
 .bbl for_1  #  edge_out[for_1_next]  live_out[%S32_181  out  stride  x0]
-    conv %U8_182 %S32_181
-    conv $1_narrowed_U8 %U8_182
-    st out 0 $1_narrowed_U8
+    conv $2_narrowed_U8 %S32_181
+    conv %U8_182 $2_narrowed_U8
+    conv $3_narrowed_U8 %U8_182
+    st out 0 $3_narrowed_U8
     lea %A64_183 out stride
     mov out %A64_183
 .bbl for_1_next  #  edge_out[for_1_cond]  live_out[%S32_181  out  stride  x0]
@@ -815,8 +829,8 @@
     pusharg %S32_241
     bsr njClip
     poparg %U8_242
-    conv $2_narrowed_U8 %U8_242
-    st out 0 $2_narrowed_U8
+    conv $4_narrowed_U8 %U8_242
+    st out 0 $4_narrowed_U8
     lea %A64_243 out stride
     add %S32_244 %S32_229 %S32_234
     shr %S32_245 %S32_244 14
@@ -824,8 +838,8 @@
     pusharg %S32_246
     bsr njClip
     poparg %U8_247
-    conv $3_narrowed_U8 %U8_247
-    st out stride $3_narrowed_U8
+    conv $5_narrowed_U8 %U8_247
+    st out stride $5_narrowed_U8
     lea %A64_248 %A64_243 stride
     add %S32_249 %S32_230 %S32_238
     shr %S32_250 %S32_249 14
@@ -833,8 +847,8 @@
     pusharg %S32_251
     bsr njClip
     poparg %U8_252
-    conv $4_narrowed_U8 %U8_252
-    st %A64_243 stride $4_narrowed_U8
+    conv $6_narrowed_U8 %U8_252
+    st %A64_243 stride $6_narrowed_U8
     lea %A64_253 %A64_248 stride
     add %S32_254 %S32_228 %S32_225
     shr %S32_255 %S32_254 14
@@ -842,8 +856,8 @@
     pusharg %S32_256
     bsr njClip
     poparg %U8_257
-    conv $5_narrowed_U8 %U8_257
-    st %A64_248 stride $5_narrowed_U8
+    conv $7_narrowed_U8 %U8_257
+    st %A64_248 stride $7_narrowed_U8
     lea %A64_258 %A64_253 stride
     sub %S32_259 %S32_228 %S32_225
     shr %S32_260 %S32_259 14
@@ -851,8 +865,8 @@
     pusharg %S32_261
     bsr njClip
     poparg %U8_262
-    conv $6_narrowed_U8 %U8_262
-    st %A64_253 stride $6_narrowed_U8
+    conv $8_narrowed_U8 %U8_262
+    st %A64_253 stride $8_narrowed_U8
     lea %A64_263 %A64_258 stride
     sub %S32_264 %S32_230 %S32_238
     shr %S32_265 %S32_264 14
@@ -860,8 +874,8 @@
     pusharg %S32_266
     bsr njClip
     poparg %U8_267
-    conv $7_narrowed_U8 %U8_267
-    st %A64_258 stride $7_narrowed_U8
+    conv $9_narrowed_U8 %U8_267
+    st %A64_258 stride $9_narrowed_U8
     lea %A64_268 %A64_263 stride
     sub %S32_269 %S32_229 %S32_234
     shr %S32_270 %S32_269 14
@@ -869,21 +883,21 @@
     pusharg %S32_271
     bsr njClip
     poparg %U8_272
-    conv $8_narrowed_U8 %U8_272
-    st %A64_263 stride $8_narrowed_U8
+    conv $10_narrowed_U8 %U8_272
+    st %A64_263 stride $10_narrowed_U8
     sub %S32_274 %S32_227 %S32_223
     shr %S32_275 %S32_274 14
     add %S32_276 %S32_275 128
     pusharg %S32_276
     bsr njClip
     poparg %U8_277
-    conv $9_narrowed_U8 %U8_277
-    st %A64_268 stride $9_narrowed_U8
+    conv $11_narrowed_U8 %U8_277
+    st %A64_268 stride $11_narrowed_U8
     ret
 
 .fun __static_1_njShowBits NORMAL [S32] = [S32]
 .reg S32 [%S32_280 %S32_283 %S32_284 %S32_285 %S32_290 %S32_291 %S32_306 %S32_307 %S32_312 %S32_313 %S32_318 %S32_319 %S32_320 %S32_321 %S32_324 %S32_327 %S32_340 %S32_341 %S32_348 %S32_349 %S32_354 %S32_355 %S32_356 %S32_357 %S32_362 %S32_363 %S32_370 %S32_373 %S32_376 %S32_377 %S32_378 %S32_379 %S32_380 %S32_381 bits]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
 .reg U32 [%U8_297 %U8_331]
 .reg A64 [%A64_296 %A64_300 %A64_301 %A64_330 %A64_334 %A64_335]
 .jtb switch_344_tab 256 switch_344_default [0 while_1_cond 217 switch_344_217 255 while_1_cond]
@@ -920,18 +934,20 @@
     st.mem nj 524756 %S32_313
     ld.mem %S32_318 nj 524752
     shl %S32_319 %S32_318 8
-    conv %S32_320 %U8_297
+    conv $2_narrowed_U8 %U8_297
+    conv %S32_320 $2_narrowed_U8
     or %S32_321 %S32_319 %S32_320
     st.mem nj 524752 %S32_321
-    conv %S32_324 %U8_297
+    conv $3_narrowed_U8 %U8_297
+    conv %S32_324 $3_narrowed_U8
     bne %S32_324 255 while_1_cond
 .bbl if_6_true  #  edge_out[if_5_false  if_5_true]  live_out[bits]
     ld.mem %S32_327 nj 16
     beq %S32_327 0 if_5_false
 .bbl if_5_true  #  edge_out[if_5_true_1  switch_344_default]  live_out[%U8_331  bits]
     ld.mem %A64_330 nj 4
-    ld $2_narrowed_U8 %A64_330 0
-    conv %U8_331 $2_narrowed_U8
+    ld $4_narrowed_U8 %A64_330 0
+    conv %U8_331 $4_narrowed_U8
     ld.mem %A64_334 nj 4
     lea %A64_335 %A64_334 1
     st.mem nj 4 %A64_335
@@ -945,7 +961,8 @@
     st.mem nj 16 0:S32
     bra while_1_cond
 .bbl switch_344_default  #  edge_out[if_4_false  if_4_true]  live_out[%U8_331  bits]
-    conv %S32_348 %U8_331
+    conv $5_narrowed_U8 %U8_331
+    conv %S32_348 $5_narrowed_U8
     and %S32_349 %S32_348 248
     beq %S32_349 208 if_4_false
 .bbl if_4_true  #  edge_out[while_1_cond]  live_out[bits]
@@ -954,7 +971,8 @@
 .bbl if_4_false  #  edge_out[while_1_cond]  live_out[bits]
     ld.mem %S32_354 nj 524752
     shl %S32_355 %S32_354 8
-    conv %S32_356 %U8_331
+    conv $6_narrowed_U8 %U8_331
+    conv %S32_356 $6_narrowed_U8
     or %S32_357 %S32_355 %S32_356
     st.mem nj 524752 %S32_357
     ld.mem %S32_362 nj 524756
@@ -1034,29 +1052,33 @@
 .bbl if_1_end
     ret
 
-.fun njDecode16 NORMAL [U16] = [A64]
+.fun njDecode16 NORMAL [U32] = [A64]
 .reg S32 [%S32_423 %S32_424 %S32_427 %S32_428]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8]
-.reg U16 [%U16_429]
-.reg U32 [%U8_422 %U8_426]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8]
+.reg U16 [$5_narrowed_U16]
+.reg U32 [%U16_429 %U8_422 %U8_426]
 .reg A64 [pos]
 .bbl %start
     poparg pos
     ld $1_narrowed_U8 pos 0
     conv %U8_422 $1_narrowed_U8
-    conv %S32_423 %U8_422
+    conv $2_narrowed_U8 %U8_422
+    conv %S32_423 $2_narrowed_U8
     shl %S32_424 %S32_423 8
-    ld $2_narrowed_U8 pos 1
-    conv %U8_426 $2_narrowed_U8
-    conv %S32_427 %U8_426
+    ld $3_narrowed_U8 pos 1
+    conv %U8_426 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_426
+    conv %S32_427 $4_narrowed_U8
     or %S32_428 %S32_424 %S32_427
-    conv %U16_429 %S32_428
+    conv $5_narrowed_U16 %S32_428
+    conv %U16_429 $5_narrowed_U16
     pusharg %U16_429
     ret
 
 .fun __static_3_njDecodeLength NORMAL [] = []
 .reg S32 [%S32_432 %S32_439 %S32_444 %S32_447]
-.reg U16 [%U16_438]
+.reg U16 [$1_narrowed_U16]
+.reg U32 [%U16_438]
 .reg A64 [%A64_437]
 .bbl %start  #  edge_out[if_4_end  while_1]
     ld.mem %S32_432 nj 16
@@ -1069,7 +1091,8 @@
     pusharg %A64_437
     bsr njDecode16
     poparg %U16_438
-    conv %S32_439 %U16_438
+    conv $1_narrowed_U16 %U16_438
+    conv %S32_439 $1_narrowed_U16
     st.mem nj 20 %S32_439
     ld.mem %S32_444 nj 20
     ld.mem %S32_447 nj 16
@@ -1093,9 +1116,9 @@
 
 .fun njDecodeSOF NORMAL [] = []
 .reg S32 [%S32_456 %S32_459 %S32_466 %S32_474 %S32_482 %S32_487 %S32_490 %S32_510 %S32_524 %S32_530 %S32_531 %S32_536 %S32_538 %S32_539 %S32_540 %S32_548 %S32_549 %S32_554 %S32_556 %S32_557 %S32_558 %S32_566 %S32_568 %S32_574 %S32_576 %S32_577 %S32_578 %S32_582 %S32_584 %S32_586 %S32_588 %S32_589 %S32_603 %S32_606 %S32_611 %S32_614 %S32_615 %S32_616 %S32_619 %S32_620 %S32_625 %S32_628 %S32_629 %S32_630 %S32_633 %S32_634 %S32_641 %S32_643 %S32_644 %S32_645 %S32_646 %S32_647 %S32_651 %S32_653 %S32_654 %S32_655 %S32_656 %S32_657 %S32_661 %S32_663 %S32_664 %S32_665 %S32_668 %S32_670 %S32_672 %S32_674 %S32_678 %S32_681 %S32_682 %S32_684 %S32_685 %S32_686 %S32_692 %S32_703 %S32_706 %S32_707 %S32_724 i ssxmax ssymax]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
-.reg U16 [%U16_473 %U16_481]
-.reg U32 [%U32_498 %U32_504 %U32_511 %U32_514 %U32_515 %U32_591 %U32_594 %U32_597 %U32_694 %U32_697 %U32_700 %U32_708 %U32_711 %U32_712 %U8_465 %U8_497 %U8_523 %U8_529 %U8_547 %U8_565]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
+.reg U16 [$13_narrowed_U16 $14_narrowed_U16]
+.reg U32 [%U16_473 %U16_481 %U32_498 %U32_504 %U32_511 %U32_514 %U32_515 %U32_591 %U32_594 %U32_597 %U32_694 %U32_697 %U32_700 %U32_708 %U32_711 %U32_712 %U8_465 %U8_497 %U8_523 %U8_529 %U8_547 %U8_565]
 .reg U64 [%U64_687 %U64_713]
 .reg A64 [%A64_464 %A64_471 %A64_472 %A64_479 %A64_480 %A64_495 %A64_519 %A64_522 %A64_527 %A64_545 %A64_563 %A64_590 %A64_638 %A64_688 %A64_693 %A64_714 %A64_719 c]
 .jtb switch_505_tab 4 while_5 [1 switch_505_end 3 switch_505_end]
@@ -1118,7 +1141,8 @@
     ld.mem %A64_464 nj 4
     ld $1_narrowed_U8 %A64_464 0
     conv %U8_465 $1_narrowed_U8
-    conv %S32_466 %U8_465
+    conv $2_narrowed_U8 %U8_465
+    conv %S32_466 $2_narrowed_U8
     beq %S32_466 8 if_22_end
 .bbl while_3
     st.mem nj 0 2:S32
@@ -1129,14 +1153,16 @@
     pusharg %A64_472
     bsr njDecode16
     poparg %U16_473
-    conv %S32_474 %U16_473
+    conv $13_narrowed_U16 %U16_473
+    conv %S32_474 $13_narrowed_U16
     st.mem nj 28 %S32_474
     ld.mem %A64_479 nj 4
     lea %A64_480 %A64_479 3
     pusharg %A64_480
     bsr njDecode16
     poparg %U16_481
-    conv %S32_482 %U16_481
+    conv $14_narrowed_U16 %U16_481
+    conv %S32_482 $14_narrowed_U16
     st.mem nj 24 %S32_482
     ld.mem %S32_487 nj 24
     beq %S32_487 0 while_4
@@ -1148,9 +1174,10 @@
     ret
 .bbl if_24_end  #  edge_out[if_24_end_1  while_5]  live_out[%U32_504  ssxmax  ssymax]
     ld.mem %A64_495 nj 4
-    ld $2_narrowed_U8 %A64_495 5
-    conv %U8_497 $2_narrowed_U8
-    conv %U32_498 %U8_497
+    ld $3_narrowed_U8 %A64_495 5
+    conv %U8_497 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_497
+    conv %U32_498 $4_narrowed_U8
     st.mem nj 48 %U32_498
     pusharg 6:S32
     bsr __static_2_njSkip
@@ -1177,14 +1204,16 @@
     bra for_15_cond
 .bbl for_15  #  edge_out[if_29_end  while_7]  live_out[c  i  ssxmax  ssymax]
     ld.mem %A64_522 nj 4
-    ld $3_narrowed_U8 %A64_522 0
-    conv %U8_523 $3_narrowed_U8
-    conv %S32_524 %U8_523
+    ld $5_narrowed_U8 %A64_522 0
+    conv %U8_523 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_523
+    conv %S32_524 $6_narrowed_U8
     st c 0 %S32_524
     ld.mem %A64_527 nj 4
-    ld $4_narrowed_U8 %A64_527 1
-    conv %U8_529 $4_narrowed_U8
-    conv %S32_530 %U8_529
+    ld $7_narrowed_U8 %A64_527 1
+    conv %U8_529 $7_narrowed_U8
+    conv $8_narrowed_U8 %U8_529
+    conv %S32_530 $8_narrowed_U8
     shr %S32_531 %S32_530 4
     st c 4 %S32_531
     bne %S32_531 0 if_29_end
@@ -1202,9 +1231,10 @@
     ret
 .bbl if_31_end  #  edge_out[if_33_end  while_9]  live_out[c  i  ssxmax  ssymax]
     ld.mem %A64_545 nj 4
-    ld $5_narrowed_U8 %A64_545 1
-    conv %U8_547 $5_narrowed_U8
-    conv %S32_548 %U8_547
+    ld $9_narrowed_U8 %A64_545 1
+    conv %U8_547 $9_narrowed_U8
+    conv $10_narrowed_U8 %U8_547
+    conv %S32_548 $10_narrowed_U8
     and %S32_549 %S32_548 15
     st c 8 %S32_549
     bne %S32_549 0 if_33_end
@@ -1222,9 +1252,10 @@
     ret
 .bbl if_35_end  #  edge_out[if_37_end  while_11]  live_out[c  i  ssxmax  ssymax]
     ld.mem %A64_563 nj 4
-    ld $6_narrowed_U8 %A64_563 2
-    conv %U8_565 $6_narrowed_U8
-    conv %S32_566 %U8_565
+    ld $11_narrowed_U8 %A64_563 2
+    conv %U8_565 $11_narrowed_U8
+    conv $12_narrowed_U8 %U8_565
+    conv %S32_566 $12_narrowed_U8
     st c 24 %S32_566
     and %S32_568 %S32_566 252
     beq %S32_568 0 if_37_end
@@ -1377,7 +1408,7 @@
 
 .fun njDecodeDHT NORMAL [] = []
 .reg S32 [%S32_727 %S32_732 %S32_733 %S32_736 %S32_739 %S32_740 %S32_741 %S32_748 %S32_750 %S32_754 %S32_755 %S32_757 %S32_759 %S32_762 %S32_765 %S32_768 %S32_769 %S32_770 %S32_781 %S32_782 %S32_783 %S32_784 %S32_789 %S32_792 codelen i j remain spread]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_731 %U8_746 %U8_761 %U8_777 %U8_778]
 .reg A64 [%A64_730 %A64_744 %A64_753 %A64_756 %A64_775 %A64_780 %A64_786 vlc]
 .bbl %start  #  edge_out[while_1]
@@ -1391,7 +1422,8 @@
     ld.mem %A64_730 nj 4
     ld $1_narrowed_U8 %A64_730 0
     conv %U8_731 $1_narrowed_U8
-    conv %S32_732 %U8_731
+    conv $2_narrowed_U8 %U8_731
+    conv %S32_732 $2_narrowed_U8
     and %S32_733 %S32_732 236
     beq %S32_733 0 if_16_end
 .bbl while_2
@@ -1411,11 +1443,11 @@
     bra for_9_cond
 .bbl for_9  #  edge_out[for_9_next]  live_out[%S32_741  codelen]
     ld.mem %A64_744 nj 4
-    ld $2_narrowed_U8 %A64_744 codelen
-    conv %U8_746 $2_narrowed_U8
+    ld $3_narrowed_U8 %A64_744 codelen
+    conv %U8_746 $3_narrowed_U8
     sub %S32_748 codelen 1
-    conv $3_narrowed_U8 %U8_746
-    st.mem __static_4_counts %S32_748 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_746
+    st.mem __static_4_counts %S32_748 $4_narrowed_U8
 .bbl for_9_next  #  edge_out[for_9_cond]  live_out[%S32_741  codelen]
     add %S32_750 codelen 1
     mov codelen %S32_750
@@ -1437,9 +1469,10 @@
     shr %S32_757 spread 1
     mov spread %S32_757
     sub %S32_759 codelen 1
-    ld.mem $4_narrowed_U8 __static_4_counts %S32_759
-    conv %U8_761 $4_narrowed_U8
-    conv %S32_762 %U8_761
+    ld.mem $5_narrowed_U8 __static_4_counts %S32_759
+    conv %U8_761 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_761
+    conv %S32_762 $6_narrowed_U8
     beq %S32_762 0 for_12_next
 .bbl if_20_end  #  edge_out[if_22_end  while_4]  live_out[%S32_757  %S32_762  codelen  remain  spread  vlc]
     ld.mem %S32_765 nj 20
@@ -1461,16 +1494,17 @@
     bra for_11_cond
 .bbl for_11  #  edge_out[for_10_cond]  live_out[%S32_757  %S32_762  %U8_777  codelen  i  j  remain  spread  vlc]
     ld.mem %A64_775 nj 4
-    ld $5_narrowed_U8 %A64_775 i
-    conv %U8_777 $5_narrowed_U8
+    ld $7_narrowed_U8 %A64_775 i
+    conv %U8_777 $7_narrowed_U8
     mov j %S32_757
     bra for_10_cond
 .bbl for_10  #  edge_out[for_10_next]  live_out[%S32_757  %S32_762  %U8_777  codelen  i  j  remain  spread  vlc]
-    conv %U8_778 codelen
-    conv $6_narrowed_U8 %U8_778
-    st vlc 0 $6_narrowed_U8
-    conv $7_narrowed_U8 %U8_777
-    st vlc 1 $7_narrowed_U8
+    conv $8_narrowed_U8 codelen
+    conv %U8_778 $8_narrowed_U8
+    conv $9_narrowed_U8 %U8_778
+    st vlc 0 $9_narrowed_U8
+    conv $10_narrowed_U8 %U8_777
+    st vlc 1 $10_narrowed_U8
     lea %A64_780 vlc 2
     mov vlc %A64_780
 .bbl for_10_next  #  edge_out[for_10_cond]  live_out[%S32_757  %S32_762  %U8_777  codelen  i  j  remain  spread  vlc]
@@ -1515,7 +1549,7 @@
 
 .fun njDecodeDQT NORMAL [] = []
 .reg S32 [%S32_797 %S32_802 %S32_803 %S32_808 %S32_809 %S32_810 %S32_815 %S32_820 %S32_824 %S32_828 %S32_831 i]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8]
 .reg U32 [%U8_801 %U8_822]
 .reg A64 [%A64_800 %A64_814 %A64_816 %A64_819]
 .bbl %start  #  edge_out[while_1]
@@ -1529,7 +1563,8 @@
     ld.mem %A64_800 nj 4
     ld $1_narrowed_U8 %A64_800 0
     conv %U8_801 $1_narrowed_U8
-    conv %S32_802 %U8_801
+    conv $2_narrowed_U8 %U8_801
+    conv %S32_802 $2_narrowed_U8
     and %S32_803 %S32_802 252
     beq %S32_803 0 if_9_end
 .bbl while_2
@@ -1548,10 +1583,10 @@
 .bbl for_5  #  edge_out[for_5_next]  live_out[%A64_816  i]
     ld.mem %A64_819 nj 4
     add %S32_820 i 1
-    ld $2_narrowed_U8 %A64_819 %S32_820
-    conv %U8_822 $2_narrowed_U8
-    conv $3_narrowed_U8 %U8_822
-    st %A64_816 i $3_narrowed_U8
+    ld $3_narrowed_U8 %A64_819 %S32_820
+    conv %U8_822 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_822
+    st %A64_816 i $4_narrowed_U8
 .bbl for_5_next  #  edge_out[for_5_cond]  live_out[%A64_816  i]
     add %S32_824 i 1
     mov i %S32_824
@@ -1574,7 +1609,8 @@
 
 .fun njDecodeDRI NORMAL [] = []
 .reg S32 [%S32_836 %S32_839 %S32_846 %S32_851]
-.reg U16 [%U16_845]
+.reg U16 [$1_narrowed_U16]
+.reg U32 [%U16_845]
 .reg A64 [%A64_844]
 .bbl %start  #  edge_out[while_1]
     bsr __static_3_njDecodeLength
@@ -1594,7 +1630,8 @@
     pusharg %A64_844
     bsr njDecode16
     poparg %U16_845
-    conv %S32_846 %U16_845
+    conv $1_narrowed_U16 %U16_845
+    conv %S32_846 $1_narrowed_U16
     st.mem nj 525016 %S32_846
     ld.mem %S32_851 nj 20
     pusharg %S32_851
@@ -1603,7 +1640,7 @@
 
 .fun njGetVLC NORMAL [S32] = [A64 A64]
 .reg S32 [%S32_852 %S32_854 %S32_858 %S32_861 %S32_865 %S32_867 %S32_868 %S32_869 %S32_870 %S32_871 %S32_872 %S32_873 value]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
 .reg U32 [%U8_857 %U8_864 %U8_866]
 .reg A64 [%A64_862 code vlc]
 .bbl %start  #  edge_out[if_1_end  if_1_true]  live_out[%S32_852  %S32_858  code  vlc]
@@ -1615,7 +1652,8 @@
     shl %S32_854 %S32_852 1
     ld $1_narrowed_U8 vlc %S32_854
     conv %U8_857 $1_narrowed_U8
-    conv %S32_858 %U8_857
+    conv $2_narrowed_U8 %U8_857
+    conv %S32_858 $2_narrowed_U8
     bne %S32_858 0 if_1_end
 .bbl if_1_true
     st.mem nj 0 5:S32
@@ -1626,14 +1664,16 @@
     bsr njSkipBits
     shl %S32_861 %S32_852 1
     lea %A64_862 vlc %S32_861
-    ld $2_narrowed_U8 %A64_862 1
-    conv %U8_864 $2_narrowed_U8
-    conv %S32_865 %U8_864
+    ld $3_narrowed_U8 %A64_862 1
+    conv %U8_864 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_864
+    conv %S32_865 $4_narrowed_U8
     beq code 0 if_2_end
 .bbl if_2_true  #  edge_out[if_2_end]  live_out[%S32_865]
-    conv %U8_866 %S32_865
-    conv $3_narrowed_U8 %U8_866
-    st code 0 $3_narrowed_U8
+    conv $5_narrowed_U8 %S32_865
+    conv %U8_866 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_866
+    st code 0 $6_narrowed_U8
 .bbl if_2_end  #  edge_out[if_3_end  if_3_true]  live_out[%S32_867]
     and %S32_867 %S32_865 15
     bne %S32_867 0 if_3_end
@@ -1658,9 +1698,9 @@
     ret
 
 .fun njDecodeBlock NORMAL [] = [A64 A64]
-.reg S8 [$7_narrowed_S8]
+.reg S8 [$13_narrowed_S8 $14_narrowed_S8]
 .reg S32 [%S32_883 %S32_887 %S32_888 %S32_889 %S32_891 %S32_893 %S32_896 %S32_900 %S32_901 %S32_904 %S32_905 %S32_911 %S32_912 %S32_913 %S32_916 %S32_919 %S32_922 %S32_923 %S32_926 %S32_931 %S32_932 %S32_933 %S32_934 %S32_940 %S32_941 %S32_942 %S32_945 %S32_946 %S32_952 %S32_953 %S32_957 %S32_959 %S32_962 %S32_966 %S32_967 %S8_951 coef]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_903 %U8_918 %U8_921 %U8_925 %U8_930 %U8_944]
 .reg A64 [%A64_877 %A64_885 %A64_890 %A64_898 %A64_909 %A64_914 %A64_915 %A64_938 %A64_948 %A64_956 %A64_958 %A64_961 %A64_963 %A64_964 c out]
 .stk code 1 1
@@ -1692,7 +1732,8 @@
     shl %S32_901 %S32_900 6
     ld $1_narrowed_U8 %A64_898 %S32_901
     conv %U8_903 $1_narrowed_U8
-    conv %S32_904 %U8_903
+    conv $2_narrowed_U8 %U8_903
+    conv %S32_904 $2_narrowed_U8
     mul %S32_905 %S32_896 %S32_904
     st.mem nj 524760 %S32_905
 .bbl while_3  #  edge_out[if_6_end  while_3_exit]  live_out[%S32_916  c  coef  out]
@@ -1706,28 +1747,32 @@
     pusharg %A64_914
     bsr njGetVLC
     poparg %S32_916
-    ld.stk $2_narrowed_U8 code 0
-    conv %U8_918 $2_narrowed_U8
-    conv %S32_919 %U8_918
+    ld.stk $3_narrowed_U8 code 0
+    conv %U8_918 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_918
+    conv %S32_919 $4_narrowed_U8
     beq %S32_919 0 while_3_exit
 .bbl if_6_end  #  edge_out[branch_14  if_8_end]  live_out[%S32_916  c  coef  out]
-    ld.stk $3_narrowed_U8 code 0
-    conv %U8_921 $3_narrowed_U8
-    conv %S32_922 %U8_921
+    ld.stk $5_narrowed_U8 code 0
+    conv %U8_921 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_921
+    conv %S32_922 $6_narrowed_U8
     and %S32_923 %S32_922 15
     bne %S32_923 0 if_8_end
 .bbl branch_14  #  edge_out[if_8_end  while_1]  live_out[%S32_916  c  coef  out]
-    ld.stk $4_narrowed_U8 code 0
-    conv %U8_925 $4_narrowed_U8
-    conv %S32_926 %U8_925
+    ld.stk $7_narrowed_U8 code 0
+    conv %U8_925 $7_narrowed_U8
+    conv $8_narrowed_U8 %U8_925
+    conv %S32_926 $8_narrowed_U8
     beq %S32_926 240 if_8_end
 .bbl while_1
     st.mem nj 0 5:S32
     ret
 .bbl if_8_end  #  edge_out[if_10_end  while_2]  live_out[%S32_916  %S32_934  c  coef  out]
-    ld.stk $5_narrowed_U8 code 0
-    conv %U8_930 $5_narrowed_U8
-    conv %S32_931 %U8_930
+    ld.stk $9_narrowed_U8 code 0
+    conv %U8_930 $9_narrowed_U8
+    conv $10_narrowed_U8 %U8_930
+    conv %S32_931 $10_narrowed_U8
     shr %S32_932 %S32_931 4
     add %S32_933 %S32_932 1
     add %S32_934 coef %S32_933
@@ -1741,14 +1786,16 @@
     ld %S32_940 c 24
     shl %S32_941 %S32_940 6
     add %S32_942 %S32_934 %S32_941
-    ld $6_narrowed_U8 %A64_938 %S32_942
-    conv %U8_944 $6_narrowed_U8
-    conv %S32_945 %U8_944
+    ld $11_narrowed_U8 %A64_938 %S32_942
+    conv %U8_944 $11_narrowed_U8
+    conv $12_narrowed_U8 %U8_944
+    conv %S32_945 $12_narrowed_U8
     mul %S32_946 %S32_916 %S32_945
     lea.mem %A64_948 nj 524760
-    ld.mem $7_narrowed_S8 njZZ %S32_934
-    conv %S8_951 $7_narrowed_S8
-    conv %S32_952 %S8_951
+    ld.mem $13_narrowed_S8 njZZ %S32_934
+    conv %S8_951 $13_narrowed_S8
+    conv $14_narrowed_S8 %S8_951
+    conv %S32_952 $14_narrowed_S8
     shl %S32_953 %S32_952 2
     st %A64_948 %S32_953 %S32_946
 .bbl while_3_cond  #  edge_out[while_3  while_3_exit]  live_out[c  coef  out]
@@ -1790,7 +1837,7 @@
 
 .fun njDecodeScan NORMAL [] = []
 .reg S32 [%S32_1002 %S32_1004 %S32_1012 %S32_1013 %S32_1021 %S32_1022 %S32_1029 %S32_1030 %S32_1031 %S32_1034 %S32_1044 %S32_1050 %S32_1056 %S32_1061 %S32_1067 %S32_1068 %S32_1069 %S32_1071 %S32_1072 %S32_1074 %S32_1075 %S32_1076 %S32_1077 %S32_1078 %S32_1082 %S32_1083 %S32_1085 %S32_1086 %S32_1088 %S32_1089 %S32_1095 %S32_1098 %S32_1099 %S32_1102 %S32_1105 %S32_1106 %S32_1107 %S32_1109 %S32_1110 %S32_1113 %S32_1114 %S32_1117 %S32_1120 %S32_1124 %S32_970 %S32_973 %S32_976 i mbx mby nextrst rstcount sbx sby]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $13_narrowed_U8 $14_narrowed_U8 $15_narrowed_U8 $16_narrowed_U8 $1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U32_1036 %U32_1039 %U32_1091 %U32_1094 %U32_977 %U32_980 %U32_981 %U32_982 %U32_989 %U32_992 %U8_1001 %U8_1011 %U8_1020 %U8_1028 %U8_1043 %U8_1049 %U8_1055 %U8_988]
 .reg A64 [%A64_1000 %A64_1009 %A64_1018 %A64_1026 %A64_1035 %A64_1042 %A64_1047 %A64_1053 %A64_1063 %A64_1065 %A64_1079 %A64_1090 %A64_1119 %A64_1121 %A64_987 %A64_997 c]
 .bbl %start  #  edge_out[while_1]  live_out[nextrst  rstcount]
@@ -1817,7 +1864,8 @@
     ld.mem %A64_987 nj 4
     ld $1_narrowed_U8 %A64_987 0
     conv %U8_988 $1_narrowed_U8
-    conv %U32_989 %U8_988
+    conv $2_narrowed_U8 %U8_988
+    conv %U32_989 $2_narrowed_U8
     ld.mem %U32_992 nj 48
     beq %U32_989 %U32_992 if_20_end
 .bbl while_3
@@ -1832,9 +1880,10 @@
     bra for_9_cond
 .bbl for_9  #  edge_out[if_22_end  while_4]  live_out[c  i  nextrst  rstcount]
     ld.mem %A64_1000 nj 4
-    ld $2_narrowed_U8 %A64_1000 0
-    conv %U8_1001 $2_narrowed_U8
-    conv %S32_1002 %U8_1001
+    ld $3_narrowed_U8 %A64_1000 0
+    conv %U8_1001 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_1001
+    conv %S32_1002 $4_narrowed_U8
     ld %S32_1004 c 0
     beq %S32_1002 %S32_1004 if_22_end
 .bbl while_4
@@ -1842,9 +1891,10 @@
     ret
 .bbl if_22_end  #  edge_out[if_24_end  while_5]  live_out[c  i  nextrst  rstcount]
     ld.mem %A64_1009 nj 4
-    ld $3_narrowed_U8 %A64_1009 1
-    conv %U8_1011 $3_narrowed_U8
-    conv %S32_1012 %U8_1011
+    ld $5_narrowed_U8 %A64_1009 1
+    conv %U8_1011 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_1011
+    conv %S32_1012 $6_narrowed_U8
     and %S32_1013 %S32_1012 238
     beq %S32_1013 0 if_24_end
 .bbl while_5
@@ -1852,15 +1902,17 @@
     ret
 .bbl if_24_end  #  edge_out[for_9_next]  live_out[c  i  nextrst  rstcount]
     ld.mem %A64_1018 nj 4
-    ld $4_narrowed_U8 %A64_1018 1
-    conv %U8_1020 $4_narrowed_U8
-    conv %S32_1021 %U8_1020
+    ld $7_narrowed_U8 %A64_1018 1
+    conv %U8_1020 $7_narrowed_U8
+    conv $8_narrowed_U8 %U8_1020
+    conv %S32_1021 $8_narrowed_U8
     shr %S32_1022 %S32_1021 4
     st c 32 %S32_1022
     ld.mem %A64_1026 nj 4
-    ld $5_narrowed_U8 %A64_1026 1
-    conv %U8_1028 $5_narrowed_U8
-    conv %S32_1029 %U8_1028
+    ld $9_narrowed_U8 %A64_1026 1
+    conv %U8_1028 $9_narrowed_U8
+    conv $10_narrowed_U8 %U8_1028
+    conv %S32_1029 $10_narrowed_U8
     and %S32_1030 %S32_1029 1
     or %S32_1031 %S32_1030 2
     st c 28 %S32_1031
@@ -1877,21 +1929,24 @@
     blt %U32_1036 %U32_1039 for_9
 .bbl for_9_exit  #  edge_out[branch_40  while_6]  live_out[nextrst  rstcount]
     ld.mem %A64_1042 nj 4
-    ld $6_narrowed_U8 %A64_1042 0
-    conv %U8_1043 $6_narrowed_U8
-    conv %S32_1044 %U8_1043
+    ld $11_narrowed_U8 %A64_1042 0
+    conv %U8_1043 $11_narrowed_U8
+    conv $12_narrowed_U8 %U8_1043
+    conv %S32_1044 $12_narrowed_U8
     bne %S32_1044 0 while_6
 .bbl branch_40  #  edge_out[branch_39  while_6]  live_out[nextrst  rstcount]
     ld.mem %A64_1047 nj 4
-    ld $7_narrowed_U8 %A64_1047 1
-    conv %U8_1049 $7_narrowed_U8
-    conv %S32_1050 %U8_1049
+    ld $13_narrowed_U8 %A64_1047 1
+    conv %U8_1049 $13_narrowed_U8
+    conv $14_narrowed_U8 %U8_1049
+    conv %S32_1050 $14_narrowed_U8
     bne %S32_1050 63 while_6
 .bbl branch_39  #  edge_out[if_27_end  while_6]  live_out[nextrst  rstcount]
     ld.mem %A64_1053 nj 4
-    ld $8_narrowed_U8 %A64_1053 2
-    conv %U8_1055 $8_narrowed_U8
-    conv %S32_1056 %U8_1055
+    ld $15_narrowed_U8 %A64_1053 2
+    conv %U8_1055 $15_narrowed_U8
+    conv $16_narrowed_U8 %U8_1055
+    conv %S32_1056 $16_narrowed_U8
     beq %S32_1056 0 if_27_end
 .bbl while_6
     st.mem nj 0 2:S32
@@ -2012,7 +2067,7 @@
 
 .fun njUpsampleH NORMAL [] = [A64]
 .reg S32 [%S32_1128 %S32_1129 %S32_1131 %S32_1133 %S32_1134 %S32_1135 %S32_1143 %S32_1145 %S32_1146 %S32_1149 %S32_1150 %S32_1151 %S32_1152 %S32_1153 %S32_1156 %S32_1157 %S32_1160 %S32_1161 %S32_1162 %S32_1165 %S32_1166 %S32_1167 %S32_1168 %S32_1169 %S32_1173 %S32_1174 %S32_1177 %S32_1178 %S32_1179 %S32_1182 %S32_1183 %S32_1184 %S32_1185 %S32_1186 %S32_1191 %S32_1192 %S32_1193 %S32_1196 %S32_1197 %S32_1198 %S32_1199 %S32_1202 %S32_1203 %S32_1204 %S32_1205 %S32_1208 %S32_1209 %S32_1210 %S32_1211 %S32_1212 %S32_1214 %S32_1215 %S32_1219 %S32_1220 %S32_1221 %S32_1224 %S32_1225 %S32_1226 %S32_1227 %S32_1230 %S32_1231 %S32_1232 %S32_1233 %S32_1236 %S32_1237 %S32_1238 %S32_1239 %S32_1240 %S32_1242 %S32_1243 %S32_1245 %S32_1247 %S32_1250 %S32_1251 %S32_1255 %S32_1256 %S32_1259 %S32_1260 %S32_1261 %S32_1264 %S32_1265 %S32_1266 %S32_1267 %S32_1268 %S32_1273 %S32_1274 %S32_1277 %S32_1278 %S32_1279 %S32_1282 %S32_1283 %S32_1284 %S32_1285 %S32_1286 %S32_1291 %S32_1292 %S32_1295 %S32_1296 %S32_1297 %S32_1298 %S32_1299 %S32_1302 %S32_1304 %S32_1305 %S32_1308 x y]
-.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $13_narrowed_U8 $14_narrowed_U8 $15_narrowed_U8 $16_narrowed_U8 $17_narrowed_U8 $18_narrowed_U8 $19_narrowed_U8 $1_narrowed_U8 $20_narrowed_U8 $21_narrowed_U8 $22_narrowed_U8 $23_narrowed_U8 $24_narrowed_U8 $25_narrowed_U8 $26_narrowed_U8 $27_narrowed_U8 $28_narrowed_U8 $29_narrowed_U8 $2_narrowed_U8 $30_narrowed_U8 $31_narrowed_U8 $32_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $13_narrowed_U8 $14_narrowed_U8 $15_narrowed_U8 $16_narrowed_U8 $17_narrowed_U8 $18_narrowed_U8 $19_narrowed_U8 $1_narrowed_U8 $20_narrowed_U8 $21_narrowed_U8 $22_narrowed_U8 $23_narrowed_U8 $24_narrowed_U8 $25_narrowed_U8 $26_narrowed_U8 $27_narrowed_U8 $28_narrowed_U8 $29_narrowed_U8 $2_narrowed_U8 $30_narrowed_U8 $31_narrowed_U8 $32_narrowed_U8 $33_narrowed_U8 $34_narrowed_U8 $35_narrowed_U8 $36_narrowed_U8 $37_narrowed_U8 $38_narrowed_U8 $39_narrowed_U8 $3_narrowed_U8 $40_narrowed_U8 $41_narrowed_U8 $42_narrowed_U8 $43_narrowed_U8 $44_narrowed_U8 $45_narrowed_U8 $46_narrowed_U8 $47_narrowed_U8 $48_narrowed_U8 $49_narrowed_U8 $4_narrowed_U8 $50_narrowed_U8 $51_narrowed_U8 $52_narrowed_U8 $53_narrowed_U8 $54_narrowed_U8 $55_narrowed_U8 $56_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_1144 %U8_1148 %U8_1154 %U8_1155 %U8_1159 %U8_1164 %U8_1170 %U8_1172 %U8_1176 %U8_1181 %U8_1187 %U8_1190 %U8_1195 %U8_1201 %U8_1207 %U8_1213 %U8_1218 %U8_1223 %U8_1229 %U8_1235 %U8_1241 %U8_1254 %U8_1258 %U8_1263 %U8_1269 %U8_1272 %U8_1276 %U8_1281 %U8_1287 %U8_1290 %U8_1294 %U8_1300]
 .reg U64 [%U64_1136]
 .reg A64 [%A64_1137 %A64_1141 %A64_1248 %A64_1252 %A64_1311 c lin lout]
@@ -2042,11 +2097,13 @@
 .bbl for_3  #  edge_out[for_2_cond]  live_out[%A64_1137  %S32_1129  c  lin  lout  x  y]
     ld $1_narrowed_U8 lin 0
     conv %U8_1144 $1_narrowed_U8
-    conv %S32_1145 %U8_1144
+    conv $2_narrowed_U8 %U8_1144
+    conv %S32_1145 $2_narrowed_U8
     mul %S32_1146 %S32_1145 139
-    ld $2_narrowed_U8 lin 1
-    conv %U8_1148 $2_narrowed_U8
-    conv %S32_1149 %U8_1148
+    ld $3_narrowed_U8 lin 1
+    conv %U8_1148 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_1148
+    conv %S32_1149 $4_narrowed_U8
     mul %S32_1150 %S32_1149 -11
     add %S32_1151 %S32_1146 %S32_1150
     add %S32_1152 %S32_1151 64
@@ -2054,20 +2111,23 @@
     pusharg %S32_1153
     bsr njClip
     poparg %U8_1154
-    conv $3_narrowed_U8 %U8_1154
-    st lout 0 $3_narrowed_U8
-    ld $4_narrowed_U8 lin 0
-    conv %U8_1155 $4_narrowed_U8
-    conv %S32_1156 %U8_1155
+    conv $5_narrowed_U8 %U8_1154
+    st lout 0 $5_narrowed_U8
+    ld $6_narrowed_U8 lin 0
+    conv %U8_1155 $6_narrowed_U8
+    conv $7_narrowed_U8 %U8_1155
+    conv %S32_1156 $7_narrowed_U8
     mul %S32_1157 %S32_1156 104
-    ld $5_narrowed_U8 lin 1
-    conv %U8_1159 $5_narrowed_U8
-    conv %S32_1160 %U8_1159
+    ld $8_narrowed_U8 lin 1
+    conv %U8_1159 $8_narrowed_U8
+    conv $9_narrowed_U8 %U8_1159
+    conv %S32_1160 $9_narrowed_U8
     mul %S32_1161 %S32_1160 27
     add %S32_1162 %S32_1157 %S32_1161
-    ld $6_narrowed_U8 lin 2
-    conv %U8_1164 $6_narrowed_U8
-    conv %S32_1165 %U8_1164
+    ld $10_narrowed_U8 lin 2
+    conv %U8_1164 $10_narrowed_U8
+    conv $11_narrowed_U8 %U8_1164
+    conv %S32_1165 $11_narrowed_U8
     mul %S32_1166 %S32_1165 -3
     add %S32_1167 %S32_1162 %S32_1166
     add %S32_1168 %S32_1167 64
@@ -2075,20 +2135,23 @@
     pusharg %S32_1169
     bsr njClip
     poparg %U8_1170
-    conv $7_narrowed_U8 %U8_1170
-    st lout 1 $7_narrowed_U8
-    ld $8_narrowed_U8 lin 0
-    conv %U8_1172 $8_narrowed_U8
-    conv %S32_1173 %U8_1172
+    conv $12_narrowed_U8 %U8_1170
+    st lout 1 $12_narrowed_U8
+    ld $13_narrowed_U8 lin 0
+    conv %U8_1172 $13_narrowed_U8
+    conv $14_narrowed_U8 %U8_1172
+    conv %S32_1173 $14_narrowed_U8
     mul %S32_1174 %S32_1173 28
-    ld $9_narrowed_U8 lin 1
-    conv %U8_1176 $9_narrowed_U8
-    conv %S32_1177 %U8_1176
+    ld $15_narrowed_U8 lin 1
+    conv %U8_1176 $15_narrowed_U8
+    conv $16_narrowed_U8 %U8_1176
+    conv %S32_1177 $16_narrowed_U8
     mul %S32_1178 %S32_1177 109
     add %S32_1179 %S32_1174 %S32_1178
-    ld $10_narrowed_U8 lin 2
-    conv %U8_1181 $10_narrowed_U8
-    conv %S32_1182 %U8_1181
+    ld $17_narrowed_U8 lin 2
+    conv %U8_1181 $17_narrowed_U8
+    conv $18_narrowed_U8 %U8_1181
+    conv %S32_1182 $18_narrowed_U8
     mul %S32_1183 %S32_1182 -9
     add %S32_1184 %S32_1179 %S32_1183
     add %S32_1185 %S32_1184 64
@@ -2096,31 +2159,35 @@
     pusharg %S32_1186
     bsr njClip
     poparg %U8_1187
-    conv $11_narrowed_U8 %U8_1187
-    st lout 2 $11_narrowed_U8
+    conv $19_narrowed_U8 %U8_1187
+    st lout 2 $19_narrowed_U8
     mov x 0
     bra for_2_cond
 .bbl for_2  #  edge_out[for_2_next]  live_out[%A64_1137  %S32_1129  c  lin  lout  x  y]
-    ld $12_narrowed_U8 lin x
-    conv %U8_1190 $12_narrowed_U8
-    conv %S32_1191 %U8_1190
+    ld $20_narrowed_U8 lin x
+    conv %U8_1190 $20_narrowed_U8
+    conv $21_narrowed_U8 %U8_1190
+    conv %S32_1191 $21_narrowed_U8
     mul %S32_1192 %S32_1191 -9
     add %S32_1193 x 1
-    ld $13_narrowed_U8 lin %S32_1193
-    conv %U8_1195 $13_narrowed_U8
-    conv %S32_1196 %U8_1195
+    ld $22_narrowed_U8 lin %S32_1193
+    conv %U8_1195 $22_narrowed_U8
+    conv $23_narrowed_U8 %U8_1195
+    conv %S32_1196 $23_narrowed_U8
     mul %S32_1197 %S32_1196 111
     add %S32_1198 %S32_1192 %S32_1197
     add %S32_1199 x 2
-    ld $14_narrowed_U8 lin %S32_1199
-    conv %U8_1201 $14_narrowed_U8
-    conv %S32_1202 %U8_1201
+    ld $24_narrowed_U8 lin %S32_1199
+    conv %U8_1201 $24_narrowed_U8
+    conv $25_narrowed_U8 %U8_1201
+    conv %S32_1202 $25_narrowed_U8
     mul %S32_1203 %S32_1202 29
     add %S32_1204 %S32_1198 %S32_1203
     add %S32_1205 x 3
-    ld $15_narrowed_U8 lin %S32_1205
-    conv %U8_1207 $15_narrowed_U8
-    conv %S32_1208 %U8_1207
+    ld $26_narrowed_U8 lin %S32_1205
+    conv %U8_1207 $26_narrowed_U8
+    conv $27_narrowed_U8 %U8_1207
+    conv %S32_1208 $27_narrowed_U8
     mul %S32_1209 %S32_1208 -3
     add %S32_1210 %S32_1204 %S32_1209
     add %S32_1211 %S32_1210 64
@@ -2130,28 +2197,32 @@
     poparg %U8_1213
     shl %S32_1214 x 1
     add %S32_1215 %S32_1214 3
-    conv $16_narrowed_U8 %U8_1213
-    st lout %S32_1215 $16_narrowed_U8
-    ld $17_narrowed_U8 lin x
-    conv %U8_1218 $17_narrowed_U8
-    conv %S32_1219 %U8_1218
+    conv $28_narrowed_U8 %U8_1213
+    st lout %S32_1215 $28_narrowed_U8
+    ld $29_narrowed_U8 lin x
+    conv %U8_1218 $29_narrowed_U8
+    conv $30_narrowed_U8 %U8_1218
+    conv %S32_1219 $30_narrowed_U8
     mul %S32_1220 %S32_1219 -3
     add %S32_1221 x 1
-    ld $18_narrowed_U8 lin %S32_1221
-    conv %U8_1223 $18_narrowed_U8
-    conv %S32_1224 %U8_1223
+    ld $31_narrowed_U8 lin %S32_1221
+    conv %U8_1223 $31_narrowed_U8
+    conv $32_narrowed_U8 %U8_1223
+    conv %S32_1224 $32_narrowed_U8
     mul %S32_1225 %S32_1224 29
     add %S32_1226 %S32_1220 %S32_1225
     add %S32_1227 x 2
-    ld $19_narrowed_U8 lin %S32_1227
-    conv %U8_1229 $19_narrowed_U8
-    conv %S32_1230 %U8_1229
+    ld $33_narrowed_U8 lin %S32_1227
+    conv %U8_1229 $33_narrowed_U8
+    conv $34_narrowed_U8 %U8_1229
+    conv %S32_1230 $34_narrowed_U8
     mul %S32_1231 %S32_1230 111
     add %S32_1232 %S32_1226 %S32_1231
     add %S32_1233 x 3
-    ld $20_narrowed_U8 lin %S32_1233
-    conv %U8_1235 $20_narrowed_U8
-    conv %S32_1236 %U8_1235
+    ld $35_narrowed_U8 lin %S32_1233
+    conv %U8_1235 $35_narrowed_U8
+    conv $36_narrowed_U8 %U8_1235
+    conv %S32_1236 $36_narrowed_U8
     mul %S32_1237 %S32_1236 -9
     add %S32_1238 %S32_1232 %S32_1237
     add %S32_1239 %S32_1238 64
@@ -2161,8 +2232,8 @@
     poparg %U8_1241
     shl %S32_1242 x 1
     add %S32_1243 %S32_1242 4
-    conv $21_narrowed_U8 %U8_1241
-    st lout %S32_1243 $21_narrowed_U8
+    conv $37_narrowed_U8 %U8_1241
+    st lout %S32_1243 $37_narrowed_U8
 .bbl for_2_next  #  edge_out[for_2_cond]  live_out[%A64_1137  %S32_1129  c  lin  lout  x  y]
     add %S32_1245 x 1
     mov x %S32_1245
@@ -2176,18 +2247,21 @@
     shl %S32_1251 %S32_1250 1
     lea %A64_1252 lout %S32_1251
     mov lout %A64_1252
-    ld $22_narrowed_U8 %A64_1248 -1
-    conv %U8_1254 $22_narrowed_U8
-    conv %S32_1255 %U8_1254
+    ld $38_narrowed_U8 %A64_1248 -1
+    conv %U8_1254 $38_narrowed_U8
+    conv $39_narrowed_U8 %U8_1254
+    conv %S32_1255 $39_narrowed_U8
     mul %S32_1256 %S32_1255 28
-    ld $23_narrowed_U8 %A64_1248 -2
-    conv %U8_1258 $23_narrowed_U8
-    conv %S32_1259 %U8_1258
+    ld $40_narrowed_U8 %A64_1248 -2
+    conv %U8_1258 $40_narrowed_U8
+    conv $41_narrowed_U8 %U8_1258
+    conv %S32_1259 $41_narrowed_U8
     mul %S32_1260 %S32_1259 109
     add %S32_1261 %S32_1256 %S32_1260
-    ld $24_narrowed_U8 %A64_1248 -3
-    conv %U8_1263 $24_narrowed_U8
-    conv %S32_1264 %U8_1263
+    ld $42_narrowed_U8 %A64_1248 -3
+    conv %U8_1263 $42_narrowed_U8
+    conv $43_narrowed_U8 %U8_1263
+    conv %S32_1264 $43_narrowed_U8
     mul %S32_1265 %S32_1264 -9
     add %S32_1266 %S32_1261 %S32_1265
     add %S32_1267 %S32_1266 64
@@ -2195,20 +2269,23 @@
     pusharg %S32_1268
     bsr njClip
     poparg %U8_1269
-    conv $25_narrowed_U8 %U8_1269
-    st %A64_1252 -3 $25_narrowed_U8
-    ld $26_narrowed_U8 %A64_1248 -1
-    conv %U8_1272 $26_narrowed_U8
-    conv %S32_1273 %U8_1272
+    conv $44_narrowed_U8 %U8_1269
+    st %A64_1252 -3 $44_narrowed_U8
+    ld $45_narrowed_U8 %A64_1248 -1
+    conv %U8_1272 $45_narrowed_U8
+    conv $46_narrowed_U8 %U8_1272
+    conv %S32_1273 $46_narrowed_U8
     mul %S32_1274 %S32_1273 104
-    ld $27_narrowed_U8 %A64_1248 -2
-    conv %U8_1276 $27_narrowed_U8
-    conv %S32_1277 %U8_1276
+    ld $47_narrowed_U8 %A64_1248 -2
+    conv %U8_1276 $47_narrowed_U8
+    conv $48_narrowed_U8 %U8_1276
+    conv %S32_1277 $48_narrowed_U8
     mul %S32_1278 %S32_1277 27
     add %S32_1279 %S32_1274 %S32_1278
-    ld $28_narrowed_U8 %A64_1248 -3
-    conv %U8_1281 $28_narrowed_U8
-    conv %S32_1282 %U8_1281
+    ld $49_narrowed_U8 %A64_1248 -3
+    conv %U8_1281 $49_narrowed_U8
+    conv $50_narrowed_U8 %U8_1281
+    conv %S32_1282 $50_narrowed_U8
     mul %S32_1283 %S32_1282 -3
     add %S32_1284 %S32_1279 %S32_1283
     add %S32_1285 %S32_1284 64
@@ -2216,15 +2293,17 @@
     pusharg %S32_1286
     bsr njClip
     poparg %U8_1287
-    conv $29_narrowed_U8 %U8_1287
-    st %A64_1252 -2 $29_narrowed_U8
-    ld $30_narrowed_U8 %A64_1248 -1
-    conv %U8_1290 $30_narrowed_U8
-    conv %S32_1291 %U8_1290
+    conv $51_narrowed_U8 %U8_1287
+    st %A64_1252 -2 $51_narrowed_U8
+    ld $52_narrowed_U8 %A64_1248 -1
+    conv %U8_1290 $52_narrowed_U8
+    conv $53_narrowed_U8 %U8_1290
+    conv %S32_1291 $53_narrowed_U8
     mul %S32_1292 %S32_1291 139
-    ld $31_narrowed_U8 %A64_1248 -2
-    conv %U8_1294 $31_narrowed_U8
-    conv %S32_1295 %U8_1294
+    ld $54_narrowed_U8 %A64_1248 -2
+    conv %U8_1294 $54_narrowed_U8
+    conv $55_narrowed_U8 %U8_1294
+    conv %S32_1295 $55_narrowed_U8
     mul %S32_1296 %S32_1295 -11
     add %S32_1297 %S32_1292 %S32_1296
     add %S32_1298 %S32_1297 64
@@ -2232,8 +2311,8 @@
     pusharg %S32_1299
     bsr njClip
     poparg %U8_1300
-    conv $32_narrowed_U8 %U8_1300
-    st %A64_1252 -1 $32_narrowed_U8
+    conv $56_narrowed_U8 %U8_1300
+    st %A64_1252 -1 $56_narrowed_U8
 .bbl for_3_next  #  edge_out[for_3_cond]  live_out[%A64_1137  %S32_1129  c  lin  lout  y]
     sub %S32_1302 y 1
     mov y %S32_1302
@@ -2253,7 +2332,7 @@
 
 .fun njUpsampleV NORMAL [] = [A64]
 .reg S32 [%S32_1314 %S32_1316 %S32_1317 %S32_1319 %S32_1321 %S32_1322 %S32_1323 %S32_1333 %S32_1334 %S32_1337 %S32_1338 %S32_1339 %S32_1340 %S32_1341 %S32_1345 %S32_1346 %S32_1349 %S32_1350 %S32_1351 %S32_1354 %S32_1355 %S32_1356 %S32_1357 %S32_1358 %S32_1362 %S32_1363 %S32_1366 %S32_1367 %S32_1368 %S32_1371 %S32_1372 %S32_1373 %S32_1374 %S32_1375 %S32_1380 %S32_1381 %S32_1382 %S32_1385 %S32_1386 %S32_1388 %S32_1389 %S32_1390 %S32_1393 %S32_1394 %S32_1395 %S32_1398 %S32_1399 %S32_1400 %S32_1401 %S32_1402 %S32_1405 %S32_1408 %S32_1409 %S32_1411 %S32_1412 %S32_1413 %S32_1416 %S32_1417 %S32_1418 %S32_1421 %S32_1422 %S32_1423 %S32_1424 %S32_1425 %S32_1429 %S32_1432 %S32_1433 %S32_1434 %S32_1437 %S32_1438 %S32_1439 %S32_1440 %S32_1443 %S32_1444 %S32_1445 %S32_1446 %S32_1447 %S32_1451 %S32_1452 %S32_1453 %S32_1456 %S32_1457 %S32_1458 %S32_1459 %S32_1462 %S32_1463 %S32_1464 %S32_1465 %S32_1466 %S32_1470 %S32_1471 %S32_1472 %S32_1475 %S32_1476 %S32_1477 %S32_1478 %S32_1479 %S32_1481 %S32_1483 %S32_1484 %S32_1487 x y]
-.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $13_narrowed_U8 $14_narrowed_U8 $15_narrowed_U8 $16_narrowed_U8 $17_narrowed_U8 $18_narrowed_U8 $19_narrowed_U8 $1_narrowed_U8 $20_narrowed_U8 $21_narrowed_U8 $22_narrowed_U8 $23_narrowed_U8 $24_narrowed_U8 $25_narrowed_U8 $26_narrowed_U8 $27_narrowed_U8 $28_narrowed_U8 $29_narrowed_U8 $2_narrowed_U8 $30_narrowed_U8 $31_narrowed_U8 $32_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $12_narrowed_U8 $13_narrowed_U8 $14_narrowed_U8 $15_narrowed_U8 $16_narrowed_U8 $17_narrowed_U8 $18_narrowed_U8 $19_narrowed_U8 $1_narrowed_U8 $20_narrowed_U8 $21_narrowed_U8 $22_narrowed_U8 $23_narrowed_U8 $24_narrowed_U8 $25_narrowed_U8 $26_narrowed_U8 $27_narrowed_U8 $28_narrowed_U8 $29_narrowed_U8 $2_narrowed_U8 $30_narrowed_U8 $31_narrowed_U8 $32_narrowed_U8 $33_narrowed_U8 $34_narrowed_U8 $35_narrowed_U8 $36_narrowed_U8 $37_narrowed_U8 $38_narrowed_U8 $39_narrowed_U8 $3_narrowed_U8 $40_narrowed_U8 $41_narrowed_U8 $42_narrowed_U8 $43_narrowed_U8 $44_narrowed_U8 $45_narrowed_U8 $46_narrowed_U8 $47_narrowed_U8 $48_narrowed_U8 $49_narrowed_U8 $4_narrowed_U8 $50_narrowed_U8 $51_narrowed_U8 $52_narrowed_U8 $53_narrowed_U8 $54_narrowed_U8 $55_narrowed_U8 $56_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_1332 %U8_1336 %U8_1342 %U8_1344 %U8_1348 %U8_1353 %U8_1359 %U8_1361 %U8_1365 %U8_1370 %U8_1376 %U8_1384 %U8_1387 %U8_1392 %U8_1397 %U8_1403 %U8_1407 %U8_1410 %U8_1415 %U8_1420 %U8_1426 %U8_1431 %U8_1436 %U8_1442 %U8_1448 %U8_1450 %U8_1455 %U8_1461 %U8_1467 %U8_1469 %U8_1474 %U8_1480]
 .reg U64 [%U64_1324]
 .reg A64 [%A64_1325 %A64_1329 %A64_1330 %A64_1331 %A64_1343 %A64_1360 %A64_1377 %A64_1378 %A64_1404 %A64_1427 %A64_1428 %A64_1430 %A64_1449 %A64_1490 c cin cout]
@@ -2283,11 +2362,13 @@
     lea %A64_1331 %A64_1325 x
     ld $1_narrowed_U8 %A64_1329 x
     conv %U8_1332 $1_narrowed_U8
-    conv %S32_1333 %U8_1332
+    conv $2_narrowed_U8 %U8_1332
+    conv %S32_1333 $2_narrowed_U8
     mul %S32_1334 %S32_1333 139
-    ld $2_narrowed_U8 %A64_1330 %S32_1316
-    conv %U8_1336 $2_narrowed_U8
-    conv %S32_1337 %U8_1336
+    ld $3_narrowed_U8 %A64_1330 %S32_1316
+    conv %U8_1336 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_1336
+    conv %S32_1337 $4_narrowed_U8
     mul %S32_1338 %S32_1337 -11
     add %S32_1339 %S32_1334 %S32_1338
     add %S32_1340 %S32_1339 64
@@ -2295,21 +2376,24 @@
     pusharg %S32_1341
     bsr njClip
     poparg %U8_1342
-    conv $3_narrowed_U8 %U8_1342
-    st %A64_1325 x $3_narrowed_U8
+    conv $5_narrowed_U8 %U8_1342
+    st %A64_1325 x $5_narrowed_U8
     lea %A64_1343 %A64_1331 %S32_1314
-    ld $4_narrowed_U8 %A64_1329 x
-    conv %U8_1344 $4_narrowed_U8
-    conv %S32_1345 %U8_1344
+    ld $6_narrowed_U8 %A64_1329 x
+    conv %U8_1344 $6_narrowed_U8
+    conv $7_narrowed_U8 %U8_1344
+    conv %S32_1345 $7_narrowed_U8
     mul %S32_1346 %S32_1345 104
-    ld $5_narrowed_U8 %A64_1330 %S32_1316
-    conv %U8_1348 $5_narrowed_U8
-    conv %S32_1349 %U8_1348
+    ld $8_narrowed_U8 %A64_1330 %S32_1316
+    conv %U8_1348 $8_narrowed_U8
+    conv $9_narrowed_U8 %U8_1348
+    conv %S32_1349 $9_narrowed_U8
     mul %S32_1350 %S32_1349 27
     add %S32_1351 %S32_1346 %S32_1350
-    ld $6_narrowed_U8 %A64_1330 %S32_1317
-    conv %U8_1353 $6_narrowed_U8
-    conv %S32_1354 %U8_1353
+    ld $10_narrowed_U8 %A64_1330 %S32_1317
+    conv %U8_1353 $10_narrowed_U8
+    conv $11_narrowed_U8 %U8_1353
+    conv %S32_1354 $11_narrowed_U8
     mul %S32_1355 %S32_1354 -3
     add %S32_1356 %S32_1351 %S32_1355
     add %S32_1357 %S32_1356 64
@@ -2317,21 +2401,24 @@
     pusharg %S32_1358
     bsr njClip
     poparg %U8_1359
-    conv $7_narrowed_U8 %U8_1359
-    st %A64_1331 %S32_1314 $7_narrowed_U8
+    conv $12_narrowed_U8 %U8_1359
+    st %A64_1331 %S32_1314 $12_narrowed_U8
     lea %A64_1360 %A64_1343 %S32_1314
-    ld $8_narrowed_U8 %A64_1329 x
-    conv %U8_1361 $8_narrowed_U8
-    conv %S32_1362 %U8_1361
+    ld $13_narrowed_U8 %A64_1329 x
+    conv %U8_1361 $13_narrowed_U8
+    conv $14_narrowed_U8 %U8_1361
+    conv %S32_1362 $14_narrowed_U8
     mul %S32_1363 %S32_1362 28
-    ld $9_narrowed_U8 %A64_1330 %S32_1316
-    conv %U8_1365 $9_narrowed_U8
-    conv %S32_1366 %U8_1365
+    ld $15_narrowed_U8 %A64_1330 %S32_1316
+    conv %U8_1365 $15_narrowed_U8
+    conv $16_narrowed_U8 %U8_1365
+    conv %S32_1366 $16_narrowed_U8
     mul %S32_1367 %S32_1366 109
     add %S32_1368 %S32_1363 %S32_1367
-    ld $10_narrowed_U8 %A64_1330 %S32_1317
-    conv %U8_1370 $10_narrowed_U8
-    conv %S32_1371 %U8_1370
+    ld $17_narrowed_U8 %A64_1330 %S32_1317
+    conv %U8_1370 $17_narrowed_U8
+    conv $18_narrowed_U8 %U8_1370
+    conv %S32_1371 $18_narrowed_U8
     mul %S32_1372 %S32_1371 -9
     add %S32_1373 %S32_1368 %S32_1372
     add %S32_1374 %S32_1373 64
@@ -2339,8 +2426,8 @@
     pusharg %S32_1375
     bsr njClip
     poparg %U8_1376
-    conv $11_narrowed_U8 %U8_1376
-    st %A64_1343 %S32_1314 $11_narrowed_U8
+    conv $19_narrowed_U8 %U8_1376
+    st %A64_1343 %S32_1314 $19_narrowed_U8
     lea %A64_1377 %A64_1360 %S32_1314
     mov cout %A64_1377
     lea %A64_1378 %A64_1330 %S32_1316
@@ -2351,23 +2438,27 @@
     bra for_2_cond
 .bbl for_2  #  edge_out[for_2_next]  live_out[%A64_1325  %S32_1314  %S32_1316  %S32_1317  c  cin  cout  x  y]
     sub %S32_1382 0 %S32_1316
-    ld $12_narrowed_U8 cin %S32_1382
-    conv %U8_1384 $12_narrowed_U8
-    conv %S32_1385 %U8_1384
+    ld $20_narrowed_U8 cin %S32_1382
+    conv %U8_1384 $20_narrowed_U8
+    conv $21_narrowed_U8 %U8_1384
+    conv %S32_1385 $21_narrowed_U8
     mul %S32_1386 %S32_1385 -9
-    ld $13_narrowed_U8 cin 0
-    conv %U8_1387 $13_narrowed_U8
-    conv %S32_1388 %U8_1387
+    ld $22_narrowed_U8 cin 0
+    conv %U8_1387 $22_narrowed_U8
+    conv $23_narrowed_U8 %U8_1387
+    conv %S32_1388 $23_narrowed_U8
     mul %S32_1389 %S32_1388 111
     add %S32_1390 %S32_1386 %S32_1389
-    ld $14_narrowed_U8 cin %S32_1316
-    conv %U8_1392 $14_narrowed_U8
-    conv %S32_1393 %U8_1392
+    ld $24_narrowed_U8 cin %S32_1316
+    conv %U8_1392 $24_narrowed_U8
+    conv $25_narrowed_U8 %U8_1392
+    conv %S32_1393 $25_narrowed_U8
     mul %S32_1394 %S32_1393 29
     add %S32_1395 %S32_1390 %S32_1394
-    ld $15_narrowed_U8 cin %S32_1317
-    conv %U8_1397 $15_narrowed_U8
-    conv %S32_1398 %U8_1397
+    ld $26_narrowed_U8 cin %S32_1317
+    conv %U8_1397 $26_narrowed_U8
+    conv $27_narrowed_U8 %U8_1397
+    conv %S32_1398 $27_narrowed_U8
     mul %S32_1399 %S32_1398 -3
     add %S32_1400 %S32_1395 %S32_1399
     add %S32_1401 %S32_1400 64
@@ -2375,27 +2466,31 @@
     pusharg %S32_1402
     bsr njClip
     poparg %U8_1403
-    conv $16_narrowed_U8 %U8_1403
-    st cout 0 $16_narrowed_U8
+    conv $28_narrowed_U8 %U8_1403
+    st cout 0 $28_narrowed_U8
     lea %A64_1404 cout %S32_1314
     sub %S32_1405 0 %S32_1316
-    ld $17_narrowed_U8 cin %S32_1405
-    conv %U8_1407 $17_narrowed_U8
-    conv %S32_1408 %U8_1407
+    ld $29_narrowed_U8 cin %S32_1405
+    conv %U8_1407 $29_narrowed_U8
+    conv $30_narrowed_U8 %U8_1407
+    conv %S32_1408 $30_narrowed_U8
     mul %S32_1409 %S32_1408 -3
-    ld $18_narrowed_U8 cin 0
-    conv %U8_1410 $18_narrowed_U8
-    conv %S32_1411 %U8_1410
+    ld $31_narrowed_U8 cin 0
+    conv %U8_1410 $31_narrowed_U8
+    conv $32_narrowed_U8 %U8_1410
+    conv %S32_1411 $32_narrowed_U8
     mul %S32_1412 %S32_1411 29
     add %S32_1413 %S32_1409 %S32_1412
-    ld $19_narrowed_U8 cin %S32_1316
-    conv %U8_1415 $19_narrowed_U8
-    conv %S32_1416 %U8_1415
+    ld $33_narrowed_U8 cin %S32_1316
+    conv %U8_1415 $33_narrowed_U8
+    conv $34_narrowed_U8 %U8_1415
+    conv %S32_1416 $34_narrowed_U8
     mul %S32_1417 %S32_1416 111
     add %S32_1418 %S32_1413 %S32_1417
-    ld $20_narrowed_U8 cin %S32_1317
-    conv %U8_1420 $20_narrowed_U8
-    conv %S32_1421 %U8_1420
+    ld $35_narrowed_U8 cin %S32_1317
+    conv %U8_1420 $35_narrowed_U8
+    conv $36_narrowed_U8 %U8_1420
+    conv %S32_1421 $36_narrowed_U8
     mul %S32_1422 %S32_1421 -9
     add %S32_1423 %S32_1418 %S32_1422
     add %S32_1424 %S32_1423 64
@@ -2403,8 +2498,8 @@
     pusharg %S32_1425
     bsr njClip
     poparg %U8_1426
-    conv $21_narrowed_U8 %U8_1426
-    st cout %S32_1314 $21_narrowed_U8
+    conv $37_narrowed_U8 %U8_1426
+    st cout %S32_1314 $37_narrowed_U8
     lea %A64_1427 %A64_1404 %S32_1314
     mov cout %A64_1427
     lea %A64_1428 cin %S32_1316
@@ -2416,20 +2511,23 @@
     bne y 0 for_2
 .bbl for_2_exit  #  edge_out[for_3_next]  live_out[%A64_1325  %S32_1314  %S32_1316  %S32_1317  c  x]
     lea %A64_1430 cin %S32_1316
-    ld $22_narrowed_U8 cin %S32_1316
-    conv %U8_1431 $22_narrowed_U8
-    conv %S32_1432 %U8_1431
+    ld $38_narrowed_U8 cin %S32_1316
+    conv %U8_1431 $38_narrowed_U8
+    conv $39_narrowed_U8 %U8_1431
+    conv %S32_1432 $39_narrowed_U8
     mul %S32_1433 %S32_1432 28
     sub %S32_1434 0 %S32_1316
-    ld $23_narrowed_U8 %A64_1430 %S32_1434
-    conv %U8_1436 $23_narrowed_U8
-    conv %S32_1437 %U8_1436
+    ld $40_narrowed_U8 %A64_1430 %S32_1434
+    conv %U8_1436 $40_narrowed_U8
+    conv $41_narrowed_U8 %U8_1436
+    conv %S32_1437 $41_narrowed_U8
     mul %S32_1438 %S32_1437 109
     add %S32_1439 %S32_1433 %S32_1438
     sub %S32_1440 0 %S32_1317
-    ld $24_narrowed_U8 %A64_1430 %S32_1440
-    conv %U8_1442 $24_narrowed_U8
-    conv %S32_1443 %U8_1442
+    ld $42_narrowed_U8 %A64_1430 %S32_1440
+    conv %U8_1442 $42_narrowed_U8
+    conv $43_narrowed_U8 %U8_1442
+    conv %S32_1443 $43_narrowed_U8
     mul %S32_1444 %S32_1443 -9
     add %S32_1445 %S32_1439 %S32_1444
     add %S32_1446 %S32_1445 64
@@ -2437,23 +2535,26 @@
     pusharg %S32_1447
     bsr njClip
     poparg %U8_1448
-    conv $25_narrowed_U8 %U8_1448
-    st cout 0 $25_narrowed_U8
+    conv $44_narrowed_U8 %U8_1448
+    st cout 0 $44_narrowed_U8
     lea %A64_1449 cout %S32_1314
-    ld $26_narrowed_U8 cin %S32_1316
-    conv %U8_1450 $26_narrowed_U8
-    conv %S32_1451 %U8_1450
+    ld $45_narrowed_U8 cin %S32_1316
+    conv %U8_1450 $45_narrowed_U8
+    conv $46_narrowed_U8 %U8_1450
+    conv %S32_1451 $46_narrowed_U8
     mul %S32_1452 %S32_1451 104
     sub %S32_1453 0 %S32_1316
-    ld $27_narrowed_U8 %A64_1430 %S32_1453
-    conv %U8_1455 $27_narrowed_U8
-    conv %S32_1456 %U8_1455
+    ld $47_narrowed_U8 %A64_1430 %S32_1453
+    conv %U8_1455 $47_narrowed_U8
+    conv $48_narrowed_U8 %U8_1455
+    conv %S32_1456 $48_narrowed_U8
     mul %S32_1457 %S32_1456 27
     add %S32_1458 %S32_1452 %S32_1457
     sub %S32_1459 0 %S32_1317
-    ld $28_narrowed_U8 %A64_1430 %S32_1459
-    conv %U8_1461 $28_narrowed_U8
-    conv %S32_1462 %U8_1461
+    ld $49_narrowed_U8 %A64_1430 %S32_1459
+    conv %U8_1461 $49_narrowed_U8
+    conv $50_narrowed_U8 %U8_1461
+    conv %S32_1462 $50_narrowed_U8
     mul %S32_1463 %S32_1462 -3
     add %S32_1464 %S32_1458 %S32_1463
     add %S32_1465 %S32_1464 64
@@ -2461,16 +2562,18 @@
     pusharg %S32_1466
     bsr njClip
     poparg %U8_1467
-    conv $29_narrowed_U8 %U8_1467
-    st cout %S32_1314 $29_narrowed_U8
-    ld $30_narrowed_U8 cin %S32_1316
-    conv %U8_1469 $30_narrowed_U8
-    conv %S32_1470 %U8_1469
+    conv $51_narrowed_U8 %U8_1467
+    st cout %S32_1314 $51_narrowed_U8
+    ld $52_narrowed_U8 cin %S32_1316
+    conv %U8_1469 $52_narrowed_U8
+    conv $53_narrowed_U8 %U8_1469
+    conv %S32_1470 $53_narrowed_U8
     mul %S32_1471 %S32_1470 139
     sub %S32_1472 0 %S32_1316
-    ld $31_narrowed_U8 %A64_1430 %S32_1472
-    conv %U8_1474 $31_narrowed_U8
-    conv %S32_1475 %U8_1474
+    ld $54_narrowed_U8 %A64_1430 %S32_1472
+    conv %U8_1474 $54_narrowed_U8
+    conv $55_narrowed_U8 %U8_1474
+    conv %S32_1475 $55_narrowed_U8
     mul %S32_1476 %S32_1475 -11
     add %S32_1477 %S32_1471 %S32_1476
     add %S32_1478 %S32_1477 64
@@ -2478,8 +2581,8 @@
     pusharg %S32_1479
     bsr njClip
     poparg %U8_1480
-    conv $32_narrowed_U8 %U8_1480
-    st %A64_1449 %S32_1314 $32_narrowed_U8
+    conv $56_narrowed_U8 %U8_1480
+    st %A64_1449 %S32_1314 $56_narrowed_U8
 .bbl for_3_next  #  edge_out[for_3_cond]  live_out[%A64_1325  %S32_1314  %S32_1316  %S32_1317  c  x]
     add %S32_1481 x 1
     mov x %S32_1481
@@ -2499,7 +2602,7 @@
 
 .fun njConvert NORMAL [] = []
 .reg S32 [%S32_1495 %S32_1498 %S32_1501 %S32_1503 %S32_1506 %S32_1509 %S32_1511 %S32_1514 %S32_1516 %S32_1519 %S32_1521 %S32_1524 %S32_1526 %S32_1529 %S32_1532 %S32_1560 %S32_1563 %S32_1564 %S32_1567 %S32_1568 %S32_1571 %S32_1572 %S32_1573 %S32_1574 %S32_1575 %S32_1576 %S32_1578 %S32_1579 %S32_1580 %S32_1581 %S32_1582 %S32_1583 %S32_1586 %S32_1587 %S32_1588 %S32_1589 %S32_1593 %S32_1596 %S32_1600 %S32_1606 %S32_1612 %S32_1614 %S32_1618 %S32_1622 %S32_1630 %S32_1639 %S32_1644 %S32_1645 %S32_1649 %S32_1654 %S32_1659 %S32_1661 %S32_1665 __local_26_y i x yy]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U32_1534 %U32_1537 %U32_1540 %U8_1562 %U8_1566 %U8_1570 %U8_1577 %U8_1584 %U8_1590]
 .reg U64 [%U64_1650]
 .reg A64 [%A64_1493 %A64_1533 %A64_1543 %A64_1547 %A64_1552 %A64_1557 %A64_1592 %A64_1601 %A64_1607 %A64_1613 %A64_1626 %A64_1631 %A64_1635 %A64_1640 %A64_1655 %A64_1660 c pcb pcr pin pout prgb py]
@@ -2581,15 +2684,18 @@
 .bbl for_6  #  edge_out[for_6_next]  live_out[pcb  pcr  prgb  py  x  yy]
     ld $1_narrowed_U8 py x
     conv %U8_1562 $1_narrowed_U8
-    conv %S32_1563 %U8_1562
+    conv $2_narrowed_U8 %U8_1562
+    conv %S32_1563 $2_narrowed_U8
     shl %S32_1564 %S32_1563 8
-    ld $2_narrowed_U8 pcb x
-    conv %U8_1566 $2_narrowed_U8
-    conv %S32_1567 %U8_1566
+    ld $3_narrowed_U8 pcb x
+    conv %U8_1566 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_1566
+    conv %S32_1567 $4_narrowed_U8
     sub %S32_1568 %S32_1567 128
-    ld $3_narrowed_U8 pcr x
-    conv %U8_1570 $3_narrowed_U8
-    conv %S32_1571 %U8_1570
+    ld $5_narrowed_U8 pcr x
+    conv %U8_1570 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_1570
+    conv %S32_1571 $6_narrowed_U8
     sub %S32_1572 %S32_1571 128
     mul %S32_1573 %S32_1572 359
     add %S32_1574 %S32_1564 %S32_1573
@@ -2598,8 +2704,8 @@
     pusharg %S32_1576
     bsr njClip
     poparg %U8_1577
-    conv $4_narrowed_U8 %U8_1577
-    st prgb 0 $4_narrowed_U8
+    conv $7_narrowed_U8 %U8_1577
+    st prgb 0 $7_narrowed_U8
     mul %S32_1578 %S32_1568 88
     sub %S32_1579 %S32_1564 %S32_1578
     mul %S32_1580 %S32_1572 183
@@ -2609,8 +2715,8 @@
     pusharg %S32_1583
     bsr njClip
     poparg %U8_1584
-    conv $5_narrowed_U8 %U8_1584
-    st prgb 1 $5_narrowed_U8
+    conv $8_narrowed_U8 %U8_1584
+    st prgb 1 $8_narrowed_U8
     mul %S32_1586 %S32_1568 454
     add %S32_1587 %S32_1564 %S32_1586
     add %S32_1588 %S32_1587 128
@@ -2618,8 +2724,8 @@
     pusharg %S32_1589
     bsr njClip
     poparg %U8_1590
-    conv $6_narrowed_U8 %U8_1590
-    st prgb 2 $6_narrowed_U8
+    conv $9_narrowed_U8 %U8_1590
+    st prgb 2 $9_narrowed_U8
     lea %A64_1592 prgb 3
     mov prgb %A64_1592
 .bbl for_6_next  #  edge_out[for_6_cond]  live_out[pcb  pcr  prgb  py  x  yy]
@@ -2733,7 +2839,7 @@
 
 .fun njDecode NORMAL [S32] = [A64 S32]
 .reg S32 [%S32_1693 %S32_1698 %S32_1703 %S32_1704 %S32_1710 %S32_1711 %S32_1712 %S32_1716 %S32_1721 %S32_1734 %S32_1735 %S32_1738 %S32_1741 %S32_1744 %S32_1749 size]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_1702 %U8_1709 %U8_1720 %U8_1727 %U8_1733]
 .reg A64 [%A64_1701 %A64_1707 %A64_1719 %A64_1725 %A64_1731 jpeg]
 .jtb switch_1728_tab 255 switch_1728_default [192 switch_1728_192 196 switch_1728_196 218 switch_1728_218 219 switch_1728_219 221 switch_1728_221 254 switch_1728_254]
@@ -2753,12 +2859,14 @@
     ld.mem %A64_1701 nj 4
     ld $1_narrowed_U8 %A64_1701 0
     conv %U8_1702 $1_narrowed_U8
-    conv %S32_1703 %U8_1702
+    conv $2_narrowed_U8 %U8_1702
+    conv %S32_1703 $2_narrowed_U8
     xor %S32_1704 %S32_1703 255
     ld.mem %A64_1707 nj 4
-    ld $2_narrowed_U8 %A64_1707 1
-    conv %U8_1709 $2_narrowed_U8
-    conv %S32_1710 %U8_1709
+    ld $3_narrowed_U8 %A64_1707 1
+    conv %U8_1709 $3_narrowed_U8
+    conv $4_narrowed_U8 %U8_1709
+    conv %S32_1710 $4_narrowed_U8
     xor %S32_1711 %S32_1710 216
     or %S32_1712 %S32_1704 %S32_1711
     beq %S32_1712 0 if_3_end
@@ -2774,9 +2882,10 @@
     blt %S32_1716 2 if_4_true
 .bbl branch_8  #  edge_out[if_4_end  if_4_true]
     ld.mem %A64_1719 nj 4
-    ld $3_narrowed_U8 %A64_1719 0
-    conv %U8_1720 $3_narrowed_U8
-    conv %S32_1721 %U8_1720
+    ld $5_narrowed_U8 %A64_1719 0
+    conv %U8_1720 $5_narrowed_U8
+    conv $6_narrowed_U8 %U8_1720
+    conv %S32_1721 $6_narrowed_U8
     beq %S32_1721 255 if_4_end
 .bbl if_4_true
     pusharg 5:S32
@@ -2785,8 +2894,8 @@
     pusharg 2:S32
     bsr __static_2_njSkip
     ld.mem %A64_1725 nj 4
-    ld $4_narrowed_U8 %A64_1725 -1
-    conv %U8_1727 $4_narrowed_U8
+    ld $7_narrowed_U8 %A64_1725 -1
+    conv %U8_1727 $7_narrowed_U8
     blt 254:U32 %U8_1727 switch_1728_default
 .bbl if_4_end_1  #  edge_out[switch_1728_192  switch_1728_196  switch_1728_218  switch_1728_219  switch_1728_221  switch_1728_254  switch_1728_default]
     switch %U8_1727 switch_1728_tab
@@ -2810,9 +2919,10 @@
     bra while_1_cond
 .bbl switch_1728_default  #  edge_out[if_5_false  if_5_true]
     ld.mem %A64_1731 nj 4
-    ld $5_narrowed_U8 %A64_1731 -1
-    conv %U8_1733 $5_narrowed_U8
-    conv %S32_1734 %U8_1733
+    ld $8_narrowed_U8 %A64_1731 -1
+    conv %U8_1733 $8_narrowed_U8
+    conv $9_narrowed_U8 %U8_1733
+    conv %S32_1734 $9_narrowed_U8
     and %S32_1735 %S32_1734 240
     bne %S32_1735 224 if_5_false
 .bbl if_5_true  #  edge_out[while_1_cond]
@@ -2839,7 +2949,7 @@
     ret
 
 .fun write_str NORMAL [] = [A64 S32]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S32_1753 %S8_1752 fd]
 .reg S64 [%S64_1754]
 .reg U64 [%U64_1750 size]
@@ -2855,7 +2965,8 @@
 .bbl for_1_cond  #  edge_out[for_1_exit  for_1_next]  live_out[fd  s  size]
     ld $1_narrowed_S8 s size
     conv %S8_1752 $1_narrowed_S8
-    conv %S32_1753 %S8_1752
+    conv $2_narrowed_S8 %S8_1752
+    conv %S32_1753 $2_narrowed_S8
     bne %S32_1753 0 for_1_next
 .bbl for_1_exit
     pusharg size
@@ -2866,7 +2977,7 @@
     ret
 
 .fun write_dec NORMAL [] = [S32 S32]
-.reg S8 [$1_narrowed_S8]
+.reg S8 [$1_narrowed_S8 $2_narrowed_S8]
 .reg S32 [%S32_1759 %S32_1760 %S32_1764 %S32_1765 %S32_1767 %S8_1761 a fd i]
 .reg A64 [%A64_1768]
 .stk buf 1 64
@@ -2878,9 +2989,10 @@
 .bbl while_1  #  edge_out[while_1_cond]  live_out[%S32_1764  %S32_1765  a  fd  i]
     rem %S32_1759 a 10
     add %S32_1760 %S32_1759 48
-    conv %S8_1761 %S32_1760
-    conv $1_narrowed_S8 %S8_1761
-    st.stk buf i $1_narrowed_S8
+    conv $1_narrowed_S8 %S32_1760
+    conv %S8_1761 $1_narrowed_S8
+    conv $2_narrowed_S8 %S8_1761
+    st.stk buf i $2_narrowed_S8
     sub %S32_1764 i 1
     mov i %S32_1764
     div %S32_1765 a 10

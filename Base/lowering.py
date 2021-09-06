@@ -280,6 +280,10 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
               div y:u16  = x   13      (= 155)
 
       Other problematic operations: rem, popcnt, ...
+
+      The invariant we are maintaining is this one:
+      if reg a gets widened into reg b with bitwidth(a) = w then
+      the lower w bits of reg b will always contain the same data as reg a would have.
       """
     assert ir.FUN_FLAG.STACK_FINALIZED not in fun.flags
     fun.input_types = [wide_kind if x == narrow_kind else x for x in fun.input_types]
@@ -300,16 +304,34 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
         for ins in bbl.inss:
             ops = ins.operands
             kind = ins.opcode.kind
-
+            changed = False
             for n, reg in enumerate(ops):
-                if n == 2 and kind is o.OPC_KIND.ST or n == 0 and kind is o.OPC_KIND.LD:
-                    continue
                 if isinstance(reg, ir.Const) and reg.kind is narrow_kind:
-                    # if ins.opcode.constraints[n] == o.TC.OFFSET:
-                    #    continue
+                    if kind is o.OPC_KIND.ST and n == 2:
+                        continue
                     ops[n] = ir.Const(wide_kind, reg.value)
+                    changed = True
+                if isinstance(reg, ir.Reg) and reg in narrow_regs:
+                    changed = True
+            if not changed:
+                inss.append(ins)
+                continue
             kind = ins.opcode.kind
-            if kind is o.OPC_KIND.LD and ops[0] in narrow_regs:
+            if ins.opcode is o.SHL or ins.opcode is o.SHR:
+                # deal with the shift amount which is subject to an implicit modulo "bitwidth -1"
+                # by changing the width of the reg - we lose this information
+                tmp_reg = fun.GetScratchReg(wide_kind, "tricky", False)
+                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(wide_kind, narrow_kind.bitwidth() - 1)]))
+                ops[2] = tmp_reg
+                if ins.opcode is o.SHR and isinstance(ops[1], ir.Reg):
+                    # for SHR we also need to make sure the new high order bits are correct
+                    tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
+                    inss.append(ir.Ins(o.CONV, [tmp_reg, ops[1]]))
+                    # the implicit understanding is that this will become nop or a move and not modify the
+                    # high-order bit we just set in the previous instruction
+                    inss.append(ir.Ins(o.CONV, [ops[1], tmp_reg]))
+                inss.append(ins)
+            elif kind is o.OPC_KIND.LD and ops[0] in narrow_regs:
                 inss.append(ins)
                 tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
                 inss.append(ir.Ins(o.CONV, [ops[0], tmp_reg]))
@@ -320,6 +342,10 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                 inss.append(ir.Ins(o.CONV, [tmp_reg, ops[2]]))
                 inss.append(ins)
                 ops[2] = tmp_reg
+            elif ins.opcode is o.CONV:
+                tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
+                inss.append(ir.Ins(o.CONV, [tmp_reg, ops[1]]))
+                inss.append(ir.Ins(o.CONV, [ops[0], tmp_reg]))
             else:
                 inss.append(ins)
 

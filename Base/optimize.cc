@@ -58,6 +58,8 @@ void FunOpt(Fun fun, const DK_MAP& rk_map) {
 
   FunRegWidthWidening(fun, DK::U8, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S8, DK::S32, &inss);
+  FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
+  FunRegWidthWidening(fun, DK::S16, DK::S32, &inss);
 
   FunOptBasic(fun, false);
 }
