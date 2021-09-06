@@ -253,11 +253,11 @@ WASM_CMP_TO_CWERG_CMP = {
 }
 
 WASM_ALU1_TO_CWERG = {
-    "sqrt": ([], o.SQRT),
-    "abs": ([], o.ABS),
-    "neg": ([ir.Const(o.DK.S32, 0)], o.SUB),
-    "clz": ([], o.CNTLZ),
-    "ctz": ([], o.CNTTZ),
+    "sqrt": (o.SQRT, lambda x: [x]),
+    "abs": (o.COPYSIGN, lambda x: [x, ir.Const(x.kind, 0)]),
+    "neg": (o.SUB, lambda x: [ir.Const(x.kind, 0), x]),
+    "clz": (o.CNTLZ, lambda x: [x]),
+    "ctz": (o.CNTTZ, lambda x: [x]),
 }
 
 
@@ -611,10 +611,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             bbls[-1].AddIns(ir.Ins(o.ST_MEM, [var_mem, ZERO, op]))
         elif opc.kind is wasm_opc.OPC_KIND.ALU:
             if wasm_opc.FLAGS.UNARY in opc.flags:
-                arg, opcode = WASM_ALU1_TO_CWERG[opc.basename]
+                opcode, arg_factory = WASM_ALU1_TO_CWERG[opc.basename]
                 op = op_stack.pop(-1)
                 dst = GetOpReg(fun, op.kind, len(op_stack))
-                bbls[-1].AddIns(ir.Ins(opcode, [dst] + arg + [op]))
+                bbls[-1].AddIns(ir.Ins(opcode, [dst] + arg_factory(op)))
                 op_stack.append(dst)
             else:
                 op2 = op_stack.pop(-1)
