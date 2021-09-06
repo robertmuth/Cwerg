@@ -511,19 +511,15 @@ SHL = Opcode(0x1b, "shl", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Shift left: dst := src1 << src2
-              
-              Some day the operation might more strictly defined as:
-             
-             dst: = src1 << (src2 mod bitwidth(src2))""")
+                           
+             dst: = src1 << (src2 % bitwidth(src1))""")
 
 SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Shift right: dst := src1 >> src2
-             
-             Some day the operation might more strictly defined as:
-             
-             dst: = src1 >> (src2 mod bitwidth(src2))""")
+                          
+             dst: = src1 >> (src2 % bitwidth(src1))""")
 
 CNTLZ = Opcode(0x1d, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
@@ -631,16 +627,16 @@ CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               # TODO: specify rounding and overflow for float <-> int conversions
               """Conversion of numerical regs which do not have to be of same size. Bits may change. 
               
-              Note: Use mov if both regs have the same kind. 
-              Note: This is not completely stable/well-defined yet for case that involve 
-              a widening change from signed -> unsigned.""")
+              If the conversion involves both a widening and a change of type, the widening is performed
+              first. """)
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_SIZE_AS_PREV], OPC_GENUS.BASE,
                  """Cast between regs of same size. Bits will be re-interpreted but do not change. 
                  
-                 This can be used to manipulated addresses im unusual ways.""")
+                 This is useful for manipulating addresses in unusual ways or 
+                 looking at the  binary representation of floats.""")
 
 MOV = Opcode(0x34, "mov", OPC_KIND.MOV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV], OPC_GENUS.BASE,
