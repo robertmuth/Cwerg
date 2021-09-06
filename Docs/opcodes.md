@@ -148,6 +148,8 @@ Addition: dst := src1 + src2
 
 #### [11] sub *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Subtraction: dst := src1 - src2
+             
+             Note: `sub dst = 0 src` can be used to emulate `neg`
 
 #### [12] mul *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Multiplication: dst := src1 \* src2
@@ -165,8 +167,15 @@ Modulo: dst := a % b
               Some day the sign of the result might be more strictly defined.
               Note: does not apply to floating point numbers
 
+#### [15] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Set the sign of src1 to match src2 (floating point only)
+             
+             Note: `copysign dst src1 0.0` can be used to emulate `abs`
+
 #### [18] xor *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise exclusive or: dst := src1 ^ src2
+             
+             Note: `xor dst = src1  0b111...1` can be used to emulate `not`
 
 #### [19] and *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise and: dst := src1 & src2
@@ -313,9 +322,6 @@ Store to stack base with offset. RAM[base + offset] := src
 
 #### [60] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Compute the sqrt of floating point value
-
-#### [61] abs *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Compute the absolute value of floating point value
 
 ## Misc
 

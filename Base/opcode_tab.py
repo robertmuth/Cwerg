@@ -451,7 +451,9 @@ ADD = Opcode(0x10, "add", OPC_KIND.ALU,
 SUB = Opcode(0x11, "sub", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             "Subtraction: dst := src1 - src2")
+             """Subtraction: dst := src1 - src2
+             
+             Note: `sub dst = 0 src` can be used to emulate `neg`""")
 
 # needs more work  wrt to size
 MUL = Opcode(0x12, "mul", OPC_KIND.ALU,
@@ -479,13 +481,21 @@ REM = Opcode(0x14, "rem", OPC_KIND.ALU,
               Some day the sign of the result might be more strictly defined.
               Note: does not apply to floating point numbers""")
 
+COPYSIGN = Opcode(0x15, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+             [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+             """Set the sign of src1 to match src2 (floating point only)
+             
+             Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
+
 ############################################################
 # LOGIC ALU 0x30
 # INT ONLY (all regs are treated as unsigned except for shr/rshr
 XOR = Opcode(0x18, "xor", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             "Bitwise exclusive or: dst := src1 ^ src2",
+             """Bitwise exclusive or: dst := src1 ^ src2
+             
+             Note: `xor dst = src1  0b111...1` can be used to emulate `not`""",
              OA.COMMUTATIVE)
 
 # note: limited address arithmetic allowed
@@ -734,12 +744,7 @@ ST_STK = Opcode(0x4a, "st.stk", OPC_KIND.ST,
 SQRT = Opcode(0x60, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
               "Compute the sqrt of floating point value")
-ABS = Opcode(0x61, "abs", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-             [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             "Compute the absolute value of floating point value")
-SIGN = Opcode(0x62, "sign", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-              "TBD")
+
 # round towards positive infinity
 CEIL = Opcode(0x63, "ceil", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,

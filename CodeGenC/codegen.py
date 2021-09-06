@@ -148,11 +148,11 @@ ALU_FLT = {
     o.MUL: "{src1} * {src2}",
     o.DIV: "{src1} / {src2}",
     o.REM: "fmod({src1}, {src2})",
+    o.COPYSIGN: "copysign({src1}, {src2})",
 }
 
 
 def Handle_ALU(fun, opcode, ops, _ctx):
-    assert opcode in ALU_INT, opcode.name
     dst_flavor = ops[0].kind.flavor()
     if dst_flavor in {o.DK_FLAVOR_S, o.DK_FLAVOR_U}:
         expr = ALU_INT[opcode]

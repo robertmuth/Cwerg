@@ -37,6 +37,9 @@
 #define size_t unsigned long
 #define ssize_t signed long
 
+// math.h
+extern double copysign(double, double);
+
 // syscalls
 extern int64_t lseek64(int fd, int64_t offset, int whence);
 extern ssize_t lseek(int fd, size_t offset, int whence);

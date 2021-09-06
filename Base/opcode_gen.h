@@ -19,6 +19,7 @@ enum class OPC : uint8_t {
     MUL = 0x12,
     DIV = 0x13,
     REM = 0x14,
+    COPYSIGN = 0x15,
     XOR = 0x18,
     AND = 0x19,
     OR = 0x1a,
@@ -59,7 +60,6 @@ enum class OPC : uint8_t {
     ST_STK = 0x4a,
 
     SQRT = 0x60,
-    ABS = 0x61,
 
     NOP = 0xf1,
     NOP1 = 0xf2,

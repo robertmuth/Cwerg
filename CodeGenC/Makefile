@@ -5,7 +5,8 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = int_op.asm \
+TESTS = fp_op.asm \
+        int_op.asm \
         cmp.asm \
         multiple_results.asm \
         multiple_results_f32.asm \

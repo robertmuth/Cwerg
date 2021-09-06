@@ -376,7 +376,6 @@ const struct StringKind OPCFromStringMap[] = {
     {".stk", 8},
     {".stk.s", 227},
     {".struct", 224},
-    {"abs", 97},
     {"acos", 107},
     {"add", 16},
     {"adds", 197},
@@ -399,6 +398,7 @@ const struct StringKind OPCFromStringMap[] = {
     {"cntpop", 176},
     {"cnttz", 30},
     {"conv", 50},
+    {"copysign", 21},
     {"cos", 104},
     {"div", 19},
     {"exp", 109},
@@ -427,7 +427,6 @@ const struct StringKind OPCFromStringMap[] = {
     {"round", 102},
     {"shl", 27},
     {"shr", 28},
-    {"sign", 98},
     {"sin", 103},
     {"sqrt", 96},
     {"st", 72},
@@ -446,7 +445,7 @@ const struct StringKind OPCFromStringMap[] = {
 };
 
 const uint8_t OPCJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 13, 20, 29, 37, 38, 39, 255, 255, 255, 40, 255, 41, 52, 54, 56, 57, 255, 59, 62, 75, 255, 255, 255, 78, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 13, 19, 28, 37, 38, 39, 255, 255, 255, 40, 255, 41, 52, 54, 56, 57, 255, 59, 62, 74, 255, 255, 255, 77, 255, 255, 255, 255, 255, 255, 255,};
 const Opcode GlobalOpcodes[256] = {
      {  //  0 
        {}, 
@@ -553,11 +552,11 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
        {TC::INT, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
        "rem", 0 },
-     {  // 15 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 15 copysign
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
+       {TC::FLT, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
+       "copysign", 0 },
      {  // 16 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
@@ -933,11 +932,11 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
        {TC::FLT, TC::SAME_AS_PREV}, 
        "sqrt", 0 },
-     {  // 61 abs
-       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
-       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
-       {TC::FLT, TC::SAME_AS_PREV}, 
-       "abs", 0 },
+     {  // 61 
+       {}, 
+       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
+       {}, 
+       "", 0 },
      {  // 62 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
