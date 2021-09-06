@@ -115,4 +115,4 @@ $(DIR)/optimize_regression_test_c:  $(OPTIMIZE_TOOL)
 # Misc
 ############################################################
 clean:
-	rm -f  $(DIR)/*
+	rm -f  $(DIR)/* $(OPTIMIZE_TOOL)

@@ -205,7 +205,7 @@ regenerate_cpua32_tests:
 ############################################################
 
 clean:
-	rm -f $(DIR)/*
+	rm -f $(DIR)/* $(CODEGEN_TOOL)
 
 bug:
 	cat $(STD_LIB) TestData/reg_test1.asm | $(PYPY) ./codegen.py normal - -

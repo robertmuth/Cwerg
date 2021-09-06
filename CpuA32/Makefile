@@ -113,7 +113,7 @@ $(DIR)/symbolize_parity: $(DISASSEMBLER_TOOL)
 ############################################################
 
 clean:
-	rm -f  $(DIR)/*
+	rm -f  $(DIR)/* $(DISASSEMBLER_TOOL) $(ASSEMBLER_TOOL)
 
 
 

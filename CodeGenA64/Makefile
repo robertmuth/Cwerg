@@ -179,4 +179,4 @@ $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 
 
 clean:
-	@rm -f $(DIR)/*
+	@rm -f $(DIR)/* $(CODEGEN_TOOL)

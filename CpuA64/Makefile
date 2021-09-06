@@ -100,4 +100,4 @@ $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	cmp -l  $@_c.exe $@.exe
 
 clean:
-	rm -f $(DIR)/*
+	rm -f $(DIR)/* $(DISASSEMBLER_TOOL) $(ASSEMBLER_TOOL)
