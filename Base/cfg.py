@@ -185,6 +185,11 @@ def FunRemoveEmptyBbls(fun: ir.Fun) -> int:
         if bbl.inss:
             keep.append(bbl)
             continue
+        succ = bbl.edge_out[0]
+        if succ == bbl:
+            # we have to keep infinite loop
+            keep.append(bbl)
+            continue
         # print ("BBL -DELETE", bbl.name)
         # print("IN",  bbl.edge_in)
         # print ("OUT", bbl.edge_out)

@@ -266,15 +266,19 @@ void FunRemoveEmptyBbls(Fun fun) {
       bbls_keep.push_back(bbl);
       continue;
     }
-    bbls_empty.push_back(bbl);
     const Edg out_edg = BblSuccEdgList::Head(bbl);
+    const Bbl succ = EdgSuccBbl(out_edg);
+    if (succ == bbl) {
+      bbls_keep.push_back(bbl);
+      continue;
+    }
     ASSERT(FunBblList::Head(fun) != bbl, "cannot remove entry bbl");
     ASSERT(out_edg == BblSuccEdgList::Tail(bbl) &&
                !BblSuccEdgList::IsSentinel(out_edg),
            "must have one out edge:\n"
                << bbl << "\n"
                << fun);
-    const Bbl succ = EdgSuccBbl(out_edg);
+    bbls_empty.push_back(bbl);
     EdgUnlink(out_edg);
     EdgDel(out_edg);
     // For each incoming edge forward bbl to succ

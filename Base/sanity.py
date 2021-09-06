@@ -4,6 +4,7 @@ from typing import Optional, List
 from Base import cfg
 from Base import ir
 from Base import opcode_tab as o
+from Base import serialize
 
 
 class ParseError(Exception):
@@ -43,9 +44,11 @@ def FunCheckCFG(fun: ir.Fun, check_fallthroughs):
     for n, bbl in enumerate(fun.bbls):
         assert bbl.name in fun.bbl_syms
         for x in bbl.edge_out:
-            assert x.name in fun.bbl_syms, f"missing {x}"
+            if x.name not in fun.bbl_syms:
+                print ("\n".join(serialize.BblRenderToAsm(bbl)))
+            assert x.name in fun.bbl_syms, f"missing bbl out edge {x}  from {bbl.name} in {fun.name}"
         for x in bbl.edge_in:
-            assert x.name in fun.bbl_syms, f"missing {x}"
+            assert x.name in fun.bbl_syms,  f"missing in out edge {x} to {bbl.name} in {fun.name}"
         # check everything but the last Ins
         for ins in bbl.inss[:-1]:
             assert not ins.opcode.is_bbl_terminator(), (
