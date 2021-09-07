@@ -116,9 +116,8 @@ def FunMoveElimination(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsMoveElimination)
 
 
-def InsEliminateImmediate(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
-    """Rewrite instruction with an immediate as load of the immediate
-    followed by a pure register version of that instruction, e.g.
+def InsEliminateImmediateViaMov(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
+    """Rewrite instruction with an immediate as mov of the immediate
 
     mul z = a 666
     becomes
@@ -128,9 +127,9 @@ def InsEliminateImmediate(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
     This is useful if the target architecture does not support immediate
     for that instruction, or the immediate is too large.
 
-    This optimization is run rather late and may already see machine
-    registers like the sp.
-    Hence we are careful to use and update ins.orig_operand
+    This optimization is run rather late and may already see machine registers.
+    Ideally, the generated mov instruction hould be iselectable by the target architecture or
+    else another pass may be necessary.
     """
     # support of PUSHARG would require additional work because they need to stay consecutive
     assert ins.opcode is not o.PUSHARG
@@ -139,6 +138,28 @@ def InsEliminateImmediate(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
     reg = fun.GetScratchReg(const.kind, "imm", True)
     ins.operands[pos] = reg
     return ir.Ins(o.MOV, [reg, const])
+
+
+def InsEliminateImmediateViaMem(ins: ir.Ins, pos: int, fun: ir.Fun, unit: ir.Unit, addr_kind: o.DK,
+                                offset_kind: o.DK) -> List[ir.Ins]:
+    """Rewrite instruction with an immediate as load of the immediate
+
+
+    This is useful if the target architecture does not support immediate
+    for that instruction, or the immediate is too large.
+
+    This optimization is run rather late and may already see machine registers.
+    """
+    # support of PUSHARG would require additional work because they need to stay consecutive
+    assert ins.opcode is not o.PUSHARG
+    const = ins.operands[pos]
+    mem = unit.FindOrAddConstMem(const)
+    tmp_addr = fun.GetScratchReg(addr_kind, "mem_const_addr", True)
+    lea_ins = ir.Ins(o.LEA_MEM, [tmp_addr, mem, ir.Const(offset_kind, 0)])
+    tmp = fun.GetScratchReg(const.kind, "mem_const", True)
+    ld_ins = ir.Ins(o.LD, [tmp, tmp_addr, ir.Const(offset_kind, 0)])
+    ins.operands[pos] = tmp
+    return [lea_ins, ld_ins]
 
 
 def _InsEliminateRem(
@@ -219,7 +240,11 @@ def _InsEliminateMemLoadStore(
      It allows the register allocator to see the scratch register but
      it will obscure the fact that a ld/st is from a static location.
 
-     Note: this function may add local registers which does not affect liveness or use-deg chains
+     Note: this function may add local registers which does not affect liveness or use-def chains
+
+     st.mem ->  lea.mem + st   # st offset will be zero or register which should be iselectable
+     ld.mem -> lea.mem + ld    # ld offset will be zero or register which should be iselectable
+     lea.mem (with reg offset) -> lea.mem (zero offset) + lea
     """
     opc = ins.opcode
     ops = ins.operands
@@ -244,8 +269,7 @@ def _InsEliminateMemLoadStore(
         return [lea, ins]
     elif opc is o.LEA_MEM and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
-        # TODO: maybe reverse the order so that we can tell that ops[0] holds a stack
-        # location
+        # TODO: maybe reverse the order so that we can tell that ops[0] holds a mem location
         lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
         ins.Init(o.LEA, [ops[0], scratch_reg, ops[2]])
         return [lea, ins]
@@ -353,25 +377,3 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
         bbl.inss = inss
     return count
 
-
-def _InsMoveImmediatesToMemory(
-        ins: ir.Ins, fun: ir.Fun, unit: ir.Unit, kind: o.DK) -> Optional[List[ir.Ins]]:
-    inss = []
-    for n, op in enumerate(ins.operands):
-        if isinstance(op, ir.Const) and op.kind is kind:
-            mem = unit.FindOrAddConstMem(op)
-            tmp = fun.GetScratchReg(kind, "mem_const", True)
-            # TODO: pass the offset kind as a parameter
-            inss.append(ir.Ins(o.LD_MEM, [tmp, mem, ir.Const(o.DK.U32, 0)]))
-            ins.operands[n] = tmp
-    if inss:
-        return inss + [ins]
-    return None
-
-
-def FunMoveImmediatesToMemory(fun: ir.Fun, unit: ir.Unit, kind: o.DK) -> int:
-    """Move immediates to memory wholesale. E.g. all F32 or all F64
-
-    It is not clear if this is a great idea
-    """
-    return ir.FunGenericRewrite(fun, _InsMoveImmediatesToMemory, unit=unit, kind=kind)

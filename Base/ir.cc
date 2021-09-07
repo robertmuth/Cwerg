@@ -162,7 +162,7 @@ int64_t ConstValueInt64(Const num) {
     case DK_FLAVOR_S:
         return ConstValueACS(num);
     default:
-      ASSERT(false, "bad const " << num);
+      ASSERT(false, "bad non int const " << num);
       return 0;
   }
 }

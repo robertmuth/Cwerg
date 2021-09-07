@@ -177,8 +177,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.reg0, PARAM.reg1, PARAM.reg2, PARAM.reg3, PARAM.reg4}:
         n = arg.value - PARAM.reg0.value
         reg = ins.operands[n]
-        assert isinstance(reg,
-                          ir.Reg) and reg.HasCpuReg(), f"unexpected op {reg} in {ins} {ins.operands}"
+        assert isinstance(reg, ir.Reg), f"expected reg: {reg} in {ins} {ins.operands}"
+        assert reg.HasCpuReg(), f"expected cpu reg: {reg} in {ins} {ins.operands}"
         return reg.cpu_reg.no
     elif arg in {PARAM.num0, PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4}:
         n = arg.value - PARAM.num0.value
@@ -838,13 +838,16 @@ def InitLoad():
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_x",
-                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl,
-                              0])])
+                             [PARAM.reg0, PARAM.reg1, PARAM.reg2, a64.SHIFT.lsl, 0])])
         for shift, offset_kind in [(FIXARG.SXTW, o.DK.S32), (FIXARG.UXTW, o.DK.U32)]:
             Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_w",
                              [PARAM.reg0, PARAM.reg1, PARAM.reg2, shift, 0])])
-
+        # support zero offset for now - this could be improved a lot
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
+                    [InsTmpl(opc + "_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2])],
+                    imm_curb2=IMM_CURB.ZERO)
         # TODO: add immediate flavors
 
 
@@ -1070,6 +1073,10 @@ def InitVFP():
         # implies fastmath
         Pattern(o.SQRT, [kind] * 2,
                 [InsTmpl("fsqrt" + suffix, [PARAM.reg0, PARAM.reg1])])
+
+        Pattern(o.COPYSIGN, [kind] * 3,
+                [InsTmpl("fabs" + suffix, [PARAM.reg0, PARAM.reg1])],
+                imm_curb2=IMM_CURB.ZERO)
 
     for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
                                         (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),

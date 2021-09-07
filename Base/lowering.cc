@@ -457,39 +457,25 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunMoveImmediatesToMemory(Fun fun,
-                               Unit unit,
-                               DK imm_kind,
-                               DK offset_kind,
-                               std::vector<Ins>* inss) {
-  for (Bbl bbl : FunBblIter(fun)) {
-    inss->clear();
-    bool dirty = false;
-    for (Ins ins : BblInsIter(bbl)) {
-      unsigned num_operands = InsOpcode(ins).num_operands;
-      for (int i = 0; i < num_operands; ++i) {
-        Const num(InsOperand(ins, i));
-        if (num.kind() == RefKind::CONST && ConstKind(num) == imm_kind) {
-          dirty = true;
-          Mem mem = UnitFindOrAddConstMem(unit, num);
-          Reg tmp = FunGetScratchReg(fun, imm_kind, "mem_const", true);
-          inss->push_back(
-              InsNew(OPC::LD_MEM, tmp, mem, ConstNewU(offset_kind, 0)));
-          InsOperand(ins, i) = tmp;
-        }
-      }
-      inss->push_back(ins);
-    }
-    if (dirty) BblReplaceInss(bbl, *inss);
-  }
-}
-
-Ins InsEliminateImmediate(Ins ins, unsigned pos, Fun fun) {
+void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun, std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");
   Reg tmp = FunGetScratchReg(fun, ConstKind(num), "imm", true);
   InsOperand(ins, pos) = tmp;
-  return InsNew(OPC::MOV, tmp, num);
+  inss->push_back(InsNew(OPC::MOV, tmp, num));
+}
+
+extern void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
+                                        DK addr_kind, DK offset_kind, std::vector<Ins>* inss) {
+  Const num = Const(InsOperand(ins, pos));
+  ASSERT(num.kind() == RefKind::CONST, "");
+  Mem mem = UnitFindOrAddConstMem(unit, num);
+  Reg tmp_addr = FunGetScratchReg(fun, addr_kind, "mem_const_addr", true);
+  inss->push_back(InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind, 0)));
+  Reg tmp = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
+  inss->push_back(
+      InsNew(OPC::LD, tmp, tmp_addr, ConstNewU(offset_kind, 0)));
+   InsOperand(ins, pos) = tmp;
 }
 
 }  // namespace cwerg::base

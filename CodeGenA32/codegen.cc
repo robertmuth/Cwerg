@@ -197,7 +197,7 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
           EmitFunEpilog(ctx, &inss);
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
-          ASSERT(pat != nullptr, "");
+          ASSERT(pat != nullptr, "cannot find match for " << ins);
           for (unsigned i = 0; i < pat->length; ++i) {
             inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
           }

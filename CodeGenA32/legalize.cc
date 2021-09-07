@@ -28,8 +28,8 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::RET ||      // handled via special epilog code
-         opc == OPC::NOP1;       // pseudo instruction
+  return opc == OPC::RET ||  // handled via special epilog code
+         opc == OPC::NOP1;   // pseudo instruction
 }
 
 void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
@@ -78,7 +78,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
+void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
@@ -91,7 +91,13 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
                  "cannot match: " << ins);
           for (unsigned pos = 0; pos < a32::MAX_OPERANDS; ++pos) {
             if (mismatches & (1U << pos)) {
-              inss->push_back(InsEliminateImmediate(ins, pos, fun));
+              const DK kind = ConstKind(Const(InsOperand(ins, pos)));
+              if (kind == DK::F64 || kind == DK::F32) {
+                InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A32,
+                                            DK::U32, inss);
+              } else {
+                InsEliminateImmediateViaMov(ins, pos, fun, inss);
+              }
               dirty = true;
             }
           }
@@ -108,7 +114,8 @@ void FunPushargConversion(Fun fun) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIterReverse(bbl)) {
       if (InsOPC(ins) == OPC::PUSHARG) {
-        ASSERT(!parameter.empty(), "possible undefined fun call in " << Name(fun));
+        ASSERT(!parameter.empty(),
+               "possible undefined fun call in " << Name(fun));
         Handle src = InsOperand(ins, 0);
         CpuReg cpu_reg = parameter.back();
         parameter.pop_back();
@@ -172,7 +179,6 @@ DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
   }
   return out;
 }
-
 
 int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   to_delete->clear();
@@ -313,8 +319,7 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A32, DK::S32, &inss);
-  FunMoveImmediatesToMemory(fun, unit, DK::F32, DK::U32, &inss);
-  FunMoveImmediatesToMemory(fun, unit, DK::F64, DK::U32, &inss);
+
   FunEliminateMemLoadStore(fun, DK::A32, DK::S32, &inss);
 
   FunCanonicalize(fun);
@@ -322,7 +327,7 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   // COND_RRA instruction possibly with immediates.
   FunCfgExit(fun);
 
-  FunRewriteOutOfBoundsImmediates(fun, &inss);
+  FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
 
   FunAddNop1ForCodeSel(fun, &inss);
 }
@@ -384,7 +389,8 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   FunComputeRegStatsLAC(fun);
   const DK_LAC_COUNTS local_reg_stats =
       FunComputeBblRegUsageStats(fun, DK_TO_CPU_REG_KIND_MAP);
-  const DK_LAC_COUNTS global_reg_stats = FunGlobalRegStats(fun, DK_TO_CPU_REG_KIND_MAP);
+  const DK_LAC_COUNTS global_reg_stats =
+      FunGlobalRegStats(fun, DK_TO_CPU_REG_KIND_MAP);
   if (fout != nullptr) {
     DumpRegStats(fun, local_reg_stats, fout);
   }
@@ -399,10 +405,11 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
   {
     // GPR
-    const FunRegStats needed_gpr{global_reg_stats.lac[+CPU_REG_KIND::GPR],      //
-                                 global_reg_stats.not_lac[+CPU_REG_KIND::GPR],  //
-                                 local_reg_stats.lac[+CPU_REG_KIND::GPR],       //
-                                 local_reg_stats.not_lac[+CPU_REG_KIND::GPR]};
+    const FunRegStats needed_gpr{
+        global_reg_stats.lac[+CPU_REG_KIND::GPR],      //
+        global_reg_stats.not_lac[+CPU_REG_KIND::GPR],  //
+        local_reg_stats.lac[+CPU_REG_KIND::GPR],       //
+        local_reg_stats.not_lac[+CPU_REG_KIND::GPR]};
 
     //*fout << "@@ GPR NEEDED " << needed_gpr.global_lac << " "
     //      << needed_gpr.global_not_lac << " " << needed_gpr.local_lac << " "
@@ -411,18 +418,20 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     // const RegPools pools_gpr = FunComputeArmRegPoolsGPR(needed_gpr);
     const auto [global_lac, global_not_lac] =
         GetRegPoolsForGlobals(needed_gpr, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
-                             GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, prealloc_gpr);
+                              GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, prealloc_gpr);
     //*fout << "@@ GPR POOL " << std::hex << global_lac << " " << global_not_lac
     //      << "\n";
 
     // handle is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     // handle not is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac & ~GPR_LAC_REGS_MASK,
                                   global_not_lac & GPR_LAC_REGS_MASK,
@@ -431,10 +440,12 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   {
     // FLT + DBL
     const FunRegStats needed_flt{
-        global_reg_stats.lac[+CPU_REG_KIND::FLT] + 2 * global_reg_stats.lac[+CPU_REG_KIND::DBL],
+        global_reg_stats.lac[+CPU_REG_KIND::FLT] +
+            2 * global_reg_stats.lac[+CPU_REG_KIND::DBL],
         global_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
             2 * global_reg_stats.not_lac[+CPU_REG_KIND::DBL],
-        local_reg_stats.lac[+CPU_REG_KIND::FLT] + 2 * local_reg_stats.lac[+CPU_REG_KIND::DBL],
+        local_reg_stats.lac[+CPU_REG_KIND::FLT] +
+            2 * local_reg_stats.lac[+CPU_REG_KIND::DBL],
         local_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
             2 * local_reg_stats.not_lac[+CPU_REG_KIND::DBL]};
 
@@ -442,13 +453,17 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
         GetRegPoolsForGlobals(needed_flt, FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                               FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, prealloc_flt);
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, true, DK_TO_CPU_REG_KIND_MAP, &regs);
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, true, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, false, DK_TO_CPU_REG_KIND_MAP, &regs);
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::DBL, false, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac, 0, &to_be_spilled);
   }

@@ -29,7 +29,7 @@
       beq div@w6 0 skip
 .bbl skip
     poparg base:A64
-    ld add:A64  base 0:U32
+    ld add:A64@x23  base@x22 0:U32
     ret
 
 

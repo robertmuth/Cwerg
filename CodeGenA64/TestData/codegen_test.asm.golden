@@ -76,11 +76,12 @@ PAT: reg:[U32 U32 INVALID]  imm:[INVALID IMM_SHIFTED_10_21_22 INVALID]
     subs_w_imm wzr w6 0x0
     b_eq expr:condbr19:skip
 
-INS: poparg base  [A64]
+INS: poparg base@x22  [A64]
     MATCH_IMPOSSIBLE
 
-INS: ld add base 0  [A64 A64 U32]
-    mismatches: 4
+INS: ld add@x23 base@x22 0  [A64 A64 U32]
+PAT: reg:[A64 A64 U32]  imm:[INVALID INVALID ZERO]
+    ldr_x_imm x23 x22 0
 
 INS: ret  []
     SPECIAL

@@ -20,7 +20,7 @@ _ZERO_OFFSET = ir.Const(o.DK.U32, 0)
 
 
 def _InsRewriteOutOfBoundsImmediates(
-        ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
+        ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
     if ins.opcode in isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING:
         return None
     inss = []
@@ -31,7 +31,11 @@ def _InsRewriteOutOfBoundsImmediates(
         return None
     for pos in range(o.MAX_OPERANDS):
         if mismatches & (1 << pos) != 0:
-            inss.append(lowering.InsEliminateImmediate(ins, pos, fun))
+            const_kind = ins.operands[pos].kind
+            if const_kind is o.DK.F32 or const_kind is o.DK.F64:
+                inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit, o.DK.A64, o.DK.U32)
+            else:
+                inss.append(lowering.InsEliminateImmediateViaMov(ins, pos, fun))
     if not inss:
         return None
     # assert len(inss) == 1, f"unexpected rewrites for {ins.opcode} {ins.operands} {len(inss)}"
@@ -39,8 +43,8 @@ def _InsRewriteOutOfBoundsImmediates(
     return inss
 
 
-def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates)
+def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
+    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
 
 
 def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
@@ -224,10 +228,9 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # A64 has not support for these addressing modes
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A64,
                                                    offset_kind=o.DK.S32)
-    # No floating point immediates
-    lowering.FunMoveImmediatesToMemory(fun, unit, o.DK.F32)
-    lowering.FunMoveImmediatesToMemory(fun, unit, o.DK.F64)
-    # also handles ld_mem from two transformations above
+
+    # we cannot load/store directly from mem so expand the instruction to simpler
+    # sequences
     lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
                                       offset_kind=o.DK.S32)
 
@@ -237,7 +240,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     # Handle most overflowing immediates.
     # This excludes immediates related to stack offsets which have not been determined yet
-    _FunRewriteOutOfBoundsImmediates(fun)
+    _FunRewriteOutOfBoundsImmediates(fun, unit)
     # hack: some of the code expansion templates need a scratch reg
     # we do not want to reserve registers for this globally, so instead
     # we inject some nop instructions that reserve a register that we
@@ -285,8 +288,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         print("#" * 60, file=fout)
         print(f"# GlobalRegAlloc {fun.name}", file=fout)
         print("#" * 60, file=fout)
-
-
 
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
 

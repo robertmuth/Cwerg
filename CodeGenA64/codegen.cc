@@ -197,7 +197,7 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
           EmitFunEpilog(ctx, &inss);
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
-          ASSERT(pat != nullptr, "");
+          ASSERT(pat != nullptr, "could not find matching pattern for " << ins << " in " << Name(fun));
           for (unsigned i = 0; i < pat->length; ++i) {
             inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
           }

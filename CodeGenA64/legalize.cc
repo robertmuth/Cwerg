@@ -28,9 +28,7 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::POPARG ||   // will be rewritten later
-         opc == OPC::PUSHARG ||  // ditto
-         opc == OPC::RET ||      // handled via special epilog code
+  return opc == OPC::RET ||      // handled via special epilog code
          opc == OPC::NOP1;       // pseudo instruction
 }
 
@@ -56,7 +54,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
+void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
@@ -69,7 +67,13 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, std::vector<Ins>* inss) {
                  "cannot match: " << ins);
           for (unsigned pos = 0; pos < a64::MAX_OPERANDS; ++pos) {
             if (mismatches & (1U << pos)) {
-              inss->push_back(InsEliminateImmediate(ins, pos, fun));
+              const DK kind = ConstKind(Const(InsOperand(ins, pos)));
+              if (kind == DK::F64 || kind == DK::F32) {
+                InsEliminateImmediateViaMem(ins, pos, fun, unit,
+                    DK::A64, DK::U32, inss);
+              } else {
+                InsEliminateImmediateViaMov(ins, pos, fun, inss);
+              }
               dirty = true;
             }
           }
@@ -229,12 +233,11 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunSetInOutCpuRegs(fun);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
-
+  FunPushargConversion(fun);
+  FunPopargConversion(fun);
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);
-  FunMoveImmediatesToMemory(fun, unit, DK::F32, DK::U32, &inss);
-  FunMoveImmediatesToMemory(fun, unit, DK::F64, DK::U32, &inss);
   FunEliminateMemLoadStore(fun, DK::A64, DK::S32, &inss);
 
   FunCanonicalize(fun);
@@ -242,7 +245,7 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   // COND_RRA instruction possibly with immediates.
   FunCfgExit(fun);
 
-  FunRewriteOutOfBoundsImmediates(fun, &inss);
+  FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
 
   FunAddNop1ForCodeSel(fun, &inss);
 }
@@ -297,8 +300,6 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
           << "############################################################\n";
   }
 
-  FunPushargConversion(fun);
-  FunPopargConversion(fun);
   //
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
