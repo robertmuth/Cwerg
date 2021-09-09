@@ -36,3 +36,12 @@ f280000a movk_x_imm x10 0x0 0
     IMM_5_20                            0x0        (0)
     SHIFT_21_22_TIMES_16                0          (0)
 
+6ee0fb39 fneg_2d v25 v25
+    VREG_0_4                            v25        (25)
+    VREG_5_9                            v25        (25)
+
+2ea41c20 bit_8b v0 v1 v4
+    VREG_0_4                            v0         (0)
+    VREG_5_9                            v1         (1)
+    VREG_16_20                          v4         (4)
+

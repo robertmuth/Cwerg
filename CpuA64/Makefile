@@ -6,7 +6,7 @@ $(info $(shell mkdir -p $(DIR)))
 
 TESTS = exit.asm hello.asm fib.asm
 
-TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a f2c0000a f280000a
+TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a f2c0000a f280000a 6ee0fb39 2ea41c20
 
 tests: tests_py tests_c
 	@echo "[OK CpuA64]"
@@ -19,6 +19,7 @@ tests_c: opcode_test_c $(DIR)/symbolize_parity $(DIR)/codegen_parity
 
 objdump_compat_test:
 	@echo "[$@]"
+	$(PYPY) ./opcode_test.py TestData/a64_test.vector.supported.dis
 	$(PYPY) ./opcode_test.py TestData/a64_test.regular.dis
 
 ############################################################

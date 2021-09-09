@@ -361,6 +361,14 @@ const Opcode OpcodeTable[] = {
  2, {OK::XREG_0_4, OK::SIMM_PCREL_5_23_29_30},
  
 },
+{"and_16b", 0xffe0fc00, 0x4e201c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"and_8b", 0xffe0fc00, 0x0e201c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"and_w_imm", 0xff800000, 0x12000000,
  3, {OK::WREG_0_4_SP, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
  STACK_OPS
@@ -469,6 +477,14 @@ const Opcode OpcodeTable[] = {
  4, {OK::XREG_0_4, OK::XREG_5_9, OK::IMM_16_21, OK::IMM_10_15},
  
 },
+{"bic_16b", 0xffe0fc00, 0x4e601c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"bic_8b", 0xffe0fc00, 0x0e601c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"bic_w_reg", 0xff200000, 0x0a200000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
  
@@ -484,6 +500,14 @@ const Opcode OpcodeTable[] = {
 {"bics_x_reg", 0xff200000, 0xea200000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
  SR_UPDATE
+},
+{"bit_16b", 0xffe0fc00, 0x6ea01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"bit_8b", 0xffe0fc00, 0x2ea01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
 },
 {"bl", 0xfc000000, 0x94000000,
  1, {OK::SIMM_PCREL_0_25},
@@ -1465,6 +1489,14 @@ const Opcode OpcodeTable[] = {
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
  
 },
+{"eor_16b", 0xffe0fc00, 0x6e201c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"eor_8b", 0xffe0fc00, 0x2e201c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"eor_w_imm", 0xff800000, 0x52000000,
  3, {OK::WREG_0_4_SP, OK::WREG_5_9, OK::IMM_10_15_16_22_W},
  STACK_OPS
@@ -1509,12 +1541,36 @@ const Opcode OpcodeTable[] = {
  2, {OK::SREG_0_4, OK::SREG_5_9},
  
 },
+{"fadd_2d", 0xffe0fc00, 0x4e60d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fadd_2s", 0xffe0fc00, 0x0e20d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fadd_4s", 0xffe0fc00, 0x4e20d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"fadd_d", 0xffe0fc00, 0x1e602800,
  3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
  
 },
 {"fadd_s", 0xffe0fc00, 0x1e202800,
  3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"faddp_2d", 0xffe0fc00, 0x6e60d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"faddp_2s", 0xffe0fc00, 0x2e20d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"faddp_4s", 0xffe0fc00, 0x6e20d400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
  
 },
 {"fccmp_d_cc", 0xffe0fc10, 0x1e603400,
@@ -2145,6 +2201,18 @@ const Opcode OpcodeTable[] = {
  4, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20, OK::SREG_10_14},
  
 },
+{"fmax_2d", 0xffe0fc00, 0x4e60f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmax_2s", 0xffe0fc00, 0x0e20f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmax_4s", 0xffe0fc00, 0x4e20f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"fmax_d", 0xffe0fc00, 0x1e604800,
  3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
  
@@ -2153,12 +2221,36 @@ const Opcode OpcodeTable[] = {
  3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
  
 },
+{"fmaxnm_2d", 0xffe0fc00, 0x4e60c400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmaxnm_2s", 0xffe0fc00, 0x0e20c400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmaxnm_4s", 0xffe0fc00, 0x4e20c400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"fmaxnm_d", 0xffe0fc00, 0x1e606800,
  3, {OK::DREG_0_4, OK::DREG_5_9, OK::DREG_16_20},
  
 },
 {"fmaxnm_s", 0xffe0fc00, 0x1e206800,
  3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fmaxp_2d", 0xffe0fc00, 0x6e60f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmaxp_2s", 0xffe0fc00, 0x2e20f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"fmaxp_4s", 0xffe0fc00, 0x6e20f400,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
  
 },
 {"fmin_d", 0xffe0fc00, 0x1e605800,
@@ -2223,6 +2315,18 @@ const Opcode OpcodeTable[] = {
 },
 {"fmul_s", 0xffe0fc00, 0x1e200800,
  3, {OK::SREG_0_4, OK::SREG_5_9, OK::SREG_16_20},
+ 
+},
+{"fneg_2d", 0xfffffc00, 0x6ee0f800,
+ 2, {OK::VREG_0_4, OK::VREG_5_9},
+ 
+},
+{"fneg_2s", 0xfffffc00, 0x2ea0f800,
+ 2, {OK::VREG_0_4, OK::VREG_5_9},
+ 
+},
+{"fneg_4s", 0xfffffc00, 0x6ea0f800,
+ 2, {OK::VREG_0_4, OK::VREG_5_9},
  
 },
 {"fneg_d", 0xfffffc00, 0x1e614000,
@@ -2853,12 +2957,28 @@ const Opcode OpcodeTable[] = {
  0, {},
  
 },
+{"orn_16b", 0xffe0fc00, 0x4ee01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"orn_8b", 0xffe0fc00, 0x0ee01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
 {"orn_w_reg", 0xff200000, 0x2a200000,
  5, {OK::WREG_0_4, OK::WREG_5_9, OK::WREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
  
 },
 {"orn_x_reg", 0xff200000, 0xaa200000,
  5, {OK::XREG_0_4, OK::XREG_5_9, OK::XREG_16_20, OK::SHIFT_22_23, OK::IMM_10_15},
+ 
+},
+{"orr_16b", 0xffe0fc00, 0x4ea01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
+ 
+},
+{"orr_8b", 0xffe0fc00, 0x0ea01c00,
+ 3, {OK::VREG_0_4, OK::VREG_5_9, OK::VREG_16_20},
  
 },
 {"orr_w_imm", 0xff800000, 0x32000000,
@@ -3385,7 +3505,8 @@ const OPC ClusteredOpcodeTable[] = {
   OPC::add_w_reg, OPC::add_w_reg_uxtb, OPC::add_w_reg_uxth, OPC::add_w_reg_uxtw, OPC::add_w_reg_uxtx, OPC::add_w_reg_sxtb, OPC::add_w_reg_sxth, OPC::add_w_reg_sxtw, OPC::add_w_reg_sxtx,
   // cluster 12  size:0,
   // cluster 13  size:0,
-  // cluster 14  size:0,
+  // cluster 14  size:7,
+  OPC::fadd_2s, OPC::fmaxnm_2s, OPC::fmax_2s, OPC::and_8b, OPC::bic_8b, OPC::orr_8b, OPC::orn_8b,
   // cluster 15  size:0,
   // cluster 16  size:1,
   OPC::adr,
@@ -3435,7 +3556,8 @@ const OPC ClusteredOpcodeTable[] = {
   OPC::fstp_s_imm_post, OPC::fldp_s_imm_post,
   // cluster 45  size:4,
   OPC::fstp_s_imm_pre, OPC::fstp_s_imm, OPC::fldp_s_imm_pre, OPC::fldp_s_imm,
-  // cluster 46  size:0,
+  // cluster 46  size:5,
+  OPC::fneg_2s, OPC::faddp_2s, OPC::fmaxp_2s, OPC::bit_8b, OPC::eor_8b,
   // cluster 47  size:0,
   // cluster 48  size:1,
   OPC::adr,
@@ -3483,7 +3605,8 @@ const OPC ClusteredOpcodeTable[] = {
   OPC::sub_w_reg, OPC::sub_w_reg_uxtb, OPC::sub_w_reg_uxth, OPC::sub_w_reg_uxtw, OPC::sub_w_reg_uxtx, OPC::sub_w_reg_sxtb, OPC::sub_w_reg_sxth, OPC::sub_w_reg_sxtw, OPC::sub_w_reg_sxtx,
   // cluster 76  size:0,
   // cluster 77  size:0,
-  // cluster 78  size:0,
+  // cluster 78  size:10,
+  OPC::fadd_4s, OPC::fmaxnm_4s, OPC::fmax_4s, OPC::fadd_2d, OPC::fmaxnm_2d, OPC::fmax_2d, OPC::and_16b, OPC::bic_16b, OPC::orr_16b, OPC::orn_16b,
   // cluster 79  size:0,
   // cluster 80  size:1,
   OPC::adr,
@@ -3527,7 +3650,8 @@ const OPC ClusteredOpcodeTable[] = {
   OPC::fstp_d_imm_post, OPC::fldp_d_imm_post,
   // cluster 109  size:4,
   OPC::fstp_d_imm_pre, OPC::fstp_d_imm, OPC::fldp_d_imm_pre, OPC::fldp_d_imm,
-  // cluster 110  size:0,
+  // cluster 110  size:8,
+  OPC::fneg_4s, OPC::faddp_4s, OPC::fmaxp_4s, OPC::fneg_2d, OPC::faddp_2d, OPC::fmaxp_2d, OPC::bit_16b, OPC::eor_16b,
   // cluster 111  size:0,
   // cluster 112  size:1,
   OPC::adr,
@@ -3754,248 +3878,248 @@ const int16_t OpcodeTableJumper[] = {
 17,
 17,
 17,
-17,
-17,
-18,
-19,
-21,
-23,
+24,
 24,
 25,
 26,
-27,
-27,
-27,
-62,
-64,
-64,
-64,
-202,
-210,
-210,
-210,
-210,
-210,
-210,
-210,
-210,
-210,
-212,
-216,
-218,
-227,
-229,
-233,
-233,
-233,
+28,
+30,
+31,
+32,
+33,
+34,
+34,
+34,
+69,
+71,
+71,
+71,
+209,
+217,
+217,
+217,
+217,
+217,
+217,
+217,
+217,
+217,
+219,
+223,
+225,
 234,
-235,
 236,
-237,
-238,
-239,
 240,
-241,
-261,
-265,
-294,
-294,
-314,
-318,
-318,
-318,
-318,
-318,
-318,
-318,
-318,
-318,
-318,
-318,
-324,
-324,
+245,
+245,
+246,
+247,
+248,
+249,
+250,
+251,
+252,
+253,
+273,
+277,
+306,
+306,
 326,
-335,
-335,
-335,
-335,
-335,
+330,
+330,
+330,
+330,
+330,
+330,
+330,
+330,
+330,
+330,
+330,
 336,
-337,
-339,
-340,
-354,
-354,
-354,
-354,
-354,
-354,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-388,
-389,
-391,
-393,
-402,
-404,
-408,
-408,
-408,
-409,
+336,
+338,
+347,
+347,
+347,
+357,
+357,
+358,
+359,
+361,
+362,
+376,
+376,
+376,
+376,
+376,
+376,
 410,
-412,
-412,
-412,
-412,
-412,
-412,
-432,
-436,
-465,
-465,
-475,
-477,
-483,
-483,
-483,
-483,
-483,
-483,
-483,
-483,
-483,
-483,
-489,
-489,
-491,
-500,
-500,
-500,
-500,
-500,
-501,
-502,
-504,
-506,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+410,
+411,
+413,
+415,
+424,
+426,
+430,
+438,
+438,
+439,
+440,
+442,
+442,
+442,
+442,
+442,
+442,
+462,
+466,
+495,
+495,
+505,
 507,
-508,
-509,
-510,
-510,
-510,
-545,
-553,
-553,
-553,
-579,
-579,
-579,
-579,
-579,
-579,
-579,
-579,
-579,
-579,
-581,
-585,
-587,
-596,
-598,
-602,
-602,
-602,
-603,
-604,
-605,
-606,
-607,
-608,
+513,
+513,
+513,
+513,
+513,
+513,
+513,
+513,
+513,
+513,
+519,
+519,
+521,
+530,
+530,
+530,
+530,
+530,
+531,
+532,
+534,
+536,
+537,
+538,
+539,
+540,
+540,
+540,
+575,
+583,
+583,
+583,
 609,
-610,
-625,
+609,
+609,
+609,
+609,
+609,
+609,
+609,
+609,
+609,
+611,
+615,
+617,
+626,
 628,
-657,
-657,
-667,
-669,
-669,
-669,
-669,
-669,
-669,
-669,
-669,
-669,
-669,
-669,
-675,
-675,
-677,
-686,
-686,
-686,
-686,
-686,
+632,
+632,
+632,
+633,
+634,
+635,
+636,
+637,
+638,
+639,
+640,
+655,
+658,
 687,
-688,
-690,
-691,
-694,
-704,
-708,
-708,
-708,
-708,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-743,
-745,
-754,
-754,
-754,
-754,
-754,
-755,
-756,
-758,
-758,
-758,
-758,
-758,
-758,
-768,
-770,
-799,
-799,
-809,
-811,
-811,
-811
+687,
+697,
+699,
+699,
+699,
+699,
+699,
+699,
+699,
+699,
+699,
+699,
+699,
+705,
+705,
+707,
+716,
+716,
+716,
+716,
+716,
+717,
+718,
+720,
+721,
+724,
+734,
+738,
+738,
+738,
+738,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+773,
+775,
+784,
+784,
+784,
+784,
+784,
+785,
+786,
+788,
+788,
+788,
+788,
+788,
+788,
+798,
+800,
+829,
+829,
+839,
+841,
+841,
+841
 };
 
 // Names for WREG_0_4
@@ -4046,6 +4170,13 @@ const char* NameMap_QREG_0_4[] = {
     "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
     "q16", "q17", "q18", "q19", "q20", "q21", "q22", "q23",
     "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31",
+};
+// Names for VREG_0_4
+const char* NameMap_VREG_0_4[] = {
+    "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+    "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15",
+    "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23",
+    "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
 };
 // Names for WREG_0_4_SP
 const char* NameMap_WREG_0_4_SP[] = {
@@ -4166,124 +4297,136 @@ const FieldInfo FieldInfoTable[] = {
   {  // QREG_16_20 = 28
     {{5, 16}}, NameMap_QREG_0_4,
     nullptr, nullptr, 5, FK::LIST, 1, 32},
-  {  // WREG_0_4_SP = 29
+  {  // VREG_0_4 = 29
+    {{5, 0}}, NameMap_VREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // VREG_5_9 = 30
+    {{5, 5}}, NameMap_VREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // VREG_10_14 = 31
+    {{5, 10}}, NameMap_VREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // VREG_16_20 = 32
+    {{5, 16}}, NameMap_VREG_0_4,
+    nullptr, nullptr, 5, FK::LIST, 1, 32},
+  {  // WREG_0_4_SP = 33
     {{5, 0}}, NameMap_WREG_0_4_SP,
     nullptr, nullptr, 5, FK::LIST, 1, 32},
-  {  // WREG_5_9_SP = 30
+  {  // WREG_5_9_SP = 34
     {{5, 5}}, NameMap_WREG_0_4_SP,
     nullptr, nullptr, 5, FK::LIST, 1, 32},
-  {  // XREG_0_4_SP = 31
+  {  // XREG_0_4_SP = 35
     {{5, 0}}, NameMap_XREG_0_4_SP,
     nullptr, nullptr, 5, FK::LIST, 1, 32},
-  {  // XREG_5_9_SP = 32
+  {  // XREG_5_9_SP = 36
     {{5, 5}}, NameMap_XREG_0_4_SP,
     nullptr, nullptr, 5, FK::LIST, 1, 32},
-  {  // SHIFT_22_23 = 33
+  {  // SHIFT_22_23 = 37
     {{2, 22}}, NameMap_SHIFT_22_23,
     nullptr, nullptr, 2, FK::LIST, 1, 4},
-  {  // SHIFT_22_23_NO_ROR = 34
+  {  // SHIFT_22_23_NO_ROR = 38
     {{2, 22}}, NameMap_SHIFT_22_23_NO_ROR,
     nullptr, nullptr, 2, FK::LIST, 1, 3},
-  {  // SHIFT_15_W = 35
+  {  // SHIFT_15_W = 39
     {{1, 15}}, NameMap_SHIFT_15_W,
     nullptr, nullptr, 1, FK::LIST, 1, 2},
-  {  // SHIFT_15_X = 36
+  {  // SHIFT_15_X = 40
     {{1, 15}}, NameMap_SHIFT_15_X,
     nullptr, nullptr, 1, FK::LIST, 1, 2},
-  {  // SIMM_PCREL_0_25 = 37
+  {  // SIMM_PCREL_0_25 = 41
     {{26, 0}}, nullptr,
     nullptr, nullptr, 26, FK::INT_SIGNED, 1, 0},
-  {  // SIMM_12_20 = 38
+  {  // SIMM_12_20 = 42
     {{9, 12}}, nullptr,
     nullptr, nullptr, 9, FK::INT_SIGNED, 1, 0},
-  {  // SIMM_15_21_TIMES_16 = 39
+  {  // SIMM_15_21_TIMES_16 = 43
     {{7, 15}}, nullptr,
     nullptr, nullptr, 7, FK::INT_SIGNED, 16, 0},
-  {  // SIMM_15_21_TIMES_4 = 40
+  {  // SIMM_15_21_TIMES_4 = 44
     {{7, 15}}, nullptr,
     nullptr, nullptr, 7, FK::INT_SIGNED, 4, 0},
-  {  // SIMM_15_21_TIMES_8 = 41
+  {  // SIMM_15_21_TIMES_8 = 45
     {{7, 15}}, nullptr,
     nullptr, nullptr, 7, FK::INT_SIGNED, 8, 0},
-  {  // SIMM_PCREL_5_18 = 42
+  {  // SIMM_PCREL_5_18 = 46
     {{14, 5}}, nullptr,
     nullptr, nullptr, 14, FK::INT_SIGNED, 1, 0},
-  {  // SIMM_PCREL_5_23 = 43
+  {  // SIMM_PCREL_5_23 = 47
     {{19, 5}}, nullptr,
     nullptr, nullptr, 19, FK::INT_SIGNED, 1, 0},
-  {  // SIMM_PCREL_5_23_29_30 = 44
+  {  // SIMM_PCREL_5_23_29_30 = 48
     {{19, 5}, {2, 29}}, nullptr,
     nullptr, nullptr, 21, FK::INT_SIGNED, 1, 0},
-  {  // IMM_10_12_LIMIT4 = 45
+  {  // IMM_10_12_LIMIT4 = 49
     {{3, 10}}, nullptr,
     nullptr, nullptr, 3, FK::INT, 1, 0},
-  {  // IMM_10_15 = 46
+  {  // IMM_10_15 = 50
     {{6, 10}}, nullptr,
     nullptr, nullptr, 6, FK::INT, 1, 0},
-  {  // IMM_10_15_16_22_W = 47
+  {  // IMM_10_15_16_22_W = 51
     {{13, 10}}, nullptr,
     Decode_10_15_16_22_W, Encode_10_15_16_22_W, 13, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // IMM_10_15_16_22_X = 48
+  {  // IMM_10_15_16_22_X = 52
     {{13, 10}}, nullptr,
     Decode_10_15_16_22_X, Encode_10_15_16_22_X, 13, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // IMM_10_21 = 49
+  {  // IMM_10_21 = 53
     {{12, 10}}, nullptr,
     nullptr, nullptr, 12, FK::INT, 1, 0},
-  {  // IMM_SHIFTED_10_21_22 = 50
+  {  // IMM_SHIFTED_10_21_22 = 54
     {{13, 10}}, nullptr,
     DecodeShifted_10_21_22, EncodeShifted_10_21_22, 13, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // IMM_10_21_TIMES_16 = 51
+  {  // IMM_10_21_TIMES_16 = 55
     {{12, 10}}, nullptr,
     nullptr, nullptr, 12, FK::INT, 16, 0},
-  {  // IMM_10_21_TIMES_2 = 52
+  {  // IMM_10_21_TIMES_2 = 56
     {{12, 10}}, nullptr,
     nullptr, nullptr, 12, FK::INT, 2, 0},
-  {  // IMM_10_21_TIMES_4 = 53
+  {  // IMM_10_21_TIMES_4 = 57
     {{12, 10}}, nullptr,
     nullptr, nullptr, 12, FK::INT, 4, 0},
-  {  // IMM_10_21_TIMES_8 = 54
+  {  // IMM_10_21_TIMES_8 = 58
     {{12, 10}}, nullptr,
     nullptr, nullptr, 12, FK::INT, 8, 0},
-  {  // IMM_12_MAYBE_SHIFT_0 = 55
+  {  // IMM_12_MAYBE_SHIFT_0 = 59
     {{1, 12}}, nullptr,
     nullptr, nullptr, 1, FK::INT, 0, 0},
-  {  // IMM_12_MAYBE_SHIFT_1 = 56
+  {  // IMM_12_MAYBE_SHIFT_1 = 60
     {{1, 12}}, nullptr,
     nullptr, nullptr, 1, FK::INT, 1, 0},
-  {  // IMM_12_MAYBE_SHIFT_2 = 57
+  {  // IMM_12_MAYBE_SHIFT_2 = 61
     {{1, 12}}, nullptr,
     nullptr, nullptr, 1, FK::INT, 2, 0},
-  {  // IMM_12_MAYBE_SHIFT_3 = 58
+  {  // IMM_12_MAYBE_SHIFT_3 = 62
     {{1, 12}}, nullptr,
     nullptr, nullptr, 1, FK::INT, 3, 0},
-  {  // IMM_12_MAYBE_SHIFT_4 = 59
+  {  // IMM_12_MAYBE_SHIFT_4 = 63
     {{1, 12}}, nullptr,
     nullptr, nullptr, 1, FK::INT, 4, 0},
-  {  // IMM_16_20 = 60
+  {  // IMM_16_20 = 64
     {{5, 16}}, nullptr,
     nullptr, nullptr, 5, FK::INT_HEX, 1, 0},
-  {  // IMM_16_21 = 61
+  {  // IMM_16_21 = 65
     {{6, 16}}, nullptr,
     nullptr, nullptr, 6, FK::INT, 1, 0},
-  {  // IMM_19_23_31 = 62
+  {  // IMM_19_23_31 = 66
     {{1, 31}, {5, 19}}, nullptr,
     nullptr, nullptr, 6, FK::INT, 1, 0},
-  {  // IMM_5_20 = 63
+  {  // IMM_5_20 = 67
     {{16, 5}}, nullptr,
     nullptr, nullptr, 16, FK::INT_HEX, 1, 0},
-  {  // IMM_COND_0_3 = 64
+  {  // IMM_COND_0_3 = 68
     {{4, 0}}, nullptr,
     nullptr, nullptr, 4, FK::INT_HEX, 1, 0},
-  {  // IMM_FLT_ZERO = 65
+  {  // IMM_FLT_ZERO = 69
     {}, nullptr,
     DecodeFltZero, EncodeFltZero, 0, FK::FLT_CUSTOM, 1, 0},
-  {  // IMM_SHIFTED_5_20_21_22 = 66
+  {  // IMM_SHIFTED_5_20_21_22 = 70
     {{18, 5}}, nullptr,
     DecodeShifted_5_20_21_22, EncodeShifted_5_20_21_22, 18, FK::INT_HEX_CUSTOM, 1, 0},
-  {  // SHIFT_21_22_TIMES_16 = 67
+  {  // SHIFT_21_22_TIMES_16 = 71
     {{2, 21}}, nullptr,
     nullptr, nullptr, 2, FK::INT, 16, 0},
-  {  // IMM_FLT_13_20 = 68
+  {  // IMM_FLT_13_20 = 72
     {{8, 13}}, nullptr,
     Decode8BitFlt, Encode8BitFlt, 8, FK::FLT_CUSTOM, 1, 0},
 };
@@ -4300,11 +4443,11 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::ccmp_x_imm_vc, OPC::invalid, OPC::frintp_d,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::ccmp_w_reg_cc, OPC::invalid, OPC::ldp_w_imm_post, OPC::invalid,
-   OPC::sub_w_reg_uxtb, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::sub_w_reg_uxtb, OPC::invalid, OPC::fmax_2d, OPC::invalid,
    OPC::sub_x_imm, OPC::ccmp_x_imm_vs, OPC::sub_w_reg_uxth, OPC::frintp_s,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::ccmp_w_reg_cs, OPC::invalid, OPC::fmin_d, OPC::invalid,
-   OPC::invalid, OPC::fcvtnu_x_d, OPC::invalid, OPC::scvtf_d_from_w,
+   OPC::invalid, OPC::fmax_2s, OPC::fcvtnu_x_d, OPC::scvtf_d_from_w,
    OPC::scvtf_d_from_x, OPC::sub_w_reg_uxtw, OPC::sub_w_reg_uxtx, OPC::ccmn_w_imm_pl,
    OPC::csinv_x_pl, OPC::ldp_w_imm, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::fmin_s, OPC::invalid, OPC::invalid,
@@ -4313,14 +4456,14 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::frinta_d, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::ccmn_w_reg_vc, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::adds_w_reg_uxtb, OPC::invalid,
-   OPC::invalid, OPC::fstp_q_imm_post, OPC::invalid, OPC::frinta_s,
+   OPC::invalid, OPC::fstp_q_imm_post, OPC::fneg_2d, OPC::frinta_s,
    OPC::adds_w_reg_uxth, OPC::invalid, OPC::invalid, OPC::ands_x_reg,
    OPC::b_vc, OPC::dsb_ish, OPC::ccmn_w_reg_vs, OPC::eor_w_imm,
    OPC::fcmpe_s_zero, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::adds_w_reg_uxtw,
+   OPC::invalid, OPC::fneg_2s, OPC::invalid, OPC::adds_w_reg_uxtw,
    OPC::adds_w_reg_uxtx, OPC::invalid, OPC::invalid, OPC::b_vs,
    OPC::umulh, OPC::ccmp_w_reg_eq, OPC::fldr_s_reg_w, OPC::fldr_s_reg_x,
-   OPC::invalid, OPC::fcvtps_x_d, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::fcvtps_x_d, OPC::invalid, OPC::fmax_4s,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::fldr_h_imm_pre, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::ldrsh_x_imm_pre, OPC::lsrv_w, OPC::sub_x_reg_sxtb,
@@ -4333,15 +4476,15 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::rev32, OPC::subs_w_reg_uxth, OPC::fccmp_s_vc, OPC::ldur_b_imm,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::csinc_w_vc,
    OPC::invalid, OPC::invalid, OPC::ccmp_w_reg_ge, OPC::invalid,
-   OPC::fccmp_s_vs, OPC::invalid, OPC::invalid, OPC::fstur_q_imm,
-   OPC::subs_w_reg_uxtw, OPC::subs_w_reg_uxtx, OPC::invalid, OPC::invalid,
+   OPC::fccmp_s_vs, OPC::invalid, OPC::invalid, OPC::fneg_4s,
+   OPC::subs_w_reg_uxtw, OPC::subs_w_reg_uxtx, OPC::fstur_q_imm, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::csinc_w_vs,
-   OPC::fldur_q_imm, OPC::adds_x_reg_sxtb, OPC::ccmp_w_reg_gt, OPC::invalid,
+   OPC::fldur_q_imm, OPC::adds_x_reg_sxtb, OPC::fmaxp_2d, OPC::ccmp_w_reg_gt,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::adds_x_reg_sxth,
    OPC::invalid, OPC::invalid, OPC::ldp_x_imm, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::isb,
-   OPC::adc_w, OPC::adc_x, OPC::ccmp_w_imm_cc, OPC::csneg_w_vc,
-   OPC::fabs_d, OPC::invalid, OPC::adds_x_reg_sxtw, OPC::adds_x_reg_sxtx,
+   OPC::adc_w, OPC::fmaxp_2s, OPC::adc_x, OPC::ccmp_w_imm_cc,
+   OPC::csneg_w_vc, OPC::fabs_d, OPC::adds_x_reg_sxtw, OPC::adds_x_reg_sxtx,
    OPC::adrp, OPC::ccmp_w_reg_hi, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::csneg_w_vs,
    OPC::fabs_s, OPC::ldp_sw_imm_post, OPC::ccmp_w_imm_cs, OPC::invalid,
@@ -4356,8 +4499,8 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::csinv_x_vc, OPC::fldr_d_imm_post, OPC::invalid, OPC::ldrsb_x_imm_pre,
    OPC::subs_x_reg_sxth, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::fabd_s, OPC::fldp_s_imm_pre, OPC::ccmn_w_imm_vs, OPC::str_w_reg_w,
-   OPC::str_w_reg_x, OPC::csinv_x_vs, OPC::invalid, OPC::subs_x_reg_sxtw,
+   OPC::fabd_s, OPC::fldp_s_imm_pre, OPC::ccmn_w_imm_vs, OPC::fmaxp_4s,
+   OPC::str_w_reg_w, OPC::str_w_reg_x, OPC::csinv_x_vs, OPC::subs_x_reg_sxtw,
    OPC::subs_x_reg_sxtx, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::orr_w_imm, OPC::invalid, OPC::invalid, OPC::sbc_w,
    OPC::sbc_x, OPC::ccmp_w_imm_eq, OPC::fstr_h_imm_pre, OPC::invalid,
@@ -4382,7 +4525,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::add_w_reg, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::scvtf_s_from_w, OPC::scvtf_s_from_x,
    OPC::fneg_d, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::orn_8b, OPC::invalid, OPC::invalid,
    OPC::ccmp_w_reg_mi, OPC::ccmp_w_imm_hi, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::subs_w_reg, OPC::invalid, OPC::adds_x_reg_uxtb,
    OPC::fneg_s, OPC::fcvtpu_x_d, OPC::invalid, OPC::invalid,
@@ -4411,7 +4554,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::ccmp_w_reg_pl, OPC::invalid,
    OPC::csel_x_cs, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::add_x_reg, OPC::invalid,
+   OPC::and_16b, OPC::invalid, OPC::add_x_reg, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::fldr_s_imm_post, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
@@ -4453,11 +4596,11 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::fcvtzs_w_d, OPC::invalid,
    OPC::fcsel_d_ge, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::fadd_2d, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::fstp_d_imm_pre, OPC::fcvtzs_w_s, OPC::fcsel_d_gt,
    OPC::invalid, OPC::csinc_x_cc, OPC::invalid, OPC::ccmp_w_reg_vc,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::eon_w_reg, OPC::fstp_s_imm_post,
+   OPC::fadd_2s, OPC::invalid, OPC::eon_w_reg, OPC::fstp_s_imm_post,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::csinc_x_cs, OPC::invalid, OPC::ands_w_imm,
    OPC::ccmp_w_reg_vs, OPC::frintz_d, OPC::fcsel_d_hi, OPC::invalid,
@@ -4471,17 +4614,17 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::ubfm_w, OPC::ubfm_x, OPC::fcvtas_w_d,
    OPC::invalid, OPC::invalid, OPC::movz_x_imm, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::csinv_w_hi, OPC::ccmn_x_reg_cs,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::and_8b, OPC::invalid, OPC::invalid,
    OPC::fcvtas_w_s, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::stp_w_imm_pre, OPC::cbz_w,
-   OPC::cbz_x, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::invalid, OPC::stp_w_imm_pre, OPC::fadd_4s,
+   OPC::cbz_w, OPC::cbz_x, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::ldr_h_reg_w, OPC::ldr_h_reg_x, OPC::csinc_x_eq,
    OPC::brk, OPC::ldr_w_imm_post, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::dsb_ishld, OPC::fcvtns_w_d, OPC::csel_x_le,
-   OPC::fnmsub_d, OPC::ldrsb_x_imm, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::movk_w_imm, OPC::invalid,
+   OPC::invalid, OPC::orr_8b, OPC::dsb_ishld, OPC::csel_x_le,
+   OPC::fnmsub_d, OPC::ldrsb_x_imm, OPC::fcvtns_w_d, OPC::invalid,
+   OPC::invalid, OPC::invalid, OPC::movk_w_imm, OPC::bic_16b,
    OPC::invalid, OPC::invalid, OPC::fstr_h_reg_w, OPC::fstr_h_reg_x,
    OPC::invalid, OPC::csneg_x_eq, OPC::csel_x_ls, OPC::tbnz,
    OPC::csel_x_lt, OPC::fnmsub_s, OPC::fcvtns_w_s, OPC::invalid,
@@ -4492,7 +4635,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::csel_x_mi, OPC::invalid, OPC::invalid, OPC::eon_x_reg,
    OPC::fstr_q_imm_post, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::ands_x_imm, OPC::fcsel_d_le, OPC::csinc_x_gt, OPC::invalid,
+   OPC::eor_8b, OPC::ands_x_imm, OPC::csinc_x_gt, OPC::fcsel_d_le,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::stur_w_imm,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::ldr_b_imm_post,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::fcsel_d_ls,
@@ -4518,7 +4661,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::fcvtzu_w_d, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::fstp_d_imm,
    OPC::fldr_s_imm_pre, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::fcvtzu_w_s,
+   OPC::bit_16b, OPC::invalid, OPC::invalid, OPC::fcvtzu_w_s,
    OPC::csinv_w_ne, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::adcs_w, OPC::adcs_x,
    OPC::fstr_q_imm, OPC::stp_w_imm_post, OPC::invalid, OPC::invalid,
@@ -4546,7 +4689,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::fcvtnu_w_d, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::ldrsw_imm_post, OPC::ccmn_x_reg_ls, OPC::ccmn_x_reg_lt, OPC::ccmn_x_imm_gt,
-   OPC::fcsel_s_eq, OPC::invalid, OPC::csinc_x_ne, OPC::invalid,
+   OPC::orn_16b, OPC::fcsel_s_eq, OPC::csinc_x_ne, OPC::invalid,
    OPC::invalid, OPC::csneg_x_mi, OPC::invalid, OPC::add_w_reg_uxtb,
    OPC::fcvtnu_w_s, OPC::ldr_x_imm_post, OPC::invalid, OPC::fstr_b_imm,
    OPC::invalid, OPC::add_w_reg_uxth, OPC::invalid, OPC::invalid,
@@ -4582,8 +4725,8 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::fccmp_d_cs, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::ccmn_x_imm_le,
-   OPC::bfm_w, OPC::bfm_x, OPC::invalid, OPC::invalid,
+   OPC::bic_8b, OPC::invalid, OPC::invalid, OPC::ccmn_x_imm_le,
+   OPC::bfm_w, OPC::bfm_x, OPC::invalid, OPC::eor_16b,
    OPC::invalid, OPC::invalid, OPC::csinv_w_vc, OPC::invalid,
    OPC::fstr_s_imm, OPC::fcmgt_d, OPC::invalid, OPC::dmb_ish,
    OPC::invalid, OPC::ccmn_x_imm_ls, OPC::ccmn_x_imm_lt, OPC::invalid,
@@ -4619,11 +4762,11 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::csinc_x_vs, OPC::invalid, OPC::fcsel_s_ne, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::ccmn_x_imm_pl, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::fccmp_d_hi, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::fmaxnm_2d, OPC::fccmp_d_hi, OPC::invalid,
    OPC::add_x_reg_uxtb, OPC::csneg_x_vc, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::ldursb_w_imm, OPC::add_x_reg_uxth, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::fcmp_d, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::str_b_reg_w, OPC::str_b_reg_x,
+   OPC::fmaxnm_2s, OPC::invalid, OPC::str_b_reg_w, OPC::str_b_reg_x,
    OPC::csneg_x_vs, OPC::ccmn_x_reg_vc, OPC::fcvtpu_w_d, OPC::invalid,
    OPC::invalid, OPC::add_x_reg_uxtw, OPC::add_x_reg_uxtx, OPC::invalid,
    OPC::invalid, OPC::fcmp_s, OPC::invalid, OPC::invalid,
@@ -4639,7 +4782,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::clrex, OPC::invalid, OPC::invalid, OPC::csel_w_cc,
    OPC::invalid, OPC::ldar_b, OPC::invalid, OPC::invalid,
    OPC::str_h_imm_post, OPC::invalid, OPC::invalid, OPC::ldar_h,
-   OPC::invalid, OPC::and_x_imm, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::and_x_imm, OPC::fmaxnm_4s, OPC::invalid,
    OPC::invalid, OPC::tbz, OPC::invalid, OPC::csel_w_cs,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::fldr_h_imm_post,
    OPC::invalid, OPC::invalid, OPC::ldar_w, OPC::ldar_x,
@@ -4675,7 +4818,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::ccmp_x_imm_eq, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::b_cs, OPC::csel_w_gt, OPC::invalid, OPC::fldp_s_imm,
-   OPC::invalid, OPC::invalid, OPC::fcvt_h_d, OPC::invalid,
+   OPC::orr_16b, OPC::invalid, OPC::fcvt_h_d, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::bic_w_reg, OPC::b,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
@@ -4738,7 +4881,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::fldr_b_imm, OPC::ldr_x_reg_w, OPC::ldr_x_reg_x, OPC::fcmpe_d_zero,
    OPC::fldr_q_reg_w, OPC::fldr_q_reg_x, OPC::ccmp_x_imm_mi, OPC::invalid,
    OPC::invalid, OPC::fccmp_d_vs, OPC::ldrsh_w_imm, OPC::csneg_w_hi,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::bit_8b, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::fldp_q_imm_pre,
    OPC::invalid, OPC::invalid, OPC::fcvtas_x_d, OPC::invalid,
    OPC::invalid, OPC::ccmn_w_imm_ge, OPC::ccmn_w_reg_le, OPC::csinv_x_ge,
@@ -4769,11 +4912,11 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::invalid, OPC::invalid, OPC::smulh, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::ccmp_x_reg_vc, OPC::fccmp_s_mi, OPC::invalid, OPC::sub_w_reg_sxtw,
-   OPC::sub_w_reg_sxtx, OPC::invalid, OPC::invalid, OPC::ldrsh_x_imm,
+   OPC::sub_w_reg_sxtx, OPC::faddp_2d, OPC::invalid, OPC::ldrsh_x_imm,
    OPC::str_x_imm_post, OPC::csneg_w_le, OPC::invalid, OPC::invalid,
    OPC::ldrsh_w_imm_pre, OPC::csinc_w_mi, OPC::fldr_s_imm, OPC::invalid,
    OPC::ccmp_x_reg_vs, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::csneg_w_ls, OPC::csneg_w_lt, OPC::invalid,
+   OPC::faddp_2s, OPC::csneg_w_ls, OPC::csneg_w_lt, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::fccmp_s_ne, OPC::invalid,
    OPC::adds_w_reg_sxtb, OPC::ccmn_w_reg_pl, OPC::fcvtmu_x_d, OPC::invalid,
@@ -4789,7 +4932,7 @@ static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {
    OPC::ccmn_w_imm_ls, OPC::csneg_w_ne, OPC::ccmn_w_imm_lt, OPC::csinv_x_ls,
    OPC::csinv_x_lt, OPC::fcvtzu_x_d, OPC::invalid, OPC::fmax_s,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
-   OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
+   OPC::invalid, OPC::invalid, OPC::faddp_4s, OPC::invalid,
    OPC::invalid, OPC::invalid, OPC::invalid, OPC::invalid,
    OPC::fcvtzu_x_s, OPC::invalid, OPC::invalid, OPC::ccmn_w_imm_mi,
    OPC::csinv_x_mi, OPC::subs_w_reg_sxtb, OPC::invalid, OPC::invalid,
@@ -4845,46 +4988,50 @@ const char* const OK_ToStringMap[] = {
     "QREG_5_9", // 26
     "QREG_10_14", // 27
     "QREG_16_20", // 28
-    "WREG_0_4_SP", // 29
-    "WREG_5_9_SP", // 30
-    "XREG_0_4_SP", // 31
-    "XREG_5_9_SP", // 32
-    "SHIFT_22_23", // 33
-    "SHIFT_22_23_NO_ROR", // 34
-    "SHIFT_15_W", // 35
-    "SHIFT_15_X", // 36
-    "SIMM_PCREL_0_25", // 37
-    "SIMM_12_20", // 38
-    "SIMM_15_21_TIMES_16", // 39
-    "SIMM_15_21_TIMES_4", // 40
-    "SIMM_15_21_TIMES_8", // 41
-    "SIMM_PCREL_5_18", // 42
-    "SIMM_PCREL_5_23", // 43
-    "SIMM_PCREL_5_23_29_30", // 44
-    "IMM_10_12_LIMIT4", // 45
-    "IMM_10_15", // 46
-    "IMM_10_15_16_22_W", // 47
-    "IMM_10_15_16_22_X", // 48
-    "IMM_10_21", // 49
-    "IMM_SHIFTED_10_21_22", // 50
-    "IMM_10_21_TIMES_16", // 51
-    "IMM_10_21_TIMES_2", // 52
-    "IMM_10_21_TIMES_4", // 53
-    "IMM_10_21_TIMES_8", // 54
-    "IMM_12_MAYBE_SHIFT_0", // 55
-    "IMM_12_MAYBE_SHIFT_1", // 56
-    "IMM_12_MAYBE_SHIFT_2", // 57
-    "IMM_12_MAYBE_SHIFT_3", // 58
-    "IMM_12_MAYBE_SHIFT_4", // 59
-    "IMM_16_20", // 60
-    "IMM_16_21", // 61
-    "IMM_19_23_31", // 62
-    "IMM_5_20", // 63
-    "IMM_COND_0_3", // 64
-    "IMM_FLT_ZERO", // 65
-    "IMM_SHIFTED_5_20_21_22", // 66
-    "SHIFT_21_22_TIMES_16", // 67
-    "IMM_FLT_13_20", // 68
+    "VREG_0_4", // 29
+    "VREG_5_9", // 30
+    "VREG_10_14", // 31
+    "VREG_16_20", // 32
+    "WREG_0_4_SP", // 33
+    "WREG_5_9_SP", // 34
+    "XREG_0_4_SP", // 35
+    "XREG_5_9_SP", // 36
+    "SHIFT_22_23", // 37
+    "SHIFT_22_23_NO_ROR", // 38
+    "SHIFT_15_W", // 39
+    "SHIFT_15_X", // 40
+    "SIMM_PCREL_0_25", // 41
+    "SIMM_12_20", // 42
+    "SIMM_15_21_TIMES_16", // 43
+    "SIMM_15_21_TIMES_4", // 44
+    "SIMM_15_21_TIMES_8", // 45
+    "SIMM_PCREL_5_18", // 46
+    "SIMM_PCREL_5_23", // 47
+    "SIMM_PCREL_5_23_29_30", // 48
+    "IMM_10_12_LIMIT4", // 49
+    "IMM_10_15", // 50
+    "IMM_10_15_16_22_W", // 51
+    "IMM_10_15_16_22_X", // 52
+    "IMM_10_21", // 53
+    "IMM_SHIFTED_10_21_22", // 54
+    "IMM_10_21_TIMES_16", // 55
+    "IMM_10_21_TIMES_2", // 56
+    "IMM_10_21_TIMES_4", // 57
+    "IMM_10_21_TIMES_8", // 58
+    "IMM_12_MAYBE_SHIFT_0", // 59
+    "IMM_12_MAYBE_SHIFT_1", // 60
+    "IMM_12_MAYBE_SHIFT_2", // 61
+    "IMM_12_MAYBE_SHIFT_3", // 62
+    "IMM_12_MAYBE_SHIFT_4", // 63
+    "IMM_16_20", // 64
+    "IMM_16_21", // 65
+    "IMM_19_23_31", // 66
+    "IMM_5_20", // 67
+    "IMM_COND_0_3", // 68
+    "IMM_FLT_ZERO", // 69
+    "IMM_SHIFTED_5_20_21_22", // 70
+    "SHIFT_21_22_TIMES_16", // 71
+    "IMM_FLT_13_20", // 72
 };
 const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 

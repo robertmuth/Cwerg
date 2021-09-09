@@ -1,8 +1,6 @@
 /*
-    This test should be more or less identical to arm_test.py
-    except that it is written in C.
-    It checks that we can assemble and disassemble all the instructions
-    found in `arm_test.dis`
+    This test is NOT equivalent to opcode_test.py
+    It only checks the encoding of certain immediate fields.
 */
 
 #include "CpuA64/opcode_gen.h"

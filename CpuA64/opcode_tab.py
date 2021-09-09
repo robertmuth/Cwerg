@@ -299,54 +299,59 @@ class OK(enum.Enum):
     QREG_10_14 = 27
     QREG_16_20 = 28
 
-    WREG_0_4_SP = 29
-    WREG_5_9_SP = 30
+    VREG_0_4 = 29
+    VREG_5_9 = 30
+    VREG_10_14 = 31
+    VREG_16_20 = 32
 
-    XREG_0_4_SP = 31
-    XREG_5_9_SP = 32
+    WREG_0_4_SP = 33
+    WREG_5_9_SP = 34
+
+    XREG_0_4_SP = 35
+    XREG_5_9_SP = 36
 
     # shifts
-    SHIFT_22_23 = 33
-    SHIFT_22_23_NO_ROR = 34
-    SHIFT_15_W = 35
-    SHIFT_15_X = 36
+    SHIFT_22_23 = 37
+    SHIFT_22_23_NO_ROR = 38
+    SHIFT_15_W = 39
+    SHIFT_15_X = 40
 
     # signed immediate
-    SIMM_PCREL_0_25 = 37
-    SIMM_12_20 = 38
-    SIMM_15_21_TIMES_16 = 39
-    SIMM_15_21_TIMES_4 = 40
-    SIMM_15_21_TIMES_8 = 41
-    SIMM_PCREL_5_18 = 42
-    SIMM_PCREL_5_23 = 43
-    SIMM_PCREL_5_23_29_30 = 44
+    SIMM_PCREL_0_25 = 41
+    SIMM_12_20 = 42
+    SIMM_15_21_TIMES_16 = 43
+    SIMM_15_21_TIMES_4 = 44
+    SIMM_15_21_TIMES_8 = 45
+    SIMM_PCREL_5_18 = 46
+    SIMM_PCREL_5_23 = 47
+    SIMM_PCREL_5_23_29_30 = 48
 
     # unsigned immediate
-    IMM_10_12_LIMIT4 = 45
-    IMM_10_15 = 46
-    IMM_10_15_16_22_W = 47
-    IMM_10_15_16_22_X = 48
-    IMM_10_21 = 49
-    IMM_SHIFTED_10_21_22 = 50
-    IMM_10_21_TIMES_16 = 51
-    IMM_10_21_TIMES_2 = 52
-    IMM_10_21_TIMES_4 = 53
-    IMM_10_21_TIMES_8 = 54
-    IMM_12_MAYBE_SHIFT_0 = 55
-    IMM_12_MAYBE_SHIFT_1 = 56
-    IMM_12_MAYBE_SHIFT_2 = 57
-    IMM_12_MAYBE_SHIFT_3 = 58
-    IMM_12_MAYBE_SHIFT_4 = 59
-    IMM_16_20 = 60
-    IMM_16_21 = 61
-    IMM_19_23_31 = 62
-    IMM_5_20 = 63
-    IMM_COND_0_3 = 64
-    IMM_FLT_ZERO = 65
-    IMM_SHIFTED_5_20_21_22 = 66
-    SHIFT_21_22_TIMES_16 = 67
+    IMM_10_12_LIMIT4 = 49
+    IMM_10_15 = 50
+    IMM_10_15_16_22_W = 51
+    IMM_10_15_16_22_X = 52
+    IMM_10_21 = 53
+    IMM_SHIFTED_10_21_22 = 54
+    IMM_10_21_TIMES_16 = 55
+    IMM_10_21_TIMES_2 = 56
+    IMM_10_21_TIMES_4 = 57
+    IMM_10_21_TIMES_8 = 58
+    IMM_12_MAYBE_SHIFT_0 = 59
+    IMM_12_MAYBE_SHIFT_1 = 60
+    IMM_12_MAYBE_SHIFT_2 = 61
+    IMM_12_MAYBE_SHIFT_3 = 62
+    IMM_12_MAYBE_SHIFT_4 = 63
+    IMM_16_20 = 64
+    IMM_16_21 = 65
+    IMM_19_23_31 = 66
+    IMM_5_20 = 67
+    IMM_COND_0_3 = 68
+    IMM_FLT_ZERO = 69
+    IMM_SHIFTED_5_20_21_22 = 70
+    SHIFT_21_22_TIMES_16 = 71
     #
-    IMM_FLT_13_20 = 68
+    IMM_FLT_13_20 = 72
 
 
 ############################################################
@@ -393,6 +398,7 @@ REG_D = [f"d{i}" for i in range(32)]
 REG_B = [f"b{i}" for i in range(32)]
 REG_H = [f"h{i}" for i in range(32)]
 REG_Q = [f"q{i}" for i in range(32)]
+REG_V = [f"v{i}" for i in range(32)]
 
 # used for raw-decoding
 FIELD_DETAILS: Dict[OK, FieldInfo] = {
@@ -437,6 +443,11 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.QREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_Q),
     OK.QREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_Q),
     OK.QREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_Q),
+    #
+    OK.VREG_0_4: FieldInfo([(5, 0)], FK.LIST, names=REG_V),
+    OK.VREG_5_9: FieldInfo([(5, 5)], FK.LIST, names=REG_V),
+    OK.VREG_10_14: FieldInfo([(5, 10)], FK.LIST, names=REG_V),
+    OK.VREG_16_20: FieldInfo([(5, 16)], FK.LIST, names=REG_V),
     #
     OK.IMM_10_15_16_22_W: FieldInfo([(13, 10)], FK.INT_HEX_CUSTOM,
                                     decoder=Decode_10_15_16_22_W,
@@ -876,6 +887,40 @@ for ext, reg1, reg2, imm, bits in [
     Opcode("fldp", ext + "_imm", [bits, root011, (0xf, 5, 22)],
            [reg1, reg2, OK.XREG_5_9_SP, imm], OPC_FLAG.LOAD | OPC_FLAG.REG_PAIR)
 
+for ext, bits in [("2s", [(1, 0, 30), (1, 0, 22)]),
+                  ("4s", [(1, 1, 30), (1, 0, 22)]),
+                  ("2d", [(1, 1, 30), (1, 1, 22)])]:
+    Opcode("fneg", ext, [root011, (1, 0, 31), (1, 1, 29), (7, 5, 23), (0xfff, 0x83e, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9], OPC_FLAG(0))
+    #
+    Opcode("fadd", ext, [root011, (1, 0, 31), (1, 0, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x35, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("fmaxnm", ext, [root011, (1, 0, 31), (1, 0, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x31, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("fmax", ext, [root011, (1, 0, 31), (1, 0, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x3d, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    #
+    Opcode("faddp", ext, [root011, (1, 0, 31), (1, 1, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x35, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("fmaxp", ext, [root011, (1, 0, 31), (1, 1, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x3d, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+
+
+for ext, bits in [("8b", [(1, 0, 30),]),
+                  ("16b", [(1, 1, 30),])]:
+        Opcode("bit", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+        Opcode("eor", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+        #
+        Opcode("and", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+        Opcode("bic", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x13, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+        Opcode("orr", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+        Opcode("orn", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x17, 21), (0x3f, 0x7, 10)] + bits,
+               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
 ########################################
 root100 = (7, 4, 26)
 ########################################
@@ -1359,6 +1404,7 @@ def Patch(data: int, opcode: Opcode, pos: int, value: int):
     ops[pos] = value
     return opcode.AssembleOperands(ops)
 
+
 ############################################################
 # code below is only used if this file is run as an executable
 ############################################################
@@ -1516,7 +1562,7 @@ def _RenderNameMaps(fout):
             print(f"// Names for {ok.name}", file=fout)
             print(f"const char* {name}[] = {{", file=fout)
             for i in range(0, len(fd.names), 8):
-                chunk = [f'"{n}"' for n in fd.names[i:i +8]]
+                chunk = [f'"{n}"' for n in fd.names[i:i + 8]]
                 print(f"    {', '.join(chunk)},", file=fout)
             print("};", file=fout)
     return out

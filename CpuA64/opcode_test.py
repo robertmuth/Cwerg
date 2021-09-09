@@ -111,6 +111,9 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
 
         if op == op_actual:
             j += 1
+        elif opcode.fields[i] in {OK.VREG_0_4, OK.VREG_5_9, OK.VREG_10_14,
+                                  OK.VREG_16_20} and op_actual == f"{op}.{opcode.variant}":
+            j += 1
         elif opcode.fields[i] in {OK.SIMM_PCREL_0_25, OK.SIMM_PCREL_5_18,
                                   OK.SIMM_PCREL_5_23, OK.SIMM_PCREL_5_23_29_30}:
             j += 1
@@ -125,7 +128,7 @@ def OperandsMatch(opcode: Opcode, std_ops: List[str], objdump_ops: List[str]) ->
                 bits = 64 if opcode.fields[0] == OK.XREG_0_4 else 32
                 return int(op, 0) ^ v == (1 << bits) - 1
             if objdump_ops[j + 1] != "lsl":
-                print ("@@")
+                print("@@")
                 return False
             shift = int(objdump_ops[j + 2][1:], 0)
             if v << shift != int(op, 0):
