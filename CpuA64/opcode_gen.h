@@ -99,6 +99,7 @@ enum class OK : uint8_t {
     IMM_SHIFTED_5_20_21_22 = 70,
     SHIFT_21_22_TIMES_16 = 71,
     IMM_FLT_13_20 = 72,
+    IMM_BIT_EXPLODE_5_9_16_18 = 73,
 };
 
 enum class MEM_WIDTH : uint8_t {
@@ -835,6 +836,7 @@ enum class OPC : uint16_t {
     lsrv_x,
     madd_w,
     madd_x,
+    movi_2d,
     movk_w_imm,
     movk_x_imm,
     movn_w_imm,

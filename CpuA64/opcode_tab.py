@@ -175,6 +175,48 @@ def Encode_10_15_16_22_W(x: int) -> Optional[int]:
     return None
 
 
+# def Decode_SIMD_op0(cmode: int, imm: int) -> int:
+#     cmode3 = cmode >> 1
+#     if cmode3 <= 3:
+#         x = imm << (8 * cmode)
+#         return x | (x << 32)
+#     elif 4 <= cmode3 <= 5:
+#         x = imm if cmode3 == 4 else (imm << 8)
+#         x = x | (x << 16)
+#         return x | (x << 32)
+#     elif cmode3 == 6:
+#         if cmode & 1:
+#             x = (imm << 16) | 0xffff
+#         else:
+#              x = (imm << 8) | 0xff
+#         return x | (x << 32)
+#     elif cmode3 == 7:
+#         if cmode & 1:
+#            x =
+#     else:
+#         assert False
+
+def Decode_IMM_BIT_EXPLODE_5_9_16_18(imm: int) -> int:
+    out = 0
+    for i in range(8):
+        if imm & (1 << i):
+            out |= 0xff << (i * 8)
+    return out
+
+
+def Encode_IMM_BIT_EXPLODE_5_9_16_18(imm: int) -> Optional[int]:
+    out = 0
+    for i in range(8):
+        val = (imm >> (i * 8)) & 0xff
+        if val == 0:
+            pass
+        elif val == 0xff:
+            out |= 1 << i
+        else:
+            return None
+    return out
+
+
 def DecodeShifted_10_21_22(x: int) -> int:
     return (x & 0xfff) << (12 * (x >> 12))
 
@@ -352,6 +394,7 @@ class OK(enum.Enum):
     SHIFT_21_22_TIMES_16 = 71
     #
     IMM_FLT_13_20 = 72
+    IMM_BIT_EXPLODE_5_9_16_18 = 73
 
 
 ############################################################
@@ -505,6 +548,10 @@ FIELD_DETAILS: Dict[OK, FieldInfo] = {
     OK.SHIFT_15_W: FieldInfo([(1, 15)], FK.LIST, names=["uxtw", "sxtw"]),
     OK.SHIFT_15_X: FieldInfo([(1, 15)], FK.LIST, names=["lsl", "sxtx"]),
     OK.SHIFT_21_22_TIMES_16: FieldInfo([(2, 21)], FK.INT, scale=16),
+    OK.IMM_BIT_EXPLODE_5_9_16_18: FieldInfo([(3, 16), (5, 5)],
+                                            FK.INT_HEX_CUSTOM,
+                                            decoder=Decode_IMM_BIT_EXPLODE_5_9_16_18,
+                                            encoder=Encode_IMM_BIT_EXPLODE_5_9_16_18),
 }
 
 for ok in OK:
@@ -534,7 +581,7 @@ def EncodeOperand(ok: OK, val_orig: int) -> int:
         assert rest == 0 or rest + 1 == (1 << (64 - t.bitwidth + 1))
         val &= ((1 << t.bitwidth) - 1)
 
-    assert (val >> t.bitwidth) == 0, f"value out of bounds [{val_orig}] for {ok}"
+    assert (val >> t.bitwidth) == 0, f"value out of bounds [{val_orig}] for {ok}  width={t.bitwidth}"
     return val
 
 
@@ -905,22 +952,26 @@ for ext, bits in [("2s", [(1, 0, 30), (1, 0, 22)]),
     Opcode("fmaxp", ext, [root011, (1, 0, 31), (1, 1, 29), (7, 4, 23), (1, 1, 21), (0x3f, 0x3d, 10)] + bits,
            [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
 
+for ext, bits in [("8b", [(1, 0, 30), ]),
+                  ("16b", [(1, 1, 30), ])]:
+    Opcode("bit", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("eor", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    #
+    Opcode("and", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("bic", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x13, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("orr", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+    Opcode("orn", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x17, 21), (0x3f, 0x7, 10)] + bits,
+           [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
 
-for ext, bits in [("8b", [(1, 0, 30),]),
-                  ("16b", [(1, 1, 30),])]:
-        Opcode("bit", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
-        Opcode("eor", ext, [root011, (1, 0, 31), (1, 1, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
-        #
-        Opcode("and", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x11, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
-        Opcode("bic", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x13, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
-        Opcode("orr", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x15, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
-        Opcode("orn", ext, [root011, (1, 0, 31), (1, 0, 29), (0x1f, 0x17, 21), (0x3f, 0x7, 10)] + bits,
-               [OK.VREG_0_4, OK.VREG_5_9, OK.VREG_16_20], OPC_FLAG(0))
+Opcode("movi", "2d", [root011, (1, 0, 31), (1, 1, 30), (1, 1, 29), (0x7f, 0x60, 19),
+                      (0x3f, 0x39, 10)],
+       [OK.VREG_0_4, OK.IMM_BIT_EXPLODE_5_9_16_18], OPC_FLAG(0))
+
 ########################################
 root100 = (7, 4, 26)
 ########################################
