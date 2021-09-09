@@ -175,9 +175,9 @@ uint32_t Encode_10_15_16_22_W(uint64_t x) {
 
 uint64_t Decode_IMM_BIT_EXPLODE_5_9_16_18(uint32_t x) {
   uint64_t out = 0;
-  for (int i = 0; i < 8; ++i) {
+  for (uint64_t i = 0; i < 8; ++i) {
     if ((x & (1 << i)) != 0) {
-      out |= 0xff << (i * 8);
+      out |= 0xffULL << (i * 8);
     }
   }
   return out;
