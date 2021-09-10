@@ -88,7 +88,7 @@ void Process(std::istream* input) {
     FunFinalizeStackSlots(fun);
     std::string_view name(StrData(Name(fun)));
     if (name.find("gpr_scratch")) {
-      ctx.scratch_cpu_reg =  code_gen_a64::GPR64_REGS[0];
+      ctx.scratch_cpu_reg =  code_gen_a64::GPR64_REGS[8];
     }
     for (Bbl bbl : FunBblIter(fun)) {
       for (Ins ins : BblInsIter(bbl)) {

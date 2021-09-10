@@ -52,11 +52,14 @@ def Translate(fin):
     unit = serialize.UnitParseFromAsm(fin, cpu_regs=regs.CPU_REGS_MAP)
     for fun in unit.funs:
         ctx = regs.EmitContext(0, 0, 0)
-        if "gpr_scratch" in fun.name:
-            ctx.scratch_cpu_reg = ir.CPU_REG_INVALID
+        ctx.scratch_cpu_reg = ir.CPU_REG_INVALID
+
+        ctx.scratch_cpu_reg = ir.CPU_REG_INVALID
         fun.FinalizeStackSlots()
         for bbl in fun.bbls:
             for ins in bbl.inss:
+                if "gpr_scratch" in fun.name:
+                    ctx.scratch_cpu_reg = regs.CPU_REGS_MAP["x8"]
                 print()
                 HandleIns(ins, ctx)
 

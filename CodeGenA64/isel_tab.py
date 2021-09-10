@@ -87,6 +87,9 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.C64, "switch", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
+    elif opc is o.COPYSIGN:
+        scratch = fun.GetScratchReg(o.DK.U64, "copysign", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
 
@@ -201,10 +204,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in _RELOC_ARGS:
         return 0
     elif arg is PARAM.scratch_flt:
-        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}
+        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}
+        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
     elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])
@@ -287,7 +290,8 @@ class InsTmpl:
     """
 
     def __init__(self, opcode_name: str, args: List[Any]):
-        opcode = a64.Opcode.name_to_opcode[opcode_name]
+        opcode: a64.Opcode = a64.Opcode.name_to_opcode[opcode_name]
+        assert len(args) == len(opcode.fields), f"num arg mismacth for {opcode_name}"
         for op in args:
             assert isinstance(op, (int, PARAM, FIXARG)), (
                 f"unknown op {op} for {opcode.name} {args}")
@@ -597,14 +601,16 @@ def InitCondBra():
                     imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     # * we do not have a story for the unordered case
-    # * comparison against zero should be special cased
     for kind, a64_cmp in [(o.DK.F32, "fcmpe_s"), (o.DK.F64, "fcmpe_d")]:
         for opc, a64_bxx in [(o.BEQ, "b_eq"), (o.BNE, "b_ne"),
                              (o.BLT, "b_mi"), (o.BLE, "b_ls")]:
             Pattern(opc, [kind, kind, o.DK.INVALID],
                     [InsTmpl(a64_cmp, [PARAM.reg0, PARAM.reg1]),
                      InsTmpl(a64_bxx, [PARAM.bbl2])])
-
+            Pattern(opc, [kind, kind, o.DK.INVALID],
+                    [InsTmpl(a64_cmp + "_zero", [PARAM.reg0, 0]),
+                     InsTmpl(a64_bxx, [PARAM.bbl2])],
+                    imm_curb1=IMM_CURB.ZERO)
 
 def InitCmp():
     # TODO: cover the floating points ones
@@ -1030,6 +1036,12 @@ def InitConv():
     Pattern(o.CONV, [o.DK.S64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
+    Pattern(o.CONV, [o.DK.F64, o.DK.F32],
+            [InsTmpl("fcvt_d_s", [PARAM.reg0, PARAM.reg1])])
+
+    Pattern(o.CONV, [o.DK.F32, o.DK.F64],
+            [InsTmpl("fcvt_s_d", [PARAM.reg0, PARAM.reg1])])
+
 
 def InitMiscBra():
     Pattern(o.BRA, [o.DK.INVALID],
@@ -1077,6 +1089,18 @@ def InitVFP():
         Pattern(o.COPYSIGN, [kind] * 3,
                 [InsTmpl("fabs" + suffix, [PARAM.reg0, PARAM.reg1])],
                 imm_curb2=IMM_CURB.ZERO)
+
+    Pattern(o.COPYSIGN, [o.DK.F32] * 3,
+            [InsTmpl("fmov_w_from_s", [PARAM.scratch_gpr, PARAM.reg2]),
+             InsTmpl("fabs_s", [PARAM.reg0, PARAM.reg1]),
+             InsTmpl("tbz", [PARAM.scratch_gpr, 31, 0]),
+             InsTmpl("fneg_s", [PARAM.reg0, PARAM.reg0])])
+
+    Pattern(o.COPYSIGN, [o.DK.F64] * 3,
+            [InsTmpl("fmov_x_from_d", [PARAM.scratch_gpr, PARAM.reg2]),
+             InsTmpl("fabs_d", [PARAM.reg0, PARAM.reg1]),
+             InsTmpl("tbz", [PARAM.scratch_gpr, 63, 0]),
+             InsTmpl("fneg_d", [PARAM.reg0, PARAM.reg0])])
 
     for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
                                         (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),

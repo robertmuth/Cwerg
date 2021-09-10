@@ -85,3 +85,33 @@ PAT: reg:[A64 A64 U32]  imm:[INVALID INVALID ZERO]
 
 INS: ret  []
     SPECIAL
+
+INS: copysign flt@s1 flt@s1 0.0  [F32 F32 F32]
+PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID ZERO]
+    fabs_s s1 s1
+
+INS: copysign dbl@d2 dbl@d2 0.0  [F64 F64 F64]
+PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID ZERO]
+    fabs_d d2 d2
+
+INS: beq dbl@d2 0.0 skip  [F64 F64 _]
+PAT: reg:[F64 F64 INVALID]  imm:[INVALID ZERO INVALID]
+    fcmpe_d_zero d2 0
+    b_eq expr:condbr19:skip
+
+INS: copysign flt@s1 flt@s1 flt@s1  [F32 F32 F32]
+PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID INVALID]
+    fmov_w_from_s w8 s1
+    fabs_s s1 s1
+    tbz x8 31 0
+    fneg_s s1 s1
+
+INS: copysign dbl@d2 dbl@d2 dbl@d2  [F64 F64 F64]
+PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID INVALID]
+    fmov_x_from_d x8 d2
+    fabs_d d2 d2
+    tbz x8 63 0
+    fneg_d d2 d2
+
+INS: ret  []
+    SPECIAL
