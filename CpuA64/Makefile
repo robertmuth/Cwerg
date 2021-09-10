@@ -6,7 +6,7 @@ $(info $(shell mkdir -p $(DIR)))
 
 TESTS = exit.asm hello.asm fib.asm
 
-TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a f2c0000a f280000a 6ee0fb39 2ea41c20 6f02e6b0
+TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a f2c0000a f280000a 6ee0fb39 2ea41c20 6f02e6b0 1e602008
 
 tests: tests_py tests_c
 	@echo "[OK CpuA64]"

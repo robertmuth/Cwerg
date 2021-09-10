@@ -49,3 +49,7 @@ f280000a movk_x_imm x10 0x0 0
     VREG_0_4                            v16        (16)
     IMM_BIT_EXPLODE_5_9_16_18           0xff00ff00ff00ff (85)
 
+1e602008 fcmp_d_zero d0 0
+    DREG_5_9                            d0         (0)
+    IMM_FLT_ZERO                        0          (0)
+
