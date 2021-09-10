@@ -103,7 +103,7 @@ INS: copysign flt@s1 flt@s1 flt@s1  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID INVALID]
     fmov_w_from_s w8 s1
     fabs_s s1 s1
-    tbz x8 31 0
+    tbz x8 31 2
     fneg_s s1 s1
 
 INS: copysign dbl@d2 dbl@d2 dbl@d2  [F64 F64 F64]

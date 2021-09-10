@@ -238,7 +238,7 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::fmov_w_from_s, 0x3 },  // copysign [40]
   { {+PARAM::reg0, +PARAM::reg1},
     a64::OPC::fabs_s, 0x3 },  // copysign [41]
-  { {+PARAM::scratch_gpr, 31, 0},
+  { {+PARAM::scratch_gpr, 31, 2},
     a64::OPC::tbz, 0x1 },  // copysign [42]
   { {+PARAM::reg0, +PARAM::reg0},
     a64::OPC::fneg_s, 0x3 },  // copysign [43]

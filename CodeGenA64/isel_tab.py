@@ -1093,7 +1093,7 @@ def InitVFP():
     Pattern(o.COPYSIGN, [o.DK.F32] * 3,
             [InsTmpl("fmov_w_from_s", [PARAM.scratch_gpr, PARAM.reg2]),
              InsTmpl("fabs_s", [PARAM.reg0, PARAM.reg1]),
-             InsTmpl("tbz", [PARAM.scratch_gpr, 31, 0]),
+             InsTmpl("tbz", [PARAM.scratch_gpr, 31, 2]),
              InsTmpl("fneg_s", [PARAM.reg0, PARAM.reg0])])
 
     Pattern(o.COPYSIGN, [o.DK.F64] * 3,

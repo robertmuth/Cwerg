@@ -6,7 +6,8 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = reg_torture_f32.asm \
+TESTS = fp_op.asm \
+        reg_torture_f32.asm \
         reg_torture.asm \
         cmp.asm \
         fib.asm \
