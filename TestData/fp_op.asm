@@ -44,6 +44,27 @@
   .bbl ok
     ret
 
+.fun abs_f32 NORMAL [] = [S32 F32 F32]
+  .reg U32 [tmp]
+  .reg F32 [dst expected src]
+  .bbl prolog
+    poparg testno:S32
+    poparg expected
+    poparg src
+    copysign dst src 0.0
+    beq dst expected ok
+    pusharg testno
+    bsr print_d_ln
+    bitcast tmp expected
+    pusharg tmp
+    bsr print_x_ln
+    bitcast tmp dst
+    pusharg tmp
+    bsr print_x_ln
+    trap
+  .bbl ok
+    ret
+
 # ========================================
 .fun main NORMAL [S32] = []
   .bbl prolog
@@ -76,6 +97,16 @@
     pusharg 6.0:F32
     pusharg 203:S32
     bsr copysign_f32
+##########
+    pusharg -66.0:F32
+    pusharg 66.0:F32
+    pusharg 301:S32
+    bsr abs_f32
+
+    pusharg 66.0:F32
+    pusharg 66.0:F32
+    pusharg 302:S32
+    bsr abs_f32
 
     pusharg 666:S32
     bsr print_d_ln
