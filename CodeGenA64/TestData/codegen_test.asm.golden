@@ -94,6 +94,14 @@ INS: copysign dbl@d2 dbl@d2 0.0  [F64 F64 F64]
 PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID ZERO]
     fabs_d d2 d2
 
+INS: st.stk buffer 0 dbl@d2  [_ U32 F64]
+PAT: reg:[INVALID U32 F64]  imm:[INVALID pos_stk_combo_10_21_times_8 INVALID]
+    fstr_d_imm sp 0 d2
+
+INS: ld.stk flt@s1 buffer 0  [F32 _ U32]
+PAT: reg:[F32 INVALID U32]  imm:[INVALID INVALID pos_stk_combo_10_21_times_4]
+    fldr_s_imm s1 sp 0
+
 INS: beq dbl@d2 0.0 skip  [F64 F64 _]
 PAT: reg:[F64 F64 INVALID]  imm:[INVALID ZERO INVALID]
     fcmpe_d_zero d2 0

@@ -40,9 +40,12 @@
   .reg A64 [addr]
   .reg F32 [flt]
   .reg F64 [dbl]
+   .stk buffer 16 16
 .bbl start
      copysign flt@s1 flt@s1 0:F32   # abs
      copysign dbl@d2 dbl@d2 0:F64   # abs
+     st.stk buffer 0:U32 dbl
+     ld.stk flt buffer 0:U32
      beq dbl@d2 0.0 skip
      copysign flt@s1 flt@s1 flt@s1
      copysign dbl@d2 dbl@d2 dbl@d2

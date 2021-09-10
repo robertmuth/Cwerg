@@ -4761,16 +4761,16 @@ const Pattern kPatterns[] = {
   { {DK::INVALID, DK::U32, DK::F32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
     &kInsTemplates[1104], 1 },  // st.stk [770]
-  { {DK::INVALID, DK::S64, DK::F32},
+  { {DK::INVALID, DK::S64, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
     &kInsTemplates[1105], 1 },  // st.stk [771]
-  { {DK::INVALID, DK::U64, DK::F32},
+  { {DK::INVALID, DK::U64, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
     &kInsTemplates[1106], 1 },  // st.stk [772]
-  { {DK::INVALID, DK::S32, DK::F32},
+  { {DK::INVALID, DK::S32, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
     &kInsTemplates[1107], 1 },  // st.stk [773]
-  { {DK::INVALID, DK::U32, DK::F32},
+  { {DK::INVALID, DK::U32, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
     &kInsTemplates[1108], 1 },  // st.stk [774]
   { {DK::F32, DK::F32},
