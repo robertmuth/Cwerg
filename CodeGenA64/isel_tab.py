@@ -870,7 +870,7 @@ def InitStackLoad():
         (o.DK.U8, "ldr_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.F32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
-        (o.DK.F32, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
+        (o.DK.F64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
