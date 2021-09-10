@@ -16,7 +16,7 @@ tests: $(DIR)/parse_test $(TEST_64_EXES) $(TEST_32_EXES)
 
 $(DIR)/parse_test:
 	@echo "[$@]"
-	./parser.py TestData/hello.wasm > $@.out
+	./parser.py TestData/test.wasm > $@.out
 
 # not the "hello world 1 2 3" argument is only used by the echo.wasm benchmark
 $(DIR)/%.32.exe: TestData/%.wasm

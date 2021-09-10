@@ -29,23 +29,36 @@ Currently implemented are:
   attempts to help with that but it is adhoc and buggy)  
 * featuritis (e.g. upcoming support for exception handling)
 
+
+### Generating WASM/WASI executables
+
+#### Wasienv (wasmer)
+
+https://medium.com/wasmer/wasienv-wasi-development-workflow-for-humans-1811d9a50345
+
+provides: wasicc, wasic++, wasild in `/home/muth/.local/bin`
+
+
 ### References 
 
-https://mvolkmann.github.io/blog/webassembly/
+#### Meta
 
 https://github.com/mbasso/awesome-wasm
 
+#### Overview / Intro
+
+https://mvolkmann.github.io/blog/webassembly/
 
 https://rsms.me/wasm-intro
 
 
-Spec
+#### Spec
 
 https://github.com/WebAssembly/spec
 
 https://github.com/WebAssembly/design/blob/main/Semantics.md
 
-Runtime (WASI)
+#### Runtime (WASI)
 
 * https://github.com/bytecodealliance/wasmtime
 * wasi test suite https://github.com/caspervonb/wasi-test-suite

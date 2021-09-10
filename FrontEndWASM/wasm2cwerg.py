@@ -270,7 +270,6 @@ def HandleRotl(dst: ir.Reg, op1: ir.Reg, op2: ir.Reg, bbl: ir.Bbl):
     bbl.AddIns(ir.Ins(o.SHR, [op1, op1, op2]))  # here the unsigned requirement kicks in
     bbl.AddIns(ir.Ins(o.OR, [dst, dst, op1]))
 
-
 WASM_ALU_TO_CWERG = {
     "xor": o.XOR,
     "and": o.AND,
@@ -291,7 +290,7 @@ WASM_ALU_TO_CWERG = {
     "rem_s": o.REM,
     "rem_u": o.REM,
     #
-    # "copysign": o.ADD,
+    "copysign": o.COPYSIGN,
 }
 
 WASM_CONV_TO_CWERG = {
