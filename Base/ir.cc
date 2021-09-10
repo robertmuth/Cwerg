@@ -6,6 +6,8 @@
 #include "Util/parse.h"
 
 #include <cstring>
+#include <cmath>
+#include <iomanip>
 
 namespace cwerg::base {
 // =======================================
@@ -282,9 +284,15 @@ std::ostream& operator<<(std::ostream& os, Const num) {
     case DK_FLAVOR_U:
       os << ConstValueU(num);
       return os;
-    case DK_FLAVOR_F:
+    case DK_FLAVOR_F: {
+      double v = ConstValueF(num);
+      if (round(v) == v) {
+        // mimic python floating point redndering
+        os << std::fixed << std::setprecision(1);
+      }
       os << ConstValueF(num);
       return os;
+    }
     case DK_FLAVOR_A:
     case DK_FLAVOR_C:
     case DK_FLAVOR_S:

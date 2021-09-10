@@ -32,7 +32,7 @@ def RenderOperand(v: Any, tc: o.TC):
             s = str(v.value)
         else:
             s = str(v)
-        if s.startswith("inf"):
+        if s.startswith("inf") or s.startswith("nan"):
             s = "+" + s
         return s
     elif isinstance(v, ir.Jtb):

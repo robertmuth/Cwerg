@@ -501,38 +501,38 @@ void InsRenderToAsm(Ins ins, std::ostream* output) {
   *output << opcode.name;
   const unsigned num_ops = opcode.num_operands;
   for (unsigned i = 0; i < num_ops; ++i) {
-    const Handle ref = InsOperand(ins, i);
-    switch (ref.kind()) {
+    const Handle op = InsOperand(ins, i);
+    switch (op.kind()) {
       case RefKind::REG:
-        *output << " " << Name(Reg(ref));
-        if (!RegCpuReg(Reg(ref)).isnull()) {
-          *output << "@" << Name(RegCpuReg(Reg(ref)));
+        *output << " " << Name(Reg(op));
+        if (!RegCpuReg(Reg(op)).isnull()) {
+          *output << "@" << Name(RegCpuReg(Reg(op)));
         }
         break;
       case RefKind::CONST:
-        *output << " " << Const(ref);
+        *output << " " << Const(op);
         if (opcode.constraints[i] != TC::OFFSET &&
             opcode.constraints[i] != TC::SAME_AS_PREV) {
-          *output << ":" << EnumToString(ConstKind(Const(ref)));
+          *output << ":" << EnumToString(ConstKind(Const(op)));
         }
         break;
       case RefKind::BBL:
-        *output << " " << Name(Bbl(ref));
+        *output << " " << Name(Bbl(op));
         break;
       case RefKind::MEM:
-        *output << " " << Name(Mem(ref));
+        *output << " " << Name(Mem(op));
         break;
       case RefKind::FUN:
-        *output << " " << Name(Fun(ref));
+        *output << " " << Name(Fun(op));
         break;
       case RefKind::STK:
-        *output << " " << Name(Stk(ref));
+        *output << " " << Name(Stk(op));
         break;
       case RefKind::JTB:
-        *output << " " << Name(Jtb(ref));
+        *output << " " << Name(Jtb(op));
         break;
       default:
-        ASSERT(false, "unsupported operand kind " << int(ref.kind()));
+        ASSERT(false, "unsupported operand kind " << int(op.kind()));
         break;
     }
   }
