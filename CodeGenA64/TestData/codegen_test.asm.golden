@@ -1,4 +1,14 @@
 
+INS: mov $r10@x20 1311768467284833366  [S64 S64]
+PAT: reg:[S64 S64]  imm:[INVALID ANY]
+    movz_x_imm x20 0x3456
+    movk_x_imm x20 0x9012 16
+    movk_x_imm x20 0x5678 32
+    movk_x_imm x20 0x1234 48
+
+INS: and $r10@x20 $r10@x20 4294705151  [S64 S64 S64]
+    mismatches: 4
+
 INS: conv $r0_U32@w10 $r0_U8@w10  [U32 U8]
 PAT: reg:[U32 U8]  imm:[INVALID INVALID]
     and_x_imm x10 x10 0xff

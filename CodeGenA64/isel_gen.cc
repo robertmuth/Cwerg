@@ -2584,13 +2584,13 @@ const Pattern kPatterns[] = {
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[51], 1 },  // xor [44]
   { {DK::U64, DK::U64, DK::U64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[52], 1 },  // xor [45]
   { {DK::S64, DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[53], 1 },  // xor [46]
   { {DK::S64, DK::S64, DK::S64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[54], 1 },  // xor [47]
   { {DK::U32, DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
@@ -2608,13 +2608,13 @@ const Pattern kPatterns[] = {
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[59], 1 },  // and [52]
   { {DK::U64, DK::U64, DK::U64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[60], 1 },  // and [53]
   { {DK::S64, DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[61], 1 },  // and [54]
   { {DK::S64, DK::S64, DK::S64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[62], 1 },  // and [55]
   { {DK::U32, DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
@@ -2632,13 +2632,13 @@ const Pattern kPatterns[] = {
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[67], 1 },  // or [60]
   { {DK::U64, DK::U64, DK::U64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[68], 1 },  // or [61]
   { {DK::S64, DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
     &kInsTemplates[69], 1 },  // or [62]
   { {DK::S64, DK::S64, DK::S64},
-    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_W},
+    {IC::INVALID, IC::INVALID, IC::IMM_10_15_16_22_X},
     &kInsTemplates[70], 1 },  // or [63]
   { {DK::U32, DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},

@@ -63,9 +63,7 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
 }
 
 
-def ValueMatchesConstraint(constraint: IMM_CURB, val: int) -> bool:
-    assert a64.TryEncodeOperand(a64.OK.IMM_SHIFTED_10_21_22, 0x245c4) is None
-
+def ValueMatchesCurbs(constraint: IMM_CURB, val: int) -> bool:
     m = _NUM_MATCHERS[constraint]
     if isinstance(m, a64.OK):
         return a64.TryEncodeOperand(m, val) is not None
@@ -408,15 +406,15 @@ class Pattern:
                 would live in a register instead of being an immediate
         """
         out = 0
-        for pos, (imm_constr, op) in enumerate(zip(self.imm_curbs, ins.operands)):
+        for pos, (imm_curb, op) in enumerate(zip(self.imm_curbs, ins.operands)):
             if isinstance(op, ir.Const):
-                if imm_constr is IMM_CURB.INVALID:
+                if imm_curb is IMM_CURB.INVALID:
                     # have constant but need a reg (we know the op must be a reg because ow there would
                     #  not be a match at all
                     out |= 1 << pos
                     continue
                 val = op.value
-                if imm_constr in _IMM_KIND_STK:
+                if imm_curb in _IMM_KIND_STK:
                     stk = ins.operands[pos - 1]
                     if not isinstance(stk, ir.Stk):
                         return MATCH_IMPOSSIBLE
@@ -426,11 +424,11 @@ class Pattern:
                         continue
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
-                if not ValueMatchesConstraint(imm_constr, val):
+                if not ValueMatchesCurbs(imm_curb, val):
                     # have constant that does not fit
                     return MATCH_IMPOSSIBLE
             elif isinstance(op, ir.Reg):
-                if imm_constr is not IMM_CURB.INVALID:
+                if imm_curb is not IMM_CURB.INVALID:
                     # have a reg but need a const
                     return MATCH_IMPOSSIBLE
         return out
@@ -776,7 +774,7 @@ def InitAlu():
                              (o.OR, "orr_x_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
-                    imm_curb2=IMM_CURB.IMM_10_15_16_22_W)
+                    imm_curb2=IMM_CURB.IMM_10_15_16_22_X)
         for opc, a64_opc in [(o.SUB, "sub_x_imm"), (o.ADD, "add_x_imm")]:
             Pattern(opc, [kind1] * 3,
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
