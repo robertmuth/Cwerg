@@ -184,7 +184,7 @@ class FunArgState:
         if ins.opcode is o.POPARG:
             self.handle_poparg(ins, bbl, fun)
         else:
-            assert not self.pop_args, f"stray poparg in {fun.name}:{bbl.name}: {ins.operands}"
+            assert not self.pop_args, f"missing poparg in {fun.name}:{bbl.name}: {ins}"
 
         if ins.opcode is o.PUSHARG:
             self.handle_pusharg(ins, bbl, fun)

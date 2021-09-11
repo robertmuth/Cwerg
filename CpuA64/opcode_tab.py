@@ -573,6 +573,8 @@ def EncodeOperand(ok: OK, val_orig: int) -> int:
         val //= t.scale
     if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
         val = t.encoder(val)
+        # print (f"@@FINAL [{t.kind}] ({ok}) {val_orig} -> {val}")
+        assert val is not None, f"could not encode {val_orig:x} as {ok}"
     elif t.kind == FK.LIST:
         assert val < len(t.names)
     elif t.kind == FK.INT_SIGNED:
@@ -580,7 +582,8 @@ def EncodeOperand(ok: OK, val_orig: int) -> int:
         rest = val >> (t.bitwidth - 1)
         assert rest == 0 or rest + 1 == (1 << (64 - t.bitwidth + 1))
         val &= ((1 << t.bitwidth) - 1)
-
+    else:
+        assert t.kind in {FK.NONE, FK.INT, FK.INT_HEX}, f"unexpected kind {t.kind}"
     assert (val >> t.bitwidth) == 0, f"value out of bounds [{val_orig}] for {ok}  width={t.bitwidth}"
     return val
 
@@ -599,8 +602,10 @@ def TryEncodeOperand(ok: OK, val_orig: int) -> Optional[int]:
         if val % t.scale != 0:
             return None
         val //= t.scale
+
     if t.kind == FK.INT_HEX_CUSTOM or t.kind == FK.FLT_CUSTOM:
         val = t.encoder(val)
+        # print (f"@@TRIAL [{t.kind}] ({ok}) {val_orig} -> {val}")
         if val is None:
             return None
     elif t.kind == FK.LIST:
@@ -612,6 +617,8 @@ def TryEncodeOperand(ok: OK, val_orig: int) -> Optional[int]:
         if rest != 0 and rest + 1 != (1 << (64 - t.bitwidth + 1)):
             return None
         val &= ((1 << t.bitwidth) - 1)
+    else:
+        assert t.kind in {FK.NONE, FK.INT, FK.INT_HEX},  f"unexpected kind {t.kind}"
 
     if (val >> t.bitwidth) != 0:
         return None
