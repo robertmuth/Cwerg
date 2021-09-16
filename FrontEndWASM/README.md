@@ -36,7 +36,7 @@ Currently implemented are:
 
 https://medium.com/wasmer/wasienv-wasi-development-workflow-for-humans-1811d9a50345
 
-provides: wasicc, wasic++, wasild in `/home/muth/.local/bin`
+provides: wasicc, wasic++, wasild in `~/.local/bin`
 
 
 ### References 
