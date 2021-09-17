@@ -491,7 +491,7 @@ class Function:
     impl: typing.Union[Code, Import]
 
 
-def ExtractFunctions(sections) -> typing.List[Function]:
+def ExtractFunctions(sections, fun_name_map) -> typing.List[Function]:
     out: typing.List[Function] = []
     import_sec = sections.get(SECTION_ID.IMPORT)
     type_sec = sections.get(SECTION_ID.TYPE)
@@ -511,15 +511,39 @@ def ExtractFunctions(sections) -> typing.List[Function]:
     if function_sec:
         start_index = len(out)
         assert len(code_sec.items) == len(function_sec.items)
-        names = [f"$fun_{i + len(out)}" for i in  range(len(code_sec.items))]
+        names = [f"$fun_{i + len(out)}" for i in range(len(code_sec.items))]
+        for i in range(len(names)):
+            name = fun_name_map.get(i + start_index)
+            if name:
+                names[i] = "_" + name.replace("undefined:", "")
         export_sec = sections.get(SECTION_ID.EXPORT)
         if export_sec:
             for e in export_sec.items:
                 if isinstance(e.desc, FuncIdx):
                     names[int(e.desc) - start_index] = e.name
-        for n, (c, f) in enumerate(zip(code_sec.items, function_sec.items)):
-            out.append(Function(names[n], type_sec.items[int(f)] , c))
 
+        for n, (c, f) in enumerate(zip(code_sec.items, function_sec.items)):
+            out.append(Function(names[n], type_sec.items[int(f)], c))
+
+    return out
+
+
+def ExtractFunNames(r: typing.BinaryIO) -> typing.Dict[int, str]:
+    out = {}
+    while True:
+        map_id = r.read(1)
+        if not map_id:
+            break
+
+        raw = read_bytes(r)
+        content = io.BytesIO(raw)
+        if ord(map_id) != 1:
+            continue
+        count = read_leb128(content)
+        for i in range(count):
+            index = read_leb128(content)
+            name = read_string(content)
+            out[index] = name
     return out
 
 
@@ -527,6 +551,7 @@ def ExtractFunctions(sections) -> typing.List[Function]:
 class Module:
     version: typing.List[int]
     sections: typing.Dict[SECTION_ID, Section]
+    custom: typing.Dict
     functions: typing.List[Function]
 
     @classmethod
@@ -539,21 +564,29 @@ class Module:
         #    raise Exception(f'unknown binary version: {version}')
 
         sections: typing.Dict[SECTION_ID, Section] = {}
-
+        custom = {}
         while True:
             id_byte = r.read(1)
             if not id_byte:
                 break
             sec_id = SECTION_ID(ord(id_byte))
-            logging.debug(f"Reading section of type {sec_id.name}")
-            io_data = io.BytesIO(read_bytes(r))
+            raw = read_bytes(r)
+            io_data = io.BytesIO(raw)
+            logging.debug(f"Reading section of type {sec_id.name} size {len(raw)}")
             data = _sec_id_to_reader[sec_id](io_data)
-            sections[sec_id] = Section(sec_id, data)
+            if sec_id is SECTION_ID.CUSTOM:
+                assert isinstance(data, tuple)
+                custom[data[0]] = data[1]
+            else:
+                sections[sec_id] = Section(sec_id, data)
             # print (sections[sec_id])
             if io_data.read(1):
                 raise Exception(f'not all section data was consumed for {sec_id}')
 
-        return Module(version, sections, ExtractFunctions(sections))
+        fun_name_map = {}
+        if "name" in custom:
+            fun_name_map = ExtractFunNames(io.BytesIO(custom["name"]))
+        return Module(version, sections, custom, ExtractFunctions(sections, fun_name_map))
 
 
 if __name__ == '__main__':
@@ -568,6 +601,9 @@ if __name__ == '__main__':
             # make  some exceptions in for section types where this does not work
             for n, item in enumerate(sec.items):
                 print(f"{n} {item}")
-        print ("\nFunctions:")
+        for key, val in mod.custom.items():
+            print(f"CUSTOM: [{key}]")
+            print(val)
+        print("\nFunctions:")
         for n, f in enumerate(mod.functions):
-            print (f"{n}: [{f.name:30}] {type(f.impl).__name__:15}  {f.func_type}")
+            print(f"{n}: [{f.name:30}] {type(f.impl).__name__:15}  {f.func_type}")
