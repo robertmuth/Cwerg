@@ -37,6 +37,8 @@ WASI_FUNCTIONS = {
     "$wasi$fd_fdstat_set_flags",
     #
     "$wasi$path_open",
+    "$wasi$path_filestat_get",
+    "$wasi$path_unlink_file",
     #
     "$wasi$clock_time_get",
     #
@@ -471,7 +473,7 @@ def MakeBlock(no: int, opc, args, fun, op_stack: typing.List, mod: wasm.Module) 
             result_types = TranslateTypeList(block_type.rets)
             param_types = TranslateTypeList(block_type.args)
         for op, dk in zip(op_stack[-len(result_types):], result_types):
-            assert op.kind is dk
+            assert op.kind is dk, f"expected {dk} got {op.kind} in {fun.name}"
 
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
     return Block(opc, no, start_bbl, next_bbl, result_types, param_types, len(op_stack),

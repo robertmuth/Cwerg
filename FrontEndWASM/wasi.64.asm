@@ -356,6 +356,49 @@
    pusharg fd
    ret
 
+.mem __unimplemented_path_filestat_get 8 RW
+  .data 1 "path_filestat_get NYI\n\0"
+
+.fun $wasi$path_filestat_get NORMAL [S32] = [A64 S32 S32 S32 S32 S32]
+  .bbl prolog
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg flags:S32
+    poparg path_offset:S32
+    poparg path_size:S32
+    poparg buf_offset:S32
+
+    # TODO: unimplemented
+    lea.mem msg:A64 __unimplemented_path_filestat_get 0
+    pusharg msg
+    pusharg 2:S32
+    bsr write_s
+    poparg dummy:S64
+    trap
+    pusharg -1:S32
+    ret
+
+.mem __unimplemented_path_unlink_file 8 RW
+  .data 1 "path_unlink_file NYI\n\0"
+
+
+.fun $wasi$path_unlink_file NORMAL [S32] = [A64 S32 S32 S32]
+  .bbl prolog
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg path_offset:S32
+    poparg path_size:S32
+
+    # TODO: unimplemented
+    lea.mem msg:A64 __unimplemented_path_unlink_file 0
+    pusharg msg
+    pusharg 2:S32
+    bsr write_s
+    poparg dummy:S64
+    trap
+    pusharg -1:S32
+    ret
+
 # (mem-addr, status) ->
 .fun $wasi$proc_exit NORMAL [] = [A64 S32]
   .bbl %start
@@ -499,7 +542,7 @@
     ret
 
 .mem __unimplemented_fd_fdstat_set_flags 8 RW
-  .data 1 "fd_prestat_dir_name NYI\n\0"
+  .data 1 "fd_fdstat_set_flags NYI\n\0"
 
 .fun $wasi$fd_fdstat_set_flags NORMAL [S32] = [A64 S32 S32]
   .bbl prolog
