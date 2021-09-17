@@ -179,6 +179,14 @@ LOAD_TO_CWERG_TYPE = {
     "load32_s": o.DK.S32,
 }
 
+STORE_TO_CWERG_TYPE = {
+    "i32.store8": o.DK.U8,
+    "i64.store8": o.DK.U8,
+    "i32.store16": o.DK.U16,
+    "i64.store16": o.DK.S16,
+    "i64.store32": o.DK.U32,
+}
+
 WASM_TYPE_TO_CWERG_TYPE = {
     wasm.VAL_TYPE.I32: o.DK.S32,
     wasm.VAL_TYPE.I64: o.DK.S64,
@@ -575,14 +583,6 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             op_stack.append(dst)
         elif opc is wasm_opc.NOP:
             pass
-        elif opc.kind is wasm_opc.OPC_KIND.STORE:
-            val = op_stack.pop(-1)
-            offset = op_stack.pop(-1)
-            if args[1] != 0:
-                tmp = GetOpReg(fun, offset.kind, len(op_stack))
-                bbls[-1].AddIns(ir.Ins(o.ADD, [tmp, offset, ir.Const(offset.kind, args[1])]))
-                offset = tmp
-            bbls[-1].AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
         elif opc is wasm_opc.DROP:
             op_stack.pop(-1)
         elif opc is wasm_opc.LOCAL_GET:
@@ -798,6 +798,19 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                 op2 = tmp2
             bbls[-2].AddIns(ir.Ins(br, [op1, op2, bbls[-1]]))
             bbls[-2].AddIns(ir.Ins(o.MOV, [reg, val_f]))
+        elif opc.kind is wasm_opc.OPC_KIND.STORE:
+            val = op_stack.pop(-1)
+            offset = op_stack.pop(-1)
+            if args[1] != 0:
+                tmp = GetOpReg(fun, offset.kind, len(op_stack))
+                bbls[-1].AddIns(ir.Ins(o.ADD, [tmp, offset, ir.Const(offset.kind, args[1])]))
+                offset = tmp
+            dk_tmp = STORE_TO_CWERG_TYPE.get(opc.name)
+            if dk_tmp is not None:
+                tmp = GetOpReg(fun, dk_tmp, len(op_stack) + 1)
+                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp, val]))
+                val = tmp
+            bbls[-1].AddIns(ir.Ins(o.ST, [mem_base, offset, val]))
         elif opc.kind is wasm_opc.OPC_KIND.LOAD:
             offset = op_stack.pop(-1)
             if args[1] != 0:

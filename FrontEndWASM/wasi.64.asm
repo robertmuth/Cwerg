@@ -261,6 +261,7 @@
     pusharg dummy
     bsr $wasi$print_i64_ln
     ret
+
 ######################################################################
 # REAL WASI
 ######################################################################
@@ -374,10 +375,6 @@
     pusharg err
     ret
 
-.mem __unimplemented_fd_prestat_get 8 RW
-  .data 1 "fd_prestat_get NYI\n\0"
-
-
 # Terrible hack we hard-code 2 path
 # fd=3 -> "/"
 # fd=4 -> "./"
@@ -403,9 +400,6 @@
   .bbl bad
     pusharg 8:S32  # __WASI_ERRNO_BADF
     ret
-
-.mem __unimplemented_fd_prestat_dir_name 8 RW
-  .data 1 "fd_prestat_dir_name NYI\n\0"
 
 .fun $wasi$fd_prestat_dir_name NORMAL [S32] = [A64 S32 S32 S32]
   .bbl %start
@@ -504,6 +498,27 @@
     pusharg 0:S32
     ret
 
+.mem __unimplemented_fd_fdstat_set_flags 8 RW
+  .data 1 "fd_prestat_dir_name NYI\n\0"
+
+.fun $wasi$fd_fdstat_set_flags NORMAL [S32] = [A64 S32 S32]
+  .bbl prolog
+    poparg mem_base:A64
+    poparg fd:S32
+    poparg flags:S32
+    # TODO: unimplemented
+    lea.mem msg:A64 __unimplemented_fd_fdstat_set_flags 0
+    pusharg msg
+    pusharg 2:S32
+    bsr write_s
+    poparg dummy:S64
+    trap
+    pusharg -1:S32
+    ret
+
+.mem __unimplemented_fd_seek 8 RW
+  .data 1 "fd_seek NYI\n\0"
+
 .fun $wasi$fd_seek NORMAL [S32] = [A64 S32 S64 S32 S32]
   .bbl %start
     poparg mem_base:A64
@@ -512,6 +527,12 @@
     poparg whence:S32
     poparg result_offset:S32
     # TODO: unimplemented
+    lea.mem msg:A64 __unimplemented_fd_seek 0
+    pusharg msg
+    pusharg 2:S32
+    bsr write_s
+    poparg dummy:S64
+
     trap
     pusharg -1:S32
     ret
@@ -526,9 +547,7 @@
     poparg result_offset:S32
 
     lea array:A64 mem_base array_offset
-    lea result:A64 mem_base result_offset
-    mov count:S32 0:S32
-    mov errno:S32 0:S32
+    mov count:S64 0:S64
     bra check
 
   .bbl loop
@@ -542,15 +561,22 @@
     pusharg buf
     pusharg fd
     bsr read
-    poparg errno64:S64
-    blt errno64 0 epilog
-    conv errno errno64
+    poparg errno:S64
+    ble 0:S64 errno success
+    conv errno32:S32 errno
+    pusharg errno32
+    ret
+  .bbl success
     add count count errno
+    conv actual_len64:U64 errno
+    blt actual_len64 len64 epilog
   .bbl check
     blt 0:S32 array_size loop
   .bbl epilog
-    st result 0:U32 count
-    pusharg errno
+    conv count32:S32 count
+    lea result:A64 mem_base result_offset
+    st result 0:U32 count32
+    pusharg 0:S32
     ret
 
 .fun $wasi$fd_write NORMAL [S32] = [A64 S32 S32 S32 S32]
