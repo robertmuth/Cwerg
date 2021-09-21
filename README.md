@@ -14,7 +14,7 @@ The project is very much "work in progress" and  currently consists of:
 * RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
 * [C Frontend](FrontEndC/)  (supports a subset of C)
-* [WASM Frontend](FrontEndWASM/) (in development)
+* [WASM Frontend](FrontEndWASM/) (transpiler WASM to Cwerg)
 * [Elf Support Lib](Elf/)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/) ((dis-) assembler for ARM64 instructions)

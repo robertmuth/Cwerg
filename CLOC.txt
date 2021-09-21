@@ -5,11 +5,11 @@
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             42           1140            366           9231
-Python                          36           1831           1551           7200
+C++                             42           1140            367           9244
+Python                          36           1832           1551           7203
 C/C++ Header                    36            728            300           2537
 -------------------------------------------------------------------------------
-SUM:                           114           3699           2217          18968
+SUM:                           114           3700           2218          18984
 -------------------------------------------------------------------------------
 
 ## Tables
@@ -18,9 +18,9 @@ SUM:                           114           3699           2217          18968
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Python                           6           1073            722           6053
+Python                           6           1085            747           6142
 -------------------------------------------------------------------------------
-SUM:                             6           1073            722           6053
+SUM:                             6           1085            747           6142
 -------------------------------------------------------------------------------
 
 ## Generated Code
@@ -29,10 +29,10 @@ SUM:                             6           1073            722           6053
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                              6            441            602          21136
-C/C++ Header                     6            162             65           2623
+C++                              6            474            603          21380
+C/C++ Header                     6            162             65           2659
 -------------------------------------------------------------------------------
-SUM:                            12            603            667          23759
+SUM:                            12            636            668          24039
 -------------------------------------------------------------------------------
 
 ## Testing Code
@@ -41,10 +41,10 @@ SUM:                            12            603            667          23759
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Python                           9            254            257            959
-C++                              8            141             28            634
+Python                           9            254            257            962
+C++                              8            141             26            634
 -------------------------------------------------------------------------------
-SUM:                            17            395            285           1593
+SUM:                            17            395            283           1596
 -------------------------------------------------------------------------------
 
 ## Breakdown By File
@@ -54,16 +54,16 @@ SUM:                            17            395            285           1593
 File                                            blank        comment           code
 -----------------------------------------------------------------------------------
 ./CodeGenA32/isel_gen.cc                           32             20           5707
-./CodeGenA64/isel_gen.cc                           46             21           5055
-./CpuA64/opcode_gen.cc                            243            284           4517
+./CodeGenA64/isel_gen.cc                           46             21           5154
+./CpuA64/opcode_gen.cc                            276            285           4662
 ./CpuA32/opcode_gen.cc                             41            270           2477
 ./Elf/enum_gen.cc                                  39              4           1707
 ./Base/opcode_gen.cc                               40              3           1673
-./CpuA64/opcode_tab.py                            243            150           1253
+./CpuA64/opcode_tab.py                            253            176           1321
 ./CpuA32/opcode_tab.py                            235            143           1061
+./CodeGenA64/isel_tab.py                          152             98           1044
 ./Elf/enum_tab.py                                  93             41           1029
-./CodeGenA64/isel_tab.py                          150             99           1023
-./CpuA64/opcode_gen.h                              37             20            988
+./CpuA64/opcode_gen.h                              37             20           1024
 ./CodeGenA32/isel_tab.py                          145            104            966
 ./Elf/elfhelper.py                                153             95            865
 ./Base/ir.h                                       167             79            761
@@ -74,7 +74,7 @@ File                                            blank        comment           c
 ./Elf/elfhelper.cc                                 66             45            536
 ./Base/reaching_defs.cc                            42             22            498
 ./CodeGenA32/regs.cc                               53             10            488
-./Base/ir.py                                      160             71            486
+./Base/ir.py                                      160             71            487
 ./CodeGenA64/regs.cc                               48             29            475
 ./Base/lowering.cc                                 35              8            438
 ./CodeGenA32/legalize.cc                           51             21            417
@@ -83,15 +83,15 @@ File                                            blank        comment           c
 ./Elf/elfhelper.h                                  81             33            402
 ./CodeGenA32/regs.py                               89             77            393
 ./CodeGenC/codegen.py                              96             14            382
-./Base/ir.cc                                       57             25            371
-./CodeGenA64/legalize.cc                           47             17            346
+./Base/ir.cc                                       57             26            378
+./CodeGenA64/legalize.cc                           47             17            352
 ./CodeGenA64/regs.py                               76             76            345
 ./Base/cfg.cc                                      33             24            343
 ./Base/liveness.cc                                 35             38            340
 ./Base/reaching_defs.py                            73            101            325
 ./CpuA32/assembler.cc                              34              6            286
 ./CpuA64/assembler.cc                              36              6            281
-./CpuA64/opcode_test.py                            31             26            267
+./CpuA64/opcode_test.py                            31             26            270
 ./Base/reg_alloc.cc                                23              2            256
 ./Base/reg_stats.cc                                35              7            251
 ./CodeGenA32/legalize.py                           77             77            249
@@ -156,7 +156,7 @@ File                                            blank        comment           c
 ./Util/bitvec_test.cc                              17              3             56
 ./Util/handlevec.cc                                13              2             56
 ./Util/breakpoint.h                                13              5             55
-./CodeGenA64/isel_tester.py                        12              1             52
+./CodeGenA64/isel_tester.py                        13              1             54
 ./Base/optimize.cc                                 16              1             50
 ./CodeGenA32/regs.h                                23              7             50
 ./Util/mem_pool.h                                  12             16             49
@@ -173,7 +173,7 @@ File                                            blank        comment           c
 ./CpuA64/disassembler_tool.py                       9              1             41
 ./Util/handlevec_test.cc                           10              0             41
 ./Base/canonicalize.cc                              3              1             40
-./CpuA64/opcode_test.cc                            10             11             40
+./CpuA64/opcode_test.cc                            10              9             40
 ./Util/breakpoint.cc                                5              0             37
 ./Util/handle.h                                    12             10             36
 ./Util/bitvec.h                                    23              7             31
@@ -203,5 +203,5 @@ File                                            blank        comment           c
 ./Base/sanity.h                                     6              1              7
 ./Base/canonicalize.h                               4              1              5
 -----------------------------------------------------------------------------------
-SUM:                                             5770           3891          50373
+SUM:                                             5816           3916          50761
 -----------------------------------------------------------------------------------
