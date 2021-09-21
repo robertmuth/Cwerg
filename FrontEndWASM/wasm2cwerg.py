@@ -794,8 +794,8 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
             if unsigned:
                 tmp1 = GetOpReg(fun, ToUnsigned(op1.kind), op_stack_size_before + 1)
                 tmp2 = GetOpReg(fun, ToUnsigned(op1.kind), op_stack_size_before + 2)
-                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
-                bbls[-1].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
+                bbls[-2].AddIns(ir.Ins(o.CONV, [tmp1, op1]))
+                bbls[-2].AddIns(ir.Ins(o.CONV, [tmp2, op2]))
                 op1 = tmp1
                 op2 = tmp2
             bbls[-2].AddIns(ir.Ins(br, [op1, op2, bbls[-1]]))

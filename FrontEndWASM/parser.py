@@ -496,6 +496,8 @@ def ExtractFunctions(sections, fun_name_map) -> typing.List[Function]:
     import_sec = sections.get(SECTION_ID.IMPORT)
     type_sec = sections.get(SECTION_ID.TYPE)
 
+    all_names = set()
+
     if import_sec:
         for i in import_sec.items:
             if isinstance(i.desc, TypeIdx):
@@ -503,6 +505,8 @@ def ExtractFunctions(sections, fun_name_map) -> typing.List[Function]:
                 # HACK
                 fun_name = fun_name.replace("wasi_snapshot_preview1", "wasi")
                 fun_name = fun_name.replace("wasi_unstable", "wasi")
+                assert fun_name not in all_names
+                all_names.add(fun_name)
                 out.append(Function(fun_name, type_sec.items[int(i.desc)], i))
 
     function_sec = sections.get(SECTION_ID.FUNCTION)
@@ -523,7 +527,11 @@ def ExtractFunctions(sections, fun_name_map) -> typing.List[Function]:
                     names[int(e.desc) - start_index] = e.name
 
         for n, (c, f) in enumerate(zip(code_sec.items, function_sec.items)):
-            out.append(Function(names[n], type_sec.items[int(f)], c))
+            name = names[n]
+            while name in all_names:
+                name += "_"
+            all_names.add(name)
+            out.append(Function(name, type_sec.items[int(f)], c))
 
     return out
 
