@@ -7,6 +7,9 @@ There will only be a Python implementation.
 
 The [parser](parser.py) and the [instructions table](opcode_tab.py) do not have any other dependencies and might be useful by themselves.
 
+Note: Most WASM programs and the WASI bindings require 64bit ints which currently
+makes them unsuitable for A32 code generation.
+
 ### WASI Support
 
 Currently implemented are:
@@ -14,7 +17,12 @@ Currently implemented are:
 * args_get
 * args_sizes_get
 * clock_time_get (a64 only)
+* fd_fdstat_get (A64 only)
+* fd_prestat_dir_name
+* fd_close
 * fd_write
+* fd_read 
+* path_open (A64 open)
 * proc_exit
 
 
