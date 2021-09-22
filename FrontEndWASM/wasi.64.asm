@@ -262,6 +262,22 @@
     bsr $wasi$print_i64_ln
     ret
 
+.fun print_s_ln NORMAL [] = [A64]
+.bbl %start
+  poparg s:A64
+  mov %S32_2:S32 = 1
+  pusharg s
+  pusharg %S32_2
+  bsr write_s
+  poparg %S64_1:S64
+  mov %S32_4:S32 = 1
+  mov %U8_5:U8 = 10
+  pusharg %U8_5
+  pusharg %S32_4
+  bsr write_c
+  poparg %S64_3:S64
+  ret
+
 ######################################################################
 # REAL WASI
 ######################################################################
@@ -298,6 +314,7 @@
     poparg fs_rights_inheriting:S64
     poparg fdflags:S32
     poparg result_offset:S32
+
   .stk buffer 1 1024
     lea.stk dst:A64 buffer 0
     lea src:A64 mem_base path_offset
@@ -453,15 +470,15 @@
     lea path:A64 mem_base path_offset
   .bbl fd3
     bne fd 3:S32 fd4
-    st mem_base 0 47:U8 # '/'
-    st mem_base 1 0:U8 #
+    st path 0 47:U8 # '/'
+    st path 1 0:U8 #
     pusharg 0:S32
     ret
   .bbl fd4
     bne fd 4:S32 bad
-    st mem_base 0 46:U8  # '.'
-    st mem_base 1 47:U8  # '/'
-    st mem_base 2 0:U8  #
+    st path 0 46:U8  # '.'
+    st path 1 47:U8  # '/'
+    st path 2 0:U8  #
     pusharg 0:S32
     ret
   .bbl bad
