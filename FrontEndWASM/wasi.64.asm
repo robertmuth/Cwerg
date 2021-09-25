@@ -659,20 +659,27 @@
     lea buf:A64 mem_base buf_offset
     ld len:U32 array 4:U32
     conv len64:U64 len
+    # advance to next buffer
     lea array array 8:U32
     sub array_size array_size 1
+    beq len 0 check
     pusharg len64
     pusharg buf
     pusharg fd
     bsr write
     poparg errno64:S64
-    blt errno64 0 epilog
     conv errno errno64
+    blt errno64 0 fail
     add count count errno
+    conv errnou:U32 errno
+    blt errnou len success
   .bbl check
     blt 0:S32 array_size loop
-  .bbl epilog
+  .bbl success
     st result 0:U32 count
+    pusharg 0:S32
+    ret
+   .bbl fail
     pusharg errno
     ret
 
@@ -740,3 +747,24 @@
     ret
 
 
+# (mem-addr, argc-offset, total-size-offset) -> errro
+.fun $wasi$environ_sizes_get NORMAL [S32] = [A64 S32 S32]
+.bbl prolog
+    poparg mem_base:A64
+    poparg argc_offset:S32
+    poparg total_size_offset:S32
+    # handle argc
+    st mem_base argc_offset 0:S32
+    # handle total-size
+    st mem_base total_size_offset 0:S32
+    pusharg 0:S32
+    ret
+
+# (mem-addr, argv-offset, string-data-offset) -> errro
+.fun $wasi$environ_get NORMAL [S32] = [A64 S32 S32]
+    .bbl prolog
+        poparg mem_base:A64
+        poparg argv_offset:S32
+        poparg string_data_offset:S32
+        pusharg 0:S32
+        ret
