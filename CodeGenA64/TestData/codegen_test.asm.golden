@@ -96,6 +96,12 @@ PAT: reg:[A64 A64 U32]  imm:[INVALID INVALID ZERO]
 INS: ret  []
     SPECIAL
 
+INS: cmplt d3@d0 0.0 d1@d1 d2@d2 0.0  [F64 F64 F64 F64 F64]
+    mismatches: 12
+
+INS: ret  []
+    SPECIAL
+
 INS: copysign flt@s1 flt@s1 0.0  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID ZERO]
     fabs_s s1 s1

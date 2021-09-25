@@ -36,6 +36,12 @@
     ld add:A64@x23  base@x22 0:U32
     ret
 
+.fun TestF64 NORMAL [F64] = [F64 F64]
+  .reg F64 [d1 d2 d3]
+.bbl start
+   cmplt d3@d0 0.0:F64 d1@d1 d2@d2 0.0:F64
+.bbl skip
+     ret
 
 .fun TestMoveImmediates_gpr_scratch NORMAL [] = [A64]
   .reg S32 [$r0_S32]

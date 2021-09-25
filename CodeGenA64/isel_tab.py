@@ -730,6 +730,16 @@ def InitCmp():
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
 
+    for kind, sel in [(o.DK.F64, "fcsel_d"), (o.DK.F32, "fcsel_s")]:
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl(sel + "_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+            Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
+                    [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
+                     InsTmpl(sel + "_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
+
 
 def InitAlu():
     for kind1 in [o.DK.U32, o.DK.S32]:
@@ -1072,6 +1082,10 @@ def InitVFP():
     for kind, suffix in [(o.DK.F32, "_s"), (o.DK.F64, "_d")]:
         Pattern(o.MOV, [kind] * 2,
                 [InsTmpl("fmov" + suffix + "_reg", [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.FLOOR, [kind] * 2,
+                [InsTmpl("frintm" + suffix, [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.CEIL, [kind] * 2,
+                [InsTmpl("frintp" + suffix, [PARAM.reg0, PARAM.reg1])])
         Pattern(o.ADD, [kind] * 3,
                 [InsTmpl("fadd" + suffix, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.SUB, [kind] * 3,
@@ -1099,6 +1113,7 @@ def InitVFP():
              InsTmpl("fabs_d", [PARAM.reg0, PARAM.reg1]),
              InsTmpl("tbz", [PARAM.scratch_gpr, 63, 0]),
              InsTmpl("fneg_d", [PARAM.reg0, PARAM.reg0])])
+
 
     for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
                                         (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),
