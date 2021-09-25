@@ -6,9 +6,9 @@ Usage:
 ./Tools/inspector.py TestData/nano_jpeg.a32.asm
 """
 
-MODE = "opt"     # only run optimizer
+# MODE = "opt"     # only run optimizer
 # MODE = "a32"   # run everything and generate a32 code
-# MODE = "a64"   # run everything and generate a64 code
+MODE = "a64"  # run everything and generate a64 code
 
 from typing import List, Dict, Tuple, Any
 import argparse
@@ -21,10 +21,14 @@ import json
 from Base import ir
 from Base import optimize
 from Base import serialize
+
 if MODE == "a32":
-    from CodeGenA32 import codegen
-if MODE == "A64":
     import CpuA32.opcode_tab as arm
+    from CodeGenA32 import codegen
+if MODE == "a64":
+    print("Selected mode A64")
+    import CpuA64.opcode_tab as arm
+    from CodeGenA64 import codegen
 
 # language=css
 STYLE = """
@@ -282,7 +286,6 @@ GLOBAL-OBJ: <select class=global_sel_obj></select>
 </html>
 """
 
-
 # language=html
 ERROR_HTML = """<!DOCTYPE html>
 <html>
@@ -297,7 +300,7 @@ No handler for request:
 
 # ============================================================
 
-MODS: List[Tuple[str, Any]] = []
+MODS: List[Dict] = []
 
 
 def RenderMem(mem: ir.Mem) -> List[str]:
@@ -382,28 +385,25 @@ def AddDiffInfo(out: List[Dict]):
         t["funs"] = new_funs
 
 
+def RenderCpu(name: str, mod: codegen.Unit):
+    funs = [(name, RenderArmFun(fun)) for name, fun in mod.funs]
+    mems = [(name, RenderArmMem(mem)) for name, mem in mod.mems]
+    return {"name": name, "funs": funs, "mems": mems}
+
+
+def RenderCwerg(name: str, mod: ir.Unit):
+    funs = [(fun.name, RenderFun(fun)) for fun in mod.funs]
+    mems = [(mem.name, RenderMem(mem)) for mem in mod.mems]
+    return {"name": name, "funs": funs, "mems": mems}
+
+
 def GetModules():
-    out = []
-    for name, mod in MODS:
-        if isinstance(mod, ir.Unit):
-            funs = [(fun.name, RenderFun(fun)) for fun in mod.funs]
-            mems = [(mem.name, RenderMem(mem)) for mem in mod.mems]
-
-            out.append({"name": name, "funs": funs, "mems": mems})
-        elif isinstance(mod, codegen.Unit):
-            assert False, f"{mod}"
-            funs = [(name, RenderArmFun(fun)) for name, fun in mod.funs]
-            mems = [(name, RenderArmMem(mem)) for name, mem in mod.mems]
-            out.append({"name": name, "funs": funs, "mems": mems})
-        else:
-            assert False
-
-    AddDiffInfo(out)
-
-    for t in out:
+    global MODS
+    AddDiffInfo(MODS)
+    for t in MODS:
         t["funs"] = [(name, Join(fun)) for name, fun in t["funs"]]
         t["mems"] = [(name, Join(mem)) for name, mem in t["mems"]]
-    return bytes(json.dumps(out), "utf-8")
+    return bytes(json.dumps(MODS), "utf-8")
 
 
 def Index():
@@ -443,11 +443,12 @@ class MyRequestHandler(http.server.BaseHTTPRequestHandler):
 def CleanUnit(unit: ir.Unit):
     for fun in unit.funs:
         for bbl in fun.bbls:
-            for ins in  bbl.inss:
+            for ins in bbl.inss:
                 for op in ins.operands:
                     if isinstance(op, ir.Reg):
                         op.def_bbl = None
                         op.def_ins = None
+
 
 def main():
     parser = argparse.ArgumentParser(description='inspector')
@@ -459,34 +460,33 @@ def main():
 
     opt_stats: Dict[str, int] = collections.defaultdict(int)
     unit = serialize.UnitParseFromAsm(open(args.input))
-    # Note, deepcopy has all kinds of issues and we do not expect
-    # to use a copy in further computations
-    MODS.append(("orig", copy.deepcopy(unit)))
-    if MODE  == "opt":
+    MODS.append(RenderCwerg("orig", unit))
+
+    if MODE == "opt":
         optimize.UnitCfgInit(unit)
-        MODS.append(("prepped", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("prepped", unit))
         optimize.UnitOpt(unit, False)
         CleanUnit(unit)
-        MODS.append(("optimized", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("optimized", unit))
         optimize.UnitCfgExit(unit)
         CleanUnit(unit)
-        MODS.append(("final", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("final", unit))
     else:
         stats: Dict[str, int] = collections.defaultdict(int)
         codegen.LegalizeAll(unit, stats, None)
         CleanUnit(unit)
-        MODS.append(("legalized", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("legalized", unit))
 
         codegen.RegAllocGlobal(unit, stats, None)
         CleanUnit(unit)
-        MODS.append(("global_allocated", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("global_allocated", unit))
 
         codegen.RegAllocLocal(unit, stats, None)
         CleanUnit(unit)
-        MODS.append(("locals_allocated", copy.deepcopy(unit)))
+        MODS.append(RenderCwerg("locals_allocated", unit))
 
-        # arm_mod = codegen.codegen(unit)
-        # MODS.append(("assembler", arm_mod))
+        arm_mod = codegen.codegen(unit)
+        MODS.append(RenderCpu("assembler", arm_mod))
 
     http_server = http.server.HTTPServer(('', args.port), MyRequestHandler)
     print(f'Starting HTTP server at http://localhost:{args.port}')
