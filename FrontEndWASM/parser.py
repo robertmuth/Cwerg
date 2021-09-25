@@ -519,7 +519,12 @@ def ExtractFunctions(sections, fun_name_map) -> typing.List[Function]:
         for i in range(len(names)):
             name = fun_name_map.get(i + start_index)
             if name:
-                names[i] = "_" + name.replace("undefined:", "")
+                name = name.replace("undefined:", "")
+                if "(" in name:
+                    name = name.split("(")[0]
+                if " " in name:
+                    name = name.split(" ")[0]
+                names[i] = "_" + name
         export_sec = sections.get(SECTION_ID.EXPORT)
         if export_sec:
             for e in export_sec.items:
