@@ -268,6 +268,8 @@ WASM_ALU1_TO_CWERG = {
     "neg": (o.SUB, lambda x: [ir.Const(x.kind, 0), x]),
     "clz": (o.CNTLZ, lambda x: [x]),
     "ctz": (o.CNTTZ, lambda x: [x]),
+    "floor": (o.FLOOR, lambda x: [x]),
+    "ceil": (o.CEIL, lambda x: [x]),
 }
 
 
@@ -279,6 +281,15 @@ def HandleRotl(dst: ir.Reg, op1: ir.Reg, op2: ir.Reg, bbl: ir.Bbl):
     bbl.AddIns(ir.Ins(o.SUB, [op2, bitwidth, op2]))
     bbl.AddIns(ir.Ins(o.SHR, [op1, op1, op2]))  # here the unsigned requirement kicks in
     bbl.AddIns(ir.Ins(o.OR, [dst, dst, op1]))
+
+
+def HandleMin(dst: ir.Reg, op1: ir.Reg, op2: ir.Reg, bbl: ir.Bbl):
+    bbl.AddIns(ir.Ins(o.CMPLT, [dst, op1, op2, op1, op2]))
+
+
+def HandleMax(dst: ir.Reg, op1: ir.Reg, op2: ir.Reg, bbl: ir.Bbl):
+    bbl.AddIns(ir.Ins(o.CMPLT, [dst, op2, op1, op1, op2]))
+
 
 WASM_ALU_TO_CWERG = {
     "xor": o.XOR,
@@ -299,6 +310,9 @@ WASM_ALU_TO_CWERG = {
     "rem": o.REM,
     "rem_s": o.REM,
     "rem_u": o.REM,
+    #
+    "min": HandleMin,
+    "max": HandleMax,
     #
     "copysign": o.COPYSIGN,
 }
@@ -472,7 +486,7 @@ def MakeBlock(no: int, opc, args, fun, op_stack: typing.List, mod: wasm.Module) 
             block_type: wasm.FunctionType = type_sec.items[int(type_arg)]
             result_types = TranslateTypeList(block_type.rets)
             param_types = TranslateTypeList(block_type.args)
-        for op, dk in zip(op_stack[-len(result_types):], result_types):
+        for op, dk in zip(op_stack[-len(param_types):], param_types):
             assert op.kind is dk, f"expected {dk} got {op.kind} in {fun.name}"
 
     next_bbl = fun.AddBbl(ir.Bbl(f"end{prefix}_{no}"))
@@ -634,8 +648,10 @@ def GenerateFun(unit: ir.Unit, mod: wasm.Module, wasm_fun: wasm.Function,
                         alu(tmp3, tmp1, tmp2, bbls[-1])
                     bbls[-1].AddIns(ir.Ins(o.CONV, [dst, tmp3]))
                 else:
-                    assert isinstance(alu, o.Opcode), f"{alu}"
-                    bbls[-1].AddIns(ir.Ins(alu, [dst, op1, op2]))
+                    if isinstance(alu, o.Opcode):
+                        bbls[-1].AddIns(ir.Ins(alu, [dst, op1, op2]))
+                    else:
+                        alu(dst, op1, op2, bbls[-1])
                 op_stack.append(dst)
         elif opc.kind is wasm_opc.OPC_KIND.CONV:
             conv, dst_unsigned, src_unsigned = WASM_CONV_TO_CWERG[opc.name]
