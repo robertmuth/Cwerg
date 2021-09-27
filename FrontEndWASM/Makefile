@@ -9,7 +9,7 @@ TESTS_32_64 = memory.wasm fd_write.wasm print_i32_ln.wasm factorial.wasm fibonac
 TESTS_64 = if.wasm global.wasm loop.wasm print_i64_ln.wasm call_indirect.wasm
 
 TEST_32_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.32.exe)
-TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.64.exe) $(DIR)/mal.64.exe
+TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.64.exe) $(DIR)/mal.64.exe $(DIR)/c-ray-f.64.exe
 
 
 tests: $(DIR)/parse_test $(TEST_64_EXES) $(TEST_32_EXES)
@@ -34,7 +34,13 @@ $(DIR)/%.64.exe: TestData/%.wasm
 	./$@ hello world 1 2 3 >$@.out
 	diff $@.out $<.golden
 
-# not the "hello world 1 2 3" argument is only used by the echo.wasm benchmark
+$(DIR)/c-ray-f.64.exe: TestData/c-ray-f.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
+	./$@  -s 1024x768 < ./TestData/c-ray-f.scene  >$@.out
+	cmp -l $@.out ./TestData/c-ray-f.golden.ppm
+
 $(DIR)/mal.64.exe: TestData/mal.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm

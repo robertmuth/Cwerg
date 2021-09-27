@@ -894,7 +894,7 @@ def InitStore():
                           (o.DK.U32, "str_w"), (o.DK.S32, "str_w"),
                           (o.DK.U16, "str_h"), (o.DK.S16, "str_h"),
                           (o.DK.U8, "str_b"), (o.DK.S8, "str_b"),
-                          (o.DK.F64, "fstr_q"), (o.DK.F32, "fstr_s")]:
+                          (o.DK.F64, "fstr_d"), (o.DK.F32, "fstr_s")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_x",

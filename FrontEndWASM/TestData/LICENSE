@@ -14,3 +14,8 @@ license: https://github.com/WebAssembly/wasm-jit-prototype/blob/master/LICENSE.t
 mal.wasm
 derived from: https://github.com/kanaka/mal/blob/master/README.md
 license: https://github.com/kanaka/mal/blob/master/LICENSE
+
+
+c-ray-f.wasm
+derived from John Tsiombikas' simple raytracing filter
+license: GNU General Public License v2 or later
