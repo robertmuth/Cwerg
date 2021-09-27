@@ -15,6 +15,8 @@ smaller than directly implementing it in C++.
 This approach has worked for the author on previous smaller projects.
 The advantage is greatest during the initial exploration phase. It 
 remains to be seen if this still holds once the project matures.
+(There is a least one other project that has gone a similar route:
+http://www.oilshell.org/blog/2016/10/10.html)
 
 Implementing the everything twice has additional benefits:
 
