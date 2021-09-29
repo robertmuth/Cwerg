@@ -19,3 +19,12 @@ license: https://github.com/kanaka/mal/blob/master/LICENSE
 c-ray-f.wasm
 derived from John Tsiombikas' simple raytracing filter
 license: GNU General Public License v2 or later
+
+
+lists.c, lists.wasm
+derived from  http://www.bagley.org/~doug/shootout/
+
+
+nbody.c, spectral-norm.c, fannkuch-redux.c
+https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
+license: https://salsa.debian.org/benchmarksgame-team/benchmarksgame/-/blob/master/LICENSE.md
