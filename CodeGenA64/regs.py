@@ -221,8 +221,7 @@ class CpuRegPool(reg_alloc.RegPool):
             reg_alloc.PreAllocation() for _ in range(len(_FLT64_REGS))]
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        # we have not observed spilling yet it appears
-        assert False, f"@@@@@@@@"
+        return FLT_FAMILY if kind == o.DK.F64 or kind == o.DK.F32 else GPR_FAMILY
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available
@@ -400,7 +399,6 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
                    FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
     spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
     if spilled_regs:
-        assert False
         # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
         reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 

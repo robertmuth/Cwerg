@@ -21,7 +21,7 @@ derived from John Tsiombikas' simple raytracing filter
 license: GNU General Public License v2 or later
 
 
-lists.c, lists.wasm
+lists.c, matrix.c
 derived from  http://www.bagley.org/~doug/shootout/
 
 

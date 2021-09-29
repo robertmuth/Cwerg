@@ -12,7 +12,7 @@ TEST_32_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.32.exe)
 TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.64.exe) \
                $(DIR)/mal.64.exe $(DIR)/c-ray-f.64.exe $(DIR)/lists.64.exe \
                $(DIR)/spectral-norm.64.exe $(DIR)/nbody.64.exe \
-               $(DIR)/fannkuch-redux.64.exe
+               $(DIR)/fannkuch-redux.64.exe $(DIR)/matrix.64.exe
 
 tests: $(DIR)/parse_test $(TEST_64_EXES) $(TEST_32_EXES)
 
@@ -76,6 +76,13 @@ $(DIR)/fannkuch-redux.64.exe: TestData/fannkuch-redux.wasm
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
 	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	./$@ 10 >$@.out
+	diff $@.out $<.golden
+
+$(DIR)/matrix.64.exe: TestData/matrix.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
+	./$@ 3000 >$@.out
 	diff $@.out $<.golden
 
 clean:
