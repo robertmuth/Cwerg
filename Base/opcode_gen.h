@@ -60,6 +60,9 @@ enum class OPC : uint8_t {
     ST_STK = 0x4a,
 
     SQRT = 0x60,
+    CEIL = 0x63,
+    FLOOR = 0x64,
+    ROUND = 0x65,
 
     NOP = 0xf1,
     NOP1 = 0xf2,

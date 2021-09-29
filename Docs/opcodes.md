@@ -323,6 +323,15 @@ Store to stack base with offset. RAM[base + offset] := src
 #### [60] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Compute the sqrt of floating point value
 
+#### [63] ceil *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Round float to integral, toward positive infinity
+
+#### [64] floor *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Round float to integral, toward negative infinity
+
+#### [65] round *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Round float to integral, to nearest with ties to away
+
 ## Misc
 
 #### [f1] nop 

@@ -745,25 +745,26 @@ SQRT = Opcode(0x60, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
               "Compute the sqrt of floating point value")
 
-# round towards positive infinity
 CEIL = Opcode(0x63, "ceil", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-              "TBD")
-# round towards negative infinity
+              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+              "Round float to integral, toward positive infinity")
+
 FLOOR = Opcode(0x64, "floor", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-               "TBD")
+               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Round float to integral, toward negative infinity")
+
+ROUND = Opcode(0x65, "round", OPC_KIND.ALU1,
+               [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Round float to integral, to nearest with ties to away")
+
 # removes fractional part -> round to zero../
-TRUNC = Opcode(0x65, "trunc", OPC_KIND.ALU1,
+TRUNC = Opcode(0x66, "trunc", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
                "TBD")
-# round to nearest - needed?
-ROUND = Opcode(0x66, "round", OPC_KIND.ALU1,
-               [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-               "TBD")
+
 
 # do we need all these?
 Opcode(0x67, "sin", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],

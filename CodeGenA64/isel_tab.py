@@ -1086,6 +1086,8 @@ def InitVFP():
                 [InsTmpl("frintm" + suffix, [PARAM.reg0, PARAM.reg1])])
         Pattern(o.CEIL, [kind] * 2,
                 [InsTmpl("frintp" + suffix, [PARAM.reg0, PARAM.reg1])])
+        Pattern(o.ROUND, [kind] * 2,
+                [InsTmpl("frinta" + suffix, [PARAM.reg0, PARAM.reg1])])
         Pattern(o.ADD, [kind] * 3,
                 [InsTmpl("fadd" + suffix, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
         Pattern(o.SUB, [kind] * 3,

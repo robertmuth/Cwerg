@@ -424,7 +424,7 @@ const struct StringKind OPCFromStringMap[] = {
     {"pusharg", 48},
     {"rem", 20},
     {"ret", 42},
-    {"round", 102},
+    {"round", 101},
     {"shl", 27},
     {"shr", 28},
     {"sin", 103},
@@ -439,7 +439,7 @@ const struct StringKind OPCFromStringMap[] = {
     {"syscall", 45},
     {"tan", 105},
     {"trap", 46},
-    {"trunc", 101},
+    {"trunc", 102},
     {"xor", 24},
     {"ZZZ", 0},
 };
@@ -942,21 +942,21 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
        {}, 
        "", 0 },
-     {  // 63 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 64 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 65 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 63 ceil
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "ceil", 0 },
+     {  // 64 floor
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "floor", 0 },
+     {  // 65 round
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "round", 0 },
      {  // 66 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
