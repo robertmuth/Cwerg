@@ -68,4 +68,17 @@ Assuming `test.c` contains code with that expression. Run
 ```
 aarch64-linux-gnu-gcc-8 test.c -c -O3  -o xxx.o ; aarch64-linux-gnu-objdump -D xxx.o
 ```
-to see the result
+to see the result.
+
+Qemu can also used to generated traces which can be useful for debugging:
+
+General purpose reg contents only
+```
+qemu-aarch64-static -singlestep -d nochain,cpu  test.exe 2> trace.txt
+```
+
+General purpose + FP reg contents and instruction: 
+
+```
+qemu-aarch64-static -singlestep -d nochain,cpu,fpu,in_asm  test.exe 2> trace.txt
+```
