@@ -265,11 +265,12 @@ WASM_CMP_TO_CWERG_CMP = {
 WASM_ALU1_TO_CWERG = {
     "sqrt": (o.SQRT, lambda x: [x]),
     "abs": (o.COPYSIGN, lambda x: [x, ir.Const(x.kind, 0)]),
-    "neg": (o.SUB, lambda x: [ir.Const(x.kind, 0), x]),
+    "neg": (o.MUL, lambda x: [x, ir.Const(x.kind, -1)]),
     "clz": (o.CNTLZ, lambda x: [x]),
     "ctz": (o.CNTTZ, lambda x: [x]),
     "floor": (o.FLOOR, lambda x: [x]),
     "ceil": (o.CEIL, lambda x: [x]),
+    "nearest": (o.ROUND, lambda x: [x]),
 }
 
 
