@@ -1,20 +1,16 @@
-Licenses for specific test files
-
+## Licenses for specific test files
 
 i32.wast block.wasm call_indirect.wasm block.wasm loop.wasm
 derived from: https://github.com/WebAssembly/spec
-license: Apache License 2.0
-
+license: https://github.com/WebAssembly/spec/blob/master/LICENSE
 
 echo.wasm
 derived from: https://github.com/WebAssembly/wasm-jit-prototype
 license: https://github.com/WebAssembly/wasm-jit-prototype/blob/master/LICENSE.txt
 
-
 mal.wasm
 derived from: https://github.com/kanaka/mal/blob/master/README.md
 license: https://github.com/kanaka/mal/blob/master/LICENSE
-
 
 c-ray-f.wasm
 derived from: https://github.com/jtsiomb/c-ray
@@ -23,17 +19,18 @@ license: https://github.com/jtsiomb/c-ray/blob/master/COPYING
 lists.c, matrix.c
 derived from: http://www.bagley.org/~doug/shootout/
 
-
 nbody.c, spectral-norm.c, fannkuch-redux.c
 https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 license: https://salsa.debian.org/benchmarksgame-team/benchmarksgame/-/blob/master/LICENSE.md
-
 
 amoeba.h amoeba_test.c
 derived from: https://github.com/starwing/amoeba
 license: https://github.com/starwing/amoeba/blob/master/LICENSE
 
-
 nv_voronoi.c
 derived from: http://www.icculus.org/~mordred/nvlib/
 license: Public Domain (Nicholas Vining)
+
+brotli.wasm
+derived from: https://github.com/google/brotli
+license: https://github.com/google/brotli/blob/master/LICENSE

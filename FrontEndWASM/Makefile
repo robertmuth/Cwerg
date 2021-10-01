@@ -13,7 +13,8 @@ TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%
                $(DIR)/mal.64.exe $(DIR)/c-ray-f.64.exe $(DIR)/lists.64.exe \
                $(DIR)/spectral-norm.64.exe $(DIR)/nbody.64.exe \
                $(DIR)/fannkuch-redux.64.exe $(DIR)/matrix.64.exe \
-               $(DIR)/amoeba_test.64.exe $(DIR)/nv_voronoi.64.exe
+               $(DIR)/amoeba_test.64.exe $(DIR)/nv_voronoi.64.exe \
+               $(DIR)/brotli.64.exe
 
 tests: $(DIR)/parse_test $(TEST_64_EXES) $(TEST_32_EXES)
 
@@ -98,6 +99,13 @@ $(DIR)/nv_voronoi.64.exe: TestData/nv_voronoi.wasm
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
 	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	./$@ >$@.out
+	diff $@.out $<.golden
+
+$(DIR)/brotli.64.exe: TestData/brotli.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
+	./$@ < TestData/brotli.alice.txt >$@.out
 	diff $@.out $<.golden
 
 clean:
