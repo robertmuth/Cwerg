@@ -241,11 +241,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # Handle most overflowing immediates.
     # This excludes immediates related to stack offsets which have not been determined yet
     _FunRewriteOutOfBoundsImmediates(fun, unit)
-    # hack: some of the code expansion templates need a scratch reg
-    # we do not want to reserve registers for this globally, so instead
-    # we inject some nop instructions that reserve a register that we
-    # use as a scratch for the instruction immediately following the nop
-    isel_tab.FunAddNop1ForCodeSel(fun)
+
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
@@ -379,6 +375,19 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
 
     """
     # print("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)), file=fout)
+
+    # hack: some of the code expansion templates need a scratch reg
+    # we do not want to reserve registers for this globally, so instead
+    # we inject some nop instructions that reserve a register that we
+    # use as a scratch for the instruction immediately following the nop
+    #
+    # This still has a potential bug: if the next instruction has one of its
+    # inputs spilled, it will like use the scratch reg provided by the nop1
+    # which will cause incorrect code.
+    # TODO: add a checker so we at least detect this
+    # Alternatives: reserve reg (maybe only for functions that need it)
+    isel_tab.FunAddNop1ForCodeSel(fun)
+
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup

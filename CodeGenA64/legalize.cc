@@ -252,8 +252,6 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunCfgExit(fun);
 
   FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
-
-  FunAddNop1ForCodeSel(fun, &inss);
 }
 
 void DumpRegStats(Fun fun, const DK_LAC_COUNTS& stats, std::ostream* output) {
@@ -408,6 +406,7 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
                                         Unit unit,
                                         std::ostream* fout) {
   std::vector<Ins> inss;
+  FunAddNop1ForCodeSel(fun, &inss);
   FunLocalRegAlloc(fun, &inss);
   FunFinalizeStackSlots(fun);
   FunMoveEliminationCpu(fun, &inss);

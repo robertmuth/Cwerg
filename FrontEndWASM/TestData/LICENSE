@@ -17,14 +17,23 @@ license: https://github.com/kanaka/mal/blob/master/LICENSE
 
 
 c-ray-f.wasm
-derived from John Tsiombikas' simple raytracing filter
-license: GNU General Public License v2 or later
-
+derived from: https://github.com/jtsiomb/c-ray
+license: https://github.com/jtsiomb/c-ray/blob/master/COPYING
 
 lists.c, matrix.c
-derived from  http://www.bagley.org/~doug/shootout/
+derived from: http://www.bagley.org/~doug/shootout/
 
 
 nbody.c, spectral-norm.c, fannkuch-redux.c
 https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 license: https://salsa.debian.org/benchmarksgame-team/benchmarksgame/-/blob/master/LICENSE.md
+
+
+amoeba.h amoeba_test.c
+derived from: https://github.com/starwing/amoeba
+license: https://github.com/starwing/amoeba/blob/master/LICENSE
+
+
+nv_voronoi.c
+derived from: http://www.icculus.org/~mordred/nvlib/
+license: Public Domain (Nicholas Vining)
