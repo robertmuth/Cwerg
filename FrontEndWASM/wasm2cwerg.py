@@ -319,7 +319,7 @@ WASM_ALU_TO_CWERG = {
 }
 
 WASM_CONV_TO_CWERG = {
-    #
+    # triple: (Opcode, dst_unsigned, src_unsigned)
     "f64.convert_i32_u": (o.CONV, False, True),
     "f32.convert_i32_u": (o.CONV, False, True),
     "i64.extend_i32_u": (o.CONV, False, True),
@@ -334,6 +334,7 @@ WASM_CONV_TO_CWERG = {
     "f32.convert_i64_s": (o.CONV, False, False),
     #
     "i32.trunc_f64_u": (o.CONV, True, False),
+    "i32.trunc_f32_u": (o.CONV, True, False),
     "i64.trunc_f64_u": (o.CONV, True, False),
     "i32.trunc_f64_s": (o.CONV, False, False),
     "i64.trunc_f64_s": (o.CONV, False, False),
