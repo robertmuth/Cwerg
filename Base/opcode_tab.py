@@ -453,7 +453,9 @@ SUB = Opcode(0x11, "sub", OPC_KIND.ALU,
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Subtraction: dst := src1 - src2
              
-             Note: `sub dst = 0 src` can be used to emulate `neg`""")
+             Note: `sub dst = 0 src` can be used to emulate `neg` for integers.
+                    (for floating point use `dat = mul src -1.0`)
+             """)
 
 # needs more work  wrt to size
 MUL = Opcode(0x12, "mul", OPC_KIND.ALU,
@@ -759,11 +761,12 @@ ROUND = Opcode(0x65, "round", OPC_KIND.ALU1,
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                "Round float to integral, to nearest with ties to away")
 
-# removes fractional part -> round to zero../
 TRUNC = Opcode(0x66, "trunc", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-               "TBD")
+               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               """
+               Round float to integral, toward zero.
+               Note, frac(val) = val - trunc(val)""")
 
 
 # do we need all these?

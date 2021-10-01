@@ -957,11 +957,11 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
        {TC::FLT, TC::SAME_AS_PREV}, 
        "round", 0 },
-     {  // 66 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 66 trunc
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::FLT, TC::SAME_AS_PREV}, 
+       "trunc", 0 },
      {  // 67 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,

@@ -149,7 +149,9 @@ Addition: dst := src1 + src2
 #### [11] sub *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Subtraction: dst := src1 - src2
              
-             Note: `sub dst = 0 src` can be used to emulate `neg`
+             Note: `sub dst = 0 src` can be used to emulate `neg` for integers.
+                    (for floating point use `dat = mul src -1.0`)
+             
 
 #### [12] mul *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Multiplication: dst := src1 \* src2
@@ -331,6 +333,11 @@ Round float to integral, toward negative infinity
 
 #### [65] round *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Round float to integral, to nearest with ties to away
+
+#### [66] trunc *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+
+               Round float to integral, toward zero.
+               Note, frac(val) = val - trunc(val)
 
 ## Misc
 

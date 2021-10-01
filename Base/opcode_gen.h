@@ -63,6 +63,7 @@ enum class OPC : uint8_t {
     CEIL = 0x63,
     FLOOR = 0x64,
     ROUND = 0x65,
+    TRUNC = 0x66,
 
     NOP = 0xf1,
     NOP1 = 0xf2,
