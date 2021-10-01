@@ -576,9 +576,11 @@
     pusharg -1:S32
     ret
 
-.mem __unimplemented_fd_seek 8 RW
-  .data 1 "fd_seek NYI\n\0"
-
+# WHENCE mapping
+# WASI => Linux
+# 0 -> SEEK_CUR 1
+# 1 -> SEEK_END 2
+# 2 -> SEEK_SET 0
 .fun $wasi$fd_seek NORMAL [S32] = [A64 S32 S64 S32 S32]
   .bbl %start
     poparg mem_base:A64
@@ -586,15 +588,24 @@
     poparg delta:S64
     poparg whence:S32
     poparg result_offset:S32
-    # TODO: unimplemented
-    lea.mem msg:A64 __unimplemented_fd_seek 0
-    pusharg msg
-    pusharg 2:S32
-    bsr write_s
-    poparg dummy:S64
 
-    trap
-    pusharg -1:S32
+    add whence whence 1
+    bne whence 3 next
+    mov whence 0
+ .bbl next
+    pusharg whence
+    pusharg delta
+    pusharg fd
+    bsr lseek
+    poparg res:S64
+    ble 0:S64 res success
+    conv errno32:S32 res
+    pusharg errno32
+    ret
+  .bbl success
+    lea result:A64 mem_base result_offset
+    st result 0:U32 res
+    pusharg 0:S32
     ret
 
 .fun $wasi$fd_read NORMAL [S32] = [A64 S32 S32 S32 S32]

@@ -34,3 +34,11 @@ license: Public Domain (Nicholas Vining)
 brotli.wasm
 derived from: https://github.com/google/brotli
 license: https://github.com/google/brotli/blob/master/LICENSE
+
+LeePerrySmith.obj
+derived from: http://casual-effects.com/data/index.html
+license:  CC BY 3.0
+
+objzero*
+derived from: https://github.com/jpcy/objzero
+license: https://github.com/jpcy/objzero/blob/master/LICENSE

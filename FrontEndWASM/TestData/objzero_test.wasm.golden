@@ -1,0 +1,600 @@
+Loading './TestData/LeePerrySmith.obj'
+[          ] 0%[          ] 1%[          ] 2%[          ] 3%[          ] 4%[          ] 5%[          ] 6%[          ] 7%[          ] 8%[          ] 9%[*         ] 10%[*         ] 11%[*         ] 12%[*         ] 13%[*         ] 14%[*         ] 15%[*         ] 16%[*         ] 17%[*         ] 18%[*         ] 19%[**        ] 20%[**        ] 21%[**        ] 22%[**        ] 23%[**        ] 24%[**        ] 25%[**        ] 26%[**        ] 27%[**        ] 28%[**        ] 29%[***       ] 30%[***       ] 31%[***       ] 32%[***       ] 33%[***       ] 34%[***       ] 35%[***       ] 36%[***       ] 37%[***       ] 38%[***       ] 39%[****      ] 40%[****      ] 41%[****      ] 42%[****      ] 43%[****      ] 44%[****      ] 45%[****      ] 46%[****      ] 47%[****      ] 48%[****      ] 49%[*****     ] 50%[*****     ] 50%[*****     ] 51%[*****     ] 52%[*****     ] 53%[*****     ] 54%[*****     ] 55%[*****     ] 56%[*****     ] 57%[*****     ] 58%[*****     ] 59%[******    ] 60%[******    ] 61%[******    ] 62%[******    ] 63%[******    ] 64%[******    ] 65%[******    ] 66%[******    ] 67%[******    ] 68%[******    ] 69%[*******   ] 70%[*******   ] 71%[*******   ] 72%[*******   ] 73%[*******   ] 74%[*******   ] 75%[*******   ] 76%[*******   ] 77%[*******   ] 78%[*******   ] 79%[********  ] 80%[********  ] 81%[********  ] 82%[********  ] 83%[********  ] 84%[********  ] 85%[********  ] 86%[********  ] 87%[********  ] 88%[********  ] 89%[********* ] 90%[********* ] 91%[********* ] 92%[********* ] 93%[********* ] 94%[********* ] 95%[********* ] 96%[********* ] 97%[********* ] 98%[********* ] 99%[**********] 100%
+Failed to read material file './TestData/Infinite-Level_02.mtl'
+Object: 0 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 1 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 2 'Group33', 370 triangles, 1110 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 370 triangles
+Object: 3 'Group39', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 4 'Group33', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 5 'Group39', 158 triangles, 474 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 158 triangles
+Object: 6 'Group33', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 7 'Group35', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 8 'Group33', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 9 'Group39', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 10 'Group33', 56 triangles, 168 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 56 triangles
+Object: 11 'Group39', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 12 'Group35', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 13 'Group33', 144 triangles, 432 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 144 triangles
+Object: 14 'Group35', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 15 'Group39', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 16 'Group33', 354 triangles, 1062 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 354 triangles
+Object: 17 'Group35', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 18 'Group39', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 19 'Group19', 136 triangles, 408 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 136 triangles
+Object: 20 'Group35', 44 triangles, 132 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 44 triangles
+Object: 21 'Group19', 44 triangles, 132 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 44 triangles
+Object: 22 'Group33', 442 triangles, 1326 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 442 triangles
+Object: 23 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 24 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 25 'Group7', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 26 'Group5', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 27 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 28 'Group5', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 29 'Group7', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 30 'Group5', 94 triangles, 282 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 94 triangles
+Object: 31 'Group7', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 32 'Group5', 36 triangles, 108 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 36 triangles
+Object: 33 'Group12', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 34 'Group5', 304 triangles, 912 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 304 triangles
+Object: 35 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 36 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 37 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 38 'Group5', 14 triangles, 42 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 14 triangles
+Object: 39 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 40 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 41 'Group7', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 42 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 43 'Group7', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 44 'Group5', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 45 'Group7', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 46 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 47 'Group7', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 48 'Group5', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 49 'Group12', 36 triangles, 108 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 36 triangles
+Object: 50 'Group5', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 51 'Group12', 112 triangles, 336 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 112 triangles
+Object: 52 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 53 'Group12', 96 triangles, 288 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 96 triangles
+Object: 54 'Group5', 110 triangles, 330 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 110 triangles
+Object: 55 'Group12', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 56 'Group5', 232 triangles, 696 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 232 triangles
+Object: 57 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 58 'Group14', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 59 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 60 'Group14', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 61 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 62 'Group26', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 63 'Group19', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 64 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 65 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 66 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 67 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 68 'Group24', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 69 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 70 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 71 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 72 'Group28', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 73 'Group19', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 74 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 75 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 76 'Group14', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 77 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 78 'Group28', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 79 'Group26', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 80 'Group28', 80 triangles, 240 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 80 triangles
+Object: 81 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 82 'Group28', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 83 'Group14', 152 triangles, 456 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 152 triangles
+Object: 84 'Group26', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 85 'Group14', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 86 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 87 'Group24', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 88 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 89 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 90 'Group19', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 91 'Group26', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 92 'Group14', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 93 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 94 'Group2', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 95 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 96 'Group2', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 97 'Group5', 368 triangles, 1104 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 368 triangles
+Object: 98 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 99 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 100 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 101 'Group5', 150 triangles, 450 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 150 triangles
+Object: 102 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 103 'Group5', 80 triangles, 240 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 80 triangles
+Object: 104 'Group2', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 105 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 106 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 107 'Group14', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 108 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 109 'Group2', 192 triangles, 576 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 192 triangles
+Object: 110 'Group4', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 111 'Group2', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 112 'Group4', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 113 'Group2', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 114 'Group4', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 115 'Group2', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 116 'Group19', 240 triangles, 720 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 240 triangles
+Object: 117 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 118 'Group19', 144 triangles, 432 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 144 triangles
+Object: 119 'Group2', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 120 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 121 'Group2', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 122 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 123 'Group2', 22 triangles, 66 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 22 triangles
+Object: 124 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 125 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 126 'Group4', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 127 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 128 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 129 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 130 'Group4', 94 triangles, 282 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 94 triangles
+Object: 131 'Group2', 334 triangles, 1002 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 334 triangles
+Object: 132 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 133 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 134 'Group19', 288 triangles, 864 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 288 triangles
+Object: 135 'Group2', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 136 'Group19', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 137 'Group14', 54 triangles, 162 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 54 triangles
+Object: 138 'Group2', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 139 'Group24', 246 triangles, 738 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 246 triangles
+Object: 140 'Group5', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 141 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 142 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 143 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 144 'Group5', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 145 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 146 'Group33', 96 triangles, 288 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 96 triangles
+Object: 147 'Group5', 20 triangles, 60 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 20 triangles
+Object: 148 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 149 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 150 'Group33', 370 triangles, 1110 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 370 triangles
+Object: 151 'Group39', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 152 'Group33', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 153 'Group39', 158 triangles, 474 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 158 triangles
+Object: 154 'Group33', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 155 'Group35', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 156 'Group33', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 157 'Group39', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 158 'Group33', 56 triangles, 168 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 56 triangles
+Object: 159 'Group39', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 160 'Group35', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 161 'Group33', 144 triangles, 432 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 144 triangles
+Object: 162 'Group35', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 163 'Group39', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 164 'Group33', 354 triangles, 1062 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 354 triangles
+Object: 165 'Group35', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 166 'Group39', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 167 'Group19', 136 triangles, 408 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 136 triangles
+Object: 168 'Group35', 44 triangles, 132 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 44 triangles
+Object: 169 'Group19', 44 triangles, 132 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 44 triangles
+Object: 170 'Group33', 442 triangles, 1326 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 442 triangles
+Object: 171 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 172 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 173 'Group7', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 174 'Group5', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 175 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 176 'Group5', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 177 'Group7', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 178 'Group5', 94 triangles, 282 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 94 triangles
+Object: 179 'Group7', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 180 'Group5', 36 triangles, 108 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 36 triangles
+Object: 181 'Group12', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 182 'Group5', 304 triangles, 912 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 304 triangles
+Object: 183 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 184 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 185 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 186 'Group5', 14 triangles, 42 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 14 triangles
+Object: 187 'Group7', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 188 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 189 'Group7', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 190 'Group5', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 191 'Group7', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 192 'Group5', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 193 'Group7', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 194 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 195 'Group7', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 196 'Group5', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 197 'Group12', 36 triangles, 108 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 36 triangles
+Object: 198 'Group5', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 199 'Group12', 112 triangles, 336 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 112 triangles
+Object: 200 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 201 'Group12', 96 triangles, 288 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 96 triangles
+Object: 202 'Group5', 110 triangles, 330 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 110 triangles
+Object: 203 'Group12', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 204 'Group5', 232 triangles, 696 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 232 triangles
+Object: 205 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 206 'Group14', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 207 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 208 'Group14', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 209 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 210 'Group26', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 211 'Group19', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 212 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 213 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 214 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 215 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 216 'Group24', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 217 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 218 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 219 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 220 'Group28', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 221 'Group19', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 222 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 223 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 224 'Group14', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 225 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 226 'Group28', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 227 'Group26', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 228 'Group28', 80 triangles, 240 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 80 triangles
+Object: 229 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 230 'Group28', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 231 'Group14', 152 triangles, 456 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 152 triangles
+Object: 232 'Group26', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 233 'Group14', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 234 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 235 'Group24', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 236 'Group19', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 237 'Group24', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 238 'Group19', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 239 'Group26', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 240 'Group14', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 241 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 242 'Group2', 88 triangles, 264 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 88 triangles
+Object: 243 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 244 'Group2', 64 triangles, 192 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 64 triangles
+Object: 245 'Group5', 368 triangles, 1104 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 368 triangles
+Object: 246 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 247 'Group5', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 248 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 249 'Group5', 150 triangles, 450 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 150 triangles
+Object: 250 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 251 'Group5', 80 triangles, 240 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 80 triangles
+Object: 252 'Group2', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 253 'Group19', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 254 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 255 'Group14', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 256 'Group19', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 257 'Group2', 192 triangles, 576 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 192 triangles
+Object: 258 'Group4', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 259 'Group2', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 260 'Group4', 32 triangles, 96 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 32 triangles
+Object: 261 'Group2', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 262 'Group4', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 263 'Group2', 72 triangles, 216 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 72 triangles
+Object: 264 'Group19', 240 triangles, 720 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 240 triangles
+Object: 265 'Group14', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 266 'Group19', 144 triangles, 432 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 144 triangles
+Object: 267 'Group2', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 268 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 269 'Group2', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 270 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 271 'Group2', 22 triangles, 66 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 22 triangles
+Object: 272 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 273 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 274 'Group4', 24 triangles, 72 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 24 triangles
+Object: 275 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 276 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 277 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 278 'Group4', 94 triangles, 282 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 94 triangles
+Object: 279 'Group2', 334 triangles, 1002 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 334 triangles
+Object: 280 'Group4', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 281 'Group2', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 282 'Group19', 288 triangles, 864 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 288 triangles
+Object: 283 'Group2', 40 triangles, 120 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 40 triangles
+Object: 284 'Group19', 48 triangles, 144 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 48 triangles
+Object: 285 'Group14', 54 triangles, 162 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 54 triangles
+Object: 286 'Group2', 176 triangles, 528 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 176 triangles
+Object: 287 'Group24', 246 triangles, 738 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 246 triangles
+Object: 288 'Group5', 38 triangles, 114 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 38 triangles
+Object: 289 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 290 'Group5', 16 triangles, 48 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 16 triangles
+Object: 291 'Group2', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 292 'Group5', 6 triangles, 18 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 6 triangles
+Object: 293 'Group4', 8 triangles, 24 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 8 triangles
+Object: 294 'Group33', 96 triangles, 288 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 96 triangles
+Object: 295 'Group5', 20 triangles, 60 vertices, 1 meshes
+   Mesh 0: '<empty>' material, 20 triangles
+296 objects
+0 materials
+296 meshes
+53052 vertices
+17684 triangles
