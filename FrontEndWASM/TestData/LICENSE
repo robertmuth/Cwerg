@@ -42,3 +42,11 @@ license:  CC BY 3.0
 objzero*
 derived from: https://github.com/jpcy/objzero
 license: https://github.com/jpcy/objzero/blob/master/LICENSE
+
+nanosvg*
+derived from: https://github.com/memononen/nanosvg
+license https://github.com/memononen/nanosvg/blob/master/LICENSE.txt
+
+stb_image_write.h
+derived from: https://github.com/nothings/stb/blob/master/stb_image_write.h
+license: Public Domain (Sean Barrett)

@@ -302,6 +302,28 @@
     pusharg statu:S32
     ret
 
+# https://github.com/wasm3/wasm3/blob/main/source/extra/wasi_core.h
+# mapping
+# OFLAGS_CREAT 1
+# OFLAGS_EXCL 4
+# OFLAGS_TRUNC 8
+#
+# FDFLAGS_WRITE 64
+# FDFLAGS_READ 2
+# FDFLAGS_SEEK 4
+# FDFLAGS_TELL 32
+# FDFLAGS_APPEND 1
+#
+# bits/fcntl-linux.h
+# O_CREATE 64
+# O_EXCL 128
+# O_TRUC 256
+# O_APPEND 1024
+# O_RDONLY 0
+# O_WRONLY  1
+# O_RW 2
+
+
 .fun $wasi$path_open NORMAL [S32] = [A64 S32 S32 S32 S32 S32 S64 S64 S32 S32]
   .bbl %start
     poparg mem_base:A64
@@ -336,11 +358,11 @@
 
    .reg S32 [f]
    and f oflags 1 # creat 0100 = 128
-   shl f f 7
+   shl f f 6
    or flag flag f
 
    and f oflags 4 # excl 0200  256
-   shl f f 6
+   shl f f 5
    or flag flag f
 
    and f oflags 8 # trunc 01000 512
@@ -348,7 +370,7 @@
    or flag flag f
 
    and f fdflags 1 # append 0x2000 1024
-   shl f f 10
+   shl f f 9
    or flag flag f
 
    .reg S64 [g]
