@@ -15,7 +15,7 @@ TEST_64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.64.exe)  $(TESTS_64:%.wasm=$(DIR)/%
                $(DIR)/fannkuch-redux.64.exe $(DIR)/matrix.64.exe \
                $(DIR)/amoeba_test.64.exe $(DIR)/nv_voronoi.64.exe \
                $(DIR)/brotli.64.exe $(DIR)/objzero_test.64.exe \
-               $(DIR)/nanosvg_test.64.exe
+               $(DIR)/nanosvg_test.64.exe $(DIR)/binary-trees.64.exe
                
 tests: $(DIR)/parse_test $(TEST_64_EXES) $(TEST_32_EXES)
 
@@ -122,5 +122,13 @@ $(DIR)/nanosvg_test.64.exe: TestData/nanosvg_test.wasm
 	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	./$@ ./TestData/nanosvg_23.svg ./$@.out >$@.out.log
 	diff $@.out $<.golden
+
+$(DIR)/binary-trees.64.exe: TestData/binary-trees.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
+	./$@ 15 >$@.out
+	diff $@.out $<.golden
+
 clean:
 	rm -f $(DIR)/*

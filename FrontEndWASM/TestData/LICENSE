@@ -19,7 +19,7 @@ license: https://github.com/jtsiomb/c-ray/blob/master/COPYING
 lists.c, matrix.c
 derived from: http://www.bagley.org/~doug/shootout/
 
-nbody.c, spectral-norm.c, fannkuch-redux.c
+nbody.c, spectral-norm.c, fannkuch-redux.c binary-trees.c
 https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 license: https://salsa.debian.org/benchmarksgame-team/benchmarksgame/-/blob/master/LICENSE.md
 
