@@ -132,9 +132,9 @@ Executable<uint64_t> GenBareBonesA64() {
       CombinedElfHeaderSize<uint64_t>(exe.segments), exe.start_vaddr);
   exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
   exe.ehdr.e_entry = sec_text->shdr.sh_addr;
-  void* data = sec_text->data->rwdata();
+  // void* data = sec_text->data->rwdata();
   uint64_t msg_addr = sec_text->shdr.sh_addr + 9 * 4;
-  uint32_t ins = 0x91035021 & 0xff0003ff | ((msg_addr & 0xfffU) << 10U);
+  uint32_t ins = (0x91035021 & 0xff0003ff) | ((msg_addr & 0xfffU) << 10U);
   ((uint32_t*)sec_text->data->rwdata())[2] = ins;
   return exe;
 }

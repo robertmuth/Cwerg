@@ -155,7 +155,6 @@ int32_t ConstValueInt32(Const num) {
 
 int64_t ConstValueInt64(Const num) {
   ASSERT(num.kind() == RefKind::CONST, "not a const " << unsigned(num.kind()));
-  int64_t  val;
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
       return ConstValueU(num);

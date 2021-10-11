@@ -180,12 +180,16 @@ void RunLinearScan(Bbl bbl,
       pool.add_reserved_range(*lr);
     }
   }
-
+#if 0
   unsigned n = 0;
   auto logger = [&](const LiveRange& lr, std::string_view msg) {
     std::cout << n++ << " " << lr << " " << msg << "\n";
   };
+  RegisterAssignerLinearScanFancy(ordered, ranges, &pool, logger);
+#else
   RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
+
+#endif
 }
 
 std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(

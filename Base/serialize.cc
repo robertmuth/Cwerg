@@ -563,7 +563,6 @@ void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number) {
   *output << ".bbl " << Name(bbl);
   const char* group_sep = "  #  ";
 
-  char buf[64];
 #if 1
   if (!BblSuccEdgList::IsEmpty(bbl)) {
     std::vector<std::string> succs;
@@ -759,7 +758,6 @@ Unit UnitParseFromAsm(const char* name,
   Unit unit = UnitNew(StrNew(name));
 
   Handle operands[MAX_OPERANDS];
-  int line_num = 0;
   std::vector<std::string_view> vec;
   for (unsigned line_num = 0; !input.empty(); ++line_num) {
     const size_t new_line_pos = input.find('\n');

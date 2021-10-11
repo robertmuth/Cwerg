@@ -51,7 +51,7 @@ Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun) {
   char buf[kMaxIdLength];
   strncpy(buf, StrData(orig_name), kMaxIdLength - 1);
   strncat(buf, suffix, kMaxIdLength - 1);
-  const int len = strlen(buf);
+  const size_t len = strlen(buf);
   ASSERT(len < kMaxIdLength - 10, "Bbl name too large");
   for (int i = 1; i < 10000; ++i) {
     ToDecString(i, buf + len);
