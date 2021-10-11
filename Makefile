@@ -13,13 +13,13 @@ export PATH := $(PATH):$(HOME)/.local/bin
 export LC_ALL=C
 
 .SUFFIXES:
-
-
-
 .PHONY: CLOC.txt
 
+CWERG_LIBS = -lunwind -llzma
+CWERG_FLAGS = CWERG_ENABLE_UNWIND
+
 tests: 
-	mkdir -p build && cd build && cmake .. && $(MAKE) -s
+	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(DCWERG_FLAGS)" -DCWERG_LIBS="$(DCWERG_LIBS)" .. && $(MAKE) -s
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
@@ -39,7 +39,7 @@ tests_github:
 	clang -v
 	clang++ -v
 	@echo Build Native Exes
-	mkdir -p build && cd build && cmake .. && $(MAKE) -s
+	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(DCWERG_FLAGS)" -DCWERG_LIBS="$(DCWERG_LIBS)" .. && $(MAKE) -s
 	@echo Run Tests
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean

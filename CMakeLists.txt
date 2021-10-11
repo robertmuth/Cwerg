@@ -2,12 +2,15 @@ cmake_minimum_required(VERSION 3.10)
 project(Cwerg)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g")
+set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -Wall -Wno-class-memaccess -Wno-sign-compare ${CWERG_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "-static")
-# The "whole-archive" dance is necessary for using std::condition_variable
+
+set(CWERG_FLAGS "")
+set(CWERG_LIBS "")
 # with static linking, see
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909
-set(CMAKE_CXX_STANDARD_LIBRARIES "-lunwind -llzma  -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+#set(CMAKE_CXX_STANDARD_LIBRARIES "-lunwind -llzma  -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-Wl,--whole-archive -lpthread -Wl,--no-whole-archive ${CWERG_LIBS}")
 
 include_directories(./)
 
@@ -248,4 +251,20 @@ add_executable(a64_codegen_tool.exe
         $<TARGET_OBJECTS:CODEGENA64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         CodeGenA64/codegen_tool.cc
+        )
+
+# this only works when (cross) compiled for a32
+add_executable(jit_cpu_a32.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUA32_LIB>
+        Examples/jit_cpu_a32.cc
+        )
+
+# this only works when (cross) compiled for a64
+add_executable(jit_cpu_a64.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUA64_LIB>
+        Examples/jit_cpu_a64.cc
         )

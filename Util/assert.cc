@@ -10,17 +10,7 @@ void SetAbortHandler(AbortHandlerFun handler) {
   MyAbortHandler = handler;
 }
 
-#ifdef CWERG_DISABLE_UNWIND
-
-#include <execinfo.h>
-
-void AssertHelper::Abort() {
-  void* buffer[1024];
-  int count = backtrace(buffer, 1024);
-  backtrace_symbols_fd(buffer, count, 2);
-  MyAbortHandler();
-}
-#else
+#ifdef CWERG_ENABLE_UNWIND
 
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -50,6 +40,17 @@ void AssertHelper::Abort() {
     }
   }
   std::cerr << "to unmangle append ` |& c++filt ` to command\n";
+  MyAbortHandler();
+}
+
+#else
+
+#include <execinfo.h>
+
+void AssertHelper::Abort() {
+  void* buffer[1024];
+  int count = backtrace(buffer, 1024);
+  backtrace_symbols_fd(buffer, count, 2);
   MyAbortHandler();
 }
 #endif
