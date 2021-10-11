@@ -12,10 +12,8 @@ namespace cwerg::elf {
 
 template <typename elfsize_t>
 struct Unit {
-
-
-  Section<elfsize_t>* const sec_text;
   Section<elfsize_t>* const sec_rodata;
+  Section<elfsize_t>* const sec_text;
   Section<elfsize_t>* const sec_data;
   Section<elfsize_t>* const sec_bss;
 
@@ -91,21 +89,29 @@ struct Unit {
     }
   }
 
-  void AddFunAddr(unsigned size, uint32_t reloc_kind, std::string_view fun_name) {
+  void AddFunAddr(unsigned size,
+                  uint32_t reloc_kind,
+                  std::string_view fun_name) {
     ASSERT(current_mem_sec != nullptr, "");
     auto* sym = FindOrAddSymbol(fun_name, false);
     AddReloc(reloc_kind, current_mem_sec, sym, 0);
     current_mem_sec->AddDataRepeatedBytes(size, 0);
   }
 
-  void AddBblAddr(unsigned size, uint32_t reloc_kind, std::string_view bbl_name) {
+  void AddBblAddr(unsigned size,
+                  uint32_t reloc_kind,
+                  std::string_view bbl_name) {
     ASSERT(current_mem_sec != nullptr, "add bbl addr outside a mem directive");
     auto* sym = FindOrAddSymbol(bbl_name, true);
     AddReloc(reloc_kind, current_mem_sec, sym, 0);
     current_mem_sec->AddDataRepeatedBytes(size, 0);
   }
 
-  void AddMemAddr(unsigned size, uint32_t reloc_kind, std::string_view mem_name, uint32_t addend) {  ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
+  void AddMemAddr(unsigned size,
+                  uint32_t reloc_kind,
+                  std::string_view mem_name,
+                  uint32_t addend) {
+    ASSERT(current_mem_sec != nullptr, "memaddr outside of mem");
     ASSERT(addend == 0, "NYI");
     auto* sym = FindOrAddSymbol(mem_name, false);
     AddReloc(reloc_kind, current_mem_sec, sym, 0);
@@ -128,8 +134,8 @@ struct Unit {
 
   // Add a symbol for Section sec at the current offset
   Symbol<elfsize_t>* AddSymbol(std::string_view name,
-                                   Section<elfsize_t>* sec,
-                                   bool is_local) {
+                               Section<elfsize_t>* sec,
+                               bool is_local) {
     name = InternString(name);
     auto* the_map = is_local ? &local_symbol_map : &global_symbol_map;
     auto it = the_map->find(name);
@@ -202,4 +208,4 @@ std::ostream& operator<<(std::ostream& os, const Unit<elfsize_t>& s) {
   return os;
 }
 
-}  // namespace
+}  // namespace cwerg::elf

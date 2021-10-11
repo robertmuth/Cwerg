@@ -9,9 +9,9 @@ namespace cwerg {
 class ImmutablePool {
  public:
   ImmutablePool(size_t alignment)
-      : alignment_(alignment),
-        data_(new char[16 * 1024 * 1024]),
-        reserved_(16 * 1024 * 1024) {
+      : data_(new char[16 * 1024 * 1024]),
+        reserved_(16 * 1024 * 1024),
+        alignment_(alignment) {
     AddData({"\0", 1}, alignment - 1);
   }
 
