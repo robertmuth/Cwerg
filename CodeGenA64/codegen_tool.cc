@@ -1,6 +1,4 @@
 #include "Base/ir.h"
-#include "Base/optimize.h"
-#include "Base/sanity.h"
 #include "Base/serialize.h"
 #include "CodeGenA64/codegen.h"
 #include "CodeGenA64/legalize.h"
@@ -22,31 +20,7 @@ using namespace cwerg;
 using namespace cwerg::base;
 using namespace cwerg::code_gen_a64;
 
-void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
-  for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
-    if (FunKind(fun) == FUN_KIND::NORMAL) {
-      FunCfgInit(fun);
-      FunOptBasic(fun, true);
-    }
 
-    FunCheck(fun);
-    PhaseLegalization(fun, unit, fout);
-  }
-}
-
-void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
-  for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
-    PhaseGlobalRegAlloc(fun, unit, fout);
-  }
-}
-
-void RegAllocLocal(Unit unit, bool verbose, std::ostream* fout) {
-  for (Fun fun : UnitFunIter(unit)) {
-    PhaseFinalizeStackAndLocalRegAlloc(fun, unit, fout);
-  }
-}
 
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;

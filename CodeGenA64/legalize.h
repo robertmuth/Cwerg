@@ -21,4 +21,11 @@ extern void PhaseFinalizeStackAndLocalRegAlloc(base::Fun fun,
                                                base::Unit unit,
                                                std::ostream* fout);
 
+void LegalizeAll(base::Unit unit, bool verbose, std::ostream* fout);
+
+void RegAllocGlobal(base::Unit unit, bool verbose, std::ostream* fout);
+
+void RegAllocLocal(base::Unit unit, bool verbose, std::ostream* fout);
+
+
 }  // namespace cwerg::code_gen_a32

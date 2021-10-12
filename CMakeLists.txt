@@ -268,3 +268,13 @@ add_executable(jit_cpu_a64.exe
         $<TARGET_OBJECTS:CPUA64_LIB>
         Examples/jit_cpu_a64.cc
         )
+
+# this only works when (cross) compiled for a64
+add_executable(jit_ir_a64.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUA64_LIB>
+        $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        Examples/jit_ir_a64.cc
+        )
