@@ -18,8 +18,8 @@ setup32:
 
 jit_cpu_a32.test: setup32
 	cd $(DIR_A32); VERBOSE=1 $(MAKE) -s jit_cpu_a32.exe
-	$(DIR_A32)/jit_cpu_a32.exe > $(DIR_A64)/$@.out
-	diff $(DIR_A64)/$@.out TestData/fib.golden
+	$(DIR_A32)/jit_cpu_a32.exe > $(DIR_A32)/$@.out
+	diff $(DIR_A32)/$@.out TestData/fib.golden
 
 setup64:
 	mkdir -p $(DIR_A64) && cd $(DIR_A64) && CC=$(CC_A64) CXX=$(CXX_A64) cmake -DCWERG_FLAGS="$(A64_FLAGS)" -UCWERG_LIBS  ../..
