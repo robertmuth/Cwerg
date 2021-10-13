@@ -22,13 +22,13 @@ void DumpIns(uint32_t data) {
   Disassemble(&ins, data);
   std::vector<std::string> ops;
   std::string_view enum_name = InsSymbolize(ins, &ops);
-  std::cout << "0x" << std::hex << data << " " << enum_name;
+  std::cerr << "0x" << std::hex << data << " " << enum_name;
   std::string_view sep = " ";
   for (const std::string& op : ops) {
-    std::cout << sep << op;
+    std::cerr << sep << op;
     sep = ", ";
   }
-  std::cout << "\n";
+  std::cerr << "\n";
 }
 
 // encode a OK.SIMM_0_23

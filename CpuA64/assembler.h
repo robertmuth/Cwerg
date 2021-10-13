@@ -22,4 +22,6 @@ extern elf::Executable<uint64_t> MakeExe(A64Unit* unit, bool create_sym_tab);
 
 extern std::ostream& operator<<(std::ostream& os, const A64Unit& s);
 
+extern void ApplyRelocation(const elf::Reloc<uint64_t>& rel);
+
 }  // namespace cwerg::a32
