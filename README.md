@@ -8,6 +8,7 @@ Cwerg is a lightweight compiler backend aimed at experimental programming
 language implementations that want to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
 ELF executables for Arm32 and Arm64 ISAs.
+Besides AOT compilation, (one-shot) JITing is also supported.
 
 The project is very much "work in progress" and  currently consists of:
 
@@ -21,8 +22,6 @@ The project is very much "work in progress" and  currently consists of:
 * [A32 Backend](CodeGenA32/) (code generator emitting ARM32 instructions)
 * [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
-
-It is primarily aimed at AOT compilation but JITing will also be supported.
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
 1. spec/reference implementation: Python 3.7
