@@ -322,6 +322,70 @@
   poparg %S32_3:S32
   ret
 
+.fun print_x_x_ln NORMAL [] = [U32 U32]
+
+.bbl %start
+  poparg a:U32
+  poparg b:U32
+
+  pusharg a
+  pusharg 1:S32
+  bsr write_x
+  poparg dummy:S32
+
+  pusharg 32:U8
+  pusharg 1:S32
+  bsr write_c
+  poparg dummy
+
+  pusharg b
+  pusharg 1:S32
+  bsr write_x
+  poparg dummy
+
+  pusharg 10:U8
+  pusharg 1:S32
+  bsr write_c
+  poparg dummy
+  ret
+
+.fun print_x_x_x_ln NORMAL [] = [U32 U32 U32]
+
+.bbl %start
+  poparg a:U32
+  poparg b:U32
+  poparg c:U32
+
+  pusharg a
+  pusharg 1:S32
+  bsr write_x
+  poparg dummy:S32
+
+  pusharg 32:U8
+  pusharg 1:S32
+  bsr write_c
+  poparg dummy
+
+  pusharg b
+  pusharg 1:S32
+  bsr write_x
+  poparg dummy
+
+  pusharg 32:U8
+  pusharg 1:S32
+  bsr write_c
+  poparg dummy
+
+  pusharg c
+  pusharg 1:S32
+  bsr write_x
+  poparg dummy
+
+  pusharg 10:U8
+  pusharg 1:S32
+  bsr write_c
+  poparg dummy
+  ret
 
 .fun print_c_ln NORMAL [] = [U8]
 

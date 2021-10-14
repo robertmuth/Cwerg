@@ -160,9 +160,36 @@ def Handle_ALU(fun, opcode, ops, _ctx):
         expr = ALU_FLT[opcode]
     else:
         assert False, dst_flavor
-    mask = ops[0].kind.bitwidth() - 1
+    shift_mask = ops[0].kind.bitwidth() - 1
     computation = expr.format(
-        src1=RegOrNum(fun, ops[1]), src2=RegOrNum(fun, ops[2]), mask=mask)
+        src1=RegOrNum(fun, ops[1]), src2=RegOrNum(fun, ops[2]), mask=shift_mask)
+    print(f"    {RegOrNum(fun, ops[0])} = {computation};")
+
+
+ALU1_INT = {
+    (o.CNTLZ, 8): "({src} == 0) ? 8 : __builtin_clz({src} & 0xff) - 24",
+    (o.CNTLZ, 16): "({src} == 0) ? 16 : __builtin_clz({src} & 0xffff) - 16",
+    (o.CNTLZ, 32): "({src} == 0) ? 32 : __builtin_clz({src} & 0xffffffff)",
+    (o.CNTTZ, 8): "({src} == 0) ? 8:  __builtin_ctz({src} & 0xff)",
+    (o.CNTTZ, 16): "({src} == 0) ? 16:  __builtin_ctz({src} & 0xffff)",
+    (o.CNTTZ, 32): "({src} == 0) ? 32:  __builtin_ctz({src} & 0xffffffff)",
+
+}
+
+ALU1_FLT = {
+}
+
+
+def Handle_ALU1(fun, opcode, ops, _ctx):
+    dst_flavor = ops[0].kind.flavor()
+    if dst_flavor in {o.DK_FLAVOR_S, o.DK_FLAVOR_U}:
+        expr = ALU1_INT[(opcode, ops[1].kind.bitwidth())]
+    elif dst_flavor is o.DK_FLAVOR_F:
+        expr = ALU1_FLT[opcode]
+    else:
+        assert False, dst_flavor
+    computation = expr.format(src=RegOrNum(fun, ops[1]))
+
     print(f"    {RegOrNum(fun, ops[0])} = {computation};")
 
 
@@ -315,6 +342,7 @@ INS_HANDLER = {
     o.OPC_KIND.RET: Handle_RET,
     o.OPC_KIND.MOV: Handle_MOV,
     o.OPC_KIND.ALU: Handle_ALU,
+    o.OPC_KIND.ALU1: Handle_ALU1,
     o.OPC_KIND.LEA: Handle_LEA,
     o.OPC_KIND.LEA1: Handle_LEA,
     o.OPC_KIND.LD: Handle_LD,
@@ -329,6 +357,8 @@ PROLOG = """
 #include "std_types.h"
 
 typedef void (*FUN_POINTER)(void);
+
+#define MIN(a, b) a < b ? a : b
 """
 
 EPILOG = """
