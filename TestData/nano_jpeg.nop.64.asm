@@ -345,9 +345,8 @@
     ret
 
 .fun print_x_ln NORMAL [] = [U32]
-.reg S32 [%S32_2 %S32_4]
+.reg S32 [%S32_2]
 .reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5]
 .reg U32 [n]
 .bbl %start
     poparg n
@@ -356,12 +355,67 @@
     pusharg %S32_2
     bsr write_x
     poparg %S64_1
-    mov %S32_4 1
-    mov %U8_5 10
-    pusharg %U8_5
-    pusharg %S32_4
+    pusharg 10:U8
+    pusharg 1:S32
     bsr write_c
     poparg %S64_3
+    ret
+
+.fun print_x_x_ln NORMAL [] = [U32 U32]
+.reg S64 [dummy]
+.reg U32 [a b]
+.bbl %start
+    poparg a
+    poparg b
+    pusharg a
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg dummy
+    pusharg b
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 10:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg dummy
+    ret
+
+.fun print_x_x_x_ln NORMAL [] = [U32 U32 U32]
+.reg S64 [dummy]
+.reg U32 [a b c]
+.bbl %start
+    poparg a
+    poparg b
+    poparg c
+    pusharg a
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg dummy
+    pusharg b
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg dummy
+    pusharg c
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 10:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg dummy
     ret
 
 .fun print_c_ln NORMAL [] = [U8]

@@ -8,6 +8,8 @@
 # print_d_ln                     RegStats:  0/ 0   0/ 3
 # print_u_ln                     RegStats:  0/ 0   0/ 3
 # print_x_ln                     RegStats:  0/ 0   0/ 3
+# print_x_x_ln                   RegStats:  0/ 0   1/ 5
+# print_x_x_x_ln                 RegStats:  0/ 0   2/ 7
 # print_c_ln                     RegStats:  0/ 0   0/ 3
 # memset                         RegStats:  0/ 4   0/ 2
 # memcpy                         RegStats:  0/ 4   0/ 2
@@ -350,6 +352,63 @@
     pusharg 1:S32
     bsr write_c
     poparg %S64_3
+    ret
+
+.fun print_x_x_ln NORMAL [] = [U32 U32]
+.reg S64 [$1_dummy $2_dummy $3_dummy dummy]
+.reg U32 [a b]
+.bbl %start
+    poparg a
+    poparg b
+    pusharg a
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg $1_dummy
+    pusharg b
+    pusharg 1:S32
+    bsr write_x
+    poparg $2_dummy
+    pusharg 10:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg $3_dummy
+    ret
+
+.fun print_x_x_x_ln NORMAL [] = [U32 U32 U32]
+.reg S64 [$1_dummy $2_dummy $3_dummy $4_dummy $5_dummy dummy]
+.reg U32 [a b c]
+.bbl %start
+    poparg a
+    poparg b
+    poparg c
+    pusharg a
+    pusharg 1:S32
+    bsr write_x
+    poparg dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg $1_dummy
+    pusharg b
+    pusharg 1:S32
+    bsr write_x
+    poparg $2_dummy
+    pusharg 32:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg $3_dummy
+    pusharg c
+    pusharg 1:S32
+    bsr write_x
+    poparg $4_dummy
+    pusharg 10:U8
+    pusharg 1:S32
+    bsr write_c
+    poparg $5_dummy
     ret
 
 .fun print_c_ln NORMAL [] = [U8]
