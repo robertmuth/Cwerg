@@ -355,6 +355,15 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                     # high-order bit we just set in the previous instruction
                     inss.append(ir.Ins(o.CONV, [ops[1], tmp_reg]))
                 inss.append(ins)
+            elif ins.opcode is o.CNTLZ:
+                inss.append(ins)
+                excess = wide_kind.bitwidth() - narrow_kind.bitwidth()
+                inss.append(ir.Ins(o.SUB, [ops[0], ops[0], ir.Const(wide_kind, excess)]))
+            elif ins.opcode is o.CNTTZ:
+                inss.append(ins)
+                inss.append(ir.Ins(o.CMPLT, [ops[0], ops[0],
+                                             ir.Const(wide_kind, narrow_kind.bitwidth()),
+                                             ops[0], ir.Const(wide_kind, narrow_kind.bitwidth())]))
             elif kind is o.OPC_KIND.LD and ops[0] in narrow_regs:
                 inss.append(ins)
                 tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
