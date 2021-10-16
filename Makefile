@@ -16,10 +16,10 @@ export LC_ALL=C
 .PHONY: CLOC.txt
 
 CWERG_LIBS = -lunwind -llzma
-CWERG_FLAGS = CWERG_ENABLE_UNWIND
+CWERG_FLAGS = -DCWERG_ENABLE_UNWIND
 
 tests: 
-	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(DCWERG_FLAGS)" -DCWERG_LIBS="$(DCWERG_LIBS)" .. && $(MAKE) -s
+	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" .. && $(MAKE) -s
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
@@ -66,7 +66,7 @@ tests_cross:
 benchmark:
 	cd CodeGenA32 && $(MAKE) -s benchmark && $(MAKE) -s clean
 
-#@ presumit - tests that should pass before any commit
+#@ presubmit - tests that should pass before any commit
 #@
 presubmit: lint tests format 
 

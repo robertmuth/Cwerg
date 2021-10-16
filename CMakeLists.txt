@@ -5,12 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -Wall -Wno-class-memaccess -Wno-sign-compare ${CWERG_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-set(CWERG_FLAGS "")
-set(CWERG_LIBS "")
 # with static linking, see
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909
-#set(CMAKE_CXX_STANDARD_LIBRARIES "-lunwind -llzma  -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
-set(CMAKE_CXX_STANDARD_LIBRARIES "-Wl,--whole-archive -lpthread -Wl,--no-whole-archive ${CWERG_LIBS}")
+# Everything here is super brittle:  the order of libs matter
+set(CMAKE_CXX_STANDARD_LIBRARIES "${CWERG_LIBS} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive ")
+
+# The must come AFTER their use or be commented out to be picked up from the environment
+set(CWERG_LIBS "")
+set(CWERG_FLAGS "")
 
 include_directories(./)
 
