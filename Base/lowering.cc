@@ -251,7 +251,7 @@ void FunRegWidthWidening(Fun fun,
         Handle op = InsOperand(ins, i);
         switch (op.kind()) {
           default:  // we only care about REG and CONST operands
-              break;
+            break;
           case RefKind::REG:
             if (RegKind(Reg(op)) == narrow_kind) change = true;
             break;
@@ -484,13 +484,13 @@ void InsEliminateImmediateViaMov(Ins ins,
   inss->push_back(InsNew(OPC::MOV, tmp, num));
 }
 
-extern void InsEliminateImmediateViaMem(Ins ins,
-                                        unsigned pos,
-                                        Fun fun,
-                                        Unit unit,
-                                        DK addr_kind,
-                                        DK offset_kind,
-                                        std::vector<Ins>* inss) {
+void InsEliminateImmediateViaMem(Ins ins,
+                                 unsigned pos,
+                                 Fun fun,
+                                 Unit unit,
+                                 DK addr_kind,
+                                 DK offset_kind,
+                                 std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");
   Mem mem = UnitFindOrAddConstMem(unit, num);
@@ -502,4 +502,51 @@ extern void InsEliminateImmediateViaMem(Ins ins,
   InsOperand(ins, pos) = tmp;
 }
 
+bool InsLimtiShiftAmounts(Ins ins, Fun fun, int width, std::vector<Ins>* inss) {
+  const DK dk = RegKind(Reg(InsOperand(ins, 0)));
+  Handle amount = InsOperand(ins, 2);
+  if (amount.kind() == RefKind::CONST) {
+    inss->push_back(ins);
+    if (DKFlavor(dk) == DK_FLAVOR_U) {
+      uint64_t a = ConstValueU(Const(amount));
+      if (0 <= a && a < width) {
+        InsOperand(ins, 2) = ConstNewU(dk, a & (width - 1));
+      }
+    } else {
+      int64_t a = ConstValueACS(Const(amount));
+      if (0 <= a && a < width) {
+        InsOperand(ins, 2) = ConstNewACS(dk, a & (width - 1));
+      }
+    }
+    return false;
+  } else {
+    // reg
+    Const mask = DKFlavor(dk) == DK_FLAVOR_U ? ConstNewU(dk, width - 1) :
+                                             ConstNewACS(dk, width - 1);
+    Reg tmp = FunGetScratchReg(fun, dk, "shift", false);
+    inss->push_back(InsNew(OPC::AND, tmp, amount, mask));
+    InsInit(ins, InsOPC(ins), InsOperand(ins, 0), InsOperand(ins, 1), tmp);
+    inss->push_back(ins);
+    return true;
+  }
+}
+
+void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    for (Ins ins : BblInsIter(bbl)) {
+      const OPC opc = InsOPC(ins);
+      if ((opc != OPC::SHL && opc != OPC::SHR) || width !=
+          DKBitWidth(RegKind(Reg(InsOperand(ins, 0))))) {
+        inss->push_back(ins);
+        continue;
+      }
+      if (InsLimtiShiftAmounts(ins, fun, width, inss)) dirty = true;
+    }
+    if (dirty) {
+      BblReplaceInss(bbl, *inss);
+    }
+  }
+}
 }  // namespace cwerg::base

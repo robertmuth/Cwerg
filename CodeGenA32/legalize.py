@@ -223,7 +223,9 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
-
+    # shifts on A32 are saturating but Cwerg requires (mod <bitwidth>)
+    lowering.FunLimitShiftAmounts(fun, 32)
+    # lift everything to 32 bit
     lowering.FunRegWidthWidening(fun, o.DK.U8, o.DK.U32)
     lowering.FunRegWidthWidening(fun, o.DK.S8, o.DK.S32)
     lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)

@@ -5,7 +5,8 @@ $(info $(shell mkdir -p $(DIR)))
 
 LOCAL_TESTS = malloc.a32.asm  linkerdef.a32.asm
 
-TESTS = reg_torture_f32.asm \
+TESTS = int_op.asm \
+        reg_torture_f32.asm \
         reg_torture.asm \
         cmp.asm \
         memaddr.32.asm \
@@ -145,6 +146,10 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
+	@echo
+	cat $(STD_LIB) ../TestData/int_op.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
+	cat $(STD_LIB) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
 	cat $(STD_LIB) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out

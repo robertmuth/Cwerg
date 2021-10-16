@@ -386,3 +386,35 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
         bbl.inss = inss
     return count
 
+
+def _InsLimitShiftAmounts(
+        ins: ir.Ins, fun: ir.Fun, width: int) -> Optional[List[ir.Ins]]:
+    """This rewrite is usually applied as prep step by some backends
+     to get rid of Stk operands.
+     It allows the register allocator to see the scratch register but
+     it will obscure the fact that a memory access is a stack access.
+
+     Note, a stack address already implies a `sp+offset` addressing mode and risk
+     ISAs do no usually support  `sp+offset+reg` addressing mode.
+    """
+    opc = ins.opcode
+    ops = ins.operands
+    if (opc is not o.SHL and opc is not o.SHR) or ops[0].kind.bitwidth() != width:
+        return None
+    amount = ops[2]
+    if isinstance(amount, ir.Const):
+        if 0 <= amount.value < width:
+            return None
+        else:
+            ops[2] = ir.Const(amount.kind, amount.value % width)
+            return ins
+    else:
+        tmp = fun.GetScratchReg(amount.kind, "shift", False)
+        mask = ir.Ins(o.AND, [tmp, amount, ir.Const(amount.kind, width - 1)])
+        ins.Init(opc, [ops[0], ops[1], tmp])
+        return [mask, ins]
+
+
+def FunLimitShiftAmounts(fun: ir.Fun, width: int):
+      return ir.FunGenericRewrite(
+        fun, _InsLimitShiftAmounts, width=width)

@@ -304,6 +304,8 @@ std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
 
 void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   std::vector<Ins> inss;
+  FunLimtiShiftAmounts(fun, 32, &inss);
+
   FunRegWidthWidening(fun, DK::U8, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S8, DK::S32, &inss);
   FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
