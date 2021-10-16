@@ -226,7 +226,9 @@ class LiveRangeFlag(enum.Flag):
 class LiveRange:
     """Represents and intra Bbl live-range
 
-    if reg == REG_INVALID - this is a fake liverange
+    This is pretty standard stuff except for LRs with is_use_lr() == True
+    Those are fake LiveRanges to mark uses of registers - not necessarily at
+    at the end of a LiveRange. These are useful for spilling.
     """
     def_pos: int
     last_use_pos: int
@@ -264,7 +266,7 @@ class LiveRange:
         if self.is_use_lr():
             # commented to make output compatible with c++ implementation
             starts = ",".join([f"{lr.reg.name}:{lr.def_pos}" for lr in self.uses])
-            extra_str = f" uses:{starts}"
+            extra_str = f" uses:{len(self.uses)} {starts}"
             # extra_str = f" uses:{len(self.uses)}"
         else:
             extra_str = f" def:{self.reg.name}:{self.reg.kind.name}"
@@ -342,10 +344,14 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
                     # of these instruction and the call: We assume this cannot be LAC!
                     if reg.HasCpuReg() and reg.cpu_reg in last_call_cpu_live_in:
                         last_use_pos = last_call_pos
+                    #elif ins.opcode is o.NOP1:
+                    #    # assert False, f"found nop1 {ins.operands}"
+                    #    last_use_pos = n - 1
                     out.append(LiveRange(pos, last_use_pos, reg, 0))
             else:  # used reg
                 lr = last_use.get(reg)
                 if lr:
+                    # make meaning of num_uses more precise
                     lr.num_uses += 1
                 else:
                     lr = initialize_lr(pos, reg)

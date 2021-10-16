@@ -269,7 +269,10 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
                                         const std::vector<Reg>& live_out,
                                         bool emit_use_def) {
   unsigned bbl_size = 0;
-  for (Ins ins : BblInsIter(bbl)) ++bbl_size;
+  for (Ins ins : BblInsIter(bbl)) {
+    std::ignore = ins;
+    ++bbl_size;
+  }
 
   int16_t last_call_pos = -1;
   const CpuReg* last_call_cpu_live_in;
@@ -279,9 +282,11 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
   // Add dummy entry at index 0 - so we can treat this as invalid
   out.emplace_back(LiveRange{BEFORE_BBL, BEFORE_BBL, Reg(0), 0, {0, 0, 0, 0}});
 
-  auto initialize_lr = [&](int16_t pos, Reg reg) {
-    RegLastUse(reg) = out.size();
+  auto initialize_lr = [&](int16_t pos, Reg reg) -> uint16_t {
+    uint16_t lr_index = out.size();
+    RegLastUse(reg) = lr_index;
     out.emplace_back(LiveRange{-1, pos, reg, 1, {0, 0, 0, 0}});
+    return lr_index;
   };
 
   auto finalize_lr = [&](int16_t lr_no, int16_t def_pos) {
@@ -331,6 +336,7 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
     }
     const unsigned num_defs = InsOpcode(ins).num_defs;
     const unsigned num_ops = InsOpcode(ins).num_operands;
+    // process definitions
     for (unsigned i = 0; i < num_defs; ++i) {
       Reg reg(InsOperand(ins, i));
       if (RegLastUse(reg) != 0) {
@@ -347,17 +353,28 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
       }
     }
 
-    uint16_t ud[4] = {0, 0, 0, 0};
+    // process uses
+    uint16_t ud[4] = {0, 0, 0, 0}; // use-def links
     unsigned num_ud = 0;
     for (unsigned i = num_defs; i < num_ops; ++i) {
       Reg reg = Reg(InsOperand(ins, i));
       if (reg.kind() != RefKind::REG) continue;
-      if (RegLastUse(reg) == 0) {
-        initialize_lr(pos, reg);
+      uint16_t lr_index = RegLastUse(reg);
+      if (lr_index == 0) {
+        // this is the end of a live range
+        lr_index = initialize_lr(pos, reg);
+      } else {
+        ++out[lr_index].num_uses;
       }
-      ++out[RegLastUse(reg)].num_uses;
-      ud[num_ud] = RegLastUse(reg);
-      ++num_ud;
+      // record uses but avoid dups
+      unsigned pos;
+      for (pos = 0; pos < num_ud; ++pos) {
+        if (ud[pos] == lr_index) break;
+      }
+      if (pos == num_ud) {
+        ud[num_ud] = lr_index;
+        ++num_ud;
+      }
     }
     if (emit_use_def && num_ud > 0) {
       out.emplace_back(

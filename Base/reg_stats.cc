@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <map>
 
+// #define TRACE_REG_ALLOC
+
 namespace cwerg::base {
 namespace {
 
@@ -27,20 +29,27 @@ class BblRegUsageStatsRegPool : public RegPool {
     const DK dk = get_rk(lr.reg);
     const bool lac = lr.HasFlag(LR_FLAG::LAC);
     std::vector<CpuReg>& pool = (lac ? available_lac_ : available_not_lac_)[dk];
-    CpuReg reg;
+    // Note: the cpu_reg is a fake handle
+    CpuReg cpu_reg;
     if (pool.empty()) {
       ++counter_;
-      reg = CpuReg(counter_ | (+dk << 16U) | (lac << 15U));
+      cpu_reg = CpuReg(counter_ | (+dk << 16U) | (lac << 15U));
     } else {
-      reg = pool.back();
+      cpu_reg = pool.back();
       pool.pop_back();
     }
-    return reg;
+#ifdef TRACE_REG_ALLOC
+    std::cout << (cpu_reg.index() & 0xffff) << " " << int(dk) << " <- " << lr << "\n";
+#endif
+    return cpu_reg;
   }
 
   uint8_t get_cpu_reg_family(DK dk) override { return rk_map_[+dk]; }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
+#ifdef TRACE_REG_ALLOC
+    std::cout << "FREE: " << (cpu_reg.index() & 0xffff) << "\n";
+#endif
     const DK dk = static_cast<DK>((cpu_reg.index() >> 16U) & 0xff);
     const bool lac = (cpu_reg.index() >> 15U) & 1U;
     std::vector<CpuReg>& pool = (lac ? available_lac_ : available_not_lac_)[dk];
@@ -49,14 +58,19 @@ class BblRegUsageStatsRegPool : public RegPool {
 
   DK_LAC_COUNTS usage() const {
     DK_LAC_COUNTS out;
-    for (auto& [k, v] : available_lac_) out.lac[+k] += v.size();
-    for (auto& [k, v] : available_not_lac_) out.not_lac[+k] += v.size();
+    for (auto& [k, v] : available_lac_) {
+      out.lac[+k] += v.size();
+    }
+    for (auto& [k, v] : available_not_lac_) {
+      out.not_lac[+k] += v.size();
+    }
     unsigned count = 0;
-    for (size_t i = 0; i < out.lac.size(); ++i)
+    for (size_t i = 0; i < out.lac.size(); ++i) {
       count += out.lac[i] + out.not_lac[i];
-
+    }
     ASSERT(count == counter_,
-           "expected reg_num: " << counter_ << " actual " << count);
+           "expected reg_num: " << counter_ << " actual " << count << "\n"
+           << out);
     return out;
   }
 
@@ -99,16 +113,18 @@ DK_LAC_COUNTS FunComputeBblRegUsageStats(Fun fun, const DK_MAP& rk_map) {
     }
 
     std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
-    // std::cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-    // BblRenderToAsm(bbl, fun, &std::cout);
-    // for (auto lr : ranges) std::cout << lr << "\n";
-
     std::vector<LiveRange*> ordered;
     // Skip the first range which is a dummy
     for (unsigned i = 1; i < ranges.size(); ++i) ordered.push_back(&ranges[i]);
     std::sort(begin(ordered), end(ordered),
               [](LiveRange* lhs, LiveRange* rhs) { return *lhs < *rhs; });
-
+#ifdef TRACE_REG_ALLOC
+    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    BblRenderToAsm(bbl, fun, &std::cout);
+    for (const auto& lr : ordered) {
+      std::cout << *lr << "\n";
+    }
+#endif
     for (LiveRange& lr : ranges) {
       if (LiveRangeShouldBeIgnored(lr, rk_map)) {
         lr.SetFlag(LR_FLAG::IGNORE);

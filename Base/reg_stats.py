@@ -17,9 +17,11 @@ from Base import ir
 from Base import liveness
 from Base import reg_alloc
 import Base.opcode_tab as o
+from Base import serialize
 
 REG_KIND_LAC = Tuple[int, bool]
 
+TRACE_REG_ALLOC = False
 
 class BblRegUsageStatsRegPool(reg_alloc.RegPool):
     """Regpool for determining register pressure at the Bbl level
@@ -43,11 +45,14 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
         key: REG_KIND_LAC = self._get_reg_class(lr)
         available = self._available.get(key)
         if available:
-            return available.pop(-1)
+            cpu_reg = available.pop(-1)
         else:
             # manufacture a new register
             self.counter += 1
-            return ir.CpuReg(f"z{self.counter}", key[1], key[0])
+            cpu_reg = ir.CpuReg(f"z{self.counter}", key[1], key[0])
+        if TRACE_REG_ALLOC:
+           print (f"{cpu_reg.name} {key} <- {lr}")
+        return cpu_reg
 
     def usage(self) -> Dict[REG_KIND_LAC, int]:
         assert sum(len(val)
@@ -56,6 +61,8 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
 
     # @override
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
+        if TRACE_REG_ALLOC:
+           print (f"FREE: {cpu_reg.name}")
         key: REG_KIND_LAC = (cpu_reg.kind, bool(cpu_reg.no))
         self._available[key].append(cpu_reg)
 
@@ -77,6 +84,12 @@ def FunComputeBblRegUsageStats(fun: ir.Fun,
     pool = BblRegUsageStatsRegPool(reg_kind_map)
     for bbl in fun.bbls:
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+        live_ranges.sort()
+        if TRACE_REG_ALLOC:
+            print ("@" * 60)
+            print("\n".join(serialize.BblRenderToAsm(bbl)))
+            for lr in live_ranges:
+                print (lr)
         # we do not want re-use of regs that are not coming from the pool
         for lr in live_ranges:
             if LiveRangeShouldBeIgnored(lr, reg_kind_map):
