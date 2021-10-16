@@ -7,6 +7,7 @@ DIR=build
 $(info $(shell mkdir -p $(DIR)))
 
 TESTS = fp_op.asm \
+        int_op.asm \
         reg_torture_f32.asm \
         reg_torture.asm \
         cmp.asm \
@@ -134,6 +135,10 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/int_op.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
 	cat $(STD_LIB) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	cat $(STD_LIB) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out

@@ -250,6 +250,8 @@ void FunRegWidthWidening(Fun fun,
       for (int i = 0; i < num_ops; ++i) {
         Handle op = InsOperand(ins, i);
         switch (op.kind()) {
+          default:  // we only care about REG and CONST operands
+              break;
           case RefKind::REG:
             if (RegKind(Reg(op)) == narrow_kind) change = true;
             break;
@@ -295,6 +297,20 @@ void FunRegWidthWidening(Fun fun,
           inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 1), tmp_reg));
         }
         inss->push_back(ins);
+        dirty = true;
+      } else if (InsOPC(ins) == OPC::CNTLZ) {
+        inss->push_back(ins);
+        Const excess = ConstNewACS(
+            wide_kind, DKBitWidth(wide_kind) - DKBitWidth(narrow_kind));
+        inss->push_back(
+            InsNew(OPC::SUB, InsOperand(ins, 0), InsOperand(ins, 0), excess));
+        dirty = true;
+      } else if (InsOPC(ins) == OPC::CNTTZ) {
+        inss->push_back(ins);
+        Const max = ConstNewACS(wide_kind, DKBitWidth(narrow_kind));
+        inss->push_back(InsNew(OPC::CMPLT, InsOperand(ins, 0),
+                               InsOperand(ins, 0), max, InsOperand(ins, 0),
+                               max));
         dirty = true;
       } else if (kind == OPC_KIND::LD) {
         inss->push_back(ins);
@@ -457,7 +473,10 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun, std::vector<Ins>* inss) {
+void InsEliminateImmediateViaMov(Ins ins,
+                                 unsigned pos,
+                                 Fun fun,
+                                 std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");
   Reg tmp = FunGetScratchReg(fun, ConstKind(num), "imm", true);
@@ -465,17 +484,22 @@ void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun, std::vector<Ins
   inss->push_back(InsNew(OPC::MOV, tmp, num));
 }
 
-extern void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
-                                        DK addr_kind, DK offset_kind, std::vector<Ins>* inss) {
+extern void InsEliminateImmediateViaMem(Ins ins,
+                                        unsigned pos,
+                                        Fun fun,
+                                        Unit unit,
+                                        DK addr_kind,
+                                        DK offset_kind,
+                                        std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");
   Mem mem = UnitFindOrAddConstMem(unit, num);
   Reg tmp_addr = FunGetScratchReg(fun, addr_kind, "mem_const_addr", true);
-  inss->push_back(InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind, 0)));
-  Reg tmp = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
   inss->push_back(
-      InsNew(OPC::LD, tmp, tmp_addr, ConstNewU(offset_kind, 0)));
-   InsOperand(ins, pos) = tmp;
+      InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind, 0)));
+  Reg tmp = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
+  inss->push_back(InsNew(OPC::LD, tmp, tmp_addr, ConstNewU(offset_kind, 0)));
+  InsOperand(ins, pos) = tmp;
 }
 
 }  // namespace cwerg::base
