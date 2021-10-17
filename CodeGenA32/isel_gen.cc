@@ -93,7 +93,7 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
 }
 
 bool PatternMatchesTypeConstraints(const Pattern& pat, uint64_t type_mask) {
-  return type_mask == *(uint64_t*)pat.type_curbs;
+  return type_mask == pat.type_curbs_as_int;
 }
 
 uint8_t PatternMismatchesImmConstraints(const Pattern& pat,

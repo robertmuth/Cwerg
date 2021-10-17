@@ -103,7 +103,7 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
 }
 
 bool PatternMatchesTypeCurbs(const Pattern& pat, uint64_t type_mask) {
-  return type_mask == *(uint64_t*)pat.type_curbs;
+  return type_mask == pat.type_curbs_as_int;
 }
 
 uint8_t PatternMismatchesImmCurbs(const Pattern& pat,
@@ -4895,6 +4895,7 @@ const char* const IMM_CURB_ToStringMap[] = {
     "pos_stk_combo_10_21_times_4", // 13
     "pos_stk_combo_10_21_times_8", // 14
     "IMM_POS_32", // 15
+    "ZZZ", // 16
 };
 const char* EnumToString(IMM_CURB x) { return IMM_CURB_ToStringMap[unsigned(x)]; }
 
@@ -4942,6 +4943,7 @@ const char* const PARAM_ToStringMap[] = {
     "num1_16_32", // 39
     "num1_32_48", // 40
     "num1_48_64", // 41
+    "ZZZ", // 42
 };
 const char* EnumToString(PARAM x) { return PARAM_ToStringMap[unsigned(x)]; }
 

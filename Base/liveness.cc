@@ -275,7 +275,7 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
   }
 
   int16_t last_call_pos = -1;
-  const CpuReg* last_call_cpu_live_in;
+  const CpuReg* last_call_cpu_live_in = nullptr;
   unsigned last_call_num_cpu_live_in = 0;
 
   std::vector<LiveRange> out;

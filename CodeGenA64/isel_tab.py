@@ -1275,9 +1275,11 @@ def _EmitCodeC(fout):
     print(f"}};", file=fout)
 
     print("}  // namespace", file=fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_CURB", fout)
+    # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
+    # only for these two instances - no idea why
+    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB", fout)
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM)+ [("ZZZ", len(PARAM))], "PARAM", fout)
     cgen.RenderEnumToStringFun("PARAM", fout)
 
 
