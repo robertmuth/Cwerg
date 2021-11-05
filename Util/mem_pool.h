@@ -44,10 +44,12 @@ struct MemPool {
   uint32_t New(uint32_t size) {
     if (data == nullptr || first_free + size > allocated_size) {
       const bool first_alloc = (data == nullptr);
+      uint32_t old_size = allocated_size;
       allocated_size += 1024 * 1024;
       data = (uint8_t*)realloc(data, allocated_size * BYTE_GRANULARITY);
       // 1 bit per element in data
       alloc_bitmap = (uint8_t*)realloc(alloc_bitmap, allocated_size / 8);
+      memset(alloc_bitmap + old_size / 8, 0, (allocated_size - old_size) / 8);
       if (first_alloc) {
         // Make sure we never return a zero offset
         UpdateBitmap(0, 1, true);
