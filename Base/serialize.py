@@ -185,19 +185,19 @@ def DirReg(unit: ir.Unit, operands: List):
 def DirStk(unit: ir.Unit, operands: List):
     fun = unit.funs[-1]
     name, alignment, count = operands
-    fun.AddStk(ir.Stk(name, alignment.value, count.value))
+    fun.AddStk(ir.Stk(name, alignment, count))
 
 
 def DirMem(unit: ir.Unit, operands: List):
     name, alignment, kind = operands
     mem = unit.GetMem(name)
     if mem is None:
-        unit.AddMem(ir.Mem(name, alignment.value, kind))
+        unit.AddMem(ir.Mem(name, alignment, kind))
     elif kind is o.MEM_KIND.EXTERN:
         return
     elif mem.kind is o.MEM_KIND.EXTERN:
         mem.kind = kind
-        mem.alignment = alignment.value
+        mem.alignment = alignment
         # move fun to make it current
         unit.mems.remove(mem)
         unit.mems.append(mem)
@@ -207,23 +207,23 @@ def DirMem(unit: ir.Unit, operands: List):
 
 def DirData(unit: ir.Unit, operands: List):
     count, data = operands
-    unit.AddData(ir.DataBytes(count.value, data))
+    unit.AddData(ir.DataBytes(count, data))
 
 
 def DirAddrFun(unit: ir.Unit, operands: List):
     size, fun = operands
-    unit.AddData(ir.DataAddrFun(size.value, fun))
+    unit.AddData(ir.DataAddrFun(size, fun))
 
 
 def DirAddrMem(unit: ir.Unit, operands: List):
     size, mem, offset = operands
-    unit.AddData(ir.DataAddrMem(size.value, mem, offset.value))
+    unit.AddData(ir.DataAddrMem(size, mem, offset))
 
 
 def DirJtb(unit: ir.Unit, operands: List):
     fun = unit.funs[-1]
     name, size, def_bbl, tab = operands
-    fun.AddJtb(ir.Jtb(name, def_bbl, tab, size.value))
+    fun.AddJtb(ir.Jtb(name, def_bbl, tab, size))
 
 
 DIR_DISPATCHER = {
@@ -374,12 +374,12 @@ def _GetOperand(unit: ir.Unit, fun: ir.Fun, ok: o.OP_KIND, v: Any) -> Any:
         return v
     elif ok is o.OP_KIND.MEM_KIND:
         return o.SHORT_STR_TO_MK[v]
-    elif ok is o.OP_KIND.VALUE:
-        return v
     elif ok is o.OP_KIND.BYTES:
         return ExtractBytes(v)
     elif ok is o.OP_KIND.JTB:
         return fun.GetJbl(v)
+    elif ok is o.OP_KIND.INT:
+        return int(v)
     else:
         raise ir.ParseError(f"cannot read op type: {ok}")
 

@@ -149,7 +149,7 @@ class OP_KIND(enum.Enum):
 
     NAME = 26
     NAME_LIST = 27
-    VALUE = 28
+    INT = 28
     BBL_TAB = 29
     BYTES = 30
 
@@ -314,8 +314,7 @@ OKS_ALLOWED_FOR_INSTRUCTIONS = {OP_KIND.REG, OP_KIND.CONST,
 # increase memory usage and complicate the code
 assert not (OKS_LIST & OKS_ALLOWED_FOR_INSTRUCTIONS)
 
-OKS_ALLOWED_FOR_DIRECTIVES = {OP_KIND.CONST,
-                              OP_KIND.VALUE, OP_KIND.MEM_KIND, OP_KIND.BYTES,
+OKS_ALLOWED_FOR_DIRECTIVES = {OP_KIND.INT, OP_KIND.MEM_KIND, OP_KIND.BYTES,
                               OP_KIND.NAME, OP_KIND.BBL_TAB,
                               OP_KIND.FUN_KIND, OP_KIND.TYPE_LIST,
                               OP_KIND.NAME_LIST, OP_KIND.DATA_KIND, OP_KIND.FUN,
@@ -332,9 +331,7 @@ OKS_ALL = OKS_ALLOWED_FOR_INSTRUCTIONS | OKS_ALLOWED_FOR_DIRECTIVES
 class OPC_GENUS(enum.Enum):
     INVALID = 0
     BASE = 1
-    MISC = 2
-    STRUCT = 3
-    TBD = 4
+    TBD = 2
 
 
 _DIR_TO_PURPOSE = {
@@ -820,34 +817,6 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
 #              [TC.ANY], OPC_GENUS.BASE,
 #              "",
 #              OA.SPECIAL)
-############################################################
-# Struct Stuff (experimental) 0xc0
-############################################################
-
-Opcode(0xc0, "st.stks", OPC_KIND.ST, [OP_KIND.STK, OP_KIND.FIELD, OP_KIND.REG],
-       [TC.INVALID, TC.INVALID, TC.ANY], OPC_GENUS.STRUCT,
-       "Store to stack base and immediate offset.")
-
-Opcode(0xc1, "ld.stks", OPC_KIND.LD, [OP_KIND.REG, OP_KIND.STK, OP_KIND.FIELD],
-       [TC.ANY, TC.INVALID, TC.INVALID], OPC_GENUS.STRUCT,
-       "Load from stack base and immediate offset.")
-
-Opcode(0xc2, "lea.stks", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FIELD],
-       [TC.ADDR, TC.INVALID], OPC_GENUS.STRUCT,
-       "Load effective stack address with field offset.")
-
-# ld/st base address is in register, offset is struct field
-Opcode(0xc3, "lds", OPC_KIND.LD, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
-       [TC.ANY, TC.ADDR, TC.INVALID], OPC_GENUS.STRUCT,
-       "Load from register base and immediate offset.")
-
-Opcode(0xc4, "sts", OPC_KIND.ST, [OP_KIND.REG, OP_KIND.FIELD, OP_KIND.REG],
-       [TC.ADDR, TC.INVALID, TC.ANY], OPC_GENUS.STRUCT,
-       "Store from register base and immediate offset.")
-
-Opcode(0xc5, "adds", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
-       [TC.ADDR, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.STRUCT,
-       "Addition with field offset. The first two regs must be address regs.")
 
 ############################################################
 # Misc Experimental
@@ -875,67 +844,42 @@ Opcode(0xba, "bzero", OPC_KIND.BZERO, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
 ############################################################
 
 
-def Directive(no: int, name: str, operands, constraints, desc,
+def Directive(no: int, name: str, operands, desc,
               group=OPC_GENUS.BASE):
-    return Opcode(no, name, OPC_KIND.DIRECTIVE, operands, constraints,
+    return Opcode(no, name, OPC_KIND.DIRECTIVE, operands,
+                  constraints=[TC.INVALID] * len(operands),
                   desc=desc, group=group)
 
 
-Directive(0x01, ".mem", [OP_KIND.NAME, OP_KIND.CONST, OP_KIND.MEM_KIND],
-          [TC.INVALID, TC.UINT, TC.INVALID],
+Directive(0x01, ".mem", [OP_KIND.NAME, OP_KIND.INT, OP_KIND.MEM_KIND],
           "Add new memory region to unit")
 
-Directive(0x02, ".data", [OP_KIND.CONST, OP_KIND.BYTES],
-          [TC.UINT, TC.INVALID],
+Directive(0x02, ".data", [OP_KIND.INT, OP_KIND.BYTES],
           "Add content to current memory region: multiple bytes")
 
-Directive(0x03, ".addr.fun", [OP_KIND.CONST, OP_KIND.FUN],
-          [TC.UINT, TC.INVALID],
+Directive(0x03, ".addr.fun", [OP_KIND.INT, OP_KIND.FUN],
           "Add content to current memory region: code address")
 
-Directive(0x04, ".addr.mem", [OP_KIND.CONST, OP_KIND.MEM, OP_KIND.CONST],
-          [TC.UINT, TC.INVALID, TC.OFFSET],
+Directive(0x04, ".addr.mem", [OP_KIND.INT, OP_KIND.MEM, OP_KIND.INT],
           "Add content to current memory region: "
           "memory address with offset")
 
 Directive(0x05, ".fun", [OP_KIND.NAME, OP_KIND.FUN_KIND, OP_KIND.TYPE_LIST,
                          OP_KIND.TYPE_LIST],
-          [TC.INVALID, TC.INVALID, TC.INVALID, TC.INVALID],
           "Add new function to unit")
 
 Directive(0x06, ".bbl", [OP_KIND.NAME],
-          [TC.INVALID],
           "Add new basic block to current function")
 
 Directive(0x07, ".reg", [OP_KIND.DATA_KIND, OP_KIND.NAME_LIST],
-          [TC.INVALID, TC.INVALID],
           "Add new registers to current function")
 
-Directive(0x08, ".stk", [OP_KIND.NAME, OP_KIND.CONST, OP_KIND.CONST],
-          [TC.INVALID, TC.UINT, TC.UINT],
+Directive(0x08, ".stk", [OP_KIND.NAME, OP_KIND.INT, OP_KIND.INT],
           "Add stack region to current function")
 
 Directive(0x09, ".jtb",
-          [OP_KIND.NAME, OP_KIND.CONST, OP_KIND.BBL, OP_KIND.BBL_TAB],
-          [TC.INVALID, TC.OFFSET, TC.INVALID, TC.INVALID],
+          [OP_KIND.NAME, OP_KIND.INT, OP_KIND.BBL, OP_KIND.BBL_TAB],
           "bbl jump table: <name> <size> <default-bbl> <sparse-table>")
-
-# experimental
-Directive(0xe0, ".struct", [OP_KIND.NAME],
-          [TC.INVALID],
-          "Add new struct to unit", OPC_GENUS.STRUCT)
-
-Directive(0xe1, ".field", [OP_KIND.NAME, OP_KIND.CONST, OP_KIND.CONST],
-          [TC.INVALID, TC.UINT, TC.UINT],
-          "Add field to current struct", OPC_GENUS.STRUCT)
-
-Directive(0xe2, ".endstruct", [], [],
-          "End current struct. Generates alignment and sizeof entries",
-          OPC_GENUS.STRUCT)
-
-Directive(0xe3, ".stk.s", [OP_KIND.NAME, OP_KIND.NAME],
-          [TC.INVALID, TC.INVALID],
-          "Add struct stack region to current function", OPC_GENUS.STRUCT)
 
 ############################################################
 # experimental/unimplemented

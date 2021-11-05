@@ -17,9 +17,7 @@ struct StringKind {
 const char* const OPC_GENUS_ToStringMap[] = {
     "INVALID", // 0
     "BASE", // 1
-    "MISC", // 2
-    "STRUCT", // 3
-    "TBD", // 4
+    "TBD", // 2
 };
 const char* EnumToString(OPC_GENUS x) { return OPC_GENUS_ToStringMap[unsigned(x)]; }
 
@@ -27,14 +25,12 @@ const char* EnumToString(OPC_GENUS x) { return OPC_GENUS_ToStringMap[unsigned(x)
 const struct StringKind OPC_GENUSFromStringMap[] = {
     {"BASE", 1},
     {"INVALID", 0},
-    {"MISC", 2},
-    {"STRUCT", 3},
-    {"TBD", 4},
+    {"TBD", 2},
     {"ZZZ", 0},
 };
 
 const uint8_t OPC_GENUSJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 2, 255, 255, 255, 255, 255, 3, 4, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,};
 
 const char* const FUN_KIND_ToStringMap[] = {
     "INVALID", // 0
@@ -355,7 +351,7 @@ const char* const OP_KIND_ToStringMap[] = {
     "FIELD", // 25
     "NAME", // 26
     "NAME_LIST", // 27
-    "VALUE", // 28
+    "INT", // 28
     "BBL_TAB", // 29
     "BYTES", // 30
 };
@@ -367,18 +363,13 @@ const struct StringKind OPCFromStringMap[] = {
     {".addr.mem", 4},
     {".bbl", 6},
     {".data", 2},
-    {".endstruct", 226},
-    {".field", 225},
     {".fun", 5},
     {".jtb", 9},
     {".mem", 1},
     {".reg", 7},
     {".stk", 8},
-    {".stk.s", 227},
-    {".struct", 224},
     {"acos", 92},
     {"add", 16},
-    {"adds", 197},
     {"and", 25},
     {"asin", 91},
     {"atan", 93},
@@ -407,13 +398,10 @@ const struct StringKind OPCFromStringMap[] = {
     {"ld", 64},
     {"ld.mem", 65},
     {"ld.stk", 66},
-    {"ld.stks", 193},
-    {"lds", 195},
     {"lea", 56},
     {"lea.fun", 59},
     {"lea.mem", 57},
     {"lea.stk", 58},
-    {"lea.stks", 194},
     {"log", 95},
     {"mov", 52},
     {"mul", 18},
@@ -432,8 +420,6 @@ const struct StringKind OPCFromStringMap[] = {
     {"st", 72},
     {"st.mem", 73},
     {"st.stk", 74},
-    {"st.stks", 192},
-    {"sts", 196},
     {"sub", 17},
     {"switch", 40},
     {"syscall", 45},
@@ -445,7 +431,7 @@ const struct StringKind OPCFromStringMap[] = {
 };
 
 const uint8_t OPCJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 13, 19, 28, 37, 38, 39, 255, 255, 255, 40, 255, 41, 52, 54, 56, 57, 255, 59, 62, 74, 255, 255, 255, 77, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 32, 33, 34, 255, 255, 255, 35, 255, 36, 44, 46, 48, 49, 255, 51, 54, 64, 255, 255, 255, 67, 255, 255, 255, 255, 255, 255, 255,};
 const Opcode GlobalOpcodes[256] = {
      {  //  0 
        {}, 
@@ -453,24 +439,24 @@ const Opcode GlobalOpcodes[256] = {
        {}, 
        "", 0 },
      {  //  1 .mem
-       {OP_KIND::NAME, OP_KIND::CONST, OP_KIND::MEM_KIND}, 
+       {OP_KIND::NAME, OP_KIND::INT, OP_KIND::MEM_KIND}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 3, 0,
-       {TC::INVALID, TC::UINT, TC::INVALID}, 
+       {TC::INVALID, TC::INVALID, TC::INVALID}, 
        ".mem", 0 },
      {  //  2 .data
-       {OP_KIND::CONST, OP_KIND::BYTES}, 
+       {OP_KIND::INT, OP_KIND::BYTES}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 2, 0,
-       {TC::UINT, TC::INVALID}, 
+       {TC::INVALID, TC::INVALID}, 
        ".data", 0 },
      {  //  3 .addr.fun
-       {OP_KIND::CONST, OP_KIND::FUN}, 
+       {OP_KIND::INT, OP_KIND::FUN}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 2, 0,
-       {TC::UINT, TC::INVALID}, 
+       {TC::INVALID, TC::INVALID}, 
        ".addr.fun", 0 },
      {  //  4 .addr.mem
-       {OP_KIND::CONST, OP_KIND::MEM, OP_KIND::CONST}, 
+       {OP_KIND::INT, OP_KIND::MEM, OP_KIND::INT}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 3, 0,
-       {TC::UINT, TC::INVALID, TC::OFFSET}, 
+       {TC::INVALID, TC::INVALID, TC::INVALID}, 
        ".addr.mem", 0 },
      {  //  5 .fun
        {OP_KIND::NAME, OP_KIND::FUN_KIND, OP_KIND::TYPE_LIST, OP_KIND::TYPE_LIST}, 
@@ -488,14 +474,14 @@ const Opcode GlobalOpcodes[256] = {
        {TC::INVALID, TC::INVALID}, 
        ".reg", 0 },
      {  //  8 .stk
-       {OP_KIND::NAME, OP_KIND::CONST, OP_KIND::CONST}, 
+       {OP_KIND::NAME, OP_KIND::INT, OP_KIND::INT}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 3, 0,
-       {TC::INVALID, TC::UINT, TC::UINT}, 
+       {TC::INVALID, TC::INVALID, TC::INVALID}, 
        ".stk", 0 },
      {  //  9 .jtb
-       {OP_KIND::NAME, OP_KIND::CONST, OP_KIND::BBL, OP_KIND::BBL_TAB}, 
+       {OP_KIND::NAME, OP_KIND::INT, OP_KIND::BBL, OP_KIND::BBL_TAB}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 4, 0,
-       {TC::INVALID, TC::OFFSET, TC::INVALID, TC::INVALID}, 
+       {TC::INVALID, TC::INVALID, TC::INVALID, TC::INVALID}, 
        ".jtb", 0 },
      {  //  a 
        {}, 

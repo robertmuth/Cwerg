@@ -353,16 +353,16 @@ nop with one reg - internal use. Can be used to `reserve` a reg for code generat
 
 ## Directives
 
-#### [01] .mem *name* <sub>[NAME]</sub> *alignment* <sub>[CONST:UINT]</sub> *mem_kind* <sub>[MEM_KIND]</sub>
+#### [01] .mem *name* <sub>[NAME]</sub> *alignment* <sub>[INT]</sub> *mem_kind* <sub>[MEM_KIND]</sub>
 Add new memory region to unit
 
-#### [02] .data *repeat* <sub>[CONST:UINT]</sub> *data* <sub>[BYTES]</sub>
+#### [02] .data *repeat* <sub>[INT]</sub> *data* <sub>[BYTES]</sub>
 Add content to current memory region: multiple bytes
 
-#### [03] .addr.fun *width* <sub>[CONST:UINT]</sub> *fun* <sub>[FUN]</sub>
+#### [03] .addr.fun *width* <sub>[INT]</sub> *fun* <sub>[FUN]</sub>
 Add content to current memory region: code address
 
-#### [04] .addr.mem *width* <sub>[CONST:UINT]</sub> *mem* <sub>[MEM]</sub> *offset* <sub>[CONST:OFFSET]</sub>
+#### [04] .addr.mem *width* <sub>[INT]</sub> *mem* <sub>[MEM]</sub> *offset* <sub>[INT]</sub>
 Add content to current memory region: memory address with offset
 
 #### [05] .fun *name* <sub>[NAME]</sub> *fun_kind* <sub>[FUN_KIND]</sub> *out_params* <sub>[TYPE_LIST]</sub> *in_params* <sub>[TYPE_LIST]</sub>
@@ -374,10 +374,10 @@ Add new basic block to current function
 #### [07] .reg *reg_kind* <sub>[DATA_KIND]</sub> *names* <sub>[NAME_LIST]</sub>
 Add new registers to current function
 
-#### [08] .stk *name* <sub>[NAME]</sub> *alignment* <sub>[CONST:UINT]</sub> *size* <sub>[CONST:UINT]</sub>
+#### [08] .stk *name* <sub>[NAME]</sub> *alignment* <sub>[INT]</sub> *size* <sub>[INT]</sub>
 Add stack region to current function
 
-#### [09] .jtb *name* <sub>[NAME]</sub> *size* <sub>[CONST:OFFSET]</sub> *default_bbl* <sub>[BBL]</sub> *map* <sub>[BBL_TAB]</sub>
+#### [09] .jtb *name* <sub>[NAME]</sub> *size* <sub>[INT]</sub> *default_bbl* <sub>[BBL]</sub> *map* <sub>[BBL_TAB]</sub>
 bbl jump table: <name> <size> <default-bbl> <sparse-table>
 
 <!--- @AUTOGEN-END@ --->

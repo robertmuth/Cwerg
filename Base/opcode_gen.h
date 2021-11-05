@@ -83,9 +83,7 @@ enum class OPC : uint8_t {
 enum class OPC_GENUS : uint8_t {
     INVALID = 0,
     BASE = 1,
-    MISC = 2,
-    STRUCT = 3,
-    TBD = 4,
+    TBD = 2,
 };
 
 enum class FUN_KIND : uint8_t {
@@ -187,7 +185,7 @@ enum class OP_KIND : uint8_t {
     FIELD = 25,
     NAME = 26,
     NAME_LIST = 27,
-    VALUE = 28,
+    INT = 28,
     BBL_TAB = 29,
     BYTES = 30,
 };
