@@ -9,6 +9,12 @@
 
 namespace cwerg {
 
+// see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909
+#define BUGGY_LIBC 1
+#if BUGGY_LIBC
+extern "C" unsigned int sleep(unsigned int seconds);
+#endif
+
 // Software Breakpoints
 class BreakPoint {
  public:
@@ -22,8 +28,14 @@ class BreakPoint {
     std::unique_lock<std::mutex> lock(mutex_);
     std::cerr << "break point hit [" << name_ << "]\n";
     ready_ = false;
+
     while (!ready_) {
+#if BUGGY_LIBC
+      lock.unlock();
+      sleep(1);
+#else
       cv_.wait(lock);
+#endif
     }
   }
 
@@ -33,7 +45,10 @@ class BreakPoint {
       std::cerr << "resume break point [" << name_ << "]\n";
       ready_ = true;
     }
+#if BUGGY_LIBC
+#else
     cv_.notify_all();
+#endif
   }
 
   static bool ResumeByName(std::string_view name) {
@@ -56,7 +71,10 @@ class BreakPoint {
  private:
   BreakPoint* const next_;
   const std::string name_;
+#if BUGGY_LIBC
+#else
   std::condition_variable cv_;
+#endif
   std::mutex mutex_;
   bool ready_ = true;
 
