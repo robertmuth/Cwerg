@@ -1,6 +1,8 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
 
+QEMU = qemu-arm-static
+
 $(info $(shell mkdir -p $(DIR)))
 
 LOCAL_TESTS = malloc.a32.asm  linkerdef.a32.asm
@@ -42,20 +44,20 @@ STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ >$@.out
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # sames as above but local TestData dir
 $(DIR)/%.asm.exe: TestData/%.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ >$@.out
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/syscall.a32.asm.exe: TestData/syscall.a32.asm
 	@echo "[integration $@]"
 	$(PYPY) ./codegen.py -mode binary $<  $@
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
@@ -63,13 +65,13 @@ $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode normal - $@.s
 	$(PYPY)	../CpuA32/assembler_tool.py assemble $@.s $@ > $@.out
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
-	$@ 1 2 3 aa bbb ccc > $@.actual.out
+	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/isel_test:
@@ -81,7 +83,7 @@ $(DIR)/isel_test:
 $(DIR)/nanojpeg:
 	@echo "[$@]"
 	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@.exe >$@.out
-	./$@.exe ../TestData/ash_tree.jpg $@.ppm
+	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
 
@@ -98,7 +100,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@ >$@.out
 	@chmod a+rx $@
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # same as above but from local TestData dir
@@ -106,7 +108,7 @@ $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB) $< | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@ >$@.out
 	@chmod a+rx $@
-	$@ > $@.actual.out
+	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 isel_gen.cc: isel_tab.py
@@ -129,7 +131,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
 	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@.exe >$@.out
 	@chmod a+rx $@.exe
-	./$@.exe ../TestData/ash_tree.jpg $@.ppm
+	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
 

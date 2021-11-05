@@ -22,19 +22,20 @@ objdump_compat_test:
 	$(PYPY) ./opcode_test.py TestData/a64_test.vector.supported.dis
 	$(PYPY) ./opcode_test.py TestData/a64_test.regular.dis
 
+QEMU = qemu-aarch64-static
 ############################################################
 # Python Port
 ############################################################
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
-	$@.exe > $@.actual.out
+	${QEMU} $@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	${QEMU} $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/disassembler_test:

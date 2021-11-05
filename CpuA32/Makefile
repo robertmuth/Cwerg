@@ -16,6 +16,8 @@ tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
 
 tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
 
+QEMU = qemu-arm-static
+
 ############################################################
 # Python Port
 ############################################################
@@ -29,7 +31,7 @@ $(DIR)/%.test : TestData/%.asm
 $(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	$(QEMU) $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
 	diff $@.actual.out $<.golden
 
 objdump_compat_test:
@@ -69,7 +71,7 @@ $(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
 	echo "[integration $@]"
 	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $@.out
 	chmod a+x $@.exe
-	$@.exe > $@.actual_c.out
+	$(QEMU) $@.exe > $@.actual_c.out
 	diff $@.actual_c.out $<.golden
 
 
