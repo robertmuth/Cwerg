@@ -25,8 +25,6 @@ enum class OPC : uint8_t {
     OR = 0x1a,
     SHL = 0x1b,
     SHR = 0x1c,
-    CNTLZ = 0x1d,
-    CNTTZ = 0x1e,
 
     BEQ = 0x20,
     BNE = 0x21,
@@ -59,14 +57,17 @@ enum class OPC : uint8_t {
     ST_MEM = 0x49,
     ST_STK = 0x4a,
 
-    SQRT = 0x60,
-    CEIL = 0x63,
-    FLOOR = 0x64,
-    ROUND = 0x65,
-    TRUNC = 0x66,
+    CEIL = 0x50,
+    FLOOR = 0x51,
+    ROUND = 0x52,
+    TRUNC = 0x53,
+    SQRT = 0x54,
 
-    NOP = 0xf1,
-    NOP1 = 0xf2,
+    CNTLZ = 0x60,
+    CNTTZ = 0x61,
+
+    NOP = 0x70,
+    NOP1 = 0x71,
 
     DIR_MEM = 0x01,
     DIR_DATA = 0x02,

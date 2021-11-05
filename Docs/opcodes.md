@@ -171,8 +171,8 @@ Modulo: dst := a % b
 
 #### [15] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Set the sign of src1 to match src2 (floating point only)
-             
-             Note: `copysign dst src1 0.0` can be used to emulate `abs`
+                  
+                  Note: `copysign dst src1 0.0` can be used to emulate `abs`
 
 #### [18] xor *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise exclusive or: dst := src1 ^ src2
@@ -194,12 +194,6 @@ Shift left: dst := src1 << src2
 Shift right: dst := src1 >> src2
                           
              dst: = src1 >> (src2 % bitwidth(src1))
-
-#### [1d] cntlz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Count leading zeros.
-
-#### [1e] cnttz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Count trailing zeros.
 
 ## Conditional Branches
 
@@ -322,29 +316,39 @@ Store to memory base with offset. RAM[base + offset] := src
 #### [4a] st.stk *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
 Store to stack base with offset. RAM[base + offset] := src
 
-#### [60] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Compute the sqrt of floating point value
+## Float ALU
 
-#### [63] ceil *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [50] ceil *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Round float to integral, toward positive infinity
 
-#### [64] floor *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [51] floor *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Round float to integral, toward negative infinity
 
-#### [65] round *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [52] round *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Round float to integral, to nearest with ties to away
 
-#### [66] trunc *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [53] trunc *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 
                Round float to integral, toward zero.
                Note, frac(val) = val - trunc(val)
 
-## Misc
+#### [54] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Compute the sqrt of floating point value
 
-#### [f1] nop 
+## Advanced ALU
+
+#### [60] cntlz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Count leading zeros.
+
+#### [61] cnttz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Count trailing zeros.
+
+## Annotation
+
+#### [70] nop 
 nop - internal use.
 
-#### [f2] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
+#### [71] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
 nop with one reg - internal use. Can be used to `reserve` a reg for code generation.
 
 ## Directives

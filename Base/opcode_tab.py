@@ -484,10 +484,10 @@ REM = Opcode(0x14, "rem", OPC_KIND.ALU,
               Note: does not apply to floating point numbers""")
 
 COPYSIGN = Opcode(0x15, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-             [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             """Set the sign of src1 to match src2 (floating point only)
-             
-             Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
+                  [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+                  """Set the sign of src1 to match src2 (floating point only)
+                  
+                  Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
 
 ############################################################
 # LOGIC ALU 0x30
@@ -532,14 +532,6 @@ SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              """Shift right: dst := src1 >> src2
                           
              dst: = src1 >> (src2 % bitwidth(src1))""")
-
-CNTLZ = Opcode(0x1d, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-               "Count leading zeros.")
-
-CNTTZ = Opcode(0x1e, "cnttz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-               "Count trailing zeros.")
 
 # do we need both directions, do we need a reverse version?
 # should we rather use a funnel shift?
@@ -742,59 +734,92 @@ ST_STK = Opcode(0x4a, "st.stk", OPC_KIND.ST,
                 OA.MEM_WR)
 
 ############################################################
-# FLOAT ALU OPERAND: 0x70, 0x80
-SQRT = Opcode(0x60, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-              "Compute the sqrt of floating point value")
+# FLOAT ALU OPERAND: 0x50
 
-CEIL = Opcode(0x63, "ceil", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+CEIL = Opcode(0x50, "ceil", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
               "Round float to integral, toward positive infinity")
 
-FLOOR = Opcode(0x64, "floor", OPC_KIND.ALU1,
+FLOOR = Opcode(0x51, "floor", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                "Round float to integral, toward negative infinity")
 
-ROUND = Opcode(0x65, "round", OPC_KIND.ALU1,
+ROUND = Opcode(0x52, "round", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                "Round float to integral, to nearest with ties to away")
 
-TRUNC = Opcode(0x66, "trunc", OPC_KIND.ALU1,
+TRUNC = Opcode(0x53, "trunc", OPC_KIND.ALU1,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                """
                Round float to integral, toward zero.
                Note, frac(val) = val - trunc(val)""")
 
+SQRT = Opcode(0x54, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+              [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+              "Compute the sqrt of floating point value")
 
 # do we need all these?
-Opcode(0x67, "sin", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x58, "sin", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x68, "cos", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x59, "cos", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x69, "tan", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5a, "tan", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x6a, "asin", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5b, "asin", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x6b, "acos", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5c, "acos", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x6c, "atan", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5d, "atan", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x6d, "exp", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5e, "exp", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
-Opcode(0x6e, "log", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+Opcode(0x5f, "log", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
        "TBD")
 
+############################################################
+# Advanced ALU
+############################################################
+CNTLZ = Opcode(0x60, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Count leading zeros.")
+
+CNTTZ = Opcode(0x61, "cnttz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               "Count trailing zeros.")
+
+# INT SINGLE OPERAND 0xb0
+# the src reg is treated as an unsigned reg
+Opcode(0x62, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+       [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
+       "TBD")
+
+############################################################
+# Annotations
+############################################################
+NOP = Opcode(0x70, "nop", OPC_KIND.NOP, [],
+             [], OPC_GENUS.BASE,
+             "nop - internal use.")
+
+NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
+              [TC.ANY], OPC_GENUS.BASE,
+              "nop with one reg - internal use. Can be used to `reserve` a reg for code generation.",
+              OA.SPECIAL)
+
+# LINE = Opcode(0x78, "line", OPC_KIND., [OP_KIND.NAME, OP_KIND.CONST],
+#              [TC.ANY], OPC_GENUS.BASE,
+#              "",
+#              OA.SPECIAL)
 ############################################################
 # Struct Stuff (experimental) 0xc0
 ############################################################
@@ -827,11 +852,7 @@ Opcode(0xc5, "adds", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG, OP_KIND.FIELD],
 ############################################################
 # Misc Experimental
 ############################################################
-# INT SINGLE OPERAND 0xb0
-# the src reg is treated as an unsigned reg
-Opcode(0xb0, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-       [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-       "TBD")
+
 
 # Note, negative lengths copy downwards
 Opcode(0xb8, "bcopy", OPC_KIND.BCOPY,
@@ -845,18 +866,6 @@ Opcode(0xba, "bzero", OPC_KIND.BZERO, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        [TC.ADDR, TC.OFFSET], OPC_GENUS.TBD,
        "TBD",
        OA.MEM_WR)
-
-############################################################
-# Internal USe
-############################################################
-NOP = Opcode(0xf1, "nop", OPC_KIND.NOP, [],
-             [], OPC_GENUS.BASE,
-             "nop - internal use.")
-
-NOP1 = Opcode(0xf2, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
-              [TC.ANY], OPC_GENUS.BASE,
-              "nop with one reg - internal use. Can be used to `reserve` a reg for code generation.",
-              OA.SPECIAL)
 
 
 ############################################################
@@ -962,6 +971,9 @@ _GROUPS = {
     0x38: "## Address Arithmetic\n",
     0x40: "## Load\n",
     0x48: "## Store\n",
+    0x50: "## Float ALU\n",
+    0x60: "## Advanced ALU\n",
+    0x70: "## Annotation\n",
     0xf1: "## Misc\n",
 }
 
