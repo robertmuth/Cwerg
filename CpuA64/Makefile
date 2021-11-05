@@ -1,6 +1,7 @@
 
 .SUFFIXES:
 DIR=build
+QEMU = qemu-aarch64-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -22,7 +23,6 @@ objdump_compat_test:
 	$(PYPY) ./opcode_test.py TestData/a64_test.vector.supported.dis
 	$(PYPY) ./opcode_test.py TestData/a64_test.regular.dis
 
-QEMU = qemu-aarch64-static
 ############################################################
 # Python Port
 ############################################################

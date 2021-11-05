@@ -1,5 +1,6 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
+QEMU = qemu-arm-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -15,8 +16,6 @@ tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
               $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
 
 tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
-
-QEMU = qemu-arm-static
 
 ############################################################
 # Python Port
