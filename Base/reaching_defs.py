@@ -7,6 +7,7 @@ from typing import Dict, Tuple, Any, Optional, List, Set
 from Base import ir
 from Base import opcode_tab as o
 from Base import serialize
+from Base import eval
 
 
 # ir.REG_DEF_MAP maps regs to location where it has been defined:
@@ -182,52 +183,6 @@ def FunPropagateConsts(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsPropagateConsts)
 
 
-def ConvertIntValue(kind_dst: o.DK, val: ir.Const) -> ir.Const:
-    kind_src = val.kind
-    width_dst = kind_dst.bitwidth()
-    width_src = kind_src.bitwidth()
-    # print ("@@@", kind_dst.name, width_dst, kind_src, width_src, num_kind, x)
-    masked = val.value & ((1 << width_dst) - 1)
-    if width_dst > width_src:
-        if kind_dst.flavor() == kind_src.flavor() or kind_src.flavor() == o.DK_FLAVOR_U:
-            return ir.Const(kind_dst, val.value)
-        # kind_dst == RK_U, kind_src == RK_S
-        return ir.Const(kind_dst, masked)
-    elif kind_dst.flavor() == o.DK_FLAVOR_U:
-        return ir.Const(kind_dst, masked)
-    else:
-        # kind_dst[0] == RK_S
-        sign = val.value & (1 << (width_dst - 1))
-        if sign == 0:
-            return ir.Const(kind_dst, masked)
-        return ir.Const(kind_dst, masked - (1 << width_dst))
-
-
-# TODO: naive implementation -> needs a lot more scrutiny
-_EVALUATORS_ALU = {
-    o.ADD: lambda x, y: x + y,
-    o.SUB: lambda x, y: x - y,
-    o.MUL: lambda x, y: x * y,
-    o.DIV: lambda x, y: x // y,
-    o.SHL: lambda x, y: x << y,
-    o.OR: lambda x, y: x | y,
-    o.AND: lambda x, y: x & y,
-    o.XOR: lambda x, y: x ^ y,
-}
-
-_EVALUATORS_COND_BRA = {
-    o.BEQ: lambda x, y: x == y,
-    o.BNE: lambda x, y: x != y,
-    o.BLT: lambda x, y: x < y,
-    o.BLE: lambda x, y: x <= y,
-}
-
-_EVALUATORS_ALU1 = {
-    #    o.CNTLZ: lambda x, y: x + y,
-    #    o.CNTTZ: lambda x, y: x - y,
-}
-
-
 def _InsConstantFold(
         ins: ir.Ins, bbl: ir.Bbl, _fun: ir.Fun,
         allow_conv_conversion: bool) -> Optional[List[ir.Ins]]:
@@ -245,10 +200,7 @@ def _InsConstantFold(
     if kind is o.OPC_KIND.COND_BRA:
         if not isinstance(ops[0], ir.Const) or not isinstance(ops[1], ir.Const):
             return None
-        # TODO: implement this, needs access to BBL for CFG changes
-        evaluator = _EVALUATORS_COND_BRA.get(ins.opcode)
-        assert evaluator, f"Evaluator NYI for: {ins} {ins.operands}"
-        branch_taken = evaluator(ops[0].value, ops[1].value)
+        branch_taken = eval.EvaluatateCondBra(ins.opcode, ops[0], ops[1])
         target = ops[2]
         assert len(bbl.edge_out) == 2
         if branch_taken:
@@ -261,21 +213,14 @@ def _InsConstantFold(
     elif kind is o.OPC_KIND.ALU1:
         if not isinstance(ops[1], ir.Const):
             return None
-        # TODO
-        return None
-        assert False, f"Evaluator NYI for ALU1: {ins} {ins.operands}"
-
+        new_op = eval.EvaluatateALU1(ins.opcode, ops[1])
+        ins.Init(o.MOV, [ops[0], new_op])
+        return [ins]
     elif kind is o.OPC_KIND.ALU:
         if not isinstance(ops[1], ir.Const) or not isinstance(ops[2], ir.Const):
             return None
-        evaluator = _EVALUATORS_ALU.get(ins.opcode)
-        assert evaluator, f"Evaluator NYI for: {ins} {ins.operands}"
-        val = ir.Const(ops[1].kind, evaluator(ops[1].value, ops[2].value))
-        ins.opcode = o.MOV
-        ins.operands.pop(-1)
-        ins.operands[1] = val
-        ins.operand_defs.pop(-1)
-        ins.operand_defs[1] = ir.INS_INVALID
+        new_op = eval.EvaluatateALU(ins.opcode, ops[1], ops[2])
+        ins.Init(o.MOV, [ops[0], new_op])
         return [ins]
     elif ins.opcode is o.CONV:
         # TODO: this needs some  more thought generally but in
@@ -290,7 +235,7 @@ def _InsConstantFold(
         src = ops[1]
         if not o.RegIsAddrInt(src.kind) or not o.RegIsAddrInt(dst.kind):
             return None
-        new_val = ConvertIntValue(dst.kind, src)
+        new_val = eval.ConvertIntValue(dst.kind, src)
         ins.Init(o.MOV, [dst, new_val])
         return [ins]
     else:

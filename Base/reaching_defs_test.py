@@ -5,6 +5,7 @@ import io
 import unittest
 
 from Base import cfg
+from Base import eval
 from Base import ir
 from Base import liveness
 from Base import opcode_tab as o
@@ -15,31 +16,31 @@ from Base import serialize
 class TestConversion(unittest.TestCase):
 
     def testA(self):
-        self.assertEqual(1000, reaching_defs.ConvertIntValue(
+        self.assertEqual(1000, eval.ConvertIntValue(
             o.DK.U32, ir.Const(o.DK.U16, 1000)).value)
-        self.assertEqual(100, reaching_defs.ConvertIntValue(
+        self.assertEqual(100, eval.ConvertIntValue(
             o.DK.U32, ir.Const(o.DK.U8, 100)).value)
 
-        self.assertEqual(-1000, reaching_defs.ConvertIntValue(
+        self.assertEqual(-1000, eval.ConvertIntValue(
             o.DK.S32, ir.Const(o.DK.S16, -1000)).value)
-        self.assertEqual(-100, reaching_defs.ConvertIntValue(
+        self.assertEqual(-100, eval.ConvertIntValue(
             o.DK.S32, ir.Const(o.DK.S8, -100)).value)
-        self.assertEqual(-127, reaching_defs.ConvertIntValue(
+        self.assertEqual(-127, eval.ConvertIntValue(
             o.DK.S32, ir.Const(o.DK.S8, -127)).value)
 
-        self.assertEqual(24, reaching_defs.ConvertIntValue(
+        self.assertEqual(24, eval.ConvertIntValue(
             o.DK.S8, ir.Const(o.DK.S32, -1000)).value)
-        self.assertEqual(-20, reaching_defs.ConvertIntValue(
+        self.assertEqual(-20, eval.ConvertIntValue(
             o.DK.S8, ir.Const(o.DK.S32, -1300)).value)
 
-        self.assertEqual(0xfffffc18, reaching_defs.ConvertIntValue(
+        self.assertEqual(0xfffffc18, eval.ConvertIntValue(
             o.DK.U32, ir.Const(o.DK.S16, -1000)).value)
-        self.assertEqual(0xfc18, reaching_defs.ConvertIntValue(
+        self.assertEqual(0xfc18, eval.ConvertIntValue(
             o.DK.U16, ir.Const(o.DK.S16, -1000)).value)
 
-        self.assertEqual(0xfffffc18, reaching_defs.ConvertIntValue(
+        self.assertEqual(0xfffffc18, eval.ConvertIntValue(
             o.DK.U32, ir.Const(o.DK.S32, -1000)).value)
-        self.assertEqual(-1000, reaching_defs.ConvertIntValue(
+        self.assertEqual(-1000, eval.ConvertIntValue(
             o.DK.S32, ir.Const(o.DK.U32, 0xfffffc18)).value)
 
     def testBaseRegPropagation1(self):
