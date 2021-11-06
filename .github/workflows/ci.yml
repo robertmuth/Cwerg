@@ -32,7 +32,8 @@ jobs:
     - name: Install Python Deps
       run: |
         python -m pip install --upgrade pip
-        pip install pycparser
+        # TODO: 2.21 may causes breakage
+        pip install pycparser==2.20
     - name: Install Ubuntu Deps
       run: |
         sudo apt-get install qemu-user-static libunwind-dev gcc-multilib
