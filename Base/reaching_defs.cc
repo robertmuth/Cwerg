@@ -3,6 +3,7 @@
 #include "Base/reaching_defs.h"
 #include "Base/opcode_gen.h"
 #include "Base/cfg.h"
+#include "Base/eval.h"
 #include "Base/serialize.h"
 #include "Util/handlevec.h"
 
@@ -204,105 +205,7 @@ void FunPropagateConsts(Fun fun) {
   }
 }
 
-namespace {
-
-template <typename VAL>
-bool eval_cond(OPC opc, VAL a, VAL b) {
-  switch (opc) {
-    case OPC::BEQ:
-      return a == b;
-    case OPC::BNE:
-      return a != b;
-    case OPC::BLE:
-      return a <= b;
-    case OPC::BLT:
-      return a < b;
-    default:
-      ASSERT(false, "");
-      return false;
-  }
-}
-
-bool EvalCondBra(OPC opc, Const a, Const b) {
-  switch (DKFlavor(ConstKind(a))) {
-    case DK_FLAVOR_A:
-    case DK_FLAVOR_C:
-    case DK_FLAVOR_S: {
-      return eval_cond<int64_t>(opc, ConstValueACS(a), ConstValueACS(b));
-    }
-    case DK_FLAVOR_U: {
-      return eval_cond<uint64_t>(opc, ConstValueU(a), ConstValueU(b));
-    }
-    default:
-      ASSERT(false, "not supported");
-      return false;
-  }
-}
-
-Const EvalAlu(OPC opc, Const a, Const b) {
-  ASSERT(a.kind() == b.kind(), "");
-  if (DKFlavor(ConstKind(a)) == DK_FLAVOR_U) {
-    uint64_t va = ConstValueU(a);
-    uint64_t vb = ConstValueU(b);
-    switch (opc) {
-      case OPC::ADD:
-        return ConstNewU(ConstKind(a), va + vb);
-      case OPC::SUB:
-        return ConstNewU(ConstKind(a), va - vb);
-      case OPC::MUL:
-        return ConstNewU(ConstKind(a), va * vb);
-      case OPC::DIV:
-        return ConstNewU(ConstKind(a), vb == 0 ? 0 : va / vb);
-      case OPC::SHL:
-        return ConstNewU(ConstKind(a), va << vb);  // TODO: needs more thought
-      default:
-        ASSERT(false, "");
-        return Const();  // invalid
-    }
-  } else if (DKFlavor(ConstKind(a)) == DK_FLAVOR_F) {
-    double va = ConstValueF(a);
-    double vb = ConstValueF(b);
-    switch (opc) {
-      case OPC::ADD:
-        return ConstNewF(ConstKind(a), va + vb);
-      case OPC::SUB:
-        return ConstNewF(ConstKind(a), va - vb);
-      case OPC::MUL:
-        return ConstNewF(ConstKind(a), va * vb);
-      case OPC::DIV:
-        return ConstNewF(ConstKind(a), vb == 0.0 ? 0.0 : va / vb);
-      default:
-        ASSERT(false, "");
-        return Const();  // invalid
-    }
-  } else {
-    int64_t va = ConstValueACS(a);
-    int64_t vb = ConstValueACS(b);
-    switch (opc) {
-      case OPC::ADD:
-        return ConstNewACS(ConstKind(a), va + vb);
-      case OPC::SUB:
-        return ConstNewACS(ConstKind(a), va - vb);
-      case OPC::MUL:
-        return ConstNewACS(ConstKind(a), va * vb);
-      case OPC::DIV:
-        return ConstNewACS(ConstKind(a), vb == 0 ? 0 : va / vb);
-      case OPC::OR:
-        return ConstNewACS(ConstKind(a), va | vb);
-      case OPC::AND:
-        return ConstNewACS(ConstKind(a), va & vb);
-      case OPC::SHR:
-        return ConstNewACS(ConstKind(a), va >> vb);  // TODO: needs more thought
-      case OPC::SHL:
-        return ConstNewACS(ConstKind(a), va << vb);  // TODO: needs more thought
-      default:
-        ASSERT(false, "unsupported folding of " << int(opc));
-        return Const();  // invalid
-    }
-  }
-}
-
-void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
+static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
                      std::vector<Ins>* to_delete) {
   const OPC opc = InsOPC(ins);
   const OPC_KIND kind = InsOpcodeKind(ins);
@@ -312,7 +215,7 @@ void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
       const Const op2 = Const(InsOperand(ins, 1));
       if (op1.kind() != RefKind::CONST || op2.kind() != RefKind::CONST) break;
       const Bbl target = Bbl(InsOperand(ins, 2));
-      const bool branch_taken = EvalCondBra(opc, op1, op2);
+      const bool branch_taken = EvaluateCondBra(opc, op1, op2);
       Edg edg = BblSuccEdgList::Head(bbl);
       // if the branch is taken we want to remove the other Edg
       if ((EdgSuccBbl(edg) == target) == branch_taken) {
@@ -328,7 +231,7 @@ void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
       Const op2 = Const(InsOperand(ins, 2));
       if (op1.kind() != RefKind::CONST || op2.kind() != RefKind::CONST) break;
       // std::cout << "@@@@@ " << ins << "\n";
-      Const val = EvalAlu(opc, op1, op2);
+      Const val = EvaluateALU(opc, op1, op2);
       InsOPC(ins) = OPC::MOV;
       InsOperand(ins, 1) = val;
       InsDef(ins, 1) = HandleTop;
@@ -339,7 +242,12 @@ void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
     case OPC_KIND::ALU1: {
       Const op = Const(InsOperand(ins, 1));
       if (op.kind() != RefKind::CONST) break;
-      ASSERT(false, "Evaluator NYI for ALU1: " << ins);
+      Const val = EvaluateALU1(opc, op);
+      InsOPC(ins) = OPC::MOV;
+      InsOperand(ins, 1) = val;
+      InsDef(ins, 1) = HandleTop;
+      InsOperand(ins, 2) = HandleInvalid;
+      InsDef(ins, 1) = HandleTop;
       break;
     }
     case OPC_KIND::MOV: {
@@ -354,8 +262,6 @@ void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
       break;
   }
 }
-
-}  // namespace
 
 int FunConstantFold(Fun fun, bool allow_conv_conversion,
                      std::vector<Ins>* to_delete) {

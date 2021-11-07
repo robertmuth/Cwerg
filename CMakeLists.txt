@@ -135,6 +135,8 @@ add_library(BASE_LIB OBJECT
         Base/canonicalize.h
         Base/cfg.cc
         Base/cfg.h
+        Base/eval.cc
+        Base/eval.h
         Base/ir.cc
         Base/ir.h
         Base/liveness.cc
