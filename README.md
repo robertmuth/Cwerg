@@ -86,7 +86,8 @@ any work on these):
  
 It is not clear if an [X86-64 backend](CpuX64/README.md) will fit into the 
 complexity budget, especially since X64-64 idiosyncrasies tend to leak 
-complexity into the generic layers.
+complexity into the generic layers. However, a backend
+targeting RISC V should be straight forward to implement [(see porting hints)](Docs/backend_porting.md).
 
 The IR optimizer currently does not use a full-blown Single Static Assigment
 (SSA) form. Instead it uses a [modified use-def chain approach](Docs/use_def.md)
