@@ -27,6 +27,24 @@ _EVALUATORS_COND_BRA = {
 }
 
 
+def SignedIntFromBits(data, n_bits) -> int:
+    mask = (1 << n_bits) - 1
+    data &= mask
+    if data & (1 << (n_bits - 1)):
+        return data - (1 << n_bits)
+    else:
+        return data
+
+
+def _truncate(dk: o.DK, val):
+    if dk.flavor() == o.DK_FLAVOR_F:
+        return val
+    elif dk.flavor() == o.DK_FLAVOR_U:
+        return val & ((1 << dk.bitwidth()) - 1)
+    else:
+        return SignedIntFromBits(val, dk.bitwidth())
+
+
 def Cnttz(kind: o.DK, val: int):
     if val == 0:
         return kind.bitwidth()
@@ -57,19 +75,23 @@ _EVALUATORS_ALU1 = {
 def EvaluatateALU(opcode: o.Opcode, op1: ir.Const, op2: ir.Const) -> ir.Const:
     evaluator = _EVALUATORS_ALU.get(opcode)
     assert evaluator, f"Evaluator NYI for: {opcode}"
-    return ir.Const(op1.kind, evaluator(op1.value, op2.value))
+    return ir.Const(op1.kind, _truncate(op1.kind, evaluator(op1.value, op2.value)))
 
 
 def EvaluatateALU1(opcode: o.Opcode, op: ir.Const) -> Optional[ir.Const]:
     evaluator = _EVALUATORS_ALU1.get(opcode)
     assert evaluator, f"Evaluator NYI for: {opcode}"
-    return ir.Const(op.kind, evaluator(op.kind, op.value))
+    return ir.Const(op.kind, _truncate(op.kind, evaluator(op.kind, op.value)))
 
 
 def EvaluatateCondBra(opcode: o.Opcode, op1: ir.Const, op2: ir.Const) -> bool:
     evaluator = _EVALUATORS_COND_BRA.get(opcode)
     assert evaluator, f"Evaluator NYI for: {opcode}"
     return evaluator(op1.value, op2.value)
+
+
+def AddOffsets(a: ir.Const, b: ir.Const) -> ir.Const:
+    return ir.OffsetConst(a.value + b.value)
 
 
 def ConvertIntValue(kind_dst: o.DK, val: ir.Const) -> ir.Const:

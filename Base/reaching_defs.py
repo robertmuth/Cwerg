@@ -269,7 +269,7 @@ def _CombinedOffset(ins: ir.Ins, base_ins: ir.Ins) -> Tuple[Any, Any]:
     if isinstance(offset2, ir.Const) and offset2.IsZero():
         return offset1, ins.operand_defs[off_pos]
     if isinstance(offset1, ir.Const) and isinstance(offset2, ir.Const):
-        return ir.OffsetConst(offset1.value + offset2.value), None
+        return  eval.AddOffsets(offset1, offset2), None
     return None, None
 
 
