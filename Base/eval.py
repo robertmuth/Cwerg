@@ -98,18 +98,16 @@ def ConvertIntValue(kind_dst: o.DK, val: ir.Const) -> ir.Const:
     kind_src = val.kind
     width_dst = kind_dst.bitwidth()
     width_src = kind_src.bitwidth()
-    # print ("@@@", kind_dst.name, width_dst, kind_src, width_src, num_kind, x)
     masked = val.value & ((1 << width_dst) - 1)
-    if width_dst > width_src:
-        if kind_dst.flavor() == kind_src.flavor() or kind_src.flavor() == o.DK_FLAVOR_U:
-            return ir.Const(kind_dst, val.value)
-        # kind_dst == RK_U, kind_src == RK_S
-        return ir.Const(kind_dst, masked)
-    elif kind_dst.flavor() == o.DK_FLAVOR_U:
-        return ir.Const(kind_dst, masked)
+    if kind_dst.flavor() == o.DK_FLAVOR_U:
+        return ir.Const(kind_dst, val.value & masked)
+    # print ("@@@", kind_dst.name, width_dst, kind_src, width_src, num_kind, x)
+    elif width_dst > width_src:
+        return ir.Const(kind_dst, val.value)
     else:
-        # kind_dst[0] == RK_S
-        sign = val.value & (1 << (width_dst - 1))
-        if sign == 0:
-            return ir.Const(kind_dst, masked)
-        return ir.Const(kind_dst, masked - (1 << width_dst))
+        # dst is ACS and width_dst <= width_src
+        will_be_negative = val.value & (1 << (width_dst - 1))
+        if will_be_negative:
+            return ir.Const(kind_dst, masked - (1 << width_dst))
+        return ir.Const(kind_dst, masked)
+

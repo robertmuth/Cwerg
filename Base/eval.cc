@@ -38,11 +38,11 @@ VAL GenericEvaluateALU(OPC opc, DK dk, VAL va, VAL vb) {
     case OPC::DIV:
       return vb == 0 ? 0 : va / vb;
     case OPC::OR:
-        return va | vb;
-      case OPC::AND:
-        return va & vb;
-      case OPC::XOR:
-          return va ^ vb;
+      return va | vb;
+    case OPC::AND:
+      return va & vb;
+    case OPC::XOR:
+      return va ^ vb;
       // TODO: REM
     case OPC::SHL:
       return va << (vb % DKBitWidth(dk));
@@ -109,10 +109,47 @@ Const EvaluateALU(OPC opc, Const a, Const b) {
   }
 }
 
-
 Const EvaluateALU1(OPC opc, Const a) {
   ASSERT(false, "unimplemented eval for " << EnumToString(opc));
   return Const();
+}
+
+uint64_t ConstIntValue(Const src) {
+  if (DKFlavor(ConstKind(src)) == DK_FLAVOR_U) {
+    return ConstValueU(src);
+  } else {
+    return ConstValueACS(src);
+  }
+}
+
+Const ConstWithUpdateKind(DK kind_dst, Const src) {
+  if (DKFlavor(kind_dst) == DK_FLAVOR_U) {
+    return ConstNewU(kind_dst, ConstIntValue(src));
+  } else {
+    return ConstNewACS(kind_dst, ConstIntValue(src));
+  }
+}
+
+Const ConvertIntValue(DK kind_dst, Const src) {
+  const DK kind_src = ConstKind(src);
+  const uint64_t width_dst = DKBitWidth(kind_dst);
+  const uint64_t width_src = DKBitWidth(kind_src);
+  uint64_t mask = ~(-1LL << DKBitWidth(kind_dst));
+
+  if (DKFlavor(kind_dst) == DK_FLAVOR_U) {
+    return ConstNewU(kind_dst, mask & ConstIntValue(src));
+  } else if (width_dst > width_src) {
+    return ConstWithUpdateKind(kind_dst, src);
+  } else {
+    uint64_t v = ConstIntValue(src);
+    // longer val to shorter signed
+    int64_t will_be_negative = v & (1ULL << (width_dst - 1));
+    if (will_be_negative) {
+      return ConstNewACS(kind_dst, (v & mask) - (1ULL << width_dst));
+    } else {
+      return ConstNewACS(kind_dst, v & mask);
+    }
+  }
 }
 
 }  // namespace cwerg::base
