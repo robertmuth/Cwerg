@@ -15,12 +15,10 @@ import collections
 import dataclasses
 import enum
 import sys
+import re
 import json
 
 X86_DATA = None
-SUPPORTED_OPCODES2 = {
-    "sar",
-}
 
 # list of opcodes we expect to use during X64 code generation
 _SUPPORTED_OPCODES = {
@@ -33,7 +31,7 @@ _SUPPORTED_OPCODES = {
     "movsx",  #
     "movzx",  #
     "movaps", "movapd",  #
-    "neg", #
+    "neg",  #
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
@@ -45,8 +43,10 @@ _SUPPORTED_OPCODES = {
     "pop", "push",  #
     "ucomiss", "ucomisd",
     "call", "ret", "syscall",
-    "jle/jng", "jne/jnz", "jge/jnl",   # many missing
+    "jle/jng", "jne/jnz", "jge/jnl",  # many missing
 }
+
+# _SUPPORTED_OPCODES = { "add" }
 
 # opcode extension/flavors we do not support for now
 _DISALLOWED_EXTENSIONS = {
@@ -87,22 +87,60 @@ _SUPPORTED_OPERANDS = {
     "mem",  #
 }
 
+_SUPPORTED_PARAMS = {
+    "/0", "/1", "/2", "/3", "/4", "/5", "/6", "/7",  #
+    "/r",  #
+    "REX.W",
+    "ib", "iw", "id", "iq",  #
+    "cd", "cb",
+}
+
+_RE_BYTE = re.compile("[0-9A-F][0-9A-F]")
+
 _OPERAND_MODIFIERS = {
-    "x:",
-    "X:",
-    "w:",
-    "W:",
-    "R:"
+    "x:",  # read/write
+    "X:",  # read/write, zero extend
+    "w:",  # write only
+    "W:",  # write only, zero extend
+    "R:",  # read only
+}
+
+_SUPPORTED_FORMATS = {
+    "MI",
+    "MR",
+    "RM",
+    "D",
+    "M",
+    "I",
+    "O",
+    "RMI",
+    "NONE",
 }
 
 
-def HandlePattern(name, ops: List[str], format, encoding: List[str], meta: List[str]):
+@dataclasses.dataclass()
+class Opcode:
+    name: str
+    bit_width: int
+    len: int
+    bit32_mask: int
+    bit32_value: int
+    fields: List
+
+
+def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: List[str]):
+    assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
+    for f in encoding:
+        assert f in _SUPPORTED_PARAMS or _RE_BYTE.match(f), f"bad parameter [{repr(f)}]"
     for o in ops:
         if o[0:2] in _OPERAND_MODIFIERS:
             assert o[2:] in _SUPPORTED_OPERANDS
         else:
             assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
+
+def SplitStringComma(s):
+    return [x for x in s.replace(", ", ",").split(",") if x]
 
 if __name__ == "__main__":
     _START_MARKER = "// ${JSON:BEGIN}"
@@ -117,9 +155,10 @@ if __name__ == "__main__":
         if name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata):
             continue
         count[name] += 1
-        ops = ops.replace(", ", ",").split(",")
-        ops = [o for o in ops if o]
-        print(name, ops, format, encoding.split(), metadata.split())
-        HandlePattern(name, ops, format, encoding.split(), metadata.split())
+        ops = SplitStringComma(ops)
+        metadata = metadata.split()
+        encoding = encoding.split()
+        print(name, ops, format, encoding, metadata)
+        HandlePattern(name, ops, format, encoding, metadata)
     for k in _SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"

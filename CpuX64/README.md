@@ -20,14 +20,17 @@ Known difficulties:
   an Ins and moving data into this register from a virtual register.
 * Complex address modes
 
+## Tips
+
+Use `objdump -d  -M intel <file.exe>` for intel assembler syntax.
 
 ## References
 
 ### ASMJIT/ASMDB
 
-* asmdb https://github.com/asmjit/asmdb/blob/master/x86data.js (basis for our de-/encoder)
-* asmgrid https://asmjit.com/asmgrid/ (browsable version of above)
-* asmjit https://github.com/asmjit/asmjit/blob/master/src/asmjit/x86/x86instdb.cpp
+* https://github.com/asmjit/asmdb/blob/master/x86data.js (basis for our de-/encoder)
+* https://asmjit.com/asmgrid/ (browsable version of above)
+* https://github.com/asmjit/asmjit/blob/master/src/asmjit/x86/x86instdb.cpp
 
 ### SANDPILE
 
