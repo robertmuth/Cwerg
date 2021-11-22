@@ -69,9 +69,8 @@ def IsDisallowExtension(ext):
 _SUPPORTED_OPERANDS = {
     "1",  #
     "creg", "dreg", "sreg", "cl",  #
-    # "fs", "gs",  #
-    "al", "ax", "eax", "rax", "<ax>", "<eax>", "<rax>",  #
-    "<dx>", "<edx>", "<rdx>",  #
+    "al", "ax", "eax", "rax",  #
+    "dx", "edx", "rdx",  #
     "r8", "r16", "r32", "r64",  #
     "~r8", "~r16", "~r32", "~r64",  #
     "r8/m8", "r16/m16", "r32/m32", "r64/m64",  #
@@ -80,7 +79,6 @@ _SUPPORTED_OPERANDS = {
     "xmm[31:0]", "xmm[63:0]",  #
     "xmm[31:0]/m32", "xmm[63:0]/m64",  #
     "xmm/m128", "xmm",  #
-    # "moff8", "moff16", "moff32", "moff64",  #
     "ib/ub", "iw/uw", "id/ud", "iq/uq",  #
     "id", "ib", "ud", "iw", "uw",  #
     "rel8", "rel16", "rel32",  #
@@ -95,16 +93,14 @@ _UNSUPPORTED_OPERANDS = {
 
 def ContainsUnsupportedOperands(ops):
     for o in ops:
-        if o[0:2] in _OPERAND_MODIFIERS:
-            o = o[2:]
         if o in _UNSUPPORTED_OPERANDS:
             return True
     return False
 
 
 _IMPLICIT_OPERANDS = {
-    "al", "ax", "eax", "rax", "<ax>", "<eax>", "<rax>",
-    "<dx>", "<edx>", "<rdx>",  #
+    "al", "ax", "eax", "rax",
+    "dx", "edx", "rdx",  #
     "cl",
 }
 
@@ -120,19 +116,19 @@ def GetBitwidth(ops):
         return 32
     elif ops[0].endswith("64"):
         return 64
-    elif ops[0] in {"w:xmm[31:0]", "x:xmm[31:0]", "R:xmm[31:0]"}:
+    elif ops[0] == "xmm[31:0]":
         return 32
-    elif ops[0] in {"w:xmm[63:0]", "x:xmm[63:0]", "R:xmm[63:0]"}:
+    elif ops[0] == "xmm[63:0]":
         return 64
-    elif ops[0] in {"w:al"}:
+    elif ops[0] in {"al"}:
         return 16
-    elif ops[0] in {"w:ax", "x:<ax>", "x:<dx>", "w:<dx>"}:
+    elif ops[0] in {"ax", "dx"}:
         return 16
-    elif ops[0] in {"W:eax", "X:<edx>", "W:<edx>"}:
+    elif ops[0] in {"eax", "edx"}:
         return 32
-    elif ops[0] in {"W:rax", "X:<rdx>", "W:<rdx>"}:
+    elif ops[0] in {"rax", "rdx"}:
         return 64
-    elif ops[0] in {"W:sreg", "W:creg", "W:dreg", "W:xmm"}:
+    elif ops[0] in {"sreg", "creg", "dreg", "xmm"}:
         if ops[1].endswith("8"):
             return 8
         elif ops[1].endswith("16"):
@@ -163,7 +159,7 @@ _SUPPORTED_PARAMS = {
     "cd", "cb",
 }
 
-_RE_BYTE = re.compile("[0-9A-F][0-9A-F]")
+_RE_BYTE = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
 
 _OPERAND_MODIFIERS = {
     "x:",  # read/write
@@ -175,8 +171,6 @@ _OPERAND_MODIFIERS = {
 
 
 def IsRegularRegOrMemOp(op):
-    if op[0:2] in _OPERAND_MODIFIERS:
-        op = op[2:]
     return op in {"r8/m8", "r16/m16", "r32/m32", "r64/m64"}
 
 
@@ -219,8 +213,6 @@ class OP(enum.Enum):
 def NumExplicitOperands(ops):
     n = 0
     for o in ops:
-        if o[0:2] in _OPERAND_MODIFIERS:
-            o = o[2:]
         if o not in _IMPLICIT_OPERANDS:
             n += 1
     return n
@@ -231,10 +223,7 @@ def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: 
     for f in encoding:
         assert f in _SUPPORTED_PARAMS or _RE_BYTE.match(f), f"bad parameter [{repr(f)}]"
     for o in ops:
-        if o[0:2] in _OPERAND_MODIFIERS:
-            assert o[2:] in _SUPPORTED_OPERANDS
-        else:
-            assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
+        assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
     assert NumExplicitOperands(ops) == len(format), f"{name}"
 
@@ -244,8 +233,14 @@ def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: 
     # if IsRegularRegOrMemOp(dst):
 
 
-def SplitStringComma(s):
-    return [x for x in s.replace(", ", ",").split(",") if x]
+def ExtractOps(s):
+    def clean(o):
+        o = o.replace("<", "").replace(">", "")
+        if o[0:2] in _OPERAND_MODIFIERS:
+            return o[2:]
+        return o
+    return [clean(x) for x in s.replace(", ", ",").split(",") if x]
+
 
 
 if __name__ == "__main__":
@@ -258,7 +253,7 @@ if __name__ == "__main__":
     X86_DATA = json.loads(data[start:end])
     count = collections.defaultdict(int)
     for name, ops, format, encoding, metadata in X86_DATA["instructions"]:
-        ops = SplitStringComma(ops)
+        ops = ExtractOps(ops)
         if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
                 ContainsUnsupportedOperands(ops)):
             continue
