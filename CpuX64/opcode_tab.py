@@ -184,7 +184,11 @@ _SUPPORTED_FORMATS = {
     "O",
     "RMI",
     "",
-    "rI",  # custom format for handing   mov ['w:r8', 'ib/ub'] I ['B0+r', 'ib'] etc
+    # custom formats:
+    "rI",  #  mov ['w:r8', 'ib/ub'] I ['B0+r', 'ib'] etc
+    "xM",  # div ['ax', 'r8/m8'] xM ['F6', '/6']
+    "xxM",  # div ['dx', 'ax', 'r16/m16'] xxM
+    "Mx",  #sar ['r8/m8', 'cl'] Mx
 }
 
 
@@ -199,8 +203,6 @@ class Opcode:
     fields: List
 
 
-#	83 c0 80             	add    eax,0xffffff80
-
 @enum.unique
 class OP(enum.Enum):
     """
@@ -210,12 +212,35 @@ class OP(enum.Enum):
     SINT8 = 3,
 
 
-def NumExplicitOperands(ops):
-    n = 0
-    for o in ops:
-        if o not in _IMPLICIT_OPERANDS:
-            n += 1
-    return n
+#	83 c0 80             	add    eax,0xffffff80
+
+
+_OP_MAP = {
+    "I": {
+        "ib/ub", "iw/uw", "id/ud", "iq/uq",  #
+        "ib", "iw", "id", "uw", "ud",
+    },
+    "R": {
+        "~r8", "~r16", "~r32", "~r64",
+        "r8", "r16", "r32", "r64",
+        "sreg", "creg", "dreg",
+        "xmm[31:0]", "xmm[63:0]",
+        "xmm",
+    },
+    "M": {
+        "r8/m8", "r16/m16", "r32/m32", "r64/m64", "r64",
+        "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
+        "r32/m16", "r64/m16",
+        "mem",
+        "xmm[31:0]/m32",  "xmm[63:0]/m64", "xmm/m128",
+        #"sreg", "creg", "dreg",
+        #"xmm",
+    },
+    "D": {"rel8", "rel32"},
+    "O": { "r16", "r32", "r64"},
+    "x": _IMPLICIT_OPERANDS,
+    "r": {"r8", "r16", "r32", "r64"},
+}
 
 
 def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: List[str]):
@@ -225,12 +250,10 @@ def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: 
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
-    assert NumExplicitOperands(ops) == len(format), f"{name}"
-
-    out = []
-    #dst, src = ops
     bit_width = GetBitwidth(ops)
-    # if IsRegularRegOrMemOp(dst):
+    assert len(format) == len(ops)
+    for op, kind in zip(ops, format):
+        assert op in _OP_MAP[kind], f"{op} {kind}"
 
 
 def ExtractOps(s):
@@ -239,8 +262,8 @@ def ExtractOps(s):
         if o[0:2] in _OPERAND_MODIFIERS:
             return o[2:]
         return o
-    return [clean(x) for x in s.replace(", ", ",").split(",") if x]
 
+    return [clean(x) for x in s.replace(", ", ",").split(",") if x]
 
 
 if __name__ == "__main__":
@@ -264,6 +287,10 @@ if __name__ == "__main__":
             format = "rI"
         if format == "NONE":
             format = ""
+        if len(format) != len(ops):
+            assert len(format) == 1
+            format = "".join([("x" if o in _IMPLICIT_OPERANDS else format)
+                              for o in ops])
         print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
     for k in _SUPPORTED_OPCODES:
