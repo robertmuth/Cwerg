@@ -46,8 +46,6 @@ _SUPPORTED_OPCODES = {
     "jle/jng", "jne/jnz", "jge/jnl",  # many missing
 }
 
-# _SUPPORTED_OPCODES = { "add" }
-
 # opcode extension/flavors we do not support for now
 _DISALLOWED_EXTENSIONS = {
     "Deprecated",
@@ -151,16 +149,6 @@ def GetBitwidth(ops):
     assert False, f"cannot determine width for {ops}"
 
 
-_SUPPORTED_PARAMS = {
-    "/0", "/1", "/2", "/3", "/4", "/5", "/6", "/7",  #
-    "/r",  #
-    "REX.W",
-    "ib", "iw", "id", "iq",  #
-    "cd", "cb",
-}
-
-_RE_BYTE = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
-
 _OPERAND_MODIFIERS = {
     "x:",  # read/write
     "X:",  # read/write, zero extend
@@ -168,11 +156,6 @@ _OPERAND_MODIFIERS = {
     "W:",  # write only, zero extend
     "R:",  # read only
 }
-
-
-def IsRegularRegOrMemOp(op):
-    return op in {"r8/m8", "r16/m16", "r32/m32", "r64/m64"}
-
 
 _SUPPORTED_FORMATS = {
     "MI",
@@ -185,11 +168,27 @@ _SUPPORTED_FORMATS = {
     "RMI",
     "",
     # custom formats:
-    "rI",  #  mov ['w:r8', 'ib/ub'] I ['B0+r', 'ib'] etc
+    "rI",  # mov ['w:r8', 'ib/ub'] I ['B0+r', 'ib'] etc
     "xM",  # div ['ax', 'r8/m8'] xM ['F6', '/6']
     "xxM",  # div ['dx', 'ax', 'r16/m16'] xxM
-    "Mx",  #sar ['r8/m8', 'cl'] Mx
+    "Mx",  # sar ['r8/m8', 'cl'] Mx
 }
+
+
+@enum.unique
+class OP(enum.Enum):
+    """
+    """
+    MODRM_RM_REG = 1
+    MODRM_RM_BASE = 2
+    OFFSET8 = 3
+    OFFSET32 = 4
+    SIB_SCALE = 5
+    SIB_INDEX = 6
+    SIB_BASE = 7
+    IMM8 = 8
+    IMM16 = 9
+    IMM32 = 32
 
 
 @dataclasses.dataclass()
@@ -197,23 +196,84 @@ class Opcode:
     name: str
     variant: str
     bit_width: int
-    len: int
-    bit32_mask: int
-    bit32_value: int
-    fields: List
+
+    bit32_mask: int = 0
+    bit32_value: int = 0
+    #
+    rex_pos = 0
+    modrm_pos = 0
+    sib_pos = 0
+    offset_pos = 0
+    imm_pos = 0
+    #
+    fields: List = dataclasses.field(default_factory=list)
+    mask: List = dataclasses.field(default_factory=list)
+    data: List = dataclasses.field(default_factory=list)
+
+    def AddRexW(self):
+        self.rex_pos = len(self.data)
+        self.data.append(0x48)
+        self.mask.append(0xf8)
+
+    def AddByte(self, b: int):
+        self.data.append(b)
+        self.mask.append(0xff)
+
+    def AddRegOpExt(self, ext: int):
+        self.modrm_pos = len(self.data)
+        mask = 0xf8
+        data = (3 << 6) | (ext << 3)
+        self.mask.append(mask)
+        self.data.append(data)
+        self.fields.append(OP.MODRM_RM_REG)
 
 
-@enum.unique
-class OP(enum.Enum):
-    """
-    """
-    GREG8 = 1,
-    GREG16 = 2,
-    SINT8 = 3,
+    def AddMemOpExt(self, use_sib: bool, mod: int, ext: int):
+        self.modrm_pos = len(self.data)
+        mask = 0xf8
+        data = (mod << 6) | (ext << 3)
+        if use_sib:
+            mask |= 0x7
+            data |= 0x4
+            self.mask.append(mask)
+            self.data.append(data)
+            self.sib_pos = len(self.data)
+            self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
+        else:
+            self.fields.append(OP.MODRM_RM_BASE)
 
+        if mod == 0:
+            pass
+        elif mod == 1:
+            self.offset_pos = len(self.data)
+            self.fields.append(OP.OFFSET8)
+            self.mask += [0]
+            self.data += [0]
+        elif mod == 2:
+            self.offset_pos = len(self.data)
+            self.fields.append(OP.OFFSET32)
+            self.mask += [0, 0, 0, 0]
+            self.data += [0, 0, 0, 0]
 
-#	83 c0 80             	add    eax,0xffffff80
-
+    def AddImmOp(self, op):
+        self.imm_pos = len(self.data)
+        size = 0
+        if op == "ib":
+            self.fields.append(OP.IMM8)
+            size = 1
+        elif op == "iw":
+            self.fields.append(OP.IMM16)
+            size = 2
+        elif op == "id":
+            self.fields.append(OP.IMM32)
+            size = 4
+        elif op == "iq":
+            self.fields.append(OP.IMM32)
+            size = 8
+        else:
+            assert False
+        self.mask += [0] * size
+        self.data += [0] * size
 
 _OP_MAP = {
     "I": {
@@ -232,18 +292,66 @@ _OP_MAP = {
         "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
         "r32/m16", "r64/m16",
         "mem",
-        "xmm[31:0]/m32",  "xmm[63:0]/m64", "xmm/m128",
-        #"sreg", "creg", "dreg",
-        #"xmm",
+        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
+        # "sreg", "creg", "dreg",
+        # "xmm",
     },
     "D": {"rel8", "rel32"},
-    "O": { "r16", "r32", "r64"},
+    "O": {"r16", "r32", "r64"},
     "x": _IMPLICIT_OPERANDS,
     "r": {"r8", "r16", "r32", "r64"},
 }
 
+_SUPPORTED_PARAMS = {
+    "/0", "/1", "/2", "/3", "/4", "/5", "/6", "/7",  #
+    "/r",  #
+    "REX.W",
+    "ib", "iw", "id", "iq",  #
+    "cd", "cb",
+}
 
-def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: List[str]):
+_RE_BYTE = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
+
+
+
+def HandlePatternMI(name: str, bit_width: int):
+    opc = Opcode(name, "reg", bit_width)
+    for x in encoding:
+        if x == "REX.W":
+            opc.AddRexW()
+        elif _RE_BYTE.match(x):
+            opc.AddByte(int(x, 16))
+        elif x.startswith("/"):
+            ext = int(x[1:])
+            opc.AddRegOpExt(ext)
+        elif x in {"ib", "iw", "id", "iq"}:
+            opc.AddImmOp(x)
+        else:
+            assert False
+
+    # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
+    for use_sib in [True, False]:
+        for mod in range(3):
+            variant = "sib_" if use_sib else ""
+            if mod == 1:
+                variant += "off8"
+            if mod == 2:
+                variant += "off32"
+            opc = Opcode(name, variant, bit_width)
+            for x in encoding:
+                if x == "REX.W":
+                    opc.AddRexW()
+                elif _RE_BYTE.match(x):
+                    opc.AddByte(int(x, 16))
+                elif x.startswith("/"):
+                    ext = int(x[1:])
+                    opc.AddMemOpExt(use_sib, mod, ext)
+                elif x in {"ib", "iw", "id", "iq"}:
+                    opc.AddImmOp(x)
+                else:
+                    assert False
+
+def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], meta: List[str]):
     assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
     for f in encoding:
         assert f in _SUPPORTED_PARAMS or _RE_BYTE.match(f), f"bad parameter [{repr(f)}]"
@@ -254,6 +362,24 @@ def HandlePattern(name, ops: List[str], format: str, encoding: List[str], meta: 
     assert len(format) == len(ops)
     for op, kind in zip(ops, format):
         assert op in _OP_MAP[kind], f"{op} {kind}"
+
+    if format == "MI":
+        HandlePatternMI(name, bit_width)
+
+    elif format == "I":
+        opc = Opcode(name, "", bit_width)
+        for x in encoding:
+            if x == "REX.W":
+                opc.AddRexW()
+            elif _RE_BYTE.match(x):
+                opc.AddByte(int(x, 16))
+            elif x in {"ib", "iw", "id", "iq"}:
+                opc.AddImmOp(x)
+            else:
+                assert False
+    else:
+        pass
+        #assert Falde
 
 
 def ExtractOps(s):
@@ -280,6 +406,10 @@ if __name__ == "__main__":
         if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
                 ContainsUnsupportedOperands(ops)):
             continue
+        if format == "MI" and ops[0] == "X:r64":
+            # this excludes:
+            # "and", "X:r64, ud", "MI"      , "81 /4 id"
+            continue
         count[name] += 1
         metadata = metadata.split()
         encoding = encoding.split()
@@ -287,6 +417,10 @@ if __name__ == "__main__":
             format = "rI"
         if format == "NONE":
             format = ""
+
+        #if format not in  {"MI", "I"}:
+        #    continue
+
         if len(format) != len(ops):
             assert len(format) == 1
             format = "".join([("x" if o in _IMPLICIT_OPERANDS else format)
