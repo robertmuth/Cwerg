@@ -43,6 +43,7 @@ _SUPPORTED_OPCODES = {
     "pop", "push",  #
     "ucomiss", "ucomisd",
     "call", "ret", "syscall",
+    # "jmp", # waiting for bug fix in asmdb
     "jle/jng", "jne/jnz", "jge/jnl",  # many missing
 }
 
@@ -181,34 +182,39 @@ class OP(enum.Enum):
     """
     MODRM_RM_REG = 1
     MODRM_RM_BASE = 2
-    OFFSET8 = 3
-    OFFSET32 = 4
+    OFFABS8 = 3
+    OFFABS32 = 4
     SIB_SCALE = 5
     SIB_INDEX = 6
     SIB_BASE = 7
     IMM8 = 8
     IMM16 = 9
-    IMM32 = 32
+    IMM32 = 10
+    OFFPCREL8 = 11
+    OFFPCREL32 = 12
 
 
-@dataclasses.dataclass()
 class Opcode:
-    name: str
-    variant: str
-    bit_width: int
+    count: int = 0
 
-    bit32_mask: int = 0
-    bit32_value: int = 0
-    #
-    rex_pos = 0
-    modrm_pos = 0
-    sib_pos = 0
-    offset_pos = 0
-    imm_pos = 0
-    #
-    fields: List = dataclasses.field(default_factory=list)
-    mask: List = dataclasses.field(default_factory=list)
-    data: List = dataclasses.field(default_factory=list)
+    def __init__(self, name: str, variant: str, bit_width: int):
+        Opcode.count += 1
+        self.name: str = name
+        self.variant: str = variant
+        self.bit_width: int = bit_width
+
+        self.bit32_mask: int = 0
+        self.bit32_value: int = 0
+        #
+        self.rex_pos = 0
+        self.modrm_pos = 0
+        self.sib_pos = 0
+        self.offset_pos = 0
+        self.imm_pos = 0
+        #
+        self.fields: List = []
+        self.mask: List = []
+        self.data: List = []
 
     def AddRexW(self):
         self.rex_pos = len(self.data)
@@ -219,6 +225,9 @@ class Opcode:
         self.data.append(b)
         self.mask.append(0xff)
 
+    def AddReg(self):
+        self.fields.append(OP.MODRM_RM_REG)
+
     def AddRegOpExt(self, ext: int):
         self.modrm_pos = len(self.data)
         mask = 0xf8
@@ -227,6 +236,27 @@ class Opcode:
         self.data.append(data)
         self.fields.append(OP.MODRM_RM_REG)
 
+    def AddRegOpReg(self):
+        self.modrm_pos = len(self.data)
+        mask = 0xc0
+        data = (3 << 6)
+        self.mask.append(mask)
+        self.data.append(data)
+        self.fields.append(OP.MODRM_RM_REG)
+
+    def AddMemOpCommonTail(self, mod: int):
+        if mod == 0:
+            pass
+        elif mod == 1:
+            self.offset_pos = len(self.data)
+            self.fields.append(OP.OFFABS8)
+            self.mask += [0]
+            self.data += [0]
+        elif mod == 2:
+            self.offset_pos = len(self.data)
+            self.fields.append(OP.OFFABS32)
+            self.mask += [0, 0, 0, 0]
+            self.data += [0, 0, 0, 0]
 
     def AddMemOpExt(self, use_sib: bool, mod: int, ext: int):
         self.modrm_pos = len(self.data)
@@ -241,19 +271,22 @@ class Opcode:
             self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
         else:
             self.fields.append(OP.MODRM_RM_BASE)
+        self.AddMemOpCommonTail(mod)
 
-        if mod == 0:
-            pass
-        elif mod == 1:
-            self.offset_pos = len(self.data)
-            self.fields.append(OP.OFFSET8)
-            self.mask += [0]
-            self.data += [0]
-        elif mod == 2:
-            self.offset_pos = len(self.data)
-            self.fields.append(OP.OFFSET32)
-            self.mask += [0, 0, 0, 0]
-            self.data += [0, 0, 0, 0]
+    def AddMemOpReg(self, use_sib: bool, mod: int):
+        self.modrm_pos = len(self.data)
+        mask = 0xc0
+        data = (mod << 6)
+        if use_sib:
+            mask |= 0x7
+            data |= 0x4
+            self.mask.append(mask)
+            self.data.append(data)
+            self.sib_pos = len(self.data)
+            self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
+        else:
+            self.fields.append(OP.MODRM_RM_BASE)
+        self.AddMemOpCommonTail(mod)
 
     def AddImmOp(self, op):
         self.imm_pos = len(self.data)
@@ -274,6 +307,20 @@ class Opcode:
             assert False
         self.mask += [0] * size
         self.data += [0] * size
+
+    def AddOffsetPCREL(self, op):
+        self.offset_pos = len(self.data)
+        if op == "cb":
+            self.fields.append(OP.OFFPCREL8)
+            self.mask += [0]
+            self.data += [0]
+        elif op == "cd":
+            self.fields.append(OP.OFFPCREL32)
+            self.mask += [0, 0, 0, 0]
+            self.data += [0, 0, 0, 0]
+        else:
+            assert False
+
 
 _OP_MAP = {
     "I": {
@@ -313,6 +360,38 @@ _SUPPORTED_PARAMS = {
 _RE_BYTE = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
 
 
+def HandlePatternMR(name: str, bit_width: int):
+    opc = Opcode(name, "reg", bit_width)
+    for x in encoding:
+        if x == "REX.W":
+            opc.AddRexW()
+        elif _RE_BYTE.match(x):
+            opc.AddByte(int(x, 16))
+        elif x == "/r":
+            opc.AddRegOpReg()
+            opc.AddReg()
+        else:
+            assert False
+
+    for use_sib in [True, False]:
+        for mod in range(3):
+            variant = "sib_" if use_sib else ""
+            if mod == 1:
+                variant += "off8"
+            if mod == 2:
+                variant += "off32"
+            opc = Opcode(name, variant, bit_width)
+            for x in encoding:
+                if x == "REX.W":
+                    opc.AddRexW()
+                elif _RE_BYTE.match(x):
+                    opc.AddByte(int(x, 16))
+                elif x == "/r":
+                    opc.AddMemOpReg(use_sib, mod)
+                    opc.AddReg()
+                else:
+                    assert False
+
 
 def HandlePatternMI(name: str, bit_width: int):
     opc = Opcode(name, "reg", bit_width)
@@ -351,6 +430,36 @@ def HandlePatternMI(name: str, bit_width: int):
                 else:
                     assert False
 
+
+def HandlePatternM(name: str, bit_width: int):
+    opc = Opcode(name, "reg", bit_width)
+    for x in encoding:
+        if _RE_BYTE.match(x):
+            opc.AddByte(int(x, 16))
+        elif x.startswith("/"):
+            ext = int(x[1:])
+            opc.AddRegOpExt(ext)
+        else:
+            assert False
+
+    for use_sib in [True, False]:
+        for mod in range(3):
+            variant = "sib_" if use_sib else ""
+            if mod == 1:
+                variant += "off8"
+            if mod == 2:
+                variant += "off32"
+            opc = Opcode(name, variant, bit_width)
+            for x in encoding:
+                if _RE_BYTE.match(x):
+                    opc.AddByte(int(x, 16))
+                elif x.startswith("/"):
+                    ext = int(x[1:])
+                    opc.AddMemOpExt(use_sib, mod, ext)
+                else:
+                    assert False
+
+
 def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], meta: List[str]):
     assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
     for f in encoding:
@@ -365,7 +474,10 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
 
     if format == "MI":
         HandlePatternMI(name, bit_width)
-
+    elif format == "MR":
+        HandlePatternMR(name, bit_width)
+    elif format == "M":
+        HandlePatternMI(name, bit_width)
     elif format == "I":
         opc = Opcode(name, "", bit_width)
         for x in encoding:
@@ -377,9 +489,18 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 opc.AddImmOp(x)
             else:
                 assert False
+
+    elif format == "D":
+        opc = Opcode(name, "", bit_width)
+        for x in encoding:
+            if _RE_BYTE.match(x):
+                opc.AddByte(int(x, 16))
+            elif x in {"cb", "cd"}:
+                opc.AddOffsetPCREL(x)
+            else:
+                assert False
     else:
-        pass
-        #assert Falde
+        assert False
 
 
 def ExtractOps(s):
@@ -418,14 +539,14 @@ if __name__ == "__main__":
         if format == "NONE":
             format = ""
 
-        #if format not in  {"MI", "I"}:
-        #    continue
-
         if len(format) != len(ops):
             assert len(format) == 1
             format = "".join([("x" if o in _IMPLICIT_OPERANDS else format)
                               for o in ops])
+        if format not in {"D", "MI", "I", "M", "MR"}:
+            continue
         print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
     for k in _SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"
+    print (f"TOTAL instruction templates: {Opcode.count}")
