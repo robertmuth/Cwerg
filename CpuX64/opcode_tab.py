@@ -17,6 +17,7 @@ import enum
 import sys
 import re
 import json
+import itertools
 
 X86_DATA = None
 
@@ -204,16 +205,18 @@ class Opcode:
     The presence or absence of the REX.W and 0x66 (Operand override) prefixes also
     forces new Opcodes.
     """
-    count: int = 0
+
+    Opcodes = []
 
     def __init__(self, name: str, variant: str, operands: List, bit_width: int):
-        Opcode.count += 1
+        Opcode.Opcodes.append(self)
         self.name: str = name
         self.variant: str = variant
+        self.operands = operands
         self.bit_width: int = bit_width
 
-        self.bit32_mask: int = 0
-        self.bit32_value: int = 0
+        self.discriminant_mask: int = 0
+        self.discriminant_data: int = 0
         #
         self.rex_pos = -1
         self.modrm_pos = -1
@@ -225,6 +228,22 @@ class Opcode:
         self.fields: List = []
         self.mask: List = []
         self.data: List = []
+
+    def __str__(self):
+        hex_str = " ".join(f"{b:02x}" for b in self.data)
+        return f"{self.name}.{self.variant} [' '.join({self.operands})] {hex_str}"
+
+    def Finalize(self):
+        self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
+        self.discriminant_data = self.discriminant_mask & int.from_bytes(self.data[0:5], "little")
+        expected_len = len(self.operands)
+        if self.modrm_pos >= 0:
+            if OP.OFFABS8 in self.fields or OP.OFFABS32 in self.fields:
+                expected_len += 1
+            if self.sib_pos >= 0:
+                expected_len += 2
+
+            # assert len(self.fields) == expected_len, f"{self.fields} vs {self.operands}"
 
     def AddRexW(self):
         self.rex_pos = len(self.data)
@@ -277,6 +296,8 @@ class Opcode:
 
     def AddMemOpExt(self, use_sib: bool, mod: int, ext: int):
         self.modrm_pos = len(self.data)
+        assert mod <= 2
+        assert ext <= 7
         mask = 0xf8
         data = (mod << 6) | (ext << 3)
         if use_sib:
@@ -287,6 +308,8 @@ class Opcode:
             self.sib_pos = len(self.data)
             self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
         else:
+            self.mask.append(mask)
+            self.data.append(data)
             self.fields.append(OP.MODRM_RM_BASE)
         self.AddMemOpCommonTail(mod)
 
@@ -302,6 +325,8 @@ class Opcode:
             self.sib_pos = len(self.data)
             self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
         else:
+            self.mask.append(mask)
+            self.data.append(data)
             self.fields.append(OP.MODRM_RM_BASE)
         self.AddMemOpCommonTail(mod)
 
@@ -493,6 +518,11 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
         HandlePatternMR(name, ops, bit_width, inv=True)
     elif format == "":
         opc = Opcode(name, "", ops, bit_width)
+        for x in encoding:
+            if _RE_BYTE.match(x):
+                opc.AddByte(int(x, 16))
+            else:
+                assert False
     elif format in {"I", "O", "OI"}:
         opc = Opcode(name, "", ops, bit_width)
         for x in encoding:
@@ -529,6 +559,25 @@ def ExtractOps(s):
     return [clean(x) for x in s.replace(", ", ",").split(",") if x]
 
 
+
+def OpcodeSanityCheck(opcodes: List[Opcode]):
+    patterns = collections.defaultdict(list)
+    for opcode in Opcode.Opcodes:
+        patterns[(opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
+    print (f"Checkin Opcodes for conflicts")
+    for k, opcodes in patterns.items():
+        if len(opcodes) == 1: continue
+        for o in opcodes:
+            print (o)
+        print ()
+
+    print (f"Checkin Opcodes for overlap")
+    for a, b in itertools.combinations(opcodes, 2):
+        c = a.discriminant_mask & b.discriminant_mask
+        assert (a.discriminant_data & c) != (b.discriminant_data & c)
+
+# _SUPPORTED_OPCODES = {"add"}
+
 if __name__ == "__main__":
     _START_MARKER = "// ${JSON:BEGIN}"
     _END_MARKER = "// ${JSON:END}"
@@ -543,7 +592,7 @@ if __name__ == "__main__":
         if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
                 ContainsUnsupportedOperands(ops)):
             continue
-        if format == "MI" and ops[0] == "X:r64":
+        if format == "MI" and ops[0] == "r64":
             # this excludes:
             # "and", "X:r64, ud", "MI"      , "81 /4 id"
             continue
@@ -567,4 +616,8 @@ if __name__ == "__main__":
         HandlePattern(name, ops, format, encoding, metadata)
     for k in _SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"
-    print(f"TOTAL instruction templates: {Opcode.count}")
+    print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
+    for opcode in Opcode.Opcodes:
+        opcode.Finalize()
+    OpcodeSanityCheck(Opcode.Opcodes)
+
