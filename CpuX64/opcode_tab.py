@@ -223,7 +223,7 @@ class Opcode:
         self.sib_pos = -1
         self.offset_pos = -1
         self.imm_pos = -1
-        self._byte_with_reg_pos = -1
+        self.byte_with_reg_pos = -1
         #
         self.fields: List = []
         self.mask: List = []
@@ -255,7 +255,7 @@ class Opcode:
         self.mask.append(0xff)
 
     def AddByteWithReg(self, b: int):
-        self._byte_with_reg_pos = len(self.data)
+        self.byte_with_reg_pos = len(self.data)
         self.fields.append(OP.BYTE_REG)
         self.data.append(b)
         self.mask.append(0xf8)
@@ -579,6 +579,7 @@ def OpcodeSanityCheck(opcodes: List[Opcode]):
 # _SUPPORTED_OPCODES = {"add"}
 
 if __name__ == "__main__":
+    # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
     _END_MARKER = "// ${JSON:END}"
     data = open("x86data.js").read()
@@ -620,4 +621,34 @@ if __name__ == "__main__":
     for opcode in Opcode.Opcodes:
         opcode.Finalize()
     OpcodeSanityCheck(Opcode.Opcodes)
+    HashTab = collections.defaultdict(list)
+    for opc in Opcode.Opcodes:
+        assert isinstance(opc, Opcode)
+        name = ""
+        data = opc.data
+        mask = opc.data
+        i = 0
+        if opc.rex_pos >= 0:
+            name += ".rex"
+            i += 1
+        if data[i] == 0x66:
+            name += ".66"
+            i += 1
+        if data[i] == 0xf2 or data[i] == 0xf3:
+            name += f".{data[i]:02x}"
+            i += 1
+        if data[i] == 0x0f:
+            name += ".0f"
+            i += 1
+
+        if i == opc.byte_with_reg_pos:
+            for r in range(8):
+                HashTab[name + f".{data[i] + r:02x}"].append(opcode)
+        else:
+            HashTab[name +  f".{data[i]:02x}"].append(opcode)
+
+
+    # for k, v in HashTab.items():
+    #    if v:
+    #        print (f"{k:10} {len(v)}")
 
