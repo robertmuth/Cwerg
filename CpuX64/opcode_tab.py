@@ -196,9 +196,17 @@ class OP(enum.Enum):
 
 
 class Opcode:
+    """
+    An opcode represent an x86-64 instruction.
+    We create separate Opcodes for each structurally different flavor of the
+    instruction. For example `add reg, memory-access` will become six different
+    opcodes (no-offset, offset8, offset32) X (sib, no-sib)
+    The presence or absence of the REX.W and 0x66 (Operand override) prefixes also
+    forces new Opcodes.
+    """
     count: int = 0
 
-    def __init__(self, name: str, variant: str, bit_width: int):
+    def __init__(self, name: str, variant: str, operands: List, bit_width: int):
         Opcode.count += 1
         self.name: str = name
         self.variant: str = variant
@@ -349,8 +357,6 @@ _OP_MAP = {
         "r32/m16", "r64/m16",
         "mem",
         "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
-        # "sreg", "creg", "dreg",
-        # "xmm",
     },
     "D": {"rel8", "rel32"},
     "O": {"r8", "r16", "r32", "r64"},
@@ -366,13 +372,14 @@ _SUPPORTED_PARAMS = {
     "cd", "cb",
 }
 
-_RE_BYTE = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
+_RE_BYTE_VARIATIONS = re.compile("^[0-9A-F][0-9A-F]([+]r)?$")
 
-_RE_BYTE_PLAIN = re.compile("^[0-9A-F][0-9A-F]$")
+_RE_BYTE = re.compile("^[0-9A-F][0-9A-F]$")
 _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
-def HandlePatternMR(name: str, bit_width: int, inv: bool):
-    opc = Opcode(name, "reg", bit_width)
+
+def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
+    opc = Opcode(name, "reg", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
@@ -385,6 +392,8 @@ def HandlePatternMR(name: str, bit_width: int, inv: bool):
             else:
                 opc.AddRegOpReg()
                 opc.AddReg()
+        elif x in {"ib", "iw", "id", "iq"}:
+            opc.AddImmOp(x)
         else:
             assert False
 
@@ -395,11 +404,11 @@ def HandlePatternMR(name: str, bit_width: int, inv: bool):
                 variant += "off8"
             if mod == 2:
                 variant += "off32"
-            opc = Opcode(name, variant, bit_width)
+            opc = Opcode(name, variant, ops, bit_width)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
-                elif _RE_BYTE_PLAIN.match(x):
+                elif _RE_BYTE.match(x):
                     opc.AddByte(int(x, 16))
                 elif x == "/r":
                     if inv:
@@ -408,20 +417,24 @@ def HandlePatternMR(name: str, bit_width: int, inv: bool):
                     else:
                         opc.AddMemOpReg(use_sib, mod)
                         opc.AddReg()
+                elif x in {"ib", "iw", "id", "iq"}:
+                    opc.AddImmOp(x)
                 else:
                     assert False
 
 
-def HandlePatternMI(name: str, bit_width: int):
-    opc = Opcode(name, "reg", bit_width)
+def HandlePatternMI(name: str, ops, bit_width: int, before, after):
+    opc = Opcode(name, "reg", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
-        elif _RE_BYTE_PLAIN.match(x):
+        elif _RE_BYTE.match(x):
             opc.AddByte(int(x, 16))
         elif x.startswith("/"):
             ext = int(x[1:])
+            opc.fields += before
             opc.AddRegOpExt(ext)
+            opc.fields += after
         elif x in {"ib", "iw", "id", "iq"}:
             opc.AddImmOp(x)
         else:
@@ -435,11 +448,11 @@ def HandlePatternMI(name: str, bit_width: int):
                 variant += "off8"
             if mod == 2:
                 variant += "off32"
-            opc = Opcode(name, variant, bit_width)
+            opc = Opcode(name, variant, ops, bit_width)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
-                elif _RE_BYTE_PLAIN.match(x):
+                elif _RE_BYTE.match(x):
                     opc.AddByte(int(x, 16))
                 elif x.startswith("/"):
                     ext = int(x[1:])
@@ -450,39 +463,10 @@ def HandlePatternMI(name: str, bit_width: int):
                     assert False
 
 
-def HandlePatternM(name: str, bit_width: int):
-    opc = Opcode(name, "reg", bit_width)
-    for x in encoding:
-        if _RE_BYTE_PLAIN.match(x):
-            opc.AddByte(int(x, 16))
-        elif x.startswith("/"):
-            ext = int(x[1:])
-            opc.AddRegOpExt(ext)
-        else:
-            assert False
-
-    for use_sib in [True, False]:
-        for mod in range(3):
-            variant = "sib_" if use_sib else ""
-            if mod == 1:
-                variant += "off8"
-            if mod == 2:
-                variant += "off32"
-            opc = Opcode(name, variant, bit_width)
-            for x in encoding:
-                if _RE_BYTE_PLAIN.match(x):
-                    opc.AddByte(int(x, 16))
-                elif x.startswith("/"):
-                    ext = int(x[1:])
-                    opc.AddMemOpExt(use_sib, mod, ext)
-                else:
-                    assert False
-
-
 def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], meta: List[str]):
     assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
     for f in encoding:
-        assert f in _SUPPORTED_PARAMS or _RE_BYTE.match(f), f"bad parameter [{repr(f)}]"
+        assert f in _SUPPORTED_PARAMS or _RE_BYTE_VARIATIONS.match(f), f"bad parameter [{repr(f)}]"
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
@@ -491,31 +475,39 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
     for op, kind in zip(ops, format):
         assert op in _OP_MAP[kind], f"{op} {kind}"
 
-    if format == "MI":
-        HandlePatternMI(name, bit_width)
+    if format in {"MI", "M", "xM", "xxM", "Mx"}:
+        before = []
+        after  = []
+        seen_M = False
+        for i, c in enumerate(format):
+           if c == "M": seen_M = True
+        if c == "x":
+            if seen_M:
+                after.append(ops[i])
+            else:
+                before.append(ops[i])
+        HandlePatternMI(name, ops, bit_width, before, after)
     elif format == "MR":
-        HandlePatternMR(name, bit_width, inv=False)
-    elif format == "RM":
-        HandlePatternMR(name, bit_width, inv=True)
-    elif format == "M":
-        HandlePatternMI(name, bit_width)
+        HandlePatternMR(name, ops, bit_width, inv=False)
+    elif format == "RM" or format == "RMI":
+        HandlePatternMR(name, ops, bit_width, inv=True)
     elif format == "":
-         opc = Opcode(name, "", bit_width)
+        opc = Opcode(name, "", ops, bit_width)
     elif format in {"I", "O", "OI"}:
-        opc = Opcode(name, "", bit_width)
+        opc = Opcode(name, "", ops, bit_width)
         for x in encoding:
             if x == "REX.W":
                 opc.AddRexW()
             elif _RE_BYTE_WITH_REG.match(x):
                 opc.AddByteWithReg(int(x[0:2], 16))
-            elif _RE_BYTE_PLAIN.match(x):
+            elif _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
             elif x in {"ib", "iw", "id", "iq"}:
                 opc.AddImmOp(x)
             else:
                 assert False
     elif format == "D":
-        opc = Opcode(name, "", bit_width)
+        opc = Opcode(name, "", ops, bit_width)
         for x in encoding:
             if _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
@@ -568,14 +560,11 @@ if __name__ == "__main__":
             assert len(format) == 1
             format = "".join([("x" if o in _IMPLICIT_OPERANDS else format)
                               for o in ops])
-            print (format, name)
+            print(format, name)
         assert format in _SUPPORTED_FORMATS
 
-        if format not in {"D", "MI", "I", "M", "MR", "RM", "", "O", "OI"}:
-            print ("SKIPPING", name, format)
-            continue
         print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
     for k in _SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"
-    print (f"TOTAL instruction templates: {Opcode.count}")
+    print(f"TOTAL instruction templates: {Opcode.count}")
