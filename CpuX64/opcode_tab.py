@@ -23,7 +23,8 @@ X86_DATA = None
 
 # list of opcodes we expect to use during X64 code generation
 _SUPPORTED_OPCODES = {
-    "add", "sub",  #
+    "add", "addss", "addsd",  #
+    "sub", "subss", "subsd",  #
     "or", "and", "xor",  #
     "sar", "shr", "shl/sal",  #
     "imul", "mulss", "mulsd",  #
@@ -31,8 +32,14 @@ _SUPPORTED_OPCODES = {
     "mov",  #
     "movsx",  #
     "movzx",  #
-    "movaps", "movapd",  #
+    "movq",
+    "movsxd", "movsx",
+    # "movsd",
+    # "movss",
+    ""
+    "movaps", "movapd", "movups", "movdqu", "movdqa",  #
     "neg",  #
+    # "pxor",
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
@@ -42,16 +49,18 @@ _SUPPORTED_OPCODES = {
     "lea",  #
     "popcnt",  #
     "pop", "push",  #
-    "ucomiss", "ucomisd",
-    "call", "ret", "syscall",
+    "ucomiss", "ucomisd", "comiss",
+    "call", "ret", "syscall", "endbr64",
     # "jmp", # waiting for bug fix in asmdb
-    "jle/jng", "jne/jnz", "jge/jnl",  # many missing
+    "jle/jng", "jne/jnz", "jge/jnl", "jbe/jna",
+    "jb/jnae/jc", "je/jz", "ja/jnbe", "jl/jnge",
+    "jp/jpe", "jnp/jpo", "jge/jnl", "jg/jnle",
 }
 
 # opcode extension/flavors we do not support for now
 _DISALLOWED_EXTENSIONS = {
     "Deprecated",
-    #"AltForm",
+    # "AltForm",
     "MMX",
     "MMX2",
     "X86",
@@ -66,28 +75,57 @@ def IsDisallowExtension(ext):
     return False
 
 
-_SUPPORTED_OPERANDS = {
-    "1",  #
-    "creg", "dreg", "sreg", "cl",  #
-    "al", "ax", "eax", "rax",  #
+_IMPLICIT_OPERANDS = {
+    "al", "ax", "eax", "rax",
     "dx", "edx", "rdx",  #
-    "r8", "r16", "r32", "r64",  #
-    "~r8", "~r16", "~r32", "~r64",  #
-    "r8/m8", "r16/m16", "r32/m32", "r64/m64",  #
-    "r32/m16", "r64/m16",  #
-    "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",  #
-    "xmm[31:0]", "xmm[63:0]",  #
-    "xmm[31:0]/m32", "xmm[63:0]/m64",  #
-    "xmm/m128", "xmm",  #
-    "ib/ub", "iw/uw", "id/ud", "iq/uq",  #
-    "id", "ib", "ud", "iw", "uw",  #
-    "rel8", "rel16", "rel32",  #
-    "mem",  #
+    "cl",  #
+    "1",
 }
+
+_M_BUT_NOT_MEM = {
+    "r64", "xmm[63:0]",
+}
+
+_M_BUT_NOT_REG = {
+    "m32", "m64",
+}
+
+_OP_MAP = {
+    "I": {
+        "ib/ub", "iw/uw", "id/ud", "iq/uq",  #
+        "ib", "iw", "id", "uw", "ud",
+    },
+    "R": {
+        "~r8", "~r16", "~r32", "~r64",
+        "r8", "r16", "r32", "r64",
+        "sreg", "creg", "dreg",
+        "xmm[31:0]", "xmm[63:0]",
+        "xmm",
+    },
+    "M": {
+        "r8/m8", "r16/m16", "r32/m32", "r64/m64",
+        "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
+        "r32/m16", "r64/m16",
+        "mem", "r64[63:0]/m64",
+        "xmm[31:0]/m32",
+        "xmm[63:0]/m64", "xmm/m128",
+        # non address
+        #"r64", "xmm[63:0]", "xmm[31:0]",
+        # non register
+        # "m64", "m32",
+    },
+    "D": {"rel8", "rel32"},
+    "O": {"r8", "r16", "r32", "r64"},
+    "x": _IMPLICIT_OPERANDS,
+    "r": {"r8", "r16", "r32", "r64"},
+}
+
+_SUPPORTED_OPERANDS = set.union(*[x for x in _OP_MAP.values()])
 
 _UNSUPPORTED_OPERANDS = {
     "moff8", "moff16", "moff32", "moff64",  #
     "fs", "gs",
+    "creg", "dreg", # problems with M encoding of r64
 }
 
 
@@ -96,14 +134,6 @@ def ContainsUnsupportedOperands(ops):
         if o in _UNSUPPORTED_OPERANDS:
             return True
     return False
-
-
-_IMPLICIT_OPERANDS = {
-    "al", "ax", "eax", "rax",
-    "dx", "edx", "rdx",  #
-    "cl",  #
-    "1",
-}
 
 
 def GetBitwidth(ops):
@@ -369,31 +399,6 @@ class Opcode:
             assert False
 
 
-_OP_MAP = {
-    "I": {
-        "ib/ub", "iw/uw", "id/ud", "iq/uq",  #
-        "ib", "iw", "id", "uw", "ud",
-    },
-    "R": {
-        "~r8", "~r16", "~r32", "~r64",
-        "r8", "r16", "r32", "r64",
-        "sreg", "creg", "dreg",
-        "xmm[31:0]", "xmm[63:0]",
-        "xmm",
-    },
-    "M": {
-        "r8/m8", "r16/m16", "r32/m32", "r64/m64", "r64",
-        "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
-        "r32/m16", "r64/m16",
-        "mem",
-        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
-    },
-    "D": {"rel8", "rel32"},
-    "O": {"r8", "r16", "r32", "r64"},
-    "x": _IMPLICIT_OPERANDS,
-    "r": {"r8", "r16", "r32", "r64"},
-}
-
 _SUPPORTED_PARAMS = {
     "/0", "/1", "/2", "/3", "/4", "/5", "/6", "/7",  #
     "/r",  #
@@ -408,7 +413,7 @@ _RE_BYTE = re.compile("^[0-9A-F][0-9A-F]$")
 _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
 
-def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
+def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
     opc = Opcode(name, "", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
@@ -448,7 +453,7 @@ def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
                     assert False
 
 
-def HandlePatternMI(name: str, ops, bit_width: int, before, after):
+def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
     opc = Opcode(name, "", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
@@ -506,11 +511,11 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 after.append(ops[i])
             else:
                 before.append(ops[i])
-        HandlePatternMI(name, ops, bit_width, before, after)
+        HandlePatternMI(name, ops, encoding, bit_width, before, after)
     elif format == "MR":
-        HandlePatternMR(name, ops, bit_width, inv=False)
+        HandlePatternMR(name, ops, encoding, bit_width, inv=False)
     elif format == "RM" or format == "RMI":
-        HandlePatternMR(name, ops, bit_width, inv=True)
+        HandlePatternMR(name, ops, encoding, bit_width, inv=True)
     elif format == "":
         opc = Opcode(name, "", ops, bit_width)
         for x in encoding:
@@ -579,7 +584,6 @@ def OpcodeSanityCheck(opcodes: List[Opcode]):
             assert (a.discriminant_data & c) != (b.discriminant_data & c)
 
 
-
 def FixupFormat(format: str, ops: List, encoding):
     if format == "I" and ("B8+r" in encoding or "B0+r" in encoding):
         return "OI"
@@ -596,6 +600,7 @@ def FixupFormat(format: str, ops: List, encoding):
             return "x"
         else:
             return format
+
     return "".join(tr(o) for o in ops)
 
 
@@ -609,9 +614,34 @@ def SkipInstruction(format, ops):
 
     if format == "I" and ops[0] == "rax" and ops[1] == "ud":
         return True
-    return  False
+    return False
+
 
 # _SUPPORTED_OPCODES = {"and"}
+
+def CreateOpcodes(instructions: List):
+     count = collections.defaultdict(int)
+     for name, ops, format, encoding, metadata in instructions:
+        ops = ExtractOps(ops)
+        if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
+                ContainsUnsupportedOperands(ops)):
+            continue
+        if SkipInstruction(format, ops):
+            continue
+        count[name] += 1
+        metadata = metadata.split()
+        encoding = encoding.split()
+        # hack
+        format = FixupFormat(format, ops, encoding)
+        assert format in _SUPPORTED_FORMATS
+
+        print(name, ops, format, encoding, metadata)
+        HandlePattern(name, ops, format, encoding, metadata)
+     for k in _SUPPORTED_OPCODES:
+        assert count[k], f"unknown opcode [{k}]"
+     for opcode in Opcode.Opcodes:
+        opcode.Finalize()
+     OpcodeSanityCheck(Opcode.Opcodes)
 
 
 if __name__ == "__main__":
@@ -623,30 +653,9 @@ if __name__ == "__main__":
     end = data.find(_END_MARKER)
 
     X86_DATA = json.loads(data[start:end])
-    count = collections.defaultdict(int)
-    for name, ops, format, encoding, metadata in X86_DATA["instructions"]:
-        ops = ExtractOps(ops)
-        if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
-            ContainsUnsupportedOperands(ops)):
-            continue
-        if SkipInstruction(format, ops):
-            continue
-        count[name] += 1
-        metadata = metadata.split()
-        encoding = encoding.split()
-        # hack
-        format = FixupFormat(format, ops, encoding)
-        assert format in _SUPPORTED_FORMATS
 
-
-        print(name, ops, format, encoding, metadata)
-        HandlePattern(name, ops, format, encoding, metadata)
-    for k in _SUPPORTED_OPCODES:
-        assert count[k], f"unknown opcode [{k}]"
+    CreateOpcodes(X86_DATA["instructions"])
     print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
-    for opcode in Opcode.Opcodes:
-        opcode.Finalize()
-    OpcodeSanityCheck(Opcode.Opcodes)
     HashTab = collections.defaultdict(list)
 
     def MakeHashName(data):
@@ -666,6 +675,7 @@ if __name__ == "__main__":
             name += ".0f"
             i += 1
         return name + f".{data[i]:02x}"
+
 
     for opc in Opcode.Opcodes:
         assert isinstance(opc, Opcode)
@@ -687,28 +697,28 @@ if __name__ == "__main__":
 
         if i == opc.byte_with_reg_pos:
             for r in range(8):
-                HashTab[name + f".{data[i] + r:02x}"].append(opcode)
+                HashTab[name + f".{data[i] + r:02x}"].append(opc)
         else:
-            HashTab[name + f".{data[i]:02x}"].append(opcode)
+            HashTab[name + f".{data[i]:02x}"].append(opc)
 
     if False:
         for k, v in HashTab.items():
             if v:
-                print (f"{k:10} {len(v)}")
+                print(f"{k:10} {len(v)}")
 
     # data must be generated with: objdump -d  -M intel  --insn-width=10
     # and looks like:
     # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
     n = 0
+    bad = 0
     for line in sys.stdin:
         addr_str, data_str, ins_str = line.strip().split("\t")
         data = [int(d, 16) for d in data_str.split()]
         candidates = HashTab[MakeHashName(data)]
-        #print (addr_str, data_str, ins_str)
+        # print (addr_str, data_str, ins_str)
         if not candidates:
-            print( f"BAD [{MakeHashName(data)}]  {line}")
+            print(f"BAD [{MakeHashName(data)}]  {line}", end="")
+            bad += 1
         discriminant = int.from_bytes(data, "little")
         n += 1
-    print (f"CHECKED {n}")
-
-
+    print(f"CHECKED: {n}   BAD: {bad}")
