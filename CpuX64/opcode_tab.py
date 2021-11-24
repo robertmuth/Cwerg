@@ -51,7 +51,7 @@ _SUPPORTED_OPCODES = {
 # opcode extension/flavors we do not support for now
 _DISALLOWED_EXTENSIONS = {
     "Deprecated",
-    "AltForm",
+    #"AltForm",
     "MMX",
     "MMX2",
     "X86",
@@ -101,7 +101,8 @@ def ContainsUnsupportedOperands(ops):
 _IMPLICIT_OPERANDS = {
     "al", "ax", "eax", "rax",
     "dx", "edx", "rdx",  #
-    "cl",
+    "cl",  #
+    "1",
 }
 
 
@@ -174,6 +175,7 @@ _SUPPORTED_FORMATS = {
     "xM",  # div ['ax', 'r8/m8'] xM ['F6', '/6']
     "xxM",  # div ['dx', 'ax', 'r16/m16'] xxM
     "Mx",  # sar ['r8/m8', 'cl'] Mx
+    "xI",
 }
 
 
@@ -218,7 +220,7 @@ class Opcode:
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
         #
-        self.rex_pos = -1
+        self.rexw = False
         self.modrm_pos = -1
         self.sib_pos = -1
         self.offset_pos = -1
@@ -231,7 +233,7 @@ class Opcode:
 
     def __str__(self):
         hex_str = " ".join(f"{b:02x}" for b in self.data)
-        return f"{self.name}.{self.variant} [' '.join({self.operands})] {hex_str}"
+        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {hex_str}"
 
     def Finalize(self):
         self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
@@ -246,9 +248,8 @@ class Opcode:
             # assert len(self.fields) == expected_len, f"{self.fields} vs {self.operands}"
 
     def AddRexW(self):
-        self.rex_pos = len(self.data)
-        self.data.append(0x48)
-        self.mask.append(0xf8)
+        self.rexw = True
+        self.variant += "_w"
 
     def AddByte(self, b: int):
         self.data.append(b)
@@ -284,11 +285,13 @@ class Opcode:
         if mod == 0:
             pass
         elif mod == 1:
+            self.variant += "_off8"
             self.offset_pos = len(self.data)
             self.fields.append(OP.OFFABS8)
             self.mask += [0]
             self.data += [0]
         elif mod == 2:
+            self.variant += "_off32"
             self.offset_pos = len(self.data)
             self.fields.append(OP.OFFABS32)
             self.mask += [0, 0, 0, 0]
@@ -301,6 +304,7 @@ class Opcode:
         mask = 0xf8
         data = (mod << 6) | (ext << 3)
         if use_sib:
+            self.variant += "_sib"
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
@@ -318,6 +322,7 @@ class Opcode:
         mask = 0xc0
         data = (mod << 6)
         if use_sib:
+            self.variant += "_sib"
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
@@ -404,7 +409,7 @@ _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
 
 def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
-    opc = Opcode(name, "reg", ops, bit_width)
+    opc = Opcode(name, "", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
@@ -424,12 +429,7 @@ def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
 
     for use_sib in [True, False]:
         for mod in range(3):
-            variant = "sib_" if use_sib else ""
-            if mod == 1:
-                variant += "off8"
-            if mod == 2:
-                variant += "off32"
-            opc = Opcode(name, variant, ops, bit_width)
+            opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
@@ -449,7 +449,7 @@ def HandlePatternMR(name: str, ops, bit_width: int, inv: bool):
 
 
 def HandlePatternMI(name: str, ops, bit_width: int, before, after):
-    opc = Opcode(name, "reg", ops, bit_width)
+    opc = Opcode(name, "", ops, bit_width)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
@@ -468,12 +468,7 @@ def HandlePatternMI(name: str, ops, bit_width: int, before, after):
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
     for use_sib in [True, False]:
         for mod in range(3):
-            variant = "sib_" if use_sib else ""
-            if mod == 1:
-                variant += "off8"
-            if mod == 2:
-                variant += "off32"
-            opc = Opcode(name, variant, ops, bit_width)
+            opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
@@ -502,10 +497,10 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
 
     if format in {"MI", "M", "xM", "xxM", "Mx"}:
         before = []
-        after  = []
+        after = []
         seen_M = False
         for i, c in enumerate(format):
-           if c == "M": seen_M = True
+            if c == "M": seen_M = True
         if c == "x":
             if seen_M:
                 after.append(ops[i])
@@ -523,8 +518,14 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 opc.AddByte(int(x, 16))
             else:
                 assert False
-    elif format in {"I", "O", "OI"}:
+    elif format in {"I", "O", "OI", "xI"}:
         opc = Opcode(name, "", ops, bit_width)
+        before = []
+        for i, c in enumerate(format):
+            if c == "x":
+                before.append(ops[i])
+            else:
+                break
         for x in encoding:
             if x == "REX.W":
                 opc.AddRexW()
@@ -533,6 +534,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
             elif _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
             elif x in {"ib", "iw", "id", "iq"}:
+                opc.fields += before
                 opc.AddImmOp(x)
             else:
                 assert False
@@ -559,24 +561,58 @@ def ExtractOps(s):
     return [clean(x) for x in s.replace(", ", ",").split(",") if x]
 
 
-
 def OpcodeSanityCheck(opcodes: List[Opcode]):
     patterns = collections.defaultdict(list)
     for opcode in Opcode.Opcodes:
-        patterns[(opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
-    print (f"Checkin Opcodes for conflicts")
+        patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
+    print(f"Checkin Opcodes for conflicts")
     for k, opcodes in patterns.items():
         if len(opcodes) == 1: continue
         for o in opcodes:
-            print (o)
-        print ()
+            print(o)
+        print()
 
-    print (f"Checkin Opcodes for overlap")
+    print(f"Checkin Opcodes for overlap")
     for a, b in itertools.combinations(opcodes, 2):
-        c = a.discriminant_mask & b.discriminant_mask
-        assert (a.discriminant_data & c) != (b.discriminant_data & c)
+        if a.rexw == b.rexw:
+            c = a.discriminant_mask & b.discriminant_mask
+            assert (a.discriminant_data & c) != (b.discriminant_data & c)
 
-# _SUPPORTED_OPCODES = {"add"}
+
+
+def FixupFormat(format: str, ops: List, encoding):
+    if format == "I" and ("B8+r" in encoding or "B0+r" in encoding):
+        return "OI"
+    if format == "NONE":
+        return ""
+
+    if len(format) == len(ops):
+        return format
+
+    assert len(format) == 1
+
+    def tr(f):
+        if f in _IMPLICIT_OPERANDS or f == "1":
+            return "x"
+        else:
+            return format
+    return "".join(tr(o) for o in ops)
+
+
+# this excludes:
+# "and", "X:r64, ud", "MI"      , "81 /4 id"
+# "X:rax, ud", "I"       , "25 id"
+
+def SkipInstruction(format, ops):
+    if format == "MI" and ops[0] == "r64":
+        return True
+
+    if format == "I" and ops[0] == "rax" and ops[1] == "ud":
+        return True
+    return  False
+
+# _SUPPORTED_OPCODES = {"and"}
+
 
 if __name__ == "__main__":
     # This file is file https://github.com/asmjit/asmdb (see file comment)
@@ -591,27 +627,17 @@ if __name__ == "__main__":
     for name, ops, format, encoding, metadata in X86_DATA["instructions"]:
         ops = ExtractOps(ops)
         if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
-                ContainsUnsupportedOperands(ops)):
+            ContainsUnsupportedOperands(ops)):
             continue
-        if format == "MI" and ops[0] == "r64":
-            # this excludes:
-            # "and", "X:r64, ud", "MI"      , "81 /4 id"
+        if SkipInstruction(format, ops):
             continue
         count[name] += 1
         metadata = metadata.split()
         encoding = encoding.split()
         # hack
-        if format == "I" and ("B8+r" in encoding or "B0+r" in encoding):
-            format = "OI"
-        if format == "NONE":
-            format = ""
-
-        if len(format) != len(ops):
-            assert len(format) == 1
-            format = "".join([("x" if o in _IMPLICIT_OPERANDS else format)
-                              for o in ops])
-            print(format, name)
+        format = FixupFormat(format, ops, encoding)
         assert format in _SUPPORTED_FORMATS
+
 
         print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
@@ -622,15 +648,33 @@ if __name__ == "__main__":
         opcode.Finalize()
     OpcodeSanityCheck(Opcode.Opcodes)
     HashTab = collections.defaultdict(list)
+
+    def MakeHashName(data):
+        i = 0
+        name = ""
+        if (data[0] & 0xf0) == 0x40:
+            if (data[0] & 8) == 8:
+                name += ".rexw"
+            i += 1
+        if data[i] == 0x66:
+            name += ".66"
+            i += 1
+        if data[i] == 0xf2 or data[i] == 0xf3:
+            name += f".{data[i]:02x}"
+            i += 1
+        if data[i] == 0x0f:
+            name += ".0f"
+            i += 1
+        return name + f".{data[i]:02x}"
+
     for opc in Opcode.Opcodes:
         assert isinstance(opc, Opcode)
         name = ""
         data = opc.data
         mask = opc.data
         i = 0
-        if opc.rex_pos >= 0:
-            name += ".rex"
-            i += 1
+        if opc.rexw:
+            name += ".rexw"
         if data[i] == 0x66:
             name += ".66"
             i += 1
@@ -645,10 +689,26 @@ if __name__ == "__main__":
             for r in range(8):
                 HashTab[name + f".{data[i] + r:02x}"].append(opcode)
         else:
-            HashTab[name +  f".{data[i]:02x}"].append(opcode)
+            HashTab[name + f".{data[i]:02x}"].append(opcode)
 
+    if False:
+        for k, v in HashTab.items():
+            if v:
+                print (f"{k:10} {len(v)}")
 
-    # for k, v in HashTab.items():
-    #    if v:
-    #        print (f"{k:10} {len(v)}")
+    # data must be generated with: objdump -d  -M intel  --insn-width=10
+    # and looks like:
+    # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
+    n = 0
+    for line in sys.stdin:
+        addr_str, data_str, ins_str = line.strip().split("\t")
+        data = [int(d, 16) for d in data_str.split()]
+        candidates = HashTab[MakeHashName(data)]
+        #print (addr_str, data_str, ins_str)
+        if not candidates:
+            print( f"BAD [{MakeHashName(data)}]  {line}")
+        discriminant = int.from_bytes(data, "little")
+        n += 1
+    print (f"CHECKED {n}")
+
 
