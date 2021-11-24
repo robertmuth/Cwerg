@@ -208,6 +208,17 @@ _SUPPORTED_FORMATS = {
     "xI",
 }
 
+_REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
+_REG_NAMES_16 = [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)]
+_REG_NAMES_32 = [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)]
+_REG_NAMES_64 = [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)]
+
+
+_REG_NAMES = {
+    16:  _REG_NAMES_16,
+    32:  _REG_NAMES_32,
+    64:  _REG_NAMES_64,
+}
 
 @enum.unique
 class OP(enum.Enum):
@@ -226,7 +237,7 @@ class OP(enum.Enum):
     OFFPCREL8 = 11
     OFFPCREL32 = 12
     BYTE_REG = 13
-
+    MODRM_REG = 14
 
 class Opcode:
     """
@@ -263,7 +274,7 @@ class Opcode:
 
     def __str__(self):
         hex_str = " ".join(f"{b:02x}" for b in self.data)
-        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {hex_str}"
+        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}"
 
     def Finalize(self):
         self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
@@ -293,7 +304,7 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        self.fields.append(OP.MODRM_RM_REG)
+        self.fields.append(OP.MODRM_REG)
 
     def AddRegOpExt(self, ext: int):
         self.modrm_pos = len(self.data)
@@ -397,6 +408,34 @@ class Opcode:
             self.data += [0, 0, 0, 0]
         else:
             assert False
+
+    def RenderOps(self, data):
+        rex = 0
+        if (data[0] & 0xf0) == 0x40:
+            rex = data[0]
+            data = data[1:]
+        out = []
+        for o in self.fields:
+            if isinstance(o, str):
+                out.append(o)
+            assert isinstance(o, OP)
+
+            if o is OP.MODRM_RM_REG:
+                r = data[self.modrm_pos]  & 0x7
+                if rex:
+                    r |= (rex & 1) << 3
+                out.append(_REG_NAMES[self.bit_width][r])
+            elif o is OP.MODRM_REG:
+                r = (data[self.modrm_pos] >> 3) & 0x7
+                if rex:
+                    r |= (rex & 4) << 1
+                out.append(_REG_NAMES[self.bit_width][r])
+            elif o is OP.IMM8:
+                out.append(f"0x{data[self.imm_pos]:x}")
+            elif o is OP.IMM32:
+                x = int.from_bytes(data[self.imm_pos:self.imm_pos+4], "little")
+                out.append(f"0x{x:x}")
+        return out
 
 
 _SUPPORTED_PARAMS = {
@@ -654,6 +693,7 @@ def FindMatchingRule(data, rules: List[Opcode]) -> Optional[Opcode]:
     return None
 
 
+
 if __name__ == "__main__":
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
@@ -727,8 +767,8 @@ if __name__ == "__main__":
             addr_str, data_str, ins_str = line.strip().split("\t")
         except:
             continue
-        opc_str = ins_str.split()[0]
-        if opc_str not in _SUPPORTED_OPCODES:
+        name = ins_str.split()[0]
+        if name not in _SUPPORTED_OPCODES:
             skipped += 1
             continue
         if "fs:" in ins_str:
@@ -749,7 +789,23 @@ if __name__ == "__main__":
             print(f"BAD [{MakeHashName(data)}]  {line}", end="")
             bad += 1
             continue
-        
+
+        continue
+        if "[rip+" in line:
+            continue
+
+        assert name == opc.name
+        expected_ops = ins_str[len(name):].strip().split(",")
+        expected_ops = [o for o in expected_ops if o]
+        actual_ops = opc.RenderOps(data)
+        if expected_ops != actual_ops:
+            print (line)
+            print (f"EXPECTED: {expected_ops}")
+            print (f"ACTUAL:   {actual_ops}")
+            print (f"OPCODE: {opc}")
+            exit ()
+
+
 
         n += 1
     print(f"CHECKED: {n}   BAD: {bad}   SKIPPED: {skipped}")
