@@ -253,6 +253,12 @@ class OP(enum.Enum):
     BYTE_REG = 13
     MODRM_REG = 14
 
+@enum.unique
+class SIB_MODE(enum.Enum):
+    NO = 1
+    STD = 2
+    STK = 3
+
 
 class Opcode:
     """
@@ -289,7 +295,7 @@ class Opcode:
 
     def __str__(self):
         hex_str = " ".join(f"{b:02x}" for b in self.data)
-        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}"
+        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  sib:{self.sib_pos}  off:{self.offset_pos} "
 
     def Finalize(self):
         self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
@@ -353,38 +359,33 @@ class Opcode:
             self.mask += [0, 0, 0, 0]
             self.data += [0, 0, 0, 0]
 
-    def AddMemOpExt(self, use_sib: bool, mod: int, ext: int):
+    def AddMemOp(self, sib_mode: SIB_MODE, mod: int, ext: int = -1):
         self.modrm_pos = len(self.data)
         assert mod <= 2
-        assert ext <= 7
-        mask = 0xf8
-        data = (mod << 6) | (ext << 3)
-        if use_sib:
-            self.variant += "_sib"
-            mask |= 0x7
-            data |= 0x4
-            self.mask.append(mask)
-            self.data.append(data)
-            self.sib_pos = len(self.data)
-            self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
-        else:
-            self.mask.append(mask)
-            self.data.append(data)
-            self.fields.append(OP.MODRM_RM_BASE)
-        self.AddMemOpCommonTail(mod)
-
-    def AddMemOpReg(self, use_sib: bool, mod: int):
-        self.modrm_pos = len(self.data)
+        data = mod << 6
         mask = 0xc0
-        data = (mod << 6)
-        if use_sib:
-            self.variant += "_sib"
+
+        if ext >= 0:
+            assert ext <= 7
+            mask |= 0x38
+            data |= ext << 3
+        if sib_mode != SIB_MODE.NO:
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
             self.data.append(data)
             self.sib_pos = len(self.data)
-            self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
+            if sib_mode == SIB_MODE.STD:
+                self.variant += "_sib"
+                self.mask.append(0)
+                self.data.append(0)
+                self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
+            else:
+                assert sib_mode == SIB_MODE.STK
+                self.variant += "_stk"
+                self.mask.append(0)
+                self.data.append(0)
+                self.fields += [OP.SIB_BASE]
         else:
             self.mask.append(mask)
             self.data.append(data)
@@ -459,7 +460,7 @@ class Opcode:
                     r |= (rex & 1) << 3
                 out.append(_REG_NAMES_64[r])
             elif o is OP.SIB_INDEX:
-                r = (data[self.sib_pos] & 0x7) >> 3
+                r = (data[self.sib_pos] >> 3) & 0x7
                 if rex:
                     r |= (rex & 2) << 2
                 out.append(_REG_NAMES_64[r])
@@ -512,7 +513,7 @@ def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
         else:
             assert False
 
-    for use_sib in [True, False]:
+    for sib_mode in [SIB_MODE.STK, SIB_MODE.STD, SIB_MODE.NO]:
         for mod in range(3):
             opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
@@ -523,9 +524,9 @@ def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
                 elif x == "/r":
                     if inv:
                         opc.AddReg()
-                        opc.AddMemOpReg(use_sib, mod)
+                        opc.AddMemOp(sib_mode, mod)
                     else:
-                        opc.AddMemOpReg(use_sib, mod)
+                        opc.AddMemOp(sib_mode, mod)
                         opc.AddReg()
                 elif x in {"ib", "iw", "id", "iq"}:
                     opc.AddImmOp(x)
@@ -551,7 +552,7 @@ def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
             assert False
 
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
-    for use_sib in [True, False]:
+    for sib_mode in [SIB_MODE.STK, SIB_MODE.STD, SIB_MODE.NO]:
         for mod in range(3):
             opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
@@ -561,7 +562,7 @@ def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
                     opc.AddByte(int(x, 16))
                 elif x.startswith("/"):
                     ext = int(x[1:])
-                    opc.AddMemOpExt(use_sib, mod, ext)
+                    opc.AddMemOp(sib_mode, mod, ext=ext)
                 elif x in {"ib", "iw", "id", "iq"}:
                     opc.AddImmOp(x)
                 else:
@@ -697,7 +698,6 @@ def SkipInstruction(format, ops):
     return False
 
 
-# _SUPPORTED_OPCODES = {"and"}
 
 
 def CreateOpcodes(instructions: List):
@@ -743,6 +743,9 @@ def ExtractObjdumpOps(ops_str):
     ops_str = ops_str.replace("WORD PTR ", "MEM16,")
     ops_str = ops_str.strip().replace("[", "").replace("]", "")
     return [o for o in re.split("[,+]", ops_str) if o]
+
+
+# _SUPPORTED_OPCODES = {"sub"}
 
 
 if __name__ == "__main__":
