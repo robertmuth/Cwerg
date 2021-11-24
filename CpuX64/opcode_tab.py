@@ -644,6 +644,16 @@ def CreateOpcodes(instructions: List):
      OpcodeSanityCheck(Opcode.Opcodes)
 
 
+def FindMatchingRule(data, rules: List[Opcode]) -> Optional[Opcode]:
+    if (data[0] & 0xf0) == 0x40:
+        data = data[1:]
+    discriminant = int.from_bytes(data, "little")
+    for r in rules:
+        if (r.discriminant_mask & discriminant) == r.discriminant_data:
+            return r
+    return None
+
+
 if __name__ == "__main__":
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
@@ -733,6 +743,13 @@ if __name__ == "__main__":
         if not candidates:
             print(f"BAD [{MakeHashName(data)}]  {line}", end="")
             bad += 1
-        discriminant = int.from_bytes(data, "little")
+            continue
+        opc = FindMatchingRule(data, candidates)
+        if not opc:
+            print(f"BAD [{MakeHashName(data)}]  {line}", end="")
+            bad += 1
+            continue
+        
+
         n += 1
     print(f"CHECKED: {n}   BAD: {bad}   SKIPPED: {skipped}")
