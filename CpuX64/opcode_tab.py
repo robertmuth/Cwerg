@@ -711,9 +711,23 @@ if __name__ == "__main__":
     # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
     n = 0
     bad = 0
+    skipped = 0
     for line in sys.stdin:
-        addr_str, data_str, ins_str = line.strip().split("\t")
+        try:
+            addr_str, data_str, ins_str = line.strip().split("\t")
+        except:
+            continue
+        opc_str = ins_str.split()[0]
+        if opc_str not in _SUPPORTED_OPCODES:
+            skipped += 1
+            continue
+        if "fs:" in ins_str:
+            skipped += 1
+            continue
+
         data = [int(d, 16) for d in data_str.split()]
+        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
+            data[0], data[1] = data[1], data[0]
         candidates = HashTab[MakeHashName(data)]
         # print (addr_str, data_str, ins_str)
         if not candidates:
@@ -721,4 +735,4 @@ if __name__ == "__main__":
             bad += 1
         discriminant = int.from_bytes(data, "little")
         n += 1
-    print(f"CHECKED: {n}   BAD: {bad}")
+    print(f"CHECKED: {n}   BAD: {bad}   SKIPPED: {skipped}")
