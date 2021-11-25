@@ -314,7 +314,7 @@ class Opcode:
         self.data: List = []
 
     def __str__(self):
-        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  sib:{self.sib_pos}  off:{self.offset_pos} "
+        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  w:{self.bit_width}  sib:{self.sib_pos}  off:{self.offset_pos} "
 
     def Finalize(self):
         self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
@@ -501,7 +501,7 @@ class Opcode:
                 r = data[self.byte_with_reg_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
-                out.append(_REG_NAMES_64[r])
+                out.append(_REG_NAMES[self.bit_width][r])
             elif o is OP.IMM8:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 1, self.bit_width):x}")
             elif o is OP.IMM16:
@@ -779,7 +779,7 @@ def ExtractObjdumpOps(ops_str):
     return [o for o in re.split("[,+*]", ops_str) if o]
 
 
-# _SUPPORTED_OPCODES = {"addsd" , "addss", "mulss", "divsd"}
+# _SUPPORTED_OPCODES = {"mov"}
 
 
 if __name__ == "__main__":
@@ -883,12 +883,15 @@ if __name__ == "__main__":
             continue
 
         assert name == opc.name
-        if opc.fields == [OP.OFFPCREL32]:
+        if opc.fields == [OP.OFFPCREL32] or opc.fields == [OP.OFFPCREL8]:
             continue
         expected_ops = ExtractObjdumpOps(ins_str[len(name):])
         actual_ops = opc.RenderOps(data)
         if expected_ops != actual_ops:
             if True:
+                # print (addr_str, data_str, ins_str)
+                # print(f"EXPECTED: {expected_ops}")
+                # print(f"ACTUAL:   {actual_ops}")
                 mismatch += 1
             else:
                 print(line)
