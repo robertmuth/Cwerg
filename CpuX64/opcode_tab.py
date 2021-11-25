@@ -148,6 +148,10 @@ _UNSUPPORTED_OPERANDS = {
 }
 
 
+_OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
+    "and", "or", "sub", "cmp", "add", "xor",
+}
+
 def ContainsUnsupportedOperands(ops):
     for o in ops:
         if o in _UNSUPPORTED_OPERANDS:
@@ -267,10 +271,9 @@ def IsOpXmm(c: str, ops: List, format: str) -> bool:
     return "xmm" in ops[pos]
 
 
-def GetOpWidth(c: str, ops: List, format: str) -> bool:
-    pos = format.find(c)
-    assert pos >= 0
-    op = ops[pos]
+def GetOpWidth(op):
+    if op in {"al"}:
+        return 8
     if op.endswith("128"):
         return 128
     elif op.endswith("8"):
@@ -283,6 +286,13 @@ def GetOpWidth(c: str, ops: List, format: str) -> bool:
         return 64
     else:
         assert False, f"{op}"
+
+
+def FindOpWidth(c: str, ops: List, format: str) -> bool:
+    pos = format.find(c)
+    assert pos >= 0
+    return GetOpWidth(ops[pos])
+
 
 
 @enum.unique
@@ -305,7 +315,9 @@ class OP(enum.Enum):
     MODRM_REG = 14
     MODRM_XREG = 15
     MODRM_RM_XREG = 16
-
+    IMM8_16 = 17
+    IMM8_32 = 18
+    IMM8_64 = 19
 
 
 def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
@@ -452,7 +464,12 @@ class Opcode:
         self.imm_pos = len(self.data)
         size = 0
         if op == "ib":
-            self.fields.append(OP.IMM8)
+            if self.name in _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION:
+                bw = GetOpWidth(self.operands[0])
+                self.fields.append({8: OP.IMM8, 16: OP.IMM8_16,
+                                   32: OP.IMM8_32, 64: OP.IMM8_64}[bw])
+            else:
+                self.fields.append(OP.IMM8)
             size = 1
         elif op == "iw":
             self.fields.append(OP.IMM16)
@@ -497,26 +514,26 @@ class Opcode:
             if o is OP.MODRM_RM_REG or o is OP.MODRM_RM_XREG:
                 r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
                 if o is OP.MODRM_RM_REG:
-                    bw = GetOpWidth("M", self.operands, self.format)
+                    bw = FindOpWidth("M", self.operands, self.format)
                     out.append(_REG_NAMES[bw][r])
                 else:
                     out.append(_XREG_NAMES[r])
             elif o is OP.MODRM_RM_BASE:
                 if not is_lea:
-                    bw = GetOpWidth("M", self.operands, self.format)
+                    bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
                 r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
                 out.append(_REG_NAMES[64][r])  # assumes no add override
             elif o is OP.MODRM_REG or o is OP.MODRM_XREG:
                 r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
                 if o is OP.MODRM_REG:
-                    bw = GetOpWidth("R", self.operands, self.format)
+                    bw = FindOpWidth("R", self.operands, self.format)
                     out.append(_REG_NAMES[bw][r])
                 else:
                     out.append(_XREG_NAMES[r])
             elif o is OP.SIB_BASE:
                 if not is_lea:
-                    bw = GetOpWidth("M", self.operands, self.format)
+                    bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
                 rbase = GetRegBits(data[self.sib_pos], 0, rex, 0)
                 rindex = GetRegBits(data[self.sib_pos], 3, rex, 1)
@@ -534,10 +551,16 @@ class Opcode:
                 pass
             elif o is OP.BYTE_WITH_REG:
                 r = GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0)
-                bw = GetOpWidth("O", self.operands, self.format)
+                bw = FindOpWidth("O", self.operands, self.format)
                 out.append(_REG_NAMES[bw][r])
             elif o is OP.IMM8:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, self.bit_width):x}")
+                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 8):x}")
+            elif o is OP.IMM8_16:
+                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 16):x}")
+            elif o is OP.IMM8_32:
+                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 32):x}")
+            elif o is OP.IMM8_64:
+                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 64):x}")
             elif o is OP.IMM16:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 2, self.bit_width):x}")
             elif o is OP.IMM32:
@@ -927,7 +950,7 @@ if __name__ == "__main__":
             if True:
                 # print (addr_str, data_str, ins_str)
                 # print(f"EXPECTED: {expected_ops}")
-                # print(f"ACTUAL:   {actual_ops}")
+                #  print(f"ACTUAL:   {actual_ops}")
                 mismatched[name] += 1
             else:
                 print(line)
