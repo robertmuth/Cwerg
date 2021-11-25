@@ -172,8 +172,6 @@ def GetBitwidth(ops):
             return 32
         elif ops[1].endswith("64"):
             return 64
-        elif ops[1].endswith("128"):
-            return 18
         assert False, f"cannot determine width for {ops}"
     elif ops[0] == "ib":
         return 8
@@ -244,11 +242,28 @@ def Hexify(data) -> str:
     return " ".join(f"{b:02x}" for b in data)
 
 
-def IsXmm(c:str, ops: List, format: str) -> bool:
+def IsOpXmm(c:str, ops: List, format: str) -> bool:
     pos = format.find(c)
     assert pos >= 0
     return "xmm" in ops[pos]
 
+
+def GetOpWidth(c:str, ops: List, format: str) -> bool:
+    pos = format.find(c)
+    assert pos >= 0
+    op = ops[pos]
+    if op.endswith("128"):
+        return 128
+    elif op.endswith("8"):
+        return 8
+    elif op.endswith("16"):
+        return 16
+    elif op.endswith("32"):
+        return 32
+    elif op.endswith("64"):
+        return 64
+    else:
+        assert False, f"{op}"
 
 @enum.unique
 class OP(enum.Enum):
@@ -314,7 +329,7 @@ class Opcode:
         self.data: List = []
 
     def __str__(self):
-        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  w:{self.bit_width}  sib:{self.sib_pos}  off:{self.offset_pos} "
+        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  sib:{self.sib_pos}  off:{self.offset_pos} "
 
     def Finalize(self):
         self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
@@ -344,7 +359,7 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        is_xmm = IsXmm("R", self.operands, self.format)
+        is_xmm = IsOpXmm("R", self.operands, self.format)
         self.fields.append(OP.MODRM_XREG if is_xmm else OP.MODRM_REG)
 
     def AddRegOpExt(self, ext: int):
@@ -356,7 +371,7 @@ class Opcode:
         self.fields.append(OP.MODRM_RM_REG)
 
     def AddRegOpReg(self):
-        is_xmm = IsXmm("M", self.operands, self.format)
+        is_xmm = IsOpXmm("M", self.operands, self.format)
         self.modrm_pos = len(self.data)
         mask = 0xc0
         data = (3 << 6)
@@ -464,12 +479,14 @@ class Opcode:
                 if rex:
                     r |= (rex & 1) << 3
                 if o is OP.MODRM_RM_REG:
-                    out.append(_REG_NAMES[self.bit_width][r])
+                    bw = GetOpWidth("M", self.operands, self.format)
+                    out.append(_REG_NAMES[bw][r])
                 else:
                      out.append(_XREG_NAMES[r])
             elif o is OP.MODRM_RM_BASE:
                 if not is_lea:
-                    out.append(f"MEM{self.bit_width}")
+                    bw = GetOpWidth("M", self.operands, self.format)
+                    out.append(f"MEM{bw}")
                 r = data[self.modrm_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
@@ -479,12 +496,14 @@ class Opcode:
                 if rex:
                     r |= (rex & 4) << 1
                 if o is OP.MODRM_REG:
-                    out.append(_REG_NAMES[self.bit_width][r])
+                    bw = GetOpWidth("R", self.operands, self.format)
+                    out.append(_REG_NAMES[bw][r])
                 else:
                     out.append(_XREG_NAMES[r])
             elif o is OP.SIB_BASE:
                 if not is_lea:
-                    out.append(f"MEM{self.bit_width}")
+                    bw = GetOpWidth("M", self.operands, self.format)
+                    out.append(f"MEM{bw}")
                 r = data[self.sib_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
@@ -501,7 +520,8 @@ class Opcode:
                 r = data[self.byte_with_reg_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
-                out.append(_REG_NAMES[self.bit_width][r])
+                bw = GetOpWidth("O", self.operands, self.format)
+                out.append(_REG_NAMES[bw][r])
             elif o is OP.IMM8:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 1, self.bit_width):x}")
             elif o is OP.IMM16:
