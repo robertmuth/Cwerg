@@ -234,15 +234,13 @@ _SUPPORTED_FORMATS = {
 _REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 
 _REG_NAMES_8R = [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)]
-_REG_NAMES_16 = [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)]
-_REG_NAMES_32 = [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)]
-_REG_NAMES_64 = [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)]
+
 
 _REG_NAMES = {
-    8: _REG_NAMES_8R,
-    16: _REG_NAMES_16,
-    32: _REG_NAMES_32,
-    64: _REG_NAMES_64,
+    8: _REG_NAMES_8R,  # note: this is wrong when there is no rex bytes
+    16: [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)],
+    32: [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)],
+    64: [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)],
 }
 
 _XREG_NAMES = [f"xmm{r}" for r in range(16)]
@@ -307,6 +305,14 @@ class OP(enum.Enum):
     MODRM_REG = 14
     MODRM_XREG = 15
     MODRM_RM_XREG = 16
+
+
+
+def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
+    r = (data >> data_bit_pos) & 0x7
+    if rex:
+        r |= ((rex >> rex_bit_pos) & 1) << 3
+    return r
 
 
 @enum.unique
@@ -489,9 +495,7 @@ class Opcode:
             assert isinstance(o, OP), f"unexpected {o} {type(o)}"
 
             if o is OP.MODRM_RM_REG or o is OP.MODRM_RM_XREG:
-                r = data[self.modrm_pos] & 0x7
-                if rex:
-                    r |= (rex & 1) << 3
+                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
                 if o is OP.MODRM_RM_REG:
                     bw = GetOpWidth("M", self.operands, self.format)
                     out.append(_REG_NAMES[bw][r])
@@ -501,14 +505,10 @@ class Opcode:
                 if not is_lea:
                     bw = GetOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                r = data[self.modrm_pos] & 0x7
-                if rex:
-                    r |= (rex & 1) << 3
-                out.append(_REG_NAMES_64[r])
+                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
+                out.append(_REG_NAMES[64][r])  # assumes no add override
             elif o is OP.MODRM_REG or o is OP.MODRM_XREG:
-                r = (data[self.modrm_pos] >> 3) & 0x7
-                if rex:
-                    r |= (rex & 4) << 1
+                r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
                 if o is OP.MODRM_REG:
                     bw = GetOpWidth("R", self.operands, self.format)
                     out.append(_REG_NAMES[bw][r])
@@ -518,18 +518,14 @@ class Opcode:
                 if not is_lea:
                     bw = GetOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                rbase = data[self.sib_pos] & 0x7
-                if rex:
-                    rbase |= (rex & 1) << 3
-                rindex = (data[self.sib_pos] >> 3) & 0x7
-                if rex:
-                    rindex |= (rex & 2) << 2
+                rbase = GetRegBits(data[self.sib_pos], 0, rex, 0)
+                rindex = GetRegBits(data[self.sib_pos], 3, rex, 1)
                 scale = data[self.sib_pos] >> 6
                 if rindex == 4:
-                    out.append(_REG_NAMES_64[rbase])
+                    out.append(_REG_NAMES[64][rbase])  # assumes no add override
                 else:
-                    out.append(_REG_NAMES_64[rbase])
-                    out.append(_REG_NAMES_64[rindex])
+                    out.append(_REG_NAMES[64][rbase])  # assumes no add override
+                    out.append(_REG_NAMES[64][rindex]) # assumes no add override
                     out.append(str(1 << scale))
 
             elif o is OP.SIB_INDEX:
@@ -537,9 +533,7 @@ class Opcode:
             elif o is OP.SIB_SCALE:
                 pass
             elif o is OP.BYTE_WITH_REG:
-                r = data[self.byte_with_reg_pos] & 0x7
-                if rex:
-                    r |= (rex & 1) << 3
+                r = GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0)
                 bw = GetOpWidth("O", self.operands, self.format)
                 out.append(_REG_NAMES[bw][r])
             elif o is OP.IMM8:
