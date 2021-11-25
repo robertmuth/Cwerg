@@ -25,25 +25,32 @@ X86_DATA = None
 _SUPPORTED_OPCODES = {
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
-    "or", "and", "xor",  #
-    "sar", "shr", "shl/sal",  #
+
     "imul", "mulss", "mulsd",  #
     "div", "idiv", "divss", "divsd",  #
+    "or", "and", "xor",  #
+    "sar", "shr", "shl", "ror", #
+    #
     "mov",  #
     "movsx",  #
     "movzx",  #
     "movq",
     "movsxd", "movsx",
-    # "movsd",
-    # "movss",
-    ""
     "movaps", "movapd", "movups", "movdqu", "movdqa",  #
+    #
+    "minss", "minsd",
+    "maxss", "maxsd",
+    "sqrtss", "sqrtsd",
+    # "movsd", # may require additional work
+    # "movss", # may require additional work
+    ""
     "neg",  #
-    # "pxor",
+    # "pxor",  # may require additional work
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
-    "cvttss2si", "cvttsd2si",  #
+    "cvttss2si", "cvttsd2si",
+    #
     "test",  #
     "cmp",  #
     "lea",  #
@@ -51,10 +58,22 @@ _SUPPORTED_OPCODES = {
     "pop", "push",  #
     "ucomiss", "ucomisd", "comiss",
     "call", "ret", "syscall", "endbr64",
-    # "jmp", # waiting for bug fix in asmdb
-    "jle/jng", "jne/jnz", "jge/jnl", "jbe/jna",
-    "jb/jnae/jc", "je/jz", "ja/jnbe", "jl/jnge",
-    "jp/jpe", "jnp/jpo", "jge/jnl", "jg/jnle",
+    "jmp",
+    "js",
+    "jns",
+    "jle",  # "/jng",
+    "jne",  # "/jnz",
+    "jge",  # "/jnl",
+    "jbe",  # "/jna",
+    "jb",   # "/jnae/jc",
+    "jae",  # "/jnb/jnc"
+    "je",  # "/jz",
+    "ja",  # "/jnbe",
+    "jl",  # "/jnge",
+    "jp",  # "/jpe",
+    "jnp",  # "/jpo",
+    "jge",  # "/jnl",
+    "jg",  # "/jnle",
 }
 
 # opcode extension/flavors we do not support for now
@@ -755,6 +774,7 @@ def CreateOpcodes(instructions: List):
     count = collections.defaultdict(int)
     for name, ops, format, encoding, metadata in instructions:
         ops = ExtractOps(ops)
+        name = name.split("/")[0]
         if (name not in _SUPPORTED_OPCODES or IsDisallowExtension(metadata) or
                 ContainsUnsupportedOperands(ops)):
             continue
@@ -868,9 +888,9 @@ if __name__ == "__main__":
     # and looks like:
     # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
     n = 0
-    bad = 0
-    skipped = 0
-    mismatch = 0
+    bad = collections.defaultdict(int)
+    skipped = collections.defaultdict(int)
+    mismatched = collections.defaultdict(int)
     for line in sys.stdin:
         try:
             addr_str, data_str, ins_str = line.strip().split("\t")
@@ -878,10 +898,10 @@ if __name__ == "__main__":
             continue
         name = ins_str.split()[0]
         if name not in _SUPPORTED_OPCODES:
-            skipped += 1
+            skipped[name] += 1
             continue
         if re.search("fs:|[abcd]h,|,[abcd]h", ins_str):
-            skipped += 1
+            skipped[name] += 1
             continue
 
         data = [int(d, 16) for d in data_str.split()]
@@ -891,12 +911,12 @@ if __name__ == "__main__":
         # print (addr_str, data_str, ins_str)
         if not candidates:
             print(f"BAD [{MakeHashName(data)}]  {line}", end="")
-            bad += 1
+            bad[name] += 1
             continue
         opc = FindMatchingRule(data, candidates)
         if not opc:
             print(f"BAD [{MakeHashName(data)}]  {line}", end="")
-            bad += 1
+            bad[name] += 1
             continue
 
         if "[rip+" in line:
@@ -912,7 +932,7 @@ if __name__ == "__main__":
                 # print (addr_str, data_str, ins_str)
                 # print(f"EXPECTED: {expected_ops}")
                 # print(f"ACTUAL:   {actual_ops}")
-                mismatch += 1
+                mismatched[name] += 1
             else:
                 print(line)
                 print(f"EXPECTED: {expected_ops}")
@@ -926,4 +946,10 @@ if __name__ == "__main__":
             # print(line, end="")
 
         n += 1
-    print(f"CHECKED: {n}   BAD: {bad}   SKIPPED: {skipped}  MISMATCHED: {mismatch}")
+    print(f"CHECKED: {n}   BAD: {sum(bad.values())}")
+    print(f"SKIPPED-TOTAL: {sum(skipped.values())}")
+    # for name, count in skipped.items():
+    #    print(f"SKIPPED: {name} {count}")
+    print(f"MISMATCHED-TOTAL: {sum(mismatched.values())}")
+    for name, count in mismatched.items():
+        print(f"MISMATCHED: {name} {count}")

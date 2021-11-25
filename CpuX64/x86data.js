@@ -604,8 +604,8 @@ $export[$as] =
     ["jmp"              , "rel8"                                            , "D"       , "EB cb"                        , "ANY BND          Control=Jump"],
     ["jmp"              , "rel16"                                           , "D"       , "66 E9 cw"                     , "X86 BND          Control=Jump"],
     ["jmp"              , "rel32"                                           , "D"       , "E9 cd"                        , "ANY BND          Control=Jump"],
-    ["jmp"              , "R:r32/m32"                                       , "D"       , "FF /4"                        , "X86 BND          Control=Jump"],
-    ["jmp"              , "R:r64/m64"                                       , "D"       , "FF /4"                        , "X64 BND          Control=Jump"],
+    ["jmp"              , "R:r32/m32"                                       , "M"       , "FF /4"                        , "X86 BND          Control=Jump"],
+    ["jmp"              , "R:r64/m64"                                       , "M"       , "FF /4"                        , "X64 BND          Control=Jump"],
 
     ["lcall"            , "iw, iw"                                          , "II"      , "66 9A iw iw"                  , "X86              Control=Call OF=U SF=U ZF=U AF=U PF=U CF=U"],
     ["lcall"            , "iw, id"                                          , "II"      , "9A id iw"                     , "X86              Control=Call OF=U SF=U ZF=U AF=U PF=U CF=U"],
