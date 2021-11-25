@@ -234,6 +234,9 @@ def GetUInt(data, byte_width):
     return int.from_bytes(data[:byte_width], "little")
 
 
+def Hexify(data) -> str:
+    return " ".join(f"{b:02x}" for b in data)
+
 @enum.unique
 class OP(enum.Enum):
     """
@@ -255,9 +258,9 @@ class OP(enum.Enum):
 
 @enum.unique
 class SIB_MODE(enum.Enum):
-    NO = 1
+    NONE = 1
     STD = 2
-    STK = 3
+    SIMPLE = 3
 
 
 class Opcode:
@@ -294,7 +297,6 @@ class Opcode:
         self.data: List = []
 
     def __str__(self):
-        hex_str = " ".join(f"{b:02x}" for b in self.data)
         return f"{self.name}.{self.variant}  [{' '.join(self.operands)}]   {self.fields}  sib:{self.sib_pos}  off:{self.offset_pos} "
 
     def Finalize(self):
@@ -369,7 +371,7 @@ class Opcode:
             assert ext <= 7
             mask |= 0x38
             data |= ext << 3
-        if sib_mode != SIB_MODE.NO:
+        if sib_mode != SIB_MODE.NONE:
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
@@ -381,10 +383,10 @@ class Opcode:
                 self.data.append(0)
                 self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
             else:
-                assert sib_mode == SIB_MODE.STK
+                assert sib_mode == SIB_MODE.SIMPLE
                 self.variant += "_stk"
-                self.mask.append(0)
-                self.data.append(0)
+                self.mask.append(0x38)
+                self.data.append(0x20)
                 self.fields += [OP.SIB_BASE]
         else:
             self.mask.append(mask)
@@ -466,7 +468,7 @@ class Opcode:
                 out.append(_REG_NAMES_64[r])
             elif o is OP.SIB_SCALE:
                 s = data[self.sib_pos] >> 6
-                out.append(1 << s)
+                out.append(str(1 << s))
             elif o is OP.IMM8:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 1, self.bit_width):x}")
             elif o is OP.IMM16:
@@ -513,7 +515,7 @@ def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
         else:
             assert False
 
-    for sib_mode in [SIB_MODE.STK, SIB_MODE.STD, SIB_MODE.NO]:
+    for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
         for mod in range(3):
             opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
@@ -552,7 +554,7 @@ def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
             assert False
 
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
-    for sib_mode in [SIB_MODE.STK, SIB_MODE.STD, SIB_MODE.NO]:
+    for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
         for mod in range(3):
             opc = Opcode(name, "", ops, bit_width)
             for x in encoding:
@@ -736,16 +738,17 @@ def FindMatchingRule(data, rules: List[Opcode]) -> Optional[Opcode]:
 
 
 def ExtractObjdumpOps(ops_str):
+    ops_str = ops_str.split("<")[0]
     ops_str = ops_str.replace("-0x", "+0x-")
     ops_str = ops_str.replace("QWORD PTR ", "MEM64,")
     ops_str = ops_str.replace("DWORD PTR ", "MEM32,")
     ops_str = ops_str.replace("BYTE PTR ", "MEM8,")
     ops_str = ops_str.replace("WORD PTR ", "MEM16,")
     ops_str = ops_str.strip().replace("[", "").replace("]", "")
-    return [o for o in re.split("[,+]", ops_str) if o]
+    return [o for o in re.split("[,+*]", ops_str) if o]
 
 
-# _SUPPORTED_OPCODES = {"sub"}
+# _SUPPORTED_OPCODES = {"add"}
 
 
 if __name__ == "__main__":
@@ -850,6 +853,8 @@ if __name__ == "__main__":
             continue
 
         assert name == opc.name
+        if opc.fields == [OP.OFFPCREL32]:
+            continue
         expected_ops = ExtractObjdumpOps(ins_str[len(name):])
         actual_ops = opc.RenderOps(data)
         if expected_ops != actual_ops:
@@ -860,6 +865,8 @@ if __name__ == "__main__":
                 print(f"EXPECTED: {expected_ops}")
                 print(f"ACTUAL:   {actual_ops}")
                 print(f"OPCODE: {opc}")
+                print (Hexify(opc.data))
+                print (Hexify(opc.mask))
                 exit()
         else:
             pass
