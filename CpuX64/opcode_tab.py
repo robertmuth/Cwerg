@@ -106,7 +106,7 @@ _OP_MAP = {
         "r8/m8", "r16/m16", "r32/m32", "r64/m64",
         "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
         "r32/m16", "r64/m16",
-        "mem", #
+        "mem",  #
         "r64[63:0]/m64",
         "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
         # non address
@@ -114,7 +114,7 @@ _OP_MAP = {
         # non register
         # "m64", "m32",
     },
-    "D": {"rel8", "rel32"},     # displacement
+    "D": {"rel8", "rel32"},  # displacement
     "O": {"r8", "r16", "r32", "r64"},  # byte_with_reg
     "x": _IMPLICIT_OPERANDS,
     # "r": {"r8", "r16", "r32", "r64"},
@@ -242,13 +242,13 @@ def Hexify(data) -> str:
     return " ".join(f"{b:02x}" for b in data)
 
 
-def IsOpXmm(c:str, ops: List, format: str) -> bool:
+def IsOpXmm(c: str, ops: List, format: str) -> bool:
     pos = format.find(c)
     assert pos >= 0
     return "xmm" in ops[pos]
 
 
-def GetOpWidth(c:str, ops: List, format: str) -> bool:
+def GetOpWidth(c: str, ops: List, format: str) -> bool:
     pos = format.find(c)
     assert pos >= 0
     op = ops[pos]
@@ -264,6 +264,7 @@ def GetOpWidth(c:str, ops: List, format: str) -> bool:
         return 64
     else:
         assert False, f"{op}"
+
 
 @enum.unique
 class OP(enum.Enum):
@@ -289,9 +290,8 @@ class OP(enum.Enum):
 
 @enum.unique
 class SIB_MODE(enum.Enum):
-    NONE = 1
-    STD = 2
-    SIMPLE = 3
+    NO = 1
+    YES = 2
 
 
 class Opcode:
@@ -405,23 +405,16 @@ class Opcode:
             assert ext <= 7
             mask |= 0x38
             data |= ext << 3
-        if sib_mode != SIB_MODE.NONE:
+        if sib_mode == SIB_MODE.YES:
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
             self.data.append(data)
             self.sib_pos = len(self.data)
-            if sib_mode == SIB_MODE.STD:
-                self.variant += "_sib"
-                self.mask.append(0)
-                self.data.append(0)
-                self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
-            else:
-                assert sib_mode == SIB_MODE.SIMPLE
-                self.variant += "_stk"
-                self.mask.append(0x38)
-                self.data.append(0x20)
-                self.fields += [OP.SIB_BASE]
+            self.variant += "_sib"
+            self.mask.append(0)
+            self.data.append(0)
+            self.fields += [OP.SIB_BASE, OP.SIB_INDEX, OP.SIB_SCALE]
         else:
             self.mask.append(mask)
             self.data.append(data)
@@ -482,7 +475,7 @@ class Opcode:
                     bw = GetOpWidth("M", self.operands, self.format)
                     out.append(_REG_NAMES[bw][r])
                 else:
-                     out.append(_XREG_NAMES[r])
+                    out.append(_XREG_NAMES[r])
             elif o is OP.MODRM_RM_BASE:
                 if not is_lea:
                     bw = GetOpWidth("M", self.operands, self.format)
@@ -504,18 +497,24 @@ class Opcode:
                 if not is_lea:
                     bw = GetOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                r = data[self.sib_pos] & 0x7
+                rbase = data[self.sib_pos] & 0x7
                 if rex:
-                    r |= (rex & 1) << 3
-                out.append(_REG_NAMES_64[r])
+                    rbase |= (rex & 1) << 3
+                rindex = (data[self.sib_pos] >> 3) & 0x7
+                if rex:
+                    rindex |= (rex & 2) << 2
+                scale = data[self.sib_pos] >> 6
+                if rindex == 4:
+                    out.append(_REG_NAMES_64[rbase])
+                else:
+                    out.append(_REG_NAMES_64[rbase])
+                    out.append(_REG_NAMES_64[rindex])
+                    out.append(str(1 << scale))
+
             elif o is OP.SIB_INDEX:
-                r = (data[self.sib_pos] >> 3) & 0x7
-                if rex:
-                    r |= (rex & 2) << 2
-                out.append(_REG_NAMES_64[r])
+                pass
             elif o is OP.SIB_SCALE:
-                s = data[self.sib_pos] >> 6
-                out.append(str(1 << s))
+                pass
             elif o is OP.BYTE_WITH_REG:
                 r = data[self.byte_with_reg_pos] & 0x7
                 if rex:
@@ -568,7 +567,7 @@ def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
         else:
             assert False
 
-    for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
+    for sib_mode in [SIB_MODE.YES, SIB_MODE.NO]:
         for mod in range(3):
             opc = Opcode(name, "", ops, format)
             for x in encoding:
@@ -607,7 +606,7 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
             assert False
 
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
-    for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
+    for sib_mode in [SIB_MODE.YES, SIB_MODE.NO]:
         for mod in range(3):
             opc = Opcode(name, "", ops, format)
             for x in encoding:
@@ -816,6 +815,7 @@ if __name__ == "__main__":
     print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
     HashTab = collections.defaultdict(list)
 
+
     def MakeHashName(data):
         i = 0
         name = ""
@@ -880,7 +880,7 @@ if __name__ == "__main__":
         if name not in _SUPPORTED_OPCODES:
             skipped += 1
             continue
-        if "fs:" in ins_str or "dh," in ins_str or "ch," in ins_str:
+        if re.search("fs:|[abcd]h,|,[abcd]h", ins_str):
             skipped += 1
             continue
 
