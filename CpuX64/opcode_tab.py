@@ -106,18 +106,18 @@ _OP_MAP = {
         "r8/m8", "r16/m16", "r32/m32", "r64/m64",
         "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
         "r32/m16", "r64/m16",
-        "mem", "r64[63:0]/m64",
-        "xmm[31:0]/m32",
-        "xmm[63:0]/m64", "xmm/m128",
+        "mem", #
+        "r64[63:0]/m64",
+        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
         # non address
         # "r64", "xmm[63:0]", "xmm[31:0]",
         # non register
         # "m64", "m32",
     },
-    "D": {"rel8", "rel32"},
-    "O": {"r8", "r16", "r32", "r64"},
+    "D": {"rel8", "rel32"},     # displacement
+    "O": {"r8", "r16", "r32", "r64"},  # byte_with_reg
     "x": _IMPLICIT_OPERANDS,
-    "r": {"r8", "r16", "r32", "r64"},
+    # "r": {"r8", "r16", "r32", "r64"},
 }
 
 _SUPPORTED_OPERANDS = set.union(*[x for x in _OP_MAP.values()])
@@ -139,6 +139,8 @@ def ContainsUnsupportedOperands(ops):
 def GetBitwidth(ops):
     if not ops:
         return 0
+    elif ops[0].endswith("128"):
+        return 128
     elif ops[0].endswith("8"):
         return 8
     elif ops[0].endswith("16"):
@@ -160,7 +162,9 @@ def GetBitwidth(ops):
     elif ops[0] in {"rax", "rdx"}:
         return 64
     elif ops[0] in {"sreg", "creg", "dreg", "xmm"}:
-        if ops[1].endswith("8"):
+        if ops[1].endswith("128"):
+            return 128
+        elif ops[1].endswith("8"):
             return 8
         elif ops[1].endswith("16"):
             return 16
@@ -222,6 +226,8 @@ _REG_NAMES = {
     64: _REG_NAMES_64,
 }
 
+_XREG_NAMES = [f"xmm{r}" for r in range(16)]
+
 
 def GetSInt(data, byte_width, bit_width):
     x = int.from_bytes(data[:byte_width], "little", signed=True)
@@ -236,6 +242,13 @@ def GetUInt(data, byte_width):
 
 def Hexify(data) -> str:
     return " ".join(f"{b:02x}" for b in data)
+
+
+def IsXmm(c:str, ops: List, format: str) -> bool:
+    pos = format.find(c)
+    assert pos >= 0
+    return "xmm" in ops[pos]
+
 
 @enum.unique
 class OP(enum.Enum):
@@ -253,8 +266,11 @@ class OP(enum.Enum):
     IMM32 = 10
     OFFPCREL8 = 11
     OFFPCREL32 = 12
-    BYTE_REG = 13
+    BYTE_WITH_REG = 13
     MODRM_REG = 14
+    MODRM_XREG = 15
+    MODRM_RM_XREG = 16
+
 
 @enum.unique
 class SIB_MODE(enum.Enum):
@@ -275,12 +291,13 @@ class Opcode:
 
     Opcodes = []
 
-    def __init__(self, name: str, variant: str, operands: List, bit_width: int):
+    def __init__(self, name: str, variant: str, operands: List, format: str):
         Opcode.Opcodes.append(self)
         self.name: str = name
         self.variant: str = variant
         self.operands = operands
-        self.bit_width: int = bit_width
+        self.format = format
+        self.bit_width: int = GetBitwidth(operands)
 
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
@@ -321,13 +338,14 @@ class Opcode:
 
     def AddByteWithReg(self, b: int):
         self.byte_with_reg_pos = len(self.data)
-        self.fields.append(OP.BYTE_REG)
+        self.fields.append(OP.BYTE_WITH_REG)
         self.data.append(b)
         self.mask.append(0xf8)
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        self.fields.append(OP.MODRM_REG)
+        is_xmm = IsXmm("R", self.operands, self.format)
+        self.fields.append(OP.MODRM_XREG if is_xmm else OP.MODRM_REG)
 
     def AddRegOpExt(self, ext: int):
         self.modrm_pos = len(self.data)
@@ -338,12 +356,13 @@ class Opcode:
         self.fields.append(OP.MODRM_RM_REG)
 
     def AddRegOpReg(self):
+        is_xmm = IsXmm("M", self.operands, self.format)
         self.modrm_pos = len(self.data)
         mask = 0xc0
         data = (3 << 6)
         self.mask.append(mask)
         self.data.append(data)
-        self.fields.append(OP.MODRM_RM_REG)
+        self.fields.append(OP.MODRM_RM_XREG if is_xmm else OP.MODRM_RM_REG)
 
     def AddMemOpCommonTail(self, mod: int):
         if mod == 0:
@@ -428,6 +447,7 @@ class Opcode:
             assert False
 
     def RenderOps(self, data):
+        is_lea = self.name.startswith("lea")
         rex = 0
         if (data[0] & 0xf0) == 0x40:
             rex = data[0]
@@ -439,24 +459,32 @@ class Opcode:
                 continue
             assert isinstance(o, OP), f"unexpected {o} {type(o)}"
 
-            if o is OP.MODRM_RM_REG:
+            if o is OP.MODRM_RM_REG or o is OP.MODRM_RM_XREG:
                 r = data[self.modrm_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
-                out.append(_REG_NAMES[self.bit_width][r])
+                if o is OP.MODRM_RM_REG:
+                    out.append(_REG_NAMES[self.bit_width][r])
+                else:
+                     out.append(_XREG_NAMES[r])
             elif o is OP.MODRM_RM_BASE:
-                out.append(f"MEM{self.bit_width}")
+                if not is_lea:
+                    out.append(f"MEM{self.bit_width}")
                 r = data[self.modrm_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
                 out.append(_REG_NAMES_64[r])
-            elif o is OP.MODRM_REG:
+            elif o is OP.MODRM_REG or o is OP.MODRM_XREG:
                 r = (data[self.modrm_pos] >> 3) & 0x7
                 if rex:
                     r |= (rex & 4) << 1
-                out.append(_REG_NAMES[self.bit_width][r])
+                if o is OP.MODRM_REG:
+                    out.append(_REG_NAMES[self.bit_width][r])
+                else:
+                    out.append(_XREG_NAMES[r])
             elif o is OP.SIB_BASE:
-                out.append(f"MEM{self.bit_width}")
+                if not is_lea:
+                    out.append(f"MEM{self.bit_width}")
                 r = data[self.sib_pos] & 0x7
                 if rex:
                     r |= (rex & 1) << 3
@@ -469,6 +497,11 @@ class Opcode:
             elif o is OP.SIB_SCALE:
                 s = data[self.sib_pos] >> 6
                 out.append(str(1 << s))
+            elif o is OP.BYTE_WITH_REG:
+                r = data[self.byte_with_reg_pos] & 0x7
+                if rex:
+                    r |= (rex & 1) << 3
+                out.append(_REG_NAMES_64[r])
             elif o is OP.IMM8:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 1, self.bit_width):x}")
             elif o is OP.IMM16:
@@ -496,8 +529,8 @@ _RE_BYTE = re.compile("^[0-9A-F][0-9A-F]$")
 _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
 
-def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
-    opc = Opcode(name, "", ops, bit_width)
+def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
+    opc = Opcode(name, "", ops, format)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
@@ -517,7 +550,7 @@ def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
 
     for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
         for mod in range(3):
-            opc = Opcode(name, "", ops, bit_width)
+            opc = Opcode(name, "", ops, format)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
@@ -536,8 +569,8 @@ def HandlePatternMR(name: str, ops, encoding, bit_width: int, inv: bool):
                     assert False
 
 
-def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
-    opc = Opcode(name, "", ops, bit_width)
+def HandlePatternMI(name: str, ops, format, encoding, before, after):
+    opc = Opcode(name, "", ops, format)
     for x in encoding:
         if x == "REX.W":
             opc.AddRexW()
@@ -556,7 +589,7 @@ def HandlePatternMI(name: str, ops, encoding, bit_width: int, before, after):
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
     for sib_mode in [SIB_MODE.SIMPLE, SIB_MODE.STD, SIB_MODE.NONE]:
         for mod in range(3):
-            opc = Opcode(name, "", ops, bit_width)
+            opc = Opcode(name, "", ops, format)
             for x in encoding:
                 if x == "REX.W":
                     opc.AddRexW()
@@ -578,7 +611,6 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
-    bit_width = GetBitwidth(ops)
     assert len(format) == len(ops)
     for op, kind in zip(ops, format):
         assert op in _OP_MAP[kind], f"{op} {kind}"
@@ -594,20 +626,20 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 after.append(ops[i])
             else:
                 before.append(ops[i])
-        HandlePatternMI(name, ops, encoding, bit_width, before, after)
+        HandlePatternMI(name, ops, format, encoding, before, after)
     elif format == "MR":
-        HandlePatternMR(name, ops, encoding, bit_width, inv=False)
+        HandlePatternMR(name, ops, format, encoding, inv=False)
     elif format == "RM" or format == "RMI":
-        HandlePatternMR(name, ops, encoding, bit_width, inv=True)
+        HandlePatternMR(name, ops, format, encoding, inv=True)
     elif format == "":
-        opc = Opcode(name, "", ops, bit_width)
+        opc = Opcode(name, "", ops, format)
         for x in encoding:
             if _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
             else:
                 assert False
     elif format in {"I", "O", "OI", "xI"}:
-        opc = Opcode(name, "", ops, bit_width)
+        opc = Opcode(name, "", ops, format)
         before = []
         for i, c in enumerate(format):
             if c == "x":
@@ -627,7 +659,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
             else:
                 assert False
     elif format == "D":
-        opc = Opcode(name, "", ops, bit_width)
+        opc = Opcode(name, "", ops, format)
         for x in encoding:
             if _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
@@ -700,8 +732,6 @@ def SkipInstruction(format, ops):
     return False
 
 
-
-
 def CreateOpcodes(instructions: List):
     count = collections.defaultdict(int)
     for name, ops, format, encoding, metadata in instructions:
@@ -740,6 +770,7 @@ def FindMatchingRule(data, rules: List[Opcode]) -> Optional[Opcode]:
 def ExtractObjdumpOps(ops_str):
     ops_str = ops_str.split("<")[0]
     ops_str = ops_str.replace("-0x", "+0x-")
+    ops_str = ops_str.replace("XMMWORD PTR ", "MEM128,")
     ops_str = ops_str.replace("QWORD PTR ", "MEM64,")
     ops_str = ops_str.replace("DWORD PTR ", "MEM32,")
     ops_str = ops_str.replace("BYTE PTR ", "MEM8,")
@@ -748,7 +779,7 @@ def ExtractObjdumpOps(ops_str):
     return [o for o in re.split("[,+*]", ops_str) if o]
 
 
-# _SUPPORTED_OPCODES = {"add"}
+# _SUPPORTED_OPCODES = {"addsd" , "addss", "mulss", "divsd"}
 
 
 if __name__ == "__main__":
@@ -764,7 +795,6 @@ if __name__ == "__main__":
     CreateOpcodes(X86_DATA["instructions"])
     print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
     HashTab = collections.defaultdict(list)
-
 
     def MakeHashName(data):
         i = 0
@@ -865,8 +895,8 @@ if __name__ == "__main__":
                 print(f"EXPECTED: {expected_ops}")
                 print(f"ACTUAL:   {actual_ops}")
                 print(f"OPCODE: {opc}")
-                print (Hexify(opc.data))
-                print (Hexify(opc.mask))
+                print(Hexify(opc.data))
+                print(Hexify(opc.mask))
                 exit()
         else:
             pass
