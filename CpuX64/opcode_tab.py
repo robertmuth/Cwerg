@@ -45,7 +45,7 @@ _SUPPORTED_OPCODES = {
     # "movss", # may require additional work
     ""
     "neg",  #
-    # "pxor",  # may require additional work
+    "pxor",  # may require additional work
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
@@ -119,7 +119,7 @@ _OP_MAP = {
         "r8", "r16", "r32", "r64",
         "sreg", "creg", "dreg",
         "xmm[31:0]", "xmm[63:0]",
-        "xmm",
+        "xmm", "~xmm",
     },
     "M": {
         "r8/m8", "r16/m16", "r32/m32", "r64/m64",
@@ -127,7 +127,7 @@ _OP_MAP = {
         "r32/m16", "r64/m16",
         "mem",  #
         "r64[63:0]/m64",
-        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
+        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128", "~xmm/m128",
         # non address
         # "r64", "xmm[63:0]", "xmm[31:0]",
         # non register
@@ -172,6 +172,8 @@ def GetBitwidth(ops):
         return 32
     elif ops[0] == "xmm[63:0]":
         return 64
+    elif ops[0] == "~xmm":
+        return 128
     elif ops[0] in {"al"}:
         return 16
     elif ops[0] in {"ax", "dx"}:
