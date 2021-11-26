@@ -134,7 +134,6 @@ _IMPLICIT_OPERANDS = {
     "dx", "edx", "rdx",  #
     "cl",  #
     "1",
-    "~ax", "~eax", "~rax",
 }
 
 _M_BUT_NOT_MEM = {
@@ -151,26 +150,24 @@ _OP_MAP = {
         "ib", "iw", "id", "uw", "ud",
     },
     "R": {
-        "~r8", "~r16", "~r32", "~r64",
         "r8", "r16", "r32", "r64",
         "sreg", "creg", "dreg",
         "xmm[31:0]", "xmm[63:0]",
-        "xmm", "~xmm",
+        "xmm",
     },
     "M": {
         "r8/m8", "r16/m16", "r32/m32", "r64/m64",
-        "~r8/m8", "~r16/m16", "~r32/m32", "~r64/m64",
         "r32/m16", "r64/m16",
         "mem",  #
         "r64[63:0]/m64",
-        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128", "~xmm/m128",
+        "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
         # non address
         # "r64", "xmm[63:0]", "xmm[31:0]",
         # non register
         # "m64", "m32",
     },
     "D": {"rel8", "rel32"},  # displacement
-    "O": {"r8", "r16", "r32", "r64", "~r16", "~r32", "~r64"},  # byte_with_reg
+    "O": {"r8", "r16", "r32", "r64"},  # byte_with_reg
     "x": _IMPLICIT_OPERANDS,
     # "r": {"r8", "r16", "r32", "r64"},
 }
@@ -801,7 +798,9 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
 def ExtractOps(s):
     def clean(o):
         if o[0:2] in _OPERAND_MODIFIERS:
-            return o[2:]
+            o = o[2:]
+        if o[0] == "~":  # indicates commutativity
+            o = o[1:]
         return o
 
     return [clean(x) for x in s.split(",") if x]
