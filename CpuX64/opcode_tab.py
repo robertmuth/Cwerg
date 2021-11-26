@@ -22,7 +22,7 @@ import itertools
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
 # coverage is > 95% of all opcodes commonly found in x86-64 executable.
-_SUPPORTED_OPCODES = {
+SUPPORTED_OPCODES = {
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
 
@@ -810,7 +810,7 @@ def SkipInstruction(format, ops):
     return False
 
 
-def CreateOpcodes(instructions: List):
+def CreateOpcodes(instructions: List, verbose: bool):
     count = collections.defaultdict(int)
     for name, ops, format, encoding, metadata in instructions:
         if IsDisallowExtension(metadata):
@@ -821,7 +821,7 @@ def CreateOpcodes(instructions: List):
         assert name in _OPCODES_WITH_MULTIPLE_REG_WRITE or len(written_ops) <= 1, f"{name}"
         ops = ExtractOps(ops)
         name = name.split("/")[0]
-        if name not in _SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
+        if name not in SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
             continue
         if SkipInstruction(format, ops):
             continue
@@ -832,10 +832,10 @@ def CreateOpcodes(instructions: List):
         # hack
         format = FixupFormat(format, ops, encoding)
         assert format in _SUPPORTED_FORMATS, f"{format}"
-
-        print(name, ops, format, encoding, metadata)
+        if verbose:
+            print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
-    for k in _SUPPORTED_OPCODES:
+    for k in SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"
     for opcode in Opcode.Opcodes:
         opcode.Finalize()
@@ -866,21 +866,27 @@ def ExtractObjdumpOps(ops_str):
 
 # _SUPPORTED_OPCODES = {"lea"}
 
-if __name__ == "__main__":
+def LoadOpcodes(filename: str):
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
     _END_MARKER = "// ${JSON:END}"
-    data = open("x86data.js").read()
+    print (repr(filename))
+    data = open(filename).read()
     start = data.find(_START_MARKER) + len(_START_MARKER)
     end = data.find(_END_MARKER)
 
     tables = json.loads(data[start:end])
 
-    CreateOpcodes(tables["instructions"])
-    print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
+    CreateOpcodes(tables["instructions"], False)
+
+
+LoadOpcodes("x86data.js")
+print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
+
+
+if __name__ == "__main__":
+
     HashTab = collections.defaultdict(list)
-
-
     def MakeHashName(data):
         i = 0
         name = ""
@@ -929,7 +935,7 @@ if __name__ == "__main__":
             if v:
                 print(f"{k:10} {len(v)}")
 
-    # data must be generated with: objdump -d  -M intel  --insn-width=10
+    # data must be generated with: objdump -d  -M intel  --insn-width=12
     # and looks like:
     # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
     n = 0
@@ -945,7 +951,7 @@ if __name__ == "__main__":
         ops_str = ins_str[len(name):]
         if name == "movabs":
             name = "mov"
-        if name not in _SUPPORTED_OPCODES:
+        if name not in SUPPORTED_OPCODES:
             skipped[name] += 1
             continue
         if re.search("[df]s:|[abcd]h,|,[abcd]h", ins_str):
