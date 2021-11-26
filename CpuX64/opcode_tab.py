@@ -21,6 +21,8 @@ import itertools
 
 
 # list of opcodes we expect to use during X64 code generation
+# plus some extra ones.
+# coverage is > 95% of all opcodes commonly found in x86-64 executable.
 _SUPPORTED_OPCODES = {
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
@@ -53,6 +55,7 @@ _SUPPORTED_OPCODES = {
     "test",  #
     "cmp",  #
     "lea",  #
+    "xchg",
     "popcnt",  "tzcnt", "lzcnt", #
     "pop", "push",  #
     "ucomiss", "ucomisd", "comiss",
@@ -131,6 +134,7 @@ _IMPLICIT_OPERANDS = {
     "dx", "edx", "rdx",  #
     "cl",  #
     "1",
+    "~ax", "~eax", "~rax",
 }
 
 _M_BUT_NOT_MEM = {
@@ -166,7 +170,7 @@ _OP_MAP = {
         # "m64", "m32",
     },
     "D": {"rel8", "rel32"},  # displacement
-    "O": {"r8", "r16", "r32", "r64"},  # byte_with_reg
+    "O": {"r8", "r16", "r32", "r64", "~r16", "~r32", "~r64"},  # byte_with_reg
     "x": _IMPLICIT_OPERANDS,
     # "r": {"r8", "r16", "r32", "r64"},
 }
@@ -212,11 +216,11 @@ def GetBitwidth(ops):
         return 128
     elif ops[0] in {"al"}:
         return 16
-    elif ops[0] in {"ax", "dx"}:
+    elif ops[0] in {"ax", "dx", "~ax"}:
         return 16
-    elif ops[0] in {"eax", "edx"}:
+    elif ops[0] in {"eax", "edx", "~eax"}:
         return 32
-    elif ops[0] in {"rax", "rdx"}:
+    elif ops[0] in {"rax", "rdx", "~rax"}:
         return 64
     elif ops[0] in {"sreg", "creg", "dreg", "xmm"}:
         if ops[1].endswith("128"):
@@ -265,6 +269,8 @@ _SUPPORTED_FORMATS = {
     "xxM",  # div ['dx', 'ax', 'r16/m16'] xxM
     "Mx",  # sar ['r8/m8', 'cl'] Mx
     "xI",
+    "Ox",  # xchg
+    "xO",  # xchg
 }
 
 _REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
@@ -734,7 +740,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
 
     assert len(format) == len(ops)
     for op, kind in zip(ops, format):
-        assert op in _OP_MAP[kind], f"{op} {kind}"
+        assert op in _OP_MAP[kind], f"{op} not allowed for {kind}"
 
     if format in {"MI", "M", "xM", "xxM", "Mx"}:
         before = []
@@ -759,7 +765,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 opc.AddByte(int(x, 16))
             else:
                 assert False
-    elif format in {"I", "O", "OI", "xI"}:
+    elif format in {"I", "O", "OI", "xI", "xO", "Ox"}:
         opc = Opcode(name, "", ops, format)
         before = []
         for i, c in enumerate(format):
@@ -789,7 +795,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
             else:
                 assert False
     else:
-        assert False
+        assert False, "bad format {format}"
 
 
 def ExtractOps(s):
@@ -872,7 +878,7 @@ def CreateOpcodes(instructions: List):
         encoding = encoding.split()
         # hack
         format = FixupFormat(format, ops, encoding)
-        assert format in _SUPPORTED_FORMATS
+        assert format in _SUPPORTED_FORMATS, f"{format}"
 
         print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
@@ -1016,6 +1022,8 @@ if __name__ == "__main__":
             continue
         expected_ops = ExtractObjdumpOps(ops_str)
         actual_ops = opc.RenderOps(data)
+        if len(actual_ops) == 1 and name == "xchg":
+            actual_ops.append(actual_ops[0])
         if expected_ops != actual_ops:
             if True:
                 print(line)
