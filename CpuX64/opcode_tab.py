@@ -19,7 +19,6 @@ import re
 import json
 import itertools
 
-
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
 # coverage is > 95% of all opcodes commonly found in x86-64 executable.
@@ -30,7 +29,7 @@ _SUPPORTED_OPCODES = {
     "imul", "mulss", "mulsd",  #
     "div", "idiv", "divss", "divsd",  #
     "or", "and", "xor",  #
-    "sar", "shr", "shl", "ror", "rol", #
+    "sar", "shr", "shl", "ror", "rol",  #
     #
     "mov",  # includes movabs
     "movsx",  #
@@ -56,7 +55,7 @@ _SUPPORTED_OPCODES = {
     "cmp",  #
     "lea",  #
     "xchg",
-    "popcnt",  "tzcnt", "lzcnt", #
+    "popcnt", "tzcnt", "lzcnt",  #
     "pop", "push",  #
     "ucomiss", "ucomisd", "comiss",
     #
@@ -78,24 +77,24 @@ _SUPPORTED_OPCODES = {
     "jge",  # "/jnl",
     "jg",  # "/jnle",
     #
-    "cmovb", # "/cmovnae/cmovc"
-    "cmovae", # /cmovnb/cmovnc"
-    "cmove", #"/cmovz"
+    "cmovb",  # "/cmovnae/cmovc"
+    "cmovae",  # /cmovnb/cmovnc"
+    "cmove",  # "/cmovz"
     "cmovo",
     "cmovno",
     "cmovs",
     "cmovns",
-    "cmovne", # "/cmovnz"
-    "cmovbe", # "/cmovna"
+    "cmovne",  # "/cmovnz"
+    "cmovbe",  # "/cmovna"
     "cmova",  # "/cmovnbe"
     "cmovs",
     "cmovns",
-    "cmovp", # "/cmovpe"
-    "cmovnp", # "/cmovpo"
-    "cmovl", # "/cmovnge"
-    "cmovge", # "/cmovnl"
-    "cmovle", # "/cmovng"
-    "cmovle", # "/cmovng"
+    "cmovp",  # "/cmovpe"
+    "cmovnp",  # "/cmovpo"
+    "cmovl",  # "/cmovnge"
+    "cmovge",  # "/cmovnl"
+    "cmovle",  # "/cmovng"
+    "cmovle",  # "/cmovng"
 
 }
 
@@ -106,7 +105,7 @@ _OPCODES_WITH_MULTIPLE_REG_WRITE = {
     "cpuid", "rdtsc", "rdtscp",
     "rdpkru", "rdpru", "rdpmc", "rdmsr",
     "xgetbv",
-    "vgatherdpd", "vgatherdps","vgatherqpd", "vgatherqps",
+    "vgatherdpd", "vgatherdps", "vgatherqpd", "vgatherqps",
     "vpgatherdd", "vpgatherdq", "vpgatherqd", "vpgatherqq",
     "vp2intersectd", "vp2intersectq",
 }
@@ -181,7 +180,7 @@ _UNSUPPORTED_OPERANDS = {
 }
 
 _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
-    "and", "or", "sub", "cmp", "add", "xor", "imul",
+    "and", "or", "sub", "cmp", "add", "xor", "imul", "mov",
 }
 
 
@@ -190,57 +189,6 @@ def ContainsUnsupportedOperands(ops):
         if o in _UNSUPPORTED_OPERANDS:
             return True
     return False
-
-
-def GetBitwidth(ops):
-    if not ops:
-        return 0
-    elif ops[0].endswith("128"):
-        return 128
-    elif ops[0].endswith("8"):
-        return 8
-    elif ops[0].endswith("16"):
-        return 16
-    elif ops[0].endswith("32"):
-        return 32
-    elif ops[0].endswith("64"):
-        return 64
-    elif ops[0] == "xmm[31:0]":
-        return 32
-    elif ops[0] == "xmm[63:0]":
-        return 64
-    elif ops[0] == "~xmm":
-        return 128
-    elif ops[0] in {"al"}:
-        return 16
-    elif ops[0] in {"ax", "dx", "~ax"}:
-        return 16
-    elif ops[0] in {"eax", "edx", "~eax"}:
-        return 32
-    elif ops[0] in {"rax", "rdx", "~rax"}:
-        return 64
-    elif ops[0] in {"sreg", "creg", "dreg", "xmm"}:
-        if ops[1].endswith("128"):
-            return 128
-        elif ops[1].endswith("8"):
-            return 8
-        elif ops[1].endswith("16"):
-            return 16
-        elif ops[1].endswith("32"):
-            return 32
-        elif ops[1].endswith("64"):
-            return 64
-        assert False, f"cannot determine width for {ops}"
-    elif ops[0] == "ib":
-        return 8
-    elif ops[0] == "iw":
-        return 16
-    elif ops[0] == "uw":
-        return 16
-    elif ops[0] == "id":
-        return 32
-    assert False, f"cannot determine width for {ops}"
-
 
 _OPERAND_MODIFIERS = {
     "x:",  # read/write
@@ -308,7 +256,11 @@ def IsOpXmm(c: str, ops: List, format: str) -> bool:
 def GetOpWidth(op):
     if op in {"al"}:
         return 8
-    if op.endswith("128"):
+    elif op in {"eax"}:
+        return 32
+    elif op in {"rax"}:
+        return 64
+    elif op.endswith("128"):
         return 128
     elif op.endswith("8"):
         return 8
@@ -387,7 +339,6 @@ class Opcode:
         self.variant: str = variant
         self.operands = operands
         self.format = format
-        self.bit_width: int = GetBitwidth(operands)
 
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
@@ -523,6 +474,9 @@ class Opcode:
         elif op == "id":
             if self.name == "push" and self.format == "I":
                 self.fields.append(OK.IMM32_64)
+            elif self.name in _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION:
+                bw = GetOpWidth(self.operands[0])
+                self.fields.append({32: OK.IMM32, 64: OK.IMM32_64}[bw])
             else:
                 self.fields.append(OK.IMM32)
             size = 4
@@ -622,7 +576,7 @@ class Opcode:
             elif o is OK.IMM16:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 2, 16):x}")
             elif o is OK.IMM32:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 4, self.bit_width):x}")
+                out.append(f"0x{GetSInt(data[self.imm_pos:], 4, 32):x}")
             elif o is OK.IMM64:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 8, 64):x}")
             elif o is OK.OFFABS8:
@@ -632,7 +586,7 @@ class Opcode:
         return out
 
 
-_SUPPORTED_PARAMS = {
+_SUPPORTED_ENCODING_PARAMS = {
     "/0", "/1", "/2", "/3", "/4", "/5", "/6", "/7",  #
     "/r",  #
     "REX.W",
@@ -731,7 +685,7 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
 def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], meta: List[str]):
     assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
     for f in encoding:
-        assert f in _SUPPORTED_PARAMS or _RE_BYTE_VARIATIONS.match(f), f"bad parameter [{repr(f)}]"
+        assert f in _SUPPORTED_ENCODING_PARAMS or _RE_BYTE_VARIATIONS.match(f), f"bad parameter [{repr(f)}]"
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
