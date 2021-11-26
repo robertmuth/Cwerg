@@ -19,7 +19,6 @@ import re
 import json
 import itertools
 
-X86_DATA = None
 
 # list of opcodes we expect to use during X64 code generation
 _SUPPORTED_OPCODES = {
@@ -29,9 +28,9 @@ _SUPPORTED_OPCODES = {
     "imul", "mulss", "mulsd",  #
     "div", "idiv", "divss", "divsd",  #
     "or", "and", "xor",  #
-    "sar", "shr", "shl", "ror",  #
+    "sar", "shr", "shl", "ror", "rol", #
     #
-    "mov",  #
+    "mov",  # includes movabs
     "movsx",  #
     "movzx",  #
     "movq",
@@ -54,9 +53,10 @@ _SUPPORTED_OPCODES = {
     "test",  #
     "cmp",  #
     "lea",  #
-    "popcnt",  #
+    "popcnt",  "tzcnt", "lzcnt", #
     "pop", "push",  #
     "ucomiss", "ucomisd", "comiss",
+    #
     "call", "ret", "syscall", "endbr64",
     "jmp",
     "js",
@@ -74,6 +74,26 @@ _SUPPORTED_OPCODES = {
     "jnp",  # "/jpo",
     "jge",  # "/jnl",
     "jg",  # "/jnle",
+    #
+    "cmovb", # "/cmovnae/cmovc"
+    "cmovae", # /cmovnb/cmovnc"
+    "cmove", #"/cmovz"
+    "cmovo",
+    "cmovno",
+    "cmovs",
+    "cmovns",
+    "cmovne", # "/cmovnz"
+    "cmovbe", # "/cmovna"
+    "cmova",  # "/cmovnbe"
+    "cmovs",
+    "cmovns",
+    "cmovp", # "/cmovpe"
+    "cmovnp", # "/cmovpo"
+    "cmovl", # "/cmovnge"
+    "cmovge", # "/cmovnl"
+    "cmovle", # "/cmovng"
+    "cmovle", # "/cmovng"
+
 }
 
 _OPCODES_WITH_MULTIPLE_REG_WRITE = {
@@ -160,7 +180,7 @@ _UNSUPPORTED_OPERANDS = {
 }
 
 _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
-    "and", "or", "sub", "cmp", "add", "xor",
+    "and", "or", "sub", "cmp", "add", "xor", "imul",
 }
 
 
@@ -895,9 +915,9 @@ if __name__ == "__main__":
     start = data.find(_START_MARKER) + len(_START_MARKER)
     end = data.find(_END_MARKER)
 
-    X86_DATA = json.loads(data[start:end])
+    tables = json.loads(data[start:end])
 
-    CreateOpcodes(X86_DATA["instructions"])
+    CreateOpcodes(tables["instructions"])
     print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
     HashTab = collections.defaultdict(list)
 
@@ -1006,15 +1026,13 @@ if __name__ == "__main__":
                 print(Hexify(opc.mask))
             mismatched[name] += 1
             # exit()
-        else:
-            pass
-            # print(line, end="")
 
         n += 1
     print(f"CHECKED: {n}   BAD: {sum(bad.values())}")
     print(f"SKIPPED-TOTAL: {sum(skipped.values())}")
-    # for name, count in skipped.items():
-    #    print(f"SKIPPED: {name} {count}")
+    if False:
+        for name, count in skipped.items():
+            print(f"SKIPPED: {name} {count}")
     print(f"MISMATCHED-TOTAL: {sum(mismatched.values())}")
     for name, count in mismatched.items():
         print(f"MISMATCHED: {name} {count}")
