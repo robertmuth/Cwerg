@@ -360,6 +360,60 @@ def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
     return r
 
 
+def FingerPrintRawInstructions(data) -> int:
+    fp = []
+    i = 0
+    if (data[i] & 0xf0) == 0x40:
+        if (data[i] & 0xf8) == 0x48:
+            fp.append(0x48)
+        i += 1
+    if data[i] == 0x66:
+        fp.append(data[i])
+        i += 1
+    if data[i] == 0xf2 or data[i] == 0xf3:
+        fp.append(data[i])
+        i += 1
+    if data[i] == 0x0f:
+        fp.append(data[i])
+        i += 1
+    fp.append(data[i])
+    return int.from_bytes(fp, "little")
+
+
+def FingerPrintOpcode(opc: "Opcode") -> List[int]:
+    fp = []
+    data = opc.data
+    mask = opc.mask
+    i = 0
+    if opc.rexw:
+        fp.append(0x48)
+    if data[i] == 0x66:
+        fp.append(0x66)
+        assert mask[i] == 0xff
+        i += 1
+    if data[i] == 0xf2 or data[i] == 0xf3:
+        fp.append(data[i])
+        assert mask[i] == 0xff
+        i += 1
+    if data[i] == 0x0f:
+        fp.append(data[i])
+        assert mask[i] == 0xff
+        i += 1
+
+    if mask[i] == 0xff:
+        fp.append(data[i])
+        return [int.from_bytes(fp, "little")]
+    else:
+        assert mask[i] == 0xf8 and i == opc.byte_with_reg_pos, f"{opc.name} {data} {mask} {fp}"
+        fp.append(0)
+        out = []
+        assert mask[i] == 0xf8
+        for r in range(8):
+            fp[-1] = data[i] + r
+            out.append(int.from_bytes(fp, "little"))
+        return out
+
+
 @enum.unique
 class SIB_MODE(enum.Enum):
     NO = 1
@@ -378,6 +432,7 @@ class Opcode:
     """
 
     Opcodes = []
+    OpcodesByFP = collections.defaultdict(list)
 
     def __init__(self, name: str, variant: str, operands: List, format: str):
         Opcode.Opcodes.append(self)
@@ -418,7 +473,8 @@ class Opcode:
                 expected_len += 1
             if self.sib_pos >= 0:
                 expected_len += 2
-
+        for fp in FingerPrintOpcode(self):
+            Opcode.OpcodesByFP[fp].append(self)
             # assert len(self.fields) == expected_len, f"{self.fields} vs {self.operands}"
 
     def AddRexW(self):
@@ -948,26 +1004,6 @@ def CreateOpcodes(instructions: List, verbose: bool):
         opcode.Finalize()
 
 
-def FingerPrintRawInstructions(data) -> int:
-    fp = []
-    i = 0
-    if (data[i] & 0xf0) == 0x40:
-        if (data[i] & 0xf8) == 0x48:
-            fp.append(0x48)
-        i += 1
-    if data[i] == 0x66:
-        fp.append(data[i])
-        i += 1
-    if data[i] == 0xf2 or data[i] == 0xf3:
-        fp.append(data[i])
-        i += 1
-    if data[i] == 0x0f:
-        fp.append(data[i])
-        i += 1
-    fp.append(data[i])
-    return int.from_bytes(fp, "little")
-
-
 def LoadOpcodes(filename: str):
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
@@ -981,47 +1017,8 @@ def LoadOpcodes(filename: str):
     CreateOpcodes(tables["instructions"], False)
 
 
-def MakeFingerPrintLookupTable():
-    out = collections.defaultdict(list)
-    for opc in Opcode.Opcodes:
-        assert isinstance(opc, Opcode)
-        fp = []
-        data = opc.data
-        mask = opc.mask
-        i = 0
-        if opc.rexw:
-            fp.append(0x48)
-        if data[i] == 0x66:
-            fp.append(0x66)
-            assert mask[i] == 0xff
-            i += 1
-        if data[i] == 0xf2 or data[i] == 0xf3:
-            fp.append(data[i])
-            assert mask[i] == 0xff
-            i += 1
-        if data[i] == 0x0f:
-            fp.append(data[i])
-            assert mask[i] == 0xff
-            i += 1
-
-        if mask[i] == 0xff:
-            fp.append(data[i])
-            out[int.from_bytes(fp, "little")].append(opc)
-        else:
-            assert mask[i] == 0xf8 and i == opc.byte_with_reg_pos, f"{opc.name} {data} {mask} {fp}"
-            fp.append(0)
-            assert mask[i] == 0xf8
-            for r in range(8):
-                fp[-1] = data[i] + r
-                out[int.from_bytes(fp, "little")].append(opc)
-    return out
-
-
-_OPCODES_BY_FP = None
-
-
 def FindMatchingOpcode(data) -> Optional[Opcode]:
-    rules = _OPCODES_BY_FP[FingerPrintRawInstructions(data)]
+    rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
     if (data[0] & 0xf0) == 0x40:
         data = data[1:]
     discriminant = int.from_bytes(data, "little")
@@ -1034,10 +1031,8 @@ def FindMatchingOpcode(data) -> Optional[Opcode]:
 LoadOpcodes("x86data.js")
 print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
-_OPCODES_BY_FP = MakeFingerPrintLookupTable()
-
 if __name__ == "__main__":
-    OpcodeSanityCheck(_OPCODES_BY_FP)
+    OpcodeSanityCheck(Opcode.OpcodesByFP)
     last_name = ""
     for opc in Opcode.Opcodes:
         if last_name != opc.name:
