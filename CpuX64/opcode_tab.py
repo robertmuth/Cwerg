@@ -678,6 +678,93 @@ class Opcode:
                 out.append(GetSInt(data[self.offset_pos:], 1, None))
             elif o is OK.OFFABS32:
                 out.append(GetSInt(data[self.offset_pos:], 4, None))
+            elif o is OK.OFFPCREL8:
+                out.append(GetSInt(data[self.offset_pos:], 1, None))
+            elif o is OK.OFFPCREL32:
+                out.append(GetSInt(data[self.offset_pos:], 4, None))
+            else:
+                assert False, f"{o}"
+        assert len(self.fields) == len(out), f"{self} {out}"
+        return out
+
+    def AssembleOperands(self, operands: List[int]) -> List[int]:
+        assert len(operands) == len(self.fields)
+        rex = 0
+        if self.rexw:
+            rex |= 0x08
+        out = self.data[:]
+
+        def SetRegBits(reg, pos, shift, rex_shift):
+            nonlocal rex
+            out[pos] |= (reg & 0x7) << shift
+            rex |= ((reg >> 3) & 1) << rex_shift
+
+        def SetSInt(v, pos, dst_byte_width, src_bit_width):
+            if src_bit_width:
+                pass
+            else:
+                assert -(8) <= v < (8 << byte_width)
+            while v:
+                out[pos] = v & 0xff
+                pos += 1
+                v >>= 8
+
+        for v, o in zip(operands, self.fields):
+            if isinstance(o, str):
+                continue
+
+            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
+            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
+                     OK.MODRM_RM_REG64}:
+                SetRegBits(v, self.modrm_pos, 0, 0)
+            elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
+                SetRegBits(v, self.modrm_pos, 0, 0)
+            elif o is OK.MODRM_RM_BASE:
+                SetRegBits(v, self.modrm_pos, 0, 0)
+            elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
+                       OK.MODRM_REG64}:
+                SetRegBits(v, self.modrm_pos, 3, 2)
+            elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
+                SetRegBits(v, self.modrm_pos, 3, 2)
+            elif o is OK.SIB_BASE:
+                SetRegBits(v, self.sib_pos, 0, 0)
+            elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
+                SetRegBits(self.sib_pos, 3, 1)
+            elif o is OK.SIB_SCALE:
+                assert 0 <= v <= 3
+                out[self.sib_pos] |= v << 6
+            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
+                       OK.BYTE_WITH_REG64}:
+                SetRegBits(v, self.byte_with_reg_pos, 0, 0)
+            elif o is OK.IMM8:
+                SetSInt(v, self.imm_pos, 1, 8)
+            elif o is OK.IMM8_16:
+                SetSInt(v, self.imm_pos, 1, 16)
+            elif o is OK.IMM8_32:
+                SetSInt(v, self.imm_pos, 1, 32)
+            elif o is OK.IMM8_64:
+                SetSInt(v, self.imm_pos, 1, 64)
+            elif o is OK.IMM32_64:
+                SetSInt(v, self.imm_pos, 4, 64)
+            elif o is OK.IMM16:
+                SetSInt(v, self.imm_pos, 2, 16)
+            elif o is OK.IMM32:
+                SetSInt(v, self.imm_pos, 4, 32)
+            elif o is OK.IMM64:
+                SetSInt(v, self.imm_pos, 8, 64)
+            elif o is OK.OFFABS8:
+                SetSInt(v, self.offset_pos, 1, None)
+            elif o is OK.OFFABS32:
+                SetSInt(v, self.offset_pos, 4, None)
+            elif o is OK.OFFPCREL8:
+                SetSInt(v,self.offset_pos, 1, None)
+            elif o is OK.OFFPCREL32:
+                SetSInt(v, self.offset_pos, 4, None)
+            else:
+                assert False, f"{o}"
+
+        if rex:
+            return [rex] + out
         return out
 
     @classmethod
@@ -725,6 +812,11 @@ def Disassemble(data: List) -> Optional[Ins]:
     if operands is None:
         return None
     return Ins(opcode, operands)
+
+
+def Assemble(ins: Ins) -> List:
+    assert ins.reloc_kind == _RELOC_TYPE_X64_NONE, "reloc has not been resolved"
+    return ins.opcode.AssembleOperands(ins.operands)
 
 
 _SUPPORTED_ENCODING_PARAMS = {
