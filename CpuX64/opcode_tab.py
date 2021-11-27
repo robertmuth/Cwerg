@@ -648,6 +648,7 @@ class Opcode:
                 out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
                 out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+                # assert rex or o != OK.MODRM_REG8, f""
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
                 out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
             elif o is OK.SIB_BASE:
@@ -700,10 +701,14 @@ class Opcode:
             rex |= ((reg >> 3) & 1) << rex_shift
 
         def SetSInt(v, pos, dst_byte_width, src_bit_width):
-            if src_bit_width:
-                pass
-            else:
-                assert -(8) <= v < (8 << byte_width)
+            #print (f"{self.name}:  {v} {pos} {dst_byte_width}  {src_bit_width}")
+            #if not src_bit_width:
+            #    v += (8 << dst_byte_width)
+
+            v &= (1 << (8 * dst_byte_width)) - 1
+            #print (f"@@@@@ {v}")
+            # TODO: check
+            # assert -(8) <= v < (8 << dst_byte_width)
             while v:
                 out[pos] = v & 0xff
                 pos += 1
@@ -716,6 +721,8 @@ class Opcode:
             assert isinstance(o, OK), f"unexpected {o} {type(o)}"
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
                      OK.MODRM_RM_REG64}:
+                if o is OK.MODRM_RM_REG8 and (4 <= v <= 7):
+                    rex |= 0x40   # force rex, otherwise we select ah, ch, dh, bh
                 SetRegBits(v, self.modrm_pos, 0, 0)
             elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
                 SetRegBits(v, self.modrm_pos, 0, 0)
@@ -723,13 +730,15 @@ class Opcode:
                 SetRegBits(v, self.modrm_pos, 0, 0)
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
                        OK.MODRM_REG64}:
+                if o is OK.MODRM_REG8 and (4 <= v <= 7):
+                    rex |= 0x40   # force rex, otherwise we select ah, ch, dh, bh
                 SetRegBits(v, self.modrm_pos, 3, 2)
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
                 SetRegBits(v, self.modrm_pos, 3, 2)
             elif o is OK.SIB_BASE:
                 SetRegBits(v, self.sib_pos, 0, 0)
             elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
-                SetRegBits(self.sib_pos, 3, 1)
+                SetRegBits(v, self.sib_pos, 3, 1)
             elif o is OK.SIB_SCALE:
                 assert 0 <= v <= 3
                 out[self.sib_pos] |= v << 6
@@ -764,7 +773,7 @@ class Opcode:
                 assert False, f"{o}"
 
         if rex:
-            return [rex] + out
+            return [rex | 0x40] + out
         return out
 
     @classmethod

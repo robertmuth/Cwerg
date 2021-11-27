@@ -11,7 +11,6 @@ import collections
 
 from typing import List
 
-# from CpuA32 import symbolic
 import CpuX64.opcode_tab as x64
 from CpuX64 import symbolic
 
@@ -85,8 +84,12 @@ def ProcessObjdumpFile(fin):
             bad[name] += 1
             continue
 
+        # TODO: add support
         if "[rip+" in line:
             continue
+
+        data2 = x64.Assemble(ins)
+        assert data == data2, f"{line}: {Hexify(data)} vs {Hexify(data2)} {ins.opcode}"
 
         if ins.opcode.fields == [x64.OK.OFFPCREL32] or ins.opcode.fields == [x64.OK.OFFPCREL8]:
             continue
