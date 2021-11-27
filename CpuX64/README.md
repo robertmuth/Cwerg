@@ -1,28 +1,26 @@
 # X64(-64) Encoder/Decoder
 
 X86 is a pretty messy ISA to target for a compiler backend.
-Targeting may not be possible within our complexity budget of 5k LOC
-but it is also the dominant ISA on the desktop so it would be really nice
-to support it.
+Luckily, the X86-64 variant has been cleaned up somewhat and there are
+excellent encoding/decoding tables we can build on.
 
-Known difficulties:
-* ISA is closer to a 2-addr than a 3-addr instruction set
-  LLVM has a special pass for this. The concept of "tied" registers is helpful
-  here.
-  Meaning a register is used in multiple slots, ARM32 also has a few of those.
-  Memory operands aggravate the problem.
-  On the other hand, doing away with register allocation and just keeping all
-  locals on the stack may be good enough. 
-* Variable length instructions, especially for branches, require a relaxation
-  pass to pick the shortest encoding possible
-* Some registers are [implicit](https://reverseengineering.stackexchange.com/questions/12379/xclist-of-x86-x64-instructions-that-implicitly-access-registers)
-  This can be handled by forcing a machine register for 
-  an Ins and moving data into this register from a virtual register.
-* Complex address modes
+The instruction decoder/encoder is based on [x86data.js](https://github.com/asmjit/asmdb/blob/master/x86data.js) by [Petr Kobalicek](https://kobalicek.com)
+which is in the Public Domain.
+
+The implementation is far more complete than what is needed for a the code generator
+component and might be useful by itself.
+
+The currently supported instructions are listed at the beginning of [opcode_tab.py]
+and should cover > 95% of instructions found in a typical executable.
 
 ## Tips
 
 Use `objdump -d  -M intel <file.exe>` for intel assembler syntax.
+
+To see the decoder in action try:
+```
+objdump -d  -M intel  --insn-width=12   /usr/bin/bash | ./opcode_test.py
+```
 
 ## References
 

@@ -35,22 +35,23 @@ SUPPORTED_OPCODES = {
     "movzx",  #
     "movq",
     "movsxd", "movsx",
-    "movaps", "movapd", "movups", "movdqu", "movdqa",  #
+    "movaps", "movapd", "movups", "movdqu", "movdqa",
     #
     "minss", "minsd",
     "maxss", "maxsd",
     "sqrtss", "sqrtsd",
+    # "movhps", # may require additional work
     # "movsd", # may require additional work
     # "movss", # may require additional work
     ""
-    "neg",  #
+    "neg", "inc", "neg", #
     "pxor",  #
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
     "cvttss2si", "cvttsd2si",
     #
-    "test",  "cmp",  #
+    "test", "cmp",  #
     "lea",  #
     "xchg",
     "popcnt", "tzcnt", "lzcnt",  #
@@ -93,9 +94,26 @@ SUPPORTED_OPCODES = {
     "cmovge",  # "/cmovnl"
     "cmovle",  # "/cmovng"
     "cmovle",  # "/cmovng"
-
+    "cmovg",  # "/cmovnle"
+    "cmovge",  # "/cmovnl
+    #
+    "seto",
+    "setno",
+    "setb",  # "/setnae/setc",
+    "setae",  # "/setnb/setnc",
+    "sete",  # "/setz",
+    "setne",  # "/setnz",
+    "setbe",  # "/setna",
+    "seta",  # "/setnbe",
+    "sets",
+    "setns",
+    "setp",  # "/setpe",
+    "setnp",  # "/setpo",
+    "setl",  # "/setnge",
+    "setge",  # "/setnl",
+    "setle",  # "/setng",
+    "setg",  # "/setnle",
 }
-
 _OPCODES_WITH_MULTIPLE_REG_WRITE = {
     "div", "idiv", "imul", "mul", "mulx",
     "cmpxchg8b", "cmpxchg16b", "cmpxchg32b",
@@ -179,7 +197,7 @@ _UNSUPPORTED_OPERANDS = {
 }
 
 _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
-    "and", "or", "sub", "cmp", "add", "xor", "imul", "mov",
+    "and", "or", "sub", "cmp", "add", "xor", "imul", "mov", "test",
 }
 
 
@@ -658,7 +676,7 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
         elif x in {"ib", "iw", "id", "iq"}:
             opc.AddImmOp(x)
         else:
-            assert False
+            assert False, f"unexpected pattern for {name}"
 
     # 81 7c 24 28 ff 0f 00    cmp    DWORD PTR [rsp+0x28],0xfff
     for mod, sib_mode in _SIB_MOD_COMBOS:
@@ -769,7 +787,6 @@ def OpcodeSanityCheck(opcodes: List[Opcode]):
     for opcode in Opcode.Opcodes:
         patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
 
-
     print(f"Checkin Opcodes for conflicts")
     for k, opcodes in patterns.items():
         if len(opcodes) == 1: continue
@@ -804,7 +821,7 @@ def FixupFormat(format: str, ops: List, encoding) -> str:
     return "".join(tr(o) for o in ops)
 
 
-# this excludes:
+# this excludes among others:
 # "and", "X:r64, ud", "MI"      , "81 /4 id"
 # "X:rax, ud", "I"       , "25 id"
 def SkipInstruction(name, format, ops):
@@ -836,12 +853,16 @@ def CreateOpcodes(instructions: List, verbose: bool):
             continue
         if SkipInstruction(name, format, ops):
             continue
+        # hack
+        if name.startswith("set") and "/r" in encoding:
+            encoding = encoding.replace("/r", "/0")
 
         count[name] += 1
         metadata = metadata.split()
         encoding = encoding.split()
         # hack
         format = FixupFormat(format, ops, encoding)
+
         assert format in _SUPPORTED_FORMATS, f"{format}"
         if verbose:
             print(name, ops, format, encoding, metadata)

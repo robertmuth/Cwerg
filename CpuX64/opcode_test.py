@@ -32,6 +32,19 @@ def ExtractObjdumpOps(ops_str: str) -> List[str]:
     return [o for o in re.split("[,+*]", ops_str) if o]
 
 
+NOP = {
+    "90": "xchg eax,eax",
+    "66 90": "xchg ax,ax",
+    "0f 1f 00": "xchg",
+    "0F 1F 40 00": "xchg",
+    "0f 1f 44 00 00": "xchg",
+    "66 0F 1F 44 00 00": "xchg",
+    "0F 1F 80 00 00 00 00": "xchg",
+    "0F 1F 84 00 00 00 00 00": "xchg",
+    "66 0F 1F 84 00 00 00 00 00": "xchg",
+    "66 2e 0f 1f 84 00 00 00 00 00": "xchg"
+}
+
 # data must be generated with: objdump -d  -M intel  --insn-width=12
 # and looks like:
 # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
@@ -44,6 +57,9 @@ def ProcessObjdumpFile(fin):
         try:
             addr_str, data_str, ins_str = line.strip().split("\t")
         except Exception as err:
+            continue
+        data_str = data_str.strip()
+        if data_str in NOP:
             continue
         name = ins_str.split()[0]
         ops_str = ins_str[len(name):]
@@ -101,5 +117,4 @@ def ProcessObjdumpFile(fin):
 if __name__ == "__main__":
     # import cProfile
     # cProfile.run("main(sys.argv[1:])")
-    assert len(sys.argv) == 2, "must specify a single input file"
-    ProcessObjdumpFile(open(sys.argv[1]))
+    ProcessObjdumpFile(sys.stdin)

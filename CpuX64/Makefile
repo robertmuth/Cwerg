@@ -14,7 +14,7 @@ hello_barebones-x64:
 	ld hello_barebones.o -o $(DIR)/hello_barebones-x64
 
 objdump_tests:
-	$(PYPY) ./opcode_test.py TestData/objdump.dis
+	$(PYPY) ./opcode_test.py < TestData/objdump.dis
 
 
 clean:
