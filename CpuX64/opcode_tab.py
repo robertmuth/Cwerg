@@ -174,7 +174,6 @@ _OP_MAP = {
     },
     "R": {
         "r8", "r16", "r32", "r64",
-        "sreg", "creg", "dreg",
         "xmm[31:0]", "xmm[63:0]",
         "xmm",
     },
@@ -201,6 +200,7 @@ _UNSUPPORTED_OPERANDS = {
     "moff8", "moff16", "moff32", "moff64",  #
     "fs", "gs",
     "creg", "dreg",  # problems with M encoding of r64
+    "sreg",
 }
 
 _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
@@ -291,6 +291,12 @@ def GetOpWidth(op):
         return 32
     elif op.endswith("64"):
         return 64
+    elif op.endswith("xmm[31:0]"):
+        return 32
+    elif op.endswith("xmm[63:0]"):
+        return 64
+    elif op.endswith("xmm"):
+        return 128
     else:
         assert False, f"{op}"
 
@@ -316,8 +322,6 @@ class OK(enum.IntEnum):
     IMM32 = 10
     OFFPCREL8 = 11
     OFFPCREL32 = 12
-    MODRM_REG = 14
-    MODRM_XREG = 15
     IMM8_16 = 17
     IMM8_32 = 18
     IMM8_64 = 19
@@ -338,6 +342,15 @@ class OK(enum.IntEnum):
     MODRM_RM_XREG32 = 32
     MODRM_RM_XREG64 = 33
     MODRM_RM_XREG128 = 34
+    #
+    MODRM_REG8 = 35
+    MODRM_REG16 = 36
+    MODRM_REG32 = 37
+    MODRM_REG64 = 38
+    #
+    MODRM_XREG32 = 39
+    MODRM_XREG64 = 40
+    MODRM_XREG128 = 41
 
 
 def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
@@ -429,8 +442,17 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        is_xmm = IsOpXmm("R", self.operands, self.format)
-        self.fields.append(OK.MODRM_XREG if is_xmm else OK.MODRM_REG)
+        bw = FindOpWidth("R", self.operands, self.format)
+        if IsOpXmm("R", self.operands, self.format):
+            self.fields.append({32: OK.MODRM_XREG32,
+                                64: OK.MODRM_XREG64,
+                                128: OK.MODRM_XREG128}[bw])
+        else:
+            bw = FindOpWidth("R", self.operands, self.format)
+            self.fields.append({8: OK.MODRM_REG8,
+                                16: OK.MODRM_REG16,
+                                32: OK.MODRM_REG32,
+                                64: OK.MODRM_REG64}[bw])
 
     def AddRegOp(self, ext: Optional[int]):
         self.modrm_pos = len(self.data)
@@ -577,13 +599,13 @@ class Opcode:
                     out.append(f"MEM{bw}")
                 r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
                 out.append(_REG_NAMES[64][r])  # assumes no add override
-            elif o is OK.MODRM_REG or o is OK.MODRM_XREG:
+            elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
                 r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
-                if o is OK.MODRM_REG:
-                    bw = FindOpWidth("R", self.operands, self.format)
-                    out.append(_REG_NAMES[bw][r])
-                else:
-                    out.append(_XREG_NAMES[r])
+                bw = 8 << (o - OK.MODRM_REG8)
+                out.append(_REG_NAMES[bw][r])
+            elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
+                r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
+                out.append(_XREG_NAMES[r])
             elif o is OK.SIB_BASE:
                 if not is_lea:
                     bw = FindOpWidth("M", self.operands, self.format)
