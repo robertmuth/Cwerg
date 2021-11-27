@@ -43,7 +43,7 @@ def ProcessObjdumpFile(fin):
     for line in fin:
         try:
             addr_str, data_str, ins_str = line.strip().split("\t")
-        except:
+        except Exception as err:
             continue
         name = ins_str.split()[0]
         ops_str = ins_str[len(name):]

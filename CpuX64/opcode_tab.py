@@ -8,13 +8,12 @@ This depends on x86data.js from https://github.com/asmjit/asmdb
 We intend to only support a small subset of the opcode space.
 Enough for code generation.
 """
-from ast import Num
+
 from typing import List, Dict, Tuple, Optional
 
 import collections
 import dataclasses
 import enum
-import sys
 import re
 import json
 import itertools
@@ -769,6 +768,8 @@ def OpcodeSanityCheck(opcodes: List[Opcode]):
     patterns = collections.defaultdict(list)
     for opcode in Opcode.Opcodes:
         patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
+
+
     print(f"Checkin Opcodes for conflicts")
     for k, opcodes in patterns.items():
         if len(opcodes) == 1: continue
@@ -806,11 +807,16 @@ def FixupFormat(format: str, ops: List, encoding) -> str:
 # this excludes:
 # "and", "X:r64, ud", "MI"      , "81 /4 id"
 # "X:rax, ud", "I"       , "25 id"
-def SkipInstruction(format, ops):
+def SkipInstruction(name, format, ops):
     if format == "MI" and ops[0] == "r64":
         return True
 
     if format == "I" and ops[0] == "rax" and ops[1] == "ud":
+        return True
+
+    # the decision which one of these to skip is somewhat arbitrary but
+    # we followed what objdump does
+    if name == "xchg" and (format == "RM" or ops[0].endswith("ax")):
         return True
     return False
 
@@ -828,7 +834,7 @@ def CreateOpcodes(instructions: List, verbose: bool):
         name = name.split("/")[0]
         if name not in SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
             continue
-        if SkipInstruction(format, ops):
+        if SkipInstruction(name, format, ops):
             continue
 
         count[name] += 1
@@ -844,7 +850,6 @@ def CreateOpcodes(instructions: List, verbose: bool):
         assert count[k], f"unknown opcode [{k}]"
     for opcode in Opcode.Opcodes:
         opcode.Finalize()
-    OpcodeSanityCheck(Opcode.Opcodes)
 
 
 def FingerPrintRawInstructions(data) -> int:
@@ -871,7 +876,6 @@ def LoadOpcodes(filename: str):
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
     _END_MARKER = "// ${JSON:END}"
-    print(repr(filename))
     data = open(filename).read()
     start = data.find(_START_MARKER) + len(_START_MARKER)
     end = data.find(_END_MARKER)
@@ -937,6 +941,8 @@ print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 _OPCODES_BY_FP = MakeFingerPrintLookupTable()
 
 if __name__ == "__main__":
-    for k, v in _OPCODES_BY_FP.items():
-        if v:
-            print(f"{k:10x} {len(v)}")
+    OpcodeSanityCheck(Opcode.Opcodes)
+    if False:
+        for k, v in _OPCODES_BY_FP.items():
+            if v:
+                print(f"{k:10x} {len(v)}")
