@@ -51,8 +51,7 @@ SUPPORTED_OPCODES = {
     "cvtsi2ss", "cvtsi2sd",  #
     "cvttss2si", "cvttsd2si",
     #
-    "test",  #
-    "cmp",  #
+    "test",  "cmp",  #
     "lea",  #
     "xchg",
     "popcnt", "tzcnt", "lzcnt",  #
@@ -113,7 +112,6 @@ _OPCODES_WITH_MULTIPLE_REG_WRITE = {
 # opcode extension/flavors we do not support for now
 _DISALLOWED_EXTENSIONS = {
     "Deprecated",
-    # "AltForm",
     "MMX",
     "MMX2",
     "X86",
@@ -135,10 +133,12 @@ _IMPLICIT_OPERANDS = {
     "1",
 }
 
+# not used yet
 _M_BUT_NOT_MEM = {
     "r64", "xmm[63:0]",
 }
 
+# not used yet
 _M_BUT_NOT_REG = {
     "m32", "m64",
 }
@@ -190,6 +190,7 @@ def ContainsUnsupportedOperands(ops):
             return True
     return False
 
+
 _OPERAND_MODIFIERS = {
     "x:",  # read/write
     "X:",  # read/write, zero extend
@@ -237,10 +238,6 @@ def GetSInt(data, byte_width, bit_width):
     if bit_width:
         return x & (1 << bit_width) - 1
     return x
-
-
-def GetUInt(data, byte_width):
-    return int.from_bytes(data[:byte_width], "little")
 
 
 def Hexify(data) -> str:
@@ -501,7 +498,7 @@ class Opcode:
         else:
             assert False
 
-    def RenderOps(self, data):
+    def RenderOps(self, data, skip_implicit):
         is_lea = self.name.startswith("lea")
         rex = 0
         if (data[0] & 0xf0) == 0x40:
@@ -510,7 +507,8 @@ class Opcode:
         out = []
         for o in self.fields:
             if isinstance(o, str):
-                out.append(o)
+                if not skip_implicit:
+                    out.append(o)
                 continue
             assert isinstance(o, OK), f"unexpected {o} {type(o)}"
 
@@ -696,11 +694,11 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
     if format in {"MI", "M", "xM", "xxM", "Mx"}:
         before = []
         after = []
-        seen_M = False
+        seen_non_X = False
         for i, c in enumerate(format):
-            if c == "M": seen_M = True
-        if c == "x":
-            if seen_M:
+            if c != "x":
+                seen_non_X = True
+            elif seen_non_X:
                 after.append(ops[i])
             else:
                 before.append(ops[i])
@@ -719,21 +717,28 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
     elif format in {"I", "O", "OI", "xI", "xO", "Ox"}:
         opc = Opcode(name, "", ops, format)
         before = []
+        after = []
+        seen_non_X = False
         for i, c in enumerate(format):
-            if c == "x":
-                before.append(ops[i])
+            if c != "x":
+                seen_non_X = True
+            elif seen_non_X:
+                after.append(ops[i])
             else:
-                break
+                before.append(ops[i])
         for x in encoding:
             if x == "REX.W":
                 opc.AddRexW()
             elif _RE_BYTE_WITH_REG.match(x):
+                opc.fields += before
                 opc.AddByteWithReg(int(x[0:2], 16))
+                opc.fields += after
             elif _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
             elif x in {"ib", "iw", "id", "iq"}:
                 opc.fields += before
                 opc.AddImmOp(x)
+                opc.fields += after
             else:
                 assert False
     elif format == "D":
@@ -842,29 +847,6 @@ def CreateOpcodes(instructions: List, verbose: bool):
     OpcodeSanityCheck(Opcode.Opcodes)
 
 
-def FindMatchingRule(data, rules: List[Opcode]) -> Optional[Opcode]:
-    if (data[0] & 0xf0) == 0x40:
-        data = data[1:]
-    discriminant = int.from_bytes(data, "little")
-    for r in rules:
-        if (r.discriminant_mask & discriminant) == r.discriminant_data:
-            return r
-    return None
-
-
-def ExtractObjdumpOps(ops_str):
-    ops_str = ops_str.split("<")[0]
-    ops_str = ops_str.replace("-0x", "+0x-")
-    ops_str = ops_str.replace("XMMWORD PTR ", "MEM128,")
-    ops_str = ops_str.replace("QWORD PTR ", "MEM64,")
-    ops_str = ops_str.replace("DWORD PTR ", "MEM32,")
-    ops_str = ops_str.replace("BYTE PTR ", "MEM8,")
-    ops_str = ops_str.replace("WORD PTR ", "MEM16,")
-    ops_str = ops_str.strip().replace("[", "").replace("]", "")
-    return [o for o in re.split("[,+*]", ops_str) if o]
-
-
-# _SUPPORTED_OPCODES = {"lea"}
 def FingerPrintRawInstructions(data) -> int:
     fp = []
     i = 0
@@ -889,7 +871,7 @@ def LoadOpcodes(filename: str):
     # This file is file https://github.com/asmjit/asmdb (see file comment)
     _START_MARKER = "// ${JSON:BEGIN}"
     _END_MARKER = "// ${JSON:END}"
-    print (repr(filename))
+    print(repr(filename))
     data = open(filename).read()
     start = data.find(_START_MARKER) + len(_START_MARKER)
     end = data.find(_END_MARKER)
@@ -900,7 +882,7 @@ def LoadOpcodes(filename: str):
 
 
 def MakeFingerPrintLookupTable():
-    out =  collections.defaultdict(list)
+    out = collections.defaultdict(list)
     for opc in Opcode.Opcodes:
         assert isinstance(opc, Opcode)
         fp = []
@@ -935,85 +917,26 @@ def MakeFingerPrintLookupTable():
     return out
 
 
+_OPCODES_BY_FP = None
+
+
+def FindMatchingOpcode(data) -> Optional[Opcode]:
+    rules = _OPCODES_BY_FP[FingerPrintRawInstructions(data)]
+    if (data[0] & 0xf0) == 0x40:
+        data = data[1:]
+    discriminant = int.from_bytes(data, "little")
+    for r in rules:
+        if (r.discriminant_mask & discriminant) == r.discriminant_data:
+            return r
+    return None
+
+
 LoadOpcodes("x86data.js")
 print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
-HashTab = MakeFingerPrintLookupTable()
-
-if False:
-    for k, v in HashTab.items():
-        if v:
-            print(f"{k:10x} {len(v)}")
-
-
+_OPCODES_BY_FP = MakeFingerPrintLookupTable()
 
 if __name__ == "__main__":
-
-    # data must be generated with: objdump -d  -M intel  --insn-width=12
-    # and looks like:
-    # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
-    n = 0
-    bad = collections.defaultdict(int)
-    skipped = collections.defaultdict(int)
-    mismatched = collections.defaultdict(int)
-    for line in sys.stdin:
-        try:
-            addr_str, data_str, ins_str = line.strip().split("\t")
-        except:
-            continue
-        name = ins_str.split()[0]
-        ops_str = ins_str[len(name):]
-        if name == "movabs":
-            name = "mov"
-        if name not in SUPPORTED_OPCODES:
-            skipped[name] += 1
-            continue
-        if re.search("[df]s:|[abcd]h,|,[abcd]h", ins_str):
-            skipped[name] += 1
-            continue
-
-        data = [int(d, 16) for d in data_str.split()]
-        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
-            data[0], data[1] = data[1], data[0]
-        candidates = HashTab[FingerPrintRawInstructions(data)]
-        # print (addr_str, data_str, ins_str)
-        if not candidates:
-            print(f"BAD [{FingerPrintRawInstructions(data)}]  {line}", end="")
-            bad[name] += 1
-            continue
-        opc = FindMatchingRule(data, candidates)
-        if not opc:
-            print(f"BAD [{FingerPrintRawInstructions(data)}]  {line}", end="")
-            bad[name] += 1
-            continue
-
-        if "[rip+" in line:
-            continue
-
-        assert name == opc.name
-        if opc.fields == [OK.OFFPCREL32] or opc.fields == [OK.OFFPCREL8]:
-            continue
-        expected_ops = ExtractObjdumpOps(ops_str)
-        actual_ops = opc.RenderOps(data)
-        if len(actual_ops) == 1 and name == "xchg":
-            actual_ops.append(actual_ops[0])
-        if expected_ops != actual_ops:
-            if True:
-                print(line)
-                print(f"EXPECTED: {expected_ops}")
-                print(f"ACTUAL:   {actual_ops}")
-                print(f"OPCODE: {opc}")
-                print(Hexify(opc.data))
-                print(Hexify(opc.mask))
-            mismatched[name] += 1
-            # exit()
-
-        n += 1
-    print(f"CHECKED: {n}   BAD: {sum(bad.values())}")
-    print(f"SKIPPED-TOTAL: {sum(skipped.values())}")
-    if False:
-        for name, count in skipped.items():
-            print(f"SKIPPED: {name} {count}")
-    print(f"MISMATCHED-TOTAL: {sum(mismatched.values())}")
-    for name, count in mismatched.items():
-        print(f"MISMATCHED: {name} {count}")
+    for k, v in _OPCODES_BY_FP.items():
+        if v:
+            print(f"{k:10x} {len(v)}")
