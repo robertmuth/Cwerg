@@ -18,6 +18,11 @@ import re
 import json
 import itertools
 
+# https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
+MAX_INSTRUCTION_LENGTH = 11
+MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
+MAX_FIELD_LENGTH = 6
+
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
 # coverage is > 95% of all opcodes commonly found in x86-64 executable.
@@ -40,9 +45,6 @@ SUPPORTED_OPCODES = {
     "minss", "minsd",
     "maxss", "maxsd",
     "sqrtss", "sqrtsd",
-    # "movhps", # may require additional work
-    # "movsd", # may require additional work
-    # "movss", # may require additional work
     ""
     "neg", "inc", "neg", #
     "pxor",  #
@@ -113,6 +115,11 @@ SUPPORTED_OPCODES = {
     "setge",  # "/setnl",
     "setle",  # "/setng",
     "setg",  # "/setnle",
+    # may require additional work because the M format behaves slightly different
+    # depending on whether the mem or reg variant is used.
+    # "movhps",
+    # "movsd",
+    # "movss",
 }
 _OPCODES_WITH_MULTIPLE_REG_WRITE = {
     "div", "idiv", "imul", "mul", "mulx",
@@ -295,21 +302,20 @@ def FindOpWidth(c: str, ops: List, format: str) -> bool:
 
 
 @enum.unique
-class OK(enum.Enum):
+class OK(enum.IntEnum):
     """Operand Kind"""
-    MODRM_RM_REG = 1
     MODRM_RM_BASE = 2
     OFFABS8 = 3
     OFFABS32 = 4
     SIB_SCALE = 5
     SIB_INDEX = 6
     SIB_BASE = 7
+    #
     IMM8 = 8
     IMM16 = 9
     IMM32 = 10
     OFFPCREL8 = 11
     OFFPCREL32 = 12
-    BYTE_WITH_REG = 13
     MODRM_REG = 14
     MODRM_XREG = 15
     MODRM_RM_XREG = 16
@@ -319,6 +325,17 @@ class OK(enum.Enum):
     IMM32_64 = 20
     IMM64 = 21
     SIB_INDEX_AS_BASE = 22
+    #
+    BYTE_WITH_REG8 = 24
+    BYTE_WITH_REG16 = 25
+    BYTE_WITH_REG32 = 26
+    BYTE_WITH_REG64 = 27
+    #
+    MODRM_RM_REG = 40
+    MODRM_RM_REG8 = 28
+    MODRM_RM_REG16 = 29
+    MODRM_RM_REG32 = 30
+    MODRM_RM_REG64 = 31
 
 
 def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
@@ -369,11 +386,17 @@ class Opcode:
         self.data: List = []
 
     def __str__(self):
-        return f"{self.name}.{self.variant}  [{' '.join(self.operands)}] {self.format}   {self.fields} sib:{self.sib_pos}  off:{self.offset_pos} "
+        fields_str = ' '.join([str(f) for f in self.fields])
+        mask = Hexify(self.mask)
+        data = Hexify(self.data)
+        ops_str = ' '.join(self.operands)
+        return f"{self.name}.{self.variant}  [{ops_str}] {self.format}   [{fields_str}]  mask:[{mask}] data:[{data}]"
 
     def Finalize(self):
-        self.discriminant_mask = int.from_bytes(self.mask[0:5], "little")
-        self.discriminant_data = self.discriminant_mask & int.from_bytes(self.data[0:5], "little")
+        assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
+        assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
+        self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
+        self.discriminant_data = self.discriminant_mask & int.from_bytes(self.data[0:6], "little")
         expected_len = len(self.operands)
         if self.modrm_pos >= 0:
             if OK.OFFABS8 in self.fields or OK.OFFABS32 in self.fields:
@@ -392,8 +415,13 @@ class Opcode:
         self.mask.append(0xff)
 
     def AddByteWithReg(self, b: int):
+        bw = FindOpWidth("O", self.operands, self.format)
         self.byte_with_reg_pos = len(self.data)
-        self.fields.append(OK.BYTE_WITH_REG)
+        self.fields.append({8: OK.BYTE_WITH_REG8,
+                            16: OK.BYTE_WITH_REG16,
+                            32: OK.BYTE_WITH_REG32,
+                            64: OK.BYTE_WITH_REG64,
+                            }[bw])
         self.data.append(b)
         self.mask.append(0xf8)
         assert (b & 0xf8) == b
@@ -436,6 +464,7 @@ class Opcode:
             self.data += [0, 0, 0, 0]
 
     def AddMemOp(self, sib_mode: SIB_MODE, mod: int, ext: int = -1):
+        # TODO: pcrel (rip) addressing mode, maybe as special sib mode
         self.modrm_pos = len(self.data)
         assert mod <= 2
         data = mod << 6
@@ -567,6 +596,7 @@ class Opcode:
                     bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
                 rindex = GetRegBits(data[self.sib_pos], 3, rex, 1)
+                # TODO: handle special case where rindex == sp
                 scale = data[self.sib_pos] >> 6
                 out.append(_REG_NAMES[64][rindex])  # assumes no add override
                 out.append(str(1 << scale))
@@ -574,9 +604,9 @@ class Opcode:
                 pass
             elif o is OK.SIB_SCALE:
                 pass
-            elif o is OK.BYTE_WITH_REG:
+            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16,OK.BYTE_WITH_REG32,OK.BYTE_WITH_REG64}:
                 r = GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0)
-                bw = FindOpWidth("O", self.operands, self.format)
+                bw = 8 << (o - OK.BYTE_WITH_REG8)
                 out.append(_REG_NAMES[bw][r])
             elif o is OK.IMM8:
                 out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 8):x}")
@@ -782,23 +812,38 @@ def ExtractOps(s):
     return [clean(x) for x in s.split(",") if x]
 
 
-def OpcodeSanityCheck(opcodes: List[Opcode]):
+def OpcodeSanityCheck(opcodes: Dict[int, Opcode]):
     patterns = collections.defaultdict(list)
     for opcode in Opcode.Opcodes:
         patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
 
     print(f"Checkin Opcodes for conflicts")
-    for k, opcodes in patterns.items():
-        if len(opcodes) == 1: continue
-        for o in opcodes:
-            print(o)
-        print()
+    for k, group in patterns.items():
+        assert len(group) == 1, f"this should not happen, maybe the discriminant needs to be longer"
 
-    print(f"Checkin Opcodes for overlap")
-    for a, b in itertools.combinations(opcodes, 2):
-        if a.rexw == b.rexw:
-            c = a.discriminant_mask & b.discriminant_mask
-            assert (a.discriminant_data & c) != (b.discriminant_data & c)
+    print(f"Checkin Opcodes for overlap causing decoding ambiguity")
+    for group in opcodes.values():
+        for a, b in itertools.combinations(group, 2):
+            if a.rexw == b.rexw:
+                c = a.discriminant_mask & b.discriminant_mask
+                if (a.discriminant_data & c) == (b.discriminant_data & c):
+                    assert a.name == b.name
+                    if a.variant.replace("_sib", "") == b.variant:
+                        # this is ok sib requires a special bit pattern in the
+                        # modrm byte
+                        continue
+                    if a.variant.replace("_sib_bp_disp_off32", "") == b.variant:
+                        # same as above
+                        continue
+                    if a.variant.replace("_bp_disp_off32", "") == b.variant:
+                        # this is ok as the bp_disp_off32 requires a special
+                        # bit pattern in the sib byte
+                        continue
+
+                    print (a)
+                    print (b)
+                    print ()
+                    assert False
 
 
 def FixupFormat(format: str, ops: List, encoding) -> str:
@@ -961,8 +1006,18 @@ print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
 _OPCODES_BY_FP = MakeFingerPrintLookupTable()
 
+
 if __name__ == "__main__":
-    OpcodeSanityCheck(Opcode.Opcodes)
+    OpcodeSanityCheck(_OPCODES_BY_FP)
+    last_name = ""
+    for opc in Opcode.Opcodes:
+        if last_name != opc.name:
+            print ()
+            print (opc.name)
+            last_name = opc.name
+        fields_str = ' '.join([str(f) for f in opc.fields])
+        ops_str = ' '.join(opc.operands)
+        print (f"{opc.variant:20} {ops_str:30} {fields_str}")
     if False:
         for k, v in _OPCODES_BY_FP.items():
             if v:
