@@ -46,7 +46,7 @@ SUPPORTED_OPCODES = {
     "maxss", "maxsd",
     "sqrtss", "sqrtsd",
     ""
-    "neg", "inc", "neg", #
+    "neg", "inc", "neg",  #
     "pxor",  #
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
@@ -318,7 +318,6 @@ class OK(enum.IntEnum):
     OFFPCREL32 = 12
     MODRM_REG = 14
     MODRM_XREG = 15
-    MODRM_RM_XREG = 16
     IMM8_16 = 17
     IMM8_32 = 18
     IMM8_64 = 19
@@ -331,11 +330,14 @@ class OK(enum.IntEnum):
     BYTE_WITH_REG32 = 26
     BYTE_WITH_REG64 = 27
     #
-    MODRM_RM_REG = 40
     MODRM_RM_REG8 = 28
     MODRM_RM_REG16 = 29
     MODRM_RM_REG32 = 30
     MODRM_RM_REG64 = 31
+    #
+    MODRM_RM_XREG32 = 32
+    MODRM_RM_XREG64 = 33
+    MODRM_RM_XREG128 = 34
 
 
 def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
@@ -430,22 +432,26 @@ class Opcode:
         is_xmm = IsOpXmm("R", self.operands, self.format)
         self.fields.append(OK.MODRM_XREG if is_xmm else OK.MODRM_REG)
 
-    def AddRegOpExt(self, ext: int):
-        self.modrm_pos = len(self.data)
-        mask = 0xf8
-        data = (3 << 6) | (ext << 3)
-        self.mask.append(mask)
-        self.data.append(data)
-        self.fields.append(OK.MODRM_RM_REG)
-
-    def AddRegOpReg(self):
-        is_xmm = IsOpXmm("M", self.operands, self.format)
+    def AddRegOp(self, ext: Optional[int]):
         self.modrm_pos = len(self.data)
         mask = 0xc0
         data = (3 << 6)
+        if ext is not None:
+            mask |= 0x38
+            data |= (ext << 3)
         self.mask.append(mask)
         self.data.append(data)
-        self.fields.append(OK.MODRM_RM_XREG if is_xmm else OK.MODRM_RM_REG)
+        bw = FindOpWidth("M", self.operands, self.format)
+        if IsOpXmm("M", self.operands, self.format):
+            self.fields.append({32: OK.MODRM_RM_XREG32,
+                                64: OK.MODRM_RM_XREG64,
+                                128: OK.MODRM_RM_XREG128}[bw])
+        else:
+            self.fields.append({8: OK.MODRM_RM_REG8,
+                                16: OK.MODRM_RM_REG16,
+                                32: OK.MODRM_RM_REG32,
+                                64: OK.MODRM_RM_REG64,
+                                }[bw])
 
     def AddMemOpCommonTail(self, mod: int):
         if mod == 0:
@@ -558,13 +564,13 @@ class Opcode:
                 continue
             assert isinstance(o, OK), f"unexpected {o} {type(o)}"
 
-            if o is OK.MODRM_RM_REG or o is OK.MODRM_RM_XREG:
+            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
                 r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
-                if o is OK.MODRM_RM_REG:
-                    bw = FindOpWidth("M", self.operands, self.format)
-                    out.append(_REG_NAMES[bw][r])
-                else:
-                    out.append(_XREG_NAMES[r])
+                bw = 8 << (o - OK.MODRM_RM_REG8)
+                out.append(_REG_NAMES[bw][r])
+            elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
+                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
+                out.append(_XREG_NAMES[r])
             elif o is OK.MODRM_RM_BASE:
                 if not is_lea:
                     bw = FindOpWidth("M", self.operands, self.format)
@@ -604,7 +610,7 @@ class Opcode:
                 pass
             elif o is OK.SIB_SCALE:
                 pass
-            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16,OK.BYTE_WITH_REG32,OK.BYTE_WITH_REG64}:
+            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 r = GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0)
                 bw = 8 << (o - OK.BYTE_WITH_REG8)
                 out.append(_REG_NAMES[bw][r])
@@ -653,23 +659,25 @@ _SIB_MOD_COMBOS = [
 
 
 def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
-    opc = Opcode(name, "", ops, format)
-    for x in encoding:
-        if x == "REX.W":
-            opc.AddRexW()
-        elif _RE_BYTE.match(x):
-            opc.AddByte(int(x, 16))
-        elif x == "/r":
-            if inv:
-                opc.AddReg()
-                opc.AddRegOpReg()
+    if name != "lea":
+        # the register encoding does not make sense for lea
+        opc = Opcode(name, "", ops, format)
+        for x in encoding:
+            if x == "REX.W":
+                opc.AddRexW()
+            elif _RE_BYTE.match(x):
+                opc.AddByte(int(x, 16))
+            elif x == "/r":
+                if inv:
+                    opc.AddReg()
+                    opc.AddRegOp(None)
+                else:
+                    opc.AddRegOp(None)
+                    opc.AddReg()
+            elif x in {"ib", "iw", "id", "iq"}:
+                opc.AddImmOp(x)
             else:
-                opc.AddRegOpReg()
-                opc.AddReg()
-        elif x in {"ib", "iw", "id", "iq"}:
-            opc.AddImmOp(x)
-        else:
-            assert False
+                assert False
 
     for mod, sib_mode in _SIB_MOD_COMBOS:
         opc = Opcode(name, "", ops, format)
@@ -701,7 +709,7 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
         elif x.startswith("/"):
             ext = int(x[1:])
             opc.fields += before
-            opc.AddRegOpExt(ext)
+            opc.AddRegOp(ext)
             opc.fields += after
         elif x in {"ib", "iw", "id", "iq"}:
             opc.AddImmOp(x)
@@ -840,9 +848,9 @@ def OpcodeSanityCheck(opcodes: Dict[int, Opcode]):
                         # bit pattern in the sib byte
                         continue
 
-                    print (a)
-                    print (b)
-                    print ()
+                    print(a)
+                    print(b)
+                    print()
                     assert False
 
 
@@ -1006,18 +1014,17 @@ print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
 _OPCODES_BY_FP = MakeFingerPrintLookupTable()
 
-
 if __name__ == "__main__":
     OpcodeSanityCheck(_OPCODES_BY_FP)
     last_name = ""
     for opc in Opcode.Opcodes:
         if last_name != opc.name:
-            print ()
-            print (opc.name)
+            print()
+            print(opc.name)
             last_name = opc.name
         fields_str = ' '.join([str(f) for f in opc.fields])
         ops_str = ' '.join(opc.operands)
-        print (f"{opc.variant:20} {ops_str:30} {fields_str}")
+        print(f"{opc.variant:20} {ops_str:30} {fields_str}")
     if False:
         for k, v in _OPCODES_BY_FP.items():
             if v:
