@@ -628,47 +628,93 @@ class Opcode:
         else:
             assert False
 
-    def RenderOps(self, data, skip_implicit):
-        is_lea = self.name.startswith("lea")
+    def DisassembleOperands(self, data: int) -> List[int]:
+        out = []
         rex = 0
         if (data[0] & 0xf0) == 0x40:
             rex = data[0]
             data = data[1:]
-        out = []
         for o in self.fields:
+            if isinstance(o, str):
+                out.append(0)
+                continue
+
+            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
+            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
+                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+            elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
+                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+            elif o is OK.MODRM_RM_BASE:
+                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+            elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
+                out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+            elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
+                out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+            elif o is OK.SIB_BASE:
+                out.append(GetRegBits(data[self.sib_pos], 0, rex, 0))
+            elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
+                out.append(GetRegBits(data[self.sib_pos], 3, rex, 1))
+            elif o is OK.SIB_SCALE:
+                out.append(data[self.sib_pos] >> 6)
+            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
+                out.append(GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0))
+            elif o is OK.IMM8:
+                out.append(GetSInt(data[self.imm_pos:], 1, 8))
+            elif o is OK.IMM8_16:
+                out.append(GetSInt(data[self.imm_pos:], 1, 16))
+            elif o is OK.IMM8_32:
+                out.append(GetSInt(data[self.imm_pos:], 1, 32))
+            elif o is OK.IMM8_64:
+                out.append(GetSInt(data[self.imm_pos:], 1, 64))
+            elif o is OK.IMM32_64:
+                out.append(GetSInt(data[self.imm_pos:], 4, 64))
+            elif o is OK.IMM16:
+                out.append(GetSInt(data[self.imm_pos:], 2, 16))
+            elif o is OK.IMM32:
+                out.append(GetSInt(data[self.imm_pos:], 4, 32))
+            elif o is OK.IMM64:
+                out.append(GetSInt(data[self.imm_pos:], 8, 64))
+            elif o is OK.OFFABS8:
+                out.append(GetSInt(data[self.offset_pos:], 1, None))
+            elif o is OK.OFFABS32:
+                out.append(GetSInt(data[self.offset_pos:], 4, None))
+        return out
+
+    def RenderOps(self, data, skip_implicit):
+        ops = self.DisassembleOperands(data)
+        assert len(ops) == len(self.fields)
+        is_lea = self.name.startswith("lea")
+        out = []
+        for n, o in enumerate(self.fields):
             if isinstance(o, str):
                 if not skip_implicit:
                     out.append(o)
                 continue
-            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
 
+            val = ops[n]
+            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
-                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
                 bw = 8 << (o - OK.MODRM_RM_REG8)
-                out.append(_REG_NAMES[bw][r])
+                out.append(_REG_NAMES[bw][val])
             elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
-                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
-                out.append(_XREG_NAMES[r])
+                out.append(_XREG_NAMES[val])
             elif o is OK.MODRM_RM_BASE:
                 if not is_lea:
                     bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                r = GetRegBits(data[self.modrm_pos], 0, rex, 0)
-                out.append(_REG_NAMES[64][r])  # assumes no add override
+                out.append(_REG_NAMES[64][val])  # assumes no add override
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
-                r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
                 bw = 8 << (o - OK.MODRM_REG8)
-                out.append(_REG_NAMES[bw][r])
+                out.append(_REG_NAMES[bw][val])
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
-                r = GetRegBits(data[self.modrm_pos], 3, rex, 2)
-                out.append(_XREG_NAMES[r])
+                out.append(_XREG_NAMES[val])
             elif o is OK.SIB_BASE:
                 if not is_lea:
                     bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                rbase = GetRegBits(data[self.sib_pos], 0, rex, 0)
-                rindex = GetRegBits(data[self.sib_pos], 3, rex, 1)
-                scale = data[self.sib_pos] >> 6
+                rbase = val
+                rindex = ops[n + 1]
+                scale = ops[n + 2]
                 if rindex == 4:
                     out.append(_REG_NAMES[64][rbase])  # assumes no add override
                 else:
@@ -679,40 +725,43 @@ class Opcode:
                 if not is_lea:
                     bw = FindOpWidth("M", self.operands, self.format)
                     out.append(f"MEM{bw}")
-                rindex = GetRegBits(data[self.sib_pos], 3, rex, 1)
                 # TODO: handle special case where rindex == sp
-                scale = data[self.sib_pos] >> 6
-                out.append(_REG_NAMES[64][rindex])  # assumes no add override
-                out.append(str(1 << scale))
+                out.append(_REG_NAMES[64][val])  # assumes no add override
+                out.append(str(1 << ops[n + 1]))
             elif o is OK.SIB_INDEX:
                 pass
             elif o is OK.SIB_SCALE:
                 pass
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
-                r = GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0)
                 bw = 8 << (o - OK.BYTE_WITH_REG8)
-                out.append(_REG_NAMES[bw][r])
-            elif o is OK.IMM8:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 8):x}")
-            elif o is OK.IMM8_16:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 16):x}")
-            elif o is OK.IMM8_32:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 32):x}")
-            elif o is OK.IMM8_64:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 1, 64):x}")
-            elif o is OK.IMM32_64:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 4, 64):x}")
-            elif o is OK.IMM16:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 2, 16):x}")
-            elif o is OK.IMM32:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 4, 32):x}")
-            elif o is OK.IMM64:
-                out.append(f"0x{GetSInt(data[self.imm_pos:], 8, 64):x}")
-            elif o is OK.OFFABS8:
-                out.append(f"0x{GetSInt(data[self.offset_pos:], 1, None):x}")
-            elif o is OK.OFFABS32:
-                out.append(f"0x{GetSInt(data[self.offset_pos:], 4, None):x}")
+                out.append(_REG_NAMES[bw][val])
+            elif o in {OK.IMM8, OK.IMM8_16, OK.IMM8_32, OK.IMM8_64, OK.IMM16,
+                       OK.IMM32, OK.IMM64, OK.IMM32_64, OK.OFFABS8, OK.OFFABS32}:
+                out.append(f"0x{val:x}")
+            else:
+                assert False, f"Unsupported field {o}"
         return out
+
+
+_RELOC_TYPE_X64_NONE = 0  # avoid elf dependency
+
+
+@dataclasses.dataclass
+class Ins:
+    """X64 flavor of an Instruction
+
+    There can be at most one relocation associated with an Ins
+    """
+    opcode: Opcode
+    # Note the operands must have been pre-encoded with EncodeOperand
+    # Use MakeIns below is necessary
+    operands: List[int] = dataclasses.field(default_factory=list)
+    #
+    # Note the addend is store in `operands[reloc_pos]
+    reloc_symbol: str = ""
+    reloc_kind: int = _RELOC_TYPE_X64_NONE
+    reloc_pos = 0
+    is_local_sym = False
 
 
 _SUPPORTED_ENCODING_PARAMS = {
