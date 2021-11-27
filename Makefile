@@ -23,6 +23,7 @@ tests:
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
+	cd CpuX64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
@@ -78,7 +79,7 @@ lint:
 
 
 # --by-file
-CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGenA64|CodeGenC|CpuA32|CpuA64|Elf|Tools|Util'
+CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGen.*|Cpu.*|Elf|Tools|Util'
 
 #@ cloc - print lines of code stats
 #@

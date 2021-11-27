@@ -19,6 +19,7 @@ The project is very much "work in progress" and  currently consists of:
 * [Elf Support Lib](Elf/)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/) ((dis-) assembler for ARM64 instructions)
+* [X64 Support Lib](CpuX64/) ((dis-) assembler for X64-64 instructions - WIP)
 * [A32 Backend](CodeGenA32/) (code generator emitting ARM32 instructions)
 * [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
@@ -84,14 +85,17 @@ any work on these):
 * A large standard library with unicode and locale support. Those add a lot of 
   complexity and are better left to dedicated libraries.
  
-It is not clear if an [X86-64 backend](CpuX64/README.md) will fit into the 
-complexity budget, especially since X64-64 idiosyncrasies tend to leak 
-complexity into the generic layers. However, a backend
-targeting RISC V should be straight forward to implement [(see porting hints)](Docs/backend_porting.md).
+
 
 The IR optimizer currently does not use a full-blown Single Static Assigment
 (SSA) form. Instead it uses a [modified use-def chain approach](Docs/use_def.md)
 to get some of the benefits of SSA. 
+
+## Porting to other Architectures
+
+A port to X86-64 is currently WIP.
+
+Ports for more regular architectures, e.g. RISC V, should be straight forward to implement [(see porting hints)](Docs/backend_porting.md).
 
 ## Dependencies
 
