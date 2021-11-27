@@ -248,6 +248,7 @@ class SHIFT(enum.IntEnum):
 ############################################################
 @enum.unique
 class OK(enum.Enum):
+    """Operand Kind"""
     Invalid = 0
     # arm register
     REG_0_3 = 1
