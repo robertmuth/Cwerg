@@ -13,6 +13,7 @@ from typing import List
 
 # from CpuA32 import symbolic
 import CpuX64.opcode_tab as x64
+from CpuX64 import symbolic
 
 
 def Hexify(data) -> str:
@@ -44,6 +45,7 @@ NOP = {
     "66 0F 1F 84 00 00 00 00 00": "xchg",
     "66 2e 0f 1f 84 00 00 00 00 00": "xchg"
 }
+
 
 # data must be generated with: objdump -d  -M intel  --insn-width=12
 # and looks like:
@@ -77,8 +79,8 @@ def ProcessObjdumpFile(fin):
         data = [int(d, 16) for d in data_str.split()]
         if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
             data[0], data[1] = data[1], data[0]
-        opc = x64.FindMatchingOpcode(data)
-        if not opc:
+        ins = x64.Disassemble(data)
+        if not ins:
             print(f"BAD {line}", end="")
             bad[name] += 1
             continue
@@ -86,21 +88,23 @@ def ProcessObjdumpFile(fin):
         if "[rip+" in line:
             continue
 
-        assert name == opc.name
-        if opc.fields == [x64.OK.OFFPCREL32] or opc.fields == [x64.OK.OFFPCREL8]:
+        if ins.opcode.fields == [x64.OK.OFFPCREL32] or ins.opcode.fields == [x64.OK.OFFPCREL8]:
             continue
+
         expected_ops = ExtractObjdumpOps(ops_str)
-        actual_ops = opc.RenderOps(data, name in {"div", "idiv", "imul"})
+        # for some reason objdump suppressed the implicit operands for these
+        actual_name, actual_ops = symbolic.InsSymbolizeObjdumpCompat(ins, name in {"div", "idiv", "imul"})
+        assert name == actual_name
         if expected_ops != actual_ops:
             if True:
                 print(line)
                 print(f"EXPECTED: {expected_ops}")
                 print(f"ACTUAL:   {actual_ops}")
-                print(f"OPCODE: {opc}")
-                print(Hexify(opc.data))
-                print(Hexify(opc.mask))
+                print(f"OPCODE: {ins.opcode}")
+                print(Hexify(ins.opcode.data))
+                print(Hexify(ins.opcode.mask))
             mismatched[name] += 1
-            # exit()
+            exit()
 
         n += 1
     print(f"CHECKED: {n}   BAD: {sum(bad.values())}")

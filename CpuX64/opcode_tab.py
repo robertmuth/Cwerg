@@ -247,14 +247,14 @@ _REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 
 _REG_NAMES_8R = [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)]
 
-_REG_NAMES = {
+REG_NAMES = {
     8: _REG_NAMES_8R,  # note: this is wrong when there is no rex bytes
     16: [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)],
     32: [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)],
     64: [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)],
 }
 
-_XREG_NAMES = [f"xmm{r}" for r in range(16)]
+XREG_NAMES = [f"xmm{r}" for r in range(16)]
 
 
 def GetSInt(data, byte_width, bit_width):
@@ -628,7 +628,7 @@ class Opcode:
         else:
             assert False
 
-    def DisassembleOperands(self, data: int) -> List[int]:
+    def DisassembleOperands(self, data: List) -> List[int]:
         out = []
         rex = 0
         if (data[0] & 0xf0) == 0x40:
@@ -680,67 +680,16 @@ class Opcode:
                 out.append(GetSInt(data[self.offset_pos:], 4, None))
         return out
 
-    def RenderOps(self, data, skip_implicit):
-        ops = self.DisassembleOperands(data)
-        assert len(ops) == len(self.fields)
-        is_lea = self.name.startswith("lea")
-        out = []
-        for n, o in enumerate(self.fields):
-            if isinstance(o, str):
-                if not skip_implicit:
-                    out.append(o)
-                continue
-
-            val = ops[n]
-            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
-                bw = 8 << (o - OK.MODRM_RM_REG8)
-                out.append(_REG_NAMES[bw][val])
-            elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
-                out.append(_XREG_NAMES[val])
-            elif o is OK.MODRM_RM_BASE:
-                if not is_lea:
-                    bw = FindOpWidth("M", self.operands, self.format)
-                    out.append(f"MEM{bw}")
-                out.append(_REG_NAMES[64][val])  # assumes no add override
-            elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
-                bw = 8 << (o - OK.MODRM_REG8)
-                out.append(_REG_NAMES[bw][val])
-            elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
-                out.append(_XREG_NAMES[val])
-            elif o is OK.SIB_BASE:
-                if not is_lea:
-                    bw = FindOpWidth("M", self.operands, self.format)
-                    out.append(f"MEM{bw}")
-                rbase = val
-                rindex = ops[n + 1]
-                scale = ops[n + 2]
-                if rindex == 4:
-                    out.append(_REG_NAMES[64][rbase])  # assumes no add override
-                else:
-                    out.append(_REG_NAMES[64][rbase])  # assumes no add override
-                    out.append(_REG_NAMES[64][rindex])  # assumes no add override
-                    out.append(str(1 << scale))
-            elif o is OK.SIB_INDEX_AS_BASE:
-                if not is_lea:
-                    bw = FindOpWidth("M", self.operands, self.format)
-                    out.append(f"MEM{bw}")
-                # TODO: handle special case where rindex == sp
-                out.append(_REG_NAMES[64][val])  # assumes no add override
-                out.append(str(1 << ops[n + 1]))
-            elif o is OK.SIB_INDEX:
-                pass
-            elif o is OK.SIB_SCALE:
-                pass
-            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
-                bw = 8 << (o - OK.BYTE_WITH_REG8)
-                out.append(_REG_NAMES[bw][val])
-            elif o in {OK.IMM8, OK.IMM8_16, OK.IMM8_32, OK.IMM8_64, OK.IMM16,
-                       OK.IMM32, OK.IMM64, OK.IMM32_64, OK.OFFABS8, OK.OFFABS32}:
-                out.append(f"0x{val:x}")
-            else:
-                assert False, f"Unsupported field {o}"
-        return out
+    @classmethod
+    def FindOpcode(cls, data: List) -> Optional["Opcode"]:
+        rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
+        if (data[0] & 0xf0) == 0x40:
+            data = data[1:]
+        discriminant = int.from_bytes(data, "little")
+        for r in rules:
+            if (r.discriminant_mask & discriminant) == r.discriminant_data:
+                return r
+        return None
 
 
 _RELOC_TYPE_X64_NONE = 0  # avoid elf dependency
@@ -762,6 +711,20 @@ class Ins:
     reloc_kind: int = _RELOC_TYPE_X64_NONE
     reloc_pos = 0
     is_local_sym = False
+
+
+# def MakeIns(opcode: Opcode, operands: List[int]):
+#    return Ins(opcode, [EncodeOperand(opcode.fields[n], x) for n, x in enumerate(operands)])
+
+
+def Disassemble(data: List) -> Optional[Ins]:
+    opcode = Opcode.FindOpcode(data)
+    if opcode is None:
+        return None
+    operands = opcode.DisassembleOperands(data)
+    if operands is None:
+        return None
+    return Ins(opcode, operands)
 
 
 _SUPPORTED_ENCODING_PARAMS = {
@@ -947,7 +910,7 @@ def ExtractOps(s):
     return [clean(x) for x in s.split(",") if x]
 
 
-def OpcodeSanityCheck(opcodes: Dict[int, Opcode]):
+def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
     patterns = collections.defaultdict(list)
     for opcode in Opcode.Opcodes:
         patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
@@ -1064,17 +1027,6 @@ def LoadOpcodes(filename: str):
     tables = json.loads(data[start:end])
 
     CreateOpcodes(tables["instructions"], False)
-
-
-def FindMatchingOpcode(data) -> Optional[Opcode]:
-    rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
-    if (data[0] & 0xf0) == 0x40:
-        data = data[1:]
-    discriminant = int.from_bytes(data, "little")
-    for r in rules:
-        if (r.discriminant_mask & discriminant) == r.discriminant_data:
-            return r
-    return None
 
 
 LoadOpcodes("x86data.js")
