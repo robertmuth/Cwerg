@@ -865,6 +865,25 @@ def ExtractObjdumpOps(ops_str):
 
 
 # _SUPPORTED_OPCODES = {"lea"}
+def FingerPrintRawInstructions(data) -> int:
+    fp = []
+    i = 0
+    if (data[i] & 0xf0) == 0x40:
+        if (data[i] & 0xf8) == 0x48:
+            fp.append(0x48)
+        i += 1
+    if data[i] == 0x66:
+        fp.append(data[i])
+        i += 1
+    if data[i] == 0xf2 or data[i] == 0xf3:
+        fp.append(data[i])
+        i += 1
+    if data[i] == 0x0f:
+        fp.append(data[i])
+        i += 1
+    fp.append(data[i])
+    return int.from_bytes(fp, "little")
+
 
 def LoadOpcodes(filename: str):
     # This file is file https://github.com/asmjit/asmdb (see file comment)
@@ -880,60 +899,55 @@ def LoadOpcodes(filename: str):
     CreateOpcodes(tables["instructions"], False)
 
 
+def MakeFingerPrintLookupTable():
+    out =  collections.defaultdict(list)
+    for opc in Opcode.Opcodes:
+        assert isinstance(opc, Opcode)
+        fp = []
+        data = opc.data
+        mask = opc.mask
+        i = 0
+        if opc.rexw:
+            fp.append(0x48)
+        if data[i] == 0x66:
+            fp.append(0x66)
+            assert mask[i] == 0xff
+            i += 1
+        if data[i] == 0xf2 or data[i] == 0xf3:
+            fp.append(data[i])
+            assert mask[i] == 0xff
+            i += 1
+        if data[i] == 0x0f:
+            fp.append(data[i])
+            assert mask[i] == 0xff
+            i += 1
+
+        if mask[i] == 0xff:
+            fp.append(data[i])
+            out[int.from_bytes(fp, "little")].append(opc)
+        else:
+            assert mask[i] == 0xf8 and i == opc.byte_with_reg_pos, f"{opc.name} {data} {mask} {fp}"
+            fp.append(0)
+            assert mask[i] == 0xf8
+            for r in range(8):
+                fp[-1] = data[i] + r
+                out[int.from_bytes(fp, "little")].append(opc)
+    return out
+
+
 LoadOpcodes("x86data.js")
 print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
+HashTab = MakeFingerPrintLookupTable()
+
+if False:
+    for k, v in HashTab.items():
+        if v:
+            print(f"{k:10x} {len(v)}")
+
+
 
 if __name__ == "__main__":
-
-    HashTab = collections.defaultdict(list)
-    def MakeHashName(data):
-        i = 0
-        name = ""
-        if (data[0] & 0xf0) == 0x40:
-            if (data[0] & 8) == 8:
-                name += ".rexw"
-            i += 1
-        if data[i] == 0x66:
-            name += ".66"
-            i += 1
-        if data[i] == 0xf2 or data[i] == 0xf3:
-            name += f".{data[i]:02x}"
-            i += 1
-        if data[i] == 0x0f:
-            name += ".0f"
-            i += 1
-        return name + f".{data[i]:02x}"
-
-
-    for opc in Opcode.Opcodes:
-        assert isinstance(opc, Opcode)
-        name = ""
-        data = opc.data
-        mask = opc.data
-        i = 0
-        if opc.rexw:
-            name += ".rexw"
-        if data[i] == 0x66:
-            name += ".66"
-            i += 1
-        if data[i] == 0xf2 or data[i] == 0xf3:
-            name += f".{data[i]:02x}"
-            i += 1
-        if data[i] == 0x0f:
-            name += ".0f"
-            i += 1
-
-        if i == opc.byte_with_reg_pos:
-            for r in range(8):
-                HashTab[name + f".{data[i] + r:02x}"].append(opc)
-        else:
-            HashTab[name + f".{data[i]:02x}"].append(opc)
-
-    if False:
-        for k, v in HashTab.items():
-            if v:
-                print(f"{k:10} {len(v)}")
 
     # data must be generated with: objdump -d  -M intel  --insn-width=12
     # and looks like:
@@ -961,15 +975,15 @@ if __name__ == "__main__":
         data = [int(d, 16) for d in data_str.split()]
         if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
             data[0], data[1] = data[1], data[0]
-        candidates = HashTab[MakeHashName(data)]
+        candidates = HashTab[FingerPrintRawInstructions(data)]
         # print (addr_str, data_str, ins_str)
         if not candidates:
-            print(f"BAD [{MakeHashName(data)}]  {line}", end="")
+            print(f"BAD [{FingerPrintRawInstructions(data)}]  {line}", end="")
             bad[name] += 1
             continue
         opc = FindMatchingRule(data, candidates)
         if not opc:
-            print(f"BAD [{MakeHashName(data)}]  {line}", end="")
+            print(f"BAD [{FingerPrintRawInstructions(data)}]  {line}", end="")
             bad[name] += 1
             continue
 
