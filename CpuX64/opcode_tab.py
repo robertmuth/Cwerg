@@ -429,8 +429,9 @@ class Opcode:
     forces new Opcodes.
     """
 
-    Opcodes = []
+    Opcodes: List["Opcode"] = []
     OpcodesByFP = collections.defaultdict(list)
+    OpcodesByName: Dict[str, "Opcoode"] = {}
 
     def __init__(self, name: str, variant: str, operands: List, format: str):
         Opcode.Opcodes.append(self)
@@ -461,15 +462,25 @@ class Opcode:
         return f"{self.name}.{self.variant}  [{ops_str}] {self.format}   [{fields_str}]  mask:[{mask}] data:[{data}]"
 
     def Finalize(self):
-        if self.operands and "xmm" not in self.operands[0] and self.format[0] != "I":
-            bw = GetOpWidth(self.operands[0])
-            self.variant = f"{bw}" + self.variant
+        if self.operands:
+            if self.name in {"movsx", "movzx", "cvtsi2sd", "cvtsi2ss"}:
+                bw = GetOpWidth(self.operands[1])
+                self.variant = f"_{bw}" + self.variant
+            if "xmm" not in self.operands[0] and self.format[0] != "I":
+                bw = GetOpWidth(self.operands[0])
+                self.variant = f"{bw}" + self.variant
+
+
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
+        fullname = self.name + "." + self.variant
+        assert fullname not in Opcode.OpcodesByName, f"{fullname}"
+        Opcode.OpcodesByName[fullname] = self
         assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
         assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
-        self.discriminant_data = self.discriminant_mask & int.from_bytes(self.data[0:6], "little")
+        self.discriminant_data = (self.discriminant_mask &
+                                  int.from_bytes(self.data[0:6], "little"))
         expected_len = len(self.operands)
         if self.modrm_pos >= 0:
             if OK.OFFABS8 in self.fields or OK.OFFABS32 in self.fields:
@@ -506,13 +517,14 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        self.variant += "_r"
         bw = FindOpWidth("R", self.operands, self.format)
         if IsOpXmm("R", self.operands, self.format):
+            self.variant += "_x"
             self.fields.append({32: OK.MODRM_XREG32,
                                 64: OK.MODRM_XREG64,
                                 128: OK.MODRM_XREG128}[bw])
         else:
+            self.variant += "_r"
             bw = FindOpWidth("R", self.operands, self.format)
             self.fields.append({8: OK.MODRM_REG8,
                                 16: OK.MODRM_REG16,
@@ -520,7 +532,6 @@ class Opcode:
                                 64: OK.MODRM_REG64}[bw])
 
     def AddRegOp(self, ext: Optional[int]):
-        self.variant += "_r"
         self.modrm_pos = len(self.data)
         mask = 0xc0
         data = (3 << 6)
@@ -531,10 +542,12 @@ class Opcode:
         self.data.append(data)
         bw = FindOpWidth("M", self.operands, self.format)
         if IsOpXmm("M", self.operands, self.format):
+            self.variant += "_mx"
             self.fields.append({32: OK.MODRM_RM_XREG32,
                                 64: OK.MODRM_RM_XREG64,
                                 128: OK.MODRM_RM_XREG128}[bw])
         else:
+            self.variant += "_mr"
             self.fields.append({8: OK.MODRM_RM_REG8,
                                 16: OK.MODRM_RM_REG16,
                                 32: OK.MODRM_RM_REG32,
@@ -545,13 +558,13 @@ class Opcode:
         if mod == 0:
             pass
         elif mod == 1:
-            self.variant += "_off8"
+            self.variant += "8"
             self.offset_pos = len(self.data)
             self.fields.append(OK.OFFABS8)
             self.mask += [0]
             self.data += [0]
         elif mod == 2:
-            self.variant += "_off32"
+            self.variant += "32"
             self.offset_pos = len(self.data)
             self.fields.append(OK.OFFABS32)
             self.mask += [0, 0, 0, 0]
@@ -574,19 +587,19 @@ class Opcode:
             self.data.append(data)
             self.sib_pos = len(self.data)
             if mem_mode == MEM_MODE.SIB:
-                self.variant += "_sib"
+                self.variant += "_mbis"
                 self.mask.append(0)
                 self.data.append(0)
                 self.fields += [OK.SIB_BASE, OK.SIB_INDEX, OK.SIB_SCALE]
             else:
-                self.variant += "_sib_bp_disp"
+                self.variant += "_mi"
                 self.mask.append(0x07)
                 self.data.append(0x05)
                 self.fields += [OK.SIB_INDEX_AS_BASE, OK.SIB_SCALE]
                 assert mod == 0
                 mod = 2
         elif mem_mode == MEM_MODE.RIP_DISP:
-            self.variant += "_rip_disp"
+            self.variant += "_mpc"
             mask |= 0x7
             data |= 0x5
             self.mask.append(mask)
@@ -595,7 +608,7 @@ class Opcode:
             assert mod == 0
             mod = 2
         else:
-            self.variant += "_base"
+            self.variant += "_mB"
             self.mask.append(mask)
             self.data.append(data)
             self.fields.append(OK.MODRM_RM_BASE)
@@ -1069,18 +1082,18 @@ def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
                 c = a.discriminant_mask & b.discriminant_mask
                 if (a.discriminant_data & c) == (b.discriminant_data & c):
                     assert a.name == b.name
-                    if a.variant.replace("sib", "base") == b.variant:
+                    if a.variant.replace("mbis", "mB") == b.variant:
                         # this is ok sib requires a special bit pattern in the
                         # modrm byte
                         continue
-                    if a.variant.replace("sib_bp_disp_off32", "base") == b.variant:
+                    if a.variant.replace("mi32", "mB") == b.variant:
                         # same as above
                         continue
-                    if a.variant.replace("sib_bp_disp_off32", "sib") == b.variant:
+                    if a.variant.replace("mi32", "mbis") == b.variant:
                         # this is ok as the bp_disp_off32 requires a special
                         # bit pattern in the sib byte
                         continue
-                    if a.variant.replace("rip_disp_off32", "base") == b.variant:
+                    if a.variant.replace("mpc32", "mB") == b.variant:
                         # this is ok, rip_disp requires a special bit pattern in the
                         # modrm byte
                         continue
@@ -1136,14 +1149,19 @@ def CreateOpcodes(instructions: List, verbose: bool):
         ops = ops.replace("<", "").replace(">", "").replace(", ", ",")
         ops_orig = [x for x in ops.split(",") if x]
         written_ops = [x for x in ops_orig if x[0:2] in {"X:", "x:", "W:", "w:"}]
-        assert name in _OPCODES_WITH_MULTIPLE_REG_WRITE or len(written_ops) <= 1, f"{name}"
+        assert len(written_ops) <= 1 or name in _OPCODES_WITH_MULTIPLE_REG_WRITE, f"{name}"
         ops = ExtractOps(ops)
         name = name.split("/")[0]
         if name not in SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
             continue
         if SkipInstruction(name, format, ops):
             continue
-        # hack
+        # hack to disambiguate:
+        # movq, "W:xmm[63:0], r64[63:0]/m64", "RM", "REX.W 66 0F 6E /r", "SSE2 X64"
+        # movq, "W:xmm[63:0], xmm[63:0]/m64", "RM", "F3 0F 7E /r", "SSE2"
+        if name == "movq" and ops[1] == "xmm[63:0]/m64":
+            name += "2"
+        # hack: the /r value is ignored by the CPU, assume it is zero
         if name.startswith("set") and "/r" in encoding:
             encoding = encoding.replace("/r", "/0")
 
