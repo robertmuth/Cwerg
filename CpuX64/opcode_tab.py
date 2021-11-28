@@ -26,6 +26,8 @@ MAX_FIELD_LENGTH = 6
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
 # coverage is > 95% of all opcodes commonly found in x86-64 executable.
+# Many others can likely be addded by just adding the name here without additional
+# work.
 SUPPORTED_OPCODES = {
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
@@ -122,6 +124,8 @@ SUPPORTED_OPCODES = {
     # "movsd",
     # "movss",
 }
+
+# this information is not yet used
 _OPCODES_WITH_MULTIPLE_REG_WRITE = {
     "div", "idiv", "imul", "mul", "mulx",
     "cmpxchg8b", "cmpxchg16b", "cmpxchg32b",
@@ -155,7 +159,7 @@ _IMPLICIT_OPERANDS = {
     "al", "ax", "eax", "rax",
     "dx", "edx", "rdx",  #
     "cl",  #
-    "1",
+    "1",   # for shifts
 }
 
 # not used yet
@@ -204,6 +208,8 @@ _UNSUPPORTED_OPERANDS = {
     "sreg",
 }
 
+# if these instructions have an immediate of size X but the register size is Y,
+# the immediate will be signed extended to size Y if  X < y.
 _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION = {
     "and", "or", "sub", "cmp", "add", "xor", "imul", "mov", "test",
 }
@@ -244,12 +250,12 @@ _SUPPORTED_FORMATS = {
     "xO",  # xchg
 }
 
+# Note. we do not support "h" registers
 _REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 
-_REG_NAMES_8R = [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)]
-
 REG_NAMES = {
-    8: _REG_NAMES_8R,  # note: this is wrong when there is no rex bytes
+    # this assumes we do not use "h" registers
+    8:  [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)],
     16: [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)],
     32: [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)],
     64: [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)],
@@ -304,7 +310,7 @@ def GetOpWidth(op):
         assert False, f"{op}"
 
 
-def FindOpWidth(c: str, ops: List, format: str) -> bool:
+def FindSpecificOpWidth(c: str, ops: List, format: str) -> bool:
     pos = format.find(c)
     assert pos >= 0
     return GetOpWidth(ops[pos])
@@ -505,7 +511,7 @@ class Opcode:
 
     def AddByteWithReg(self, b: int):
         self.variant += "_r"
-        bw = FindOpWidth("O", self.operands, self.format)
+        bw = FindSpecificOpWidth("O", self.operands, self.format)
         self.byte_with_reg_pos = len(self.data)
         self.fields.append({8: OK.BYTE_WITH_REG8,
                             16: OK.BYTE_WITH_REG16,
@@ -517,7 +523,7 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
-        bw = FindOpWidth("R", self.operands, self.format)
+        bw = FindSpecificOpWidth("R", self.operands, self.format)
         if IsOpXmm("R", self.operands, self.format):
             self.variant += "_x"
             self.fields.append({32: OK.MODRM_XREG32,
@@ -525,7 +531,7 @@ class Opcode:
                                 128: OK.MODRM_XREG128}[bw])
         else:
             self.variant += "_r"
-            bw = FindOpWidth("R", self.operands, self.format)
+            bw = FindSpecificOpWidth("R", self.operands, self.format)
             self.fields.append({8: OK.MODRM_REG8,
                                 16: OK.MODRM_REG16,
                                 32: OK.MODRM_REG32,
@@ -540,7 +546,7 @@ class Opcode:
             data |= (ext << 3)
         self.mask.append(mask)
         self.data.append(data)
-        bw = FindOpWidth("M", self.operands, self.format)
+        bw = FindSpecificOpWidth("M", self.operands, self.format)
         if IsOpXmm("M", self.operands, self.format):
             self.variant += "_mx"
             self.fields.append({32: OK.MODRM_RM_XREG32,
@@ -712,6 +718,7 @@ class Opcode:
                 out.append(data[self.sib_pos] >> 6)
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
+            # TODO: simplify this to just use non-truncated integers
             elif o is OK.IMM8:
                 out.append(GetSInt(data[self.imm_pos:], 1, 8))
             elif o is OK.IMM8_16:

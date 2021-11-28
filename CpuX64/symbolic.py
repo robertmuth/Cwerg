@@ -18,7 +18,7 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
 
     def EmitMemSize():
         if not is_lea:
-            w = x64.FindOpWidth("M", ins.opcode.operands, ins.opcode.format)
+            w = x64.FindSpecificOpWidth("M", ins.opcode.operands, ins.opcode.format)
             out.append(f"MEM{w}")
 
     out = []
