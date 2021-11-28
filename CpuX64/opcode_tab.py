@@ -36,19 +36,19 @@ SUPPORTED_OPCODES = {
     "sar", "shr", "shl", "ror", "rol",  #
     #
     "mov",  # includes movabs
-    "movsx", # sign extension
+    "movsx",  # sign extension
     "movzx",  # zero extension
     "movq",
-    "movsxd", # sign extension
-    "movaps", "movapd", "movdqa", # algned packed
-    "movups", "movupd", "movdqu", # unaligned packed
+    "movsxd",  # sign extension
+    "movaps", "movapd", "movdqa",  # algned packed
+    "movups", "movupd", "movdqu",  # unaligned packed
     #
     "minss", "minsd",
     "maxss", "maxsd",
     "sqrtss", "sqrtsd",
     ""
     "neg", "not", "inc", "neg",  #
-    "pxor",  "por", "pand", #
+    "pxor", "por", "pand",  #
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
@@ -278,9 +278,11 @@ def IsOpXmm(c: str, ops: List, format: str) -> bool:
 def GetOpWidth(op):
     if op in {"al"}:
         return 8
-    elif op in {"eax"}:
+    elif op in {"ax", "dx"}:
+        return 16
+    elif op in {"eax", "edx"}:
         return 32
-    elif op in {"rax"}:
+    elif op in {"rax", "rdx"}:
         return 64
     elif op.endswith("128"):
         return 128
@@ -355,13 +357,6 @@ class OK(enum.IntEnum):
     MODRM_XREG128 = 41
 
 
-def GetRegBits(data: int, data_bit_pos, rex: int, rex_bit_pos: int) -> int:
-    r = (data >> data_bit_pos) & 0x7
-    if rex:
-        r |= ((rex >> rex_bit_pos) & 1) << 3
-    return r
-
-
 def FingerPrintRawInstructions(data) -> int:
     fp = []
     i = 0
@@ -420,7 +415,7 @@ def FingerPrintOpcode(opc: "Opcode") -> List[int]:
 class MEM_MODE(enum.Enum):
     NONE = 1
     SIB = 2
-    BP_DISP = 3
+    SIB_BP_DISP = 3
     RIP_DISP = 4
 
 
@@ -466,6 +461,11 @@ class Opcode:
         return f"{self.name}.{self.variant}  [{ops_str}] {self.format}   [{fields_str}]  mask:[{mask}] data:[{data}]"
 
     def Finalize(self):
+        if self.operands and "xmm" not in self.operands[0] and self.format[0] != "I":
+            bw = GetOpWidth(self.operands[0])
+            self.variant = f"{bw}" + self.variant
+        if self.variant.startswith("_"):
+            self.variant = self.variant[1:]
         assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
         assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
@@ -482,13 +482,18 @@ class Opcode:
 
     def AddRexW(self):
         self.rexw = True
-        self.variant += "_w"
+
+    def AddImplicits(self, implicits: List):
+        for i in implicits:
+            self.fields.append(i)
+            self.variant += "_" + i
 
     def AddByte(self, b: int):
         self.data.append(b)
         self.mask.append(0xff)
 
     def AddByteWithReg(self, b: int):
+        self.variant += "_r"
         bw = FindOpWidth("O", self.operands, self.format)
         self.byte_with_reg_pos = len(self.data)
         self.fields.append({8: OK.BYTE_WITH_REG8,
@@ -501,6 +506,7 @@ class Opcode:
         assert (b & 0xf8) == b
 
     def AddReg(self):
+        self.variant += "_r"
         bw = FindOpWidth("R", self.operands, self.format)
         if IsOpXmm("R", self.operands, self.format):
             self.fields.append({32: OK.MODRM_XREG32,
@@ -514,6 +520,7 @@ class Opcode:
                                 64: OK.MODRM_REG64}[bw])
 
     def AddRegOp(self, ext: Optional[int]):
+        self.variant += "_r"
         self.modrm_pos = len(self.data)
         mask = 0xc0
         data = (3 << 6)
@@ -560,7 +567,7 @@ class Opcode:
             assert ext <= 7
             mask |= 0x38
             data |= ext << 3
-        if mem_mode == MEM_MODE.SIB or mem_mode == MEM_MODE.BP_DISP:
+        if mem_mode == MEM_MODE.SIB or mem_mode == MEM_MODE.SIB_BP_DISP:
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
@@ -579,6 +586,7 @@ class Opcode:
                 assert mod == 0
                 mod = 2
         elif mem_mode == MEM_MODE.RIP_DISP:
+            self.variant += "_rip_disp"
             mask |= 0x7
             data |= 0x5
             self.mask.append(mask)
@@ -587,6 +595,7 @@ class Opcode:
             assert mod == 0
             mod = 2
         else:
+            self.variant += "_base"
             self.mask.append(mask)
             self.data.append(data)
             self.fields.append(OK.MODRM_RM_BASE)
@@ -597,6 +606,7 @@ class Opcode:
         size = 0
         if op == "ib":
             if self.name == "push" and self.format == "I":
+                self.variant += "64"
                 self.fields.append(OK.IMM8_64)
             elif self.name in _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION:
                 bw = GetOpWidth(self.operands[0])
@@ -604,21 +614,28 @@ class Opcode:
                                     32: OK.IMM8_32, 64: OK.IMM8_64}[bw])
             else:
                 self.fields.append(OK.IMM8)
+            self.variant += "_imm8"
             size = 1
         elif op == "iw":
+            if self.name == "push" and self.format == "I":
+                self.variant += "16"
             self.fields.append(OK.IMM16)
+            self.variant += "_imm16"
             size = 2
         elif op == "id":
             if self.name == "push" and self.format == "I":
+                self.variant += "64"
                 self.fields.append(OK.IMM32_64)
             elif self.name in _OPCODES_WITH_IMMEDIATE_SIGN_EXTENSION:
                 bw = GetOpWidth(self.operands[0])
                 self.fields.append({32: OK.IMM32, 64: OK.IMM32_64}[bw])
             else:
                 self.fields.append(OK.IMM32)
+            self.variant += "_imm32"
             size = 4
         elif op == "iq":
             self.fields.append(OK.IMM64)
+            self.variant += "_imm64"
             size = 8
         else:
             assert False
@@ -644,6 +661,14 @@ class Opcode:
         if (data[0] & 0xf0) == 0x40:
             rex = data[0]
             data = data[1:]
+
+        def GetRegBits(offset: int, data_bit_pos, rex_bit_pos: int) -> int:
+            nonlocal rex
+            r = (data[offset] >> data_bit_pos) & 0x7
+            if rex:
+                r |= ((rex >> rex_bit_pos) & 1) << 3
+            return r
+
         for o in self.fields:
             if isinstance(o, str):
                 out.append(0)
@@ -651,29 +676,29 @@ class Opcode:
 
             assert isinstance(o, OK), f"unexpected {o} {type(o)}"
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
-                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+                out.append(GetRegBits(self.modrm_pos, 0, 0))
                 if o is OK.MODRM_RM_REG8 and 4 <= out[-1] <= 7:
                     assert rex
             elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
-                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+                out.append(GetRegBits(self.modrm_pos, 0, 0))
             elif o is OK.MODRM_RM_BASE:
-                out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+                out.append(GetRegBits(self.modrm_pos, 0, 0))
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
-                out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+                out.append(GetRegBits(self.modrm_pos, 3, 2))
                 if o is OK.MODRM_REG8 and 4 <= out[-1] <= 7:
                     assert rex
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
-                out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+                out.append(GetRegBits(self.modrm_pos, 3, 2))
             elif o is OK.RIP_BASE:
                 out.append(0)  # dummy
             elif o is OK.SIB_BASE:
-                out.append(GetRegBits(data[self.sib_pos], 0, rex, 0))
+                out.append(GetRegBits(self.sib_pos, 0, 0))
             elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
-                out.append(GetRegBits(data[self.sib_pos], 3, rex, 1))
+                out.append(GetRegBits(self.sib_pos, 3, 1))
             elif o is OK.SIB_SCALE:
                 out.append(data[self.sib_pos] >> 6)
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
-                out.append(GetRegBits(data[self.byte_with_reg_pos], 0, rex, 0))
+                out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
             elif o is OK.IMM8:
                 out.append(GetSInt(data[self.imm_pos:], 1, 8))
             elif o is OK.IMM8_16:
@@ -859,7 +884,7 @@ _RE_BYTE = re.compile("^[0-9A-F][0-9A-F]$")
 _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
 _SIB_MOD_COMBOS = [
-    (0, MEM_MODE.BP_DISP), (0, MEM_MODE.RIP_DISP),
+    (0, MEM_MODE.SIB_BP_DISP), (0, MEM_MODE.RIP_DISP),
     (0, MEM_MODE.SIB), (0, MEM_MODE.NONE),
     (1, MEM_MODE.SIB), (1, MEM_MODE.NONE),
     (2, MEM_MODE.SIB), (2, MEM_MODE.NONE),
@@ -916,9 +941,9 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
             opc.AddByte(int(x, 16))
         elif x.startswith("/"):
             ext = int(x[1:])
-            opc.fields += before
+            opc.AddImplicits(before)
             opc.AddRegOp(ext)
-            opc.fields += after
+            opc.AddImplicits(after)
         elif x in {"ib", "iw", "id", "iq"}:
             opc.AddImmOp(x)
         else:
@@ -934,9 +959,9 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
                 opc.AddByte(int(x, 16))
             elif x.startswith("/"):
                 ext = int(x[1:])
-                opc.fields += before
+                opc.AddImplicits(before)
                 opc.AddMemOp(sib_mode, mod, ext=ext)
-                opc.fields += after
+                opc.AddImplicits(after)
             elif x in {"ib", "iw", "id", "iq"}:
                 opc.AddImmOp(x)
             else:
@@ -993,15 +1018,15 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
             if x == "REX.W":
                 opc.AddRexW()
             elif _RE_BYTE_WITH_REG.match(x):
-                opc.fields += before
+                opc.AddImplicits(before)
                 opc.AddByteWithReg(int(x[0:2], 16))
-                opc.fields += after
+                opc.AddImplicits(after)
             elif _RE_BYTE.match(x):
                 opc.AddByte(int(x, 16))
             elif x in {"ib", "iw", "id", "iq"}:
-                opc.fields += before
+                opc.AddImplicits(before)
                 opc.AddImmOp(x)
-                opc.fields += after
+                opc.AddImplicits(after)
             else:
                 assert False
     elif format == "D":
@@ -1044,16 +1069,20 @@ def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
                 c = a.discriminant_mask & b.discriminant_mask
                 if (a.discriminant_data & c) == (b.discriminant_data & c):
                     assert a.name == b.name
-                    if a.variant.replace("_sib", "") == b.variant:
+                    if a.variant.replace("sib", "base") == b.variant:
                         # this is ok sib requires a special bit pattern in the
                         # modrm byte
                         continue
-                    if a.variant.replace("_sib_bp_disp_off32", "") == b.variant:
+                    if a.variant.replace("sib_bp_disp_off32", "base") == b.variant:
                         # same as above
                         continue
-                    if a.variant.replace("_bp_disp_off32", "") == b.variant:
+                    if a.variant.replace("sib_bp_disp_off32", "sib") == b.variant:
                         # this is ok as the bp_disp_off32 requires a special
                         # bit pattern in the sib byte
+                        continue
+                    if a.variant.replace("rip_disp_off32", "base") == b.variant:
+                        # this is ok, rip_disp requires a special bit pattern in the
+                        # modrm byte
                         continue
 
                     print(a)
