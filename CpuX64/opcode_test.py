@@ -93,9 +93,7 @@ def ProcessObjdumpFile(fin):
         expected_ops = ExtractObjdumpOps(ops_str)
         # for some reason objdump suppressed the implicit operands for these
         actual_name, actual_ops = symbolic.InsSymbolizeObjdumpCompat(ins, name in {"div", "idiv", "imul"})
-        if actual_name == "movq2":
-            actual_name = "movq"
-        assert name == actual_name
+        assert name == actual_name, f"{name} vs {actual_name}"
         if name == "lea" and expected_ops[-1] != actual_ops[-1]:
             assert expected_ops[-1].startswith("0xffffffff")
             v = int(expected_ops[-1][2:], 16) - (1 << 64)

@@ -476,6 +476,11 @@ class Opcode:
                 bw = GetOpWidth(self.operands[0])
                 self.variant = f"{bw}" + self.variant
 
+        # hack to disambiguate:
+        # movq, "W:xmm[63:0], r64[63:0]/m64", "RM", "REX.W 66 0F 6E /r", "SSE2 X64"
+        # movq, "W:xmm[63:0], xmm[63:0]/m64", "RM", "F3 0F 7E /r", "SSE2"
+        if self.name == "movq" and self.operands[1] == "xmm[63:0]/m64":
+            self.variant += "_alt"
 
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
@@ -1163,11 +1168,7 @@ def CreateOpcodes(instructions: List, verbose: bool):
             continue
         if SkipInstruction(name, format, ops):
             continue
-        # hack to disambiguate:
-        # movq, "W:xmm[63:0], r64[63:0]/m64", "RM", "REX.W 66 0F 6E /r", "SSE2 X64"
-        # movq, "W:xmm[63:0], xmm[63:0]/m64", "RM", "F3 0F 7E /r", "SSE2"
-        if name == "movq" and ops[1] == "xmm[63:0]/m64":
-            name += "2"
+
         # hack: the /r value is ignored by the CPU, assume it is zero
         if name.startswith("set") and "/r" in encoding:
             encoding = encoding.replace("/r", "/0")
