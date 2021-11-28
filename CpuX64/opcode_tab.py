@@ -319,18 +319,18 @@ class OK(enum.IntEnum):
     SIB_SCALE = 5
     SIB_INDEX = 6
     SIB_BASE = 7
+    SIB_INDEX_AS_BASE = 8
     #
-    IMM8 = 8
-    IMM16 = 9
-    IMM32 = 10
-    OFFPCREL8 = 11
-    OFFPCREL32 = 12
+    IMM8 = 10
+    IMM16 = 11
+    IMM32 = 12
+    OFFPCREL8 = 13
+    OFFPCREL32 = 14
     IMM8_16 = 17
     IMM8_32 = 18
     IMM8_64 = 19
     IMM32_64 = 20
     IMM64 = 21
-    SIB_INDEX_AS_BASE = 22
     #
     BYTE_WITH_REG8 = 24
     BYTE_WITH_REG16 = 25
@@ -367,7 +367,6 @@ IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
     OK.IMM8_64: (8, 64),
     OK.IMM32_64: (32, 64),
     OK.IMM64: (64, 64),
-
 }
 
 OFF_TO_SIZE: Dict[OK, Tuple[int, int]] = {
@@ -437,7 +436,7 @@ class MEM_MODE(enum.Enum):
     NONE = 1
     SIB = 2
     SIB_BP_DISP = 3
-    RIP_DISP = 4
+    RIP_DISP = 5
 
 
 class Opcode:
@@ -606,11 +605,10 @@ class Opcode:
             assert ext <= 7
             mask |= 0x38
             data |= ext << 3
-        if mem_mode == MEM_MODE.SIB or mem_mode == MEM_MODE.SIB_BP_DISP:
-            mask |= 0x7
-            data |= 0x4
-            self.mask.append(mask)
-            self.data.append(data)
+        if mem_mode in {MEM_MODE.SIB, MEM_MODE.SIB_BP_DISP}:
+            # we need a sib byte
+            self.mask.append(mask | 0x7)
+            self.data.append(data | 0x4)
             self.sib_pos = len(self.data)
             if mem_mode == MEM_MODE.SIB:
                 self.variant += "_mbis"
@@ -618,6 +616,7 @@ class Opcode:
                 self.data.append(0)
                 self.fields += [OK.SIB_BASE, OK.SIB_INDEX, OK.SIB_SCALE]
             else:
+                # fix base at 5
                 self.variant += "_mi"
                 self.mask.append(0x07)
                 self.data.append(0x05)
@@ -626,10 +625,8 @@ class Opcode:
                 mod = 2
         elif mem_mode == MEM_MODE.RIP_DISP:
             self.variant += "_mpc"
-            mask |= 0x7
-            data |= 0x5
-            self.mask.append(mask)
-            self.data.append(data)
+            self.mask.append(mask | 0x7)
+            self.data.append(data | 0x5)
             self.fields += [OK.RIP_BASE]
             assert mod == 0
             mod = 2
@@ -740,6 +737,7 @@ class Opcode:
                 out.append(GetRegBits(self.sib_pos, 0, 0))
             elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
                 out.append(GetRegBits(self.sib_pos, 3, 1))
+                assert o != OK.SIB_INDEX_AS_BASE or out[-1] != 0x4
             elif o is OK.SIB_SCALE:
                 out.append(data[self.sib_pos] >> 6)
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
@@ -1190,11 +1188,10 @@ if __name__ == "__main__":
     for opc in Opcode.Opcodes:
         if last_name != opc.name:
             print()
-            print(opc.name)
             last_name = opc.name
         fields_str = ' '.join([str(f) for f in opc.fields])
         ops_str = ' '.join(opc.operands)
-        print(f"{opc.variant:20} {ops_str:30} {fields_str}")
+        print(f"{opc.name}.{opc.variant:20} {ops_str:30} {fields_str}")
     if False:
         for k, v in _OPCODES_BY_FP.items():
             if v:

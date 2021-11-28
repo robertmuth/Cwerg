@@ -30,6 +30,7 @@ Unsupported:
 * registers ah, bh, ch, dh 
 * MMX(2), AVX instructions 
 * Rep prefix 
+* sib addressing mode where i=0x4 is handled like a regular sib addressing mode 
 
 Planned:
 
