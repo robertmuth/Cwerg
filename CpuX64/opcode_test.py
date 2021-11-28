@@ -84,10 +84,6 @@ def ProcessObjdumpFile(fin):
             bad[name] += 1
             continue
 
-        # TODO: add support
-        if "[rip+" in line:
-            continue
-
         data2 = x64.Assemble(ins)
         assert data == data2, f"{line}: {Hexify(data)} vs {Hexify(data2)} {ins.opcode}"
 
@@ -98,6 +94,10 @@ def ProcessObjdumpFile(fin):
         # for some reason objdump suppressed the implicit operands for these
         actual_name, actual_ops = symbolic.InsSymbolizeObjdumpCompat(ins, name in {"div", "idiv", "imul"})
         assert name == actual_name
+        if name == "lea" and expected_ops[-1] != actual_ops[-1]:
+            assert expected_ops[-1].startswith("0xffffffff")
+            v = int(expected_ops[-1][2:], 16) - (1 << 64)
+            expected_ops[-1] = f"0x{v:x}"
         if expected_ops != actual_ops:
             if True:
                 print(line)
@@ -107,7 +107,7 @@ def ProcessObjdumpFile(fin):
                 print(Hexify(ins.opcode.data))
                 print(Hexify(ins.opcode.mask))
             mismatched[name] += 1
-            exit()
+            #exit()
 
         n += 1
     print(f"CHECKED: {n}   BAD: {sum(bad.values())}")

@@ -43,6 +43,9 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
             out.append(x64.REG_NAMES[bw][val])
         elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
             out.append(x64.XREG_NAMES[val])
+        elif o is OK.RIP_BASE:
+            EmitMemSize()
+            out.append("rip")
         elif o is OK.SIB_BASE:
             EmitMemSize()
             rindex = ins.operands[n + 1]

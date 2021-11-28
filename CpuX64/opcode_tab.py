@@ -36,29 +36,30 @@ SUPPORTED_OPCODES = {
     "sar", "shr", "shl", "ror", "rol",  #
     #
     "mov",  # includes movabs
-    "movsx",  #
-    "movzx",  #
+    "movsx", # sign extension
+    "movzx",  # zero extension
     "movq",
-    "movsxd", "movsx",
-    "movaps", "movapd", "movups", "movdqu", "movdqa",
+    "movsxd", # sign extension
+    "movaps", "movapd", "movdqa", # algned packed
+    "movups", "movupd", "movdqu", # unaligned packed
     #
     "minss", "minsd",
     "maxss", "maxsd",
     "sqrtss", "sqrtsd",
     ""
-    "neg", "inc", "neg",  #
-    "pxor",  #
+    "neg", "not", "inc", "neg",  #
+    "pxor",  "por", "pand", #
     "cvtss2sd", "cvtss2si",  #
     "cvtsd2ss", "cvtsd2si",  #
     "cvtsi2ss", "cvtsi2sd",  #
     "cvttss2si", "cvttsd2si",
     #
     "test", "cmp",  #
+    "ucomiss", "ucomisd", "comisd", "comiss",  # comapre scalar
     "lea",  #
     "xchg",
     "popcnt", "tzcnt", "lzcnt",  #
     "pop", "push",  #
-    "ucomiss", "ucomisd", "comiss",
     #
     "call", "ret", "syscall", "endbr64",
     "jmp",
@@ -310,6 +311,7 @@ def FindOpWidth(c: str, ops: List, format: str) -> bool:
 @enum.unique
 class OK(enum.IntEnum):
     """Operand Kind"""
+    RIP_BASE = 1
     MODRM_RM_BASE = 2
     OFFABS8 = 3
     OFFABS32 = 4
@@ -415,10 +417,11 @@ def FingerPrintOpcode(opc: "Opcode") -> List[int]:
 
 
 @enum.unique
-class SIB_MODE(enum.Enum):
-    NO = 1
-    YES = 2
+class MEM_MODE(enum.Enum):
+    NONE = 1
+    SIB = 2
     BP_DISP = 3
+    RIP_DISP = 4
 
 
 class Opcode:
@@ -547,8 +550,7 @@ class Opcode:
             self.mask += [0, 0, 0, 0]
             self.data += [0, 0, 0, 0]
 
-    def AddMemOp(self, sib_mode: SIB_MODE, mod: int, ext: int = -1):
-        # TODO: pcrel (rip) addressing mode, maybe as special sib mode
+    def AddMemOp(self, mem_mode: MEM_MODE, mod: int, ext: int = -1):
         self.modrm_pos = len(self.data)
         assert mod <= 2
         data = mod << 6
@@ -558,13 +560,13 @@ class Opcode:
             assert ext <= 7
             mask |= 0x38
             data |= ext << 3
-        if sib_mode == SIB_MODE.YES or sib_mode == SIB_MODE.BP_DISP:
+        if mem_mode == MEM_MODE.SIB or mem_mode == MEM_MODE.BP_DISP:
             mask |= 0x7
             data |= 0x4
             self.mask.append(mask)
             self.data.append(data)
             self.sib_pos = len(self.data)
-            if sib_mode == SIB_MODE.YES:
+            if mem_mode == MEM_MODE.SIB:
                 self.variant += "_sib"
                 self.mask.append(0)
                 self.data.append(0)
@@ -576,6 +578,14 @@ class Opcode:
                 self.fields += [OK.SIB_INDEX_AS_BASE, OK.SIB_SCALE]
                 assert mod == 0
                 mod = 2
+        elif mem_mode == MEM_MODE.RIP_DISP:
+            mask |= 0x7
+            data |= 0x5
+            self.mask.append(mask)
+            self.data.append(data)
+            self.fields += [OK.RIP_BASE]
+            assert mod == 0
+            mod = 2
         else:
             self.mask.append(mask)
             self.data.append(data)
@@ -642,15 +652,20 @@ class Opcode:
             assert isinstance(o, OK), f"unexpected {o} {type(o)}"
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
                 out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
+                if o is OK.MODRM_RM_REG8 and 4 <= out[-1] <= 7:
+                    assert rex
             elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
                 out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
             elif o is OK.MODRM_RM_BASE:
                 out.append(GetRegBits(data[self.modrm_pos], 0, rex, 0))
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32, OK.MODRM_REG64}:
                 out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
-                # assert rex or o != OK.MODRM_REG8, f""
+                if o is OK.MODRM_REG8 and 4 <= out[-1] <= 7:
+                    assert rex
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
                 out.append(GetRegBits(data[self.modrm_pos], 3, rex, 2))
+            elif o is OK.RIP_BASE:
+                out.append(0)  # dummy
             elif o is OK.SIB_BASE:
                 out.append(GetRegBits(data[self.sib_pos], 0, rex, 0))
             elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
@@ -701,12 +716,12 @@ class Opcode:
             rex |= ((reg >> 3) & 1) << rex_shift
 
         def SetSInt(v, pos, dst_byte_width, src_bit_width):
-            #print (f"{self.name}:  {v} {pos} {dst_byte_width}  {src_bit_width}")
-            #if not src_bit_width:
+            # print (f"{self.name}:  {v} {pos} {dst_byte_width}  {src_bit_width}")
+            # if not src_bit_width:
             #    v += (8 << dst_byte_width)
 
             v &= (1 << (8 * dst_byte_width)) - 1
-            #print (f"@@@@@ {v}")
+            # print (f"@@@@@ {v}")
             # TODO: check
             # assert -(8) <= v < (8 << dst_byte_width)
             while v:
@@ -722,7 +737,7 @@ class Opcode:
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
                      OK.MODRM_RM_REG64}:
                 if o is OK.MODRM_RM_REG8 and (4 <= v <= 7):
-                    rex |= 0x40   # force rex, otherwise we select ah, ch, dh, bh
+                    rex |= 0x40  # force rex, otherwise we select ah, ch, dh, bh
                 SetRegBits(v, self.modrm_pos, 0, 0)
             elif o in {OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, OK.MODRM_RM_XREG128}:
                 SetRegBits(v, self.modrm_pos, 0, 0)
@@ -731,10 +746,12 @@ class Opcode:
             elif o in {OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
                        OK.MODRM_REG64}:
                 if o is OK.MODRM_REG8 and (4 <= v <= 7):
-                    rex |= 0x40   # force rex, otherwise we select ah, ch, dh, bh
+                    rex |= 0x40  # force rex, otherwise we select ah, ch, dh, bh
                 SetRegBits(v, self.modrm_pos, 3, 2)
             elif o in {OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128}:
                 SetRegBits(v, self.modrm_pos, 3, 2)
+            elif o is OK.RIP_BASE:
+                continue
             elif o is OK.SIB_BASE:
                 SetRegBits(v, self.sib_pos, 0, 0)
             elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
@@ -766,7 +783,7 @@ class Opcode:
             elif o is OK.OFFABS32:
                 SetSInt(v, self.offset_pos, 4, None)
             elif o is OK.OFFPCREL8:
-                SetSInt(v,self.offset_pos, 1, None)
+                SetSInt(v, self.offset_pos, 1, None)
             elif o is OK.OFFPCREL32:
                 SetSInt(v, self.offset_pos, 4, None)
             else:
@@ -842,10 +859,10 @@ _RE_BYTE = re.compile("^[0-9A-F][0-9A-F]$")
 _RE_BYTE_WITH_REG = re.compile("^[0-9A-F][0-9A-F][+]r?$")
 
 _SIB_MOD_COMBOS = [
-    (0, SIB_MODE.BP_DISP),
-    (0, SIB_MODE.YES), (0, SIB_MODE.NO),
-    (1, SIB_MODE.YES), (1, SIB_MODE.NO),
-    (2, SIB_MODE.YES), (2, SIB_MODE.NO),
+    (0, MEM_MODE.BP_DISP), (0, MEM_MODE.RIP_DISP),
+    (0, MEM_MODE.SIB), (0, MEM_MODE.NONE),
+    (1, MEM_MODE.SIB), (1, MEM_MODE.NONE),
+    (2, MEM_MODE.SIB), (2, MEM_MODE.NONE),
 ]
 
 

@@ -24,14 +24,14 @@ objdump -d  -M intel  --insn-width=12   /usr/bin/bash | ./opcode_test.py
 
 ## Limitations
 
-* segment registers are not supported
+* segment registers, creg, dreg, sreg are not supported
+* MMX(2) are not supported
 * registers ah, bh, ch, dh are not supported
 * Rep, prefix is not supported 
 
 Planned:
 
 * Lock prefix support
-* RIP relative addressing
 
 ## References
 
