@@ -159,7 +159,7 @@ _IMPLICIT_OPERANDS = {
     "al", "ax", "eax", "rax",
     "dx", "edx", "rdx",  #
     "cl",  #
-    "1",   # for shifts
+    "1",  # for shifts
 }
 
 # not used yet
@@ -255,20 +255,13 @@ _REG_NAMES = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 
 REG_NAMES = {
     # this assumes we do not use "h" registers
-    8:  [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)],
+    8: [r.replace("x", "") + "l" for r in _REG_NAMES] + [f"r{i}b" for i in range(8, 16)],
     16: [r for r in _REG_NAMES] + [f"r{i}w" for i in range(8, 16)],
     32: [f"e{r}" for r in _REG_NAMES] + [f"r{i}d" for i in range(8, 16)],
     64: [f"r{r}" for r in _REG_NAMES] + [f"r{i}" for i in range(8, 16)],
 }
 
 XREG_NAMES = [f"xmm{r}" for r in range(16)]
-
-
-def GetSInt(data, byte_width, bit_width):
-    x = int.from_bytes(data[:byte_width], "little", signed=True)
-    if bit_width:
-        return x & (1 << bit_width) - 1
-    return x
 
 
 def Hexify(data) -> str:
@@ -361,6 +354,28 @@ class OK(enum.IntEnum):
     MODRM_XREG32 = 39
     MODRM_XREG64 = 40
     MODRM_XREG128 = 41
+
+
+# Maps IMM OK to (encoded-size, rendered-size)
+IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
+    OK.IMM8: (8, 8),
+    OK.IMM16: (16, 16),
+    OK.IMM32: (32, 32),
+
+    OK.IMM8_16: (8, 16),
+    OK.IMM8_32: (8, 32),
+    OK.IMM8_64: (8, 64),
+    OK.IMM32_64: (32, 64),
+    OK.IMM64: (64, 64),
+
+}
+
+OFF_TO_SIZE: Dict[OK, Tuple[int, int]] = {
+    OK.OFFPCREL8: (8, None),
+    OK.OFFPCREL32: (32, None),
+    OK.OFFABS8: (8, None),
+    OK.OFFABS32: (32, None),
+}
 
 
 def FingerPrintRawInstructions(data) -> int:
@@ -693,6 +708,12 @@ class Opcode:
                 r |= ((rex >> rex_bit_pos) & 1) << 3
             return r
 
+        def GetSInt(pos, src_width, dst_width):
+            x = int.from_bytes(data[pos: pos + src_width // 8], "little", signed=True)
+            if dst_width:
+                return x & (1 << dst_width) - 1
+            return x
+
         for o in self.fields:
             if isinstance(o, str):
                 out.append(0)
@@ -723,31 +744,10 @@ class Opcode:
                 out.append(data[self.sib_pos] >> 6)
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
-            # TODO: simplify this to just use non-truncated integers
-            elif o is OK.IMM8:
-                out.append(GetSInt(data[self.imm_pos:], 1, 8))
-            elif o is OK.IMM8_16:
-                out.append(GetSInt(data[self.imm_pos:], 1, 16))
-            elif o is OK.IMM8_32:
-                out.append(GetSInt(data[self.imm_pos:], 1, 32))
-            elif o is OK.IMM8_64:
-                out.append(GetSInt(data[self.imm_pos:], 1, 64))
-            elif o is OK.IMM32_64:
-                out.append(GetSInt(data[self.imm_pos:], 4, 64))
-            elif o is OK.IMM16:
-                out.append(GetSInt(data[self.imm_pos:], 2, 16))
-            elif o is OK.IMM32:
-                out.append(GetSInt(data[self.imm_pos:], 4, 32))
-            elif o is OK.IMM64:
-                out.append(GetSInt(data[self.imm_pos:], 8, 64))
-            elif o is OK.OFFABS8:
-                out.append(GetSInt(data[self.offset_pos:], 1, None))
-            elif o is OK.OFFABS32:
-                out.append(GetSInt(data[self.offset_pos:], 4, None))
-            elif o is OK.OFFPCREL8:
-                out.append(GetSInt(data[self.offset_pos:], 1, None))
-            elif o is OK.OFFPCREL32:
-                out.append(GetSInt(data[self.offset_pos:], 4, None))
+            elif o in IMM_TO_SIZE:
+                out.append(GetSInt(self.imm_pos, *IMM_TO_SIZE[o]))
+            elif o in OFF_TO_SIZE:
+                out.append(GetSInt(self.offset_pos, *OFF_TO_SIZE[o]))
             else:
                 assert False, f"{o}"
         assert len(self.fields) == len(out), f"{self} {out}"
@@ -765,13 +765,12 @@ class Opcode:
             out[pos] |= (reg & 0x7) << shift
             rex |= ((reg >> 3) & 1) << rex_shift
 
-        def SetSInt(v, pos, dst_byte_width, src_bit_width):
+        def SetSInt(v, pos, dst_width, src_width):
             # print (f"{self.name}:  {v} {pos} {dst_byte_width}  {src_bit_width}")
             # if not src_bit_width:
             #    v += (8 << dst_byte_width)
 
-            v &= (1 << (8 * dst_byte_width)) - 1
-            # print (f"@@@@@ {v}")
+            v &= (1 << dst_width) - 1
             # TODO: check
             # assert -(8) <= v < (8 << dst_byte_width)
             while v:
@@ -812,30 +811,10 @@ class Opcode:
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
                        OK.BYTE_WITH_REG64}:
                 SetRegBits(v, self.byte_with_reg_pos, 0, 0)
-            elif o is OK.IMM8:
-                SetSInt(v, self.imm_pos, 1, 8)
-            elif o is OK.IMM8_16:
-                SetSInt(v, self.imm_pos, 1, 16)
-            elif o is OK.IMM8_32:
-                SetSInt(v, self.imm_pos, 1, 32)
-            elif o is OK.IMM8_64:
-                SetSInt(v, self.imm_pos, 1, 64)
-            elif o is OK.IMM32_64:
-                SetSInt(v, self.imm_pos, 4, 64)
-            elif o is OK.IMM16:
-                SetSInt(v, self.imm_pos, 2, 16)
-            elif o is OK.IMM32:
-                SetSInt(v, self.imm_pos, 4, 32)
-            elif o is OK.IMM64:
-                SetSInt(v, self.imm_pos, 8, 64)
-            elif o is OK.OFFABS8:
-                SetSInt(v, self.offset_pos, 1, None)
-            elif o is OK.OFFABS32:
-                SetSInt(v, self.offset_pos, 4, None)
-            elif o is OK.OFFPCREL8:
-                SetSInt(v, self.offset_pos, 1, None)
-            elif o is OK.OFFPCREL32:
-                SetSInt(v, self.offset_pos, 4, None)
+            elif o in IMM_TO_SIZE:
+                SetSInt(v, self.imm_pos, *IMM_TO_SIZE[o])
+            elif o in OFF_TO_SIZE:
+                SetSInt(v, self.offset_pos, *OFF_TO_SIZE[o])
             else:
                 assert False, f"{o}"
 

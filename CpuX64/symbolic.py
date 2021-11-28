@@ -64,11 +64,15 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
             pass
         elif o is OK.SIB_SCALE:
             pass
-        elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
+        elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
+                   OK.BYTE_WITH_REG64}:
             bw = 8 << (o - OK.BYTE_WITH_REG8)
             out.append(x64.REG_NAMES[bw][val])
-        elif o in {OK.IMM8, OK.IMM8_16, OK.IMM8_32, OK.IMM8_64, OK.IMM16,
-                   OK.IMM32, OK.IMM64, OK.IMM32_64, OK.OFFABS8, OK.OFFABS32}:
+        elif o in x64.IMM_TO_SIZE:
+            _, bw = x64.IMM_TO_SIZE[o]
+            mask = (1 << bw) - 1
+            out.append(f"0x{val & mask:x}")
+        elif o in x64.OFF_TO_SIZE:
             out.append(f"0x{val:x}")
         else:
             assert False, f"Unsupported field {o}"
