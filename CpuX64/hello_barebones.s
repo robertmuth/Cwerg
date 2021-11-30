@@ -1,23 +1,24 @@
+    .intel_syntax noprefix
 
-        .global _start
+    .global _start
 
 	.section ".rodata"
 _msg:
-        .ascii  "Hello, world (asm)\n"
+    .ascii  "Hello, world (asm)\n"
 _msg_end:
 	
-        .text
+    .text
 _start:
         # write(1, _msg, len(_msg))
-        mov     $1, %rax          
-        mov     $1, %rdi          
-        mov     $_msg, %rsi          
-        mov     $_msg_end - _msg, %rdx
+        mov     rax, 1
+        mov     rdi, 1
+        lea     rsi, _msg
+        mov     rdx, _msg_end - _msg
         syscall                   
 
         # exit(0)
-        mov     $60, %rax         
-        xor     %rdi, %rdi        
+        mov     rax, 60
+        xor     rdi, rdi
         syscall
 
 

@@ -11,7 +11,7 @@ hello-x64:
 
 hello_barebones-x64:
 	as hello_barebones.s -o $(DIR)/hello_barebones.o
-	ld hello_barebones.o -o $(DIR)/hello_barebones-x64
+	ld $(DIR)/hello_barebones.o -o $@
 
 objdump_tests:
 	$(PYPY) ./opcode_test.py < TestData/objdump.dis
