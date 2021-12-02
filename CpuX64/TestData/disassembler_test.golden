@@ -1,27 +1,32 @@
 TOTAL instruction templates: 3251
-ff b5 b8 f9 ff ff push.64_mB32 rbp 0x-648
-    MODRM_RM_BASE                       rbp        (5)
-    OFFABS32                            0x-648     (-1608)
+ff b5 b8 f9 ff ff push.64_mB32 MEM64 rbp 0x-648
+    push.64_mB32
+    MODRM_RM_BASE                       rbp        (0x5)
+    OFFABS32                            -1608      (0x-648)
 
 6a 12 push.64_imm8 0x12
-    IMM8_64                             0x12       (18)
+    push.64_imm8
+    IMM8_64                             0x12       (0x12)
 
-48 8b 05 a7 40 7f 00 mov.64_r_mpc32 rax rip 0x7f40a7
-    MODRM_REG64                         rax        (0)
-    RIP_BASE                            rip        (0)
-    OFFABS32                            0x7f40a7   (8339623)
+48 8b 05 a7 40 7f 00 mov.64_r_mpc32 rax MEM64 rip 0x7f40a7
+    mov.64_r_mpc32
+    MODRM_REG64                         rax        (0x0)
+    RIP_BASE                            rip        (0x0)
+    OFFABS32                            8339623    (0x7f40a7)
 
-48 89 b4 04 50 01 00 00 mov.64_mbis32_r rsp rax 1 0x150 rsi
-    SIB_BASE                            rsp        (4)
-    SIB_INDEX                           rax        (0)
-    SIB_SCALE                           1          (0)
-    OFFABS32                            0x150      (336)
-    MODRM_REG64                         rsi        (6)
+48 89 b4 04 50 01 00 00 mov.64_mbis32_r MEM64 rsp rax 1 0x150 rsi
+    mov.64_mbis32_r
+    SIB_BASE                            rsp        (0x4)
+    SIB_INDEX                           rax        (0x0)
+    SIB_SCALE                           0          (0x0)
+    OFFABS32                            336        (0x150)
+    MODRM_REG64                         rsi        (0x6)
 
-48 89 84 24 f0 00 00 00 mov.64_mbis32_r rsp noindex 1 0xf0 rax
-    SIB_BASE                            rsp        (4)
-    SIB_INDEX                           noindex    (4)
-    SIB_SCALE                           1          (0)
-    OFFABS32                            0xf0       (240)
-    MODRM_REG64                         rax        (0)
+48 89 84 24 f0 00 00 00 mov.64_mbis32_r MEM64 rsp 0xf0 rax
+    mov.64_mbis32_r
+    SIB_BASE                            rsp        (0x4)
+    SIB_INDEX                           noindex    (0x4)
+    SIB_SCALE                           0          (0x0)
+    OFFABS32                            240        (0xf0)
+    MODRM_REG64                         rax        (0x0)
 

@@ -357,7 +357,7 @@ class OK(enum.IntEnum):
 
 
 # Maps IMM OK to (encoded-size, rendered-size)
-IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
+OK_IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
     OK.IMM8: (8, 8),
     OK.IMM16: (16, 16),
     OK.IMM32: (32, 32),
@@ -369,11 +369,46 @@ IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
     OK.IMM64: (64, 64),
 }
 
-OFF_TO_SIZE: Dict[OK, Tuple[int, int]] = {
+OK_OFF_TO_SIZE: Dict[OK, Tuple[int, int]] = {
     OK.OFFPCREL8: (8, None),
     OK.OFFPCREL32: (32, None),
     OK.OFFABS8: (8, None),
     OK.OFFABS32: (32, None),
+}
+
+
+OK_REG_TO_INFO = {
+    OK.MODRM_RM_XREG32: (32, "x"),
+    OK.MODRM_RM_XREG64: (64, "x"),
+    OK.MODRM_RM_XREG128: (128, "x"),
+    #
+    OK.MODRM_RM_REG8: (8, "r"),
+    OK.MODRM_RM_REG16: (16, "r"),
+    OK.MODRM_RM_REG32: (32, "r"),
+    OK.MODRM_RM_REG64: (64, "r"),
+    #
+    OK.MODRM_XREG32: (32, "x"),
+    OK.MODRM_XREG64: (64, "x"),
+    OK.MODRM_XREG128: (128, "x"),
+    #
+    OK.MODRM_REG8: (8, "r"),
+    OK.MODRM_REG16: (16, "r"),
+    OK.MODRM_REG32: (32, "r"),
+    OK.MODRM_REG64: (64, "r"),
+    #
+    OK.BYTE_WITH_REG8: (8, "r"),
+    OK.BYTE_WITH_REG16: (16, "r"),
+    OK.BYTE_WITH_REG32: (32, "r"),
+    OK.BYTE_WITH_REG64: (64, "r"),
+}
+
+
+OK_ADDR_REG = {
+    OK.RIP_BASE,
+    OK.MODRM_RM_BASE,
+    OK.SIB_INDEX,
+    OK.SIB_BASE,
+    OK.SIB_INDEX_AS_BASE,
 }
 
 
@@ -481,6 +516,9 @@ class Opcode:
         ops_str = ' '.join(self.operands)
         return f"{self.name}.{self.variant}  [{ops_str}] {self.format}   [{fields_str}]  mask:[{mask}] data:[{data}]"
 
+    def EnumName(self):
+        return self.name + "." + self.variant
+
     def Finalize(self):
         if self.operands:
             if self.name in {"movsx", "movzx", "cvtsi2sd", "cvtsi2ss"}:
@@ -498,7 +536,7 @@ class Opcode:
 
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
-        fullname = self.name + "." + self.variant
+        fullname = self.EnumName()
         assert fullname not in Opcode.OpcodesByName, f"{fullname}"
         Opcode.OpcodesByName[fullname] = self
         assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
@@ -742,10 +780,10 @@ class Opcode:
                 out.append(data[self.sib_pos] >> 6)
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
-            elif o in IMM_TO_SIZE:
-                out.append(GetSInt(self.imm_pos, *IMM_TO_SIZE[o]))
-            elif o in OFF_TO_SIZE:
-                out.append(GetSInt(self.offset_pos, *OFF_TO_SIZE[o]))
+            elif o in OK_IMM_TO_SIZE:
+                out.append(GetSInt(self.imm_pos, *OK_IMM_TO_SIZE[o]))
+            elif o in OK_OFF_TO_SIZE:
+                out.append(GetSInt(self.offset_pos, *OK_OFF_TO_SIZE[o]))
             else:
                 assert False, f"{o}"
         assert len(self.fields) == len(out), f"{self} {out}"
@@ -809,10 +847,10 @@ class Opcode:
             elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
                        OK.BYTE_WITH_REG64}:
                 SetRegBits(v, self.byte_with_reg_pos, 0, 0)
-            elif o in IMM_TO_SIZE:
-                SetSInt(v, self.imm_pos, *IMM_TO_SIZE[o])
-            elif o in OFF_TO_SIZE:
-                SetSInt(v, self.offset_pos, *OFF_TO_SIZE[o])
+            elif o in OK_IMM_TO_SIZE:
+                SetSInt(v, self.imm_pos, *OK_IMM_TO_SIZE[o])
+            elif o in OK_OFF_TO_SIZE:
+                SetSInt(v, self.offset_pos, *OK_OFF_TO_SIZE[o])
             else:
                 assert False, f"{o}"
 

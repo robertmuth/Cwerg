@@ -12,16 +12,19 @@ def disass(data):
         print(f"could not disassemble {x64.Hexify(data)}")
         return
 
-    enum_name, ops_str = symbolic.InsSymbolize(ins)
+    enum_name, ops_str = symbolic.InsSymbolizeObjdumpCompat(ins, False)
     print(f"{x64.Hexify(data)}", f"{ins.opcode.name}.{ins.opcode.variant} {' '.join(ops_str)}")
+
+    enum_name, ops_str = symbolic.InsSymbolize(ins)
+    print ("    " + enum_name)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
-        print(f"    {f.name:35s} {o_str:10} ({o})")
+        print(f"    {f.name:35s} {o_str:10} (0x{o:x})")
     print()
     data2 = x64.Assemble(ins)
     assert data == data2
-    #ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)
-    #assert tuple(ins.operands) == tuple(
-    #    ins2.operands), f"{ins.operands} vs {ins2.operands}"
+    ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)
+    assert tuple(ins.operands) == tuple(
+        ins2.operands), f"{ins.operands} vs {ins2.operands}"
 
 
 def HexToData(s: str):

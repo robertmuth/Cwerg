@@ -11,30 +11,18 @@ from Util import parse
 
 OK = x64.OK
 
-REG_MAP = {
-    OK.MODRM_RM_XREG32: (32, "x"),
-    OK.MODRM_RM_XREG64: (64, "x"),
-    OK.MODRM_RM_XREG128: (128, "x"),
-    #
-    OK.MODRM_RM_REG8: (8, "r"),
-    OK.MODRM_RM_REG16: (16, "r"),
-    OK.MODRM_RM_REG32: (32, "r"),
-    OK.MODRM_RM_REG64: (64, "r"),
-    #
-    OK.MODRM_XREG32: (32, "x"),
-    OK.MODRM_XREG64: (64, "x"),
-    OK.MODRM_XREG128: (128, "x"),
-    #
-    OK.MODRM_REG8: (8, "r"),
-    OK.MODRM_REG16: (16, "r"),
-    OK.MODRM_REG32: (32, "r"),
-    OK.MODRM_REG64: (64, "r"),
-    #
-    OK.BYTE_WITH_REG8: (8, "r"),
-    OK.BYTE_WITH_REG16: (16, "r"),
-    OK.BYTE_WITH_REG32: (32, "r"),
-    OK.BYTE_WITH_REG64: (64, "r"),
+SYMBOLIC_OPERAND_TO_INT = {
+    "nobase": 4,
+    "noindex": 4,
+    "rip": 0,
 }
+
+for i, reg in enumerate(x64.XREG_NAMES):
+    SYMBOLIC_OPERAND_TO_INT[reg] = i
+
+for reglist in x64.REG_NAMES.values():
+    for i, reg in enumerate(reglist):
+        SYMBOLIC_OPERAND_TO_INT[reg] = i
 
 
 def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
@@ -47,8 +35,8 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
 
         val = ins.operands[n]
         assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-        if o in REG_MAP:
-            bw, kind = REG_MAP[o]
+        if o in x64.OK_REG_TO_INFO:
+            bw, kind = x64.OK_REG_TO_INFO[o]
             if kind == "r":
                 out.append(x64.REG_NAMES[bw][val])
             else:
@@ -70,14 +58,15 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
             else:
                 out.append(x64.REG_NAMES[64][val])  # assumes no address override
         elif o is OK.SIB_SCALE:
-            out.append(str(1 << val))
-        elif o in x64.IMM_TO_SIZE:
+            out.append(str(val))
+        elif o in x64.OK_IMM_TO_SIZE:
             out.append(f"0x{val:x}")
-        elif o in x64.OFF_TO_SIZE:
-            out.append(f"0x{val:x}")
+        elif o in x64.OK_OFF_TO_SIZE:
+            out.append(f"{val}")
         else:
             assert False, f"Unsupport field {o}"
-    return ins.opcode.name, out
+    return ins.opcode.EnumName(), out
+
 
 def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
@@ -101,8 +90,8 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
 
         val = ins.operands[n]
         assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-        if o in REG_MAP:
-            bw, kind = REG_MAP[o]
+        if o in x64.OK_REG_TO_INFO:
+            bw, kind = x64.OK_REG_TO_INFO[o]
             if kind == "r":
                 out.append(x64.REG_NAMES[bw][val])
             else:
@@ -127,15 +116,57 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
                 out.append(x64.REG_NAMES[64][val])  # assumes no add override
         elif o is OK.SIB_SCALE:
             out.append(str(1 << val))
-        elif o in x64.IMM_TO_SIZE:
-            _, bw = x64.IMM_TO_SIZE[o]
+        elif o in x64.OK_IMM_TO_SIZE:
+            _, bw = x64.OK_IMM_TO_SIZE[o]
             mask = (1 << bw) - 1
             out.append(f"0x{val & mask:x}")
-        elif o in x64.OFF_TO_SIZE:
+        elif o in x64.OK_OFF_TO_SIZE:
             out.append(f"0x{val:x}")
         else:
             assert False, f"Unsupported field {o}"
     return ins.opcode.name, out
+
+
+def UnsymbolizeOperand(ok: x64.OK, op: str) -> int:
+    """
+
+    """
+
+    if isinstance(ok, str):
+        assert op == ok
+        return 0
+    assert isinstance(ok, x64.OK)
+    if ok in x64.OK_REG_TO_INFO or ok in x64.OK_ADDR_REG:
+        return SYMBOLIC_OPERAND_TO_INT[op]
+    else:
+        return int(op, 0)
+
+
+def InsFromSymbolized(mnemonic: str, ops_str: List[str]) -> x64.Ins:
+    opcode = x64.Opcode.OpcodesByName[mnemonic]
+    ins = x64.Ins(opcode)
+    for pos, (t, ok) in enumerate(zip(ops_str, opcode.fields)):
+        if t.startswith("expr:"):
+            assert False
+            # expr strings have the form expr:<rel-kind>:<symbol>:<addend>, e.g.:
+            #   expr:movw_abs_nc:string_pointers:5
+            #   expr:call:putchar
+            rel_token = t.split(":")
+            if len(rel_token) == 3:
+                rel_token.append("0")
+            assert rel_token[1] in _RELOC_KIND_MAP, f"unknown reloc kind {rel_token}"
+            if rel_token[1] == "condbr19" or rel_token[1] == "jump26":
+                ins.is_local_sym = True
+            if rel_token[1].startswith("loc_"):
+                ins.is_local_sym = True
+                rel_token[1] = rel_token[1][4:]
+            ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
+            ins.reloc_pos = pos
+            ins.reloc_symbol = rel_token[2]
+            ins.operands.append(int(rel_token[3], 0))
+        else:
+            ins.operands.append(UnsymbolizeOperand(ok, t))
+    return ins
 
 
 _RELOC_KIND_MAP = {
