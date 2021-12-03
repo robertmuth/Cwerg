@@ -29,10 +29,11 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
     out = []
     for n, o in enumerate(ins.opcode.fields):
+        if ins.has_reloc() and ins.reloc_pos == pos:
+            assert False
         if isinstance(o, str):
             out.append(o)
             continue
-
         val = ins.operands[n]
         assert isinstance(o, OK), f"unexpected {o} {type(o)}"
         if o in x64.OK_REG_TO_INFO:
@@ -64,7 +65,7 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
         elif o in x64.OK_OFF_TO_SIZE:
             out.append(f"{val}")
         else:
-            assert False, f"Unsupport field {o}"
+            assert False, f"Unsupported field {o}"
     return ins.opcode.EnumName(), out
 
 

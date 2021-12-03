@@ -111,8 +111,7 @@ def InsSymbolize(ins: a64.Ins) -> Tuple[str, List[str]]:
     """
     ops = []
     for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
-        if (ins.reloc_kind != enum_tab.RELOC_TYPE_AARCH64.NONE and
-                ins.reloc_pos == pos):
+        if ins.has_reloc() and ins.reloc_pos == pos:
             assert ok in _RELOC_OK
             ops.append(_EmitReloc(ins, pos))
         else:

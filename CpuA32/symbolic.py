@@ -117,7 +117,7 @@ def InsSymbolize(ins: a32.Ins) -> Tuple[str, List[str]]:
     """
     ops = []
     for pos, (ok, value) in enumerate(zip(ins.opcode.fields, ins.operands)):
-        if ok in _RELOC_OK and ins.reloc_kind != 0 and ins.reloc_pos == pos:
+        if ok in _RELOC_OK and ins.has_reloc() and ins.reloc_pos == pos:
             # Note: we essentially store the "addend" here
             ops.append(_EmitReloc(ins, pos))
         else:
