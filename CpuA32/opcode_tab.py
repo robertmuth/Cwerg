@@ -1184,6 +1184,19 @@ class Ins:
     reloc_pos = 0
     is_local_sym = False
 
+    def clear_reloc(self):
+        self.reloc_kind = 0
+        self.reloc_pos = 0
+
+    def has_reloc(self):
+        return  self.reloc_kind != 0
+
+    def set_reloc(self, kind, is_local, pos, symbol):
+        self.reloc_kind = kind
+        self.reloc_pos = pos
+        self.reloc_symbol = symbol
+        self.is_local_sym = is_local
+
 
 def Disassemble(data: int) -> Optional[Ins]:
     opcode = Opcode.FindOpcode(data)

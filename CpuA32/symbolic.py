@@ -96,14 +96,17 @@ def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
 
 
 _RELOC_KIND_MAP = {
-    # these relocations imply that the symbol is local
-    "jump24": enum_tab.RELOC_TYPE_ARM.JUMP24,
-    # these relocations imply that the symbol is local
-    # unless prefixed with `loc_`
-    "abs32": enum_tab.RELOC_TYPE_ARM.ABS32,
-    "call": enum_tab.RELOC_TYPE_ARM.CALL,
-    "movw_abs_nc": enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
-    "movt_abs": enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
+    "jump24": (enum_tab.RELOC_TYPE_ARM.JUMP24, True), # always local
+    #
+    "abs32": (enum_tab.RELOC_TYPE_ARM.ABS32, False),
+    "call": (enum_tab.RELOC_TYPE_ARM.CALL, False),
+    "movw_abs_nc": (enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC, False),
+    "movt_abs": (enum_tab.RELOC_TYPE_ARM.MOVT_ABS, False),
+    #
+    "loc_abs32": (enum_tab.RELOC_TYPE_ARM.ABS32, True),
+    "loc_call": (enum_tab.RELOC_TYPE_ARM.CALL, True),
+    "loc_movw_abs_nc": (enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC, True),
+    "loc_movt_abs": (enum_tab.RELOC_TYPE_ARM.MOVT_ABS, True),
 }
 
 _RELOC_OK: Set[a32.OK] = {a32.OK.SIMM_0_23, a32.OK.IMM_0_11_16_19}
@@ -143,17 +146,10 @@ def InsFromSymbolized(mnemonic, token: List[str]) -> a32.Ins:
             #   expr:movw_abs_nc:string_pointers:5
             #   expr:call:putchar
             rel_token = t.split(":")
-            if len(rel_token) == 3:
-                rel_token.append("0")
-            if rel_token[1] == "jump24":
-                ins.is_local_sym = True
-            if rel_token[1].startswith("loc_"):
-                ins.is_local_sym = True
-                rel_token[1] = rel_token[1][4:]
-            ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
-            ins.reloc_pos = pos
-            ins.reloc_symbol = rel_token[2]
-            ins.operands.append(int(rel_token[3], 0))
+
+            ins.set_reloc(*_RELOC_KIND_MAP[rel_token[1]], pos, rel_token[2])
+            addend = 0 if len(rel_token) ==3 else  int(rel_token[3], 0)
+            ins.operands.append(addend)
         else:
             ins.operands.append(_UnsymbolizeOperand(ok, t))
     return ins
