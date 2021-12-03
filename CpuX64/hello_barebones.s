@@ -12,7 +12,8 @@ _start:
         # write(1, _msg, len(_msg))
         mov     rax, 1
         mov     rdi, 1
-        lea     rsi, _msg
+        #lea     rsi, _msg
+        lea     rsi, _msg[rip]
         mov     rdx, _msg_end - _msg
         syscall                   
 

@@ -1,21 +1,21 @@
 TOTAL instruction templates: 3251
 ff b5 b8 f9 ff ff push.64_mB32 MEM64 rbp 0x-648
-    push.64_mB32
+    push_64_mB32
     MODRM_RM_BASE                       rbp        (0x5)
     OFFABS32                            -1608      (0x-648)
 
 6a 12 push.64_imm8 0x12
-    push.64_imm8
+    push_64_imm8
     IMM8_64                             0x12       (0x12)
 
 48 8b 05 a7 40 7f 00 mov.64_r_mpc32 rax MEM64 rip 0x7f40a7
-    mov.64_r_mpc32
+    mov_64_r_mpc32
     MODRM_REG64                         rax        (0x0)
     RIP_BASE                            rip        (0x0)
     OFFABS32                            8339623    (0x7f40a7)
 
 48 89 b4 04 50 01 00 00 mov.64_mbis32_r MEM64 rsp rax 1 0x150 rsi
-    mov.64_mbis32_r
+    mov_64_mbis32_r
     SIB_BASE                            rsp        (0x4)
     SIB_INDEX                           rax        (0x0)
     SIB_SCALE                           0          (0x0)
@@ -23,7 +23,7 @@ ff b5 b8 f9 ff ff push.64_mB32 MEM64 rbp 0x-648
     MODRM_REG64                         rsi        (0x6)
 
 48 89 84 24 f0 00 00 00 mov.64_mbis32_r MEM64 rsp 0xf0 rax
-    mov.64_mbis32_r
+    mov_64_mbis32_r
     SIB_BASE                            rsp        (0x4)
     SIB_INDEX                           noindex    (0x4)
     SIB_SCALE                           0          (0x0)

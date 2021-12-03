@@ -32,16 +32,17 @@ def HexToData(s: str):
 
 
 def batch():
-    assert False
     for line in sys.stdin:
-        if not line or line.startswith("#"): continue
+        line = line.split("#")[0].strip()
+        if not line.strip(): continue
         data = HexToData(line.strip())
         ins = x64.Disassemble(data)
         if ins.opcode is None:
             print(f"could not disassemble [{x64.Hexify(data)}]")
             continue
         enum_name, ops_str = symbolic.InsSymbolize(ins)
-        print(f"{data:08x} {enum_name}{' ' if ops_str else ''}{', '.join(ops_str)}")
+        print(f"{x64.Hexify(data)}", f"{ins.opcode.name}.{ins.opcode.variant} {' '.join(ops_str)}")
+
         data2 = x64.Assemble(ins)
         assert data == data2
         ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)

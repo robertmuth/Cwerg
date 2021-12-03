@@ -142,38 +142,31 @@ def UnsymbolizeOperand(ok: x64.OK, op: str) -> int:
         return int(op, 0)
 
 
+_RELOC_KIND_MAP = {
+    "pcrel8": (enum_tab.RELOC_TYPE_X86_64.PC8, False),
+    "pcrel32": (enum_tab.RELOC_TYPE_X86_64.PC32, False),
+    "loc_pcrel8": (enum_tab.RELOC_TYPE_X86_64.PC8, True),
+    "loc_pcrel32": (enum_tab.RELOC_TYPE_X86_64.PC32, True),
+    "abs32": (enum_tab.RELOC_TYPE_X86_64.X_32, False),
+    "abs64": (enum_tab.RELOC_TYPE_X86_64.X_64, False),
+}
+
+
 def InsFromSymbolized(mnemonic: str, ops_str: List[str]) -> x64.Ins:
     opcode = x64.Opcode.OpcodesByName[mnemonic]
     ins = x64.Ins(opcode)
     for pos, (t, ok) in enumerate(zip(ops_str, opcode.fields)):
         if t.startswith("expr:"):
-            assert False
             # expr strings have the form expr:<rel-kind>:<symbol>:<addend>, e.g.:
             #   expr:movw_abs_nc:string_pointers:5
             #   expr:call:putchar
             rel_token = t.split(":")
-            if len(rel_token) == 3:
-                rel_token.append("0")
+
             assert rel_token[1] in _RELOC_KIND_MAP, f"unknown reloc kind {rel_token}"
-            if rel_token[1] == "condbr19" or rel_token[1] == "jump26":
-                ins.is_local_sym = True
-            if rel_token[1].startswith("loc_"):
-                ins.is_local_sym = True
-                rel_token[1] = rel_token[1][4:]
-            ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
-            ins.reloc_pos = pos
-            ins.reloc_symbol = rel_token[2]
-            ins.operands.append(int(rel_token[3], 0))
+            ins.set_reloc(*_RELOC_KIND_MAP[rel_token[1]], pos, rel_token[2])
+
+            addend = 0 if len(rel_token) == 3 else int(rel_token[3], 0)
+            ins.operands.append(addend)
         else:
             ins.operands.append(UnsymbolizeOperand(ok, t))
     return ins
-
-
-_RELOC_KIND_MAP = {
-    # these relocations imply that the symbol is global
-    # unless prefixed with `loc_`
-    "pcrel8": enum_tab.RELOC_TYPE_X86_64.PC8,
-    "pcrel32": enum_tab.RELOC_TYPE_X86_64.PC32,
-    "abs32": enum_tab.RELOC_TYPE_X86_64.X_32,
-    "abs64": enum_tab.RELOC_TYPE_X86_64.X_64,
-}

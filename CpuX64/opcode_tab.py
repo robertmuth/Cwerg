@@ -517,9 +517,13 @@ class Opcode:
         return f"{self.name}.{self.variant}  [{ops_str}] {self.format}   [{fields_str}]  mask:[{mask}] data:[{data}]"
 
     def EnumName(self):
-        return self.name + "." + self.variant
+        if self.variant:
+            return self.name + "_" + self.variant
+        else:
+            return self.name
 
     def Finalize(self):
+        assert re.match("^[a-z0-9]+$", self.name)
         if self.operands:
             if self.name in {"movsx", "movzx", "cvtsi2sd", "cvtsi2ss"}:
                 bw = GetOpWidth(self.operands[1])
@@ -890,7 +894,24 @@ class Ins:
     reloc_pos = 0
     is_local_sym = False
 
+    def clear_reloc(self):
+        self.reloc_kind = _RELOC_TYPE_X64_NONE
+        self.reloc_pos = 0
 
+    def has_reloc(self):
+        return  self.reloc_kind != _RELOC_TYPE_X64_NONE
+
+    def set_reloc(self, kind, is_local, pos, symbol):
+        self.reloc_kind = kind
+        self.reloc_pos = pos
+        self.reloc_symbol = symbol
+        self.is_local_sym = is_local
+
+    def __str__(self):
+        reloc_str = ""
+        if self.has_reloc():
+            reloc_str = f"{self.reloc_kind}:{self.reloc_symbol}:{self.operands[self.reloc_pos]}"
+        return f"{self.opcode.EnumName()} {reloc_str}"
 # def MakeIns(opcode: Opcode, operands: List[int]):
 #    return Ins(opcode, [EncodeOperand(opcode.fields[n], x) for n, x in enumerate(operands)])
 
@@ -905,7 +926,7 @@ def Disassemble(data: List) -> Optional[Ins]:
     return Ins(opcode, operands)
 
 
-def Assemble(ins: Ins) -> List:
+def Assemble(ins: Ins) -> List[int]:
     assert ins.reloc_kind == _RELOC_TYPE_X64_NONE, "reloc has not been resolved"
     return ins.opcode.AssembleOperands(ins.operands)
 
