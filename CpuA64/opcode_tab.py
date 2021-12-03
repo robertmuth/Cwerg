@@ -786,7 +786,7 @@ class Opcode:
             name += "_" + self.variant
         return name.replace(".", "_")
 
-    def AssembleOperands(self, operands: List[int]):
+    def AssembleOperands(self, operands: List[int]) -> int:
         assert len(operands) == len(
             self.fields), f"not enough operands for {self.NameForEnum()} want: {len(self.fields)} ops: {operands}"
         bits = [(self.bit_mask, self.bit_value, 0)]
@@ -1437,6 +1437,19 @@ class Ins:
     reloc_kind: int = _RELOC_TYPE_AARCH64M_NONE
     reloc_pos = 0
     is_local_sym = False
+
+    def clear_reloc(self):
+        self.reloc_kind = _RELOC_TYPE_AARCH64M_NONE
+        self.reloc_pos = 0
+
+    def has_reloc(self):
+        return  self.reloc_kind != _RELOC_TYPE_AARCH64M_NONE
+
+    def set_reloc(self, kind, is_local, pos, symbol):
+        self.reloc_kind = kind
+        self.reloc_pos = pos
+        self.reloc_symbol = symbol
+        self.is_local_sym = is_local
 
 
 def MakeIns(opcode: Opcode, operands: List[int]):

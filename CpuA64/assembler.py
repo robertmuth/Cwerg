@@ -30,12 +30,10 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
 
 
 def AddIns(unit: elf_unit.Unit, ins: a64.Ins):
-    if ins.reloc_kind != elf_enum.RELOC_TYPE_AARCH64.NONE:
+    if ins.has_reloc():
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
         unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
-        # clear reloc info before proceeding
-        ins.reloc_kind = elf_enum.RELOC_TYPE_AARCH64.NONE
-        ins.operands[ins.reloc_pos] = 0
+        ins.clear_reloc()
     unit.sec_text.AddData(a64.Assemble(ins).to_bytes(4, byteorder='little'))
 
 

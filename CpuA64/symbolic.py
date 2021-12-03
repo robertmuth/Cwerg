@@ -61,16 +61,20 @@ def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
 
 _RELOC_KIND_MAP = {
     # these relocations imply that the symbol is local
-    "jump26": enum_tab.RELOC_TYPE_AARCH64.JUMP26,
-    "condbr19": enum_tab.RELOC_TYPE_AARCH64.CONDBR19,
-    # these relocations imply that the symbol is local
-    # unless prefixed with `loc_`
-    "call26": enum_tab.RELOC_TYPE_AARCH64.CALL26,
-    "abs32": enum_tab.RELOC_TYPE_AARCH64.ABS32,
-    "abs64": enum_tab.RELOC_TYPE_AARCH64.ABS64,
-
-    "adr_prel_pg_hi21": enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
-    "add_abs_lo12_nc": enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
+    "jump26": (enum_tab.RELOC_TYPE_AARCH64.JUMP26, True),
+    "condbr19": (enum_tab.RELOC_TYPE_AARCH64.CONDBR19, True),
+    #
+    "call26": (enum_tab.RELOC_TYPE_AARCH64.CALL26, False),
+    "abs32": (enum_tab.RELOC_TYPE_AARCH64.ABS32, False),
+    "abs64": (enum_tab.RELOC_TYPE_AARCH64.ABS64, False),
+    "adr_prel_pg_hi21": (enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21, False),
+    "add_abs_lo12_nc": (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC, False),
+    #
+    "loc_call26": (enum_tab.RELOC_TYPE_AARCH64.CALL26, True),
+    "loc_abs32": (enum_tab.RELOC_TYPE_AARCH64.ABS32, True),
+    "loc_abs64": (enum_tab.RELOC_TYPE_AARCH64.ABS64, True),
+    "loc_adr_prel_pg_hi21": (enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21, True),
+    "loc_add_abs_lo12_nc": (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC, True),
 }
 
 _RELOC_OK = {
@@ -126,18 +130,10 @@ def InsFromSymbolized(mnemonic: str, ops_str: List[str]) -> a64.Ins:
             #   expr:movw_abs_nc:string_pointers:5
             #   expr:call:putchar
             rel_token = t.split(":")
-            if len(rel_token) == 3:
-                rel_token.append("0")
             assert rel_token[1] in _RELOC_KIND_MAP, f"unknown reloc kind {rel_token}"
-            if rel_token[1] == "condbr19" or rel_token[1] == "jump26":
-                ins.is_local_sym = True
-            if rel_token[1].startswith("loc_"):
-                ins.is_local_sym = True
-                rel_token[1] = rel_token[1][4:]
-            ins.reloc_kind = _RELOC_KIND_MAP[rel_token[1]]
-            ins.reloc_pos = pos
-            ins.reloc_symbol = rel_token[2]
-            ins.operands.append(int(rel_token[3], 0))
+            ins.set_reloc(*_RELOC_KIND_MAP[rel_token[1]], pos, rel_token[2])
+            addend = 0 if len(rel_token) == 3 else int(rel_token[3], 0)
+            ins.operands.append(addend)
         else:
             ins.operands.append(UnsymbolizeOperand(ok, t))
     return ins
