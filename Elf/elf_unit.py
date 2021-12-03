@@ -51,9 +51,10 @@ class Unit:
         return sym
 
     def AddReloc(self, reloc_kind, sec: elf.Section, symbol: elf.Symbol,
-                 extra: int):
+                 extra: int, reloc_offset_addend=0):
         self.relocations.append(
-            elf.Reloc.Init(reloc_kind.value, sec, len(sec.data), symbol, extra))
+            elf.Reloc.Init(reloc_kind.value, sec,
+                           len(sec.data) + reloc_offset_addend, symbol, extra))
 
     def FunStart(self, name: str, alignment: int, padding_bytes: bytes):
         self.sec_text.PadData(alignment, padding_bytes)
