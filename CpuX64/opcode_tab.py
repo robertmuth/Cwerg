@@ -303,7 +303,7 @@ def GetOpWidth(op):
         assert False, f"{op}"
 
 
-def FindSpecificOpWidth(c: str, ops: List, format: str) -> bool:
+def FindSpecificOpWidth(c: str, ops: List, format: str) -> int:
     pos = format.find(c)
     assert pos >= 0
     return GetOpWidth(ops[pos])
@@ -369,13 +369,12 @@ OK_IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
     OK.IMM64: (64, 64),
 }
 
-OK_OFF_TO_SIZE: Dict[OK, Tuple[int, int]] = {
+OK_OFF_TO_SIZE: Dict[OK, Tuple[int, Optional[int]]] = {
     OK.OFFPCREL8: (8, None),
     OK.OFFPCREL32: (32, None),
     OK.OFFABS8: (8, None),
     OK.OFFABS32: (32, None),
 }
-
 
 OK_REG_TO_INFO = {
     OK.MODRM_RM_XREG32: (32, "x"),
@@ -401,7 +400,6 @@ OK_REG_TO_INFO = {
     OK.BYTE_WITH_REG32: (32, "r"),
     OK.BYTE_WITH_REG64: (64, "r"),
 }
-
 
 OK_ADDR_REG = {
     OK.RIP_BASE,
@@ -486,7 +484,7 @@ class Opcode:
 
     Opcodes: List["Opcode"] = []
     OpcodesByFP = collections.defaultdict(list)
-    OpcodesByName: Dict[str, "Opcoode"] = {}
+    OpcodesByName: Dict[str, "Opcode"] = {}
 
     def __init__(self, name: str, variant: str, operands: List, format: str):
         Opcode.Opcodes.append(self)
@@ -899,7 +897,7 @@ class Ins:
         self.reloc_pos = 0
 
     def has_reloc(self):
-        return  self.reloc_kind != _RELOC_TYPE_X64_NONE
+        return self.reloc_kind != _RELOC_TYPE_X64_NONE
 
     def set_reloc(self, kind, is_local, pos, symbol):
         self.reloc_kind = kind
@@ -912,6 +910,8 @@ class Ins:
         if self.has_reloc():
             reloc_str = f"{self.reloc_kind}:{self.reloc_symbol}:{self.operands[self.reloc_pos]}"
         return f"{self.opcode.EnumName()} {reloc_str}"
+
+
 # def MakeIns(opcode: Opcode, operands: List[int]):
 #    return Ins(opcode, [EncodeOperand(opcode.fields[n], x) for n, x in enumerate(operands)])
 

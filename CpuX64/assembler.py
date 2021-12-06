@@ -35,7 +35,7 @@ def AddIns(unit: elf_unit.Unit, ins: x64.Ins):
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
         kind = ins.reloc_kind
         addend = ins.operands[ins.reloc_pos]
-        ins.clear_reloc() # we need to clear the reloc info BEFORE assembling
+        ins.clear_reloc()  # we need to clear the reloc info BEFORE assembling
         ins_data = bytes(x64.Assemble(ins))
 
         reloc_offset_added = ins.opcode.offset_pos if ins.opcode.offset_pos > 0 else ins.opcode.imm_pos

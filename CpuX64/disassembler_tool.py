@@ -16,7 +16,7 @@ def disass(data):
     print(f"{x64.Hexify(data)}", f"{ins.opcode.name}.{ins.opcode.variant} {' '.join(ops_str)}")
 
     enum_name, ops_str = symbolic.InsSymbolize(ins)
-    print ("    " + enum_name)
+    print("    " + enum_name)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         print(f"    {f.name:35s} {o_str:10} (0x{o:x})")
     print()

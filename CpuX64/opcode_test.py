@@ -107,7 +107,7 @@ def ProcessObjdumpFile(fin):
                 print(Hexify(ins.opcode.data))
                 print(Hexify(ins.opcode.mask))
             mismatched[name] += 1
-            #exit()
+            # exit()
 
         n += 1
     print(f"CHECKED: {n}   BAD: {sum(bad.values())}")
