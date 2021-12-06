@@ -1,11 +1,17 @@
 # X64 (aka x86-64) Backend
 
-Limitations
+We follow the model of the A32/A64 backend of a simple expansion of Cwerg
+instruction to x86-64 instruction.
+Since x86-64 is essentially a two address ISA some legalization work is necessary
+to convert from Cwerg's three address code.
 
-* expected instruction set extensions: sse, lzcnt, tzcnt, ...
-* one xmm registers for floating point 
+Limitations:
 
-## Code Selection Plan
+* avoid  3now, mmx or x87 instructions 
+* floating point handled via SSE xmmX registers 
+* expect certain instruction set extensions: SSE, lzcnt, tzcnt, ...
+
+## Legalization
 
 Most x86 instructions for binary ops come in the following variants:
 
@@ -20,91 +26,88 @@ Most x86 instructions for binary ops come in the following variants:
    (3 op equivalent `ins-x86` `mem_or_regA` `mem_or_regA` `imm`)
    
 
-### Legalization
-
-The fact that memory operands can be directly encoded means that spilled 
-registers do not need to be explicitly rewritten before instruction selection.
-
-On the other hand we need to rewrite cwerg instructions if
-1. three different registers are used
-2. two different registers and an immediate are used
-3. two registers are used in an `regA regB regA` pattern 
-4. more than one memory operand is used
-
-For commutative ops 3 is not an issue as we can simply flip the last two operands.
-
-Issues 1 - 3 are addressed by a legalization pass BEFORE spill decisions are made:
-1. `ins-cwerg` `regA` `regB` `regC` => rewrite
-
-   `mov-cwerg` `tmp` `regB`; `ins-cwerg` `tmp` `tmp` `regC`; `mov-cwerg` `regA` `tmp`
-2. `ins-cwerg` `regA` `regB` `imm` => rewrite
-
-   `mov-cwerg` `tmp` `regB`;  `ins-cwerg` `tmp` `tmp` `imm`; `mov-cwerg` `regA` `tmp`
-3. `ins-cwerg` `regA` `regB` `regA` => rewrite (with tmp reg)
-
-    `mov-cwerg` `tmp` `regB`; `ins=cwerg` `tmp` `tmp` `regA`; `mov-cwerg` `regA` `tmp`
 
 
-Issue 4 will become an issue after spilling is introduced by the register allocator.
-
-Legalization will also rewrite instructions so that there is at most one immediate
-and that immediate is in the last slot. 
-
-### Pattern based instruction expansion after register allocation
-
-After register allocation a register, `regX`, will either be assigned to an x86-64 
-register, in which case we keep referring to  it as `regX`, or it will be spilled, 
-in which case we refer to it as `spillX`.
+Because memory operands can be directly encoded, spilled registers do not need
+to be explicitly rewritten before instruction selection.
 
 
-Patterns involving immediates:
 
-* `ins-cwerg` `regA` `regA` `imm` => direct expansion (MI)
-* `ins-cwerg` `spillA` `spillA` `imm` => direct expansion (MI)
-* `ins-cwerg` `regA` `regB` `imm` => complex expansion 
 
-  `mov-x86` `regA` `regB`; `ins-x86` `regA` `imm` (MI)
+### Legalization (before regalloc): conversions to two address form
 
-* `ins-cwerg` `regA` `spillB` `imm` => complex expansion 
+On the other hand we need to rewrite Cwerg instructions to match one of the two
+patterns below: 
 
-   `mov-x86` `regA` `spillB`; `ins-x86` `regA` `imm` (MI)
+1. `regA` `regA` `imm` 
+2. `regA` `regA` `regB`  (or `regA` `regA` `regA` )
+
+This is accomplished by first rewriting instructions so that there is at most one 
+immediate which must be in the last slot and then applying the following
+expansions: 
+
+
+1. `<ins>` `regA` `regB` `regC` => rewrite
+
+   `mov` `regA` `regB`; `<ins>` `regA` `regA` `regC`
    
-* `ins-cwerg` `spillA` `regB` `imm` => complex expansion 
+2. `<ins>` `regA` `regB` `imm` => rewrite
 
-  `mov-x86` `regA` `regB`; `ins-x86` `regA` `imm` (MI)
+   `mov` `regA` `regB`;  `<ins>` `regA` `regA` `imm`
+
+3. `<ins>` `regA` `regB` `regA` => rewrite (with tmp reg)
+
+   `mov` `tmp` `regB`; `<ins>` `tmp` `tmp` `regA`; `mov` `regA` `tmp`
+    
+   (For commutative ops a simpler rewrite is to just swap the last two operands.)
+    
+4. `<ins>` `regA` `regB` `regB` => rewrite
+
+    `mov` `regA` `regB`; `<ins>` `regA` `regB` (MR) or (RM)
 
 
-Patterns without immediates (AAB):
+### Instruction expansion
+
+After register allocation a Cwerg register, `regX`, will either be assigned
+to an x86-64 register, in which case we keep referring to  it as `regX`, 
+or it will be spilled, in which case we refer to it as `spillX`.
 
 
-* `ins-cwerg` `regA` `regA` `regA` => direct expansion (RM) or (MR)
-* `ins-cwerg` `regA` `regA` `regB` => direct expansion (RM) or (MR)
-* `ins-cwerg` `regA` `regA` `spillB` => direct expansion (RM)
-* `ins-cwerg` `spillA` `spillA` `regB` => direct expansion (MR)
-* `ins-cwerg` `spillA` `spillA` `spillB` => complex expansion (with tmp reg)
+The patterns below show how to translate Cwerg three address instruction to
+x86-64 instruction variants.
+
+
+* `<ins>` `regA` `regA` `imm` => direct expansion (MI)
+* `<ins>` `spillA` `spillA` `imm` => direct expansion (MI)
+* `<ins>` `regA` `regA` `regA` => direct expansion (RM) or (MR)
+* `<ins>` `regA` `regA` `regB` => direct expansion (RM) or (MR)
+* `<ins>` `regA` `regA` `spillB` => direct expansion (RM)
+* `<ins>` `spillA` `spillA` `regB` => direct expansion (MR)
+* `<ins>` `spillA` `spillA` `spillB` => complex expansion (with tmp reg)
  
    `mov-x86` `tmp` `spillB`; `ins-x86` `spillA` `tmp` (MR)
 
-Patterns without immediates (ABB):
 
-(Note: the ABB pattern occurs less often because strength reduction is often possible.)
+This is all straight forward except for the case where all operands have been spilled.
+To obtain the tmp scratch register we may need to reserve one general and one 
+floating point register.
 
-* `ins-cwerg` `regA` `regB` `regB` => complex expansion 
-  
-  `mov-x86` `regA` `regB`; `ins-x86` `regA` `regB` (MR) or (RM)
+Note, the situation where two operands are spilled also occurs for `mov` and unary
+instructions.
 
-* `ins-cwerg` `regA` `spillB` `spillB` => complex expansion
-  
-  `mov-x86` `regA` `spillB`; `ins-x86` `regA` `spillB` (RM)
 
-* `ins-cwerg` `spillA` `regB` `regB` => complex expansion
 
-  `mov-x86` `spillA` `regB`; `ins-x86` `spillA` `regB` (MR)
- 
-* `ins-cwerg` `spillA` `spillB` `spillB` => complex expansion (needs tmp)
-   
-   `mov-x86` `tmp` `spillB`; `ins-x86` `tmp` `spillB` (RM); `mov-x86` `spillA` `tmp`
+### Calling Convention (inspired by System-V ABI)
+scratch: `rdi` `rsi` `rdx` `rcx` `r8` `r9` `r10` `r11` `rax` `xmm0-xmm7`
+         
+Callee save:  `rbx` `rbp` `r12-15` `rsp` `xmm8-xmm15`
 
+params-in: `rdi` `rsi` `rdx` `rcx` `r8` `r9` 
+
+params-out: `rax` `rdx`
+
+syscalls: `rdi` `rsi` `rdx` `r10` `r8` `r9` -> `rax` 
+           (note: `r10` takes the place of `rcx` )    
 
 ### Misc other Issues:
 
