@@ -7,7 +7,7 @@
 Cwerg is a lightweight compiler backend aimed at experimental programming 
 language implementations that want to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
-ELF executables for Arm32 and Arm64 ISAs. An X86-64 backend is WIP.
+ELF executables for Arm32 and Arm64 ISAs. (An X86-64 backend is WIP.)
 Besides AOT compilation, (one-shot) JITing is also supported.
 
 The project is very much "work in progress" and  currently consists of:

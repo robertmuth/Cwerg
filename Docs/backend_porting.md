@@ -48,7 +48,11 @@ Our approach follow this playbook:
     equivalent to symbolic form emitted by `objdump`.
 5.  Write the encoder which converts the immediate representation back to hex
     encoding.
-    
+6.  Write an assembler_tool which converts simple textual programs (hello world 
+    with syscalls) into working ELF-executables. Make an initial guess for what 
+    relocation types will definitely needed and support/test those. 
+    Even if the executable is working, make sure it is well-formed by inspecting
+    it with `readelf`/`objdump`.
     
 For the current backends the intermediate representation consists of an enum
 representing the opcode, e.g. `OPC_add` and an array of numbers representing,

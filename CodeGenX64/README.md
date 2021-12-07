@@ -36,8 +36,8 @@ to be explicitly rewritten before instruction selection.
 
 ### Legalization (before regalloc): conversions to two address form
 
-On the other hand we need to rewrite Cwerg instructions to match one of the two
-patterns below: 
+However we do need to rewrite the three address Cwerg instructions 
+to match one of the two x86 patterns from below: 
 
 1. `regA` `regA` `imm` 
 2. `regA` `regA` `regB`  (or `regA` `regA` `regA` )
@@ -63,13 +63,13 @@ expansions:
     
 4. `<ins>` `regA` `regB` `regB` => rewrite
 
-    `mov` `regA` `regB`; `<ins>` `regA` `regB` (MR) or (RM)
+    `mov` `regA` `regB`; `<ins>` `regA` `regB` 
 
 
 ### Instruction expansion
 
 After register allocation a Cwerg register, `regX`, will either be assigned
-to an x86-64 register, in which case we keep referring to  it as `regX`, 
+to an x86-64 register, in which case we keep referring to it as `regX`, 
 or it will be spilled, in which case we refer to it as `spillX`.
 
 
