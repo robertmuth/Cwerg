@@ -263,52 +263,56 @@ _RAW_ENOCDER: Dict[arm.OK, Any] = {
 }
 
 
+_OP_TO_RELOC_KIND : Dict[PARAM, enum_tab.RELOC_TYPE_ARM]= {
+    PARAM.mem1_num2_lo16: enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
+    PARAM.mem1_num2_hi16: enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
+    PARAM.jtb1_lo16: enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
+    PARAM.jtb1_hi16: enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
+    PARAM.fun1_lo16: enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
+    PARAM.fun1_hi16: enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
+    PARAM.bbl0: enum_tab.RELOC_TYPE_ARM.JUMP24,
+    PARAM.bbl2: enum_tab.RELOC_TYPE_ARM.JUMP24,
+    PARAM.fun0: enum_tab.RELOC_TYPE_ARM.CALL,
+}
+
+
 def _HandleReloc(armins: arm.Ins, pos: int, ins: ir.Ins, op: PARAM):
-    assert armins.reloc_kind == 0
-    armins.reloc_pos = pos
+    assert not armins.has_reloc()
 
     def movt_or_movw_rel(is_low):
         return enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC if is_low else enum_tab.RELOC_TYPE_ARM.MOVT_ABS
 
     if op in {PARAM.mem1_num2_lo16, PARAM.mem1_num2_hi16}:
-        armins.reloc_kind = movt_or_movw_rel(op is PARAM.mem1_num2_lo16)
         mem = ins.operands[1]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
         assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
-        armins.reloc_symbol = mem.name
         num = ins.operands[2]
         assert isinstance(num, ir.Const), f"{ins} {num}"
         assert armins.operands[pos] == 0
         armins.operands[pos] = num.value
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, mem.name)
     elif op in {PARAM.jtb1_lo16, PARAM.jtb1_hi16}:
-        armins.reloc_kind = movt_or_movw_rel(op is PARAM.jtb1_lo16)
-        armins.is_local_sym = True
         jtb = ins.operands[1]
         assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
-        armins.reloc_symbol = jtb.name
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, jtb.name)
     elif op in {PARAM.fun1_lo16, PARAM.fun1_hi16}:
-        armins.reloc_kind = movt_or_movw_rel(op is PARAM.fun1_lo16)
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
-        armins.reloc_symbol = fun.name
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
     elif op is PARAM.bbl0:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.JUMP24
-        armins.is_local_sym = True
         bbl = ins.operands[0]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        armins.reloc_symbol = bbl.name
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
     elif op is PARAM.bbl2:
-        armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.JUMP24
-        armins.is_local_sym = True
         bbl = ins.operands[2]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        armins.reloc_symbol = bbl.name
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
     elif op is PARAM.fun0:
         armins.reloc_kind = enum_tab.RELOC_TYPE_ARM.CALL
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
-        armins.reloc_symbol = fun.name
+        armins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
     else:
         assert False
 

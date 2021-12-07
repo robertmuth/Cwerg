@@ -225,53 +225,53 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert False, f"unknown ARG {repr(arg)}"
 
 
+_OP_TO_RELOC_KIND = {
+    PARAM.bbl0: enum_tab.RELOC_TYPE_AARCH64.JUMP26,
+    PARAM.bbl2: enum_tab.RELOC_TYPE_AARCH64.CONDBR19,
+    PARAM.fun0: enum_tab.RELOC_TYPE_AARCH64.CALL26,
+    PARAM.mem1_num2_prel_hi21: enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
+    PARAM.mem1_num2_lo12: enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
+    PARAM.fun1_prel_hi21: enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
+    PARAM.fun1_lo12: enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
+    PARAM.jtb1_prel_hi21: enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21,
+    PARAM.jtb1_lo12: enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC,
+}
+
+
 def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
-    assert cpuins.reloc_kind == enum_tab.RELOC_TYPE_AARCH64.NONE, f"{cpuins.reloc_kind}"
-    cpuins.reloc_pos = pos
+    assert not cpuins.has_reloc(), f"{cpuins.reloc_kind}"
 
     if op is PARAM.bbl0:
-        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.JUMP26
-        cpuins.is_local_sym = True
         bbl = ins.operands[0]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        cpuins.reloc_symbol = bbl.name
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
     elif op is PARAM.bbl2:
-        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CONDBR19
-        cpuins.is_local_sym = True
         bbl = ins.operands[2]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        cpuins.reloc_symbol = bbl.name
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
     elif op is PARAM.fun0:
-        cpuins.reloc_kind = enum_tab.RELOC_TYPE_AARCH64.CALL26
         fun = ins.operands[0]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
-        cpuins.reloc_symbol = fun.name
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
     elif op in {PARAM.mem1_num2_prel_hi21, PARAM.mem1_num2_lo12}:
-        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.mem1_num2_lo12
-                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         mem = ins.operands[1]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
         assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
-        cpuins.reloc_symbol = mem.name
         num = ins.operands[2]
         assert isinstance(num, ir.Const), f"{ins} {num}"
         assert cpuins.operands[pos] == 0
         cpuins.operands[pos] = num.value
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, mem.name)
     elif op in {PARAM.fun1_prel_hi21, PARAM.fun1_lo12}:
-        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.fun1_lo12
-                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
-        cpuins.reloc_symbol = fun.name
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
     elif op in {PARAM.jtb1_prel_hi21, PARAM.jtb1_lo12}:
-        cpuins.reloc_kind = (enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC if op is PARAM.jtb1_lo12
-                             else enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21)
         jtb = ins.operands[1]
         assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
-        cpuins.reloc_symbol = jtb.name
-        cpuins.is_local_sym = True
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, jtb.name)
     else:
         assert False
 
@@ -609,6 +609,7 @@ def InitCondBra():
                     [InsTmpl(a64_cmp + "_zero", [PARAM.reg0, 0]),
                      InsTmpl(a64_bxx, [PARAM.bbl2])],
                     imm_curb1=IMM_CURB.ZERO)
+
 
 def InitCmp():
     # TODO: cover the floating points ones
@@ -1118,7 +1119,6 @@ def InitVFP():
              InsTmpl("tbz", [PARAM.scratch_gpr, 63, 0]),
              InsTmpl("fneg_d", [PARAM.reg0, PARAM.reg0])])
 
-
     for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
                                         (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),
                                         (o.DK.F32, o.DK.S32, "scvtf_s_from_w"),
@@ -1279,7 +1279,7 @@ def _EmitCodeC(fout):
     # only for these two instances - no idea why
     cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB", fout)
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM)+ [("ZZZ", len(PARAM))], "PARAM", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM) + [("ZZZ", len(PARAM))], "PARAM", fout)
     cgen.RenderEnumToStringFun("PARAM", fout)
 
 
