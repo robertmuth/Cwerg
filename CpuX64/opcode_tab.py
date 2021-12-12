@@ -17,6 +17,7 @@ import enum
 import re
 import json
 import itertools
+import os
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
 MAX_INSTRUCTION_LENGTH = 11
@@ -882,8 +883,6 @@ class Ins:
     There can be at most one relocation associated with an Ins
     """
     opcode: Opcode
-    # Note the operands must have been pre-encoded with EncodeOperand
-    # Use MakeIns below is necessary
     operands: List[int] = dataclasses.field(default_factory=list)
     #
     # Note the addend is store in `operands[reloc_pos]
@@ -911,9 +910,6 @@ class Ins:
             reloc_str = f"{self.reloc_kind}:{self.reloc_symbol}:{self.operands[self.reloc_pos]}"
         return f"{self.opcode.EnumName()} {reloc_str}"
 
-
-# def MakeIns(opcode: Opcode, operands: List[int]):
-#    return Ins(opcode, [EncodeOperand(opcode.fields[n], x) for n, x in enumerate(operands)])
 
 
 def Disassemble(data: List) -> Optional[Ins]:
@@ -1238,7 +1234,7 @@ def LoadOpcodes(filename: str):
     CreateOpcodes(tables["instructions"], False)
 
 
-LoadOpcodes("x86data.js")
+LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
 print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
 if __name__ == "__main__":
@@ -1250,7 +1246,7 @@ if __name__ == "__main__":
             last_name = opc.name
         fields_str = ' '.join([str(f) for f in opc.fields])
         ops_str = ' '.join(opc.operands)
-        print(f"{opc.name}.{opc.variant:20} {ops_str:30} {fields_str}")
+        print(f"{opc.EnumName():20} {ops_str:30} {fields_str}")
     if False:
         for k, v in _OPCODES_BY_FP.items():
             if v:
