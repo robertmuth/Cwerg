@@ -32,7 +32,7 @@ Having a decoder is nice because it:
 * allows us to test the encoder more easily 
 * helps with the processing of relocations
 
-Our approach follow this playbook:
+Our approach follow this playbook starting with the CpuXXX support
 
 1.  Run `objdump -d <exe>` on several large executables built for the target 
     architecture. `firefox` is a good candidate.
@@ -53,6 +53,11 @@ Our approach follow this playbook:
     relocation types will definitely needed and support/test those. 
     Even if the executable is working, make sure it is well-formed by inspecting
     it with `readelf`/`objdump`.
+
+Next up is the Codegen support in CodeGenXXX
+ 
+1.  Start implementing simple patterns in `isel_tab.py` and test them via
+    `isel_tester.py` 
     
 For the current backends the intermediate representation consists of an enum
 representing the opcode, e.g. `OPC_add` and an array of numbers representing,
