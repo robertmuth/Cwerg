@@ -1,16 +1,20 @@
 TOTAL instruction templates: 3251
 
 INS: add $r10@rax $r10@rax 305419896  [S64 S64 S64]
-PAT: reg:[S64 S64 S64]  imm:[REG REG SIMM32]
+PAT: reg:[S64 S64 S64]  op:[REG REG SIMM32]
     add_64_mr_imm32 rax 0x12345678
 
 INS: and $r1@rdx $r1@rdx 42  [U32 U32 U32]
-PAT: reg:[U32 U32 U32]  imm:[REG REG UIMM32]
+PAT: reg:[U32 U32 U32]  op:[REG REG UIMM32]
     and_32_mr_imm32 edx 0x2a
 
 INS: xor $r2@rdx $r2@rdx $r3@rcx  [U32 U32 U32]
-PAT: reg:[U32 U32 U32]  imm:[REG REG REG]
+PAT: reg:[U32 U32 U32]  op:[REG REG REG]
     xor_32_r_mr edx ecx
+
+INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [F32 F32 F32]
+PAT: reg:[F32 F32 F32]  op:[REG REG REG]
+    addss_x_mx xmm0 xmm1
 
 INS: ret  []
     SPECIAL

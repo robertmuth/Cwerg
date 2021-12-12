@@ -34,7 +34,7 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
     pattern = isel_tab.FindMatchingPattern(ins)
     print(
         f"PAT: reg:[{' '.join(a.name for a in pattern.type_constraints)}]  "
-        f"imm:[{' '.join(a.name for a in pattern.op_curbs)}]")
+        f"op:[{' '.join(a.name for a in pattern.op_curbs)}]")
     for tmpl in pattern.emit:
         x64ins = tmpl.MakeInsFromTmpl(ins, ctx)
         name, ops = symbolic.InsSymbolize(x64ins)

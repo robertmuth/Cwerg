@@ -246,7 +246,7 @@ OPCODES_REQUIRING_SPECIAL_HANDLING = {
 }
 
 
-def InitAlu():
+def InitAluInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for opc, x64_opc in [(o.AND, "and"),
@@ -280,6 +280,23 @@ def InitAlu():
                               PARAM.stk01, 0, PARAM.num2])])
 
 
+def InitAluFlt():
+    for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+        for opc, x64_opc in [(o.ADD, "adds"),
+                             (o.SUB, "subs"),
+                             (o.MUL, "muls"),
+                             (o.DIV, "divs")]:
+            Pattern(opc, [kind1] * 3,
+                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mx",
+                             [PARAM.reg01, PARAM.reg2])])
+            Pattern(opc, [kind1] * 3,
+                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.SP_REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
+                             [PARAM.reg01, FIXARG.SP, FIXARG.NO_INDEX,
+                              PARAM.stk2, 0])])
+
+
 def InitCondBra():
     pass
 
@@ -298,4 +315,42 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"
     return None
 
-InitAlu()
+
+InitAluInt()
+InitAluFlt()
+
+
+def _DumpCodeSelTable():
+    count = 0
+    for i in range(256):
+        patterns = Pattern.Table.get(i)
+        if patterns is None: continue
+        count += len(patterns)
+        opcode = o.Opcode.TableByNo[i]
+        print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}] patters={len(patterns)}")
+        for pat in patterns:
+            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
+            op_constraints = [x.name if x else '*' for x in pat.op_curbs]
+
+            print(f"  [{' '.join(type_constraints)}]  [{' '.join(op_constraints)}]")
+            for tmpl in pat.emit:
+                ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
+                print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
+        print()
+    print (f"Total patterns {count}")
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1:
+        assert False
+        if sys.argv[1] == "documentation":
+            pass
+        elif sys.argv[1] == "gen_h":
+            cgen.ReplaceContent(_EmitCodeH, sys.stdin, sys.stdout)
+        elif sys.argv[1] == "gen_c":
+            cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
+
+    else:
+        _DumpCodeSelTable()

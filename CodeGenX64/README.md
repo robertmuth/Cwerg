@@ -66,7 +66,7 @@ expansions:
     `mov` `regA` `regB`; `<ins>` `regA` `regB` 
 
 
-### Instruction expansion
+### Instruction expansion (integers)
 
 After register allocation a Cwerg register, `regX`, will either be assigned
 to an x86-64 register, in which case we keep referring to it as `regX`, 
@@ -95,6 +95,19 @@ floating point register.
 Note, the situation where two operands are spilled also occurs for `mov` and unary
 instructions.
 
+### Instruction expansion (FP)
+
+For floating point operations only the RM variant is available. So we
+get the following expansions (omitting the cases involving immediates):
+
+
+* `<ins>` `regA` `regA` `regA` => direct expansion (RM)
+* `<ins>` `regA` `regA` `regB` => direct expansion (RM) 
+* `<ins>` `regA` `regA` `spillB` => direct expansion (RM)
+* `<ins>` `spillA` `spillA` `regB` =>  complex expansion (with tmp reg)
+  `mov-x86` `tmp` `spillA`; `ins-x86` `tmp` `regB` ; `mov-x86` `spillA` `tmp` (RM)
+* `<ins>` `spillA` `spillA` `spillB` => complex expansion (with tmp reg)
+  `mov-x86` `tmp` `spillA`; `ins-x86` `tmp` `spillB`; `mov-x86` `spillA` `tmp` (RM)
 
 
 ### Calling Convention (inspired by System-V ABI)
