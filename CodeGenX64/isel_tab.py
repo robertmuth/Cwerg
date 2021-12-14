@@ -16,8 +16,8 @@ from Util import cgen
 
 
 @enum.unique
-class OP_CURB(enum.IntEnum):
-    """Immediate Curbs - describes constraints on the immediate values involved in patterns
+class C(enum.IntEnum):
+    """Curbs/Constraints - describes constraints on the immediate values involved in patterns
 
     Used to determine if a pattern is a suitable match for a Cwerg IR instruction
     """
@@ -36,55 +36,62 @@ class OP_CURB(enum.IntEnum):
     UIMM64 = 12
 
 
-class FIXARG(enum.Enum):
+class F(enum.Enum):
+    """Fixed params"""
     NO_INDEX = 4
     SP = 4
 
 
 @enum.unique
-class PARAM(enum.Enum):
-    """Placeholder in X64 instruction template for stuff that needs to be derived
+class P(enum.Enum):
+    """Placeholder/Parameter in X64 instruction template for stuff that needs to be derived
     for the Cwerg instructions"""
     invalid = 0
     reg01 = 1
-    reg2 = 3
-    reg3 = 4
-    reg4 = 5
+    reg0 = 2
+    reg1 = 3
+    reg2 = 4
+    reg3 = 5
+    reg4 = 6
     #
-    num0 = 6
-    num1 = 7
-    num2 = 8
-    num3 = 9
-    num4 = 10
+    num0 = 10
+    num1 = 11
+    num2 = 12
+    num3 = 13
+    num4 = 14
     #
-    stk01 = 11
-    stk2 = 12
+    stk01 = 20
+    stk0 = 21
+    stk1 = 22
+    stk2 = 23
+    #
+    bbl2 = 30
 
     #
 
 
-_RELOC_ARGS: Set[PARAM] = {
+_RELOC_ARGS: Set[P] = {
 }
 
 
-def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: PARAM):
+def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
     assert not cpuins.has_reloc(), f"{cpuins.reloc_kind}"
 
 
-def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
+def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     ops = ins.operands
-    if arg is PARAM.reg01:
+    if arg is P.reg01:
         assert ops[0] == ops[1]
         reg = ops[0]
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
-    if arg is PARAM.reg2:
+    if arg is P.reg2:
         reg = ops[2]
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
-    elif arg is PARAM.num2:
+    elif arg is P.num2:
         assert isinstance(ops[2], ir.Const)
         return ops[2].value
     else:
@@ -107,7 +114,7 @@ class InsTmpl:
         assert args is not None
         assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name}"
         for op in args:
-            assert isinstance(op, (int, PARAM, FIXARG)), (
+            assert isinstance(op, (int, P, F)), (
                 f"unknown op {op} for {opcode.name} {args}")
         self.opcode = opcode
         self.args: List[Any] = args
@@ -117,9 +124,9 @@ class InsTmpl:
         for n, arg in enumerate(self.args):
             if type(arg) == int:
                 val = arg
-            elif isinstance(arg, FIXARG):
+            elif isinstance(arg, F):
                 val = arg.value
-            elif isinstance(arg, PARAM):
+            elif isinstance(arg, P):
                 val = _ExtractTmplArgOp(ins, arg, ctx)
             else:
                 assert False, f"unknown param {repr(arg)}"
@@ -149,7 +156,7 @@ class Pattern:
     Table: Dict[int, List["Pattern"]] = collections.defaultdict(list)
 
     def __init__(self, opcode: o.Opcode, type_constraints: List[o.DK],
-                 op_curbs: List[OP_CURB], emit: List[InsTmpl]):
+                 op_curbs: List[C], emit: List[InsTmpl]):
         # the template, usually contains ArmIns except for the nop1 pattern
         self.emit = emit
         # how to fill the template params
@@ -163,7 +170,7 @@ class Pattern:
                                                 opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert op_constr in {OP_CURB.REG, OP_CURB.SP_REG}
+                assert op_constr in {C.REG, C.SP_REG}
             elif kind is o.OP_KIND.CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
                 assert op_constr in {}
@@ -171,7 +178,7 @@ class Pattern:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
             else:
                 assert type_constr is o.DK.INVALID
-                assert op_constr is OP_CURB.INVALID, f"bad pattern for {opcode}"
+                assert op_constr is C.INVALID, f"bad pattern for {opcode}"
 
         # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
@@ -194,31 +201,31 @@ class Pattern:
         """
         """
         for pos, (op_curb, op) in enumerate(zip(self.op_curbs, ins.operands)):
-            if op_curb is OP_CURB.INVALID:
+            if op_curb is C.INVALID:
                 assert not isinstance(ir.Const, ir.Reg)
-            elif op_curb is OP_CURB.REG:
+            elif op_curb is C.REG:
                 if not isinstance(op, ir.Reg):
                     return False
                 if isinstance(op.cpu_reg, ir.StackSlot):
                     return False
-            elif op_curb is OP_CURB.SP_REG:
+            elif op_curb is C.SP_REG:
                 if not isinstance(op, ir.Reg):
                     return False
                 if not isinstance(op.cpu_reg, ir.StackSlot):
                     return False
-            elif op_curb in {OP_CURB.SIMM8, OP_CURB.SIMM16,
-                             OP_CURB.SIMM32, OP_CURB.SIMM64}:
+            elif op_curb in {C.SIMM8, C.SIMM16,
+                             C.SIMM32, C.SIMM64}:
                 assert isinstance(op, ir.Const)
-                if op_curb is OP_CURB.SIMM8:
+                if op_curb is C.SIMM8:
                     if (1 << 7) <= op.value or op.value < -(1 << 7):
                         return False
-                elif op_curb is OP_CURB.SIMM16:
+                elif op_curb is C.SIMM16:
                     if (1 << 15) <= op.value or op.value < -(1 << 15):
                         return False
-                elif op_curb is OP_CURB.SIMM32:
+                elif op_curb is C.SIMM32:
                     if (1 << 31) <= op.value or op.value < -(1 << 31):
                         return False
-                elif op_curb is OP_CURB.SIMM64:
+                elif op_curb is C.SIMM64:
                     if (1 << 63) <= op.value or op.value < -(1 << 63):
                         return False
         return True
@@ -230,16 +237,15 @@ class Pattern:
 
 
 _KIND_TO_IMM = {
-    o.DK.U8: OP_CURB.UIMM8,
-    o.DK.S8: OP_CURB.SIMM8,
-    o.DK.U16: OP_CURB.UIMM16,
-    o.DK.S16: OP_CURB.SIMM16,
-    o.DK.U32: OP_CURB.UIMM32,
-    o.DK.S32: OP_CURB.SIMM32,
-    o.DK.U64: OP_CURB.SIMM32,  # not a typo
-    o.DK.S64: OP_CURB.SIMM32,  # not a typo
+    o.DK.U8: C.UIMM8,
+    o.DK.S8: C.SIMM8,
+    o.DK.U16: C.UIMM16,
+    o.DK.S16: C.SIMM16,
+    o.DK.U32: C.UIMM32,
+    o.DK.S32: C.SIMM32,
+    o.DK.U64: C.SIMM32,  # not a typo
+    o.DK.S64: C.SIMM32,  # not a typo
 }
-
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
     o.RET
@@ -249,35 +255,35 @@ OPCODES_REQUIRING_SPECIAL_HANDLING = {
 def InitAluInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        bw = kind1.bitwidth()
+        iw = 32 if bw == 64 else bw
         for opc, x64_opc in [(o.AND, "and"),
                              (o.XOR, "xor"),
                              (o.ADD, "add"),
                              (o.OR, "or"),
                              (o.SUB, "sub")]:
-            bw = kind1.bitwidth()
-            iw = 32 if bw == 64 else bw
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.REG],
+                    [C.REG, C.REG, C.REG],
                     [InsTmpl(f"{x64_opc}_{bw}_r_mr",
-                             [PARAM.reg01, PARAM.reg2])])
+                             [P.reg01, P.reg2])])
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.SP_REG, OP_CURB.SP_REG, OP_CURB.REG],
+                    [C.SP_REG, C.SP_REG, C.REG],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
-                             [FIXARG.SP, FIXARG.NO_INDEX,
-                              PARAM.stk01, 0, PARAM.reg2])])
+                             [F.SP, F.NO_INDEX,
+                              P.stk01, 0, P.reg2])])
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.SP_REG],
+                    [C.REG, C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}_{bw}_r_mbis32",
-                             [PARAM.reg01, FIXARG.SP, FIXARG.NO_INDEX,
-                              PARAM.stk2, 0])])
+                             [P.reg01, F.SP, F.NO_INDEX,
+                              P.stk2, 0])])
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.REG, OP_CURB.REG, _KIND_TO_IMM[kind1]],
-                    [InsTmpl(f"{x64_opc}_{bw}_mr_imm{iw}", [PARAM.reg01, PARAM.num2])])
+                    [C.REG, C.REG, _KIND_TO_IMM[kind1]],
+                    [InsTmpl(f"{x64_opc}_{bw}_mr_imm{iw}", [P.reg01, P.num2])])
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.SP_REG, OP_CURB.SP_REG, _KIND_TO_IMM[kind1]],
+                    [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}",
-                             [FIXARG.SP, FIXARG.NO_INDEX,
-                              PARAM.stk01, 0, PARAM.num2])])
+                             [F.SP, F.NO_INDEX,
+                              P.stk01, 0, P.num2])])
 
 
 def InitAluFlt():
@@ -287,18 +293,101 @@ def InitAluFlt():
                              (o.MUL, "muls"),
                              (o.DIV, "divs")]:
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.REG],
+                    [C.REG, C.REG, C.REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mx",
-                             [PARAM.reg01, PARAM.reg2])])
+                             [P.reg01, P.reg2])])
             Pattern(opc, [kind1] * 3,
-                    [OP_CURB.REG, OP_CURB.REG, OP_CURB.SP_REG],
+                    [C.REG, C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [PARAM.reg01, FIXARG.SP, FIXARG.NO_INDEX,
-                              PARAM.stk2, 0])])
+                             [P.reg01, F.SP, F.NO_INDEX,
+                              P.stk2, 0])])
+
+        for opc, x64_opc in [(o.SQRT, "sqrts")]:
+            Pattern(opc, [kind1] * 2,
+                    [C.REG, C.REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mx", [P.reg0, P.reg1])])
+            Pattern(opc, [kind1] * 2,
+                    [C.REG, C.SP_REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
+                             [P.reg0, F.SP, F.NO_INDEX, P.stk1, 0])])
+
+# http://unixwiz.net/techtips/x86-jumps.html
+def _GetJmp(dk: o.DK, opc):
+    if opc is o.BEQ:
+        return "je"
+    elif opc is o.BNE:
+        return  "jne"
+    elif opc is o.BLT:
+        if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
+            return "jl"
+        else:
+            return "jb"
+    elif opc is o.BLE:
+        if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
+            return "jle"
+        else:
+            return "jbe"
 
 
-def InitCondBra():
-    pass
+def _GetJmpSwp(dk: o.DK, opc):
+    if opc is o.BEQ:
+        return "je"
+    elif opc is o.BNE:
+        return  "jne"
+    elif opc is o.BLT:
+        if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
+            return "jg"
+        else:
+            return "ja"
+    elif opc is o.BLE:
+        if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
+            return "jge"
+        else:
+            return "jae"
+
+
+def InitCondBraInt():
+    for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        bw = kind1.bitwidth()
+        iw = 32 if bw == 64 else bw
+        for opc in [o.BEQ, o.BNE, o.BLT, o.BLE]:
+            x64_jmp = _GetJmp(kind1, opc)
+            x64_jmp_swp = _GetJmpSwp(kind1, opc)
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.REG, C.REG, C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_r_mr", [P.reg0, P.reg1]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.SP_REG, C.REG, C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_mbis32_r",
+                             [F.SP, F.NO_INDEX, P.stk0, 0, P.reg2]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.REG, C.SP_REG, C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_r_mbis32",
+                             [P.reg0, F.SP, F.NO_INDEX, P.stk1, 0]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            #
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.REG, _KIND_TO_IMM[kind1], C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_mr_imm{iw}", [P.reg0, P.num1]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.SP_REG, _KIND_TO_IMM[kind1], C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_mbis32_imm{iw}",
+                             [F.SP, F.NO_INDEX, P.stk0, 0, P.num1]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            #
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [_KIND_TO_IMM[kind1], C.REG, C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_mr_imm{iw}", [P.reg1, P.num0]),
+                     InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [_KIND_TO_IMM[kind1], C.SP_REG,  C.INVALID],
+                    [InsTmpl(f"cmp_{bw}_mbis32_imm{iw}",
+                             [F.SP, F.NO_INDEX, P.stk1, 0, P.num0]),
+                     InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
@@ -318,6 +407,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 
 InitAluInt()
 InitAluFlt()
+InitCondBraInt()
 
 
 def _DumpCodeSelTable():
@@ -337,7 +427,7 @@ def _DumpCodeSelTable():
                 ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
                 print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
         print()
-    print (f"Total patterns {count}")
+    print(f"Total patterns {count}")
 
 
 if __name__ == "__main__":
