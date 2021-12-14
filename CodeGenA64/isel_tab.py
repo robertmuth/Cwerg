@@ -155,14 +155,7 @@ class PARAM(enum.Enum):
     num1_48_64 = 41
 
 
-_RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
-                           PARAM.mem1_num2_prel_hi21,
-                           PARAM.mem1_num2_lo12,
-                           PARAM.fun1_lo12,
-                           PARAM.fun1_prel_hi21,
-                           PARAM.jtb1_lo12,
-                           PARAM.jtb1_prel_hi21,
-                           }
+
 
 
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
@@ -199,7 +192,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.num1_0_16, PARAM.num1_16_32, PARAM.num1_32_48, PARAM.num1_48_64}:
         shift = ((arg.value - PARAM.num1_0_16.value) * 16)
         return (ins.operands[1].value >> shift) & 0xffff
-    elif arg in _RELOC_ARGS:
+    elif arg in _OP_TO_RELOC_KIND:
         return 0
     elif arg is PARAM.scratch_flt:
         assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}, f"{ctx.scratch_cpu_reg}"
@@ -289,7 +282,7 @@ class InsTmpl:
 
     def __init__(self, opcode_name: str, args: List[Any]):
         opcode: a64.Opcode = a64.Opcode.name_to_opcode[opcode_name]
-        assert len(args) == len(opcode.fields), f"num arg mismacth for {opcode_name}"
+        assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name}"
         for op in args:
             assert isinstance(op, (int, PARAM, FIXARG)), (
                 f"unknown op {op} for {opcode.name} {args}")
@@ -313,7 +306,7 @@ class InsTmpl:
             assert val is not None
             out.operands.append(a64.EncodeOperand(self.opcode.fields[n], val))
             # note: this may alter the value we just appended
-            if arg in _RELOC_ARGS:
+            if arg in _OP_TO_RELOC_KIND:
                 _HandleReloc(out, n, ins, arg)
         return out
 

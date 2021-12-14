@@ -155,12 +155,6 @@ class PARAM(enum.Enum):
     stk1_offset2_hi = 43
 
 
-_RELOC_ARGS: Set[PARAM] = {PARAM.bbl0, PARAM.bbl2, PARAM.fun0,
-                           PARAM.mem1_num2_lo16, PARAM.mem1_num2_hi16,
-                           PARAM.fun1_lo16, PARAM.fun1_hi16,
-                           PARAM.jtb1_lo16, PARAM.jtb1_hi16}
-
-
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
     assert isinstance(num, ir.Const)
     assert isinstance(stk, ir.Stk)
@@ -192,7 +186,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         num = ins.operands[n]
         assert isinstance(num, ir.Const), f"{ins} {num}"
         return ~num.value & 0xffffffff
-    elif arg in _RELOC_ARGS:
+    elif arg in _OP_TO_RELOC_KIND:
         return 0
     elif arg is PARAM.num1_lo16:
         num = ins.operands[1]
@@ -262,8 +256,7 @@ _RAW_ENOCDER: Dict[arm.OK, Any] = {
     arm.OK.IMM_0_7_TIMES_4: lambda x: x // 4,
 }
 
-
-_OP_TO_RELOC_KIND : Dict[PARAM, enum_tab.RELOC_TYPE_ARM]= {
+_OP_TO_RELOC_KIND: Dict[PARAM, enum_tab.RELOC_TYPE_ARM] = {
     PARAM.mem1_num2_lo16: enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
     PARAM.mem1_num2_hi16: enum_tab.RELOC_TYPE_ARM.MOVT_ABS,
     PARAM.jtb1_lo16: enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC,
@@ -351,7 +344,7 @@ class InsTmpl:
             assert val is not None
             out.operands.append(val)
             # note: this may alter the value we just appended
-            if arg in _RELOC_ARGS:
+            if arg in _OP_TO_RELOC_KIND:
                 _HandleReloc(out, n, ins, arg)
         return out
 
