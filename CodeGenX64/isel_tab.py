@@ -40,6 +40,7 @@ class F(enum.Enum):
     """Fixed params"""
     NO_INDEX = 4
     SP = 4
+    RIP = 0
 
 
 @enum.unique
@@ -65,17 +66,53 @@ class P(enum.Enum):
     stk1 = 22
     stk2 = 23
     #
-    bbl2 = 30
-
+    bbl0 = 30
+    bbl2 = 31
     #
+    mem1_num2_prel = 40
+    fun1_prel = 41
+    jtb1_prel = 42
 
 
-_RELOC_ARGS: Set[P] = {
+_OP_TO_RELOC_KIND = {
+    P.bbl0: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.bbl2: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.fun1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.mem1_num2_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.jtb1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
 }
 
 
 def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
     assert not cpuins.has_reloc(), f"{cpuins.reloc_kind}"
+    if op is P.bbl2:
+        bbl = ins.operands[2]
+        assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
+    elif op is P.bbl0:
+        bbl = ins.operands[0]
+        assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
+    elif op is P.fun1_prel:
+        fun = ins.operands[1]
+        assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
+    elif op is P.mem1_num2_prel:
+        mem = ins.operands[1]
+        assert isinstance(mem, ir.Mem), f"{ins} {mem}"
+        assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
+        num = ins.operands[2]
+        assert isinstance(num, ir.Const), f"{ins} {num}"
+        assert cpuins.operands[pos] == 0
+        cpuins.operands[pos] = num.value
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, mem.name)
+    elif op is P.jtb1_prel:
+        jtb = ins.operands[1]
+        assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, jtb.name)
+    else:
+        assert False
 
 
 def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
@@ -134,7 +171,7 @@ class InsTmpl:
             assert isinstance(val, int), f"expected int {val}"
             out.operands.append(val)
             # note: this may alter the value we just appended
-            if arg in _RELOC_ARGS:
+            if arg in _OP_TO_RELOC_KIND:
                 _HandleReloc(out, n, ins, arg)
         return out
 
@@ -311,12 +348,13 @@ def InitAluFlt():
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
                              [P.reg0, F.SP, F.NO_INDEX, P.stk1, 0])])
 
+
 # http://unixwiz.net/techtips/x86-jumps.html
 def _GetJmp(dk: o.DK, opc):
     if opc is o.BEQ:
         return "je"
     elif opc is o.BNE:
-        return  "jne"
+        return "jne"
     elif opc is o.BLT:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jl"
@@ -333,7 +371,7 @@ def _GetJmpSwp(dk: o.DK, opc):
     if opc is o.BEQ:
         return "je"
     elif opc is o.BNE:
-        return  "jne"
+        return "jne"
     elif opc is o.BLT:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jg"
@@ -384,10 +422,21 @@ def InitCondBraInt():
                     [InsTmpl(f"cmp_{bw}_mr_imm{iw}", [P.reg1, P.num0]),
                      InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
-                    [_KIND_TO_IMM[kind1], C.SP_REG,  C.INVALID],
+                    [_KIND_TO_IMM[kind1], C.SP_REG, C.INVALID],
                     [InsTmpl(f"cmp_{bw}_mbis32_imm{iw}",
                              [F.SP, F.NO_INDEX, P.stk1, 0, P.num0]),
                      InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
+
+
+def InitLea():
+    Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID],
+            [C.REG, C.INVALID],
+            [InsTmpl("lea_64_r_mpc32", [P.reg0, F.RIP, P.fun1_prel])])
+
+    for kind1 in [o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.REG, C.INVALID, C.SIMM64],
+                [InsTmpl("lea_64_r_mpc32", [P.reg0, F.RIP, P.mem1_num2_prel])])
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
@@ -408,6 +457,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 InitAluInt()
 InitAluFlt()
 InitCondBraInt()
+InitLea()
 
 
 def _DumpCodeSelTable():
