@@ -159,6 +159,12 @@ BBL_INVALID = None
 
 
 @dataclasses.dataclass(init=True)
+class StackSlot:
+    """CPU Register"""
+    offset: int = 0
+
+
+@dataclasses.dataclass(init=True)
 class CpuReg:
     """CPU Register"""
     name: str
