@@ -55,6 +55,8 @@ class P(enum.Enum):
     reg2 = 4
     reg3 = 5
     reg4 = 6
+    tmp_gpr = 7
+    tmp_flt = 8
     #
     num0 = 10
     num1 = 11
@@ -132,7 +134,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
     elif arg is P.num2:
-        assert isinstance(ops[2], ir.Const)
+        assert isinstance(ops[2], ir.nst)
         return ops[2].value
     else:
         assert False, f"could not extract op for {ins} {ins.operands} {arg}"
@@ -317,6 +319,13 @@ def InitAluInt():
                              [P.reg01, F.SP, F.NO_INDEX,
                               P.spill2, 0])])
             Pattern(opc, [kind1] * 3,
+                    [C.SP_REG, C.SP_REG, C.SP_REG],
+                    [InsTmpl(f"mov_{bw}_r_mbis32",
+                             [P.tmp_gpr, F.SP, F.NO_INDEX, P.spill2, 0]),
+                     InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
+                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_gpr])])
+            #
+            Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mr_imm{iw}", [P.reg01, P.num2])])
             Pattern(opc, [kind1] * 3,
@@ -339,8 +348,23 @@ def InitAluFlt():
             Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [P.reg01, F.SP, F.NO_INDEX,
-                              P.spill2, 0])])
+                             [P.reg01, F.SP, F.NO_INDEX, P.spill2, 0])])
+            Pattern(opc, [kind1] * 3,
+                    [C.SP_REG, C.SP_REG, C.REG],
+                    [InsTmpl(f"movs{suffix}_x_mbis32",
+                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill01, 0]),
+                     InsTmpl(f"{x64_opc}{suffix}_x_mx",
+                             [P.tmp_flt, P.reg2]),
+                     InsTmpl(f"movs{suffix}_mbis32_x",
+                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_flt])])
+            Pattern(opc, [kind1] * 3,
+                    [C.SP_REG, C.SP_REG, C.SP_REG],
+                    [InsTmpl(f"movs{suffix}_x_mbis32",
+                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill01, 0]),
+                     InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
+                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill2, 0]),
+                     InsTmpl(f"movs{suffix}_mbis32_x",
+                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_flt])])
 
         for opc, x64_opc in [(o.SQRT, "sqrts")]:
             Pattern(opc, [kind1] * 2,
@@ -350,6 +374,18 @@ def InitAluFlt():
                     [C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
                              [P.reg0, F.SP, F.NO_INDEX, P.spill1, 0])])
+            Pattern(opc, [kind1] * 2,
+                    [C.SP_REG, C.REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mx",
+                             [P.tmp_flt, P.reg1]),
+                     InsTmpl(f"movs{suffix}_mbis32_x",
+                             [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_flt])])
+            Pattern(opc, [kind1] * 2,
+                    [C.SP_REG, C.SP_REG],
+                    [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
+                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill1, 0]),
+                     InsTmpl(f"movs{suffix}_mbis32_x",
+                             [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_flt])])
 
 
 # http://unixwiz.net/techtips/x86-jumps.html
