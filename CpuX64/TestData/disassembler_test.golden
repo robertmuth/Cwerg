@@ -1,4 +1,4 @@
-TOTAL instruction templates: 3251
+TOTAL instruction templates: 3287
 ff b5 b8 f9 ff ff push.64_mB32 MEM64 rbp 0x-648
     push_64_mB32
     MODRM_RM_BASE                       rbp        (0x5)

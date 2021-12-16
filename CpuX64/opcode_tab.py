@@ -45,6 +45,7 @@ SUPPORTED_OPCODES = {
     "movsxd",  # sign extension
     "movaps", "movapd", "movdqa",  # algned packed
     "movups", "movupd", "movdqu",  # unaligned packed
+    "movsd", "movss",
     #
     "minss", "minsd",
     "maxss", "maxsd",
@@ -119,11 +120,11 @@ SUPPORTED_OPCODES = {
     "setge",  # "/setnl",
     "setle",  # "/setng",
     "setg",  # "/setnle",
+
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
     # "movhps",
-    # "movsd",
-    # "movss",
+
 }
 
 # this information is not yet used
@@ -1196,6 +1197,16 @@ def CreateOpcodes(instructions: List, verbose: bool):
         assert len(written_ops) <= 1 or name in _OPCODES_WITH_MULTIPLE_REG_WRITE, f"{name}"
         ops = ExtractOps(ops)
         name = name.split("/")[0]
+        # hack merge entries for movss/movsd
+        if name in {"movss", "movsd"}:
+            if ops[1] in {"m32", "m64"}:
+                bits = int(ops[1][1:])
+                ops[1] = f"xmm[{bits-1}:0]/{ops[1]}"
+            elif ops[0] in {"m32", "m64"}:
+                bits = int(ops[0][1:])
+                ops[0] = f"xmm[{bits-1}:0]/{ops[0]}"
+            else:
+                continue
         if name not in SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
             continue
         if SkipInstruction(name, format, ops):
