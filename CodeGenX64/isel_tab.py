@@ -134,7 +134,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
     elif arg is P.num2:
-        assert isinstance(ops[2], ir.nst)
+        assert isinstance(ops[2], ir.Const)
         return ops[2].value
     else:
         assert False, f"could not extract op for {ins} {ins.operands} {arg}"
@@ -444,6 +444,13 @@ def InitCondBraInt():
                     [C.REG, C.SP_REG, C.INVALID],
                     [InsTmpl(f"cmp_{bw}_r_mbis32",
                              [P.reg0, F.SP, F.NO_INDEX, P.spill1, 0]),
+                     InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
+            Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
+                    [C.SP_REG, C.SP_REG, C.INVALID],
+                    [InsTmpl(f"mov_{bw}_r_mbis32",
+                             [P.tmp_gpr, F.SP, F.NO_INDEX, P.spill0, 0]),
+                     InsTmpl(f"cmp_{bw}_r_mbis32",
+                             [P.tmp_gpr, F.SP, F.NO_INDEX, P.spill1, 0]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             #
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],

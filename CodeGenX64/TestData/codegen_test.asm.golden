@@ -1,4 +1,4 @@
-TOTAL instruction templates: 3251
+TOTAL instruction templates: 3287
 
 INS: add $r10@rax $r10@rax 305419896  [S64 S64 S64]
 PAT: reg:[S64 S64 S64]  op:[REG REG SIMM32]

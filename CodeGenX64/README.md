@@ -27,12 +27,10 @@ Most x86 instructions for binary ops come in the following variants:
    
 
 
-
-Because memory operands can be directly encoded, spilled registers do not need
-to be explicitly rewritten before instruction selection.
-
-
-
+Because memory operands can be directly encoded, spilled registers do not
+always need to be explicitly rewritten before instruction selection.
+However, we will need to reserve registers for some of the rewrites.
+The current plan is to use `rax` and `xmm0`
 
 ### Legalization (before regalloc): conversions to two address form
 
@@ -105,12 +103,15 @@ get the following expansions (omitting the cases involving immediates):
 * `<ins>` `regA` `regA` `regB` => direct expansion (RM) 
 * `<ins>` `regA` `regA` `spillB` => direct expansion (RM)
 * `<ins>` `spillA` `spillA` `regB` =>  complex expansion (with tmp reg)
+
   `mov-x86` `tmp` `spillA`; `ins-x86` `tmp` `regB` ; `mov-x86` `spillA` `tmp` (RM)
 * `<ins>` `spillA` `spillA` `spillB` => complex expansion (with tmp reg)
+
   `mov-x86` `tmp` `spillA`; `ins-x86` `tmp` `spillB`; `mov-x86` `spillA` `tmp` (RM)
 
 
 ### Calling Convention (inspired by System-V ABI)
+
 scratch: `rdi` `rsi` `rdx` `rcx` `r8` `r9` `r10` `r11` `rax` `xmm0-xmm7`
          
 Callee save:  `rbx` `rbp` `r12-15` `rsp` `xmm8-xmm15`
