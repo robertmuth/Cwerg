@@ -331,8 +331,7 @@ def InitAluInt():
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}",
-                             [F.SP, F.NO_INDEX,
-                              P.spill01, 0, P.num2])])
+                             [F.SP, F.NO_INDEX, P.spill01, 0, P.num2])])
 
 
 def InitAluFlt():
@@ -475,12 +474,12 @@ def InitCondBraInt():
 
 
 _EXTEND_TO_64bit = {
-    o.DK.U8: "movzx_64_8_r_mr",
-    o.DK.S8: "movsx_64_8_r_mr",
-    o.DK.U16: "movzx_64_16_r_mr",
-    o.DK.S16: "movsx_64_16_r_mr",
-    o.DK.U32: "mov_32_mr_r",
-    o.DK.S32: "movsxd_64_r_mr",
+    o.DK.U8: "movzx_64_8_",
+    o.DK.S8: "movsx_64_8_",
+    o.DK.U16: "movzx_64_16_",
+    o.DK.S16: "movsx_64_16_",
+    o.DK.U32: "mov_32_",
+    o.DK.S32: "movsxd_64_",
 }
 
 
@@ -488,7 +487,14 @@ def ExtendRegTo64Bit(reg, dk: o.DK) -> List[InsTmpl]:
     x64_opc = _EXTEND_TO_64bit.get(dk)
     if not x64_opc:
         return []
-    return [InsTmpl(x64_opc, [reg, reg])]
+    return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
+
+
+def ExtendRegTo64BitFromSP(reg, spill, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_TO_64bit.get(dk)
+    if not x64_opc:
+        return []
+    return [InsTmpl(x64_opc + "r_mbis32", [reg, F.SP, F.NO_INDEX, spill, 0])]
 
 
 def InitLea():
@@ -501,20 +507,65 @@ def InitLea():
         Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SIMM64],
                 [InsTmpl("lea_64_r_mpc32", [P.reg0, F.RIP, P.mem1_num2_prel])])
-
+        Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.SP_REG, C.INVALID, C.SIMM64],
+                [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.mem1_num2_prel]),
+                 InsTmpl(f"mov_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_gpr])])
+        #
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.REG, C.REG, C.SIMM32],
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.reg01, P.reg01, F.NO_INDEX, 0, P.num2])])
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.SP_REG, C.SP_REG, C.SIMM32],
+                [InsTmpl(f"add_64_mbis32_imm32",
+                         [F.SP, F.NO_INDEX, 0, P.spill01, P.num2])])
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.REG, C.REG, C.REG],
+                ExtendRegTo64Bit(P.reg2, kind1) +
+                [InsTmpl("add_64_mr_r",
+                         [P.reg01, P.reg2])])
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.SP_REG, C.SP_REG, C.REG],
+                ExtendRegTo64Bit(P.reg2, kind1) +
+                [InsTmpl(f"add_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.SP_REG, C.SP_REG, C.SP_REG],
+                ExtendRegTo64Bit(P.reg2, kind1) +
+                [InsTmpl(f"add_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+        #
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SIMM32],
-                [InsTmpl("lea_64_r_mbis32", [P.reg0, F.SP, F.NO_INDEX, 0,
-                                             P.stk1_offset2])])
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.reg0, F.SP, F.NO_INDEX, 0, P.stk1_offset2])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
                 [InsTmpl("lea_64_r_mbis32", [P.reg0, P.reg2, F.SP, 0, P.stk1])])
-
-        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
-                [C.REG, C.REG, C.SIMM32],
-                [InsTmpl("lea_64_r_mbis32", [P.reg0, P.reg1, F.NO_INDEX, 0,
-                                             P.num2])])
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.SP_REG, C.INVALID, C.SIMM32],
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.tmp_gpr, F.SP, F.NO_INDEX, 0, P.stk1_offset2]),
+                 InsTmpl(f"mov_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_gpr])])
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.SP_REG, C.INVALID, C.REG],
+                ExtendRegTo64Bit(P.reg2, kind1) +
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.tmp_gpr, P.reg2, F.SP, 0, P.stk1]),
+                 InsTmpl(f"mov_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_gpr])])
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.SP_REG, C.INVALID, C.SP_REG],
+                ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.tmp_gpr, F.SP, P.tmp_gpr, 0, P.stk1]),
+                 InsTmpl(f"mov_64_mbis32_r",
+                         [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_gpr])])
+        #
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
