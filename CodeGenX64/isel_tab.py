@@ -505,6 +505,7 @@ def ExtendRegTo64BitFromSP(reg, spill, dk: o.DK) -> List[InsTmpl]:
 
 
 def InitLea():
+    # LEA_FUN dst_reg fun
     Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID],
             [C.REG, C.INVALID],
             [InsTmpl("lea_64_r_mpc32", [P.reg0, F.RIP, P.fun1_prel])])
@@ -515,38 +516,43 @@ def InitLea():
 
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        # LEA_MEM  dst_reg mem offset_reg will be rewritten so do not handle it here
+        # LEA_MEM dst_reg mem const
         Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
-                [C.REG, C.INVALID, C.SIMM64],
+                [C.REG, C.INVALID, C.SIMM32],
                 [InsTmpl("lea_64_r_mpc32", [P.reg0, F.RIP, P.mem1_num2_prel])])
         Pattern(o.LEA_MEM, [o.DK.A64, o.DK.INVALID, kind1],
-                [C.SP_REG, C.INVALID, C.SIMM64],
+                [C.SP_REG, C.INVALID, C.SIMM32],
                 [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.mem1_num2_prel]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
-        #
+        # LEA dstsrc_reg dstsrc_reg const  [note we assume the first two regs are the same]
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.SIMM32],
                 [InsTmpl("lea_64_r_mbis32",
                          [P.reg01, P.reg01, F.NO_INDEX, 0, P.num2])])
-        #
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.SIMM32],
                 [InsTmpl(f"add_64_mbis32_imm32",
                          [F.SP, F.NO_INDEX, 0, P.spill01, P.num2])])
+        # LEA dstsrc_reg dstsrc_reg offset_reg
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl("add_64_mr_r", [P.reg01, P.reg2])])
+                [InsTmpl("lea_64_r_mbis8", [P.reg01, P.reg01, P.reg2, 0, 0])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl(f"add_64_mbis32_r",
-                         [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+                [InsTmpl(f"add_64_mbis32_r", [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
+                [C.REG, C.REG, C.SP_REG],
+                ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
+                [InsTmpl("add_64_r_mr", [P.reg01, P.reg2])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.SP_REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
                 [InsTmpl(f"add_64_mbis32_r",
                          [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
-        #
+        # LEA_STK dst_reg stk const
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SIMM32],
                 [InsTmpl("lea_64_r_mbis32",
@@ -556,17 +562,22 @@ def InitLea():
                 [InsTmpl("lea_64_r_mbis32",
                          [P.tmp_gpr, F.SP, F.NO_INDEX, 0, P.stk1_offset2]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
-        #
+        # LEA_STK dst_reg stk offset_reg
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl("lea_64_r_mbis32", [P.reg0, P.reg2, F.SP, 0, P.stk1])])
+                [InsTmpl("lea_64_r_mbis32", [P.reg0, F.SP, P.reg2, 0, P.stk1])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.tmp_gpr, P.reg2, F.SP, 0, P.stk1]),
+                         [P.tmp_gpr, F.SP, P.reg2, 0, P.stk1]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
+        Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
+                [C.REG, C.INVALID, C.SP_REG],
+                ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
+                [InsTmpl("lea_64_r_mbis32",
+                         [P.reg0, F.SP, P.tmp_gpr, 0, P.stk1])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.SP_REG],
                 ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
@@ -581,16 +592,18 @@ def InitLoad():
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                       o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
             bw = kind2.bitwidth()
+            # LD_MEM dst_reg mem reg_offset will be rewritten so do not handle it here
+            # LD_MEM dst_reg mem const
             Pattern(o.LD_MEM, [kind2, o.DK.INVALID, kind1],
-                    [C.REG, C.INVALID, C.SIMM64],
+                    [C.REG, C.INVALID, C.SIMM32],
                     [InsTmpl(f"mov_{bw}_r_mpc32",
                              [P.reg0, F.RIP, P.mem1_num2_prel])])
             Pattern(o.LD_MEM, [kind2, o.DK.INVALID, kind1],
-                    [C.SP_REG, C.INVALID, C.SIMM64],
+                    [C.SP_REG, C.INVALID, C.SIMM32],
                     [InsTmpl(f"mov_{bw}_r_mpc32",
                              [P.tmp_gpr, F.RIP, P.mem1_num2_prel]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
-            #
+            # LD dst_reg base_reg const
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.SIMM32],
                     [InsTmpl(f"mov_{bw}_r_mbis32",
@@ -611,7 +624,7 @@ def InitLoad():
                      InsTmpl(f"mov_{bw}_r_mbis32",
                              [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, 0, P.num2]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
-            #
+            # LD dst_reg base_reg offset_reg
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.REG],
                     ExtendRegTo64Bit(P.reg2, kind1) +
