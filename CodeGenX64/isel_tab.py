@@ -128,8 +128,9 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
-    if arg is P.reg2:
-        reg = ops[2]
+    elif arg in {P.reg0, P.reg1, P.reg2}:
+        pos = arg.value - P.reg0.value
+        reg = ops[pos]
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
@@ -257,7 +258,8 @@ class Pattern:
                     return False
             elif op_curb in {C.SIMM8, C.SIMM16,
                              C.SIMM32, C.SIMM64}:
-                assert isinstance(op, ir.Const)
+                if not isinstance(op, ir.Const):
+                    return False
                 if op_curb is C.SIMM8:
                     if (1 << 7) <= op.value or op.value < -(1 << 7):
                         return False
