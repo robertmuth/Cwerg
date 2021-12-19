@@ -38,10 +38,20 @@ class C(enum.IntEnum):
 
 class F(enum.Enum):
     """Fixed params"""
-    NO_INDEX = 4
-    NO_BASE = 5
-    SP = 4
-    RIP = 0
+    NO_INDEX = 1
+    NO_BASE = 2
+    SP = 3
+    RIP = 4
+    SCALE1 =5
+
+
+_F_TO_INT = {
+    F.NO_INDEX: 4,
+    F.NO_BASE: 5,
+    F.SP: 4,
+    F.RIP: 0,
+    F.SCALE1: 0,
+}
 
 
 @enum.unique
@@ -57,6 +67,7 @@ class P(enum.Enum):
     reg4 = 6
     tmp_gpr = 7
     tmp_flt = 8
+    scratch_gpr = 9
     #
     num0 = 10
     num1 = 11
@@ -75,8 +86,10 @@ class P(enum.Enum):
     bbl2 = 31
     #
     mem1_num2_prel = 40
-    fun1_prel = 41
-    jtb1_prel = 42
+    mem0_num1_prel = 41
+
+    fun1_prel = 45
+    jtb1_prel = 46
 
 
 _OP_TO_RELOC_KIND = {
@@ -156,9 +169,38 @@ class InsTmpl:
         opcode: x64.Opcode = x64.Opcode.OpcodesByName[opcode_name]
         assert args is not None
         assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name}"
-        for op in args:
+        # Note, the sanity checks below need to be adjusted as needed
+        for op, field in zip(args, opcode.fields):
             assert isinstance(op, (int, P, F)), (
                 f"unknown op {op} for {opcode.name} {args}")
+            if field is x64.OK.SIB_SCALE:
+                assert op in {F.SCALE1}, f"{op}"
+            elif field in {x64.OK.MODRM_REG8, x64.OK.MODRM_REG16, x64.OK.MODRM_REG32, x64.OK.MODRM_REG64,
+                           x64.OK.MODRM_RM_REG8, x64.OK.MODRM_RM_REG16, x64.OK.MODRM_RM_REG32,
+                           x64.OK.MODRM_RM_REG64}:
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+            elif field in {x64.OK.MODRM_XREG32, x64.OK.MODRM_XREG64,
+                           x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt}, f"{op}"
+            elif field is x64.OK.SIB_INDEX:
+                assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+            elif field is x64.OK.SIB_BASE:
+                assert op in {F.SP, P.reg01, P.reg0, P.reg1, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+            elif field is x64.OK.RIP_BASE:
+                assert op in {F.RIP}, f"{op}"
+            elif field is x64.OK.OFFABS32:
+                assert op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2,
+                              P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel,
+                              P.stk1_offset2, P.stk1}, f"{op}"
+            elif field is x64.OK.OFFABS8:
+                assert op in {0}, f"{op}"
+            elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64}:
+                assert op in {P.num0, P.num1, P.num2}, f"{op}"
+            elif field is x64.OK.OFFPCREL32:
+                assert op in {P.bbl0, P.bbl2}, f"{op}"
+            else:
+                assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, {field}"
+
         self.opcode = opcode
         self.args: List[Any] = args
 
@@ -168,7 +210,7 @@ class InsTmpl:
             if type(arg) == int:
                 val = arg
             elif isinstance(arg, F):
-                val = arg.value
+                val = _F_TO_INT[arg]
             elif isinstance(arg, P):
                 val = _ExtractTmplArgOp(ins, arg, ctx)
             else:
@@ -281,11 +323,11 @@ class Pattern:
 
 
 def InsTmplStkSt(dk: o.DK, spill: P, src):
-    return InsTmpl(f"mov_{dk.bitwidth()}_mbis32_r", [F.SP, F.NO_INDEX, 0, spill, src])
+    return InsTmpl(f"mov_{dk.bitwidth()}_mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, spill, src])
 
 
 def InsTmplStkLd(dk: o.DK, dst, spill: P):
-    return InsTmpl(f"mov_{dk.bitwidth()}_r_mbis32", [dst, F.SP, F.NO_INDEX, 0, spill])
+    return InsTmpl(f"mov_{dk.bitwidth()}_r_mbis32", [dst, F.SP, F.NO_INDEX, F.SCALE1, spill])
 
 
 _KIND_TO_IMM = {
@@ -321,19 +363,17 @@ def InitAluInt():
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, C.REG],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
-                             [F.SP, F.NO_INDEX,
-                              P.spill01, 0, P.reg2])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.reg2])])
             Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}_{bw}_r_mbis32",
-                             [P.reg01, F.SP, F.NO_INDEX,
-                              P.spill2, 0])])
+                             [P.reg01, F.SP, F.NO_INDEX, F.SCALE1, P.spill2])])
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     [InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.tmp_gpr, F.SP, F.NO_INDEX, P.spill2, 0]),
+                             [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill2]),
                      InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
-                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_gpr])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.tmp_gpr])])
             #
             Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, _KIND_TO_IMM[kind1]],
@@ -341,7 +381,7 @@ def InitAluInt():
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}",
-                             [F.SP, F.NO_INDEX, P.spill01, 0, P.num2])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
 
 
 def InitAluFlt():
@@ -357,23 +397,23 @@ def InitAluFlt():
             Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [P.reg01, F.SP, F.NO_INDEX, P.spill2, 0])])
+                             [P.reg01, F.SP, F.NO_INDEX, F.SCALE1, P.spill2])])
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, C.REG],
                     [InsTmpl(f"movs{suffix}_x_mbis32",
-                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill01, 0]),
+                             [P.tmp_flt, F.SP, F.NO_INDEX, F.SCALE1, P.spill01]),
                      InsTmpl(f"{x64_opc}{suffix}_x_mx",
                              [P.tmp_flt, P.reg2]),
                      InsTmpl(f"movs{suffix}_mbis32_x",
-                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_flt])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.tmp_flt])])
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     [InsTmpl(f"movs{suffix}_x_mbis32",
-                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill01, 0]),
+                             [P.tmp_flt, F.SP, F.NO_INDEX, F.SCALE1, P.spill01]),
                      InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill2, 0]),
+                             [P.tmp_flt, F.SP, F.NO_INDEX, F.SCALE1, P.spill2]),
                      InsTmpl(f"movs{suffix}_mbis32_x",
-                             [F.SP, F.NO_INDEX, P.spill01, 0, P.tmp_flt])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.tmp_flt])])
 
         for opc, x64_opc in [(o.SQRT, "sqrts")]:
             Pattern(opc, [kind1] * 2,
@@ -382,19 +422,19 @@ def InitAluFlt():
             Pattern(opc, [kind1] * 2,
                     [C.REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [P.reg0, F.SP, F.NO_INDEX, P.spill1, 0])])
+                             [P.reg0, F.SP, F.NO_INDEX, F.SCALE1, P.spill1])])
             Pattern(opc, [kind1] * 2,
                     [C.SP_REG, C.REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mx",
                              [P.tmp_flt, P.reg1]),
                      InsTmpl(f"movs{suffix}_mbis32_x",
-                             [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_flt])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.tmp_flt])])
             Pattern(opc, [kind1] * 2,
                     [C.SP_REG, C.SP_REG],
                     [InsTmpl(f"{x64_opc}{suffix}_x_mbis32",
-                             [P.tmp_flt, F.SP, F.NO_INDEX, P.spill1, 0]),
+                             [P.tmp_flt, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
                      InsTmpl(f"movs{suffix}_mbis32_x",
-                             [F.SP, F.NO_INDEX, P.spill0, 0, P.tmp_flt])])
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.tmp_flt])])
 
 
 # http://unixwiz.net/techtips/x86-jumps.html
@@ -447,18 +487,18 @@ def InitCondBraInt():
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, C.REG, C.INVALID],
                     [InsTmpl(f"cmp_{bw}_mbis32_r",
-                             [F.SP, F.NO_INDEX, P.spill0, 0, P.reg2]),
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.reg2]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.REG, C.SP_REG, C.INVALID],
                     [InsTmpl(f"cmp_{bw}_r_mbis32",
-                             [P.reg0, F.SP, F.NO_INDEX, P.spill1, 0]),
+                             [P.reg0, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, C.SP_REG, C.INVALID],
                     [InsTmplStkLd(kind1, P.tmp_gpr, P.spill0),
                      InsTmpl(f"cmp_{bw}_r_mbis32",
-                             [P.tmp_gpr, F.SP, F.NO_INDEX, P.spill1, 0]),
+                             [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             #
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
@@ -468,7 +508,7 @@ def InitCondBraInt():
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, _KIND_TO_IMM[kind1], C.INVALID],
                     [InsTmpl(f"cmp_{bw}_mbis32_imm{iw}",
-                             [F.SP, F.NO_INDEX, P.spill0, 0, P.num1]),
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.num1]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             #
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
@@ -478,7 +518,7 @@ def InitCondBraInt():
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [_KIND_TO_IMM[kind1], C.SP_REG, C.INVALID],
                     [InsTmpl(f"cmp_{bw}_mbis32_imm{iw}",
-                             [F.SP, F.NO_INDEX, P.spill1, 0, P.num0]),
+                             [F.SP, F.NO_INDEX, F.SCALE1, P.spill1, P.num0]),
                      InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
 
 
@@ -503,7 +543,7 @@ def ExtendRegTo64BitFromSP(reg, spill, dk: o.DK) -> List[InsTmpl]:
     x64_opc = _EXTEND_TO_64bit.get(dk)
     if not x64_opc:
         return []
-    return [InsTmpl(x64_opc + "r_mbis32", [reg, F.SP, F.NO_INDEX, spill, 0])]
+    return [InsTmpl(x64_opc + "r_mbis32", [reg, F.SP, F.NO_INDEX, F.SCALE1, spill])]
 
 
 def InitLea():
@@ -531,20 +571,20 @@ def InitLea():
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.SIMM32],
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.reg01, P.reg01, F.NO_INDEX, 0, P.num2])])
+                         [P.reg01, P.reg01, F.NO_INDEX, F.SCALE1, P.num2])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.SIMM32],
                 [InsTmpl(f"add_64_mbis32_imm32",
-                         [F.SP, F.NO_INDEX, 0, P.spill01, P.num2])])
+                         [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
         # LEA dstsrc_reg dstsrc_reg offset_reg
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl("lea_64_r_mbis8", [P.reg01, P.reg01, P.reg2, 0, 0])])
+                [InsTmpl("lea_64_r_mbis8", [P.reg01, P.reg01, P.reg2, F.SCALE1, 0])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl(f"add_64_mbis32_r", [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+                [InsTmpl(f"add_64_mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.reg2])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.SP_REG],
                 ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
@@ -553,38 +593,38 @@ def InitLea():
                 [C.SP_REG, C.SP_REG, C.SP_REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
                 [InsTmpl(f"add_64_mbis32_r",
-                         [F.SP, F.NO_INDEX, 0, P.spill01, P.reg2])])
+                         [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.reg2])])
         # LEA_STK dst_reg stk const
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SIMM32],
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.reg0, F.SP, F.NO_INDEX, 0, P.stk1_offset2])])
+                         [P.reg0, F.SP, F.NO_INDEX, F.SCALE1, P.stk1_offset2])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.SIMM32],
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.tmp_gpr, F.SP, F.NO_INDEX, 0, P.stk1_offset2]),
+                         [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.stk1_offset2]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
         # LEA_STK dst_reg stk offset_reg
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
-                [InsTmpl("lea_64_r_mbis32", [P.reg0, F.SP, P.reg2, 0, P.stk1])])
+                [InsTmpl("lea_64_r_mbis32", [P.reg0, F.SP, P.reg2, F.SCALE1, P.stk1])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.REG],
                 ExtendRegTo64Bit(P.reg2, kind1) +
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.tmp_gpr, F.SP, P.reg2, 0, P.stk1]),
+                         [P.tmp_gpr, F.SP, P.reg2, F.SCALE1, P.stk1]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SP_REG],
                 ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.reg0, F.SP, P.tmp_gpr, 0, P.stk1])])
+                         [P.reg0, F.SP, P.tmp_gpr, F.SCALE1, P.stk1])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.SP_REG],
                 ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
                 [InsTmpl("lea_64_r_mbis32",
-                         [P.tmp_gpr, F.SP, P.tmp_gpr, 0, P.stk1]),
+                         [P.tmp_gpr, F.SP, P.tmp_gpr, F.SCALE1, P.stk1]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
 
 
@@ -609,70 +649,145 @@ def InitLoad():
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.SIMM32],
                     [InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.reg0, P.reg1, F.NO_INDEX, 0, P.num2])])
+                             [P.reg0, P.reg1, F.NO_INDEX, F.SCALE1, P.num2])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.SIMM32],
                     [InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.tmp_gpr, P.reg1, F.NO_INDEX, 0, P.num2]),
+                             [P.tmp_gpr, P.reg1, F.NO_INDEX, F.SCALE1, P.num2]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.SIMM32],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
                      InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.reg0, P.tmp_gpr, F.NO_INDEX, 0, P.num2])])
+                             [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.SIMM32],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
                      InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, 0, P.num2]),
+                             [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
             # LD dst_reg base_reg offset_reg
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.REG],
                     ExtendRegTo64Bit(P.reg2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.reg2, 0, 0])])
+                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.REG],
                     ExtendRegTo64Bit(P.reg2, kind1) +
                     [InsTmpl(f"mov_{bw}_r_mbis8",
-                             [P.tmp_gpr, P.reg1, P.reg2, 0, 0]),
+                             [P.tmp_gpr, P.reg1, P.reg2, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.REG],
                     ExtendRegTo64Bit(P.reg2, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
                      InsTmpl(f"mov_{bw}_r_mbis8",
-                             [P.reg0, P.tmp_gpr, P.reg2, 0, 0])])
+                             [P.reg0, P.tmp_gpr, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.tmp_gpr, 0, 0])])
+                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.REG],
                     ExtendRegTo64Bit(P.reg2, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, P.reg2, 0, 0]),
+                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, 0, 0]),
+                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, 0, P.spill1]),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.tmp_gpr, F.NO_INDEX, 0, 0])])
+                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
+                     InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, 0, P.spill1]),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, 0, 0]),
+                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
+                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
 
 
 def InitStore():
-    pass
+    for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+            bw = kind2.bitwidth()
+            # ST_MEM mem reg_offset src_reg will be rewritten so do not handle it here
+            # ST_MEM mem const src_reg
+            Pattern(o.ST_MEM, [o.DK.INVALID, kind1, kind2],
+                    [C.INVALID, C.SIMM32, C.REG],
+                    [InsTmpl(f"mov_{bw}_mpc32_r",
+                             [F.RIP, P.mem0_num1_prel, P.reg2])])
+            Pattern(o.ST_MEM, [o.DK.INVALID, kind1, kind2],
+                    [C.INVALID, C.SIMM32, C.SP_REG],
+                    [InsTmplStkLd(kind2, P.tmp_gpr, P.spill2),
+                     InsTmpl(f"mov_{bw}_mpc32_r",
+                             [F.RIP, P.mem0_num1_prel, P.tmp_gpr])])
+            # ST base_reg const src_reg
+            Pattern(o.ST, [kind2, o.DK.A64, kind1],
+                    [C.REG, C.SIMM32, C.REG],
+                    [InsTmpl(f"mov_{bw}_mbis32_r",
+                             [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.REG, C.SIMM32, C.SP_REG],
+                    [InsTmplStkLd(kind2, P.tmp_gpr, P.spill2),
+                     InsTmpl(f"mov_{bw}_mbis32_r",
+                             [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.tmp_gpr])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.SIMM32, C.REG],
+                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
+                     InsTmpl(f"mov_{bw}_mbis32_r",
+                             [P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.SIMM32, C.SP_REG],
+                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
+                     InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill2),
+                     InsTmpl(f"mov_{bw}_mbis8_r",
+                             [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.scratch_gpr])])
+            # ST base_reg offset_reg src_reg
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.REG, C.REG, C.REG],
+                    ExtendRegTo64Bit(P.reg1, kind1) +
+                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.reg1, F.SCALE1, 0, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.REG, C.REG],
+                    ExtendRegTo64Bit(P.reg1, kind1) +
+                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
+                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, P.reg1, F.SCALE1, 0, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.REG, C.SP_REG, C.REG],
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.tmp_gpr, F.SCALE1, 0, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.REG, C.REG, C.SP_REG],
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
+                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.reg1, F.SCALE1, 0, P.tmp_gpr])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.SP_REG, C.REG],
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
+                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
+                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, P.scratch_gpr, F.SCALE1, 0, P.reg2])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.REG, C.SP_REG],
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
+                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
+                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.REG, C.SP_REG, C.SP_REG],
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
+                    [InsTmpl(f"mov_64_mbis8_r", [P.reg0, P.scratch_gpr, F.SCALE1, 0, P.tmp_gpr])])
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
+                    [C.SP_REG, C.SP_REG, C.SP_REG],
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
+                    [InsTmpl(f"add_64_r_mbis32", [P.scratch_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill0]),
+                     InsTmpl(f"mov_{bw}_mbis8_r", [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, P.tmp_gpr])])
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:

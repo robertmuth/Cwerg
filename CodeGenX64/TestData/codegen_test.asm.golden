@@ -12,6 +12,20 @@ INS: xor $r2@rdx $r2@rdx $r3@rcx  [U32 U32 U32]
 PAT: reg:[U32 U32 U32]  op:[REG REG REG]
     xor_32_r_mr edx ecx
 
+INS: ld $r2@rdx addr1@rdx 32  [U32 A64 S32]
+PAT: reg:[U32 A64 S32]  op:[REG REG SIMM32]
+    mov_32_r_mbis32 edx rdx noindex 0 32
+
+INS: ld $r2@rdx addr1@rdx $r0_U8@rdx  [U32 A64 U8]
+PAT: reg:[U32 A64 U8]  op:[REG REG REG]
+    movzx_64_8_r_mr rdx dl
+    mov_32_r_mbis8 edx rdx rdx 0 0
+
+INS: lea addr1@rdx addr1@rdx $r0_U8@rdx  [A64 A64 U8]
+PAT: reg:[A64 A64 U8]  op:[REG REG REG]
+    movzx_64_8_r_mr rdx dl
+    lea_64_r_mbis8 rdx rdx rdx 0 0
+
 INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  op:[REG REG REG]
     addss_x_mx xmm0 xmm1
