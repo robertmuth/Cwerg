@@ -312,7 +312,7 @@ def FindSpecificOpWidth(c: str, ops: List, format: str) -> int:
 
 
 @enum.unique
-class OK(enum.IntEnum):
+class OK(enum.Enum):
     """Operand Kind"""
     RIP_BASE = 1
     MODRM_RM_BASE = 2
@@ -471,7 +471,7 @@ class MEM_MODE(enum.Enum):
     NONE = 1
     SIB = 2
     SIB_BP_DISP = 3
-    RIP_DISP = 5
+    RIP_DISP = 4
 
 
 class Opcode:
