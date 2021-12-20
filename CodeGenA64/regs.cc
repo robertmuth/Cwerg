@@ -47,7 +47,7 @@ class CpuRegPool : public RegPool {
         flt_available_not_lac_(flt_available_not_lac) {}
 
   uint8_t get_cpu_reg_family(DK dk) override {
-    return DKFlavor(dk) == DK_FLAVOR_F ? +FLT_FAMILY : +GPR_FAMILY;
+    return DKFlavor(dk) == DK_FLAVOR_F ? +CPU_REG_KIND::FLT : +CPU_REG_KIND::GPR;
   }
 
   CpuReg get_available_reg(const LiveRange& lr) override {
@@ -496,19 +496,19 @@ void InitCodeGenA64() {
   for (unsigned i = 0; i < DK_TO_CPU_REG_KIND_MAP.size(); ++i) {
     DK_TO_CPU_REG_KIND_MAP[i] = +CPU_REG_KIND::INVALID;
   }
-  DK_TO_CPU_REG_KIND_MAP[+DK::S8] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::U8] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::S16] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::U16] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::S32] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::U32] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::S64] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::U64] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::A64] = +GPR_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::C64] = +GPR_FAMILY;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::A64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::C64] = +CPU_REG_KIND::GPR;
   //
-  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +FLT_FAMILY;
-  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +FLT_FAMILY;
+  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::FLT;
 }
 
 }  // namespace cwerg::code_gen_a64

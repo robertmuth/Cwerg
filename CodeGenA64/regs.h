@@ -16,9 +16,6 @@ enum class CPU_REG_KIND : uint8_t {
   FLT,
 };
 
-constexpr CPU_REG_KIND GPR_FAMILY =  CPU_REG_KIND::GPR;
-constexpr CPU_REG_KIND FLT_FAMILY =  CPU_REG_KIND::FLT;
-
 // Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called
 extern std::array<base::CpuReg, 31> GPR_REGS;
 
