@@ -42,7 +42,11 @@ class F(enum.Enum):
     NO_BASE = 2
     SP = 3
     RIP = 4
-    SCALE1 =5
+    SCALE1 = 5
+    RAX = 6
+    RCX = 7
+    R10 = 8
+    R11 = 9
 
 
 _F_TO_INT = {
@@ -51,6 +55,10 @@ _F_TO_INT = {
     F.SP: 4,
     F.RIP: 0,
     F.SCALE1: 0,
+    F.RAX: 0,
+    F.RCX: 1,
+    F.R10: 10,
+    F.R10: 11,
 }
 
 
@@ -178,7 +186,8 @@ class InsTmpl:
             elif field in {x64.OK.MODRM_REG8, x64.OK.MODRM_REG16, x64.OK.MODRM_REG32, x64.OK.MODRM_REG64,
                            x64.OK.MODRM_RM_REG8, x64.OK.MODRM_RM_REG16, x64.OK.MODRM_RM_REG32,
                            x64.OK.MODRM_RM_REG64}:
-                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr,
+                              F.RAX, F.RCX, F.R10, F.R11}, f"{op}"
             elif field in {x64.OK.MODRM_XREG32, x64.OK.MODRM_XREG64,
                            x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
                 assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt}, f"{op}"
@@ -258,7 +267,7 @@ class Pattern:
                 assert op_constr in {C.REG, C.SP_REG}
             elif kind is o.OP_KIND.CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert op_constr in {}
+                assert op_constr in {}, f"{opcode} {type_constr} {op_constr} {kind}"
             elif kind is o.OP_KIND.REG_OR_CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
             else:
@@ -790,6 +799,18 @@ def InitStore():
                      InsTmpl(f"mov_{bw}_mbis8_r", [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, P.tmp_gpr])])
 
 
+def InitCFG():
+    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
+            [C.INVALID, C.UIMM32],
+            [InsTmpl("push_64_mr", [F.RCX]),
+             InsTmpl("push_64_mr", [F.R11]),
+             InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
+             InsTmpl("mov_64_mr_r", [F.R10, F.RCX]),
+             InsTmpl("syscall", []),
+             InsTmpl("pop_64_mr", [F.R11]),
+             InsTmpl("pop_64_mr", [F.RCX])])
+
+
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     """Returns the best pattern matching `ins` or None
 
@@ -811,6 +832,7 @@ InitCondBraInt()
 InitLea()
 InitLoad()
 InitStore()
+InitCFG()
 
 
 def _DumpCodeSelTable():

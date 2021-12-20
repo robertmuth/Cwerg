@@ -4,6 +4,8 @@ from Base import ir
 from Base import opcode_tab as o
 from Base import lowering
 from Base import optimize
+from Base import canonicalize
+from Base import serialize
 
 from CodeGenX64 import regs
 
@@ -62,6 +64,8 @@ def NeedsAABFromRewrite(ins: ir.Ins):
         return False
     if ins.operands[0] == ins.operands[1]:
         return False
+    if ins.opcode in {o.LEA_MEM, o.LEA_STK}:
+        return False
     return True
 
 
@@ -70,7 +74,7 @@ def _InsRewriteIntoAABForm(
 
     ops = ins.operands
     if not NeedsAABFromRewrite(ins):
-        return []
+        return None
     if o.OA.COMMUTATIVE in ins.opcode.attributes:
         ir.InsSwapOps(ins, 1, 2)
         return [ins]
@@ -106,7 +110,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     """
     _FunRewriteIntoAABForm(fun, unit)
 
-
     fun.cpu_live_in = regs.GetCpuRegsForInSignature(fun.input_types)
     fun.cpu_live_out = regs.GetCpuRegsForOutSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
@@ -116,6 +119,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # invariant that pushargs/popargs must be adjacent.
     regs.FunPushargConversion(fun)
     regs.FunPopargConversion(fun)
+    DumpFun("", fun)
 
     # ARM has no mod instruction
     lowering.FunEliminateRem(fun)
@@ -130,6 +134,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
                                       offset_kind=o.DK.S32)
 
     canonicalize.FunCanonicalize(fun)
+    DumpFun("", fun)
     # TODO: add a cfg linearization pass to improve control flow
     optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
 
