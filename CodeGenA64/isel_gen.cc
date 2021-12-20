@@ -5084,11 +5084,11 @@ int64_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
       return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16U) &
              0xffffU;
     case PARAM::scratch_gpr:
-      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR64,
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR,
              "expected gpr64 reg got " << Name(ctx.scratch_cpu_reg));
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::scratch_flt:
-      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT64,
+      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT,
              "expected flt64 reg got " << Name(ctx.scratch_cpu_reg));
       return CpuRegNo(ctx.scratch_cpu_reg);
     case PARAM::bbl0:

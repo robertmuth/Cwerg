@@ -12,19 +12,16 @@ import enum
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)
 @enum.unique
-class A64RegKind(enum.Enum):
+class CpuRegKind(enum.Enum):
     INVALID = 0
     GPR = 1
     FLT = 2
 
 
-GPR_FAMILY = A64RegKind.GPR.value
-FLT_FAMILY = A64RegKind.FLT.value
-
-_GPR_REGS = [ir.CpuReg(f"x{i}" if i != 31 else "sp", i, GPR_FAMILY)
+_GPR_REGS = [ir.CpuReg(f"x{i}" if i != 31 else "sp", i, CpuRegKind.GPR)
              for i in range(32)]
 
-_FLT_REGS = [ir.CpuReg(f"d{i}", i, FLT_FAMILY) for i in range(32)]
+_FLT_REGS = [ir.CpuReg(f"d{i}", i, CpuRegKind.FLT) for i in range(32)]
 
 # used to map function parameters to CpuRegs and for non-lac regs
 # note: our calling convention does not completely match the official one
@@ -35,21 +32,21 @@ CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
                 **{r.name: r for r in _FLT_REGS}}
 
 REG_KIND_TO_CPU_REG_FAMILY = {
-    o.DK.S8: GPR_FAMILY,
-    o.DK.S16: GPR_FAMILY,
-    o.DK.S32: GPR_FAMILY,
-    o.DK.S64: GPR_FAMILY,
+    o.DK.S8:  CpuRegKind.GPR,
+    o.DK.S16:  CpuRegKind.GPR,
+    o.DK.S32:  CpuRegKind.GPR,
+    o.DK.S64:  CpuRegKind.GPR,
     #
-    o.DK.U8: GPR_FAMILY,
-    o.DK.U16: GPR_FAMILY,
-    o.DK.U32: GPR_FAMILY,
-    o.DK.U64: GPR_FAMILY,
+    o.DK.U8:  CpuRegKind.GPR,
+    o.DK.U16:  CpuRegKind.GPR,
+    o.DK.U32:  CpuRegKind.GPR,
+    o.DK.U64:  CpuRegKind.GPR,
     #
-    o.DK.A64: GPR_FAMILY,
-    o.DK.C64: GPR_FAMILY,
+    o.DK.A64:  CpuRegKind.GPR,
+    o.DK.C64:  CpuRegKind.GPR,
     #
-    o.DK.F32: FLT_FAMILY,
-    o.DK.F64: FLT_FAMILY,
+    o.DK.F32:  CpuRegKind.FLT,
+    o.DK.F64:  CpuRegKind.FLT,
 }
 
 
@@ -205,7 +202,7 @@ class CpuRegPool(reg_alloc.RegPool):
             reg_alloc.PreAllocation() for _ in range(len(_FLT_REGS))]
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return FLT_FAMILY if kind in {o.DK.F64, o.DK.F32} else GPR_FAMILY
+        return  CpuRegKind.FLT if kind in {o.DK.F64, o.DK.F32} else  CpuRegKind.GPR
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available
@@ -236,18 +233,18 @@ class CpuRegPool(reg_alloc.RegPool):
         reg = lr.reg
         assert reg.HasCpuReg()
         cpu_reg = reg.cpu_reg
-        if cpu_reg.kind == GPR_FAMILY:
+        if cpu_reg.kind ==  CpuRegKind.GPR:
             self._gpr_reserved[cpu_reg.no].add(lr)
         else:
-            assert cpu_reg.kind == FLT_FAMILY
+            assert cpu_reg.kind == CpuRegKind.FLT
             self._flt_reserved[cpu_reg.no].add(lr)
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
-        if cpu_reg.kind == GPR_FAMILY:
+        if cpu_reg.kind ==  CpuRegKind.GPR:
             self._gpr_reserved[cpu_reg.no].current = 0
         else:
-            assert cpu_reg.kind == FLT_FAMILY
+            assert cpu_reg.kind == CpuRegKind.FLT
             self._flt_reserved[cpu_reg.no].current = 0
 
     def get_available_reg(self, lr: reg_alloc.LiveRange) -> ir.CpuReg:
@@ -282,7 +279,7 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         reg_mask = 1 << cpu_reg.no
-        if cpu_reg.kind == FLT_FAMILY:
+        if cpu_reg.kind ==  CpuRegKind.FLT:
             is_gpr = False
             is_lac = (reg_mask & FLT_LAC_REGS_MASK) != 0
         else:
@@ -426,7 +423,7 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
                     assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
-                    if reg.cpu_reg.kind == GPR_FAMILY:
+                    if reg.cpu_reg.kind ==  CpuRegKind.GPR:
                         gpr |= 1 << reg.cpu_reg.no
                     else:
                         flt |= 1 << reg.cpu_reg.no

@@ -195,10 +195,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in _OP_TO_RELOC_KIND:
         return 0
     elif arg is PARAM.scratch_flt:
-        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.FLT32, regs.A64RegKind.FLT64}, f"{ctx.scratch_cpu_reg}"
+        assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.FLT, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind in {regs.A64RegKind.GPR32, regs.A64RegKind.GPR64}, f"{ctx.scratch_cpu_reg}"
+        assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.GPR, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
     elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])

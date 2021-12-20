@@ -10,21 +10,17 @@ using namespace cwerg;
 using namespace cwerg::base;
 
 // The std:arrays below will be initialized by  InitCodeGenA64();
-std::array<CpuReg, 31> GPR32_REGS;
-std::array<CpuReg, 31> GPR64_REGS;
+std::array<CpuReg, 31> GPR_REGS;
 
-std::array<CpuReg, 32> FLT32_REGS;
-std::array<CpuReg, 32> FLT64_REGS;
+std::array<CpuReg, 32> FLT_REGS;
 
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 namespace {
 
 // For push/pop conversion
-std::array<CpuReg, 16> GPR32_PARAM_REGS;
-std::array<CpuReg, 16> GPR64_PARAM_REGS;
-std::array<CpuReg, 24> FLT32_PARAM_REGS;
-std::array<CpuReg, 24> FLT64_PARAM_REGS;
+std::array<CpuReg, 16> GPR_PARAM_REGS;
+std::array<CpuReg, 24> FLT_PARAM_REGS;
 
 // +-prefix converts an enum the underlying type
 template <typename T>
@@ -65,7 +61,7 @@ class CpuRegPool : public RegPool {
         if ((mask & available) == mask) {
           if (!flt_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
-            return kind == DK::F64 ? FLT64_REGS[n] : FLT32_REGS[n];
+            return FLT_REGS[n];
           }
         }
       }
@@ -75,7 +71,7 @@ class CpuRegPool : public RegPool {
         if ((mask & available) == mask) {
           if (!gpr_reserved_[n].has_conflict(lr)) {
             set_available(lac, is_gpr, available & ~mask);
-            return DKBitWidth(kind) == 64 ? GPR64_REGS[n] : GPR32_REGS[n];
+            return GPR_REGS[n];
           }
         }
       }
@@ -88,8 +84,7 @@ class CpuRegPool : public RegPool {
     const uint32_t mask = 1U << CpuRegNo(cpu_reg);
     bool is_gpr;
     bool is_lac;
-    if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::FLT64 ||
-        CpuRegKind(cpu_reg) == +CPU_REG_KIND::FLT32) {
+    if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::FLT) {
       is_gpr = false;
       is_lac = (mask & FLT_LAC_REGS_MASK) != 0;
     } else {
@@ -258,8 +253,7 @@ void BblRegAllocOrSpill(Bbl bbl,
         lr.cpu_reg = RegCpuReg(lr.reg);
       }
     }
-    RunLinearScan(bbl, fun, true, &ranges,
-                  GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+    RunLinearScan(bbl, fun, true, &ranges, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
                   GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
                   FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                   FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
@@ -289,8 +283,7 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
                  "found unallocated reg " << Name(reg) << " in " << Name(fun));
         }
         const uint32_t mask = CpuRegToAllocMask(cpu_reg);
-        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR32 ||
-            CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR64) {
+        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR) {
           gpr_mask |= mask;
         } else {
           flt_mask |= mask;
@@ -313,28 +306,28 @@ std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
       case DK::U64:
       case DK::A64:
       case DK::C64:
-        ASSERT(next_gpr < GPR64_PARAM_REGS.size(),
-               "too many gpr32 regs " << next_gpr << " vs "
-                                      << GPR64_PARAM_REGS.size());
-        out.push_back(GPR64_PARAM_REGS[next_gpr]);
+        ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr32 regs "
+                                                     << next_gpr << " vs "
+                                                     << GPR_PARAM_REGS.size());
+        out.push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
       case DK::S32:
       case DK::U32:
-        ASSERT(next_gpr < GPR32_PARAM_REGS.size(),
-               "too many gpr64 regs " << next_gpr << " vs "
-                                      << GPR32_PARAM_REGS.size());
-        out.push_back(GPR32_PARAM_REGS[next_gpr]);
+        ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr64 regs "
+                                                     << next_gpr << " vs "
+                                                     << GPR_PARAM_REGS.size());
+        out.push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
       case DK::F32:
-        ASSERT(next_flt < FLT32_PARAM_REGS.size(), "");
-        out.push_back(FLT32_PARAM_REGS[next_flt]);
+        ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
+        out.push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
       case DK::F64:
-        ASSERT(next_flt < FLT64_PARAM_REGS.size(), "");
-        out.push_back(FLT64_PARAM_REGS[next_flt]);
+        ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
+        out.push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
       default:
@@ -442,17 +435,9 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
     while (((1U << pos) & cpu_reg_mask) == 0) ++pos;
     const DK dk = RegKind(reg);
     if (DKFlavor(dk) == DK_FLAVOR_F) {
-      if (DKBitWidth(dk) == 64) {
-        RegCpuReg(reg) = FLT64_REGS[pos];
-      } else {
-        RegCpuReg(reg) = FLT32_REGS[pos];
-      }
+      RegCpuReg(reg) = FLT_REGS[pos];
     } else {
-      if (DKBitWidth(dk) == 64) {
-        RegCpuReg(reg) = GPR64_REGS[pos];
-      } else {
-        RegCpuReg(reg) = GPR32_REGS[pos];
-      }
+      RegCpuReg(reg) = GPR_REGS[pos];
     }
     // std::cout << "@@@@ ASSIGN " << Name(reg) << " " <<
     //    EnumToString(dk) << " " << Name(RegCpuReg(reg)) << "\n";
@@ -476,62 +461,35 @@ EmitContext FunComputeEmitContext(Fun fun) {
 
 std::vector<CpuReg> GetAllRegs() {
   std::vector<CpuReg> out;
-  for (CpuReg cpu_reg : GPR32_REGS) out.push_back(cpu_reg);
-  for (CpuReg cpu_reg : GPR64_REGS) out.push_back(cpu_reg);
-  for (CpuReg cpu_reg : FLT32_REGS) out.push_back(cpu_reg);
-  for (CpuReg cpu_reg : FLT64_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : GPR_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : FLT_REGS) out.push_back(cpu_reg);
   return out;
 }
 
 void InitCodeGenA64() {
-  // GPR64
-  for (unsigned i = 0; i < GPR64_REGS.size(); ++i) {
-    char buffer[8];
-    buffer[0] = 'w';
-    ToDecString(i, buffer + 1);
-    GPR32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR32, StrNew(buffer));
-  }
-  // GPR64
-  for (unsigned i = 0; i < GPR32_REGS.size(); ++i) {
+  // GPR
+  for (unsigned i = 0; i < GPR_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'x';
     ToDecString(i, buffer + 1);
-    GPR64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR64, StrNew(buffer));
+    GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(buffer));
   }
-
-  // FLT32
-  for (unsigned i = 0; i < FLT32_REGS.size(); ++i) {
-    char buffer[8];
-    buffer[0] = 's';
-    ToDecString(i, buffer + 1);
-    FLT32_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT32, StrNew(buffer));
-  }
-  // FLT64
-  for (unsigned i = 0; i < FLT64_REGS.size(); ++i) {
+  // FLT
+  for (unsigned i = 0; i < FLT_REGS.size(); ++i) {
     char buffer[8];
     buffer[0] = 'd';
     ToDecString(i, buffer + 1);
-    FLT64_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT64, StrNew(buffer));
+    FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
   }
   // ==================================================
-  // GPR64_PARAM_REGS
-  for (unsigned i = 0; i < GPR64_PARAM_REGS.size(); ++i) {
-    GPR64_PARAM_REGS[i] = GPR64_REGS[i];
+  // GPR_PARAM_REGS
+  for (unsigned i = 0; i < GPR_PARAM_REGS.size(); ++i) {
+    GPR_PARAM_REGS[i] = GPR_REGS[i];
   }
 
-  // GPR32_PARAM_REGS
-  for (unsigned i = 0; i < GPR32_PARAM_REGS.size(); ++i) {
-    GPR32_PARAM_REGS[i] = GPR32_REGS[i];
-  }
-
-  // FLT64_PARAM_REGS
-  for (unsigned i = 0; i < FLT64_PARAM_REGS.size(); ++i) {
-    FLT64_PARAM_REGS[i] = FLT64_REGS[i < 8 ? i : 8 + i];
-  }
-
-  // FLT32_PARAM_REGS
-  for (unsigned i = 0; i < FLT32_PARAM_REGS.size(); ++i) {
-    FLT32_PARAM_REGS[i] = FLT32_REGS[i < 8 ? i : 8 + i];
+  // FLT_PARAM_REGS
+  for (unsigned i = 0; i < FLT_PARAM_REGS.size(); ++i) {
+    FLT_PARAM_REGS[i] = FLT_REGS[i < 8 ? i : 8 + i];
   }
 
   // ==================================================

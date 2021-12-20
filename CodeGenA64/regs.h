@@ -12,21 +12,17 @@ using namespace cwerg;
 
 enum class CPU_REG_KIND : uint8_t {
   INVALID,
-  GPR32,
-  GPR64,
-  FLT32,
-  FLT64,
+  GPR,
+  FLT,
 };
 
-constexpr CPU_REG_KIND GPR_FAMILY =  CPU_REG_KIND::GPR64;
-constexpr CPU_REG_KIND FLT_FAMILY =  CPU_REG_KIND::FLT64;
+constexpr CPU_REG_KIND GPR_FAMILY =  CPU_REG_KIND::GPR;
+constexpr CPU_REG_KIND FLT_FAMILY =  CPU_REG_KIND::FLT;
 
 // Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called
-extern std::array<base::CpuReg, 31> GPR32_REGS;
-extern std::array<base::CpuReg, 31> GPR64_REGS;
+extern std::array<base::CpuReg, 31> GPR_REGS;
 
-extern std::array<base::CpuReg, 32> FLT32_REGS;
-extern std::array<base::CpuReg, 32> FLT64_REGS;
+extern std::array<base::CpuReg, 32> FLT_REGS;
 
 const constexpr uint32_t GPR_REGS_MASK = 0x7fffffff;
 const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3fff0000;

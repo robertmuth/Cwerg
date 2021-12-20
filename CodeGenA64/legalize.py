@@ -301,14 +301,14 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     pre_allocated_mask_gpr = 0
     for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.GPR_FAMILY:
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.CpuRegKind.GPR:
             pre_allocated_mask_gpr |= 1 << reg.cpu_reg.no
 
     # Handle GPR regs
-    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.GPR_FAMILY, True)]),
-                            len(global_reg_stats[(regs.GPR_FAMILY, False)]),
-                            local_reg_stats.get((regs.GPR_FAMILY, True), 0),
-                            local_reg_stats.get((regs.GPR_FAMILY, False), 0))
+    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
+                            len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
+                            local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
+                            local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
     if debug:
         print(f"@@ GPR NEEDED {needed_gpr.global_lac} {needed_gpr.global_not_lac} "
               f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}", file=debug)
@@ -321,23 +321,23 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     to_be_spilled: List[ir.Reg] = []
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
+        global_reg_stats[(regs.CpuRegKind.GPR, True)], gpr_global_lac, 0)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.GPR_FAMILY, False)],
+        global_reg_stats[(regs.CpuRegKind.GPR, False)],
         gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
         gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
 
     # Handle Float regs
     pre_allocated_mask_flt = 0
     for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.FLT_FAMILY:
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.CpuRegKind.FLT:
             pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
 
-    needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
-                            len(global_reg_stats[(regs.FLT_FAMILY, False)]),
-                            local_reg_stats.get((regs.FLT_FAMILY, True), 0),
-                            local_reg_stats.get((regs.FLT_FAMILY, False), 0))
+    needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]),
+                            len(global_reg_stats[(regs.CpuRegKind.FLT, False)]),
+                            local_reg_stats.get((regs.CpuRegKind.FLT, True), 0),
+                            local_reg_stats.get((regs.CpuRegKind.FLT, False), 0))
     if debug:
         print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
               f"{needed_flt.local_lac} {needed_flt.local_not_lac}", file=debug)
@@ -349,9 +349,9 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         print(f"@@ FLT POOL {flt_global_lac:x} {flt_global_not_lac:x}", file=debug)
 
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
+        global_reg_stats[(regs.CpuRegKind.FLT, True)], flt_global_lac, 0)
     to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.FLT_FAMILY, False)],
+        global_reg_stats[(regs.CpuRegKind.FLT, False)],
         flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
         flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
