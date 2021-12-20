@@ -301,8 +301,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     pre_allocated_mask_gpr = 0
     for reg in fun.regs:
-        if reg.HasCpuReg() and (reg.cpu_reg.kind == regs.A64RegKind.GPR32 or
-                                reg.cpu_reg.kind == regs.A64RegKind.GPR64):
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.GPR_FAMILY:
             pre_allocated_mask_gpr |= 1 << reg.cpu_reg.no
 
     # Handle GPR regs
@@ -332,8 +331,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     # Handle Float regs
     pre_allocated_mask_flt = 0
     for reg in fun.regs:
-        if reg.HasCpuReg() and (reg.cpu_reg.kind == regs.A64RegKind.FLT32 or
-                                reg.cpu_reg.kind == regs.A64RegKind.FLT64):
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.FLT_FAMILY:
             pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
 
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),

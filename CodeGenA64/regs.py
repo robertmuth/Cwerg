@@ -12,35 +12,27 @@ import enum
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)
 @enum.unique
-class A64RegKind(enum.IntEnum):
+class A64RegKind(enum.Enum):
     INVALID = 0
-    GPR32 = 1
-    GPR64 = 2
-    FLT32 = 3
-    FLT64 = 4
+    GPR = 1
+    FLT = 2
 
 
-_GPR32_REGS = [ir.CpuReg(f"w{i}", i, A64RegKind.GPR32) for i in range(31)]
-_GPR64_REGS = [ir.CpuReg(f"x{i}" if i != 31 else "sp", i, A64RegKind.GPR64)
-               for i in range(32)]
+GPR_FAMILY = A64RegKind.GPR.value
+FLT_FAMILY = A64RegKind.FLT.value
 
-_FLT32_REGS = [ir.CpuReg(f"s{i}", i, A64RegKind.FLT32) for i in range(32)]
-_FLT64_REGS = [ir.CpuReg(f"d{i}", i, A64RegKind.FLT64) for i in range(32)]
+_GPR_REGS = [ir.CpuReg(f"x{i}" if i != 31 else "sp", i, GPR_FAMILY)
+             for i in range(32)]
+
+_FLT_REGS = [ir.CpuReg(f"d{i}", i, FLT_FAMILY) for i in range(32)]
 
 # used to map function parameters to CpuRegs and for non-lac regs
 # note: our calling convention does not completely match the official one
-_GPR32_PARAMETER_REGS = _GPR32_REGS[0:16]
-_GPR64_PARAMETER_REGS = _GPR64_REGS[0:16]
-_FLT32_PARAMETER_REGS = _FLT32_REGS[0:8] + _FLT32_REGS[16:32]
-_FLT64_PARAMETER_REGS = _FLT64_REGS[0:8] + _FLT64_REGS[16:32]
+_GPR_PARAMETER_REGS = _GPR_REGS[0:16]
+_FLT_PARAMETER_REGS = _FLT_REGS[0:8] + _FLT_REGS[16:32]
 
-CPU_REGS_MAP = {**{r.name: r for r in _GPR32_REGS},
-                **{r.name: r for r in _GPR64_REGS},
-                **{r.name: r for r in _FLT32_REGS},
-                **{r.name: r for r in _FLT64_REGS}}
-
-GPR_FAMILY = A64RegKind.GPR64.value
-FLT_FAMILY = A64RegKind.FLT64.value
+CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
+                **{r.name: r for r in _FLT_REGS}}
 
 REG_KIND_TO_CPU_REG_FAMILY = {
     o.DK.S8: GPR_FAMILY,
@@ -63,7 +55,7 @@ REG_KIND_TO_CPU_REG_FAMILY = {
 
 def MaskToGpr64Regs(mask: int) -> List[ir.CpuReg]:
     out = []
-    for reg in _GPR64_REGS:
+    for reg in _GPR_REGS:
         if ((1 << reg.no) & mask) != 0:
             out.append(reg)
     return out
@@ -71,7 +63,7 @@ def MaskToGpr64Regs(mask: int) -> List[ir.CpuReg]:
 
 def MaskToFlt64Regs(mask: int) -> List[ir.CpuReg]:
     out = []
-    for reg in _FLT64_REGS:
+    for reg in _FLT_REGS:
         if ((1 << reg.no) & mask) != 0:
             out.append(reg)
     return out
@@ -88,20 +80,20 @@ FLT_REGS_MASK = 0xffffffff
 FLT_LAC_REGS_MASK = 0x0000ff00
 
 _KIND_TO_CPU_REG_LIST = {
-    o.DK.S8: _GPR32_REGS,
-    o.DK.S16: _GPR32_REGS,
-    o.DK.S32: _GPR32_REGS,
-    o.DK.U8: _GPR32_REGS,
-    o.DK.U16: _GPR32_REGS,
-    o.DK.U32: _GPR32_REGS,
+    o.DK.S8: _GPR_REGS,
+    o.DK.S16: _GPR_REGS,
+    o.DK.S32: _GPR_REGS,
+    o.DK.U8: _GPR_REGS,
+    o.DK.U16: _GPR_REGS,
+    o.DK.U32: _GPR_REGS,
     #
-    o.DK.U64: _GPR64_REGS,
-    o.DK.S64: _GPR64_REGS,
-    o.DK.A64: _GPR64_REGS,
-    o.DK.C64: _GPR64_REGS,
+    o.DK.U64: _GPR_REGS,
+    o.DK.S64: _GPR_REGS,
+    o.DK.A64: _GPR_REGS,
+    o.DK.C64: _GPR_REGS,
     #
-    o.DK.F32: _FLT32_REGS,
-    o.DK.F64: _FLT64_REGS,
+    o.DK.F32: _FLT_REGS,
+    o.DK.F64: _FLT_REGS,
 }
 
 
@@ -111,22 +103,14 @@ def GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     next_flt = 0
     out = []
     for k in kinds:
-        if k == o.DK.F32:
-            assert next_flt < len(_FLT32_PARAMETER_REGS), "too many flt arguments"
-            cpu_reg = _FLT32_PARAMETER_REGS[next_flt]
+        if k in {o.DK.F32, o.DK.F64}:
+            assert next_flt < len(_FLT_PARAMETER_REGS), "too many flt arguments"
+            cpu_reg = _FLT_PARAMETER_REGS[next_flt]
             next_flt += 1
-        elif k == o.DK.F64:
-            assert next_flt < len(_FLT64_PARAMETER_REGS), "too many flt arguments"
-            cpu_reg = _FLT64_PARAMETER_REGS[next_flt]
-            next_flt += 1
-        elif k == o.DK.S32 or k == o.DK.U32:
-            assert next_gpr < len(_GPR32_PARAMETER_REGS), "too many gpr arguments"
-            cpu_reg = _GPR32_PARAMETER_REGS[next_gpr]
-            next_gpr += 1
         else:
-            assert k in {o.DK.C64, o.DK.S64, o.DK.A64, o.DK.U64}
-            assert next_gpr <= len(_GPR64_PARAMETER_REGS), "too many gpr arguments"
-            cpu_reg = _GPR64_PARAMETER_REGS[next_gpr]
+            assert k in {o.DK.S32, o.DK.U32, o.DK.C64, o.DK.S64, o.DK.A64, o.DK.U64}
+            assert next_gpr <= len(_GPR_PARAMETER_REGS), "too many gpr arguments"
+            cpu_reg = _GPR_PARAMETER_REGS[next_gpr]
             next_gpr += 1
         out.append(cpu_reg)
     return out
@@ -216,12 +200,12 @@ class CpuRegPool(reg_alloc.RegPool):
         self._flt_available_not_lac: int = flt_available_not_lac
 
         self._gpr_reserved: List[reg_alloc.PreAllocation] = [
-            reg_alloc.PreAllocation() for _ in range(len(_GPR64_REGS))]
+            reg_alloc.PreAllocation() for _ in range(len(_GPR_REGS))]
         self._flt_reserved: List[reg_alloc.PreAllocation] = [
-            reg_alloc.PreAllocation() for _ in range(len(_FLT64_REGS))]
+            reg_alloc.PreAllocation() for _ in range(len(_FLT_REGS))]
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return FLT_FAMILY if kind == o.DK.F64 or kind == o.DK.F32 else GPR_FAMILY
+        return FLT_FAMILY if kind in {o.DK.F64, o.DK.F32} else GPR_FAMILY
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available
@@ -252,18 +236,18 @@ class CpuRegPool(reg_alloc.RegPool):
         reg = lr.reg
         assert reg.HasCpuReg()
         cpu_reg = reg.cpu_reg
-        if cpu_reg.kind is A64RegKind.GPR32 or cpu_reg.kind is A64RegKind.GPR64:
+        if cpu_reg.kind == GPR_FAMILY:
             self._gpr_reserved[cpu_reg.no].add(lr)
         else:
-            assert cpu_reg.kind is A64RegKind.FLT32 or cpu_reg.kind is A64RegKind.FLT64
+            assert cpu_reg.kind == FLT_FAMILY
             self._flt_reserved[cpu_reg.no].add(lr)
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
-        if cpu_reg.kind is A64RegKind.GPR32 or cpu_reg.kind is A64RegKind.GPR64:
+        if cpu_reg.kind == GPR_FAMILY:
             self._gpr_reserved[cpu_reg.no].current = 0
         else:
-            assert cpu_reg.kind is A64RegKind.FLT32 or cpu_reg.kind is A64RegKind.FLT64
+            assert cpu_reg.kind == FLT_FAMILY
             self._flt_reserved[cpu_reg.no].current = 0
 
     def get_available_reg(self, lr: reg_alloc.LiveRange) -> ir.CpuReg:
@@ -271,15 +255,15 @@ class CpuRegPool(reg_alloc.RegPool):
         is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
         available = self.get_available(lac, is_gpr)
         # print(f"GET {lr} {self}  avail:{available:x}")
-        if lr.reg.kind == o.DK.F32 or lr.reg.kind == o.DK.F64:
-            for n in range(len(_FLT64_REGS)):
+        if lr.reg.kind in {o.DK.F32, o.DK.F64}:
+            for n in range(len(_FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
                     if not self._flt_reserved[n].has_conflict(lr):
                         self.set_available(lac, is_gpr, available & ~mask)
                         return _KIND_TO_CPU_REG_LIST[lr.reg.kind][n]
         else:
-            for n in range(len(_GPR64_REGS)):
+            for n in range(len(_GPR_REGS)):
                 mask = 1 << n
                 if mask & available == mask:
                     if not self._gpr_reserved[n].has_conflict(lr):
@@ -298,7 +282,7 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         reg_mask = 1 << cpu_reg.no
-        if cpu_reg.kind is A64RegKind.FLT32 or cpu_reg.kind is A64RegKind.FLT64:
+        if cpu_reg.kind == FLT_FAMILY:
             is_gpr = False
             is_lac = (reg_mask & FLT_LAC_REGS_MASK) != 0
         else:
@@ -442,7 +426,7 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
                     assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
-                    if reg.cpu_reg.kind in {A64RegKind.GPR32, A64RegKind.GPR64}:
+                    if reg.cpu_reg.kind == GPR_FAMILY:
                         gpr |= 1 << reg.cpu_reg.no
                     else:
                         flt |= 1 << reg.cpu_reg.no
