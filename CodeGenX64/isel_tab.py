@@ -16,7 +16,7 @@ from Util import cgen
 
 
 @enum.unique
-class C(enum.IntEnum):
+class C(enum.Enum):
     """Curbs/Constraints - describes constraints on the immediate values involved in patterns
 
     Used to determine if a pattern is a suitable match for a Cwerg IR instruction
@@ -58,7 +58,7 @@ _F_TO_INT = {
     F.RAX: 0,
     F.RCX: 1,
     F.R10: 10,
-    F.R10: 11,
+    F.R11: 11,
 }
 
 
@@ -241,6 +241,10 @@ _ALLOWED_OPERAND_TYPES_REG = {
     o.DK.F32, o.DK.F64,
 }
 
+_ALLOWED_CURBS_REG = {C.REG, C.SP_REG}
+_ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16,  C.SIMM16, C.UIMM32, C.SIMM32}
+_ALLOWED_CURBS_REG_OR_CONST = _ALLOWED_CURBS_REG | _ALLOWED_CURBS_CONST
+
 
 class Pattern:
     """
@@ -260,19 +264,20 @@ class Pattern:
         self.type_constraints = type_constraints
         self.opcode = opcode
         self.op_curbs = op_curbs
-        for type_constr, op_constr, kind in zip(type_constraints, op_curbs,
+        for type_constr, curb, kind in zip(type_constraints, op_curbs,
                                                 opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert op_constr in {C.REG, C.SP_REG}
+                assert curb in _ALLOWED_CURBS_REG
             elif kind is o.OP_KIND.CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
-                assert op_constr in {}, f"{opcode} {type_constr} {op_constr} {kind}"
+                assert curb in _ALLOWED_CURBS_CONST, f"{opcode} {type_constr} {curb} {kind}"
             elif kind is o.OP_KIND.REG_OR_CONST:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
+                assert curb in _ALLOWED_CURBS_REG_OR_CONST, f"{opcode} {type_constr} {curb} {kind}"
             else:
                 assert type_constr is o.DK.INVALID
-                assert op_constr is C.INVALID, f"bad pattern for {opcode}"
+                assert curb is C.INVALID, f"bad pattern for {opcode}"
 
         # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
@@ -800,8 +805,8 @@ def InitStore():
 
 
 def InitCFG():
-    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
-            [C.INVALID, C.UIMM32],
+    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.S32],
+            [C.INVALID, C.SIMM32],
             [InsTmpl("push_64_mr", [F.RCX]),
              InsTmpl("push_64_mr", [F.R11]),
              InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
