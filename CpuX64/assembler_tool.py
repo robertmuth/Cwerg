@@ -2,14 +2,15 @@
 """
 Assembler produces A64 ELF executables
 """
-from typing import Dict, Any
-
-import CpuX64.assembler as asm
-
 import argparse
 import os
 import stat
 import sys
+from typing import Dict, Any
+
+from CpuX64 import assembler as asm
+
+
 
 
 def lint(input):

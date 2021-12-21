@@ -5,13 +5,12 @@ This test checks that we can assemble and disassemble all the instructions
 found in `..TestData/objdump.dis` and similar dumps obtained via `objdump`
 """
 
+import collections
 import re
 import sys
-import collections
-
 from typing import List
 
-import CpuX64.opcode_tab as x64
+from CpuX64 import opcode_tab as x64
 from CpuX64 import symbolic
 
 

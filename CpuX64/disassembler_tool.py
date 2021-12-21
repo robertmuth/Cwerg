@@ -3,7 +3,7 @@
 import sys
 
 from CpuX64 import symbolic
-import CpuX64.opcode_tab as x64
+from CpuX64 import opcode_tab as x64
 
 
 def disass(data):

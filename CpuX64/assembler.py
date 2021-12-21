@@ -3,14 +3,14 @@
 """
 This files contains ELF like abstraction to help build an a64 assembler.
 """
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 
-import CpuX64.opcode_tab as x64
+from CpuX64 import opcode_tab as x64
 from CpuX64 import symbolic
-import Elf.elfhelper as elf
-import Elf.enum_tab as elf_enum
-from Util import parse
 from Elf import elf_unit
+from Elf import elfhelper as elf
+from Elf import enum_tab
+from Util import parse
 
 # TODO: improve this by using multiple byte nop instructions where possible
 NOP_BYTES = bytes([0x90])
@@ -98,9 +98,9 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
         ".endmem": unit.MemEnd,
         ".data": lambda x, y: unit.AddData(int(x, 0),
                                            parse.QuotedEscapedStringToBytes(y)),
-        ".addr.fun": lambda x, y: unit.AddFunAddr(elf_enum.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
-        ".addr.bbl": lambda x, y: unit.AddBblAddr(elf_enum.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
-        ".addr.mem": lambda x, y, z: unit.AddMemAddr(elf_enum.RELOC_TYPE_X86_64.X_64, int(x, 0), y, int(z, 0)),
+        ".addr.fun": lambda x, y: unit.AddFunAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
+        ".addr.bbl": lambda x, y: unit.AddBblAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
+        ".addr.mem": lambda x, y, z: unit.AddMemAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y, int(z, 0)),
         ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), NOP_BYTES),
     }
     for line_num, line in enumerate(fin):
@@ -137,7 +137,7 @@ def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
 
-    if rel.r_type == elf_enum.RELOC_TYPE_X86_64.PC32.value:
+    if rel.r_type == enum_tab.RELOC_TYPE_X86_64.PC32.value:
         assert rel.r_offset + 4 <= len(sec_data)
         new_data = _pc_offset(rel, sym_val)
         assert 0 <= new_data < (1 << 32)
@@ -191,7 +191,7 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
     if create_sym_tab:
         # we do not create the content here since we cannot really do this until
         # the section addresses are finalized
-        which = elf_enum.EI_CLASS.X_64
+        which = enum_tab.EI_CLASS.X_64
         sec_symtab = elf.Section.MakeSectionSymTab(".symtab", which, len(sections) + 1)
         sections.append(sec_symtab)
         sec_symtab.SetData(bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))

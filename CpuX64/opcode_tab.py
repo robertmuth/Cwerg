@@ -9,8 +9,6 @@ We intend to only support a small subset of the opcode space.
 Enough for code generation.
 """
 
-from typing import List, Dict, Tuple, Optional
-
 import collections
 import dataclasses
 import enum
@@ -18,6 +16,7 @@ import re
 import json
 import itertools
 import os
+from typing import List, Dict, Tuple, Optional
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
 MAX_INSTRUCTION_LENGTH = 11
@@ -912,7 +911,6 @@ class Ins:
         return f"{self.opcode.EnumName()} {reloc_str}"
 
 
-
 def Disassemble(data: List) -> Optional[Ins]:
     opcode = Opcode.FindOpcode(data)
     if opcode is None:
@@ -1201,10 +1199,10 @@ def CreateOpcodes(instructions: List, verbose: bool):
         if name in {"movss", "movsd"}:
             if ops[1] in {"m32", "m64"}:
                 bits = int(ops[1][1:])
-                ops[1] = f"xmm[{bits-1}:0]/{ops[1]}"
+                ops[1] = f"xmm[{bits - 1}:0]/{ops[1]}"
             elif ops[0] in {"m32", "m64"}:
                 bits = int(ops[0][1:])
-                ops[0] = f"xmm[{bits-1}:0]/{ops[0]}"
+                ops[0] = f"xmm[{bits - 1}:0]/{ops[0]}"
             else:
                 continue
         if name not in SUPPORTED_OPCODES or ContainsUnsupportedOperands(ops):
