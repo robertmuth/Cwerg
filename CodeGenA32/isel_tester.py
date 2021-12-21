@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 """Testing helper for table driven code selection"""
 
-import CpuA32.opcode_tab as a32
-from CpuA32 import symbolic
-from Base import serialize
-from Base import ir
-from CodeGenA32 import isel_tab
-from CodeGenA32 import regs
-
 from typing import Any
 import sys
+
+from Base import serialize
+from Base import ir
+
+from CpuA32 import opcode_tab as a32
+from CpuA32 import symbolic
+
+from CodeGenA32 import isel_tab
+from CodeGenA32 import regs
 
 
 def OpToStr(op: Any) -> str:

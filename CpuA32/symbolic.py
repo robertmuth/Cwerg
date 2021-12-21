@@ -2,10 +2,10 @@
 Convert ARM32 instruction into human readable form suitable to
 be processed by an assembler.
 """
-
-from typing import List, Tuple, Set
 import struct
-import CpuA32.opcode_tab as a32
+from typing import List, Tuple, Set
+
+from CpuA32 import opcode_tab as a32
 from Elf import enum_tab
 
 
@@ -96,7 +96,7 @@ def _UnsymbolizeOperand(ok: a32.OK, op: str) -> int:
 
 
 _RELOC_KIND_MAP = {
-    "jump24": (enum_tab.RELOC_TYPE_ARM.JUMP24, True), # always local
+    "jump24": (enum_tab.RELOC_TYPE_ARM.JUMP24, True),  # always local
     #
     "abs32": (enum_tab.RELOC_TYPE_ARM.ABS32, False),
     "call": (enum_tab.RELOC_TYPE_ARM.CALL, False),
@@ -148,7 +148,7 @@ def InsFromSymbolized(mnemonic, token: List[str]) -> a32.Ins:
             rel_token = t.split(":")
 
             ins.set_reloc(*_RELOC_KIND_MAP[rel_token[1]], pos, rel_token[2])
-            addend = 0 if len(rel_token) ==3 else  int(rel_token[3], 0)
+            addend = 0 if len(rel_token) == 3 else int(rel_token[3], 0)
             ins.operands.append(addend)
         else:
             ins.operands.append(_UnsymbolizeOperand(ok, t))

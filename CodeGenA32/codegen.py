@@ -5,26 +5,26 @@
 See `README.md` for more details.
 """
 
-import CpuA32.opcode_tab as a32
-from CpuA32 import symbolic
-from CpuA32 import assembler
+import os
+import stat
+import collections
+from typing import List, Dict
 
 from Base import ir
 from Base import opcode_tab as o
 from Base import sanity
 from Base import serialize
+
+from CpuA32 import opcode_tab as a32
+from CpuA32 import symbolic
+from CpuA32 import assembler
+
 from CodeGenA32 import isel_tab
 from CodeGenA32 import regs
 from CodeGenA32 import legalize
 
 from Elf import enum_tab
-import Elf.enum_tab as elf_enum
 from Elf import elf_unit
-
-import os
-import stat
-import collections
-from typing import List, Dict
 
 
 def LegalizeAll(unit, opt_stats, fout, verbose=False):
@@ -202,7 +202,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             elfunit.MemStart(jtb.name, 4, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                elfunit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, 4, bbl.name)
+                elfunit.AddBblAddr(enum_tab.RELOC_TYPE_ARM.ABS32, 4, bbl.name)
             elfunit.MemEnd()
 
         ctx = regs.FunComputeEmitContext(fun)

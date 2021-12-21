@@ -12,7 +12,7 @@ import enum
 from Base import ir
 from Base import opcode_tab as o
 from CodeGenA32 import regs
-import CpuA32.opcode_tab as arm
+from CpuA32 import opcode_tab as arm
 from Elf import enum_tab
 from Util import cgen
 
@@ -197,10 +197,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert isinstance(num, ir.Const), f"{ins} {num}"
         return (num.value >> 16) & 0xffff
     elif arg is PARAM.scratch_flt:
-        assert ctx.scratch_cpu_reg.kind is not regs.A32RegKind.GPR
+        assert ctx.scratch_cpu_reg.kind is not regs.CpuRegKind.GPR
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind is regs.A32RegKind.GPR, f"{ctx.scratch_cpu_reg} not gpr"
+        assert ctx.scratch_cpu_reg.kind is regs.CpuRegKind.GPR, f"{ctx.scratch_cpu_reg} not gpr"
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.stm_regmask:
         return ctx.stm_regs

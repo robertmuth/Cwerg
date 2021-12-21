@@ -7,8 +7,8 @@ import platform
 import struct
 import sys
 
-import CpuA32.symbolic as dis
-import CpuA32.opcode_tab as a32
+from CpuA32 import symbolic as dis
+from CpuA32 import opcode_tab as a32
 
 
 class TestBuffer:

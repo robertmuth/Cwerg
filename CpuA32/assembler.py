@@ -5,11 +5,11 @@ This files contains ELF like abstraction to help build an assembler.
 """
 from typing import List, Dict, Any
 
-import CpuA32.opcode_tab as a32
+from CpuA32 import opcode_tab as a32
 from CpuA32 import symbolic
-import Elf.elfhelper as elf
-import Elf.enum_tab as elf_enum
+from Elf import elfhelper as elf
 from Elf import elf_unit
+from Elf import enum_tab
 
 from Util import parse
 
@@ -87,9 +87,9 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
         ".endmem": unit.MemEnd,
         ".data": lambda x, y: unit.AddData(int(x, 0),
                                            parse.QuotedEscapedStringToBytes(y)),
-        ".addr.fun": lambda x, y: unit.AddFunAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
-        ".addr.bbl": lambda x, y: unit.AddBblAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
-        ".addr.mem": lambda x, y, z: unit.AddMemAddr(elf_enum.RELOC_TYPE_ARM.ABS32, int(x, 0), y, int(z, 0)),
+        ".addr.fun": lambda x, y: unit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.bbl": lambda x, y: unit.AddBblAddr(enum_tab.RELOC_TYPE_ARM.ABS32, int(x, 0), y),
+        ".addr.mem": lambda x, y, z: unit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, int(x, 0), y, int(z, 0)),
         ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), NOP_BYTES),
     }
     for line_num, line in enumerate(fin):
@@ -134,15 +134,15 @@ def _ApplyRelocation(rel: elf.Reloc):
     assert rel.r_offset + 4 <= len(sec_data)
     old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
-    if rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
+    if rel.r_type == enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
         new_data = a32.Patch(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.MOVT_ABS.value:
+    elif rel.r_type == enum_tab.RELOC_TYPE_ARM.MOVT_ABS.value:
         new_data = a32.Patch(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.JUMP24.value:
+    elif rel.r_type == enum_tab.RELOC_TYPE_ARM.JUMP24.value:
         new_data = a32.Patch(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.CALL.value:
+    elif rel.r_type == enum_tab.RELOC_TYPE_ARM.CALL.value:
         new_data = a32.Patch(old_data, _OPCODE_BL, 1, _branch_offset(rel, sym_val))
-    elif rel.r_type == elf_enum.RELOC_TYPE_ARM.ABS32.value:
+    elif rel.r_type == enum_tab.RELOC_TYPE_ARM.ABS32.value:
         new_data = sym_val
     else:
         assert False, f"unknown kind reloc {rel}"
@@ -200,7 +200,7 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
     if create_sym_tab:
         # we do not create the content here since we cannot really do this until
         # the section addresses are finalized
-        which = elf_enum.EI_CLASS.X_32
+        which = enum_tab.EI_CLASS.X_32
         sec_symtab = elf.Section.MakeSectionSymTab(".symtab", which, len(sections) + 1)
         sections.append(sec_symtab)
         sec_symtab.SetData(bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))

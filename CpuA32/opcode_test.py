@@ -10,7 +10,7 @@ import sys
 from typing import List
 
 from CpuA32 import symbolic
-import CpuA32.opcode_tab as a32
+from CpuA32 import opcode_tab as a32
 
 
 def FixupAliases(opcode: a32.Opcode, name: str, ops: List[str]) -> str:

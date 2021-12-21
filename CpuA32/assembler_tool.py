@@ -4,12 +4,12 @@ Assembler produces A32 ELF executables
 """
 from typing import Dict, Any
 
-import CpuA32.assembler as a32
-
 import argparse
 import os
 import stat
 import sys
+
+from CpuA32 import assembler as a32
 
 
 def lint(input):

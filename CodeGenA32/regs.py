@@ -1,17 +1,17 @@
 """Helpers for A32 Register management"""
 
-from Base import cfg
-from Base import ir
-from Base import liveness
-from Base import opcode_tab as o
-from Base import reg_alloc
-from Base import serialize
-
 import operator
 import dataclasses
 import functools
 from typing import List, Optional, Tuple
 import enum
+
+from Base import ir
+from Base import liveness
+from Base import lowering
+from Base import opcode_tab as o
+from Base import reg_alloc
+from Base import serialize
 
 _GPR_REG_NAMES = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
                   "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"]
@@ -19,7 +19,7 @@ _GPR_REG_NAMES = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)
 @enum.unique
-class A32RegKind(enum.IntEnum):
+class CpuRegKind(enum.IntEnum):
     INVALID = 0
     GPR = 1
     FLT = 2
@@ -29,10 +29,10 @@ class A32RegKind(enum.IntEnum):
 GPR_FAMILY = 1
 FLT_FAMILY = 2  # (includes FLT + DBL )
 
-GPR_REGS = [ir.CpuReg(name, i, A32RegKind.GPR) for i, name in
+GPR_REGS = [ir.CpuReg(name, i, CpuRegKind.GPR) for i, name in
             enumerate(_GPR_REG_NAMES)]
-FLT_REGS = [ir.CpuReg(f"s{i}", i, A32RegKind.FLT) for i in range(32)]
-DBL_REGS = [ir.CpuReg(f"d{i}", i, A32RegKind.DBL) for i in range(16)]
+FLT_REGS = [ir.CpuReg(f"s{i}", i, CpuRegKind.FLT) for i in range(32)]
+DBL_REGS = [ir.CpuReg(f"d{i}", i, CpuRegKind.DBL) for i in range(16)]
 
 CPU_REGS_MAP = {**{r.name: r for r in GPR_REGS},
                 **{r.name: r for r in FLT_REGS},
@@ -44,7 +44,7 @@ def A32RegToAllocMask(reg: ir.CpuReg) -> int:
 
     For GPR this produces the right mask for ldm/stm
     """
-    if reg.kind is A32RegKind.DBL:
+    if reg.kind is CpuRegKind.DBL:
         return 3 << (reg.no * 2)
     else:
         return 1 << reg.no
@@ -102,7 +102,6 @@ def ArmGetFltRegRanges(x: int) -> Tuple[ir.CpuReg, int]:
     return FLT_REGS[start], count
 
 
-# Same for input and output refs
 def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     gpr = 0
     flt = 0
@@ -128,8 +127,11 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     return out
 
 
-class PushPopInterface:
-    """Used with FunPopargConversion and FunPushargConversion"""
+class PushPopInterface(lowering.PushPopInterface):
+    """Used with FunPopargConversion and FunPushargConversion
+
+    Has all the calling-convention logic
+    """
 
     @classmethod
     def GetCpuRegsForInSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
@@ -138,7 +140,7 @@ class PushPopInterface:
     @classmethod
     def GetCpuRegsForOutSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
         return _GetCpuRegsForSignature(kinds)
-    
+
 
 class CpuRegPool(reg_alloc.RegPool):
     """
@@ -195,12 +197,12 @@ class CpuRegPool(reg_alloc.RegPool):
         reg = lr.reg
         assert reg.HasCpuReg()
         cpu_reg = reg.cpu_reg
-        if cpu_reg.kind is A32RegKind.GPR:
+        if cpu_reg.kind is CpuRegKind.GPR:
             self._gpr_reserved[cpu_reg.no].add(lr)
-        elif cpu_reg.kind is A32RegKind.FLT:
+        elif cpu_reg.kind is CpuRegKind.FLT:
             self._flt_reserved[cpu_reg.no].add(lr)
         else:
-            assert cpu_reg.kind is A32RegKind.DBL
+            assert cpu_reg.kind is CpuRegKind.DBL
             self._flt_reserved[cpu_reg.no * 2].add(lr)
             self._flt_reserved[cpu_reg.no * 2 + 1].add(lr)
 
@@ -209,9 +211,9 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
-        if cpu_reg.kind is A32RegKind.GPR:
+        if cpu_reg.kind is CpuRegKind.GPR:
             self._gpr_reserved[cpu_reg.no].current = 0
-        elif cpu_reg.kind is A32RegKind.FLT:
+        elif cpu_reg.kind is CpuRegKind.FLT:
             self._flt_reserved[cpu_reg.no].current = 0
         else:
             self._flt_reserved[cpu_reg.no * 2].current = 0
@@ -257,7 +259,7 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         mask = A32RegToAllocMask(cpu_reg)
-        if cpu_reg.kind == A32RegKind.GPR:
+        if cpu_reg.kind == CpuRegKind.GPR:
             is_gpr = True
             is_lac = (mask & GPR_LAC_REGS_MASK) != 0
         else:
@@ -479,7 +481,7 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
                     assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
-                    if reg.cpu_reg.kind == A32RegKind.GPR:
+                    if reg.cpu_reg.kind == CpuRegKind.GPR:
                         gpr |= A32RegToAllocMask(reg.cpu_reg)
                     else:
                         flt |= A32RegToAllocMask(reg.cpu_reg)
