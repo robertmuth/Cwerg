@@ -114,7 +114,10 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
 
 
 class PushPopInterface:
-    """Used with FunPopargConversion and FunPushargConversion"""
+    """Used with FunPopargConversion and FunPushargConversion
+
+    Has all the calling-convention logic
+    """
 
     @classmethod
     def GetCpuRegsForInSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:

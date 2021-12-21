@@ -12,7 +12,7 @@ import enum
 from Base import ir
 from Base import opcode_tab as o
 from CodeGenA64 import regs
-import CpuA64.opcode_tab as a64
+from CpuA64 import opcode_tab as a64
 from Elf import enum_tab
 from Util import cgen
 
