@@ -103,7 +103,7 @@ def ArmGetFltRegRanges(x: int) -> Tuple[ir.CpuReg, int]:
 
 
 # Same for input and output refs
-def GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
+def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     gpr = 0
     flt = 0
     out = []
@@ -128,66 +128,17 @@ def GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     return out
 
 
-def _InsPopargConversion(ins: ir.Ins, fun: ir.Fun,
-                         params: List[ir.CpuReg]) -> Optional[List[ir.Ins]]:
-    """
-    This pass converts `poparg reg` -> `mov reg = arg_reg`
+class PushPopInterface:
+    """Used with FunPopargConversion and FunPushargConversion"""
 
-    it must used in a forward pass over the Bbl and will update `param`
-    for use with the next Ins in the BBl. The initial value of `param`
-    reflects the Fun's arguments.
+    @classmethod
+    def GetCpuRegsForInSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
+        return _GetCpuRegsForSignature(kinds)
 
-    """
-    if ins.opcode is o.POPARG:
-        cpu_reg = params.pop(0)
-        dst = ins.operands[0]
-        # assert dst.kind == cpu_reg.kind
-        reg = fun.FindOrAddCpuReg(cpu_reg, dst.kind)
-        return [ir.Ins(o.MOV, [dst, reg])]
-
-    assert not params, f"params {params} should be empty at ins {ins}"
-
-    if ins.opcode.is_call():
-        callee: ir.Fun = cfg.InsCallee(ins)
-        assert isinstance(callee, ir.Fun)
-        params += GetCpuRegsForSignature(callee.output_types)
-    return None
-
-
-def FunPopargConversion(fun: ir.Fun):
-    return ir.FunGenericRewrite(fun, _InsPopargConversion,
-                                params=GetCpuRegsForSignature(fun.input_types))
-
-
-def _InsPushargConversionReverse(ins: ir.Ins, fun: ir.Fun,
-                                 params: List[ir.CpuReg]) -> Optional[
-    List[ir.Ins]]:
-    """
-    This pass converts pusharg reg -> mov arg_reg = reg
-
-    Note:
-         * params is passed around between calls to this function
-         * pusharg's always precede calls or returns
-    """
-    if ins.opcode is o.PUSHARG:
-        cpu_reg = params.pop(0)
-        src = ins.operands[0]
-        reg = fun.FindOrAddCpuReg(cpu_reg, src.kind)
-        return [ir.Ins(o.MOV, [reg, src])]
-    assert not params, f"params {params} should be empty at ins {ins} {ins.operands}"
-    if ins.opcode.is_call():
-        callee: ir.Fun = cfg.InsCallee(ins)
-        assert isinstance(callee, ir.Fun)
-        params += GetCpuRegsForSignature(callee.input_types)
-    elif ins.opcode is o.RET:
-        params += GetCpuRegsForSignature(fun.output_types)
-    return None
-
-
-def FunPushargConversion(fun: ir.Fun):
-    return ir.FunGenericRewriteReverse(fun, _InsPushargConversionReverse,
-                                       params=[])
-
+    @classmethod
+    def GetCpuRegsForOutSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
+        return _GetCpuRegsForSignature(kinds)
+    
 
 class CpuRegPool(reg_alloc.RegPool):
     """

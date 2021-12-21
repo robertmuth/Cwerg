@@ -17,6 +17,7 @@ from typing import List, Optional
 
 from Base import ir
 from Base import opcode_tab as o
+from Base import cfg
 
 # nop means that the result of the operation is equal to src1
 _OPC_NOP_IF_SRC2_IS_ZERO = {
@@ -416,5 +417,80 @@ def _InsLimitShiftAmounts(
 
 
 def FunLimitShiftAmounts(fun: ir.Fun, width: int):
-      return ir.FunGenericRewrite(
+    return ir.FunGenericRewrite(
         fun, _InsLimitShiftAmounts, width=width)
+
+
+class PushPopInterface:
+    """Used with FunPopargConversion and FunPushargConversion"""
+
+    @classmethod
+    def GetCpuRegsForInSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
+        assert False, "To be implemented by subclass"
+
+    @classmethod
+    def GetCpuRegsForOutSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
+        assert False, "To be implemented by subclass"
+
+
+def _InsPopargConversion(ins: ir.Ins, fun: ir.Fun, iface: PushPopInterface,
+                         params: List[ir.CpuReg]) -> Optional[List[ir.Ins]]:
+    """
+    This pass converts `poparg reg` -> `mov reg = arg_reg`
+
+    it must used in a forward pass over the Bbl and will update `param`
+    for use with the next Ins in the BBl. The initial value of `param`
+    reflects the Fun's arguments.
+
+    """
+    if ins.opcode is o.POPARG:
+        cpu_reg = params.pop(0)
+        dst = ins.operands[0]
+        # assert dst.kind == cpu_reg.kind
+        reg = fun.FindOrAddCpuReg(cpu_reg, dst.kind)
+        return [ir.Ins(o.MOV, [dst, reg])]
+
+    assert not params, f"params {params} should be empty at ins {ins}"
+
+    if ins.opcode.is_call():
+        callee: ir.Fun = cfg.InsCallee(ins)
+        assert isinstance(callee, ir.Fun)
+        params += iface.GetCpuRegsForOutSignature(callee.output_types)
+    return None
+
+
+def FunPopargConversion(fun: ir.Fun, iface: PushPopInterface):
+    return ir.FunGenericRewrite(fun, _InsPopargConversion,
+                                iface=iface,
+                                params=iface.GetCpuRegsForInSignature(fun.input_types))
+
+
+def _InsPushargConversionReverse(ins: ir.Ins, fun: ir.Fun,
+                                 iface: PushPopInterface,
+                                 params: List[ir.CpuReg]) -> Optional[
+    List[ir.Ins]]:
+    """
+    This pass converts pusharg reg -> mov arg_reg = reg
+
+    Note:
+         * params is passed around between calls to this function
+         * pusharg's always precede calls or returns
+    """
+    if ins.opcode is o.PUSHARG:
+        cpu_reg = params.pop(0)
+        src = ins.operands[0]
+        reg = fun.FindOrAddCpuReg(cpu_reg, src.kind)
+        return [ir.Ins(o.MOV, [reg, src])]
+    assert not params, f"params {params} should be empty at ins {ins} {ins.operands}"
+    if ins.opcode.is_call():
+        callee: ir.Fun = cfg.InsCallee(ins)
+        assert isinstance(callee, ir.Fun)
+        params += iface.GetCpuRegsForInSignature(callee.input_types)
+    elif ins.opcode is o.RET:
+        params += iface.GetCpuRegsForOutSignature(fun.output_types)
+    return None
+
+
+def FunPushargConversion(fun: ir.Fun, iface: PushPopInterface):
+    return ir.FunGenericRewriteReverse(fun, _InsPushargConversionReverse,
+                                       iface=iface, params=[])

@@ -231,8 +231,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
     lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
 
-    fun.cpu_live_in = regs.GetCpuRegsForSignature(fun.input_types)
-    fun.cpu_live_out = regs.GetCpuRegsForSignature(fun.output_types)
+    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
+    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
     # replaces pusharg and poparg instructions and replace them with moves
@@ -240,8 +240,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # We eliminate pusharg/poparg early because out immediate elimination code may
     # introduce addtional instructions which make it difficult to perserve the invariant
     # that all poparg/pusharg related to a call be adjecent.
-    regs.FunPushargConversion(fun)
-    regs.FunPopargConversion(fun)
+    lowering.FunPushargConversion(fun, regs.PushPopInterface)
+    lowering.FunPopargConversion(fun, regs.PushPopInterface)
 
     # ARM has no mod instruction
     lowering.FunEliminateRem(fun)
