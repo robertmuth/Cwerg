@@ -85,8 +85,10 @@ any work on these):
   and makes it more difficult to reason about stack overflows.
 * A large standard library with unicode and locale support. Those add a lot of 
   complexity and are better left to dedicated libraries.
+* Sophisticated DSLs like LLVM's [Tablegen](https://llvm.org/docs/TableGen/).
+  DSLs increase cognitive load and require additional infrastructure like parsers 
+  which eat into our size targets. Instead we leverage the expressiveness of Python.
  
-
 
 The IR optimizer currently does not use a full-blown Single Static Assigment
 (SSA) form. Instead it uses a [modified use-def chain approach](Docs/use_def.md)
