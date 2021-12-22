@@ -1,4 +1,6 @@
 from typing import List, Dict, Optional, Tuple
+import collections
+import dataclasses
 
 from Base import ir
 from Base import opcode_tab as o
@@ -6,6 +8,10 @@ from Base import lowering
 from Base import optimize
 from Base import canonicalize
 from Base import serialize
+from Base import sanity
+from Base import reg_stats
+from Base import liveness
+from CodeGenX64 import isel_tab
 
 from CodeGenX64 import regs
 
@@ -110,15 +116,15 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     """
     _FunRewriteIntoAABForm(fun, unit)
 
-    fun.cpu_live_in = regs.GetCpuRegsForInSignature(fun.input_types)
-    fun.cpu_live_out = regs.GetCpuRegsForOutSignature(fun.output_types)
+    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
+    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
 
     # Getting rid of the pusharg/poparg now relieves us form having to pay to attention to  the
     # invariant that pushargs/popargs must be adjacent.
-    regs.FunPushargConversion(fun)
-    regs.FunPopargConversion(fun)
+    lowering.FunPushargConversion(fun, regs.PushPopInterface)
+    lowering.FunPopargConversion(fun, regs.PushPopInterface)
     DumpFun("", fun)
 
     # ARM has no mod instruction
@@ -134,7 +140,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
                                       offset_kind=o.DK.S32)
 
     canonicalize.FunCanonicalize(fun)
-    DumpFun("", fun)
     # TODO: add a cfg linearization pass to improve control flow
     optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
 
@@ -144,3 +149,262 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
+
+
+KIND_AND_LAC = Tuple[o.DK, bool]
+
+
+def _FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, o.DK]) -> Dict[KIND_AND_LAC, List[ir.Reg]]:
+    out: Dict[KIND_AND_LAC, List[ir.Reg]] = collections.defaultdict(list)
+    for reg in fun.regs:
+        if not reg.HasCpuReg() and ir.REG_FLAG.GLOBAL in reg.flags:
+            out[(reg_kind_map[reg.kind], ir.REG_FLAG.LAC in reg.flags)].append(reg)
+    for v in out.values():
+        v.sort()
+    return out
+
+
+def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
+    local_lac = 0
+    local_not_lac = 0
+    for (kind, lac), count in stats.items():
+        if lac:
+            local_lac += count
+        else:
+            local_not_lac += count
+
+    allocated_lac = []
+    allocated_not_lac = []
+    global_lac = []
+    global_not_lac = []
+
+    for reg in fun.regs:
+        if ir.REG_FLAG.GLOBAL not in reg.flags: continue
+        if reg.HasCpuReg():
+            if ir.REG_FLAG.LAC in reg.flags:
+                allocated_lac.append(reg)
+            else:
+                allocated_not_lac.append(reg)
+        else:
+            if ir.REG_FLAG.LAC in reg.flags:
+                global_lac.append(reg)
+            else:
+                global_not_lac.append(reg)
+
+    if fout:
+        print(f"# REGSTATS {fun.name:20s}   "
+              f"all: {len(allocated_lac):2} {len(allocated_not_lac):2}  "
+              f"glo: {len(global_lac):2} {len(global_not_lac):2}  "
+              f"loc: {local_lac:2} {local_not_lac:2}", file=fout)
+
+
+@dataclasses.dataclass()
+class RegsNeeded:
+    """estimate for how many regs are needed"""
+    global_lac: int = 0
+    global_not_lac: int = 0
+    local_lac: int = 0
+    local_not_lac: int = 0
+
+    def __dir__(self):
+        return f"RegNeeded: {self.global_lac} {self.global_not_lac} {self.local_lac} {self.local_not_lac}"
+
+
+def _spilling_needed(needed: RegsNeeded, num_global_lac: int,
+                     num_local_not_lac: int) -> bool:
+    """ Note: this assumes the early condition of the pools with only two lists populated"""
+    return (needed.global_lac + needed.local_lac > num_global_lac or
+            needed.global_lac + needed.local_lac + needed.global_not_lac + needed.local_not_lac >
+            num_global_lac + num_local_not_lac)
+
+
+def _maybe_move_excess(src, dst, n):
+    if n < len(src):
+        if dst is not None:
+            dst += src[n:]
+        del src[n:]
+
+
+def _popcount(x):
+    return bin(x).count('1')
+
+
+def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
+    if count == 0: return 0
+    mask = 1
+    n = 0
+    while n < count:
+        if (mask & bits) != 0:
+            n += 1
+        mask <<= 1
+    return mask - 1
+
+
+def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
+                           regs_not_lac: int, regs_preallocated: int) -> Tuple[int, int]:
+    """
+    Allocate global registers
+
+    Initially all allocatable regs are either in pools.global_lac and pools.local_not_lac
+    We want to assign a subset of these to global_lac and global_not_lac
+
+    We want the low numbers regs to stay in pools.local_not_lac as much as possible
+    to avoid moves as this is where the parameters arrive and results get returned
+
+    We also want to use as few callee saved registers as possible
+
+    If we need to spill, earmark one more local_not_lac reg to handle the spilling
+    TODO: this needs some more thinking - the worst case could require more regs
+    """
+    num_regs_lac = _popcount(regs_lac)
+    num_regs_not_lac = _popcount(regs_not_lac)
+    spilling_needed = _spilling_needed(needed, num_regs_lac, num_regs_not_lac)
+    global_lac = regs_lac
+    local_lac = 0
+    # excess lac globals can be used for lac locals
+    if num_regs_lac > needed.global_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        local_lac = global_lac & ~mask
+        global_lac = global_lac & mask
+    # we can use local_not_lac as global_not lac but only if they are not pre-allocated
+    # because the global allocator does not check for live range conflicts
+    global_not_lac = 0
+    if num_regs_not_lac > needed.local_not_lac + spilling_needed:
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            regs_not_lac, needed.local_not_lac + spilling_needed)
+        global_not_lac = regs_not_lac & ~(mask | regs_preallocated)
+
+    if _popcount(local_lac) > needed.local_lac:
+        mask = _FindMaskCoveringTheLowOrderSetBits(local_lac, needed.local_lac)
+        global_not_lac |= local_lac & ~mask
+    return global_lac, global_not_lac
+
+
+def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
+    """
+    These phase introduces CpuReg for globals and situations where we have no choice
+    which register to use, e.g. function parameters and results ("pre-allocated" regs).
+
+    After this function has been run all globals will have a valid cpu_reg and
+    we have to be careful to not introduce new globals subsequently.
+    If not enough cpu_regs are available for all globals, some of them will be spilled.
+    We err on the site of spilling more, the biggest danger is to over-allocate and then
+    lack registers for intra-bbl register allocation.
+
+    The whole global allocator is terrible and so is the the decision which globals
+    to spill is extremely simplistic at this time.
+
+    We separate global from local register allocation so that we can use a straight
+    forward linear scan allocator for the locals. This allocator assumes that
+    each register is defined exactly once and hence does not work for globals.
+    """
+    debug = None
+    if fout:
+        print("#" * 60, file=fout)
+        print(f"# GlobalRegAlloc {fun.name}", file=fout)
+        print("#" * 60, file=fout)
+
+    # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
+
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+
+    # Note: REG_KIND_MAP_ARM maps all non-float to registers to S64
+    local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
+                                                           regs.REG_KIND_TO_CPU_REG_FAMILY)
+    # we  have introduced some cpu regs in previous phases - do not treat them as globals
+    global_reg_stats = _FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
+    DumpRegStats(fun, local_reg_stats, fout)
+
+    pre_allocated_mask_gpr = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.CpuRegKind.GPR:
+            pre_allocated_mask_gpr |= 1 << reg.cpu_reg.no
+
+    # Handle GPR regs
+    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.GPR_FAMILY, True)]),
+                            len(global_reg_stats[(regs.GPR_FAMILY, False)]),
+                            local_reg_stats.get((regs.GPR_FAMILY, True), 0),
+                            local_reg_stats.get((regs.GPR_FAMILY, False), 0))
+    if debug:
+        print(f"@@ GPR NEEDED {needed_gpr.global_lac} {needed_gpr.global_not_lac} "
+              f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}", file=debug)
+
+    gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
+        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
+                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
+    if debug:
+        print(f"@@ GPR POOL {gpr_global_lac:x} {gpr_global_not_lac:x}", file=debug)
+
+    regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
+
+    regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.GPR_FAMILY, False)],
+        gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
+        gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
+
+    # Handle Float regs
+    pre_allocated_mask_flt = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind is regs.CpuRegKind.FLT:
+            pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
+
+    needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
+                            len(global_reg_stats[(regs.FLT_FAMILY, False)]),
+                            local_reg_stats.get((regs.FLT_FAMILY, True), 0),
+                            local_reg_stats.get((regs.FLT_FAMILY, False), 0))
+    if debug:
+        print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
+              f"{needed_flt.local_lac} {needed_flt.local_not_lac}", file=debug)
+
+    flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
+        needed_flt, regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+                    regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK, pre_allocated_mask_flt)
+    if debug:
+        print(f"@@ FLT POOL {flt_global_lac:x} {flt_global_not_lac:x}", file=debug)
+
+    regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
+    regs.AssignCpuRegOrMarkForSpilling(
+        global_reg_stats[(regs.FLT_FAMILY, False)],
+        flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
+        flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
+
+    # Recompute Everything (TODO: make this more selective to reduce work)
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    reg_stats.FunSeparateLocalRegUsage(fun)
+    # DumpRegStats(fun, local_reg_stats)
+
+
+def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
+                                       _opt_stats: Dict[str, int], fout):
+    """Finalizing the stack implies performing all transformations that
+    could increase register usage.
+
+    """
+    # print("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)), file=fout)
+
+    # hack: some of the code expansion templates need a scratch reg
+    # we do not want to reserve registers for this globally, so instead
+    # we inject some nop instructions that reserve a register that we
+    # use as a scratch for the instruction immediately following the nop
+    #
+    # This still has a potential bug: if the next instruction has one of its
+    # inputs spilled, it will like use the scratch reg provided by the nop1
+    # which will cause incorrect code.
+    # TODO: add a checker so we at least detect this
+    # Alternatives: reserve reg (maybe only for functions that need it)
+    isel_tab.FunAddNop1ForCodeSel(fun)
+
+    regs.FunLocalRegAlloc(fun)
+    fun.FinalizeStackSlots()
+    DumpFun("after local alloc", fun)
+    # cleanup
+    # FunMoveEliminationCpu(fun)
+    # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))

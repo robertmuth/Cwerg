@@ -5,26 +5,26 @@
 See `README.md` for more details.
 """
 
-import CpuX64.opcode_tab as x64
-from CpuX64 import symbolic
-from CpuX64 import assembler
+import os
+import stat
+import collections
+from typing import List, Dict
 
 from Base import ir
 from Base import opcode_tab as o
 from Base import sanity
 from Base import serialize
-# from CodeGenA64 import isel_tab
-# from CodeGenA64 import regs
+
+from CpuX64 import opcode_tab as x64
+from CpuX64 import symbolic
+from CpuX64 import assembler
+
+from CodeGenX64 import isel_tab
+from CodeGenX64 import regs
 from CodeGenX64 import legalize
 
 from Elf import enum_tab
-import Elf.enum_tab as elf_enum
 from Elf import elf_unit
-
-import os
-import stat
-import collections
-from typing import List, Dict
 
 
 def LegalizeAll(unit, opt_stats, fout, verbose=False):
@@ -135,7 +135,7 @@ def EmitUnitAsText(unit: ir.Unit, fout):
     # we emit the memory stuff AFTER the code since the code generation may add new
     # memory for Consts
     for mem in unit.mems:
-        assert  mem.kind != o.MEM_KIND.EXTERN
+        assert mem.kind != o.MEM_KIND.EXTERN
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         for s in _MemCodeGenText(mem, unit):
@@ -179,7 +179,7 @@ def codegen(unit: ir.Unit) -> Unit:
 def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
-        assert  mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
+        assert mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
