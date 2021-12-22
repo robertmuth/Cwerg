@@ -4,15 +4,14 @@
 """
 
 import collections
-from typing import List, Dict, Any, Set, Optional
 import enum
+from typing import List, Dict, Any, Optional
 
 from Base import ir
 from Base import opcode_tab as o
-from CodeGenA64 import regs
-import CpuX64.opcode_tab as x64
+from CodeGenX64 import regs
+from CpuX64 import opcode_tab as x64
 from Elf import enum_tab
-from Util import cgen
 
 
 @enum.unique
@@ -158,6 +157,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     elif arg is P.num2:
         assert isinstance(ops[2], ir.Const)
         return ops[2].value
+    elif arg in _OP_TO_RELOC_KIND:
+        return 0
     else:
         assert False, f"could not extract op for {ins} {ins.operands} {arg}"
 
@@ -192,9 +193,9 @@ class InsTmpl:
                            x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
                 assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt}, f"{op}"
             elif field is x64.OK.SIB_INDEX:
-                assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+                assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr}, f"{op}"
             elif field is x64.OK.SIB_BASE:
-                assert op in {F.SP, P.reg01, P.reg0, P.reg1, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+                assert op in {F.SP, P.reg01, P.reg0, P.reg1, P.tmp_gpr}, f"{op}"
             elif field is x64.OK.RIP_BASE:
                 assert op in {F.RIP}, f"{op}"
             elif field is x64.OK.OFFABS32:
@@ -203,10 +204,13 @@ class InsTmpl:
                               P.stk1_offset2, P.stk1}, f"{op}"
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
-            elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64}:
+            elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64, x64.OK.IMM64}:
                 assert op in {P.num0, P.num1, P.num2}, f"{op}"
             elif field is x64.OK.OFFPCREL32:
                 assert op in {P.bbl0, P.bbl2}, f"{op}"
+            elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
+                           x64.OK.BYTE_WITH_REG64}:
+                assert op in {P.reg0}, f"{op}"
             else:
                 assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, {field}"
 
@@ -242,7 +246,7 @@ _ALLOWED_OPERAND_TYPES_REG = {
 }
 
 _ALLOWED_CURBS_REG = {C.REG, C.SP_REG}
-_ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16,  C.SIMM16, C.UIMM32, C.SIMM32}
+_ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16, C.SIMM16, C.UIMM32, C.SIMM32, C.UIMM64, C.SIMM64}
 _ALLOWED_CURBS_REG_OR_CONST = _ALLOWED_CURBS_REG | _ALLOWED_CURBS_CONST
 
 
@@ -265,7 +269,7 @@ class Pattern:
         self.opcode = opcode
         self.op_curbs = op_curbs
         for type_constr, curb, kind in zip(type_constraints, op_curbs,
-                                                opcode.operand_kinds):
+                                           opcode.operand_kinds):
             if kind is o.OP_KIND.REG:
                 assert type_constr in _ALLOWED_OPERAND_TYPES_REG, f"bad {kind} {type_constr} {opcode}"
                 assert curb in _ALLOWED_CURBS_REG
@@ -336,6 +340,72 @@ class Pattern:
         return f"PATTERN {self.opcode.name} [{' '.join(types)}] [{' '.join(curbs)}]"
 
 
+def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
+    """
+    Stack organisation:
+    * return address
+    * gpr
+    * flt
+    * stack data
+    """
+    out = []
+    gpr_regs = regs.MaskToGprRegs(ctx.gpr_reg_mask)
+    flt_regs = regs.MaskToFltRegs(ctx.flt_reg_mask)
+    stk_size = ctx.stk_size + 8 * len(flt_regs) + 8 * len(gpr_regs) + 8
+    if not ctx.is_leaf or ctx.stk_size or flt_regs:
+        stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
+    stk_size -= 8 * len(gpr_regs) + 8  # already accounted for
+    while gpr_regs:
+        out.append(InsTmpl("push_64_r", [gpr_regs.pop(-1).no]))
+    if stk_size > 0:
+        out.append(InsTmpl("sub_64_mr_imm32", [F.SP, stk_size]))
+    offset = ctx.stk_size
+    while flt_regs:
+        out.append(InsTmpl("movsd_mbis32_x", [F.SP, F.NO_INDEX, 1, offset, flt_regs.pop(-1).no]))
+        offset += 8
+    return out
+
+
+def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
+    out = []
+    # we reverse everything at the end, which allows us to mimic the Prolog more closely
+    out.append(InsTmpl("ret", []))
+    gpr_regs = regs.MaskToGprRegs(ctx.gpr_reg_mask)
+    flt_regs = regs.MaskToFltRegs(ctx.flt_reg_mask)
+    stk_size = ctx.stk_size + 8 * len(flt_regs) + 8 * len(gpr_regs) + 8
+    if not ctx.is_leaf or ctx.stk_size or flt_regs:
+        stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
+    stk_size -= 8 * len(gpr_regs) + 8  # already accounted for
+    while gpr_regs:
+        out.append(InsTmpl("pop_64_r", [gpr_regs.pop(-1).no]))
+    if stk_size > 0:
+        out.append(InsTmpl("add_64_mr_imm32", [F.SP, stk_size]))
+    offset = ctx.stk_size
+    while flt_regs:
+        out.append(InsTmpl("movsd_x_mbis32", [flt_regs.pop(-1).no, F.SP, F.NO_INDEX, 1, offset]))
+        offset += 8
+
+    out.reverse()
+    return out
+
+
+def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
+    opc = ins.opcode
+    if opc is o.ST:
+        # needs scratch when multiple operands were spilled
+        scratch = fun.GetScratchReg(o.DK.C64, "st", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
+    return [ins]
+
+
+def FunAddNop1ForCodeSel(fun: ir.Fun):
+    """Add dummy instruction to ensure we have a scratch register for the next instruction
+
+    Currently, SWITCH needs a scratch register
+    """
+    return ir.FunGenericRewrite(fun, _InsAddNop1ForCodeSel)
+
+
 def InsTmplStkSt(dk: o.DK, spill: P, src):
     return InsTmpl(f"mov_{dk.bitwidth()}_mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, spill, src])
 
@@ -353,6 +423,17 @@ _KIND_TO_IMM = {
     o.DK.S32: C.SIMM32,
     o.DK.U64: C.SIMM32,  # not a typo
     o.DK.S64: C.SIMM32,  # not a typo
+}
+
+_KIND_TO_IMM_WITH_64 = {
+    o.DK.U8: C.UIMM8,
+    o.DK.S8: C.SIMM8,
+    o.DK.U16: C.UIMM16,
+    o.DK.S16: C.SIMM16,
+    o.DK.U32: C.UIMM32,
+    o.DK.S32: C.SIMM32,
+    o.DK.U64: C.UIMM64,
+    o.DK.S64: C.SIMM64,
 }
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
@@ -396,6 +477,34 @@ def InitAluInt():
                     [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}",
                              [F.SP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
+
+
+def InitMovInt():
+    for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        bw = kind1.bitwidth()
+        iw = 32 if bw == 64 else bw
+        # mov dst_reg src_reg
+        Pattern(o.MOV, [kind1] * 2,
+                [C.REG, C.REG],
+                [InsTmpl(f"mov_{bw}_r_mr", [P.reg0, P.reg1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.SP_REG, C.REG],
+                [InsTmpl(f"mov_{bw}_mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.reg1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.REG, C.SP_REG],
+                [InsTmpl(f"mov_{bw}_r_mbis32", [P.reg0, F.SP, F.NO_INDEX, F.SCALE1, P.spill1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.SP_REG, C.SP_REG],
+                [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill1]),
+                 InsTmpl(f"mov_{bw}_mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.tmp_gpr])])
+        # mov dst_reg const
+        Pattern(o.MOV, [kind1] * 2,
+                [C.REG, _KIND_TO_IMM_WITH_64[kind1]],
+                [InsTmpl(f"mov_{bw}_r_imm{bw}", [P.reg0, P.num1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.SP_REG, _KIND_TO_IMM[kind1]],
+                [InsTmpl(f"mov_{bw}_mbis32_imm{iw}", [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.num1])])
 
 
 def InitAluFlt():
@@ -783,9 +892,9 @@ def InitStore():
                     [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.reg1, F.SCALE1, 0, P.tmp_gpr])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SP_REG, C.REG],
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
-                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
-                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, P.scratch_gpr, F.SCALE1, 0, P.reg2])])
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill0]),
+                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
@@ -793,15 +902,15 @@ def InitStore():
                      InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SP_REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
-                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
-                    [InsTmpl(f"mov_64_mbis8_r", [P.reg0, P.scratch_gpr, F.SCALE1, 0, P.tmp_gpr])])
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
+                    [InsTmpl(f"mov_64_mbis8_r", [P.reg0, P.tmp_gpr, F.SCALE1, 0, P.scratch_gpr])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SP_REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
-                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
-                    [InsTmpl(f"add_64_r_mbis32", [P.scratch_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill0]),
-                     InsTmpl(f"mov_{bw}_mbis8_r", [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, P.tmp_gpr])])
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
+                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr, F.SP, F.NO_INDEX, F.SCALE1, P.spill0]),
+                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.scratch_gpr])])
 
 
 def InitCFG():
@@ -833,6 +942,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 
 InitAluInt()
 InitAluFlt()
+InitMovInt()
 InitCondBraInt()
 InitLea()
 InitLoad()
