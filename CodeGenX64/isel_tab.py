@@ -154,9 +154,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
-    elif arg is P.num2:
-        assert isinstance(ops[2], ir.Const)
-        return ops[2].value
+    elif arg in {P.num0, P.num1, P.num2, P.num3, P.num4}:
+        pos = arg.value - P.num0.value
+        assert isinstance(ops[pos], ir.Const)
+        return ops[pos].value
     elif arg in _OP_TO_RELOC_KIND:
         return 0
     else:
@@ -423,6 +424,8 @@ _KIND_TO_IMM = {
     o.DK.S32: C.SIMM32,
     o.DK.U64: C.SIMM32,  # not a typo
     o.DK.S64: C.SIMM32,  # not a typo
+    o.DK.A64: C.SIMM32,  # not a typo
+    o.DK.C64: C.SIMM32,  # not a typo
 }
 
 _KIND_TO_IMM_WITH_64 = {
@@ -434,6 +437,8 @@ _KIND_TO_IMM_WITH_64 = {
     o.DK.S32: C.SIMM32,
     o.DK.U64: C.UIMM64,
     o.DK.S64: C.SIMM64,
+    o.DK.A64: C.SIMM64,
+    o.DK.C64: C.SIMM64,
 }
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
@@ -481,7 +486,7 @@ def InitAluInt():
 
 def InitMovInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         bw = kind1.bitwidth()
         iw = 32 if bw == 64 else bw
         # mov dst_reg src_reg
@@ -914,7 +919,7 @@ def InitStore():
 
 
 def InitCFG():
-    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.S32],
+    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U8],
             [C.INVALID, C.SIMM32],
             [InsTmpl("push_64_mr", [F.RCX]),
              InsTmpl("push_64_mr", [F.R11]),
