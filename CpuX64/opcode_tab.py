@@ -119,6 +119,7 @@ SUPPORTED_OPCODES = {
     "setge",  # "/setnl",
     "setle",  # "/setng",
     "setg",  # "/setnle",
+    "int3",  # for breakpoints
 
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
@@ -1244,9 +1245,9 @@ def LoadOpcodes(filename: str):
 
 
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
-print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
 
 if __name__ == "__main__":
+    print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
     OpcodeSanityCheck(Opcode.OpcodesByFP)
     last_name = ""
     for opc in Opcode.Opcodes:

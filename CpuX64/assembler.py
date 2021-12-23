@@ -69,7 +69,7 @@ def AddStartUpCode(unit: elf_unit.Unit):
     When Linux transfers control to a new A32 program is does not follow any calling
     convention so we need this shim.
     The initial execution env looks like this:
-    0(sp)			argc
+    0(sp)			    argc
     8(sp)			    argv[0] # argv start
     16(sp)               argv[1]
     ...
@@ -82,17 +82,18 @@ def AddStartUpCode(unit: elf_unit.Unit):
 
     This feature is needed by CodeGenA64/
     """
-    assert False
     unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [
-        ("ldr_x_imm", "x0 sp 0"),
-        ("add_x_imm", "x1 sp 8"),
-        ("bl", "expr:call26:main"),
-        # x0 contains result from main
-        ("movz_x_imm", "x8 0x5d"),
-        ("svc", "0"),
+        ("mov64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
+        ("mov64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
+        ("les64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
+        ("call32", "expr:pcrel32:main"),
+        # edi contains result from main
+        ("mov_32_r_imm32", "edi 0x0"),
+        ("mov_64_mr_imm32", "rax 0x3c"),
+        ("syscall", ""),
         # unreachable
-        ("brk", "1")]:
+        ("int3", "")]:
         HandleOpcode(mnemonic, ops.split(), unit)
     unit.FunEnd()
 
