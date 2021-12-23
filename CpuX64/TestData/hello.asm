@@ -6,7 +6,7 @@
 .fun _start 16
     mov_64_mr_imm32 rdi 1      # stdout
     mov_64_mr_imm32 rdx 0x13   # size of string
-    lea_64_r_mpc32  rsi rip expr:pcrel32:fmt:-4
+    lea_64_r_mpc32  rsi rip expr:pcrel32:fmt
     mov_64_mr_imm32 rax 1      # sycall write
     syscall
 
