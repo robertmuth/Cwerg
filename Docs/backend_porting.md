@@ -58,7 +58,10 @@ Next up is the Codegen support in CodeGenXXX
  
 1.  Start implementing simple patterns in `isel_tab.py` and test them via
     `isel_tester.py` 
-    
+2.  Make a barebones hello-world work (e.g. CodeGenX64/TestData/syscall.x64.asm)
+    which does not require much in terms of relocations, control flow and register allocation.
+3. Make a slightly more sophisticated program work (e.g. CodeGenX64/TestData/cli)
+ 
 For the current backends the intermediate representation consists of an enum
 representing the opcode, e.g. `OPC_add` and an array of numbers representing,
 the operands, e.g.  `[5, 1, 666]` for `[r5, r1, #666]`.
