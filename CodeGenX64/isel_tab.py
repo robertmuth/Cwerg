@@ -90,7 +90,9 @@ class P(enum.Enum):
     stk1 = 25
     #
     bbl0 = 30
-    bbl2 = 31
+    bbl1 = 31
+    bbl2 = 32
+    fun0 = 35
     #
     mem1_num2_prel = 40
     mem0_num1_prel = 41
@@ -102,6 +104,7 @@ class P(enum.Enum):
 _OP_TO_RELOC_KIND = {
     P.bbl0: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.bbl2: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.fun0: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.fun1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.mem1_num2_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.jtb1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
@@ -110,14 +113,14 @@ _OP_TO_RELOC_KIND = {
 
 def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
     assert not cpuins.has_reloc(), f"{cpuins.reloc_kind}"
-    if op is P.bbl2:
-        bbl = ins.operands[2]
+    if op in {P.bbl0, P.bbl1, P.bbl2}:
+        bbl = ins.operands[op.value - P.bbl0.value]
         assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
         cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
-    elif op is P.bbl0:
-        bbl = ins.operands[0]
-        assert isinstance(bbl, ir.Bbl), f"{ins} {bbl}"
-        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, bbl.name)
+    elif op in {P.fun0}:
+        fun = ins.operands[op.value - P.fun0.value]
+        assert isinstance(fun, ir.Fun), f"{ins} {fun}"
+        cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
     elif op is P.fun1_prel:
         fun = ins.operands[1]
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
@@ -143,7 +146,7 @@ def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
 def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     ops = ins.operands
     if arg is P.reg01:
-        assert ops[0] == ops[1]
+        assert ops[0] == ops[1], f"ins not in aab for {ins} {ins.operands}"
         reg = ops[0]
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
@@ -189,7 +192,7 @@ class InsTmpl:
                            x64.OK.MODRM_RM_REG8, x64.OK.MODRM_RM_REG16, x64.OK.MODRM_RM_REG32,
                            x64.OK.MODRM_RM_REG64}:
                 assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr,
-                              F.RAX, F.RCX, F.R10, F.R11}, f"{op}"
+                              F.SP, F.RAX, F.RCX, F.R10, F.R11}, f"{op}"
             elif field in {x64.OK.MODRM_XREG32, x64.OK.MODRM_XREG64,
                            x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
                 assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt}, f"{op}"
@@ -206,9 +209,9 @@ class InsTmpl:
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
             elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64, x64.OK.IMM64}:
-                assert op in {P.num0, P.num1, P.num2}, f"{op}"
+                assert op in {P.num0, P.num1, P.num2} or isinstance(op, int), f"{op}"
             elif field is x64.OK.OFFPCREL32:
-                assert op in {P.bbl0, P.bbl2}, f"{op}"
+                assert op in {P.bbl0, P.bbl2, P.fun0}, f"{op}"
             elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
                            x64.OK.BYTE_WITH_REG64}:
                 assert op in {P.reg0}, f"{op}"
@@ -650,25 +653,33 @@ def InitCondBraInt():
                      InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
 
 
-_EXTEND_TO_64bit = {
-    o.DK.U8: "movzx_64_8_",
-    o.DK.S8: "movsx_64_8_",
-    o.DK.U16: "movzx_64_16_",
-    o.DK.S16: "movsx_64_16_",
-    o.DK.U32: "mov_32_",
-    o.DK.S32: "movsxd_64_",
+_EXTEND_OPCODE = {
+    (64, o.DK.U8): "movzx_64_8_",
+    (64, o.DK.S8): "movsx_64_8_",
+    (64, o.DK.U16): "movzx_64_16_",
+    (64, o.DK.S16): "movsx_64_16_",
+    (64, o.DK.U32): "mov_32_",
+    (64, o.DK.S32): "movsxd_64_",
+    #
+    (32, o.DK.U8): "movzx_32_8_",
+    (32, o.DK.S8): "movsx_32_8_",
+    (32, o.DK.U16): "movzx_32_16_",
+    (32, o.DK.S16): "movsx_32_16_",
+    #
+    (16, o.DK.U8): "movzx_16_8_",
+    (16, o.DK.S8): "movsx_16_8_",
 }
 
 
 def ExtendRegTo64Bit(reg, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_TO_64bit.get(dk)
+    x64_opc = _EXTEND_OPCODE.get((64, dk))
     if not x64_opc:
         return []
     return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
 
 
 def ExtendRegTo64BitFromSP(reg, spill, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_TO_64bit.get(dk)
+    x64_opc = _EXTEND_OPCODE.get((64, dk))
     if not x64_opc:
         return []
     return [InsTmpl(x64_opc + "r_mbis32", [reg, F.SP, F.NO_INDEX, F.SCALE1, spill])]
@@ -929,6 +940,38 @@ def InitCFG():
              InsTmpl("pop_64_mr", [F.R11]),
              InsTmpl("pop_64_mr", [F.RCX])])
 
+    Pattern(o.TRAP, [], [],
+            [InsTmpl("int3", [])])
+
+    Pattern(o.BRA, [o.DK.INVALID], [C.INVALID],
+            [InsTmpl("jmp_32", [P.bbl0])])
+
+    Pattern(o.BSR, [o.DK.INVALID], [C.INVALID],
+            [InsTmpl("call_32", [P.fun0])])
+
+
+def InitCONV():
+    for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+            bw_src = kind1.bitwidth()
+            bw_dst = kind2.bitwidth()
+            if bw_dst <= bw_src:
+                conv_opc = f"mov_{bw_dst}_"
+            else:
+                conv_opc = _EXTEND_OPCODE[(bw_dst, kind1)]
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.REG],
+                    [InsTmpl(conv_opc + "r_mr", [P.reg0, P.reg1])])
+            # TODO: SP_REG <- REG
+            #Pattern(o.CONV, [kind2, kind1],
+            #        [C.SP_REG, C.REG],
+            #        [InsTmpl(conv_opc + "mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.reg0])])
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.SP_REG],
+                    [InsTmpl(conv_opc + "r_mbis32", [P.reg0, F.SP, F.NO_INDEX, F.SCALE1, P.spill1])])
+            # TODO SP_REG <- SP_REG
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
     """Returns the best pattern matching `ins` or None
@@ -953,6 +996,7 @@ InitLea()
 InitLoad()
 InitStore()
 InitCFG()
+InitCONV()
 
 
 def _DumpCodeSelTable():

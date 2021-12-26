@@ -84,10 +84,10 @@ def AddStartUpCode(unit: elf_unit.Unit):
     """
     unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [
-        ("mov64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
-        ("mov64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
-        ("les64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
-        ("call32", "expr:pcrel32:main"),
+        ("mov_64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
+        ("mov_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
+        ("lea_64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
+        ("call_32", "expr:pcrel32:main"),
         # edi contains result from main
         ("mov_32_r_imm32", "edi 0x0"),
         ("mov_64_mr_imm32", "rax 0x3c"),
@@ -154,8 +154,8 @@ def _ApplyRelocation(rel: elf.Reloc):
     if rel.r_type == enum_tab.RELOC_TYPE_X86_64.PC32.value:
         assert rel.r_offset + 4 <= len(sec_data)
         new_data = _pc_offset(rel, sym_val)
-        assert 0 <= new_data < (1 << 32)
-        sec_data[rel.r_offset:rel.r_offset + 4] = new_data.to_bytes(4, "little")
+        assert -(1 << 31) <= new_data < (1 << 31), f"out of range reloc {rel.symbol.name} {new_data}"
+        sec_data[rel.r_offset:rel.r_offset + 4] = new_data.to_bytes(4, "little", signed=True)
     else:
         assert False, f"unknown kind reloc {rel}"
 

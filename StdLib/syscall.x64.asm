@@ -69,7 +69,7 @@
     poparg stat:A64
     pusharg stat
     pusharg fd
-    syscall x64_syscall_fstat 5:U32
+    syscall x64_syscall_fstat 5:U8
     poparg res:S32
     pusharg res
     ret
