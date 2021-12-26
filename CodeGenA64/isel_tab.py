@@ -6,8 +6,8 @@ See `ARM32.md` for more details.
 """
 
 import collections
-from typing import List, Dict, Any, Set, Optional
 import enum
+from typing import List, Dict, Any, Set, Optional
 
 from Base import ir
 from Base import opcode_tab as o
@@ -155,9 +155,6 @@ class PARAM(enum.Enum):
     num1_48_64 = 41
 
 
-
-
-
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
     assert isinstance(num, ir.Const)
     assert isinstance(stk, ir.Stk)
@@ -192,8 +189,6 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.num1_0_16, PARAM.num1_16_32, PARAM.num1_32_48, PARAM.num1_48_64}:
         shift = ((arg.value - PARAM.num1_0_16.value) * 16)
         return (ins.operands[1].value >> shift) & 0xffff
-    elif arg in _OP_TO_RELOC_KIND:
-        return 0
     elif arg is PARAM.scratch_flt:
         assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.FLT, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
@@ -214,6 +209,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         width = num.kind.bitwidth()
         assert 1 <= num.value <= width
         return width - num.value - 1
+    elif arg in _OP_TO_RELOC_KIND:
+        return 0
     else:
         assert False, f"unknown ARG {repr(arg)}"
 

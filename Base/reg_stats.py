@@ -16,7 +16,7 @@ from typing import List, Dict, Tuple, Set
 from Base import ir
 from Base import liveness
 from Base import reg_alloc
-import Base.opcode_tab as o
+from Base import opcode_tab as o
 from Base import serialize
 
 REG_KIND_LAC = Tuple[int, bool]
