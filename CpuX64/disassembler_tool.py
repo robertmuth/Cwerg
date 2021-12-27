@@ -18,7 +18,9 @@ def disass(data):
     enum_name, ops_str = symbolic.InsSymbolize(ins)
     print("    " + enum_name)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
-        print(f"    {f.name:35s} {o_str:10} (0x{o:x})")
+        if isinstance(f, x64.OK):
+            f = f.name
+        print(f"    {f:35s} {o_str:10} (0x{o:x})")
     print()
     data2 = x64.Assemble(ins)
     assert data == data2

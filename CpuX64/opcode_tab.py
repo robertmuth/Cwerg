@@ -120,6 +120,7 @@ SUPPORTED_OPCODES = {
     "setle",  # "/setng",
     "setg",  # "/setnle",
     "int3",  # for breakpoints
+    "cwd", "cdq", "cqo",
 
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
@@ -250,6 +251,7 @@ _SUPPORTED_FORMATS = {
     "xI",
     "Ox",  # xchg
     "xO",  # xchg
+    "xx",  # cwd, cdq, cqo
 }
 
 # Note. we do not support "h" registers
@@ -541,7 +543,7 @@ class Opcode:
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
         fullname = self.EnumName()
-        assert fullname not in Opcode.OpcodesByName, f"{fullname}"
+        assert fullname not in Opcode.OpcodesByName, f"duplicate={fullname}"
         Opcode.OpcodesByName[fullname] = self
         assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
         assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
@@ -1032,7 +1034,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
-    assert len(format) == len(ops)
+    assert len(format) == len(ops), f"{name} fmt={format} ops={ops}"
     for op, kind in zip(ops, format):
         assert op in _OP_MAP[kind], f"{op} not allowed for {kind}"
 
@@ -1086,6 +1088,16 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 opc.AddImplicits(after)
             else:
                 assert False
+    elif format in {"xx"}:
+        opc = Opcode(name, "", ops, format)
+        opc.AddImplicits(ops)
+        for x in encoding:
+            if x == "REX.W":
+                opc.AddRexW()
+            elif _RE_BYTE.match(x):
+                opc.AddByte(int(x, 16))
+            else:
+                assert False
     elif format == "D":
         opc = Opcode(name, "", ops, format)
         for x in encoding:
@@ -1096,7 +1108,7 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
             else:
                 assert False
     else:
-        assert False, "bad format {format}"
+        assert False, f"bad format {format}"
 
 
 def ExtractOps(s):
@@ -1149,15 +1161,19 @@ def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
 
 
 def FixupFormat(format: str, ops: List, encoding) -> str:
+    """Make sure for each operands we have exactly one format character"""
     if format == "I" and ("B8+r" in encoding or "B0+r" in encoding):
         return "OI"
     if format == "NONE":
-        return ""
+        if len(ops) == 0:
+            return ""
+        else:
+            format = ""
 
     if len(format) == len(ops):
         return format
 
-    assert len(format) == 1
+    assert len(format) <= 1, f"format={format}"
 
     def tr(f):
         if f in _IMPLICIT_OPERANDS or f == "1":
