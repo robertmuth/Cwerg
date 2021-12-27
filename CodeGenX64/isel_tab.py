@@ -132,8 +132,8 @@ class P(enum.Enum):
     bbl2 = 32
     fun0 = 35
     #
-    mem1_num2_prel = 40
-    mem0_num1_prel = 41
+    mem0_num1_prel = 40
+    mem1_num2_prel = 41
 
     fun1_prel = 45
     jtb1_prel = 46
@@ -145,6 +145,7 @@ _OP_TO_RELOC_KIND = {
     P.fun0: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.fun1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.mem1_num2_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
+    P.mem0_num1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
     P.jtb1_prel: enum_tab.RELOC_TYPE_X86_64.PC32,
 }
 
@@ -164,11 +165,12 @@ def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
         assert isinstance(fun, ir.Fun), f"{ins} {fun}"
         assert fun.kind is not o.FUN_KIND.EXTERN, f"undefined fun: {fun.name}"
         cpuins.set_reloc(_OP_TO_RELOC_KIND[op], False, pos, fun.name)
-    elif op is P.mem1_num2_prel:
-        mem = ins.operands[1]
+    elif op in {P.mem1_num2_prel, P.mem0_num1_prel}:
+        slot = op.value - P.mem0_num1_prel.value
+        mem = ins.operands[slot]
         assert isinstance(mem, ir.Mem), f"{ins} {mem}"
         assert mem.kind is not o.MEM_KIND.EXTERN, f"undefined fun: {mem.name}"
-        num = ins.operands[2]
+        num = ins.operands[slot + 1]
         assert isinstance(num, ir.Const), f"{ins} {num}"
         assert cpuins.operands[pos] == 0
         cpuins.operands[pos] = num.value
@@ -178,7 +180,14 @@ def _HandleReloc(cpuins: x64.Ins, pos: int, ins: ir.Ins, op: P):
         assert isinstance(jtb, ir.Jtb), f"{ins} {jtb}"
         cpuins.set_reloc(_OP_TO_RELOC_KIND[op], True, pos, jtb.name)
     else:
-        assert False
+        assert False, f"unsupported reloc {op}"
+
+
+def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
+    assert isinstance(num, ir.Const)
+    assert isinstance(stk, ir.Stk)
+    assert stk.slot is not None
+    return stk.slot + num.value
 
 
 def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
@@ -199,10 +208,14 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         pos = arg.value - P.num0.value
         assert isinstance(ops[pos], ir.Const)
         return ops[pos].value
+    elif arg is P.stk1_offset2:
+        return GetStackOffset(ops[1], ops[2])
+    elif arg is P.stk0_offset1:
+        return GetStackOffset(ops[0], ops[1])
     elif arg in _OP_TO_RELOC_KIND:
         return 0
     else:
-        assert False, f"could not extract op for {ins} {ins.operands} {arg}"
+        assert False, f"could not extract op for {ins} {ins.operands}  unsupported: {arg}"
 
 
 class InsTmpl:
@@ -219,7 +232,7 @@ class InsTmpl:
     def __init__(self, opcode_name: str, args: List[Any]):
         opcode: x64.Opcode = x64.Opcode.OpcodesByName[opcode_name]
         assert args is not None
-        assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name}"
+        assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name} {args} {opcode.fields}"
         # Note, the sanity checks below need to be adjusted as needed
         for op, field in zip(args, opcode.fields):
             assert isinstance(op, (int, P, F)), (
@@ -409,6 +422,17 @@ class Pattern:
         return f"PATTERN {self.opcode.name} [{' '.join(types)}] [{' '.join(curbs)}]"
 
 
+def HandlePseudoNop1(ins: ir.Ins, ctx: regs.EmitContext):
+    """This does not emit any code but copies the register assigned to the nop into the ctx
+
+    The idea is that the next instruction can use this register as a scratch. But this
+    only works if the next instruction was not assigned the register itself.
+    """
+    # assert ctx.scratch_reg is ir.REG_INVALID
+    ctx.scratch_cpu_reg = ins.operands[0].cpu_reg
+    return []
+
+
 def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     """
     Stack organisation:
@@ -578,16 +602,18 @@ def InitAluInt():
         bw = kind1.bitwidth()
         Pattern(o.DIV, [kind1] * 3,
                 [C.REG_RDX, C.REG_RAX, C.REG],
-                [InsTmpl(f"div_{bw}_{rdx}_{rax}_mr",
-                         [F.RDX, F.RAX, P.reg2])])
+                [InsTmpl(f"xor_{bw}_mr_r", [F.RDX, F.RDX]),
+                    InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
     # TODO: handle 8 bit divide
-    for rdx, rax, kind1 in [("dx", "ax", o.DK.S16), ("edx", "eax", o.DK.S32), ("rdx", "rax", o.DK.S64)]:
+    for rdx, rax, kind1, prep in [("dx", "ax", o.DK.S16, "cwd_16_dx_ax"),
+                                  ("edx", "eax", o.DK.S32, "cdq_32_edx_eax"),
+                                  ("rdx", "rax", o.DK.S64, "cqo_64_rdx_rax")]:
         bw = kind1.bitwidth()
         Pattern(o.DIV, [kind1] * 3,
                 [C.REG_RDX, C.REG_RAX, C.REG],
-                [InsTmpl(f"idiv_{bw}_{rdx}_{rax}_mr",
-                         [F.RDX, F.RAX, P.reg2])])
+                [InsTmpl(prep, [F.RDX, F.RAX]),
+                 InsTmpl(f"idiv_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
 
 def InitMovInt():
@@ -708,10 +734,12 @@ def _GetJmpSwp(dk: o.DK, opc):
 
 def InitCondBraInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         bw = kind1.bitwidth()
         iw = 32 if bw == 64 else bw
         for opc in [o.BEQ, o.BNE, o.BLT, o.BLE]:
+            if kind1 in {o.DK.A64, o.DK.C64} and opc not in {o.BEQ, o.BNE}:
+                continue
             x64_jmp = _GetJmp(kind1, opc)
             x64_jmp_swp = _GetJmpSwp(kind1, opc)
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
@@ -874,7 +902,7 @@ def InitLoad():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
             bw = kind2.bitwidth()
             # LD_MEM dst_reg mem reg_offset will be rewritten so do not handle it here
             # LD_MEM dst_reg mem const
@@ -968,7 +996,7 @@ def InitStore():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
             bw = kind2.bitwidth()
             # ST_MEM mem reg_offset src_reg will be rewritten so do not handle it here
             # ST_MEM mem const src_reg
@@ -993,7 +1021,7 @@ def InitStore():
                      InsTmpl(f"mov_{bw}_mbis32_r",
                              [F.RSP, F.NO_INDEX, F.SCALE1, P.stk0_offset1, P.tmp_gpr])])
             # ST base_reg const src_reg
-            Pattern(o.ST, [kind2, o.DK.A64, kind1],
+            Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SIMM32, C.REG],
                     [InsTmpl(f"mov_{bw}_mbis32_r",
                              [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
