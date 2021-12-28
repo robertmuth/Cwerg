@@ -11,7 +11,7 @@ STD_LIB = ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 tests: tests_py tests_c
 	@echo "[OK CodeGenX64]"
 
-tests_py:  $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe
+tests_py:  $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(DIR)/queens.64.asm.s.exe
 
 tests_c:
 
@@ -29,7 +29,7 @@ $(DIR)/syscall.x64.asm.exe: TestData/syscall.x64.asm
 
 $(DIR)/queens.64.asm.s.exe: ../TestData/queens.64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@
+	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
 	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 

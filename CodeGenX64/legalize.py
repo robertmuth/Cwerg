@@ -175,10 +175,9 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A64,
                                                    offset_kind=o.DK.S32)
 
-    # we cannot load/store directly from mem so expand the instruction to simpler
-    # sequences
-    # lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
-    #                                  offset_kind=o.DK.S32)
+    # TODO: switch this to a WithRegOffset flavor
+    lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
+                                      offset_kind=o.DK.S32)
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
