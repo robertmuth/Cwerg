@@ -575,6 +575,18 @@ def InitAluInt():
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}",
                              [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
 
+        for opc, x64_opc_s, x64_opc_u in [(o.SHL, "shl", "shl"), (o.SHR, "sar", "shr")]:
+            # TODO: add support for non-immediate variants
+            #
+            x64_opc = x64_opc_u if kind1 in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
+            Pattern(opc, [kind1] * 3,
+                    [C.REG, C.REG, C.UIMM8],
+                    [InsTmpl(f"{x64_opc}_{bw}_mr_imm8", [P.reg01, P.num2])])
+            Pattern(opc, [kind1] * 3,
+                    [C.SP_REG, C.SP_REG, C.UIMM8],
+                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm8",
+                             [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
+
     # TODO: handle 8 bit multiply, maybe support some immediate variants
     for kind1 in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind1.bitwidth()
@@ -603,7 +615,7 @@ def InitAluInt():
         Pattern(o.DIV, [kind1] * 3,
                 [C.REG_RDX, C.REG_RAX, C.REG],
                 [InsTmpl(f"xor_{bw}_mr_r", [F.RDX, F.RDX]),
-                    InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
+                 InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
     # TODO: handle 8 bit divide
     for rdx, rax, kind1, prep in [("dx", "ax", o.DK.S16, "cwd_16_dx_ax"),
@@ -738,7 +750,7 @@ def InitCondBraInt():
         bw = kind1.bitwidth()
         iw = 32 if bw == 64 else bw
         for opc in [o.BEQ, o.BNE, o.BLT, o.BLE]:
-            if kind1 in {o.DK.A64, o.DK.C64} and opc not in {o.BEQ, o.BNE}:
+            if kind1 in {o.DK.C64} and opc not in {o.BEQ, o.BNE}:
                 continue
             x64_jmp = _GetJmp(kind1, opc)
             x64_jmp_swp = _GetJmpSwp(kind1, opc)

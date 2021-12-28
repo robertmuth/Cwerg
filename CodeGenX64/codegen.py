@@ -196,6 +196,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
 
     sec_text = elfunit.sec_text
     for fun in unit.funs:
+        # print (f"Processing {fun.name}")
         elfunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
         for jtb in fun.jtbs:
             elfunit.MemStart(jtb.name, 8, "rodata", True)
@@ -220,7 +221,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
 
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
-                    assert pattern, f"could not find pattern for\n{ins} {ins.operands}"
+                    assert pattern, f"could not find pattern in {fun.name}\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
                         assembler.AddIns(elfunit,
                                          tmpl.MakeInsFromTmpl(ins, ctx))
