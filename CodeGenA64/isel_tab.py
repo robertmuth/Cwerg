@@ -468,9 +468,9 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
 def HandlePseudoNop1(ins: ir.Ins, ctx: regs.EmitContext):
     """This does not emit any code but copies the register assigned to the nop into the ctx
 
-The idea is that the next instruction can use this register as a scratch. But this
-only works if the next instruction was not assigned the register itself.
-"""
+    The idea is that the next instruction can use this register as a scratch. But this
+    only works if the next instruction was not assigned the register itself.
+    """
     # assert ctx.scratch_reg is ir.REG_INVALID
     ctx.scratch_cpu_reg = ins.operands[0].cpu_reg
     return []

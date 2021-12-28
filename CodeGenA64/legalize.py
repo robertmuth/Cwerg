@@ -60,7 +60,7 @@ def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
     return []
 
 
-def FunMoveEliminationCpu(fun: ir.Fun) -> int:
+def _FunMoveEliminationCpu(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsMoveEliminationCpu)
 
 
@@ -389,5 +389,5 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup
-    FunMoveEliminationCpu(fun)
+    _FunMoveEliminationCpu(fun)
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
