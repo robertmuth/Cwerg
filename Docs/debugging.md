@@ -59,6 +59,7 @@ https://sourceware.org/gdb/current/onlinedocs/gdb/TUI.html
 Sample session
 
 ```
+set disassembly-flavor intel
 break main
 run
 c-x 2    [two window view]
