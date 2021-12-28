@@ -85,7 +85,7 @@ def AddStartUpCode(unit: elf_unit.Unit):
     unit.FunStart("_start", 16, NOP_BYTES)
     for mnemonic, ops in [
         ("mov_64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
-        ("mov_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
+        ("lea_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
         ("lea_64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
         ("call_32", "expr:pcrel32:main"),
         # edi contains result from main
