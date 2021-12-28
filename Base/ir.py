@@ -209,8 +209,8 @@ class Reg:
         return hash(self.name)
 
     def __repr__(self):
-        extra = f" @{self.cpu_reg.name}" if self.cpu_reg else ""
-        return f"[REG {self.name} {self.kind}{extra}]"
+        extra = f"@{self.cpu_reg.name}" if self.cpu_reg else ""
+        return f"{self.name}:{self.kind.name}{extra}"
 
     def __lt__(self, other: "Reg"):
         return self.name < other.name
