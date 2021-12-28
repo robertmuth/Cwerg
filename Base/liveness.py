@@ -286,6 +286,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
     * LRs without a def of the register is defined outside the Bbl
     * [if emit_uses] use-def LRs contain the LRs of all the used regs in the instruction at point p.
                      (def=p last_use=p,  reg=REG_INVALID)
+    emit_uses is required for reg_alloc.RegisterAssignerLinearScanFancy()
     """
     out = []
     bbl_size = len(bbl.inss)
@@ -335,6 +336,8 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
         for n, reg in enumerate(ins.operands):
             if not isinstance(reg, ir.Reg): continue
             if n < num_defs:  # define reg
+                if n == 0 and ir.REG_FLAG.TWO_ADDRESS in reg.flags and reg == ins.operands[1]:
+                    continue
                 lr = last_use.get(reg)
                 if lr:
                     finalize_lr(lr, pos)

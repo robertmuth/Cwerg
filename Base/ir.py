@@ -185,6 +185,7 @@ class REG_FLAG(enum.Flag):
     LAC = 1 << 3  # live across call
     IS_READ = 1 << 4  # is use at least once  (IS_WRITTEN is synthesized by reg.def_ins != INS_INVALID
     MULTI_READ = 1 << 5  # has multiple reads
+    TWO_ADDRESS = 1 << 6  # used by x64 backend
     MARKED = 1 << 7
 
 

@@ -15,13 +15,14 @@ from typing import List, Dict, Tuple, Set
 
 from Base import ir
 from Base import liveness
-from Base import reg_alloc
 from Base import opcode_tab as o
+from Base import reg_alloc
 from Base import serialize
 
 REG_KIND_LAC = Tuple[int, bool]
 
 TRACE_REG_ALLOC = False
+
 
 class BblRegUsageStatsRegPool(reg_alloc.RegPool):
     """Regpool for determining register pressure at the Bbl level
@@ -51,7 +52,7 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
             self.counter += 1
             cpu_reg = ir.CpuReg(f"z{self.counter}", key[1], key[0])
         if TRACE_REG_ALLOC:
-           print (f"{cpu_reg.name} {key} <- {lr}")
+            print(f"{cpu_reg.name} {key} <- {lr}")
         return cpu_reg
 
     def usage(self) -> Dict[REG_KIND_LAC, int]:
@@ -62,7 +63,7 @@ class BblRegUsageStatsRegPool(reg_alloc.RegPool):
     # @override
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
         if TRACE_REG_ALLOC:
-           print (f"FREE: {cpu_reg.name}")
+            print(f"FREE: {cpu_reg.name}")
         key: REG_KIND_LAC = (cpu_reg.kind, bool(cpu_reg.no))
         self._available[key].append(cpu_reg)
 
@@ -86,10 +87,10 @@ def FunComputeBblRegUsageStats(fun: ir.Fun,
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
         live_ranges.sort()
         if TRACE_REG_ALLOC:
-            print ("@" * 60)
+            print("@" * 60)
             print("\n".join(serialize.BblRenderToAsm(bbl)))
             for lr in live_ranges:
-                print (lr)
+                print(lr)
         # we do not want re-use of regs that are not coming from the pool
         for lr in live_ranges:
             if LiveRangeShouldBeIgnored(lr, reg_kind_map):
@@ -111,7 +112,7 @@ def FunComputeRegStatsExceptLAC(fun: ir.Fun):
     for reg in fun.regs:
         reg.def_ins = ir.INS_INVALID
         reg.def_bbl = ir.BBL_INVALID
-        reg.flags = ir.REG_FLAG(0)
+        reg.flags &= ~(ir.REG_FLAG.MULTI_DEF | ir.REG_FLAG.GLOBAL | ir.REG_FLAG.IS_READ | ir.REG_FLAG.MULTI_READ)
     for bbl in fun.bbls:
         for ins in bbl.inss:
             num_defs = ins.opcode.def_ops_count()

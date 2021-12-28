@@ -225,7 +225,7 @@ def RegisterAssignerLinearScanFancy(live_ranges: List[LiveRange], pool: RegPool,
     at each use and def of the original regs.
     This version of linear scan takes this into account. So that we so not have to reserve
     regs upfront to play the role of tmp regs.
-    If not tmp regs can be found the algorithm will back track and convert an earlier
+    If no tmp regs can be found the algorithm will back track and convert an earlier
     allocation into a spill.
 
     As long as there are at least 4 register available per register class this should
