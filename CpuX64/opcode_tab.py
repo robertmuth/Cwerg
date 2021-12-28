@@ -784,7 +784,12 @@ class Opcode:
                 assert o != OK.SIB_INDEX_AS_BASE or out[-1] != 0x4
             elif o is OK.SIB_SCALE:
                 out.append(data[self.sib_pos] >> 6)
-            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
+            elif o is OK.BYTE_WITH_REG8:
+                r = GetRegBits(self.byte_with_reg_pos, 0, 0)
+                if 4 <= r <= 7:
+                    assert rex, f"xH (hig hbyte) regs are not supported"
+                out.append(r)
+            elif o in {OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
             elif o in OK_IMM_TO_SIZE:
                 out.append(GetSInt(self.imm_pos, *OK_IMM_TO_SIZE[o]))
@@ -850,7 +855,11 @@ class Opcode:
             elif o is OK.SIB_SCALE:
                 assert 0 <= v <= 3
                 out[self.sib_pos] |= v << 6
-            elif o in {OK.BYTE_WITH_REG8, OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
+            elif o is OK.BYTE_WITH_REG8:
+                if 4 <= v <= 7:  # otherwise we use high byte regs (ah, ...)
+                    rex |= 0x40
+                SetRegBits(v, self.byte_with_reg_pos, 0, 0)
+            elif o in {OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
                        OK.BYTE_WITH_REG64}:
                 SetRegBits(v, self.byte_with_reg_pos, 0, 0)
             elif o in OK_IMM_TO_SIZE:

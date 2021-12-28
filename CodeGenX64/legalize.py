@@ -1,18 +1,17 @@
-from typing import List, Dict, Optional, Tuple
 import collections
 import dataclasses
+from typing import List, Dict, Optional, Tuple
 
-from Base import ir
-from Base import opcode_tab as o
-from Base import lowering
-from Base import optimize
 from Base import canonicalize
-from Base import serialize
-from Base import sanity
-from Base import reg_stats
+from Base import ir
 from Base import liveness
+from Base import lowering
+from Base import opcode_tab as o
+from Base import optimize
+from Base import reg_stats
+from Base import sanity
+from Base import serialize
 from CodeGenX64 import isel_tab
-
 from CodeGenX64 import regs
 
 
@@ -32,25 +31,29 @@ _SUPPORTED_IN_ALL_WIDTHS = {
 }
 
 
-def IsOutOfBoundImmediate(op) -> bool:
+def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
     if not isinstance(op, ir.Const):
         return False
-    if op.kind in {o.DK.S64, o.DK.A64, o.DK.F64}:
+    if opcode in {o.DIV, o.REM, o.MUL}:
+        return True
+    if pos == 2 and opcode in {o.ST, o.ST_STK, o.ST_MEM}:
+        return True
+    if op.kind in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64, o.DK.A64, o.DK.C64}:
         return op.value < -(1 << 31) or (1 << 31) <= op.value
-    elif op.kind is o.DK.U64:
+    elif op.kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64}:
         return (1 << 31) <= op.value
     elif op.kind is {o.DK.F64, o.DK.F32}:
         return True
     else:
-        assert False
+        assert False, f"unknown op: {op}"
 
 
 def _InsRewriteOutOfBoundsImmediates(
         ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
     inss = []
-    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1}:
+    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST}:
         for pos, op in enumerate(ins.operands):
-            if IsOutOfBoundImmediate(op):
+            if IsOutOfBoundImmediate(ins.opcode, op, pos):
                 if op.kind in {o.DK.F32, o.DK.F64}:
                     inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit,
                                                                  o.DK.A64, o.DK.U32)
@@ -65,23 +68,51 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
 
 
+def _InsRewriteDivRem(
+        ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
+    inss = []
+    opc = ins.opcode
+    ops = ins.operands
+    if opc is o.DIV and ops[0].kind.flavor != o.DK_FLAVOR_F:
+        rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
+        rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
+        return [ir.Ins(o.MOV, [rax, ops[1]]),
+                ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
+                ir.Ins(o.MOV, [ops[0], rax])]
+    elif opc is o.REM and ops[0].kind.flavor != o.DK_FLAVOR_F:
+        rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
+        rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
+        return [ir.Ins(o.MOV, [rax, ops[1]]),
+                ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
+                ir.Ins(o.MOV, [ops[0], rdx])]
+    else:
+        return None
+
+
+def _FunRewriteDivRem(fun: ir.Fun) -> int:
+    return ir.FunGenericRewrite(fun, _InsRewriteDivRem)
+
+
 def NeedsAABFromRewrite(ins: ir.Ins):
-    if ins.opcode.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
+    opc = ins.opcode
+    ops = ins.operands
+    if opc.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
         return False
-    if ins.operands[0] == ins.operands[1]:
+    if ops[0] == ops[1]:
         return False
-    if ins.opcode in {o.LEA_MEM, o.LEA_STK}:
+    if opc in {o.DIV, o.REM} and ops[0].kind.flavor != o.DK_FLAVOR_F:
+        return False
+    if opc in {o.LEA_MEM, o.LEA_STK}:
         return False
     return True
 
 
 def _InsRewriteIntoAABForm(
         ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-
     ops = ins.operands
     if not NeedsAABFromRewrite(ins):
         return None
-    if o.OA.COMMUTATIVE in ins.opcode.attributes:
+    if ins.operands[0] == ins.operands[2] and o.OA.COMMUTATIVE in ins.opcode.attributes:
         ir.InsSwapOps(ins, 1, 2)
         return [ins]
     else:
@@ -89,13 +120,28 @@ def _InsRewriteIntoAABForm(
         return [ir.Ins(o.MOV, [reg, ops[1]]),
                 ir.Ins(ins.opcode, [reg, reg, ops[2]]),
                 ir.Ins(o.MOV, [ops[0], reg])]
-    return [ir.Ins(o.MOV, [ops[0], ops[1]]),
-            ir.Ins(ins.opcode, [ops[0], ops[0], ops[2]])]
 
 
 def _FunRewriteIntoAABForm(fun: ir.Fun, unit: ir.Unit) -> int:
     """Bring instructions into A A B form (dst == src1). See README.md"""
     return ir.FunGenericRewrite(fun, _InsRewriteIntoAABForm)
+
+
+def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
+    # TODO: handle conv
+    if ins.opcode not in {o.MOV}:
+        return None
+    dst, src = ins.operands[0], ins.operands[1]
+    if not isinstance(src, ir.Reg):
+        return None
+    assert dst.cpu_reg and src.cpu_reg
+    if src.cpu_reg != dst.cpu_reg:
+        return None
+    return []
+
+
+def _FunMoveEliminationCpu(fun: ir.Fun) -> int:
+    return ir.FunGenericRewrite(fun, _InsMoveEliminationCpu)
 
 
 def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int], fout):
@@ -114,7 +160,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
-    _FunRewriteIntoAABForm(fun, unit)
 
     fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
     fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
@@ -125,19 +170,15 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # invariant that pushargs/popargs must be adjacent.
     lowering.FunPushargConversion(fun, regs.PushPopInterface)
     lowering.FunPopargConversion(fun, regs.PushPopInterface)
-    DumpFun("", fun)
 
-    # ARM has no mod instruction
-    lowering.FunEliminateRem(fun)
-
-    # A64 has not support for these addressing modes
+    # We did not bother with this addressing mode
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A64,
                                                    offset_kind=o.DK.S32)
 
     # we cannot load/store directly from mem so expand the instruction to simpler
     # sequences
-    lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
-                                      offset_kind=o.DK.S32)
+    # lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
+    #                                  offset_kind=o.DK.S32)
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
@@ -147,6 +188,20 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # This excludes immediates related to stack offsets which have not been determined yet
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
+    # Recompute Everything (TODO: make this more selective to reduce work)
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    reg_stats.FunSeparateLocalRegUsage(fun)
+    # DumpRegStats(fun, local_reg_stats)
+
+    # mul/div/rem need special treatment
+    _FunRewriteDivRem(fun)
+
+    _FunRewriteIntoAABForm(fun, unit)
+    # DumpFun("end of legal", fun)
+    # if fun.name == "write_s": exit(1)
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
@@ -373,14 +428,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
         flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
-    # Recompute Everything (TODO: make this more selective to reduce work)
-    reg_stats.FunComputeRegStatsExceptLAC(fun)
-    reg_stats.FunDropUnreferencedRegs(fun)
-    liveness.FunComputeLivenessInfo(fun)
-    reg_stats.FunComputeRegStatsLAC(fun)
-    reg_stats.FunSeparateLocalRegUsage(fun)
-    # DumpRegStats(fun, local_reg_stats)
-
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
                                        _opt_stats: Dict[str, int], fout):
@@ -404,7 +451,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
 
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
-    DumpFun("after local alloc", fun)
+    # DumpFun("after local alloc", fun)
     # cleanup
-    # FunMoveEliminationCpu(fun)
+    _FunMoveEliminationCpu(fun)
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
