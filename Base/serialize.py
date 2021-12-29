@@ -14,11 +14,17 @@ from Base import sanity
 PREFIX = ""
 
 
+def _RenderReg(reg: ir.Reg)-> str:
+    if reg.HasCpuReg():
+        return f"{reg.name}@{reg.cpu_reg.name}"
+    elif reg.IsSpilled():
+        return f"{reg.name}@STK"
+    return reg.name
+
+
 def RenderOperand(v: Any, tc: o.TC):
     if isinstance(v, ir.Reg):
-        if v.HasCpuReg():
-            return f"{v.name}@{v.cpu_reg.name}"
-        return v.name
+        return  _RenderReg(v)
     elif isinstance(v, ir.Fun):
         return PREFIX + v.name
     elif isinstance(v, ir.Bbl):
@@ -101,7 +107,7 @@ def FunRenderToAsm(fun: ir.Fun) -> List[str]:
         out.append(f"# live_clobber: [{' '.join(r.name for r in fun.cpu_live_clobber)}]")
     regs: Dict[int, List[str]] = collections.defaultdict(list)
     for r in fun.regs:
-        regs[r.kind.value].append(r.name)
+        regs[r.kind.value].append(_RenderReg(r))
     for kind, rr in sorted(regs.items()):
         out.append(f".reg {o.DK(kind).name} [{' '.join(sorted(rr))}]")
     for _, stk in sorted(fun.stk_syms.items()):

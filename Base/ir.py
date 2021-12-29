@@ -204,13 +204,22 @@ class Reg:
         return flavor is o.DK_FLAVOR_U or flavor is o.DK_FLAVOR_S
 
     def HasCpuReg(self):
-        return self.cpu_reg is not None
+        return isinstance(self.cpu_reg, CpuReg)
+
+    def IsSpilled(self):
+        # spilling is only used by the x64 backend
+        # other backends rewrite spilled register to stk loads/stores
+        return isinstance(self.cpu_reg, StackSlot)
 
     def __hash__(self):
         return hash(self.name)
 
     def __repr__(self):
-        extra = f"@{self.cpu_reg.name}" if self.cpu_reg else ""
+        extra = ""
+        if self.IsSpilled():
+            extra = "@STK"
+        elif self.HasCpuReg():
+            extra = f"@{self.cpu_reg.name}" if self.cpu_reg else ""
         return f"{self.name}:{self.kind.name}{extra}"
 
     def __lt__(self, other: "Reg"):
