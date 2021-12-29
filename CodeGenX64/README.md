@@ -123,9 +123,28 @@ params-out: `rax` `rdx`
 syscalls: `rdi` `rsi` `rdx` `r10` `r8` `r9` -> `rax` 
            (note: `r10` takes the place of `rcx` )    
 
-### Misc other Issues:
+### Misc other Highlights
 
-* `Pro`: most immediates can be encoded directly without size restrictions
-         in particular memory offsets can be up to 32 bit.
-* `Con`: div/mul/shl/shr instructions use implicit registers
+* instruction selection is somewhat simplified as most immediates can be encoded 
+  directly without size restrictions in particular memory offsets can be up to 32 bit.
+  
+* Once we have rewritten instructions to AAB form we have to be careful with subsequent optimizations 
+  
+* some instructions (div/mul/shl/shr/asr) use implicit registers we handle these by adding 
+  move instructions with fixed CpuRegs during legalization, e.g.
+  ```
+  div a b c 
+  ```
+  becomes
+  ```
+  mov RAX@rax b
+  div RDX@rdx RAX@rax c  # hack: should really be div RAX@rax RAX@rax c 
+  mov a RAX
+  ```  
+  the hack is working in conjunction with instruction selection.
+  
+* Spilled registers are handled directly by instruction selection so no rewrite as in the
+  a64/a64 backends is necessary
 
+* Instruction selection is handling all data kinds (DK) so no widening step as in the a32/a64 
+  backends is necessary. On the flip-side, the instruction selection tables are rather large. 

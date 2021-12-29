@@ -187,9 +187,9 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.fun.name)
+                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_X86_64.ABS64, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_X86_64.ABS64, d.size, d.mem.name, d.offset)
             else:
                 assert False
         elfunit.MemEnd()
@@ -210,7 +210,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             assembler.AddIns(elfunit, tmpl.MakeInsFromTmpl(None, ctx))
 
         for bbl in fun.bbls:
-            elfunit.AddLabel(bbl.name, 4, assembler.NOP_BYTES)
+            elfunit.AddLabel(bbl.name, 1, assembler.NOP_BYTES)
             for ins in bbl.inss:
                 if ins.opcode is o.NOP1:
                     isel_tab.HandlePseudoNop1(ins, ctx)
@@ -262,8 +262,8 @@ if __name__ == "__main__":
             LegalizeAll(unit, opt_stats, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
-            armunit = EmitUnitAsBinary(unit, args.add_startup_code)
-            exe = assembler.Assemble(armunit, True)
+            x64unit = EmitUnitAsBinary(unit, args.add_startup_code)
+            exe = assembler.Assemble(x64unit, True)
             exe.save(open(args.output, "wb"))
             os.chmod(args.output, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)
             return

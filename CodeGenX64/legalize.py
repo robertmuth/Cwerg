@@ -98,8 +98,6 @@ def NeedsAABFromRewrite(ins: ir.Ins):
     ops = ins.operands
     if opc.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
         return False
-    if ops[0] == ops[1]:
-        return False
     if opc in {o.DIV, o.REM} and ops[0].kind.flavor != o.DK_FLAVOR_F:
         return False
     if opc in {o.LEA_MEM, o.LEA_STK}:
@@ -112,11 +110,16 @@ def _InsRewriteIntoAABForm(
     ops = ins.operands
     if not NeedsAABFromRewrite(ins):
         return None
-    if ins.operands[0] == ins.operands[2] and o.OA.COMMUTATIVE in ins.opcode.attributes:
+    if ops[0] == ops[1]:
+        ops[0].flags |= ir.REG_FLAG.TWO_ADDRESS
+        return None
+    if ops[0] == ops[2] and o.OA.COMMUTATIVE in ins.opcode.attributes:
         ir.InsSwapOps(ins, 1, 2)
+        ops[0].flags |= ir.REG_FLAG.TWO_ADDRESS
         return [ins]
     else:
         reg = fun.GetScratchReg(ins.operands[0].kind, "aab", False)
+        reg.flags |= ir.REG_FLAG.TWO_ADDRESS
         return [ir.Ins(o.MOV, [reg, ops[1]]),
                 ir.Ins(ins.opcode, [reg, reg, ops[2]]),
                 ir.Ins(o.MOV, [ops[0], reg])]
@@ -199,7 +202,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     _FunRewriteDivRem(fun)
 
     _FunRewriteIntoAABForm(fun, unit)
-    # DumpFun("end of legal", fun)
+    # if fun.name == "fibonacci": DumpFun("end of legal", fun)
     # if fun.name == "write_s": exit(1)
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
@@ -427,6 +430,13 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
         flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
 
+    # Recompute Everything (TODO: make this more selective to reduce work)
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    # DumpRegStats(fun, local_reg_stats)
+
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
                                        _opt_stats: Dict[str, int], fout):
@@ -447,9 +457,9 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # TODO: add a checker so we at least detect this
     # Alternatives: reserve reg (maybe only for functions that need it)
     isel_tab.FunAddNop1ForCodeSel(fun)
-
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
+    # if fun.name == "fibonacci": DumpFun("after local alloc", fun)
     # DumpFun("after local alloc", fun)
     # cleanup
     _FunMoveEliminationCpu(fun)
