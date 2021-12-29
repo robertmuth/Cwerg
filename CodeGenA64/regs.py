@@ -335,6 +335,9 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
     if spilled_regs:
         # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
+        # convert all register spills to loads/stores from/to the stack
+        # this introduces new temporaries so we run another register allocation pass
+        # afterwards
         reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)

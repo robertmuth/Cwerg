@@ -33,7 +33,7 @@ tests: tests_py tests_c
 	@echo "[OK CodeGenA64]"
 
 
-tests_py: $(TEST_EXES)  $(DIR)/queens.64.asm.s.exe $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test 
+tests_py: $(TEST_EXES) $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test
 
 tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe $(TEST_C_EXES) $(DIR)/nanojpeg_c $(DIR)/codegen_parity
 
@@ -47,12 +47,6 @@ $(DIR)/%.asm.exe: ../TestData/%.asm
 $(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
 	@echo "[integration $@]"
 	$(PYPY) ./codegen.py -mode binary $<  $@
-	${QEMU} $@ > $@.actual.out
-	diff $@.actual.out $<.golden
-
-$(DIR)/queens.64.asm.s.exe: ../TestData/queens.64.asm
-	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@
 	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
