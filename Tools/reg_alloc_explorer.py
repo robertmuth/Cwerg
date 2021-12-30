@@ -28,7 +28,7 @@ import http.server
 
 from Base import ir
 from Base import reg_alloc
-from Base.liveness import LiveRange, LiveRangeFlag, BEFORE_BBL, AFTER_BBL
+from Base import liveness
 from Base import opcode_tab as o
 
 # NOTE NOTE NOTE: you must change this to reflect the  backend where he liveranges originate
@@ -205,57 +205,6 @@ APP_HTML = f"""<!DOCTYPE html>
 """
 
 
-def FindDefRange(reg_name: str, def_pos: int, ranges: List[LiveRange]):
-    for lr in ranges:
-        if lr.reg.name == reg_name and lr.def_pos == def_pos:
-            return lr
-    assert False
-
-
-def ParseLiveRanges(fin, cpu_reg_map: Dict[str, ir.CpuReg]) -> List[LiveRange]:
-    out: List[LiveRange] = []
-    for line in fin:
-        token = line.split()
-        if not token or token[0] == "#":
-            continue
-        assert token.pop(0) == "LR"
-        start_str = token.pop(0)
-        start = BEFORE_BBL if start_str == "BB" else int(start_str)
-        assert token.pop(0) == "-"
-        end_str = token.pop(0)
-        end = AFTER_BBL if end_str == "AB" else int(end_str)
-        flags = 0
-        lr = LiveRange(start, end, ir.REG_INVALID, 0)
-        out.append(lr)
-        while token:
-            t = token.pop(0)
-            if t == "PRE_ALLOC":
-                lr.flags |= LiveRangeFlag.PRE_ALLOC
-            elif t == "LAC":
-                lr.flags |= LiveRangeFlag.LAC
-            elif t.startswith("def:"):
-                reg_str = t[4:]
-                cpu_reg_str = ""
-                reg_name, kind_str = reg_str.split(":")
-                if "@" in kind_str:
-                    kind_str, cpu_reg_str = kind_str.split("@")
-                lr.reg = ir.Reg(reg_name, o.DK[kind_str])
-                if cpu_reg_str:
-                    lr.reg.cpu_reg = cpu_reg_map[cpu_reg_str]
-                    lr.cpu_reg = lr.reg.cpu_reg
-                break
-            elif t.startswith("uses:"):
-                reg_str = t[5:]
-                uses = [u.split(":") for u in reg_str.split(",")]
-                for reg_name, def_pos_str in uses:
-                    lr.uses.append(FindDefRange(reg_name, int(def_pos_str), out))
-            elif t.startswith("#"):
-                break
-            else:
-                assert False, f"parse error [{t}] {line}"
-    return out
-
-
 POOL: Optional[regs.CpuRegPool] = None
 TRACES = []
 LIVE_RANGES = []
@@ -264,7 +213,7 @@ LIVE_RANGES = []
 def logger(lr: LiveRange, message: str):
     available = ""
     if not lr.is_use_lr():
-        lac = LiveRangeFlag.LAC in lr.flags
+        lac = liveness.LiveRangeFlag.LAC in lr.flags
         is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
         available = POOL.render_available(lac, is_gpr)
     TRACES.append((str(lr), message, available))
@@ -281,7 +230,7 @@ def GetData():
                            regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,  #
                            regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK)
     for lr in LIVE_RANGES:
-        if LiveRangeFlag.PRE_ALLOC in lr.flags:
+        if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags:
             POOL.add_reserved_range(lr)
         else:
             lr.cpu_reg = ir.CPU_REG_INVALID
@@ -290,7 +239,7 @@ def GetData():
 
     live_ranges = []
     for lr in LIVE_RANGES:
-        flags = [f.name for f in LiveRangeFlag if f in lr.flags]
+        flags = [f.name for f in liveness.LiveRangeFlag if f in lr.flags]
         if lr.uses:
             flags.append("USES")
             interval = f"{lr.def_pos}"
@@ -346,7 +295,7 @@ def main():
     parser.add_argument('input', type=str, help='input file')
     args = parser.parse_args()
 
-    LIVE_RANGES = ParseLiveRanges(open(args.input), regs.CPU_REGS_MAP)
+    LIVE_RANGES = liveness.ParseLiveRanges(open(args.input), regs.CPU_REGS_MAP)
     # print(f"read {len(LIVE_RANGES)} LiveRanges")
 
     http_server = http.server.HTTPServer(('', args.port), MyRequestHandler)

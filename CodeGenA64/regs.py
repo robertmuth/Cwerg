@@ -206,7 +206,7 @@ class CpuRegPool(reg_alloc.RegPool):
         is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
         available = self.get_available(lac, is_gpr)
         # print(f"GET {lr} {self}  avail:{available:x}")
-        if lr.reg.kind in {o.DK.F32, o.DK.F64}:
+        if not is_gpr:
             for n in range(len(_FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
@@ -313,7 +313,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     """
     # print ("\n".join(serialize.BblRenderToAsm(bbl)))
 
-    live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+    live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
     live_ranges.sort()
     for lr in live_ranges:
         assert liveness.LiveRangeFlag.IGNORE not in lr.flags
@@ -340,7 +340,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
         # afterwards
         reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 
-        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
         live_ranges.sort()
         for lr in live_ranges:
             # since we are operating on a BBL we cannot change LiveRanges

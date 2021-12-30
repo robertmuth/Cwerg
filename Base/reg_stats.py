@@ -84,7 +84,7 @@ def FunComputeBblRegUsageStats(fun: ir.Fun,
     """
     pool = BblRegUsageStatsRegPool(reg_kind_map)
     for bbl in fun.bbls:
-        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
         live_ranges.sort()
         if TRACE_REG_ALLOC:
             print("@" * 60)

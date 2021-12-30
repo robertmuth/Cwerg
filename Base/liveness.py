@@ -253,7 +253,7 @@ class LiveRange:
                 (other.def_pos, other.last_use_pos))
 
     def __repr__(self):
-        def render_pos(pos):
+        def render_pos(pos) -> str:
             if pos == BEFORE_BBL: return "BB"
             if pos == AFTER_BBL: return "AB"
             if pos == NO_USE: return "NU"
@@ -277,16 +277,15 @@ class LiveRange:
         return f"LR {render_pos(self.def_pos)} - {render_pos(self.last_use_pos)}{flags_str}{extra_str}"
 
 
-def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses: bool) -> List[LiveRange]:
+def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[LiveRange]:
     """ LiveRanges are use to do register allocation
 
     Note: function call handling is quite adhoc and likely has bugs.
     The output contains the following special LiveRanges
     * LRs without a last_use if the register is used outside the Bbl (based on live_out)
     * LRs without a def of the register is defined outside the Bbl
-    * [if emit_uses] use-def LRs contain the LRs of all the used regs in the instruction at point p.
+    * use-def LRs contain the LRs of all the used regs in the instruction at point p.
                      (def=p last_use=p,  reg=REG_INVALID)
-    emit_uses is required for reg_alloc.RegisterAssignerLinearScanFancy()
     """
     out = []
     bbl_size = len(bbl.inss)
@@ -360,11 +359,67 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg], emit_uses:
                     lr = initialize_lr(pos, reg)
                 if lr not in uses:
                     uses.append(lr)
-        if emit_uses and uses:
+        if uses:
             # Note "pos, pos" ensure that this record will come before
             #       a regular record after sorting
             out.append(LiveRange(pos, pos, ir.REG_INVALID, 0, uses))
 
     for lr in list(last_use.values()):
         finalize_lr(lr, BEFORE_BBL)
+    return out
+
+
+def FindDefRange(reg_name: str, def_pos: int, ranges: List[LiveRange]):
+    for lr in ranges:
+        if lr.reg.name == reg_name and lr.def_pos == def_pos:
+            return lr
+    assert False
+
+
+def _ParsePos(s: str) -> int:
+    if s == "BB": return  BEFORE_BBL
+    elif s == "AB": return AFTER_BBL
+    elif s == "NU": return NO_USE
+    else: return int(s)
+
+
+def ParseLiveRanges(fin, cpu_reg_map: Dict[str, ir.CpuReg]) -> List[LiveRange]:
+    out: List[LiveRange] = []
+    for line in fin:
+        token = line.split()
+        if not token or token[0] == "#":
+            continue
+        assert token.pop(0) == "LR"
+        start = _ParsePos(token.pop(0))
+        assert token.pop(0) == "-"
+        end = _ParsePos(token.pop(0))
+        flags = 0
+        lr = LiveRange(start, end, ir.REG_INVALID, 0)
+        out.append(lr)
+        while token:
+            t = token.pop(0)
+            if t == "PRE_ALLOC":
+                lr.flags |= LiveRangeFlag.PRE_ALLOC
+            elif t == "LAC":
+                lr.flags |= LiveRangeFlag.LAC
+            elif t.startswith("def:"):
+                reg_str = t[4:]
+                cpu_reg_str = ""
+                reg_name, kind_str = reg_str.split(":")
+                if "@" in kind_str:
+                    kind_str, cpu_reg_str = kind_str.split("@")
+                lr.reg = ir.Reg(reg_name, o.DK[kind_str])
+                if cpu_reg_str:
+                    lr.reg.cpu_reg = cpu_reg_map[cpu_reg_str]
+                    lr.cpu_reg = lr.reg.cpu_reg
+                break
+            elif t.startswith("uses:"):
+                reg_str = t[5:]
+                uses = [u.split(":") for u in reg_str.split(",")]
+                for reg_name, def_pos_str in uses:
+                    lr.uses.append(FindDefRange(reg_name, int(def_pos_str), out))
+            elif t.startswith("#"):
+                break
+            else:
+                assert False, f"parse error [{t}] {line}"
     return out

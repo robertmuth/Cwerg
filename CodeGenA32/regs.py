@@ -361,7 +361,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     """
     # print ("\n".join(serialize.BblRenderToAsm(bbl)))
 
-    live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+    live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
     live_ranges.sort()
     for lr in live_ranges:
         assert liveness.LiveRangeFlag.IGNORE not in lr.flags
@@ -390,7 +390,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
         # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
         reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 
-        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out, True)
+        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
         live_ranges.sort()
         for lr in live_ranges:
             # since we are operating on a BBL we cannot change LiveRanges
