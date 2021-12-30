@@ -1,5 +1,7 @@
 import collections
 import dataclasses
+import sys
+
 from typing import List, Dict, Optional, Tuple
 
 from Base import canonicalize
@@ -368,7 +370,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
 
-    # Note: REG_KIND_MAP_ARM maps all non-float to registers to S64
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
                                                            regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
@@ -386,18 +387,20 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.GPR_FAMILY, True), 0),
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     if debug:
-        print(f"@@ GPR NEEDED {needed_gpr.global_lac} {needed_gpr.global_not_lac} "
-              f"{needed_gpr.local_lac} {needed_gpr.local_not_lac}", file=debug)
-
+        print(f"@@ GPR NEEDED global lac={needed_gpr.global_lac} !lac={needed_gpr.global_not_lac}",  file=debug)
+        print(f"@@ GPR NEEDED local  lac={needed_gpr.local_lac} !lac={needed_gpr.local_not_lac}", file=debug)
+        print(f"@@ GPR prealloc={pre_allocated_mask_gpr:x}", file=debug)
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
         needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
                     regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
     if debug:
-        print(f"@@ GPR POOL {gpr_global_lac:x} {gpr_global_not_lac:x}", file=debug)
+        print(f"@@ GPR POOL global lac={gpr_global_lac:x} !lac={gpr_global_not_lac:x}", file=debug)
 
+    # assign global lac
     regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
 
+    # assigned global not-lac
     regs.AssignCpuRegOrMarkForSpilling(
         global_reg_stats[(regs.GPR_FAMILY, False)],
         gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
@@ -436,6 +439,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
     # DumpRegStats(fun, local_reg_stats)
+    #DumpFun("after global alloc", fun)
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,

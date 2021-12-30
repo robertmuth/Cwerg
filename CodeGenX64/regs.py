@@ -2,6 +2,7 @@ from Base import ir
 from Base import opcode_tab as o
 from Base import reg_alloc
 from Base import liveness
+from Base import serialize
 
 import enum
 import dataclasses
@@ -56,9 +57,11 @@ GPR_RESERVED_MASK = 0x0011  # rax/sp is not available for allocation
 GPR_REGS_MASK = 0xffee
 GPR_LAC_REGS_MASK = 0xf028  # rbx, rbp, r12-r15
 
-FLT_RESERVED_MASK = 0x0001  # xmm9 is not available for allocation
+FLT_RESERVED_MASK = 0x0001  # xmm0 is not available for allocation
 FLT_REGS_MASK = 0xffff
 FLT_LAC_REGS_MASK = 0xff00  # xmm8 - xmm15
+
+REGS_RESERVED = {_GPR_REGS[0], _FLT_REGS[0]}
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR_REGS,
@@ -213,20 +216,13 @@ class CpuRegPool(reg_alloc.RegPool):
             assert cpu_reg.kind == CpuRegKind.FLT
             self._flt_reserved[cpu_reg.no].add(lr)
 
-    def backtrack_reset(self, cpu_reg: ir.CpuReg):
-        self.give_back_available_reg(cpu_reg)
-        if cpu_reg.kind == CpuRegKind.GPR:
-            self._gpr_reserved[cpu_reg.no].current = 0
-        else:
-            assert cpu_reg.kind == CpuRegKind.FLT
-            self._flt_reserved[cpu_reg.no].current = 0
-
     def get_available_reg(self, lr: reg_alloc.LiveRange) -> ir.CpuReg:
         lac = liveness.LiveRangeFlag.LAC in lr.flags
         is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
         available = self.get_available(lac, is_gpr)
+
         # print(f"GET {lr} {self}  avail:{available:x}")
-        if lr.reg.kind in {o.DK.F32, o.DK.F64}:
+        if not  is_gpr:
             for n in range(len(_FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
@@ -252,6 +248,8 @@ class CpuRegPool(reg_alloc.RegPool):
         assert False, f"in {self._fun.name}:{self._bbl.name} no reg available for {lr} in {self}"
 
     def give_back_available_reg(self, cpu_reg: ir.CpuReg):
+        if cpu_reg in REGS_RESERVED:
+            return
         reg_mask = 1 << cpu_reg.no
         if cpu_reg.kind == CpuRegKind.FLT:
             is_gpr = False
@@ -308,11 +306,11 @@ def _RunLinearScan(bbl: ir.Bbl, fun: ir.Fun, live_ranges: List[liveness.LiveRang
         n[0] += 1
         print(m)
 
-    reg_alloc.RegisterAssignerLinearScanFancy(live_ranges, pool, None)
+    reg_alloc.RegisterAssignerLinearScan(live_ranges, pool, None)
 
 
-def _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges) -> List[ir.Reg]:
-    out: List[ir.Reg] = []
+def _AssignAllocatedRegsAndMarkSpilledRegs(live_ranges) -> int:
+    spill_count = 0
     for lr in live_ranges:
         if liveness.LiveRangeFlag.PRE_ALLOC in lr.flags:
             continue
@@ -320,10 +318,18 @@ def _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges) -> List[ir.Reg]:
             continue
         assert lr.cpu_reg != ir.CPU_REG_INVALID
         if lr.cpu_reg is ir.CPU_REG_SPILL:
-            out.append(lr.reg)
+            lr.reg.cpu_reg = ir.StackSlot(0)
+            spill_count += 1
         else:
             lr.reg.cpu_reg = lr.cpu_reg
-    return out
+    return spill_count
+
+
+def _DumpBblWithLineNumbers(bbl):
+    lines = serialize.BblRenderToAsm(bbl)
+    print(lines.pop(0))
+    for n, l in enumerate(lines):
+        print(f"{n:2d}", l)
 
 
 def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
@@ -331,7 +337,9 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
 
     Note, this runs after global register allocation has occurred
     """
-    # print ("\n".join(serialize.BblRenderToAsm(bbl)))
+    VERBOSE = False
+    if VERBOSE:
+        _DumpBblWithLineNumbers(bbl)
 
     live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
     live_ranges.sort()
@@ -344,7 +352,8 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
         if lr.reg.HasCpuReg():
             lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
             lr.cpu_reg = lr.reg.cpu_reg
-        # print (repr(lr))
+        if VERBOSE:
+          print (repr(lr))
 
     # First reg-alloc path to determine if spilling is needed.
     # Note, global and fixed registers have already been assigned and will
@@ -352,29 +361,11 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     _RunLinearScan(bbl, fun, live_ranges, True,
                    GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
                    FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
-    spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
-    if spilled_regs:
-        # print (f"@@ adjusted spill count: {len(spilled_regs)} {spilled_regs}")
-        reg_alloc.BblSpillRegs(bbl, fun, spilled_regs, o.DK.U32, "$spill")
 
-        live_ranges = liveness.BblGetLiveRanges(bbl, fun, bbl.live_out)
-        live_ranges.sort()
+    if VERBOSE:
+        print ("@@@ AFTER")
         for lr in live_ranges:
-            # since we are operating on a BBL we cannot change LiveRanges
-            # extending beyond the BBL.
-            # reg_kinds_fixed (e.g. Machine) regs are assumed to be
-            # pre-allocated and will not change
-            if lr.reg.HasCpuReg():
-                lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
-                lr.cpu_reg = lr.reg.cpu_reg
-        _RunLinearScan(bbl, fun, live_ranges, False,
-                       GPR_REGS_MASK & GPR_LAC_REGS_MASK, GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
-                       FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
-        spilled_regs = _AssignAllocatedRegsAndReturnSpilledRegs(live_ranges)
-        assert not spilled_regs
-    return 0
-    # assert False
-
+            print (repr(lr))
     # for reg
     #     print(f"SPILL: {spilled_regs}")
     #     count += len(spilled_regs)
@@ -383,6 +374,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
     #
     # # print ("\n".join(serialize.BblRenderToAsm(bbl)))
     # return count
+    return _AssignAllocatedRegsAndMarkSpilledRegs(live_ranges)
 
 
 def FunLocalRegAlloc(fun):
@@ -406,6 +398,8 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
         for ins in bbl.inss:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
+                    if reg.IsSpilled():
+                        continue
                     assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
                     if reg.cpu_reg.kind == CpuRegKind.GPR:
                         gpr |= 1 << reg.cpu_reg.no
