@@ -75,8 +75,6 @@ def ProcessObjdumpFile(fin):
             continue
 
         data = [int(d, 16) for d in data_str.split()]
-        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
-            data[0], data[1] = data[1], data[0]
         ins = x64.Disassemble(data)
         if not ins:
             print(f"BAD {line}", end="")

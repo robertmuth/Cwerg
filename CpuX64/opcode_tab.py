@@ -12,10 +12,10 @@ Enough for code generation.
 import collections
 import dataclasses
 import enum
-import re
-import json
 import itertools
+import json
 import os
+import re
 from typing import List, Dict, Tuple, Optional
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
@@ -736,6 +736,9 @@ class Opcode:
             assert False
 
     def DisassembleOperands(self, data: List) -> List[int]:
+        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
+            data = data[:]
+            data[0], data[1] = data[1], data[0]
         out = []
         rex = 0
         if (data[0] & 0xf0) == 0x40:
@@ -870,11 +873,16 @@ class Opcode:
                 assert False, f"{o}"
 
         if rex:
+            if out[0] in {0xf2, 0xf3, 0x66}:
+                return [out[0], rex | 0x40] + out[1:]
             return [rex | 0x40] + out
         return out
 
     @classmethod
     def FindOpcode(cls, data: List) -> Optional["Opcode"]:
+        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
+            data = data[:]
+            data[0], data[1] = data[1], data[0]
         rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
         if (data[0] & 0xf0) == 0x40:
             data = data[1:]
