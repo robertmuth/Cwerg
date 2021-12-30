@@ -460,6 +460,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # which will cause incorrect code.
     # TODO: add a checker so we at least detect this
     # Alternatives: reserve reg (maybe only for functions that need it)
+    # TODO: make sure that nop1 regs never get spilled
     isel_tab.FunAddNop1ForCodeSel(fun)
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
