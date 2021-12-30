@@ -486,7 +486,7 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     if opc is o.ST:
         # needs scratch when multiple operands were spilled
-        scratch = fun.GetScratchReg(o.DK.C64, "st", False)
+        scratch = fun.GetScratchReg(o.DK.S64, "st", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
