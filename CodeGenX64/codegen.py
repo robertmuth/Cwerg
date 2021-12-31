@@ -187,9 +187,9 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_X86_64.ABS64, d.size, d.fun.name)
+                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_X86_64.X_64, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_X86_64.ABS64, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_X86_64.X_64, d.size, d.mem.name, d.offset)
             else:
                 assert False
         elfunit.MemEnd()
@@ -202,7 +202,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             elfunit.MemStart(jtb.name, 8, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                elfunit.AddBblAddr(elf_enum.RELOC_TYPE_AARCH64.ABS64, 8, bbl.name)
+                elfunit.AddBblAddr(enum_tab.RELOC_TYPE_X86_64.X_64, 8, bbl.name)
             elfunit.MemEnd()
         ctx = regs.FunComputeEmitContext(fun)
 

@@ -5,7 +5,7 @@ DIR=build
 QEMU=
 
 $(info $(shell mkdir -p $(DIR)))
-TESTS = int_op.asm queens.64.asm fib.asm stack.asm pfannkuchen.64.asm
+TESTS = memaddr.64.asm stack.asm int_op.asm queens.64.asm fib.asm stack.asm pfannkuchen.64.asm
 
 TESTS2 = fp_op.asm \
         int_op.asm \

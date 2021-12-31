@@ -147,15 +147,21 @@ def _pc_offset(rel: elf.Reloc, sym_val: int) -> int:
     return sym_val - (rel.section.sh_addr + rel.r_offset)
 
 
+def _RelWidth(rel_type: int):
+    return 8 if rel_type == enum_tab.RELOC_TYPE_X86_64.X_64.value else 4
+
+
 def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
-
+    width = _RelWidth( rel.r_type)
     if rel.r_type == enum_tab.RELOC_TYPE_X86_64.PC32.value:
-        assert rel.r_offset + 4 <= len(sec_data)
+        assert rel.r_offset + width <= len(sec_data)
         new_data = _pc_offset(rel, sym_val)
         assert -(1 << 31) <= new_data < (1 << 31), f"out of range reloc {rel.symbol.name} {new_data}"
-        sec_data[rel.r_offset:rel.r_offset + 4] = new_data.to_bytes(4, "little", signed=True)
+        sec_data[rel.r_offset:rel.r_offset + width] = new_data.to_bytes(width, "little", signed=True)
+    elif rel.r_type == enum_tab.RELOC_TYPE_X86_64.X_64.value:
+        sec_data[rel.r_offset:rel.r_offset + width] = sym_val.to_bytes(width, "little")
     else:
         assert False, f"unknown kind reloc {rel}"
 
