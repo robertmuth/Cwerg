@@ -1058,10 +1058,10 @@ $export[$as] =
     ["adox"             , "X:~r32, ~r32/m32"                                , "RM"      , "F3 0F 38 F6 /r"               , "ADX              OF=X"],
     ["adox"             , "X:~r64, ~r64/m64"                                , "RM"      , "REX.W F3 0F 38 F6 /r"         , "ADX X64          OF=X"],
 
-    ["lzcnt"            , "w:r16, r16/m16"                                  , "RM"      , "66 F3 0F BD /r"               , "LZCNT            OF=U SF=U ZF=W AF=U PF=U CF=W"],
+    ["lzcnt"            , "w:r16, r16/m16"                                  , "RM"      , "F3 66 0F BD /r"               , "LZCNT            OF=U SF=U ZF=W AF=U PF=U CF=W"],
     ["lzcnt"            , "W:r32, r32/m32"                                  , "RM"      , "F3 0F BD /r"                  , "LZCNT            OF=U SF=U ZF=W AF=U PF=U CF=W"],
     ["lzcnt"            , "W:r64, r64/m64"                                  , "RM"      , "REX.W F3 0F BD /r"            , "LZCNT X64        OF=U SF=U ZF=W AF=U PF=U CF=W"],
-    ["popcnt"           , "w:r16, r16/m16"                                  , "RM"      , "66 F3 0F B8 /r"               , "POPCNT           OF=0 SF=0 ZF=W AF=0 PF=0 CF=0"],
+    ["popcnt"           , "w:r16, r16/m16"                                  , "RM"      , "F3 66 0F B8 /r"               , "POPCNT           OF=0 SF=0 ZF=W AF=0 PF=0 CF=0"],
     ["popcnt"           , "W:r32, r32/m32"                                  , "RM"      , "F3 0F B8 /r"                  , "POPCNT           OF=0 SF=0 ZF=W AF=0 PF=0 CF=0"],
     ["popcnt"           , "W:r64, r64/m64"                                  , "RM"      , "REX.W F3 0F B8 /r"            , "POPCNT X64       OF=0 SF=0 ZF=W AF=0 PF=0 CF=0"],
 
@@ -1091,7 +1091,7 @@ $export[$as] =
     ["shlx"             , "W:r64, r64/m64, r64"                             , "RMV"     , "VEX.LZ.66.0F38.W1 F7 /r"      , "BMI2 X64"],
     ["shrx"             , "W:r32, r32/m32, r32"                             , "RMV"     , "VEX.LZ.F2.0F38.W0 F7 /r"      , "BMI2"],
     ["shrx"             , "W:r64, r64/m64, r64"                             , "RMV"     , "VEX.LZ.F2.0F38.W1 F7 /r"      , "BMI2 X64"],
-    ["tzcnt"            , "w:r16, r16/m16"                                  , "RM"      , "66 F3 0F BC /r"               , "BMI              OF=U SF=U ZF=W AF=U PF=U CF=W"],
+    ["tzcnt"            , "w:r16, r16/m16"                                  , "RM"      , "F3 66 0F BC /r"               , "BMI              OF=U SF=U ZF=W AF=U PF=U CF=W"],
     ["tzcnt"            , "W:r32, r32/m32"                                  , "RM"      , "F3 0F BC /r"                  , "BMI              OF=U SF=U ZF=W AF=U PF=U CF=W"],
     ["tzcnt"            , "W:r64, r64/m64"                                  , "RM"      , "REX.W F3 0F BC /r"            , "BMI X64          OF=U SF=U ZF=W AF=U PF=U CF=W"],
 
@@ -1115,7 +1115,7 @@ $export[$as] =
     ["t1mskc"           , "W:r64, r64/m64"                                  , "VM"      , "XOP.LZ.M09.W1 01 /7"          , "TBM X64"],
 
     ["crc32"            , "X:r32, r8/m8"                                    , "RM"      , "F2 0F 38 F0 /r"               , "SSE4_2"],
-    ["crc32"            , "X:r32, r16/m16"                                  , "RM"      , "66 F2 0F 38 F1 /r"            , "SSE4_2"],
+    ["crc32"            , "X:r32, r16/m16"                                  , "RM"      , "F2 66 0F 38 F1 /r"            , "SSE4_2"],
     ["crc32"            , "X:r32, r32/m32"                                  , "RM"      , "F2 0F 38 F1 /r"               , "SSE4_2"],
     ["crc32"            , "X:r64, r8/m8"                                    , "RM"      , "REX.W F2 0F 38 F0 /r"         , "SSE4_2 X64"],
     ["crc32"            , "X:r64, r64/m64"                                  , "RM"      , "REX.W F2 0F 38 F1 /r"         , "SSE4_2 X64"],

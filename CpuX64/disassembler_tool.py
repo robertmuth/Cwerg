@@ -23,7 +23,7 @@ def disass(data):
         print(f"    {f:35s} {o_str:10} (0x{o:x})")
     print()
     data2 = x64.Assemble(ins)
-    assert data == data2
+    assert data == data2, f"{data} vs {data2}"
     ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)
     assert tuple(ins.operands) == tuple(
         ins2.operands), f"{ins.operands} vs {ins2.operands}"

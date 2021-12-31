@@ -414,58 +414,61 @@ OK_ADDR_REG = {
 }
 
 
+def _FP(b66, bf2, bf3, b0f, b48, d):
+    return (b66 << 12) | (bf2 << 11) | (bf3 << 10) | (b0f << 9) | (b48 << 8) | d
+
+
 def FingerPrintRawInstructions(data) -> int:
-    fp = []
-    i = 0
-    if (data[i] & 0xf0) == 0x40:
-        if (data[i] & 0xf8) == 0x48:
-            fp.append(0x48)
-        i += 1
-    if data[i] == 0x66:
-        fp.append(data[i])
-        i += 1
-    if data[i] == 0xf2 or data[i] == 0xf3:
-        fp.append(data[i])
-        i += 1
-    if data[i] == 0x0f:
-        fp.append(data[i])
-        i += 1
-    fp.append(data[i])
-    return int.from_bytes(fp, "little")
+    b48 = 0
+    bf2 = 0
+    bf3 = 0
+    b66 = 0
+    for n, d in enumerate(data):
+        if (d & 0xf0) == 0x40:
+            b48 = (d >> 3) & 1
+        elif d == 0x66:
+            b66 = 1
+        elif d == 0xf2:
+            bf2 = 1
+        elif d == 0xf3:
+            bf3 = 1
+        elif d == 0x0f:  # not a prefix
+            return _FP(b66, bf2, bf3, 1, b48, data[n + 1])
+        else:
+            return _FP(b66, bf2, bf3, 0, b48, d)
+    assert False
 
 
 def FingerPrintOpcode(opc: "Opcode") -> List[int]:
-    fp = []
-    data = opc.data
-    mask = opc.mask
-    i = 0
-    if opc.rexw:
-        fp.append(0x48)
-    if data[i] == 0x66:
-        fp.append(0x66)
-        assert mask[i] == 0xff
-        i += 1
-    if data[i] == 0xf2 or data[i] == 0xf3:
-        fp.append(data[i])
-        assert mask[i] == 0xff
-        i += 1
-    if data[i] == 0x0f:
-        fp.append(data[i])
-        assert mask[i] == 0xff
-        i += 1
+    b48 = 1 if opc.rexw else 0
+    bf2 = 0
+    bf3 = 0
+    b66 = 0
 
-    if mask[i] == 0xff:
-        fp.append(data[i])
-        return [int.from_bytes(fp, "little")]
-    else:
-        assert mask[i] == 0xf8 and i == opc.byte_with_reg_pos, f"{opc.name} {data} {mask} {fp}"
-        fp.append(0)
-        out = []
-        assert mask[i] == 0xf8
-        for r in range(8):
-            fp[-1] = data[i] + r
-            out.append(int.from_bytes(fp, "little"))
-        return out
+    def emit(d, m, b0f):
+        if m == 0xff:
+            return [_FP(b66, bf2, bf3, b0f, b48, d)]
+        else:
+            assert m == 0xf8
+            assert opc.byte_with_reg_pos >= 0
+            return [_FP(b66, bf2, bf3, b0f, b48, d | r) for r in range(8)]
+
+    for n, (d, m) in enumerate(zip(opc.data, opc.mask)):
+        if d == 0x66:
+            b66 = 1
+            assert m == 0xff
+        elif d == 0xf2:
+            bf2 = 1
+            assert m == 0xff
+        elif d == 0xf3:
+            bf3 = 1
+            assert m == 0xff
+        elif d == 0x0f:  # not a prefix
+            assert m == 0xff
+            return emit(opc.data[n + 1], opc.mask[n + 1], 1)
+        else:
+            return emit(d, m, 0)
+    assert False
 
 
 @enum.unique
@@ -736,14 +739,18 @@ class Opcode:
             assert False
 
     def DisassembleOperands(self, data: List) -> List[int]:
-        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
-            data = data[:]
-            data[0], data[1] = data[1], data[0]
-        out = []
         rex = 0
-        if (data[0] & 0xf0) == 0x40:
-            rex = data[0]
-            data = data[1:]
+        for n, b in enumerate(data):
+            if b in {0x66, 0xf2, 0xf3}:
+                continue
+            elif (b & 0xf0) == 0x40:
+                rex = b
+                data = data[:]
+                del data[n]
+            else:
+                break
+
+        out = []
 
         def GetRegBits(offset: int, data_bit_pos, rex_bit_pos: int) -> int:
             nonlocal rex
@@ -873,9 +880,13 @@ class Opcode:
                 assert False, f"{o}"
 
         if rex:
-            if out[0] in {0xf2, 0xf3, 0x66}:
-                return [out[0], rex | 0x40] + out[1:]
-            return [rex | 0x40] + out
+            pos = 0
+            for b in out:
+                if b in {0xf2, 0xf3, 0x66}:
+                    pos += 1
+                else:
+                    break
+            out.insert(pos, rex | 0x40)
         return out
 
     @classmethod
