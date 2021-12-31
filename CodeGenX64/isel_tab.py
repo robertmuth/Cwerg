@@ -33,9 +33,10 @@ class C(enum.Enum):
     UIMM16 = 10
     UIMM32 = 11
     UIMM64 = 12
-    REG_RDX = 13
-    REG_RAX = 14
-
+    # order important
+    REG_RAX = 13
+    REG_RCX = 14
+    REG_RDX = 15
 
 class F(enum.Enum):
     """Fixed params"""
@@ -269,6 +270,8 @@ class InsTmpl:
                 assert op is F.RAX
             elif field in {"dx", "edx", "rdx"}:
                 assert op is F.RDX
+            elif field in {"cl"}:
+                assert op is F.RCX
             else:
                 assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, {field}"
 
@@ -303,7 +306,7 @@ _ALLOWED_OPERAND_TYPES_REG = {
     o.DK.F32, o.DK.F64,
 }
 
-_ALLOWED_CURBS_REG = {C.REG, C.SP_REG, C.REG_RAX, C.REG_RDX}
+_ALLOWED_CURBS_REG = {C.REG, C.SP_REG, C.REG_RAX, C.REG_RCX, C.REG_RDX}
 _ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16, C.SIMM16, C.UIMM32, C.SIMM32, C.UIMM64, C.SIMM64}
 _ALLOWED_CURBS_REG_OR_CONST = _ALLOWED_CURBS_REG | _ALLOWED_CURBS_CONST
 
@@ -402,15 +405,10 @@ class Pattern:
                 elif op_curb is C.UIMM64:
                     if (1 << 64) <= op.value or op.value < 0:
                         return False
-            elif op_curb is C.REG_RDX:
+            elif op_curb in {C.REG_RAX, C.REG_RCX, C.REG_RDX}:
                 if not isinstance(op, ir.Reg):
                     return False
-                if op.cpu_reg.no != 2:
-                    return False
-            elif op_curb is C.REG_RAX:
-                if not isinstance(op, ir.Reg):
-                    return False
-                if op.cpu_reg.no != 0:
+                if op.cpu_reg.no != op_curb.value - C.REG_RAX.value:
                     return False
             else:
                 assert False, f"{op_curb}"
@@ -576,8 +574,6 @@ def InitAluInt():
                              [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
 
         for opc, x64_opc_s, x64_opc_u in [(o.SHL, "shl", "shl"), (o.SHR, "sar", "shr")]:
-            # TODO: add support for non-immediate variants
-            #
             x64_opc = x64_opc_u if kind1 in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
             Pattern(opc, [kind1] * 3,
                     [C.REG, C.REG, C.UIMM8],
@@ -586,22 +582,43 @@ def InitAluInt():
                     [C.SP_REG, C.SP_REG, C.UIMM8],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm8",
                              [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.num2])])
+            Pattern(opc, [kind1] * 3,
+                    [C.REG, C.REG, C.REG_RCX],
+                    [InsTmpl(f"{x64_opc}_{bw}_mr_cl", [P.reg01, F.RCX])])
+            Pattern(opc, [kind1] * 3,
+                    [C.SP_REG, C.SP_REG, C.REG_RCX],
+                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_cl",
+                             [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, F.RCX])])
+
+        for opc, x64_opc in [(o.CNTLZ, "lzcnt"), (o.CNTTZ, "tzcnt")]:
+            before = []
+            after = []
+            the_bw = bw
+            if the_bw == 8:
+                # a lot of pain to deal with the missing 8 bit variants
+                the_bw = 16
+                if opc is o.CNTTZ:
+                    before = [InsTmpl(f"or_16_mr_imm16", [P.reg1, 0xff00])]
+                else:
+                    before = [InsTmpl(f"and_16_mr_imm16", [P.reg1, 0x00ff])]
+                    after = [InsTmpl(f"sub_8_mr_imm8", [P.reg0, 8])]
+            Pattern(opc, [kind1] * 2,
+                    [C.REG, C.REG],
+                    before + [InsTmpl(f"{x64_opc}_{the_bw}_r_mr", [P.reg0, P.reg1])] + after)
 
     # TODO: handle 8 bit multiply, maybe support some immediate variants
     for kind1 in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind1.bitwidth()
         Pattern(o.MUL, [kind1] * 3,
                 [C.REG, C.REG, C.REG],
-                [InsTmpl(f"imul_{bw}_r_mr",
-                         [P.reg01, P.reg2])])
+                [InsTmpl(f"imul_{bw}_r_mr", [P.reg01, P.reg2])])
         # Pattern(o.MUL, [kind1] * 3,
         #        [C.SP_REG, C.SP_REG, C.REG],
         #        [InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
         #                 [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.reg2])])
         Pattern(o.MUL, [kind1] * 3,
                 [C.REG, C.REG, C.SP_REG],
-                [InsTmpl(f"imul_{bw}_r_mbis32",
-                         [P.reg01, F.RSP, F.NO_INDEX, F.SCALE1, P.spill2])])
+                [InsTmpl(f"imul_{bw}_r_mbis32", [P.reg01, F.RSP, F.NO_INDEX, F.SCALE1, P.spill2])])
         # Pattern(o.MUL, [kind1] * 3,
         #        [C.SP_REG, C.SP_REG, C.SP_REG],
         #        [InsTmpl(f"mov_{bw}_r_mbis32",

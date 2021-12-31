@@ -1,7 +1,5 @@
 import collections
 import dataclasses
-import sys
-
 from typing import List, Dict, Optional, Tuple
 
 from Base import canonicalize
@@ -36,7 +34,7 @@ _SUPPORTED_IN_ALL_WIDTHS = {
 def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
     if not isinstance(op, ir.Const):
         return False
-    if opcode in {o.DIV, o.REM, o.MUL}:
+    if opcode in {o.DIV, o.REM, o.MUL, o.CNTTZ, o.CNTLZ}:
         return True
     if pos == 2 and opcode in {o.ST, o.ST_STK, o.ST_MEM}:
         return True
@@ -70,7 +68,17 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
 
 
-def _InsRewriteDivRem(
+_SHIFT_MASK = {
+    o.DK.S8: ir.Const(o.DK.S8, 7),
+    o.DK.U8: ir.Const(o.DK.U8, 7),
+    o.DK.S16: ir.Const(o.DK.S16, 15),
+    o.DK.U16: ir.Const(o.DK.U16, 15),
+    o.DK.S32: ir.Const(o.DK.S32, 31),
+    o.DK.U32: ir.Const(o.DK.U32, 31),
+}
+
+
+def _InsRewriteDivRemShifts(
         ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     inss = []
     opc = ins.opcode
@@ -87,12 +95,21 @@ def _InsRewriteDivRem(
         return [ir.Ins(o.MOV, [rax, ops[1]]),
                 ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rdx])]
+    elif opc in {o.SHR, o.SHL} and isinstance(ops[2], ir.Reg):
+        rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
+        mov = ir.Ins(o.MOV, [rcx, ops[2]])
+        ops[2] = rcx
+        mask = _SHIFT_MASK.get(ops[0].kind)
+        if mask:
+            return [mov, ir.Ins(o.AND, [rcx, rcx, mask]), ins]
+        else:
+            return [mov, ins]
     else:
         return None
 
 
 def _FunRewriteDivRem(fun: ir.Fun) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteDivRem)
+    return ir.FunGenericRewrite(fun, _InsRewriteDivRemShifts)
 
 
 def NeedsAABFromRewrite(ins: ir.Ins):
@@ -387,12 +404,12 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.GPR_FAMILY, True), 0),
                             local_reg_stats.get((regs.GPR_FAMILY, False), 0))
     if debug:
-        print(f"@@ GPR NEEDED global lac={needed_gpr.global_lac} !lac={needed_gpr.global_not_lac}",  file=debug)
+        print(f"@@ GPR NEEDED global lac={needed_gpr.global_lac} !lac={needed_gpr.global_not_lac}", file=debug)
         print(f"@@ GPR NEEDED local  lac={needed_gpr.local_lac} !lac={needed_gpr.local_not_lac}", file=debug)
         print(f"@@ GPR prealloc={pre_allocated_mask_gpr:x}", file=debug)
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
-                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
+        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
+                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK, pre_allocated_mask_gpr)
     if debug:
         print(f"@@ GPR POOL global lac={gpr_global_lac:x} !lac={gpr_global_not_lac:x}", file=debug)
 
@@ -439,7 +456,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
     # DumpRegStats(fun, local_reg_stats)
-    #DumpFun("after global alloc", fun)
+    # DumpFun("after global alloc", fun)
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,

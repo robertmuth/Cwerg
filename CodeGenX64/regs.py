@@ -57,11 +57,14 @@ GPR_RESERVED_MASK = 0x0011  # rax/sp is not available for allocation
 GPR_REGS_MASK = 0xffee
 GPR_LAC_REGS_MASK = 0xf028  # rbx, rbp, r12-r15
 
+GPR_REG_IMPLICIT_MASK = 0x0007  # rax/rcx/rdx must not be used for globals
 FLT_RESERVED_MASK = 0x0001  # xmm0 is not available for allocation
 FLT_REGS_MASK = 0xffff
 FLT_LAC_REGS_MASK = 0xff00  # xmm8 - xmm15
 
-REGS_RESERVED = {_GPR_REGS[0], _FLT_REGS[0]}
+REGS_RESERVED = {_GPR_REGS[0], _FLT_REGS[0]}  # we use these in the code generator
+
+
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR_REGS,
@@ -318,6 +321,7 @@ def _AssignAllocatedRegsAndMarkSpilledRegs(live_ranges) -> int:
             continue
         assert lr.cpu_reg != ir.CPU_REG_INVALID
         if lr.cpu_reg is ir.CPU_REG_SPILL:
+            assert False, f"TODO: compute spill reg slots"
             lr.reg.cpu_reg = ir.StackSlot(0)
             spill_count += 1
         else:
