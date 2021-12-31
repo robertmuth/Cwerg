@@ -139,11 +139,16 @@ def _adrp_offset(rel: elf.Reloc, sym_val: int) -> int:
     return (sym_val >> 12) - ((rel.section.sh_addr + rel.r_offset) >> 12)
 
 
+def _RelWidth(rel_type: int):
+    return 8 if rel_type == enum_tab.RELOC_TYPE_AARCH64.ABS64.value else 4
+
+
 def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
-    assert rel.r_offset + 4 <= len(sec_data)
-    old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
+    width = _RelWidth( rel.r_type)
+    assert rel.r_offset + width <= len(sec_data)
+    old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + width], "little")
 
     if rel.r_type == enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21.value:
         new_data = a64.Patch(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
@@ -162,7 +167,7 @@ def _ApplyRelocation(rel: elf.Reloc):
     else:
         assert False, f"unknown kind reloc {rel}"
 
-    sec_data[rel.r_offset:rel.r_offset + 4] = new_data.to_bytes(4, "little")
+    sec_data[rel.r_offset:rel.r_offset + width] = new_data.to_bytes(width, "little")
     # print(f"PATCH INS {rel.r_type} {rel.r_offset:x} {sym_val:x} {old_data:x} {new_data:x} {rel.symbol.name}")
 
 
