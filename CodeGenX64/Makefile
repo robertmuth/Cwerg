@@ -5,23 +5,16 @@ DIR=build
 QEMU=
 
 $(info $(shell mkdir -p $(DIR)))
-TESTS = memaddr.64.asm stack.asm int_op.asm queens.64.asm fib.asm stack.asm pfannkuchen.64.asm
+TESTS =  multiple_results.asm memaddr.64.asm stack.asm int_op.asm queens.64.asm fib.asm stack.asm pfannkuchen.64.asm
 
 TESTS2 = fp_op.asm \
-        int_op.asm \
         reg_torture_f32.asm \
         reg_torture.asm \
         cmp.asm \
-        fib.asm \
-        stack.asm \
-        multiple_results.asm \
         multiple_results_f32.asm \
         multiple_results_f64.asm \
-        memaddr.64.asm \
         switch.asm \
-        indirect.64.asm \
-        queens.64.asm \
-        pfannkuchen.64.asm
+        indirect.64.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe)
