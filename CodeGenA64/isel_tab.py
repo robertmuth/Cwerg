@@ -1061,6 +1061,7 @@ def InitMiscBra():
 
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
+    # We currently use very inefficient jmp tables (8 byte entries)
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
             [InsTmpl("adrp", [PARAM.scratch_gpr, PARAM.jtb1_prel_hi21]),
              InsTmpl("add_x_imm", [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.jtb1_lo12]),
