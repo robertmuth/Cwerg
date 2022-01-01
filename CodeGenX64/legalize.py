@@ -42,7 +42,7 @@ def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
         return op.value < -(1 << 31) or (1 << 31) <= op.value
     elif op.kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64}:
         return (1 << 31) <= op.value
-    elif op.kind is {o.DK.F64, o.DK.F32}:
+    elif op.kind in {o.DK.F64, o.DK.F32}:
         return True
     else:
         assert False, f"unknown op: {op}"

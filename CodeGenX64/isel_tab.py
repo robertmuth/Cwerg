@@ -38,6 +38,7 @@ class C(enum.Enum):
     REG_RCX = 14
     REG_RDX = 15
 
+
 class F(enum.Enum):
     """Fixed params"""
     NO_INDEX = 1
@@ -63,6 +64,22 @@ class F(enum.Enum):
     R13 = 23
     R14 = 24
     R15 = 25
+    XMM0 = 26
+    XMM1 = 27
+    XMM2 = 28
+    XMM3 = 29
+    XMM4 = 30
+    XMM5 = 31
+    XMM6 = 32
+    XMM7 = 33
+    XMM8 = 34
+    XMM9 = 35
+    XMM10 = 36
+    XMM11 = 37
+    XMM12 = 38
+    XMM13 = 39
+    XMM14 = 40
+    XMM15 = 41
 
 
 _F_TO_INT = {
@@ -91,11 +108,29 @@ _F_TO_INT = {
     F.R13: 13,
     F.R14: 14,
     F.R15: 15,
+    #
+    F.XMM0: 0,
+    F.XMM1: 1,
+    F.XMM2: 2,
+    F.XMM3: 3,
+    F.XMM4: 4,
+    F.XMM5: 5,
+    F.XMM6: 6,
+    F.XMM7: 7,
+    F.XMM8: 8,
+    F.XMM9: 9,
+    F.XMM10: 10,
+    F.XMM11: 11,
+    F.XMM12: 12,
+    F.XMM13: 13,
+    F.XMM14: 14,
+    F.XMM15: 15,
 }
 
 F_REGS = {F.RAX, F.RCX, F.RDX, F.RBX, F.RSP, F.RBP, F.RSI, F.RDI,
           F.R8, F.R9, F.R10, F.R11, F.R12, F.R13, F.R14, F.R15}
-
+F_XREGS = {F.XMM0, F.XMM1, F.XMM2, F.XMM3, F.XMM4, F.XMM5, F.XMM6, F.XMM7,
+           F.XMM8, F.XMM9, F.XMM10, F.XMM11, F.XMM12, F.XMM13, F.XMM14, F.XMM15}
 F_SCALE = {F.SCALE1, F.SCALE2, F.SCALE4, F.SCALE8}
 
 
@@ -246,7 +281,7 @@ class InsTmpl:
                 assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr} or op in F_REGS, f"{op}"
             elif field in {x64.OK.MODRM_XREG32, x64.OK.MODRM_XREG64,
                            x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
-                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt}, f"{op}"
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt} or op in F_XREGS, f"{op}"
             elif field is x64.OK.SIB_INDEX:
                 assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr}, f"{op}"
             elif field is x64.OK.SIB_BASE:
@@ -254,9 +289,9 @@ class InsTmpl:
             elif field is x64.OK.RIP_BASE:
                 assert op in {F.RIP}, f"{op}"
             elif field is x64.OK.OFFABS32:
-                assert op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2,
-                              P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel,
-                              P.stk1_offset2, P.stk0_offset1, P.stk1}, f"{op}"
+                assert isinstance(op, int) or op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2,
+                                                     P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel,
+                                                     P.stk1_offset2, P.stk0_offset1, P.stk1}, f"{op}"
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
             elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64, x64.OK.IMM64}:
@@ -452,7 +487,8 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
         out.append(InsTmpl("sub_64_mr_imm32", [F.RSP, stk_size]))
     offset = ctx.stk_size
     while flt_regs:
-        out.append(InsTmpl("movsd_mbis32_x", [F.RSP, F.NO_INDEX, 1, offset, flt_regs.pop(-1).no]))
+        out.append(InsTmpl("movsd_mbis32_x", [F.RSP, F.NO_INDEX, F.SCALE1, offset,
+                                              F(F.XMM0.value + flt_regs.pop(-1).no)]))
         offset += 8
     return out
 
@@ -724,6 +760,25 @@ def InitAluFlt():
                              [P.tmp_flt, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1]),
                      InsTmpl(f"movs{suffix}_mbis32_x",
                              [F.RSP, F.NO_INDEX, F.SCALE1, P.spill0, P.tmp_flt])])
+
+
+def InitMovFlt():
+    for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+        # mov dst_reg const does not need to be handled as we are rewriting those to loads from memory
+        # mov dst_reg src_reg
+        Pattern(o.MOV, [kind1] * 2,
+                [C.REG, C.REG],
+                [InsTmpl(f"movs{suffix}_x_mx", [P.reg0, P.reg1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.SP_REG, C.REG],
+                [InsTmpl(f"movs{suffix}_mbis32_x", [F.RSP, F.NO_INDEX, F.SCALE1, P.spill0, P.reg1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.REG, C.SP_REG],
+                [InsTmpl(f"movs{suffix}_x_mbis32", [P.reg0, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1])])
+        Pattern(o.MOV, [kind1] * 2,
+                [C.SP_REG, C.SP_REG],
+                [InsTmpl(f"movs{suffix}_x_mbis32", [P.tmp_flt, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1]),
+                 InsTmpl(f"movs{suffix}_mbis32_x", [F.RSP, F.NO_INDEX, F.SCALE1, P.spill0, P.tmp_flt])])
 
 
 # http://unixwiz.net/techtips/x86-jumps.html
@@ -1174,6 +1229,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 InitAluInt()
 InitAluFlt()
 InitMovInt()
+InitMovFlt()
 InitCondBraInt()
 InitLea()
 InitLoad()

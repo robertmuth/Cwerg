@@ -221,7 +221,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
 
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
-                    assert pattern, f"could not find pattern in {fun.name}\n{ins} {ins.operands}"
+                    assert pattern, f"could not find pattern in fun {fun.name}\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
                         assembler.AddIns(elfunit,
                                          tmpl.MakeInsFromTmpl(ins, ctx))
