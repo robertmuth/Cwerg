@@ -160,15 +160,18 @@ class Unit:
 def codegen(unit: ir.Unit) -> Unit:
     out = Unit()
     for mem in unit.mems:
-        arm_mem = _MemCodeGenText(mem, unit)
-        out.mems.append((mem.name, arm_mem))
-        out.mem_syms[mem.name] = arm_mem
+        assert mem.kind != o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
+            continue
+        cpu_mem = _MemCodeGenText(mem, unit)
+        out.mems.append((mem.name, cpu_mem))
+        out.mem_syms[mem.name] = cpu_mem
     for fun in unit.funs:
         if fun.kind is not o.FUN_KIND.NORMAL:
             continue
-        arm_fun = _FunCodeGenText(fun, unit)
-        out.funs.append((fun.name, arm_fun))
-        out.fun_syms[fun.name] = arm_fun
+        cpu_fun = _FunCodeGenText(fun, unit)
+        out.funs.append((fun.name, cpu_fun))
+        out.fun_syms[fun.name] = cpu_fun
     return out
 
 

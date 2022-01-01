@@ -161,6 +161,9 @@ class Unit:
 def codegen(unit: ir.Unit) -> Unit:
     out = Unit()
     for mem in unit.mems:
+        assert mem.kind != o.MEM_KIND.EXTERN
+        if mem.kind == o.MEM_KIND.BUILTIN:
+            continue
         arm_mem = _MemCodeGenText(mem, unit)
         out.mems.append((mem.name, arm_mem))
         out.mem_syms[mem.name] = arm_mem

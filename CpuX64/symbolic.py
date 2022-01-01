@@ -24,12 +24,26 @@ for reglist in x64.REG_NAMES.values():
         SYMBOLIC_OPERAND_TO_INT[reg] = i
 
 
+def _EmitReloc(ins: x64.Ins, pos: int) -> str:
+    if ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.PC32:
+        loc = "loc_" if  ins.is_local_sym else ""
+        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
+        return f"expr:{loc}pcrel32:{ins.reloc_symbol}{offset}"
+    elif ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.X_64:
+        loc = "loc_" if ins.is_local_sym else ""
+        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
+        return f"expr:{loc}add_abs64:{ins.reloc_symbol}{offset}"
+    else:
+        assert False
+
+
 def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
     out = []
     for n, o in enumerate(ins.opcode.fields):
-        if ins.has_reloc() and ins.reloc_pos == pos:
-            assert False
+        if ins.has_reloc() and ins.reloc_pos == n:
+            out.append(_EmitReloc(ins, n))
+            continue
         if isinstance(o, str):
             out.append(o)
             continue

@@ -8,12 +8,12 @@ Usage:
 
 # MODE = "opt"     # only run optimizer
 # MODE = "a32"   # run everything and generate a32 code
-MODE = "a64"  # run everything and generate a64 code
+# MODE = "a64"  # run everything and generate a64 code
+MODE = "x64"  # run everything and generate x64 code
 
 from typing import List, Dict, Tuple, Any
 import argparse
 import collections
-import copy
 import difflib
 import http.server
 import json
@@ -23,12 +23,17 @@ from Base import optimize
 from Base import serialize
 
 if MODE == "a32":
-    import CpuA32.opcode_tab as arm
+    print("Selected mode X64")
+    import CpuA32.opcode_tab as cpu
     from CodeGenA32 import codegen
 if MODE == "a64":
     print("Selected mode A64")
-    import CpuA64.opcode_tab as arm
+    import CpuA64.opcode_tab as cpu
     from CodeGenA64 import codegen
+if MODE == "x64":
+    print("Selected mode X64")
+    import CpuX64.opcode_tab as cpu
+    from CodeGenX64 import codegen
 
 # language=css
 STYLE = """
@@ -327,10 +332,12 @@ def RenderFun(fun: ir.Fun) -> List[str]:
     return out
 
 
-def RenderArmMem(mem: List[Any]) -> str:
+def RenderCpuMem(mem: List[Any]) -> str:
     out = []
-    for opc, args in mem:
-        a = ' '.join(args)
+    for entry in mem:
+        token = entry.split(None, 1)
+        opc = token[0]
+        a = "" if len(token) == 1 else token[1]
         if opc == ".mem":
             out.append(f"<span class=mem>{opc} {a}</span>")
         elif opc == ".endmem":
@@ -340,17 +347,19 @@ def RenderArmMem(mem: List[Any]) -> str:
     return out
 
 
-def RenderArmFun(mem: List[Any]) -> str:
+def RenderCpuFun(fun: List[Any]) -> str:
     out = []
-    for opc, args in mem:
-        a = ' '.join(args)
+    for entry in fun:
+        token = entry.split(None, 1)
+        opc = token[0]
+        a = "" if len(token) == 1 else token[1]
         if opc == ".fun":
             out.append(f"<span class=fun>{opc} {a}</span>")
         elif opc == ".bbl":
             out.append(f"<span class=bbl>{opc} {a}</span>")
         elif opc == ".endfun":
             out.append(f"<span class=fun>{opc} {a}</span>")
-        elif isinstance(opc, arm.Opcode):
+        elif isinstance(opc, cpu.Opcode):
             out.append(f"&nbsp; &nbsp;{opc.name}_{opc.variant} {a}")
         else:
             out.append(f"&nbsp; &nbsp;{opc} {a}")
@@ -385,9 +394,9 @@ def AddDiffInfo(out: List[Dict]):
         t["funs"] = new_funs
 
 
-def RenderCpu(name: str, mod: codegen.Unit):
-    funs = [(name, RenderArmFun(fun)) for name, fun in mod.funs]
-    mems = [(name, RenderArmMem(mem)) for name, mem in mod.mems]
+def RenderCpu(name: str, mod):
+    funs = [(name, RenderCpuFun(fun)) for name, fun in mod.funs]
+    mems = [(name, RenderCpuMem(mem)) for name, mem in mod.mems]
     return {"name": name, "funs": funs, "mems": mems}
 
 
@@ -485,8 +494,8 @@ def main():
         CleanUnit(unit)
         MODS.append(RenderCwerg("locals_allocated", unit))
 
-        arm_mod = codegen.codegen(unit)
-        MODS.append(RenderCpu("assembler", arm_mod))
+        cpu_unit = codegen.codegen(unit)
+        MODS.append(RenderCpu("assembler", cpu_unit))
 
     http_server = http.server.HTTPServer(('', args.port), MyRequestHandler)
     print(f'Starting HTTP server at http://localhost:{args.port}')
