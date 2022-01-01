@@ -1186,6 +1186,12 @@ def InitCFG():
     Pattern(o.BSR, [o.DK.INVALID], [C.INVALID],
             [InsTmpl("call_32", [P.fun0])])
 
+    Pattern(o.JSR, [o.DK.C64, o.DK.INVALID], [C.REG, C.INVALID],
+            [InsTmpl("call_64_mr", [P.reg0])])
+
+    Pattern(o.JSR, [o.DK.C64, o.DK.INVALID], [C.SP_REG, C.INVALID],
+            [InsTmpl("call_64_mbis32", [F.RSP, F.NO_INDEX, F.SCALE1, P.spill0])])
+
 
 def InitCONV():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
