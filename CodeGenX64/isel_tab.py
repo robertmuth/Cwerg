@@ -389,7 +389,6 @@ class Pattern:
         # we put all the patterns for given IR opcode into the same bucket
         Pattern.Table[opcode.no].append(self)
 
-
     def MatchesTypeCurbs(self, ins: ir.Ins) -> bool:
         for type_constr, op in zip(self.type_constraints, ins.operands):
             if type_constr is o.DK.INVALID:
@@ -517,7 +516,7 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
         out.append(InsTmpl("add_64_mr_imm32", [F.RSP, stk_size]))
     offset = ctx.stk_size
     while flt_regs:
-        out.append(InsTmpl("movsd_x_mbis32", [flt_regs.pop(-1).no, F.RSP, F.NO_INDEX, 1, offset]))
+        out.append(InsTmpl("movsd_x_mbis32", [F(F.XMM0.value + flt_regs.pop(-1).no), F.RSP, F.NO_INDEX, F.SCALE1, offset]))
         offset += 8
 
     out.reverse()
@@ -876,6 +875,7 @@ def InitCondBraInt():
                      InsTmpl(f"{x64_jmp_swp}_32", [P.bbl2])])
 
 
+# (dst-width, source-kind)
 _EXTEND_OPCODE = {
     (64, o.DK.U8): "movzx_64_8_",
     (64, o.DK.S8): "movsx_64_8_",
@@ -910,6 +910,20 @@ def ExtendRegTo64Bit(reg_dst, reg_src, dk: o.DK) -> List[InsTmpl]:
 
 def ExtendRegTo64BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
     x64_opc = _EXTEND_OPCODE.get((64, dk))
+    if not x64_opc:
+        return []
+    return [InsTmpl(x64_opc + "r_mbis32", [reg_dst, F.RSP, F.NO_INDEX, F.SCALE1, spill])]
+
+
+def ExtendRegTo32BitInPlace(reg, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((32, dk))
+    if not x64_opc:
+        return []
+    return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
+
+
+def ExtendRegTo32BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((32, dk))
     if not x64_opc:
         return []
     return [InsTmpl(x64_opc + "r_mbis32", [reg_dst, F.RSP, F.NO_INDEX, F.SCALE1, spill])]
@@ -1233,14 +1247,46 @@ def InitCONV():
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.REG],
                     [InsTmpl(conv_opc + "r_mr", [P.reg0, P.reg1])])
-            # TODO: SP_REG <- REG
-            # Pattern(o.CONV, [kind2, kind1],
-            #        [C.SP_REG, C.REG],
-            #        [InsTmpl(conv_opc + "mbis32_r", [F.SP, F.NO_INDEX, F.SCALE1, P.spill0, P.reg0])])
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.SP_REG],
                     [InsTmpl(conv_opc + "r_mbis32", [P.reg0, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1])])
-            # TODO SP_REG <- SP_REG
+            # TODO SP_REG <- SP_REG, SP_REG <- REG
+
+    for kind2, suffix2 in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+        for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16, o.DK.S32]:
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.REG],
+                    ExtendRegTo32BitInPlace(P.reg1, kind1) +
+                    [InsTmpl(f"cvtsi2s{suffix2}_32_x_mr", [P.reg0, P.reg1])])
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.SP_REG],
+                    ExtendRegTo32BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    [InsTmpl(f"cvtsi2s{suffix2}_32_x_mr", [P.reg0, P.tmp_gpr])])
+            # TODO SP_REG <- SP_REG, SP_REG <- REG
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.REG, C.REG],
+                    [InsTmpl(f"cvts{suffix2}2si_32_r_mx", [P.reg0, P.reg1])])
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.REG, C.SP_REG],
+                    [InsTmpl(f"cvts{suffix2}2si_32_r_mbis32", [P.reg0, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1])])
+            # TODO SP_REG <- SP_REG, SP_REG <- REG
+        for kind1 in [o.DK.U32, o.DK.S64]:
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.REG],
+                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    [InsTmpl(f"cvtsi2s{suffix2}_64_x_mr", [P.reg0, P.reg1])])
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.REG, C.SP_REG],
+                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
+                    [InsTmpl(f"cvtsi2s{suffix2}_32_x_mr", [P.reg0, P.tmp_gpr])])
+            # TODO SP_REG <- SP_REG, SP_REG <- REG
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.REG, C.REG],
+                    [InsTmpl(f"cvts{suffix2}2si_64_r_mx", [P.reg0, P.reg1])])
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.REG, C.SP_REG],
+                    [InsTmpl(f"cvts{suffix2}2si_64_r_mbis32", [P.reg0, F.RSP, F.NO_INDEX, F.SCALE1, P.spill1])])
+            # TODO SP_REG <- SP_REG, SP_REG <- REG
 
 
 def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:

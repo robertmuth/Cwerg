@@ -34,7 +34,7 @@ _SUPPORTED_IN_ALL_WIDTHS = {
 def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
     if not isinstance(op, ir.Const):
         return False
-    if opcode in {o.DIV, o.REM, o.MUL, o.CNTTZ, o.CNTLZ}:
+    if opcode in {o.DIV, o.REM, o.MUL, o.CNTTZ, o.CNTLZ, o.CONV}:
         return True
     if pos == 2 and opcode in {o.ST, o.ST_STK, o.ST_MEM}:
         return True
@@ -51,7 +51,7 @@ def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
 def _InsRewriteOutOfBoundsImmediates(
         ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
     inss = []
-    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST}:
+    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST, o.OPC_KIND.CONV}:
         for pos, op in enumerate(ins.operands):
             if IsOutOfBoundImmediate(ins.opcode, op, pos):
                 if op.kind in {o.DK.F32, o.DK.F64}:
@@ -78,18 +78,16 @@ _SHIFT_MASK = {
 }
 
 
-def _InsRewriteDivRemShifts(
-        ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
-    inss = []
+def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
-    if opc is o.DIV and ops[0].kind.flavor != o.DK_FLAVOR_F:
+    if opc is o.DIV and ops[0].kind.flavor() != o.DK_FLAVOR_F:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
                 ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rax])]
-    elif opc is o.REM and ops[0].kind.flavor != o.DK_FLAVOR_F:
+    elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_F:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
@@ -117,7 +115,7 @@ def NeedsAABFromRewrite(ins: ir.Ins):
     ops = ins.operands
     if opc.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
         return False
-    if opc in {o.DIV, o.REM} and ops[0].kind.flavor != o.DK_FLAVOR_F:
+    if opc in {o.DIV, o.REM} and ops[0].kind.flavor() != o.DK_FLAVOR_F:
         return False
     if opc in {o.LEA_MEM, o.LEA_STK}:
         return False
