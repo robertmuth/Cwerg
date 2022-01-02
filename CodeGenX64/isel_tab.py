@@ -292,7 +292,7 @@ class InsTmpl:
             elif field is x64.OK.SIB_INDEX:
                 assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr, P.scratch_gpr}, f"{op}"
             elif field is x64.OK.SIB_BASE:
-                assert op in {P.reg01, P.reg0, P.reg1, P.tmp_gpr} or op in F_REGS, f"{op}"
+                assert op in {P.reg01, P.reg0, P.reg1, P.tmp_gpr, P.scratch_gpr} or op in F_REGS, f"{op}"
             elif field is x64.OK.RIP_BASE:
                 assert op in {F.RIP}, f"{op}"
             elif field is x64.OK.OFFABS32:
@@ -1011,176 +1011,185 @@ def InitLoad():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
             bw = kind2.bitwidth()
+            if kind2 is o.DK.F32:
+                x64_ld = lambda addr: f"movss_x_{addr}"
+                tmp_reg = P.tmp_flt
+            elif kind2 is o.DK.F64:
+                x64_ld = lambda addr: f"movsd_x_{addr}"
+                tmp_reg = P.tmp_flt
+            else:
+                x64_ld = lambda addr: f"mov_{bw}_r_{addr}"
+                tmp_reg = P.tmp_gpr
             # LD_MEM dst_reg mem reg_offset will be rewritten so do not handle it here (TODO: reconsider this)
             # LD_MEM dst_reg mem const
             Pattern(o.LD_MEM, [kind2, o.DK.INVALID, kind1],
                     [C.REG, C.INVALID, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mpc32", [P.reg0, F.RIP, P.mem1_num2_prel])])
+                    [InsTmpl(x64_ld("mpc32"), [P.reg0, F.RIP, P.mem1_num2_prel])])
             Pattern(o.LD_MEM, [kind2, o.DK.INVALID, kind1],
                     [C.SP_REG, C.INVALID, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mpc32", [P.tmp_gpr, F.RIP, P.mem1_num2_prel]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                    [InsTmpl(x64_ld("mpc32"), [tmp_reg, F.RIP, P.mem1_num2_prel]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             # LD_STK dst_reg stk reg_offset will be rewritten so do not handle it here
             # LD_STK dst_reg stk const
             Pattern(o.LD_STK, [kind2, o.DK.INVALID, kind1],
                     [C.REG, C.INVALID, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mbis32", [P.reg0] + Spilled(P.stk1_offset2))])
+                    [InsTmpl(x64_ld("mbis32"), [P.reg0] + Spilled(P.stk1_offset2))])
             Pattern(o.LD_STK, [kind2, o.DK.INVALID, kind1],
                     [C.SP_REG, C.INVALID, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.stk1_offset2)),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                    [InsTmpl(x64_ld("mbis32"), [tmp_reg] + Spilled(P.stk1_offset2)),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             # LD dst_reg base_reg const
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.reg0, P.reg1, F.NO_INDEX, F.SCALE1, P.num2])])
+                    [InsTmpl(x64_ld("mbis32"), [P.reg0, P.reg1, F.NO_INDEX, F.SCALE1, P.num2])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.SIMM32],
-                    [InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.tmp_gpr, P.reg1, F.NO_INDEX, F.SCALE1, P.num2]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                    [InsTmpl(x64_ld("mbis32"), [tmp_reg, P.reg1, F.NO_INDEX, F.SCALE1, P.num2]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.SIMM32],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2])])
+                     InsTmpl(x64_ld("mbis32"), [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.SIMM32],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(f"mov_{bw}_r_mbis32",
-                             [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                     InsTmpl(x64_ld("mbis32"), [tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             # LD dst_reg base_reg offset_reg
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.reg2, F.SCALE1, 0])])
+                    [InsTmpl(x64_ld("mbis8"), [P.reg0, P.reg1, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8",
-                             [P.tmp_gpr, P.reg1, P.reg2, F.SCALE1, 0]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                    [InsTmpl(x64_ld("mbis8"), [tmp_reg, P.reg1, P.reg2, F.SCALE1, 0]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg2, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(f"mov_{bw}_r_mbis8",
-                             [P.reg0, P.tmp_gpr, P.reg2, F.SCALE1, 0])])
+                     InsTmpl(x64_ld("mbis8"), [P.reg0, P.tmp_gpr, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
+                    [InsTmpl(x64_ld("mbis8"), [P.reg0, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg2, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                     InsTmpl(x64_ld("mbis8"), [tmp_reg, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                    [InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, F.SCALE1, 0]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                    [InsTmpl(x64_ld("mbis8"), [tmp_reg, P.reg1, P.tmp_gpr, F.SCALE1, 0]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
                     [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0])])
+                     InsTmpl(x64_ld("mbis8"), [P.reg0, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
                     [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0]),
-                     InsTmplStkSt(kind2, P.spill0, P.tmp_gpr)])
+                     InsTmpl(x64_ld("mbis8"), [tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0]),
+                     InsTmplStkSt(kind2, P.spill0, tmp_reg)])
 
 
 def InitStore():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
             bw = kind2.bitwidth()
+            if kind2 is o.DK.F32:
+                x64_st = lambda addr: f"movss_{addr}_x"
+                tmp_reg = P.tmp_flt
+            elif kind2 is o.DK.F64:
+                x64_st = lambda addr: f"movsd_{addr}_x"
+                tmp_reg = P.tmp_flt
+            else:
+                x64_st = lambda addr: f"mov_{bw}_{addr}_r"
+                tmp_reg = P.tmp_gpr
             # ST_MEM mem reg_offset src_reg will be rewritten so do not handle it here
             # ST_MEM mem const src_reg
             Pattern(o.ST_MEM, [o.DK.INVALID, kind1, kind2],
                     [C.INVALID, C.SIMM32, C.REG],
-                    [InsTmpl(f"mov_{bw}_mpc32_r", [F.RIP, P.mem0_num1_prel, P.reg2])])
+                    [InsTmpl(x64_st("mpc32"), [F.RIP, P.mem0_num1_prel, P.reg2])])
             Pattern(o.ST_MEM, [o.DK.INVALID, kind1, kind2],
                     [C.INVALID, C.SIMM32, C.SP_REG],
-                    [InsTmplStkLd(kind2, P.tmp_gpr, P.spill2),
-                     InsTmpl(f"mov_{bw}_mpc32_r", [F.RIP, P.mem0_num1_prel, P.tmp_gpr])])
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mpc32"), [F.RIP, P.mem0_num1_prel, tmp_reg])])
             # ST_STK stk reg_offset src_reg will be rewritten so do not handle it here (TODO: reconsider this)
             # ST_STK stk const src_reg
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [C.INVALID, C.SIMM32, C.REG],
-                    [InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.stk0_offset1) + [P.reg2])])
+                    [InsTmpl(x64_st("mbis32"), Spilled(P.stk0_offset1) + [P.reg2])])
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [C.INVALID, C.SIMM32, C.SP_REG],
-                    [InsTmplStkLd(kind2, P.tmp_gpr, P.spill2),
-                     InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.stk0_offset1) + [P.tmp_gpr])])
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis32"), Spilled(P.stk0_offset1) + [tmp_reg])])
             # ST base_reg const src_reg
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SIMM32, C.REG],
-                    [InsTmpl(f"mov_{bw}_mbis32_r",
-                             [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
+                    [InsTmpl(x64_st("mbis32"), [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SIMM32, C.SP_REG],
-                    [InsTmplStkLd(kind2, P.tmp_gpr, P.spill2),
-                     InsTmpl(f"mov_{bw}_mbis32_r",
-                             [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, P.tmp_gpr])])
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis32"), [P.reg0, F.NO_INDEX, F.SCALE1, P.num1, tmp_reg])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SIMM32, C.REG],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
-                     InsTmpl(f"mov_{bw}_mbis32_r",
-                             [P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
+                     InsTmpl(x64_st("mbis32"), [P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num1, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SIMM32, C.SP_REG],
-                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
-                     InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill2),
-                     InsTmpl(f"mov_{bw}_mbis8_r",
-                             [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.scratch_gpr])])
+                    [InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill0),
+                     InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis8"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, tmp_reg])])
             # ST base_reg offset_reg src_reg
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg1, kind1) +
-                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.reg1, F.SCALE1, 0, P.reg2])])
+                    [InsTmpl(x64_st("mbis8"), [P.reg0, P.reg1, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg1, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
-                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, P.reg1, F.SCALE1, 0, P.reg2])])
+                     InsTmpl(x64_st("mbis8"), [P.tmp_gpr, P.reg1, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SP_REG, C.REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
-                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.tmp_gpr, F.SCALE1, 0, P.reg2])])
+                    [InsTmpl(x64_st("mbis8"), [P.reg0, P.tmp_gpr, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind2) +
-                    [InsTmpl(f"mov_{bw}_mbis8_r", [P.reg0, P.reg1, F.SCALE1, 0, P.tmp_gpr])])
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis8"), [P.reg0, P.reg1, F.SCALE1, 0, tmp_reg])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SP_REG, C.REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
                     [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr] + Spilled(P.spill0)),
-                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.reg2])])
+                     InsTmpl(x64_st("mbis8"), [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
-                    [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
-                     InsTmpl(f"mov_{bw}_r_mbis8", [P.tmp_gpr, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
+                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    [InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill0),
+                     InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis8"), [P.scratch_gpr, P.reg1, F.SCALE1, 0, tmp_reg])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.SP_REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
-                    [InsTmpl(f"mov_64_mbis8_r", [P.reg0, P.tmp_gpr, F.SCALE1, 0, P.scratch_gpr])])
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(x64_st("mbis8"), [P.reg0, P.scratch_gpr, F.SCALE1, 0, tmp_reg])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.SP_REG, C.SP_REG],
-                    ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill1, kind1) +
-                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill2, kind2) +
-                    [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr] + Spilled(P.spill0)),
-                     InsTmpl(f"mov_{bw}_mbis8_r", [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.scratch_gpr])])
+                    ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
+                    [InsTmplStkLd(kind2, tmp_reg, P.spill2),
+                     InsTmpl(f"add_64_r_mbis32", [P.scratch_gpr] + Spilled(P.spill0)),
+                     InsTmpl(x64_st("mbis8"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, tmp_reg])])
 
 
 def InitCFG():
