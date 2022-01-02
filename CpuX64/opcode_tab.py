@@ -121,7 +121,7 @@ SUPPORTED_OPCODES = {
     "setg",  # "/setnle",
     "int3",  # for breakpoints
     "cwd", "cdq", "cqo",
-
+    "ldmxcsr", "stmxcsr",
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
     # "movhps",
@@ -191,10 +191,13 @@ _OP_MAP = {
         "mem",  #
         "r64[63:0]/m64",
         "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
+        "m32",
+        # the stuff below has not been tested but may work
         # non address
         # "r64", "xmm[63:0]", "xmm[31:0]",
         # non register
-        # "m64", "m32",
+        # "m64",
+
     },
     "D": {"rel8", "rel32"},  # displacement
     "O": {"r8", "r16", "r32", "r64"},  # byte_with_reg

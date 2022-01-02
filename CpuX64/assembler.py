@@ -87,6 +87,13 @@ def AddStartUpCode(unit: elf_unit.Unit):
         ("mov_64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
         ("lea_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
         ("lea_64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
+        # default mxcsr is 0x1f80
+        # description: https://wiki.osdev.org/SSE
+        # force "rounding down"
+        ("stmxcsr_32_mbis8", "rsp noindex 0 -4"),
+        ("and_32_mbis8_imm32", "rsp noindex 0 -4 0xffff9fff"),
+        ("or_32_mbis8_imm32", "rsp noindex 0 -4 0x2000"),
+        ("ldmxcsr_32_mbis8", "rsp noindex 0 -4"),
         ("call_32", "expr:pcrel32:main"),
         # edi contains result from main
         ("mov_32_r_imm32", "edi 0x0"),
