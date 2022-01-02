@@ -9,7 +9,7 @@ from CpuX64 import opcode_tab as x64
 def disass(data):
     ins = x64.Disassemble(data)
     if ins is None:
-        print(f"could not disassemble {x64.Hexify(data)}")
+        print(f"could not determine opcode {x64.Hexify(data)}")
         return
 
     enum_name, ops_str = symbolic.InsSymbolizeObjdumpCompat(ins, False)
@@ -40,7 +40,7 @@ def batch():
         data = HexToData(line.strip())
         ins = x64.Disassemble(data)
         if ins.opcode is None:
-            print(f"could not disassemble [{x64.Hexify(data)}]")
+            print(f"could not determine opcode [{x64.Hexify(data)}]")
             continue
         enum_name, ops_str = symbolic.InsSymbolize(ins)
         print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")

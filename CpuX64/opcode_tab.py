@@ -553,6 +553,7 @@ class Opcode:
         Opcode.OpcodesByName[fullname] = self
         assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
         assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
+        # the discriminant reflects all instruction bytes except the rex byte
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
         self.discriminant_data = (self.discriminant_mask &
                                   int.from_bytes(self.data[0:6], "little"))
@@ -894,12 +895,15 @@ class Opcode:
 
     @classmethod
     def FindOpcode(cls, data: List) -> Optional["Opcode"]:
-        if data[0] in {0x66, 0xf2, 0xf3} and (data[1] & 0xf0) == 0x40:
-            data = data[:]
-            data[0], data[1] = data[1], data[0]
         rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
-        if (data[0] & 0xf0) == 0x40:
-            data = data[1:]
+        for n, b in enumerate(data):
+
+            if b in {0x66, 0xf2, 0xf3}:
+                continue
+            if (b & 0xf0) == 0x40:
+                data = data[:]
+                del data[n]
+            break
         discriminant = int.from_bytes(data, "little")
         for r in rules:
             if (r.discriminant_mask & discriminant) == r.discriminant_data:

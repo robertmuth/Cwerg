@@ -5,8 +5,12 @@ $(info $(shell mkdir -p $(DIR)))
 
 TESTS = hello.asm
 
-TEST_INSTRUCTIONS = ff b5 b8 f9 ff ff,  6a 12,  48 8b 05 a7 40 7f 00 ,  48 89 b4 04 50 01 00 00,  48 89 84 24 f0 00 00 00
-#, f3 66 41 0f bd cc
+TEST_INSTRUCTIONS = ff b5 b8 f9 ff ff, \
+                    6a 12, \
+                    48 8b 05 a7 40 7f 00 , \
+                    48 89 b4 04 50 01 00 00, \
+                    48 89 84 24 f0 00 00 00, \
+                    f3 66 41 0f bd cc
 
 
 tests: $(DIR)/disassembler_test  $(TESTS:%.asm=$(DIR)/%.test) objdump_tests

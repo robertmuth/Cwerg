@@ -29,3 +29,8 @@ ff b5 b8 f9 ff ff push_64_mB32 MEM64 rbp 0x-648
     OFFABS32                            240        (0xf0)
     MODRM_REG64                         rax        (0x0)
 
+f3 66 41 0f bd cc lzcnt_16_r_mr cx r12w
+    lzcnt_16_r_mr
+    MODRM_REG16                         cx         (0x1)
+    MODRM_RM_REG16                      r12w       (0xc)
+
