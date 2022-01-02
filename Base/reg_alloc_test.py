@@ -29,7 +29,7 @@ A32_REGS = ([ir.CpuReg(f"r{i}", i, GPR_NOT_LAC) for i in range(6)] +
 NAMES_TO_REG = { r.name : r for r in A32_REGS}
 
 
-def DumpBbl(bbl):
+def _DumpBblWithLineNumbers(bbl):
     lines = serialize.BblRenderToAsm(bbl)
     print(lines.pop(0))
     for n, l in enumerate(lines):
@@ -107,7 +107,7 @@ class TestRanges(unittest.TestCase):
         fun = unit.fun_syms["main"]
         bbl = fun.bbls[0]
 
-        DumpBbl(bbl)
+        _DumpBblWithLineNumbers(bbl)
 
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
@@ -195,7 +195,7 @@ class TestRanges(unittest.TestCase):
         fun = unit.fun_syms["main"]
         bbl = fun.bbls[0]
 
-        DumpBbl(bbl)
+        _DumpBblWithLineNumbers(bbl)
 
         live_ranges = liveness.BblGetLiveRanges(bbl, fun, set(), True)
         live_ranges.sort()
