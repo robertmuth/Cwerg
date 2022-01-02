@@ -122,6 +122,7 @@ SUPPORTED_OPCODES = {
     "int3",  # for breakpoints
     "cwd", "cdq", "cqo",
     "ldmxcsr", "stmxcsr",
+    "movq", "movd",
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
     # "movhps",
@@ -189,7 +190,6 @@ _OP_MAP = {
         "r8/m8", "r16/m16", "r32/m32", "r64/m64",
         "r32/m16", "r64/m16",
         "mem",  #
-        "r64[63:0]/m64",
         "xmm[31:0]/m32", "xmm[63:0]/m64", "xmm/m128",
         "m32",
         # the stuff below has not been tested but may work
