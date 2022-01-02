@@ -13,7 +13,7 @@ def disass(data):
         return
 
     enum_name, ops_str = symbolic.InsSymbolizeObjdumpCompat(ins, False)
-    print(f"{x64.Hexify(data)}", f"{ins.opcode.name}.{ins.opcode.variant} {' '.join(ops_str)}")
+    print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
 
     enum_name, ops_str = symbolic.InsSymbolize(ins)
     print("    " + enum_name)
@@ -43,7 +43,7 @@ def batch():
             print(f"could not disassemble [{x64.Hexify(data)}]")
             continue
         enum_name, ops_str = symbolic.InsSymbolize(ins)
-        print(f"{x64.Hexify(data)}", f"{ins.opcode.name}.{ins.opcode.variant} {' '.join(ops_str)}")
+        print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
 
         data2 = x64.Assemble(ins)
         assert data == data2
