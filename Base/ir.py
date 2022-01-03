@@ -379,9 +379,19 @@ class Fun:
         self.output_types = output_types
 
     def FinalizeStackSlots(self):
-        """Assigns stack-offsets to each stk location"""
+        """Assigns stack-offsets to each stk location and spliled register"""
         assert FUN_FLAG.STACK_FINALIZED not in self.flags
         slot = 0
+        # we only have spilled_regs for x64
+        spilled_regs = sorted([reg for reg in self.regs if isinstance(reg.cpu_reg, StackSlot)],
+                              key= lambda reg : reg.kind.bitwidth())
+        for reg in spilled_regs:
+            width = reg.kind.bitwidth() // 8
+            slot += width - 1
+            slot = slot // width * width
+            reg.cpu_reg.offset = slot
+            slot += width
+
         for _, stk in sorted(self.stk_syms.items()):
             slot += stk.alignment - 1
             slot = slot // stk.alignment * stk.alignment

@@ -321,7 +321,6 @@ def _AssignAllocatedRegsAndMarkSpilledRegs(live_ranges) -> int:
             continue
         assert lr.cpu_reg != ir.CPU_REG_INVALID
         if lr.cpu_reg is ir.CPU_REG_SPILL:
-            assert False, f"TODO: compute spill reg slots"
             lr.reg.cpu_reg = ir.StackSlot(0)
             spill_count += 1
         else:

@@ -255,6 +255,18 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     elif arg is P.scratch_gpr:
         assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.GPR, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
+    elif arg in {P.spill0, P.spill1, P.spill2}:
+        pos = arg.value - P.spill0.value
+        reg = ops[pos]
+        assert isinstance(reg, ir.Reg)
+        assert isinstance(reg.cpu_reg, ir.StackSlot)
+        return reg.cpu_reg.offset
+    elif arg is P.spill01:
+        assert ops[0] == ops[1]
+        reg = ops[0]
+        assert isinstance(reg, ir.Reg)
+        assert isinstance(reg.cpu_reg, ir.StackSlot)
+        return reg.cpu_reg.offset
     elif arg in _OP_TO_RELOC_KIND:
         return 0
     else:
