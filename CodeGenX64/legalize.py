@@ -34,16 +34,18 @@ _SUPPORTED_IN_ALL_WIDTHS = {
 def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
     if not isinstance(op, ir.Const):
         return False
+    if op.kind in {o.DK.F64, o.DK.F32}:
+        return True
+    if opcode is o.MOV:
+        return False
     if opcode in {o.DIV, o.REM, o.MUL, o.CNTTZ, o.CNTLZ, o.CONV}:
         return True
     if pos == 2 and opcode in {o.ST, o.ST_STK, o.ST_MEM}:
         return True
     if op.kind in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64, o.DK.A64, o.DK.C64}:
         return op.value < -(1 << 31) or (1 << 31) <= op.value
-    elif op.kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64}:
+    if op.kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64}:
         return (1 << 31) <= op.value
-    elif op.kind in {o.DK.F64, o.DK.F32}:
-        return True
     else:
         assert False, f"unknown op: {op}"
 
@@ -51,7 +53,8 @@ def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
 def _InsRewriteOutOfBoundsImmediates(
         ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
     inss = []
-    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST, o.OPC_KIND.CONV}:
+    if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST,
+                           o.OPC_KIND.CONV, o.OPC_KIND.MOV}:
         for pos, op in enumerate(ins.operands):
             if IsOutOfBoundImmediate(ins.opcode, op, pos):
                 if op.kind in {o.DK.F32, o.DK.F64}:
@@ -192,12 +195,15 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunPopargConversion(fun, regs.PushPopInterface)
 
     # We did not bother with this addressing mode
+    # TODO: we like can avoid this by adding more cases to isel_tab.py
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A64,
                                                    offset_kind=o.DK.S32)
 
     # TODO: switch this to a WithRegOffset flavor
     lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A64,
                                       offset_kind=o.DK.S32)
+
+    lowering.FunEliminateCopySign(fun)
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
@@ -207,18 +213,19 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # This excludes immediates related to stack offsets which have not been determined yet
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
+    # mul/div/rem need special treatment
+    _FunRewriteDivRem(fun)
+
+    _FunRewriteIntoAABForm(fun, unit)
+
     # Recompute Everything (TODO: make this more selective to reduce work)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
-    reg_stats.FunSeparateLocalRegUsage(fun)
+    reg_stats.FunSeparateLocalRegUsage(fun)  # this has special hacks to avoid undoing _FunRewriteIntoAABForm()
     # DumpRegStats(fun, local_reg_stats)
 
-    # mul/div/rem need special treatment
-    _FunRewriteDivRem(fun)
-
-    _FunRewriteIntoAABForm(fun, unit)
     # if fun.name == "fibonacci": DumpFun("end of legal", fun)
     # if fun.name == "write_s": exit(1)
     sanity.FunCheck(fun, None)

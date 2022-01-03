@@ -15,9 +15,9 @@ Examples:
 
 from typing import List, Optional
 
+from Base import cfg
 from Base import ir
 from Base import opcode_tab as o
-from Base import cfg
 
 # nop means that the result of the operation is equal to src1
 _OPC_NOP_IF_SRC2_IS_ZERO = {
@@ -173,10 +173,11 @@ def _InsEliminateRem(
     z = a - z
     TODO: double check that this works out for corner-cases
     """
-    ops = ins.operands
-    out = []
+
     if ins.opcode is not o.REM:
         return None
+    ops = ins.operands
+    out = []
     tmp_reg1 = fun.GetScratchReg(ops[0].kind, "elim_rem1", True)
     out.append(ir.Ins(o.DIV, [tmp_reg1, ops[1], ops[2]]))
     # NOTE: this implementation for floating mod may have precision issues.
@@ -193,6 +194,45 @@ def _InsEliminateRem(
 def FunEliminateRem(fun: ir.Fun) -> int:
     assert ir.FUN_FLAG.STACK_FINALIZED not in fun.flags
     return ir.FunGenericRewrite(fun, _InsEliminateRem)
+
+
+def _InsEliminateCopySign(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
+    """Rewrites copysign instructions like so:
+    z = copysign a  b
+    aa = int(a) & 0x7f...f
+    bb = int(b) & 0x80...0
+    z = flt(aa | bb)
+    """
+
+    if ins.opcode is not o.COPYSIGN:
+        return None
+    ops = ins.operands
+    out = []
+    if ops[0].kind == o.DK.F32:
+        kind = o.DK.U32
+        sign = 1 << 31
+        mask = sign - 1
+    else:
+        kind = o.DK.U64
+        sign = 1 << 63
+        mask = sign - 1
+
+    tmp_src1 = fun.GetScratchReg(kind, "elim_copysign1", False)
+    out.append(ir.Ins(o.BITCAST, [tmp_src1, ops[1]]))
+    out.append(ir.Ins(o.AND, [tmp_src1, tmp_src1, ir.Const(kind, mask)]))
+    #
+    tmp_src2 = fun.GetScratchReg(kind, "elim_copysign2", False)
+    out.append(ir.Ins(o.BITCAST, [tmp_src2, ops[2]]))
+    out.append(ir.Ins(o.AND, [tmp_src2, tmp_src2, ir.Const(kind, sign)]))
+    #
+    out.append(ir.Ins(o.OR, [tmp_src1, tmp_src1, tmp_src2]))
+    out.append(ir.Ins(o.BITCAST, [ops[0], tmp_src1]))
+    return out
+
+
+def FunEliminateCopySign(fun: ir.Fun) -> int:
+    assert ir.FUN_FLAG.STACK_FINALIZED not in fun.flags
+    return ir.FunGenericRewrite(fun, _InsEliminateCopySign)
 
 
 def _InsEliminateStkLoadStoreWithRegOffset(

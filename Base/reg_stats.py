@@ -221,19 +221,36 @@ def _BblRenameReg(bbl, pos, reg_src, reg_dst):
 
 
 def FunSeparateLocalRegUsage(fun: ir.Fun) -> int:
+    """ Split life ranges for (BBL) local regs
+
+    This is works in coordination with the liverange computation AND
+    the local register allocator which assigns one cpu register to each
+    liverange.
+    """
     count = 0
     for bbl in fun.bbls:
         for pos, ins in enumerate(bbl.inss):
             num_defs = ins.opcode.def_ops_count()
             for n, reg in enumerate(ins.operands[:num_defs]):
                 assert isinstance(reg, ir.Reg)
-                if reg.def_ins is ins or ir.REG_FLAG.GLOBAL in reg.flags or reg.cpu_reg is not None:
+                # do not separate if:
+                # * this is the first definition of this reg
+                # * the reg is global
+                # * the reg is part of a two address "situation" (for x64)
+                # * the reg is has been assigned a cpu_reg
+                if (reg.def_ins is ins or
+                        ir.REG_FLAG.GLOBAL in reg.flags or
+                        (ir.REG_FLAG.TWO_ADDRESS in reg.flags and
+                         len(ins.operands) >= 2 and ins.operands[0] == ins.operands[1]) or
+                        reg.cpu_reg is not None):
                     continue
                 purpose = reg.name
                 if purpose.startswith("$"):
                     underscore_pos = purpose.find("_")
                     purpose = purpose[underscore_pos + 1:]
                 new_reg = fun.GetScratchReg(reg.kind, purpose, False)
+                if ir.REG_FLAG.TWO_ADDRESS in reg.flags:
+                    new_reg.flags |= ir.REG_FLAG.TWO_ADDRESS
                 ins.operands[n] = new_reg
                 _BblRenameReg(bbl, pos + 1, reg, new_reg)
                 count += 1

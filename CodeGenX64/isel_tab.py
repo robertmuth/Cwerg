@@ -1310,7 +1310,7 @@ def InitCONV():
         Pattern(o.BITCAST, [kind_flt, kind_int], [C.REG, C.REG],
                 [InsTmpl(f"{x64_opc}_x_mr", [P.reg0, P.reg1])])
         Pattern(o.BITCAST, [kind_int, kind_flt], [C.REG, C.REG],
-                [InsTmpl(f"{x64_opc}_{bw_int}_mr_x", [P.reg1, P.reg0])])
+                [InsTmpl(f"{x64_opc}_{bw_int}_mr_x", [P.reg0, P.reg1])])
         #
         Pattern(o.BITCAST, [kind_flt, kind_int], [C.SP_REG, C.REG],
                 [InsTmpl(f"mov_{bw_int}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
