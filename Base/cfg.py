@@ -56,8 +56,8 @@ def _BblFindSubRanges(bbl: ir.Bbl) -> List[Tuple[int, int]]:
     return out
 
 
-def FunSplitBbls(fun: ir.Fun):
-    """split bbls and remove dead code after 'ret'"""
+def FunSplitBblsAtTerminators(fun: ir.Fun):
+    """split bbls after terminator instructions and remove dead code after 'ret'"""
     for bbl in fun.bbl_syms.values():
         assert not bbl.forward_declared, f"bbl referenced but not defined {bbl}"
 
@@ -76,6 +76,28 @@ def FunSplitBbls(fun: ir.Fun):
             bbls.append(new_bbl)
             fun.bbl_syms[new_bbl.name] = new_bbl
     fun.bbls = bbls
+
+
+def BblSplit(ins: ir.Ins, orig_bbl: ir.Bbl, fun: ir.Fun) -> ir.Bbl:
+    """Create a new bbl BEFORE orig_bbl containing all the instruction up to and including ins"""
+    assert ins.opcode.kind is not o.OPC_KIND.COND_BRA
+    ins_pos = orig_bbl.index(ins)
+    bbl_pos = fun.bbls.index(orig_bbl)
+    count = 1
+    while True:
+        name = f"{orig_bbl.name}_split{count}"
+        if name not in fun.bbl_syms:
+            break
+        count += 1
+    new_bbl = ir.Bbl(name)
+    new_bbl.edge_in = orig_bbl.edge_in
+    orig_bbl.edge_in = [new_bbl]
+    new_bbl.edge_out = [orig_bbl]
+    new_bbl.inss = orig_bbl.inss[:ins_pos + 1]
+    orig_bbl.inss = orig_bbl.inss[ins_pos + 1:]
+    fun.bbls.insert(bbl_pos, new_bbl)
+    fun.bbl_syms[name] = new_bbl
+    return new_bbl
 
 
 def FunInitCFG(fun: ir.Fun):

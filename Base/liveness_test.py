@@ -212,7 +212,7 @@ class TestRanges(unittest.TestCase):
         fun.cpu_live_in = {cpu_regs["r0"]}
 
         fun = unit.fun_syms["writeln"]
-        cfg.FunSplitBbls(fun)
+        cfg.FunSplitBblsAtTerminators(fun)
         cfg.FunInitCFG(fun)
         cfg.FunRemoveUnconditionalBranches(fun)
         cfg.FunRemoveEmptyBbls(fun)
@@ -277,7 +277,7 @@ class TestRanges(unittest.TestCase):
         fun.cpu_live_out = {cpu_regs["s0"], cpu_regs["s1"], cpu_regs["s2"],
                             cpu_regs["s3"]}
         fun.cpu_live_in = {cpu_regs["s0"], cpu_regs["s1"]}
-        cfg.FunSplitBbls(fun)
+        cfg.FunSplitBblsAtTerminators(fun)
         cfg.FunInitCFG(fun)
         cfg.FunRemoveUnconditionalBranches(fun)
         cfg.FunRemoveEmptyBbls(fun)

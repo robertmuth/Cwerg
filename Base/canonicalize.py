@@ -1,11 +1,14 @@
 # (c) Robert Muth - see LICENSE for more info
+from typing import List, Optional
+
 from Base import ir
 from Base import opcode_tab as o
 
-from typing import List, Optional
-
 
 def _InsCanonicalize(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
+    """
+    * moves immediate into the the last operand slot if possible (ALU, CMP, COND_BRA)
+    """
     opcode = ins.opcode
     if o.OA.COMMUTATIVE not in opcode.attributes:
         return None
@@ -14,7 +17,7 @@ def _InsCanonicalize(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:
         if isinstance(ops[1], ir.Const) and not isinstance(ops[2], ir.Const):
             ir.InsSwapOps(ins, 1, 2)
             return [ins]
-    elif opcode.kind is o.OPC_KIND.CMP:
+    elif opcode is o.CMPEQ:
         if isinstance(ops[3], ir.Const) and not isinstance(ops[4], ir.Const):
             ir.InsSwapOps(ins, 3, 4)
             return [ins]

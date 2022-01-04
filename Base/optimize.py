@@ -93,7 +93,7 @@ class RegPoolSimple(reg_alloc.RegPool):
 
 
 def FunCfgInit(fun: ir.Fun, unit: ir.Unit):
-    cfg.FunSplitBbls(fun)
+    cfg.FunSplitBblsAtTerminators(fun)
     cfg.FunInitCFG(fun)
     cfg.FunRemoveUnconditionalBranches(fun)
     cfg.FunRemoveEmptyBbls(fun)

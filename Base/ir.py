@@ -306,6 +306,12 @@ class Bbl:
     def IsReturn(self):
         return self.inss and self.inss[-1].opcode.kind == o.OPC_KIND.RET
 
+    def index(self, ins: Ins):
+        for n, i in enumerate(self.inss):
+            if i is ins:
+                return  n
+        assert False
+
     def __repr__(self):
         forward = " FORWARD" if self.forward_declared else ""
 

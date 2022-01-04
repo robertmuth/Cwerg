@@ -196,6 +196,40 @@ def FunEliminateRem(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsEliminateRem)
 
 
+def _InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
+    """Rewrites cmpXX a, b, c, x, y instructions like so:
+    canonicalization ensures that a != c
+    mov a b
+    bXX skip, x, y
+      mov a c
+    .bbl skip
+    """
+    assert ins.opcode.kind is o.OPC_KIND.CMP
+    bbl_skip = cfg.BblSplit(ins, bbl, fun)
+    bbl_prev = cfg.BblSplit(ins, bbl_skip, fun)
+    assert not bbl_skip.inss
+    assert bbl_prev.inss[-1] is ins
+    del bbl_prev.inss[-1]
+    ops = ins.operands
+    if ops[2] != ops[0]:
+        if ops[1] != ops[0]:
+            bbl_prev.inss.append(ir.Ins(o.MOV, [ops[0], ops[1]]))
+        bbl_prev.inss.append(ir.Ins(o.BEQ if ins.opcode == o.CMPEQ else o.BLT, [ops[3], ops[4], bbl]))
+        bbl_skip.inss.append(ir.Ins(o.MOV, [ops[0], ops[2]]))
+    else:
+        bbl_prev.inss.append(ir.Ins(o.BNE if ins.opcode == o.CMPEQ else o.BLE, [ops[4], ops[3], bbl]))
+        bbl_skip.inss.append(ir.Ins(o.MOV, [ops[0], ops[1]]))
+    bbl_prev.edge_out.append(bbl)
+    bbl.edge_in.append(bbl_prev)
+
+
+def FunEliminateCmp(fun: ir.Fun) -> int:
+    for bbl in fun.bbls[:]:  # not we are updating the list while iterating over it
+        for ins in bbl.inss[:]:
+            if ins.opcode.kind is o.OPC_KIND.CMP:
+                _InsEliminateCmp(ins, bbl, fun)
+
+
 def _InsEliminateCopySign(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     """Rewrites copysign instructions like so:
     z = copysign a  b
