@@ -68,9 +68,9 @@ def FunCheckCFG(fun: ir.Fun, check_fallthroughs):
             elif last_ins_kind is o.OPC_KIND.COND_BRA:
                 assert len(bbl.edge_out) == 2, f"expected two out edges for bbl {bbl.name} {fun.name}"
                 succ1 = bbl.edge_out[0]
-                assert bbl in succ1.edge_in
+                assert bbl in succ1.edge_in, f"cond bra dst inconsistency in {fun.name}"
                 succ2 = bbl.edge_out[1]
-                assert bbl in succ2.edge_in
+                assert bbl in succ2.edge_in, f"cond bra dst inconsistency in {fun.name}"
                 assert last_ins.operands[2] in bbl.edge_out, last_ins
                 if check_fallthroughs:
                     assert fun.bbls[n + 1] in bbl.edge_out

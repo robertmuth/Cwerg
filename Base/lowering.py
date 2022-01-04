@@ -205,10 +205,15 @@ def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     .bbl skip
     """
     assert ins.opcode.kind is o.OPC_KIND.CMP
-    bbl_skip = cfg.BblSplit(ins, bbl, fun)
-    bbl_prev = cfg.BblSplit(ins, bbl_skip, fun)
+    bbl_skip = cfg.BblSplit(ins, bbl, fun, bbl.name + "_spilt")
+    bbl_prev = cfg.BblSplit(ins, bbl_skip, fun, bbl.name + "_spilt")
     assert not bbl_skip.inss
     assert bbl_prev.inss[-1] is ins
+    assert bbl_prev.edge_out == [bbl_skip]
+    assert bbl_skip.edge_in == [bbl_prev]
+    assert bbl_skip.edge_out == [bbl]
+    assert bbl.edge_in == [bbl_skip]
+
     del bbl_prev.inss[-1]
     ops = ins.operands
     if ops[2] != ops[0]:

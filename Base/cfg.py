@@ -78,21 +78,24 @@ def FunSplitBblsAtTerminators(fun: ir.Fun):
     fun.bbls = bbls
 
 
-def BblSplit(ins: ir.Ins, orig_bbl: ir.Bbl, fun: ir.Fun) -> ir.Bbl:
+def BblSplit(ins: ir.Ins, orig_bbl: ir.Bbl, fun: ir.Fun, prefix) -> ir.Bbl:
     """Create a new bbl BEFORE orig_bbl containing all the instruction up to and including ins"""
     assert ins.opcode.kind is not o.OPC_KIND.COND_BRA
     ins_pos = orig_bbl.index(ins)
     bbl_pos = fun.bbls.index(orig_bbl)
     count = 1
     while True:
-        name = f"{orig_bbl.name}_split{count}"
+        name = f"{prefix}{count}"
         if name not in fun.bbl_syms:
             break
         count += 1
     new_bbl = ir.Bbl(name)
-    new_bbl.edge_in = orig_bbl.edge_in
-    orig_bbl.edge_in = [new_bbl]
-    new_bbl.edge_out = [orig_bbl]
+    for x in orig_bbl.edge_in[:]:
+        if x.inss:
+            InsMaybePatchNewSuccessor(x.inss[-1], orig_bbl,
+                                      new_bbl)  # patch ins/jtb
+        x.ReplaceEdgeOut(orig_bbl, new_bbl)
+    new_bbl.AddEdgeOut(orig_bbl)
     new_bbl.inss = orig_bbl.inss[:ins_pos + 1]
     orig_bbl.inss = orig_bbl.inss[ins_pos + 1:]
     fun.bbls.insert(bbl_pos, new_bbl)
@@ -225,9 +228,8 @@ def FunRemoveEmptyBbls(fun: ir.Fun) -> int:
         unique_preds: Set[str] = set(pred.name for pred in bbl.edge_in)
         for pred_name in unique_preds:
             pred = fun.bbl_syms[pred_name]
-            inss = pred.inss
-            if inss:
-                InsMaybePatchNewSuccessor(inss[-1], bbl,
+            if pred.inss:
+                InsMaybePatchNewSuccessor(pred.inss[-1], bbl,
                                           succ)  # patch ins/jtb
             pred.ReplaceEdgeOut(bbl, succ)  # patch edg
 
