@@ -1,13 +1,12 @@
+import dataclasses
+import enum
+from typing import List, Tuple
+
 from Base import ir
+from Base import liveness
 from Base import opcode_tab as o
 from Base import reg_alloc
-from Base import liveness
 from Base import serialize
-
-import enum
-import dataclasses
-
-from typing import List, Optional, Tuple
 
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)
@@ -39,8 +38,6 @@ REG_KIND_TO_CPU_REG_FAMILY = {
     o.DK.F64: FLT_FAMILY,
 }
 
-
-
 # We use the 64 bit reg names regardless of the operand width
 _REG_NAMES = ["rax", "rcx", "rdx", "rbx", "sp", "rbp", "rsi", "rdi",
               "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]
@@ -52,7 +49,6 @@ _FLT_REGS = [ir.CpuReg(f"xmm{i}", i, CpuRegKind.FLT) for i in range(16)]
 CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
                 **{r.name: r for r in _FLT_REGS}}
 
-
 GPR_RESERVED_MASK = 0x0011  # rax/sp is not available for allocation
 GPR_REGS_MASK = 0xffee
 GPR_LAC_REGS_MASK = 0xf028  # rbx, rbp, r12-r15
@@ -63,8 +59,6 @@ FLT_REGS_MASK = 0xffff
 FLT_LAC_REGS_MASK = 0xff00  # xmm8 - xmm15
 
 REGS_RESERVED = {_GPR_REGS[0], _FLT_REGS[0]}  # we use these in the code generator
-
-
 
 _KIND_TO_CPU_REG_LIST = {
     o.DK.S8: _GPR_REGS,
@@ -105,11 +99,12 @@ _GPR_OUT_REGS = [
     _GPR_REGS[8],  # r8
     _GPR_REGS[9],  # r9
     _GPR_REGS[10],  # r10
-    _GPR_REGS[11],  # r10
+    _GPR_REGS[11],  # r11
 
 ]
 
 _FLT_IN_OUT_REGS = _FLT_REGS[1:8]
+
 
 def MaskToGprRegs(mask: int) -> List[ir.CpuReg]:
     out = []
@@ -128,15 +123,17 @@ def MaskToFltRegs(mask: int) -> List[ir.CpuReg]:
 
 
 def _GetCpuRegsForSignature(kinds: List[o.DK], gpr_regs: List[ir.CpuReg],
-                                  flt_regs: List[ir.CpuReg]) -> List[ir.CpuReg]:
+                            flt_regs: List[ir.CpuReg]) -> List[ir.CpuReg]:
     out = []
     next_gpr = 0
     next_flt = 0
     for k in kinds:
         if k in {o.DK.F32, o.DK.F64}:
+            assert next_flt < len(flt_regs), f"too many float args: {next_flt}"
             cpu_reg = flt_regs[next_flt]
             next_flt += 1
         else:
+            assert next_gpr < len(gpr_regs), f"too many gpr args: {next_gpr}"
             cpu_reg = gpr_regs[next_gpr]
             next_gpr += 1
         out.append(cpu_reg)
@@ -145,6 +142,7 @@ def _GetCpuRegsForSignature(kinds: List[o.DK], gpr_regs: List[ir.CpuReg],
 
 class PushPopInterface:
     """Used with FunPopargConversion and FunPushargConversion"""
+
     @classmethod
     def GetCpuRegsForInSignature(cls, kinds: List[o.DK]) -> List[ir.CpuReg]:
         return _GetCpuRegsForSignature(kinds, _GPR_IN_REGS, _FLT_IN_OUT_REGS)
@@ -225,7 +223,7 @@ class CpuRegPool(reg_alloc.RegPool):
         available = self.get_available(lac, is_gpr)
 
         # print(f"GET {lr} {self}  avail:{available:x}")
-        if not  is_gpr:
+        if not is_gpr:
             for n in range(len(_FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
@@ -356,7 +354,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
             lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
             lr.cpu_reg = lr.reg.cpu_reg
         if VERBOSE:
-          print (repr(lr))
+            print(repr(lr))
 
     # First reg-alloc path to determine if spilling is needed.
     # Note, global and fixed registers have already been assigned and will
@@ -366,9 +364,9 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
                    FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK)
 
     if VERBOSE:
-        print ("@@@ AFTER")
+        print("@@@ AFTER")
         for lr in live_ranges:
-            print (repr(lr))
+            print(repr(lr))
     # for reg
     #     print(f"SPILL: {spilled_regs}")
     #     count += len(spilled_regs)
