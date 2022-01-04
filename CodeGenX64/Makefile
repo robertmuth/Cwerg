@@ -5,7 +5,8 @@ DIR=build
 QEMU=
 
 $(info $(shell mkdir -p $(DIR)))
-TESTS = reg_torture.asm \
+TESTS = cmp.asm \
+        reg_torture.asm \
         fp_op.asm \
         multiple_results_f64.asm \
         multiple_results_f32.asm \
@@ -19,7 +20,7 @@ TESTS = reg_torture.asm \
         stack.asm \
         pfannkuchen.64.asm
 
-TESTS_NOT_YET_WORKING = reg_torture_f32.asm cmp.asm
+TESTS_NOT_YET_WORKING = reg_torture_f32.asm
 
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe)

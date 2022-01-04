@@ -183,7 +183,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
-
     fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
     fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
@@ -204,6 +203,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
                                       offset_kind=o.DK.S32)
 
     lowering.FunEliminateCopySign(fun)
+    # TODO: support a few special cases in the isel, e.g. cmpXX a 0, 1, x, y
+    lowering.FunEliminateCmp(fun)
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow

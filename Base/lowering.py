@@ -196,7 +196,7 @@ def FunEliminateRem(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsEliminateRem)
 
 
-def _InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
+def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     """Rewrites cmpXX a, b, c, x, y instructions like so:
     canonicalization ensures that a != c
     mov a b
@@ -227,7 +227,7 @@ def FunEliminateCmp(fun: ir.Fun) -> int:
     for bbl in fun.bbls[:]:  # not we are updating the list while iterating over it
         for ins in bbl.inss[:]:
             if ins.opcode.kind is o.OPC_KIND.CMP:
-                _InsEliminateCmp(ins, bbl, fun)
+                InsEliminateCmp(ins, bbl, fun)
 
 
 def _InsEliminateCopySign(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
