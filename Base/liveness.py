@@ -309,6 +309,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
 
     # handle live ranges that extend passed the bbl
     for reg in live_out:
+        if reg.IsSpilled(): continue
         initialize_lr(AFTER_BBL, reg)
 
     for pos, ins in enumerate(reversed(bbl.inss)):
@@ -334,6 +335,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
         uses = []
         for n, reg in enumerate(ins.operands):
             if not isinstance(reg, ir.Reg): continue
+            if reg.IsSpilled(): continue
             if n < num_defs:  # define reg
                 if n == 0 and ir.REG_FLAG.TWO_ADDRESS in reg.flags and reg == ins.operands[1]:
                     continue
