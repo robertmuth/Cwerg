@@ -125,7 +125,7 @@
     pusharg flags
     pusharg path
     pusharg -100:S32
-    syscall x64_syscall_open_at 2:U8
+    syscall x64_syscall_open_at 257:U16
     poparg res:S32
     pusharg res
     ret

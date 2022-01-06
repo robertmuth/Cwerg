@@ -1205,15 +1205,16 @@ def InitStore():
 
 
 def InitCFG():
-    Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U8],
-            [C.INVALID, C.SIMM32],
-            [InsTmpl("push_64_mr", [F.RCX]),
-             InsTmpl("push_64_mr", [F.R11]),
-             InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
-             InsTmpl("mov_64_mr_r", [F.R10, F.RCX]),
-             InsTmpl("syscall", []),
-             InsTmpl("pop_64_mr", [F.R11]),
-             InsTmpl("pop_64_mr", [F.RCX])])
+    for kind in [o.DK.U8, o.DK.U16, o.DK.U32]:
+        Pattern(o.SYSCALL, [o.DK.INVALID, kind],
+                [C.INVALID, C.SIMM32],
+                [InsTmpl("push_64_mr", [F.RCX]),
+                 InsTmpl("push_64_mr", [F.R11]),
+                 InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
+                 InsTmpl("mov_64_mr_r", [F.R10, F.RCX]),
+                 InsTmpl("syscall", []),
+                 InsTmpl("pop_64_mr", [F.R11]),
+                 InsTmpl("pop_64_mr", [F.RCX])])
 
     Pattern(o.TRAP, [], [],
             [InsTmpl("int3", [])])
