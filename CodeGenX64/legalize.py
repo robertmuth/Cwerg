@@ -85,16 +85,23 @@ def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
     if opc is o.DIV and ops[0].kind.flavor() != o.DK_FLAVOR_F:
+        # note: we could leave it to the register allocator to pick a CpuReg for ops[2]
+        # but then we would somehow have to  ensure that the reg is NOT rdx.
+        # By forcing rcx for ops[2] we sidestep the issue
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
+        rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
-                ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
+                ir.Ins(o.MOV, [rcx, ops[2]]),
+                ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rax])]
     elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_F:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
+        rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
-                ir.Ins(o.DIV, [rdx, rax, ops[2]]),  # note the notion of src/dst regs is murky here
+                ir.Ins(o.MOV, [rcx, ops[2]]),
+                ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rdx])]
     elif opc in {o.SHR, o.SHL} and isinstance(ops[2], ir.Reg):
         rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)

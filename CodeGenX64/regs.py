@@ -350,6 +350,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
         # extending beyond the BBL.
         # reg_kinds_fixed (e.g. Machine) regs are assumed to be
         # pre-allocated and will not change
+        assert not lr.reg.IsSpilled()
         if lr.reg.HasCpuReg():
             lr.flags |= liveness.LiveRangeFlag.PRE_ALLOC
             lr.cpu_reg = lr.reg.cpu_reg

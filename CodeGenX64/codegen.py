@@ -135,7 +135,7 @@ def EmitUnitAsText(unit: ir.Unit, fout):
     # we emit the memory stuff AFTER the code since the code generation may add new
     # memory for Consts
     for mem in unit.mems:
-        assert mem.kind != o.MEM_KIND.EXTERN
+        assert mem.kind != o.MEM_KIND.EXTERN, f"bad MEM {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         for s in _MemCodeGenText(mem, unit):
@@ -160,7 +160,7 @@ class Unit:
 def codegen(unit: ir.Unit) -> Unit:
     out = Unit()
     for mem in unit.mems:
-        assert mem.kind != o.MEM_KIND.EXTERN
+        assert mem.kind != o.MEM_KIND.EXTERN, f"bad MEM {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         cpu_mem = _MemCodeGenText(mem, unit)
