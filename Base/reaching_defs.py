@@ -210,6 +210,14 @@ def _InsConstantFold(
             succ_to_drop = target
         bbl.DelEdgeOut(succ_to_drop)
         return []
+    elif kind is o.OPC_KIND.CMP:
+        if not isinstance(ops[3], ir.Const) or not isinstance(ops[4], ir.Const):
+            return None
+        cmp_true = eval.EvaluatateCondBra(o.BEQ if ins.opcode is o.CMPEQ else o.BLT, ops[3], ops[4])
+        if cmp_true:
+            ins.Init(o.MOV, [ops[0], ops[1]])
+        else:
+            ins.Init(o.MOV, [ops[0], ops[2]])
     elif kind is o.OPC_KIND.ALU1:
         if not isinstance(ops[1], ir.Const):
             return None

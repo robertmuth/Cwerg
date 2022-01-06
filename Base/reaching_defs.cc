@@ -236,7 +236,7 @@ static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
       InsOperand(ins, 1) = val;
       InsDef(ins, 1) = HandleTop;
       InsOperand(ins, 2) = HandleInvalid;
-      InsDef(ins, 1) = HandleTop;
+      InsDef(ins, 2) = HandleTop;
       break;
     }
     case OPC_KIND::ALU1: {
@@ -246,18 +246,27 @@ static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
       InsOPC(ins) = OPC::MOV;
       InsOperand(ins, 1) = val;
       InsDef(ins, 1) = HandleTop;
-      InsOperand(ins, 2) = HandleInvalid;
+      break;
+    }
+#if 0
+    // Needs more work
+    case OPC_KIND::CONV: {
+      if (opc != OPC::CONV || !allow_conv_conversion) break;
+      Const op = Const(InsOperand(ins, 1));
+      if (op.kind() != RefKind::CONST) break;
+      ASSERT( false, "" << ins);
+      Reg dst = Reg(InsOperand(ins, 0));
+      if (
+          DKFlavor(RegKind(dst)) == DK_FLAVOR_F ||
+          DKFlavor(ConstKind(op)) == DK_FLAVOR_F) {
+        break;
+      }
+      InsOPC(ins) = OPC::MOV;
+      InsOperand(ins, 1) = ConvertIntValue(RegKind(dst), op);
       InsDef(ins, 1) = HandleTop;
       break;
     }
-    case OPC_KIND::MOV: {
-      Const op = Const(InsOperand(ins, 1));
-      if (!allow_conv_conversion || opc != OPC::CONV ||
-          op.kind() != RefKind::CONST)
-        break;
-      ASSERT(false, "Evaluator NYI for MOV: " << ins);
-      break;
-    }
+#endif
     default:
       break;
   }
