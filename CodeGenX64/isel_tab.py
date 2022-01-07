@@ -249,9 +249,9 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     elif arg is P.stk0_offset1:
         return GetStackOffset(ops[0], ops[1])
     elif arg is P.tmp_gpr:
-        return F.RAX.value
+        return _F_TO_INT[F.RAX]
     elif arg is P.tmp_flt:
-        return F.XMM0.value
+        return _F_TO_INT[F.XMM0]
     elif arg is P.scratch_gpr:
         assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.GPR, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
