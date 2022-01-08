@@ -466,9 +466,8 @@ DIV = Opcode(0x13, "div", OPC_KIND.ALU,
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Division: dst := src1 / src2 
              
-             Some day the operation might be more strictly defined as: 
-             
-             dst := 0 if src2 == 0 else src1 / src2""")
+             Division by 0 and signed division of min_int by -1 are UB  
+             """)
 
 # cf.:
 # https://www.gingerbill.org/article/2020/01/25/a-reply-to-lets-stop-copying-c/
@@ -476,9 +475,9 @@ REM = Opcode(0x14, "rem", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Modulo: dst := a % b
-              
-              Some day the sign of the result might be more strictly defined.
-              Note: does not apply to floating point numbers""")
+             
+              Modulo by 0 and signed modulo of min_int by -1 are UB  
+              """)
 
 COPYSIGN = Opcode(0x15, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                   [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
