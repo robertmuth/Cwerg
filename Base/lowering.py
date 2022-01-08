@@ -199,10 +199,13 @@ def FunEliminateRem(fun: ir.Fun) -> int:
 def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     """Rewrites cmpXX a, b, c, x, y instructions like so:
     canonicalization ensures that a != c
-    mov a b
+    mov z b
     bXX skip, x, y
-      mov a c
+      mov z c
     .bbl skip
+      mov a z
+
+    TODO: This is very coarse
     """
     assert ins.opcode.kind is o.OPC_KIND.CMP
     bbl_skip = cfg.BblSplit(ins, bbl, fun, bbl.name + "_spilt")
@@ -214,16 +217,14 @@ def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     assert bbl_skip.edge_out == [bbl]
     assert bbl.edge_in == [bbl_skip]
 
+    reg = fun.GetScratchReg(ins.operands[0].kind, "cmp", False)
+
     del bbl_prev.inss[-1]
     ops = ins.operands
-    if ops[2] != ops[0]:
-        if ops[1] != ops[0]:
-            bbl_prev.inss.append(ir.Ins(o.MOV, [ops[0], ops[1]]))
-        bbl_prev.inss.append(ir.Ins(o.BEQ if ins.opcode == o.CMPEQ else o.BLT, [ops[3], ops[4], bbl]))
-        bbl_skip.inss.append(ir.Ins(o.MOV, [ops[0], ops[2]]))
-    else:
-        bbl_prev.inss.append(ir.Ins(o.BNE if ins.opcode == o.CMPEQ else o.BLE, [ops[4], ops[3], bbl]))
-        bbl_skip.inss.append(ir.Ins(o.MOV, [ops[0], ops[1]]))
+    bbl_prev.inss.append(ir.Ins(o.MOV, [reg, ops[1]]))
+    bbl_prev.inss.append(ir.Ins(o.BEQ if ins.opcode == o.CMPEQ else o.BLT, [ops[3], ops[4], bbl]))
+    bbl_skip.inss.append(ir.Ins(o.MOV, [reg, ops[2]]))
+    bbl.inss.insert(0, ir.Ins(o.MOV, [ops[0], reg]))
     bbl_prev.edge_out.append(bbl)
     bbl.edge_in.append(bbl_prev)
 
@@ -529,7 +530,7 @@ def _InsPopargConversion(ins: ir.Ins, fun: ir.Fun, iface: PushPopInterface,
         reg = fun.FindOrAddCpuReg(cpu_reg, dst.kind)
         return [ir.Ins(o.MOV, [dst, reg])]
 
-    assert not params, f"params {params} should be empty at ins {ins}"
+    assert not params, f"params {params} should be empty at ins {ins.opcode} {ins.operands}  in {fun.name}"
 
     if ins.opcode.is_call():
         callee: ir.Fun = cfg.InsCallee(ins)
