@@ -25,6 +25,8 @@ void FunCfgExit(Fun fun) { FunAddUnconditionalBranches(fun); }
 void FunOptBasic(Fun fun, bool allow_conv_conversions) {
 
   std::vector<Ins> inss;
+  FunNumberReg(fun);
+  FunMergeMoveWithSrcDef(fun, &inss);
   FunCanonicalize(fun);
   FunStrengthReduction(fun);  // generates more MOVs which help
 

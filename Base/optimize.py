@@ -121,6 +121,8 @@ def UnitCfgExit(unit: ir.Unit):
 
 def FunOptBasic(fun: ir.Fun, opt_stats: Dict[str, int],
                 allow_conv_conversion: bool):
+    opt_stats["merge_move"] += reaching_defs.FunMergeMoveWithSrcDef(fun)
+
     opt_stats["canonicalized"] += canonicalize.FunCanonicalize(fun)
     opt_stats["strength_red"] += lowering.FunStrengthReduction(fun)
 
