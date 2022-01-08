@@ -18,8 +18,10 @@ TEST_A64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.a64.exe)  $(TESTS_64:%.wasm=$(DIR)
                $(DIR)/amoeba_test.64.exe $(DIR)/nv_voronoi.64.exe \
                $(DIR)/brotli.64.exe $(DIR)/objzero_test.64.exe \
                $(DIR)/nanosvg_test.64.exe $(DIR)/binary-trees.64.exe
-               
-tests: $(DIR)/parse_test $(TEST_A64_EXES) $(TEST_A32_EXES)
+
+TEST_X64_EXES = $(TESTS_32_64:%.wasm=$(DIR)/%.x64.exe)
+
+tests: $(DIR)/parse_test  $(TEST_X64_EXES) $(TEST_A64_EXES) $(TEST_A32_EXES)
 
 $(DIR)/parse_test:
 	@echo "[$@]"
@@ -39,6 +41,14 @@ $(DIR)/%.a64.exe: TestData/%.wasm
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
 	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	$(QEMUA64) $@ hello world 1 2 3 >$@.out
+	diff $@.out $<.golden
+
+# not the "hello world 1 2 3" argument is only used by the echo.wasm benchmark
+$(DIR)/%.x64.exe: TestData/%.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	$@ hello world 1 2 3 >$@.out
 	diff $@.out $<.golden
 
 $(DIR)/c-ray-f.64.exe: TestData/c-ray-f.wasm
