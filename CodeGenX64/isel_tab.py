@@ -237,8 +237,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     elif arg in {P.reg0, P.reg1, P.reg2}:
         pos = arg.value - P.reg0.value
         reg = ops[pos]
-        assert isinstance(reg, ir.Reg)
-        assert reg.HasCpuReg()
+        assert isinstance(reg, ir.Reg), f"in {ins} expect reg for {arg} but got {reg}"
+        assert reg.HasCpuReg(), f"in {ins} expect reg with cpureg for {arg} but got {reg}"
         return reg.cpu_reg.no
     elif arg in {P.num0, P.num1, P.num2, P.num3, P.num4}:
         pos = arg.value - P.num0.value
@@ -666,19 +666,19 @@ def InitAluInt():
         Pattern(o.MUL, [kind1] * 3,
                 [C.REG, C.REG, C.REG],
                 [InsTmpl(f"imul_{bw}_r_mr", [P.reg01, P.reg2])])
-        # Pattern(o.MUL, [kind1] * 3,
-        #        [C.SP_REG, C.SP_REG, C.REG],
-        #        [InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
-        #                 [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.reg2])])
+        Pattern(o.MUL, [kind1] * 3,
+                [C.SP_REG, C.SP_REG, C.REG],
+                [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill01)),
+                 InsTmpl(f"imul_{bw}_r_mr", [P.tmp_gpr, P.reg2]),
+                 InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
         Pattern(o.MUL, [kind1] * 3,
                 [C.REG, C.REG, C.SP_REG],
                 [InsTmpl(f"imul_{bw}_r_mbis32", [P.reg01] + Spilled(P.spill2))])
-        # Pattern(o.MUL, [kind1] * 3,
-        #        [C.SP_REG, C.SP_REG, C.SP_REG],
-        #        [InsTmpl(f"mov_{bw}_r_mbis32",
-        #                 [P.tmp_gpr, F.RSP, F.NO_INDEX, F.SCALE1, P.spill2]),
-        #         InsTmpl(f"{x64_opc}_{bw}_mbis32_r",
-        #                 [F.RSP, F.NO_INDEX, F.SCALE1, P.spill01, P.tmp_gpr])])
+        Pattern(o.MUL, [kind1] * 3,
+                [C.SP_REG, C.SP_REG, C.SP_REG],
+                [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill01)),
+                 InsTmpl(f"imul_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill2)),
+                 InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
 
     # TODO: handle 8 bit divide
     for rdx, rax, kind1 in [("dx", "ax", o.DK.U16), ("edx", "eax", o.DK.U32), ("rdx", "rax", o.DK.U64)]:
@@ -832,7 +832,7 @@ def InitCondBraInt():
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, C.REG, C.INVALID],
-                    [InsTmpl(f"cmp_{bw}_mbis32_r", Spilled(P.spill0) + [P.reg2]),
+                    [InsTmpl(f"cmp_{bw}_mbis32_r", Spilled(P.spill0) + [P.reg1]),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.REG, C.SP_REG, C.INVALID],
@@ -983,11 +983,11 @@ def InitLea():
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.SP_REG],
                 ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
-                [InsTmpl("add_64_r_mr", [P.reg01, P.reg2])])
+                [InsTmpl("add_64_r_mr", [P.reg01, P.tmp_gpr])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.SP_REG],
-                ExtendRegTo64BitInPlace(P.reg2, kind1) +
-                [InsTmpl(f"add_64_mbis32_r", Spilled(P.spill01) + [P.reg2])])
+                ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
+                [InsTmpl(f"add_64_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
         # LEA_STK dst_reg stk const
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.SIMM32],
@@ -1232,17 +1232,19 @@ def InitCFG():
             [InsTmpl("call_64_mbis32", Spilled(P.spill0))])
 
     # Note: we currently use very inefficient jmp tables (8 byte entries)
-    Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID], [C.REG, C.INVALID],
-            ExtendRegTo64Bit(P.scratch_gpr, P.reg0, o.DK.U32) +
-            [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.jtb1_prel]),
-             InsTmpl("jmp_64_mbis8", [P.tmp_gpr, P.scratch_gpr, F.SCALE8, 0])])
+    for kind in [o.DK.U8, o.DK.U16, o.DK.U32]:
+        Pattern(o.SWITCH, [kind, o.DK.INVALID], [C.REG, C.INVALID],
+                ExtendRegTo64Bit(P.scratch_gpr, P.reg0, kind) +
+                [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.jtb1_prel]),
+                 InsTmpl("jmp_64_mbis8", [P.tmp_gpr, P.scratch_gpr, F.SCALE8, 0])])
 
-    Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID], [C.SP_REG, C.INVALID],
-            ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill0, o.DK.U32) +
-            [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.jtb1_prel]),
-             InsTmpl("jmp_64_mbis8", [P.tmp_gpr, P.scratch_gpr, F.SCALE8, 0])])
+        Pattern(o.SWITCH, [kind, o.DK.INVALID], [C.SP_REG, C.INVALID],
+                ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill0, kind) +
+                [InsTmpl("lea_64_r_mpc32", [P.tmp_gpr, F.RIP, P.jtb1_prel]),
+                 InsTmpl("jmp_64_mbis8", [P.tmp_gpr, P.scratch_gpr, F.SCALE8, 0])])
 
 
+# Break this up in Truncating, Extending, Flt <-> Int
 def InitCONV():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
@@ -1260,7 +1262,14 @@ def InitCONV():
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.SP_REG],
                     [InsTmpl(conv_opc + "r_mbis32", [P.reg0] + Spilled(P.spill1))])
-            # TODO SP_REG <- SP_REG, SP_REG <- REG
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.SP_REG, C.REG],
+                    ExtendRegTo32BitInPlace(P.reg1, kind2) +
+                    [InsTmpl(f"mov_{bw_dst}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
+            Pattern(o.CONV, [kind2, kind1],
+                    [C.SP_REG, C.SP_REG],
+                    [InsTmpl(conv_opc + "r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
+                     InsTmpl(f"mov_{bw_dst}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
 
     for kind2, suffix2 in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
         for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16, o.DK.S32]:
