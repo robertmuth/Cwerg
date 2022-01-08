@@ -1004,4 +1004,7 @@ extern Mem UnitFindOrAddConstMem(Unit unit, Const num);
 extern bool ConstIsZero(Const num);
 extern bool ConstIsOne(Const num);
 
+
+extern void BblReplaceInss(Bbl bbl, const std::vector<Ins>& inss);
+
 }  // namespace cwerg::base

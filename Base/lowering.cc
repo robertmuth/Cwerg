@@ -174,19 +174,6 @@ bool InsStrengthReduction(Ins ins) {
 
 }  // namespace
 
-void BblReplaceInss(Bbl bbl, const std::vector<Ins>& inss) {
-  ASSERT(!inss.empty(), "");
-  Ins first = inss[0];
-  BblInsList::Prev(first) = BblInsList::MakeSentinel(bbl);
-  BblInsList::Head(bbl) = first;
-  for (size_t i = 1; i < inss.size(); ++i) {
-    BblInsList::Next(inss[i - 1]) = inss[i];
-    BblInsList::Prev(inss[i]) = inss[i - 1];
-  }
-  Ins last = inss.back();
-  BblInsList::Next(last) = BblInsList::MakeSentinel(bbl);
-  BblInsList::Tail(bbl) = last;
-}
 
 int FunStrengthReduction(Fun fun) {
   int count = 0;

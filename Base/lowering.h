@@ -26,8 +26,6 @@ extern void FunEliminateMemLoadStore(Fun fun,
 
 extern void FunEliminateRem(Fun fun, std::vector<Ins>* inss);
 
-extern void BblReplaceInss(Bbl bbl, const std::vector<Ins>& inss);
-
 extern void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun, std::vector<Ins>* inss);
 extern void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
                                         DK addr_kind, DK offset_kind, std::vector<Ins>* inss);
