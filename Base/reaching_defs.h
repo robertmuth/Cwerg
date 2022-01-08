@@ -17,4 +17,6 @@ extern int FunConstantFold(Fun fun,
 
 extern void FunLoadStoreSimplify(Fun fun);
 
+extern void FunMergeMoveWithSrcDef(Fun fun, std::vector<Ins>* inss);
+
 }  // namespace cwerg::base

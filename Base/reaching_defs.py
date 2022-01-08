@@ -386,6 +386,8 @@ def FunLoadStoreSimplify(fun: ir.Fun) -> int:
 
 def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
     """
+    This transformation will make certain MOVs obsolete.
+
     Requires reaching definitions both per bbl and per ins
     """
     defs: ir.REG_DEF_MAP = bbl.defs_in.copy()
@@ -422,6 +424,84 @@ def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
 def FunPropagateRegs(fun: ir.Fun) -> int:
     """Relies solely on the ins.operand_def info"""
     return ir.FunGenericRewriteBbl(fun, _BblPropagateRegOperands)
+
+
+def _BblMergeMoveWithSrcDef(bbl: ir.Bbl, _fun: ir.Fun) -> int:
+    """
+    This transformation will make certain MOVs obsolete.
+
+     op x = a b
+     [stuff]
+     mov y = x
+
+     will become
+
+
+     op y = a b
+     mov x = y
+     [stuff]
+     [deleted]
+
+    """
+    last_def_pos: Dict[ir.Reg, int] = {}
+    last_use_pos: Dict[ir.Reg, int] = {}
+    inss: List[ir.Ins] = []
+
+    def update_def_use(ins: ir.Ins, pos):
+        num_defs = ins.opcode.def_ops_count()
+        for n, op in enumerate(ins.operands):
+            if not isinstance(op, ir.Reg):
+                continue
+            if n < num_defs:
+                last_def_pos[op] = pos
+            else:
+                last_use_pos[op] = pos
+
+    def is_suitable_mov(mov: ir.Ins) -> bool:
+        ops = mov.operands
+        if mov.opcode is not o.MOV or not isinstance(ops[1], ir.Reg) or ops[0] == ops[1]:
+            return False
+        src_def_pos = last_def_pos.get(ops[1], -1)
+        if src_def_pos < 0:
+            return False
+        # avoid inserting MOVs inbetween POPARGs - this could be improved
+        if len(inss) > src_def_pos + 1 and inss[src_def_pos + 1].opcode is o.POPARG:
+            return False
+        # no intervening use of ops[0]
+        dst_def_pos = last_def_pos.get(ops[0], -1)
+        if dst_def_pos > src_def_pos:
+            return False
+        dst_use_pos = last_use_pos.get(ops[0], -1)
+        if dst_use_pos > src_def_pos:
+            return False
+        return True
+
+    count = 0
+    for ins in bbl.inss:
+
+        if is_suitable_mov(ins):
+            count += 1
+            dst_reg, src_reg = ins.operands
+            src_def_pos = last_def_pos[src_reg]
+            ins_src_def = inss[src_def_pos]
+            assert ins_src_def.operands[0] == src_reg
+            ins_src_def.operands[0] = dst_reg
+            last_def_pos[dst_reg] = src_def_pos
+            ir.InsSwapOps(ins, 0, 1)
+            inss.insert(src_def_pos + 1, ins)
+            for pos in range(src_def_pos + 1, len(inss)):
+                update_def_use(inss[pos], pos)
+        else:
+            update_def_use(ins, len(inss))
+            inss.append(ins)
+
+    bbl.inss = inss
+    return count
+
+
+def FunMergeMoveWithSrcDef(fun: ir.Fun) -> int:
+    """ """
+    return ir.FunGenericRewriteBbl(fun, _BblMergeMoveWithSrcDef)
 
 
 def FunMoveElimination(fun: ir.Fun) -> int:

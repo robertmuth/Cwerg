@@ -1,9 +1,9 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/reaching_defs.h"
-#include "Base/opcode_gen.h"
 #include "Base/cfg.h"
 #include "Base/eval.h"
+#include "Base/opcode_gen.h"
 #include "Base/serialize.h"
 #include "Util/handlevec.h"
 
@@ -205,8 +205,10 @@ void FunPropagateConsts(Fun fun) {
   }
 }
 
-static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
-                     std::vector<Ins>* to_delete) {
+static void InsConstantFold(Ins ins,
+                            Bbl bbl,
+                            bool allow_conv_conversion,
+                            std::vector<Ins>* to_delete) {
   const OPC opc = InsOPC(ins);
   const OPC_KIND kind = InsOpcodeKind(ins);
   switch (kind) {
@@ -272,15 +274,16 @@ static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
   }
 }
 
-int FunConstantFold(Fun fun, bool allow_conv_conversion,
-                     std::vector<Ins>* to_delete) {
+int FunConstantFold(Fun fun,
+                    bool allow_conv_conversion,
+                    std::vector<Ins>* to_delete) {
   to_delete->clear();
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIter(bbl)) {
       InsConstantFold(ins, bbl, allow_conv_conversion, to_delete);
     }
   }
-    for (Ins ins : *to_delete) {
+  for (Ins ins : *to_delete) {
     BblInsUnlink(ins);
     InsDel(ins);
   }
@@ -472,6 +475,84 @@ void FunPropagateRegs(Fun fun) {
     }
   }
   HandleVec::Del(hv);
+}
+
+void update_def_use(Ins ins,
+                    int pos,
+                    std::vector<int>* last_use_pos,
+                    std::vector<int>* last_def_pos) {
+  const unsigned num_defs = InsOpcode(ins).num_defs;
+  const unsigned num_ops = InsOpcode(ins).num_operands;
+
+  for (int i = 0; i < num_ops; ++i) {
+    const Reg reg = Reg(InsOperand(ins, i));
+    if (reg.kind() != RefKind::REG) continue;
+    if (i < num_defs) {
+      (*last_def_pos)[RegNo(reg)] = pos;
+    } else {
+      (*last_use_pos)[RegNo(reg)] = pos;
+    }
+  }
+}
+
+bool is_suitable_mov(Ins mov,
+                     const std::vector<Ins>& inss,
+                     const std::vector<int>& last_use_pos,
+                     const std::vector<int>& last_def_pos) {
+  if (InsOPC(mov) != OPC::MOV) return false;
+  const Reg src_reg = Reg(InsOperand(mov, 1));
+  if (src_reg.kind() != RefKind::REG) return false;
+  const Reg dst_reg = Reg(InsOperand(mov, 0));
+  if (src_reg == dst_reg) return false;
+  const int src_def_pos = last_def_pos[RegNo(src_reg)];
+  if (src_def_pos < 0) return false;
+  if (inss.size() > src_def_pos + 1 && InsOPC(inss[src_def_pos + 1]) == OPC::POPARG) {
+    return false;
+  }
+
+  const int dst_def_pos = last_def_pos[RegNo(dst_reg)];
+  if (dst_def_pos > src_def_pos) return false;
+  const int dst_use_pos = last_use_pos[RegNo(dst_reg)];
+  if (dst_use_pos > src_def_pos) return false;
+
+  return true;
+}
+
+void FunMergeMoveWithSrcDef(Fun fun, std::vector<Ins>* inss) {
+  const unsigned num_regs = FunNumRegs(fun);
+  std::vector<int> last_use_pos(num_regs, -1);
+  std::vector<int> last_def_pos(num_regs, -1);
+
+  for (Bbl bbl : FunBblIter(fun)) {
+    std::fill(last_use_pos.begin(), last_use_pos.end(), -1);
+    std::fill(last_def_pos.begin(), last_def_pos.end(), -1);
+    inss->clear();
+    int count = 0;
+    for (Ins ins : BblInsIter(bbl)) {
+      if (is_suitable_mov(ins, *inss, last_use_pos, last_def_pos)) {
+        ++count;
+        const Reg reg_src = Reg(InsOperand(ins, 1));
+        const Reg reg_dst = Reg(InsOperand(ins, 0));
+        const int src_def_pos = last_def_pos[RegNo(reg_src)];
+        const Ins ins_src_def = (*inss)[src_def_pos];
+        ASSERT(InsOperand(ins_src_def, 0) == reg_src, "");
+        InsOperand(ins_src_def, 0) = reg_dst;
+        last_def_pos[RegNo(reg_dst)] = src_def_pos;
+        InsSwapOps(ins, 0, 1);
+
+        inss->insert(inss->begin() + src_def_pos + 1, ins);
+        for (int i = src_def_pos + 1; i < inss->size(); ++i) {
+          update_def_use((*inss)[i], i, &last_use_pos, &last_def_pos);
+        }
+      } else {
+        update_def_use(ins, inss->size(), &last_use_pos, &last_def_pos);
+        inss->push_back(ins);
+      }
+    }
+    if (count) {
+      BblReplaceInss(bbl, *inss);
+    }
+  }
 }
 
 }  // namespace cwerg::base
