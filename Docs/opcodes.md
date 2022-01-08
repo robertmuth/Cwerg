@@ -159,15 +159,14 @@ Multiplication: dst := src1 \* src2
 #### [13] div *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Division: dst := src1 / src2 
              
-             Some day the operation might be more strictly defined as: 
+             Division by 0 and signed division of min_int by -1 are UB  
              
-             dst := 0 if src2 == 0 else src1 / src2
 
 #### [14] rem *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Modulo: dst := a % b
+             
+              Modulo by 0 and signed modulo of min_int by -1 are UB  
               
-              Some day the sign of the result might be more strictly defined.
-              Note: does not apply to floating point numbers
 
 #### [15] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Set the sign of src1 to match src2 (floating point only)
@@ -254,14 +253,12 @@ Conversion of numerical regs which do not have to be of same size. Bits may chan
               
               If the conversion involves both a widening and a change of type, the widening is performed
               first. 
-              
-              Conversions from REG:FLT to REG:INT which overflow are UB.
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
 Cast between regs of same size. Bits will be re-interpreted but do not change. 
                  
                  This is useful for manipulating addresses in unusual ways or 
-                 looking at the binary representation of floats.
+                 looking at the  binary representation of floats.
 
 #### [34] mov *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Move between registers. 
