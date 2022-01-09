@@ -791,12 +791,12 @@ def _GetJmp(dk: o.DK, opc):
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jl"
         else:
-            return "jb"
+            return "jb"   # below
     elif opc is o.BLE:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jle"
         else:
-            return "jbe"
+            return "jbe"   # below or equal
 
 
 def _GetJmpSwp(dk: o.DK, opc):
@@ -808,12 +808,12 @@ def _GetJmpSwp(dk: o.DK, opc):
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jg"
         else:
-            return "ja"
+            return "ja"   # above
     elif opc is o.BLE:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jge"
         else:
-            return "jae"
+            return "jae"   # above or equal
 
 
 def InitCondBraInt():
@@ -867,8 +867,8 @@ def InitCondBraFlt():
     for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
         for opc, x64_jmp, x64_jmp_swp in [(o.BEQ, "je", "je"),
                                           (o.BNE, "jne", "jne"),
-                                          (o.BLT, "jbe", "jae"),
-                                          (o.BLE, "jb", "ja")]:
+                                          (o.BLT, "jb", "ja"),
+                                          (o.BLE, "jbe", "jae")]:
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.REG, C.REG, C.INVALID],
                     [InsTmpl(f"comis{suffix}_x_mx", [P.reg0, P.reg1]),
@@ -1282,13 +1282,22 @@ def InitCONV():
                     ExtendRegTo32BitFromSP(P.tmp_gpr, P.spill1, kind1) +
                     [InsTmpl(f"cvtsi2s{suffix2}_32_x_mr", [P.reg0, P.tmp_gpr])])
             # TODO SP_REG <- SP_REG, SP_REG <- REG
+            #
             Pattern(o.CONV, [kind1, kind2],
                     [C.REG, C.REG],
                     [InsTmpl(f"cvts{suffix2}2si_32_r_mx", [P.reg0, P.reg1])])
             Pattern(o.CONV, [kind1, kind2],
                     [C.REG, C.SP_REG],
                     [InsTmpl(f"cvts{suffix2}2si_32_r_mbis32", [P.reg0] + Spilled(P.spill1))])
-            # TODO SP_REG <- SP_REG, SP_REG <- REG
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.SP_REG, C.REG],
+                    [InsTmpl(f"cvts{suffix2}2si_32_r_mx", [P.tmp_gpr, P.reg1]),
+                     InsTmpl(f"mov_32_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
+            Pattern(o.CONV, [kind1, kind2],
+                    [C.SP_REG, C.SP_REG],
+                    [InsTmpl(f"cvts{suffix2}2si_32_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
+                     InsTmpl(f"mov_32_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
+
         for kind1 in [o.DK.U32, o.DK.S64]:
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.REG],
@@ -1307,6 +1316,8 @@ def InitCONV():
                     [InsTmpl(f"cvts{suffix2}2si_64_r_mbis32", [P.reg0] + Spilled(P.spill1))])
             # TODO SP_REG <- SP_REG, SP_REG <- REG
 
+
+def InitBITCAST():
     for k1, k2 in [(o.DK.U8, o.DK.S8), (o.DK.U16, o.DK.S16),
                    (o.DK.U32, o.DK.S32), (o.DK.U64, o.DK.S64),
                    (o.DK.A64, o.DK.S64), (o.DK.A64, o.DK.U64),
@@ -1323,6 +1334,7 @@ def InitCONV():
                     [C.SP_REG, C.SP_REG],
                     [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
                      InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
+
 
     for kind_flt, kind_int, suffix, x64_opc in [(o.DK.F32, o.DK.S32, "s", "movd"),
                                                 (o.DK.F32, o.DK.U32, "s", "movd"),
@@ -1378,6 +1390,7 @@ InitLoad()
 InitStore()
 InitCFG()
 InitCONV()
+InitBITCAST()
 
 
 def _DumpCodeSelTable():
