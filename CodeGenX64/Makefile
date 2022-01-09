@@ -30,7 +30,7 @@ STD_LIB = ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 tests: tests_py tests_c
 	@echo "[OK CodeGenX64]"
 
-tests_py:  $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES)
+tests_py:  $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES) $(DIR)/nanojpeg
 
 tests_c:
 
@@ -60,6 +60,12 @@ $(DIR)/cli.x64.asm.exe: TestData/cli.x64.asm
 	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
+$(DIR)/nanojpeg:
+	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary  -add_startup_code - $@.exe >$@.out
+	$@.exe ../TestData/ash_tree.jpg $@.ppm
+	md5sum  $@.ppm > $@.actual
+	diff $@.actual TestData/nano_jpeg.golden
 
 clean:
 	rm -f $(DIR)/*
