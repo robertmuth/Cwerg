@@ -301,9 +301,13 @@ def _GetRegOrConstOperand(fun: ir.Fun, last_kind: o.DK,
         cpu_reg = None
         pos = token.find("@")
         if pos > 0:
-            cpu_reg = regs_cpu.get(token[pos + 1:])
-            assert cpu_reg is not None, f"unknown cpu_reg {token[pos + 1:]} known regs {regs_cpu.keys()}"
+            cpu_reg_name = token[pos + 1:]
             token = token[:pos]
+            if cpu_reg_name == "STK":
+                cpu_reg = ir.StackSlot(0)
+            else:
+                cpu_reg = regs_cpu.get(cpu_reg_name)
+                assert cpu_reg is not None, f"unknown cpu_reg {token[pos + 1:]} known regs {regs_cpu.keys()}"
         pos = token.find(":")
         if pos < 0:
             reg = fun.GetReg(token)

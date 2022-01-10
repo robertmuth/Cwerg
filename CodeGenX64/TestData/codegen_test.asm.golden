@@ -25,6 +25,16 @@ PAT: reg:[A64 A64 U8]  op:[REG REG REG]
     movzx_64_8_r_mr rdx dl
     lea_64_r_mbis8 rdx rdx rdx 0 0
 
+INS: conv bits@STK %U8_857@rcx  [S32 U8]
+PAT: reg:[S32 U8]  op:[SP_REG REG]
+    movzx_32_8_r_mr ecx cl
+    mov_32_mbis32_r rsp noindex 0 4 ecx
+
+INS: conv bitu@STK %U8_857@rcx  [U32 U8]
+PAT: reg:[U32 U8]  op:[SP_REG REG]
+    movzx_32_8_r_mr ecx cl
+    mov_32_mbis32_r rsp noindex 0 0 ecx
+
 INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  op:[REG REG REG]
     addss_x_mx xmm0 xmm1

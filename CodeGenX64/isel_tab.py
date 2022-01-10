@@ -1302,7 +1302,7 @@ def InitCONV():
                     [InsTmpl(conv_opc + "r_mbis32", [P.reg0] + Spilled(P.spill1))])
             Pattern(o.CONV, [kind2, kind1],
                     [C.SP_REG, C.REG],
-                    ExtendRegTo32BitInPlace(P.reg1, kind2) +
+                    ExtendRegTo32BitInPlace(P.reg1, kind1) +
                     [InsTmpl(f"mov_{bw_dst}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
             Pattern(o.CONV, [kind2, kind1],
                     [C.SP_REG, C.SP_REG],
@@ -1385,7 +1385,7 @@ def InitBITCAST():
         #
         Pattern(o.BITCAST, [kind_flt, kind_int], [C.SP_REG, C.REG],
                 [InsTmpl(f"mov_{bw_int}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
-        Pattern(o.CONV, [kind_int, kind_flt], [C.SP_REG, C.REG],
+        Pattern(o.BITCAST, [kind_int, kind_flt], [C.SP_REG, C.REG],
                 [InsTmpl(f"movs{suffix}_mbis32_x", Spilled(P.spill0) + [P.reg1])])
         #
         Pattern(o.BITCAST, [kind_flt, kind_int], [C.REG, C.SP_REG],
