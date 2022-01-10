@@ -46,6 +46,7 @@ https://medium.com/wasmer/wasienv-wasi-development-workflow-for-humans-1811d9a50
 
 provides: wasicc, wasic++, wasild in `~/.local/bin`
 
+`wasmer <wasm-file>`  interpret wasm file (with WASI support)
 
 ### References 
 
