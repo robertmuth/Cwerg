@@ -319,7 +319,7 @@ class InsTmpl:
                 assert op in {P.bbl0, P.bbl2, P.fun0}, f"{op}"
             elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
                            x64.OK.BYTE_WITH_REG64}:
-                assert op in {P.reg0} or op in F_REGS, f"{op}"
+                assert op in {P.reg0, P.tmp_gpr} or op in F_REGS, f"{op}"
             elif field in {"ax", "eax", "rax"}:
                 assert op is F.RAX
             elif field in {"dx", "edx", "rdx"}:
@@ -633,33 +633,6 @@ def InitAluInt():
                     [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}", Spilled(P.spill01) + [P.num2])])
 
-        for opc, x64_opc_s, x64_opc_u in [(o.SHL, "shl", "shl"), (o.SHR, "sar", "shr")]:
-            x64_opc = x64_opc_u if kind1 in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
-            Pattern(opc, [kind1] * 3, [C.REG, C.REG, C.UIMM8],
-                    [InsTmpl(f"{x64_opc}_{bw}_mr_imm8", [P.reg01, P.num2])])
-            Pattern(opc, [kind1] * 3, [C.SP_REG, C.SP_REG, C.UIMM8],
-                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm8", Spilled(P.spill01) + [P.num2])])
-            Pattern(opc, [kind1] * 3, [C.REG, C.REG, C.REG_RCX],
-                    [InsTmpl(f"{x64_opc}_{bw}_mr_cl", [P.reg01, F.RCX])])
-            Pattern(opc, [kind1] * 3, [C.SP_REG, C.SP_REG, C.REG_RCX],
-                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_cl", Spilled(P.spill01) + [F.RCX])])
-
-        for opc, x64_opc in [(o.CNTLZ, "lzcnt"), (o.CNTTZ, "tzcnt")]:
-            before = []
-            after = []
-            the_bw = bw
-            if the_bw == 8:
-                # a lot of pain to deal with the missing 8 bit variants
-                the_bw = 16
-                if opc is o.CNTTZ:
-                    before = [InsTmpl(f"or_16_mr_imm16", [P.reg1, 0xff00])]
-                else:
-                    before = [InsTmpl(f"and_16_mr_imm16", [P.reg1, 0x00ff])]
-                    after = [InsTmpl(f"sub_8_mr_imm8", [P.reg0, 8])]
-            Pattern(opc, [kind1] * 2,
-                    [C.REG, C.REG],
-                    before + [InsTmpl(f"{x64_opc}_{the_bw}_r_mr", [P.reg0, P.reg1])] + after)
-
     # TODO: handle 8 bit multiply, maybe support some immediate variants
     for kind1 in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind1.bitwidth()
@@ -699,6 +672,66 @@ def InitAluInt():
                  InsTmpl(f"idiv_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
 
+def InitBitFiddle():
+    for kind in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                 o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        bw = kind.bitwidth()
+        for opc, x64_opc_s, x64_opc_u in [(o.SHL, "shl", "shl"), (o.SHR, "sar", "shr")]:
+            x64_opc = x64_opc_u if kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
+            Pattern(opc, [kind] * 3, [C.REG, C.REG, C.UIMM8],
+                    [InsTmpl(f"{x64_opc}_{bw}_mr_imm8", [P.reg01, P.num2])])
+            Pattern(opc, [kind] * 3, [C.SP_REG, C.SP_REG, C.UIMM8],
+                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm8", Spilled(P.spill01) + [P.num2])])
+            Pattern(opc, [kind] * 3, [C.REG, C.REG, C.REG_RCX],
+                    [InsTmpl(f"{x64_opc}_{bw}_mr_cl", [P.reg01, F.RCX])])
+            Pattern(opc, [kind] * 3, [C.SP_REG, C.SP_REG, C.REG_RCX],
+                    [InsTmpl(f"{x64_opc}_{bw}_mbis32_cl", Spilled(P.spill01) + [F.RCX])])
+
+    for kind in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        bw = kind.bitwidth()
+        for opc, x64_opc in [(o.CNTTZ, "tzcnt"), (o.CNTLZ, "lzcnt")]:
+            Pattern(opc, [kind] * 2,
+                    [C.REG, C.REG],
+                    [InsTmpl(f"{x64_opc}_{bw}_r_mr", [P.reg0, P.reg1])])
+            Pattern(opc, [kind] * 2,
+                    [C.SP_REG, C.REG],
+                    [InsTmpl(f"{x64_opc}_{bw}_r_mr", [P.tmp_gpr, P.reg1]),
+                     InsTmplStkSt(kind, P.spill0, P.tmp_gpr)])
+            Pattern(opc, [kind] * 2,
+                    [C.REG, C.SP_REG],
+                    [InsTmpl(f"{x64_opc}_{bw}_r_mbis32", [P.reg0] + Spilled(P.spill1))])
+            Pattern(opc, [kind] * 2,
+                    [C.SP_REG, C.SP_REG],
+                    [InsTmpl(f"{x64_opc}_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
+                     InsTmplStkSt(kind, P.spill0, P.tmp_gpr)])
+
+    for kind in [o.DK.U8, o.DK.S8]:
+        Pattern(o.CNTTZ, [kind] * 2,
+                [C.REG, C.REG],
+                [InsTmpl(f"or_16_mr_imm16", [P.reg1, 0xff00]),
+                 InsTmpl(f"tzcnt_16_r_mr", [P.reg0, P.reg1])])
+        Pattern(o.CNTTZ, [kind] * 2,
+                [C.REG, C.SP_REG],
+                [InsTmplStkLd(kind, P.tmp_gpr, P.spill1),
+                 InsTmpl(f"or_16_mr_imm16", [P.tmp_gpr, 0xff00]),
+                 InsTmpl(f"tzcnt_16_r_mr", [P.reg0, P.tmp_gpr])])
+        # TODO SP_REG, REG  + SP_REG, SP_REG
+
+    for kind in [o.DK.U8, o.DK.S8]:
+        Pattern(o.CNTLZ, [kind] * 2,
+                [C.REG, C.REG],
+                [InsTmpl(f"and_16_mr_imm16", [P.reg1, 0xff]),
+                 InsTmpl(f"lzcnt_16_r_mr", [P.reg0, P.reg1]),
+                 InsTmpl(f"sub_8_mr_imm8", [P.reg0, 8])])
+        Pattern(o.CNTLZ, [kind] * 2,
+                [C.REG, C.SP_REG],
+                [InsTmplStkLd(kind, P.tmp_gpr, P.spill1),
+                 InsTmpl(f"and_16_mr_imm16", [P.tmp_gpr, 0xff]),
+                 InsTmpl(f"lzcnt_16_r_mr", [P.reg0, P.tmp_gpr]),
+                 InsTmpl(f"sub_8_mr_imm8", [P.reg0, 8])])
+        # TODO SP_REG, REG  + SP_REG, SP_REG
+
+
 def InitMovInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
@@ -720,6 +753,11 @@ def InitMovInt():
         Pattern(o.MOV, [kind1] * 2,
                 [C.SP_REG, _KIND_TO_IMM[kind1]],
                 [InsTmpl(f"mov_{bw}_mbis32_imm{iw}", Spilled(P.spill0) + [P.num1])])
+        if bw == 64:
+            Pattern(o.MOV, [kind1] * 2,
+                    [C.SP_REG, _KIND_TO_IMM_WITH_64[kind1]],
+                    [InsTmpl(f"mov_{bw}_r_imm{bw}", [P.tmp_gpr, P.num1]),
+                     InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
 
 
 def InitAluFlt():
@@ -791,12 +829,12 @@ def _GetJmp(dk: o.DK, opc):
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jl"
         else:
-            return "jb"   # below
+            return "jb"  # below
     elif opc is o.BLE:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jle"
         else:
-            return "jbe"   # below or equal
+            return "jbe"  # below or equal
 
 
 def _GetJmpSwp(dk: o.DK, opc):
@@ -808,12 +846,12 @@ def _GetJmpSwp(dk: o.DK, opc):
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jg"
         else:
-            return "ja"   # above
+            return "ja"  # above
     elif opc is o.BLE:
         if dk in {o.DK.S8, o.DK.S16, o.DK.S32, o.DK.S64}:
             return "jge"
         else:
-            return "jae"   # above or equal
+            return "jae"  # above or equal
 
 
 def InitCondBraInt():
@@ -924,7 +962,7 @@ def ExtendRegTo64Bit(reg_dst, reg_src, dk: o.DK) -> List[InsTmpl]:
 def ExtendRegTo64BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
     x64_opc = _EXTEND_OPCODE.get((64, dk))
     if not x64_opc:
-        return []
+        x64_opc = "mov_64_"
     return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
 
 
@@ -938,7 +976,7 @@ def ExtendRegTo32BitInPlace(reg, dk: o.DK) -> List[InsTmpl]:
 def ExtendRegTo32BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
     x64_opc = _EXTEND_OPCODE.get((32, dk))
     if not x64_opc:
-        return []
+        x64_opc = "mov_32_"
     return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
 
 
@@ -1335,7 +1373,6 @@ def InitBITCAST():
                     [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
                      InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
 
-
     for kind_flt, kind_int, suffix, x64_opc in [(o.DK.F32, o.DK.S32, "s", "movd"),
                                                 (o.DK.F32, o.DK.U32, "s", "movd"),
                                                 (o.DK.F64, o.DK.S64, "d", "movq"),
@@ -1380,6 +1417,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 
 
 InitAluInt()
+InitBitFiddle()
 InitAluFlt()
 InitMovInt()
 InitMovFlt()
