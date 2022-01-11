@@ -36,9 +36,11 @@ jobs:
         pip install pycparser==2.20
     - name: Install Ubuntu Deps
       run: |
-        sudo apt-get install qemu-user-static libunwind-dev gcc-multilib
+        sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        apt-cache madison qemu-user-static
+        sudo apt-get qemu-user-static
     - name: Show Version Summary
       run: |
         uname -a
