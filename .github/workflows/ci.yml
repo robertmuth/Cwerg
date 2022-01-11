@@ -40,7 +40,8 @@ jobs:
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
         apt-cache madison qemu-user-static
-        sudo apt-get qemu-user-static
+        # TODO: undo version pin when the latest version becomes available
+        sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.17
     - name: Show Version Summary
       run: |
         uname -a
