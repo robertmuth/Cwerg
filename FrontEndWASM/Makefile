@@ -7,6 +7,7 @@ QEMUA32 = qemu-arm-static
 
 $(info $(shell mkdir -p $(DIR)))
 
+tests: $(DIR)/parse_test tests_x64 test_a32 tests_a64
 
 TESTS_32_64 = memory.wasm fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
 TESTS_64 = if.wasm global.wasm loop.wasm print_i64_ln.wasm call_indirect.wasm
@@ -22,9 +23,22 @@ tests_a64: $(TESTS_32_64:%.wasm=$(DIR)/%.a64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.a6
 
 tests_x64: $(TESTS_64:%.wasm=$(DIR)/%.x64.exe) $(TESTS_32_64:%.wasm=$(DIR)/%.x64.exe) \
                 $(DIR)/lists.x64.exe \
-                $(DIR)/matrix.x64.exe \
                 $(DIR)/spectral-norm.x64.exe \
-                $(DIR)/fannkuch-redux.x64.exe
+                $(DIR)/fannkuch-redux.x64.exe \
+                $(DIR)/matrix.x64.exe \
+                $(DIR)/nv_voronoi.x64.exe \
+                $(DIR)/binary-trees.x64.exe
+
+# need open
+# mal.a64.exe
+# c-ray-f.a64.exe
+# brotli.a64.exe
+# objzero_test.a64.exe
+# nanosvg_test.a64.exe
+
+# miscompile:
+# nbody.x64.exe
+# amoeba_test.x64.exe
 
 tests: $(DIR)/parse_test tests_x64 test_a32 tests_a64
 
@@ -162,6 +176,13 @@ $(DIR)/nv_voronoi.a64.exe: TestData/nv_voronoi.wasm
 	$(QEMUA64) $@ >$@.out
 	diff $@.out $<.golden
 
+$(DIR)/nv_voronoi.x64.exe: TestData/nv_voronoi.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	$(QEMUX64) $@ >$@.out
+	diff $@.out $<.golden
+
 $(DIR)/brotli.a64.exe: TestData/brotli.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
@@ -188,6 +209,13 @@ $(DIR)/binary-trees.a64.exe: TestData/binary-trees.wasm
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
 	cat ../StdLib/syscall.a64.asm wasi.64.asm  $@.asm  | $(PYPY) ../CodeGenA64/codegen.py -mode binary  -add_startup_code - $@
 	$(QEMUA64) $@ 15 >$@.out
+	diff $@.out $<.golden
+
+$(DIR)/binary-trees.x64.exe: TestData/binary-trees.wasm
+	@echo "[$@]"
+	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
+	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	$(QEMUX64) $@ 15 >$@.out
 	diff $@.out $<.golden
 
 clean:
