@@ -1199,7 +1199,7 @@ def InitStore():
                     [C.SP_REG, C.SIMM32, C.SP_REG],
                     [InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill0),
                      InsTmplStkLd(kind2, tmp_reg, P.spill2),
-                     InsTmpl(x64_st("mbis8"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, tmp_reg])])
+                     InsTmpl(x64_st("mbis32"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, P.num1, tmp_reg])])
             # ST base_reg offset_reg src_reg
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.REG, C.REG],
