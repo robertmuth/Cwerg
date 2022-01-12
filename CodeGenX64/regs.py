@@ -55,7 +55,7 @@ GPR_LAC_REGS_MASK = 0xf028  # rbx, rbp, r12-r15
 
 GPR_REG_IMPLICIT_MASK = 0x0007  # rax/rcx/rdx must not be used for globals
 FLT_RESERVED_MASK = 0x0001  # xmm0 is not available for allocation
-FLT_REGS_MASK = 0xffff
+FLT_REGS_MASK = 0xfffe
 FLT_LAC_REGS_MASK = 0xff00  # xmm8 - xmm15
 
 REGS_RESERVED = {_GPR_REGS[0], _FLT_REGS[0]}  # we use these in the code generator
@@ -211,6 +211,8 @@ class CpuRegPool(reg_alloc.RegPool):
         reg = lr.reg
         assert reg.HasCpuReg()
         cpu_reg = reg.cpu_reg
+        if cpu_reg in REGS_RESERVED:
+            return
         if cpu_reg.kind == CpuRegKind.GPR:
             self._gpr_reserved[cpu_reg.no].add(lr)
         else:
