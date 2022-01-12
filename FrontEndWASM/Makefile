@@ -12,7 +12,7 @@ tests: $(DIR)/parse_test tests_x64 test_a32 tests_a64
 TESTS_32_64 = memory.wasm fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
 TESTS_64 = if.wasm global.wasm loop.wasm print_i64_ln.wasm call_indirect.wasm
 
-test_a32:  $(TESTS_32_64:%.wasm=$(DIR)/%.a32.exe)
+tests_a32:  $(TESTS_32_64:%.wasm=$(DIR)/%.a32.exe)
 tests_a64: $(TESTS_32_64:%.wasm=$(DIR)/%.a64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.a64.exe) \
                $(DIR)/mal.a64.exe $(DIR)/c-ray-f.a64.exe $(DIR)/lists.a64.exe \
                $(DIR)/spectral-norm.a64.exe $(DIR)/nbody.a64.exe \
@@ -23,7 +23,7 @@ tests_a64: $(TESTS_32_64:%.wasm=$(DIR)/%.a64.exe)  $(TESTS_64:%.wasm=$(DIR)/%.a6
 
 tests_x64: $(TESTS_64:%.wasm=$(DIR)/%.x64.exe) $(TESTS_32_64:%.wasm=$(DIR)/%.x64.exe) \
                 $(DIR)/lists.x64.exe \
-                $(DIR)/spectral-norm.x64.exe \
+                $(DIR)/spectral-norm.x64.exe  $(DIR)/nbody.x64.exe \
                 $(DIR)/fannkuch-redux.x64.exe \
                 $(DIR)/matrix.x64.exe \
                 $(DIR)/nv_voronoi.x64.exe \
@@ -36,11 +36,9 @@ tests_x64: $(TESTS_64:%.wasm=$(DIR)/%.x64.exe) $(TESTS_32_64:%.wasm=$(DIR)/%.x64
 # objzero_test.a64.exe
 # nanosvg_test.a64.exe
 
-# miscompile:
-# nbody.x64.exe
-# amoeba_test.x64.exe
+# amoeba_test.x64.exe   has problem with signedness of zwero
 
-tests: $(DIR)/parse_test tests_x64 test_a32 tests_a64
+tests: $(DIR)/parse_test tests_x64 tests_a32 tests_a64
 
 
 $(DIR)/parse_test:
