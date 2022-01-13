@@ -8,7 +8,6 @@ This depends on x86data.js from https://github.com/asmjit/asmdb
 We intend to only support a small subset of the opcode space.
 Enough for code generation.
 """
-
 import collections
 import dataclasses
 import enum
@@ -16,12 +15,15 @@ import itertools
 import json
 import os
 import re
+import sys
 from typing import List, Dict, Tuple, Optional
+
+from Util import cgen
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
 MAX_INSTRUCTION_LENGTH = 11
 MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
-MAX_FIELD_LENGTH = 6
+MAX_OPERAND_COUNT = 6
 
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
@@ -362,6 +364,16 @@ class OK(enum.Enum):
     MODRM_XREG64 = 40
     MODRM_XREG128 = 41
 
+    IMPLICIT_AL = 50
+    IMPLICIT_AX = 51
+    IMPLICIT_EAX = 52
+    IMPLICIT_RAX = 53
+    IMPLICIT_DX = 54
+    IMPLICIT_EDX = 55
+    IMPLICIT_RDX = 56
+    IMPLICIT_CL = 57
+    IMPLICIT_1 = 68
+
 
 # Maps IMM OK to (encoded-size, rendered-size)
 OK_IMM_TO_SIZE: Dict[OK, Tuple[int, int]] = {
@@ -415,6 +427,20 @@ OK_ADDR_REG = {
     OK.SIB_BASE,
     OK.SIB_INDEX_AS_BASE,
 }
+
+_IMPLICIT_TO_OK: Dict[str, OK] = {
+    "al": OK.IMPLICIT_AL,
+    "ax": OK.IMPLICIT_AX,
+    "eax": OK.IMPLICIT_EAX,
+    "rax": OK.IMPLICIT_RAX,
+    "dx": OK.IMPLICIT_DX,
+    "edx": OK.IMPLICIT_EDX,
+    "rdx": OK.IMPLICIT_RDX,
+    "cl": OK.IMPLICIT_CL,
+    "1": OK.IMPLICIT_1,
+}
+
+OK_TO_IMPLICIT: Dict[OK, str] = {v: k for k, v in _IMPLICIT_TO_OK.items()}
 
 
 def _FP(b66, bf2, bf3, b0f, b48, d):
@@ -494,7 +520,7 @@ class Opcode:
 
     Opcodes: List["Opcode"] = []
     OpcodesByFP = collections.defaultdict(list)
-    OpcodesByName: Dict[str, "Opcode"] = {}
+    name_to_opcode: Dict[str, "Opcode"] = {}
 
     def __init__(self, name: str, variant: str, operands: List, format: str):
         Opcode.Opcodes.append(self)
@@ -513,7 +539,7 @@ class Opcode:
         self.imm_pos = -1
         self.byte_with_reg_pos = -1
         #
-        self.fields: List = []
+        self.fields: List[OK] = []
         self.mask: List = []
         self.data: List = []
 
@@ -549,9 +575,9 @@ class Opcode:
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
         fullname = self.EnumName()
-        assert fullname not in Opcode.OpcodesByName, f"duplicate={fullname}"
-        Opcode.OpcodesByName[fullname] = self
-        assert len(self.fields) <= MAX_FIELD_LENGTH, f"{self}"
+        assert fullname not in Opcode.name_to_opcode, f"duplicate={fullname}"
+        Opcode.name_to_opcode[fullname] = self
+        assert len(self.fields) <= MAX_OPERAND_COUNT, f"{self}"
         assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
         # the discriminant reflects all instruction bytes except the rex byte
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
@@ -570,9 +596,9 @@ class Opcode:
     def AddRexW(self):
         self.rexw = True
 
-    def AddImplicits(self, implicits: List):
+    def AddImplicits(self, implicits: List[str]):
         for i in implicits:
-            self.fields.append(i)
+            self.fields.append(_IMPLICIT_TO_OK[i])
             self.variant += "_" + i
 
     def AddByte(self, b: int):
@@ -770,12 +796,9 @@ class Opcode:
             return x
 
         for o in self.fields:
-            if isinstance(o, str):
-                out.append(0)
-                continue
-
-            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
+            if o in OK_TO_IMPLICIT:
+                out.append(OK_TO_IMPLICIT[o])
+            elif o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
                 out.append(GetRegBits(self.modrm_pos, 0, 0))
                 if o is OK.MODRM_RM_REG8 and 4 <= out[-1] <= 7:
                     assert rex
@@ -840,11 +863,9 @@ class Opcode:
                 v >>= 8
 
         for v, o in zip(operands, self.fields):
-            if isinstance(o, str):
+            if o in OK_TO_IMPLICIT:
                 continue
-
-            assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
+            elif o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
                      OK.MODRM_RM_REG64}:
                 if o is OK.MODRM_RM_REG8 and (4 <= v <= 7):
                     rex |= 0x40  # force rex, otherwise we select ah, ch, dh, bh
@@ -1098,8 +1119,8 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
                 assert False
     elif format in {"I", "O", "OI", "xI", "xO", "Ox"}:
         opc = Opcode(name, "", ops, format)
-        before = []
-        after = []
+        before: List[str] = []
+        after: List[str] = []
         seen_non_X = False
         for i, c in enumerate(format):
             if c != "x":
@@ -1295,20 +1316,43 @@ def LoadOpcodes(filename: str):
     CreateOpcodes(tables["instructions"], False)
 
 
+def _render_enum_simple(symbols, name):
+    print("\n%s {" % name)
+    for sym in symbols:
+        print(f"    {sym},")
+    print("};")
+
+
+def _EmitCodeH(fout):
+    print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_OPERAND_COUNT};", file=fout)
+    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_LENGTH};", file=fout)
+    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = {MAX_INSTRUCTION_LENGTH_WITH_PREFIXES};",
+          file=fout)
+
+    cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
+    cgen.RenderEnum(cgen.NameValues(MEM_MODE), "class MEM_WIDTH : uint8_t", fout)
+    opcodes = list(sorted(Opcode.name_to_opcode.keys()))
+    # note we sneak in an invalid first entry
+    _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
+
+
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
 
 if __name__ == "__main__":
-    print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
-    OpcodeSanityCheck(Opcode.OpcodesByFP)
-    last_name = ""
-    for opc in Opcode.Opcodes:
-        if last_name != opc.name:
-            print()
-            last_name = opc.name
-        fields_str = ' '.join([str(f) for f in opc.fields])
-        ops_str = ' '.join(opc.operands)
-        print(f"{opc.EnumName():20} {ops_str:30} {fields_str}")
-    if False:
-        for k, v in _OPCODES_BY_FP.items():
-            if v:
-                print(f"{k:10x} {len(v)}")
+    if len(sys.argv) <= 1:
+        print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
+        OpcodeSanityCheck(Opcode.OpcodesByFP)
+        last_name = ""
+        for opc in Opcode.Opcodes:
+            if last_name != opc.name:
+                print()
+                last_name = opc.name
+            fields_str = ' '.join([str(f) for f in opc.fields])
+            ops_str = ' '.join(opc.operands)
+            print(f"{opc.EnumName():20} {ops_str:30} {fields_str}")
+        if False:
+            for k, v in _OPCODES_BY_FP.items():
+                if v:
+                    print(f"{k:10x} {len(v)}")
+    elif sys.argv[1] == "gen_h":
+        cgen.ReplaceContent(_EmitCodeH, sys.stdin, sys.stdout)

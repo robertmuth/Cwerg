@@ -38,5 +38,22 @@ $(DIR)/%.test : TestData/%.asm
 	$@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
+
+############################################################
+# C++ Port
+############################################################
+BUILD_DIR=../build
+
+opcode_gen.cc: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+opcode_gen.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+
 clean:
 	rm -f $(DIR)/*

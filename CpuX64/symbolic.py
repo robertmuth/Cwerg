@@ -97,13 +97,12 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
         if skip_next > 0:
             skip_next -= 1
             continue
-        if isinstance(o, str):
+        if o in x64.OK_TO_IMPLICIT:
             if not skip_implicit:
-                out.append(o)
+                out.append(x64.OK_TO_IMPLICIT[o])
             continue
 
         val = ins.operands[n]
-        assert isinstance(o, OK), f"unexpected {o} {type(o)}"
         if o in x64.OK_REG_TO_INFO:
             bw, kind = x64.OK_REG_TO_INFO[o]
             if kind == "r":
@@ -167,7 +166,7 @@ _RELOC_KIND_MAP = {
 
 
 def InsFromSymbolized(mnemonic: str, ops_str: List[str]) -> x64.Ins:
-    opcode = x64.Opcode.OpcodesByName[mnemonic]
+    opcode = x64.Opcode.name_to_opcode[mnemonic]
     ins = x64.Ins(opcode)
     for pos, (t, ok) in enumerate(zip(ops_str, opcode.fields)):
         if t.startswith("expr:"):

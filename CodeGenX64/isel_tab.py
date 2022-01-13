@@ -285,7 +285,7 @@ class InsTmpl:
     """
 
     def __init__(self, opcode_name: str, args: List[Any]):
-        opcode: x64.Opcode = x64.Opcode.OpcodesByName[opcode_name]
+        opcode: x64.Opcode = x64.Opcode.name_to_opcode[opcode_name]
         assert args is not None
         assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name} {args} {opcode.fields}"
         # Note, the sanity checks below need to be adjusted as needed
@@ -320,11 +320,11 @@ class InsTmpl:
             elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
                            x64.OK.BYTE_WITH_REG64}:
                 assert op in {P.reg0, P.tmp_gpr} or op in F_REGS, f"{op}"
-            elif field in {"ax", "eax", "rax"}:
+            elif field in {x64.OK.IMPLICIT_AX, x64.OK.IMPLICIT_EAX, x64.OK.IMPLICIT_RAX}:
                 assert op is F.RAX
-            elif field in {"dx", "edx", "rdx"}:
+            elif field in {x64.OK.IMPLICIT_DX, x64.OK.IMPLICIT_EDX, x64.OK.IMPLICIT_RDX}:
                 assert op is F.RDX
-            elif field in {"cl"}:
+            elif field in {x64.OK.IMPLICIT_CL}:
                 assert op is F.RCX
             else:
                 assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, {field}"
