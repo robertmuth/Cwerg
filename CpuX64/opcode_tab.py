@@ -522,7 +522,7 @@ class Opcode:
     OpcodesByFP = collections.defaultdict(list)
     name_to_opcode: Dict[str, "Opcode"] = {}
 
-    def __init__(self, name: str, variant: str, operands: List, format: str):
+    def __init__(self, name: str, variant: str, operands: List[str], format: str):
         Opcode.Opcodes.append(self)
         self.name: str = name
         self.variant: str = variant
@@ -540,8 +540,8 @@ class Opcode:
         self.byte_with_reg_pos = -1
         #
         self.fields: List[OK] = []
-        self.mask: List = []
-        self.data: List = []
+        self.mask: List[int] = []
+        self.data: List[int] = []
 
     def __str__(self):
         fields_str = ' '.join([str(f) for f in self.fields])
@@ -1336,6 +1336,33 @@ def _EmitCodeH(fout):
     _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
 
 
+def _RenderOpcodeTable():
+    """Note: we sneak in an invalid first entry
+
+    The first entry only match the 0x0 instruction which happens to be invalid
+    so it can serve as a sentinel
+    """
+    out = [
+        '  // invalid'
+        '  {0, 0, 0, -1, -1, -1, -1, -1, {}, {}, {}},'
+    ]
+    for name, opc in sorted(Opcode.name_to_opcode.items()):
+        out += [
+            f"  {{{len(opc.fields)}, {len(opc.data)}, {int(opc.rexw)}, {opc.modrm_pos}, " +
+            f"{opc.sib_pos}, {opc.offset_pos}, {opc.imm_pos}, {opc.byte_with_reg_pos},  // {name}",
+            "   {" + ", ".join(["OK::" + f.name for f in opc.fields]) + "},",
+            "   {" + ", ".join([f"0x{b:02x}" for b in opc.data]) + "},",
+            "   {" + ", ".join([f"0x{b:02x}" for b in opc.mask]) + "}},",
+        ]
+    return out
+
+
+def _EmitCodeC(fout):
+    print("// Indexed by OPC", file=fout)
+    print("const Opcode OpcodeTable[] = {", file=fout)
+    print("\n".join(_RenderOpcodeTable()), file=fout)
+    print("};\n", file=fout)
+
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
 
 if __name__ == "__main__":
@@ -1354,5 +1381,7 @@ if __name__ == "__main__":
             for k, v in _OPCODES_BY_FP.items():
                 if v:
                     print(f"{k:10x} {len(v)}")
+    elif sys.argv[1] == "gen_c":
+        cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_h":
         cgen.ReplaceContent(_EmitCodeH, sys.stdin, sys.stdout)
