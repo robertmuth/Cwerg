@@ -21,7 +21,7 @@ from typing import List, Dict, Tuple, Optional
 from Util import cgen
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
-MAX_INSTRUCTION_OPERAND_COUNT = 11
+MAX_INSTRUCTION_LENGTH = 11
 MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
 MAX_OPERAND_COUNT = 6
 MAX_INSTRUCTION_NAME_LENGTH = 22
@@ -593,7 +593,7 @@ class Opcode:
         assert fullname not in Opcode.name_to_opcode, f"duplicate={fullname}"
         Opcode.name_to_opcode[fullname] = self
         assert len(self.fields) <= MAX_OPERAND_COUNT, f"{self}"
-        assert len(self.data) <= MAX_INSTRUCTION_OPERAND_COUNT, f"{self}"
+        assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
         # the discriminant reflects all instruction bytes except the rex byte
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
         self.discriminant_data = (self.discriminant_mask &
@@ -1324,10 +1324,10 @@ def _render_enum_simple(symbols, name):
 
 def _EmitCodeH(fout):
     print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_OPERAND_COUNT};", file=fout)
-    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_OPERAND_COUNT};", file=fout)
+    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_LENGTH};", file=fout)
     print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = {MAX_INSTRUCTION_LENGTH_WITH_PREFIXES};",
           file=fout)
-    print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
+    print(f"constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
     print(f"constexpr const unsigned MAX_FINGERPRINT = {MAX_FINGERPRINT};", file=fout)
 
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
@@ -1343,14 +1343,19 @@ def _RenderOpcodeTable():
     The first entry only match the 0x0 instruction which happens to be invalid
     so it can serve as a sentinel
     """
+
+    def Q(x):
+        return "NA" if x < 0 else str(x)
+
     out = [
         '  // invalid'
-        '  {0, 0, 0, -1, -1, -1, -1, -1, {}, {}, {}},'
+        '  {0, 0, 0, NA, NA, NA, NA, NA, {}, {}, {}},'
     ]
+
     for name, opc in sorted(Opcode.name_to_opcode.items()):
         out += [
-            f"  {{{len(opc.fields)}, {len(opc.data)}, {int(opc.rexw)}, {opc.modrm_pos}, " +
-            f"{opc.sib_pos}, {opc.offset_pos}, {opc.imm_pos}, {opc.byte_with_reg_pos},  // {name}",
+            f"  {{{len(opc.fields)}, {len(opc.data)}, {int(opc.rexw)}, {Q(opc.modrm_pos)}, " +
+            f"{Q(opc.sib_pos)}, {Q(opc.offset_pos)}, {Q(opc.imm_pos)}, {Q(opc.byte_with_reg_pos)},  // {name}",
             "   {" + ", ".join(["OK::" + f.name for f in opc.fields]) + "},",
             "   {" + ", ".join([f"0x{b:02x}" for b in opc.data]) + "},",
             "   {" + ", ".join([f"0x{b:02x}" for b in opc.mask]) + "}},",
