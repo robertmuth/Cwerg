@@ -21,9 +21,11 @@ from typing import List, Dict, Tuple, Optional
 from Util import cgen
 
 # https://stackoverflow.com/questions/14698350/x86-64-asm-maximum-bytes-for-an-instruction/18972014
-MAX_INSTRUCTION_LENGTH = 11
+MAX_INSTRUCTION_OPERAND_COUNT = 11
 MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
 MAX_OPERAND_COUNT = 6
+MAX_INSTRUCTION_NAME_LENGTH = 22
+MAX_FINGERPRINT = 6000  # really (1 << 13)
 
 # list of opcodes we expect to use during X64 code generation
 # plus some extra ones.
@@ -508,6 +510,17 @@ class MEM_MODE(enum.Enum):
     RIP_DISP = 4
 
 
+def StripRex(data: bytes) -> Tuple[int, bytes]:
+    for n, b in enumerate(data):
+        if b in {0x66, 0xf2, 0xf3}:
+            continue
+        if (b & 0xf0) == 0x40:
+            data = data[:]
+            del data[n]
+            return b, data
+        return 0, data
+
+
 class Opcode:
     """
     An opcode represent an x86-64 instruction.
@@ -519,7 +532,7 @@ class Opcode:
     """
 
     Opcodes: List["Opcode"] = []
-    OpcodesByFP = collections.defaultdict(list)
+    OpcodesByFP: Dict[int, List["Opcode"]] = collections.defaultdict(list)
     name_to_opcode: Dict[str, "Opcode"] = {}
 
     def __init__(self, name: str, variant: str, operands: List[str], format: str):
@@ -575,10 +588,11 @@ class Opcode:
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
         fullname = self.EnumName()
+        assert len(fullname) <= MAX_INSTRUCTION_NAME_LENGTH, f"max length exceeded: {fullname}  {len(fullname)}"
         assert fullname not in Opcode.name_to_opcode, f"duplicate={fullname}"
         Opcode.name_to_opcode[fullname] = self
         assert len(self.fields) <= MAX_OPERAND_COUNT, f"{self}"
-        assert len(self.data) <= MAX_INSTRUCTION_LENGTH, f"{self}"
+        assert len(self.data) <= MAX_INSTRUCTION_OPERAND_COUNT, f"{self}"
         # the discriminant reflects all instruction bytes except the rex byte
         self.discriminant_mask = int.from_bytes(self.mask[0:6], "little")
         self.discriminant_data = (self.discriminant_mask &
@@ -769,16 +783,7 @@ class Opcode:
             assert False
 
     def DisassembleOperands(self, data: List) -> List[int]:
-        rex = 0
-        for n, b in enumerate(data):
-            if b in {0x66, 0xf2, 0xf3}:
-                continue
-            elif (b & 0xf0) == 0x40:
-                rex = b
-                data = data[:]
-                del data[n]
-            else:
-                break
+        rex, data = StripRex(data)
 
         out = []
 
@@ -866,7 +871,7 @@ class Opcode:
             if o in OK_TO_IMPLICIT:
                 continue
             elif o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
-                     OK.MODRM_RM_REG64}:
+                       OK.MODRM_RM_REG64}:
                 if o is OK.MODRM_RM_REG8 and (4 <= v <= 7):
                     rex |= 0x40  # force rex, otherwise we select ah, ch, dh, bh
                 SetRegBits(v, self.modrm_pos, 0, 0)
@@ -917,14 +922,7 @@ class Opcode:
     @classmethod
     def FindOpcode(cls, data: List) -> Optional["Opcode"]:
         rules = Opcode.OpcodesByFP[FingerPrintRawInstructions(data)]
-        for n, b in enumerate(data):
-
-            if b in {0x66, 0xf2, 0xf3}:
-                continue
-            if (b & 0xf0) == 0x40:
-                data = data[:]
-                del data[n]
-            break
+        _, data = StripRex(data)
         discriminant = int.from_bytes(data, "little")
         for r in rules:
             if (r.discriminant_mask & discriminant) == r.discriminant_data:
@@ -1325,9 +1323,11 @@ def _render_enum_simple(symbols, name):
 
 def _EmitCodeH(fout):
     print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_OPERAND_COUNT};", file=fout)
-    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_LENGTH};", file=fout)
+    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_OPERAND_COUNT};", file=fout)
     print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = {MAX_INSTRUCTION_LENGTH_WITH_PREFIXES};",
           file=fout)
+    print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
+    print(f"constexpr const unsigned MAX_FINGERPRINT = {MAX_FINGERPRINT};", file=fout)
 
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_MODE), "class MEM_WIDTH : uint8_t", fout)
@@ -1363,12 +1363,16 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderOpcodeTable()), file=fout)
     print("};\n", file=fout)
 
+
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
         print(f"TOTAL instruction templates: {len(Opcode.Opcodes)}")
         OpcodeSanityCheck(Opcode.OpcodesByFP)
+        print(f"Different fingerprints: {len(Opcode.OpcodesByFP)}")
+        print(f"Max fingerprint: {max(Opcode.OpcodesByFP.keys())}")
+        print(f"Max fingerprint collisions: {max(len(x) for x in Opcode.OpcodesByFP.values())}")
         last_name = ""
         for opc in Opcode.Opcodes:
             if last_name != opc.name:
@@ -1381,6 +1385,8 @@ if __name__ == "__main__":
             for k, v in _OPCODES_BY_FP.items():
                 if v:
                     print(f"{k:10x} {len(v)}")
+    elif sys.argv[1] == "gen_c_clear":
+        cgen.ReplaceContent(lambda fout: print("", file=fout), sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_c":
         cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_h":
