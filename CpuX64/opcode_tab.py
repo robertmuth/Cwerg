@@ -127,6 +127,7 @@ SUPPORTED_OPCODES = {
     "cwd", "cdq", "cqo",
     "ldmxcsr", "stmxcsr",
     "movq", "movd",
+    "mfence", "lfence",  # Note: sfence is currently excluded because we skip all MMX instructions
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
     # "movhps",
@@ -785,7 +786,7 @@ class Opcode:
     def DisassembleOperands(self, data: List) -> List[int]:
         rex, data = StripRex(data)
 
-        out = []
+        out: List[int] = []
 
         def GetRegBits(offset: int, data_bit_pos, rex_bit_pos: int) -> int:
             nonlocal rex
@@ -802,7 +803,7 @@ class Opcode:
 
         for o in self.fields:
             if o in OK_TO_IMPLICIT:
-                out.append(OK_TO_IMPLICIT[o])
+                out.append(0)  # dummy
             elif o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32, OK.MODRM_RM_REG64}:
                 out.append(GetRegBits(self.modrm_pos, 0, 0))
                 if o is OK.MODRM_RM_REG8 and 4 <= out[-1] <= 7:
@@ -829,7 +830,7 @@ class Opcode:
             elif o is OK.BYTE_WITH_REG8:
                 r = GetRegBits(self.byte_with_reg_pos, 0, 0)
                 if 4 <= r <= 7:
-                    assert rex, f"xH (hig hbyte) regs are not supported"
+                    assert rex, f"xH (high byte) regs are not supported"
                 out.append(r)
             elif o in {OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32, OK.BYTE_WITH_REG64}:
                 out.append(GetRegBits(self.byte_with_reg_pos, 0, 0))
