@@ -75,5 +75,9 @@ opcode_gen_enum.h: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_enum >$@
 
+opcode_gen_collisions.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_collisions >$@
+
 clean:
 	rm -f $(DIR)/*

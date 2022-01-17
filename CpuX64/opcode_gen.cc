@@ -12,13 +12,10 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
-uint16_t FingerprintToCollisionIndex[100];
-
-OPC FingerprintCollisions[100];
-
 
 #include "CpuX64/opcode_gen_encodings.h"
 #include "CpuX64/opcode_gen_names.h"
+#include "CpuX64/opcode_gen_collisions.h"
 
 /* @AUTOGEN-START@ */
 

@@ -1365,6 +1365,7 @@ def _EmitEnum(fout):
     # note we sneak in an invalid first entry
     _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
 
+
 def _EmitEncodings(fout):
     print("// Indexed by OPC", file=fout)
     print("const Opcode OpcodeTableEncodings[] = {", file=fout)
@@ -1375,17 +1376,31 @@ def _EmitEncodings(fout):
 def _EmitNames(fout):
     print("// Indexed by OPC", file=fout)
     print("const char OpcodeTableNames[][24] = {", file=fout)
-    print('  "",', file=fout)
     for name in sorted(Opcode.name_to_opcode.keys()):
         print(f'  "{name}",', file=fout)
     print("};\n", file=fout)
 
+
 def _EmitCollisions(fout):
     print("// Indexed by Fingerprint", file=fout)
-    print("const char OpcodeTableNames[][24] = {", file=fout)
-    print('  "",', file=fout)
-    for name in sorted(Opcode.name_to_opcode.keys()):
-        print(f'  "{name}",', file=fout)
+    print("uint16_t FingerprintToCollisionIndex[] = {", file=fout)
+    pos = 0
+    count = 1
+    for fp, collisions in sorted(Opcode.OpcodesByFP.items()):
+        while pos < fp:
+            print ("  0,")
+            pos += 1
+        print (f"  {count},  // {fp}")
+        count += 1 + len(collisions)
+    print("};\n", file=fout)
+    print("")
+    print("OPC FingerprintCollisions[] = {", file=fout)
+    print(f"  OPC::invalid, ")
+    count = 1
+    for fp, collisions in sorted(Opcode.OpcodesByFP.items()):
+        for c in collisions:
+            print(f"  OPC::{c.EnumName()},  // {fp}")
+        print(f"  OPC::invalid, ")
     print("};\n", file=fout)
 
 def _EmitCodeC(fout):
