@@ -118,16 +118,18 @@ uint64_t GetRegBits(std::string_view data,
 
 uint64_t GetSInt(std::string_view data,
                  size_t rex_pos,
-                 uint32_t pos,
+                 int32_t pos,
                  uint32_t src_width,
                  uint32_t dst_width) {
-  if (pos >= rex_pos) pos += 1;
-  uint64_t r = int8_t(data[pos++]);
-  while (pos < src_width) {
-    r = (r << 8) | data[pos++];
+  int32_t end_pos = pos + src_width / 8 - 1;
+  if (pos >= rex_pos) pos++;
+
+  int64_t r = int64_t (data[end_pos--]);
+  while (end_pos >= pos) {
+    r = (r << 8) | uint8_t (data[end_pos--]);
   }
 
-  if (dst_width == 0 or dst_width == 64) return r;
+  if (dst_width == 0 || dst_width == 64) return r;
   return r & ((1 << dst_width) - 1);
 }
 
@@ -215,13 +217,11 @@ uint64_t GetOperand(OK ok,
     case OK::IMM64:
       return GetSInt(data, rex_pos, opcode.imm_pos, 64, 64);
     case OK::OFFPCREL8:
-      return GetRegBits(data, rex_pos, opcode.offset_pos, 8, 0);
-    case OK::OFFPCREL32:
-      return GetRegBits(data, rex_pos, opcode.offset_pos, 32, 0);
     case OK::OFFABS8:
-      return GetRegBits(data, rex_pos, opcode.offset_pos, 8, 0);
+      return GetSInt(data, rex_pos, opcode.offset_pos, 8, 64);
+    case OK::OFFPCREL32:
     case OK::OFFABS32:
-      return GetRegBits(data, rex_pos, opcode.offset_pos, 32, 0);
+      return GetSInt(data, rex_pos, opcode.offset_pos, 32, 64);
   }
   ASSERT(false, "Unsupported OK [" << unsigned(ok) << "]");
   return 0;

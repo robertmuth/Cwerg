@@ -97,7 +97,7 @@ const char* SymbolizeOperand(char* buf,
     case OK::OFFPCREL32:
     case OK::OFFABS8:
     case OK::OFFABS32:
-      ToDecString(val, buf);
+      ToDecSignedString(val, buf);
       return buf;
     case OK::IMM8:
     case OK::IMM16:
@@ -154,16 +154,17 @@ std::string_view InsSymbolize(const x64::Ins& ins,
                               bool show_implicits,
                               std::vector<std::string>* ops) {
   char buffer[128];
+  const char* s;
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
     if (ins.has_reloc() && i == ins.reloc_pos) {
       ASSERT(false, "NYI");
       // SymbolizeReloc(buffer, ins, ins.operands[i]);
     } else {
-      const char* s = SymbolizeOperand(buffer, ins.operands[i],
-                                       ins.opcode->fields[i], show_implicits);
+      s = SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i],
+                           show_implicits);
       if (s == nullptr) continue;
     }
-    ops->emplace_back(buffer);
+    ops->emplace_back(s);
   }
   return OpcodeName(ins.opcode);
 }
