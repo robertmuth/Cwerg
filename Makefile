@@ -90,7 +90,7 @@ cloc:
 	@echo
 	@echo "## Regular Code"
 	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=(?<!_test|_tab|_gen)[.](py|h|cc)$$' .
+	@cloc ${CLOC_FLAGS} '--match-f=[.](py|cc|h)$$' '--not-match-f=(_test|_tab|_gen.*)[.](py|h|cc)$$' .
 	@echo
 	@echo "## Tables"
 	@echo
@@ -98,15 +98,23 @@ cloc:
 	@echo
 	@echo "## Generated Code"
 	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=_gen[.](py|cc|h)$$' .
+	@cloc ${CLOC_FLAGS} '--match-f=_gen.*[.](py|cc|h)$$' .
 	@echo
 	@echo "## Testing Code"
 	@echo
 	@cloc ${CLOC_FLAGS} '--match-f=_test[.](py|cc|h)$$' .
 	@echo
-	@echo "## Breakdown By File"
+	@echo "## Breakdown: Table Files"
 	@echo
-	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' .
+	@cloc ${CLOC_FLAGS} --by-file  '--match-f=_tab[.](py|cc|h)$$' .
+	@echo
+	@echo "## Breakdown: Generated Files"
+	@echo
+	@cloc ${CLOC_FLAGS} --by-file  '--match-f=_gen.*[.](py|cc|h)$$' .
+	@echo
+	@echo "## Breakdown: Regular Files"
+	@echo
+	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' '--not-match-f=(_tab|_gen.*)[.](py|cc|h)$$' .
 
 
 #@ CLOC.txt - update line count stats
