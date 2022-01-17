@@ -1392,6 +1392,7 @@ def _EmitCollisions(fout):
             pos += 1
         print (f"  {count},  // {fp}")
         count += 1 + len(collisions)
+        pos += 1
     print("};\n", file=fout)
     print("")
     print("OPC FingerprintCollisions[] = {", file=fout)
@@ -1402,6 +1403,7 @@ def _EmitCollisions(fout):
             print(f"  OPC::{c.EnumName()},  // {fp}")
         print(f"  OPC::invalid, ")
     print("};\n", file=fout)
+
 
 def _EmitCodeC(fout):
     cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)

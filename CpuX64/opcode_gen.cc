@@ -12,83 +12,82 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
-
+#include "CpuX64/opcode_gen_collisions.h"
 #include "CpuX64/opcode_gen_encodings.h"
 #include "CpuX64/opcode_gen_names.h"
-#include "CpuX64/opcode_gen_collisions.h"
 
 /* @AUTOGEN-START@ */
 
 const char* const OK_ToStringMap[] = {
-    "", // 0
-    "RIP_BASE", // 1
-    "MODRM_RM_BASE", // 2
-    "OFFABS8", // 3
-    "OFFABS32", // 4
-    "SIB_SCALE", // 5
-    "SIB_INDEX", // 6
-    "SIB_BASE", // 7
-    "SIB_INDEX_AS_BASE", // 8
-    "", // 9
-    "IMM8", // 10
-    "IMM16", // 11
-    "IMM32", // 12
-    "OFFPCREL8", // 13
-    "OFFPCREL32", // 14
-    "", // 15
-    "", // 16
-    "IMM8_16", // 17
-    "IMM8_32", // 18
-    "IMM8_64", // 19
-    "IMM32_64", // 20
-    "IMM64", // 21
-    "", // 22
-    "", // 23
-    "BYTE_WITH_REG8", // 24
-    "BYTE_WITH_REG16", // 25
-    "BYTE_WITH_REG32", // 26
-    "BYTE_WITH_REG64", // 27
-    "MODRM_RM_REG8", // 28
-    "MODRM_RM_REG16", // 29
-    "MODRM_RM_REG32", // 30
-    "MODRM_RM_REG64", // 31
-    "MODRM_RM_XREG32", // 32
-    "MODRM_RM_XREG64", // 33
-    "MODRM_RM_XREG128", // 34
-    "MODRM_REG8", // 35
-    "MODRM_REG16", // 36
-    "MODRM_REG32", // 37
-    "MODRM_REG64", // 38
-    "MODRM_XREG32", // 39
-    "MODRM_XREG64", // 40
-    "MODRM_XREG128", // 41
-    "", // 42
-    "", // 43
-    "", // 44
-    "", // 45
-    "", // 46
-    "", // 47
-    "", // 48
-    "", // 49
-    "IMPLICIT_AL", // 50
-    "IMPLICIT_AX", // 51
-    "IMPLICIT_EAX", // 52
-    "IMPLICIT_RAX", // 53
-    "IMPLICIT_DX", // 54
-    "IMPLICIT_EDX", // 55
-    "IMPLICIT_RDX", // 56
-    "IMPLICIT_CL", // 57
-    "", // 58
-    "", // 59
-    "", // 60
-    "", // 61
-    "", // 62
-    "", // 63
-    "", // 64
-    "", // 65
-    "", // 66
-    "", // 67
-    "IMPLICIT_1", // 68
+    "",                   // 0
+    "RIP_BASE",           // 1
+    "MODRM_RM_BASE",      // 2
+    "OFFABS8",            // 3
+    "OFFABS32",           // 4
+    "SIB_SCALE",          // 5
+    "SIB_INDEX",          // 6
+    "SIB_BASE",           // 7
+    "SIB_INDEX_AS_BASE",  // 8
+    "",                   // 9
+    "IMM8",               // 10
+    "IMM16",              // 11
+    "IMM32",              // 12
+    "OFFPCREL8",          // 13
+    "OFFPCREL32",         // 14
+    "",                   // 15
+    "",                   // 16
+    "IMM8_16",            // 17
+    "IMM8_32",            // 18
+    "IMM8_64",            // 19
+    "IMM32_64",           // 20
+    "IMM64",              // 21
+    "",                   // 22
+    "",                   // 23
+    "BYTE_WITH_REG8",     // 24
+    "BYTE_WITH_REG16",    // 25
+    "BYTE_WITH_REG32",    // 26
+    "BYTE_WITH_REG64",    // 27
+    "MODRM_RM_REG8",      // 28
+    "MODRM_RM_REG16",     // 29
+    "MODRM_RM_REG32",     // 30
+    "MODRM_RM_REG64",     // 31
+    "MODRM_RM_XREG32",    // 32
+    "MODRM_RM_XREG64",    // 33
+    "MODRM_RM_XREG128",   // 34
+    "MODRM_REG8",         // 35
+    "MODRM_REG16",        // 36
+    "MODRM_REG32",        // 37
+    "MODRM_REG64",        // 38
+    "MODRM_XREG32",       // 39
+    "MODRM_XREG64",       // 40
+    "MODRM_XREG128",      // 41
+    "",                   // 42
+    "",                   // 43
+    "",                   // 44
+    "",                   // 45
+    "",                   // 46
+    "",                   // 47
+    "",                   // 48
+    "",                   // 49
+    "IMPLICIT_AL",        // 50
+    "IMPLICIT_AX",        // 51
+    "IMPLICIT_EAX",       // 52
+    "IMPLICIT_RAX",       // 53
+    "IMPLICIT_DX",        // 54
+    "IMPLICIT_EDX",       // 55
+    "IMPLICIT_RDX",       // 56
+    "IMPLICIT_CL",        // 57
+    "",                   // 58
+    "",                   // 59
+    "",                   // 60
+    "",                   // 61
+    "",                   // 62
+    "",                   // 63
+    "",                   // 64
+    "",                   // 65
+    "",                   // 66
+    "",                   // 67
+    "IMPLICIT_1",         // 68
 };
 const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 
@@ -224,7 +223,7 @@ uint64_t GetOperand(OK ok,
     case OK::OFFABS32:
       return GetRegBits(data, rex_pos, opcode.offset_pos, 32, 0);
   }
-  ASSERT(false, "");
+  ASSERT(false, "Unsupported OK [" << unsigned(ok) << "]");
   return 0;
 }
 
@@ -251,7 +250,7 @@ uint32_t FingerPrintRawInstructions(std::string_view data) {
       ASSERT(i + 1 < data.size(), "");
       return _FP(b66, bf2, bf3, 1, b48, data[i + 1]);
     } else
-      return _FP(b66, bf2, bf3, 1, b48, d);
+      return _FP(b66, bf2, bf3, 0, b48, d);
   }
   ASSERT(false, "unreachable");
   return 0;
@@ -262,9 +261,7 @@ bool OpcodeMatchesData(const Opcode& opcode, std::string_view data) {
 
   if (data.size() < opcode.num_bytes + unsigned(rex_pos != opcode.num_bytes))
     return false;
-
-  size_t n = 0;
-  for (size_t i = 0; i < opcode.num_bytes; ++i) {
+  for (size_t i = 0, n = 0; i < opcode.num_bytes; ++i, ++n) {
     const uint8_t d = opcode.data[i];
     const uint8_t m = opcode.mask[i];
     if (n == rex_pos) ++n;
@@ -292,9 +289,8 @@ bool Disassemble(Ins* ins, std::string_view data) {
   if (opcode == nullptr) return false;
   ins->opcode = opcode;
   const size_t rex_pos = GetRexPos(*opcode, data);
-  int i = 0;
-  for (OK ok : opcode->fields) {
-    ins->operands[i++] = GetOperand(ok, *opcode, data, rex_pos);
+  for (int i = 0; i < opcode->num_fields; ++i) {
+    ins->operands[i] = GetOperand(opcode->fields[i], *opcode, data, rex_pos);
   }
   ins->clear_reloc();
   return true;

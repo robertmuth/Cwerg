@@ -27,7 +27,7 @@ std::string ExtractData(std::string_view line) {
       const int hex_digit = cwerg::HexDigit(c);
       ASSERT(hex_digit >= 0, "");
       if (have_nibble) {
-        out.push_back((nibble << 4) | unsigned (hex_digit));
+        out.push_back((nibble << 4) | unsigned(hex_digit));
         have_nibble = false;
       } else {
         nibble = hex_digit;
@@ -97,6 +97,7 @@ int main(int argc, char* argv[]) {
         std::cout << num_bad << "/" << data << "\n";
       }
     }
+
     std::cout << "unsupported opcodes: " << std::dec << num_bad << "\n";
     return 0;
 #endif
@@ -107,8 +108,7 @@ int main(int argc, char* argv[]) {
       const std::string data = ExtractData(argv[i]);
       Ins ins;
       if (!Disassemble(&ins, data)) {
-        std::cout << "could not disassemble " << std::hex << data << std::dec
-                  << "\n";
+        std::cout << "could not disassemble " << argv[i] << std::dec << "\n";
         continue;
       }
       std::vector<std::string> ops;
