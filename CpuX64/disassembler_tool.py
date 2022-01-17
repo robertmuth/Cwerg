@@ -20,7 +20,10 @@ def disass(data):
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         if isinstance(f, x64.OK):
             f = f.name
-        print(f"    {f:35s} {o_str:10} (0x{o:x})")
+        if o >= 0:
+            print(f"    {f:35s} {o_str:10} (0x{o:x})")
+        else:
+            print(f"    {f:35s} {o_str:10} (-0x{-o:x})")
     print()
     data2 = x64.Assemble(ins)
     assert data == data2, f"{data} vs {data2}"

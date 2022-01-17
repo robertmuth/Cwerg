@@ -79,9 +79,20 @@ void disass(std::string_view data, const std::string& line) {
   enum_name = InsSymbolize(ins, false, false, &ops);
   std::cout << "    " << enum_name << "\n";
   for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
+    int64_t v = ins.operands[x];
+    char buffer[64];
+    char* s = buffer;
+    if (int64_t(v) < 0) {
+      *s++ = '-';
+      v = -v;
+    }
+    *s++ = '0';
+    *s++ = 'x';
+    ToHexString(v, s);
+
     std::cout << "    " << std::left << std::setw(35)
               << EnumToString(ins.opcode->fields[x]) << " " << std::setw(10)
-              << ops[x] << " (" << "0x" << std::hex << int64_t (ins.operands[x]) << std::dec << ")\n";
+              << ops[x] << " (" << buffer << ")\n";
   }
   std::cout << "\n";
 #if 0

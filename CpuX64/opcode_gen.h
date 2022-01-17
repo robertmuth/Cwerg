@@ -83,7 +83,8 @@ enum class OK : uint8_t {
 struct Opcode {
   uint8_t num_fields : 4;
   uint8_t num_bytes : 4;
-  uint8_t rexw : 4;
+  uint8_t mem_width_log: 3;  // 8 = 1, 16 = 2, 32 = 3, 64 = 4, 128 = 5
+  uint8_t rexw : 1;
   // NA (15) == pos not set
   uint8_t modrm_pos : 4;
   uint8_t sib_pos : 4;

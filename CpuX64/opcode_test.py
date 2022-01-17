@@ -21,7 +21,7 @@ def Hexify(data) -> str:
 # This applies some massaging to simplify checking
 def ExtractObjdumpOps(ops_str: str) -> List[str]:
     ops_str = ops_str.split("<")[0]
-    ops_str = ops_str.replace("-0x", "+0x-")
+    ops_str = ops_str.replace("-0x", "+-0x")
     ops_str = ops_str.replace("XMMWORD PTR ", "MEM128,")
     ops_str = ops_str.replace("QWORD PTR ", "MEM64,")
     ops_str = ops_str.replace("DWORD PTR ", "MEM32,")
@@ -96,7 +96,7 @@ def ProcessObjdumpFile(fin):
         if name == "lea" and expected_ops[-1] != actual_ops[-1]:
             assert expected_ops[-1].startswith("0xffffffff")
             v = int(expected_ops[-1][2:], 16) - (1 << 64)
-            expected_ops[-1] = f"0x{v:x}"
+            expected_ops[-1] = f"-0x{-v:x}"
         if expected_ops != actual_ops:
             if True:
                 print(line)

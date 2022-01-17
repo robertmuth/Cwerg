@@ -28,7 +28,7 @@ const char XRegnames[][8] = {
     "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"};
 
 const char* SymbolizeOperand(char* buf,
-                             uint64_t val,
+                             int64_t val,
                              OK ok,
                              bool show_implicits,
                              bool objdump_compat) {
@@ -105,9 +105,16 @@ const char* SymbolizeOperand(char* buf,
     case OK::OFFABS8:
     case OK::OFFABS32:
       if (objdump_compat) {
-        buf[0] = '0';
-        buf[1] = 'x';
-        ToHexString(val, buf + 2);
+        if (val >= 0) {
+          buf[0] = '0';
+          buf[1] = 'x';
+          ToHexString(val, buf + 2);
+        } else {
+          buf[0] = '-';
+          buf[1] = '0';
+          buf[2] = 'x';
+          ToHexString(-val, buf + 3);
+        }
       } else {
         ToDecSignedString(val, buf);
       }
@@ -184,8 +191,15 @@ std::string_view InsSymbolize(const x64::Ins& ins,
       continue;
     }
 
-    if (ok == OK::MODRM_RM_BASE || ok == OK::RIP_BASE || ok == OK::SIB_BASE ||
-        ok == OK::SIB_INDEX_AS_BASE) {
+    if (objdump_compat && (ok == OK::MODRM_RM_BASE || ok == OK::RIP_BASE ||
+                           ok == OK::SIB_BASE || ok == OK::SIB_INDEX_AS_BASE)) {
+      if (ins.opcode->mem_width_log > 0) {
+        buffer[0] = 'M';
+        buffer[1] = 'E';
+        buffer[2] = 'M';
+        ToDecString(4 << ins.opcode->mem_width_log, buffer + 3);
+        ops->emplace_back(buffer);
+      }
     }
 
     if (ins.has_reloc() && i == ins.reloc_pos) {

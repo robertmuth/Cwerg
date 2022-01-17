@@ -88,12 +88,7 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
 
 def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
-    is_lea = ins.opcode.name.startswith("lea")
 
-    def EmitMemSize():
-        if not is_lea:
-            w = x64.FindSpecificOpWidth("M", ins.opcode.operands, ins.opcode.format)
-            out.append(f"MEM{w}")
 
     out = []
     skip_next = 0
@@ -107,7 +102,8 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
             continue
 
         if o in {OK.MODRM_RM_BASE, OK.RIP_BASE, OK.SIB_BASE, OK.SIB_INDEX_AS_BASE}:
-            EmitMemSize()
+            if ins.opcode.mem_width:
+                out.append(f"MEM{ins.opcode.mem_width}")
 
         val = ins.operands[n]
         if o in x64.OK_REG_TO_INFO:
@@ -137,7 +133,10 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
             mask = (1 << bw) - 1
             out.append(f"0x{val & mask:x}")
         elif o in x64.OK_OFF_TO_SIZE:
-            out.append(f"0x{val:x}")
+            if val >= 0:
+                out.append(f"0x{val:x}")
+            else:
+                out.append(f"-0x{-val:x}")
         else:
             assert False, f"Unsupported field {o}"
     return ins.opcode.name, out

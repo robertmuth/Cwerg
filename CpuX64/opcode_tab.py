@@ -545,6 +545,7 @@ class Opcode:
 
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
+        self.mem_width = 0
         #
         self.rexw = False
         self.modrm_pos = -1
@@ -688,6 +689,8 @@ class Opcode:
             self.data += [0, 0, 0, 0]
 
     def AddMemOp(self, mem_mode: MEM_MODE, mod: int, ext: int = -1):
+        if not self.name.startswith("lea"):
+            self.mem_width = FindSpecificOpWidth("M", self.operands, self.format)
         self.modrm_pos = len(self.data)
         assert mod <= 2
         data = mod << 6
@@ -1346,12 +1349,13 @@ def _RenderOpcodeTable():
 
     out = [
         '  // invalid',
-        '  {0, 0, 0, NA, NA, NA, NA, NA, {}, {}, {}},'
+        '  {0, 0, 0, 0, NA, NA, NA, NA, NA, {}, {}, {}},'
     ]
 
     for name, opc in sorted(Opcode.name_to_opcode.items()):
+        mem_width_log = {0: 0, 8: 1, 16: 2, 32: 3, 64: 4, 128: 5}[opc.mem_width]
         out += [
-            f"  {{{len(opc.fields)}, {len(opc.data)}, {int(opc.rexw)}, {Q(opc.modrm_pos)}, " +
+            f"  {{{len(opc.fields)}, {len(opc.data)}, {mem_width_log}, {int(opc.rexw)}, {Q(opc.modrm_pos)}, " +
             f"{Q(opc.sib_pos)}, {Q(opc.offset_pos)}, {Q(opc.imm_pos)}, {Q(opc.byte_with_reg_pos)},  // {name}",
             "   {" + ", ".join(["OK::" + f.name for f in opc.fields]) + "},",
             "   {" + ", ".join([f"0x{b:02x}" for b in opc.data]) + "},",
@@ -1388,9 +1392,9 @@ def _EmitCollisions(fout):
     count = 1
     for fp, collisions in sorted(Opcode.OpcodesByFP.items()):
         while pos < fp:
-            print ("  0,")
+            print("  0,")
             pos += 1
-        print (f"  {count},  // {fp}")
+        print(f"  {count},  // {fp}")
         count += 1 + len(collisions)
         pos += 1
     print("};\n", file=fout)
