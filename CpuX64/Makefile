@@ -79,5 +79,13 @@ opcode_gen_collisions.h: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_collisions >$@
 
+$(DIR)/symbolize_parity:
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
+
+	$(DISASSEMBLER_TOOL) $(TEST_INSTRUCTIONS) > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
+
 clean:
 	rm -f $(DIR)/*

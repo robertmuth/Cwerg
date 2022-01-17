@@ -12,6 +12,7 @@
 namespace cwerg::x64 {
 
 extern std::string_view InsSymbolize(const x64::Ins& ins, bool show_implicits,
+                                     bool objdump_compat,
                                      std::vector<std::string>* ops);
 
 extern bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins);

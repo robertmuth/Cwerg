@@ -42,92 +42,50 @@ std::string ExtractData(std::string_view line) {
   return out;
 }
 
-int main(int argc, char* argv[]) {
-  if (argc <= 1) {
-    std::cout << "no command specified\n";
-    return 1;
+void batch(std::string_view data, const std::string& line) {
+  Ins ins;
+  if (!Disassemble(&ins, data)) {
+    std::cout << "could not find opcode for: " << line << "\n";
+    return;
   }
-  if (std::string_view("batch") == argv[1]) {
-    for (std::string line; getline(std::cin, line);) {
-      if (line[0] == '#') continue;
-      const std::string data = ExtractData(line);
-      Ins ins;
-      if (!Disassemble(&ins, data)) {
-        std::cout << "could not find opcode for: " << line << "\n";
-        continue;
-      }
-      std::vector<std::string> ops;
-      std::string_view enum_name = InsSymbolize(ins, false, &ops);
-      std::cout << std::setw(30) << data << std::dec << " " << enum_name;
-      std::string_view sep = " ";
-      for (const std::string& op : ops) {
-        std::cout << sep << op;
-        sep = ", ";
-      }
-      std::cout << "\n";
-    }
-#if 0
-  } else if (std::string_view("benchmark") == argv[1]) {
-    // The first 1<<28 (256M) bit patterns exercise all opcodes with predicate
-    // "eq"
-    uint32_t num_bad = 0;
-    std::vector<std::string> ops;
-    for (uint32_t data = 0; data < (1U << 28U); ++data) {
-      Ins ins;
-      if (Disassemble(&ins, data)) {
-        const uint32_t data2 = Assemble(ins);
-        if (data != data2) {
-          std::cout << "Disassembler failure " << std::hex << data << " vs "
-                    << data2 << ": ";
-          ops.clear();
-          std::string_view enum_name = InsSymbolize(ins, &ops);
-          std::cout << enum_name;
-          std::string_view sep = " ";
-          for (const std::string& op : ops) {
-            std::cout << sep << op;
-            sep = ", ";
-          }
-          std::cout << "\n";
-          return 1;
-        }
-      } else {
-        ++num_bad;
-      }
-      if (data % 10000000 == 0) {
-        std::cout << num_bad << "/" << data << "\n";
-      }
-    }
+  std::vector<std::string> ops;
+  std::string_view enum_name = InsSymbolize(ins, false, false, &ops);
+  std::cout << std::setw(30) << data << std::dec << " " << enum_name;
+  std::string_view sep = " ";
+  for (const std::string& op : ops) {
+    std::cout << sep << op;
+    sep = ", ";
+  }
+  std::cout << "\n";
+}
 
-    std::cout << "unsupported opcodes: " << std::dec << num_bad << "\n";
-    return 0;
-#endif
-  } else {
-    std::string out;
-    out.reserve(argc);
-    for (unsigned i = 1; i < argc; ++i) {
-      const std::string data = ExtractData(argv[i]);
-      Ins ins;
-      if (!Disassemble(&ins, data)) {
-        std::cout << "could not disassemble " << argv[i] << std::dec << "\n";
-        continue;
-      }
-      std::vector<std::string> ops;
-      std::string_view enum_name = InsSymbolize(ins, true, &ops);
-      std::cout << argv[i] << " " << enum_name;
-      std::string_view sep = " ";
-      for (const std::string& op : ops) {
-        std::cout << sep << op;
-        sep = " ";
-      }
-      std::cout << "\n";
-      for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
-        std::cout << "    " << std::left << std::setw(35)
-                  << EnumToString(ins.opcode->fields[x]) << " " << std::setw(10)
-                  << ops[x] << " (" << ins.operands[x] << ")\n";
-      }
-      std::cout << "\n";
+void disass(std::string_view data, const std::string& line) {
+  Ins ins;
+  if (!Disassemble(&ins, data)) {
+    std::cout << "could not disassemble " << line << std::dec << "\n";
+    return;
+  }
+  std::vector<std::string> ops;
+  std::string_view enum_name = InsSymbolize(ins, true, true, &ops);
+  std::cout << line << " " << enum_name;
+  std::string_view sep = " ";
+  for (const std::string& op : ops) {
+    std::cout << sep << op;
+    sep = " ";
+  }
+  std::cout << "\n";
+
+  ops.clear();
+  enum_name = InsSymbolize(ins, false, false, &ops);
+  std::cout << "    " << enum_name << "\n";
+  for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
+    std::cout << "    " << std::left << std::setw(35)
+              << EnumToString(ins.opcode->fields[x]) << " " << std::setw(10)
+              << ops[x] << " (" << "0x" << std::hex << int64_t (ins.operands[x]) << std::dec << ")\n";
+  }
+  std::cout << "\n";
 #if 0
-      // check that the assembler works - this is not strictly
+  // check that the assembler works - this is not strictly
       // necessary but useful for debugging the assembler
       const uint32_t data2 = Assemble(ins);
       if (data != data2) {
@@ -137,6 +95,25 @@ int main(int argc, char* argv[]) {
       }
       ASSERT(data == data2, "");
 #endif
+}
+
+int main(int argc, char* argv[]) {
+  if (argc <= 1) {
+    std::cout << "no command specified\n";
+    return 1;
+  }
+  if (std::string_view("batch") == argv[1]) {
+    for (std::string line; getline(std::cin, line);) {
+      if (line[0] == '#') continue;
+      const std::string data = ExtractData(line);
+      batch(data, line);
+    }
+  } else {
+    std::string out;
+    out.reserve(argc);
+    for (unsigned i = 1; i < argc; ++i) {
+      const std::string data = ExtractData(argv[i]);
+      disass(data, argv[i]);
     }
 
     return 0;

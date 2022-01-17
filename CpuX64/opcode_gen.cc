@@ -238,7 +238,7 @@ uint32_t FingerPrintRawInstructions(std::string_view data) {
   bool b66 = false;
   for (size_t i = 0; i < data.size(); ++i) {
     uint8_t d = data[i];
-    if ((d & 0xf0) == 040)
+    if ((d & 0xf0) == 0x40)
       b48 = (d >> 3) & 1;
     else if (d == 0x66)
       b66 = true;

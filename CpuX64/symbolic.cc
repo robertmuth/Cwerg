@@ -30,7 +30,8 @@ const char XRegnames[][8] = {
 const char* SymbolizeOperand(char* buf,
                              uint64_t val,
                              OK ok,
-                             bool show_implicits) {
+                             bool show_implicits,
+                             bool objdump_compat) {
   switch (ok) {
     case OK::IMPLICIT_AL:
       return show_implicits ? "al" : nullptr;
@@ -93,11 +94,23 @@ const char* SymbolizeOperand(char* buf,
         return Regnames64[val];
     }
     case OK::SIB_SCALE:
+      if (objdump_compat) {
+        ToDecSignedString(1 << val, buf);
+      } else {
+        ToDecSignedString(val, buf);
+      }
+      return buf;
     case OK::OFFPCREL8:
     case OK::OFFPCREL32:
     case OK::OFFABS8:
     case OK::OFFABS32:
-      ToDecSignedString(val, buf);
+      if (objdump_compat) {
+        buf[0] = '0';
+        buf[1] = 'x';
+        ToHexString(val, buf + 2);
+      } else {
+        ToDecSignedString(val, buf);
+      }
       return buf;
     case OK::IMM8:
     case OK::IMM16:
@@ -107,7 +120,9 @@ const char* SymbolizeOperand(char* buf,
     case OK::IMM8_64:
     case OK::IMM32_64:
     case OK::IMM64:
-      ToHexString(val, buf);
+      buf[0] = '0';
+      buf[1] = 'x';
+      ToHexString(val, buf + 2);
       return buf;
   }
   ASSERT(false, "");
@@ -152,16 +167,33 @@ void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
 
 std::string_view InsSymbolize(const x64::Ins& ins,
                               bool show_implicits,
+                              bool objdump_compat,
                               std::vector<std::string>* ops) {
+  bool skip_next = false;
   char buffer[128];
   const char* s;
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
+    const OK ok = ins.opcode->fields[i];
+    if (skip_next) {
+      skip_next = false;
+      continue;
+    }
+
+    if (objdump_compat && ok == OK::SIB_INDEX && ins.operands[i] == 4) {
+      skip_next = true;
+      continue;
+    }
+
+    if (ok == OK::MODRM_RM_BASE || ok == OK::RIP_BASE || ok == OK::SIB_BASE ||
+        ok == OK::SIB_INDEX_AS_BASE) {
+    }
+
     if (ins.has_reloc() && i == ins.reloc_pos) {
       ASSERT(false, "NYI");
       // SymbolizeReloc(buffer, ins, ins.operands[i]);
     } else {
-      s = SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i],
-                           show_implicits);
+      s = SymbolizeOperand(buffer, ins.operands[i], ok, show_implicits,
+                           objdump_compat);
       if (s == nullptr) continue;
     }
     ops->emplace_back(s);
