@@ -48,7 +48,7 @@ extern std::optional<double> ParseFlt64(std::string_view s);
 extern std::optional<int64_t> ParseInt64(std::string_view s);
 extern std::optional<uint64_t> ParseUint64(std::string_view s);
 
-extern char HexDigit(char c);
+
 
 // =================================================================================
 // Number To Canonical String
@@ -108,5 +108,10 @@ extern std::string_view StrCat(char* buf,
 
 // This works well for std::cin
 std::vector<char> SlurpDataFromStream(std::istream* fin);
+
+extern bool IsWhiteSpace(char c);
+
+// returns -1 on failure
+extern int HexDigit(char c);
 
 }  // namespace cwerg

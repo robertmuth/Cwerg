@@ -28,12 +28,6 @@ char MapEscape(char c) {
   }
 }
 
-char HexDigit(char c) {
-  if ('0' <= c && c <= '9') return c - '0';
-  if ('a' <= c && c <= 'f') return 10 + c - 'a';
-  if ('A' <= c && c <= 'F') return 10 + c - 'A';
-  return -1;
-}
 
 const constexpr unsigned char IdFirstChars[] =
     "_%$"
@@ -472,6 +466,18 @@ uint64_t Flt64ToBits(double d) {
     uint64_t i;
   } u = {d};
   return u.i;
+}
+
+bool IsWhiteSpace(char c) {
+  return  Ctype.isspace(c);
+}
+
+
+int HexDigit(char c) {
+  if ('0' <= c && c <= '9') return c - '0';
+  if ('a' <= c && c <= 'f') return 10 + c - 'a';
+  if ('A' <= c && c <= 'F') return 10 + c - 'A';
+  return -1;
 }
 
 }  // namespace cwerg

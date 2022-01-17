@@ -1330,11 +1330,8 @@ def _EmitCodeH(fout):
     print(f"constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
     print(f"constexpr const unsigned MAX_FINGERPRINT = {MAX_FINGERPRINT};", file=fout)
 
-    cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(MEM_MODE), "class MEM_WIDTH : uint8_t", fout)
-    opcodes = list(sorted(Opcode.name_to_opcode.keys()))
-    # note we sneak in an invalid first entry
-    _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
+    cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
 
 
 def _RenderOpcodeTable():
@@ -1348,7 +1345,7 @@ def _RenderOpcodeTable():
         return "NA" if x < 0 else str(x)
 
     out = [
-        '  // invalid'
+        '  // invalid',
         '  {0, 0, 0, NA, NA, NA, NA, NA, {}, {}, {}},'
     ]
 
@@ -1363,11 +1360,37 @@ def _RenderOpcodeTable():
     return out
 
 
-def _EmitCodeC(fout):
+def _EmitEnum(fout):
+    opcodes = list(sorted(Opcode.name_to_opcode.keys()))
+    # note we sneak in an invalid first entry
+    _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
+
+def _EmitEncodings(fout):
     print("// Indexed by OPC", file=fout)
-    print("const Opcode OpcodeTable[] = {", file=fout)
+    print("const Opcode OpcodeTableEncodings[] = {", file=fout)
     print("\n".join(_RenderOpcodeTable()), file=fout)
     print("};\n", file=fout)
+
+
+def _EmitNames(fout):
+    print("// Indexed by OPC", file=fout)
+    print("const char OpcodeTableNames[][24] = {", file=fout)
+    print('  "",', file=fout)
+    for name in sorted(Opcode.name_to_opcode.keys()):
+        print(f'  "{name}",', file=fout)
+    print("};\n", file=fout)
+
+def _EmitCollisions(fout):
+    print("// Indexed by Fingerprint", file=fout)
+    print("const char OpcodeTableNames[][24] = {", file=fout)
+    print('  "",', file=fout)
+    for name in sorted(Opcode.name_to_opcode.keys()):
+        print(f'  "{name}",', file=fout)
+    print("};\n", file=fout)
+
+def _EmitCodeC(fout):
+    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
+    cgen.RenderEnumToStringFun("OK", fout)
 
 
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))
@@ -1391,8 +1414,14 @@ if __name__ == "__main__":
             for k, v in _OPCODES_BY_FP.items():
                 if v:
                     print(f"{k:10x} {len(v)}")
-    elif sys.argv[1] == "gen_c_clear":
-        cgen.ReplaceContent(lambda fout: print("", file=fout), sys.stdin, sys.stdout)
+    elif sys.argv[1] == "gen_encodings":
+        _EmitEncodings(sys.stdout)
+    elif sys.argv[1] == "gen_enum":
+        _EmitEnum(sys.stdout)
+    elif sys.argv[1] == "gen_names":
+        _EmitNames(sys.stdout)
+    elif sys.argv[1] == "gen_collisions":
+        _EmitCollisions(sys.stdout)
     elif sys.argv[1] == "gen_c":
         cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_h":

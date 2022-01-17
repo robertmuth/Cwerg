@@ -57,5 +57,5 @@ if __name__ == "__main__":
         if sys.argv[1] == "batch":
             batch()
         else:
-            for seq in " ".join(sys.argv[1:]).split(","):
+            for seq in sys.argv[1:]:
                 disass(HexToData(seq))

@@ -5,12 +5,12 @@ $(info $(shell mkdir -p $(DIR)))
 
 TESTS = hello.asm
 
-TEST_INSTRUCTIONS = ff b5 b8 f9 ff ff, \
-                    6a 12, \
-                    48 8b 05 a7 40 7f 00 , \
-                    48 89 b4 04 50 01 00 00, \
-                    48 89 84 24 f0 00 00 00, \
-                    f3 66 41 0f bd cc
+TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
+                    "6a 12" \
+                    "48 8b 05 a7 40 7f 00 " \
+                    "48 89 b4 04 50 01 00 00" \
+                    "48 89 84 24 f0 00 00 00" \
+                    "f3 66 41 0f bd cc"
 
 
 tests: $(DIR)/disassembler_test  $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
@@ -44,6 +44,15 @@ $(DIR)/%.test : TestData/%.asm
 ############################################################
 BUILD_DIR=../build
 
+ASSEMBLER_TOOL=$(BUILD_DIR)/x64_assembler_tool.exe
+DISASSEMBLER_TOOL=$(BUILD_DIR)/x64_disassembler_tool.exe
+
+$(ASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
+
+$(DISASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
+
 opcode_gen.cc: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
@@ -54,6 +63,17 @@ opcode_gen.h: opcode_tab.py
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
+opcode_gen_encodings.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_encodings >$@
+
+opcode_gen_names.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_names >$@
+
+opcode_gen_enum.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_enum >$@
 
 clean:
 	rm -f $(DIR)/*

@@ -26,7 +26,7 @@ for reglist in x64.REG_NAMES.values():
 
 def _EmitReloc(ins: x64.Ins, pos: int) -> str:
     if ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.PC32:
-        loc = "loc_" if  ins.is_local_sym else ""
+        loc = "loc_" if ins.is_local_sym else ""
         offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
         return f"expr:{loc}pcrel32:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.X_64:
@@ -37,48 +37,52 @@ def _EmitReloc(ins: x64.Ins, pos: int) -> str:
         assert False
 
 
+def SymbolizeOperand(ok: OK, val: int) -> str:
+    if ok in x64.OK_TO_IMPLICIT:
+        return None
+    elif ok in x64.OK_REG_TO_INFO:
+        bw, kind = x64.OK_REG_TO_INFO[ok]
+        if kind == "r":
+            return x64.REG_NAMES[bw][val]
+        else:
+            return x64.XREG_NAMES[val]
+    elif ok is OK.MODRM_RM_BASE:
+        return x64.REG_NAMES[64][val]  # assumes no address override
+    elif ok is OK.RIP_BASE:
+        return "rip"
+    elif ok is OK.SIB_BASE:
+        return x64.REG_NAMES[64][val]  # assumes no address override
+    elif ok is OK.SIB_INDEX_AS_BASE:
+        if val == 4:
+            return "nobase"
+        else:
+            return x64.REG_NAMES[64][val]  # assumes no add override
+    elif ok is OK.SIB_INDEX:
+        if val == 4:
+            return "noindex"
+        else:
+            return x64.REG_NAMES[64][val]  # assumes no address override
+    elif ok is OK.SIB_SCALE:
+        return str(val)
+    elif ok in x64.OK_IMM_TO_SIZE:
+        return f"0x{val:x}"
+    elif ok in x64.OK_OFF_TO_SIZE:
+        return str(val)
+    else:
+        assert False, f"Unsupported field {ok}"
+
+
 def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
     out = []
-    for n, o in enumerate(ins.opcode.fields):
+    for n, ok in enumerate(ins.opcode.fields):
         if ins.has_reloc() and ins.reloc_pos == n:
             out.append(_EmitReloc(ins, n))
             continue
-        if isinstance(o, str):
-            out.append(o)
-            continue
-        val = ins.operands[n]
-        assert isinstance(o, OK), f"unexpected {o} {type(o)}"
-        if o in x64.OK_REG_TO_INFO:
-            bw, kind = x64.OK_REG_TO_INFO[o]
-            if kind == "r":
-                out.append(x64.REG_NAMES[bw][val])
-            else:
-                out.append(x64.XREG_NAMES[val])
-        elif o is OK.MODRM_RM_BASE:
-            out.append(x64.REG_NAMES[64][val])  # assumes no address override
-        elif o is OK.RIP_BASE:
-            out.append("rip")
-        elif o is OK.SIB_BASE:
-            out.append(x64.REG_NAMES[64][val])  # assumes no address override
-        elif o is OK.SIB_INDEX_AS_BASE:
-            if val == 4:
-                out.append("nobase")
-            else:
-                out.append(x64.REG_NAMES[64][val])  # assumes no add override
-        elif o is OK.SIB_INDEX:
-            if val == 4:
-                out.append("noindex")
-            else:
-                out.append(x64.REG_NAMES[64][val])  # assumes no address override
-        elif o is OK.SIB_SCALE:
-            out.append(str(val))
-        elif o in x64.OK_IMM_TO_SIZE:
-            out.append(f"0x{val:x}")
-        elif o in x64.OK_OFF_TO_SIZE:
-            out.append(f"{val}")
-        else:
-            assert False, f"Unsupported field {o}"
+        s = SymbolizeOperand(ok, ins.operands[n])
+        if s is not None:
+            out.append(s)
+
     return ins.opcode.EnumName(), out
 
 
@@ -102,6 +106,9 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
                 out.append(x64.OK_TO_IMPLICIT[o])
             continue
 
+        if o in {OK.MODRM_RM_BASE, OK.RIP_BASE, OK.SIB_BASE, OK.SIB_INDEX_AS_BASE}:
+            EmitMemSize()
+
         val = ins.operands[n]
         if o in x64.OK_REG_TO_INFO:
             bw, kind = x64.OK_REG_TO_INFO[o]
@@ -110,16 +117,12 @@ def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[st
             else:
                 out.append(x64.XREG_NAMES[val])
         elif o is OK.MODRM_RM_BASE:
-            EmitMemSize()
             out.append(x64.REG_NAMES[64][val])  # assumes no address override
         elif o is OK.RIP_BASE:
-            EmitMemSize()
             out.append("rip")
         elif o is OK.SIB_BASE:
-            EmitMemSize()
             out.append(x64.REG_NAMES[64][val])  # assumes no address override
         elif o is OK.SIB_INDEX_AS_BASE:
-            EmitMemSize()
             # TODO: handle special case where rindex == sp
             out.append(x64.REG_NAMES[64][val])  # assumes no add override
         elif o is OK.SIB_INDEX:
