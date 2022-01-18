@@ -37,7 +37,7 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
         f"op:[{' '.join(a.name for a in pattern.op_curbs)}]")
     for tmpl in pattern.emit:
         x64ins = tmpl.MakeInsFromTmpl(ins, ctx)
-        name, ops = symbolic.InsSymbolize(x64ins)
+        name, ops = symbolic.InsSymbolize(x64ins, True)
         print(f"    {name} {' '.join(ops)}")
 
 

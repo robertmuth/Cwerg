@@ -894,7 +894,10 @@ class Opcode:
                 continue
             elif o is OK.SIB_BASE:
                 SetRegBits(v, self.sib_pos, 0, 0)
-            elif o in {OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX}:
+            elif o is OK.SIB_INDEX_AS_BASE:
+                assert v != 4
+                SetRegBits(v, self.sib_pos, 3, 1)
+            elif o is OK.SIB_INDEX:
                 SetRegBits(v, self.sib_pos, 3, 1)
             elif o is OK.SIB_SCALE:
                 assert 0 <= v <= 3
@@ -983,7 +986,7 @@ def Disassemble(data: List) -> Optional[Ins]:
 
 
 def Assemble(ins: Ins) -> List[int]:
-    assert ins.reloc_kind == _RELOC_TYPE_X64_NONE, "reloc has not been resolved"
+    assert not ins.has_reloc(), "reloc has not been resolved"
     return ins.opcode.AssembleOperands(ins.operands)
 
 

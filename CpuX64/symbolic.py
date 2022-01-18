@@ -37,9 +37,12 @@ def _EmitReloc(ins: x64.Ins, pos: int) -> str:
         assert False
 
 
-def SymbolizeOperand(ok: OK, val: int) -> str:
+def SymbolizeOperand(ok: OK, val: int, show_implicits: bool) -> str:
     if ok in x64.OK_TO_IMPLICIT:
-        return None
+        if show_implicits:
+            return x64.OK_TO_IMPLICIT[ok]
+        else:
+            return None
     elif ok in x64.OK_REG_TO_INFO:
         bw, kind = x64.OK_REG_TO_INFO[ok]
         if kind == "r":
@@ -72,14 +75,14 @@ def SymbolizeOperand(ok: OK, val: int) -> str:
         assert False, f"Unsupported field {ok}"
 
 
-def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
+def InsSymbolize(ins: x64.Ins, show_implicits: bool) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
     out = []
     for n, ok in enumerate(ins.opcode.fields):
         if ins.has_reloc() and ins.reloc_pos == n:
             out.append(_EmitReloc(ins, n))
             continue
-        s = SymbolizeOperand(ok, ins.operands[n])
+        s = SymbolizeOperand(ok, ins.operands[n], show_implicits)
         if s is not None:
             out.append(s)
 
@@ -88,7 +91,6 @@ def InsSymbolize(ins: x64.Ins) -> Tuple[str, List[str]]:
 
 def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
-
 
     out = []
     skip_next = 0
@@ -147,12 +149,11 @@ def UnsymbolizeOperand(ok: x64.OK, op: str) -> int:
 
     """
 
-    if isinstance(ok, str):
-        assert op == ok
-        return 0
     assert isinstance(ok, x64.OK)
     if ok in x64.OK_REG_TO_INFO or ok in x64.OK_ADDR_REG:
         return SYMBOLIC_OPERAND_TO_INT[op]
+    elif ok in x64.OK_TO_IMPLICIT:
+        return 0
     else:
         return int(op, 0)
 

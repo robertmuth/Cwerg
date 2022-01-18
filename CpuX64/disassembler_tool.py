@@ -15,7 +15,7 @@ def disass(data):
     enum_name, ops_str = symbolic.InsSymbolizeObjdumpCompat(ins, False)
     print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
 
-    enum_name, ops_str = symbolic.InsSymbolize(ins)
+    enum_name, ops_str = symbolic.InsSymbolize(ins, True)
     print("    " + enum_name)
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         if isinstance(f, x64.OK):
@@ -42,10 +42,10 @@ def batch():
         if not line.strip(): continue
         data = HexToData(line.strip())
         ins = x64.Disassemble(data)
-        if ins.opcode is None:
+        if ins is None:
             print(f"could not determine opcode [{x64.Hexify(data)}]")
             continue
-        enum_name, ops_str = symbolic.InsSymbolize(ins)
+        enum_name, ops_str = symbolic.InsSymbolize(ins, True)
         print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
 
         data2 = x64.Assemble(ins)

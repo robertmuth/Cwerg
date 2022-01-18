@@ -34,3 +34,10 @@ f3 66 41 0f bd cc lzcnt_16_r_mr cx r12w
     MODRM_REG16                         cx         (0x1)
     MODRM_RM_REG16                      r12w       (0xc)
 
+41 f7 b8 80 23 03 00 idiv_32_edx_eax_mB32 edx eax MEM32 r8 0x32380
+    idiv_32_edx_eax_mB32
+    IMPLICIT_EDX                        edx        (0x0)
+    IMPLICIT_EAX                        eax        (0x0)
+    MODRM_RM_BASE                       r8         (0x8)
+    OFFABS32                            205696     (0x32380)
+

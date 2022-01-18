@@ -49,7 +49,7 @@ void batch(std::string_view data, const std::string& line) {
     return;
   }
   std::vector<std::string> ops;
-  std::string_view enum_name = InsSymbolize(ins, false, false, &ops);
+  std::string_view enum_name = InsSymbolize(ins, true, false, &ops);
   std::cout << std::setw(30) << data << std::dec << " " << enum_name;
   std::string_view sep = " ";
   for (const std::string& op : ops) {
@@ -59,12 +59,7 @@ void batch(std::string_view data, const std::string& line) {
   std::cout << "\n";
 }
 
-void disass(std::string_view data, const std::string& line) {
-  Ins ins;
-  if (!Disassemble(&ins, data)) {
-    std::cout << "could not disassemble " << line << std::dec << "\n";
-    return;
-  }
+void disass_short(const Ins& ins, const std::string& line) {
   std::vector<std::string> ops;
   std::string_view enum_name = InsSymbolize(ins, true, true, &ops);
   std::cout << line << " " << enum_name;
@@ -74,9 +69,11 @@ void disass(std::string_view data, const std::string& line) {
     sep = " ";
   }
   std::cout << "\n";
+}
 
-  ops.clear();
-  enum_name = InsSymbolize(ins, false, false, &ops);
+void disass_long(const Ins& ins, const std::string& line) {
+  std::vector<std::string> ops;
+  std::string_view enum_name = InsSymbolize(ins, true, false, &ops);
   std::cout << "    " << enum_name << "\n";
   for (unsigned x = 0; x < ins.opcode->num_fields; ++x) {
     int64_t v = ins.operands[x];
@@ -95,17 +92,31 @@ void disass(std::string_view data, const std::string& line) {
               << ops[x] << " (" << buffer << ")\n";
   }
   std::cout << "\n";
-#if 0
-  // check that the assembler works - this is not strictly
-      // necessary but useful for debugging the assembler
-      const uint32_t data2 = Assemble(ins);
-      if (data != data2) {
-        std::cout << "Disassembler failure " << std::hex << data << " vs "
-                  << data2 << "\n";
-        return 1;
-      }
-      ASSERT(data == data2, "");
-#endif
+}
+
+void disass(std::string_view data, const std::string& line) {
+  Ins ins;
+  if (!Disassemble(&ins, data)) {
+    std::cout << "could not disassemble " << line << std::dec << "\n";
+    return;
+  }
+  disass_short(ins, line);
+  disass_long(ins, line);
+  char buffer[128];
+  const uint32_t num_bytes = Assemble(ins, buffer);
+  ASSERT(num_bytes == data.size(), "assembler size mismatch");
+  /*
+  for (uint32_t i = 0; i < num_bytes; ++i) {
+    std::cout << std::hex << (unsigned(data[i]) & 0xff) << " "
+              << (unsigned(buffer[i]) & 0xff) << "\n";
+  }
+  */
+  for (uint32_t i = 0; i < num_bytes; ++i) {
+    ASSERT(data[i] == buffer[i], "assembler byte mismatch "
+                                     << std::dec << i << " " << std::hex
+                                     << unsigned(data[i]) << " "
+                                     << unsigned(buffer[i]));
+  }
 }
 
 int main(int argc, char* argv[]) {
