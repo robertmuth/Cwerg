@@ -46,8 +46,7 @@ def batch():
             print(f"could not determine opcode [{x64.Hexify(data)}]")
             continue
         enum_name, ops_str = symbolic.InsSymbolize(ins, True)
-        print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
-
+        print(f"{x64.Hexify(data):30}", f"{ins.opcode.name}_{ins.opcode.variant} {', '.join(ops_str)}")
         data2 = x64.Assemble(ins)
         assert data == data2
         ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)

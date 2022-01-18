@@ -11,7 +11,10 @@ TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
                     "48 89 b4 04 50 01 00 00" \
                     "48 89 84 24 f0 00 00 00" \
                     "f3 66 41 0f bd cc" \
-                    "41 f7 b8 80 23 03 00"
+                    "41 f7 b8 80 23 03 00" \
+                    "48 83 7e 78 01" \
+                    "f3 0f 11 0c c1" \
+                    "c7 85 dc 00 00 00 00 00 70 c2"
 
 tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
 	@echo "[OK CPUX64]"
@@ -87,9 +90,9 @@ $(DIR)/symbolize_parity:
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
 	#
-	#$(DISASSEMBLER_TOOL) batch < TestData/x64_test.regular.dis > $@.actual_c.out
-	#$(PYPY) ./disassembler_tool.py batch < TestData/x64_test.regular.dis  > $@.actual.out
-	#diff $@.actual_c.out $@.actual.out
+	$(DISASSEMBLER_TOOL) batch < TestData/x64_test.regular.dis > $@.actual_c.out
+	$(PYPY) ./disassembler_tool.py batch < TestData/x64_test.regular.dis  > $@.actual.out
+	diff $@.actual_c.out $@.actual.out
 
 
 clean:

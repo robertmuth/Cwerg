@@ -50,7 +50,8 @@ void batch(std::string_view data, const std::string& line) {
   }
   std::vector<std::string> ops;
   std::string_view enum_name = InsSymbolize(ins, true, false, &ops);
-  std::cout << std::setw(30) << data << std::dec << " " << enum_name;
+  std::cout << std::left << std::setw(30) << line << std::dec << " "
+            << enum_name;
   std::string_view sep = " ";
   for (const std::string& op : ops) {
     std::cout << sep << op;

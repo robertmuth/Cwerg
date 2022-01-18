@@ -122,8 +122,9 @@ uint64_t GetSInt(std::string_view data,
                  int32_t pos,
                  uint32_t src_width,
                  uint32_t dst_width) {
-  int32_t end_pos = pos + src_width / 8 - 1;
   if (pos >= rex_pos) pos++;
+  int32_t end_pos = pos + src_width / 8 - 1;
+
 
   int64_t r = int64_t(data[end_pos--]);
   while (end_pos >= pos) {
@@ -131,7 +132,7 @@ uint64_t GetSInt(std::string_view data,
   }
 
   if (dst_width == 0 || dst_width == 64) return r;
-  return r & ((1 << dst_width) - 1);
+  return r & ((1ULL << dst_width) - 1);
 }
 
 uint64_t GetOperand(OK ok,
@@ -190,7 +191,7 @@ uint64_t GetOperand(OK ok,
       return result;
     }
     case OK::SIB_SCALE:
-      return data[opcode.sib_pos + uint32_t(rex_pos <= opcode.sib_pos)] >> 6;
+      return (data[opcode.sib_pos + uint32_t(rex_pos <= opcode.sib_pos)] >> 6) & 3;
     case OK::BYTE_WITH_REG8: {
       uint64_t result =
           GetRegBits(data, rex_pos, opcode.byte_with_reg_pos, 0, 0);

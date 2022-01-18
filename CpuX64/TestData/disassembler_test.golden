@@ -41,3 +41,22 @@ f3 66 41 0f bd cc lzcnt_16_r_mr cx r12w
     MODRM_RM_BASE                       r8         (0x8)
     OFFABS32                            205696     (0x32380)
 
+48 83 7e 78 01 cmp_64_mB8_imm8 MEM64 rsi 0x78 0x1
+    cmp_64_mB8_imm8
+    MODRM_RM_BASE                       rsi        (0x6)
+    OFFABS8                             120        (0x78)
+    IMM8_64                             0x1        (0x1)
+
+f3 0f 11 0c c1 movss_mbis_x MEM32 rcx rax 8 xmm1
+    movss_mbis_x
+    SIB_BASE                            rcx        (0x1)
+    SIB_INDEX                           rax        (0x0)
+    SIB_SCALE                           3          (0x3)
+    MODRM_XREG32                        xmm1       (0x1)
+
+c7 85 dc 00 00 00 00 00 70 c2 mov_32_mB32_imm32 MEM32 rbp 0xdc 0xc2700000
+    mov_32_mB32_imm32
+    MODRM_RM_BASE                       rbp        (0x5)
+    OFFABS32                            220        (0xdc)
+    IMM32                               0xc2700000 (0xc2700000)
+

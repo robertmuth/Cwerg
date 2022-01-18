@@ -8,7 +8,7 @@ namespace cwerg::x64 {
 using namespace cwerg;
 
 const char Regnames8[][8] = {
-    "al",  "cl",  "d;",   "bl",   "spl",  "bpl",  "sil",  "dil",  //
+    "al",  "cl",  "dl",   "bl",   "spl",  "bpl",  "sil",  "dil",  //
     "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"};
 
 const char Regnames16[][8] = {
