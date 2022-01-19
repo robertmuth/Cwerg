@@ -179,7 +179,7 @@ void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
 std::string_view InsSymbolize(const Ins& ins, std::vector<std::string>* ops) {
   char buffer[128];
   for (unsigned i = 0; i < ins.opcode->num_fields; ++i) {
-    if (ins.reloc_kind != elf::RELOC_TYPE_ARM::NONE && i == ins.reloc_pos) {
+    if (ins.has_reloc() && i == ins.reloc_pos) {
       SymbolizeReloc(buffer, ins, ins.operands[i]);
     } else {
       SymbolizeOperand(buffer, ins.operands[i], ins.opcode->fields[i]);
