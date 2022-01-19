@@ -24,4 +24,4 @@ extern std::ostream& operator<<(std::ostream& os, const A64Unit& s);
 
 extern void ApplyRelocation(const elf::Reloc<uint64_t>& rel);
 
-}  // namespace cwerg::a32
+}  // namespace cwerg::a64

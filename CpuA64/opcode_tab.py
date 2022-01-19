@@ -3,15 +3,15 @@
 """
 ARM 64bit assembler + disassembler + side-effects table
 """
-from Util import cgen
-
-from typing import List, Dict, Tuple, Optional
 
 import collections
 import dataclasses
 import enum
 import re
 import sys
+from typing import List, Dict, Tuple, Optional
+
+from Util import cgen
 
 _DEBUG = False
 
@@ -619,7 +619,7 @@ def TryEncodeOperand(ok: OK, val_orig: int) -> Optional[int]:
             return None
         val &= ((1 << t.bitwidth) - 1)
     else:
-        assert t.kind in {FK.NONE, FK.INT, FK.INT_HEX},  f"unexpected kind {t.kind}"
+        assert t.kind in {FK.NONE, FK.INT, FK.INT_HEX}, f"unexpected kind {t.kind}"
 
     if (val >> t.bitwidth) != 0:
         return None
@@ -1443,7 +1443,7 @@ class Ins:
         self.reloc_pos = 0
 
     def has_reloc(self):
-        return  self.reloc_kind != _RELOC_TYPE_AARCH64M_NONE
+        return self.reloc_kind != _RELOC_TYPE_AARCH64M_NONE
 
     def set_reloc(self, kind, is_local, pos, symbol):
         self.reloc_kind = kind
