@@ -37,7 +37,7 @@ def _EmitReloc(ins: x64.Ins, pos: int) -> str:
         assert False
 
 
-def SymbolizeOperand(ok: OK, val: int, show_implicits: bool) -> str:
+def SymbolizeOperand(ok: OK, val: int, show_implicits: bool, objdump_compat) -> str:
     if ok in x64.OK_TO_IMPLICIT:
         if show_implicits:
             return x64.OK_TO_IMPLICIT[ok]
@@ -66,82 +66,49 @@ def SymbolizeOperand(ok: OK, val: int, show_implicits: bool) -> str:
         else:
             return x64.REG_NAMES[64][val]  # assumes no address override
     elif ok is OK.SIB_SCALE:
+        if objdump_compat:
+            return str(1 << val)
         return str(val)
     elif ok in x64.OK_IMM_TO_SIZE:
         return f"0x{val:x}"
     elif ok in x64.OK_OFF_TO_SIZE:
+        if objdump_compat:
+            if val >= 0:
+                return f"0x{val:x}"
+            else:
+                return f"-0x{-val:x}"
         return str(val)
     else:
         assert False, f"Unsupported field {ok}"
 
 
-def InsSymbolize(ins: x64.Ins, show_implicits: bool) -> Tuple[str, List[str]]:
+def InsSymbolize(ins: x64.Ins, show_implicits: bool, objdump_compat: bool = False) -> Tuple[str, List[str]]:
     assert len(ins.operands) == len(ins.opcode.fields)
+    skip_next = 0
     out = []
     for n, ok in enumerate(ins.opcode.fields):
-        if ins.has_reloc() and ins.reloc_pos == n:
-            out.append(_EmitReloc(ins, n))
-            continue
-        s = SymbolizeOperand(ok, ins.operands[n], show_implicits)
-        if s is not None:
-            out.append(s)
-
-    return ins.opcode.EnumName(), out
-
-
-def InsSymbolizeObjdumpCompat(ins: x64.Ins, skip_implicit) -> Tuple[str, List[str]]:
-    assert len(ins.operands) == len(ins.opcode.fields)
-
-    out = []
-    skip_next = 0
-    for n, o in enumerate(ins.opcode.fields):
-        if skip_next > 0:
-            skip_next -= 1
-            continue
-        if o in x64.OK_TO_IMPLICIT:
-            if not skip_implicit:
-                out.append(x64.OK_TO_IMPLICIT[o])
+        if skip_next:
+            skip_next = False
             continue
 
-        if o in {OK.MODRM_RM_BASE, OK.RIP_BASE, OK.SIB_BASE, OK.SIB_INDEX_AS_BASE}:
+        if objdump_compat and ok is OK.SIB_INDEX and ins.operands[n] == 4:
+            skip_next = True
+            continue
+
+        if objdump_compat and ok in {OK.MODRM_RM_BASE, OK.RIP_BASE, OK.SIB_BASE, OK.SIB_INDEX_AS_BASE}:
             if ins.opcode.mem_width:
                 out.append(f"MEM{ins.opcode.mem_width}")
 
-        val = ins.operands[n]
-        if o in x64.OK_REG_TO_INFO:
-            bw, kind = x64.OK_REG_TO_INFO[o]
-            if kind == "r":
-                out.append(x64.REG_NAMES[bw][val])
-            else:
-                out.append(x64.XREG_NAMES[val])
-        elif o is OK.MODRM_RM_BASE:
-            out.append(x64.REG_NAMES[64][val])  # assumes no address override
-        elif o is OK.RIP_BASE:
-            out.append("rip")
-        elif o is OK.SIB_BASE:
-            out.append(x64.REG_NAMES[64][val])  # assumes no address override
-        elif o is OK.SIB_INDEX_AS_BASE:
-            # TODO: handle special case where rindex == sp
-            out.append(x64.REG_NAMES[64][val])  # assumes no add override
-        elif o is OK.SIB_INDEX:
-            if val == 4:
-                skip_next = 1
-            else:
-                out.append(x64.REG_NAMES[64][val])  # assumes no add override
-        elif o is OK.SIB_SCALE:
-            out.append(str(1 << val))
-        elif o in x64.OK_IMM_TO_SIZE:
-            _, bw = x64.OK_IMM_TO_SIZE[o]
-            mask = (1 << bw) - 1
-            out.append(f"0x{val & mask:x}")
-        elif o in x64.OK_OFF_TO_SIZE:
-            if val >= 0:
-                out.append(f"0x{val:x}")
-            else:
-                out.append(f"-0x{-val:x}")
-        else:
-            assert False, f"Unsupported field {o}"
-    return ins.opcode.name, out
+        if ins.has_reloc() and ins.reloc_pos == n:
+            out.append(_EmitReloc(ins, n))
+            continue
+        s = SymbolizeOperand(ok, ins.operands[n], show_implicits, objdump_compat)
+        if s is not None:
+            out.append(s)
+
+    if objdump_compat:
+        return ins.opcode.name, out
+    return ins.opcode.EnumName(), out
 
 
 def UnsymbolizeOperand(ok: x64.OK, op: str) -> int:

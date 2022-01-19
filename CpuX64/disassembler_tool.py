@@ -12,7 +12,7 @@ def disass(data):
         print(f"could not determine opcode {x64.Hexify(data)}")
         return
 
-    enum_name, ops_str = symbolic.InsSymbolizeObjdumpCompat(ins, False)
+    enum_name, ops_str = symbolic.InsSymbolize(ins, True, True)
     print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
 
     enum_name, ops_str = symbolic.InsSymbolize(ins, True)
