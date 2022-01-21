@@ -16,7 +16,7 @@ TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
                     "f3 0f 11 0c c1" \
                     "c7 85 dc 00 00 00 00 00 70 c2"
 
-tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
+tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(DIR)/codegen_parity $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
 	@echo "[OK CPUX64]"
 
 hello-x64:
@@ -41,20 +41,9 @@ $(DIR)/%.test : TestData/%.asm
 	$@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
-
 ############################################################
-# C++ Port
+# Code Gen
 ############################################################
-BUILD_DIR=../build
-
-ASSEMBLER_TOOL=$(BUILD_DIR)/x64_assembler_tool.exe
-DISASSEMBLER_TOOL=$(BUILD_DIR)/x64_disassembler_tool.exe
-
-$(ASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
-
-$(DISASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
 
 opcode_gen.cc: opcode_tab.py
 	@echo "[$@]"
@@ -82,6 +71,22 @@ opcode_gen_collisions.h: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_collisions >$@
 
+############################################################
+# C++ Port
+############################################################
+BUILD_DIR=../build
+
+ASSEMBLER_TOOL=$(BUILD_DIR)/x64_assembler_tool.exe
+DISASSEMBLER_TOOL=$(BUILD_DIR)/x64_disassembler_tool.exe
+
+$(ASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
+
+$(DISASSEMBLER_TOOL):
+	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
+
+
+
 $(DIR)/symbolize_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
@@ -93,6 +98,15 @@ $(DIR)/symbolize_parity:
 	$(DISASSEMBLER_TOOL) batch < TestData/x64_test.regular.dis > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py batch < TestData/x64_test.regular.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
+
+$(DIR)/codegen_parity:
+	@echo "[$@]"
+	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
+	@echo
+	$(ASSEMBLER_TOOL) assemble_raw TestData/hello.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble_raw  TestData/hello.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
+	@echo
 
 
 clean:

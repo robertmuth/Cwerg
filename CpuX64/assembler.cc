@@ -20,16 +20,35 @@ constexpr auto operator+(T e) noexcept
 std::string_view padding_zero("\0", 1);
 std::string_view padding_nop("\x1f\x20\x03\xd5", 4);
 
+uint32_t RelocFieldOffsetFromEndOfIns(const x64::Opcode& opcode) {
+  if (opcode.offset_pos != NA) {
+    return opcode.num_bytes - opcode.offset_pos;
+  } else {
+    ASSERT(opcode.imm_pos != NA, "");
+    return opcode.num_bytes - opcode.imm_pos;
+  }
+}
+
 void AddIns(X64Unit* unit, Ins* ins) {
+  char buffer[64];
+  uint32_t len;
   if (ins->has_reloc()) {
     const elf::Symbol<uint64_t>* sym =
         unit->FindOrAddSymbol(ins->reloc_symbol, ins->is_local_sym);
-    unit->AddReloc(+ins->reloc_kind, unit->sec_text, sym,
-                   ins->operands[ins->reloc_pos]);
+    const elf::RELOC_TYPE_X86_64 kind = ins->reloc_kind;
+    int64_t addend = ins->operands[ins->reloc_pos];
     ins->clear_reloc();
+    len = Assemble(*ins, buffer);
+    const uint32_t distance_to_ins_end =
+        RelocFieldOffsetFromEndOfIns(*ins->opcode);
+    if (kind == elf::RELOC_TYPE_X86_64::PC32) {
+      addend -= distance_to_ins_end;
+    }
+    unit->AddReloc(+kind, unit->sec_text, sym, addend,
+                   len - distance_to_ins_end);
+  } else {
+    len = Assemble(*ins, buffer);
   }
-  char buffer[64];
-  uint32_t len = Assemble(*ins, buffer);
   unit->sec_text->AddData({buffer, len});
 }
 
@@ -162,7 +181,7 @@ bool UnitParse(std::istream* input, bool add_startup_code, X64Unit* unit) {
 
 int32_t PcOffset32(const Reloc<uint64_t>& rel, int64_t sym_val) {
   int64_t offset = sym_val - (rel.section->shdr.sh_addr + rel.rel.r_offset);
-  ASSERT((-int64_t (1LL << 31) <= offset) && offset < int64_t (1LL << 31),
+  ASSERT((-int64_t(1LL << 31) <= offset) && offset < int64_t(1LL << 31),
          "PcOffset overflow " << offset << " for symbol " << rel.symbol->name);
   return offset;
 }
@@ -172,18 +191,16 @@ uint32_t RelWidth(RELOC_TYPE_X86_64 rel_type) {
 }
 
 void ApplyRelocation(const Reloc<uint64_t>& rel) {
-
   void* patch_addr = (char*)rel.section->data->data() + rel.rel.r_offset;
   const int64_t sym_val = rel.symbol->sym.st_value + rel.rel.r_addend;
   const uint32_t width = RelWidth(RELOC_TYPE_X86_64(rel.rel.r_type));
   ASSERT(rel.rel.r_offset + width < rel.section->data->size(), "");
-
   switch (RELOC_TYPE_X86_64(rel.rel.r_type)) {
     case elf::RELOC_TYPE_X86_64::PC32:
       *((int32_t*)patch_addr) = PcOffset32(rel, sym_val);
       return;
     case elf::RELOC_TYPE_X86_64::X_64:
-       *((int64_t*)patch_addr) = sym_val;
+      *((int64_t*)patch_addr) = sym_val;
       return;
     default:
       ASSERT(false, "unknown relocation type " << rel.rel.r_type);

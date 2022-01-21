@@ -170,9 +170,11 @@ struct Unit {
   void AddReloc(uint32_t reloc_kind,
                 const Section<elfsize_t>* sec,
                 const Symbol<elfsize_t>* sym,
-                uint32_t addend) {
+                int32_t addend,
+                uint32_t reloc_offset_addend = 0) {
     relocations.emplace_back(Reloc<elfsize_t>());
-    relocations.back().Init(reloc_kind, sec, sec->data->size(), sym, addend);
+    relocations.back().Init(
+        reloc_kind, sec, sec->data->size() + reloc_offset_addend, sym, addend);
   }
 
   void AddLinkerDefs() {

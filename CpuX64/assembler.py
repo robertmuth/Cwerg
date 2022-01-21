@@ -32,8 +32,10 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
 
 def _RelocFieldOffsetFromEndOfIns(opcode: x64.Opcode):
     """We measure from the end for two reasons
-    1) the instruction may have additionnal prefixes
+    1) the instruction may have additional prefixes
     2) for pc relative addressing, the pc will point this many bytes further ahead
+
+    Note, we probably should take the reloc operand pos into account
     """
     if opcode.offset_pos > 0:
         # if the ins has an offset we assume that is gets relocated.
@@ -49,7 +51,7 @@ def AddIns(unit: elf_unit.Unit, ins: x64.Ins):
         kind = ins.reloc_kind
         addend = ins.operands[ins.reloc_pos]
         ins.clear_reloc()  # we need to clear the reloc info BEFORE assembling
-        ins_data = bytes(x64.Assemble(ins))
+        ins_data = bytes(x64.Assemble(ins))  # note we do not know the exact length because of prefixes
         distance_to_ins_end = _RelocFieldOffsetFromEndOfIns(ins.opcode)
         if kind in {enum_tab.RELOC_TYPE_X86_64.PC32}:
             addend -= distance_to_ins_end
