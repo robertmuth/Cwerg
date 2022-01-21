@@ -1380,11 +1380,46 @@ def _EmitEncodings(fout):
     print("};\n", file=fout)
 
 
+_MNEMONIC_HASH_TABLE_SIZE = 8192
+
+
+def hash_djb2(x: str):
+    """ Simple string hash function for mnemonics
+
+     see http://www.cse.yorku.ca/~oz/hash.html"""
+    h = 5381
+    for c in x:
+        h = (h << 5) + h + ord(c)
+    return h & 0xffff
+
+
+def _RenderMnemonicHashLookup():
+    table = ["invalid"] * _MNEMONIC_HASH_TABLE_SIZE
+    for name, opc in Opcode.name_to_opcode.items():
+        h = hash_djb2(name)
+        for d in range(16):
+            hh = (h + d) % _MNEMONIC_HASH_TABLE_SIZE
+            if table[hh] == "invalid":
+                table[hh] = name
+                break
+        else:
+            assert False, f"probing distance exceeded {name}"
+    items = [f"OPC::{t}," for t in table]
+    return ["   " + " ".join(items[i:i + 4]) for i in range(0, len(items), 4)]
+
+
 def _EmitNames(fout):
     print("// Indexed by OPC", file=fout)
     print("const char OpcodeTableNames[][24] = {", file=fout)
+    print('  "invalid",', file=fout)
     for name in sorted(Opcode.name_to_opcode.keys()):
         print(f'  "{name}",', file=fout)
+    print("};\n", file=fout)
+    print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
+    print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
+          file=fout)
+    print(f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
+    print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
 

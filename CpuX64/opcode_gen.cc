@@ -432,4 +432,19 @@ uint32_t Assemble(const Ins& ins, char* data) {
   return opcode.num_bytes;
 }
 
+const Opcode* FindOpcodeForMnemonic(std::string_view s) {
+  uint32_t h = 5381;
+  for (uint8_t c : s) {
+    h = (h << 5U) + h + c;
+  }
+  h &= 0xffffU;
+
+  for (uint32_t d = 0; d < MNEMONIC_HASH_TABLE_SIZE; ++d) {
+    OPC opc = MnemonicHashTable[(h + d) % MNEMONIC_HASH_TABLE_SIZE];
+    if (opc == OPC::invalid) return nullptr;
+    if (OpcodeTableNames[uint32_t (opc)] == s) return &OpcodeTableEncodings[uint32_t(opc)];
+  }
+  return nullptr;
+}
+
 }  // namespace cwerg::x64
