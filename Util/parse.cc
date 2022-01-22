@@ -28,7 +28,6 @@ char MapEscape(char c) {
   }
 }
 
-
 const constexpr unsigned char IdFirstChars[] =
     "_%$"
     "abcdefghijklmnopqrstuvwxyz"
@@ -468,16 +467,30 @@ uint64_t Flt64ToBits(double d) {
   return u.i;
 }
 
-bool IsWhiteSpace(char c) {
-  return  Ctype.isspace(c);
-}
-
+bool IsWhiteSpace(char c) { return Ctype.isspace(c); }
 
 int HexDigit(char c) {
   if ('0' <= c && c <= '9') return c - '0';
   if ('a' <= c && c <= 'f') return 10 + c - 'a';
   if ('A' <= c && c <= 'F') return 10 + c - 'A';
   return -1;
+}
+
+std::optional<ExpressionOp> ParseExpressionOp(std::string_view expr) {
+  const size_t colon_sym = expr.find(':');
+  if (colon_sym == std::string_view::npos) return std::nullopt;
+  const std::string_view reloc_name = expr.substr(0, colon_sym);
+  const std::string_view rest = expr.substr(colon_sym + 1);
+  const size_t colon_addend = rest.find(':');
+  const std::string_view symbol_name = rest.substr(
+      0, colon_addend == std::string_view ::npos ? rest.size() : colon_addend);
+  int32_t offset = 0;
+  if (colon_addend != std::string_view::npos) {
+    auto val = ParseInt<int32_t>(rest.substr(colon_addend + 1));
+    if (!val.has_value()) return std::nullopt;
+    offset = val.value();
+  }
+  return ExpressionOp{reloc_name, symbol_name, offset};
 }
 
 }  // namespace cwerg

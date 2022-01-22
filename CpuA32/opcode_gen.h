@@ -622,6 +622,15 @@ struct Ins {
       operands[reloc_pos] = 0;
     }
   }
+  void set_reloc(elf::RELOC_TYPE_ARM kind,
+                 bool is_local,
+                 uint8_t pos,
+                 std::string_view symbol) {
+    reloc_kind = kind;
+    is_local_sym = is_local;
+    reloc_pos = pos;
+    reloc_symbol = symbol;
+  }
 };
 
 

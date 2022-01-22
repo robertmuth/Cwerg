@@ -114,4 +114,17 @@ extern bool IsWhiteSpace(char c);
 // returns -1 on failure
 extern int HexDigit(char c);
 
+struct ExpressionOp {
+  std::string_view reloc_name;
+  std::string_view symbol_name;
+  int32_t offset;
+};
+
+// `expr` looks like
+//  expr:call:putchar
+//  expr:jump24:skip
+//  expr:movw_abs_nc:fmt:0
+extern std::optional<ExpressionOp> ParseExpressionOp(std::string_view expr);
+
+
 }  // namespace cwerg

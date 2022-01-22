@@ -212,38 +212,31 @@ std::string_view InsSymbolize(const x64::Ins& ins,
   return OpcodeName(ins.opcode);
 }
 
+const constexpr struct {
+  std::string_view expr_kind;
+  elf::RELOC_TYPE_X86_64 reloc_kind;
+  bool local;
+} kExprToReloc[] = {
+    // order by frequency
+    {"pcrel8", elf::RELOC_TYPE_X86_64::PC8, false},
+    {"pcrel32", elf::RELOC_TYPE_X86_64::PC32, false},
+    {"loc_pcrel8", elf::RELOC_TYPE_X86_64::PC8, true},
+    {"loc_pcrel32", elf::RELOC_TYPE_X86_64::PC32, true},
+    {"abs32", elf::RELOC_TYPE_X86_64::X_32, false},
+    {"abs64", elf::RELOC_TYPE_X86_64::X_64, false},
+};
+
 bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
-  const size_t colon_sym = expr.find(':');
-  if (colon_sym == std::string_view::npos) return false;
-  const std::string_view kind_name = expr.substr(0, colon_sym);
-  std::string_view rest = expr.substr(colon_sym + 1);
-  const size_t colon_addend = rest.find(':');
-  const std::string_view symbol = rest.substr(0, colon_addend);
-
-  if (kind_name == "pcrel8") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::PC8, false, pos, symbol);
-  } else if (kind_name == "pcrel32") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, false, pos, symbol);
-  } else if (kind_name == "loc_pcrel8") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::PC8, true, pos, symbol);
-  } else if (kind_name == "loc_pcrel32") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, true, pos, symbol);
-  } else if (kind_name == "abs32") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::X_32, false, pos, symbol);
-  } else if (kind_name == "abs64") {
-    ins->set_reloc(elf::RELOC_TYPE_X86_64::X_64, false, pos, symbol);
-  } else {
-    return false;
+  auto expr_op = ParseExpressionOp(expr);
+  if (!expr_op) return false;
+  ins->operands[pos] = expr_op->offset;
+  for (const auto& x : kExprToReloc) {
+    if (x.expr_kind == expr_op->reloc_name) {
+      ins->set_reloc(x.reloc_kind, x.local, pos, expr_op->symbol_name);
+      return true;
+    }
   }
-  uint64_t addend = 0;
-  if (colon_addend != std::string_view::npos) {
-    auto val = ParseInt<int64_t>(rest.substr(colon_addend + 1));
-    if (!val.has_value()) return false;
-    addend = val.value();
-  }
-  ins->operands[pos] = addend;
-
-  return true;
+  return false;
 }
 
 bool ParseReg(std::string_view op, int64_t* val, const char names[16][8]) {

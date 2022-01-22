@@ -104,43 +104,32 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view s) {
   return a32::EncodeOperand(UnsymbolizeOperandString(fi, s), ok);
 }
 
-bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
-  ins->reloc_pos = pos;
-  const size_t colon_sym = expr.find(':');
-  if (colon_sym == std::string_view::npos) return false;
-  const std::string_view kind_name = expr.substr(0, colon_sym);
-  if (kind_name == "abs32") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::ABS32;
-  } else if (kind_name == "jump24") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::JUMP24;
-    ins->is_local_sym = true;
-  } else if (kind_name == "call") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::CALL;
-  } else if (kind_name == "movw_abs_nc") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
-  } else if (kind_name == "movt_abs") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
-  } else if (kind_name == "loc_movw_abs_nc") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVW_ABS_NC;
-    ins->is_local_sym = true;
-  } else if (kind_name == "loc_movt_abs") {
-    ins->reloc_kind = elf::RELOC_TYPE_ARM::MOVT_ABS;
-    ins->is_local_sym = true;
-  } else {
-    return false;
-  }
-  //
-  std::string_view rest = expr.substr(colon_sym + 1);
-  const size_t colon_addend = rest.find(':');
-  ins->reloc_symbol = rest.substr(0, colon_addend);
+const constexpr struct {
+  std::string_view expr_kind;
+  elf::RELOC_TYPE_ARM reloc_kind;
+  bool local;
+} kExprToReloc[] = {
+    // order by frequency
+    {"jump24", elf::RELOC_TYPE_ARM::JUMP24, true},
+    {"call", elf::RELOC_TYPE_ARM::CALL, false},
+    {"abs32", elf::RELOC_TYPE_ARM::ABS32, false},
+    {"movw_abs_nc", elf::RELOC_TYPE_ARM::MOVW_ABS_NC, false},
+    {"movt_abs", elf::RELOC_TYPE_ARM::MOVT_ABS, false},
+    {"loc_movw_abs_nc", elf::RELOC_TYPE_ARM::MOVW_ABS_NC, true},
+    {"loc_movt_abs", elf::RELOC_TYPE_ARM::MOVT_ABS, true},
+};
 
-  ins->operands[pos] = 0;
-  if (colon_addend != std::string_view::npos) {
-    auto val = ParseInt<int32_t>(rest.substr(colon_addend + 1));
-    if (!val.has_value()) return false;
-    ins->operands[pos] = val.value();
+bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
+  auto expr_op = ParseExpressionOp(expr);
+  if (!expr_op) return false;
+  ins->operands[pos] = expr_op->offset;
+  for (const auto& x : kExprToReloc) {
+    if (x.expr_kind == expr_op->reloc_name) {
+      ins->set_reloc(x.reloc_kind, x.local, pos, expr_op->symbol_name);
+      return true;
+    }
   }
-  return true;
+  return false;
 }
 
 void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {

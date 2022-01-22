@@ -140,47 +140,34 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
   return EncodeOperand(ok, val);
 }
 
+const constexpr struct {
+  std::string_view expr_kind;
+  elf::RELOC_TYPE_AARCH64 reloc_kind;
+  bool local;
+} kExprToReloc[] = {
+    // order by frequency
+    {"jump26", elf::RELOC_TYPE_AARCH64::JUMP26, true},
+    {"condbr19", elf::RELOC_TYPE_AARCH64::CONDBR19, true},
+    {"call26", elf::RELOC_TYPE_AARCH64::CALL26, false},
+    {"adr_prel_pg_hi21", elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, false},
+    {"add_abs_lo12_nc", elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC, false},
+    {"loc_adr_prel_pg_hi21", elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, true},
+    {"loc_add_abs_lo12_nc", elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC, true},
+    {"abs32", elf::RELOC_TYPE_AARCH64::ABS32, false},
+    {"abs64", elf::RELOC_TYPE_AARCH64::ABS64, false},
+};
+
 bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
-  const size_t colon_sym = expr.find(':');
-  if (colon_sym == std::string_view::npos) return false;
-  const std::string_view kind_name = expr.substr(0, colon_sym);
-  const std::string_view rest = expr.substr(colon_sym + 1);
-  const size_t colon_addend = rest.find(':');
-  const std::string_view symbol = rest.substr(0, colon_addend);
-
-  if (kind_name == "abs32") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ABS32, false, pos, symbol);
-  } else if (kind_name == "abs64") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ABS64, false, pos, symbol);
-  } else if (kind_name == "jump26") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::JUMP26, true, pos, symbol);
-  } else if (kind_name == "condbr19") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::CONDBR19, true, pos, symbol);
-  } else if (kind_name == "call26") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::CALL26, false, pos, symbol);
-  } else if (kind_name == "adr_prel_pg_hi21") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, false, pos,
-                   symbol);
-  } else if (kind_name == "add_abs_lo12_nc") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC, false, pos,
-                   symbol);
-  } else if (kind_name == "loc_adr_prel_pg_hi21") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, true, pos,
-                   symbol);
-  } else if (kind_name == "loc_add_abs_lo12_nc") {
-    ins->set_reloc(elf::RELOC_TYPE_AARCH64::TLSGD_ADD_LO12_NC, true, pos,
-                   symbol);
-  } else {
-    return false;
+  auto expr_op = ParseExpressionOp(expr);
+  if (!expr_op) return false;
+  ins->operands[pos] = expr_op->offset;
+  for (const auto& x : kExprToReloc) {
+    if (x.expr_kind == expr_op->reloc_name) {
+      ins->set_reloc(x.reloc_kind, x.local, pos, expr_op->symbol_name);
+      return true;
+    }
   }
-
-  ins->operands[pos] = 0;
-  if (colon_addend != std::string_view::npos) {
-    auto val = ParseInt<int32_t>(rest.substr(colon_addend + 1));
-    if (!val.has_value()) return false;
-    ins->operands[pos] = val.value();
-  }
-  return true;
+  return false;
 }
 
 bool InsFromSymbolized(const std::vector<std::string_view>& token, Ins* ins) {
