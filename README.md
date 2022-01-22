@@ -19,10 +19,10 @@ The project is very much "work in progress" and  currently consists of:
 * [Elf Support Lib](Elf/)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/) ((dis-) assembler for ARM64 instructions)
-* [X64 Support Lib](CpuX64/) ((dis-) assembler for X64-64 instructions - WIP)
+* [X64 Support Lib](CpuX64/) ((dis-) assembler for X64-64 instructions)
 * [A32 Backend](CodeGenA32/) (code generator emitting ARM32 instructions)
 * [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
-* [X64 Backend](CodeGenX64/) (code generator emitting X86-64 instructions - WIP)
+* [X64 Backend](CodeGenX64/) (code generator emitting X86-64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
@@ -64,8 +64,7 @@ Since the project is still evolving, the details are not entirely cast in stone 
 **the following features are unlikely to be supported** (contact us before starting 
 any work on these):
 
-* Instruction sets other than [little endian](https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures) (host and target) with 
-  2's complement integers.
+* Instruction sets other than [little endian](https://en.wikipedia.org/wiki/Comparison_of_instruction_set_architectures) (host and target) with 2's complement integers and IEEE floats.
 * Variable number of function parameters (var-args). Basically only used for
   printf/scanf and responsible for a disproportionate amount of complexity in 
   ABIs. (Note, this precludes a proper C frontend.)
@@ -95,8 +94,6 @@ The IR optimizer currently does not use a full-blown Single Static Assigment
 to get some of the benefits of SSA. 
 
 ## Porting to other Architectures
-
-A port to X86-64 is currently WIP.
 
 Ports for more regular architectures, e.g. RISC V, should be straight forward to implement [(see porting hints)](Docs/backend_porting.md).
 
