@@ -88,6 +88,20 @@ $(DIR)/nanojpeg:
 	diff $@.actual TestData/nano_jpeg.golden
 
 ############################################################
+# Code Gen
+############################################################
+
+isel_gen.cc: isel_tab.py
+	@echo "[$@]"
+	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+isel_gen.h: isel_tab.py
+	@echo "[$@]"
+	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+############################################################
 # C++
 ############################################################
 BUILD_DIR=../build
@@ -110,16 +124,6 @@ $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@chmod a+rx $@
 	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
-
-isel_gen.cc: isel_tab.py
-	@echo "[$@]"
-	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-isel_gen.h: isel_tab.py
-	@echo "[$@]"
-	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
 
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"

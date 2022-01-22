@@ -53,6 +53,20 @@ opcodes:
 	$(PYPY) ./opcode_tab.py dist
 
 ############################################################
+# Code Gen
+############################################################
+
+opcode_gen.cc: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+opcode_gen.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+############################################################
 # C++ Port
 ############################################################
 BUILD_DIR=../build
@@ -72,18 +86,6 @@ $(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
 	chmod a+x $@.exe
 	$(QEMU) $@.exe > $@.actual_c.out
 	diff $@.actual_c.out $<.golden
-
-
-opcode_gen.cc: opcode_tab.py
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-opcode_gen.h: opcode_tab.py
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
 
 $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	@echo "[$@]"
