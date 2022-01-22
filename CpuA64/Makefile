@@ -44,6 +44,20 @@ $(DIR)/disassembler_test:
 	diff $@.actual.out TestData/disassembler_test.golden
 
 ############################################################
+# Code Gen
+############################################################
+
+opcode_gen.cc: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+opcode_gen.h: opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+############################################################
 # C++ Port
 ############################################################
 BUILD_DIR=../build
@@ -56,16 +70,6 @@ $(ASSEMBLER_TOOL):
 
 $(DISASSEMBLER_TOOL):
 	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
-
-opcode_gen.cc: opcode_tab.py
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-opcode_gen.h: opcode_tab.py
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
 
 opcode_test_c: opcode_gen.h opcode_gen.cc
 	@echo "[$@]"
@@ -85,7 +89,7 @@ $(DIR)/symbolize_parity:
 	$(PYPY) ./disassembler_tool.py batch < TestData/a64_test.regular.dis  > $@.actual.out
 	diff $@.actual_c.out $@.actual.out
 
-$(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
+$(DIR)/codegen_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
 	@echo

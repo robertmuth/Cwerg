@@ -24,11 +24,11 @@ char* strappenddec(char* dst, int64_t n) {
 
 char* strappendhex(char* dst, int64_t n) {
   dst = strappend(dst, "0x");
-  return  dst + ToHexString(n, dst).size();
+  return dst + ToHexString(n, dst).size();
 }
 
 char* strappendflt(char* dst, double d) {
-  return  dst + ToFltString(d, dst).size();
+  return dst + ToFltString(d, dst).size();
 }
 
 char* SymbolizeOperand(char* buf, uint32_t data, OK ok) {
@@ -61,11 +61,13 @@ void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
       cp = strappend(cp, ins.reloc_symbol);
       break;
     case elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21:
-      cp = strappend(cp, ins.is_local_sym ? "loc_adr_prel_pg_hi21:": "adr_prel_pg_hi21:");
+      cp = strappend(
+          cp, ins.is_local_sym ? "loc_adr_prel_pg_hi21:" : "adr_prel_pg_hi21:");
       cp = strappend(cp, ins.reloc_symbol);
       break;
     case elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC:
-      cp = strappend(cp, ins.is_local_sym ? "loc_add_abs_lo12_nc:": "add_abs_lo12_nc:");
+      cp = strappend(
+          cp, ins.is_local_sym ? "loc_add_abs_lo12_nc:" : "add_abs_lo12_nc:");
       cp = strappend(cp, ins.reloc_symbol);
       break;
     case elf::RELOC_TYPE_AARCH64::CALL26:
@@ -139,39 +141,38 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
 }
 
 bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
-  ins->reloc_pos = pos;
   const size_t colon_sym = expr.find(':');
   if (colon_sym == std::string_view::npos) return false;
   const std::string_view kind_name = expr.substr(0, colon_sym);
+  const std::string_view rest = expr.substr(colon_sym + 1);
+  const size_t colon_addend = rest.find(':');
+  const std::string_view symbol = rest.substr(0, colon_addend);
+
   if (kind_name == "abs32") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ABS32;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ABS32, false, pos, symbol);
   } else if (kind_name == "abs64") {
-      ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ABS64;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ABS64, false, pos, symbol);
   } else if (kind_name == "jump26") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::JUMP26;
-    ins->is_local_sym = true;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::JUMP26, true, pos, symbol);
   } else if (kind_name == "condbr19") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::CONDBR19;
-    ins->is_local_sym = true;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::CONDBR19, true, pos, symbol);
   } else if (kind_name == "call26") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::CALL26;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::CALL26, false, pos, symbol);
   } else if (kind_name == "adr_prel_pg_hi21") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, false, pos,
+                   symbol);
   } else if (kind_name == "add_abs_lo12_nc") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC, false, pos,
+                   symbol);
   } else if (kind_name == "loc_adr_prel_pg_hi21") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
-    ins->is_local_sym = true;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21, true, pos,
+                   symbol);
   } else if (kind_name == "loc_add_abs_lo12_nc") {
-    ins->reloc_kind = elf::RELOC_TYPE_AARCH64::TLSGD_ADD_LO12_NC;
-    ins->is_local_sym = true;
+    ins->set_reloc(elf::RELOC_TYPE_AARCH64::TLSGD_ADD_LO12_NC, true, pos,
+                   symbol);
   } else {
     return false;
   }
-  //
-  std::string_view rest = expr.substr(colon_sym + 1);
-  const size_t colon_addend = rest.find(':');
-  ins->reloc_symbol = rest.substr(0, colon_addend);
 
   ins->operands[pos] = 0;
   if (colon_addend != std::string_view::npos) {
