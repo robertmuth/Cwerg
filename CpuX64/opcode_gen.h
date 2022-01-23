@@ -116,7 +116,7 @@ extern const Opcode* FindOpcodeForMnemonic(std::string_view name);
 struct Ins {
   const Opcode* opcode;
   // number of used entries is ArmOpcode.num_fields
-  uint64_t operands[MAX_OPERAND_COUNT];
+  int64_t operands[MAX_OPERAND_COUNT];
   // Relocation info
   std::string_view reloc_symbol;
   elf::RELOC_TYPE_X86_64 reloc_kind = elf::RELOC_TYPE_X86_64::NONE;

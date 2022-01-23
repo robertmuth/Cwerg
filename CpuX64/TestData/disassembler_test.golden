@@ -60,3 +60,10 @@ c7 85 dc 00 00 00 00 00 70 c2 mov_32_mB32_imm32 MEM32 rbp 0xdc 0xc2700000
     OFFABS32                            220        (0xdc)
     IMM32                               0xc2700000 (0xc2700000)
 
+48 8d 04 ad 00 00 00 00 lea_64_r_mi32 rax rbp 4 0x0
+    lea_64_r_mi32
+    MODRM_REG64                         rax        (0x0)
+    SIB_INDEX_AS_BASE                   rbp        (0x5)
+    SIB_SCALE                           2          (0x2)
+    OFFABS32                            0          (0x0)
+

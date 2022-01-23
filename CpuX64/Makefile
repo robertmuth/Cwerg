@@ -14,7 +14,9 @@ TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
                     "41 f7 b8 80 23 03 00" \
                     "48 83 7e 78 01" \
                     "f3 0f 11 0c c1" \
-                    "c7 85 dc 00 00 00 00 00 70 c2"
+                    "c7 85 dc 00 00 00 00 00 70 c2" \
+					"48 8d 04 ad 00 00 00 00"
+
 
 tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(DIR)/codegen_parity $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
 	@echo "[OK CPUX64]"
