@@ -29,8 +29,8 @@ enum class RefKind : uint8_t {
   DATA,  // Data (section within a MEM)
   JTB,   // Jump table
   JEN,   // Jump entry
-  FAKE_REG,  // Fake Register
   CPU_REG,  // Machine Register
+  STACK_SLOT, // StackSlot for Register (only used by x86-64)
 };
 
 // Reference mimic 32 bit tagged pointers where the lowest 8 bits are the tag

@@ -116,6 +116,13 @@ struct ConstCore {
 
 ImmutablePool ConstantPool(alignof(ConstCore));
 
+// Short integer constants are handled specially so that they do not require
+// storage. We encode the value directly in the Const handle as follows:
+// Recall that a Handle has the following structure:  [24bit: index][8bit: kind]
+// We store small Consts in the index portion:
+// [1bit: marker for short const][15bit: const value][8bit: const kind]
+// Note the marker is high order bit which allows for simple testing.
+
 bool ConstIsShort(Const num) { return int32_t(num.value) < 0; }
 
 uint64_t ConstValueU(Const num) {

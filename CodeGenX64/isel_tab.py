@@ -12,6 +12,7 @@ from Base import opcode_tab as o
 from CodeGenX64 import regs
 from CpuX64 import opcode_tab as x64
 from Elf import enum_tab
+from Util import cgen
 
 
 @enum.unique
@@ -84,7 +85,7 @@ class F(enum.Enum):
 
 _F_TO_INT = {
     F.NO_INDEX: 4,
-    F.NO_BASE: 5,
+    F.NO_BASE: 4,
     F.RIP: 0,
     #
     F.SCALE1: 0,
@@ -148,31 +149,31 @@ class P(enum.Enum):
     tmp_gpr = 7
     tmp_flt = 8
     scratch_gpr = 9
-    #
+    # integer numbers
     num0 = 10
     num1 = 11
     num2 = 12
     num3 = 13
     num4 = 14
     #
-    spill01 = 20
-    spill0 = 21
-    spill1 = 22
-    spill2 = 23
-    stk1_offset2 = 24
-    stk0_offset1 = 25
-    stk1 = 26
+    spill01 = 15
+    spill0 = 16
+    spill1 = 17
+    spill2 = 18
+    stk1_offset2 = 19
+    stk0_offset1 = 20
+    stk1 = 21
     #
-    bbl0 = 30
-    bbl1 = 31
-    bbl2 = 32
-    fun0 = 35
+    bbl0 = 22
+    bbl1 = 23
+    bbl2 = 24
+    fun0 = 25
     #
-    mem0_num1_prel = 40
-    mem1_num2_prel = 41
+    mem0_num1_prel = 26
+    mem1_num2_prel = 27
 
-    fun1_prel = 45
-    jtb1_prel = 46
+    fun1_prel = 28
+    jtb1_prel = 29
 
 
 _OP_TO_RELOC_KIND = {
@@ -420,7 +421,7 @@ class Pattern:
         """
         for pos, (op_curb, op) in enumerate(zip(self.op_curbs, ins.operands)):
             if op_curb is C.INVALID:
-                assert not isinstance(ir.Const, ir.Reg)
+                assert not isinstance(op, (ir.Const, ir.Reg))
             elif op_curb is C.REG:
                 if not isinstance(op, ir.Reg):
                     return False
@@ -1451,15 +1452,100 @@ def _DumpCodeSelTable():
     print(f"Total patterns {count}")
 
 
+def _EmitCodeH(fout):
+    for cls in [C, P]:
+        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+
+
+def _RenderOperands(operands: List[Any]):
+    out = []
+    mask = 0
+    for n, op in enumerate(operands):
+        if isinstance(op, P):
+            mask |= 1 << n
+            s = f"+P::{op.name}"
+        elif isinstance(op, F):
+            s = f"+F::{op.name}"
+        elif isinstance(op, int):
+            s = f"{op}"
+        else:
+            assert False, f"bad op {op}"
+        out.append(s)
+    return mask, out
+
+
+def _EmitCodePatternsH(fout):
+    print(f"\nconst InsTmpl kInsTemplates[] = {{", file=fout)
+    print("  { /*used first entry*/ },", file=fout)
+    num_ins = 1
+    for i in range(256):
+        patterns = Pattern.Table.get(i)
+        if patterns is None: continue
+        opcode = o.Opcode.TableByNo.get(i)
+        for pat in patterns:
+            for tmpl in pat.emit:
+                mask, ops = _RenderOperands(tmpl.args)
+                num_ins += 1
+                print(f"  {{ {{{', '.join(ops)}}},", file=fout)
+                print(
+                    f"    x64::OPC::{tmpl.opcode.EnumName()}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
+                    file=fout)
+    print(f"}};", file=fout)
+
+    print(f"\nconst uint16_t kPatternJumper[256] = {{")
+    n = 0
+    for i in range(256):
+        opcode = o.Opcode.TableByNo.get(i)
+        name = opcode.name if opcode else "---"
+        print(f" {n} /* {name} */, ", end="", file=fout)
+        n += len(Pattern.Table.get(i, []))
+        if i % 4 == 3:
+            print("", file=fout)
+    print(f"}};", file=fout)
+
+    print(f"\nconst Pattern kPatterns[] = {{", file=fout)
+    num_ins = 1  # we want the first entry in the  kInsTemplate to be unused
+    num_pattern = 0
+    for i in range(256):
+        patterns = Pattern.Table.get(i)
+        if patterns is None: continue
+        opcode = o.Opcode.TableByNo.get(i)
+        for pat in patterns:
+            reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
+            imm_constraints = [f"C::{c.name}" for c in pat.op_curbs]
+            print(f"  {{ {{{', '.join(reg_constraints)}}}, {{{', '.join(imm_constraints)}}},")
+            print(
+                f"    &kInsTemplates[{num_ins}], {len(pat.emit)} }},  // {opcode.name} [{num_pattern}]")
+            num_ins += len(pat.emit)
+            num_pattern += 1
+    print(f"}};", file=fout)
+
+
+def _EmitCodeC(fout):
+    print(f"\nenum F {{", file=fout)
+    for x in F:
+        print(f"    {x.name} = {_F_TO_INT[x]},", file=fout)
+    print("};", file=fout)
+
+    cgen.RenderEnumToStringMap(cgen.NameValues(C), "C", fout)
+    cgen.RenderEnumToStringFun("C", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(P), "P", fout)
+    cgen.RenderEnumToStringFun("P", fout)
+
+    return
+
+
+
+
+
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) > 1:
-        assert False
-        if sys.argv[1] == "documentation":
-            pass
-        elif sys.argv[1] == "gen_h":
+        if sys.argv[1] == "gen_h":
             cgen.ReplaceContent(_EmitCodeH, sys.stdin, sys.stdout)
+        elif sys.argv[1] == "gen_patterns_h":
+            _EmitCodePatternsH(sys.stdout)
         elif sys.argv[1] == "gen_c":
             cgen.ReplaceContent(_EmitCodeC, sys.stdin, sys.stdout)
 

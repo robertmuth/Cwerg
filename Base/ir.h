@@ -96,6 +96,12 @@ struct Jen : public Handle {
   explicit constexpr Jen(Handle ref) : Handle(ref.value) {}
 };
 
+struct StackSlot : public Handle {
+  explicit constexpr StackSlot(uint32_t index = 0) : Handle(index, RefKind::STACK_SLOT) {}
+  explicit constexpr StackSlot(Handle ref) : Handle(ref.value) {}
+};
+
+
 constexpr const Handle UnlinkedRef(0, RefKind::INVALID);
 constexpr const Handle HandleInvalid(0, RefKind::INVALID);
 
@@ -209,6 +215,20 @@ inline int HandleCmp(Handle a, Handle b) {
 inline std::ostream& operator<<(std::ostream& os, Str str) {
   os << StrData(str);
   return os;
+}
+// =======================================
+// StackSlot (used for x86-64 register spilling only)
+//
+// Note: Const is immutable and limited to values < 2^24
+// =======================================
+
+inline StackSlot StackSlotNew(uint32_t offset) {
+  ASSERT(offset <= (1 << 24U), "");
+  return StackSlot(Handle(offset, RefKind::STACK_SLOT));
+}
+
+inline uint32_t StackSlotOffset(StackSlot slot) {
+  return slot.index();
 }
 
 // =======================================
@@ -350,7 +370,10 @@ struct RegCore {
   uint8_t flags;
   Ins def_ins;
   Bbl def_bbl;
-  CpuReg cpu_reg;
+  union {
+    CpuReg cpu_reg;
+    StackSlot stack_slot;
+  };
   // The stuff below should probably go into anther stripe
   Stk spill_slot;
   // Note: last_use must be zero at all times except during LiveRange
@@ -375,6 +398,7 @@ inline uint8_t& RegFlags(Reg reg) { return gRegCore[reg].flags; }
 inline Ins& RegDefIns(Reg reg) { return gRegCore[reg].def_ins; }
 inline Bbl& RegDefBbl(Reg reg) { return gRegCore[reg].def_bbl; }
 inline CpuReg& RegCpuReg(Reg reg) { return gRegCore[reg].cpu_reg; }
+inline StackSlot& RegStackSlot(Reg reg) { return gRegCore[reg].stack_slot; }
 inline Stk& RegSpillSlot(Reg reg) { return gRegCore[reg].spill_slot; }
 inline uint16_t& RegLastUse(Reg reg) { return gRegCore[reg].last_use; }
 inline uint16_t& RegUseCount(Reg reg) { return gRegCore[reg].use_count; }
