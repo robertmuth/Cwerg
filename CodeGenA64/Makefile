@@ -69,6 +69,20 @@ $(DIR)/isel_test:
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
 ############################################################
+# Code Gen
+############################################################
+
+isel_gen.cc: isel_tab.py
+	@echo "[$@]"
+	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+isel_gen.h: isel_tab.py
+	@echo "[$@]"
+	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+############################################################
 # C++
 ############################################################
 BUILD_DIR=../build
@@ -99,15 +113,7 @@ $(DIR)/syscall.a64.asm.c.exe: TestData/syscall.a64.asm $(CODEGEN_TOOL)
 	${QEMU} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
-isel_gen.cc: isel_tab.py
-	@echo "[$@]"
-	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
 
-isel_gen.h: isel_tab.py
-	@echo "[$@]"
-	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
 
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"
