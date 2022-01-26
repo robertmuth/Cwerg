@@ -3,6 +3,7 @@
 
 #include "CodeGenX64/isel_gen.h"
 #include "Base/opcode_gen.h"
+#include "CpuX64//opcode_gen.h"
 
 #include <cstdint>
 
@@ -18,6 +19,7 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
+#if 0
 bool ImmStackFits(int64_t x,
                   bool assume_stk_op_matches,
                   unsigned bits,
@@ -27,6 +29,7 @@ bool ImmStackFits(int64_t x,
   if (x >= 1U << (bits + scale_log)) return false;
   return (x & ((1U << scale_log) - 1)) == 0;
 }
+#endif
 
 // Note: some of these checks may not be necessary if we can rely on
 // DK to enforce ranges/
@@ -78,7 +81,7 @@ bool MatchesOpCurb(C curb, Handle op) {
     case C::SIMM32:
       return MatchSignedRange((1LL << 31) - 1, Const(op));
     case C::SIMM64:
-      return MatchSignedRange(0x7fff'ffff'ffff'ffff,  Const(op));
+      return MatchSignedRange(0x7fff'ffff'ffff'ffff, Const(op));
     case C::UIMM8:
       return MatchUnsignedRange((1ULL << 8) - 1, Const(op));
     case C::UIMM16:
@@ -119,7 +122,6 @@ bool PatternMatchesOpCurbs(const Pattern& pat, Ins ins) {
 }
 
 }  // namespace
-
 
 /* @AUTOGEN-START@ */
 
@@ -182,6 +184,7 @@ const char* const C_ToStringMap[] = {
     "REG_RAX",  // 13
     "REG_RCX",  // 14
     "REG_RDX",  // 15
+    "ZZZ",      // 16
 };
 const char* EnumToString(C x) { return C_ToStringMap[unsigned(x)]; }
 
@@ -216,6 +219,7 @@ const char* const P_ToStringMap[] = {
     "mem1_num2_prel",  // 27
     "fun1_prel",       // 28
     "jtb1_prel",       // 29
+    "ZZZ",             // 30
 };
 const char* EnumToString(P x) { return P_ToStringMap[unsigned(x)]; }
 
@@ -224,7 +228,6 @@ const char* EnumToString(P x) { return P_ToStringMap[unsigned(x)]; }
 namespace {
 #include "CodeGenX64/isel_gen_patterns.h"
 }  // namespace
-
 
 const Pattern* FindMatchingPattern(Ins ins) {
   const uint64_t type_matcher = ExtractTypeMaskForPattern(ins);
@@ -239,7 +242,6 @@ const Pattern* FindMatchingPattern(Ins ins) {
 
   return nullptr;
 }
-
 
 int64_t ExtractReg(Reg reg) {
   ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
@@ -281,7 +283,9 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
       return +F::XMM0;
     case P::scratch_gpr: {
       CpuReg cpu_reg = ctx.scratch_cpu_reg;
-      ASSERT (cpu_reg.kind() == RefKind::CPU_REG && CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR, "");
+      ASSERT(cpu_reg.kind() == RefKind::CPU_REG &&
+                 CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR,
+             "");
       return CpuRegNo(cpu_reg);
     }
     case P::num0:
@@ -309,126 +313,17 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
     case P::jtb1_prel:
       break;
   }
-  ASSERT(false, "unsupported parmm " << +arg<< " " << EnumToString(arg));
+  ASSERT(false, "unsupported parmm " << +arg << " " << EnumToString(arg));
   return 0;
 }
 
 #if 0
 
-void MaybeHandleReloc(a64::Ins* cpuins, unsigned pos, Ins ins, PARAM op) {
-  Str symbol;
-  auto handle_addend = [&](Const num) {
-    cpuins->operands[pos] = ConstValueInt32(num);
-  };
-  switch (op) {
-    case PARAM::bbl0:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::JUMP26;
-      cpuins->is_local_sym = true;
-      symbol = Name(Bbl(InsOperand(ins, 0)));
-      break;
-    case PARAM::bbl2:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::CONDBR19;
-      cpuins->is_local_sym = true;
-      symbol = Name(Bbl(InsOperand(ins, 2)));
-      break;
-    case PARAM::fun0:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::CALL26;
-      symbol = Name(Fun(InsOperand(ins, 0)));
-      break;
-    case PARAM::mem1_num2_lo12:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
-      symbol = Name(Mem(InsOperand(ins, 1)));
-      handle_addend(Const(InsOperand(ins, 2)));
-      break;
-    case PARAM::mem1_num2_prel_hi21:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
-      symbol = Name(Mem(InsOperand(ins, 1)));
-      handle_addend(Const(InsOperand(ins, 2)));
-      break;
-    case PARAM::fun1_lo12:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
-      symbol = Name(Fun(InsOperand(ins, 1)));
-      break;
-    case PARAM::fun1_prel_hi21:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
-      symbol = Name(Fun(InsOperand(ins, 1)));
-      break;
-    case PARAM::jtb1_lo12:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC;
-      cpuins->is_local_sym = true;
-      symbol = Name(Jtb(InsOperand(ins, 1)));
-      break;
-    case PARAM::jtb1_prel_hi21:
-      cpuins->reloc_kind = elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21;
-      cpuins->is_local_sym = true;
-      symbol = Name(Jtb(InsOperand(ins, 1)));
-      break;
-    default:
-      return;
-  }
-  cpuins->reloc_pos = pos;
-  cpuins->reloc_symbol = StrData(symbol);
-}
+
 
 }  // namespace
 
-// number of args == MAX_OPERANDS
-a64::Ins MakeIns(a64::OPC opc_enum,
-                 int64_t x0,
-                 int64_t x1,
-                 int64_t x2,
-                 int64_t x3,
-                 int64_t x4) {
-  const a64::Opcode* opc = &a64::OpcodeTable[+opc_enum];
-  if (opc->num_fields > 0) x0 = a64::EncodeOperand(opc->fields[0], x0);
-  if (opc->num_fields > 1) x1 = a64::EncodeOperand(opc->fields[1], x1);
-  if (opc->num_fields > 2) x2 = a64::EncodeOperand(opc->fields[2], x2);
-  if (opc->num_fields > 3) x3 = a64::EncodeOperand(opc->fields[3], x3);
-  if (opc->num_fields > 4) x4 = a64::EncodeOperand(opc->fields[4], x4);
-  return a64::Ins{
-      opc,
-      {(uint32_t)x0, (uint32_t)x1, (uint32_t)x2, (uint32_t)x3, (uint32_t)x4}};
-}
-a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
-  a64::Ins out;
-  out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];
-  // std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
-  for (unsigned o = 0; o < out.opcode->num_fields; ++o) {
-    if ((tmpl.template_mask & (1U << o)) == 0) {
-      // fixed operand - we uses these verbatim
-      out.operands[o] =
-          a64::EncodeOperand(out.opcode->fields[o], tmpl.operands[o]);
-    } else {
-      // std::cout << "@@Handle " << o << " " <<
-      // a64::EnumToString(out.opcode->fields[o]) <<  "\n";
-      // parameters require extra processing
-      auto param = PARAM(tmpl.operands[o]);
-      out.operands[o] = a64::EncodeOperand(out.opcode->fields[o],
-                                           ExtractParamOp(ins, param, ctx));
-      // Note: this may overwrite    out.operands[o]
-      MaybeHandleReloc(&out, o, ins, param);
-    }
-  }
-  return out;
-}
 
-class RegBitVec {
- public:
-  RegBitVec(uint32_t reg_bits) : reg_bits_(reg_bits), pos_(31) {}
-
-  bool empty() const { return reg_bits_ == 0; }
-
-  uint32_t next_reg_no() {
-    while (((1U << pos_) & reg_bits_) == 0) --pos_;
-    reg_bits_ &= ~(1U << pos_);
-    --pos_;
-    return pos_ + 1;
-  }
-
- private:
-  uint32_t reg_bits_;
-  uint32_t pos_;
-};
 
 void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
   RegBitVec gpr_regs(ctx.gpr_reg_mask);
@@ -521,5 +416,71 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
   std::reverse(output->begin() + start, output->end());
 }
 #endif
+
+void MaybeHandleReloc(x64::Ins* cpuins, unsigned pos, Ins ins, P op) {
+  ASSERT(!cpuins->has_reloc(), "");
+  switch (op) {
+    case P::bbl0:
+    case P::bbl1:
+    case P::bbl2: {
+      const Bbl bbl = Bbl(InsOperand(ins, +op - +P::bbl0));
+      cpuins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, true, pos,
+                        StrData(Name(bbl)));
+      return;
+    }
+    case P::fun0: {
+      const Fun fun = Fun(InsOperand(ins, 0));
+      cpuins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, false, pos,
+                        StrData(Name(fun)));
+      return;
+    }
+    case P::fun1_prel: {
+      const Fun fun = Fun(InsOperand(ins, 1));
+      ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "undefined Fun" << Name(fun));
+      cpuins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, false, pos,
+                        StrData(Name(fun)));
+      return;
+    }
+    case P::mem1_num2_prel:
+    case P::mem0_num1_prel: {
+      const Mem mem = Mem(InsOperand(ins, +op - +P::mem0_num1_prel));
+      ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "undefined Fun" << Name(mem));
+      const Const num = Const(InsOperand(ins, +op - +P::mem0_num1_prel + 1));
+      cpuins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, false, pos,
+                        StrData(Name(mem)));
+      cpuins->operands[pos] = ConstValueInt64(num);
+      return;
+    }
+    case P::jtb1_prel: {
+      const Jtb jtb = Jtb(InsOperand(ins, 1));
+      cpuins->set_reloc(elf::RELOC_TYPE_X86_64::PC32, true, pos,
+                        StrData(Name(jtb)));
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+x64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
+  x64::Ins out;
+  out.opcode = &x64::OpcodeTableEncodings[unsigned(tmpl.opcode)];
+  // std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
+  for (unsigned o = 0; o < out.opcode->num_fields; ++o) {
+    if ((tmpl.template_mask & (1U << o)) == 0) {
+      // fixed operand - we uses these verbatim
+      out.operands[o] = tmpl.operands[o];
+    } else {
+      // std::cout << "@@Handle " << o << " " <<
+      // a64::EnumToString(out.opcode->fields[o]) <<  "\n";
+      // parameters require extra processing
+      const P param = P(tmpl.operands[o]);
+      out.operands[o] = ExtractTmplArgOP(ins, param, ctx);
+      // Note: this may overwrite    out.operands[o]
+      MaybeHandleReloc(&out, o, ins, param);
+    }
+  }
+  return out;
+}
 
 }  // namespace cwerg::code_gen_x64

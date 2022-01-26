@@ -32,6 +32,7 @@ def HandleIns(ins: ir.Ins, ctx: regs.EmitContext):
         return
 
     pattern = isel_tab.FindMatchingPattern(ins)
+    assert pattern
     print(
         f"PAT: reg:[{' '.join(a.name for a in pattern.type_constraints)}]  "
         f"op:[{' '.join(a.name for a in pattern.op_curbs)}]")

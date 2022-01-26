@@ -1526,10 +1526,11 @@ def _EmitCodeC(fout):
     for x in F:
         print(f"    {x.name} = {_F_TO_INT[x]},", file=fout)
     print("};", file=fout)
-
-    cgen.RenderEnumToStringMap(cgen.NameValues(C), "C", fout)
+    # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
+    # only for these two instances - no idea why
+    cgen.RenderEnumToStringMap(cgen.NameValues(C) + [("ZZZ", len(C))], "C", fout)
     cgen.RenderEnumToStringFun("C", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(P), "P", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(P) + [("ZZZ", len(P))], "P", fout)
     cgen.RenderEnumToStringFun("P", fout)
 
     return
