@@ -286,6 +286,23 @@ add_executable(a64_codegen_tool.exe
         CodeGenA64/codegen_tool.cc
         )
 
+add_library(CODEGENX64_LIB OBJECT
+        CodeGenX64/isel_gen.cc
+        CodeGenX64/isel_gen.h
+        CodeGenX64/isel_gen_patterns.h
+        CodeGenX64/regs.cc
+        CodeGenX64/regs.h
+        )
+
+add_executable(x64_isel_tester.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUX64_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        CodeGenX64/isel_tester.cc
+        )
+
 # this only works when (cross) compiled for a32
 add_executable(jit_cpu_a32.exe
         $<TARGET_OBJECTS:UTIL_LIB>

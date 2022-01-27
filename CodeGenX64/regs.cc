@@ -1,0 +1,79 @@
+#include "CodeGenX64/regs.h"
+#include "Base/cfg.h"
+#include "Base/reg_alloc.h"
+#include "Base/serialize.h"
+#include "Util/parse.h"
+
+namespace cwerg::code_gen_x64 {
+
+using namespace cwerg;
+using namespace cwerg::base;
+
+// The std:arrays below will be initialized by  InitCodeGenA64();
+std::array<CpuReg, 16> GPR_REGS;
+
+std::array<CpuReg, 16> FLT_REGS;
+
+base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
+
+// +-prefix converts an enum the underlying type
+template <typename T>
+constexpr auto operator+(T e) noexcept
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+  return static_cast<std::underlying_type_t<T>>(e);
+}
+
+std::vector<CpuReg> GetAllRegs() {
+  std::vector<CpuReg> out;
+  out.reserve(GPR_REGS.size() + FLT_REGS.size());
+  for (CpuReg cpu_reg : GPR_REGS) out.push_back(cpu_reg);
+  for (CpuReg cpu_reg : FLT_REGS) out.push_back(cpu_reg);
+  return out;
+}
+
+void InitCodeGenX64() {
+  // GPR
+  GPR_REGS[0] = CpuRegNew(0, +CPU_REG_KIND::GPR, StrNew("rax"));
+  GPR_REGS[1] = CpuRegNew(1, +CPU_REG_KIND::GPR, StrNew("rcx"));
+  GPR_REGS[2] = CpuRegNew(2, +CPU_REG_KIND::GPR, StrNew("rdx"));
+  GPR_REGS[3] = CpuRegNew(3, +CPU_REG_KIND::GPR, StrNew("rbx"));
+  GPR_REGS[4] = CpuRegNew(4, +CPU_REG_KIND::GPR, StrNew("sp"));
+  GPR_REGS[5] = CpuRegNew(5, +CPU_REG_KIND::GPR, StrNew("rbp"));
+  GPR_REGS[6] = CpuRegNew(6, +CPU_REG_KIND::GPR, StrNew("rsi"));
+  GPR_REGS[7] = CpuRegNew(7, +CPU_REG_KIND::GPR, StrNew("rdi"));
+  GPR_REGS[8] = CpuRegNew(8, +CPU_REG_KIND::GPR, StrNew("r8"));
+  GPR_REGS[9] = CpuRegNew(9, +CPU_REG_KIND::GPR, StrNew("r9"));
+  GPR_REGS[10] = CpuRegNew(10, +CPU_REG_KIND::GPR, StrNew("r10"));
+  GPR_REGS[11] = CpuRegNew(11, +CPU_REG_KIND::GPR, StrNew("r11"));
+  GPR_REGS[12] = CpuRegNew(12, +CPU_REG_KIND::GPR, StrNew("r12"));
+  GPR_REGS[13] = CpuRegNew(13, +CPU_REG_KIND::GPR, StrNew("r13"));
+  GPR_REGS[14] = CpuRegNew(14, +CPU_REG_KIND::GPR, StrNew("r14"));
+  GPR_REGS[15] = CpuRegNew(15, +CPU_REG_KIND::GPR, StrNew("r15"));
+
+  // FLT
+  for (unsigned i = 0; i < FLT_REGS.size(); ++i) {
+    char buffer[8] = "xmm";
+    ToDecString(i, buffer + 3);
+    FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
+  }
+
+  // ==================================================
+  for (unsigned i = 0; i < DK_TO_CPU_REG_KIND_MAP.size(); ++i) {
+    DK_TO_CPU_REG_KIND_MAP[i] = +CPU_REG_KIND::INVALID;
+  }
+  DK_TO_CPU_REG_KIND_MAP[+DK::S8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U8] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U16] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U32] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::S64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::U64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::A64] = +CPU_REG_KIND::GPR;
+  DK_TO_CPU_REG_KIND_MAP[+DK::C64] = +CPU_REG_KIND::GPR;
+  //
+  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::FLT;
+}
+
+}  // namespace cwerg::code_gen_x64

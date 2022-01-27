@@ -16,11 +16,27 @@ enum class CPU_REG_KIND : uint8_t {
   FLT,
 };
 
-// Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called
-extern std::array<base::CpuReg, 31> GPR_REGS;
 
-extern std::array<base::CpuReg, 32> FLT_REGS;
+// Note, these arrays will be UNINITIALIZED unless InitCodeGenX32 is called
+extern std::array<base::CpuReg, 16> GPR_REGS;
+extern std::array<base::CpuReg, 16> FLT_REGS;
 
+// must be called early in main()
+extern void InitCodeGenX64();
+
+// Return a list of all cpu regs - this is primarily used by tests that
+// parse IR fragments with pre-allocated regs.
+extern std::vector<base::CpuReg> GetAllRegs();
+
+struct EmitContext {
+  uint32_t gpr_reg_mask = 0;
+  uint32_t flt_reg_mask = 0;
+  uint32_t stk_size = 0;
+  bool is_leaf = false;
+  base::CpuReg scratch_cpu_reg = base::CpuReg(base::HandleInvalid);
+};
+
+#if 0
 const constexpr uint32_t GPR_REGS_MASK = 0x7fffffff;
 const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3fff0000;
 const constexpr uint32_t GPR_LAC_REGS_MASK_WITH_LR = 0x7fff0000;
@@ -32,8 +48,7 @@ extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
 
-// must be called early in main()
-extern void InitCodeGenA64();
+
 
 extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
                                                         const base::DK* kinds);
@@ -48,26 +63,21 @@ extern void AssignCpuRegOrMarkForSpilling(
     uint32_t cpu_reg_mask_second_choice,
     std::vector<base::Reg>* to_be_spilled);
 
-// Return a list of all cpu regs - this is primarily used by tests that
-// parse IR fragments with pre-allocated regs.
-extern std::vector<base::CpuReg> GetAllRegs();
+
+
+// must be called early in main()
+extern void InitCodeGenX64();
 
 extern void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss);
 
 
-struct EmitContext {
-  uint32_t gpr_reg_mask = 0;
-  uint32_t flt_reg_mask = 0;
-  uint32_t stk_size = 0;
-  bool is_leaf = false;
-  base::CpuReg scratch_cpu_reg = base::CpuReg(base::HandleInvalid);
-};
+
 
 extern EmitContext FunComputeEmitContext(base::Fun fun);
 
 
 extern void FunPushargConversion(base::Fun fun);
 extern void FunPopargConversion(base::Fun fun);
-
+#endif
 
 }  // namespace cwerg::code_gen_a64
