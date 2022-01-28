@@ -201,8 +201,8 @@ inline uint32_t MemSize(Mem mem) {
 // =======================================
 extern Str StrNew(std::string_view s);
 extern const char* StrData(Str str);
-extern int StrCmp(Str a, Str b);
-extern int StrCmpLt(Str a, Str b);
+extern int StrCmp(Str a, Str b);  // result is like strcmp
+extern bool StrCmpLt(Str a, Str b);
 
 // This may seem like a strange thing to sort by, but if just want to
 // tests "set membership" it is much cheaper than string comparison

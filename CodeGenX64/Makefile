@@ -29,9 +29,9 @@ STD_LIB = ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 tests: tests_py tests_c
 	@echo "[OK CodeGenX64]"
 
-tests_py:  $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES) $(DIR)/nanojpeg
+tests_py: $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES) $(DIR)/nanojpeg
 
-tests_c:
+tests_c: $(DIR)/isel_test_c
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
@@ -84,5 +84,16 @@ isel_gen_patterns.h: isel_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_patterns_h >$@
 
+############################################################
+# C++
+############################################################
+BUILD_DIR=../build
+CODEGEN_TOOL=$(BUILD_DIR)/x64_codegen_tool.exe
+
+$(DIR)/isel_test_c: isel_gen.h isel_gen.cc
+	@echo "[integration $@]"
+	@cd $(BUILD_DIR); $(MAKE) -s x64_isel_tester.exe
+	$(BUILD_DIR)/x64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
+	diff $@.actual.out TestData/codegen_test.asm.golden
 clean:
 	rm -f $(DIR)/*

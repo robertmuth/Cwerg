@@ -293,16 +293,26 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
     case P::num2:
     case P::num3:
     case P::num4: {
-      Const num = Const(InsOperand(ins, +arg - +P::reg0));
+      Const num = Const(InsOperand(ins, +arg - +P::num0));
       return ConstValueInt64(num);
     }
     case P::spill01:
+      ASSERT(InsOperand(ins, 0) == InsOperand(ins, 1), "");
     case P::spill0:
     case P::spill1:
-    case P::spill2:
+    case P::spill2: {
+      unsigned no = arg == P::spill01 ? 0 : +arg - +P::spill0;
+      Reg reg = Reg(InsOperand(ins, no));
+      ASSERT(reg.kind() == RefKind::REG, "");
+      StackSlot slot = RegStackSlot(reg);
+      ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
+      return StackSlotOffset(slot);
+    }
     case P::stk1_offset2:
     case P::stk0_offset1:
     case P::stk1:
+      ASSERT(false, "NYI");
+      break;
     case P::bbl0:
     case P::bbl1:
     case P::bbl2:
@@ -311,7 +321,8 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
     case P::mem1_num2_prel:
     case P::fun1_prel:
     case P::jtb1_prel:
-      break;
+      // relocs
+      return 0;
   }
   ASSERT(false, "unsupported parmm " << +arg << " " << EnumToString(arg));
   return 0;

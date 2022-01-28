@@ -5,8 +5,9 @@
 #include "Util/immutable.h"
 #include "Util/parse.h"
 
-#include <cstring>
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 
 namespace cwerg::base {
@@ -16,7 +17,7 @@ namespace cwerg::base {
 
 struct Stripe<EdgCore, Edg> gEdgCore("EdgCore");
 StripeBase* const gAllStripesEdg[] = {&gEdgCore, nullptr};
-struct StripeGroup gStripeGroupEdg("EDG", gAllStripesEdg, 64* 1024);
+struct StripeGroup gStripeGroupEdg("EDG", gAllStripesEdg, 64 * 1024);
 
 struct Stripe<InsCore, Ins> gInsCore("InsCore");
 StripeBase* const gAllStripesIns[] = {&gInsCore, nullptr};
@@ -30,7 +31,7 @@ struct Stripe<BblReachingDefs, Bbl> gBblReachingDefs("BblDefs");
 
 StripeBase* const gAllStripesBbl[] = {
     &gBblCore, &gBblBst, &gBblEdg, &gBblLiveness, &gBblReachingDefs, nullptr};
-struct StripeGroup gStripeGroupBbl("BBL", gAllStripesBbl, 32  * 1024);
+struct StripeGroup gStripeGroupBbl("BBL", gAllStripesBbl, 32 * 1024);
 
 struct Stripe<FunCore, Fun> gFunCore("FunCore");
 struct Stripe<FunBst, Fun> gFunBst("FunBst");
@@ -92,7 +93,7 @@ int StrCmp(Str a, Str b) {
   return strcmp(StringPool.Data(a.index()), StringPool.Data(b.index()));
 }
 
-int StrCmpLt(Str a, Str b) {
+bool StrCmpLt(Str a, Str b) {
   if (a == b) return 0;
   return strcmp(StringPool.Data(a.index()), StringPool.Data(b.index())) < 0;
 }
@@ -142,17 +143,17 @@ int64_t ConstValueACS(Const num) {
 
 int32_t ConstValueInt32(Const num) {
   ASSERT(num.kind() == RefKind::CONST, "not a const " << unsigned(num.kind()));
-  int32_t  val;
+  int32_t val;
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
       val = ConstValueU(num);
-      ASSERT (val == ConstValueU(num), "out of range " << num);
+      ASSERT(val == ConstValueU(num), "out of range " << num);
       return val;
     case DK_FLAVOR_A:
     case DK_FLAVOR_C:
     case DK_FLAVOR_S:
-        val = ConstValueACS(num);
-      ASSERT (val == ConstValueACS(num), "out of range " << num);
+      val = ConstValueACS(num);
+      ASSERT(val == ConstValueACS(num), "out of range " << num);
       return val;
     default:
       ASSERT(false, "bad const " << num);
@@ -168,7 +169,7 @@ int64_t ConstValueInt64(Const num) {
     case DK_FLAVOR_A:
     case DK_FLAVOR_C:
     case DK_FLAVOR_S:
-        return ConstValueACS(num);
+      return ConstValueACS(num);
     default:
       ASSERT(false, "bad non int const " << num);
       return 0;
@@ -208,7 +209,8 @@ Const ConstNewF(DK kind, double v) {
 
 Const ConstNewU(DK kind, uint64_t v) {
   if (v < (1U << 15U)) {
-    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
+    return Const(
+        Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
   }
   ConstCore num;
   num.kind = kind;
@@ -218,7 +220,8 @@ Const ConstNewU(DK kind, uint64_t v) {
 
 Const ConstNewACS(DK kind, int64_t v) {
   if (-(1U << 14U) <= v && v < (1U << 14U)) {
-    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
+    return Const(
+        Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
   }
   ConstCore num;
   num.kind = kind;
@@ -418,7 +421,28 @@ Bbl FunBblFindOrForwardDeclare(Fun fun, Str bbl_name) {
 }
 
 void FunFinalizeStackSlots(Fun fun) {
+  std::vector<Reg> spilled_regs;
+  for (Reg reg : FunRegIter(fun)) {
+    if (RegCpuReg(reg).kind() == RefKind::STACK_SLOT) {
+      spilled_regs.push_back(reg);
+    }
+  }
+  auto cmp = [](const Reg& a, const Reg& b) -> bool {
+    unsigned wa = DKBitWidth(RegKind(a));
+    unsigned wb = DKBitWidth(RegKind(b));
+    if (wa != wb) return  wa < wb;
+    return StrCmpLt(Name(a), Name(b));
+
+  };
+  std::sort(spilled_regs.begin(), spilled_regs.end(), cmp);
   uint32_t slot = 0;
+  for (Reg reg : spilled_regs) {
+    unsigned width = DKBitWidth(RegKind(reg)) / 8;
+    slot += width - 1;
+    slot = slot / width * width;
+    RegStackSlot(reg) = StackSlotNew(slot);
+    slot += width;
+  }
   for (Stk stk : FunStkIter(fun)) {
     auto align = StkAlignment(stk);
     slot += align - 1;

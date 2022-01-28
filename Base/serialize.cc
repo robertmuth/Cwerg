@@ -339,7 +339,8 @@ Handle GetRegOrConstInsOperand(
       }
     } else {
       const DK rk = DKFromString(frags.kind_name);
-      ASSERT(rk != DK::INVALID, "bad type: [" << frags.kind_name << "] in " << s);
+      ASSERT(rk != DK::INVALID,
+             "bad type: [" << frags.kind_name << "] in " << s);
       reg = FunRegFind(fun, name);
       if (!reg.isnull()) {
         std::cerr << "reg already defined [" << frags.reg_name << "]\n";
@@ -359,10 +360,10 @@ Handle GetRegOrConstInsOperand(
                "unknown cpu reg " << frags.cpu_reg_name);
         cpu_reg = it->second;
       }
-       if (RegCpuReg(reg).isnull()) {
+      if (RegCpuReg(reg).isnull()) {
         RegCpuReg(reg) = CpuReg(cpu_reg);
       } else {
-         ASSERT(RegCpuReg(reg) == CpuReg(cpu_reg), "");
+        ASSERT(RegCpuReg(reg) == CpuReg(cpu_reg), "");
       }
     }
     return reg;
@@ -522,12 +523,16 @@ void InsRenderToAsm(Ins ins, std::ostream* output) {
   for (unsigned i = 0; i < num_ops; ++i) {
     const Handle op = InsOperand(ins, i);
     switch (op.kind()) {
-      case RefKind::REG:
+      case RefKind::REG: {
         *output << " " << Name(Reg(op));
-        if (!RegCpuReg(Reg(op)).isnull()) {
-          *output << "@" << Name(RegCpuReg(Reg(op)));
+        Handle cpu_reg = RegCpuReg(Reg(op));
+        if (cpu_reg.kind() == RefKind::CPU_REG) {
+          *output << "@" << Name(CpuReg(cpu_reg));
+        } else if (cpu_reg.kind() == RefKind::STACK_SLOT) {
+          *output << "@STK";
         }
         break;
+      }
       case RefKind::CONST:
         *output << " " << Const(op);
         if (opcode.constraints[i] != TC::OFFSET &&
