@@ -390,7 +390,7 @@ class Fun:
         slot = 0
         # we only have spilled_regs for x64
         spilled_regs = sorted([reg for reg in self.regs if isinstance(reg.cpu_reg, StackSlot)],
-                              key= lambda reg : reg.kind.bitwidth())
+                              key= lambda reg : (reg.kind.bitwidth(), reg.name))
         for reg in spilled_regs:
             width = reg.kind.bitwidth() // 8
             slot += width - 1
