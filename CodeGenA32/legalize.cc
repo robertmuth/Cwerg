@@ -289,8 +289,8 @@ std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
   uint32_t gpr_mask = 0;
   uint32_t flt_mask = 0;
   for (Reg reg : FunRegIter(fun)) {
-    CpuReg cpu_reg = RegCpuReg(reg);
-    if (cpu_reg.isnull()) continue;
+    CpuReg cpu_reg(RegCpuReg(reg));
+    if (cpu_reg.kind() != RefKind::CPU_REG) continue;
     if (DKFlavor(RegKind(reg)) == DK_FLAVOR_F) {
       flt_mask |= A32RegToAllocMask(cpu_reg);
     } else {

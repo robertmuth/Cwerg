@@ -70,7 +70,7 @@ void FunCodeGenArm32(Fun fun, std::ostream* output) {
     *output << ".bbl " << Name(bbl) << " 4\n";
     for (Ins ins : BblInsIter(bbl)) {
       if (InsOPC(ins) == OPC::NOP1) {
-        ctx.scratch_cpu_reg = RegCpuReg(Reg(InsOperand(ins, 0)));
+        ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
       } else if (InsOPC(ins) == OPC::RET) {
         EmitFunEpilog(ctx, &inss);
       } else {
@@ -192,7 +192,7 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       out.AddLabel(StrData(Name(bbl)), 4, padding_nop);
       for (Ins ins : BblInsIter(bbl)) {
         if (InsOPC(ins) == OPC::NOP1) {
-          ctx.scratch_cpu_reg = RegCpuReg(Reg(InsOperand(ins, 0)));
+          ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
         } else if (InsOPC(ins) == OPC::RET) {
           EmitFunEpilog(ctx, &inss);
         } else {

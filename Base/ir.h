@@ -97,10 +97,10 @@ struct Jen : public Handle {
 };
 
 struct StackSlot : public Handle {
-  explicit constexpr StackSlot(uint32_t index = 0) : Handle(index, RefKind::STACK_SLOT) {}
+  explicit constexpr StackSlot(uint32_t index = 0)
+      : Handle(index, RefKind::STACK_SLOT) {}
   explicit constexpr StackSlot(Handle ref) : Handle(ref.value) {}
 };
-
 
 constexpr const Handle UnlinkedRef(0, RefKind::INVALID);
 constexpr const Handle HandleInvalid(0, RefKind::INVALID);
@@ -207,9 +207,12 @@ extern bool StrCmpLt(Str a, Str b);
 // This may seem like a strange thing to sort by, but if just want to
 // tests "set membership" it is much cheaper than string comparison
 inline int HandleCmp(Handle a, Handle b) {
-  if (a == b) return 0;
-  else if (a < b) return -1;
-  else return 1;
+  if (a == b)
+    return 0;
+  else if (a < b)
+    return -1;
+  else
+    return 1;
 }
 
 inline std::ostream& operator<<(std::ostream& os, Str str) {
@@ -227,9 +230,7 @@ inline StackSlot StackSlotNew(uint32_t offset) {
   return StackSlot(Handle(offset, RefKind::STACK_SLOT));
 }
 
-inline uint32_t StackSlotOffset(StackSlot slot) {
-  return slot.index();
-}
+inline uint32_t StackSlotOffset(StackSlot slot) { return slot.index(); }
 
 // =======================================
 // Const (constant operand)
@@ -370,10 +371,7 @@ struct RegCore {
   uint8_t flags;
   Ins def_ins;
   Bbl def_bbl;
-  union {
-    CpuReg cpu_reg;
-    StackSlot stack_slot;
-  };
+  Handle cpu_reg;  // either  StackSlot or CpuReg
   // The stuff below should probably go into anther stripe
   Stk spill_slot;
   // Note: last_use must be zero at all times except during LiveRange
@@ -397,8 +395,7 @@ inline DK& RegKind(Reg reg) { return gRegCore[reg].kind; }
 inline uint8_t& RegFlags(Reg reg) { return gRegCore[reg].flags; }
 inline Ins& RegDefIns(Reg reg) { return gRegCore[reg].def_ins; }
 inline Bbl& RegDefBbl(Reg reg) { return gRegCore[reg].def_bbl; }
-inline CpuReg& RegCpuReg(Reg reg) { return gRegCore[reg].cpu_reg; }
-inline StackSlot& RegStackSlot(Reg reg) { return gRegCore[reg].stack_slot; }
+inline Handle& RegCpuReg(Reg reg) { return gRegCore[reg].cpu_reg; }
 inline Stk& RegSpillSlot(Reg reg) { return gRegCore[reg].spill_slot; }
 inline uint16_t& RegLastUse(Reg reg) { return gRegCore[reg].last_use; }
 inline uint16_t& RegUseCount(Reg reg) { return gRegCore[reg].use_count; }
@@ -411,7 +408,7 @@ inline void RegClearFlag(Reg reg, REG_FLAG flag) {
   RegFlags(reg) &= ~unsigned(flag);
 }
 
-inline Reg RegNew(DK kind, Str name, CpuReg cpu_reg = CpuReg(0)) {
+inline Reg RegNew(DK kind, Str name, Handle cpu_reg = HandleInvalid) {
   Reg out = Reg(gStripeGroupReg.New().index());
   gRegCore[out] = {0, kind, 0, Ins(0), Bbl(0), cpu_reg, Stk(0), 0, 0};
   Name(out) = name;
@@ -822,8 +819,8 @@ extern Bbl FunBblFindOrForwardDeclare(Fun fun, Str bbl_name);
 #define FunRegDel BstDel<FunRegBst>
 
 inline Reg FunRegAdd(Fun fun, Reg reg) {
-    FunRegAddBst(fun, reg);
-    return reg;
+  FunRegAddBst(fun, reg);
+  return reg;
 }
 
 inline bool FunHasReg(Fun fun, Str reg_name) {
@@ -852,7 +849,6 @@ inline bool FunHasStk(Fun fun, Str stk) {
 }
 
 extern void FunFinalizeStackSlots(Fun Fun);
-
 
 struct FunJtbBst {
   using ITEM = Jtb;
@@ -1027,7 +1023,6 @@ extern Mem UnitFindOrAddConstMem(Unit unit, Const num);
 
 extern bool ConstIsZero(Const num);
 extern bool ConstIsOne(Const num);
-
 
 extern void BblReplaceInss(Bbl bbl, const std::vector<Ins>& inss);
 

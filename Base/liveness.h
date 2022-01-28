@@ -44,7 +44,11 @@ struct LiveRange {
   // contains indices of LiveRanges - not 0 is an invalid values
   uint16_t use_def[MAX_USES_PER_OPCODE];
   uint8_t flags = 0;
-  CpuReg cpu_reg = CPU_REG_INVALID;  // filled in by allocator
+  CpuReg cpu_reg = CPU_REG_INVALID;
+  // filled in by allocator contains one of:
+  // CPU_REG_INVALID ???
+  // CPU_REG_SPILL reg must be spilled
+  // a CpuReg  cpu_reg the liverange is allocated to.
 
   bool HasFlag(LR_FLAG flag) const { return (flags & uint8_t(flag)) != 0; }
 

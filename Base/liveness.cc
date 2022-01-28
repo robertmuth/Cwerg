@@ -321,8 +321,8 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
         // terminate live ranges for callee result regs
         for (unsigned i = 0; i < out.size(); ++i) {
           if (out[i].def_pos == -1) {
-            const CpuReg cpu_reg = RegCpuReg(out[i].reg);
-            if (cpu_reg.isnull()) continue;
+            const CpuReg cpu_reg(RegCpuReg(out[i].reg));
+            if (cpu_reg.kind() != RefKind::CPU_REG) continue;
             if (ListContainsCpuReg(FunCpuLiveOut(callee),
                                    FunNumCpuLiveOut(callee), cpu_reg)) {
               finalize_lr(i, pos);
@@ -342,9 +342,9 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
       if (RegLastUse(reg) != 0) {
         finalize_lr(RegLastUse(reg), pos);
       } else {
-        const CpuReg cpu_reg = RegCpuReg(reg);
+        const CpuReg cpu_reg(RegCpuReg(reg));
         int16_t last_use_pos = NO_USE;
-        if (!cpu_reg.isnull() &&
+        if (cpu_reg.kind() == RefKind::CPU_REG &&
             ListContainsCpuReg(last_call_cpu_live_in, last_call_num_cpu_live_in,
                                cpu_reg)) {
           last_use_pos = last_call_pos;

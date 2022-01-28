@@ -4989,8 +4989,8 @@ uint8_t FindtImmediateMismatchesInBestMatchPattern(Ins ins,
 namespace {
 int32_t ExtractReg(Reg reg) {
   ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
-  CpuReg cpu_reg = RegCpuReg(reg);
-  ASSERT(!cpu_reg.isnull(), "no cpu reg");
+  CpuReg cpu_reg(RegCpuReg(reg));
+  ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "no cpu reg");
   return CpuRegNo(cpu_reg);
 }
 

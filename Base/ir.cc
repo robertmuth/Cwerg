@@ -440,7 +440,7 @@ void FunFinalizeStackSlots(Fun fun) {
     unsigned width = DKBitWidth(RegKind(reg)) / 8;
     slot += width - 1;
     slot = slot / width * width;
-    RegStackSlot(reg) = StackSlotNew(slot);
+    RegCpuReg(reg) = StackSlotNew(slot);
     slot += width;
   }
   for (Stk stk : FunStkIter(fun)) {

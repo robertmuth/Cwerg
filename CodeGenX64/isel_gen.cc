@@ -60,20 +60,20 @@ bool MatchesOpCurb(C curb, Handle op) {
       return true;
     case C::REG:
       return op.kind() == RefKind::REG &&
-             RegStackSlot(Reg(op)).kind() != RefKind::STACK_SLOT;
+             RegCpuReg(Reg(op)).kind() != RefKind::STACK_SLOT;
     case C::SP_REG:
       return op.kind() == RefKind::REG &&
-             RegStackSlot(Reg(op)).kind() == RefKind::STACK_SLOT;
+             RegCpuReg(Reg(op)).kind() == RefKind::STACK_SLOT;
     case C::ANY:
     case C::ZERO:
       ASSERT(false, "NYI " << EnumToString(curb));
       return true;
     case C::REG_RAX:
-      return op.kind() == RefKind::REG && CpuRegNo(RegCpuReg(Reg(op))) == 0;
+      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 0;
     case C::REG_RCX:
-      return op.kind() == RefKind::REG && CpuRegNo(RegCpuReg(Reg(op))) == 1;
+      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 1;
     case C::REG_RDX:
-      return op.kind() == RefKind::REG && CpuRegNo(RegCpuReg(Reg(op))) == 2;
+      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 2;
     case C::SIMM8:
       return MatchSignedRange((1LL << 7) - 1, Const(op));
     case C::SIMM16:
@@ -245,14 +245,14 @@ const Pattern* FindMatchingPattern(Ins ins) {
 
 int64_t ExtractReg(Reg reg) {
   ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
-  CpuReg cpu_reg = RegCpuReg(reg);
+  CpuReg cpu_reg(RegCpuReg(reg));
   ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
   return CpuRegNo(cpu_reg);
 }
 
 int64_t ExtractSpilledReg(Reg reg) {
   ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
-  StackSlot slot = RegStackSlot(reg);
+  StackSlot slot(RegCpuReg(reg));
   ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
   return StackSlotOffset(slot);
 }
@@ -302,9 +302,9 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
     case P::spill1:
     case P::spill2: {
       unsigned no = arg == P::spill01 ? 0 : +arg - +P::spill0;
-      Reg reg = Reg(InsOperand(ins, no));
+      const Reg reg = Reg(InsOperand(ins, no));
       ASSERT(reg.kind() == RefKind::REG, "");
-      StackSlot slot = RegStackSlot(reg);
+      const StackSlot slot(RegCpuReg(reg));
       ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
       return StackSlotOffset(slot);
     }
