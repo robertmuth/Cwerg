@@ -48,12 +48,12 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
     ASSERT(UnitFunList::Prev(fun).isnull(), "must be unlinked");
     FunKind(fun) = kind;
   } else if (FunKind(fun) == FUN_KIND::EXTERN || kind == FUN_KIND::EXTERN) {
-    unsigned  t = 3;
-    for (unsigned i = 0; i <  FunNumOutputTypes(fun); ++i, ++t) {
+    unsigned t = 3;
+    for (unsigned i = 0; i < FunNumOutputTypes(fun); ++i, ++t) {
       ASSERT(FunOutputTypes(fun)[i] == DKFromString(token[t]), "");
     }
     t += 2;  // skip brackets
-    for (unsigned i = 0; i <  FunNumInputTypes(fun); ++i, ++t) {
+    for (unsigned i = 0; i < FunNumInputTypes(fun); ++i, ++t) {
       ASSERT(FunInputTypes(fun)[i] == DKFromString(token[t]), "");
     }
     if (kind == FUN_KIND::EXTERN) return true;  // ignore extern
@@ -293,6 +293,29 @@ const DirHandler Handlers[] = {
     &JtbHandler,      // DIR_JTB = 0x09,
 };
 
+struct RegFragments {
+  std::string_view reg_name;
+  std::string_view kind_name;
+  std::string_view cpu_reg_name;
+};
+
+// strings look like:  $r10@rax  or addr:A64
+RegFragments ParseRegString(std::string_view s) {
+  RegFragments out;
+  const auto cpu_reg_pos = s.rfind('@');
+  if (cpu_reg_pos != std::string_view::npos) {
+    out.cpu_reg_name = s.substr(cpu_reg_pos + 1);
+    s = s.substr(0, cpu_reg_pos);
+  }
+  const auto kind_pos = s.rfind(':');
+  if (kind_pos != std::string_view::npos) {
+    out.kind_name = s.substr(kind_pos + 1);
+    s = s.substr(0, kind_pos);
+  }
+  out.reg_name = s;
+  return out;
+}
+
 Handle GetRegOrConstInsOperand(
     OP_KIND ok,
     TC tc,
@@ -305,46 +328,42 @@ Handle GetRegOrConstInsOperand(
   }
 
   if (ok == OP_KIND::REG) {
-    CpuReg cpu_reg(0);
-    const auto pos = s.rfind('@');
-    if (pos != std::string_view::npos) {
-      auto it = cpu_reg_map.find(s.substr(pos + 1));
-      ASSERT(it != cpu_reg_map.end(), "unknown cpu reg " << s.substr(pos + 1));
-      cpu_reg = it->second;
-      s = s.substr(0, pos);
-    }
-
-    const auto colon_pos = s.rfind(':');
-    if (colon_pos == std::string_view::npos) {
-      const Str name = StrNew(s);
-      const Reg reg = FunRegFind(fun, name);
+    const RegFragments frags = ParseRegString(s);
+    Reg reg;
+    const Str name = StrNew(frags.reg_name);
+    if (frags.kind_name.empty()) {
+      reg = FunRegFind(fun, name);
       if (reg.isnull()) {
-        std::cerr << "undefined reg " << s;
+        std::cerr << "undefined reg [" << s << "]\n";
+        return HandleInvalid;
       }
-      if (!cpu_reg.isnull()) {
-        if (RegCpuReg(reg).isnull()) {
-          RegCpuReg(reg) = cpu_reg;
-        } else {
-          ASSERT(RegCpuReg(reg) == cpu_reg, "");
-        }
+    } else {
+      const DK rk = DKFromString(frags.kind_name);
+      ASSERT(rk != DK::INVALID, "bad type: [" << frags.kind_name << "] in " << s);
+      reg = FunRegFind(fun, name);
+      if (!reg.isnull()) {
+        std::cerr << "reg already defined [" << frags.reg_name << "]\n";
+        return Reg(0);
       }
-      return reg;
+      reg = RegNew(rk, name);
+      FunRegAdd(fun, reg);
     }
-    std::string_view val(s.data(), colon_pos);
-    std::string_view ext(s.data() + colon_pos + 1, s.size() - colon_pos - 1);
-    const Str name = StrNew(val);
-    const DK rk = DKFromString(ext);
-    ASSERT(rk != DK::INVALID, "bad type: [" << ext << "] in " << s);
 
-    Reg reg = FunRegFind(fun, name);
-    if (!reg.isnull()) {
-      std::cerr << "reg already defined\n";
-      return Reg(0);
-    }
-    reg = RegNew(rk, name);
-    FunRegAdd(fun, reg);
-    if (!cpu_reg.isnull()) {
-      RegCpuReg(reg) = cpu_reg;
+    if (!frags.cpu_reg_name.empty()) {
+      Handle cpu_reg;
+      if (frags.cpu_reg_name == "STK") {
+        cpu_reg = StackSlotNew(0);
+      } else {
+        auto it = cpu_reg_map.find(frags.cpu_reg_name);
+        ASSERT(it != cpu_reg_map.end(),
+               "unknown cpu reg " << frags.cpu_reg_name);
+        cpu_reg = it->second;
+      }
+       if (RegCpuReg(reg).isnull()) {
+        RegCpuReg(reg) = CpuReg(cpu_reg);
+      } else {
+         ASSERT(RegCpuReg(reg) == CpuReg(cpu_reg), "");
+      }
     }
     return reg;
   } else if (ok == OP_KIND::CONST) {
