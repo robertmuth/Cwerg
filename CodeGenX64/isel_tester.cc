@@ -77,10 +77,7 @@ void Process(std::istream* input) {
   // UnitRenderToAsm(unit, &std::cout);
   for (Fun fun : UnitFunIter(unit)) {
     FunFinalizeStackSlots(fun);
-    std::string_view name(StrData(Name(fun)));
-    if (name.find("gpr_scratch")) {
-      ctx.scratch_cpu_reg =  code_gen_x64::GPR_REGS[0];
-    }
+    ctx.scratch_cpu_reg =  code_gen_x64::GPR_REGS[0];
     for (Bbl bbl : FunBblIter(fun)) {
       for (Ins ins : BblInsIter(bbl)) {
         std::cout << "\n";

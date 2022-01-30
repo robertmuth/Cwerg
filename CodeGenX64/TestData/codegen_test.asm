@@ -1,8 +1,12 @@
-
+# The code in this function is meant to exercise the instruciton selector
+# it does not represent any meaningful computation
 .mem COUNTER 4 RW
 .data 4 [0]
 
+
 .fun TestMoveImmediates NORMAL [] = [A64]
+  .jtb switch_tab 5 int [1 bbb 2 bbb 4 flt]
+  .stk array 4 4000
   .reg U32 [$r0 $r1 $r2 $r3 bitu]
   .reg S32 [$r0_S32 bits]
   .reg S64 [$r10 $r11 $12]
@@ -19,6 +23,13 @@
     lea addr1@rdx addr1@rdx $r0_U8@rdx
     conv bits@STK %U8_857@rcx
     conv bitu@STK %U8_857@rcx
+    lea.mem addr1@rdx COUNTER 66
+    beq $r10@rax $r11@r11 int
+.bbl bbb
+    bsr TestMoveImmediates
+    lea.stk addr1@rdx = array $r2@rdx
+    ld.stk $r2@rdx = array 0x20:S32
+    switch $r2@rdx switch_tab
 
 .bbl flt
     add $f1@xmm0 $f1@xmm0 $f2@xmm1

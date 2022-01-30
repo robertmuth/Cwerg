@@ -133,41 +133,39 @@ const char* SymbolizeOperand(char* buf,
   return "";
 }
 
-#if 0
-void SymbolizeReloc(char* cp, const Ins& ins, uint32_t addend) {
+char* strappend(char* dst, std::string_view src) {
+  std::memcpy(dst, src.data(), src.size());
+  dst[src.size()] = 0;
+  return dst + src.size();
+}
+
+char* strappenddec(char* dst, int64_t n) {
+  if (n >= 0) {
+    return dst + ToDecString(n, dst).size();
+  } else {
+    *dst++ = '-';
+    return dst + ToDecString(-n, dst).size();
+  }
+}
+
+void SymbolizeReloc(char* cp, const Ins& ins, int64_t addend) {
   cp = strappend(cp, "expr:");
   switch (ins.reloc_kind) {
-    case elf::RELOC_TYPE_AARCH64::JUMP26:
-      ASSERT(ins.is_local_sym, "");
-      cp = strappend(cp, "jump26:");
-      cp = strappend(cp, ins.reloc_symbol);
+    case elf::RELOC_TYPE_X86_64::PC32:
+      cp = strappend(cp, ins.is_local_sym ? "loc_pcrel32:" : "pcrel32:");
       break;
-    case elf::RELOC_TYPE_AARCH64::ADR_PREL_PG_HI21:
-      cp = strappend(cp, ins.is_local_sym ? "loc_adr_prel_pg_hi21:": "adr_prel_pg_hi21:");
-      cp = strappend(cp, ins.reloc_symbol);
-      break;
-    case elf::RELOC_TYPE_AARCH64::ADD_ABS_LO12_NC:
-      cp = strappend(cp, ins.is_local_sym ? "loc_add_abs_lo12_nc:": "add_abs_lo12_nc:");
-      cp = strappend(cp, ins.reloc_symbol);
-      break;
-    case elf::RELOC_TYPE_AARCH64::CALL26:
-      cp = strappend(cp, "call26:");
-      cp = strappend(cp, ins.reloc_symbol);
-      break;
-    case elf::RELOC_TYPE_AARCH64::CONDBR19:
-      ASSERT(ins.is_local_sym, "");
-      cp = strappend(cp, "condbr19:");
-      cp = strappend(cp, ins.reloc_symbol);
-      break;
+    case elf::RELOC_TYPE_X86_64::X_64:
+        cp = strappend(cp, ins.is_local_sym ? "loc_abs64:": "abs64:");
+        break;
     default:
-      ASSERT(false, "");
+      ASSERT(false, "Unknown relocation " << unsigned(ins.reloc_kind));
   }
+  cp = strappend(cp, ins.reloc_symbol);
   if (addend != 0) {
     *cp++ = ':';
     cp = strappenddec(cp, addend);
   }
 }
-#endif
 
 std::string_view InsSymbolize(const x64::Ins& ins,
                               bool show_implicits,
@@ -200,8 +198,8 @@ std::string_view InsSymbolize(const x64::Ins& ins,
     }
 
     if (ins.has_reloc() && i == ins.reloc_pos) {
-      ASSERT(false, "NYI");
-      // SymbolizeReloc(buffer, ins, ins.operands[i]);
+      SymbolizeReloc(buffer, ins, ins.operands[i]);
+      s = buffer;
     } else {
       s = SymbolizeOperand(buffer, ins.operands[i], ok, show_implicits,
                            objdump_compat);
@@ -240,7 +238,7 @@ bool HandleRelocation(std::string_view expr, unsigned pos, Ins* ins) {
 }
 
 bool ParseReg(std::string_view op, int64_t* val, const char names[16][8]) {
-  for (uint32_t i  =0; i < 16; ++i) {
+  for (uint32_t i = 0; i < 16; ++i) {
     if (op == names[i]) {
       *val = i;
       return true;
@@ -248,7 +246,6 @@ bool ParseReg(std::string_view op, int64_t* val, const char names[16][8]) {
   }
   return false;
 }
-
 
 bool UnsymbolizeOperand(OK ok, std::string_view op, int64_t* val) {
   switch (ok) {

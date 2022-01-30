@@ -24,15 +24,15 @@ for reglist in x64.REG_NAMES.values():
         SYMBOLIC_OPERAND_TO_INT[reg] = i
 
 
-def _EmitReloc(ins: x64.Ins, pos: int) -> str:
+def SymbolizeReloc(ins: x64.Ins, addend: int) -> str:
     if ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.PC32:
         loc = "loc_" if ins.is_local_sym else ""
-        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
+        offset = "" if addend == 0 else f":{addend}"
         return f"expr:{loc}pcrel32:{ins.reloc_symbol}{offset}"
     elif ins.reloc_kind == enum_tab.RELOC_TYPE_X86_64.X_64:
         loc = "loc_" if ins.is_local_sym else ""
-        offset = "" if ins.operands[pos] == 0 else f":{ins.operands[pos]}"
-        return f"expr:{loc}add_abs64:{ins.reloc_symbol}{offset}"
+        offset = "" if addend == 0 else f":{addend}"
+        return f"expr:{loc}abs64:{ins.reloc_symbol}{offset}"
     else:
         assert False
 
@@ -100,7 +100,7 @@ def InsSymbolize(ins: x64.Ins, show_implicits: bool, objdump_compat: bool = Fals
                 out.append(f"MEM{ins.opcode.mem_width}")
 
         if ins.has_reloc() and ins.reloc_pos == n:
-            out.append(_EmitReloc(ins, n))
+            out.append(SymbolizeReloc(ins, ins.operands[n]))
             continue
         s = SymbolizeOperand(ok, ins.operands[n], show_implicits, objdump_compat)
         if s is not None:

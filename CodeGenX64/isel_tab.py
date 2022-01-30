@@ -249,6 +249,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         return GetStackOffset(ops[1], ops[2])
     elif arg is P.stk0_offset1:
         return GetStackOffset(ops[0], ops[1])
+    elif arg is P.stk1:
+        return GetStackOffset(ops[1], ir.Const(o.DK.U32, 0))
     elif arg is P.tmp_gpr:
         return _F_TO_INT[F.RAX]
     elif arg is P.tmp_flt:
