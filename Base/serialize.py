@@ -319,7 +319,7 @@ def _GetRegOrConstOperand(fun: ir.Fun, last_kind: o.DK,
             assert o.CheckTypeConstraint(last_kind, tc, reg.kind)
         if cpu_reg:
             if reg.cpu_reg:
-                assert reg.cpu_reg == cpu_reg
+                assert reg.cpu_reg == cpu_reg, f"inconsistent cpu_reg assignment for {reg}"
             else:
                 reg.cpu_reg = cpu_reg
         return reg

@@ -11,11 +11,13 @@
 
 using namespace cwerg;
 
+// Create a Unit with a single function "fib" modelled after ../TestData/fib.asm
 base::Unit MakeFibonacci() {
   using namespace cwerg::base;
 
   Unit unit = UnitNew(StrNew("fibonacci"));
   Fun fun = UnitFunAdd(unit, FunNew(StrNew("fib"), FUN_KIND::NORMAL));
+  // setup function signature
   FunOutputTypes(fun)[0] = DK::U32;
   FunNumOutputTypes(fun) = 1;
   FunInputTypes(fun)[0] = DK::U32;
@@ -28,12 +30,12 @@ base::Unit MakeFibonacci() {
   Const zero = ConstNewU(DK::U32, 0);
   Const one = ConstNewU(DK::U32, 1);
   Const two = ConstNewU(DK::U32, 2);
-  // start
+  // populate Bbl start
   BblInsAdd(bbl_start, InsNew(OPC::POPARG, reg_in));
   BblInsAdd(bbl_start, InsNew(OPC::BLT, one, reg_in, bbl_difficult));
   BblInsAdd(bbl_start, InsNew(OPC::PUSHARG, reg_in));
   BblInsAdd(bbl_start, InsNew(OPC::RET));
-  // difficult
+  // populate Bbl difficult
   BblInsAdd(bbl_difficult, InsNew(OPC::MOV, reg_out, zero));
   BblInsAdd(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, one));
   BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
@@ -95,10 +97,12 @@ int main(int argc, char* argv[]) {
     a64::ApplyRelocation(rel);
   }
 
-  // Copy Section dats to their final destination
+  // Copy Section data to their final destination
+  // Note we only have a text section
   memcpy(text_memory, a64unit.sec_text->data->data(), a64unit.sec_text->data->size());
 
-  // Invoke JITed code
+  // Invoke JITed code. This assumes that the calling convention of the
+  // JITed code matches the platform ABI. This is only true for simple cases.
   FunPtr f = reinterpret_cast<FunPtr>(text_memory);
   for (unsigned i = 0; i < 10; ++i) {
     std::cout << std::dec << i << " " << f(i) << "\n";

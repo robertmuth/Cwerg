@@ -163,7 +163,7 @@ def _RelWidth(rel_type: int):
 def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
-    width = _RelWidth( rel.r_type)
+    width = _RelWidth(rel.r_type)
     if rel.r_type == enum_tab.RELOC_TYPE_X86_64.PC32.value:
         assert rel.r_offset + width <= len(sec_data)
         new_data = _pc_offset(rel, sym_val)
