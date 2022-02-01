@@ -28,4 +28,4 @@ void RegAllocGlobal(base::Unit unit, bool verbose, std::ostream* fout);
 void RegAllocLocal(base::Unit unit, bool verbose, std::ostream* fout);
 
 
-}  // namespace cwerg::code_gen_a32
+}  // namespace cwerg::code_gen_a64
