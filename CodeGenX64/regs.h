@@ -48,7 +48,7 @@ extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
 
-
+#endif
 
 extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
                                                         const base::DK* kinds);
@@ -78,6 +78,5 @@ extern EmitContext FunComputeEmitContext(base::Fun fun);
 
 extern void FunPushargConversion(base::Fun fun);
 extern void FunPopargConversion(base::Fun fun);
-#endif
 
 }  // namespace cwerg::code_gen_a64

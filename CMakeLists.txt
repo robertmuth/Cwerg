@@ -261,6 +261,7 @@ add_library(CODEGENA64_LIB OBJECT
         CodeGenA64/isel_gen.cc
         CodeGenA64/isel_gen.h
         CodeGenA64/codegen.cc
+        CodeGenA64/codegen.cc
         CodeGenA64/codegen.h
         CodeGenA64/legalize.cc
         CodeGenA64/legalize.h
@@ -290,6 +291,10 @@ add_library(CODEGENX64_LIB OBJECT
         CodeGenX64/isel_gen.cc
         CodeGenX64/isel_gen.h
         CodeGenX64/isel_gen_patterns.h
+        CodeGenX64/codegen.cc
+        CodeGenX64/codegen.h
+        CodeGenX64/legalize.cc
+        CodeGenX64/legalize.h
         CodeGenX64/regs.cc
         CodeGenX64/regs.h
         )
@@ -301,6 +306,15 @@ add_executable(x64_isel_tester.exe
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         CodeGenX64/isel_tester.cc
+        )
+
+add_executable(x64_codegen_tool.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:CPUX64_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        CodeGenX64/codegen_tool.cc
         )
 
 # this only works when (cross) compiled for a32

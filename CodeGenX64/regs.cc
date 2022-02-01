@@ -16,11 +16,66 @@ std::array<CpuReg, 16> FLT_REGS;
 
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
+constexpr const uint32_t GPR_RESERVED_MASK = 0x0011;
+constexpr const uint32_t GPR_REGS_MASK = 0xffee;
+constexpr const uint32_t GPR_LAC_REGS_MASK = 0xf028;
+
+constexpr const uint32_t GPR_REG_IMPLICIT_MASK = 0x0007;
+constexpr const uint32_t FLT_RESERVED_MASK = 0x0001;
+constexpr const uint32_t FLT_REGS_MASK = 0xfffe;
+constexpr const uint32_t FLT_LAC_REGS_MASK = 0xff00;
+
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
     -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
+}
+
+namespace {
+struct CpuRegMasks {
+  uint32_t gpr_mask;
+  uint32_t flt_mask;
+};
+
+CpuRegMasks FunCpuRegStats(Fun fun) {
+  uint32_t gpr_mask = 0;
+  uint32_t flt_mask = 0;
+  for (Bbl bbl : FunBblIter(fun)) {
+    for (Ins ins : BblInsIter(bbl)) {
+      const uint32_t num_ops = InsOpcode(ins).num_operands;
+      for (unsigned i = 0; i < num_ops; ++i) {
+        const Reg reg(InsOperand(ins, i));
+        if (reg.kind() != RefKind::REG) continue;
+        const CpuReg cpu_reg(RegCpuReg(reg));
+        if (cpu_reg.kind() == RefKind::STACK_SLOT) continue;
+        ;
+        if (cpu_reg.kind() != RefKind::CPU_REG) {
+          BblRenderToAsm(bbl, fun, &std::cout);
+          ASSERT(false,
+                 "found unallocated reg " << Name(reg) << " in " << Name(fun));
+        }
+        const uint32_t mask = 1 << CpuRegNo(cpu_reg);
+        if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR) {
+          gpr_mask |= mask;
+        } else {
+          flt_mask |= mask;
+        }
+      }
+    }
+  }
+  return {gpr_mask, flt_mask};
+}
+
+}  // namespace
+
+EmitContext FunComputeEmitContext(Fun fun) {
+  CpuRegMasks masks = FunCpuRegStats(fun);
+  masks.gpr_mask &= GPR_LAC_REGS_MASK;
+  masks.flt_mask &= FLT_LAC_REGS_MASK;
+
+  const uint32_t stk_size = (FunStackSize(fun) + 15) / 16 * 16;
+  return EmitContext{masks.gpr_mask, masks.flt_mask, stk_size, FunIsLeaf(fun)};
 }
 
 std::vector<CpuReg> GetAllRegs() {
@@ -74,6 +129,20 @@ void InitCodeGenX64() {
   //
   DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
   DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::FLT;
+}
+std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
+                                                 const base::DK* kinds) {
+  std::vector<base::CpuReg> out;
+  // TODO
+  return out;
+}
+
+void FunPushargConversion(base::Fun fun) {
+  // TODO
+}
+
+void FunPopargConversion(base::Fun fun) {
+  // TODO
 }
 
 }  // namespace cwerg::code_gen_x64
