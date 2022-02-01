@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from Base import ir
 from Base import liveness
+from Base import lowering
 from Base import opcode_tab as o
 from Base import reg_alloc
 from Base import serialize
@@ -140,7 +141,7 @@ def _GetCpuRegsForSignature(kinds: List[o.DK], gpr_regs: List[ir.CpuReg],
     return out
 
 
-class PushPopInterface:
+class PushPopInterface(lowering.PushPopInterface):
     """Used with FunPopargConversion and FunPushargConversion"""
 
     @classmethod

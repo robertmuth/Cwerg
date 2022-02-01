@@ -13,6 +13,9 @@ using namespace cwerg::base;
 std::array<CpuReg, 16> GPR_REGS;
 
 std::array<CpuReg, 16> FLT_REGS;
+std::array<CpuReg, 9> GPR_IN_REGS;
+std::array<CpuReg, 9> GPR_OUT_REGS;
+std::array<CpuReg, 8> FLT_IN_OUT_REGS;
 
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
@@ -67,7 +70,64 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
   return {gpr_mask, flt_mask};
 }
 
+void GetCpuRegsForSignature(
+    unsigned count,
+    const DK* kinds,
+    const std::array<CpuReg, 9>& gpr_regs,
+    const std::array<CpuReg, 8>& flt_regs,
+    std::vector<CpuReg>* out) {
+  out->clear();
+  unsigned next_gpr = 0;
+  unsigned next_flt = 0;
+  for (unsigned i = 0; i < count; ++i) {
+    switch (kinds[i]) {
+      case DK::S64:
+      case DK::U64:
+      case DK::A64:
+      case DK::C64:
+      case DK::S32:
+      case DK::U32:
+      case DK::S16:
+      case DK::U16:
+      case DK::S8:
+      case DK::U8:
+        ASSERT(next_gpr < gpr_regs.size(),
+               "too many gpr64 regs " << next_gpr << " vs " << gpr_regs.size());
+        out->push_back(gpr_regs[next_gpr]);
+        ++next_gpr;
+        break;
+      case DK::F32:
+      case DK::F64:
+        ASSERT(next_flt < flt_regs.size(), "");
+        out->push_back(flt_regs[next_flt]);
+        ++next_flt;
+        break;
+      default:
+        ASSERT(false, "invalid DK " << EnumToString(kinds[i]));
+        break;
+    }
+  }
+}
+
+struct PushPopInterfaceX64 : base::PushPopInterface {
+  void GetCpuRegsForInSignature(unsigned count,
+                                const base::DK* kinds,
+                                std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, GPR_IN_REGS, FLT_IN_OUT_REGS, out);
+  }
+
+  void GetCpuRegsForOutSignature(
+      unsigned count,
+      const base::DK* kinds,
+      std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, GPR_OUT_REGS, FLT_IN_OUT_REGS, out);
+  }
+} PushPopInterfaceX64Impl;
+
 }  // namespace
+
+const base::PushPopInterface* const PushPopInterfaceX64 =
+    &PushPopInterfaceX64Impl;
 
 EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);
@@ -105,12 +165,43 @@ void InitCodeGenX64() {
   GPR_REGS[14] = CpuRegNew(14, +CPU_REG_KIND::GPR, StrNew("r14"));
   GPR_REGS[15] = CpuRegNew(15, +CPU_REG_KIND::GPR, StrNew("r15"));
 
+  GPR_IN_REGS[0] = GPR_REGS[7];
+  GPR_IN_REGS[1] = GPR_REGS[6];
+  GPR_IN_REGS[2] = GPR_REGS[2];
+  GPR_IN_REGS[3] = GPR_REGS[1];
+  GPR_IN_REGS[4] = GPR_REGS[8];
+  GPR_IN_REGS[5] = GPR_REGS[9];
+  GPR_IN_REGS[6] = GPR_REGS[10];
+  GPR_IN_REGS[7] = GPR_REGS[11];
+  GPR_IN_REGS[8] = GPR_REGS[0];
+
+  GPR_OUT_REGS[0] = GPR_REGS[0];
+  GPR_OUT_REGS[1] = GPR_REGS[2];
+  GPR_OUT_REGS[2] = GPR_REGS[7];
+  GPR_OUT_REGS[3] = GPR_REGS[6];
+  GPR_OUT_REGS[4] = GPR_REGS[1];
+  GPR_OUT_REGS[5] = GPR_REGS[8];
+  GPR_OUT_REGS[6] = GPR_REGS[9];
+  GPR_OUT_REGS[7] = GPR_REGS[10];
+  GPR_OUT_REGS[8] = GPR_REGS[11];
+
+
+
   // FLT
   for (unsigned i = 0; i < FLT_REGS.size(); ++i) {
     char buffer[8] = "xmm";
     ToDecString(i, buffer + 3);
     FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
   }
+
+  FLT_IN_OUT_REGS[0] = FLT_REGS[1];
+  FLT_IN_OUT_REGS[1] = FLT_REGS[2];
+  FLT_IN_OUT_REGS[2] = FLT_REGS[3];
+  FLT_IN_OUT_REGS[3] = FLT_REGS[4];
+  FLT_IN_OUT_REGS[4] = FLT_REGS[5];
+  FLT_IN_OUT_REGS[5] = FLT_REGS[6];
+  FLT_IN_OUT_REGS[6] = FLT_REGS[7];
+  FLT_IN_OUT_REGS[7] = FLT_REGS[8];
 
   // ==================================================
   for (unsigned i = 0; i < DK_TO_CPU_REG_KIND_MAP.size(); ++i) {
@@ -146,3 +237,4 @@ void FunPopargConversion(base::Fun fun) {
 }
 
 }  // namespace cwerg::code_gen_x64
+

@@ -2,6 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/ir.h"
+#include "Base/lowering.h"
 #include "Base/reg_stats.h"
 #include "CpuX64/opcode_gen.h"
 
@@ -70,6 +71,8 @@ extern void AssignCpuRegOrMarkForSpilling(
 
 // must be called early in main()
 extern void InitCodeGenX64();
+
+extern const base::PushPopInterface* const PushPopInterfaceX64;
 
 extern void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss);
 
