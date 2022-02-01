@@ -102,7 +102,7 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   }
   return to_delete->size();
 }
-
+#if 0
 void FunSetInOutCpuRegs(Fun fun) {
   const std::vector<CpuReg> cpu_in =
       GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
@@ -115,7 +115,7 @@ void FunSetInOutCpuRegs(Fun fun) {
   memcpy(FunCpuLiveOut(fun), cpu_out.data(), cpu_out.size() * sizeof(CpuReg));
 }
 
-#if 0
+
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
 // and whose `lac-ness` matches `is_lac`
 void FunFilterGlobalRegs(Fun fun,
@@ -212,11 +212,11 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S16, DK::S32, &inss);
 
-  FunSetInOutCpuRegs(fun);
+  // FunSetInOutCpuRegs(fun);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
-  FunPushargConversion(fun);
-  FunPopargConversion(fun);
+  //FunPushargConversion(fun);
+  //FunPopargConversion(fun);
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);

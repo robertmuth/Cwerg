@@ -153,8 +153,8 @@ int main(int argc, const char* argv[]) {
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
-    a64::A64Unit armunit = EmitUnitAsBinary(unit, sw_add_startup_code.Value());
-    auto exe = a64::MakeExe(&armunit, true);
+    x64::X64Unit cpuunit = EmitUnitAsBinary(unit, sw_add_startup_code.Value());
+    auto exe = x64::MakeExe(&cpuunit, true);
     std::vector<std::string_view> chunks = exe.Save();
     for (const auto& c : chunks) {
       fout->write((const char*)c.data(), c.size());

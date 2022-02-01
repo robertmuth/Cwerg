@@ -133,7 +133,7 @@ void InitCodeGenX64() {
 std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
                                                  const base::DK* kinds) {
   std::vector<base::CpuReg> out;
-  // TODO
+
   return out;
 }
 

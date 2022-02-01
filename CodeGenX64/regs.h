@@ -50,7 +50,10 @@ inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(
 
 #endif
 
-extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
+extern std::vector<base::CpuReg> GetCpuRegsForInSignature(unsigned count,
+                                                        const base::DK* kinds);
+
+extern std::vector<base::CpuReg> GetCpuRegsForOutSignature(unsigned count,
                                                         const base::DK* kinds);
 
 // Note: regs must match the class of  cpu_reg_mask, e.g. be all
