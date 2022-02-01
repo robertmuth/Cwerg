@@ -47,7 +47,8 @@ class CpuRegPool : public RegPool {
         flt_available_not_lac_(flt_available_not_lac) {}
 
   uint8_t get_cpu_reg_family(DK dk) override {
-    return DKFlavor(dk) == DK_FLAVOR_F ? +CPU_REG_KIND::FLT : +CPU_REG_KIND::GPR;
+    return DKFlavor(dk) == DK_FLAVOR_F ? +CPU_REG_KIND::FLT
+                                       : +CPU_REG_KIND::GPR;
   }
 
   CpuReg get_available_reg(const LiveRange& lr) override {
@@ -294,12 +295,12 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
   return {gpr_mask, flt_mask};
 }
 
-}  // namespace
-
-std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
+void GetCpuRegsForSignature(unsigned count,
+                            const DK* kinds,
+                            std::vector<CpuReg>* out) {
+  out->clear();
   unsigned next_gpr = 0;
   unsigned next_flt = 0;
-  std::vector<CpuReg> out;
   for (unsigned i = 0; i < count; ++i) {
     switch (kinds[i]) {
       case DK::S64:
@@ -309,7 +310,7 @@ std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
         ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr32 regs "
                                                      << next_gpr << " vs "
                                                      << GPR_PARAM_REGS.size());
-        out.push_back(GPR_PARAM_REGS[next_gpr]);
+        out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
       case DK::S32:
@@ -317,81 +318,44 @@ std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
         ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr64 regs "
                                                      << next_gpr << " vs "
                                                      << GPR_PARAM_REGS.size());
-        out.push_back(GPR_PARAM_REGS[next_gpr]);
+        out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
       case DK::F32:
         ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
-        out.push_back(FLT_PARAM_REGS[next_flt]);
+        out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
       case DK::F64:
         ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
-        out.push_back(FLT_PARAM_REGS[next_flt]);
+        out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
       default:
         break;
     }
   }
-
-  return out;
 }
 
-void FunPushargConversion(Fun fun) {
-  std::vector<CpuReg> parameter;
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIterReverse(bbl)) {
-      if (InsOPC(ins) == OPC::PUSHARG) {
-        ASSERT(!parameter.empty(),
-               "possible undefined fun call in " << Name(fun));
-        Handle src = InsOperand(ins, 0);
-        CpuReg cpu_reg = parameter.back();
-        parameter.pop_back();
-        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegOrConstKind(src));
-        InsInit(ins, OPC::MOV, reg, src);
-        continue;
-      }
-
-      if (InsOpcode(ins).IsCall()) {
-        Fun callee = InsCallee(ins);
-        parameter = GetCpuRegsForSignature(FunNumInputTypes(callee),
-                                           FunInputTypes(callee));
-        std::reverse(parameter.begin(), parameter.end());
-      } else if (InsOPC(ins) == OPC::RET) {
-        parameter =
-            GetCpuRegsForSignature(FunNumOutputTypes(fun), FunOutputTypes(fun));
-        std::reverse(parameter.begin(), parameter.end());
-      }
-    }
+struct PushPopInterfaceA64 : base::PushPopInterface {
+  void GetCpuRegsForInSignature(unsigned count,
+                                const base::DK* kinds,
+                                std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, out);
   }
-}
 
-void FunPopargConversion(Fun fun) {
-  std::vector<CpuReg> parameter =
-      GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
-  std::reverse(parameter.begin(), parameter.end());
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIter(bbl)) {
-      if (InsOPC(ins) == OPC::POPARG) {
-        ASSERT(!parameter.empty(), "");
-        Reg dst = Reg(InsOperand(ins, 0));
-        CpuReg cpu_reg = parameter.back();
-        parameter.pop_back();
-        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegKind(dst));
-        InsInit(ins, OPC::MOV, dst, reg);
-        continue;
-      }
-
-      if (InsOpcode(ins).IsCall()) {
-        Fun callee = InsCallee(ins);
-        parameter = GetCpuRegsForSignature(FunNumOutputTypes(callee),
-                                           FunOutputTypes(callee));
-        std::reverse(parameter.begin(), parameter.end());
-      }
-    }
+  void GetCpuRegsForOutSignature(
+      unsigned count,
+      const base::DK* kinds,
+      std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, out);
   }
-}
+} PushPopInterfaceA64Impl;
+
+}  // namespace
+
+const base::PushPopInterface* const PushPopInterfaceA64 =
+    &PushPopInterfaceA64Impl;
 
 void FunLocalRegAlloc(Fun fun, std::vector<Ins>* inss) {
   const unsigned num_regs = FunNumRegs(fun);

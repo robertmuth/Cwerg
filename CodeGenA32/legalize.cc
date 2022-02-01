@@ -78,7 +78,9 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss) {
+void FunRewriteOutOfBoundsImmediates(Fun fun,
+                                     Unit unit,
+                                     std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
@@ -106,61 +108,6 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss)
       inss->push_back(ins);
     }
     if (dirty) BblReplaceInss(bbl, *inss);
-  }
-}
-
-void FunPushargConversion(Fun fun) {
-  std::vector<CpuReg> parameter;
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIterReverse(bbl)) {
-      if (InsOPC(ins) == OPC::PUSHARG) {
-        ASSERT(!parameter.empty(),
-               "possible undefined fun call in " << Name(fun));
-        Handle src = InsOperand(ins, 0);
-        CpuReg cpu_reg = parameter.back();
-        parameter.pop_back();
-        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegOrConstKind(src));
-        InsInit(ins, OPC::MOV, reg, src);
-        continue;
-      }
-
-      if (InsOpcode(ins).IsCall()) {
-        Fun callee = InsCallee(ins);
-        parameter = GetCpuRegsForSignature(FunNumInputTypes(callee),
-                                           FunInputTypes(callee));
-        std::reverse(parameter.begin(), parameter.end());
-      } else if (InsOPC(ins) == OPC::RET) {
-        parameter =
-            GetCpuRegsForSignature(FunNumOutputTypes(fun), FunOutputTypes(fun));
-        std::reverse(parameter.begin(), parameter.end());
-      }
-    }
-  }
-}
-
-void FunPopargConversion(Fun fun) {
-  std::vector<CpuReg> parameter =
-      GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
-  std::reverse(parameter.begin(), parameter.end());
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIter(bbl)) {
-      if (InsOPC(ins) == OPC::POPARG) {
-        ASSERT(!parameter.empty(), "");
-        Reg dst = Reg(InsOperand(ins, 0));
-        CpuReg cpu_reg = parameter.back();
-        parameter.pop_back();
-        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegKind(dst));
-        InsInit(ins, OPC::MOV, dst, reg);
-        continue;
-      }
-
-      if (InsOpcode(ins).IsCall()) {
-        Fun callee = InsCallee(ins);
-        parameter = GetCpuRegsForSignature(FunNumOutputTypes(callee),
-                                           FunOutputTypes(callee));
-        std::reverse(parameter.begin(), parameter.end());
-      }
-    }
   }
 }
 
@@ -204,15 +151,16 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
 }
 
 void FunSetInOutCpuRegs(Fun fun) {
-  const std::vector<CpuReg> cpu_in =
-      GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
-  FunNumCpuLiveIn(fun) = cpu_in.size();
-  memcpy(FunCpuLiveIn(fun), cpu_in.data(), cpu_in.size() * sizeof(CpuReg));
+  std::vector<CpuReg> cpu_regs;
+  PushPopInterfaceA32->GetCpuRegsForInSignature(FunNumInputTypes(fun),
+                                                FunInputTypes(fun), &cpu_regs);
+  FunNumCpuLiveIn(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 
-  const std::vector<CpuReg> cpu_out =
-      GetCpuRegsForSignature(FunNumOutputTypes(fun), FunOutputTypes(fun));
-  FunNumCpuLiveOut(fun) = cpu_out.size();
-  memcpy(FunCpuLiveOut(fun), cpu_out.data(), cpu_out.size() * sizeof(CpuReg));
+  PushPopInterfaceA32->GetCpuRegsForOutSignature(
+      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
+  FunNumCpuLiveOut(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 }
 
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
@@ -315,8 +263,8 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
 
-  FunPushargConversion(fun);
-  FunPopargConversion(fun);
+  FunPushargConversion(fun, *PushPopInterfaceA32);
+  FunPopargConversion(fun, *PushPopInterfaceA32);
 
   FunEliminateRem(fun, &inss);
 

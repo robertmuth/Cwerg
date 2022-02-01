@@ -307,7 +307,58 @@ ArmFltRegRange ArmGetFltRegRanges(uint32_t flt_mask) {
   return {start, count};
 }
 
+void GetCpuRegsForSignature(unsigned count, const DK* kinds, std::vector<CpuReg>* out) {
+  out->clear();
+  unsigned next_gpr = 0;
+  unsigned next_flt = 0;
+  for (unsigned i = 0; i < count; ++i) {
+    switch (kinds[i]) {
+      case DK::A32:
+      case DK::C32:
+      case DK::S32:
+      case DK::U32:
+        ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr regs "
+            << next_gpr << " vs "
+            << GPR_PARAM_REGS.size());
+        out->push_back(GPR_PARAM_REGS[next_gpr]);
+        ++next_gpr;
+        break;
+      case DK::F32:
+        ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
+        out->push_back(FLT_PARAM_REGS[next_flt]);
+        ++next_flt;
+        break;
+      case DK::F64:
+        if ((next_flt & 1U) == 1) ++next_flt;
+        ASSERT(next_flt / 2 < DBL_PARAM_REGS.size(), "");
+        out->push_back(DBL_PARAM_REGS[next_flt / 2]);
+        next_flt += 2;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+struct PushPopInterfaceA64 : base::PushPopInterface {
+  void GetCpuRegsForInSignature(unsigned count,
+                                const base::DK* kinds,
+                                std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, out);
+  }
+
+  void GetCpuRegsForOutSignature(
+      unsigned count,
+      const base::DK* kinds,
+      std::vector<base::CpuReg>* out) const override {
+    return GetCpuRegsForSignature(count, kinds, out);
+  }
+} PushPopInterfaceA32Impl;
+
 }  // namespace
+
+const base::PushPopInterface* const PushPopInterfaceA32 =
+    &PushPopInterfaceA32Impl;
 
 uint32_t A32RegToAllocMask(CpuReg cpu_reg) {
   if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::DBL) {
@@ -343,40 +394,7 @@ std::vector<CpuReg> GetAllRegs() {
   return out;
 }
 
-std::vector<CpuReg> GetCpuRegsForSignature(unsigned count, const DK* kinds) {
-  unsigned next_gpr = 0;
-  unsigned next_flt = 0;
-  std::vector<CpuReg> out;
-  for (unsigned i = 0; i < count; ++i) {
-    switch (kinds[i]) {
-      case DK::A32:
-      case DK::C32:
-      case DK::S32:
-      case DK::U32:
-        ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr regs "
-                                                     << next_gpr << " vs "
-                                                     << GPR_PARAM_REGS.size());
-        out.push_back(GPR_PARAM_REGS[next_gpr]);
-        ++next_gpr;
-        break;
-      case DK::F32:
-        ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
-        out.push_back(FLT_PARAM_REGS[next_flt]);
-        ++next_flt;
-        break;
-      case DK::F64:
-        if ((next_flt & 1U) == 1) ++next_flt;
-        ASSERT(next_flt / 2 < DBL_PARAM_REGS.size(), "");
-        out.push_back(DBL_PARAM_REGS[next_flt / 2]);
-        next_flt += 2;
-        break;
-      default:
-        break;
-    }
-  }
 
-  return out;
-}
 
 void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
                                    uint32_t cpu_reg_mask_first_choice,

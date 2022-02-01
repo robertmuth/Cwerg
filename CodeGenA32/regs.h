@@ -2,6 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/ir.h"
+#include "Base/lowering.h"
 #include "Base/reg_stats.h"
 #include "CpuA32/opcode_gen.h"
 
@@ -37,8 +38,7 @@ extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 // must be called early in main()
 extern void InitCodeGenA32();
 
-extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
-                                                        const base::DK* kinds);
+extern const base::PushPopInterface* const PushPopInterfaceA32;
 
 // Note: regs must match the class of  cpu_reg_mask, e.g. be all
 // floating point or all GPR

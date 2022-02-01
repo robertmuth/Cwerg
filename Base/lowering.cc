@@ -1,5 +1,8 @@
 // (c) Robert Muth - see LICENSE for more info
 #include "Base/lowering.h"
+#include "Base/cfg.h"
+
+#include <algorithm>
 
 namespace cwerg::base {
 namespace {
@@ -173,7 +176,6 @@ bool InsStrengthReduction(Ins ins) {
 }
 
 }  // namespace
-
 
 int FunStrengthReduction(Fun fun) {
   int count = 0;
@@ -508,8 +510,8 @@ bool InsLimtiShiftAmounts(Ins ins, Fun fun, int width, std::vector<Ins>* inss) {
     return false;
   } else {
     // reg
-    Const mask = DKFlavor(dk) == DK_FLAVOR_U ? ConstNewU(dk, width - 1) :
-                                             ConstNewACS(dk, width - 1);
+    Const mask = DKFlavor(dk) == DK_FLAVOR_U ? ConstNewU(dk, width - 1)
+                                             : ConstNewACS(dk, width - 1);
     Reg tmp = FunGetScratchReg(fun, dk, "shift", false);
     inss->push_back(InsNew(OPC::AND, tmp, amount, mask));
     InsInit(ins, InsOPC(ins), InsOperand(ins, 0), InsOperand(ins, 1), tmp);
@@ -524,8 +526,8 @@ void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss) {
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
       const OPC opc = InsOPC(ins);
-      if ((opc != OPC::SHL && opc != OPC::SHR) || width !=
-          DKBitWidth(RegKind(Reg(InsOperand(ins, 0))))) {
+      if ((opc != OPC::SHL && opc != OPC::SHR) ||
+          width != DKBitWidth(RegKind(Reg(InsOperand(ins, 0))))) {
         inss->push_back(ins);
         continue;
       }
@@ -536,4 +538,61 @@ void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss) {
     }
   }
 }
+
+void FunPushargConversion(Fun fun, const PushPopInterface& ppif) {
+  std::vector<CpuReg> parameter;
+  for (Bbl bbl : FunBblIter(fun)) {
+    for (Ins ins : BblInsIterReverse(bbl)) {
+      if (InsOPC(ins) == OPC::PUSHARG) {
+        ASSERT(!parameter.empty(),
+               "possible undefined fun call in " << Name(fun));
+        Handle src = InsOperand(ins, 0);
+        CpuReg cpu_reg = parameter.back();
+        parameter.pop_back();
+        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegOrConstKind(src));
+        InsInit(ins, OPC::MOV, reg, src);
+        continue;
+      }
+
+      if (InsOpcode(ins).IsCall()) {
+        Fun callee = InsCallee(ins);
+        ppif.GetCpuRegsForInSignature(FunNumInputTypes(callee),
+                                      FunInputTypes(callee), &parameter);
+        std::reverse(parameter.begin(), parameter.end());
+      } else if (InsOPC(ins) == OPC::RET) {
+        ppif.GetCpuRegsForOutSignature(FunNumOutputTypes(fun),
+                                       FunOutputTypes(fun), &parameter);
+        std::reverse(parameter.begin(), parameter.end());
+      }
+    }
+  }
+}
+
+void FunPopargConversion(Fun fun, const PushPopInterface& ppif) {
+  std::vector<CpuReg> parameter;
+  ppif.GetCpuRegsForInSignature(FunNumInputTypes(fun), FunInputTypes(fun),
+                                &parameter);
+  std::reverse(parameter.begin(), parameter.end());
+  for (Bbl bbl : FunBblIter(fun)) {
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOPC(ins) == OPC::POPARG) {
+        ASSERT(!parameter.empty(), "");
+        Reg dst = Reg(InsOperand(ins, 0));
+        CpuReg cpu_reg = parameter.back();
+        parameter.pop_back();
+        Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegKind(dst));
+        InsInit(ins, OPC::MOV, dst, reg);
+        continue;
+      }
+
+      if (InsOpcode(ins).IsCall()) {
+        Fun callee = InsCallee(ins);
+        ppif.GetCpuRegsForOutSignature(FunNumOutputTypes(callee),
+                                       FunOutputTypes(callee), &parameter);
+        std::reverse(parameter.begin(), parameter.end());
+      }
+    }
+  }
+}
+
 }  // namespace cwerg::base

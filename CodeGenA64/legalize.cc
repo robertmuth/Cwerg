@@ -29,8 +29,8 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::RET ||      // handled via special epilog code
-         opc == OPC::NOP1;       // pseudo instruction
+  return opc == OPC::RET ||  // handled via special epilog code
+         opc == OPC::NOP1;   // pseudo instruction
 }
 
 void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
@@ -61,7 +61,9 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss) {
+void FunRewriteOutOfBoundsImmediates(Fun fun,
+                                     Unit unit,
+                                     std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
@@ -76,8 +78,8 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss)
             if (mismatches & (1U << pos)) {
               const DK kind = ConstKind(Const(InsOperand(ins, pos)));
               if (kind == DK::F64 || kind == DK::F32) {
-                InsEliminateImmediateViaMem(ins, pos, fun, unit,
-                    DK::A64, DK::U32, inss);
+                InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64,
+                                            DK::U32, inss);
               } else {
                 InsEliminateImmediateViaMov(ins, pos, fun, inss);
               }
@@ -132,15 +134,16 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
 }
 
 void FunSetInOutCpuRegs(Fun fun) {
-  const std::vector<CpuReg> cpu_in =
-      GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
-  FunNumCpuLiveIn(fun) = cpu_in.size();
-  memcpy(FunCpuLiveIn(fun), cpu_in.data(), cpu_in.size() * sizeof(CpuReg));
+  std::vector<CpuReg> cpu_regs;
+  PushPopInterfaceA64->GetCpuRegsForInSignature(FunNumInputTypes(fun),
+                                                FunInputTypes(fun), &cpu_regs);
+  FunNumCpuLiveIn(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 
-  const std::vector<CpuReg> cpu_out =
-      GetCpuRegsForSignature(FunNumOutputTypes(fun), FunOutputTypes(fun));
-  FunNumCpuLiveOut(fun) = cpu_out.size();
-  memcpy(FunCpuLiveOut(fun), cpu_out.data(), cpu_out.size() * sizeof(CpuReg));
+  PushPopInterfaceA64->GetCpuRegsForOutSignature(
+      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
+  FunNumCpuLiveOut(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 }
 
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
@@ -240,8 +243,8 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunSetInOutCpuRegs(fun);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
-  FunPushargConversion(fun);
-  FunPopargConversion(fun);
+  FunPushargConversion(fun, *PushPopInterfaceA64);
+  FunPopargConversion(fun, *PushPopInterfaceA64);
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);
@@ -340,9 +343,9 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
              << needed.global_not_lac << " " << needed.local_lac << " "
              << needed.local_not_lac << "\n";
 
-    const auto [global_lac, global_not_lac] = GetRegPoolsForGlobals(
-        needed, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
-        GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, prealloc_gpr);
+    const auto [global_lac, global_not_lac] =
+        GetRegPoolsForGlobals(needed, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                              GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, prealloc_gpr);
 
     if (debug)
       *debug << "@@ GPR POOL " << std::hex << global_lac << " "
@@ -350,12 +353,14 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
     // handle is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     // handle not is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac & ~GPR_LAC_REGS_MASK,
                                   global_not_lac & GPR_LAC_REGS_MASK,
@@ -373,8 +378,9 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
              << needed.global_not_lac << " " << needed.local_lac << " "
              << needed.local_not_lac << "\n";
 
-    const auto [global_lac, global_not_lac] = GetRegPoolsForGlobals(
-        needed, FLT_REGS_MASK & FLT_LAC_REGS_MASK, FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, prealloc_flt);
+    const auto [global_lac, global_not_lac] =
+        GetRegPoolsForGlobals(needed, FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                              FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, prealloc_flt);
 
     if (debug)
       *debug << "@@ FLT POOL " << std::hex << global_lac << " "
@@ -382,12 +388,14 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
     // handle is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
     // handle not is_lac global regs
     regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP, &regs);
+    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP,
+                        &regs);
     std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
     AssignCpuRegOrMarkForSpilling(regs, global_not_lac & ~FLT_LAC_REGS_MASK,
                                   global_not_lac & FLT_LAC_REGS_MASK,

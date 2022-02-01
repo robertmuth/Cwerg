@@ -2,6 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/ir.h"
+#include "Base/lowering.h"
 #include "Base/reg_stats.h"
 #include "CpuA64/opcode_gen.h"
 
@@ -35,8 +36,7 @@ inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(
 // must be called early in main()
 extern void InitCodeGenA64();
 
-extern std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
-                                                        const base::DK* kinds);
+extern const base::PushPopInterface* const PushPopInterfaceA64;
 
 // Note: regs must match the class of  cpu_reg_mask, e.g. be all
 // floating point or all GPR
@@ -63,10 +63,6 @@ struct EmitContext {
 };
 
 extern EmitContext FunComputeEmitContext(base::Fun fun);
-
-
-extern void FunPushargConversion(base::Fun fun);
-extern void FunPopargConversion(base::Fun fun);
 
 
 }  // namespace cwerg::code_gen_a64

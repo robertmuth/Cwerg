@@ -26,9 +26,30 @@ extern void FunEliminateMemLoadStore(Fun fun,
 
 extern void FunEliminateRem(Fun fun, std::vector<Ins>* inss);
 
-extern void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun, std::vector<Ins>* inss);
-extern void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
-                                        DK addr_kind, DK offset_kind, std::vector<Ins>* inss);
+extern void InsEliminateImmediateViaMov(Ins ins,
+                                        unsigned pos,
+                                        Fun fun,
+                                        std::vector<Ins>* inss);
+extern void InsEliminateImmediateViaMem(Ins ins,
+                                        unsigned pos,
+                                        Fun fun,
+                                        Unit unit,
+                                        DK addr_kind,
+                                        DK offset_kind,
+                                        std::vector<Ins>* inss);
 extern void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss);
+
+
+struct PushPopInterface {
+  virtual void GetCpuRegsForInSignature(
+      unsigned count,
+      const base::DK* kinds,  std::vector<base::CpuReg>* out) const = 0;
+  virtual void GetCpuRegsForOutSignature(
+      unsigned count,
+      const base::DK* kinds,  std::vector<base::CpuReg>* out) const = 0;
+};
+
+extern void FunPushargConversion(Fun fun, const PushPopInterface& ppif);
+extern void FunPopargConversion(Fun fun, const PushPopInterface& ppif);
 
 }  // namespace cwerg::base
