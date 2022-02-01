@@ -34,10 +34,6 @@ void HandleIns(Ins ins, const code_gen_x64::EmitContext& ctx) {
     sep = " ";
   }
   std::cout << "]\n";
-  if (InsOPC(ins) == OPC::NOP1 || InsOPC(ins) == OPC::RET) {
-    std::cout << "    SPECIAL\n";
-    return;
-  }
 
   const code_gen_x64::Pattern* pat = code_gen_x64::FindMatchingPattern(ins);
   ASSERT(pat != nullptr, "");

@@ -502,4 +502,42 @@ x64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   return out;
 }
 
+void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    Reg tmp;
+    for (Ins ins : BblInsIter(bbl)) {
+      switch (InsOPC(ins)) {
+        case OPC::SWITCH:
+          tmp = FunGetScratchReg(fun, DK::C64, "switch", false);
+          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(ins);
+          dirty = true;
+          break;
+        case OPC::ST:
+          tmp = FunGetScratchReg(fun, DK::S64, "st", false);
+          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(ins);
+          dirty = true;
+          break;
+        default:
+          inss->push_back(ins);
+          break;
+      }
+    }
+    if (dirty) BblReplaceInss(bbl, *inss);
+  }
+}
+
+void EmitFunProlog(const EmitContext& ctx,
+                          std::vector<x64::Ins>* output) {
+  // TODO
+}
+
+void EmitFunEpilog(const EmitContext& ctx,
+                          std::vector<x64::Ins>* output) {
+  // TODO
+}
+
 }  // namespace cwerg::code_gen_x64

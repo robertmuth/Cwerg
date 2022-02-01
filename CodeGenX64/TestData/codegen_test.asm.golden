@@ -66,6 +66,3 @@ PAT: reg:[U32 INVALID]  op:[REG INVALID]
 INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  op:[REG REG REG]
     addss_x_mx xmm0 xmm1
-
-INS: ret  []
-    SPECIAL

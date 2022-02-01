@@ -34,8 +34,6 @@
 .bbl flt
     add $f1@xmm0 $f1@xmm0 $f2@xmm1
 
-    ret
-
 
 
 

@@ -10,6 +10,7 @@
 #include "CpuX64/opcode_gen.h"
 
 namespace cwerg::code_gen_x64 {
+
 /* @AUTOGEN-START@ */
 
 enum class C : uint8_t {
@@ -108,6 +109,8 @@ extern void EmitFunProlog(const EmitContext& ctx,
                           std::vector<x64::Ins>* output);
 extern void EmitFunEpilog(const EmitContext& ctx,
                           std::vector<x64::Ins>* output);
+
+extern void FunAddNop1ForCodeSel(base::Fun fun, std::vector<base::Ins>* inss);
 
 extern const char* EnumToString(C f);
 extern const char* EnumToString(P f);

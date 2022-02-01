@@ -600,10 +600,6 @@ _KIND_TO_IMM_WITH_64 = {
     o.DK.C64: C.SIMM64,
 }
 
-OPCODES_REQUIRING_SPECIAL_HANDLING = {
-    o.RET
-}
-
 
 def InitAluInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
@@ -1536,9 +1532,6 @@ def _EmitCodeC(fout):
     cgen.RenderEnumToStringFun("P", fout)
 
     return
-
-
-
 
 
 if __name__ == "__main__":
