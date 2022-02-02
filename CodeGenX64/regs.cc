@@ -221,20 +221,6 @@ void InitCodeGenX64() {
   DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
   DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::FLT;
 }
-std::vector<base::CpuReg> GetCpuRegsForSignature(unsigned count,
-                                                 const base::DK* kinds) {
-  std::vector<base::CpuReg> out;
-
-  return out;
-}
-
-void FunPushargConversion(base::Fun fun) {
-  // TODO
-}
-
-void FunPopargConversion(base::Fun fun) {
-  // TODO
-}
 
 }  // namespace cwerg::code_gen_x64
 

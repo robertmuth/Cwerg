@@ -27,38 +27,92 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
+bool IsOutOfBoundImmediate(OPC opc, Handle op, unsigned pos) {
+  if (op.kind() != RefKind::CONST) return false;
+  const DK dk = ConstKind(Const(op));
+  if (DKFlavor(dk) == DK_FLAVOR_F) return true;
+  switch (opc) {
+    case OPC::MOV:
+      return false;
+    case OPC::DIV:
+    case OPC::REM:
+    case OPC::MUL:
+    case OPC::CNTLZ:
+    case OPC::CNTTZ:
+    case OPC::CONV:
+      return true;
+    case OPC::ST:
+    case OPC::ST_STK:
+    case OPC::ST_MEM:
+      if (pos == 2) return true;
+      break;
+    default:
+      break;
+  }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit, std::vector<Ins>* inss) {
-#if 0
+  switch (dk) {
+    case DK::S8:
+    case DK::S16:
+    case DK::S32:
+    case DK::S64:
+    case DK::A64:
+    case DK::C64: {
+      int64_t x = ConstValueInt64(Const(op));
+      return x < -(1LL << 31) || (1LL << 31) <= x;
+    }
+    case DK::U8:
+    case DK::U16:
+    case DK::U32:
+    case DK::U64: {
+      uint64_t x = ConstValueU(Const(op));
+      return (1UL << 31) <= x;
+    }
+    default:
+      break;
+  }
+  ASSERT(false, "");
+  return true;
+}
+
+bool MaybeRewrite(OPC_KIND kind) {
+  switch (kind) {
+    case OPC_KIND::ALU:
+    case OPC_KIND::ALU1:
+    case OPC_KIND::COND_BRA:
+    case OPC_KIND::CONV:
+    case OPC_KIND::MOV:
+    case OPC_KIND::ST:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void FunRewriteOutOfBoundsImmediates(Fun fun,
+                                     Unit unit,
+                                     std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
-      if (!InsRequiresSpecialHandling(ins)) {
-        const uint8_t mismatches =
-            code_gen_a64::FindtImmediateMismatchesInBestMatchPattern(ins, true);
-        if (mismatches != 0) {
-          ASSERT(mismatches != code_gen_a64::MATCH_IMPOSSIBLE,
-                 "cannot match: " << ins);
-          for (unsigned pos = 0; pos < x64::MAX_OPERANDS; ++pos) {
-            if (mismatches & (1U << pos)) {
-              const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-              if (kind == DK::F64 || kind == DK::F32) {
-                InsEliminateImmediateViaMem(ins, pos, fun, unit,
-                    DK::A64, DK::U32, inss);
-              } else {
-                InsEliminateImmediateViaMov(ins, pos, fun, inss);
-              }
-              dirty = true;
-            }
-          }
+      if (!MaybeRewrite(InsOpcode(ins).kind)) continue;
+      const unsigned n = InsOpcode(ins).num_operands;
+      for (unsigned pos = 0; pos < n; ++pos) {
+        if (!IsOutOfBoundImmediate(InsOPC(ins), InsOperand(ins, pos), pos))
+          continue;
+        const DK kind = ConstKind(Const(InsOperand(ins, pos)));
+        if (kind == DK::F64 || kind == DK::F32) {
+          InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64, DK::U32,
+                                      inss);
+        } else {
+          InsEliminateImmediateViaMov(ins, pos, fun, inss);
         }
+        dirty = true;
       }
       inss->push_back(ins);
     }
     if (dirty) BblReplaceInss(bbl, *inss);
   }
-#endif
 }
 
 #if 0
@@ -102,20 +156,21 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   }
   return to_delete->size();
 }
-#if 0
-void FunSetInOutCpuRegs(Fun fun) {
-  const std::vector<CpuReg> cpu_in =
-      GetCpuRegsForSignature(FunNumInputTypes(fun), FunInputTypes(fun));
-  FunNumCpuLiveIn(fun) = cpu_in.size();
-  memcpy(FunCpuLiveIn(fun), cpu_in.data(), cpu_in.size() * sizeof(CpuReg));
 
-  const std::vector<CpuReg> cpu_out =
-      GetCpuRegsForSignature(FunNumOutputTypes(fun), FunOutputTypes(fun));
-  FunNumCpuLiveOut(fun) = cpu_out.size();
-  memcpy(FunCpuLiveOut(fun), cpu_out.data(), cpu_out.size() * sizeof(CpuReg));
+void FunSetInOutCpuRegs(Fun fun) {
+  std::vector<CpuReg> cpu_regs;
+  PushPopInterfaceX64->GetCpuRegsForInSignature(FunNumInputTypes(fun),
+                                                FunInputTypes(fun), &cpu_regs);
+  FunNumCpuLiveIn(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
+
+  PushPopInterfaceX64->GetCpuRegsForOutSignature(
+      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
+  FunNumCpuLiveOut(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 }
 
-
+#if 0
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
 // and whose `lac-ness` matches `is_lac`
 void FunFilterGlobalRegs(Fun fun,
@@ -212,11 +267,11 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S16, DK::S32, &inss);
 
-  // FunSetInOutCpuRegs(fun);
+  FunSetInOutCpuRegs(fun);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
-  //FunPushargConversion(fun);
-  //FunPopargConversion(fun);
+  FunPushargConversion(fun, *PushPopInterfaceX64);
+  FunPopargConversion(fun, *PushPopInterfaceX64);
   FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);
