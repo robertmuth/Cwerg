@@ -26,10 +26,15 @@ extern void FunEliminateMemLoadStore(Fun fun,
 
 extern void FunEliminateRem(Fun fun, std::vector<Ins>* inss);
 
+// add new instructions to inss to replace the immediate at pos with
+// a reg, also rewrites ins
+// The caller usually will followup with a inss->push_back(ins)
 extern void InsEliminateImmediateViaMov(Ins ins,
                                         unsigned pos,
                                         Fun fun,
                                         std::vector<Ins>* inss);
+
+// Same as above but the new instructions will load the immediate from memory
 extern void InsEliminateImmediateViaMem(Ins ins,
                                         unsigned pos,
                                         Fun fun,

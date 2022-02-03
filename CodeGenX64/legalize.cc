@@ -115,6 +115,69 @@ void FunRewriteOutOfBoundsImmediates(Fun fun,
   }
 }
 
+void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOpcode(ins).kind == OPC_KIND::ALU) {
+        const DK dk = RegKind(Reg(InsOperand(ins, 0)));
+        if (DKFlavor(dk) != DK_FLAVOR_F) {
+          switch (InsOPC(ins)) {
+            case OPC::DIV: {
+              Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
+              Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
+              Reg rdx = FunFindOrAddCpuReg(fun, GPR_REGS[2], dk);
+              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
+              inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+              inss->push_back(ins);
+              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rdx));
+              InsOperand(ins, 0) = rdx;
+              InsOperand(ins, 1) = rax;
+              InsOperand(ins, 2) = rcx;
+              continue;
+            }
+            case OPC::REM: {
+              Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
+              Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
+              Reg rdx = FunFindOrAddCpuReg(fun, GPR_REGS[2], dk);
+              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
+              inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+              inss->push_back(ins);
+              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
+              InsOPC(ins) = OPC::DIV;
+              InsOperand(ins, 0) = rdx;
+              InsOperand(ins, 1) = rax;
+              InsOperand(ins, 2) = rcx;
+              continue;
+            }
+            case OPC::SHL:
+            case OPC::SHR:
+              if (InsOperand(ins, 2).kind() == RefKind::REG) {
+                Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
+                inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+                const unsigned bw = DKBitWidth(dk);
+                if (bw < 64) {
+                  Const mask = DKFlavor(dk) == DK_FLAVOR_U
+                                   ? ConstNewU(dk, bw - 1)
+                                   : ConstNewACS(dk, bw - 1);
+                  inss->push_back(InsNew(OPC::AND, rcx, rcx, mask));
+                }
+                inss->push_back(ins);
+                InsOperand(ins, 2) = rcx;
+                continue;
+              }
+            default:
+              break;
+          }
+        }
+      }
+      inss->push_back(ins);
+    }
+    if (dirty) BblReplaceInss(bbl, *inss);
+  }
+}
+
 #if 0
 
 DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
@@ -262,27 +325,26 @@ std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
 
 void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   std::vector<Ins> inss;
-  FunRegWidthWidening(fun, DK::U8, DK::U32, &inss);
-  FunRegWidthWidening(fun, DK::S8, DK::S32, &inss);
-  FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
-  FunRegWidthWidening(fun, DK::S16, DK::S32, &inss);
-
   FunSetInOutCpuRegs(fun);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
   FunPushargConversion(fun, *PushPopInterfaceX64);
   FunPopargConversion(fun, *PushPopInterfaceX64);
-  FunEliminateRem(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);
   FunEliminateMemLoadStore(fun, DK::A64, DK::S32, &inss);
+
+  //lowering.FunEliminateCopySign(fun)
+  //  # TODO: support a few special cases in the isel, e.g. cmpXX a 0, 1, x, y
+  //  lowering.FunEliminateCmp(fun)
 
   FunCanonicalize(fun);
   // We need to run this before massaging immediates because it changes
   // COND_RRA instruction possibly with immediates.
   FunCfgExit(fun);
-
   FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
+  FunRewriteDivRemShifts(fun, unit, &inss);
+  //  _FunRewriteIntoAABForm(fun, unit)
 }
 
 void DumpRegStats(Fun fun, const DK_LAC_COUNTS& stats, std::ostream* output) {
@@ -424,15 +486,14 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
                                   global_not_lac & FLT_LAC_REGS_MASK,
                                   &to_be_spilled);
   }
-
+#endif
   std::vector<Ins> inss;
-  FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$gspill");
+  // FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$gspill");
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);
   FunComputeLivenessInfo(fun);
   FunComputeRegStatsLAC(fun);
-#endif
 }
 
 void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
