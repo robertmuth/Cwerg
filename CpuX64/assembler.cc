@@ -18,7 +18,28 @@ constexpr auto operator+(T e) noexcept
 }
 
 std::string_view padding_zero("\0", 1);
-std::string_view padding_nop("\x1f\x20\x03\xd5", 4);
+
+const std::array<const std::string_view, 10> kCodePaddingSequences = {
+    "",
+    "\x90",
+    "\x66\x90",
+    "\x0f\x1f\x00",
+    "\x0f\x1f\x40\x00",
+    "\x0f\x1f\x44\x00\x00",
+    "\x66\x0f\x1f\x44\x00\x00",
+    "\x0f\x1f\x08\x00\x00\x00\x00",
+    "\x0f\x1f\x84\x00\x00\x00\x00\x00",
+    "\x66\x0f\x1f\x84\x00\x00\x00\x00\x00"};
+
+void TextPadder(size_t len, std::string* s) {
+  const std::string_view largest = kCodePaddingSequences.back();
+  while (len > largest.size()) {
+    s->append(largest);
+    len -= largest.size();
+  }
+
+  s->append(kCodePaddingSequences[len]);
+}
 
 uint32_t RelocFieldOffsetFromEndOfIns(const x64::Opcode& opcode) {
   if (opcode.offset_pos != NA) {
@@ -68,7 +89,7 @@ std::array<std::string_view, 12> kStartupCode = {
     "int3"};
 
 void AddStartupCode(X64Unit* unit) {
-  unit->FunStart("_start", 16, padding_nop);
+  unit->FunStart("_start", 16, TextPadder);
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
     token.clear();
@@ -89,7 +110,7 @@ bool HandleDirective(X64Unit* unit,
   const auto mnemonic = token[0];
   if (mnemonic == ".fun") {
     ASSERT(token.size() == 3, "");
-    unit->FunStart(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
+    unit->FunStart(token[1], ParseInt<uint32_t>(token[2]).value(), TextPadder);
   } else if (mnemonic == ".endfun") {
     unit->FunEnd();
   } else if (mnemonic == ".mem") {
@@ -131,7 +152,7 @@ bool HandleDirective(X64Unit* unit,
                      +RELOC_TYPE_AARCH64::ABS64, token[2]);
   } else if (mnemonic == ".bbl") {
     ASSERT(token.size() == 3, "");
-    unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value(), padding_nop);
+    unit->AddLabel(token[1], ParseInt<uint32_t>(token[2]).value(), TextPadder);
   } else {
     std::cerr << "unknown directive " << mnemonic << "\n";
     return false;

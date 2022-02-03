@@ -45,7 +45,7 @@ s64 -> q
 import dataclasses
 import io
 import struct
-from typing import List, Dict, Optional, Set, Tuple
+from typing import List, Dict, Optional, Set, Tuple, Any
 
 from Elf.enum_tab import E_MACHINE, EI_CLASS, EI_DATA, E_TYPE, E_FLAGS_ARM, ST_INFO_BIND, \
     ST_INFO_TYPE
@@ -59,15 +59,18 @@ def Align(x, align):
     return (x + align - 1) // align * align
 
 
-def Pad(data: bytearray, alignment: int, padding: bytes):
+def Pad(data: bytearray, alignment: int, padding_or_padder: Any):
     if alignment <= 0:
         return
     old_len = len(data)
-    assert old_len % len(padding) == 0
-    assert alignment % len(padding) == 0
     new_len = Align(old_len, alignment)
     delta = new_len - old_len
-    data += padding * (delta // len(padding))
+    if isinstance(padding_or_padder, bytes):
+        assert old_len % len(padding_or_padder) == 0
+        assert alignment % len(padding_or_padder) == 0
+        data += padding_or_padder * (delta // len(padding_or_padder))
+    else:
+        data += padding_or_padder(delta)
     assert len(data) == new_len
 
 
@@ -258,10 +261,10 @@ class Section:
     FORMAT = {EI_CLASS.X_32: "10I", EI_CLASS.X_64: "2I4Q2I2Q"}
     SIZE = {k: struct.calcsize(v) for k, v in FORMAT.items()}
 
-    def PadData(self, n: int, padding: bytes):
+    def PadData(self, n: int, padding_or_padder: Any):
         if self.sh_addralign < n:
             self.sh_addralign = n
-        Pad(self.data, n, padding)
+        Pad(self.data, n, padding_or_padder)
         self.sh_size = len(self.data)
 
     def AddData(self, data: bytes):

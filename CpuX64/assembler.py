@@ -12,8 +12,26 @@ from Elf import elfhelper as elf
 from Elf import enum_tab
 from Util import parse
 
-# TODO: improve this by using multiple byte nop instructions where possible
-NOP_BYTES = bytes([0x90])
+NOP_SEQUENCES = [bytes(),
+                 bytes([0x90]),
+                 bytes([0x66, 0x90]),
+                 bytes([0x0f, 0x1f, 0x00]),
+                 bytes([0x0f, 0x1f, 0x40, 0x00]),
+                 bytes([0x0f, 0x1f, 0x44, 0x00, 0x00]),
+                 bytes([0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00]),
+                 bytes([0x0f, 0x1f, 0x08, 0x00, 0x00, 0x00, 0x00]),
+                 bytes([0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00]),
+                 bytes([0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00]),
+                 ]
+
+
+def TextPadder(size: int) -> bytes:
+    out = bytes()
+    largest = NOP_SEQUENCES[-1]
+    while size > len(largest):
+        out += largest
+        size -= len(largest)
+    return out + NOP_SEQUENCES[size]
 
 
 def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
@@ -84,7 +102,7 @@ def AddStartUpCode(unit: elf_unit.Unit):
 
     This feature is needed by CodeGenA64/
     """
-    unit.FunStart("_start", 16, NOP_BYTES)
+    unit.FunStart("_start", 16, TextPadder)
     for mnemonic, ops in [
         ("mov_64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
         ("lea_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
@@ -114,7 +132,7 @@ class ParseError(Exception):
 def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
     unit = elf_unit.Unit()
     dir_handlers = {
-        ".fun": lambda x, y: unit.FunStart(x, int(y, 0), NOP_BYTES),
+        ".fun": lambda x, y: unit.FunStart(x, int(y, 0), TextPadder),
         ".endfun": unit.FunEnd,
         ".mem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, False),
         ".localmem": lambda x, y, z: unit.MemStart(x, int(y, 0), z, True),
@@ -124,7 +142,7 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
         ".addr.fun": lambda x, y: unit.AddFunAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
         ".addr.bbl": lambda x, y: unit.AddBblAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y),
         ".addr.mem": lambda x, y, z: unit.AddMemAddr(enum_tab.RELOC_TYPE_X86_64.X_64, int(x, 0), y, int(z, 0)),
-        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), NOP_BYTES),
+        ".bbl": lambda x, y: unit.AddLabel(x, int(y, 0), TextPadder),
     }
     for line_num, line in enumerate(fin):
         token = parse.ParseLine(line)

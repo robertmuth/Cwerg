@@ -56,8 +56,8 @@ class Unit:
             elf.Reloc.Init(reloc_kind.value, sec,
                            len(sec.data) + reloc_offset_addend, symbol, extra))
 
-    def FunStart(self, name: str, alignment: int, padding_bytes: bytes):
-        self.sec_text.PadData(alignment, padding_bytes)
+    def FunStart(self, name: str, alignment: int, padding_or_padder: Any):
+        self.sec_text.PadData(alignment, padding_or_padder)
         self.AddSymbol(name, self.sec_text, False)
         assert self.current_fun is None
         self.current_fun = name
@@ -107,9 +107,8 @@ class Unit:
         self.AddReloc(reloc_type, self.mem_sec, symbol, addend)
         self.mem_sec.AddData(b"\0" * size)
 
-    def AddLabel(self, name: str, alignment: int, padding_bytes: bytes):
-        assert alignment % len(padding_bytes) == 0
-        self.sec_text.PadData(alignment, padding_bytes)
+    def AddLabel(self, name: str, alignment: int, padding_or_padder: Any):
+        self.sec_text.PadData(alignment, padding_or_padder)
         assert self.current_fun is not None
         self.AddSymbol(name, self.sec_text, True)
 

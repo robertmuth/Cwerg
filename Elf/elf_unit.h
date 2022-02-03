@@ -48,11 +48,27 @@ struct Unit {
     sec_text->PadData(alignment, padding);
     AddSymbol(name, sec_text, false);
   }
+  void FunStart(std::string_view name,
+                unsigned alignment,
+                std::function<void(size_t, std::string*)> padder) {
+    ASSERT(current_fun_name.empty(), "");
+    current_fun_name = name;
+    sec_text->PadData(alignment, padder);
+    AddSymbol(name, sec_text, false);
+  }
 
   void AddLabel(std::string_view name,
                 unsigned alignment,
                 std::string_view padding) {
     sec_text->PadData(alignment, padding);
+    ASSERT(!current_fun_name.empty(), "");
+    AddSymbol(name, sec_text, true);
+  }
+
+  void AddLabel(std::string_view name,
+                unsigned alignment,
+                std::function<void(size_t, std::string*)> padder) {
+    sec_text->PadData(alignment, padder);
     ASSERT(!current_fun_name.empty(), "");
     AddSymbol(name, sec_text, true);
   }

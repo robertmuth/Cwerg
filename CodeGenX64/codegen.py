@@ -200,7 +200,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
     sec_text = elfunit.sec_text
     for fun in unit.funs:
         # print (f"Processing {fun.name}")
-        elfunit.FunStart(fun.name, 16, assembler.NOP_BYTES)
+        elfunit.FunStart(fun.name, 16, assembler.TextPadder)
         for jtb in fun.jtbs:
             elfunit.MemStart(jtb.name, 8, "rodata", True)
             for i in range(jtb.size):
@@ -213,7 +213,7 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             assembler.AddIns(elfunit, tmpl.MakeInsFromTmpl(None, ctx))
 
         for bbl in fun.bbls:
-            elfunit.AddLabel(bbl.name, 1, assembler.NOP_BYTES)
+            elfunit.AddLabel(bbl.name, 1, assembler.TextPadder)
             for ins in bbl.inss:
                 if ins.opcode is o.NOP1:
                     isel_tab.HandlePseudoNop1(ins, ctx)

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include <functional>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -57,16 +58,24 @@ struct Chunk {
     storage_rw_.append(count, byte);
   }
 
-  void PadData(size_t alignment, std::string_view padding) {
+  void PadData(size_t alignment,
+               std::function<void(size_t, std::string*)> padder) {
     ASSERT(!is_read_only_, "");
     if (alignment <= 1) return;
+    const size_t new_size = Align(storage_rw_.size(), alignment);
+    padder(new_size, &storage_rw_);
+    ASSERT(storage_rw_.size() == new_size, "");
+  }
+
+  void PadData(size_t alignment, std::string_view padding) {
     ASSERT(alignment % padding.size() == 0, "");
     ASSERT(storage_rw_.size() % padding.size() == 0, "");
-    const size_t new_size = Align(storage_rw_.size(), alignment);
-    while (storage_rw_.size() < new_size) {
-      storage_rw_.append(padding);
-    }
-    ASSERT(storage_rw_.size() == new_size, "");
+    auto padder = [padding](size_t new_size, std::string* s) {
+      while (s->size() < new_size) {
+        s->append(padding);
+      }
+    };
+    PadData(alignment, padder);
   }
 
  private:
@@ -196,6 +205,12 @@ struct Section {
     name = ".ARM.attributes";
     shdr.sh_type = SH_TYPE::ARM_ATTRIBUTES;
     shdr.sh_addralign = 1;
+  }
+  void PadData(size_t alignment,
+               std::function<void(size_t, std::string*)> padder) {
+    data->PadData(alignment, padder);
+    if (alignment > shdr.sh_addralign) shdr.sh_addralign = alignment;
+    shdr.sh_size = data->size();
   }
 
   void PadData(size_t alignment, std::string_view padding) {
@@ -483,10 +498,12 @@ struct Executable {
   std::vector<std::string_view> Save() const;
 
   // Return offset for section headers
-  elfsize_t VerifyVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr) const;
+  elfsize_t VerifyVaddrsAndOffsets(elfsize_t header_size,
+                                   elfsize_t start_vaddr) const;
 
   // Returns offset for section headers
-  elfsize_t UpdateVaddrsAndOffsets(elfsize_t header_size, elfsize_t start_vaddr);
+  elfsize_t UpdateVaddrsAndOffsets(elfsize_t header_size,
+                                   elfsize_t start_vaddr);
 };
 
 template <typename elfsize_t>
