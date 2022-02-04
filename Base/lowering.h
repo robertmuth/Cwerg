@@ -48,17 +48,20 @@ extern void InsEliminateImmediateViaMem(Ins ins,
                                         std::vector<Ins>* inss);
 extern void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss);
 
-
 struct PushPopInterface {
   virtual void GetCpuRegsForInSignature(
       unsigned count,
-      const base::DK* kinds,  std::vector<base::CpuReg>* out) const = 0;
+      const base::DK* kinds,
+      std::vector<base::CpuReg>* out) const = 0;
   virtual void GetCpuRegsForOutSignature(
       unsigned count,
-      const base::DK* kinds,  std::vector<base::CpuReg>* out) const = 0;
+      const base::DK* kinds,
+      std::vector<base::CpuReg>* out) const = 0;
 };
 
 extern void FunPushargConversion(Fun fun, const PushPopInterface& ppif);
 extern void FunPopargConversion(Fun fun, const PushPopInterface& ppif);
+
+extern void FunSetInOutCpuRegs(Fun fun, const PushPopInterface& ppif);
 
 }  // namespace cwerg::base

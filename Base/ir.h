@@ -357,6 +357,7 @@ inline CpuReg CpuRegNew(uint16_t no, uint8_t kind, Str name) {
 // =======================================
 enum class REG_FLAG : uint8_t {
   GLOBAL = 1 << 0,
+  TWO_ADDRESS = 1 << 1,
   MULTI_DEF = 1 << 2,
   LAC = 1 << 3,
   IS_READ = 1 << 4,

@@ -39,7 +39,8 @@ class BblRegUsageStatsRegPool : public RegPool {
       pool.pop_back();
     }
 #ifdef TRACE_REG_ALLOC
-    std::cout << (cpu_reg.index() & 0xffff) << " " << int(dk) << " <- " << lr << "\n";
+    std::cout << (cpu_reg.index() & 0xffff) << " " << int(dk) << " <- " << lr
+              << "\n";
 #endif
     return cpu_reg;
   }
@@ -68,9 +69,9 @@ class BblRegUsageStatsRegPool : public RegPool {
     for (size_t i = 0; i < out.lac.size(); ++i) {
       count += out.lac[i] + out.not_lac[i];
     }
-    ASSERT(count == counter_,
-           "expected reg_num: " << counter_ << " actual " << count << "\n"
-           << out);
+    ASSERT(count == counter_, "expected reg_num: " << counter_ << " actual "
+                                                   << count << "\n"
+                                                   << out);
     return out;
   }
 
@@ -119,7 +120,8 @@ DK_LAC_COUNTS FunComputeBblRegUsageStats(Fun fun, const DK_MAP& rk_map) {
     std::sort(begin(ordered), end(ordered),
               [](LiveRange* lhs, LiveRange* rhs) { return *lhs < *rhs; });
 #ifdef TRACE_REG_ALLOC
-    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    std::cout
+        << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
     BblRenderToAsm(bbl, fun, &std::cout);
     for (const auto& lr : ordered) {
       std::cout << *lr << "\n";
@@ -292,11 +294,18 @@ int FunSeparateLocalRegUsage(Fun fun) {
       const unsigned num_defs = InsOpcode(ins).num_defs;
       for (unsigned i = 0; i < num_defs; ++i) {
         Reg reg = Reg(InsOperand(ins, i));
-        if (RegDefIns(reg) == ins || (RegHasFlag(reg, REG_FLAG::GLOBAL))) {
+        if (RegDefIns(reg) == ins || RegHasFlag(reg, REG_FLAG::GLOBAL) ||
+            (RegHasFlag(reg, REG_FLAG::TWO_ADDRESS) &&
+             InsOpcode(ins).num_operands >= 2 &&
+             InsOperand(ins, 0) == InsOperand(ins, 1)) ||
+            RegCpuReg(reg) != HandleInvalid) {
           continue;
         }
         auto purpose = MaybeSkipCountPrefix(StrData(Name(reg)));
-        Reg new_reg = FunGetScratchReg(fun, RegKind(reg), purpose, false);
+        const Reg new_reg = FunGetScratchReg(fun, RegKind(reg), purpose, false);
+        if (RegHasFlag(reg, REG_FLAG::TWO_ADDRESS)) {
+          RegFlags(new_reg) |= +REG_FLAG::TWO_ADDRESS;
+        }
         InsOperand(ins, i) = new_reg;
         RenameRegRange(BblInsList::Next(ins), reg, new_reg);
         count += 1;

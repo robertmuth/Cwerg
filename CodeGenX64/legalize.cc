@@ -178,25 +178,6 @@ void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
   }
 }
 
-#if 0
-
-DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
-  DK_LAC_COUNTS out;
-  for (Reg reg : FunRegIter(fun)) {
-    if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
-      continue;
-    }
-    const CPU_REG_KIND kind = CPU_REG_KIND(rk_map[+RegKind(reg)]);
-    ASSERT(kind != CPU_REG_KIND::INVALID, "");
-    if (RegHasFlag(reg, REG_FLAG::LAC))
-      ++out.lac[+kind];
-    else
-      ++out.not_lac[+kind];
-  }
-  return out;
-}
-#endif
-
 int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   to_delete->clear();
 
@@ -220,20 +201,70 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   return to_delete->size();
 }
 
-void FunSetInOutCpuRegs(Fun fun) {
-  std::vector<CpuReg> cpu_regs;
-  PushPopInterfaceX64->GetCpuRegsForInSignature(FunNumInputTypes(fun),
-                                                FunInputTypes(fun), &cpu_regs);
-  FunNumCpuLiveIn(fun) = cpu_regs.size();
-  memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
+bool InsNeedsAABFormRewrite(Ins ins) {
+  OPC_KIND kind = InsOpcode(ins).kind;
+  OPC opc = InsOPC(ins);
+  if (kind != OPC_KIND::ALU && kind != OPC_KIND::LEA) {
+    return false;
+  }
+  if ((opc == OPC::DIV || opc == OPC::DIV) &&
+      DKFlavor(RegKind(Reg(InsOperand(ins, 0))))) {
+    return false;
+  }
+  if (opc == OPC::LEA_MEM || opc == OPC::LEA_STK) {
+    return false;
+  }
+  return true;
+}
 
-  PushPopInterfaceX64->GetCpuRegsForOutSignature(
-      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
-  FunNumCpuLiveOut(fun) = cpu_regs.size();
-  memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
+void FunRewriteIntoAABForm(Fun fun, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsNeedsAABFormRewrite(ins)) {
+        const Reg first = Reg(InsOperand(ins, 0));
+
+        if (InsOperand(ins, 0) == InsOperand(ins, 1)) {
+          RegFlags(first) |= +REG_FLAG::TWO_ADDRESS;
+        } else if (InsOperand(ins, 1) == InsOperand(ins, 2) &&
+                   InsOpcode(ins).HasAttribute(OA::COMMUTATIVE)) {
+          InsSwapOps(ins, 1, 2);
+          RegFlags(first) |= +REG_FLAG::TWO_ADDRESS;
+        } else {
+          dirty = true;
+          const Reg reg = FunGetScratchReg(fun, RegKind(first), "aab", false);
+          RegFlags(reg) |= +REG_FLAG::TWO_ADDRESS;
+          inss->push_back(InsNew(OPC::MOV, reg, InsOperand(ins, 1)));
+          inss->push_back(ins);
+          inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 1), reg));
+          InsInit(ins, InsOPC(ins), reg, reg, InsOperand(ins, 2));
+          continue;
+        }
+      }
+      inss->push_back(ins);
+    }
+    if (dirty) BblReplaceInss(bbl, *inss);
+  }
 }
 
 #if 0
+DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
+  DK_LAC_COUNTS out;
+  for (Reg reg : FunRegIter(fun)) {
+    if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
+      continue;
+    }
+    const CPU_REG_KIND kind = CPU_REG_KIND(rk_map[+RegKind(reg)]);
+    ASSERT(kind != CPU_REG_KIND::INVALID, "");
+    if (RegHasFlag(reg, REG_FLAG::LAC))
+      ++out.lac[+kind];
+    else
+      ++out.not_lac[+kind];
+  }
+  return out;
+}
+
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
 // and whose `lac-ness` matches `is_lac`
 void FunFilterGlobalRegs(Fun fun,
@@ -325,7 +356,7 @@ std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
 
 void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   std::vector<Ins> inss;
-  FunSetInOutCpuRegs(fun);
+  FunSetInOutCpuRegs(fun, *PushPopInterfaceX64);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
   FunPushargConversion(fun, *PushPopInterfaceX64);
@@ -334,9 +365,8 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A64, DK::S32, &inss);
   FunEliminateMemLoadStore(fun, DK::A64, DK::S32, &inss);
 
-  //lowering.FunEliminateCopySign(fun)
-  //  # TODO: support a few special cases in the isel, e.g. cmpXX a 0, 1, x, y
-  //  lowering.FunEliminateCmp(fun)
+  FunEliminateCopySign(fun, &inss);
+  FunEliminateCmp(fun, &inss);
 
   FunCanonicalize(fun);
   // We need to run this before massaging immediates because it changes
@@ -344,7 +374,14 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunCfgExit(fun);
   FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
   FunRewriteDivRemShifts(fun, unit, &inss);
-  //  _FunRewriteIntoAABForm(fun, unit)
+  FunRewriteIntoAABForm(fun, &inss);
+  //
+  FunComputeRegStatsExceptLAC(fun);
+  FunDropUnreferencedRegs(fun);
+  FunNumberReg(fun);
+  FunComputeLivenessInfo(fun);
+  FunComputeRegStatsLAC(fun);
+  FunSeparateLocalRegUsage(fun);
 }
 
 void DumpRegStats(Fun fun, const DK_LAC_COUNTS& stats, std::ostream* output) {

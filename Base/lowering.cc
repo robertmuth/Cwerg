@@ -1,6 +1,7 @@
 // (c) Robert Muth - see LICENSE for more info
 #include "Base/lowering.h"
 #include "Base/cfg.h"
+#include "Base/ir.h"
 
 #include <algorithm>
 
@@ -661,6 +662,19 @@ void FunPopargConversion(Fun fun, const PushPopInterface& ppif) {
       }
     }
   }
+}
+
+void FunSetInOutCpuRegs(Fun fun, const PushPopInterface& ppif) {
+  std::vector<CpuReg> cpu_regs;
+  ppif.GetCpuRegsForInSignature(FunNumInputTypes(fun),
+                                                FunInputTypes(fun), &cpu_regs);
+  FunNumCpuLiveIn(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
+
+  ppif.GetCpuRegsForOutSignature(
+      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
+  FunNumCpuLiveOut(fun) = cpu_regs.size();
+  memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 }
 
 }  // namespace cwerg::base

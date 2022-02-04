@@ -249,6 +249,14 @@ def FunSeparateLocalRegUsage(fun: ir.Fun) -> int:
                     underscore_pos = purpose.find("_")
                     purpose = purpose[underscore_pos + 1:]
                 new_reg = fun.GetScratchReg(reg.kind, purpose, False)
+                # suppose we have
+                # 1. add a = a b
+                #    ...
+                # 2. add a = c d
+                # ...
+                # 3 . add a = a e
+                # when we rename `a` at 2 we want to make sure that
+                # the TWO_ADDRESS notion is preserved so we propagate the flag
                 if ir.REG_FLAG.TWO_ADDRESS in reg.flags:
                     new_reg.flags |= ir.REG_FLAG.TWO_ADDRESS
                 ins.operands[n] = new_reg
