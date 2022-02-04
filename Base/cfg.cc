@@ -47,21 +47,6 @@ std::vector<Ins> BblFindSubRanges(Bbl bbl) {
   return out;
 }
 
-Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun) {
-  char buf[kMaxIdLength];
-  strncpy(buf, StrData(orig_name), kMaxIdLength - 1);
-  strncat(buf, suffix, kMaxIdLength - 1);
-  const size_t len = strlen(buf);
-  ASSERT(len < kMaxIdLength - 10, "Bbl name too large");
-  for (int i = 1; i < 10000; ++i) {
-    ToDecString(i, buf + len);
-    Str candidate = StrNew(buf);
-    if (FunBblFind(fun, candidate).isnull()) return candidate;
-  }
-  ASSERT(false, "too many derived Bbls");
-  return Str(0);
-}
-
 void FunReplaceBbls(Fun fun, const std::vector<Bbl>& bbls) {
   ASSERT(!bbls.empty(), "");
   Bbl first = bbls[0];
@@ -133,6 +118,21 @@ Ins InsNewBra(Bbl target) { return InsNew(OPC::BRA, target); }
 
 }  // namespace
 
+Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun) {
+  char buf[kMaxIdLength];
+  strncpy(buf, StrData(orig_name), kMaxIdLength - 1);
+  strncat(buf, suffix, kMaxIdLength - 1);
+  const size_t len = strlen(buf);
+  ASSERT(len < kMaxIdLength - 10, "Bbl name too large");
+  for (int i = 1; i < 10000; ++i) {
+    ToDecString(i, buf + len);
+    Str candidate = StrNew(buf);
+    if (FunBblFind(fun, candidate).isnull()) return candidate;
+  }
+  ASSERT(false, "too many derived Bbls");
+  return Str(0);
+}
+
 void EdgLink(Edg edg) {
   BblSuccEdgAppend(EdgPredBbl(edg), edg);
   BblPredEdgAppend(EdgSuccBbl(edg), edg);
@@ -166,6 +166,41 @@ void InsFlipCondBra(Ins ins, Bbl old_target, Bbl new_target) {
   }
 }
 
+void BblSplitAfter(Bbl bbl, Ins new_bbl_first_ins, Bbl new_bbl) {
+  const Ins new_bbl_last_ins = BblInsList::Tail(bbl);
+  const Ins prev_ins = BblInsList::Prev(new_bbl_first_ins);
+  BblInsList::Tail(bbl) = prev_ins;
+  BblInsList::Next(prev_ins) = BblInsList::MakeSentinel(bbl);
+
+  BblInsList::Head(new_bbl) = new_bbl_first_ins;
+  BblInsList::Tail(new_bbl) = new_bbl_last_ins;
+  BblInsList::Prev(new_bbl_first_ins) = BblInsList::MakeSentinel(new_bbl);
+  BblInsList::Next(new_bbl_last_ins) = BblInsList::MakeSentinel(new_bbl);
+}
+
+void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl) {
+  const Ins new_bbl_first_ins = BblInsList::Head(bbl);
+  const Ins next_ins = BblInsList::Next(new_bbl_last_ins);
+  BblInsList::Head(bbl) = next_ins;
+  BblInsList::Prev(next_ins) = BblInsList::MakeSentinel(bbl);
+
+  BblInsList::Head(new_bbl) = new_bbl_first_ins;
+  BblInsList::Tail(new_bbl) = new_bbl_last_ins;
+  BblInsList::Prev(new_bbl_first_ins) = BblInsList::MakeSentinel(new_bbl);
+  BblInsList::Next(new_bbl_last_ins) = BblInsList::MakeSentinel(new_bbl);
+
+  std::set<Bbl> preds;
+  for (Edg edg : BblPredEdgIter(bbl)) preds.insert(EdgPredBbl(edg));
+  for (Bbl pred : preds) {
+    if (!BblInsList::IsEmpty(pred)) {
+      InsMaybePatchNewSuccessor(BblInsList::Tail(pred), bbl, new_bbl);
+    }
+
+    BblForwardEdgs(pred, bbl, new_bbl);
+  }
+  EdgLink(EdgNew(new_bbl, bbl));
+}
+
 void FunSplitBbls(Fun fun) {
   std::vector<Bbl> bbls;
   bool dirty = false;
@@ -183,18 +218,9 @@ void FunSplitBbls(Fun fun) {
     dirty = true;
     for (size_t i = 1; i < ranges.size(); ++i) {
       Ins first_ins = ranges[i];
-      Ins last_ins = BblInsList::Tail(bbls.back());
-      Ins prev_ins = BblInsList::Prev(first_ins);
-      Bbl new_bbl = BblNew(NewDerivedBblName(Name(bbl), "_", fun));
+      const Bbl new_bbl = BblNew(NewDerivedBblName(Name(bbl), "_", fun));
 
-      BblInsList::Head(new_bbl) = first_ins;
-      BblInsList::Tail(new_bbl) = last_ins;
-      BblInsList::Tail(bbls.back()) = prev_ins;
-      //
-      BblInsList::Next(prev_ins) = BblInsList::MakeSentinel(bbls.back());
-      BblInsList::Prev(first_ins) = BblInsList::MakeSentinel(new_bbl);
-      BblInsList::Next(last_ins) = BblInsList::MakeSentinel(new_bbl);
-      //
+      BblSplitAfter(bbls.back(), first_ins, new_bbl);
       FunBblAddBst(fun, new_bbl);
       bbls.push_back(new_bbl);
     }

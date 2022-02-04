@@ -23,4 +23,10 @@ extern void FunRemoveUnreachableBbls(Fun fun);
 
 extern void FunAddUnconditionalBranches(Fun fun);
 
+extern void BblSplitAfter(Bbl bbl, Ins new_bbl_first_ins, Bbl new_bbl);
+
+extern void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl);
+
+extern Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun);
+
 }  // namespace cwerg

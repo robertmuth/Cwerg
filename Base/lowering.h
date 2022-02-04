@@ -26,6 +26,10 @@ extern void FunEliminateMemLoadStore(Fun fun,
 
 extern void FunEliminateRem(Fun fun, std::vector<Ins>* inss);
 
+extern void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss);
+
+extern void FunEliminateCmp(Fun fun, std::vector<Ins>* inss);
+
 // add new instructions to inss to replace the immediate at pos with
 // a reg, also rewrites ins
 // The caller usually will followup with a inss->push_back(ins)

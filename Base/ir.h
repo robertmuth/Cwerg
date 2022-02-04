@@ -643,7 +643,7 @@ struct BblInsList {
 };
 
 #define BblInsInsertBefore ListInsertBefore<BblInsList>
-#define BblInsAddList ListAppend<BblInsList>
+#define BblInsAppendList ListAppend<BblInsList>
 #define BblInsInsertAfter ListInsertAfter<BblInsList>
 #define BblInsPrepend ListPrepend<BblInsList>
 #define BblInsUnlink ListUnlink<BblInsList>
@@ -651,7 +651,7 @@ struct BblInsList {
 #define BblInsIterReverse ListIterReverse<BblInsList>
 
 inline Ins BblInsAdd(Bbl bbl, Ins ins) {
-  BblInsAddList(bbl, ins);
+  BblInsAppendList(bbl, ins);
   return ins;
 }
 
@@ -897,7 +897,7 @@ struct FunBblList {
 };
 
 #define FunBblInsertBefore ListInsertBefore<FunBblList>
-#define FunBblAddList ListAppend<FunBblList>
+#define FunBblAppendList ListAppend<FunBblList>
 #define FunBblInsertAfter ListInsertAfter<FunBblList>
 #define FunBblPrepend ListPrepend<FunBblList>
 #define FunBblUnlink ListUnlink<FunBblList>
@@ -906,7 +906,7 @@ struct FunBblList {
 
 inline Bbl FunBblAdd(Fun fun, Bbl bbl) {
   FunBblAddBst(fun, bbl);
-  FunBblAddList(fun, bbl);
+  FunBblAppendList(fun, bbl);
   return bbl;
 }
 
@@ -966,7 +966,7 @@ struct UnitFunList {
 };
 
 #define UnitFunInsertBefore ListInsertBefore<UnitFunList>
-#define UnitFunAddList ListAppend<UnitFunList>
+#define UnitFunAppendList ListAppend<UnitFunList>
 #define UnitFunInsertAfter ListInsertAfter<UnitFunList>
 #define UnitFunPrepend ListPrepend<UniFunList>
 #define UnitFunUnlink ListUnlink<UnitFunList>
@@ -974,7 +974,7 @@ struct UnitFunList {
 
 inline Fun UnitFunAdd(Unit unit, Fun fun) {
   UnitFunAddBst(unit, fun);
-  UnitFunAddList(unit, fun);
+  UnitFunAppendList(unit, fun);
   return fun;
 }
 
@@ -1007,7 +1007,7 @@ struct UnitMemList {
 };
 
 #define UnitMemInsertBefore ListInsertBefore<UnitMemList>
-#define UnitMemAddList ListAppend<UnitMemList>
+#define UnitMemAppendList ListAppend<UnitMemList>
 #define UnitMemInsertAfter ListInsertAfter<UnitMemList>
 #define UnitMemPrepend ListPrepend<UnitMemList>
 #define UnitMemUnlink ListUnlink<UnitMemList>
@@ -1015,7 +1015,7 @@ struct UnitMemList {
 
 inline Mem UnitMemAdd(Unit unit, Mem mem) {
   UnitMemAddBst(unit, mem);
-  UnitMemAddList(unit, mem);
+  UnitMemAppendList(unit, mem);
   return mem;
 }
 

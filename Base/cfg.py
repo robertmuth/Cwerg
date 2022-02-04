@@ -78,17 +78,12 @@ def FunSplitBblsAtTerminators(fun: ir.Fun):
     fun.bbls = bbls
 
 
-def BblSplit(ins: ir.Ins, orig_bbl: ir.Bbl, fun: ir.Fun, prefix) -> ir.Bbl:
+def BblSplitBeforeFixEdges(orig_bbl: ir.Bbl, ins: ir.Ins, fun: ir.Fun, suffix: str) -> ir.Bbl:
     """Create a new bbl BEFORE orig_bbl containing all the instruction up to and including ins"""
     assert ins.opcode.kind is not o.OPC_KIND.COND_BRA
     ins_pos = orig_bbl.index(ins)
     bbl_pos = fun.bbls.index(orig_bbl)
-    count = 1
-    while True:
-        name = f"{prefix}{count}"
-        if name not in fun.bbl_syms:
-            break
-        count += 1
+    name = NewDerivedBblName(orig_bbl.name, suffix, fun)
     new_bbl = ir.Bbl(name)
     for x in orig_bbl.edge_in[:]:
         if x.inss:

@@ -462,6 +462,74 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
+void InsEliminateCmp(Ins ins, Bbl bbl, Fun fun) {
+  const Bbl bbl_skip = BblNew(NewDerivedBblName(Name(bbl), "_split", fun));
+  FunBblAddBst(fun, bbl_skip);
+  FunBblInsertBefore(fun, bbl_skip, bbl);
+  BblSplitBeforeFixEdges(bbl, ins, bbl_skip);
+
+  const Bbl bbl_prev = BblNew(NewDerivedBblName(Name(bbl), "_split", fun));
+  FunBblAddBst(fun, bbl_prev);
+  FunBblInsertBefore(fun, bbl_prev, bbl_skip);
+  BblSplitBeforeFixEdges(bbl_skip, ins, bbl_prev);
+
+  const DK dk = RegKind(Reg(InsOperand(ins, 0)));
+  const Reg reg = FunGetScratchReg(fun, dk, "cmp", false);
+  BblInsUnlink(ins);
+  BblInsAppendList(bbl_prev, InsNew(OPC::MOV, reg, InsOperand(ins, 1)));
+  BblInsAppendList(bbl_prev,
+                   InsNew(InsOPC(ins) == OPC::CMPEQ ? OPC::BEQ : OPC::BLT, reg,
+                          InsOperand(ins, 3), InsOperand(ins, 4), bbl));
+  BblInsAppendList(bbl_skip, InsNew(OPC::MOV, reg, InsOperand(ins, 2)));
+  BblInsPrepend(bbl, InsNew(OPC::MOV, InsOperand(ins, 0), reg));
+  EdgLink(EdgNew(bbl_skip, bbl));
+  InsDel(ins);  // must delay deletion as we are still reading operands
+}
+
+void FunEliminateCmp(Fun fun, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    Ins ins = BblInsList::Head(bbl);
+    while (!BblInsList::IsSentinel(ins)) {
+      const Ins next = BblInsList::Next(ins);
+      if (InsOpcode(ins).kind == OPC_KIND::CMP) {
+        // deletes ins
+        InsEliminateCmp(ins, bbl, fun);
+      }
+      ins = next;
+    }
+  }
+}
+
+void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOPC(ins) == OPC::COPYSIGN) {
+        const DK dk = RegKind(Reg(InsOperand(ins, 0)));
+        ASSERT(DKFlavor(dk) == DK_FLAVOR_F, "");
+        const DK int_dk = (dk == DK::F32) ? DK::U32 : DK::U64;
+        const uint64_t sign = (dk == DK::F32) ? 1UL << 31 : 1UL << 63;
+        const Const sign_mask = ConstNewU(int_dk, sign);
+        const Const rest_mask = ConstNewU(int_dk, sign - 1);
+        const Reg tmp_src1 =
+            FunGetScratchReg(fun, int_dk, "elim_copysign1", false);
+        const Reg tmp_src2 =
+            FunGetScratchReg(fun, int_dk, "elim_copysign2", false);
+        inss->push_back(InsNew(OPC::BITCAST, tmp_src1, InsOperand(ins, 1)));
+        inss->push_back(InsNew(OPC::AND, tmp_src1, tmp_src1, rest_mask));
+        inss->push_back(InsNew(OPC::BITCAST, tmp_src2, InsOperand(ins, 2)));
+        inss->push_back(InsNew(OPC::AND, tmp_src2, tmp_src2, sign_mask));
+        inss->push_back(InsNew(OPC::OR, tmp_src1, tmp_src1, tmp_src2));
+        InsInit(ins, OPC::BITCAST, InsOperand(ins, 0), tmp_src1);
+        dirty = true;
+      }
+      inss->push_back(ins);
+    }
+    if (dirty) BblReplaceInss(bbl, *inss);
+  }
+}
+
 void InsEliminateImmediateViaMov(Ins ins,
                                  unsigned pos,
                                  Fun fun,

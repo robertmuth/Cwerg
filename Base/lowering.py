@@ -208,8 +208,8 @@ def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     TODO: This is very coarse
     """
     assert ins.opcode.kind is o.OPC_KIND.CMP
-    bbl_skip = cfg.BblSplit(ins, bbl, fun, bbl.name + "_spilt")
-    bbl_prev = cfg.BblSplit(ins, bbl_skip, fun, bbl.name + "_spilt")
+    bbl_skip = cfg.BblSplitBeforeFixEdges(bbl, ins, fun, "_spilt")
+    bbl_prev = cfg.BblSplitBeforeFixEdges(bbl_skip, ins, fun, "_spilt")
     assert not bbl_skip.inss
     assert bbl_prev.inss[-1] is ins
     assert bbl_prev.edge_out == [bbl_skip]
@@ -251,11 +251,10 @@ def _InsEliminateCopySign(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     if ops[0].kind == o.DK.F32:
         kind = o.DK.U32
         sign = 1 << 31
-        mask = sign - 1
     else:
         kind = o.DK.U64
         sign = 1 << 63
-        mask = sign - 1
+    mask = sign - 1
 
     tmp_src1 = fun.GetScratchReg(kind, "elim_copysign1", False)
     out.append(ir.Ins(o.BITCAST, [tmp_src1, ops[1]]))

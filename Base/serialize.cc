@@ -60,7 +60,7 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
     // fun.kind  is extern and kind is not. Make sure fun is current by
     // moving it to the end of the list
     UnitFunUnlink(fun);
-    UnitFunAddList(unit, fun);
+    UnitFunAppendList(unit, fun);
   }
 
   // handle input/output sig
@@ -72,7 +72,7 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
   if (num_inputs < 0) return false;
   FunNumInputTypes(fun) = num_inputs;
 
-  UnitFunAddList(unit, fun);
+  UnitFunAppendList(unit, fun);
   return true;
 }
 
@@ -92,7 +92,7 @@ bool MemHandler(const std::vector<std::string_view>& token, Unit unit) {
   mem = MemNew(kind, num.value(), name);
 
   UnitMemAddBst(unit, mem);
-  UnitMemAddList(unit, mem);
+  UnitMemAppendList(unit, mem);
   return true;
 }
 
@@ -182,7 +182,7 @@ bool BblHandler(const std::vector<std::string_view>& token, Unit unit) {
   }
   Bbl bbl = FunBblFindOrForwardDeclare(fun, name);
   ASSERT(FunBblList::Prev(bbl).isnull(), "must be unlinked");
-  FunBblAddList(fun, bbl);
+  FunBblAppendList(fun, bbl);
   return true;
 }
 
