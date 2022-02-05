@@ -182,8 +182,11 @@ void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl) {
   const Ins new_bbl_first_ins = BblInsList::Head(bbl);
   const Ins next_ins = BblInsList::Next(new_bbl_last_ins);
   BblInsList::Head(bbl) = next_ins;
-  BblInsList::Prev(next_ins) = BblInsList::MakeSentinel(bbl);
-
+  if (BblInsList::IsSentinel(next_ins)) {
+      BblInsList::Tail(bbl) = next_ins;
+  } else {
+    BblInsList::Prev(next_ins) = BblInsList::MakeSentinel(bbl);
+  }
   BblInsList::Head(new_bbl) = new_bbl_first_ins;
   BblInsList::Tail(new_bbl) = new_bbl_last_ins;
   BblInsList::Prev(new_bbl_first_ins) = BblInsList::MakeSentinel(new_bbl);

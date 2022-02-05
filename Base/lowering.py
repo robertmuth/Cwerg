@@ -208,8 +208,12 @@ def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     TODO: This is very coarse
     """
     assert ins.opcode.kind is o.OPC_KIND.CMP
-    bbl_skip = cfg.BblSplitBeforeFixEdges(bbl, ins, fun, "_spilt")
-    bbl_prev = cfg.BblSplitBeforeFixEdges(bbl_skip, ins, fun, "_spilt")
+    bbl_skip = cfg.BblSplitBeforeFixEdges(
+        bbl, ins, fun, cfg.NewDerivedBblName(bbl.name, "_split", fun))
+
+    bbl_prev = cfg.BblSplitBeforeFixEdges(
+        bbl_skip, ins, fun, cfg.NewDerivedBblName(bbl.name, "_split", fun))
+
     assert not bbl_skip.inss
     assert bbl_prev.inss[-1] is ins
     assert bbl_prev.edge_out == [bbl_skip]

@@ -463,28 +463,31 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void InsEliminateCmp(Ins ins, Bbl bbl, Fun fun) {
+void InsEliminateCmp(Ins cmp_ins, Bbl bbl, Fun fun) {
   const Bbl bbl_skip = BblNew(NewDerivedBblName(Name(bbl), "_split", fun));
   FunBblAddBst(fun, bbl_skip);
-  FunBblInsertBefore(fun, bbl_skip, bbl);
-  BblSplitBeforeFixEdges(bbl, ins, bbl_skip);
+  FunBblInsertBefore(fun, bbl, bbl_skip);
+  BblSplitBeforeFixEdges(bbl, cmp_ins, bbl_skip);
 
   const Bbl bbl_prev = BblNew(NewDerivedBblName(Name(bbl), "_split", fun));
   FunBblAddBst(fun, bbl_prev);
-  FunBblInsertBefore(fun, bbl_prev, bbl_skip);
-  BblSplitBeforeFixEdges(bbl_skip, ins, bbl_prev);
+  FunBblInsertBefore(fun, bbl_skip, bbl_prev);
+  BblSplitBeforeFixEdges(bbl_skip, cmp_ins, bbl_prev);
 
-  const DK dk = RegKind(Reg(InsOperand(ins, 0)));
+  const DK dk = RegKind(Reg(InsOperand(cmp_ins, 0)));
   const Reg reg = FunGetScratchReg(fun, dk, "cmp", false);
-  BblInsUnlink(ins);
-  BblInsAppendList(bbl_prev, InsNew(OPC::MOV, reg, InsOperand(ins, 1)));
+  BblInsUnlink(cmp_ins);
+  BblInsAppendList(bbl_prev, InsNew(OPC::MOV, reg, InsOperand(cmp_ins, 1)));
   BblInsAppendList(bbl_prev,
-                   InsNew(InsOPC(ins) == OPC::CMPEQ ? OPC::BEQ : OPC::BLT, reg,
-                          InsOperand(ins, 3), InsOperand(ins, 4), bbl));
-  BblInsAppendList(bbl_skip, InsNew(OPC::MOV, reg, InsOperand(ins, 2)));
-  BblInsPrepend(bbl, InsNew(OPC::MOV, InsOperand(ins, 0), reg));
-  EdgLink(EdgNew(bbl_skip, bbl));
-  InsDel(ins);  // must delay deletion as we are still reading operands
+                   InsNew(InsOPC(cmp_ins) == OPC::CMPEQ ? OPC::BEQ : OPC::BLT,
+                          InsOperand(cmp_ins, 3), InsOperand(cmp_ins, 4), bbl));
+
+  BblInsAppendList(bbl_skip, InsNew(OPC::MOV, reg, InsOperand(cmp_ins, 2)));
+
+  BblInsPrepend(bbl, InsNew(OPC::MOV, InsOperand(cmp_ins, 0), reg));
+  EdgLink(EdgNew(bbl_prev, bbl));
+
+  InsDel(cmp_ins);  // must delay deletion as we are still reading operands
 }
 
 void FunEliminateCmp(Fun fun, std::vector<Ins>* inss) {
@@ -666,13 +669,13 @@ void FunPopargConversion(Fun fun, const PushPopInterface& ppif) {
 
 void FunSetInOutCpuRegs(Fun fun, const PushPopInterface& ppif) {
   std::vector<CpuReg> cpu_regs;
-  ppif.GetCpuRegsForInSignature(FunNumInputTypes(fun),
-                                                FunInputTypes(fun), &cpu_regs);
+  ppif.GetCpuRegsForInSignature(FunNumInputTypes(fun), FunInputTypes(fun),
+                                &cpu_regs);
   FunNumCpuLiveIn(fun) = cpu_regs.size();
   memcpy(FunCpuLiveIn(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 
-  ppif.GetCpuRegsForOutSignature(
-      FunNumOutputTypes(fun), FunOutputTypes(fun), &cpu_regs);
+  ppif.GetCpuRegsForOutSignature(FunNumOutputTypes(fun), FunOutputTypes(fun),
+                                 &cpu_regs);
   FunNumCpuLiveOut(fun) = cpu_regs.size();
   memcpy(FunCpuLiveOut(fun), cpu_regs.data(), cpu_regs.size() * sizeof(CpuReg));
 }

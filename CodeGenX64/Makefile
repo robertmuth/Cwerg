@@ -31,7 +31,7 @@ tests: tests_py tests_c
 
 tests_py: $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES) $(DIR)/nanojpeg
 
-tests_c: $(DIR)/isel_test_c
+tests_c: $(DIR)/isel_test_c $(DIR)/codegen_parity
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
