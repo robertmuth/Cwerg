@@ -111,22 +111,6 @@ void FunRewriteOutOfBoundsImmediates(Fun fun,
   }
 }
 
-DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
-  DK_LAC_COUNTS out;
-  for (Reg reg : FunRegIter(fun)) {
-    if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
-      continue;
-    }
-    const CPU_REG_KIND kind = CPU_REG_KIND(rk_map[+RegKind(reg)]);
-    ASSERT(kind != CPU_REG_KIND::INVALID, "");
-    if (RegHasFlag(reg, REG_FLAG::LAC))
-      ++out.lac[+kind];
-    else
-      ++out.not_lac[+kind];
-  }
-  return out;
-}
-
 int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
   to_delete->clear();
 

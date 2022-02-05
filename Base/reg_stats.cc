@@ -316,4 +316,20 @@ int FunSeparateLocalRegUsage(Fun fun) {
   return count;
 }
 
+DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
+  DK_LAC_COUNTS out;
+  for (Reg reg : FunRegIter(fun)) {
+    if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
+      continue;
+    }
+    const unsigned kind = rk_map[+RegKind(reg)];
+    ASSERT(kind != 0, "");
+    if (RegHasFlag(reg, REG_FLAG::LAC))
+      ++out.lac[kind];
+    else
+      ++out.not_lac[kind];
+  }
+  return out;
+}
+
 }  // namespace cwerg::base

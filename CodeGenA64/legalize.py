@@ -246,21 +246,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
-KIND_AND_LAC = Tuple[o.DK, bool]
-
-
-def _FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, o.DK]) -> Dict[
-    KIND_AND_LAC, List[ir.Reg]]:
-    out: Dict[KIND_AND_LAC, List[ir.Reg]] = collections.defaultdict(list)
-    for reg in fun.regs:
-        if not reg.HasCpuReg() and ir.REG_FLAG.GLOBAL in reg.flags:
-            out[(reg_kind_map[reg.kind], ir.REG_FLAG.LAC in reg.flags)].append(
-                reg)
-    for v in out.values():
-        v.sort()
-    return out
-
-
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
@@ -296,7 +281,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
                                                            regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
-    global_reg_stats = _FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
+    global_reg_stats = reg_stats.FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
     DumpRegStats(fun, local_reg_stats, fout)
 
     pre_allocated_mask_gpr = 0

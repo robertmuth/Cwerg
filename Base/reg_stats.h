@@ -44,4 +44,6 @@ std::ostream& operator<<(std::ostream& os, const FunRegStats& stats);
 
 extern int FunSeparateLocalRegUsage(Fun fun);
 
+DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map);
+
 }  // namespace cwerg::base

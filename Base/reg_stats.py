@@ -160,6 +160,19 @@ def FunComputeRegStatsLAC(fun: ir.Fun):
             reg.flags |= ir.REG_FLAG.GLOBAL
 
 
+KIND_AND_LAC = Tuple[o.DK, bool]
+
+
+def FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, o.DK]) -> Dict[KIND_AND_LAC, List[ir.Reg]]:
+    out: Dict[KIND_AND_LAC, List[ir.Reg]] = collections.defaultdict(list)
+    for reg in fun.regs:
+        if not reg.HasCpuReg() and ir.REG_FLAG.GLOBAL in reg.flags:
+            out[(reg_kind_map[reg.kind], ir.REG_FLAG.LAC in reg.flags)].append(reg)
+    for v in out.values():
+        v.sort()
+    return out
+
+
 def FunDropUnreferencedRegs(fun: ir.Fun) -> int:
     """Remove all regs which are no longer referenced"""
     to_be_removed: List[ir.Reg] = []
