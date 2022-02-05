@@ -131,10 +131,9 @@ void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
               inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
               inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
               inss->push_back(ins);
-              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rdx));
-              InsOperand(ins, 0) = rdx;
-              InsOperand(ins, 1) = rax;
-              InsOperand(ins, 2) = rcx;
+              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
+              InsInit(ins, OPC::DIV,  rdx, rax, rcx);
+              dirty = true;
               continue;
             }
             case OPC::REM: {
@@ -144,11 +143,11 @@ void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
               inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
               inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
               inss->push_back(ins);
-              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
-              InsOPC(ins) = OPC::DIV;
-              InsOperand(ins, 0) = rdx;
-              InsOperand(ins, 1) = rax;
-              InsOperand(ins, 2) = rcx;
+              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rdx));
+              // Note, this relies on tight coupling with the isel which will
+              // pick the x86 div instruction the computes both the dividend and remainder
+              InsInit(ins, OPC::DIV, rdx, rax, rcx);
+              dirty = true;
               continue;
             }
             case OPC::SHL:
@@ -165,6 +164,7 @@ void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
                 }
                 inss->push_back(ins);
                 InsOperand(ins, 2) = rcx;
+                dirty = true;
                 continue;
               }
             default:
@@ -237,7 +237,7 @@ void FunRewriteIntoAABForm(Fun fun, std::vector<Ins>* inss) {
           RegFlags(reg) |= +REG_FLAG::TWO_ADDRESS;
           inss->push_back(InsNew(OPC::MOV, reg, InsOperand(ins, 1)));
           inss->push_back(ins);
-          inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 1), reg));
+          inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), reg));
           InsInit(ins, InsOPC(ins), reg, reg, InsOperand(ins, 2));
           continue;
         }
@@ -355,6 +355,11 @@ std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
 }  // namespace
 
 void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
+  if (fout != nullptr && false) {
+    *fout << "############################################################\n"
+          << "# Legalize " << Name(fun) << "\n"
+          << "############################################################\n";
+  }
   std::vector<Ins> inss;
   FunSetInOutCpuRegs(fun, *PushPopInterfaceX64);
 
@@ -376,6 +381,9 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunRewriteDivRemShifts(fun, unit, &inss);
   FunRewriteIntoAABForm(fun, &inss);
   //
+
+  // FunRenderToAsm(fun, fout);
+
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);

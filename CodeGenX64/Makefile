@@ -90,10 +90,71 @@ isel_gen_patterns.h: isel_tab.py
 BUILD_DIR=../build
 CODEGEN_TOOL=$(BUILD_DIR)/x64_codegen_tool.exe
 
+$(CODEGEN_TOOL)::
+	@cd $(BUILD_DIR); $(MAKE) -s x64_codegen_tool.exe
+
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"
 	@cd $(BUILD_DIR); $(MAKE) -s x64_isel_tester.exe
 	$(BUILD_DIR)/x64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
+
+#TEST_MODE = normal
+#TEST_MODE = reg_alloc_local
+#TEST_MODE = reg_alloc_global
+TEST_MODE = legalize
+
+# ensure identical output when emitting textual assembly between
+# python and c++ implementations
+$(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
+	@echo "[$@]"
+	cat $(STD_LIB) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/int_op.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/queens.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/queens.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/fib.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/fib.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/reg_torture.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
+	cat $(STD_LIB) ../TestData/reg_torture.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/multiple_results_f64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/multiple_results_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/multiple_results_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/stack.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/stack.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/switch.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/switch.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/memaddr.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/memaddr.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/reg_torture_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/reg_torture_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+
 clean:
 	rm -f $(DIR)/*

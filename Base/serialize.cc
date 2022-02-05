@@ -693,16 +693,24 @@ void FunRenderToAsm(Fun fun, std::ostream* output, bool number) {
                       "# live_clobber", output);
 
   // Regs
-  std::map<DK, std::vector<std::string_view>> regs;
+  std::map<DK, std::vector<Reg>> regs_by_kind;
   for (Reg reg : FunRegIter(fun)) {
-    regs[RegKind(reg)].push_back(StrData(Name(reg)));
+    regs_by_kind[RegKind(reg)].push_back(reg);
   }
-  for (auto [key, val] : regs) {
-    std::sort(val.begin(), val.end());
+  for (auto [key, val] : regs_by_kind) {
+    std::sort(val.begin(), val.end(), [](const Reg& a, const Reg& b) {
+      return StrCmpLt(Name(a), Name(b));
+    });
     *output << ".reg " << EnumToString(key) << " [";
     const char* sep = "";
-    for (const auto name : val) {
-      *output << sep << name;
+    for (const Reg reg : val) {
+      *output << sep << Name(reg);
+      Handle cpu_reg = RegCpuReg(reg);
+      if (cpu_reg.kind() == RefKind::CPU_REG) {
+        *output << "@" << Name(CpuReg(cpu_reg));
+      } else if (cpu_reg.kind() == RefKind::STACK_SLOT) {
+        *output << "@STK";
+      }
       sep = " ";
     }
     *output << "]\n";

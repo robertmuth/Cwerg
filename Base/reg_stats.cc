@@ -151,7 +151,8 @@ std::ostream& operator<<(std::ostream& os, const DK_LAC_COUNTS& usage) {
 
 void FunComputeRegStatsExceptLAC(Fun fun) {
   for (Reg reg : FunRegIter(fun)) {
-    RegFlags(reg) = 0;
+    RegFlags(reg) &=
+        ~(+REG_FLAG::MULTI_DEF | +REG_FLAG::GLOBAL | +REG_FLAG::IS_READ);
     RegDefIns(reg) = Ins(0);
     RegDefBbl(reg) = Bbl(0);
   }
