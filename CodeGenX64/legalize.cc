@@ -95,19 +95,20 @@ void FunRewriteOutOfBoundsImmediates(Fun fun,
     inss->clear();
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
-      if (!MaybeRewrite(InsOpcode(ins).kind)) continue;
-      const unsigned n = InsOpcode(ins).num_operands;
-      for (unsigned pos = 0; pos < n; ++pos) {
-        if (!IsOutOfBoundImmediate(InsOPC(ins), InsOperand(ins, pos), pos))
-          continue;
-        const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-        if (kind == DK::F64 || kind == DK::F32) {
-          InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64, DK::U32,
-                                      inss);
-        } else {
-          InsEliminateImmediateViaMov(ins, pos, fun, inss);
+      if (MaybeRewrite(InsOpcode(ins).kind)) {
+        const unsigned n = InsOpcode(ins).num_operands;
+        for (unsigned pos = 0; pos < n; ++pos) {
+          if (!IsOutOfBoundImmediate(InsOPC(ins), InsOperand(ins, pos), pos))
+            continue;
+          const DK kind = ConstKind(Const(InsOperand(ins, pos)));
+          if (kind == DK::F64 || kind == DK::F32) {
+            InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64, DK::U32,
+                                        inss);
+          } else {
+            InsEliminateImmediateViaMov(ins, pos, fun, inss);
+          }
+          dirty = true;
         }
-        dirty = true;
       }
       inss->push_back(ins);
     }
@@ -208,7 +209,7 @@ bool InsNeedsAABFormRewrite(Ins ins) {
     return false;
   }
   if ((opc == OPC::DIV || opc == OPC::DIV) &&
-      DKFlavor(RegKind(Reg(InsOperand(ins, 0))))) {
+      DKFlavor(RegKind(Reg(InsOperand(ins, 0)))) != DK_FLAVOR_F) {
     return false;
   }
   if (opc == OPC::LEA_MEM || opc == OPC::LEA_STK) {
@@ -227,7 +228,7 @@ void FunRewriteIntoAABForm(Fun fun, std::vector<Ins>* inss) {
 
         if (InsOperand(ins, 0) == InsOperand(ins, 1)) {
           RegFlags(first) |= +REG_FLAG::TWO_ADDRESS;
-        } else if (InsOperand(ins, 1) == InsOperand(ins, 2) &&
+        } else if (InsOperand(ins, 0) == InsOperand(ins, 2) &&
                    InsOpcode(ins).HasAttribute(OA::COMMUTATIVE)) {
           InsSwapOps(ins, 1, 2);
           RegFlags(first) |= +REG_FLAG::TWO_ADDRESS;
@@ -378,12 +379,11 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   // COND_RRA instruction possibly with immediates.
   FunCfgExit(fun);
   FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
+  //FunRenderToAsm(fun, fout);
+
   FunRewriteDivRemShifts(fun, unit, &inss);
   FunRewriteIntoAABForm(fun, &inss);
   //
-
-  // FunRenderToAsm(fun, fout);
-
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);
