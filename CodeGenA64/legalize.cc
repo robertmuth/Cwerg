@@ -187,21 +187,6 @@ std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
   return std::make_pair(global_lac, global_not_lac);
 }
 
-std::pair<uint32_t, uint32_t> FunGetPreallocatedCpuRegs(Fun fun) {
-  uint32_t gpr_mask = 0;
-  uint32_t flt_mask = 0;
-  for (Reg reg : FunRegIter(fun)) {
-    CpuReg cpu_reg(RegCpuReg(reg));
-    if (cpu_reg.kind() != RefKind::CPU_REG) continue;
-    if (DKFlavor(RegKind(reg)) == DK_FLAVOR_F) {
-      flt_mask |= CpuRegToAllocMask(cpu_reg);
-    } else {
-      gpr_mask |= CpuRegToAllocMask(cpu_reg);
-    }
-  }
-  return std::make_pair(gpr_mask, flt_mask);
-}
-
 }  // namespace
 
 void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
@@ -272,6 +257,53 @@ void DumpRegStats(Fun fun, const DK_LAC_COUNTS& stats, std::ostream* output) {
   }
 }
 
+void GlobalRegAllocOneKind(Fun fun,
+                           CPU_REG_KIND kind,
+                           const FunRegStats& needed,
+                           uint32_t regs_lac,
+                           uint32_t regs_not_lac,
+                           uint32_t regs_lac_mask,
+                           std::vector<Reg>* regs,
+                           std::vector<Reg>* to_be_spilled,
+                           std::ostream* debug) {
+  uint32_t pre_alloced = 0;
+  for (Reg reg : FunRegIter(fun)) {
+    CpuReg cpu_reg(RegCpuReg(reg));
+    if (cpu_reg.kind() != RefKind::CPU_REG) continue;
+    if (CPU_REG_KIND(CpuRegKind(cpu_reg)) == kind) {
+      pre_alloced |= CpuRegToAllocMask(cpu_reg);
+    }
+  }
+
+  auto reg_cmp = [](Reg a, Reg b) -> bool {
+    return StrCmpLt(Name(a), Name(b));
+  };
+
+  if (debug)
+    *debug << "@@  " << EnumToString(kind) << " " << needed.global_lac << " "
+           << needed.global_not_lac << " " << needed.local_lac << " "
+           << needed.local_not_lac << "\n";
+
+  const auto [global_lac, global_not_lac] =
+      GetRegPoolsForGlobals(needed, regs_lac, regs_not_lac, pre_alloced);
+
+  if (debug)
+    *debug << "@@ " << EnumToString(kind) << " POOL " << std::hex << global_lac
+           << " " << global_not_lac << std::dec << "\n";
+
+  // handle is_lac global regs
+  regs->clear();
+  FunFilterGlobalRegs(fun, kind, true, DK_TO_CPU_REG_KIND_MAP, regs);
+  std::sort(regs->begin(), regs->end(), reg_cmp);  // make things deterministic
+  AssignCpuRegOrMarkForSpilling(*regs, global_lac, 0, to_be_spilled);
+  // handle not is_lac global regs
+  regs->clear();
+  FunFilterGlobalRegs(fun, kind, false, DK_TO_CPU_REG_KIND_MAP, regs);
+  std::sort(regs->begin(), regs->end(), reg_cmp);  // make things deterministic
+  AssignCpuRegOrMarkForSpilling(*regs, global_not_lac & ~regs_lac_mask,
+                                global_not_lac & regs_lac_mask, to_be_spilled);
+}
+
 void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   if (fout != nullptr) {
     *fout << "############################################################\n"
@@ -293,14 +325,8 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
     DumpRegStats(fun, local_reg_stats, fout);
   }
 
-  const auto [prealloc_gpr, prealloc_flt] = FunGetPreallocatedCpuRegs(fun);
-
   std::vector<Reg> to_be_spilled;
   std::vector<Reg> regs;
-  auto reg_cmp = [](Reg a, Reg b) -> bool {
-    return StrCmpLt(Name(a), Name(b));
-  };
-
   std::ostream* debug = nullptr;
 
   {
@@ -309,33 +335,10 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
                              global_reg_stats.not_lac[+CPU_REG_KIND::GPR],  //
                              local_reg_stats.lac[+CPU_REG_KIND::GPR],       //
                              local_reg_stats.not_lac[+CPU_REG_KIND::GPR]};
-    if (debug)
-      *debug << "@@ GPR NEEDED " << needed.global_lac << " "
-             << needed.global_not_lac << " " << needed.local_lac << " "
-             << needed.local_not_lac << "\n";
-
-    const auto [global_lac, global_not_lac] =
-        GetRegPoolsForGlobals(needed, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
-                              GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, prealloc_gpr);
-
-    if (debug)
-      *debug << "@@ GPR POOL " << std::hex << global_lac << " "
-             << global_not_lac << std::dec << "\n";
-
-    // handle is_lac global regs
-    regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, true, DK_TO_CPU_REG_KIND_MAP,
-                        &regs);
-    std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
-    AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
-    // handle not is_lac global regs
-    regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::GPR, false, DK_TO_CPU_REG_KIND_MAP,
-                        &regs);
-    std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
-    AssignCpuRegOrMarkForSpilling(regs, global_not_lac & ~GPR_LAC_REGS_MASK,
-                                  global_not_lac & GPR_LAC_REGS_MASK,
-                                  &to_be_spilled);
+    GlobalRegAllocOneKind(fun, CPU_REG_KIND::GPR, needed,
+                          GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                          GPR_REGS_MASK & ~GPR_LAC_REGS_MASK, GPR_LAC_REGS_MASK,
+                          &regs, &to_be_spilled, debug);
   }
   {
     // FLT
@@ -343,34 +346,10 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
                              global_reg_stats.not_lac[+CPU_REG_KIND::FLT],
                              local_reg_stats.lac[+CPU_REG_KIND::FLT],
                              local_reg_stats.not_lac[+CPU_REG_KIND::FLT]};
-
-    if (debug)
-      *debug << "@@ FLT NEEDED " << needed.global_lac << " "
-             << needed.global_not_lac << " " << needed.local_lac << " "
-             << needed.local_not_lac << "\n";
-
-    const auto [global_lac, global_not_lac] =
-        GetRegPoolsForGlobals(needed, FLT_REGS_MASK & FLT_LAC_REGS_MASK,
-                              FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, prealloc_flt);
-
-    if (debug)
-      *debug << "@@ FLT POOL " << std::hex << global_lac << " "
-             << global_not_lac << std::dec << "\n";
-
-    // handle is_lac global regs
-    regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, true, DK_TO_CPU_REG_KIND_MAP,
-                        &regs);
-    std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
-    AssignCpuRegOrMarkForSpilling(regs, global_lac, 0, &to_be_spilled);
-    // handle not is_lac global regs
-    regs.clear();
-    FunFilterGlobalRegs(fun, CPU_REG_KIND::FLT, false, DK_TO_CPU_REG_KIND_MAP,
-                        &regs);
-    std::sort(regs.begin(), regs.end(), reg_cmp);  // make things deterministic
-    AssignCpuRegOrMarkForSpilling(regs, global_not_lac & ~FLT_LAC_REGS_MASK,
-                                  global_not_lac & FLT_LAC_REGS_MASK,
-                                  &to_be_spilled);
+    GlobalRegAllocOneKind(fun, CPU_REG_KIND::FLT, needed,
+                          FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                          FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, FLT_LAC_REGS_MASK,
+                          &regs, &to_be_spilled, debug);
   }
 
   std::vector<Ins> inss;
