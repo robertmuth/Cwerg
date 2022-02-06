@@ -19,15 +19,6 @@ std::array<CpuReg, 8> FLT_IN_OUT_REGS;
 
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
-constexpr const uint32_t GPR_RESERVED_MASK = 0x0011;
-constexpr const uint32_t GPR_REGS_MASK = 0xffee;
-constexpr const uint32_t GPR_LAC_REGS_MASK = 0xf028;
-
-constexpr const uint32_t GPR_REG_IMPLICIT_MASK = 0x0007;
-constexpr const uint32_t FLT_RESERVED_MASK = 0x0001;
-constexpr const uint32_t FLT_REGS_MASK = 0xfffe;
-constexpr const uint32_t FLT_LAC_REGS_MASK = 0xff00;
-
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
@@ -128,6 +119,40 @@ struct PushPopInterfaceX64 : base::PushPopInterface {
 
 const base::PushPopInterface* const PushPopInterfaceX64 =
     &PushPopInterfaceX64Impl;
+
+void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& assign_to,
+                                   uint32_t cpu_reg_mask_first_choice,
+                                   uint32_t cpu_reg_mask_second_choice) {
+  // std::cout << "@@ AssignCpuRegOrMarkForSpilling " << assign_to.size() << " "
+  //         << std::hex
+  //    << cpu_reg_mask_first_choice << " " << cpu_reg_mask_second_choice <<
+  //    "\n";
+  uint32_t cpu_reg_mask = cpu_reg_mask_first_choice;
+  unsigned pos = 0;
+  for (Reg reg : assign_to) {
+    ASSERT(RegCpuReg(reg).isnull(), "");
+    if (cpu_reg_mask == 0 && cpu_reg_mask_second_choice != 0) {
+      cpu_reg_mask = cpu_reg_mask_second_choice;
+      cpu_reg_mask_second_choice = 0;
+      pos = 0;
+    }
+    if (cpu_reg_mask == 0) {
+      RegCpuReg(reg) = StackSlotNew(0);
+      continue;
+    }
+    while (((1U << pos) & cpu_reg_mask) == 0) ++pos;
+    const DK dk = RegKind(reg);
+    if (DKFlavor(dk) == DK_FLAVOR_F) {
+      RegCpuReg(reg) = FLT_REGS[pos];
+    } else {
+      RegCpuReg(reg) = GPR_REGS[pos];
+    }
+    // std::cout << "@@@@ ASSIGN " << Name(reg) << " " <<
+    //    EnumToString(dk) << " " << Name(RegCpuReg(reg)) << "\n";
+    cpu_reg_mask &= ~(1U << pos);
+    ++pos;
+  }
+}
 
 EmitContext FunComputeEmitContext(Fun fun) {
   CpuRegMasks masks = FunCpuRegStats(fun);

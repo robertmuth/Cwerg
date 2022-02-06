@@ -37,19 +37,20 @@ struct EmitContext {
   base::CpuReg scratch_cpu_reg = base::CpuReg(base::HandleInvalid);
 };
 
-#if 0
-const constexpr uint32_t GPR_REGS_MASK = 0x7fffffff;
-const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3fff0000;
-const constexpr uint32_t GPR_LAC_REGS_MASK_WITH_LR = 0x7fff0000;
-const constexpr uint32_t FLT_REGS_MASK = 0xffffffff;
-const constexpr uint32_t FLT_LAC_REGS_MASK = 0x0000ff00;
+
+constexpr const uint32_t GPR_RESERVED_MASK = 0x0011;
+constexpr const uint32_t GPR_REGS_MASK = 0xffee;
+constexpr const uint32_t GPR_LAC_REGS_MASK = 0xf028;
+
+constexpr const uint32_t GPR_REG_IMPLICIT_MASK = 0x0007;
+constexpr const uint32_t FLT_RESERVED_MASK = 0x0001;
+constexpr const uint32_t FLT_REGS_MASK = 0xfffe;
+constexpr const uint32_t FLT_LAC_REGS_MASK = 0xff00;
 
 // maps the DK of Cwerg reg to the CPU_REG_KIND needed for a cpu reg
 extern base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 inline uint32_t CpuRegToAllocMask(base::CpuReg cpu_reg) { return 1U << CpuRegNo(cpu_reg); }
-
-#endif
 
 extern std::vector<base::CpuReg> GetCpuRegsForInSignature(unsigned count,
                                                         const base::DK* kinds);
@@ -64,8 +65,7 @@ extern std::vector<base::CpuReg> GetCpuRegsForOutSignature(unsigned count,
 extern void AssignCpuRegOrMarkForSpilling(
     const std::vector<base::Reg>& assign_to,
     uint32_t cpu_reg_mask_first_choice,
-    uint32_t cpu_reg_mask_second_choice,
-    std::vector<base::Reg>* to_be_spilled);
+    uint32_t cpu_reg_mask_second_choice);
 
 
 

@@ -253,6 +253,7 @@ if __name__ == "__main__":
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
 
+        log = None
         assert args.mode in _ALLOWED_MODES
         fin = sys.stdin if args.input == "-" else open(args.input)
 
@@ -275,17 +276,17 @@ if __name__ == "__main__":
 
         # we need to legalize all functions first as this may change the signature
         # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-        LegalizeAll(unit, opt_stats, fout)
+        LegalizeAll(unit, opt_stats, log)
         if args.mode == "legalize":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
 
-        RegAllocGlobal(unit, opt_stats, fout)
+        RegAllocGlobal(unit, opt_stats, log)
         if args.mode == "reg_alloc_global":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
 
-        RegAllocLocal(unit, opt_stats, fout)
+        RegAllocLocal(unit, opt_stats, log)
         if args.mode == "reg_alloc_local":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return

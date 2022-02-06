@@ -100,10 +100,13 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
 
+  const bool DEBUG = false;
+  std::ostream* log = DEBUG ? &std::cout : nullptr;
+
   // If the synchronization is turned off, the C++ standard streams are allowed
   // to buffer their I/O independently from their stdio counterparts, which may
   // be considerably faster in some cases.
-  std::ios_base::sync_with_stdio(false);
+  std::ios_base::sync_with_stdio(DEBUG);
 
   InitStripes(sw_multiplier.Value());
   InitCodeGenX64();
@@ -162,19 +165,19 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
-  LegalizeAll(unit, false, fout);
+  LegalizeAll(unit, false, log);
   if (sw_mode.Value() == "legalize") {
     UnitRenderToAsm(unit, fout);
     return 0;
   }
 
-  RegAllocGlobal(unit, false, fout);
+  RegAllocGlobal(unit, false, log);
   if (sw_mode.Value() == "reg_alloc_global") {
     UnitRenderToAsm(unit, fout);
     return 0;
   }
 
-  RegAllocLocal(unit, false, fout);
+  RegAllocLocal(unit, false, log);
   if (sw_mode.Value() == "reg_alloc_local") {
     UnitRenderToAsm(unit, fout);
     return 0;
