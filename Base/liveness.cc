@@ -338,11 +338,14 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
     const unsigned num_ops = InsOpcode(ins).num_operands;
     // process definitions
     for (unsigned i = 0; i < num_defs; ++i) {
-      Reg reg(InsOperand(ins, i));
+      const Reg reg(InsOperand(ins, i));
+       const CpuReg cpu_reg(RegCpuReg(reg));
+      // skip spilled regs
+      if (cpu_reg.kind() == RefKind::STACK_SLOT) continue;
+      if (i == 0 && RegHasFlag(reg, REG_FLAG::TWO_ADDRESS) && reg == InsOperand(ins, 1)) continue;
       if (RegLastUse(reg) != 0) {
         finalize_lr(RegLastUse(reg), pos);
       } else {
-        const CpuReg cpu_reg(RegCpuReg(reg));
         int16_t last_use_pos = NO_USE;
         if (cpu_reg.kind() == RefKind::CPU_REG &&
             ListContainsCpuReg(last_call_cpu_live_in, last_call_num_cpu_live_in,
@@ -357,8 +360,11 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
     uint16_t ud[4] = {0, 0, 0, 0}; // use-def links
     unsigned num_ud = 0;
     for (unsigned i = num_defs; i < num_ops; ++i) {
-      Reg reg = Reg(InsOperand(ins, i));
+      const Reg reg = Reg(InsOperand(ins, i));
       if (reg.kind() != RefKind::REG) continue;
+      const CpuReg cpu_reg(RegCpuReg(reg));
+      // skip spilled regs
+      if (cpu_reg.kind() == RefKind::STACK_SLOT) continue;
       uint16_t lr_index = RegLastUse(reg);
       if (lr_index == 0) {
         // this is the end of a live range

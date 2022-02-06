@@ -319,7 +319,7 @@ int FunSeparateLocalRegUsage(Fun fun) {
 DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
   DK_LAC_COUNTS out;
   for (Reg reg : FunRegIter(fun)) {
-    if (!RegCpuReg(reg).isnull() || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
+    if (RegCpuReg(reg).kind() == RefKind::CPU_REG || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
       continue;
     }
     const unsigned kind = rk_map[+RegKind(reg)];

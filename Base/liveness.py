@@ -337,6 +337,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
             if not isinstance(reg, ir.Reg): continue
             if reg.IsSpilled(): continue
             if n < num_defs:  # define reg
+                # do not create a new live range for TWO_ADDRESS situation (x64)
                 if n == 0 and ir.REG_FLAG.TWO_ADDRESS in reg.flags and reg == ins.operands[1]:
                     continue
                 lr = last_use.get(reg)
