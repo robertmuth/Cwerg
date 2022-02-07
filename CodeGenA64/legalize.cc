@@ -330,7 +330,6 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
   std::ostream* debug = nullptr;
 
   {
-    // GPR
     const FunRegStats needed{global_reg_stats.lac[+CPU_REG_KIND::GPR],      //
                              global_reg_stats.not_lac[+CPU_REG_KIND::GPR],  //
                              local_reg_stats.lac[+CPU_REG_KIND::GPR],       //
@@ -341,7 +340,6 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
                           &regs, &to_be_spilled, debug);
   }
   {
-    // FLT
     const FunRegStats needed{global_reg_stats.lac[+CPU_REG_KIND::FLT],
                              global_reg_stats.not_lac[+CPU_REG_KIND::FLT],
                              local_reg_stats.lac[+CPU_REG_KIND::FLT],

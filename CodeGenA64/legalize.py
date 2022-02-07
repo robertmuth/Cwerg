@@ -246,8 +246,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
-def GlobalRegAllocOneKind(fun: ir.Fun, kind: regs.CpuRegKind, needed: RegsNeeded, regs_lac, regs_not_lac,
-                          regs_lac_mask, global_reg_stats, debug) -> List[ir.Reg]:
+def GlobalRegAllocOneKind(fun: ir.Fun, kind: regs.CpuRegKind, needed: RegsNeeded, regs_lac,
+                          regs_not_lac, regs_lac_mask, global_reg_stats, debug) -> List[ir.Reg]:
     pre_allocated = 0
     for reg in fun.regs:
         if reg.HasCpuReg() and reg.cpu_reg.kind == kind:
