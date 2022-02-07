@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 
 from Base import canonicalize
 from Base import reg_alloc
@@ -271,6 +271,31 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
+def GlobalRegAllocOneKind(fun: ir.Fun, kinds: Set[regs.CpuRegKind], needed: RegsNeeded, cpu_regs_lac,
+                          cpu_regs_not_lac, cpu_regs_lac_mask, global_regs_lac, global_regs_not_lac,
+                          debug) -> List[ir.Reg]:
+    pre_allocated = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind in kinds:
+            pre_allocated |= 1 << reg.cpu_reg.no
+
+    kind_name = next(iter(kinds))
+    if debug:
+        print(f"@@ {kind_name} NEEDED {needed.global_lac} {needed.global_not_lac} "
+              f"{needed.local_lac} {needed.local_not_lac}", file=debug)
+
+    global_lac_pool, global_not_lac_pool = _GetRegPoolsForGlobals(
+        needed, cpu_regs_lac, cpu_regs_not_lac, pre_allocated)
+    if debug:
+        print(f"@@ {kind_name} POOL {global_lac_pool:x} {global_not_lac_pool:x}", file=debug)
+
+    return (regs.AssignCpuRegOrMarkForSpilling(global_regs_lac, global_lac_pool, 0) +
+            regs.AssignCpuRegOrMarkForSpilling(
+                global_regs_not_lac,
+                global_not_lac_pool & ~cpu_regs_lac_mask,
+                global_not_lac_pool & cpu_regs_lac_mask))
+
+
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
@@ -311,38 +336,20 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     global_reg_stats = reg_stats.FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
     DumpRegStats(fun, local_reg_stats, fout)
 
-    # Handle GPR regs
-    pre_allocated_mask_gpr = 0
-    for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.CpuRegKind.GPR:
-            pre_allocated_mask_gpr |= regs.A32RegToAllocMask(reg.cpu_reg)
+    debug = None
     # compute the number of regs needed if had indeed unlimited regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
                             len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
                             local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
-    # earmark some regs for globals
-    gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
-                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK, pre_allocated_mask_gpr)
+    to_be_spilled: List[ir.Reg] = GlobalRegAllocOneKind(fun, {regs.CpuRegKind.GPR}, needed_gpr,
+                                                        regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
+                                                        regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK,
+                                                        regs.GPR_LAC_REGS_MASK,
+                                                        global_reg_stats[(regs.CpuRegKind.GPR, True)],
+                                                        global_reg_stats[(regs.CpuRegKind.GPR, False)],
+                                                        debug)
 
-    # assign the earmarked regs to some globals and spill the rest
-    to_be_spilled: List[ir.Reg] = []
-    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.CpuRegKind.GPR, True)],
-        gpr_global_lac, 0)
-
-    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.CpuRegKind.GPR, False)],
-        gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
-        gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
-
-    # Handle Float regs
-    pre_allocated_mask_flt = 0
-    for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind != regs.CpuRegKind.GPR:
-            pre_allocated_mask_flt |= regs.A32RegToAllocMask(reg.cpu_reg)
-    # repeat the same process as we did for GPR regs
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]) + 2 *
                             len(global_reg_stats[(regs.CpuRegKind.DBL, True)]),
                             len(global_reg_stats[(regs.CpuRegKind.FLT, False)]) + 2 *
@@ -351,20 +358,15 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             local_reg_stats.get((regs.CpuRegKind.DBL, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.FLT, False), 0) + 2 *
                             local_reg_stats.get((regs.CpuRegKind.DBL, False), 0))
-    flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
-                    regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK, pre_allocated_mask_flt)
-
-    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.CpuRegKind.DBL, True)] +
-        global_reg_stats[(regs.CpuRegKind.FLT, True)],
-        flt_global_lac, 0)
-
-    to_be_spilled += regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.CpuRegKind.DBL, False)] +
-        global_reg_stats[(regs.CpuRegKind.FLT, False)],
-        flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
-        flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
+    to_be_spilled += GlobalRegAllocOneKind(fun, {regs.CpuRegKind.FLT, regs.CpuRegKind.DBL}, needed_flt,
+                                           regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+                                           regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
+                                           regs.FLT_LAC_REGS_MASK,
+                                           global_reg_stats[(regs.CpuRegKind.FLT, True)] +
+                                           global_reg_stats[(regs.CpuRegKind.DBL, True)],
+                                           global_reg_stats[(regs.CpuRegKind.FLT, False)] +
+                                           global_reg_stats[(regs.CpuRegKind.DBL, False)],
+                                           debug)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
 

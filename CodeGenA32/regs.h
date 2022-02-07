@@ -13,9 +13,9 @@ using namespace cwerg;
 
 enum class CPU_REG_KIND : uint8_t {
   INVALID,
-  GPR,
-  FLT,
-  DBL,
+  GPR = 1 << 0,
+  FLT = 1 << 1,
+  DBL = 1 << 2,
 };
 
 // Note, these arrays will be UNINITIALIZED unless InitCodeGenA32 is called

@@ -23,11 +23,8 @@ class CpuRegKind(enum.IntEnum):
     INVALID = 0
     GPR = 1
     FLT = 2
-    DBL = 2 + 16
+    DBL = 4
 
-
-GPR_FAMILY = 1
-FLT_FAMILY = 2  # (includes FLT + DBL )
 
 GPR_REGS = [ir.CpuReg(name, i, CpuRegKind.GPR) for i, name in
             enumerate(_GPR_REG_NAMES)]
@@ -207,7 +204,7 @@ class CpuRegPool(reg_alloc.RegPool):
             self._flt_reserved[cpu_reg.no * 2 + 1].add(lr)
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return FLT_FAMILY if kind == o.DK.F64 or kind == o.DK.F32 else GPR_FAMILY
+        return 2 if kind == o.DK.F64 or kind == o.DK.F32 else 1
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
