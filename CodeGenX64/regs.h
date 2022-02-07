@@ -17,6 +17,18 @@ enum class CPU_REG_KIND : uint8_t {
   FLT,
 };
 
+inline const char* EnumToString(CPU_REG_KIND kind) {
+  switch (kind) {
+    case CPU_REG_KIND::INVALID:
+      return "INVALID";
+    case CPU_REG_KIND::GPR:
+      return "GPR";
+    case CPU_REG_KIND::FLT:
+      return "FLT";
+    default:
+      return "@@UNKNOWN@@";
+  }
+}
 
 // Note, these arrays will be UNINITIALIZED unless InitCodeGenX32 is called
 extern std::array<base::CpuReg, 16> GPR_REGS;
