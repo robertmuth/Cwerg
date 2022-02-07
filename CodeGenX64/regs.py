@@ -18,25 +18,22 @@ class CpuRegKind(enum.Enum):
     FLT = 2
 
 
-GPR_FAMILY = CpuRegKind.GPR.value
-FLT_FAMILY = CpuRegKind.FLT.value
-
 REG_KIND_TO_CPU_REG_FAMILY = {
-    o.DK.S8: GPR_FAMILY,
-    o.DK.S16: GPR_FAMILY,
-    o.DK.S32: GPR_FAMILY,
-    o.DK.S64: GPR_FAMILY,
+    o.DK.S8: CpuRegKind.GPR,
+    o.DK.S16: CpuRegKind.GPR,
+    o.DK.S32: CpuRegKind.GPR,
+    o.DK.S64: CpuRegKind.GPR,
     #
-    o.DK.U8: GPR_FAMILY,
-    o.DK.U16: GPR_FAMILY,
-    o.DK.U32: GPR_FAMILY,
-    o.DK.U64: GPR_FAMILY,
+    o.DK.U8: CpuRegKind.GPR,
+    o.DK.U16: CpuRegKind.GPR,
+    o.DK.U32: CpuRegKind.GPR,
+    o.DK.U64: CpuRegKind.GPR,
     #
-    o.DK.A64: GPR_FAMILY,
-    o.DK.C64: GPR_FAMILY,
+    o.DK.A64: CpuRegKind.GPR,
+    o.DK.C64: CpuRegKind.GPR,
     #
-    o.DK.F32: FLT_FAMILY,
-    o.DK.F64: FLT_FAMILY,
+    o.DK.F32: CpuRegKind.FLT,
+    o.DK.F64: CpuRegKind.FLT,
 }
 
 # We use the 64 bit reg names regardless of the operand width

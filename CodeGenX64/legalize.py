@@ -360,6 +360,33 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     return global_lac, global_not_lac
 
 
+def GlobalRegAllocOneKind(fun: ir.Fun, kind: regs.CpuRegKind, needed: RegsNeeded, regs_lac,
+                          regs_not_lac, regs_lac_mask, global_reg_stats, debug):
+    pre_allocated = 0
+    for reg in fun.regs:
+        if reg.HasCpuReg() and reg.cpu_reg.kind == kind:
+            pre_allocated |= 1 << reg.cpu_reg.no
+
+    if debug:
+        print(f"@@ {kind.name} NEEDED {needed.global_lac} {needed.global_not_lac} "
+              f"{needed.local_lac} {needed.local_not_lac}", file=debug)
+
+    global_lac, global_not_lac = _GetRegPoolsForGlobals(
+        needed, regs_lac, regs_not_lac, pre_allocated)
+    if debug:
+        print(f"@@ {kind.name} POOL {global_lac:x} {global_not_lac:x}", file=debug)
+
+    if True:
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, True)], global_lac, 0)
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(kind, False)],
+            global_not_lac & ~regs_lac_mask,
+            global_not_lac & regs_lac_mask)
+    else:
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, True)], 0, 0)
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, False)], 0, 0)
+
+
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
@@ -398,76 +425,24 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     if fout:
         DumpRegStats(fun, local_reg_stats, fout)
 
-    pre_allocated_mask_gpr = 0
-    for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind == regs.CpuRegKind.GPR:
-            pre_allocated_mask_gpr |= 1 << reg.cpu_reg.no
-
     # Handle GPR regs
-    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.GPR_FAMILY, True)]),
-                            len(global_reg_stats[(regs.GPR_FAMILY, False)]),
-                            local_reg_stats.get((regs.GPR_FAMILY, True), 0),
-                            local_reg_stats.get((regs.GPR_FAMILY, False), 0))
-    if debug:
-        print(f"@@ GPR NEEDED global lac={needed_gpr.global_lac} !lac={needed_gpr.global_not_lac}", file=debug)
-        print(f"@@ GPR NEEDED local  lac={needed_gpr.local_lac} !lac={needed_gpr.local_not_lac}", file=debug)
-        print(f"@@ GPR prealloc={pre_allocated_mask_gpr:x}", file=debug)
-    gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr,
-        regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
-        regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
-        pre_allocated_mask_gpr)
-    if debug:
-        print(f"@@ GPR POOL global lac={gpr_global_lac:x} !lac={gpr_global_not_lac:x}", file=debug)
+    needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
+                            len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
+                            local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
+                            local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
+    GlobalRegAllocOneKind(fun, regs.CpuRegKind.GPR, needed_gpr,
+                          regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
+                          regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
+                          regs.GPR_LAC_REGS_MASK, global_reg_stats, debug)
 
-    if True:
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
-
-        # assigned global not-lac
-        regs.AssignCpuRegOrMarkForSpilling(
-            global_reg_stats[(regs.GPR_FAMILY, False)],
-            gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
-            gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
-    else:
-        print(f"@@@ {fun.name}  {global_reg_stats[(regs.GPR_FAMILY, True)]}")
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)], 0, 0)
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, False)], 0, 0)
-
-    # Handle Float regs
-    pre_allocated_mask_flt = 0
-    for reg in fun.regs:
-        if reg.HasCpuReg() and reg.cpu_reg.kind is regs.CpuRegKind.FLT:
-            pre_allocated_mask_flt |= 1 << reg.cpu_reg.no
-
-    needed_flt = RegsNeeded(len(global_reg_stats[(regs.FLT_FAMILY, True)]),
-                            len(global_reg_stats[(regs.FLT_FAMILY, False)]),
-                            local_reg_stats.get((regs.FLT_FAMILY, True), 0),
-                            local_reg_stats.get((regs.FLT_FAMILY, False), 0))
-    if debug and False:
-        print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
-              f"{needed_flt.local_lac} {needed_flt.local_not_lac}", file=debug)
-
-    flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt,
-        regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
-        regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
-        pre_allocated_mask_flt)
-    if debug and False:
-        print(f"@@ FLT POOL {flt_global_lac:x} {flt_global_not_lac:x}", file=debug)
-
-    if True:
-        regs.AssignCpuRegOrMarkForSpilling(
-            global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
-        regs.AssignCpuRegOrMarkForSpilling(
-            global_reg_stats[(regs.FLT_FAMILY, False)],
-            flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
-            flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
-    else:
-        # print(f"@@@ {fun.name}")
-        # print(f"@@@ LAC {global_reg_stats[(regs.FLT_FAMILY, True)]}")
-        # print(f"@@@ NOTLAC {global_reg_stats[(regs.FLT_FAMILY, False)]}")
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, True)], 0, 0)
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, False)], 0, 0)
+    needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]),
+                            len(global_reg_stats[(regs.CpuRegKind.FLT, False)]),
+                            local_reg_stats.get((regs.CpuRegKind.FLT, True), 0),
+                            local_reg_stats.get((regs.CpuRegKind.FLT, False), 0))
+    GlobalRegAllocOneKind(fun, regs.CpuRegKind.FLT, needed_flt,
+                          regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+                          regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
+                          regs.FLT_LAC_REGS_MASK, global_reg_stats, debug)
 
     # Recompute Everything (TODO: make this more selective to reduce work)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
