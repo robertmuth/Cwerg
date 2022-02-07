@@ -423,7 +423,7 @@ def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
 
 def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
                                   cpu_reg_mask_first_choice: int,
-                                  cpu_reg_mask_second_choice: int) -> List[ir.Reg]:
+                                  cpu_reg_mask_second_choice: int):
     """
     Returns the regs that could not be assigned.
     """

@@ -81,6 +81,7 @@ _SHIFT_MASK = {
 }
 
 
+# These require implicit regs
 def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
@@ -116,11 +117,11 @@ def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
         return None
 
 
-def _FunRewriteDivRem(fun: ir.Fun) -> int:
+def _FunRewriteDivRemShifts(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteDivRemShifts)
 
 
-def NeedsAABFromRewrite(ins: ir.Ins):
+def InsNeedsAABFormRewrite(ins: ir.Ins):
     opc = ins.opcode
     ops = ins.operands
     if opc.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
@@ -135,12 +136,12 @@ def NeedsAABFromRewrite(ins: ir.Ins):
 def _InsRewriteIntoAABForm(
         ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     ops = ins.operands
-    if not NeedsAABFromRewrite(ins):
+    if not InsNeedsAABFormRewrite(ins):
         return None
     if ops[0] == ops[1]:
         ops[0].flags |= ir.REG_FLAG.TWO_ADDRESS
         return None
-    if ops[0] == ops[2] and o.OA.COMMUTATIVE in ins.opcode.attributes:
+    elif ops[0] == ops[2] and o.OA.COMMUTATIVE in ins.opcode.attributes:
         ir.InsSwapOps(ins, 1, 2)
         ops[0].flags |= ir.REG_FLAG.TWO_ADDRESS
         return [ins]
@@ -190,6 +191,11 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
+    if fout:
+        print("#" * 60, file=fout)
+        print(f"# Legalize {fun.name}", file=fout)
+        print("#" * 60, file=fout)
+
     fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
     fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
@@ -222,7 +228,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
     # mul/div/rem need special treatment
-    _FunRewriteDivRem(fun)
+    _FunRewriteDivRemShifts(fun)
 
     _FunRewriteIntoAABForm(fun, unit)
 
@@ -234,23 +240,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     reg_stats.FunSeparateLocalRegUsage(fun)  # this has special hacks to avoid undoing _FunRewriteIntoAABForm()
     # DumpRegStats(fun, local_reg_stats)
 
-    # if fun.name == "fibonacci": DumpFun("end of legal", fun)
-    # if fun.name == "write_s": exit(1)
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
-
-
-KIND_AND_LAC = Tuple[o.DK, bool]
-
-
-def _FunGlobalRegStats(fun: ir.Fun, reg_kind_map: Dict[o.DK, o.DK]) -> Dict[KIND_AND_LAC, List[ir.Reg]]:
-    out: Dict[KIND_AND_LAC, List[ir.Reg]] = collections.defaultdict(list)
-    for reg in fun.regs:
-        if not reg.HasCpuReg() and ir.REG_FLAG.GLOBAL in reg.flags:
-            out[(reg_kind_map[reg.kind], ir.REG_FLAG.LAC in reg.flags)].append(reg)
-    for v in out.values():
-        v.sort()
-    return out
 
 
 def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
@@ -403,8 +394,9 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
                                                            regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
-    global_reg_stats = _FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
-    DumpRegStats(fun, local_reg_stats, fout)
+    global_reg_stats = reg_stats.FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
+    if fout:
+        DumpRegStats(fun, local_reg_stats, fout)
 
     pre_allocated_mask_gpr = 0
     for reg in fun.regs:
@@ -421,20 +413,25 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         print(f"@@ GPR NEEDED local  lac={needed_gpr.local_lac} !lac={needed_gpr.local_not_lac}", file=debug)
         print(f"@@ GPR prealloc={pre_allocated_mask_gpr:x}", file=debug)
     gpr_global_lac, gpr_global_not_lac = _GetRegPoolsForGlobals(
-        needed_gpr, regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
-                    regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK, pre_allocated_mask_gpr)
+        needed_gpr,
+        regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
+        regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
+        pre_allocated_mask_gpr)
     if debug:
         print(f"@@ GPR POOL global lac={gpr_global_lac:x} !lac={gpr_global_not_lac:x}", file=debug)
 
-    # assign global lac
-    regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
+    if True:
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)], gpr_global_lac, 0)
 
-    # assigned global not-lac
-    regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.GPR_FAMILY, False)],
-        gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
-        gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
+        # assigned global not-lac
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(regs.GPR_FAMILY, False)],
+            gpr_global_not_lac & ~regs.GPR_LAC_REGS_MASK,
+            gpr_global_not_lac & regs.GPR_LAC_REGS_MASK)
+    else:
+        print(f"@@@ {fun.name}  {global_reg_stats[(regs.GPR_FAMILY, True)]}")
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, True)], 0, 0)
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.GPR_FAMILY, False)], 0, 0)
 
     # Handle Float regs
     pre_allocated_mask_flt = 0
@@ -446,22 +443,31 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                             len(global_reg_stats[(regs.FLT_FAMILY, False)]),
                             local_reg_stats.get((regs.FLT_FAMILY, True), 0),
                             local_reg_stats.get((regs.FLT_FAMILY, False), 0))
-    if debug:
+    if debug and False:
         print(f"@@ FLT NEEDED {needed_flt.global_lac} {needed_flt.global_not_lac} "
               f"{needed_flt.local_lac} {needed_flt.local_not_lac}", file=debug)
 
     flt_global_lac, flt_global_not_lac = _GetRegPoolsForGlobals(
-        needed_flt, regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
-                    regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK, pre_allocated_mask_flt)
-    if debug:
+        needed_flt,
+        regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,
+        regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
+        pre_allocated_mask_flt)
+    if debug and False:
         print(f"@@ FLT POOL {flt_global_lac:x} {flt_global_not_lac:x}", file=debug)
 
-    regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
-    regs.AssignCpuRegOrMarkForSpilling(
-        global_reg_stats[(regs.FLT_FAMILY, False)],
-        flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
-        flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
+    if True:
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(regs.FLT_FAMILY, True)], flt_global_lac, 0)
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(regs.FLT_FAMILY, False)],
+            flt_global_not_lac & ~regs.FLT_LAC_REGS_MASK,
+            flt_global_not_lac & regs.FLT_LAC_REGS_MASK)
+    else:
+        # print(f"@@@ {fun.name}")
+        # print(f"@@@ LAC {global_reg_stats[(regs.FLT_FAMILY, True)]}")
+        # print(f"@@@ NOTLAC {global_reg_stats[(regs.FLT_FAMILY, False)]}")
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, True)], 0, 0)
+        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(regs.FLT_FAMILY, False)], 0, 0)
 
     # Recompute Everything (TODO: make this more selective to reduce work)
     reg_stats.FunComputeRegStatsExceptLAC(fun)
@@ -491,8 +497,19 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # TODO: add a checker so we at least detect this
     # Alternatives: reserve reg (maybe only for functions that need it)
     # TODO: make sure that nop1 regs never get spilled
+
     isel_tab.FunAddNop1ForCodeSel(fun)
-    regs.FunLocalRegAlloc(fun)
+    if True:
+        regs.FunLocalRegAlloc(fun)
+    else:
+        for reg in fun.regs:
+            if reg.IsSpilled() or reg.HasCpuReg():
+                continue
+            elif "nop1" in reg.name:
+                reg.cpu_reg = regs.CPU_REGS_MAP["xmm1"] if reg.kind.flavor() == o.DK_FLAVOR_F else regs.CPU_REGS_MAP[
+                    "rsi"]
+            else:
+                reg.cpu_reg = ir.StackSlot(0)
     fun.FinalizeStackSlots()
     # if fun.name == "fibonacci": DumpFun("after local alloc", fun)
     # DumpFun("after local alloc", fun)
