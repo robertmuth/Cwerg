@@ -543,7 +543,7 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     if opc in {o.ST, o.SWITCH}:
         # needs scratch reg for some opcodes
-        scratch = fun.GetScratchReg(o.DK.S64, "nop1", False)
+        scratch = fun.GetScratchReg(o.DK.S64 if opc is o.ST else o.DK.C64, "nop1", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 

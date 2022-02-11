@@ -510,13 +510,13 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
     for (Ins ins : BblInsIter(bbl)) {
       switch (InsOPC(ins)) {
         case OPC::SWITCH:
-          tmp = FunGetScratchReg(fun, DK::C64, "switch", false);
+          tmp = FunGetScratchReg(fun, DK::C64, "nop1", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
           inss->push_back(ins);
           dirty = true;
           break;
         case OPC::ST:
-          tmp = FunGetScratchReg(fun, DK::S64, "st", false);
+          tmp = FunGetScratchReg(fun, DK::S64, "nop1", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
           inss->push_back(ins);
           dirty = true;
