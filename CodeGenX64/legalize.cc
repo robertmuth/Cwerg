@@ -1,11 +1,9 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/canonicalize.h"
-#include "Base/cfg.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
 #include "Base/optimize.h"
-#include "Base/reg_alloc.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
 #include "CodeGenX64/isel_gen.h"
