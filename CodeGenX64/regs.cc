@@ -65,12 +65,11 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
   return {gpr_mask, flt_mask};
 }
 
-void GetCpuRegsForSignature(
-    unsigned count,
-    const DK* kinds,
-    const std::array<CpuReg, 9>& gpr_regs,
-    const std::array<CpuReg, 8>& flt_regs,
-    std::vector<CpuReg>* out) {
+void GetCpuRegsForSignature(unsigned count,
+                            const DK* kinds,
+                            const std::array<CpuReg, 9>& gpr_regs,
+                            const std::array<CpuReg, 8>& flt_regs,
+                            std::vector<CpuReg>* out) {
   out->clear();
   unsigned next_gpr = 0;
   unsigned next_flt = 0;
@@ -108,14 +107,16 @@ struct PushPopInterfaceX64 : base::PushPopInterface {
   void GetCpuRegsForInSignature(unsigned count,
                                 const base::DK* kinds,
                                 std::vector<base::CpuReg>* out) const override {
-    return GetCpuRegsForSignature(count, kinds, GPR_IN_REGS, FLT_IN_OUT_REGS, out);
+    return GetCpuRegsForSignature(count, kinds, GPR_IN_REGS, FLT_IN_OUT_REGS,
+                                  out);
   }
 
   void GetCpuRegsForOutSignature(
       unsigned count,
       const base::DK* kinds,
       std::vector<base::CpuReg>* out) const override {
-    return GetCpuRegsForSignature(count, kinds, GPR_OUT_REGS, FLT_IN_OUT_REGS, out);
+    return GetCpuRegsForSignature(count, kinds, GPR_OUT_REGS, FLT_IN_OUT_REGS,
+                                  out);
   }
 } PushPopInterfaceX64Impl;
 
@@ -167,20 +168,18 @@ EmitContext FunComputeEmitContext(Fun fun) {
   return EmitContext{masks.gpr_mask, masks.flt_mask, stk_size, FunIsLeaf(fun)};
 }
 
-std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
+void AssignAllocatedRegsAndReturnSpilledRegs(
     const std::vector<LiveRange>& ranges) {
-  std::vector<Reg> out;
   for (const LiveRange& lr : ranges) {
     if (lr.HasFlag(LR_FLAG::PRE_ALLOC) || lr.is_use_lr()) continue;
     if (lr.cpu_reg == CPU_REG_SPILL) {
-      out.push_back(lr.reg);
+      RegCpuReg(lr.reg) = StackSlotNew(0);
     } else {
       ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
       ASSERT(lr.cpu_reg.value != ~0U, "");
       RegCpuReg(lr.reg) = lr.cpu_reg;
     }
   }
-  return out;
 }
 
 class CpuRegPool : public RegPool {
@@ -303,8 +302,8 @@ class CpuRegPool : public RegPool {
     }
   }
 
-  const Fun fun_;   // for debugging
-  const Bbl bbl_;   // for debugging
+  const Fun fun_;  // for debugging
+  const Bbl bbl_;  // for debugging
   const bool allow_spilling_;
   // bit masks:
   uint32_t gpr_available_lac_ = 0;
@@ -356,20 +355,18 @@ void RunLinearScan(Bbl bbl,
 #endif
 }
 
-void BblRegAllocOrSpill(Bbl bbl,
-                        Fun fun,
-                        const std::vector<Reg>& live_out) {
+void BblRegAllocOrSpill(Bbl bbl, Fun fun, const std::vector<Reg>& live_out) {
   std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out);
   for (LiveRange& lr : ranges) {
     CpuReg cpu_reg(RegCpuReg(lr.reg));
-    if (cpu_reg.kind() == RefKind::CPU_REG) {  // covers both CPU_REG_SPILL/-INVALID
+    if (cpu_reg.kind() ==
+        RefKind::CPU_REG) {  // covers both CPU_REG_SPILL/-INVALID
       lr.SetFlag(LR_FLAG::PRE_ALLOC);
       lr.cpu_reg = cpu_reg;
     }
   }
 
-  RunLinearScan(bbl, fun, true, &ranges,
-                GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+  RunLinearScan(bbl, fun, true, &ranges, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
                 GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
                 FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                 FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
@@ -442,8 +439,6 @@ void InitCodeGenX64() {
   GPR_OUT_REGS[7] = GPR_REGS[10];
   GPR_OUT_REGS[8] = GPR_REGS[11];
 
-
-
   // FLT
   for (unsigned i = 0; i < FLT_REGS.size(); ++i) {
     char buffer[8] = "xmm";
@@ -480,4 +475,3 @@ void InitCodeGenX64() {
 }
 
 }  // namespace cwerg::code_gen_x64
-

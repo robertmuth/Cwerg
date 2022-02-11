@@ -19,14 +19,17 @@ void HandleUseLiveRange(LiveRange* lr_use,
     if (lr.last_use_pos != lr_use->def_pos) continue;
     if (lr.HasFlag(LR_FLAG::IGNORE)) continue;
     if (lr.HasFlag(LR_FLAG::PRE_ALLOC)) {
-      if (debug) debug(lr, "end pre-alloc");
-      pool->give_back_available_reg(lr.cpu_reg);
-    } else {
-      if (debug) debug(lr, "end");
-      if (lr.cpu_reg != CPU_REG_SPILL) {
-        pool->give_back_available_reg(lr.cpu_reg);
-      }
+      CpuReg cpu_reg = lr.cpu_reg;
+      ASSERT(cpu_reg != CPU_REG_INVALID, "");
+      ASSERT(cpu_reg == RegCpuReg(lr.reg), "");
+      ASSERT(cpu_reg != CPU_REG_SPILL, "");
     }
+
+    if (lr.cpu_reg != CPU_REG_SPILL) {
+      pool->give_back_available_reg(lr.cpu_reg);
+    }
+
+    if (debug) debug(lr, "end");
   }
 }
 
