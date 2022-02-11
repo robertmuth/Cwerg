@@ -495,17 +495,20 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
         fun, CPU_REG_KIND::FLT, needed, FLT_REGS_MASK & FLT_LAC_REGS_MASK,
         FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, FLT_LAC_REGS_MASK, &regs, debug);
   }
+  FunComputeRegStatsExceptLAC(fun);
+  FunDropUnreferencedRegs(fun);
+  FunNumberReg(fun);
+  FunComputeLivenessInfo(fun);
+  FunComputeRegStatsLAC(fun);
 }
 
 void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
                                         Unit unit,
                                         std::ostream* fout) {
   std::vector<Ins> inss;
-#if 0
   FunAddNop1ForCodeSel(fun, &inss);
   FunLocalRegAlloc(fun, &inss);
   FunFinalizeStackSlots(fun);
-#endif
   FunMoveEliminationCpu(fun, &inss);
 }
 

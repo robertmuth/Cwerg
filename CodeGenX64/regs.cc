@@ -163,6 +163,234 @@ EmitContext FunComputeEmitContext(Fun fun) {
   return EmitContext{masks.gpr_mask, masks.flt_mask, stk_size, FunIsLeaf(fun)};
 }
 
+std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
+    const std::vector<LiveRange>& ranges) {
+  std::vector<Reg> out;
+  for (const LiveRange& lr : ranges) {
+    if (lr.HasFlag(LR_FLAG::PRE_ALLOC) || lr.is_use_lr()) continue;
+    if (lr.cpu_reg == CPU_REG_SPILL) {
+      out.push_back(lr.reg);
+    } else {
+      ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
+      ASSERT(lr.cpu_reg.value != ~0U, "");
+      RegCpuReg(lr.reg) = lr.cpu_reg;
+    }
+  }
+  return out;
+}
+
+class CpuRegPool : public RegPool {
+ public:
+  explicit CpuRegPool(Fun fun,
+                      Bbl bbl,
+                      bool allow_spilling,
+                      uint32_t gpr_available_lac,
+                      uint32_t gpr_available_not_lac,
+                      uint32_t flt_available_lac,
+                      uint32_t flt_available_not_lac)
+      : fun_(fun),
+        bbl_(bbl),
+        allow_spilling_(allow_spilling),
+        gpr_available_lac_(gpr_available_lac),
+        gpr_available_not_lac_(gpr_available_not_lac),
+        flt_available_lac_(flt_available_lac),
+        flt_available_not_lac_(flt_available_not_lac) {}
+
+  uint8_t get_cpu_reg_family(DK dk) override {
+    return DKFlavor(dk) == DK_FLAVOR_F ? +CPU_REG_KIND::FLT
+                                       : +CPU_REG_KIND::GPR;
+  }
+
+  CpuReg get_available_reg(const LiveRange& lr) override {
+    const bool lac = lr.HasFlag(LR_FLAG::LAC);
+    const DK kind = RegKind(lr.reg);
+    const bool is_gpr = DKFlavor(kind) != DK_FLAVOR_F;
+    const uint32_t available = get_available(lac, is_gpr);
+    if (!is_gpr) {
+      for (unsigned n = 0; n < 16; ++n) {
+        const uint32_t mask = 1U << n;
+        if ((mask & available) == mask) {
+          if (!flt_reserved_[n].has_conflict(lr)) {
+            set_available(lac, is_gpr, available & ~mask);
+            return FLT_REGS[n];
+          }
+        }
+      }
+    } else {
+      for (unsigned n = 0; n <= 16; ++n) {
+        const uint32_t mask = 1U << n;
+        if ((mask & available) == mask) {
+          if (!gpr_reserved_[n].has_conflict(lr)) {
+            set_available(lac, is_gpr, available & ~mask);
+            return GPR_REGS[n];
+          }
+        }
+      }
+    }
+    ASSERT(allow_spilling_, "could not find reg for LiveRange " << lr);
+    return CPU_REG_SPILL;
+  }
+
+  void give_back_available_reg(CpuReg cpu_reg) override {
+    const uint32_t mask = 1U << CpuRegNo(cpu_reg);
+    bool is_gpr;
+    bool is_lac;
+    if (CpuRegKind(cpu_reg) == +CPU_REG_KIND::FLT) {
+      is_gpr = false;
+      is_lac = (mask & FLT_LAC_REGS_MASK) != 0;
+    } else {
+      is_gpr = true;
+      is_lac = (mask & GPR_LAC_REGS_MASK) != 0;
+    }
+
+    uint32_t available = get_available(is_lac, is_gpr);
+    set_available(is_lac, is_gpr, available | mask);
+  }
+
+  void add_reserved_range(const LiveRange& lr) {
+    const Reg reg = lr.reg;
+    const CpuReg cpu_reg(RegCpuReg(reg));
+    ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
+    if (RegKind(reg) == DK::F32 || RegKind(reg) == DK::F64) {
+      flt_reserved_[CpuRegNo(cpu_reg)].add(&lr);
+    } else {
+      gpr_reserved_[CpuRegNo(cpu_reg)].add(&lr);
+    }
+  }
+
+  void Render(std::ostream* out) {
+    *out << "POOL gpr:" << std::hex << gpr_available_lac_ << "/"
+         << gpr_available_not_lac_ << " flt:" << flt_available_lac_ << "/"
+         << flt_available_not_lac_ << std::dec << "\n";
+
+    for (unsigned i = 0; i < gpr_reserved_.size(); ++i) {
+      if (gpr_reserved_[i].size() > 0)
+        *out << "gpr" << i << " " << gpr_reserved_[i].size() << "\n";
+    }
+    for (unsigned i = 0; i < flt_reserved_.size(); ++i) {
+      if (flt_reserved_[i].size() > 0)
+        *out << "flt" << i << " " << gpr_reserved_[i].size() << "\n";
+    }
+  }
+
+ private:
+  uint32_t get_available(bool lac, bool is_gpr) const {
+    if (is_gpr) {
+      return lac ? gpr_available_lac_ : gpr_available_not_lac_;
+    } else {
+      return lac ? flt_available_lac_ : flt_available_not_lac_;
+    }
+  }
+
+  void set_available(bool lac, bool is_gpr, uint32_t available) {
+    if (is_gpr) {
+      if (lac) {
+        gpr_available_lac_ = available;
+      } else {
+        gpr_available_not_lac_ = available;
+      }
+    } else {
+      if (lac) {
+        flt_available_lac_ = available;
+      } else {
+        flt_available_not_lac_ = available;
+      }
+    }
+  }
+
+  const Fun fun_;
+  const Bbl bbl_;
+  const bool allow_spilling_;
+  // bit masks:
+  uint32_t gpr_available_lac_ = 0;
+  uint32_t gpr_available_not_lac_ = 0;
+  uint32_t flt_available_lac_ = 0;
+  uint32_t flt_available_not_lac_ = 0;
+  std::array<PreAllocation, 31> gpr_reserved_;  // r32 is stack/zero
+  std::array<PreAllocation, 32> flt_reserved_;
+};
+
+void RunLinearScan(Bbl bbl,
+                   Fun fun,
+                   bool allow_spilling,
+                   std::vector<LiveRange>* ranges,
+                   uint32_t mask_gpr_regs_lac,
+                   uint32_t mask_gpr_regs_not_lac,
+                   uint32_t mask_flt_regs_lac,
+                   uint32_t mask_flt_regs_not_lac) {
+  CpuRegPool pool(fun, bbl, allow_spilling, mask_gpr_regs_lac,
+                  mask_gpr_regs_not_lac, mask_flt_regs_lac,
+                  mask_flt_regs_not_lac);
+  std::vector<LiveRange*> ordered;
+  for (unsigned i = 1; i < ranges->size(); ++i)
+    ordered.push_back(&(*ranges)[i]);
+  std::sort(begin(ordered), end(ordered),
+            [](LiveRange* lhs, LiveRange* rhs) { return *lhs < *rhs; });
+
+  for (LiveRange* lr : ordered) {
+    if (lr->HasFlag(LR_FLAG::PRE_ALLOC)) {
+      pool.add_reserved_range(*lr);
+    } else {
+      lr->cpu_reg = CPU_REG_INVALID;
+    }
+  }
+  // pool.Render(&std::cout);
+  // std::cout << "\nCC" << Name(bbl) << "\n";
+  // for (const LiveRange* lr : ordered) {
+  //  std::cout << *lr << "\n";
+  // }
+#if 0
+  unsigned n = 0;
+  auto logger = [&](const LiveRange& lr, std::string_view msg) {
+    std::cout << n++ << " " << lr << " " << msg << "\n";
+  };
+
+  RegisterAssignerLinearScanFancy(ordered, ranges, &pool, logger);
+#else
+  RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
+#endif
+}
+
+void BblRegAllocOrSpill(Bbl bbl,
+                        Fun fun,
+                        const std::vector<Reg>& live_out,
+                        std::vector<Ins>* inss) {
+  std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
+  for (LiveRange& lr : ranges) {
+    CpuReg cpu_reg(RegCpuReg(lr.reg));
+    if (!cpu_reg.isnull()) {  // covers both CPU_REG_SPILL/-INVALID
+      lr.SetFlag(LR_FLAG::PRE_ALLOC);
+      lr.cpu_reg = cpu_reg;
+    }
+  }
+
+  RunLinearScan(bbl, fun, true, &ranges,
+                GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+                GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
+                FLT_REGS_MASK & FLT_LAC_REGS_MASK,
+                FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
+
+  AssignAllocatedRegsAndReturnSpilledRegs(ranges);
+}
+
+void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss) {
+  const unsigned num_regs = FunNumRegs(fun);
+  const Reg* const reg_map = (Reg*)FunRegMap(fun).BackingStorage();
+  std::vector<Reg> live_out;
+
+  for (Reg reg : FunRegIter(fun)) {
+    RegSpillSlot(reg) = Stk(0);
+  }
+  for (Bbl bbl : FunBblIter(fun)) {
+    live_out.clear();
+    const BitVec& live_out_vec = BblLiveOut(bbl);
+    for (int i = 1; i < num_regs; ++i) {
+      if (live_out_vec.BitGet(i)) live_out.push_back(reg_map[i]);
+    }
+    BblRegAllocOrSpill(bbl, fun, live_out, inss);
+  }
+}
+
 std::vector<CpuReg> GetAllRegs() {
   std::vector<CpuReg> out;
   out.reserve(GPR_REGS.size() + FLT_REGS.size());
