@@ -79,6 +79,6 @@ std::ostream& operator<<(std::ostream& os, const LiveRange& lr);
 // but return it with all 0 again.
 // The first entry of the result vector is always a dummy entry
 extern std::vector<LiveRange>
-BblGetLiveRanges(Bbl bbl, Fun fun, const std::vector<Reg>& live_out, bool emit_use_def);
+BblGetLiveRanges(Bbl bbl, Fun fun, const std::vector<Reg>& live_out);
 
 }  // namespace cwerg::base

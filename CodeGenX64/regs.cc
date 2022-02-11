@@ -236,7 +236,7 @@ class CpuRegPool : public RegPool {
   }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
-    if (IsReserved(cpu_reg)) return;;
+    if (IsReserved(cpu_reg)) return;
     const uint32_t mask = 1U << CpuRegNo(cpu_reg);
     bool is_gpr;
     bool is_lac;
@@ -359,7 +359,7 @@ void RunLinearScan(Bbl bbl,
 void BblRegAllocOrSpill(Bbl bbl,
                         Fun fun,
                         const std::vector<Reg>& live_out) {
-  std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
+  std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out);
   for (LiveRange& lr : ranges) {
     CpuReg cpu_reg(RegCpuReg(lr.reg));
     if (cpu_reg.kind() == RefKind::CPU_REG) {  // covers both CPU_REG_SPILL/-INVALID

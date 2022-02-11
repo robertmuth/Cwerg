@@ -211,7 +211,7 @@ void BblRegAllocOrSpill(Bbl bbl,
                         Fun fun,
                         const std::vector<Reg>& live_out,
                         std::vector<Ins>* inss) {
-  std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
+  std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out);
   for (LiveRange& lr : ranges) {
     CpuReg cpu_reg(RegCpuReg(lr.reg));
     if (!cpu_reg.isnull()) {  // covers both CPU_REG_SPILL/-INVALID
@@ -237,7 +237,7 @@ void BblRegAllocOrSpill(Bbl bbl,
     for (Reg reg : spilled_regs) {
       RegSpillSlot(reg) = Stk(0);
     }
-    std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
+    std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out);
     for (LiveRange& lr : ranges) {
       if (!RegCpuReg(lr.reg).isnull()) {  // covers both CPU_REG_SPILL/-INVALID
         lr.SetFlag(LR_FLAG::PRE_ALLOC);

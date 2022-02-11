@@ -113,7 +113,7 @@ DK_LAC_COUNTS FunComputeBblRegUsageStats(Fun fun, const DK_MAP& rk_map) {
       if (live_out_vec.BitGet(i)) live_out.push_back(reg_map[i]);
     }
 
-    std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
+    std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out);
     std::vector<LiveRange*> ordered;
     // Skip the first range which is a dummy
     for (unsigned i = 1; i < ranges.size(); ++i) ordered.push_back(&ranges[i]);

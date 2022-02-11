@@ -266,8 +266,7 @@ bool ListContainsCpuReg(const CpuReg* list, unsigned num_regs, CpuReg cpu_reg) {
 
 std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
                                         Fun fun,
-                                        const std::vector<Reg>& live_out,
-                                        bool emit_use_def) {
+                                        const std::vector<Reg>& live_out) {
   unsigned bbl_size = 0;
   for (Ins ins : BblInsIter(bbl)) {
     std::ignore = ins;
@@ -383,7 +382,7 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
         ++num_ud;
       }
     }
-    if (emit_use_def && num_ud > 0) {
+    if (num_ud > 0) {
       out.emplace_back(
           LiveRange{pos, pos, Reg(0), 0, {ud[0], ud[1], ud[2], ud[3]}});
     }
