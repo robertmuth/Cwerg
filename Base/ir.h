@@ -791,7 +791,7 @@ inline Fun FunNew(Str name, FUN_KIND kind = FUN_KIND::INVALID) {
 extern std::string_view MaybeSkipCountPrefix(std::string_view s);
 
 extern Reg FunGetScratchReg(Fun fun,
-                            DK narrow_kind,
+                            DK kind,
                             std::string_view purpose,
                             bool add_kind_to_name);
 

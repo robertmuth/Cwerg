@@ -432,9 +432,9 @@ void FunFinalizeStackSlots(Fun fun) {
     unsigned wb = DKBitWidth(RegKind(b));
     if (wa != wb) return  wa < wb;
     return StrCmpLt(Name(a), Name(b));
-
   };
   std::sort(spilled_regs.begin(), spilled_regs.end(), cmp);
+
   uint32_t slot = 0;
   for (Reg reg : spilled_regs) {
     unsigned width = DKBitWidth(RegKind(reg)) / 8;
@@ -443,6 +443,7 @@ void FunFinalizeStackSlots(Fun fun) {
     RegCpuReg(reg) = StackSlotNew(slot);
     slot += width;
   }
+
   for (Stk stk : FunStkIter(fun)) {
     auto align = StkAlignment(stk);
     slot += align - 1;

@@ -107,9 +107,10 @@ def FunRenderToAsm(fun: ir.Fun) -> List[str]:
         out.append(f"# live_clobber: [{' '.join(r.name for r in fun.cpu_live_clobber)}]")
     regs: Dict[int, List[str]] = collections.defaultdict(list)
     for r in fun.regs:
-        regs[r.kind.value].append(_RenderReg(r))
+        regs[r.kind.value].append(r)
     for kind, rr in sorted(regs.items()):
-        out.append(f".reg {o.DK(kind).name} [{' '.join(sorted(rr))}]")
+        reg_names = ' '.join(_RenderReg(r) for r in sorted(rr))
+        out.append(f".reg {o.DK(kind).name} [{reg_names}]")
     for _, stk in sorted(fun.stk_syms.items()):
         out.append(f".stk {stk.name} {stk.alignment} {stk.count}")
 
