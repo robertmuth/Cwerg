@@ -32,6 +32,10 @@ struct CpuRegMasks {
   uint32_t flt_mask;
 };
 
+bool IsReserved(CpuReg cpu_reg) {
+  return cpu_reg == GPR_REGS[0] || cpu_reg == FLT_REGS[0];
+}
+
 CpuRegMasks FunCpuRegStats(Fun fun) {
   uint32_t gpr_mask = 0;
   uint32_t flt_mask = 0;
@@ -232,6 +236,7 @@ class CpuRegPool : public RegPool {
   }
 
   void give_back_available_reg(CpuReg cpu_reg) override {
+    if (IsReserved(cpu_reg)) return;;
     const uint32_t mask = 1U << CpuRegNo(cpu_reg);
     bool is_gpr;
     bool is_lac;
@@ -358,7 +363,7 @@ void BblRegAllocOrSpill(Bbl bbl,
   std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
   for (LiveRange& lr : ranges) {
     CpuReg cpu_reg(RegCpuReg(lr.reg));
-    if (!cpu_reg.isnull()) {  // covers both CPU_REG_SPILL/-INVALID
+    if (cpu_reg.kind() == RefKind::CPU_REG) {  // covers both CPU_REG_SPILL/-INVALID
       lr.SetFlag(LR_FLAG::PRE_ALLOC);
       lr.cpu_reg = cpu_reg;
     }
