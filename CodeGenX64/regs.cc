@@ -303,8 +303,8 @@ class CpuRegPool : public RegPool {
     }
   }
 
-  const Fun fun_;
-  const Bbl bbl_;
+  const Fun fun_;   // for debugging
+  const Bbl bbl_;   // for debugging
   const bool allow_spilling_;
   // bit masks:
   uint32_t gpr_available_lac_ = 0;
@@ -350,16 +350,15 @@ void RunLinearScan(Bbl bbl,
     std::cout << n++ << " " << lr << " " << msg << "\n";
   };
 
-  RegisterAssignerLinearScanFancy(ordered, ranges, &pool, logger);
+  RegisterAssignerLinearScan(ordered, ranges, &pool, logger);
 #else
-  RegisterAssignerLinearScanFancy(ordered, ranges, &pool, nullptr);
+  RegisterAssignerLinearScan(ordered, ranges, &pool, nullptr);
 #endif
 }
 
 void BblRegAllocOrSpill(Bbl bbl,
                         Fun fun,
-                        const std::vector<Reg>& live_out,
-                        std::vector<Ins>* inss) {
+                        const std::vector<Reg>& live_out) {
   std::vector<LiveRange> ranges = BblGetLiveRanges(bbl, fun, live_out, true);
   for (LiveRange& lr : ranges) {
     CpuReg cpu_reg(RegCpuReg(lr.reg));
@@ -392,7 +391,7 @@ void FunLocalRegAlloc(base::Fun fun, std::vector<base::Ins>* inss) {
     for (int i = 1; i < num_regs; ++i) {
       if (live_out_vec.BitGet(i)) live_out.push_back(reg_map[i]);
     }
-    BblRegAllocOrSpill(bbl, fun, live_out, inss);
+    BblRegAllocOrSpill(bbl, fun, live_out);
   }
 }
 
