@@ -55,4 +55,6 @@ struct Handle {
   uint32_t value;
 };
 
+extern const char* EnumToString(RefKind x);
+
 }  // namespace cwerg

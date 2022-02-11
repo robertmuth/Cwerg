@@ -142,7 +142,7 @@ int64_t ConstValueACS(Const num) {
 }
 
 int32_t ConstValueInt32(Const num) {
-  ASSERT(num.kind() == RefKind::CONST, "not a const " << unsigned(num.kind()));
+  ASSERT(num.kind() == RefKind::CONST, "not a const " << EnumToString(num.kind()));
   int32_t val;
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
@@ -162,7 +162,7 @@ int32_t ConstValueInt32(Const num) {
 }
 
 int64_t ConstValueInt64(Const num) {
-  ASSERT(num.kind() == RefKind::CONST, "not a const " << unsigned(num.kind()));
+  ASSERT(num.kind() == RefKind::CONST, "not a const " << EnumToString(num.kind()));
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
       return ConstValueU(num);

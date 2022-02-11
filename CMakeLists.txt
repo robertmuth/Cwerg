@@ -26,6 +26,7 @@ add_library(UTIL_LIB OBJECT
         Util/bst.cc
         Util/bst.h
         Util/handle.h
+        Util/handle.cc
         Util/handlevec.cc
         Util/handlevec.h
         Util/immutable.cc
