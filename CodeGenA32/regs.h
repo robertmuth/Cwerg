@@ -40,7 +40,7 @@ extern void InitCodeGenA32();
 
 extern const base::PushPopInterface* const PushPopInterfaceA32;
 
-// Note: regs must match the class of  cpu_reg_mask, e.g. be all
+// Note: regs must match the class of cpu_reg_mask, e.g. be all
 // floating point or all GPR
 extern void AssignCpuRegOrMarkForSpilling(
     const std::vector<base::Reg>& regs,

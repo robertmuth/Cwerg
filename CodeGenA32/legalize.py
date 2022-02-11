@@ -332,7 +332,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # Note: REG_KIND_MAP_ARM maps all non-float to registers to S32
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun, REG_KIND_TO_CPU_KIND)
-    # we  have introduced some cpu regs in previous phases - do not treat them as globals
+    #
     global_reg_stats = reg_stats.FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
     DumpRegStats(fun, local_reg_stats, fout)
 

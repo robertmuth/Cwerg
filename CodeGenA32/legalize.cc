@@ -363,15 +363,13 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
                           &regs, &to_be_spilled, debug);
   }
   {
+    auto cnt = [](const DK_COUNTS & x) -> int {
+      return x[+CPU_REG_KIND::FLT] + 2 * x[+CPU_REG_KIND::DBL];
+    };
+
     const FunRegStats needed{
-        global_reg_stats.lac[+CPU_REG_KIND::FLT] +
-            2 * global_reg_stats.lac[+CPU_REG_KIND::DBL],
-        global_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
-            2 * global_reg_stats.not_lac[+CPU_REG_KIND::DBL],
-        local_reg_stats.lac[+CPU_REG_KIND::FLT] +
-            2 * local_reg_stats.lac[+CPU_REG_KIND::DBL],
-        local_reg_stats.not_lac[+CPU_REG_KIND::FLT] +
-            2 * local_reg_stats.not_lac[+CPU_REG_KIND::DBL]};
+        cnt(global_reg_stats.lac), cnt(global_reg_stats.not_lac),
+        cnt(local_reg_stats.lac), cnt(local_reg_stats.not_lac)};
     GlobalRegAllocOneKind(fun, +CPU_REG_KIND::FLT | +CPU_REG_KIND::DBL, needed,
                           FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                           FLT_REGS_MASK & ~FLT_LAC_REGS_MASK, FLT_LAC_REGS_MASK,
