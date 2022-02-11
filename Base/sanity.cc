@@ -74,7 +74,7 @@ void FunCheck(Fun fun) {
     if (FunBblList::IsSentinel(next)) {
       ASSERT(next == fun, "");
       ASSERT(FunBblList::Tail(fun) == bbl,
-             " FUN BBL list corrupeted " << Name(fun));
+             " FUN BBL list corrupted " << Name(fun));
     } else {
       ASSERT(FunBblList::Prev(next) == bbl,
              "FUN BBL list corrupted " << Name(fun));

@@ -4,8 +4,6 @@
 #include "Base/opcode_gen.h"
 #include "Base/serialize.h"
 
-#include <set>
-
 namespace cwerg::base {
 namespace {
 

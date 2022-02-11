@@ -1,7 +1,6 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/canonicalize.h"
-#include "Base/cfg.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
 #include "Base/optimize.h"

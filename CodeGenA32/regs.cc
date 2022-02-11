@@ -99,8 +99,7 @@ class RegPoolArm : public RegPool {
   void give_back_available_reg(CpuReg cpu_reg) override {
     bool is_gpr = CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR;
     uint32_t mask = A32RegToAllocMask(cpu_reg);
-    bool lac = 0 != (mask & (is_gpr ? GPR_LAC_REGS_MASK
-                                    : FLT_LAC_REGS_MASK));
+    bool lac = 0 != (mask & (is_gpr ? GPR_LAC_REGS_MASK : FLT_LAC_REGS_MASK));
 
     uint32_t available = get_available(lac, is_gpr);
     set_available(lac, is_gpr, available | mask);
@@ -145,8 +144,8 @@ class RegPoolArm : public RegPool {
     }
   }
 
-  const Fun fun_;
-  const Bbl bbl_;
+  const Fun fun_;  // for debugging
+  const Bbl bbl_;  // for debugging
   const bool allow_spilling_;
   // bit masks:
   uint32_t gpr_available_lac_ = 0;
@@ -221,8 +220,7 @@ void BblRegAllocOrSpill(Bbl bbl,
     }
   }
 
-  RunLinearScan(bbl, fun, true, &ranges,
-                GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+  RunLinearScan(bbl, fun, true, &ranges, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
                 GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
                 FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                 FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
@@ -246,8 +244,7 @@ void BblRegAllocOrSpill(Bbl bbl,
         lr.cpu_reg = CpuReg(RegCpuReg(lr.reg));
       }
     }
-    RunLinearScan(bbl, fun, true, &ranges,
-                  GPR_REGS_MASK & GPR_LAC_REGS_MASK,
+    RunLinearScan(bbl, fun, true, &ranges, GPR_REGS_MASK & GPR_LAC_REGS_MASK,
                   GPR_REGS_MASK & ~GPR_LAC_REGS_MASK,
                   FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                   FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
@@ -307,7 +304,9 @@ ArmFltRegRange ArmGetFltRegRanges(uint32_t flt_mask) {
   return {start, count};
 }
 
-void GetCpuRegsForSignature(unsigned count, const DK* kinds, std::vector<CpuReg>* out) {
+void GetCpuRegsForSignature(unsigned count,
+                            const DK* kinds,
+                            std::vector<CpuReg>* out) {
   out->clear();
   unsigned next_gpr = 0;
   unsigned next_flt = 0;
@@ -318,8 +317,8 @@ void GetCpuRegsForSignature(unsigned count, const DK* kinds, std::vector<CpuReg>
       case DK::S32:
       case DK::U32:
         ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr regs "
-            << next_gpr << " vs "
-            << GPR_PARAM_REGS.size());
+                                                     << next_gpr << " vs "
+                                                     << GPR_PARAM_REGS.size());
         out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
@@ -393,8 +392,6 @@ std::vector<CpuReg> GetAllRegs() {
   for (CpuReg cpu_reg : DBL_REGS) out.push_back(cpu_reg);
   return out;
 }
-
-
 
 void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
                                    uint32_t cpu_reg_mask_first_choice,
@@ -526,7 +523,8 @@ void InitCodeGenA32() {
     GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(GPR_NAMES[i]));
     const uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
     if (i < GPR_PARAM_REGS.size()) {
-      ASSERT((GPR_LAC_REGS_MASK & mask) == 0, "" << i << " " << GPR_LAC_REGS_MASK);
+      ASSERT((GPR_LAC_REGS_MASK & mask) == 0,
+             "" << i << " " << GPR_LAC_REGS_MASK);
       GPR_PARAM_REGS[i] = GPR_REGS[i];
     }
   }

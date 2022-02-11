@@ -148,8 +148,8 @@ class CpuRegPool : public RegPool {
     }
   }
 
-  const Fun fun_;
-  const Bbl bbl_;
+  const Fun fun_;  // for debugging
+  const Bbl bbl_;  // for debugging
   const bool allow_spilling_;
   // bit masks:
   uint32_t gpr_available_lac_ = 0;

@@ -2,7 +2,6 @@
 
 #include "Base/reg_alloc.h"
 #include "Base/liveness.h"
-#include "Base/lowering.h"
 #include "Util/parse.h"
 
 #include <algorithm>
