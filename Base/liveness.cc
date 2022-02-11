@@ -302,6 +302,7 @@ std::vector<LiveRange> BblGetLiveRanges(Bbl bbl,
   };
 
   for (Reg reg : live_out) {
+    if (RegCpuReg(reg).kind() == RefKind::STACK_SLOT) continue;
     initialize_lr(AFTER_BBL, reg);
   }
 

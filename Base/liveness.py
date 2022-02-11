@@ -309,6 +309,8 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
 
     # handle live ranges that extend passed the bbl
     for reg in live_out:
+        # There is not point in tracking spilled regs as they do not contribute to
+        # usage gaps where we could temporarily  use a CPU_REG for another REG.
         if reg.IsSpilled(): continue
         initialize_lr(AFTER_BBL, reg)
 
