@@ -3,6 +3,8 @@
 
 #include "CodeGenX64/isel_gen.h"
 #include "Base/opcode_gen.h"
+#include "Base/serialize.h"
+
 #include "CpuX64//opcode_gen.h"
 
 #include <cstdint>
@@ -69,27 +71,38 @@ bool MatchesOpCurb(C curb, Handle op) {
       ASSERT(false, "NYI " << EnumToString(curb));
       return true;
     case C::REG_RAX:
-      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 0;
+      return op.kind() == RefKind::REG &&
+             CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 0;
     case C::REG_RCX:
-      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 1;
+      return op.kind() == RefKind::REG &&
+             CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 1;
     case C::REG_RDX:
-      return op.kind() == RefKind::REG && CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 2;
+      return op.kind() == RefKind::REG &&
+             CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 2;
     case C::SIMM8:
-      return MatchSignedRange((1LL << 7) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchSignedRange((1LL << 7) - 1, Const(op));
     case C::SIMM16:
-      return MatchSignedRange((1LL << 15) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchSignedRange((1LL << 15) - 1, Const(op));
     case C::SIMM32:
-      return MatchSignedRange((1LL << 31) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchSignedRange((1LL << 31) - 1, Const(op));
     case C::SIMM64:
-      return MatchSignedRange(0x7fff'ffff'ffff'ffff, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchSignedRange(0x7fff'ffff'ffff'ffff, Const(op));
     case C::UIMM8:
-      return MatchUnsignedRange((1ULL << 8) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchUnsignedRange((1ULL << 8) - 1, Const(op));
     case C::UIMM16:
-      return MatchUnsignedRange((1ULL << 16) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchUnsignedRange((1ULL << 16) - 1, Const(op));
     case C::UIMM32:
-      return MatchUnsignedRange((1ULL << 32) - 1, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchUnsignedRange((1ULL << 32) - 1, Const(op));
     case C::UIMM64:
-      return MatchUnsignedRange(0xffff'ffff'ffff'ffff, Const(op));
+      return op.kind() == RefKind::CONST &&
+             MatchUnsignedRange(0xffff'ffff'ffff'ffff, Const(op));
   }
   ASSERT(false, "unexpected C " << EnumToString(curb));
   return false;
@@ -126,101 +139,100 @@ bool PatternMatchesOpCurbs(const Pattern& pat, Ins ins) {
 /* @AUTOGEN-START@ */
 
 enum F {
-    NO_INDEX = 4,
-    NO_BASE = 4,
-    RIP = 0,
-    SCALE1 = 0,
-    SCALE2 = 1,
-    SCALE4 = 2,
-    SCALE8 = 3,
-    RAX = 0,
-    RCX = 1,
-    RDX = 2,
-    RBX = 3,
-    RSP = 4,
-    RBP = 5,
-    RSI = 6,
-    RDI = 7,
-    R8 = 8,
-    R9 = 9,
-    R10 = 10,
-    R11 = 11,
-    R12 = 12,
-    R13 = 13,
-    R14 = 14,
-    R15 = 15,
-    XMM0 = 0,
-    XMM1 = 1,
-    XMM2 = 2,
-    XMM3 = 3,
-    XMM4 = 4,
-    XMM5 = 5,
-    XMM6 = 6,
-    XMM7 = 7,
-    XMM8 = 8,
-    XMM9 = 9,
-    XMM10 = 10,
-    XMM11 = 11,
-    XMM12 = 12,
-    XMM13 = 13,
-    XMM14 = 14,
-    XMM15 = 15,
+  NO_INDEX = 4,
+  NO_BASE = 4,
+  RIP = 0,
+  SCALE1 = 0,
+  SCALE2 = 1,
+  SCALE4 = 2,
+  SCALE8 = 3,
+  RAX = 0,
+  RCX = 1,
+  RDX = 2,
+  RBX = 3,
+  RSP = 4,
+  RBP = 5,
+  RSI = 6,
+  RDI = 7,
+  R8 = 8,
+  R9 = 9,
+  R10 = 10,
+  R11 = 11,
+  R12 = 12,
+  R13 = 13,
+  R14 = 14,
+  R15 = 15,
+  XMM0 = 0,
+  XMM1 = 1,
+  XMM2 = 2,
+  XMM3 = 3,
+  XMM4 = 4,
+  XMM5 = 5,
+  XMM6 = 6,
+  XMM7 = 7,
+  XMM8 = 8,
+  XMM9 = 9,
+  XMM10 = 10,
+  XMM11 = 11,
+  XMM12 = 12,
+  XMM13 = 13,
+  XMM14 = 14,
+  XMM15 = 15,
 };
 
 const char* const C_ToStringMap[] = {
-    "INVALID", // 0
-    "ZERO", // 1
-    "ANY", // 2
-    "REG", // 3
-    "SP_REG", // 4
-    "SIMM8", // 5
-    "SIMM16", // 6
-    "SIMM32", // 7
-    "SIMM64", // 8
-    "UIMM8", // 9
-    "UIMM16", // 10
-    "UIMM32", // 11
-    "UIMM64", // 12
-    "REG_RAX", // 13
-    "REG_RCX", // 14
-    "REG_RDX", // 15
-    "ZZZ", // 16
+    "INVALID",  // 0
+    "ZERO",     // 1
+    "ANY",      // 2
+    "REG",      // 3
+    "SP_REG",   // 4
+    "SIMM8",    // 5
+    "SIMM16",   // 6
+    "SIMM32",   // 7
+    "SIMM64",   // 8
+    "UIMM8",    // 9
+    "UIMM16",   // 10
+    "UIMM32",   // 11
+    "UIMM64",   // 12
+    "REG_RAX",  // 13
+    "REG_RCX",  // 14
+    "REG_RDX",  // 15
+    "ZZZ",      // 16
 };
 const char* EnumToString(C x) { return C_ToStringMap[unsigned(x)]; }
 
-
 const char* const P_ToStringMap[] = {
-    "invalid", // 0
-    "reg01", // 1
-    "reg0", // 2
-    "reg1", // 3
-    "reg2", // 4
-    "reg3", // 5
-    "reg4", // 6
-    "tmp_gpr", // 7
-    "tmp_flt", // 8
-    "scratch_gpr", // 9
-    "num0", // 10
-    "num1", // 11
-    "num2", // 12
-    "num3", // 13
-    "num4", // 14
-    "spill01", // 15
-    "spill0", // 16
-    "spill1", // 17
-    "spill2", // 18
-    "stk1_offset2", // 19
-    "stk0_offset1", // 20
-    "stk1", // 21
-    "bbl0", // 22
-    "bbl1", // 23
-    "bbl2", // 24
-    "fun0", // 25
-    "mem0_num1_prel", // 26
-    "mem1_num2_prel", // 27
-    "fun1_prel", // 28
-    "jtb1_prel", // 29
-    "ZZZ", // 30
+    "invalid",         // 0
+    "reg01",           // 1
+    "reg0",            // 2
+    "reg1",            // 3
+    "reg2",            // 4
+    "reg3",            // 5
+    "reg4",            // 6
+    "tmp_gpr",         // 7
+    "tmp_flt",         // 8
+    "scratch_gpr",     // 9
+    "num0",            // 10
+    "num1",            // 11
+    "num2",            // 12
+    "num3",            // 13
+    "num4",            // 14
+    "spill01",         // 15
+    "spill0",          // 16
+    "spill1",          // 17
+    "spill2",          // 18
+    "stk1_offset2",    // 19
+    "stk0_offset1",    // 20
+    "stk1",            // 21
+    "bbl0",            // 22
+    "bbl1",            // 23
+    "bbl2",            // 24
+    "fun0",            // 25
+    "mem0_num1_prel",  // 26
+    "mem1_num2_prel",  // 27
+    "fun1_prel",       // 28
+    "jtb1_prel",       // 29
+    "ZZZ",             // 30
 };
 const char* EnumToString(P x) { return P_ToStringMap[unsigned(x)]; }
 
@@ -237,22 +249,23 @@ const Pattern* FindMatchingPattern(Ins ins) {
   for (unsigned p = kPatternJumper[unsigned(opc)]; p < end; ++p) {
     const Pattern& pat = kPatterns[p];
     if (PatternMatchesTypeCurbs(pat, type_matcher) &&
-        PatternMatchesOpCurbs(pat, ins))
+        PatternMatchesOpCurbs(pat, ins)) {
       return &pat;
+    }
   }
 
   return nullptr;
 }
 
 int64_t ExtractReg(Reg reg) {
-  ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
+  ASSERT(reg.kind() == RefKind::REG, "not a reg " << EnumToString(reg.kind()));
   CpuReg cpu_reg(RegCpuReg(reg));
   ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
   return CpuRegNo(cpu_reg);
 }
 
 int64_t ExtractSpilledReg(Reg reg) {
-  ASSERT(reg.kind() == RefKind::REG, "not a reg " << unsigned(reg.kind()));
+  ASSERT(reg.kind() == RefKind::REG, "not a reg " << EnumToString(reg.kind()));
   StackSlot slot(RegCpuReg(reg));
   ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
   return StackSlotOffset(slot);
@@ -269,7 +282,6 @@ int64_t GetStackOffset(Stk stk, Const offset) {
   ASSERT(stk.kind() == RefKind::STK && offset.kind() == RefKind::CONST, "");
   return StkSlot(stk) + ConstValueInt64(offset);
 }
-
 
 int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
   switch (arg) {
@@ -484,16 +496,18 @@ void MaybeHandleReloc(x64::Ins* cpuins, unsigned pos, Ins ins, P op) {
 x64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   x64::Ins out;
   out.opcode = &x64::OpcodeTableEncodings[unsigned(tmpl.opcode)];
-  // std::cout << "@@@@@@ OPCODE " << out.opcode->name << "\n";
+  // InsRenderToAsm(ins, &std::cout);
+  // std::cout << "\n" <<  OpcodeName(out.opcode) << "\n";
   for (unsigned o = 0; o < out.opcode->num_fields; ++o) {
     if ((tmpl.template_mask & (1U << o)) == 0) {
       // fixed operand - we uses these verbatim
       out.operands[o] = tmpl.operands[o];
     } else {
-      // std::cout << "@@Handle " << o << " " <<
-      // a64::EnumToString(out.opcode->fields[o]) <<  "\n";
       // parameters require extra processing
       const P param = P(tmpl.operands[o]);
+      // std::cout << "@@Handle " << o << " field "
+      //          << x64::EnumToString(out.opcode->fields[o])
+      //          <<  " param " << EnumToString(param) << "\n";
       out.operands[o] = ExtractTmplArgOP(ins, param, ctx);
       // Note: this may overwrite    out.operands[o]
       MaybeHandleReloc(&out, o, ins, param);
@@ -530,13 +544,11 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void EmitFunProlog(const EmitContext& ctx,
-                          std::vector<x64::Ins>* output) {
+void EmitFunProlog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
   // TODO
 }
 
-void EmitFunEpilog(const EmitContext& ctx,
-                          std::vector<x64::Ins>* output) {
+void EmitFunEpilog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
   // TODO
 }
 
