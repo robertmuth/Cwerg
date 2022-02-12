@@ -1,6 +1,8 @@
 
 #include "CpuX64/symbolic.h"
+
 #include <cstring>
+
 #include "Util/assert.h"
 #include "Util/parse.h"
 
@@ -27,11 +29,22 @@ const char XRegnames[16][8] = {
     "xmm0", "xmm1", "xmm2",  "xmm3",  "xmm4",  "xmm5",  "xmm6",  "xmm7",  //
     "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"};
 
-const char* SymbolizeOperand(char* buf,
-                             int64_t val,
-                             OK ok,
-                             bool show_implicits,
+const char* SymbolizeOperand(char* buf, int64_t val, OK ok, bool show_implicits,
                              bool objdump_compat) {
+  auto signed_hex = [](int64_t val, char* buf) -> char* {
+    if (val >= 0) {
+      buf[0] = '0';
+      buf[1] = 'x';
+      ToHexString(val, buf + 2);
+    } else {
+      buf[0] = '-';
+      buf[1] = '0';
+      buf[2] = 'x';
+      ToHexString(-val, buf + 3);
+    }
+    return buf;
+  };
+
   switch (ok) {
     case OK::IMPLICIT_AL:
       return show_implicits ? "al" : nullptr;
@@ -102,20 +115,11 @@ const char* SymbolizeOperand(char* buf,
     case OK::OFFABS8:
     case OK::OFFABS32:
       if (objdump_compat) {
-        if (val >= 0) {
-          buf[0] = '0';
-          buf[1] = 'x';
-          ToHexString(val, buf + 2);
-        } else {
-          buf[0] = '-';
-          buf[1] = '0';
-          buf[2] = 'x';
-          ToHexString(-val, buf + 3);
-        }
+        return signed_hex(val, buf);
       } else {
         ToDecSignedString(val, buf);
+        return buf;
       }
-      return buf;
     case OK::IMM8:
     case OK::IMM16:
     case OK::IMM32:
@@ -124,10 +128,7 @@ const char* SymbolizeOperand(char* buf,
     case OK::IMM8_64:
     case OK::IMM32_64:
     case OK::IMM64:
-      buf[0] = '0';
-      buf[1] = 'x';
-      ToHexString(val, buf + 2);
-      return buf;
+      return signed_hex(val, buf);
   }
   ASSERT(false, "");
   return "";
@@ -155,8 +156,8 @@ void SymbolizeReloc(char* cp, const Ins& ins, int64_t addend) {
       cp = strappend(cp, ins.is_local_sym ? "loc_pcrel32:" : "pcrel32:");
       break;
     case elf::RELOC_TYPE_X86_64::X_64:
-        cp = strappend(cp, ins.is_local_sym ? "loc_abs64:": "abs64:");
-        break;
+      cp = strappend(cp, ins.is_local_sym ? "loc_abs64:" : "abs64:");
+      break;
     default:
       ASSERT(false, "Unknown relocation " << unsigned(ins.reloc_kind));
   }
@@ -167,8 +168,7 @@ void SymbolizeReloc(char* cp, const Ins& ins, int64_t addend) {
   }
 }
 
-std::string_view InsSymbolize(const x64::Ins& ins,
-                              bool show_implicits,
+std::string_view InsSymbolize(const x64::Ins& ins, bool show_implicits,
                               bool objdump_compat,
                               std::vector<std::string>* ops) {
   bool skip_next = false;

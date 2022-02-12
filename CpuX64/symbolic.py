@@ -70,7 +70,11 @@ def SymbolizeOperand(ok: OK, val: int, show_implicits: bool, objdump_compat) -> 
             return str(1 << val)
         return str(val)
     elif ok in x64.OK_IMM_TO_SIZE:
-        return f"0x{val:x}"
+        if val >= 0:
+            return f"0x{val:x}"
+        else:
+            return f"-0x{-val:x}"
+        #return f"0x{val:x}"
     elif ok in x64.OK_OFF_TO_SIZE:
         if objdump_compat:
             if val >= 0:
