@@ -800,7 +800,7 @@ class Opcode:
 
         def GetSInt(pos, src_width, dst_width):
             x = int.from_bytes(data[pos: pos + src_width // 8], "little", signed=True)
-            if dst_width:
+            if dst_width is not None and dst_width != 64:
                 return x & (1 << dst_width) - 1
             return x
 

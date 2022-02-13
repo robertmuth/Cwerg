@@ -45,6 +45,16 @@ NOP = {
 }
 
 
+def As64BitInt(x: str) -> bool:
+    mask = (1 << 64) - 1
+    if x.startswith("-0x"):
+        return mask & - int(x[3:], 16)
+    elif x.startswith("0x"):
+        return mask & int(x[2:], 16)
+    else:
+        assert False, f"unexpected {x}"
+
+
 # data must be generated with: objdump -d  -M intel  --insn-width=12
 # and looks like:
 # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
@@ -93,10 +103,9 @@ def ProcessObjdumpFile(fin):
                                                                           "cwd", "cdq", "cqo"}, True)
 
         assert name == actual_name, f"{name} vs {actual_name}"
-        if name == "lea" and expected_ops[-1] != actual_ops[-1]:
-            assert expected_ops[-1].startswith("0xffffffff")
-            v = int(expected_ops[-1][2:], 16) - (1 << 64)
-            expected_ops[-1] = f"-0x{-v:x}"
+        if expected_ops and expected_ops[-1] != actual_ops[-1]:
+            if As64BitInt(expected_ops[-1]) == As64BitInt(actual_ops[-1]):
+                 expected_ops[-1] = actual_ops[-1]
         if expected_ops != actual_ops:
             if True:
                 print(line)

@@ -67,3 +67,14 @@ c7 85 dc 00 00 00 00 00 70 c2 mov_32_mB32_imm32 MEM32 rbp 0xdc 0xc2700000
     SIB_SCALE                           2          (0x2)
     OFFABS32                            0          (0x0)
 
+49 6b cd fc imul_64_r_mr_imm8 rcx r13 -0x4
+    imul_64_r_mr_imm8
+    MODRM_REG64                         rcx        (0x1)
+    MODRM_RM_REG64                      r13        (0xd)
+    IMM8_64                             -0x4       (-0x4)
+
+48 b8 00 00 00 00 00 00 01 f4 mov_64_r_imm64 rax -0xbff000000000000
+    mov_64_r_imm64
+    BYTE_WITH_REG64                     rax        (0x0)
+    IMM64                               -0xbff000000000000 (-0xbff000000000000)
+
