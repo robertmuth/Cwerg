@@ -2,12 +2,12 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CodeGenX64/isel_gen.h"
-#include "Base/opcode_gen.h"
-#include "Base/serialize.h"
-
-#include "CpuX64//opcode_gen.h"
 
 #include <cstdint>
+
+#include "Base/opcode_gen.h"
+#include "Base/serialize.h"
+#include "CpuX64//opcode_gen.h"
 
 namespace cwerg::code_gen_x64 {
 namespace {
@@ -20,20 +20,7 @@ constexpr auto operator+(T e) noexcept
     -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
 }
-
-#if 0
-bool ImmStackFits(int64_t x,
-                  bool assume_stk_op_matches,
-                  unsigned bits,
-                  unsigned scale_log) {
-  if (assume_stk_op_matches) return true;
-  if (x < 0) return false;
-  if (x >= 1U << (bits + scale_log)) return false;
-  return (x & ((1U << scale_log) - 1)) == 0;
-}
-#endif
-
-// Note: some of these checks may not be necessary if we can rely on
+// Note: some of these checks may not be necesary if we can rely on
 // DK to enforce ranges/
 bool MatchSignedRange(int64_t hi, Const num) {
   if (DKFlavor(ConstKind(num)) == DK_FLAVOR_U) {
@@ -348,106 +335,6 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
   return 0;
 }
 
-#if 0
-
-
-
-}  // namespace
-
-
-
-void EmitFunProlog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
-  RegBitVec gpr_regs(ctx.gpr_reg_mask);
-  if (!gpr_regs.empty()) {
-    while (!gpr_regs.empty()) {
-      uint32_t r1 = gpr_regs.next_reg_no();
-      if (gpr_regs.empty()) {
-        output->push_back(
-            MakeIns(a64::OPC::str_x_imm_pre, +FIXARG::WZR, -16, r1));
-        break;
-      }
-      uint32_t r2 = gpr_regs.next_reg_no();
-      output->push_back(
-          MakeIns(a64::OPC::stp_x_imm_pre, +FIXARG::WZR, -16, r2, r1));
-    }
-  }
-
-  RegBitVec flt_regs(ctx.flt_reg_mask);
-  if (!flt_regs.empty()) {
-    while (!flt_regs.empty()) {
-      uint32_t r1 = flt_regs.next_reg_no();
-      if (flt_regs.empty()) {
-        output->push_back(
-            MakeIns(a64::OPC::fstr_d_imm_pre, +FIXARG::WZR, -16, r1));
-        break;
-      }
-      uint32_t r2 = flt_regs.next_reg_no();
-      output->push_back(
-          MakeIns(a64::OPC::fstp_d_imm_pre, +FIXARG::WZR, -16, r2, r1));
-    }
-  }
-  uint32_t stk_size = ctx.stk_size;
-  ASSERT((stk_size >> 24U) == 0, "stack too large");
-  if ((stk_size & 0xfff000U) != 0) {
-    output->push_back(MakeIns(a64::OPC::sub_x_imm, +FIXARG::WZR, +FIXARG::WZR,
-                              stk_size & 0xfff000U));
-  }
-
-  if ((stk_size & 0xfffU) != 0) {
-    output->push_back(MakeIns(a64::OPC::sub_x_imm, +FIXARG::WZR, +FIXARG::WZR,
-                              stk_size & 0xfffU));
-  }
-}
-
-void EmitFunEpilog(const EmitContext& ctx, std::vector<a64::Ins>* output) {
-  const size_t start = output->size();
-  // we will revert everything at the end
-  output->push_back(MakeIns(a64::OPC::ret, +FIXARG::LR));
-
-  RegBitVec gpr_regs(ctx.gpr_reg_mask);
-  if (!gpr_regs.empty()) {
-    while (!gpr_regs.empty()) {
-      uint32_t r1 = gpr_regs.next_reg_no();
-      if (gpr_regs.empty()) {
-        output->push_back(
-            MakeIns(a64::OPC::ldr_x_imm_post, r1, +FIXARG::WZR, 16));
-        break;
-      }
-      uint32_t r2 = gpr_regs.next_reg_no();
-      output->push_back(
-          MakeIns(a64::OPC::ldp_x_imm_post, r2, r1, +FIXARG::WZR, 16));
-    }
-  }
-
-  RegBitVec flt_regs(ctx.flt_reg_mask);
-  if (!flt_regs.empty()) {
-    while (!flt_regs.empty()) {
-      uint32_t r1 = flt_regs.next_reg_no();
-      if (flt_regs.empty()) {
-        output->push_back(
-            MakeIns(a64::OPC::fldr_d_imm_post, r1, +FIXARG::WZR, 16));
-        break;
-      }
-      uint32_t r2 = flt_regs.next_reg_no();
-      output->push_back(
-          MakeIns(a64::OPC::fldp_d_imm_post, r2, r1, +FIXARG::WZR, 16));
-    }
-  }
-  uint32_t stk_size = ctx.stk_size;
-  ASSERT((stk_size >> 24U) == 0, "stack too large");
-  if ((stk_size & 0xfffU) != 0) {
-    output->push_back(MakeIns(a64::OPC::add_x_imm, +FIXARG::WZR, +FIXARG::WZR,
-                              stk_size & 0xfffU));
-  }
-
-  if ((stk_size & 0xfff000U) != 0) {
-    output->push_back(MakeIns(a64::OPC::add_x_imm, +FIXARG::WZR, +FIXARG::WZR,
-                              stk_size & 0xfff000U));
-  }
-  std::reverse(output->begin() + start, output->end());
-}
-#endif
-
 void MaybeHandleReloc(x64::Ins* cpuins, unsigned pos, Ins ins, P op) {
   ASSERT(!cpuins->has_reloc(), "");
   switch (op) {
@@ -491,6 +378,12 @@ void MaybeHandleReloc(x64::Ins* cpuins, unsigned pos, Ins ins, P op) {
     default:
       return;
   }
+}
+
+x64::Ins MakeIns(x64::OPC opc_enum, int64_t x0, int64_t x1, int64_t x2,
+                 int64_t x3, int64_t x4, int64_t x5) {
+  const x64::Opcode* opc = &x64::OpcodeTableEncodings[+opc_enum];
+  return x64::Ins{opc, {x0, x1, x2, x3, x4, x5}};
 }
 
 x64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
@@ -545,11 +438,65 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
 }
 
 void EmitFunProlog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
-  // TODO
+  for (int i = GPR_REGS.size() - 1; i >= 0; --i) {
+    if (ctx.gpr_reg_mask & (1U << i)) {
+      output->push_back(MakeIns(x64::OPC::push_64_r, i));
+    }
+  }
+
+  uint32_t stk_size = ctx.stk_size + 8 * __builtin_popcount(ctx.flt_reg_mask) +
+                      8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
+  if (!ctx.is_leaf || ctx.stk_size != 0 || ctx.flt_reg_mask != 0) {
+    stk_size = (stk_size + 15) / 16 * 16;
+  }
+  stk_size -= 8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
+
+  if (stk_size > 0) {
+    output->push_back(MakeIns(x64::OPC::sub_64_mr_imm32, +F::RSP, stk_size));
+  }
+
+  uint32_t offset = ctx.stk_size;
+
+  for (int i = FLT_REGS.size() - 1; i >= 0; --i) {
+    if (ctx.flt_reg_mask & (1U << i)) {
+      output->push_back(MakeIns(x64::OPC::movsd_mbis32_x, +F::RSP, +F::NO_INDEX,
+                                +F::SCALE1, offset, i));
+      offset += 8;
+    }
+  }
 }
 
 void EmitFunEpilog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
-  // TODO
+  const size_t start = output->size();
+  // we will revert everything at the end
+  output->push_back(MakeIns(x64::OPC::ret));
+  for (int i = GPR_REGS.size() - 1; i >= 0; --i) {
+    if (ctx.gpr_reg_mask & (1U << i)) {
+      output->push_back(MakeIns(x64::OPC::pop_64_r, i));
+    }
+  }
+
+  uint32_t stk_size = ctx.stk_size + 8 * __builtin_popcount(ctx.flt_reg_mask) +
+                      8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
+  if (!ctx.is_leaf || ctx.stk_size != 0 || ctx.flt_reg_mask != 0) {
+    stk_size = (stk_size + 15) / 16 * 16;
+  }
+  stk_size -= 8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
+
+  if (stk_size > 0) {
+    output->push_back(MakeIns(x64::OPC::add_64_mr_imm32, +F::RSP, stk_size));
+  }
+
+  uint32_t offset = ctx.stk_size;
+  for (int i = FLT_REGS.size() - 1; i >= 0; --i) {
+    if (ctx.flt_reg_mask & (1U << i)) {
+      output->push_back(MakeIns(x64::OPC::movsd_x_mbis32, i, +F::RSP,
+                                +F::NO_INDEX, +F::SCALE1, offset));
+      offset += 8;
+    }
+  }
+
+  std::reverse(output->begin() + start, output->end());
 }
 
 }  // namespace cwerg::code_gen_x64

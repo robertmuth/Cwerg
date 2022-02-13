@@ -99,10 +99,10 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	$(BUILD_DIR)/x64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
-#TEST_MODE = normal
+TEST_MODE = normal
 #TEST_MODE = legalize
 #TEST_MODE = reg_alloc_global
-TEST_MODE = reg_alloc_local
+#TEST_MODE = reg_alloc_local
 
 # ensure identical output when emitting textual assembly between
 # python and c++ implementations

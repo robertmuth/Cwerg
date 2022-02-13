@@ -91,8 +91,9 @@ def _JtbCodeGen(jtb: ir.Jtb):
 
 
 def _RenderIns(ins: x64.Ins) -> str:
-    name, ops = symbolic.InsSymbolize(ins)
-    return f"    {name} {' '.join(ops)}"
+    name, ops = symbolic.InsSymbolize(ins, True)
+    ops_str = " " + " ".join(ops) if ops else ""
+    return f"    {name}{ops_str}"
 
 
 def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
