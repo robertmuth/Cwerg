@@ -2,8 +2,12 @@
 
 #include "CodeGenA32/codegen.h"
 
+#include "Base/optimize.h"
+#include "Base/ir.h"
+#include "Base/sanity.h"
 #include "Base/serialize.h"
 #include "CodeGenA32/isel_gen.h"
+#include "CodeGenA32/legalize.h"
 #include "CodeGenA32/regs.h"
 #include "CpuA32/opcode_gen.h"
 #include "CpuA32/symbolic.h"
@@ -212,6 +216,32 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
     a32::AddStartupCode(&out);
   }
   return out;
+}
+
+void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  for (Fun fun : UnitFunIter(unit)) {
+    FunCheck(fun);
+    if (FunKind(fun) == FUN_KIND::NORMAL) {
+      FunCfgInit(fun);
+      FunOptBasic(fun, true);
+    }
+
+    FunCheck(fun);
+    PhaseLegalization(fun, unit, fout);
+  }
+}
+
+void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
+  for (Fun fun : UnitFunIter(unit)) {
+    FunCheck(fun);
+    PhaseGlobalRegAlloc(fun, unit, fout);
+  }
+}
+
+void RegAllocLocal(Unit unit, bool verbose, std::ostream* fout) {
+  for (Fun fun : UnitFunIter(unit)) {
+    PhaseFinalizeStackAndLocalRegAlloc(fun, unit, fout);
+  }
 }
 
 }  // namespace  cwerg::code_gen_a32

@@ -12,4 +12,10 @@ extern void EmitUnitAsText(base::Unit unit, std::ostream* output);
 
 extern a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code);
 
+extern void LegalizeAll(base::Unit unit, bool verbose, std::ostream* fout);
+
+extern void RegAllocGlobal(base::Unit unit, bool verbose, std::ostream* fout);
+
+extern void RegAllocLocal(base::Unit unit, bool verbose, std::ostream* fout);
+
 }  // namespace cwerg::code_gen_a32

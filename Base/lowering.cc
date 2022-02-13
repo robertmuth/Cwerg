@@ -513,7 +513,7 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
         const DK dk = RegKind(Reg(InsOperand(ins, 0)));
         ASSERT(DKFlavor(dk) == DK_FLAVOR_F, "");
         const DK int_dk = (dk == DK::F32) ? DK::U32 : DK::U64;
-        const uint64_t sign = (dk == DK::F32) ? 1UL << 31 : 1UL << 63;
+        const uint64_t sign = (dk == DK::F32) ? 1ULL << 31 : 1ULL << 63;
         const Const sign_mask = ConstNewU(int_dk, sign);
         const Const rest_mask = ConstNewU(int_dk, sign - 1);
         const Reg tmp_src1 =
