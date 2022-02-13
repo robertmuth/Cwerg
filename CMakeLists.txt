@@ -343,3 +343,13 @@ add_executable(jit_ir_a64.exe
         $<TARGET_OBJECTS:BASE_LIB>
         Examples/jit_ir_a64.cc
         )
+
+# this only works when (cross) compiled for x64
+add_executable(jit_ir_x64.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUX64_LIB>
+        $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        Examples/jit_ir_x64.cc
+        )
