@@ -77,6 +77,7 @@ any work on these):
   of slower code idioms and prevention of optimizations), not
   to mention the DLL hell problem. (see also: https://drewdevault.com/dynlib, 
   https://www.kix.in/2008/06/19/an-alternative-to-shared-libraries/)
+  (Lack of shared lib support likely precludes Windows and as target platform.) 
 * Sophisticated instruction scheduling which is less important for memory 
   bound code and out-of-order CPUs.
 * Sophisticated loop optimizations. Probably best left to the frontend.
