@@ -326,6 +326,17 @@ add_executable(jit_cpu_a32.exe
         Examples/jit_cpu_a32.cc
         )
 
+# this only works when (cross) compiled for a32
+add_executable(jit_ir_a32.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUA32_LIB>
+        $<TARGET_OBJECTS:CODEGENA32_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        Examples/fib_ir.h
+        Examples/jit_ir_a32.cc
+        )
+      
 # this only works when (cross) compiled for a64
 add_executable(jit_cpu_a64.exe
         $<TARGET_OBJECTS:UTIL_LIB>
@@ -341,6 +352,7 @@ add_executable(jit_ir_a64.exe
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:CODEGENA64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
+        Examples/fib_ir.h
         Examples/jit_ir_a64.cc
         )
 
@@ -351,5 +363,6 @@ add_executable(jit_ir_x64.exe
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
+        Examples/fib_ir.h
         Examples/jit_ir_x64.cc
         )
