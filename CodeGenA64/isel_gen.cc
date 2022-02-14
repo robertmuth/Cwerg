@@ -5184,6 +5184,7 @@ a64::Ins MakeIns(a64::OPC opc_enum,
       opc,
       {(uint32_t)x0, (uint32_t)x1, (uint32_t)x2, (uint32_t)x3, (uint32_t)x4}};
 }
+
 a64::Ins MakeInsFromTmpl(const InsTmpl& tmpl, Ins ins, const EmitContext& ctx) {
   a64::Ins out;
   out.opcode = &a64::OpcodeTable[unsigned(tmpl.opcode)];

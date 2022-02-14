@@ -1,6 +1,8 @@
 
 
 DIR=build
+
+# setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
 QEMUX64 =
 QEMUA64 = qemu-aarch64-static
 QEMUA32 = qemu-arm-static
