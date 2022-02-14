@@ -319,7 +319,7 @@ add_executable(x64_codegen_tool.exe
         )
 
 # this only works when (cross) compiled for a32
-add_executable(jit_cpu_a32.exe
+add_executable(jit_cpu_a32.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
@@ -327,7 +327,7 @@ add_executable(jit_cpu_a32.exe
         )
 
 # this only works when (cross) compiled for a32
-add_executable(jit_ir_a32.exe
+add_executable(jit_ir_a32.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
@@ -338,7 +338,7 @@ add_executable(jit_ir_a32.exe
         )
       
 # this only works when (cross) compiled for a64
-add_executable(jit_cpu_a64.exe
+add_executable(jit_cpu_a64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
@@ -346,7 +346,7 @@ add_executable(jit_cpu_a64.exe
         )
 
 # this only works when (cross) compiled for a64
-add_executable(jit_ir_a64.exe
+add_executable(jit_ir_a64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
@@ -357,7 +357,7 @@ add_executable(jit_ir_a64.exe
         )
 
 # this only works when (cross) compiled for x64
-add_executable(jit_ir_x64.exe
+add_executable(jit_ir_x64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>
