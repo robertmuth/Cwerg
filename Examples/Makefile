@@ -1,6 +1,7 @@
 .SUFFIXES:  # no built-in rules
 
-tests: jit_cpu_a32.test jit_cpu_a64.test jit_ir_a64.test jit_ir_x64.test
+tests: jit_cpu_a32.test jit_cpu_a64.test \
+        jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
 QEMUX64 =
@@ -23,6 +24,11 @@ setupa32:
 jit_cpu_a32.test: setupa32
 	cd $(DIR_A32); VERBOSE=1 $(MAKE) -s jit_cpu_a32.exe
 	 $(QEMUA32) $(DIR_A32)/jit_cpu_a32.exe > $(DIR_A32)/$@.out
+	diff $(DIR_A32)/$@.out TestData/fib.golden
+
+jit_ir_a32.test: setupa32
+	cd $(DIR_A32); VERBOSE=1 $(MAKE) -s jit_ir_a32.exe
+	$(QEMUA32) $(DIR_A32)/jit_ir_a32.exe > $(DIR_A32)/$@.out
 	diff $(DIR_A32)/$@.out TestData/fib.golden
 
 ############################################################
