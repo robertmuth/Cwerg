@@ -443,16 +443,9 @@ void EmitFunProlog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
       output->push_back(MakeIns(x64::OPC::push_64_r, i));
     }
   }
-
-  uint32_t stk_size = ctx.stk_size + 8 * __builtin_popcount(ctx.flt_reg_mask) +
-                      8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
-  if (!ctx.is_leaf || ctx.stk_size != 0 || ctx.flt_reg_mask != 0) {
-    stk_size = (stk_size + 15) / 16 * 16;
-  }
-  stk_size -= 8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
-
-  if (stk_size > 0) {
-    output->push_back(MakeIns(x64::OPC::sub_64_mr_imm32, +F::RSP, stk_size));
+  const uint32_t stk_adjust = ctx.StackAdjustment();
+  if (stk_adjust > 0) {
+    output->push_back(MakeIns(x64::OPC::sub_64_mr_imm32, +F::RSP, stk_adjust));
   }
 
   uint32_t offset = ctx.stk_size;
@@ -476,15 +469,9 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
     }
   }
 
-  uint32_t stk_size = ctx.stk_size + 8 * __builtin_popcount(ctx.flt_reg_mask) +
-                      8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
-  if (!ctx.is_leaf || ctx.stk_size != 0 || ctx.flt_reg_mask != 0) {
-    stk_size = (stk_size + 15) / 16 * 16;
-  }
-  stk_size -= 8 * __builtin_popcount(ctx.gpr_reg_mask) + 8;
-
-  if (stk_size > 0) {
-    output->push_back(MakeIns(x64::OPC::add_64_mr_imm32, +F::RSP, stk_size));
+  const uint32_t stk_adjust = ctx.StackAdjustment();
+  if (stk_adjust > 0) {
+    output->push_back(MakeIns(x64::OPC::add_64_mr_imm32, +F::RSP, stk_adjust));
   }
 
   uint32_t offset = ctx.stk_size;
