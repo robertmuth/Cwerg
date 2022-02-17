@@ -357,6 +357,14 @@ add_executable(jit_ir_a64.exe EXCLUDE_FROM_ALL
         )
 
 # this only works when (cross) compiled for x64
+add_executable(jit_cpu_x64.exe EXCLUDE_FROM_ALL
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:ELF_LIB>
+        $<TARGET_OBJECTS:CPUX64_LIB>
+        Examples/jit_cpu_x64.cc
+        )
+
+# this only works when (cross) compiled for x64
 add_executable(jit_ir_x64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
