@@ -246,13 +246,15 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # ARM has no mod instruction
     lowering.FunEliminateRem(fun)
 
-    # A32 has not support for these addressing modes.
-    # They will be rewritten  using lea.stk
+    # A32 has not support for base + reg + offset but a stack access implicitly
+    # requires base (=sp) + offset, so we have to rewrite 
+    # ld.stk/st.stk/lea.stk -> lea.stk + ld/st/lea
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A32,
                                                    offset_kind=o.DK.S32)
 
-    # we cannot load/store directly from mem so expand the instruction to simpler
-    # sequences
+    # The address of a global is somewhat costly to materialize and we may want to re-use
+    # that computation so we rewrite:
+    # ld.mem/st.mem -> lea.mem +ld/st
     lowering.FunEliminateMemLoadStore(fun, base_kind=o.DK.A32,
                                       offset_kind=o.DK.S32)
 

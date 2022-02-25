@@ -6,54 +6,63 @@ Additionally, support for the following instructions is required:
 * movw, movt
 * vfpv3 instructions
 
+In terms of gcc compiler flags this approximate correspods to: `-marm -march=armv7ve+fp `
+
 Many SOCs, including the Raspberry Pi 3 and 4, satisfy these requirements.
 
 Supporting Thumb(2) is an explicit non-goal.
 
 64bit integer data type (S64, U64) are not supported. 
 
-## Code Generation Stages
+## Code Generation Phases
 
-Code generation goes through the following stages which 
+Code generation goes through the following phases which 
 massage the IR until it becomes almost trivial to generate
 A32 code from it.
 
-### `PhaseLegalization()`
+### Legalization
 
-* TODO: move parameters that cannot be handled by calling convention
-  onto stk 
+This phase rewrites the IR so the all remaining IR instructions are covered by the 
+instruction selector. It encompasses the following steps:
+
+* replacement of `push`/`pop` instruction with `mov`s to and from CPU registers as
+  required by the calling convention.
 * eliminate addressing modes not supported by ISA, e.g. 
-  - convert `ld.stk`/`st.stk`/`lea.stk` with reg offset
-  - convert `ld.mem`/`st.mem` to  `lea.mem` +`ld`/`st`
-* rewrite opcodes not directly supported by ISA, e.g. `mod`
-* widen most operands to 32bit
-* canonicalize instruction to help with the next step
+  - convert `ld.stk`/`st.stk`/`lea.stk` with reg offset to 
+    `lea.stk` + `ld`/`st`/`lea`
+  - convert `ld.mem`/`st.mem` to  
+    `lea.mem` +`ld`/`st`
+* rewriting of opcodes not directly supported by ISA, e.g. `mod`
+* widening most integer operands to 32bit. This allows us to keep the instruction 
+  selector simple as it does not have to support 8 and 16 bit integers.
+* canonicalizing instruction to help with the next step
 * add unconditional branches and invert conditional branches to linearize the CFG
   this may undo the canonicalization occasionally
 * deal with out of range immediates:
   replace all const operands not supported by ISA with regs that
-   received the immediate via a `mov` (see `InsArm32RewriteOutOfBoundsImmediates`)
+  received the immediate via a `mov` (see `InsArm32RewriteOutOfBoundsImmediates`)
+  This is done by using the instruction selector to find the best expansion match and
+  then check if the integers immediates satisfies the constraints of the expansion.
 * add `nop1` for those case where we likely need a scratch register 
+* enforce Cwerg shift semantics
+* TODO: move parameters that cannot be handled by calling convention
+  onto stk 
 
 ### Global Register Allocation
 
-TODO: add this
+This phase assigns CPU registers to all global IR regsiters, so that afterwards all global IR registers have either been assigned a CPU register or have been spilled. The spilling is
+done explicitly in the IR via `ld.stk`/`st.stk`.
 
 ###  Stack Finalization And Fixed Register Assignment
 
+This phase will assign CPU register to all the remaining (local) registers 
+
+* rename all local IR registers so that there is only on definition per register 
+  similar to SSA form. We do this a Bbl at a time since all registers are local
+  and hence do not need phi nodes. 
 * compute offsets of stack objects
-* convert `pusharg`/`poparg` to `mov`s by introducing machine registers
-  as per calling convention
-* run basic optimizations (mostly to help with `mov` elimination)
-
-
-### Register Allocation 
-
-* insert special `nop1` opcodes where needed so that the register allocator
-  can set aside a register
-* TODO: explain how global register are dealt with
-* Allocate registers for local registers  
-* `mov` elimination pass
+* Allocate registers for local registers.  
+* Eliminate `mov`s where CPU registers of the `src` and `dst` operands are identical 
 
 ### Code Selection
 
@@ -63,6 +72,9 @@ the IR opcodes into zero or more A32 opcodes described in
 
 [isel_tab.py](isel_tab.py) contains the necessary tables which 
 are also use to generate C++ code.
+
+Only the `ret` instructions is handled manually and will be expanded 
+into the function epilog code sequence.
 
 If the expansion requires a scratch register, the register allocator
 will be told to reserve on via the insertion of a `nop1` IR opcode.
