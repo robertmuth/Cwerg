@@ -33,9 +33,11 @@ def _InsRewriteOutOfBoundsImmediates(
         if mismatches & (1 << pos) != 0:
             const_kind = ins.operands[pos].kind
             if const_kind is o.DK.F32 or const_kind is o.DK.F64:
-                inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit, o.DK.A64, o.DK.U32)
+                inss += lowering.InsEliminateImmediateViaMem(
+                    ins, pos, fun, unit, o.DK.A64, o.DK.U32)
             else:
-                inss.append(lowering.InsEliminateImmediateViaMov(ins, pos, fun))
+                inss.append(
+                    lowering.InsEliminateImmediateViaMov(ins, pos, fun))
     if not inss:
         return None
     # assert len(inss) == 1, f"unexpected rewrites for {ins.opcode} {ins.operands} {len(inss)}"
@@ -90,7 +92,8 @@ def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
     global_not_lac = []
 
     for reg in fun.regs:
-        if ir.REG_FLAG.GLOBAL not in reg.flags: continue
+        if ir.REG_FLAG.GLOBAL not in reg.flags:
+            continue
         if reg.HasCpuReg():
             if ir.REG_FLAG.LAC in reg.flags:
                 allocated_lac.append(reg)
@@ -141,7 +144,8 @@ def _popcount(x):
 
 
 def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
-    if count == 0: return 0
+    if count == 0:
+        return 0
     mask = 1
     n = 0
     while n < count:
@@ -173,7 +177,8 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     local_lac = 0
     # excess lac globals can be used for lac locals
     if num_regs_lac > needed.global_lac:
-        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            global_lac, needed.global_lac)
         local_lac = global_lac & ~mask
         global_lac = global_lac & mask
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
@@ -212,8 +217,10 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
     lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
 
-    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
-    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
+    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(
+        fun.input_types)
+    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(
+        fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
 
@@ -236,7 +243,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
-    optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
+    # not this may affect immediates as it flips branches
+    optimize.FunCfgExit(fun, unit)
 
     # Handle most overflowing immediates.
     # This excludes immediates related to stack offsets which have not been determined yet
@@ -304,13 +312,16 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
                                                            regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
-    global_reg_stats = reg_stats.FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
+    global_reg_stats = reg_stats.FunGlobalRegStats(
+        fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
     DumpRegStats(fun, local_reg_stats, fout)
 
     # Handle GPR regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
-                            len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
-                            local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.GPR, False)]),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.GPR, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
 
     to_be_spilled = GlobalRegAllocOneKind(fun, regs.CpuRegKind.GPR, needed_gpr,
@@ -320,8 +331,10 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
     # Handle Float regs
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]),
-                            len(global_reg_stats[(regs.CpuRegKind.FLT, False)]),
-                            local_reg_stats.get((regs.CpuRegKind.FLT, True), 0),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.FLT, False)]),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.FLT, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.FLT, False), 0))
 
     to_be_spilled += GlobalRegAllocOneKind(fun, regs.CpuRegKind.FLT, needed_flt,
@@ -330,14 +343,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                                            regs.FLT_LAC_REGS_MASK, global_reg_stats, debug)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
-
-    # Recompute Everything (TODO: make this more selective to reduce work)
-    reg_stats.FunComputeRegStatsExceptLAC(fun)
-    reg_stats.FunDropUnreferencedRegs(fun)
-    liveness.FunComputeLivenessInfo(fun)
-    reg_stats.FunComputeRegStatsLAC(fun)
-    reg_stats.FunSeparateLocalRegUsage(fun)
-    # DumpRegStats(fun, local_reg_stats)
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
@@ -358,6 +363,15 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # which will cause incorrect code.
     # TODO: add a checker so we at least detect this
     # Alternatives: reserve reg (maybe only for functions that need it)
+
+    # Recompute Everything (TODO: make this more selective to reduce work)
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    reg_stats.FunSeparateLocalRegUsage(fun)
+    # DumpRegStats(fun, local_reg_stats)
+
     isel_tab.FunAddNop1ForCodeSel(fun)
 
     regs.FunLocalRegAlloc(fun)
