@@ -50,7 +50,7 @@ instruction selector. It encompasses the following steps:
 
 ### Global Register Allocation
 
-This phase assigns CPU registers to all global IR regsiters, so that afterwards all global IR registers have either been assigned a CPU register or have been spilled. The spilling is
+This phase assigns CPU registers to all global IR registers, so that afterwards all global IR registers have either been assigned a CPU register or have been spilled. The spilling is
 done explicitly in the IR via `ld.stk`/`st.stk`.
 
 ###  Stack Finalization And Fixed Register Assignment

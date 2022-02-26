@@ -34,9 +34,11 @@ def _InsRewriteOutOfBoundsImmediates(
 
             const_kind = ins.operands[pos].kind
             if const_kind is o.DK.F32 or const_kind is o.DK.F64:
-                inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit, o.DK.A32, o.DK.U32)
+                inss += lowering.InsEliminateImmediateViaMem(
+                    ins, pos, fun, unit, o.DK.A32, o.DK.U32)
             else:
-                inss.append(lowering.InsEliminateImmediateViaMov(ins, pos, fun))
+                inss.append(
+                    lowering.InsEliminateImmediateViaMov(ins, pos, fun))
     if not inss:
         return None
     # assert len(inss) == 1, f"unexpected rewrites for {ins.opcode} {ins.operands} {len(inss)}"
@@ -107,7 +109,8 @@ def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
     global_not_lac = []
 
     for reg in fun.regs:
-        if ir.REG_FLAG.GLOBAL not in reg.flags: continue
+        if ir.REG_FLAG.GLOBAL not in reg.flags:
+            continue
         if reg.HasCpuReg():
             if ir.REG_FLAG.LAC in reg.flags:
                 allocated_lac.append(reg)
@@ -158,7 +161,8 @@ def _popcount(x):
 
 
 def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
-    if count == 0: return 0
+    if count == 0:
+        return 0
     mask = 1
     n = 0
     while n < count:
@@ -190,7 +194,8 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     local_lac = 0
     # excess lac globals can be used for lac locals
     if num_regs_lac > needed.global_lac:
-        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            global_lac, needed.global_lac)
         local_lac = global_lac & ~mask
         global_lac = global_lac & mask
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
@@ -231,8 +236,10 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
     lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
 
-    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
-    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
+    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(
+        fun.input_types)
+    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(
+        fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
     # replaces pusharg and poparg instructions and replace them with moves
@@ -247,7 +254,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunEliminateRem(fun)
 
     # A32 has not support for base + reg + offset but a stack access implicitly
-    # requires base (=sp) + offset, so we have to rewrite 
+    # requires base (=sp) + offset, so we have to rewrite
     # ld.stk/st.stk/lea.stk -> lea.stk + ld/st/lea
     lowering.FunEliminateStkLoadStoreWithRegOffset(fun, base_kind=o.DK.A32,
                                                    offset_kind=o.DK.S32)
@@ -260,15 +267,11 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
-    optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
+    # not this may affect immediates as it flips branches
+    optimize.FunCfgExit(fun, unit)
 
     # Handle most overflowing immediates.
     _FunRewriteOutOfBoundsImmediates(fun, unit)
-    # hack: some of the code expansion templates need a scratch reg
-    # we do not want to reserve registers for this globally, so instead
-    # we inject some nop instructions that reserve a register that we
-    # use as a scratch for the instruction immediately following the nop
-    isel_tab.FunAddNop1ForCodeSel(fun)
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
@@ -289,7 +292,8 @@ def GlobalRegAllocOneKind(fun: ir.Fun, kinds: Set[regs.CpuRegKind], needed: Regs
     global_lac_pool, global_not_lac_pool = _GetRegPoolsForGlobals(
         needed, cpu_regs_lac, cpu_regs_not_lac, pre_allocated)
     if debug:
-        print(f"@@ {kind_name} POOL {global_lac_pool:x} {global_not_lac_pool:x}", file=debug)
+        print(
+            f"@@ {kind_name} POOL {global_lac_pool:x} {global_not_lac_pool:x}", file=debug)
 
     return (regs.AssignCpuRegOrMarkForSpilling(global_regs_lac, global_lac_pool, 0) +
             regs.AssignCpuRegOrMarkForSpilling(
@@ -333,7 +337,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     reg_stats.FunComputeRegStatsLAC(fun)
 
     # Note: REG_KIND_MAP_ARM maps all non-float to registers to S32
-    local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun, REG_KIND_TO_CPU_KIND)
+    local_reg_stats = reg_stats.FunComputeBblRegUsageStats(
+        fun, REG_KIND_TO_CPU_KIND)
     #
     global_reg_stats = reg_stats.FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
     DumpRegStats(fun, local_reg_stats, fout)
@@ -341,23 +346,29 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     debug = None
     # compute the number of regs needed if had indeed unlimited regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
-                            len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
-                            local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.GPR, False)]),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.GPR, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
     to_be_spilled: List[ir.Reg] = GlobalRegAllocOneKind(fun, {regs.CpuRegKind.GPR}, needed_gpr,
                                                         regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK,
                                                         regs.GPR_REGS_MASK & ~regs.GPR_LAC_REGS_MASK,
                                                         regs.GPR_LAC_REGS_MASK,
-                                                        global_reg_stats[(regs.CpuRegKind.GPR, True)],
-                                                        global_reg_stats[(regs.CpuRegKind.GPR, False)],
+                                                        global_reg_stats[(
+                                                            regs.CpuRegKind.GPR, True)],
+                                                        global_reg_stats[(
+                                                            regs.CpuRegKind.GPR, False)],
                                                         debug)
 
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]) + 2 *
                             len(global_reg_stats[(regs.CpuRegKind.DBL, True)]),
                             len(global_reg_stats[(regs.CpuRegKind.FLT, False)]) + 2 *
-                            len(global_reg_stats[(regs.CpuRegKind.DBL, False)]),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.DBL, False)]),
                             local_reg_stats.get((regs.CpuRegKind.FLT, True), 0) + 2 *
-                            local_reg_stats.get((regs.CpuRegKind.DBL, True), 0),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.DBL, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.FLT, False), 0) + 2 *
                             local_reg_stats.get((regs.CpuRegKind.DBL, False), 0))
     to_be_spilled += GlobalRegAllocOneKind(fun, {regs.CpuRegKind.FLT, regs.CpuRegKind.DBL}, needed_flt,
@@ -365,21 +376,14 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                                            regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
                                            regs.FLT_LAC_REGS_MASK,
                                            global_reg_stats[(regs.CpuRegKind.FLT, True)] +
-                                           global_reg_stats[(regs.CpuRegKind.DBL, True)],
+                                           global_reg_stats[(
+                                               regs.CpuRegKind.DBL, True)],
                                            global_reg_stats[(regs.CpuRegKind.FLT, False)] +
-                                           global_reg_stats[(regs.CpuRegKind.DBL, False)],
+                                           global_reg_stats[(
+                                               regs.CpuRegKind.DBL, False)],
                                            debug)
 
     reg_alloc.FunSpillRegs(fun, o.DK.U32, to_be_spilled, prefix="$gspill")
-
-    # Recompute Everything (TODO: make this more selective)
-    reg_stats.FunComputeRegStatsExceptLAC(fun)
-    reg_stats.FunDropUnreferencedRegs(fun)
-    liveness.FunComputeLivenessInfo(fun)
-    reg_stats.FunComputeRegStatsLAC(fun)
-    # establish per bbl SSA form by splitting liveranges
-    reg_stats.FunSeparateLocalRegUsage(fun)
-    # DumpRegStats(fun, local_reg_stats)
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
@@ -388,6 +392,21 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     could increase register usage.
 
     """
+    # Recompute Everything (TODO: make this more selective)
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    # establish per bbl SSA form by splitting liveranges
+    # TODO:
+    reg_stats.FunSeparateLocalRegUsage(fun)
+    # DumpRegStats(fun, local_reg_stats)
+    # hack: some of the code expansion templates need a scratch reg
+    # we do not want to reserve registers for this globally, so instead
+    # we inject some nop instructions that reserve a register that we
+    # use as a scratch for the instruction immediately following the nop
+    isel_tab.FunAddNop1ForCodeSel(fun)
+    
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup
