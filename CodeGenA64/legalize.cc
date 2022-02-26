@@ -1,5 +1,8 @@
 // (c) Robert Muth - see LICENSE for more info
 
+#include <algorithm>
+#include <iomanip>
+
 #include "Base/canonicalize.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
@@ -9,9 +12,6 @@
 #include "Base/serialize.h"
 #include "CodeGenA64/isel_gen.h"
 #include "CodeGenA64/regs.h"
-
-#include <algorithm>
-#include <iomanip>
 
 namespace cwerg::code_gen_a64 {
 namespace {
@@ -60,8 +60,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void FunRewriteOutOfBoundsImmediates(Fun fun,
-                                     Unit unit,
+void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
                                      std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
@@ -118,11 +117,8 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
 
 // Return all global regs in `fun` that map to `rk` after applying `rk_map`
 // and whose `lac-ness` matches `is_lac`
-void FunFilterGlobalRegs(Fun fun,
-                         CPU_REG_KIND rk,
-                         bool is_lac,
-                         const DK_MAP& rk_map,
-                         std::vector<Reg>* out) {
+void FunFilterGlobalRegs(Fun fun, CPU_REG_KIND rk, bool is_lac,
+                         const DK_MAP& rk_map, std::vector<Reg>* out) {
   for (Reg reg : FunRegIter(fun)) {
     if (RegHasFlag(reg, REG_FLAG::GLOBAL) && RegCpuReg(reg).isnull() &&
         RegHasFlag(reg, REG_FLAG::LAC) == is_lac &&
@@ -132,8 +128,7 @@ void FunFilterGlobalRegs(Fun fun,
   }
 }
 
-bool SpillingNeeded(const FunRegStats& needed,
-                    unsigned num_regs_lac,
+bool SpillingNeeded(const FunRegStats& needed, unsigned num_regs_lac,
                     unsigned num_regs_not_lac) {
   return needed.global_lac + needed.local_lac > num_regs_lac ||
          needed.global_lac + needed.local_lac + needed.global_not_lac +
@@ -154,9 +149,7 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
 }
 
 std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
-    const FunRegStats& needed,
-    uint32_t regs_lac,
-    uint32_t regs_not_lac,
+    const FunRegStats& needed, uint32_t regs_lac, uint32_t regs_not_lac,
     uint32_t regs_preallocated) {
   unsigned num_regs_lac = __builtin_popcount(regs_lac);
   unsigned num_regs_not_lac = __builtin_popcount(regs_not_lac);
@@ -256,12 +249,9 @@ void DumpRegStats(Fun fun, const DK_LAC_COUNTS& stats, std::ostream* output) {
   }
 }
 
-void GlobalRegAllocOneKind(Fun fun,
-                           CPU_REG_KIND kind,
-                           const FunRegStats& needed,
-                           uint32_t regs_lac,
-                           uint32_t regs_not_lac,
-                           uint32_t regs_lac_mask,
+void GlobalRegAllocOneKind(Fun fun, CPU_REG_KIND kind,
+                           const FunRegStats& needed, uint32_t regs_lac,
+                           uint32_t regs_not_lac, uint32_t regs_lac_mask,
                            std::vector<Reg>* regs,
                            std::vector<Reg>* to_be_spilled,
                            std::ostream* debug) {
@@ -351,17 +341,16 @@ void PhaseGlobalRegAlloc(Fun fun, Unit unit, std::ostream* fout) {
 
   std::vector<Ins> inss;
   FunSpillRegs(fun, DK::U32, to_be_spilled, &inss, "$gspill");
+}
+
+void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
+                                        std::ostream* fout) {
+  std::vector<Ins> inss;
   FunComputeRegStatsExceptLAC(fun);
   FunDropUnreferencedRegs(fun);
   FunNumberReg(fun);
   FunComputeLivenessInfo(fun);
   FunComputeRegStatsLAC(fun);
-}
-
-void PhaseFinalizeStackAndLocalRegAlloc(Fun fun,
-                                        Unit unit,
-                                        std::ostream* fout) {
-  std::vector<Ins> inss;
   FunAddNop1ForCodeSel(fun, &inss);
   FunLocalRegAlloc(fun, &inss);
   FunFinalizeStackSlots(fun);
