@@ -238,8 +238,10 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
     elif arg in {P.reg0, P.reg1, P.reg2}:
         pos = arg.value - P.reg0.value
         reg = ops[pos]
-        assert isinstance(reg, ir.Reg), f"in {ins} expect reg for {arg} but got {reg}"
-        assert reg.HasCpuReg(), f"in {ins} expect reg with cpureg for {arg} but got {reg}"
+        assert isinstance(
+            reg, ir.Reg), f"in {ins} expect reg for {arg} but got {reg}"
+        assert reg.HasCpuReg(
+        ), f"in {ins} expect reg with cpureg for {arg} but got {reg}"
         return reg.cpu_reg.no
     elif arg in {P.num0, P.num1, P.num2, P.num3, P.num4}:
         pos = arg.value - P.num0.value
@@ -290,7 +292,8 @@ class InsTmpl:
     def __init__(self, opcode_name: str, args: List[Any]):
         opcode: x64.Opcode = x64.Opcode.name_to_opcode[opcode_name]
         assert args is not None
-        assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name} {args} {opcode.fields}"
+        assert len(args) == len(
+            opcode.fields), f"num arg mismatch for {opcode_name} {args} {opcode.fields}"
         # Note, the sanity checks below need to be adjusted as needed
         for op, field in zip(args, opcode.fields):
             assert isinstance(op, (int, P, F)), (
@@ -300,14 +303,18 @@ class InsTmpl:
             elif field in {x64.OK.MODRM_REG8, x64.OK.MODRM_REG16, x64.OK.MODRM_REG32, x64.OK.MODRM_REG64,
                            x64.OK.MODRM_RM_REG8, x64.OK.MODRM_RM_REG16, x64.OK.MODRM_RM_REG32,
                            x64.OK.MODRM_RM_REG64}:
-                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_gpr, P.scratch_gpr} or op in F_REGS, f"{op}"
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01,
+                              P.tmp_gpr, P.scratch_gpr} or op in F_REGS, f"{op}"
             elif field in {x64.OK.MODRM_XREG32, x64.OK.MODRM_XREG64,
                            x64.OK.MODRM_RM_XREG32, x64.OK.MODRM_RM_XREG64}:
-                assert op in {P.reg0, P.reg1, P.reg2, P.reg01, P.tmp_flt} or op in F_XREGS, f"{op}"
+                assert op in {P.reg0, P.reg1, P.reg2, P.reg01,
+                              P.tmp_flt} or op in F_XREGS, f"{op}"
             elif field is x64.OK.SIB_INDEX:
-                assert op in {F.NO_INDEX, P.reg1, P.reg2, P.tmp_gpr, P.scratch_gpr}, f"{op}"
+                assert op in {F.NO_INDEX, P.reg1, P.reg2,
+                              P.tmp_gpr, P.scratch_gpr}, f"{op}"
             elif field is x64.OK.SIB_BASE:
-                assert op in {P.reg01, P.reg0, P.reg1, P.tmp_gpr, P.scratch_gpr} or op in F_REGS, f"{op}"
+                assert op in {P.reg01, P.reg0, P.reg1, P.tmp_gpr,
+                              P.scratch_gpr} or op in F_REGS, f"{op}"
             elif field is x64.OK.RIP_BASE:
                 assert op in {F.RIP}, f"{op}"
             elif field is x64.OK.OFFABS32:
@@ -317,7 +324,8 @@ class InsTmpl:
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
             elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64, x64.OK.IMM64}:
-                assert op in {P.num0, P.num1, P.num2} or isinstance(op, int), f"{op}"
+                assert op in {P.num0, P.num1, P.num2} or isinstance(
+                    op, int), f"{op}"
             elif field is x64.OK.OFFPCREL32:
                 assert op in {P.bbl0, P.bbl2, P.fun0}, f"{op}"
             elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
@@ -364,7 +372,8 @@ _ALLOWED_OPERAND_TYPES_REG = {
 }
 
 _ALLOWED_CURBS_REG = {C.REG, C.SP_REG, C.REG_RAX, C.REG_RCX, C.REG_RDX}
-_ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16, C.SIMM16, C.UIMM32, C.SIMM32, C.UIMM64, C.SIMM64}
+_ALLOWED_CURBS_CONST = {C.UIMM8, C.SIMM8, C.UIMM16,
+                        C.SIMM16, C.UIMM32, C.SIMM32, C.UIMM64, C.SIMM64}
 _ALLOWED_CURBS_REG_OR_CONST = _ALLOWED_CURBS_REG | _ALLOWED_CURBS_CONST
 
 
@@ -504,7 +513,8 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
         stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
     stk_size -= 8 * len(gpr_regs) + 8  # already accounted for
     while gpr_regs:
-        out.append(InsTmpl("push_64_r", [F(F.RAX.value + gpr_regs.pop(-1).no)]))
+        out.append(
+            InsTmpl("push_64_r", [F(F.RAX.value + gpr_regs.pop(-1).no)]))
     if stk_size > 0:
         out.append(InsTmpl("sub_64_mr_imm32", [F.RSP, stk_size]))
     offset = ctx.stk_size
@@ -543,7 +553,8 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     if opc in {o.ST, o.SWITCH}:
         # needs scratch reg for some opcodes
-        scratch = fun.GetScratchReg(o.DK.S64 if opc is o.ST else o.DK.C64, "nop1", False)
+        scratch = fun.GetScratchReg(
+            o.DK.S64 if opc is o.ST else o.DK.C64, "nop1", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
@@ -649,7 +660,8 @@ def InitAluInt():
         Pattern(o.MUL, [kind1] * 3,
                 [C.SP_REG, C.SP_REG, C.SP_REG],
                 [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill01)),
-                 InsTmpl(f"imul_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill2)),
+                 InsTmpl(f"imul_{bw}_r_mbis32", [
+                         P.tmp_gpr] + Spilled(P.spill2)),
                  InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
 
     # TODO: handle 8 bit divide
@@ -676,7 +688,8 @@ def InitBitFiddle():
                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind.bitwidth()
         for opc, x64_opc_s, x64_opc_u in [(o.SHL, "shl", "shl"), (o.SHR, "sar", "shr")]:
-            x64_opc = x64_opc_u if kind in {o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
+            x64_opc = x64_opc_u if kind in {
+                o.DK.U8, o.DK.U16, o.DK.U32, o.DK.U64} else x64_opc_s
             Pattern(opc, [kind] * 3, [C.REG, C.REG, C.UIMM8],
                     [InsTmpl(f"{x64_opc}_{bw}_mr_imm8", [P.reg01, P.num2])])
             Pattern(opc, [kind] * 3, [C.SP_REG, C.SP_REG, C.UIMM8],
@@ -778,7 +791,8 @@ def InitAluFlt():
             Pattern(opc, [kind1] * 3,
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     [InsTmpl(f"movs{suffix}_x_mbis32", [P.tmp_flt] + Spilled(P.spill01)),
-                     InsTmpl(f"{x64_opc}{suffix}_x_mbis32", [P.tmp_flt] + Spilled(P.spill2)),
+                     InsTmpl(f"{x64_opc}{suffix}_x_mbis32", [
+                             P.tmp_flt] + Spilled(P.spill2)),
                      InsTmpl(f"movs{suffix}_mbis32_x", Spilled(P.spill01) + [P.tmp_flt])])
 
         for opc, x64_opc in [(o.SQRT, "sqrts")]:
@@ -878,7 +892,8 @@ def InitCondBraInt():
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, C.SP_REG, C.INVALID],
                     [InsTmplStkLd(kind1, P.tmp_gpr, P.spill0),
-                     InsTmpl(f"cmp_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
+                     InsTmpl(f"cmp_{bw}_r_mbis32", [
+                             P.tmp_gpr] + Spilled(P.spill1)),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
             #
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
@@ -921,7 +936,8 @@ def InitCondBraFlt():
             Pattern(opc, [kind1] * 2 + [o.DK.INVALID],
                     [C.SP_REG, C.SP_REG, C.INVALID],
                     [InsTmplStkLd(kind1, P.tmp_flt, P.spill0),
-                     InsTmpl(f"comis{suffix}_x_mbis32", [P.tmp_flt] + Spilled(P.spill1)),
+                     InsTmpl(f"comis{suffix}_x_mbis32", [
+                             P.tmp_flt] + Spilled(P.spill1)),
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
 
 
@@ -1063,13 +1079,13 @@ def InitLoad():
                       o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
             bw = kind2.bitwidth()
             if kind2 is o.DK.F32:
-                x64_ld = lambda addr: f"movss_x_{addr}"
+                def x64_ld(addr): return f"movss_x_{addr}"
                 tmp_reg = P.tmp_flt
             elif kind2 is o.DK.F64:
-                x64_ld = lambda addr: f"movsd_x_{addr}"
+                def x64_ld(addr): return f"movsd_x_{addr}"
                 tmp_reg = P.tmp_flt
             else:
-                x64_ld = lambda addr: f"mov_{bw}_r_{addr}"
+                def x64_ld(addr): return f"mov_{bw}_r_{addr}"
                 tmp_reg = P.tmp_gpr
             # LD_MEM dst_reg mem reg_offset will be rewritten so do not handle it here (TODO: reconsider this)
             # LD_MEM dst_reg mem const
@@ -1104,7 +1120,8 @@ def InitLoad():
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.SIMM32],
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(x64_ld("mbis32"), [tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2]),
+                     InsTmpl(x64_ld("mbis32"), [
+                             tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, P.num2]),
                      InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             # LD dst_reg base_reg offset_reg
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
@@ -1129,7 +1146,8 @@ def InitLoad():
                     [C.SP_REG, C.SP_REG, C.REG],
                     ExtendRegTo64BitInPlace(P.reg2, kind1) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
-                     InsTmpl(x64_ld("mbis8"), [tmp_reg, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
+                     InsTmpl(x64_ld("mbis8"), [
+                             tmp_reg, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.SP_REG],
@@ -1145,7 +1163,8 @@ def InitLoad():
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.tmp_gpr, P.spill2, kind1) +
                     [InsTmpl(f"add_64_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
-                     InsTmpl(x64_ld("mbis8"), [tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0]),
+                     InsTmpl(x64_ld("mbis8"), [
+                             tmp_reg, P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, tmp_reg)])
 
 
@@ -1156,13 +1175,13 @@ def InitStore():
                       o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
             bw = kind2.bitwidth()
             if kind2 is o.DK.F32:
-                x64_st = lambda addr: f"movss_{addr}_x"
+                def x64_st(addr): return f"movss_{addr}_x"
                 tmp_reg = P.tmp_flt
             elif kind2 is o.DK.F64:
-                x64_st = lambda addr: f"movsd_{addr}_x"
+                def x64_st(addr): return f"movsd_{addr}_x"
                 tmp_reg = P.tmp_flt
             else:
-                x64_st = lambda addr: f"mov_{bw}_{addr}_r"
+                def x64_st(addr): return f"mov_{bw}_{addr}_r"
                 tmp_reg = P.tmp_gpr
             # ST_MEM mem reg_offset src_reg will be rewritten so do not handle it here
             # ST_MEM mem const src_reg
@@ -1237,7 +1256,8 @@ def InitStore():
                     [C.SP_REG, C.SP_REG, C.SP_REG],
                     ExtendRegTo64BitFromSP(P.scratch_gpr, P.spill1, kind1) +
                     [InsTmplStkLd(kind2, tmp_reg, P.spill2),
-                     InsTmpl(f"add_64_r_mbis32", [P.scratch_gpr] + Spilled(P.spill0)),
+                     InsTmpl(f"add_64_r_mbis32", [
+                             P.scratch_gpr] + Spilled(P.spill0)),
                      InsTmpl(x64_st("mbis8"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, tmp_reg])])
 
 
@@ -1362,7 +1382,8 @@ def InitBITCAST():
         assert k1.bitwidth() == k2.bitwidth()
         bw = k1.bitwidth()
         for kind1, kind2 in [(k1, k2), (k2, k1)]:
-            Pattern(o.BITCAST, [kind1, kind2], [C.REG, C.REG], [InsTmpl(f"mov_{bw}_r_mr", [P.reg0, P.reg1])])
+            Pattern(o.BITCAST, [kind1, kind2], [C.REG, C.REG], [
+                    InsTmpl(f"mov_{bw}_r_mr", [P.reg0, P.reg1])])
             Pattern(o.BITCAST, [kind1, kind2], [C.SP_REG, C.REG],
                     [InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
             Pattern(o.BITCAST, [kind1, kind2], [C.REG, C.SP_REG],
@@ -1434,17 +1455,22 @@ def _DumpCodeSelTable():
     count = 0
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         count += len(patterns)
         opcode = o.Opcode.TableByNo[i]
-        print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}] patters={len(patterns)}")
+        print(
+            f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}] patters={len(patterns)}")
         for pat in patterns:
-            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
+            type_constraints = [
+                x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
             op_constraints = [x.name if x else '*' for x in pat.op_curbs]
 
-            print(f"  [{' '.join(type_constraints)}]  [{' '.join(op_constraints)}]")
+            print(
+                f"  [{' '.join(type_constraints)}]  [{' '.join(op_constraints)}]")
             for tmpl in pat.emit:
-                ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
+                ops = [str(x) if isinstance(x, int)
+                       else x.name for x in tmpl.args]
                 print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
         print()
     print(f"Total patterns {count}")
@@ -1452,7 +1478,8 @@ def _DumpCodeSelTable():
 
 def _EmitCodeH(fout):
     for cls in [C, P]:
-        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+        cgen.RenderEnum(cgen.NameValues(
+            cls), f"class {cls.__name__} : uint8_t", fout)
 
 
 def _RenderOperands(operands: List[Any]):
@@ -1478,7 +1505,8 @@ def _EmitCodePatternsH(fout):
     num_ins = 1
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             for tmpl in pat.emit:
@@ -1506,12 +1534,14 @@ def _EmitCodePatternsH(fout):
     num_pattern = 0
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
             imm_constraints = [f"C::{c.name}" for c in pat.op_curbs]
-            print(f"  {{ {{{', '.join(reg_constraints)}}}, {{{', '.join(imm_constraints)}}},")
+            print(
+                f"  {{ {{{', '.join(reg_constraints)}}}, {{{', '.join(imm_constraints)}}},")
             print(
                 f"    &kInsTemplates[{num_ins}], {len(pat.emit)} }},  // {opcode.name} [{num_pattern}]")
             num_ins += len(pat.emit)
@@ -1526,9 +1556,11 @@ def _EmitCodeC(fout):
     print("};", file=fout)
     # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
     # only for these two instances - no idea why
-    cgen.RenderEnumToStringMap(cgen.NameValues(C) + [("ZZZ", len(C))], "C", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        C) + [("ZZZ", len(C))], "C", fout)
     cgen.RenderEnumToStringFun("C", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(P) + [("ZZZ", len(P))], "P", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        P) + [("ZZZ", len(P))], "P", fout)
     cgen.RenderEnumToStringFun("P", fout)
 
     return

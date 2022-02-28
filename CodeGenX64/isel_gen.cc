@@ -449,7 +449,6 @@ void EmitFunProlog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
   }
 
   uint32_t offset = ctx.stk_size;
-
   for (int i = FLT_REGS.size() - 1; i >= 0; --i) {
     if (ctx.flt_reg_mask & (1U << i)) {
       output->push_back(MakeIns(x64::OPC::movsd_mbis32_x, +F::RSP, +F::NO_INDEX,
@@ -468,7 +467,6 @@ void EmitFunEpilog(const EmitContext& ctx, std::vector<x64::Ins>* output) {
       output->push_back(MakeIns(x64::OPC::pop_64_r, i));
     }
   }
-
   const uint32_t stk_adjust = ctx.StackAdjustment();
   if (stk_adjust > 0) {
     output->push_back(MakeIns(x64::OPC::add_64_mr_imm32, +F::RSP, stk_adjust));

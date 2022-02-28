@@ -444,13 +444,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                           regs.FLT_REGS_MASK & ~regs.FLT_LAC_REGS_MASK,
                           regs.FLT_LAC_REGS_MASK, global_reg_stats, debug)
 
-    # Recompute Everything (TODO: make this more selective to reduce work)
-    reg_stats.FunComputeRegStatsExceptLAC(fun)
-    reg_stats.FunDropUnreferencedRegs(fun)
-    liveness.FunComputeLivenessInfo(fun)
-    reg_stats.FunComputeRegStatsLAC(fun)
-    # DumpRegStats(fun, local_reg_stats)
-    # DumpFun("after global alloc", fun)
+
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
@@ -472,6 +466,14 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # TODO: add a checker so we at least detect this
     # Alternatives: reserve reg (maybe only for functions that need it)
     # TODO: make sure that nop1 regs never get spilled
+    # Recompute Everything (TODO: make this more selective to reduce work)
+    
+    reg_stats.FunComputeRegStatsExceptLAC(fun)
+    reg_stats.FunDropUnreferencedRegs(fun)
+    liveness.FunComputeLivenessInfo(fun)
+    reg_stats.FunComputeRegStatsLAC(fun)
+    # DumpRegStats(fun, local_reg_stats)
+    # DumpFun("after global alloc", fun)
 
     isel_tab.FunAddNop1ForCodeSel(fun)
     if True:
