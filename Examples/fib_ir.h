@@ -1,3 +1,30 @@
+//  .fun fibonacci NORMAL [U32] = [U32]
+//      .reg U32 [x in out]
+//
+//  .bbl start
+//      poparg in
+//      blt 1:U32 in difficult
+//      pusharg in
+//      ret
+//
+//  .bbl difficult
+//      mov out = 0
+//      sub x = in 1
+//
+//      pusharg x
+//      bsr fibonacci
+//      poparg x
+//
+//      add out = out x
+//      sub x = in 2
+//
+//      pusharg x
+//      bsr fibonacci
+//      poparg x
+//
+//      add out = out x
+//      pusharg out
+//      ret
 
 // Create a Unit with a single function "fib" modelled after ../TestData/fib.asm
 base::Unit MakeFibonacci() {

@@ -251,13 +251,6 @@ add_executable(a32_codegen_tool.exe
         CodeGenA32/codegen_tool.cc
         )
 
-
-add_executable(builder_example.exe
-        $<TARGET_OBJECTS:UTIL_LIB>
-        $<TARGET_OBJECTS:BASE_LIB>
-        Examples/builder_example.cc
-        )
-
 add_library(CODEGENA64_LIB OBJECT
         CodeGenA64/isel_gen.cc
         CodeGenA64/isel_gen.h
@@ -316,6 +309,13 @@ add_executable(x64_codegen_tool.exe
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         CodeGenX64/codegen_tool.cc
+        )
+
+add_executable(builder_example.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:BASE_LIB>
+        Examples/fib_ir.h
+        Examples/builder_example.cc
         )
 
 # this only works when (cross) compiled for a32
