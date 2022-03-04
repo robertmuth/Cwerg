@@ -798,11 +798,12 @@ class Executable:
             if phdr.is_auxiliary:
                 continue
             for shdr in phdr.sections:
-                print(
-                    f"writing {shdr.name:20s} offset is {offset:5x} "
-                    f"want{shdr.sh_offset:5x} "
-                    f"align {shdr.sh_addralign:5x} "
-                    f"size {shdr.sh_size:5x}")
+                if False:
+                    print(
+                        f"writing {shdr.name:20s} offset is {offset:5x} "
+                        f"want{shdr.sh_offset:5x} "
+                        f"align {shdr.sh_addralign:5x} "
+                        f"size {shdr.sh_size:5x}")
                 if shdr.sh_size == 0 or shdr.sh_type == SH_TYPE.NOBITS:
                     continue
 
@@ -810,7 +811,8 @@ class Executable:
                 if new_offset != offset:
                     assert new_offset > offset, f"offset corruption"
                     padding = (new_offset - offset) * b"\0"
-                    print(f"adding {len(padding)} byte padding")
+                    if False:
+                        print(f"adding {len(padding)} byte padding")
                     offset += len(padding)
                     stream.write(padding)
 

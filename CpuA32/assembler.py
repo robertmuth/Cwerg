@@ -254,6 +254,7 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
     sym_entry = unit.global_symbol_map["_start"]
     assert sym_entry and not sym_entry.is_undefined()
     entry_addr = sym_entry.st_value
-    print(f"PATCH ENTRY: {entry_addr:x}")
+    if False:
+        print(f"PATCH ENTRY: {entry_addr:x}")
     exe.ehdr.e_entry = entry_addr
     return exe
