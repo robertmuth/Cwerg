@@ -36,6 +36,7 @@ jobs:
         pip install pycparser==2.20
     - name: Install Ubuntu Deps
       run: |
+        sudo apt-get update
         echo "delayed packages for these cause a lot of headaches:"
         apt-cache madison qemu-user-static
         apt-cache madison  libc6-dev-i386
