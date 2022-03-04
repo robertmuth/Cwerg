@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.9]
         os: [ubuntu-20.04]
         #python-version: [3.7, 3.8, 3.9]
         #os: [ubuntu-latest, macos-latest, windows-latest]
@@ -36,10 +36,14 @@ jobs:
         pip install pycparser==2.20
     - name: Install Ubuntu Deps
       run: |
+        echo "delayed packages for these cause a lot of headaches:"
+        apt-cache madison qemu-user-static
+        apt-cache madison  libc6-dev-i386
+        apt-cache madison  libc6-x32
+        echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-        apt-cache madison qemu-user-static
         # TODO: undo version pin when the latest version becomes available
         sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.17
     - name: Show Version Summary
