@@ -44,9 +44,6 @@ jobs:
         echo
         # TODO: undo version pin when the latest version becomes available
         # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.17
-        sudo apt-get install libc6-dev-i386_2.31-0ubuntu9
-        sudo apt-get install libc6-x32_2.31-0ubuntu9 
-        sudo apt-get install libc6-dev-x32_2.31-0ubuntu9
         echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
