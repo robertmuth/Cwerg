@@ -1,6 +1,6 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
-QEMU = qemu-arm-static
+QEMU_A32 = qemu-arm-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -30,7 +30,7 @@ $(DIR)/%.test : TestData/%.asm
 $(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$(QEMU) $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	$(QEMU_A32) $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
 	diff $@.actual.out $<.golden
 
 objdump_compat_test:
@@ -79,7 +79,7 @@ $(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
 	echo "[integration $@]"
 	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $@.out
 	chmod a+x $@.exe
-	$(QEMU) $@.exe > $@.actual_c.out
+	$(QEMU_A32) $@.exe > $@.actual_c.out
 	diff $@.actual_c.out $<.golden
 
 $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
