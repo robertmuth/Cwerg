@@ -41,11 +41,15 @@ jobs:
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
+        # TODO: undo version pin when the latest version becomes available
+        sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.17
+        sudo apt-get install libc6-dev-i386_2.31-0ubuntu9
+        sudo apt-get install libc6-x32_2.31-0ubuntu9 
+        sudo apt-get install libc6-dev-x32_2.31-0ubuntu9
+        echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-        # TODO: undo version pin when the latest version becomes available
-        sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.17
     - name: Show Version Summary
       run: |
         uname -a
