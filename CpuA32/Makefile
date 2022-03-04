@@ -12,7 +12,7 @@ TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81
 tests: tests_py tests_c
 	@echo "[OK CpuA32]"
 
-tests_py: objdump_compat_test $(DIR)/disassembler_test $(DIR)/jit_test \
+tests_py: objdump_compat_test $(DIR)/disassembler_test \
               $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
 
 tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
@@ -36,11 +36,6 @@ $(DIR)/argv_test: TestData/argv.asm
 objdump_compat_test:
 	@echo "[$@]"
 	$(PYPY) ./opcode_test.py TestData/arm_test.dis
-
-$(DIR)/jit_test:
-	@echo "[$@]"
-	$(PYPY) ./jit.py > $@.actual.out
-	diff $@.actual.out TestData/jit_test.golden
 
 
 $(DIR)/disassembler_test:
