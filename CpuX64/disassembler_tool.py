@@ -11,6 +11,7 @@ def disass(data):
     if ins is None:
         print(f"could not determine opcode {x64.Hexify(data)}")
         return
+    assert len(data) == x64.InsLength(ins), f"length mismacth: {x64.InsLength(ins)} vs {len(data)}"
 
     enum_name, ops_str = symbolic.InsSymbolize(ins, True, True)
     print(f"{x64.Hexify(data)}", f"{ins.opcode.name}_{ins.opcode.variant} {' '.join(ops_str)}")
@@ -45,6 +46,8 @@ def batch():
         if ins is None:
             print(f"could not determine opcode [{x64.Hexify(data)}]")
             continue
+        assert len(data) == x64.InsLength(ins), f"length mismacth: {x64.InsLength(ins)} vs {len(data)}"
+
         enum_name, ops_str = symbolic.InsSymbolize(ins, True)
         print(f"{x64.Hexify(data):30}", f"{ins.opcode.name}_{ins.opcode.variant} {', '.join(ops_str)}")
         data2 = x64.Assemble(ins)

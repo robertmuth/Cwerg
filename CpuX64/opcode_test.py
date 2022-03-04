@@ -90,10 +90,10 @@ def ProcessObjdumpFile(fin):
             print(f"BAD {line}", end="")
             bad[name] += 1
             continue
+        assert len(data) == x64.InsLength(ins), f"length mismacth: {x64.InsLength(ins)} vs {len(data)}"
 
         data2 = x64.Assemble(ins)
         assert data == data2, f"{line}: {Hexify(data)} vs {Hexify(data2)} {ins.opcode}"
-
         if ins.opcode.fields == [x64.OK.OFFPCREL32] or ins.opcode.fields == [x64.OK.OFFPCREL8]:
             continue
 

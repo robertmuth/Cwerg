@@ -925,6 +925,25 @@ class Opcode:
                     break
             out.insert(pos, rex | 0x40)
         return out
+    
+    def UsesRex(self, operands: List[int]) -> bool:
+        assert len(operands) == len(self.fields)
+        if self.rexw:
+            return True
+        for v, o in zip(operands, self.fields):
+            if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
+                       OK.MODRM_RM_REG64, OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, 
+                       OK.MODRM_RM_XREG128, OK.MODRM_RM_BASE, 
+                       OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
+                       OK.MODRM_REG64, OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128,
+                       OK.SIB_BASE, OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX, OK.BYTE_WITH_REG8,
+                       OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
+                       OK.BYTE_WITH_REG64}:
+                if o in {OK.MODRM_RM_REG8, OK.MODRM_REG8, OK.BYTE_WITH_REG8} and (4 <= v <= 7):
+                    return True  # force rex, otherwise we select ah, ch, dh, bh
+                if v >> 3:
+                    return True 
+        return False
 
     @classmethod
     def FindOpcode(cls, data: List) -> Optional["Opcode"]:
@@ -988,6 +1007,11 @@ def Disassemble(data: List) -> Optional[Ins]:
 def Assemble(ins: Ins) -> List[int]:
     assert not ins.has_reloc(), "reloc has not been resolved"
     return ins.opcode.AssembleOperands(ins.operands)
+
+
+def InsLength(ins: Ins) -> int:
+    return len(ins.opcode.data) + ins.opcode.UsesRex(ins.operands)
+
 
 
 _SUPPORTED_ENCODING_PARAMS = {
