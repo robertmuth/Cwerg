@@ -1,12 +1,21 @@
 .SUFFIXES:  # no built-in rules
 
-tests: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
-        jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test
+DIR=build
+$(info $(shell mkdir -p $(DIR)))
+
+tests: tests_c tests_py
+
+tests_c: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
+         jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test 
+		
+tests_py: $(DIR)/jit_cpu_a32_pytest $(DIR)/jit_cpu_x64_pytest
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
 QEMUX64 =
 QEMUA64 = qemu-aarch64-static
 QEMUA32 = qemu-arm-static
+
+
 
 ############################################################
 # A32
@@ -31,6 +40,11 @@ jit_ir_a32.test: setupa32
 	$(QEMUA32) $(DIR_A32)/jit_ir_a32.exe > $(DIR_A32)/$@.out
 	diff $(DIR_A32)/$@.out TestData/fib.golden
 
+$(DIR)/jit_cpu_a32_pytest:
+	@echo "[$@]"
+	$(PYPY) ./jit_cpu_a32.py > $@.actual.out
+	diff $@.actual.out TestData/jit_cpu_a32.golden
+
 ############################################################
 # A64
 ############################################################
@@ -52,6 +66,7 @@ jit_ir_a64.test: setupa64
 	$(QEMUA64) $(DIR_A64)/jit_ir_a64.exe > $(DIR_A64)/$@.out
 	diff $(DIR_A64)/$@.out TestData/fib.golden
 
+# TODO: $(DIR)/jit_cpu_a64_pytest
 ############################################################
 # X64
 ############################################################
@@ -73,5 +88,10 @@ jit_ir_x64.test: setupx64
 	$(QEMUX64) $(DIR_X64)/jit_ir_x64.exe > $(DIR_X64)/$@.out
 	diff $(DIR_X64)/$@.out TestData/fib.golden
 
+$(DIR)/jit_cpu_x64_pytest:
+	@echo "[$@]"
+	$(PYPY) ./jit_cpu_x64.py > $@.actual.out
+	diff $@.actual.out TestData/jit_cpu_x64.golden
+
 clean:
-	rm -rf $(DIR_A32) $(DIR_A64) $(DIR_X64)
+	rm -rf $(DIR_A32) $(DIR_A64) $(DIR_X64) ${DIR}

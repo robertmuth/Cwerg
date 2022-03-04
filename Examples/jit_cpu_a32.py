@@ -30,7 +30,8 @@ class TestBuffer:
             _, ops = dis.InsSymbolize(ins)
             if ops and ops[0] == "al":
                 ops.pop(0)
-            print(f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.name} {' '.join(ops)}")
+            print(
+                f"{i:2d} {[f'{b:02x}' for b in bs]} {data:08x} {ins.opcode.name} {' '.join(ops)}")
 
 
 def MakeBuffer(size, prot):
@@ -39,13 +40,7 @@ def MakeBuffer(size, prot):
     return buf, ctypes.addressof(void_pointer)
 
 
-def EmitX86(code_buf):
-    code_buf.write(b'\x8b\xc7')  # mov eax, edi
-    code_buf.write(b'\x83\xc0\x01')  # add eax, 1
-    code_buf.write(b'\xc3')  # ret
-
-
-def EmitARM32(code_buf):
+def EmitNull(code_buf):
     for ins in [
         # "al" predicate is optional
         dis.InsFromSymbolized("add_imm", ["r0", "r0", "1"]),
@@ -54,7 +49,7 @@ def EmitARM32(code_buf):
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
-def EmitARM32Mul(code_buf):
+def EmitMul(code_buf):
     for ins in [
         # "al" predicate is optional
         dis.InsFromSymbolized("mul", ["r0", "r1", "r0"]),
@@ -63,7 +58,7 @@ def EmitARM32Mul(code_buf):
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
-def EmitARM32Fib(code_buf):
+def EmitFib(code_buf):
     for ins in [
         # e92d4030 stm sp!, {r4,r5,lr}
         dis.InsFromSymbolized("stmdb_update", ["al", "sp", "reglist:16432"]),
@@ -74,33 +69,24 @@ def EmitARM32Fib(code_buf):
         #
         dis.InsFromSymbolized("sub_imm", ["al", "r0", "r5", "1"]),
         dis.InsFromSymbolized("bl", ["al", "-8"]),
-        dis.InsFromSymbolized("add_regimm", ["al", "r4", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized(
+            "add_regimm", ["al", "r4", "r4", "r0", "lsl", "0"]),
         # #
         dis.InsFromSymbolized("sub_imm", ["al", "r0", "r5", "2"]),
         dis.InsFromSymbolized("bl", ["al", "-11"]),
-        dis.InsFromSymbolized("add_regimm", ["al", "r0", "r4", "r0", "lsl", "0"]),
+        dis.InsFromSymbolized(
+            "add_regimm", ["al", "r0", "r4", "r0", "lsl", "0"]),
         # e8bd4030 ldm sp!, {r4,r5,pc}
         dis.InsFromSymbolized("ldmia_update", ["al", "reglist:32816", "sp"]),
     ]:
         code_buf.write(a32.Assemble(ins).to_bytes(4, "little"))
 
 
-def TestCodeGen():
-    print("Ensure code generators work in principle - no execution")
-    for snippet in [EmitX86]:
-        print(f"\n{snippet.__name__}")
-        test_buffer = TestBuffer()
-        snippet(test_buffer)
-        test_buffer.dump()
-    for snippet in [EmitARM32, EmitARM32Mul, EmitARM32Fib]:
-        print(f"\n{snippet.__name__}")
-        test_buffer = TestBuffer()
-        snippet(test_buffer)
-        test_buffer.dump_fancy()
-
-
 def gen_code(x):
-    TestCodeGen()
+    isa = platform.machine()
+    if isa != "armv7l":
+        print(f"\nIncompatible machine architecture {isa}: no execution")
+        return
 
     code_buf, code_addr = MakeBuffer(
         mmap.PAGESIZE,
@@ -114,16 +100,7 @@ def gen_code(x):
     ftype = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int)
     f = ftype(code_addr)
 
-    isa = platform.machine()
-    print(f"ISA: {isa}")
-    if isa == "x86_64":
-        EmitX86(code_buf)
-    elif isa == "armv7l":
-        # EmitARM32(code_buf)
-        EmitARM32Fib(code_buf)
-    else:
-        assert False, f"unexpected isa {isa}"
-
+    EmitFib(code_buf)
     print("Running Code")
     r = f(x)
     print(r)
@@ -135,4 +112,9 @@ def gen_code(x):
 if len(sys.argv) > 1:
     gen_code(int(sys.argv[1]))
 else:
-    gen_code(42)
+    print("Code generator dry run - no execution")
+    for snippet in [EmitNull, EmitMul, EmitFib]:
+        print(f"\n{snippet.__name__}")
+        test_buffer = TestBuffer()
+        snippet(test_buffer)
+        test_buffer.dump_fancy()

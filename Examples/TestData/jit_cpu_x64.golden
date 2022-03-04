@@ -1,0 +1,26 @@
+Code generator dry run - no execution
+
+EmitNull
+0x00 ret 
+
+EmitFib
+0x00 push_64_r r14
+0x02 push_64_r rbx
+0x03 push_64_r rbx
+0x04 cmp_64_mr_imm8 rdi 0x2
+0x08 jb_8 36
+0x0a mov_64_mr_r rbx rdi
+0x0d xor_32_mr_r r14d r14d
+0x10 sub_64_mr_imm8 rdi 0x1
+0x14 call_32 -25
+0x19 add_64_mr_r r14 rax
+0x1c mov_64_mr_r rdi rbx
+0x1f sub_64_mr_imm8 rdi 0x2
+0x23 call_32 -40
+0x28 add_64_mr_r r14 rax
+0x2b mov_64_mr_r rdi r14
+0x2e mov_64_mr_r rax rdi
+0x31 pop_64_r rbx
+0x32 pop_64_r rbx
+0x33 pop_64_r r14
+0x35 ret 
