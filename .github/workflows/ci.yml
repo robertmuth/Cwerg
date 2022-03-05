@@ -41,7 +41,7 @@ jobs:
         echo
         # TODO: undo version pin when the latest version becomes available
         # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
-        wget http://cubbli.cs.helsinki.fi/mirror/ubuntu-focal/pool/universe/q/qemu/qemu-user_4.2-3ubuntu6.17_amd64.deb
+        wget http://launchpadlibrarian.net/548257507/qemu-user-static_4.2-3ubuntu6.17_amd64.deb
         chmod a+r qemu-user-static_4.2-3ubuntu6.17_amd64.deb
         sudo dpkg -i qemu-user-static_4.2-3ubuntu6.17_amd64.deb
         echo
