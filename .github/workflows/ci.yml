@@ -35,7 +35,7 @@ jobs:
       run: |
         sudo apt-get update
         echo "delayed packages for these cause a lot of headaches:"
-        apt-cache madison qemu-user-static
+        apt-cache policy qemu-user-static
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
