@@ -40,7 +40,10 @@ jobs:
         apt-cache madison  libc6-x32
         echo
         # TODO: undo version pin when the latest version becomes available
-        sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
+        # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
+        wget http://azure.archive.ubuntu.com/ubuntu/pool/universe/q/qemu/qemu-user-static_4.2-3ubuntu6.20_amd64.deb
+        chmod a+r qemu-user-static_4.2-3ubuntu6.20_amd64.deb
+        sudo dpkg -i qemu-user-static_4.2-3ubuntu6.20_amd64.deb
         echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
