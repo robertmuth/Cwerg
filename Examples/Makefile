@@ -4,6 +4,7 @@ DIR=build
 $(info $(shell mkdir -p $(DIR)))
 
 tests: tests_c tests_py
+	@echo "[OK Examples]"
 
 tests_c: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
          jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test 

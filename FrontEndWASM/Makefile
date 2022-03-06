@@ -10,6 +10,7 @@ QEMUA32 = qemu-arm-static
 $(info $(shell mkdir -p $(DIR)))
 
 tests: $(DIR)/parse_test tests_x64 tests_a32 tests_a64
+	@echo "[OK FrontEndWASM]"
 
 TESTS_32_64 = memory.wasm fd_write.wasm print_i32_ln.wasm factorial.wasm fibonacci.wasm echo.wasm i32.wasm block.wasm
 TESTS_64 = if.wasm global.wasm loop.wasm print_i64_ln.wasm call_indirect.wasm
