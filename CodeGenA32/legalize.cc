@@ -165,7 +165,12 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
   return mask - 1;
 }
 
-std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
+struct PoolMasks{
+  uint32_t mask_lac;
+  uint32_t mask_not_lac;
+};
+
+PoolMasks GetRegPoolsForGlobals(
     const FunRegStats& needed, uint32_t regs_lac, uint32_t regs_not_lac,
     uint32_t regs_preallocated) {
   unsigned num_regs_lac = __builtin_popcount(regs_lac);
@@ -193,7 +198,7 @@ std::pair<uint32_t, uint32_t> GetRegPoolsForGlobals(
         FindMaskCoveringTheLowOrderSetBits(local_lac, needed.local_lac);
     global_not_lac |= local_lac & ~mask;
   }
-  return std::make_pair(global_lac, global_not_lac);
+  return PoolMasks{global_lac, global_not_lac};
 }
 
 }  // namespace
@@ -374,6 +379,7 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
   FunNumberReg(fun);
   FunComputeLivenessInfo(fun);
   FunComputeRegStatsLAC(fun);
+  //
   FunSeparateLocalRegUsage(fun);
   FunAddNop1ForCodeSel(fun, &inss);
   FunLocalRegAlloc(fun, &inss);

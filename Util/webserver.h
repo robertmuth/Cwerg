@@ -14,25 +14,32 @@ constexpr const std::string_view kMimeTypeJPEG = "image/jpeg";
 
 std::string TimeStringNow();
 
+struct HeaderAttribute {
+  std::string key;
+  std::string value;
+};
+
 struct WebRequest {
   std::string_view method;
   std::string_view raw_path;
   std::string_view protocol;
-  std::vector<std::pair<std::string_view, std::string_view>> header;
+  std::vector<HeaderAttribute> header;
 };
+
+
 
 struct WebResponse {
   unsigned code = 200;
   std::string code_str = "OK";
-  std::vector<std::pair<std::string, std::string>> header;
+  std::vector<HeaderAttribute> header;
   std::ostringstream body;
 
   void AddMimeTypeToHeader(std::string_view mime_type = kMimeTypeHTML) {
-    header.emplace_back(std::make_pair("Content-Type", mime_type));
+    header.emplace_back(HeaderAttribute{"Content-Type", std::string(mime_type)});
   }
 
   void AddDateToHeader(std::string_view date = TimeStringNow()) {
-    header.emplace_back(std::make_pair("Date", date));
+    header.emplace_back(HeaderAttribute{"Date", std::string(date)});
   }
 };
 

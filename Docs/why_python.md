@@ -63,12 +63,12 @@ The current use of STL features can be checked with:
 egrep -ho "std::[^<(>*;, ]+" */*h | sort| uniq -c 
 ```
 
-The intention is to limit the use STL datatypes to:
+The intention is to limit the used STL datatypes to:
 * std::string_view
-* std::array*  std::vector
+* std::array
+* std::vector
 * std::unordered_set
 * std::string
-* std::pair
 * std::optional
 * std::unique_ptr
 

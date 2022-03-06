@@ -48,7 +48,7 @@ WebRequest ParseHeaders(std::string_view header) {
     std::string_view key = line.substr(0, pos);
     line.remove_prefix(pos + 1);
     ltrim(&line);
-    request.header.emplace_back(std::make_pair(key, line));
+    request.header.emplace_back(HeaderAttribute{std::string(key), std::string(line)});
   }
   return request;
 }
