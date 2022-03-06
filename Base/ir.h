@@ -5,6 +5,10 @@
 All the basic abstractions and their stripes.
 */
 
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
 #include "Base/opcode_gen.h"
 #include "Util/assert.h"
 #include "Util/bitvec.h"
@@ -14,21 +18,24 @@ All the basic abstractions and their stripes.
 #include "Util/list.h"
 #include "Util/stripe.h"
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
-
 namespace cwerg::base {
 
 const unsigned kMaxIdLength = 1024;
 
-// Handle Wrappers for the primary abstractions.
-// We only take advantage of Interned strings being a Handle is for DataNew
-struct Str : public Handle {
-  explicit Str(uint32_t index = 0) : Handle(index, RefKind::STR) {}
-  explicit Str(Handle ref) : Handle(ref.value) {}
-};
-
+// A Handle is the common base class for all Operand types.
+// Usually a handle represents an index into one or more arrays 
+// representing the abstraction.
+// They bahave little bit like tagged pointers but have the following benefits:
+// * they are only 32 bits wide
+// * they are more stable than pointer (= have the same value even when code changes)
+//
+// The following handles are used slightly differently:
+// * StackSlot represents the Stack location of a spilled register.
+//   Handle index is the stack offset.
+// * Str represents an Interned string.
+//   Handle index points into an ImmutablePool.
+// * Const represents (numeric) constants. Small constants are directly encoded.
+//   into the Handle index. This is indicated by setting the highest bit in the index.
 struct Ins : public Handle {
   explicit constexpr Ins(uint32_t index = 0) : Handle(index, RefKind::INS) {}
   explicit constexpr Ins(Handle ref) : Handle(ref.value) {}
@@ -65,12 +72,6 @@ struct CpuReg : public Handle {
   explicit constexpr CpuReg(Handle ref) : Handle(ref.value) {}
 };
 
-struct Const : public Handle {
-  explicit constexpr Const(uint32_t index = 0)
-      : Handle(index, RefKind::CONST) {}
-  explicit constexpr Const(Handle ref) : Handle(ref.value) {}
-};
-
 struct Stk : public Handle {
   explicit constexpr Stk(uint32_t index = 0) : Handle(index, RefKind::STK) {}
   explicit constexpr Stk(Handle ref) : Handle(ref.value) {}
@@ -102,6 +103,18 @@ struct StackSlot : public Handle {
   explicit constexpr StackSlot(Handle ref) : Handle(ref.value) {}
 };
 
+struct Const : public Handle {
+  explicit constexpr Const(uint32_t index = 0)
+      : Handle(index, RefKind::CONST) {}
+  explicit constexpr Const(Handle ref) : Handle(ref.value) {}
+};
+
+struct Str : public Handle {
+  explicit Str(uint32_t index = 0) : Handle(index, RefKind::STR) {}
+  explicit Str(Handle ref) : Handle(ref.value) {}
+};
+
+// Special Handles.
 constexpr const Handle UnlinkedRef(0, RefKind::INVALID);
 constexpr const Handle HandleInvalid(0, RefKind::INVALID);
 
@@ -197,9 +210,11 @@ inline uint32_t MemSize(Mem mem) {
 // =======================================
 // Str API
 //
-// Note: Str is immutable
+// Note: Str is immutable. Handler index is pointing into
+// an ImmutablePool.
 // =======================================
 extern Str StrNew(std::string_view s);
+// Pointer returned by StrData is only valid until another string is interned.
 extern const char* StrData(Str str);
 extern int StrCmp(Str a, Str b);  // result is like strcmp
 extern bool StrCmpLt(Str a, Str b);
@@ -222,7 +237,7 @@ inline std::ostream& operator<<(std::ostream& os, Str str) {
 // =======================================
 // StackSlot (used for x86-64 register spilling only)
 //
-// Note: Const is immutable and limited to values < 2^24
+// Note: Offset is immutable and limited to values < 2^24
 // =======================================
 
 inline StackSlot StackSlotNew(uint32_t offset) {
@@ -478,13 +493,9 @@ struct InsCore {
 extern struct Stripe<InsCore, Ins> gInsCore;
 extern struct StripeGroup gStripeGroupIns;
 
-inline Ins InsInit(Ins ins,
-                   OPC opcode,
-                   Handle h0 = HandleInvalid,
-                   Handle h1 = HandleInvalid,
-                   Handle h2 = HandleInvalid,
-                   Handle h3 = HandleInvalid,
-                   Handle h4 = HandleInvalid) {
+inline Ins InsInit(Ins ins, OPC opcode, Handle h0 = HandleInvalid,
+                   Handle h1 = HandleInvalid, Handle h2 = HandleInvalid,
+                   Handle h3 = HandleInvalid, Handle h4 = HandleInvalid) {
   gInsCore[ins].opcode = opcode;
   gInsCore[ins].operands[0] = h0;
   gInsCore[ins].operands[1] = h1;
@@ -494,12 +505,9 @@ inline Ins InsInit(Ins ins,
   return ins;
 }
 
-inline Ins InsNew(OPC opcode,
-                  Handle h0 = HandleInvalid,
-                  Handle h1 = HandleInvalid,
-                  Handle h2 = HandleInvalid,
-                  Handle h3 = HandleInvalid,
-                  Handle h4 = HandleInvalid) {
+inline Ins InsNew(OPC opcode, Handle h0 = HandleInvalid,
+                  Handle h1 = HandleInvalid, Handle h2 = HandleInvalid,
+                  Handle h3 = HandleInvalid, Handle h4 = HandleInvalid) {
   return InsInit(Ins(gStripeGroupIns.New().index()), opcode, h0, h1, h2, h3,
                  h4);
 }
@@ -790,9 +798,7 @@ inline Fun FunNew(Str name, FUN_KIND kind = FUN_KIND::INVALID) {
 
 extern std::string_view MaybeSkipCountPrefix(std::string_view s);
 
-extern Reg FunGetScratchReg(Fun fun,
-                            DK kind,
-                            std::string_view purpose,
+extern Reg FunGetScratchReg(Fun fun, DK kind, std::string_view purpose,
                             bool add_kind_to_name);
 
 extern Reg FunFindOrAddCpuReg(Fun fun, CpuReg cpu_reg, DK kind);
