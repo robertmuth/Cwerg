@@ -1,7 +1,7 @@
 ## Why Python
 
 The primary implementation language of Cwerg is Python3.
-This is a rather odd choice and hence deserve some explanation.
+This is a rather odd choice and hence deserves some explanation.
 
 The basic premise is this:
 ```
@@ -51,6 +51,26 @@ and so the C port morphed into a C++ port.
 The hope is to offer plain C bindings on top of it. To facilitate this the C++ stays clear
 of exception and virtual functions and only uses a fairly limited part of STL.
 All the basic data structure use custom containers. 
+
+
+## C++ Entanglement
+
+C++ libraries are notoriously hard to use from other languages so we strive to keep the API
+simple enough that it can be wrapped by `extern "C"` functions which in turn can be called via FFIs. To this end we are severly restraining the use of STL in Cwerg.
+The current use of STL features can be checked with:
+
+```
+egrep -ho "std::[^<(>*;, ]+" */*h | sort| uniq -c 
+```
+
+The intention is to limit the use STL datatypes to:
+* std::string_view
+* std::array*  std::vector
+* std::unordered_set
+* std::string
+* std::pair
+* std::optional
+* std::unique_ptr
 
 ## Ports to other Programming Languages
 

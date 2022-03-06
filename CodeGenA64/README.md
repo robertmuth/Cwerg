@@ -5,8 +5,12 @@ The backend has the same structure at [A32 Backend](../CodeGenA32).
 It also uses the same approach to [Instruction Selection](../Docs/instruction_selection.md)
 which is a straight forward expansion of the IR opcodes into zero or more A64 opcodes.
 
+The backend targets ARM Cortex-A53 CPUs as found in Raspberry Pi 3 and 4.
+In terms of gcc compiler flags this approximately correspods to: `-march=armv8-a`
+
 [isel_tab.py](isel_tab.py) contains the necessary tables which 
 are also use to generate C++ code.
+
 
 
 ## Code Generation Phases
