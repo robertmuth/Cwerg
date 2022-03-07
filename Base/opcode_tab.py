@@ -49,8 +49,9 @@ class OPC_KIND(enum.Enum):
 
     BCOPY = 21
     BZERO = 22
+    CAS = 23
 
-    DIRECTIVE = 23  # not a real instruction
+    DIRECTIVE = 24  # not a real instruction
 
 
 _OF_TO_PURPOSE = {
@@ -76,6 +77,7 @@ _OF_TO_PURPOSE = {
     OPC_KIND.CONV: ["dst", "src"],
     OPC_KIND.MOV: ["dst", "src"],
     OPC_KIND.CMP: ["dst", "src1", "src2", "cmp1", "cmp2"],
+    OPC_KIND.CAS: ["dst", "cmp", "src", "base", "offset"],
 }
 
 _OFS_CFG = {OPC_KIND.BSR, OPC_KIND.JSR, OPC_KIND.SYSCALL, OPC_KIND.SWITCH,
@@ -688,7 +690,7 @@ LEA_FUN = Opcode(0x3b, "lea.fun", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FUN],
                  "Load effective function address: dst := base (note: no offset).")
 
 ############################################################
-# LOAD STORE 0x60
+# LOAD STORE 0x40
 # ld/st base address  is in register, offset is immediate
 
 # ld/st base address is register
@@ -729,6 +731,44 @@ ST_STK = Opcode(0x4a, "st.stk", OPC_KIND.ST,
                 "Store to stack base with offset. RAM[base + offset] := src",
                 OA.MEM_WR)
 
+# Atomics
+CAS = Opcode(0x4c, "cas", OPC_KIND.CAS,
+             [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
+                 OP_KIND.REG, OP_KIND.REG_OR_CONST],
+             [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
+                 TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
+             """Compare and swap  
+                
+                addr = base + offset 
+                dst = RAM[addr] 
+                if dst == cmp: RAM[addr] = src
+             """,
+             OA.MEM_WR)
+
+CAS_MEM = Opcode(0x4d, "cas.mem", OPC_KIND.CAS,
+                 [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
+                     OP_KIND.MEM, OP_KIND.REG_OR_CONST],
+                 [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
+                     TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
+                 """Compare and swap  
+                    
+                    addr = base + offset 
+                    dst = RAM[addr] 
+                    if dst == cmp: RAM[addr] = src
+             """,
+                 OA.MEM_WR)
+
+CAS_STK = Opcode(0x4e, "cas.stk", OPC_KIND.CAS,
+                 [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
+                     OP_KIND.STK, OP_KIND.REG_OR_CONST],
+                 [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
+                     TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
+                 """Compare and swap  
+                    addr = base + offset 
+                    dst = RAM[addr] 
+                    if dst == cmp: RAM[addr] = src
+             """,
+                 OA.MEM_WR)
 ############################################################
 # FLOAT ALU OPERAND: 0x50
 
@@ -820,7 +860,6 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
 ############################################################
 # Misc Experimental
 ############################################################
-
 
 # Note, negative lengths copy downwards
 Opcode(0xb8, "bcopy", OPC_KIND.BCOPY,

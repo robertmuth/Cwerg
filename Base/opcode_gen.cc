@@ -382,6 +382,9 @@ const struct StringKind OPCFromStringMap[] = {
     {"bra", 41},
     {"bsr", 43},
     {"bzero", 186},
+    {"cas", 76},
+    {"cas.mem", 77},
+    {"cas.stk", 78},
     {"ceil", 80},
     {"cmpeq", 53},
     {"cmplt", 54},
@@ -431,7 +434,7 @@ const struct StringKind OPCFromStringMap[] = {
 };
 
 const uint8_t OPCJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 32, 33, 34, 255, 255, 255, 35, 255, 36, 44, 46, 48, 49, 255, 51, 54, 64, 255, 255, 255, 67, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 35, 36, 37, 255, 255, 255, 38, 255, 39, 47, 49, 51, 52, 255, 54, 57, 67, 255, 255, 255, 70, 255, 255, 255, 255, 255, 255, 255,};
 const Opcode GlobalOpcodes[256] = {
      {  //  0 
        {}, 
@@ -813,21 +816,21 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
        {}, 
        "", 0 },
-     {  // 4c 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 4d 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 4e 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 4c cas
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::CAS, OPC_GENUS::BASE, 5, 1,
+       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::ADDR, TC::OFFSET}, 
+       "cas", OA::MEM_WR },
+     {  // 4d cas.mem
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::MEM, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::CAS, OPC_GENUS::BASE, 5, 1,
+       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::INVALID, TC::OFFSET}, 
+       "cas.mem", OA::MEM_WR },
+     {  // 4e cas.stk
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST, OP_KIND::STK, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::CAS, OPC_GENUS::BASE, 5, 1,
+       {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::INVALID, TC::OFFSET}, 
+       "cas.stk", OA::MEM_WR },
      {  // 4f 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,

@@ -56,6 +56,9 @@ enum class OPC : uint8_t {
     ST = 0x48,
     ST_MEM = 0x49,
     ST_STK = 0x4a,
+    CAS = 0x4c,
+    CAS_MEM = 0x4d,
+    CAS_STK = 0x4e,
 
     CEIL = 0x50,
     FLOOR = 0x51,
@@ -145,7 +148,8 @@ enum class OPC_KIND : uint8_t {
     CMP = 20,
     BCOPY = 21,
     BZERO = 22,
-    DIRECTIVE = 23,
+    CAS = 23,
+    DIRECTIVE = 24,
 };
 
 enum class DK : uint8_t {
