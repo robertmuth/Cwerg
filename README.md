@@ -12,7 +12,7 @@ Besides AOT compilation, (one-shot) JITing is also supported.
 
 The core project currently consists of:
 
-* RICS like [Intermediate Representation (IR)](Docs/opcodes.md) 
+* RISC like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
 * [C Frontend](FrontEndC/)  (subset of C to IR compiler)
 * [WASM Frontend](FrontEndWASM/) (WASM/WASI to IR transpiler)
