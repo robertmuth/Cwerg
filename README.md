@@ -26,7 +26,7 @@ The core project currently consists of:
 * [C Backend](CodeGenC/) (code generator emitting C code)
 
 You may also find the following useful:
-* [Doc](Docs/) (misc. documentation)
+* [Docs](Docs/) (misc. documentation)
 * [Examples](Examples/) (examples demonstrating API usage)
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):

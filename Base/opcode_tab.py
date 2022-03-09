@@ -764,6 +764,7 @@ CAS_STK = Opcode(0x4e, "cas.stk", OPC_KIND.CAS,
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
                  """Compare and swap  
+                 
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src

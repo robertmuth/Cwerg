@@ -11,10 +11,10 @@ top level repo directory.
 # make sure all the packages defined by Cwerg can be imported
 export PYTHONPATH=$(pwd)
 
-# confirm python interpreter version, you need at least Python 3.7
+# confirm python interpreter version, you need at least Python 3.9
 python3 -V
 
-# install the c-parser if you want to use the code in FrontEndC/
+# install the c-parser if you want to use the code in [FrontEndC](../FrontEndC/)
 sudo apt install python3-pycparser
 ```
 
@@ -47,7 +47,7 @@ the top level Makefile. Just running
 ```
 make
 ```
-will run a battery of self tests and confirm your set up is working properly
+will run a battery of self-tests and confirm your set up is working properly
 
 We currently use simple recursive Makefiles. The C++ implementation
 is built via CMake which works better with IDEs.
@@ -506,106 +506,13 @@ cat StdLib/syscall.a64.asm StdLib/std_lib.64.asm sieve.asm | CodeGenA64/codegen.
 aarch64-linux-gnu-objdump -d ./sieve.a64.exe 
 ```
 
-### Directory Organization
 
-The directory organization reflects the architecture of the Cwerg:
-
-#### [Base/](../Base) 
-
-contains the [IR](opcodes.md) definitions, (de-)serialization code, 
-transformation and optimization passes.
-
-Implementations: Python, C++ 
  
-#### [CodeGenA32/](../CodeGenA32)
-
-contains the Arm 32-bit backends which converts the IR to Arm32 machine Code.
-
-Implementations: Python, C++ 
-
-#### [CodeGenA64/](../CodeGenA64)
-
-contains the Arm 64-bit backends which converts the IR to Arm64 machine Code.
-
-Implementations: Python, C++ 
-
-#### [CodeGenC/](../CodeGenC)
- 
-contains the C backend which converts the IR to equivalent C code
- 
-Implementations: Python
- 
-#### [CpuA32/](../CpuA32)
-
-contains the (dis-)assemblers for the Arm 32-bit ISA. They are based
-on a tabular description of the ISA which is also used by 
-and may be useful for other projects as well.
-
-Implementations: Python, C++ 
-
-#### [CpuA64/](../CpuA64)
-
-contains the (dis-)assemblers for the Arm 64-bit ISA. They are based
-on a tabular description of the ISA which is also used by 
-and may be useful for other projects as well.
-
-Implementations: Python, C++ 
-
-#### [Elf/](../Elf)
-
-contains the (dis-)assemblers for the Elf object code format.
-Currently, only basic features necessary to deal with static executables
-are supported but it is more or less "standalone" and may be useful for
- other projects as well
- 
-Implementations: Python, C++ 
-
-#### [Examples/](../Examples)
-
-Examples illustrating the use of Cwerg.
-
-#### [FrontEndC/](../FrontEndC)
- 
-contains a frontend that translates a subset of the C language to the IR.
- 
-Implementations: Python
- 
-#### [FrontEndWASM/](../FrontEndWASM)
- 
-contains a frontend that translates WASM modules to the IR.
-This includes implementations of parts of a WASI API
- 
-Implementations: Python
-
-#### [TestQemu/](../TestQemu)
-
-tests the cross development environment setup. 
-
-#### [Tools/](../Tools)
-
-misc tools
-
-Implementations: Python
-
-#### [Util](../Util)
-
-contains basic helpers for parsing and elementary datastructures
-
-Implementations: Python, C++
-
-## Vaporware
-
-#### [CpuX64/](../CpuX64)
-
-future home of the  (dis-)assemblers for X86-64 ISA
 
 
-#### [FrontEndLLVM/](../FrontEndLLVM)
-
-future home of a LLVM to IR translator.
 
 
-#### [FrontEndWASM/](../FrontEndWASM)
 
-future home of a WASM to IR translator.
+
+
 

@@ -26,28 +26,56 @@
 
 ### Runtime Library
 
+Very basic standard lib
+
 [StdLib](../StdLib/README.md)
 
 ### Frontends
 
-[C (Lite) Frontend](../FrontEndC/README.md)
+Generate Cwerg IR from input languages.
+
+[C (Lite) Frontend](../FrontEndC/README.md), 
+[WASM/WASI Frontend](../FrontEndWASM/README.md)
 
 ### Backends
 
-[C backend](../CodeGenC/README.md)
+Generate a target (machine) code from Cwerg IR code.
 
-[ARM32 backend](../CodeGenA32/README.md)
+Implementations: Python, C++ (except for C Backend which is Python only)
 
-### Target ISAs
+[C Backend](../CodeGenC/README.md), 
+[Arm32 (A32) Backend](../CodeGenA32/README.md), 
+[Aarch64 (A64) Backend](../CodeGenA64/README.md), 
+[X64-64 (X64) Backend](../CodeGenX64/README.md), 
 
-[ARM32 ISA](../CpuA32/README.md)
+### Target ISAs (Assembler/Disassembler)
 
-[ARM64 (AArch64) ISA](../CpuA64/README.md) (work in progress)
+These can be used standalone (without the rest of Cwerg)
+
+Implementations: Python, C++ 
+
+[Arm32 (A32) ISA](../CpuA32/README.md),
+[AArch64 (A64)) ISA](../CpuA64/README.md), 
+[X86-64 (X64)) ISA](../CpuX64/README.md) 
+
 
 ### Object File Formats
+
+This can be used standalone (without the rest of Cwerg)
+
+Implementations: Python, C++ 
 
 [ELF](../Elf/README.md) - 32 and 64 bit Elf support
 
 ### Examples
 
 [Examples](../Examples/README.md)
+
+
+### Misc
+
+[TestQemu/](../TestQemu) tests the cross development environment setup
+
+[Util](../Util) contains basic helpers for parsing and elementary datastructures
+
+[Tools/](../Tools) misc tools, primarily for debugging
