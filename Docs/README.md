@@ -1,6 +1,5 @@
-## 
 
-### General
+## General
 
 [Intro](../README.md)
 
@@ -16,7 +15,7 @@
 
 [Debugging Hints](debugging.md)
 
-### Implementation Details
+## Implementation Details
 
 [Liveness Analysis](liveness.md)
 
@@ -24,11 +23,12 @@
 
 [Instruction Selection](instruction_selection.md)
 
-### Runtime Library
 
-Very basic standard lib
+## Directory Organization
 
-[StdLib](../StdLib/README.md)
+### Examples
+
+[Examples](../Examples/README.md)
 
 ### Frontends
 
@@ -67,9 +67,13 @@ Implementations: Python, C++
 
 [ELF](../Elf/README.md) - 32 and 64 bit Elf support
 
-### Examples
+### Runtime Library
 
-[Examples](../Examples/README.md)
+Very basic standard lib
+
+[StdLib](../StdLib/README.md)
+
+
 
 
 ### Misc
