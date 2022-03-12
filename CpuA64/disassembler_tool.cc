@@ -1,13 +1,13 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuA64/symbolic.h"
-#include "Util/assert.h"
-#include "Util/parse.h"
-
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <string_view>
+
+#include "CpuA64/symbolic.h"
+#include "Util/assert.h"
+#include "Util/parse.h"
 
 using namespace cwerg::a64;
 
@@ -27,8 +27,7 @@ int main(int argc, char* argv[]) {
       }
       std::vector<std::string> ops;
       std::string_view enum_name = InsSymbolize(ins, &ops);
-      std::cout << std::hex << std::setfill('0') << std::setw(8) << data
-                << std::dec << " " << enum_name;
+      std::cout << std::hex << data << std::dec << " " << enum_name;
       std::string_view sep = " ";
       for (const std::string& op : ops) {
         std::cout << sep << op;
@@ -46,8 +45,8 @@ int main(int argc, char* argv[]) {
       if (Disassemble(&ins, data)) {
         const uint32_t data2 = Assemble(ins);
         if (data != data2) {
-          std::cout << "Disassembler failure " << std::hex << data << " vs "
-                    << data2 << ": ";
+          std::cout << "Disassembler failure " << std::hex
+                    << data << " vs " << data2 << std::dec << ": ";
           ops.clear();
           std::string_view enum_name = InsSymbolize(ins, &ops);
           std::cout << enum_name;
@@ -79,7 +78,7 @@ int main(int argc, char* argv[]) {
       }
       std::vector<std::string> ops;
       std::string_view enum_name = InsSymbolize(ins, &ops);
-      std::cout << argv[i] << " " << enum_name;
+      std::cout << std::hex << data << std::dec << " " << enum_name;
       std::string_view sep = " ";
       for (const std::string& op : ops) {
         std::cout << sep << op;

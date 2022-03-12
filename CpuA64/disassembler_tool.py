@@ -13,7 +13,7 @@ def disass(data):
         return
 
     enum_name, ops_str = symbolic.InsSymbolize(ins)
-    print(f"{data:08x}", f"{ins.opcode.NameForEnum()} {' '.join(ops_str)}")
+    print(f"{data:x}", f"{ins.opcode.NameForEnum()} {' '.join(ops_str)}")
     for f, o, o_str in zip(ins.opcode.fields, ins.operands, ops_str):
         print(f"    {f.name:35s} {o_str:10} ({o})")
     # print(f"flags: {ins.opcode.classes}")
@@ -34,7 +34,7 @@ def batch():
             print(f"could not disassemble {data:x}")
             continue
         enum_name, ops_str = symbolic.InsSymbolize(ins)
-        print(f"{data:08x} {enum_name}{' ' if ops_str else ''}{', '.join(ops_str)}")
+        print(f"{data:x} {enum_name}{' ' if ops_str else ''}{', '.join(ops_str)}")
         data2 = a64.Assemble(ins)
         assert data == data2
         ins2 = symbolic.InsFromSymbolized(enum_name, ops_str)

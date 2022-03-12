@@ -53,3 +53,29 @@ f280000a movk_x_imm x10 0x0 0
     DREG_5_9                            d0         (0)
     IMM_FLT_ZERO                        0          (0)
 
+9e670100 fmov_d_from_x d0 x8
+    DREG_0_4                            d0         (0)
+    XREG_5_9                            x8         (8)
+
+1e260000 fmov_w_from_s w0 s0
+    WREG_0_4                            w0         (0)
+    SREG_5_9                            s0         (0)
+
+e205800 cnt_8b v0 v0
+    VREG_0_4                            v0         (0)
+    VREG_5_9                            v0         (0)
+
+2e303800 uaddlv_8b v0 v0
+    VREG_0_4                            v0         (0)
+    VREG_5_9                            v0         (0)
+
+ee2e062 pmull_1d v2 v3 v2
+    VREG_0_4                            v2         (2)
+    VREG_5_9                            v3         (3)
+    VREG_16_20                          v2         (2)
+
+4ee3e282 pmull2_2d v2 v20 v3
+    VREG_0_4                            v2         (2)
+    VREG_5_9                            v20        (20)
+    VREG_16_20                          v3         (3)
+
