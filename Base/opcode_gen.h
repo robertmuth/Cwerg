@@ -19,7 +19,8 @@ enum class OPC : uint8_t {
     MUL = 0x12,
     DIV = 0x13,
     REM = 0x14,
-    COPYSIGN = 0x15,
+    CLMUL = 0x16,
+    COPYSIGN = 0x17,
     XOR = 0x18,
     AND = 0x19,
     OR = 0x1a,
@@ -68,6 +69,7 @@ enum class OPC : uint8_t {
 
     CNTLZ = 0x60,
     CNTTZ = 0x61,
+    CNTPOP = 0x62,
 
     NOP = 0x70,
     NOP1 = 0x71,

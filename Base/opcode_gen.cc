@@ -386,13 +386,14 @@ const struct StringKind OPCFromStringMap[] = {
     {"cas.mem", 77},
     {"cas.stk", 78},
     {"ceil", 80},
+    {"clmul", 22},
     {"cmpeq", 53},
     {"cmplt", 54},
     {"cntlz", 96},
     {"cntpop", 98},
     {"cnttz", 97},
     {"conv", 50},
-    {"copysign", 21},
+    {"copysign", 23},
     {"cos", 89},
     {"div", 19},
     {"exp", 94},
@@ -434,7 +435,7 @@ const struct StringKind OPCFromStringMap[] = {
 };
 
 const uint8_t OPCJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 35, 36, 37, 255, 255, 255, 38, 255, 39, 47, 49, 51, 52, 255, 54, 57, 67, 255, 255, 255, 70, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 36, 37, 38, 255, 255, 255, 39, 255, 40, 48, 50, 52, 53, 255, 55, 58, 68, 255, 255, 255, 71, 255, 255, 255, 255, 255, 255, 255,};
 const Opcode GlobalOpcodes[256] = {
      {  //  0 
        {}, 
@@ -541,21 +542,21 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
        {TC::INT, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
        "rem", 0 },
-     {  // 15 copysign
+     {  // 15 
+       {}, 
+       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
+       {}, 
+       "", 0 },
+     {  // 16 clmul
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
+       {TC::INT, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
+       "clmul", 0 },
+     {  // 17 copysign
        {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
        OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
        {TC::FLT, TC::SAME_AS_PREV, TC::SAME_AS_PREV}, 
        "copysign", 0 },
-     {  // 16 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
-     {  // 17 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
      {  // 18 xor
        {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
        OPC_KIND::ALU, OPC_GENUS::BASE, 3, 1,
@@ -926,11 +927,11 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
        {TC::INT, TC::SAME_AS_PREV}, 
        "cnttz", 0 },
-     {  // 62 
-       {}, 
-       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
-       {}, 
-       "", 0 },
+     {  // 62 cntpop
+       {OP_KIND::REG, OP_KIND::REG_OR_CONST}, 
+       OPC_KIND::ALU1, OPC_GENUS::BASE, 2, 1,
+       {TC::INT, TC::SAME_AS_PREV}, 
+       "cntpop", 0 },
      {  // 63 
        {}, 
        OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,

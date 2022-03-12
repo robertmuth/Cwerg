@@ -481,12 +481,23 @@ REM = Opcode(0x14, "rem", OPC_KIND.ALU,
               Modulo by 0 and signed modulo of min_int by -1 are UB  
               """)
 
-COPYSIGN = Opcode(0x15, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+CLMUL = Opcode(0x16, "clmul", OPC_KIND.ALU,
+               [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               """NYI: Carry-less multiplication:
+             
+             def clmul(src1: int, src2: int) -> int:
+                 dst = 0
+                 for i in range(bitwidth(src1)):
+                     if (1 << i) & src1: dst ^= src2 << i
+                 return dst
+             """)
+
+COPYSIGN = Opcode(0x17, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                   [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                   """Set the sign of src1 to match src2 (floating point only)
                   
                   Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
-
 ############################################################
 # LOGIC ALU 0x30
 # INT ONLY (all regs are treated as unsigned except for shr/rshr
@@ -737,7 +748,7 @@ CAS = Opcode(0x4c, "cas", OPC_KIND.CAS,
                  OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                  TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
-             """Compare and swap  
+             """NYI: Compare and swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
@@ -750,12 +761,12 @@ CAS_MEM = Opcode(0x4d, "cas.mem", OPC_KIND.CAS,
                      OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """Compare and swap  
+                 """NYI: Compare and swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
-             """,
+                 """,
                  OA.MEM_WR)
 
 CAS_STK = Opcode(0x4e, "cas.stk", OPC_KIND.CAS,
@@ -763,8 +774,8 @@ CAS_STK = Opcode(0x4e, "cas.stk", OPC_KIND.CAS,
                      OP_KIND.STK, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """Compare and swap  
-                 
+                 """NYI: Compare and swap  
+
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
@@ -837,9 +848,10 @@ CNTTZ = Opcode(0x61, "cnttz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST]
 
 # INT SINGLE OPERAND 0xb0
 # the src reg is treated as an unsigned reg
-Opcode(0x62, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
-       [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.TBD,
-       "TBD")
+CNTPOP = Opcode(0x62, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+                [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+                "Count set bits (pop count)")
+
 
 ############################################################
 # Annotations

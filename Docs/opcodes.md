@@ -171,7 +171,17 @@ Modulo: dst := a % b
               Modulo by 0 and signed modulo of min_int by -1 are UB  
               
 
-#### [15] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [15] clmul *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+NYI: Carry-less multiplication:
+             
+             def clmul(src1: int, src2: int) -> int:
+               dst = 0
+               for i in range(bitwidth(src1)):
+                   if (1 << i) & src1: dst ^= src2 << i
+                return dst
+             
+
+#### [16] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Set the sign of src1 to match src2 (floating point only)
                   
                   Note: `copysign dst src1 0.0` can be used to emulate `abs`
@@ -319,7 +329,7 @@ Store to memory base with offset. RAM[base + offset] := src
 Store to stack base with offset. RAM[base + offset] := src
 
 #### [4c] cas *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Compare and swap  
+NYI: Compare and swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
@@ -327,16 +337,16 @@ Compare and swap
              
 
 #### [4d] cas.mem *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Compare and swap  
+NYI: Compare and swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
-             
+                 
 
 #### [4e] cas.stk *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Compare and swap  
-                 
+NYI: Compare and swap  
+
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
@@ -368,6 +378,9 @@ Count leading zeros.
 
 #### [61] cnttz *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Count trailing zeros.
+
+#### [62] cntpop *dst* <sub>[REG:INT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Count set bits (pop count)
 
 ## Annotation
 
