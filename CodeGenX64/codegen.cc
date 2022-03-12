@@ -214,7 +214,10 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
           ASSERT(pat != nullptr, "could not find matching pattern for "
                                      << ins << " in " << Name(fun));
           for (unsigned i = 0; i < pat->length; ++i) {
-            inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
+            x64::Ins cpu_ins = MakeInsFromTmpl(pat->start[i], ins, ctx);
+            if (SimpifyCpuIns(cpu_ins)) {
+              inss.push_back(cpu_ins);
+            }
           }
         }
       }

@@ -94,6 +94,17 @@ def _RenderIns(ins: a64.Ins) -> str:
     return f"    {name} {' '.join(ops)}"
 
 
+def _SimplifyCpuIns(cpu_ins: a64.Ins) -> bool:
+    # NOTE: seems to be ineffective and has not been implemented in the C++ version
+    # ops = cpu_ins.operands
+    # if (cpu_ins.opcode.NameForEnum() == "orr_x_reg" and
+    #    ops[1] == isel_tab.FIXARG.XZR and
+    #        ops[0] == ops[2] and
+    #        ops[3] == a64.SHIFT.lsl and ops[4] == 0):
+    #    return False
+    return True
+
+
 def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
     assert fun.stk_size >= 0, f"did you call FinalizeStk?"
@@ -123,9 +134,10 @@ def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
                 pattern = isel_tab.FindMatchingPattern(ins)
                 assert pattern, (f"could not find pattern for\n{ins} {ins.operands} "
                                  f"in {fun.name}:{bbl.name}")
-
-                out += [_RenderIns(tmpl.MakeInsFromTmpl(ins, ctx))
-                        for tmpl in pattern.emit]
+                for tmpl in pattern.emit:
+                    cpu_ins = tmpl.MakeInsFromTmpl(ins, ctx)
+                    if _SimplifyCpuIns(cpu_ins):
+                        out.append(_RenderIns(cpu_ins))
     out.append(f".endfun")
     return out
 
@@ -184,14 +196,17 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
         assert mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
+        elfunit.MemStart(mem.name, mem.alignment,
+                         _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.fun.name)
+                elfunit.AddFunAddr(
+                    enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(
+                    enum_tab.RELOC_TYPE_AARCH64.ABS64, d.size, d.mem.name, d.offset)
             else:
                 assert False
         elfunit.MemEnd()
@@ -203,7 +218,8 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
             elfunit.MemStart(jtb.name, 8, "rodata", True)
             for i in range(jtb.size):
                 bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                elfunit.AddBblAddr(enum_tab.RELOC_TYPE_AARCH64.ABS64, 8, bbl.name)
+                elfunit.AddBblAddr(
+                    enum_tab.RELOC_TYPE_AARCH64.ABS64, 8, bbl.name)
             elfunit.MemEnd()
         ctx = regs.FunComputeEmitContext(fun)
 
@@ -224,8 +240,9 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
                     pattern = isel_tab.FindMatchingPattern(ins)
                     assert pattern, f"could not find pattern for\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
-                        assembler.AddIns(elfunit,
-                                         tmpl.MakeInsFromTmpl(ins, ctx))
+                        cpu_ins = tmpl.MakeInsFromTmpl(ins, ctx)
+                        if _SimplifyCpuIns(cpu_ins):
+                            assembler.AddIns(elfunit, cpu_ins)
         elfunit.FunEnd()
     elfunit.AddLinkerDefs()
     if add_startup_code:
@@ -240,12 +257,11 @@ if __name__ == "__main__":
     _ALLOWED_MODES = {"normal", "binary", "legalize", "reg_alloc_global",
                       "reg_alloc_local"}
 
-
     def main():
         parser = argparse.ArgumentParser(description='CodeGenA64')
         parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('-add_startup_code', action='store_true', help=
-        'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
+        parser.add_argument('-add_startup_code', action='store_true',
+                            help='Add startup code (symbol _startup) which calls main and provides access to argc/argv')
 
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
@@ -294,6 +310,5 @@ if __name__ == "__main__":
             print(f"# STATS:")
             for key, val in sorted(opt_stats.items()):
                 print(f"#  {key}: {val}", file=fout)
-
 
     main()
