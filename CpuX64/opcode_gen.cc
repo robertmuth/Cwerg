@@ -364,7 +364,7 @@ void SetOperand(OK ok, int64_t v, const Opcode& opcode, char* data,
       return;
     case OK::BYTE_WITH_REG8:
       SetRegBits(data, v, opcode.byte_with_reg_pos, 0, 0, rex);
-      ASSERT(4 <= v && v <= 7, "");
+      ASSERT(4 <= v && v <= 7, "high bytes are not supported (ah, ...)");
       return;
     case OK::BYTE_WITH_REG16:
     case OK::BYTE_WITH_REG32:
@@ -405,7 +405,7 @@ uint32_t Assemble(const Ins& ins, char* data) {
   // copy instruction data and patch it up but ignore rex prefix
   std::memcpy(data, opcode.data, opcode.num_bytes);
   for (int i = 0; i < opcode.num_fields; ++i) {
-      SetOperand(opcode.fields[i], ins.operands[i], opcode, data, &rex);
+    SetOperand(opcode.fields[i], ins.operands[i], opcode, data, &rex);
   }
   if (rex != 0) {
     for (unsigned pos = 0; pos < opcode.num_bytes; ++pos) {
@@ -413,12 +413,74 @@ uint32_t Assemble(const Ins& ins, char* data) {
       // skip other prefixes
       if (d == 0xf2 || d == 0xf3 || d == 0x66) continue;
       // std::memmove(data + pos + 1, data + pos, opcode.num_bytes - pos);
-      for (unsigned end = opcode.num_bytes; end > pos; --end) data[end] = data[end -1];
+      for (unsigned end = opcode.num_bytes; end > pos; --end)
+        data[end] = data[end - 1];
       data[pos] = rex | 0x40;
       return opcode.num_bytes + 1;
     }
   }
   return opcode.num_bytes;
+}
+
+bool UsesRex(const Ins& ins) {
+  const Opcode& opcode = *ins.opcode;
+  if (opcode.rexw) return true;
+  for (int i = 0; i < opcode.num_fields; ++i) {
+    const int64_t v = ins.operands[i];
+    switch (opcode.fields[i]) {
+      case OK::MODRM_RM_REG8:
+      case OK::MODRM_REG8:
+        if (4 <= v && v <= 7) return true;
+        // fallthrough
+      case OK::MODRM_RM_REG16:
+      case OK::MODRM_RM_REG32:
+      case OK::MODRM_RM_REG64:
+      case OK::MODRM_RM_XREG32:
+      case OK::MODRM_RM_XREG64:
+      case OK::MODRM_RM_XREG128:
+      case OK::MODRM_RM_BASE:
+      case OK::MODRM_REG16:
+      case OK::MODRM_REG32:
+      case OK::MODRM_REG64:
+      case OK::MODRM_XREG32:
+      case OK::MODRM_XREG64:
+      case OK::MODRM_XREG128:
+      case OK::SIB_BASE:
+      case OK::SIB_INDEX:
+      case OK::SIB_INDEX_AS_BASE:
+      case OK::BYTE_WITH_REG8:
+      case OK::BYTE_WITH_REG16:
+      case OK::BYTE_WITH_REG32:
+      case OK::BYTE_WITH_REG64:
+        if (v >> 3) return true;
+        break;
+      case OK::IMPLICIT_AL:
+      case OK::IMPLICIT_AX:
+      case OK::IMPLICIT_EAX:
+      case OK::IMPLICIT_RAX:
+      case OK::IMPLICIT_DX:
+      case OK::IMPLICIT_EDX:
+      case OK::IMPLICIT_RDX:
+      case OK::IMPLICIT_CL:
+      case OK::IMPLICIT_1:
+      case OK::RIP_BASE:
+      case OK::SIB_SCALE:
+      case OK::IMM8:
+      case OK::IMM8_16:
+      case OK::IMM8_32:
+      case OK::IMM8_64:
+      case OK::IMM16:
+      case OK::IMM32:
+      case OK::IMM32_64:
+      case OK::IMM64:
+      case OK::OFFPCREL8:
+      case OK::OFFABS8:
+      case OK::OFFPCREL32:
+      case OK::OFFABS32:
+        break;
+    }
+  }
+  return false;
 }
 
 const Opcode* FindOpcodeForMnemonic(std::string_view s) {

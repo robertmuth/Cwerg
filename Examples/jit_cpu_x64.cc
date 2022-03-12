@@ -81,8 +81,7 @@ int main(int argc, char* argv[]) {
   unsigned ins_length[100];
   int i = 0;
   for (const auto& ins : Fibonacci) {
-    char buffer[x64::MAX_INSTRUCTION_LENGTH_WITH_PREFIXES];
-    ins_length[i++] = Assemble(ins, buffer);
+    ins_length[i++] = UsesRex(ins) + ins.opcode->num_bytes;
   }
 
   ASSERT(Fibonacci[4].opcode->fields[0] == OK::OFFPCREL8, "");

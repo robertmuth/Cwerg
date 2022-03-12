@@ -95,8 +95,6 @@ def EmitFib(code_buf):
 
 
 def gen_code(x):
-
-
     isa = platform.machine()
     if isa != "x86_64":
         print(f"\nIncompatible machine architecture {isa}: no execution")

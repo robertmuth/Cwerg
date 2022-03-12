@@ -150,6 +150,8 @@ extern bool Disassemble(Ins* ins, std::string_view data);
 // `data` must be at least ins.opcode.num_bytes long
 extern uint32_t Assemble(const Ins& ins, char* data);
 
+extern bool UsesRex(const Ins& ins);
+
 extern const char* EnumToString(OK x);
 
 }  // namespace cwerg::x64

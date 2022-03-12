@@ -106,6 +106,7 @@ void disass(std::string_view data, const std::string& line) {
   char buffer[128];
   const uint32_t num_bytes = Assemble(ins, buffer);
   ASSERT(num_bytes == data.size(), "assembler size mismatch");
+  ASSERT(num_bytes == UsesRex(ins) + ins.opcode->num_bytes, "");
   /*
   for (uint32_t i = 0; i < num_bytes; ++i) {
     std::cout << std::hex << (unsigned(data[i]) & 0xff) << " "
