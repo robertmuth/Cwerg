@@ -669,7 +669,7 @@ def InitAluInt():
         bw = kind1.bitwidth()
         Pattern(o.DIV, [kind1] * 3,
                 [C.REG_RDX, C.REG_RAX, C.REG],
-                [InsTmpl(f"xor_{bw}_mr_r", [F.RDX, F.RDX]),
+                [InsTmpl(f"xor_{bw}_r_mr", [F.RDX, F.RDX]),
                  InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
     # TODO: handle 8 bit divide
@@ -1268,7 +1268,7 @@ def InitCFG():
                 [InsTmpl("push_64_mr", [F.RCX]),
                  InsTmpl("push_64_mr", [F.R11]),
                  InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
-                 InsTmpl("mov_64_mr_r", [F.R10, F.RCX]),
+                 InsTmpl("mov_64_r_mr", [F.R10, F.RCX]),
                  InsTmpl("syscall", []),
                  InsTmpl("pop_64_mr", [F.R11]),
                  InsTmpl("pop_64_mr", [F.RCX])])

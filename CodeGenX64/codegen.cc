@@ -7,6 +7,7 @@
 #include "CodeGenX64/regs.h"
 #include "CpuX64/assembler.h"
 #include "CpuX64/opcode_gen.h"
+#include "CpuX64/opcode_gen_enum.h"
 #include "CpuX64/symbolic.h"
 #include "Util/parse.h"
 
@@ -20,7 +21,7 @@ namespace {
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
--> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
@@ -37,6 +38,13 @@ void JtbCodeGen(Jtb jtb, std::ostream* output) {
     *output << "    .addr.bbl 8 " << Name(bbl) << "\n";
   }
   *output << ".endmem\n";
+}
+
+bool SimpifyCpuIns(x64::Ins cpu_ins) {
+  if (cpu_ins.operands[0] != cpu_ins.operands[1]) return true;
+  x64::OPC opc = x64::OpcodeOPC(cpu_ins.opcode);
+  return opc != x64::OPC::mov_8_r_mr && opc != x64::OPC::mov_16_r_mr &&
+         opc != x64::OPC::mov_64_r_mr;
 }
 
 void FunCodeGen(Fun fun, std::ostream* output) {
@@ -78,7 +86,10 @@ void FunCodeGen(Fun fun, std::ostream* output) {
         const Pattern* pat = FindMatchingPattern(ins);
         ASSERT(pat != nullptr, "");
         for (unsigned i = 0; i < pat->length; ++i) {
-          inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
+          x64::Ins cpu_ins = MakeInsFromTmpl(pat->start[i], ins, ctx);
+          if (SimpifyCpuIns(cpu_ins)) {
+            inss.push_back(cpu_ins);
+          }
         }
       }
     }
@@ -155,10 +166,12 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       if (target.kind() == RefKind::STR) {
         out.AddData(extra, StrData(Str(target)), size);
       } else if (target.kind() == RefKind::FUN) {
-        out.AddFunAddr(size, +elf::RELOC_TYPE_X86_64::X_64, StrData(Name(Fun(target))));
+        out.AddFunAddr(size, +elf::RELOC_TYPE_X86_64::X_64,
+                       StrData(Name(Fun(target))));
       } else {
         ASSERT(target.kind() == RefKind::MEM, "");
-        out.AddMemAddr(size,  +elf::RELOC_TYPE_X86_64::X_64, StrData(Name(Mem(target))), extra);
+        out.AddMemAddr(size, +elf::RELOC_TYPE_X86_64::X_64,
+                       StrData(Name(Mem(target))), extra);
       }
     }
     out.MemEnd();
@@ -198,7 +211,8 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
           EmitFunEpilog(ctx, &inss);
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
-          ASSERT(pat != nullptr, "could not find matching pattern for " << ins << " in " << Name(fun));
+          ASSERT(pat != nullptr, "could not find matching pattern for "
+                                     << ins << " in " << Name(fun));
           for (unsigned i = 0; i < pat->length; ++i) {
             inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
           }

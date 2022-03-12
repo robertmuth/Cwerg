@@ -418,15 +418,15 @@ const InsTmpl kInsTemplates[] = {
   { {+F::RSP, +F::NO_INDEX, +F::SCALE1, +P::spill01, +P::tmp_flt},
     x64::OPC::movsd_mbis32_x, 0x18 },  // mul [209]
   { {+F::RDX, +F::RDX},
-    x64::OPC::xor_16_mr_r, 0x0 },  // div [210]
+    x64::OPC::xor_16_r_mr, 0x0 },  // div [210]
   { {+F::RDX, +F::RAX, +P::reg2},
     x64::OPC::div_16_dx_ax_mr, 0x4 },  // div [211]
   { {+F::RDX, +F::RDX},
-    x64::OPC::xor_32_mr_r, 0x0 },  // div [212]
+    x64::OPC::xor_32_r_mr, 0x0 },  // div [212]
   { {+F::RDX, +F::RAX, +P::reg2},
     x64::OPC::div_32_edx_eax_mr, 0x4 },  // div [213]
   { {+F::RDX, +F::RDX},
-    x64::OPC::xor_64_mr_r, 0x0 },  // div [214]
+    x64::OPC::xor_64_r_mr, 0x0 },  // div [214]
   { {+F::RDX, +F::RAX, +P::reg2},
     x64::OPC::div_64_rdx_rax_mr, 0x4 },  // div [215]
   { {+F::RDX, +F::RAX},
@@ -2424,7 +2424,7 @@ const InsTmpl kInsTemplates[] = {
   { {+F::RAX, +P::num1},
     x64::OPC::mov_64_mr_imm32, 0x2 },  // syscall [1212]
   { {+F::R10, +F::RCX},
-    x64::OPC::mov_64_mr_r, 0x0 },  // syscall [1213]
+    x64::OPC::mov_64_r_mr, 0x0 },  // syscall [1213]
   { {},
     x64::OPC::syscall, 0x0 },  // syscall [1214]
   { {+F::R11},
@@ -2438,7 +2438,7 @@ const InsTmpl kInsTemplates[] = {
   { {+F::RAX, +P::num1},
     x64::OPC::mov_64_mr_imm32, 0x2 },  // syscall [1219]
   { {+F::R10, +F::RCX},
-    x64::OPC::mov_64_mr_r, 0x0 },  // syscall [1220]
+    x64::OPC::mov_64_r_mr, 0x0 },  // syscall [1220]
   { {},
     x64::OPC::syscall, 0x0 },  // syscall [1221]
   { {+F::R11},
@@ -2452,7 +2452,7 @@ const InsTmpl kInsTemplates[] = {
   { {+F::RAX, +P::num1},
     x64::OPC::mov_64_mr_imm32, 0x2 },  // syscall [1226]
   { {+F::R10, +F::RCX},
-    x64::OPC::mov_64_mr_r, 0x0 },  // syscall [1227]
+    x64::OPC::mov_64_r_mr, 0x0 },  // syscall [1227]
   { {},
     x64::OPC::syscall, 0x0 },  // syscall [1228]
   { {+F::R11},
@@ -18515,7 +18515,7 @@ const uint16_t kPatternJumper[256] = {
  0 /* .stk */,  0 /* .jtb */,  0 /* --- */,  0 /* --- */, 
  0 /* --- */,  0 /* --- */,  0 /* --- */,  0 /* --- */, 
  0 /* add */,  56 /* sub */,  112 /* mul */,  144 /* div */, 
- 158 /* rem */,  158 /* copysign */,  158 /* --- */,  158 /* --- */, 
+ 158 /* rem */,  158 /* --- */,  158 /* clmul */,  158 /* copysign */, 
  158 /* xor */,  206 /* and */,  254 /* or */,  302 /* shl */, 
  334 /* shr */,  366 /* --- */,  366 /* --- */,  366 /* --- */, 
  366 /* beq */,  454 /* bne */,  542 /* blt */,  622 /* ble */, 
@@ -18529,7 +18529,7 @@ const uint16_t kPatternJumper[256] = {
  1330 /* ld */,  2482 /* ld.mem */,  2674 /* ld.stk */,  2866 /* --- */, 
  2866 /* --- */,  2866 /* --- */,  2866 /* --- */,  2866 /* --- */, 
  2866 /* st */,  4018 /* st.mem */,  4210 /* st.stk */,  4402 /* --- */, 
- 4402 /* --- */,  4402 /* --- */,  4402 /* --- */,  4402 /* --- */, 
+ 4402 /* cas */,  4402 /* cas.mem */,  4402 /* cas.stk */,  4402 /* --- */, 
  4402 /* ceil */,  4402 /* floor */,  4402 /* round */,  4402 /* trunc */, 
  4402 /* sqrt */,  4410 /* --- */,  4410 /* --- */,  4410 /* --- */, 
  4410 /* sin */,  4410 /* cos */,  4410 /* tan */,  4410 /* asin */, 

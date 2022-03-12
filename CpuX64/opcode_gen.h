@@ -107,6 +107,10 @@ inline const char* OpcodeName(const Opcode* opcode) {
   return OpcodeTableNames[opcode - OpcodeTableEncodings];
 }
 
+inline OPC OpcodeOPC(const Opcode* opcode) {
+  return OPC(opcode - OpcodeTableEncodings);
+}
+
 extern const Opcode* FindOpcode(std::string_view data);
 
 // Find the Opcode or null with the given name
