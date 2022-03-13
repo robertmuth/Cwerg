@@ -250,8 +250,9 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     lowering.FunPushargConversion(fun, regs.PushPopInterface)
     lowering.FunPopargConversion(fun, regs.PushPopInterface)
 
-    # ARM has no mod instruction
+    # ARM is missing instructions for: mod, cntpop
     lowering.FunEliminateRem(fun)
+    lowering.FunEliminateCntPop(fun)
 
     # A32 has not support for base + reg + offset but a stack access implicitly
     # requires base (=sp) + offset, so we have to rewrite

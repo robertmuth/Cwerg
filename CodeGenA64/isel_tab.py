@@ -88,6 +88,9 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     elif opc is o.COPYSIGN:
         scratch = fun.GetScratchReg(o.DK.U64, "copysign", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
+    elif opc is o.CNTPOP:
+        scratch = fun.GetScratchReg(o.DK.F64, "popcnt", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
 
@@ -168,13 +171,16 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.reg0, PARAM.reg1, PARAM.reg2, PARAM.reg3, PARAM.reg4}:
         n = arg.value - PARAM.reg0.value
         reg = ins.operands[n]
-        assert isinstance(reg, ir.Reg), f"expected reg: {reg} in {ins} {ins.operands}"
-        assert reg.HasCpuReg(), f"expected cpu reg: {reg} in {ins} {ins.operands}"
+        assert isinstance(
+            reg, ir.Reg), f"expected reg: {reg} in {ins} {ins.operands}"
+        assert reg.HasCpuReg(
+        ), f"expected cpu reg: {reg} in {ins} {ins.operands}"
         return reg.cpu_reg.no
     elif arg in {PARAM.num0, PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4}:
         n = arg.value - PARAM.num0.value
         num = ins.operands[n]
-        assert isinstance(num, ir.Const), f"expected {arg} got {num} in {ins} {ins.operands}"
+        assert isinstance(
+            num, ir.Const), f"expected {arg} got {num} in {ins} {ins.operands}"
         return num.value
     elif arg in {PARAM.num0_neg, PARAM.num1_neg, PARAM.num2_neg, PARAM.num3_neg, PARAM.num4_neg}:
         n = arg.value - PARAM.num0_neg.value
@@ -279,7 +285,8 @@ class InsTmpl:
 
     def __init__(self, opcode_name: str, args: List[Any]):
         opcode: a64.Opcode = a64.Opcode.name_to_opcode[opcode_name]
-        assert len(args) == len(opcode.fields), f"num arg mismatch for {opcode_name}"
+        assert len(args) == len(
+            opcode.fields), f"num arg mismatch for {opcode_name}"
         for op in args:
             assert isinstance(op, (int, PARAM, FIXARG)), (
                 f"unknown op {op} for {opcode.name} {args}")
@@ -442,7 +449,8 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
             break
         else:
             r2 = gpr_regs.pop(-1)
-            out.append(InsTmpl("ldp_x_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
+            out.append(InsTmpl("ldp_x_imm_post", [
+                       r2.no, r1.no, FIXARG.SP, 16]))
     flt_regs = regs.MaskToFlt64Regs(ctx.flt_reg_mask)
     while flt_regs:
         r1 = flt_regs.pop(-1)
@@ -451,15 +459,18 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
             break
         else:
             r2 = flt_regs.pop(-1)
-            out.append(InsTmpl("fldp_d_imm_post", [r2.no, r1.no, FIXARG.SP, 16]))
+            out.append(InsTmpl("fldp_d_imm_post", [
+                       r2.no, r1.no, FIXARG.SP, 16]))
     # a9bf7bfd 	stp	x29, x30, [sp, #-16]!
 
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
+        out.append(
+            InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
+        out.append(
+            InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
     # Note: we need to reverse these
     out.reverse()
     return out
@@ -495,14 +506,17 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
             break
         else:
             r2 = flt_regs.pop(-1)
-            out.append(InsTmpl("fstp_d_imm_pre", [FIXARG.SP, -16, r2.no, r1.no]))
+            out.append(InsTmpl("fstp_d_imm_pre", [
+                       FIXARG.SP, -16, r2.no, r1.no]))
 
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0, f"stack is too large {stk_size}"
     if stk_size & 0xfff000 != 0:
-        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
+        out.append(
+            InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
     if stk_size & 0xfff != 0:
-        out.append(InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
+        out.append(
+            InsTmpl("sub_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
 
     return out
 
@@ -642,7 +656,7 @@ def InitCmp():
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
         for cmp_kind, csel, inv_csel in [
             (o.DK.U32, "csel_x_cc", "csel_x_cs"),
-            (o.DK.S32, "csel_x_lt", "csel_x_ge")]:
+                (o.DK.S32, "csel_x_lt", "csel_x_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -657,7 +671,7 @@ def InitCmp():
     for kind in [o.DK.U32, o.DK.S32]:
         for cmp_kind, csel, inv_csel in [
             (o.DK.U32, "csel_w_cc", "csel_w_cs"),
-            (o.DK.S32, "csel_w_lt", "csel_w_ge")]:
+                (o.DK.S32, "csel_w_lt", "csel_w_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_w_reg", [FIXARG.WZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -673,7 +687,7 @@ def InitCmp():
         for cmp_kind, csel, inv_csel in [
             (o.DK.U64, "csel_x_cc", "csel_x_cs"),
             (o.DK.A64, "csel_x_cc", "csel_x_cs"),  # should this be signed?
-            (o.DK.S64, "csel_x_lt", "csel_x_ge")]:
+                (o.DK.S64, "csel_x_lt", "csel_x_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -689,7 +703,7 @@ def InitCmp():
         for cmp_kind, csel, inv_csel in [
             (o.DK.U64, "csel_w_cc", "csel_w_cs"),
             (o.DK.A64, "csel_w_cc", "csel_w_cs"),  # should this be signed?
-            (o.DK.S64, "csel_w_lt", "csel_w_ge")]:
+                (o.DK.S64, "csel_w_lt", "csel_w_ge")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl("subs_x_reg", [FIXARG.XZR, PARAM.reg3, PARAM.reg4, a64.SHIFT.lsl, 0]),
                      InsTmpl(csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -753,13 +767,20 @@ def InitAlu():
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
                     imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
-                [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
+                [InsTmpl("sub_w_reg", [PARAM.reg0, FIXARG.WZR,
+                         PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_curb1=IMM_CURB.ZERO)
         Pattern(o.CNTLZ, [kind1] * 2,
                 [InsTmpl("clz_w", [PARAM.reg0, PARAM.reg1])])
         Pattern(o.CNTTZ, [kind1] * 2,
                 [InsTmpl("rbit_w", [PARAM.reg0, PARAM.reg1]),
                  InsTmpl("clz_w", [PARAM.reg0, PARAM.reg0])])
+        Pattern(o.CNTPOP, [kind1] * 2,
+                [InsTmpl("orr_w_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                 InsTmpl("fmov_d_from_x", [PARAM.scratch_flt, PARAM.reg0]),
+                 InsTmpl("cnt_8b", [PARAM.scratch_flt, PARAM.scratch_flt]),
+                 InsTmpl("uaddlv_8b", [PARAM.scratch_flt, PARAM.scratch_flt]),
+                 InsTmpl("fmov_w_from_s", [PARAM.reg0, PARAM.scratch_flt])])
 
     for kind1 in [o.DK.U64, o.DK.S64]:
         for opc, a64_opc in [(o.AND, "and_x_reg"),
@@ -781,13 +802,19 @@ def InitAlu():
                     [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1, PARAM.num2])],
                     imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
         Pattern(o.SUB, [kind1] * 3,
-                [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR, PARAM.reg2, a64.SHIFT.lsl, 0])],
+                [InsTmpl("sub_x_reg", [PARAM.reg0, FIXARG.XZR,
+                         PARAM.reg2, a64.SHIFT.lsl, 0])],
                 imm_curb1=IMM_CURB.ZERO)
         Pattern(o.CNTLZ, [kind1] * 2,
                 [InsTmpl("clz_x", [PARAM.reg0, PARAM.reg1])])
         Pattern(o.CNTTZ, [kind1] * 2,
                 [InsTmpl("rbit_x", [PARAM.reg0, PARAM.reg1]),
                  InsTmpl("clz_x", [PARAM.reg0, PARAM.reg0])])
+        Pattern(o.CNTPOP, [kind1] * 2,
+                [InsTmpl("fmov_d_from_x", [PARAM.scratch_flt, PARAM.reg1]),
+                 InsTmpl("cnt_8b", [PARAM.scratch_flt, PARAM.scratch_flt]),
+                 InsTmpl("uaddlv_8b", [PARAM.scratch_flt, PARAM.scratch_flt]),
+                 InsTmpl("fmov_w_from_s", [PARAM.reg0, PARAM.scratch_flt])])
 
     for kind1 in [o.DK.U32, o.DK.S32]:
         Pattern(o.MUL, [kind1] * 3,
@@ -869,7 +896,7 @@ def InitStackLoad():
         (o.DK.U8, "ldr_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.F32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
-        (o.DK.F64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
+            (o.DK.F64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
@@ -911,7 +938,7 @@ def InitStackStore():
         (o.DK.U8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.S8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.F32, "fstr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
-        (o.DK.F64, "fstr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
+            (o.DK.F64, "fstr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
@@ -952,7 +979,8 @@ def InitLea():
                 imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
-                 InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.stk1_offset2_hi, 16]),
+                 InsTmpl("movk_x_imm", [PARAM.reg0,
+                         PARAM.stk1_offset2_hi, 16]),
                  InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
@@ -1064,7 +1092,8 @@ def InitMiscBra():
     # We currently use very inefficient jmp tables (8 byte entries)
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
             [InsTmpl("adrp", [PARAM.scratch_gpr, PARAM.jtb1_prel_hi21]),
-             InsTmpl("add_x_imm", [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.jtb1_lo12]),
+             InsTmpl("add_x_imm", [PARAM.scratch_gpr,
+                     PARAM.scratch_gpr, PARAM.jtb1_lo12]),
              InsTmpl("ldr_x_reg_w",
                      [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg0, FIXARG.UXTW, 3]),
              InsTmpl("br", [PARAM.scratch_gpr])])
@@ -1184,7 +1213,8 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
         if not p.MatchesTypeCurbs(ins):
             continue
         mismatches = p.MatchesImmCurbs(ins, assume_stk_op_matches)
-        if mismatches == 0: return 0
+        if mismatches == 0:
+            return 0
         num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
             best, best_num_bits = mismatches, num_bits
@@ -1193,7 +1223,8 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins, assume_stk_op_matche
 
 def _EmitCodeH(fout):
     for cls in [IMM_CURB, PARAM]:
-        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+        cgen.RenderEnum(cgen.NameValues(
+            cls), f"class {cls.__name__} : uint8_t", fout)
 
 
 def _RenderOperands(operands: List[Any]):
@@ -1217,14 +1248,16 @@ def _RenderOperands(operands: List[Any]):
 
 def _EmitCodeC(fout):
     for cls in [FIXARG, a64.SHIFT]:
-        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+        cgen.RenderEnum(cgen.NameValues(
+            cls), f"class {cls.__name__} : uint8_t", fout)
 
     print(f"\nconst InsTmpl kInsTemplates[] = {{", file=fout)
     print("  { /*used first entry*/ },", file=fout)
     num_ins = 1
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             for tmpl in pat.emit:
@@ -1252,7 +1285,8 @@ def _EmitCodeC(fout):
     num_pattern = 0
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             reg_constraints = [f"DK::{c.name}" for c in pat.type_constraints]
@@ -1268,25 +1302,32 @@ def _EmitCodeC(fout):
     print("}  // namespace", file=fout)
     # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
     # only for these two instances - no idea why
-    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB", fout)
     cgen.RenderEnumToStringFun("IMM_CURB", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM) + [("ZZZ", len(PARAM))], "PARAM", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        PARAM) + [("ZZZ", len(PARAM))], "PARAM", fout)
     cgen.RenderEnumToStringFun("PARAM", fout)
 
 
 def _DumpCodeSelTable():
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo[i]
-        print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
+        print(
+            f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
         for pat in patterns:
-            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
+            type_constraints = [
+                x.name if x != o.DK.INVALID else '*' for x in pat.type_constraints]
             imm_constraints = [x.name if x else '*' for x in pat.imm_curbs]
 
-            print(f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
+            print(
+                f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
             for tmpl in pat.emit:
-                ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
+                ops = [str(x) if isinstance(x, int)
+                       else x.name for x in tmpl.args]
                 print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
         print()
 

@@ -220,6 +220,7 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunPopargConversion(fun, *PushPopInterfaceA32);
 
   FunEliminateRem(fun, &inss);
+  FunEliminateCntPop(fun, &inss);
 
   FunEliminateStkLoadStoreWithRegOffset(fun, DK::A32, DK::S32, &inss);
 

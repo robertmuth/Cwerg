@@ -701,7 +701,7 @@ def InitBitFiddle():
 
     for kind in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind.bitwidth()
-        for opc, x64_opc in [(o.CNTTZ, "tzcnt"), (o.CNTLZ, "lzcnt")]:
+        for opc, x64_opc in [(o.CNTTZ, "tzcnt"), (o.CNTLZ, "lzcnt"), (o.CNTPOP, "popcnt")]:
             Pattern(opc, [kind] * 2,
                     [C.REG, C.REG],
                     [InsTmpl(f"{x64_opc}_{bw}_r_mr", [P.reg0, P.reg1])])
@@ -743,6 +743,7 @@ def InitBitFiddle():
                  InsTmpl(f"sub_8_mr_imm8", [P.reg0, 8])])
         # TODO SP_REG, REG  + SP_REG, SP_REG
 
+    # TODO: popcnt for o.DK.U8, o.DK.S8
 
 def InitMovInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,

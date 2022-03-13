@@ -295,6 +295,28 @@
     add val val step
     ble  val max loop
     ret
+
+# ========================================
+.fun cntpop_u32 NORMAL [] = [U32 U32 U32]
+  .reg U32 [r val max step]
+  .reg U32 [tmp_op tmp_out ]
+  .bbl prolog
+
+    poparg val
+    poparg max
+    poparg step
+  .bbl loop
+    cntpop r val
+    conv tmp_op val
+    conv tmp_out r
+    pusharg tmp_op
+    pusharg tmp_out
+    bsr print_x_x_ln
+
+    add val val step
+    ble  val max loop
+    ret
+
 # ========================================
 .fun main NORMAL [S32] = []
     .reg U32 [ru32 nu32]
@@ -421,6 +443,14 @@
     pusharg 16:U32
     pusharg 0x0:U32
     bsr cnttz_u32
+
+##########
+    pusharg 10:U8
+    bsr print_c_ln
+    pusharg 0x10001:U32
+    pusharg 0x100010:U32
+    pusharg 0x0:U32
+    bsr cntpop_u32
 
 ##########
     pusharg 0:S32

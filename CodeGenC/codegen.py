@@ -170,10 +170,14 @@ ALU1_INT = {
     (o.CNTLZ, 8): "({src} == 0) ? 8 : __builtin_clz({src} & 0xff) - 24",
     (o.CNTLZ, 16): "({src} == 0) ? 16 : __builtin_clz({src} & 0xffff) - 16",
     (o.CNTLZ, 32): "({src} == 0) ? 32 : __builtin_clz({src} & 0xffffffff)",
+    #
     (o.CNTTZ, 8): "({src} == 0) ? 8:  __builtin_ctz({src} & 0xff)",
     (o.CNTTZ, 16): "({src} == 0) ? 16:  __builtin_ctz({src} & 0xffff)",
     (o.CNTTZ, 32): "({src} == 0) ? 32:  __builtin_ctz({src} & 0xffffffff)",
-
+    #
+    (o.CNTPOP, 8): "__builtin_popcount({src} & 0xff)",
+    (o.CNTPOP, 16): "__builtin_popcount({src} & 0xffff)",
+    (o.CNTPOP, 32): "__builtin_popcount({src} & 0xffffffff)",
 }
 
 ALU1_FLT = {

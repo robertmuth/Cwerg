@@ -35,7 +35,7 @@ CC_FLAGS = -Wall -Wno-unused-result -Wno-unused-label -Wno-unused-variable \
 $(DIR)/%.asm.exe : ../TestData/%.asm
 	echo "[ir -> c.64 $@]"
 	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | $(PYPY) ./codegen.py - > $@.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.c  -o $@
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.c -lgcc  -o $@
 	$@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -43,7 +43,7 @@ $(DIR)/%.asm.opt.exe : ../TestData/%.asm
 	echo "[ir -> opt -> c.64 $@]"
 	cat ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm $< | ${PYPY} ../Base/optimize.py > $@.opt
 	$(PYPY) ./codegen.py $@.opt  > $@.opt.c
-	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.opt.c -lm -o $@
+	$(CC) $(CC_FLAGS) -O -static -m64 -nostdlib ../StdLib/syscall.c $@.opt.c  -lgcc -lm -o $@
 	$@ > $@.actual.opt.out
 	diff $@.actual.opt.out $<.golden
 
