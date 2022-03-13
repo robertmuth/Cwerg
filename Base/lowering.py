@@ -18,6 +18,7 @@ from typing import List, Optional
 from Base import cfg
 from Base import ir
 from Base import opcode_tab as o
+from Base import serialize
 
 # nop means that the result of the operation is equal to src1
 _OPC_NOP_IF_SRC2_IS_ZERO = {
@@ -226,7 +227,8 @@ def InsEliminateCmp(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
     del bbl_prev.inss[-1]
     ops = ins.operands
     bbl_prev.inss.append(ir.Ins(o.MOV, [reg, ops[1]]))
-    bbl_prev.inss.append(ir.Ins(o.BEQ if ins.opcode == o.CMPEQ else o.BLT, [ops[3], ops[4], bbl]))
+    bbl_prev.inss.append(ir.Ins(o.BEQ if ins.opcode ==
+                         o.CMPEQ else o.BLT, [ops[3], ops[4], bbl]))
     bbl_skip.inss.append(ir.Ins(o.MOV, [reg, ops[2]]))
     bbl.inss.insert(0, ir.Ins(o.MOV, [ops[0], reg]))
     bbl_prev.edge_out.append(bbl)
@@ -278,6 +280,65 @@ def FunEliminateCopySign(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsEliminateCopySign)
 
 
+def InsEliminateCntPop(ins: ir.Ins, bbl: ir.Bbl, fun: ir.Fun):
+    """Rewrites cntpop a b instructions based on:
+
+     uint32_t popcount32(uint32_t x) {
+        const uint32_t m1 = 0x55555555;
+        const uint32_t m2 = 0x03030303;
+        x -= (x >> 1) & m1;
+        uint32_t t2 = (x & m2) + ((x >> 2) & m2) + ((x >> 4) & m2) + ((x >> 6) & m2);
+        t2 += t2 >> 8;
+        return  (t2 + (t2 >> 16)) & 0x3f;
+    }
+    """
+    assert ins.opcode is o.CNTPOP
+    kind = o.DK.U32
+    m1 = fun.GetScratchReg(kind, "popcnt_m1", False)
+    m2 = fun.GetScratchReg(kind, "popcnt_m2", False)
+    x = fun.GetScratchReg(kind, "popcnt_x", False)
+    t1 = fun.GetScratchReg(kind, "popcnt_t1", False)
+    t2 = fun.GetScratchReg(kind, "popcnt_t2", False)
+
+    inss = [
+        ir.Ins(o.CONV, [x, ins.operands[1]]),
+        ir.Ins(o.MOV, [m1, ir.Const(kind, 0x55555555)]),
+        ir.Ins(o.MOV, [m2, ir.Const(kind, 0x03030303)]),
+        ir.Ins(o.SHR, [t1, x, ir.Const(kind, 1)]),
+        ir.Ins(o.AND, [t1, t1, m1]),
+        ir.Ins(o.SUB, [x, x, t1]),
+        #
+        ir.Ins(o.AND, [t2, x, m2]),
+        ir.Ins(o.SHR, [t1, x, ir.Const(kind, 2)]),
+        ir.Ins(o.AND, [t1, t1, m2]),
+        ir.Ins(o.ADD, [t2, t2, t1]),
+        ir.Ins(o.SHR, [t1, x, ir.Const(kind, 4)]),
+        ir.Ins(o.AND, [t1, t1, m2]),
+        ir.Ins(o.ADD, [t2, t2, t1]),
+        ir.Ins(o.SHR, [t1, x, ir.Const(kind, 6)]),
+        ir.Ins(o.AND, [t1, t1, m2]),
+        ir.Ins(o.ADD, [t2, t2, t1]),
+        #
+        ir.Ins(o.SHR, [t1, t2, ir.Const(kind, 8)]),
+        ir.Ins(o.ADD, [t2, t2, t1]),
+        ir.Ins(o.SHR, [t1, t2, ir.Const(kind, 16)]),
+        ir.Ins(o.ADD, [t2, t2, t1]),
+        ir.Ins(o.AND, [t2, t2,  ir.Const(kind, 0x3f)]),
+        ir.Ins(o.CONV, [ins.operands[0], t2]),
+    ]
+    i = bbl.inss.index(ins)
+    bbl.inss[i: i+1] = inss
+
+
+def FunEliminateCntPop(fun: ir.Fun) -> int:
+    for bbl in fun.bbls[:]:  # not we are updating the list while iterating over it
+        for ins in bbl.inss[:]:
+            if ins.opcode is o.CNTPOP:
+                assert ins.operands[0].kind.bitwidth() == 32
+                InsEliminateCntPop(ins, bbl, fun)
+    # print("\n".join(serialize.FunRenderToAsm(fun)))
+
+
 def _InsEliminateStkLoadStoreWithRegOffset(
         ins: ir.Ins, fun: ir.Fun, base_kind: o.DK, offset_kind: o.DK) -> Optional[List[ir.Ins]]:
     """This rewrite is usually applied as prep step by some backends
@@ -292,19 +353,22 @@ def _InsEliminateStkLoadStoreWithRegOffset(
     ops = ins.operands
     if opc is o.ST_STK and isinstance(ops[1], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
-        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[0], ir.Const(offset_kind, 0)])
+        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[0],
+                                 ir.Const(offset_kind, 0)])
         ins.Init(o.ST, [scratch_reg, ops[1], ops[2]])
         return [lea, ins]
     elif opc is o.LD_STK and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
-        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
+        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[1],
+                                 ir.Const(offset_kind, 0)])
         ins.Init(o.LD, [ops[0], scratch_reg, ops[2]])
         return [lea, ins]
     elif opc is o.LEA_STK and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
         # TODO: maybe reverse the order so that we can tell that ops[0] holds a stack
         # location
-        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
+        lea = ir.Ins(o.LEA_STK, [scratch_reg, ops[1],
+                                 ir.Const(offset_kind, 0)])
         ins.Init(o.LEA, [ops[0], scratch_reg, ops[2]])
         return [lea, ins]
     else:
@@ -326,8 +390,10 @@ def _InsEliminateMemLoadStore(
 
      Note: this function may add local registers which does not affect liveness or use-def chains
 
-     st.mem ->  lea.mem + st   # st offset will be zero or register which should be iselectable
-     ld.mem -> lea.mem + ld    # ld offset will be zero or register which should be iselectable
+     # st offset will be zero or register which should be iselectable
+     st.mem ->  lea.mem + st
+     # ld offset will be zero or register which should be iselectable
+     ld.mem -> lea.mem + ld
      lea.mem (with reg offset) -> lea.mem (zero offset) + lea
     """
     opc = ins.opcode
@@ -354,7 +420,8 @@ def _InsEliminateMemLoadStore(
     elif opc is o.LEA_MEM and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
         # TODO: maybe reverse the order so that we can tell that ops[0] holds a mem location
-        lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1], ir.Const(offset_kind, 0)])
+        lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1],
+                                 ir.Const(offset_kind, 0)])
         ins.Init(o.LEA, [ops[0], scratch_reg, ops[2]])
         return [lea, ins]
     else:
@@ -394,8 +461,10 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
       the lower w bits of reg b will always contain the same data as reg a would have.
       """
     assert ir.FUN_FLAG.STACK_FINALIZED not in fun.flags
-    fun.input_types = [wide_kind if x == narrow_kind else x for x in fun.input_types]
-    fun.output_types = [wide_kind if x == narrow_kind else x for x in fun.output_types]
+    fun.input_types = [wide_kind if x ==
+                       narrow_kind else x for x in fun.input_types]
+    fun.output_types = [wide_kind if x ==
+                        narrow_kind else x for x in fun.output_types]
 
     assert narrow_kind.flavor() == wide_kind.flavor()
     assert narrow_kind.bitwidth() < wide_kind.bitwidth()
@@ -429,7 +498,8 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                 # deal with the shift amount which is subject to an implicit modulo "bitwidth -1"
                 # by changing the width of the reg - we lose this information
                 tmp_reg = fun.GetScratchReg(wide_kind, "tricky", False)
-                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(wide_kind, narrow_kind.bitwidth() - 1)]))
+                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(
+                    wide_kind, narrow_kind.bitwidth() - 1)]))
                 ops[2] = tmp_reg
                 if ins.opcode is o.SHR and isinstance(ops[1], ir.Reg):
                     # for SHR we also need to make sure the new high order bits are correct
@@ -442,11 +512,13 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
             elif ins.opcode is o.CNTLZ:
                 inss.append(ins)
                 excess = wide_kind.bitwidth() - narrow_kind.bitwidth()
-                inss.append(ir.Ins(o.SUB, [ops[0], ops[0], ir.Const(wide_kind, excess)]))
+                inss.append(
+                    ir.Ins(o.SUB, [ops[0], ops[0], ir.Const(wide_kind, excess)]))
             elif ins.opcode is o.CNTTZ:
                 inss.append(ins)
                 inss.append(ir.Ins(o.CMPLT, [ops[0], ops[0],
-                                             ir.Const(wide_kind, narrow_kind.bitwidth()),
+                                             ir.Const(
+                                                 wide_kind, narrow_kind.bitwidth()),
                                              ops[0], ir.Const(wide_kind, narrow_kind.bitwidth())]))
             elif kind is o.OPC_KIND.LD and ops[0] in narrow_regs:
                 inss.append(ins)
@@ -551,7 +623,7 @@ def FunPopargConversion(fun: ir.Fun, iface: PushPopInterface):
 def _InsPushargConversionReverse(ins: ir.Ins, fun: ir.Fun,
                                  iface: PushPopInterface,
                                  params: List[ir.CpuReg]) -> Optional[
-    List[ir.Ins]]:
+        List[ir.Ins]]:
     """
     This pass converts pusharg reg -> mov arg_reg = reg
 

@@ -463,6 +463,54 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
+void FunEliminateCntPop(Fun fun, std::vector<Ins>* inss) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    inss->clear();
+    bool dirty = false;
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOPC(ins) == OPC::CNTPOP) {
+        ASSERT(DKBitWidth(RegKind(Reg(InsOperand(ins, 0)))) == 32 , "only 32 bit supported");
+        DK kind = DK::U32;
+        Reg m1 = FunGetScratchReg(fun, kind, "popcnt_m1", false);
+        Reg m2 = FunGetScratchReg(fun, kind, "popcnt_m2", false);
+        Reg x = FunGetScratchReg(fun, kind, "popcnt_x", false);
+        Reg t1 = FunGetScratchReg(fun, kind, "popcnt_t1", false);
+        Reg t2 = FunGetScratchReg(fun, kind, "popcnt_t2", false);
+
+        inss->push_back(InsNew(OPC::CONV, x, InsOperand(ins, 1)));
+        inss->push_back(InsNew(OPC::MOV, m1, ConstNewU(kind, 0x55555555)));
+        inss->push_back(InsNew(OPC::MOV, m2, ConstNewU(kind, 0x03030303)));
+        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 1)));
+        inss->push_back(InsNew(OPC::AND, t1, t1, m1));
+        inss->push_back(InsNew(OPC::SUB, x, x, t1));
+        //
+        inss->push_back(InsNew(OPC::AND, t2, x, m2));
+        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 2)));
+        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 4)));
+        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 6)));
+        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        //
+        inss->push_back(InsNew(OPC::SHR, t1, t2, ConstNewU(kind, 8)));
+        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, t1, t2, ConstNewU(kind, 16)));
+        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        inss->push_back(InsNew(OPC::AND, t2, t2, ConstNewU(kind, 0x3f)));
+        inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 0), t2));
+        //
+        dirty = true;
+      } else {
+        inss->push_back(ins);
+      }
+    }
+    if (dirty) BblReplaceInss(bbl, *inss);
+  }
+}
+
 void InsEliminateCmp(Ins cmp_ins, Bbl bbl, Fun fun) {
   const Bbl bbl_skip = BblNew(NewDerivedBblName(Name(bbl), "_split", fun));
   FunBblAddBst(fun, bbl_skip);
