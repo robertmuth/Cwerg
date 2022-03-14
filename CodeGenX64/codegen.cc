@@ -84,7 +84,11 @@ void FunCodeGen(Fun fun, std::ostream* output) {
         EmitFunEpilog(ctx, &inss);
       } else {
         const Pattern* pat = FindMatchingPattern(ins);
-        ASSERT(pat != nullptr, "");
+        if (pat == nullptr) {
+          InsRenderToAsm(ins, &std::cerr);
+          ASSERT(false, "Cannot find for pattern for INS above");
+        }
+
         for (unsigned i = 0; i < pat->length; ++i) {
           x64::Ins cpu_ins = MakeInsFromTmpl(pat->start[i], ins, ctx);
           if (SimpifyCpuIns(cpu_ins)) {
