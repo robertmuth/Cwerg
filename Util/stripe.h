@@ -27,6 +27,9 @@ multiple memory regions entities are not identified by pointers but
 Since `Handles` are 32 bit they also save memory on 64 bit systems
 where ordinary pointers would consume twice the space.
 
+The first stripe in a stripe group is used to manage the free list and
+must have the size of two handles (2 * 4 bytes).
+
 To make accessing `Stripes` less syntactically obtrusive all `Stripes`
 are global objects.
 
@@ -65,12 +68,16 @@ struct StripeGroup {
 
   void Del(Handle ref);
 
-  uint32_t NumFree() const;
 
-  static void DumpAllGroups(std::ostream& os);
+  uint32_t NumFree() const;  // slow: iterates through the entire free-list
+  uint32_t MaxInstances() const { return max_instances_; }
 
   static void AllocateAllStripes(uint32_t multiplier);
 
+  // vec must have >=  MaxInstances() bits. A bit will be set if
+  // the instance with the corresponding number is on the free list.
+  void SetBitVecOfFreeInstances(u_int8_t* vec) const;
+  static void DumpAllGroups(std::ostream& os);
 
  private:
   uint32_t max_instances_;

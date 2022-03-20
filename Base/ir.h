@@ -7,6 +7,7 @@ All the basic abstractions and their stripes.
 
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 #include <vector>
 
 #include "Base/opcode_gen.h"
@@ -23,11 +24,12 @@ namespace cwerg::base {
 const unsigned kMaxIdLength = 1024;
 
 // A Handle is the common base class for all Operand types.
-// Usually a handle represents an index into one or more arrays 
+// Usually a handle represents an index into one or more arrays
 // representing the abstraction.
 // They bahave little bit like tagged pointers but have the following benefits:
 // * they are only 32 bits wide
-// * they are more stable than pointer (= have the same value even when code changes)
+// * they are more stable than pointer (= have the same value even when code
+// changes)
 //
 // The following handles are used slightly differently:
 // * StackSlot represents the Stack location of a spilled register.
@@ -35,7 +37,8 @@ const unsigned kMaxIdLength = 1024;
 // * Str represents an Interned string.
 //   Handle index points into an ImmutablePool.
 // * Const represents (numeric) constants. Small constants are directly encoded.
-//   into the Handle index. This is indicated by setting the highest bit in the index.
+//   into the Handle index. This is indicated by setting the highest bit in the
+//   index.
 struct Ins : public Handle {
   explicit constexpr Ins(uint32_t index = 0) : Handle(index, RefKind::INS) {}
   explicit constexpr Ins(Handle ref) : Handle(ref.value) {}
@@ -280,6 +283,9 @@ extern std::ostream& operator<<(std::ostream& os, Const num);
 
 // =======================================
 // Jen (jump table entry)
+//
+// These are the equivalent of "case statements" in C
+// pos is the case value and bbl the target bbl to be jumped to.
 // =======================================
 struct JenBst {
   Jen left, right, parent;
@@ -296,6 +302,8 @@ inline Jen JenNew(uint32_t pos, Bbl bbl) {
   return out;
 }
 
+inline void JenDel(Jen jen) { gStripeGroupJen.Del(jen); }
+
 inline Bbl& JenBbl(Jen jen) { return gJenBst[jen].bbl; }
 inline uint32_t& JenPos(Jen jen) { return gJenBst[jen].pos; }
 
@@ -303,9 +311,9 @@ inline uint32_t& JenPos(Jen jen) { return gJenBst[jen].pos; }
 // Jtb (jump table)
 // =======================================
 struct JtbCore {
-  uint32_t size;
   Bbl def_bbl;
   Jen entries;
+  uint32_t size;
 };
 
 struct JtbBst {
@@ -321,10 +329,15 @@ inline Str& Name(Jtb jtb) { return gJtbBst[jtb].name; }
 
 inline Jtb JtbNew(Str name, uint32_t size, Bbl def_bbl) {
   Jtb out = Jtb(gStripeGroupJtb.New().index());
-  gJtbCore[out] = {size, def_bbl, Jen(0)};
+  gJtbCore[out] = {def_bbl, Jen(0), size};
   Name(out) = name;
   return out;
 }
+
+inline void JtbDel(Jtb jtb) { gStripeGroupJtb.Del(jtb); }
+
+// Deletes jens bu not the Jtb itself
+extern void JtbDelContent(Jtb jtb);
 
 inline Bbl& JtbDefBbl(Jtb jtb) { return gJtbCore[jtb].def_bbl; }
 inline uint32_t& JtbSize(Jtb jtb) { return gJtbCore[jtb].size; }
@@ -347,7 +360,6 @@ struct JtbJenBst {
 // =======================================
 // CpuReg (machine register)
 // =======================================
-
 struct CpuRegCore {
   uint16_t no;
   uint8_t kind;
@@ -473,7 +485,6 @@ inline void StkDel(Stk stk) { gStripeGroupStk.Del(stk); }
 // =======================================
 // Ins (instruction)
 // =======================================
-
 struct InsCore {
   Ins prev;
   Ins next;
@@ -538,10 +549,10 @@ inline void InsSwapOps(Ins ins, unsigned pos1, unsigned pos2) {
   InsDef(ins, pos1) = InsDef(ins, pos2);
   InsDef(ins, pos2) = tmp_op;
 }
+
 // =======================================
 // Edg (control flow edge between bbls)
 // =======================================
-
 struct EdgCore {
   // Double linking seems overkill - reconsider this
   Edg succ_prev;
@@ -570,7 +581,6 @@ inline void EdgDel(Edg edg) { gStripeGroupEdg.Del(edg); }
 // =======================================
 // Bbl (basic block)
 // =======================================
-
 struct BblCore {
   Bbl prev;
   Bbl next;
@@ -639,6 +649,9 @@ inline Bbl BblNew(Str name) {
 
 inline void BblDel(Bbl bbl) { gStripeGroupBbl.Del(bbl); }
 
+// Deletes inss, outgoing edgs, etc but not the Bbl itself
+extern void DelBblContent(Bbl bbl);
+
 struct BblInsList {
   using ITEM = Ins;
   using CONT = Bbl;
@@ -695,14 +708,10 @@ struct BblPredEdgList {
 #define BblPredEdgAppend ListAppend<BblPredEdgList>
 #define BblPredEdgUnlink ListUnlink<BblPredEdgList>
 #define BblPredEdgIter ListIter<BblPredEdgList>
+
 // =======================================
 // Fun (function)
 // =======================================
-struct FunBst {
-  Fun left, right, parent;
-  Str name;
-};
-
 struct FunCore {
   Fun prev;
   Fun next;
@@ -721,6 +730,11 @@ struct FunCore {
   HandleVec reg_map;  // registers by their number
   uint32_t stack_size;
   uint16_t num_regs;
+};
+
+struct FunBst {
+  Fun left, right, parent;
+  Str name;
 };
 
 struct FunSig {
@@ -795,6 +809,12 @@ inline Fun FunNew(Str name, FUN_KIND kind = FUN_KIND::INVALID) {
   Name(out) = name;
   return out;
 }
+
+inline void FunDel(Fun fun) { gStripeGroupFun.Del(fun); }
+
+// Deletes bbls, stks, etc but not the fun itself
+extern void FunBblContent(Fun fun);
+
 
 extern std::string_view MaybeSkipCountPrefix(std::string_view s);
 
@@ -918,12 +938,11 @@ inline Bbl FunBblAdd(Fun fun, Bbl bbl) {
 }
 
 extern bool FunIsLeaf(Fun fun);
+
 // =======================================
 // Unit
 // =======================================
 struct UnitCore {
-  Str name;
-
   Fun fun_head;
   Fun fun_tail;
   Fun fun_syms;
@@ -931,6 +950,8 @@ struct UnitCore {
   Mem mem_head;
   Mem mem_tail;
   Mem mem_syms;
+
+  Str name;
 };
 
 extern struct Stripe<UnitCore, Unit> gUnitCore;
@@ -940,8 +961,9 @@ inline Str& Name(Unit mod) { return gUnitCore[mod].name; }
 
 inline Unit UnitNew(Str name) {
   Unit out = Unit(gStripeGroupUnit.New().index());
-  gUnitCore[out] = {name,  //
-                    Fun(out), Fun(out), Fun(0), Mem(out), Mem(out), Mem(0)};
+  gUnitCore[out] = {Fun(out), Fun(out), Fun(0), //
+                    Mem(out), Mem(out), Mem(0), // 
+                    name};
   return out;
 }
 

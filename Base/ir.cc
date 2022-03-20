@@ -1,14 +1,17 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/ir.h"
-#include "Util/assert.h"
-#include "Util/immutable.h"
-#include "Util/parse.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iomanip>
+#include <optional>
+#include <string_view>
+
+#include "Util/assert.h"
+#include "Util/immutable.h"
+#include "Util/parse.h"
 
 namespace cwerg::base {
 // =======================================
@@ -99,6 +102,18 @@ bool StrCmpLt(Str a, Str b) {
 }
 
 // =======================================
+// Jtb Helpers
+// =======================================
+void JtbDelContent(Jtb jtb) {
+  Jen last_jen = Jen(0);
+  for (Jen jen : JtbJenIter(jtb)) {
+    if (!last_jen.isnull()) JenDel(last_jen);
+    last_jen = jen;
+  }
+  if (!last_jen.isnull()) JenDel(last_jen);
+}
+
+// =======================================
 // Const Helpers
 // =======================================
 
@@ -142,7 +157,8 @@ int64_t ConstValueACS(Const num) {
 }
 
 int32_t ConstValueInt32(Const num) {
-  ASSERT(num.kind() == RefKind::CONST, "not a const " << EnumToString(num.kind()));
+  ASSERT(num.kind() == RefKind::CONST,
+         "not a const " << EnumToString(num.kind()));
   int32_t val;
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
@@ -162,7 +178,8 @@ int32_t ConstValueInt32(Const num) {
 }
 
 int64_t ConstValueInt64(Const num) {
-  ASSERT(num.kind() == RefKind::CONST, "not a const " << EnumToString(num.kind()));
+  ASSERT(num.kind() == RefKind::CONST,
+         "not a const " << EnumToString(num.kind()));
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
       return ConstValueU(num);
@@ -204,7 +221,7 @@ Const ConstNewF(DK kind, double v) {
     ASSERT(kind == DK::F64, "");
     num.val_f64 = v;
   }
-  return Const(ConstantPool.Intern({(char*)&num, sizeof(num)}));
+  return Const(ConstantPool.Intern(std::string_view((char*)&num, sizeof(num))));
 }
 
 Const ConstNewU(DK kind, uint64_t v) {
@@ -362,9 +379,29 @@ std::string_view ConstToBytes(Const num) {
   const char* data = ConstantPool.Data(num.index());
   return std::string_view(data, DKBitWidth(ConstKind(num)) / 8);
 }
+// =======================================
+// Bbl Helpers
+// =======================================
+
+// Also delete SuccEdgs
+void BblDelContent(Bbl bbl) {
+  Ins last_ins = Ins(0);
+  for (Ins ins : BblInsIter(bbl)) {
+    if (!last_ins.isnull()) InsDel(last_ins);
+    last_ins = ins;
+  }
+  if (!last_ins.isnull()) InsDel(last_ins);
+
+  Edg last_edg = Edg(0);
+  for (Edg edg : BblSuccEdgIter(bbl)) {
+    if (!last_edg.isnull()) EdgDel(last_edg);
+    last_edg = edg;
+  }
+  if (!last_edg.isnull()) EdgDel(last_edg);
+}
 
 // =======================================
-// FunHelpers
+// Fun Helpers
 // =======================================
 std::string_view MaybeSkipCountPrefix(std::string_view s) {
   const char* cp = s.data();
@@ -376,9 +413,7 @@ std::string_view MaybeSkipCountPrefix(std::string_view s) {
   return {cp, size_t(s.data() + s.size() - cp)};
 }
 
-Reg FunGetScratchReg(Fun fun,
-                     DK kind,
-                     std::string_view purpose,
+Reg FunGetScratchReg(Fun fun, DK kind, std::string_view purpose,
                      bool add_kind_to_name) {
   ++gFunCore[fun].scratch_reg_id;
   char decbuf[32];
@@ -430,7 +465,7 @@ void FunFinalizeStackSlots(Fun fun) {
   auto cmp = [](const Reg& a, const Reg& b) -> bool {
     unsigned wa = DKBitWidth(RegKind(a));
     unsigned wb = DKBitWidth(RegKind(b));
-    if (wa != wb) return  wa < wb;
+    if (wa != wb) return wa < wb;
     return StrCmpLt(Name(a), Name(b));
   };
   std::sort(spilled_regs.begin(), spilled_regs.end(), cmp);
@@ -454,6 +489,7 @@ void FunFinalizeStackSlots(Fun fun) {
   FunStackSize(fun) = slot;
 }
 
+
 bool FunIsLeaf(Fun fun) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIter(bbl)) {
@@ -462,6 +498,43 @@ bool FunIsLeaf(Fun fun) {
   }
 
   return true;
+}
+
+void FunDelContent(Fun fun) {
+  for (Bbl bbl : FunBblIter(fun)) {
+    BblDelContent(bbl);
+  }
+  Bbl last_bbl = Bbl(0);
+  for (Bbl bbl : FunBblIter(fun)) {
+    if (!last_bbl.isnull()) BblDel(last_bbl);
+    last_bbl = bbl;
+  }
+  if (!last_bbl.isnull()) BblDel(last_bbl);
+
+  Reg last_reg = Reg(0);
+  for (Reg reg : FunRegIter(fun)) {
+     if (!last_reg.isnull()) RegDel(last_reg);
+    last_reg = reg;
+  }
+  if (!last_reg.isnull()) RegDel(last_reg);
+
+  Stk last_stk = Stk(0);
+  for (Stk stk : FunStkIter(fun)) {
+     if (!last_stk.isnull()) StkDel(last_stk);
+    last_stk = stk;
+  }
+  if (!last_stk.isnull()) StkDel(last_stk);
+
+  for (Jtb jtb : FunJtbIter(fun)) {
+    JtbDelContent(jtb);
+  }
+  
+  Jtb last_jtb = Jtb(0);
+  for (Jtb jtb : FunJtbIter(fun)) {
+     if (!last_jtb.isnull()) JtbDel(last_jtb);
+    last_jtb = jtb;
+  }
+  if (!last_jtb.isnull()) JtbDel(last_jtb);
 }
 
 // =======================================

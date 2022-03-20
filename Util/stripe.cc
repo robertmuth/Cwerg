@@ -97,7 +97,7 @@ void StripeGroup::AllocateAllStripes(uint32_t multiplier) {
     }
   }
 
-  //
+  // Put everything except the first element into the free list in order.
   for (StripeGroup* sg = StripeGroup::root; sg != nullptr; sg = sg->next) {
     StripeBase* sb = sg->stripes_[0];
     // we do not use the zeroest element!
