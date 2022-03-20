@@ -29,4 +29,6 @@ extern void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl);
 
 extern Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun);
 
+extern void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds);
+
 }  // namespace cwerg

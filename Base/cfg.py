@@ -295,3 +295,30 @@ def FunAddUnconditionalBranches(fun: ir.Fun):
             bbls.append(bbl_bra)
     fun.bbls = bbls
     fun.flags &= ~ir.FUN_FLAG.CFG_NOT_LINEAR
+
+
+def UnitRemoveUnreachableCode(unit: ir.Unit, seeds: List[ir.Fun]):
+    """Very simple reachability analylis. Sets fun.flags ir.FUN_FLAG.REACHACHABLE
+    if the function appears reachable from seeds """
+    for fun in unit.funs:
+        fun.flags &= ~ir.FUN_FLAG.REACHACHABLE
+    reachable = set(seeds)
+    for fun in seeds:
+        reachable.add(fun)
+    for mem in unit.mems:
+        for data in mem.datas:
+            if isinstance(data, ir.DataAddrFun):
+                reachable.add(data.fun)
+
+    while reachable:
+        fun = reachable.pop()
+        fun.flags |= ir.FUN_FLAG.REACHACHABLE
+        for bbl in fun.bbls:
+            for ins in bbl.inss:
+                if ins.opcode in {o.LEA_FUN, o.BSR, o.JSR, o.SYSCALL}:
+                    for op in ins.operands:
+                        if (isinstance(op, ir.Fun) and
+                            op not in reachable and
+                                ir.FUN_FLAG.REACHACHABLE not in op.flags):
+                            reachable.add(op)
+    unit.funs = [f for f in unit.funs if ir.FUN_FLAG.REACHACHABLE in f.flags]

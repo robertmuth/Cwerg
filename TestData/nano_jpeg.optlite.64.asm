@@ -1,18 +1,6 @@
 # write_s                        RegStats:  0/ 3   0/ 3
-# write_x                        RegStats:  0/ 4   0/ 9
-# write_u                        RegStats:  0/ 3   0/ 6
-# write_d                        RegStats:  0/ 4   0/ 9
 # write_c                        RegStats:  0/ 0   0/ 7
-# print_ln                       RegStats:  0/ 0   0/ 4
 # print_s_ln                     RegStats:  0/ 0   0/ 3
-# print_d_ln                     RegStats:  0/ 0   0/ 3
-# print_u_ln                     RegStats:  0/ 0   0/ 3
-# print_x_ln                     RegStats:  0/ 0   0/ 3
-# print_x_x_ln                   RegStats:  0/ 0   1/ 5
-# print_x_x_x_ln                 RegStats:  0/ 0   2/ 7
-# print_c_ln                     RegStats:  0/ 0   0/ 3
-# memset                         RegStats:  0/ 4   0/ 1
-# memcpy                         RegStats:  0/ 4   0/ 1
 # abort                          RegStats:  0/ 0   0/ 2
 # malloc                         RegStats:  3/ 0   1/18
 # free                           RegStats:  0/ 0   0/ 1
@@ -93,8 +81,6 @@
 
 .fun lseek BUILTIN [S64] = [S32 S64 S32]
 
-.fun raise BUILTIN [S32] = [S32]
-
 .fun kill BUILTIN [S32] = [S32 S32]
 
 .fun getpid BUILTIN [S32] = []
@@ -125,126 +111,6 @@
     pusharg %out
     ret
 
-.fun write_x NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_11 %S8_5]
-.reg S32 [%S32_8 fd]
-.reg S64 [%out]
-.reg U32 [%U32_10 %U32_4 %U32_9 digit val]
-.reg U64 [%U64_18 pos]
-.reg A64 [%A64_16]
-.stk buffer 1 16
-.bbl %start  #  edge_out[while_1]  live_out[fd  pos  val]
-    poparg fd
-    poparg val
-    mov pos 16
-.bbl while_1  #  edge_out[if_2_false  if_2_true]  live_out[digit  fd  pos  val]
-    sub pos pos 1
-    rem digit val 16
-    blt 9:U32 digit if_2_false
-.bbl if_2_true  #  edge_out[if_2_end]  live_out[fd  pos  val]
-    add %U32_4 digit 48
-    conv %S8_5 %U32_4
-    st.stk buffer pos %S8_5
-    bra if_2_end
-.bbl if_2_false  #  edge_out[if_2_end]  live_out[fd  pos  val]
-    mov %S32_8 87
-    conv %U32_9 %S32_8
-    add %U32_10 %U32_9 digit
-    conv %S8_11 %U32_10
-    st.stk buffer pos %S8_11
-.bbl if_2_end  #  edge_out[while_1_cond]  live_out[fd  pos  val]
-    div val val 16
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[fd  pos  val]
-    bne val 0 while_1
-.bbl while_1_exit
-    lea.stk %A64_16 buffer pos
-    sub %U64_18 16 pos
-    pusharg %U64_18
-    pusharg %A64_16
-    pusharg fd
-    bsr write
-    poparg %out
-    pusharg %out
-    ret
-
-.fun write_u NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_5]
-.reg S32 [fd]
-.reg S64 [%out]
-.reg U32 [%U32_3 %U32_4 val]
-.reg U64 [%U64_12 pos]
-.reg A64 [%A64_10]
-.stk buffer 1 16
-.bbl %start  #  edge_out[while_1]  live_out[fd  pos  val]
-    poparg fd
-    poparg val
-    mov pos 16
-.bbl while_1  #  edge_out[while_1_cond]  live_out[fd  pos  val]
-    sub pos pos 1
-    rem %U32_3 val 10
-    add %U32_4 %U32_3 48
-    conv %S8_5 %U32_4
-    st.stk buffer pos %S8_5
-    div val val 10
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[fd  pos  val]
-    bne val 0 while_1
-.bbl while_1_exit
-    lea.stk %A64_10 buffer pos
-    sub %U64_12 16 pos
-    pusharg %U64_12
-    pusharg %A64_10
-    pusharg fd
-    bsr write
-    poparg %out
-    pusharg %out
-    ret
-
-.fun write_d NORMAL [S64] = [S32 S32]
-.reg S8 [%S8_9]
-.reg S32 [%S32_3 fd sval]
-.reg S64 [$1_%out %out]
-.reg U32 [%U32_1 %U32_7 %U32_8 val]
-.reg U64 [%U64_20 pos]
-.reg A64 [%A64_18]
-.stk buffer 1 16
-.bbl %start  #  edge_out[if_2_end  if_2_true]  live_out[fd  sval]
-    poparg fd
-    poparg sval
-    blt sval 0 if_2_end
-.bbl if_2_true
-    conv %U32_1 sval
-    pusharg %U32_1
-    pusharg fd
-    bsr write_u
-    poparg %out
-    pusharg %out
-    ret
-.bbl if_2_end  #  edge_out[while_1]  live_out[fd  pos  val]
-    sub %S32_3 0 sval
-    conv val %S32_3
-    mov pos 16
-.bbl while_1  #  edge_out[while_1_cond]  live_out[fd  pos  val]
-    sub pos pos 1
-    rem %U32_7 val 10
-    add %U32_8 %U32_7 48
-    conv %S8_9 %U32_8
-    st.stk buffer pos %S8_9
-    div val val 10
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]  live_out[fd  pos  val]
-    bne val 0 while_1
-.bbl while_1_exit
-    sub pos pos 1
-    st.stk buffer pos 45:S8
-    lea.stk %A64_18 buffer pos
-    sub %U64_20 16 pos
-    pusharg %U64_20
-    pusharg %A64_18
-    pusharg fd
-    bsr write
-    poparg $1_%out
-    pusharg $1_%out
-    ret
-
 .fun write_c NORMAL [S64] = [S32 U8]
 .reg S8 [%S8_1]
 .reg S32 [%S32_6 fd]
@@ -268,24 +134,6 @@
     pusharg %out
     ret
 
-.fun print_ln NORMAL [] = [A64 U64]
-.reg S64 [%S64_1 %S64_3]
-.reg U64 [n]
-.reg A64 [s]
-.bbl %start
-    poparg s
-    poparg n
-    pusharg n
-    pusharg s
-    pusharg 1:S32
-    bsr write
-    poparg %S64_1
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_3
-    ret
-
 .fun print_s_ln NORMAL [] = [A64]
 .reg S64 [%S64_1 %S64_3]
 .reg A64 [s]
@@ -299,166 +147,6 @@
     pusharg 1:S32
     bsr write_c
     poparg %S64_3
-    ret
-
-.fun print_d_ln NORMAL [] = [S32]
-.reg S32 [n]
-.reg S64 [%S64_1 %S64_3]
-.bbl %start
-    poparg n
-    pusharg n
-    pusharg 1:S32
-    bsr write_d
-    poparg %S64_1
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_3
-    ret
-
-.fun print_u_ln NORMAL [] = [U32]
-.reg S64 [%S64_1 %S64_3]
-.reg U32 [n]
-.bbl %start
-    poparg n
-    pusharg n
-    pusharg 1:S32
-    bsr write_u
-    poparg %S64_1
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_3
-    ret
-
-.fun print_x_ln NORMAL [] = [U32]
-.reg S64 [%S64_1 %S64_3]
-.reg U32 [n]
-.bbl %start
-    poparg n
-    pusharg n
-    pusharg 1:S32
-    bsr write_x
-    poparg %S64_1
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_3
-    ret
-
-.fun print_x_x_ln NORMAL [] = [U32 U32]
-.reg S64 [$1_dummy $2_dummy $3_dummy dummy]
-.reg U32 [a b]
-.bbl %start
-    poparg a
-    poparg b
-    pusharg a
-    pusharg 1:S32
-    bsr write_x
-    poparg dummy
-    pusharg 32:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg $1_dummy
-    pusharg b
-    pusharg 1:S32
-    bsr write_x
-    poparg $2_dummy
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg $3_dummy
-    ret
-
-.fun print_x_x_x_ln NORMAL [] = [U32 U32 U32]
-.reg S64 [$1_dummy $2_dummy $3_dummy $4_dummy $5_dummy dummy]
-.reg U32 [a b c]
-.bbl %start
-    poparg a
-    poparg b
-    poparg c
-    pusharg a
-    pusharg 1:S32
-    bsr write_x
-    poparg dummy
-    pusharg 32:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg $1_dummy
-    pusharg b
-    pusharg 1:S32
-    bsr write_x
-    poparg $2_dummy
-    pusharg 32:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg $3_dummy
-    pusharg c
-    pusharg 1:S32
-    bsr write_x
-    poparg $4_dummy
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg $5_dummy
-    ret
-
-.fun print_c_ln NORMAL [] = [U8]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [c]
-.bbl %start
-    poparg c
-    pusharg c
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_1
-    pusharg 10:U8
-    pusharg 1:S32
-    bsr write_c
-    poparg %S64_3
-    ret
-
-.fun memset NORMAL [A64] = [A64 S32 U64]
-.reg S8 [%S8_1]
-.reg S32 [value]
-.reg U64 [i n]
-.reg A64 [ptr]
-.bbl %start  #  edge_out[for_1_cond]  live_out[i  n  ptr  value]
-    poparg ptr
-    poparg value
-    poparg n
-    mov i 0
-    bra for_1_cond
-.bbl for_1  #  edge_out[for_1_next]  live_out[i  n  ptr  value]
-    conv %S8_1 value
-    st ptr i %S8_1
-.bbl for_1_next  #  edge_out[for_1_cond]  live_out[i  n  ptr  value]
-    add i i 1
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]  live_out[i  n  ptr  value]
-    blt i n for_1
-.bbl for_1_exit
-    pusharg ptr
-    ret
-
-.fun memcpy NORMAL [A64] = [A64 A64 U64]
-.reg S8 [%S8_2]
-.reg U64 [i n]
-.reg A64 [dst src]
-.bbl %start  #  edge_out[for_1_cond]  live_out[dst  i  n  src]
-    poparg dst
-    poparg src
-    poparg n
-    mov i 0
-    bra for_1_cond
-.bbl for_1  #  edge_out[for_1_next]  live_out[dst  i  n  src]
-    ld %S8_2 src i
-    st dst i %S8_2
-.bbl for_1_next  #  edge_out[for_1_cond]  live_out[dst  i  n  src]
-    add i i 1
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]  live_out[dst  i  n  src]
-    blt i n for_1
-.bbl for_1_exit
-    pusharg dst
     ret
 
 .fun abort NORMAL [] = []

@@ -1,4 +1,10 @@
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <thread>
 
+#include "Base/cfg.h"
 #include "Base/liveness.h"
 #include "Base/optimize.h"
 #include "Base/reg_stats.h"
@@ -7,12 +13,6 @@
 #include "Util/parse.h"
 #include "Util/switch.h"
 #include "Util/webserver.h"
-
-#include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <thread>
 
 namespace {
 using namespace cwerg;
@@ -34,6 +34,7 @@ void UnitCfgExit(Unit unit) {
 }
 
 void UnitOptBasic(Unit unit, bool dump_reg_stats) {
+  UnitRemoveUnreachableCode(unit, {UnitFunFind(unit, StrNew("main"))});
   for (Fun fun : UnitFunIter(unit)) {
     if (FunKind(fun) != FUN_KIND::NORMAL) continue;
     FunOptBasic(fun, true);
@@ -76,6 +77,7 @@ const DK_MAP kStdRKMap =
     make_array_helper(StdDKMapping, std::make_index_sequence<256>{});
 
 void UnitOpt(Unit unit, bool dump_reg_stats) {
+  UnitRemoveUnreachableCode(unit, {UnitFunFind(unit, StrNew("main"))});
   for (Fun fun : UnitFunIter(unit)) {
     if (FunKind(fun) != FUN_KIND::NORMAL) continue;
     FunOpt(fun, kStdRKMap);
@@ -138,8 +140,7 @@ WebResponse CodeHandler(base::Unit unit, const WebRequest& request) {
   return out;
 }
 
-SwitchInt32 sw_multiplier("multiplier",
-                          "adjust multiplies for item pool sizes",
+SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
 SwitchString sw_mode("mode", "mode indicating what to do", "optimize");
@@ -149,8 +150,7 @@ SwitchBool sw_show_stats("show_stats", "emit stats to cout");
 SwitchBool sw_break_after_load("break_after_load", "break after load IR");
 
 SwitchInt32 sw_webserver_port("webserver_port",
-                              "launch webserver at given port",
-                              -1);
+                              "launch webserver at given port", -1);
 
 void SleepForever() {
   std::cerr << "execution asserted webserver still active\n";

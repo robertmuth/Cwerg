@@ -712,6 +712,13 @@ struct BblPredEdgList {
 // =======================================
 // Fun (function)
 // =======================================
+enum class FUN_FLAG : uint8_t {
+  CFG_NOT_LINEAR = 1 << 1,
+  LIVENESs_VALID = 1 << 2,
+  STACK_FINALIZED = 1 << 3,
+  REACHABLE = 1 << 4
+};
+
 struct FunCore {
   Fun prev;
   Fun next;
@@ -726,9 +733,10 @@ struct FunCore {
 
   uint32_t scratch_reg_id;
 
-  FUN_KIND kind;
   HandleVec reg_map;  // registers by their number
   uint32_t stack_size;
+  FUN_KIND kind;
+  uint8_t flags;
   uint16_t num_regs;
 };
 
@@ -761,6 +769,15 @@ inline uint32_t& FunStackSize(Fun fun) { return gFunCore[fun].stack_size; }
 inline uint16_t& FunNumRegs(Fun fun) { return gFunCore[fun].num_regs; }
 inline HandleVec& FunRegMap(Fun fun) { return gFunCore[fun].reg_map; }
 inline FUN_KIND& FunKind(Fun fun) { return gFunCore[fun].kind; }
+inline uint8_t& FunFlags(Fun fun) { return gFunCore[fun].flags; }
+
+inline bool FunHasFlag(Fun fun, FUN_FLAG flag) {
+  return (FunFlags(fun) & unsigned(flag)) != 0;
+}
+
+inline void FunClearFlag(Fun fun, FUN_FLAG flag) {
+  FunFlags(fun) &= ~unsigned(flag);
+}
 
 inline DK* FunInputTypes(Fun fun) { return gFunSig[fun].input_types; }
 inline uint8_t& FunNumInputTypes(Fun fun) {
@@ -797,11 +814,13 @@ inline Fun FunNew(Str name, FUN_KIND kind = FUN_KIND::INVALID) {
       Stk(0),
       Reg(0),
       Jtb(0),
-      0,  // scratch_reg
-      kind,
+      0,                 // scratch_reg
       HandleVecInvalid,  // reg_map
       0,                 // stack_size
-      0                  // num_regs
+      kind,
+      0,  // flags
+      0   // num_regs
+
   };
 
   memset(&gFunSig[out], 0, sizeof(gFunSig[out]));
@@ -814,7 +833,6 @@ inline void FunDel(Fun fun) { gStripeGroupFun.Del(fun); }
 
 // Deletes bbls, stks, etc but not the fun itself
 extern void FunBblContent(Fun fun);
-
 
 extern std::string_view MaybeSkipCountPrefix(std::string_view s);
 
@@ -961,8 +979,8 @@ inline Str& Name(Unit mod) { return gUnitCore[mod].name; }
 
 inline Unit UnitNew(Str name) {
   Unit out = Unit(gStripeGroupUnit.New().index());
-  gUnitCore[out] = {Fun(out), Fun(out), Fun(0), //
-                    Mem(out), Mem(out), Mem(0), // 
+  gUnitCore[out] = {Fun(out), Fun(out), Fun(0),  //
+                    Mem(out), Mem(out), Mem(0),  //
                     name};
   return out;
 }
@@ -982,6 +1000,7 @@ struct UnitFunBst {
 
 #define UnitFunFind BstFind<UnitFunBst>
 #define UnitFunAddBst BstAdd<UnitFunBst>
+#define UnitFunDelBst BstDel<UnitFunBst>
 
 struct UnitFunList {
   using ITEM = Fun;

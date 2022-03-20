@@ -154,6 +154,7 @@ def FunOptBasic(fun: ir.Fun, opt_stats: Dict[str, int],
 
 
 def UnitOptBasic(unit: ir.Unit, dump_reg_stats) -> Dict[str, int]:
+    cfg.UnitRemoveUnreachableCode(unit, [unit.fun_syms["main"]])
     opt_stats: Dict[str, int] = collections.defaultdict(int)
     for fun in unit.funs:
         if fun.kind is not o.FUN_KIND.NORMAL:
@@ -186,6 +187,7 @@ def FunOpt(fun: ir.Fun, opt_stats: Dict[str, int]):
 
 
 def UnitOpt(unit: ir.Unit, dump_reg_stats) -> Dict[str, int]:
+    cfg.UnitRemoveUnreachableCode(unit, [unit.fun_syms["main"]])
     opt_stats: Dict[str, int] = collections.defaultdict(int)
     for fun in unit.funs:
         if fun.kind is not o.FUN_KIND.NORMAL:

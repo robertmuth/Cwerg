@@ -339,7 +339,7 @@ class FUN_FLAG(enum.Flag):
     CFG_NOT_LINEAR = 1 << 1  # bra instructions have been removed
     LIVENESS_VALID = 1 << 2  # liveness info is valid
     STACK_FINALIZED = 1 << 3  # stack size must not change anymore (no more scratch regs!)
-
+    REACHACHABLE = 1 << 4 
 
 class Fun:
     """Function"""

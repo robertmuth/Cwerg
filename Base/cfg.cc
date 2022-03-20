@@ -1,12 +1,13 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/cfg.h"
+
+#include <set>
+
 #include "Base/opcode_gen.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
 #include "Util/parse.h"
-
-#include <set>
 
 namespace cwerg::base {
 namespace {
@@ -183,7 +184,7 @@ void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl) {
   const Ins next_ins = BblInsList::Next(new_bbl_last_ins);
   BblInsList::Head(bbl) = next_ins;
   if (BblInsList::IsSentinel(next_ins)) {
-      BblInsList::Tail(bbl) = next_ins;
+    BblInsList::Tail(bbl) = next_ins;
   } else {
     BblInsList::Prev(next_ins) = BblInsList::MakeSentinel(bbl);
   }
@@ -423,6 +424,54 @@ void FunAddUnconditionalBranches(Fun fun) {
   }
   if (dirty) {
     FunReplaceBbls(fun, bbls);
+  }
+}
+
+void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds) {
+  for (Fun fun : UnitFunIter(unit)) {
+    FunClearFlag(fun, FUN_FLAG::REACHABLE);
+  }
+
+  std::vector<Fun> reachable = seeds;
+  for (Mem mem : UnitMemIter(unit)) {
+    for (Data data : MemDataIter(mem)) {
+      if (DataTarget(data).kind() == RefKind::FUN) {
+        reachable.push_back(Fun(DataTarget(data)));
+      }
+    }
+  }
+
+  // Fixpoint iteration
+  while (!reachable.empty()) {
+    Fun fun = reachable.back();
+    reachable.pop_back();
+    if (FunHasFlag(fun, FUN_FLAG::REACHABLE)) continue;
+    FunFlags(fun) |= uint8_t(FUN_FLAG::REACHABLE);
+    for (Bbl bbl : FunBblIter(fun)) {
+      for (Ins ins : BblInsIter(bbl)) {
+        OPC opc = InsOPC(ins);
+        if (opc != OPC::LEA_FUN && opc != OPC::BSR && opc != OPC::JSR &&
+            opc != OPC::SYSCALL)
+          continue;
+        for (unsigned i = 0; i < InsOpcode(ins).num_operands; ++i) {
+          Fun fun = Fun(InsOperand(ins, i));
+          if (fun.kind() == RefKind::FUN &&
+              !FunHasFlag(fun, FUN_FLAG::REACHABLE)) {
+            reachable.push_back(fun);
+          }
+        }
+      }
+    }
+  }
+
+  std::vector<Fun> unreachable;
+  for (Fun fun : UnitFunIter(unit)) {
+    if (!FunHasFlag(fun, FUN_FLAG::REACHABLE)) unreachable.push_back(fun);
+  }
+
+  for (Fun fun : unreachable) {
+    UnitFunUnlink(fun);
+    UnitFunDelBst(unit, fun);
   }
 }
 
