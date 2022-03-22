@@ -77,6 +77,7 @@ struct StripeGroup {
   // vec must have >=  MaxInstances() bits. A bit will be set if
   // the instance with the corresponding number is on the free list.
   void SetBitVecOfFreeInstances(u_int8_t* vec) const;
+  
   static void DumpAllGroups(std::ostream& os);
 
  private:

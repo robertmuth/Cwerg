@@ -6,6 +6,7 @@
 #include "Util/parse.h"
 
 #include <map>
+#include <string_view>
 
 namespace cwerg::a32 {
 using namespace cwerg::elf;

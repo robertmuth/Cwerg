@@ -127,7 +127,8 @@ SUPPORTED_OPCODES = {
     "cwd", "cdq", "cqo",
     "ldmxcsr", "stmxcsr",
     "movq", "movd",
-    "mfence", "lfence",  # Note: sfence is currently excluded because we skip all MMX instructions
+    # Note: sfence is currently excluded because we skip all MMX instructions
+    "mfence", "lfence",
     # may require additional work because the M format behaves slightly different
     # depending on whether the mem or reg variant is used.
     # "movhps",
@@ -590,7 +591,8 @@ class Opcode:
         if self.variant.startswith("_"):
             self.variant = self.variant[1:]
         fullname = self.EnumName()
-        assert len(fullname) <= MAX_INSTRUCTION_NAME_LENGTH, f"max length exceeded: {fullname}  {len(fullname)}"
+        assert len(
+            fullname) <= MAX_INSTRUCTION_NAME_LENGTH, f"max length exceeded: {fullname}  {len(fullname)}"
         assert fullname not in Opcode.name_to_opcode, f"duplicate={fullname}"
         Opcode.name_to_opcode[fullname] = self
         assert len(self.fields) <= MAX_OPERAND_COUNT, f"{self}"
@@ -690,7 +692,8 @@ class Opcode:
 
     def AddMemOp(self, mem_mode: MEM_MODE, mod: int, ext: int = -1):
         if not self.name.startswith("lea"):
-            self.mem_width = FindSpecificOpWidth("M", self.operands, self.format)
+            self.mem_width = FindSpecificOpWidth(
+                "M", self.operands, self.format)
         self.modrm_pos = len(self.data)
         assert mod <= 2
         data = mod << 6
@@ -799,7 +802,8 @@ class Opcode:
             return r
 
         def GetSInt(pos, src_width, dst_width):
-            x = int.from_bytes(data[pos: pos + src_width // 8], "little", signed=True)
+            x = int.from_bytes(
+                data[pos: pos + src_width // 8], "little", signed=True)
             if dst_width is not None and dst_width != 64:
                 return x & (1 << dst_width) - 1
             return x
@@ -925,24 +929,24 @@ class Opcode:
                     break
             out.insert(pos, rex | 0x40)
         return out
-    
+
     def UsesRex(self, operands: List[int]) -> bool:
         assert len(operands) == len(self.fields)
         if self.rexw:
             return True
         for v, o in zip(operands, self.fields):
             if o in {OK.MODRM_RM_REG8, OK.MODRM_RM_REG16, OK.MODRM_RM_REG32,
-                       OK.MODRM_RM_REG64, OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64, 
-                       OK.MODRM_RM_XREG128, OK.MODRM_RM_BASE, 
-                       OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
-                       OK.MODRM_REG64, OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128,
-                       OK.SIB_BASE, OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX, OK.BYTE_WITH_REG8,
-                       OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
-                       OK.BYTE_WITH_REG64}:
+                     OK.MODRM_RM_REG64, OK.MODRM_RM_XREG32, OK.MODRM_RM_XREG64,
+                     OK.MODRM_RM_XREG128, OK.MODRM_RM_BASE,
+                     OK.MODRM_REG8, OK.MODRM_REG16, OK.MODRM_REG32,
+                     OK.MODRM_REG64, OK.MODRM_XREG32, OK.MODRM_XREG64, OK.MODRM_XREG128,
+                     OK.SIB_BASE, OK.SIB_INDEX_AS_BASE, OK.SIB_INDEX, OK.BYTE_WITH_REG8,
+                     OK.BYTE_WITH_REG16, OK.BYTE_WITH_REG32,
+                     OK.BYTE_WITH_REG64}:
                 if o in {OK.MODRM_RM_REG8, OK.MODRM_REG8, OK.BYTE_WITH_REG8} and (4 <= v <= 7):
                     return True  # force rex, otherwise we select ah, ch, dh, bh
                 if v >> 3:
-                    return True 
+                    return True
         return False
 
     @classmethod
@@ -1011,7 +1015,6 @@ def Assemble(ins: Ins) -> List[int]:
 
 def InsLength(ins: Ins) -> int:
     return len(ins.opcode.data) + ins.opcode.UsesRex(ins.operands)
-
 
 
 _SUPPORTED_ENCODING_PARAMS = {
@@ -1115,7 +1118,8 @@ def HandlePatternMI(name: str, ops, format, encoding, before, after):
 def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], meta: List[str]):
     assert format in _SUPPORTED_FORMATS, f"bad format [{format}]"
     for f in encoding:
-        assert f in _SUPPORTED_ENCODING_PARAMS or _RE_BYTE_VARIATIONS.match(f), f"bad parameter [{repr(f)}]"
+        assert f in _SUPPORTED_ENCODING_PARAMS or _RE_BYTE_VARIATIONS.match(
+            f), f"bad parameter [{repr(f)}]"
     for o in ops:
         assert o in _SUPPORTED_OPERANDS, f"unexpected operand: [{o}]"
 
@@ -1210,11 +1214,13 @@ def ExtractOps(s):
 def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
     patterns = collections.defaultdict(list)
     for opcode in Opcode.Opcodes:
-        patterns[(opcode.rexw, opcode.discriminant_mask, opcode.discriminant_data)].append(opcode)
+        patterns[(opcode.rexw, opcode.discriminant_mask,
+                  opcode.discriminant_data)].append(opcode)
 
     print(f"Checkin Opcodes for conflicts")
     for k, group in patterns.items():
-        assert len(group) == 1, f"this should not happen, maybe the discriminant needs to be longer"
+        assert len(
+            group) == 1, f"this should not happen, maybe the discriminant needs to be longer"
 
     print(f"Checkin Opcodes for overlap causing decoding ambiguity")
     for group in opcodes.values():
@@ -1293,8 +1299,10 @@ def CreateOpcodes(instructions: List, verbose: bool):
             continue
         ops = ops.replace("<", "").replace(">", "").replace(", ", ",")
         ops_orig = [x for x in ops.split(",") if x]
-        written_ops = [x for x in ops_orig if x[0:2] in {"X:", "x:", "W:", "w:"}]
-        assert len(written_ops) <= 1 or name in _OPCODES_WITH_MULTIPLE_REG_WRITE, f"{name}"
+        written_ops = [x for x in ops_orig if x[0:2]
+                       in {"X:", "x:", "W:", "w:"}]
+        assert len(
+            written_ops) <= 1 or name in _OPCODES_WITH_MULTIPLE_REG_WRITE, f"{name}"
         ops = ExtractOps(ops)
         name = name.split("/")[0]
         # hack merge entries for movss/movsd
@@ -1353,14 +1361,19 @@ def _render_enum_simple(symbols, name):
 
 
 def _EmitCodeH(fout):
-    print(f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_OPERAND_COUNT};", file=fout)
-    print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_LENGTH};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_OPERAND_COUNT = {MAX_OPERAND_COUNT};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_INSTRUCTION_LENGTH = {MAX_INSTRUCTION_LENGTH};", file=fout)
     print(f"constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = {MAX_INSTRUCTION_LENGTH_WITH_PREFIXES};",
           file=fout)
-    print(f"constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
-    print(f"constexpr const unsigned MAX_FINGERPRINT = {MAX_FINGERPRINT};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = {MAX_INSTRUCTION_NAME_LENGTH};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_FINGERPRINT = {MAX_FINGERPRINT};", file=fout)
 
-    cgen.RenderEnum(cgen.NameValues(MEM_MODE), "class MEM_WIDTH : uint8_t", fout)
+    cgen.RenderEnum(cgen.NameValues(MEM_MODE),
+                    "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
 
 
@@ -1380,7 +1393,8 @@ def _RenderOpcodeTable():
     ]
 
     for name, opc in sorted(Opcode.name_to_opcode.items()):
-        mem_width_log = {0: 0, 8: 1, 16: 2, 32: 3, 64: 4, 128: 5}[opc.mem_width]
+        mem_width_log = {0: 0, 8: 1, 16: 2,
+                         32: 3, 64: 4, 128: 5}[opc.mem_width]
         out += [
             f"  {{{len(opc.fields)}, {len(opc.data)}, {mem_width_log}, {int(opc.rexw)}, {Q(opc.modrm_pos)}, " +
             f"{Q(opc.sib_pos)}, {Q(opc.offset_pos)}, {Q(opc.imm_pos)}, {Q(opc.byte_with_reg_pos)},  // {name}",
@@ -1439,10 +1453,12 @@ def _EmitNames(fout):
     for name in sorted(Opcode.name_to_opcode.keys()):
         print(f'  "{name}",', file=fout)
     print("};\n", file=fout)
-    print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
+    print(
+        f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print(f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
+    print(
+        f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
@@ -1484,7 +1500,8 @@ if __name__ == "__main__":
         OpcodeSanityCheck(Opcode.OpcodesByFP)
         print(f"Different fingerprints: {len(Opcode.OpcodesByFP)}")
         print(f"Max fingerprint: {max(Opcode.OpcodesByFP.keys())}")
-        print(f"Max fingerprint collisions: {max(len(x) for x in Opcode.OpcodesByFP.values())}")
+        print(
+            f"Max fingerprint collisions: {max(len(x) for x in Opcode.OpcodesByFP.values())}")
         last_name = ""
         for opc in Opcode.Opcodes:
             if last_name != opc.name:

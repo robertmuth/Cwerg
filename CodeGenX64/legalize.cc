@@ -280,14 +280,14 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
   return mask - 1;
 }
 
-struct PoolMasks{
+struct PoolMasks {
   uint32_t mask_lac;
   uint32_t mask_not_lac;
 };
 
-PoolMasks GetRegPoolsForGlobals(
-    const FunRegStats& needed, uint32_t regs_lac, uint32_t regs_not_lac,
-    uint32_t regs_preallocated) {
+PoolMasks GetRegPoolsForGlobals(const FunRegStats& needed, uint32_t regs_lac,
+                                uint32_t regs_not_lac,
+                                uint32_t regs_preallocated) {
   unsigned num_regs_lac = __builtin_popcount(regs_lac);
   unsigned num_regs_not_lac = __builtin_popcount(regs_not_lac);
   bool spilling_needed = SpillingNeeded(needed, num_regs_lac, num_regs_not_lac);

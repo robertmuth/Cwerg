@@ -9,6 +9,9 @@ namespace cwerg {
 constexpr const unsigned BITVEC_MAX_BITS = 64 * 255;  // = 16320
 
 struct BitVec {
+  // BITVEC_MAX_BITS is the maximum number of bits in a bit vector.
+  // Since we are using them for register liveness, this is also a limit
+  // on the number of registers per Fun.
   static BitVec New(unsigned num_bits);
 
   // Note: if bv has zero length Del is a nop

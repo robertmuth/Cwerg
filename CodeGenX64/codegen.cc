@@ -11,6 +11,8 @@
 #include "CpuX64/symbolic.h"
 #include "Util/parse.h"
 
+#include <string_view>
+
 namespace cwerg::code_gen_x64 {
 
 using namespace cwerg;

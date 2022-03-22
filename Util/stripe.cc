@@ -35,6 +35,15 @@ uint32_t StripeGroup::NumFree() const {
   return n;
 }
 
+void StripeGroup::SetBitVecOfFreeInstances(u_int8_t* vec) const {
+  StripeBase* sb = stripes_[0];
+  for (Handle r = first_free_; !r.isnull();
+       r = *static_cast<Handle*>(sb->element(r.index()))) {
+       uint32_t index = r.index();
+        vec[index >> 3] |= 1 << (index & 7);
+  } 
+}
+
 uintptr_t Align(uintptr_t x, uint32_t alignment) {
   return (x + alignment - 1) / alignment * alignment;
 }

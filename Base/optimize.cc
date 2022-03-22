@@ -23,7 +23,6 @@ void FunCfgInit(Fun fun) {
 void FunCfgExit(Fun fun) { FunAddUnconditionalBranches(fun); }
 
 void FunOptBasic(Fun fun, bool allow_conv_conversions) {
-
   std::vector<Ins> inss;
   FunNumberReg(fun);
   FunMergeMoveWithSrcDef(fun, &inss);
@@ -52,8 +51,6 @@ void FunOptBasic(Fun fun, bool allow_conv_conversions) {
   FunSeparateLocalRegUsage(fun);
 }
 
-
-
 void FunOpt(Fun fun, const DK_MAP& rk_map) {
   std::vector<Ins> inss;
   FunOptBasic(fun, true);
@@ -66,4 +63,4 @@ void FunOpt(Fun fun, const DK_MAP& rk_map) {
   FunOptBasic(fun, false);
 }
 
-} // namespace cwerg::base
+}  // namespace cwerg::base

@@ -45,8 +45,8 @@ int main(int argc, char* argv[]) {
       if (Disassemble(&ins, data)) {
         const uint32_t data2 = Assemble(ins);
         if (data != data2) {
-          std::cout << "Disassembler failure " << std::hex
-                    << data << " vs " << data2 << std::dec << ": ";
+          std::cout << "Disassembler failure " << std::hex << data << " vs "
+                    << data2 << std::dec << ": ";
           ops.clear();
           std::string_view enum_name = InsSymbolize(ins, &ops);
           std::cout << enum_name;

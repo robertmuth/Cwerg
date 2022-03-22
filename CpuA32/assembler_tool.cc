@@ -3,6 +3,7 @@
 #include "CpuA32/assembler.h"
 
 #include <fstream>
+#include <string_view>
 
 using namespace cwerg;
 
