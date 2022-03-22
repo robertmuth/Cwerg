@@ -471,36 +471,11 @@ DIV = Opcode(0x13, "div", OPC_KIND.ALU,
              Division by 0 and signed division of min_int by -1 are UB  
              """)
 
+############################################################
+# INT ONLY (all regs are treated as unsigned except for shr/rshr
 # cf.:
 # https://www.gingerbill.org/article/2020/01/25/a-reply-to-lets-stop-copying-c/
-REM = Opcode(0x14, "rem", OPC_KIND.ALU,
-             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-             [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             """Modulo: dst := a % b
-             
-              Modulo by 0 and signed modulo of min_int by -1 are UB  
-              """)
 
-CLMUL = Opcode(0x16, "clmul", OPC_KIND.ALU,
-               [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-               """NYI: Carry-less multiplication:
-             
-             def clmul(src1: int, src2: int) -> int:
-                 dst = 0
-                 for i in range(bitwidth(src1)):
-                     if (1 << i) & src1: dst ^= src2 << i
-                 return dst
-             """)
-
-COPYSIGN = Opcode(0x17, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
-                  [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-                  """Set the sign of src1 to match src2 (floating point only)
-                  
-                  Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
-############################################################
-# LOGIC ALU 0x30
-# INT ONLY (all regs are treated as unsigned except for shr/rshr
 XOR = Opcode(0x18, "xor", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
@@ -541,6 +516,26 @@ SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              """Shift right: dst := src1 >> src2
                           
              dst: = src1 >> (src2 % bitwidth(src1))""")
+
+REM = Opcode(0x1d, "rem", OPC_KIND.ALU,
+             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+             [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+             """Modulo: dst := a % b
+             
+              Modulo by 0 and signed modulo of min_int by -1 are UB  
+              """)
+
+CLMUL = Opcode(0x1e, "clmul", OPC_KIND.ALU,
+               [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+               [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+               """NYI: Carry-less multiplication:
+             
+             def clmul(src1: int, src2: int) -> int:
+                 dst = 0
+                 for i in range(bitwidth(src1)):
+                     if (1 << i) & src1: dst ^= src2 << i
+                 return dst
+             """)
 
 # do we need both directions, do we need a reverse version?
 # should we rather use a funnel shift?
@@ -805,7 +800,13 @@ TRUNC = Opcode(0x53, "trunc", OPC_KIND.ALU1,
                Round float to integral, toward zero.
                Note, frac(val) = val - trunc(val)""")
 
-SQRT = Opcode(0x54, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
+COPYSIGN = Opcode(0x54, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
+                  [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
+                  """Set the sign of src1 to match src2 (floating point only)
+                  
+                  Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
+
+SQRT = Opcode(0x55, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
               "Compute the sqrt of floating point value")
 
