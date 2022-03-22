@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iomanip>
 
+#include "Base/cfg.h"
 #include "Base/canonicalize.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
@@ -504,6 +505,12 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
 }
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds;
+  Fun fun = UnitFunFind(unit, StrNew("main"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  fun = UnitFunFind(unit, StrNew("_start"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
   for (Fun fun : UnitFunIter(unit)) {
     FunCheck(fun);
     if (FunKind(fun) == FUN_KIND::NORMAL) {

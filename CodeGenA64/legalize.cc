@@ -4,6 +4,7 @@
 #include <iomanip>
 
 #include "Base/canonicalize.h"
+#include "Base/cfg.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
 #include "Base/optimize.h"
@@ -154,14 +155,14 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
   return mask - 1;
 }
 
-struct PoolMasks{
+struct PoolMasks {
   uint32_t mask_lac;
   uint32_t mask_not_lac;
 };
 
-PoolMasks GetRegPoolsForGlobals(
-    const FunRegStats& needed, uint32_t regs_lac, uint32_t regs_not_lac,
-    uint32_t regs_preallocated) {
+PoolMasks GetRegPoolsForGlobals(const FunRegStats& needed, uint32_t regs_lac,
+                                uint32_t regs_not_lac,
+                                uint32_t regs_preallocated) {
   unsigned num_regs_lac = __builtin_popcount(regs_lac);
   unsigned num_regs_not_lac = __builtin_popcount(regs_not_lac);
   bool spilling_needed = SpillingNeeded(needed, num_regs_lac, num_regs_not_lac);
@@ -369,6 +370,12 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
 }
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds;
+  Fun fun = UnitFunFind(unit, StrNew("main"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  fun = UnitFunFind(unit, StrNew("_start"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
   for (Fun fun : UnitFunIter(unit)) {
     FunCheck(fun);
     if (FunKind(fun) == FUN_KIND::NORMAL) {

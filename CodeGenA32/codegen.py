@@ -31,8 +31,8 @@ from Elf import elf_unit
 def LegalizeAll(unit: ir.Unit, opt_stats, fout, verbose=False):
     seeds = [f for f in [unit.fun_syms.get("_start"),
                          unit.fun_syms.get("main")] if f]
-
-    cfg.UnitRemoveUnreachableCode(unit, seeds)
+    if seeds:
+        cfg.UnitRemoveUnreachableCode(unit, seeds)
     for fun in unit.funs:
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
 
