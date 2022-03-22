@@ -165,27 +165,6 @@ Division: dst := src1 / src2
              Division by 0 and signed division of min_int by -1 are UB  
              
 
-#### [14] rem *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Modulo: dst := a % b
-             
-              Modulo by 0 and signed modulo of min_int by -1 are UB  
-              
-
-#### [15] clmul *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-NYI: Carry-less multiplication:
-             
-             def clmul(src1: int, src2: int) -> int:
-               dst = 0
-               for i in range(bitwidth(src1)):
-                   if (1 << i) & src1: dst ^= src2 << i
-                return dst
-             
-
-#### [16] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Set the sign of src1 to match src2 (floating point only)
-                  
-                  Note: `copysign dst src1 0.0` can be used to emulate `abs`
-
 #### [18] xor *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise exclusive or: dst := src1 ^ src2
              
@@ -206,6 +185,22 @@ Shift left: dst := src1 << src2
 Shift right: dst := src1 >> src2
                           
              dst: = src1 >> (src2 % bitwidth(src1))
+
+#### [1d] rem *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Modulo: dst := a % b
+             
+              Modulo by 0 and signed modulo of min_int by -1 are UB  
+              
+
+#### [1e] clmul *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+NYI: Carry-less multiplication:
+             
+             def clmul(src1: int, src2: int) -> int:
+                 dst = 0
+                 for i in range(bitwidth(src1)):
+                     if (1 << i) & src1: dst ^= src2 << i
+                 return dst
+             
 
 ## Conditional Branches
 
@@ -368,7 +363,12 @@ Round float to integral, to nearest with ties to away
                Round float to integral, toward zero.
                Note, frac(val) = val - trunc(val)
 
-#### [54] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+#### [54] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
+Set the sign of src1 to match src2 (floating point only)
+                  
+                  Note: `copysign dst src1 0.0` can be used to emulate `abs`
+
+#### [55] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Compute the sqrt of floating point value
 
 ## Advanced ALU
