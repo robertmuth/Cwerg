@@ -10,6 +10,7 @@ import stat
 import collections
 from typing import List, Dict
 
+from Base import cfg
 from Base import ir
 from Base import opcode_tab as o
 from Base import sanity
@@ -27,7 +28,11 @@ from Elf import enum_tab
 from Elf import elf_unit
 
 
-def LegalizeAll(unit, opt_stats, fout, verbose=False):
+def LegalizeAll(unit: ir.Unit, opt_stats, fout, verbose=False):
+    seeds = [f for f in [unit.fun_syms.get("_start"),
+                         unit.fun_syms.get("main")] if f]
+
+    cfg.UnitRemoveUnreachableCode(unit, seeds)
     for fun in unit.funs:
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
 
@@ -38,7 +43,7 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
         legalize.PhaseLegalization(fun, unit, opt_stats, fout)
 
 
-def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
+def RegAllocGlobal(unit: ir.Unit, opt_stats, fout, verbose=False):
     for fun in unit.funs:
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
         legalize.PhaseGlobalRegAlloc(fun, opt_stats, fout)
@@ -46,7 +51,7 @@ def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
             legalize.DumpFun("after global_reg_alloc", fun)
 
 
-def RegAllocLocal(unit, opt_stats, fout, verbose=False):
+def RegAllocLocal(unit: ir.Unit, opt_stats, fout, verbose=False):
     for fun in unit.funs:
         legalize.PhaseFinalizeStackAndLocalRegAlloc(fun, opt_stats, fout)
         if verbose:
@@ -186,14 +191,17 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
         assert mem.kind is not o.MEM_KIND.EXTERN
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        elfunit.MemStart(mem.name, mem.alignment, _MEMKIND_TO_SECTION[mem.kind], False)
+        elfunit.MemStart(mem.name, mem.alignment,
+                         _MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
             elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
+                elfunit.AddFunAddr(
+                    enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.fun.name)
             elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32, d.size, d.mem.name, d.offset)
+                elfunit.AddMemAddr(enum_tab.RELOC_TYPE_ARM.ABS32,
+                                   d.size, d.mem.name, d.offset)
             else:
                 assert False
         elfunit.MemEnd()
@@ -243,12 +251,11 @@ if __name__ == "__main__":
     _ALLOWED_MODES = {"normal", "binary", "legalize", "reg_alloc_global",
                       "reg_alloc_local"}
 
-
     def main():
         parser = argparse.ArgumentParser(description='CodeGenA32')
         parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('-add_startup_code', action='store_true', help=
-        'Add startup code (symbol _startup) which calls main and provides access to argc/argv')
+        parser.add_argument('-add_startup_code', action='store_true',
+                            help='Add startup code (symbol _startup) which calls main and provides access to argc/argv')
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
@@ -262,7 +269,7 @@ if __name__ == "__main__":
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature
             # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-            LegalizeAll(unit, opt_stats, None)
+            LegalizeAll(unit, opt_stats, args.add_startup_code, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
             armunit = EmitUnitAsBinary(unit, args.add_startup_code)
@@ -296,6 +303,5 @@ if __name__ == "__main__":
             print(f"# STATS:")
             for key, val in sorted(opt_stats.items()):
                 print(f"#  {key}: {val}", file=fout)
-
 
     main()

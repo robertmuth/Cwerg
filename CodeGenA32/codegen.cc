@@ -2,8 +2,9 @@
 
 #include "CodeGenA32/codegen.h"
 
-#include "Base/optimize.h"
+#include "Base/cfg.h"
 #include "Base/ir.h"
+#include "Base/optimize.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
 #include "CodeGenA32/isel_gen.h"
@@ -23,7 +24,7 @@ namespace {
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
--> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
@@ -158,10 +159,12 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
       if (target.kind() == RefKind::STR) {
         out.AddData(extra, StrData(Str(target)), size);
       } else if (target.kind() == RefKind::FUN) {
-        out.AddFunAddr(size, +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(Fun(target))));
+        out.AddFunAddr(size, +elf::RELOC_TYPE_ARM::ABS32,
+                       StrData(Name(Fun(target))));
       } else {
         ASSERT(target.kind() == RefKind::MEM, "");
-        out.AddMemAddr(size,  +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(Mem(target))), extra);
+        out.AddMemAddr(size, +elf::RELOC_TYPE_ARM::ABS32,
+                       StrData(Name(Mem(target))), extra);
       }
     }
     out.MemEnd();
@@ -219,6 +222,13 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
 }
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds;
+  Fun fun = UnitFunFind(unit, StrNew("main"));
+  if (!fun.isnull()) seeds.push_back(fun);
+fun = UnitFunFind(unit, StrNew("_start"));
+  if (!fun.isnull()) seeds.push_back(fun);
+
+  UnitRemoveUnreachableCode(unit, seeds);
   for (Fun fun : UnitFunIter(unit)) {
     FunCheck(fun);
     if (FunKind(fun) == FUN_KIND::NORMAL) {
