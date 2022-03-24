@@ -1,8 +1,6 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/serialize.h"
-#include "Base/opcode_gen.h"
-#include "Util/parse.h"
 
 #include <algorithm>
 #include <iomanip>
@@ -11,14 +9,16 @@
 #include <string>
 #include <string_view>
 
+#include "Base/opcode_gen.h"
+#include "Util/parse.h"
+
 namespace cwerg::base {
 namespace {
 
 using DirHandler = bool (*)(const std::vector<std::string_view>& token,
                             Unit mod);
 
-int PopulateSig(const std::vector<std::string_view>& token,
-                int start,
+int PopulateSig(const std::vector<std::string_view>& token, int start,
                 DK sig[MAX_PARAMETERS]) {
   if (token[start][0] != '[') {
     std::cerr << "unexpected vector start: " << token[start] << "\n";
@@ -317,11 +317,7 @@ RegFragments ParseRegString(std::string_view s) {
 }
 
 Handle GetRegOrConstInsOperand(
-    OP_KIND ok,
-    TC tc,
-    std::string_view s,
-    Fun fun,
-    DK last_kind,
+    OP_KIND ok, TC tc, std::string_view s, Fun fun, DK last_kind,
     const std::map<std::string_view, CpuReg>& cpu_reg_map) {
   if (ok == OP_KIND::REG_OR_CONST) {
     ok = IsLikelyNum(s) ? OP_KIND::CONST : OP_KIND::REG;
@@ -444,8 +440,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
 }
 
 bool GetAllInsOperands(const Opcode& opcode,
-                       const std::vector<std::string_view>& token,
-                       Unit mod,
+                       const std::vector<std::string_view>& token, Unit mod,
                        Fun fun,
                        const std::map<std::string_view, CpuReg>& cpu_reg_map,
                        Handle operands[]) {
@@ -488,8 +483,7 @@ bool GetAllInsOperands(const Opcode& opcode,
 }
 
 // TODO: get rid of this hack which simplifies FrontEndC/translate.py a bit
-OPC MaybeRewritePseudoOpcodes(std::vector<std::string_view>* token,
-                              Unit unit,
+OPC MaybeRewritePseudoOpcodes(std::vector<std::string_view>* token, Unit unit,
                               Fun fun) {
   if ((*token)[0] != "lea") {
     return OPC::INVALID;
@@ -663,10 +657,8 @@ void EmitParamList(unsigned num_types, DK* types, std::ostream* output) {
   *output << "]";
 }
 
-void MaybeEmitCpuRegList(unsigned num_regs,
-                         CpuReg* regs,
-                         std::string_view prefix,
-                         std::ostream* output) {
+void MaybeEmitCpuRegList(unsigned num_regs, CpuReg* regs,
+                         std::string_view prefix, std::ostream* output) {
   if (num_regs == 0) return;
 
   *output << prefix << ": [";
@@ -779,8 +771,7 @@ void UnitRenderToAsm(Unit unit, std::ostream* output) {
   }
 }
 
-Unit UnitParseFromAsm(const char* name,
-                      std::string_view input,
+Unit UnitParseFromAsm(const char* name, std::string_view input,
                       const std::vector<CpuReg>& cpu_regs) {
   std::map<std::string_view, CpuReg> cpu_reg_map;
   for (const CpuReg reg : cpu_regs) {

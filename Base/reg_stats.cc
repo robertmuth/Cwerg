@@ -1,13 +1,14 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/reg_stats.h"
+
+#include <iomanip>
+#include <map>
+
 #include "Base/liveness.h"
 #include "Base/opcode_gen.h"
 #include "Base/reg_alloc.h"
 #include "Base/serialize.h"
-
-#include <iomanip>
-#include <map>
 
 // #define TRACE_REG_ALLOC
 
@@ -319,7 +320,8 @@ int FunSeparateLocalRegUsage(Fun fun) {
 DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
   DK_LAC_COUNTS out;
   for (Reg reg : FunRegIter(fun)) {
-    if (RegCpuReg(reg).kind() == RefKind::CPU_REG || !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
+    if (RegCpuReg(reg).kind() == RefKind::CPU_REG ||
+        !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
       continue;
     }
     const unsigned kind = rk_map[+RegKind(reg)];

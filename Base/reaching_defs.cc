@@ -1,13 +1,14 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/reaching_defs.h"
+
+#include <set>
+
 #include "Base/cfg.h"
 #include "Base/eval.h"
 #include "Base/opcode_gen.h"
 #include "Base/serialize.h"
 #include "Util/handlevec.h"
-
-#include <set>
 
 namespace cwerg::base {
 namespace {
@@ -36,9 +37,7 @@ void BblInitReachingDefs(Bbl bbl, unsigned num_regs) {
 
 // Propagation to `self` from an incoming `other`
 // Simple lattice with top, bot, and all other elements in-between.
-bool HandleVecCombineWith(HandleVec self,
-                          HandleVec other,
-                          unsigned num_regs,
+bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
                           Handle top) {
   ASSERT(self.raw_width() == other.raw_width(), "");
   Handle* data1 = self.BackingStorage();
@@ -61,9 +60,7 @@ bool HandleVecCombineWith(HandleVec self,
 }
 
 // Propagation to `out` from `in` applying `def`
-bool HandleVecUpdateWith(HandleVec out,
-                         HandleVec in,
-                         HandleVec def,
+bool HandleVecUpdateWith(HandleVec out, HandleVec in, HandleVec def,
                          unsigned num_regs) {
   ASSERT(
       out.raw_width() == in.raw_width() && out.raw_width() == def.raw_width(),
@@ -205,9 +202,7 @@ void FunPropagateConsts(Fun fun) {
   }
 }
 
-static void InsConstantFold(Ins ins,
-                            Bbl bbl,
-                            bool allow_conv_conversion,
+static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
                             std::vector<Ins>* to_delete) {
   const OPC opc = InsOPC(ins);
   const OPC_KIND kind = InsOpcodeKind(ins);
@@ -274,8 +269,7 @@ static void InsConstantFold(Ins ins,
   }
 }
 
-int FunConstantFold(Fun fun,
-                    bool allow_conv_conversion,
+int FunConstantFold(Fun fun, bool allow_conv_conversion,
                     std::vector<Ins>* to_delete) {
   to_delete->clear();
   for (Bbl bbl : FunBblIter(fun)) {
@@ -477,9 +471,7 @@ void FunPropagateRegs(Fun fun) {
   HandleVec::Del(hv);
 }
 
-void update_def_use(Ins ins,
-                    int pos,
-                    std::vector<int>* last_use_pos,
+void update_def_use(Ins ins, int pos, std::vector<int>* last_use_pos,
                     std::vector<int>* last_def_pos) {
   const unsigned num_defs = InsOpcode(ins).num_defs;
   const unsigned num_ops = InsOpcode(ins).num_operands;
@@ -495,8 +487,7 @@ void update_def_use(Ins ins,
   }
 }
 
-bool is_suitable_mov(Ins mov,
-                     const std::vector<Ins>& inss,
+bool is_suitable_mov(Ins mov, const std::vector<Ins>& inss,
                      const std::vector<int>& last_use_pos,
                      const std::vector<int>& last_def_pos) {
   if (InsOPC(mov) != OPC::MOV) return false;
@@ -506,7 +497,8 @@ bool is_suitable_mov(Ins mov,
   if (src_reg == dst_reg) return false;
   const int src_def_pos = last_def_pos[RegNo(src_reg)];
   if (src_def_pos < 0) return false;
-  if (inss.size() > src_def_pos + 1 && InsOPC(inss[src_def_pos + 1]) == OPC::POPARG) {
+  if (inss.size() > src_def_pos + 1 &&
+      InsOPC(inss[src_def_pos + 1]) == OPC::POPARG) {
     return false;
   }
 

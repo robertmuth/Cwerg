@@ -1,9 +1,9 @@
 // (c) Robert Muth - see LICENSE for more info
 #pragma once
 
-#include "Base/ir.h"
-
 #include <iostream>
+
+#include "Base/ir.h"
 
 namespace cwerg::base {
 
@@ -11,8 +11,9 @@ extern Unit UnitParseFromAsm(const char* name, std::string_view input,
                              const std::vector<CpuReg>& cpu_regs);
 
 extern void InsRenderToAsm(Ins ins, std::ostream* output);
-extern void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number=false);
-extern void FunRenderToAsm(Fun fun, std::ostream* output, bool number=false);
+extern void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output,
+                           bool number = false);
+extern void FunRenderToAsm(Fun fun, std::ostream* output, bool number = false);
 extern void MemRenderToAsm(Mem mem, std::ostream* output);
 extern void UnitRenderToAsm(Unit unit, std::ostream* output);
 
@@ -40,4 +41,4 @@ inline std::ostream& operator<<(std::ostream& os, Fun fun) {
   return os;
 }
 
-}  // namespace cwerg
+}  // namespace cwerg::base

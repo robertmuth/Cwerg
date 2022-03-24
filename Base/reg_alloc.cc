@@ -1,18 +1,17 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/reg_alloc.h"
-#include "Base/liveness.h"
-#include "Util/parse.h"
 
 #include <algorithm>
+
+#include "Base/liveness.h"
+#include "Util/parse.h"
 
 namespace cwerg::base {
 namespace {
 
-void HandleUseLiveRange(LiveRange* lr_use,
-                        std::vector<LiveRange>* ranges,
-                        RegPool* pool,
-                        RegAllocLoggerFun debug) {
+void HandleUseLiveRange(LiveRange* lr_use, std::vector<LiveRange>* ranges,
+                        RegPool* pool, RegAllocLoggerFun debug) {
   for (unsigned i = 0; i < MAX_USES_PER_OPCODE && lr_use->use_def[i] != 0;
        ++i) {
     LiveRange& lr = (*ranges)[lr_use->use_def[i]];
@@ -33,10 +32,8 @@ void HandleUseLiveRange(LiveRange* lr_use,
   }
 }
 
-void HandleDefLiveRange(LiveRange* lr,
-                        std::vector<LiveRange>* ranges,
-                        RegPool* pool,
-                        RegAllocLoggerFun debug) {
+void HandleDefLiveRange(LiveRange* lr, std::vector<LiveRange>* ranges,
+                        RegPool* pool, RegAllocLoggerFun debug) {
   ASSERT(lr->cpu_reg == CPU_REG_INVALID, "");
   lr->cpu_reg = pool->get_available_reg(*lr);
   if (debug) debug(*lr, "start");
@@ -46,8 +43,7 @@ void HandleDefLiveRange(LiveRange* lr,
   }
 }
 
-bool is_disallowed_range(LiveRange* candidate,
-                         std::vector<LiveRange>* ranges,
+bool is_disallowed_range(LiveRange* candidate, std::vector<LiveRange>* ranges,
                          const uint16_t* disallowed_ranges,
                          uint32_t disallowed_ranges_size) {
   for (unsigned i = 0; i < disallowed_ranges_size; ++i) {
@@ -56,12 +52,9 @@ bool is_disallowed_range(LiveRange* candidate,
   return false;
 }
 
-void SpillEarlierLiveRange(Reg reg,
-                           unsigned def_pos,
-                           int i,
+void SpillEarlierLiveRange(Reg reg, unsigned def_pos, int i,
                            const std::vector<LiveRange*>& ordered,
-                           std::vector<LiveRange>* ranges,
-                           RegPool* pool,
+                           std::vector<LiveRange>* ranges, RegPool* pool,
                            const uint16_t* disallowed_ranges,
                            uint32_t disallowed_ranges_size,
                            RegAllocLoggerFun debug) {
@@ -84,12 +77,9 @@ void SpillEarlierLiveRange(Reg reg,
   ASSERT(false, "failed to free up reg for " << Name(reg));
 }
 
-int HandleDefLiveRangeFancy(int i,
-                            const std::vector<LiveRange*>& ordered,
-                            LiveRange* lr,
-                            std::vector<LiveRange>* ranges,
-                            RegPool* pool,
-                            RegAllocLoggerFun debug) {
+int HandleDefLiveRangeFancy(int i, const std::vector<LiveRange*>& ordered,
+                            LiveRange* lr, std::vector<LiveRange>* ranges,
+                            RegPool* pool, RegAllocLoggerFun debug) {
   HandleDefLiveRange(lr, ranges, pool, debug);
   if (lr->cpu_reg == CPU_REG_SPILL) {
     const LiveRange tmp_lr = LiveRange{lr->def_pos, NO_USE, lr->reg, 0};
@@ -111,12 +101,9 @@ int HandleDefLiveRangeFancy(int i,
   return i + 1;
 }
 
-int HandleUseLiveRangeFancy(int i,
-                            const std::vector<LiveRange*>& ordered,
-                            LiveRange* lr_use,
-                            std::vector<LiveRange>* ranges,
-                            RegPool* pool,
-                            RegAllocLoggerFun debug) {
+int HandleUseLiveRangeFancy(int i, const std::vector<LiveRange*>& ordered,
+                            LiveRange* lr_use, std::vector<LiveRange>* ranges,
+                            RegPool* pool, RegAllocLoggerFun debug) {
   CpuReg spill_tmp_regs[MAX_USES_PER_OPCODE];
   unsigned num_spilled_tmp_regs = 0;
 
@@ -160,8 +147,7 @@ int HandleUseLiveRangeFancy(int i,
 }  // namespace
 
 void RegisterAssignerLinearScan(const std::vector<LiveRange*>& ordered,
-                                std::vector<LiveRange>* ranges,
-                                RegPool* pool,
+                                std::vector<LiveRange>* ranges, RegPool* pool,
                                 RegAllocLoggerFun debug) {
   for (int i = 0; i < ordered.size(); ++i) {
     LiveRange& lr = *ordered[i];
@@ -180,8 +166,7 @@ void RegisterAssignerLinearScan(const std::vector<LiveRange*>& ordered,
 
 void RegisterAssignerLinearScanFancy(const std::vector<LiveRange*>& ordered,
                                      std::vector<LiveRange>* ranges,
-                                     RegPool* pool,
-                                     RegAllocLoggerFun debug) {
+                                     RegPool* pool, RegAllocLoggerFun debug) {
   for (int i = 0; i < ordered.size(); ++i) {
     LiveRange& lr = *ordered[i];
     ASSERT(i == 0 || *ordered[i - 1] < lr,
@@ -265,11 +250,8 @@ Stk RegCreateSpillSlot(Reg reg, Fun fun, std::string_view prefix) {
   return stk;
 }
 
-void FunSpillRegs(Fun fun,
-                  DK offset_kind,
-                  const std::vector<Reg>& regs,
-                  std::vector<Ins>* inss,
-                  std::string_view prefix) {
+void FunSpillRegs(Fun fun, DK offset_kind, const std::vector<Reg>& regs,
+                  std::vector<Ins>* inss, std::string_view prefix) {
   for (Reg reg : FunRegIter(fun)) RegSpillSlot(reg) = Stk(0);
 
   for (Reg reg : regs) RegSpillSlot(reg) = RegCreateSpillSlot(reg, fun, prefix);

@@ -1,12 +1,12 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <functional>
+#include <vector>
+
 #include "Base/ir.h"
 #include "Base/liveness.h"
 #include "Base/opcode_gen.h"
-
-#include <functional>
-#include <vector>
 
 namespace cwerg::base {
 
@@ -18,7 +18,8 @@ class PreAllocation {
 
   void add(const LiveRange* lr);
   bool has_conflict(const LiveRange& lr);
-  unsigned size() const { return  ranges_.size(); }
+  unsigned size() const { return ranges_.size(); }
+
  private:
   std::vector<const LiveRange*> ranges_;
   unsigned current_ = 0;
@@ -44,23 +45,17 @@ extern void RegisterAssignerLinearScan(const std::vector<LiveRange*>& ordered,
                                        RegPool* pool,
                                        RegAllocLoggerFun debug = nullptr);
 
-extern void RegisterAssignerLinearScanFancy(const std::vector<LiveRange*>& ordered,
-                                            std::vector<LiveRange>* ranges,
-                                            RegPool* pool,
-                                            RegAllocLoggerFun debug = nullptr);
+extern void RegisterAssignerLinearScanFancy(
+    const std::vector<LiveRange*>& ordered, std::vector<LiveRange>* ranges,
+    RegPool* pool, RegAllocLoggerFun debug = nullptr);
 
 extern Stk RegCreateSpillSlot(Reg reg, Fun fun, std::string_view prefix);
 
 // assumes RegSpillSlot() has been initialized
-extern void BblSpillRegs(Bbl bbl,
-                         Fun fun,
-                         DK offset_kind,
+extern void BblSpillRegs(Bbl bbl, Fun fun, DK offset_kind,
                          std::vector<Ins>* inss);
 
 // * Clobbers RegSpillSlot(reg) - but will clear if with InvalidHandle
-extern void FunSpillRegs(Fun fun,
-                         DK offset_kind,
-                         const std::vector<Reg>& regs,
-                         std::vector<Ins>* ins,
-                         std::string_view prefix);
+extern void FunSpillRegs(Fun fun, DK offset_kind, const std::vector<Reg>& regs,
+                         std::vector<Ins>* ins, std::string_view prefix);
 }  // namespace cwerg::base
