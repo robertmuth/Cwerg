@@ -82,12 +82,7 @@ long _x64_syscall5(long n, long a1, long a2, long a3, long a4, long a5) {
   return ret;
 }
 
-long _x64_syscall6(long n,
-                   long a1,
-                   long a2,
-                   long a3,
-                   long a4,
-                   long a5,
+long _x64_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
                    long a6) {
   long ret;
   register long r10 __asm__("r10") = a4;
@@ -101,8 +96,8 @@ long _x64_syscall6(long n,
   return ret;
 }
 
-int clock_gettime(int  clk_id, void* timespec) {
-   return _x64_syscall2(0x107, clk_id, (long)timespec);
+int clock_gettime(int clk_id, void* timespec) {
+  return _x64_syscall2(0x107, clk_id, (long)timespec);
 }
 
 int close(int fd) { return _x64_syscall1(3, fd); }
@@ -116,6 +111,20 @@ void exit(int status) {
 int getpid() { return _x64_syscall0(39); }
 
 int kill(int pid, int sig) { return _x64_syscall2(62, pid, sig); }
+
+int wait4(int pid, void* stat, int options, void* usage) {
+  return _x64_syscall4(61, pid, (long)stat, options, (long)usage);
+}
+
+int clone(long flags, void* stack, void* parent_tid, void* child_tid,
+          long tls) {
+  return _x64_syscall5(56, flags, (long)stack, (long)parent_tid,
+                       (long)child_tid, tls);
+}
+
+int nanosleep(void* req, void* rem) {
+  return _x64_syscall2(35, (long)req, (long)rem);
+}
 
 long lseek(int fd, unsigned long offset, int whence) {
   return _x64_syscall3(8, fd, offset, whence);
@@ -201,12 +210,7 @@ long _x32_syscall5(long n, long a1, long a2, long a3, long a4, long a5) {
   return ret;
 }
 
-long _x32_syscall6(long n,
-                   long a1,
-                   long a2,
-                   long a3,
-                   long a4,
-                   long a5,
+long _x32_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
                    long a6) {
   long ret;
   __asm__ __volatile__(
@@ -222,8 +226,8 @@ long _x32_syscall6(long n,
   return ret;
 }
 
-int clock_gettime(int  clk_id, void* timespec) {
-   return _x32_syscall2(0x109, clk_id, (long)timespec);
+int clock_gettime(int clk_id, void* timespec) {
+  return _x32_syscall2(0x109, clk_id, (long)timespec);
 }
 
 int close(int fd) { return _x32_syscall1(6, fd); }
@@ -237,6 +241,20 @@ void exit(int status) {
 int getpid() { return _x32_syscall0(20); }
 
 int kill(int pid, int sig) { return _x32_syscall2(37, pid, sig); }
+
+int wait4(int pid, void* stat, int options, void* usage) {
+  return _x32_syscall4(114, pid, (long)stat, options, (long)usage);
+}
+
+int clone(long flags, void* stack, void* parent_tid, void* child_tid,
+          long tls) {
+  return _x32_syscall5(120, flags, (long)stack, (long)parent_tid,
+                       (long)child_tid, tls);
+}
+
+int nanosleep(void* req, void* rem) {
+  return _x32_syscall2(162, (long)req, (long)rem);
+}
 
 long lseek(int fd, unsigned long offset, int whence) {
   return _x32_syscall3(19, fd, offset, whence);
@@ -284,6 +302,7 @@ long _a64_syscall1(long n, long a) {
   register long x8 __asm__("x8") = n;
   register long x0 __asm__("x0") = a;
   __asm__ __volatile__("svc 0" : "=r"(x0) : "r"(x8), "0"(x0) : "memory", "cc");
+  return x0;
 }
 
 long _a64_syscall2(long n, long a, long b) {
@@ -294,6 +313,7 @@ long _a64_syscall2(long n, long a, long b) {
                        : "=r"(x0)
                        : "r"(x8), "0"(x0), "r"(x1)
                        : "memory", "cc");
+  return x0;
 }
 
 long _a64_syscall3(long n, long a, long b, long c) {
@@ -305,6 +325,7 @@ long _a64_syscall3(long n, long a, long b, long c) {
                        : "=r"(x0)
                        : "r"(x8), "0"(x0), "r"(x1), "r"(x2)
                        : "memory", "cc");
+  return x0;
 }
 
 long _a64_syscall4(long n, long a, long b, long c, long d) {
@@ -317,6 +338,7 @@ long _a64_syscall4(long n, long a, long b, long c, long d) {
                        : "=r"(x0)
                        : "r"(x8), "0"(x0), "r"(x1), "r"(x2), "r"(x3)
                        : "memory", "cc");
+  return x0;
 }
 
 long _a64_syscall5(long n, long a, long b, long c, long d, long e) {
@@ -330,6 +352,7 @@ long _a64_syscall5(long n, long a, long b, long c, long d, long e) {
                        : "=r"(x0)
                        : "r"(x8), "0"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4)
                        : "memory", "cc");
+  return x0;
 }
 
 long _a64_syscall6(long n, long a, long b, long c, long d, long e, long f) {
@@ -345,10 +368,11 @@ long _a64_syscall6(long n, long a, long b, long c, long d, long e, long f) {
                        : "r"(x8), "0"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4),
                          "r"(x5)
                        : "memory", "cc");
+  return x0;
 }
 
-int clock_gettime(int  clk_id, void* timespec) {
-   return _a64_syscall2(0x71, clk_id, (long)timespec);
+int clock_gettime(int clk_id, void* timespec) {
+  return _a64_syscall2(0x71, clk_id, (long)timespec);
 }
 
 int close(int fd) { return _a64_syscall1(57, fd); }
@@ -362,6 +386,20 @@ void exit(int status) {
 int getpid() { return _a64_syscall0(172); }
 
 int kill(int pid, int sig) { return _a64_syscall2(129, pid, sig); }
+
+int wait4(int pid, void* stat, int options, void* usage) {
+  return _a64_syscall4(260, pid, (long)stat, options, (long)usage);
+}
+
+int clone(long flags, void* stack, void* parent_tid, void* child_tid,
+          long tls) {
+  return _a64_syscall5(220, flags, (long)stack, (long)parent_tid,
+                       (long)child_tid, tls);
+}
+
+int nanosleep(void* req, void* rem) {
+  return _a64_syscall2(101, (long)req, (long)rem);
+}
 
 long lseek(int fd, unsigned long offset, int whence) {
   return _a64_syscall3(62, fd, offset, whence);
@@ -479,8 +517,8 @@ long _a32_syscall6(long n, long a, long b, long c, long d, long e, long f) {
   return r0;
 }
 
-int clock_gettime(int  clk_id, void* timespec) {
-   return _a32_syscall2(0xe4, clk_id, (long)timespec);
+int clock_gettime(int clk_id, void* timespec) {
+  return _a32_syscall2(0xe4, clk_id, (long)timespec);
 }
 
 int close(int fd) { return _a32_syscall1(6, fd); }
@@ -494,6 +532,20 @@ void exit(int status) {
 int getpid() { return _a32_syscall0(20); }
 
 int kill(int pid, int sig) { return _a32_syscall2(37, pid, sig); }
+
+int wait4(int pid, void* stat, int options, void* usage) {
+  return _a32_syscall4(120, pid, (long)stat, options, (long)usage);
+}
+
+int clone(long flags, void* stack, void* parent_tid, void* child_tid,
+          long tls) {
+  return _a32_syscall5(114, flags, (long)stack, (long)parent_tid,
+                       (long)child_tid, tls);
+}
+
+int nanosleep(void* req, void* rem) {
+  return _a32_syscall2(162, (long)req, (long)rem);
+}
 
 long lseek(int fd, unsigned long offset, int whence) {
   return _a32_syscall3(19, fd, offset, whence);

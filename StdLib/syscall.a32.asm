@@ -13,6 +13,7 @@
 .fun a32_syscall_getcwd SIGNATURE [S32] = [A32 U32]
 .fun a32_syscall_getpid SIGNATURE [S32] = []
 .fun a32_syscall_kill SIGNATURE [S32] = [S32 S32]
+.fun a32_syscall_clone SIGNATURE [S32] = [U32 A32 A32 A32 A32]
 .fun a32_syscall_lseek SIGNATURE [S32] = [S32 S32 S32]
 .fun a32_syscall_open SIGNATURE [S32] = [A32 S32 S32]
 .fun a32_syscall_read SIGNATURE [S32] = [S32 A32 U32]
@@ -98,6 +99,23 @@
     pusharg sig
     pusharg pid
     syscall a32_syscall_kill 37:U32
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun clone NORMAL [S32] = [U32 A32 A32 A32 A32]
+.bbl start
+    poparg flags:U32
+    poparg stack:A32
+    poparg ptid:A32
+    poparg ctid:A32
+    poparg regs:A32
+    pusharg regs
+    pusharg ctid
+    pusharg ptid
+    pusharg stack
+    pusharg flags
+    syscall a32_syscall_clone 120:U32
     poparg res:S32
     pusharg res
     ret
