@@ -12,6 +12,7 @@
 .fun x64_syscall_fstat SIGNATURE [S32] = [S32 A64]
 .fun x64_syscall_getcwd SIGNATURE [S32] = [A64 U64]
 .fun x64_syscall_getpid SIGNATURE [S32] = []
+.fun x64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
 .fun x64_syscall_kill SIGNATURE [S32] = [S32 S32]
 .fun x64_syscall_lseek SIGNATURE [S64] = [S32 S64 S32]
 .fun x64_syscall_open_at SIGNATURE [S32] = [S32 A64 S32 S32]
@@ -99,6 +100,23 @@
     pusharg sig
     pusharg pid
     syscall x64_syscall_kill 62:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun clone NORMAL [S32] = [U64 A64 A64 A64 A64]
+.bbl start
+    poparg flags:U64
+    poparg stack:A64
+    poparg ptid:A64
+    poparg ctid:A64
+    poparg regs:A64
+    pusharg regs
+    pusharg ctid
+    pusharg ptid
+    pusharg stack
+    pusharg flags
+    syscall x64_syscall_clone 56:U32
     poparg res:S32
     pusharg res
     ret
