@@ -193,7 +193,7 @@ Modulo: dst := a % b
               
 
 #### [1e] clmul *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-NYI: Carry-less multiplication:
+NYI: Carry-less multiplication
              
              def clmul(src1: int, src2: int) -> int:
                  dst = 0
@@ -284,6 +284,12 @@ Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2
 Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
+
+#### [37] getfp *dst* <sub>[REG:ADDR]</sub>
+materialize the framepointer. 
+             
+             Get the stack-pointer's value before the call. Used mainly to interface with
+             the Linux execution environment.
 
 ## Address Arithmetic
 

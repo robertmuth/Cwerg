@@ -45,6 +45,7 @@ enum class OPC : uint8_t {
     MOV = 0x34,
     CMPEQ = 0x35,
     CMPLT = 0x36,
+    GETFP = 0x37,
     LEA = 0x38,
     LEA_MEM = 0x39,
     LEA_STK = 0x3a,
@@ -151,7 +152,8 @@ enum class OPC_KIND : uint8_t {
     BCOPY = 21,
     BZERO = 22,
     CAS = 23,
-    DIRECTIVE = 24,
+    GETFP = 24,
+    DIRECTIVE = 25,
 };
 
 enum class DK : uint8_t {

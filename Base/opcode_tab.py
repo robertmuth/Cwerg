@@ -50,8 +50,8 @@ class OPC_KIND(enum.Enum):
     BCOPY = 21
     BZERO = 22
     CAS = 23
-
-    DIRECTIVE = 24  # not a real instruction
+    GETFP = 24
+    DIRECTIVE = 25  # not a real instruction
 
 
 _OF_TO_PURPOSE = {
@@ -75,6 +75,7 @@ _OF_TO_PURPOSE = {
     OPC_KIND.POPARG: ["dst"],
     OPC_KIND.PUSHARG: ["src"],
     OPC_KIND.CONV: ["dst", "src"],
+    OPC_KIND.GETFP: ["dst"],
     OPC_KIND.MOV: ["dst", "src"],
     OPC_KIND.CMP: ["dst", "src1", "src2", "cmp1", "cmp2"],
     OPC_KIND.CAS: ["dst", "cmp", "src", "base", "offset"],
@@ -528,7 +529,7 @@ REM = Opcode(0x1d, "rem", OPC_KIND.ALU,
 CLMUL = Opcode(0x1e, "clmul", OPC_KIND.ALU,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-               """NYI: Carry-less multiplication:
+               """NYI: Carry-less multiplication
              
              def clmul(src1: int, src2: int) -> int:
                  dst = 0
@@ -674,6 +675,14 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                """Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
+
+
+GETFP = Opcode(0x37, "getfp", OPC_KIND.GETFP, [OP_KIND.REG],
+             [TC.ADDR], OPC_GENUS.BASE,
+             """materialize the framepointer. 
+             
+             Get the stack-pointer's value before the call. Used mainly to interface with
+             the Linux execution environment.""")
 
 # materialize addresses in a register
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
