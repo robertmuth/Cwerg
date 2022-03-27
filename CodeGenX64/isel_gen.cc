@@ -220,7 +220,8 @@ const char* const P_ToStringMap[] = {
     "mem1_num2_prel", // 27
     "fun1_prel", // 28
     "jtb1_prel", // 29
-    "ZZZ", // 30
+    "frame_size", // 30
+    "ZZZ", // 31
 };
 const char* EnumToString(P x) { return P_ToStringMap[unsigned(x)]; }
 
@@ -321,6 +322,8 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
       return GetStackOffset(InsOperand(ins, 0), InsOperand(ins, 1));
     case P::stk1:
       return GetStackOffset(InsOperand(ins, 1), ConstNewOffset(0));
+    case P::frame_size:
+      return ctx.FrameSize();
     case P::bbl0:
     case P::bbl1:
     case P::bbl2:

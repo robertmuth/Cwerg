@@ -48,7 +48,7 @@ struct EmitContext {
   bool is_leaf = false;
   base::CpuReg scratch_cpu_reg = base::CpuReg(base::HandleInvalid);
 
-  uint32_t StackAdjustment() const {
+  uint32_t FrameSize() const {
     // we assume that stk_size is 16B aligned. To that we add:
     // the saved flt regs, the saved gpr regs, the return address
     uint32_t out = stk_size + 8 * __builtin_popcount(flt_reg_mask) +
@@ -59,9 +59,13 @@ struct EmitContext {
     if (!is_leaf || stk_size != 0 || flt_reg_mask != 0) {
       out = (out + 15) / 16 * 16;
     }
+    return out;
+  }
+
+  uint32_t StackAdjustment() const {
     // the saved gpr regs and the return address will be pushed
     // onto the stack and hence need no adjustment
-    return out -= 8 * __builtin_popcount(gpr_reg_mask) + 8;
+    return FrameSize() - 8 * __builtin_popcount(gpr_reg_mask) - 8;
   }
 };
 

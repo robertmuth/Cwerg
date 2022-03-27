@@ -392,6 +392,14 @@ class EmitContext:
     is_leaf: bool = False
     scratch_cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
 
+    def FrameSize(self):
+        # includes the return address
+        gpr_regs = MaskToGprRegs(self.gpr_reg_mask)
+        flt_regs = MaskToFltRegs(self.flt_reg_mask)
+        stk_size = self.stk_size + 8 * len(flt_regs) + 8 * len(gpr_regs) + 8
+        if not self.is_leaf or self.stk_size or flt_regs:
+            stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
+        return stk_size
 
 def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
     gpr = 0

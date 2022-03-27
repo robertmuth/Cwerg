@@ -174,6 +174,7 @@ class P(enum.Enum):
 
     fun1_prel = 28
     jtb1_prel = 29
+    frame_size = 30
 
 
 _OP_TO_RELOC_KIND = {
@@ -272,6 +273,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert isinstance(reg, ir.Reg)
         assert isinstance(reg.cpu_reg, ir.StackSlot)
         return reg.cpu_reg.offset
+    elif arg is P.frame_size:
+        return ctx.FrameSize()
     elif arg in _OP_TO_RELOC_KIND:
         return 0
     else:
@@ -320,7 +323,7 @@ class InsTmpl:
             elif field is x64.OK.OFFABS32:
                 assert isinstance(op, int) or op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2,
                                                      P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel, P.jtb1_prel,
-                                                     P.stk1_offset2, P.stk0_offset1, P.stk1}, f"{op}"
+                                                     P.stk1_offset2, P.stk0_offset1, P.stk1, P.frame_size}, f"{op}"
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
             elif field in {x64.OK.IMM8, x64.OK.IMM16, x64.OK.IMM32, x64.OK.IMM32_64, x64.OK.IMM64}:
@@ -506,12 +509,10 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
     * stack data
     """
     out = []
+    stk_size = ctx.FrameSize()
     gpr_regs = regs.MaskToGprRegs(ctx.gpr_reg_mask)
     flt_regs = regs.MaskToFltRegs(ctx.flt_reg_mask)
-    stk_size = ctx.stk_size + 8 * len(flt_regs) + 8 * len(gpr_regs) + 8
-    if not ctx.is_leaf or ctx.stk_size or flt_regs:
-        stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
-    stk_size -= 8 * len(gpr_regs) + 8  # already accounted for
+    stk_size -= 8 * len(gpr_regs) + 8  # "8" is for the return address
     while gpr_regs:
         out.append(
             InsTmpl("push_64_r", [F(F.RAX.value + gpr_regs.pop(-1).no)]))
@@ -529,12 +530,10 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
     out = []
     # we reverse everything at the end, which allows us to mimic the Prolog more closely
     out.append(InsTmpl("ret", []))
+    stk_size = ctx.FrameSize()
     gpr_regs = regs.MaskToGprRegs(ctx.gpr_reg_mask)
     flt_regs = regs.MaskToFltRegs(ctx.flt_reg_mask)
-    stk_size = ctx.stk_size + 8 * len(flt_regs) + 8 * len(gpr_regs) + 8
-    if not ctx.is_leaf or ctx.stk_size or flt_regs:
-        stk_size = ((stk_size + 15) >> 4) << 4  # align to 16
-    stk_size -= 8 * len(gpr_regs) + 8  # already accounted for
+    stk_size -= 8 * len(gpr_regs) + 8  # "8" is for the return address
     while gpr_regs:
         out.append(InsTmpl("pop_64_r", [F(F.RAX.value + gpr_regs.pop(-1).no)]))
     if stk_size > 0:
@@ -745,6 +744,7 @@ def InitBitFiddle():
 
     # TODO: popcnt for o.DK.U8, o.DK.S8
 
+
 def InitMovInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
@@ -771,6 +771,12 @@ def InitMovInt():
                     [C.SP_REG, _KIND_TO_IMM_WITH_64[kind1]],
                     [InsTmpl(f"mov_{bw}_r_imm{bw}", [P.tmp_gpr, P.num1]),
                      InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
+
+    Pattern(o.GETFP, [o.DK.A64], [C.REG],
+            [InsTmpl("lea_64_r_mbis32", [P.reg0] + Spilled(P.frame_size))])
+    Pattern(o.GETFP, [o.DK.A64], [C.SP_REG],
+            [InsTmpl("lea_64_r_mbis32", [P.tmp_gpr] + Spilled(P.frame_size)),
+                InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
 
 
 def InitAluFlt():

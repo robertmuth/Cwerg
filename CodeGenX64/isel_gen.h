@@ -63,6 +63,7 @@ enum class P : uint8_t {
     mem1_num2_prel = 27,
     fun1_prel = 28,
     jtb1_prel = 29,
+    frame_size = 30,
 };
 /* @AUTOGEN-END@ */
 
