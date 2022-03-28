@@ -63,14 +63,19 @@ The current use of STL features can be checked with:
 egrep -ho "std::[^<(>*;, ]+" */*h | sort| uniq -c 
 ```
 
-The intention is to limit the used STL datatypes to:
+The intention is to limit the used STL datatypes (in headers) to:
 * std::string_view
 * std::array
 * std::vector
-* std::unordered_set
 * std::string
 * std::optional
 * std::unique_ptr
+
+With some use of `std:ostream` and friends primarily for logging and a handful of uses of:
+* std::map 
+* std::unordered_set
+
+And some use of std:ostream primarily for logging.
 
 ## Ports to other Programming Languages
 

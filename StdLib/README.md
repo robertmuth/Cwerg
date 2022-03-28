@@ -64,3 +64,6 @@ https://github.com/torvalds/linux/blob/master/tools/include/nolibc/nolibc.h
 
 Calling conventions for Linux syscall
 https://stackoverflow.com/questions/2535989/what-are-the-calling-conventions-for-unix-linux-system-calls-and-user-space-f
+
+Error codes:
+https://mariadb.com/kb/en/operating-system-error-codes/

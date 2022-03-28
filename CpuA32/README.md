@@ -129,7 +129,7 @@ TODO: mention "opcode classes" which are flags attached to opcode
 
 ## Implementation
 
-The authoritative version of the encoder/decoder is written in Python 3.8
+The authoritative version of the encoder/decoder is written in Python
 using a table driven approach.
 
 There is a C++ 17 version of the code which is mostly generated from the
