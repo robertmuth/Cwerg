@@ -55,14 +55,16 @@ def A32RegsToAllocMask(regs: List[ir.CpuReg]) -> int:
 def RenderMaskGPR(mask: int) -> str:
     out = []
     for i, name in enumerate(_GPR_REG_NAMES):
-        if (mask & (1 << i)) != 0: out.append(name)
+        if (mask & (1 << i)) != 0:
+            out.append(name)
     return " ".join(out)
 
 
 def RenderMaskFLT(mask: int) -> str:
     out = []
     for i in range(32):
-        if (mask & (1 << i)) != 0: out.append(f"s{i}")
+        if (mask & (1 << i)) != 0:
+            out.append(f"s{i}")
     return " ".join(out)
 
 
@@ -246,9 +248,11 @@ class CpuRegPool(reg_alloc.RegPool):
         if self._allow_spilling:
             return ir.CPU_REG_SPILL
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        lines = [f"{n - 1:2} {x}" for n, x in enumerate(serialize.BblRenderToAsm(self._bbl))]
+        lines = [f"{n - 1:2} {x}" for n,
+                 x in enumerate(serialize.BblRenderToAsm(self._bbl))]
         print("\n".join(lines))
-        print(f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
+        print(
+            f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
         print(f"# {lr}")
         print(f"# ALLOCATOR status: {self}")
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -441,7 +445,8 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
             out.append(reg)
             continue
         if reg.kind is not o.DK.F64:
-            while ((1 << pos) & mask) == 0: pos += 1
+            while ((1 << pos) & mask) == 0:
+                pos += 1
             assert reg.cpu_reg is None
             reg.cpu_reg = FLT_REGS[pos] if reg.kind is o.DK.F32 else GPR_REGS[pos]
             mask &= ~(1 << pos)
@@ -459,6 +464,10 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
     return out
 
 
+def popcount(x):
+    return bin(x).count('1')
+
+
 @dataclasses.dataclass()
 class EmitContext:
     """Grab bag of data needed for emitting instructions"""
@@ -469,6 +478,12 @@ class EmitContext:
     stk_size: int = 0
     scratch_cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
 
+    def FrameSize(self):
+        # TODO: make sure stack is 8 byte aligned.
+        num_gpr_regs = popcount(self.ldm_regs)
+        num_flt_regs = popcount(self.vldm_regs)
+        return 8 * num_flt_regs + 4 * num_gpr_regs + self.stk_size
+
 
 def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
     gpr = 0
@@ -477,7 +492,8 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
         for ins in bbl.inss:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
-                    assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
+                    assert reg.HasCpuReg(
+                    ), f"missing cpu reg for {reg} in {ins} {ins.operands}"
                     if reg.cpu_reg.kind == CpuRegKind.GPR:
                         gpr |= A32RegToAllocMask(reg.cpu_reg)
                     else:
@@ -487,7 +503,8 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
 
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)
-    must_save_link = not ir.FunIsLeaf(fun) or ((gpr_mask & _LINK_REG_MASK) != 0)
+    must_save_link = not ir.FunIsLeaf(fun) or (
+        (gpr_mask & _LINK_REG_MASK) != 0)
     gpr_mask &= GPR_LAC_REGS_MASK
     flt_mask &= FLT_LAC_REGS_MASK
 
@@ -501,7 +518,8 @@ def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
         ctx.stm_regs |= _LINK_REG_MASK
         ctx.ldm_regs |= _PC_REG_MASK
     # Python 3.10 has int.bit_count():
-    num_saved_regs = bin(ctx.ldm_regs).count('1') + bin(ctx.vldm_regs).count('1')
+    num_saved_regs = bin(ctx.ldm_regs).count(
+        '1') + bin(ctx.vldm_regs).count('1')
     stk_size = fun.stk_size + 4 * num_saved_regs
     stk_size = (stk_size + 15) // 16 * 16
     stk_size -= 4 * num_saved_regs

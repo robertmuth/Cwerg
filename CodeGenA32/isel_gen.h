@@ -78,6 +78,7 @@ enum class PARAM : uint8_t {
     stk1_offset2 = 41,
     stk1_offset2_lo = 42,
     stk1_offset2_hi = 43,
+    frame_size = 44,
 };
 /* @AUTOGEN-END@ */
 

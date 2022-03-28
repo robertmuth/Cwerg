@@ -153,6 +153,7 @@ class PARAM(enum.Enum):
     stk1_offset2 = 41
     stk1_offset2_lo = 42
     stk1_offset2_hi = 43
+    frame_size = 44
 
 
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
@@ -230,6 +231,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         return GetStackOffset(ins.operands[1], ins.operands[2]) & 0xffff
     elif arg is PARAM.stk1_offset2_hi:
         return (GetStackOffset(ins.operands[1], ins.operands[2]) >> 16) & 0xffff
+    elif arg is PARAM.frame_size:
+        return ctx.FrameSize()
     else:
         assert False, f"unknown ARG {repr(arg)}"
 
@@ -943,7 +946,11 @@ def InitMove():
                 [InsTmpl("movw", [PARAM.reg0, PARAM.num1_lo16]),
                  InsTmpl("movt", [PARAM.reg0, PARAM.num1_hi16])],
                 imm_kind1=IMM_CURB.any_32_bits)
-
+        Pattern(o.GETFP, [o.DK.A32],
+                [InsTmpl("movw", [PARAM.reg0, PARAM.frame_size]),
+                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, PARAM.reg0,arm.SHIFT.lsl, 0])],
+                # TODO: imm curb is not quite correct
+                imm_kind1=IMM_CURB.any_32_bits)
 
 def InitConv():
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
