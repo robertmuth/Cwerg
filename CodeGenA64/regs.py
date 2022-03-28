@@ -422,6 +422,15 @@ class EmitContext:
 
     scratch_cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
 
+    def FrameSize(self):
+        num_gpr_regs = len(MaskToGpr64Regs(self.gpr_reg_mask))
+        num_gpr_regs += 1
+        num_gpr_regs &= ~1
+        num_flt_regs = len(MaskToFlt64Regs(self.flt_reg_mask))
+        num_flt_regs += 1
+        num_flt_regs &= ~1
+        return 8 * (num_flt_regs + num_gpr_regs) + self.stk_size
+
 
 def FunComputeEmitContext(fun: ir.Fun) -> EmitContext:
     gpr_mask, flt_mask = _FunCpuRegStats(fun)

@@ -74,6 +74,7 @@ enum class PARAM : uint8_t {
     num1_16_32 = 39,
     num1_32_48 = 40,
     num1_48_64 = 41,
+    frame_size = 42,
 };
 /* @AUTOGEN-END@ */
 

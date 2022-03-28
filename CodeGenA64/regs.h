@@ -74,6 +74,12 @@ struct EmitContext {
   uint32_t flt_reg_mask = 0;
   uint32_t stk_size = 0;
   base::CpuReg scratch_cpu_reg = base::CpuReg(0);
+
+  uint32_t FrameSize() const {
+    uint32_t num_gpr = __builtin_popcount(gpr_reg_mask);
+    uint32_t num_flt = __builtin_popcount(gpr_reg_mask);
+    return (num_gpr + num_flt) * 8 + stk_size;
+  }
 };
 
 extern EmitContext FunComputeEmitContext(base::Fun fun);

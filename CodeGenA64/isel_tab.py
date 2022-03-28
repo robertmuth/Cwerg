@@ -156,6 +156,7 @@ class PARAM(enum.Enum):
     num1_16_32 = 39
     num1_32_48 = 40
     num1_48_64 = 41
+    frame_size = 42
 
 
 def GetStackOffset(stk: ir.Stk, num: ir.Const) -> int:
@@ -217,6 +218,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         return width - num.value - 1
     elif arg in _OP_TO_RELOC_KIND:
         return 0
+    elif arg is PARAM.frame_size:
+        return ctx.FrameSize()
     else:
         assert False, f"unknown ARG {repr(arg)}"
 
@@ -967,6 +970,11 @@ def InitLea():
                 [InsTmpl(opc, [PARAM.reg0, PARAM.reg1, PARAM.reg2, 0])])
 
     for offset_kind in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32]:
+        Pattern(o.LEA, [o.DK.A64, o.DK.A64, offset_kind],
+                [InsTmpl("add_x_imm", [PARAM.reg0, PARAM.reg1, PARAM.num2])],
+                imm_curb2=IMM_CURB.IMM_SHIFTED_10_21_22)
+
+    for offset_kind in [o.DK.U64, o.DK.S64, o.DK.U32, o.DK.S32]:
         # Note, lea_stks are our last resort and MUST support ALL possible immediates
         #        that occur in practice
         # note: the second and third op are combined in the generated code
@@ -975,13 +983,13 @@ def InitLea():
                 imm_curb2=IMM_CURB.pos_stk_combo_shifted_10_21_22)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2]),
-                 InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
+                 InsTmpl("add_x_reg_uxtx", [PARAM.reg0, FIXARG.SP, PARAM.reg0, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, offset_kind],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.stk1_offset2_lo]),
                  InsTmpl("movk_x_imm", [PARAM.reg0,
                          PARAM.stk1_offset2_hi, 16]),
-                 InsTmpl("add_x_reg", [PARAM.reg0, FIXARG.SP, PARAM.reg0, a64.SHIFT.lsl, 0])],
+                 InsTmpl("add_x_reg_uxtx", [PARAM.reg0, FIXARG.SP, PARAM.reg0, 0])],
                 imm_curb2=IMM_CURB.pos_stk_combo_32_bits)
         # TODO: we we really need to support stack offsets > 32 bits?
 
@@ -1008,6 +1016,9 @@ def InitMove():
                  InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_32_48, 32]),
                  InsTmpl("movk_x_imm", [PARAM.reg0, PARAM.num1_48_64, 48])],
                 imm_curb1=IMM_CURB.ANY)
+        Pattern(o.GETFP, [o.DK.A64],
+                [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.frame_size]),
+                InsTmpl("add_x_reg_uxtx", [PARAM.reg0, FIXARG.SP, PARAM.reg0, 0])])
 
 
 def InitConv():
