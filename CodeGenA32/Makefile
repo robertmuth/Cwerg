@@ -35,6 +35,7 @@ tests_c: $(TEST_C_EXES) $(DIR)/isel_test_c $(DIR)/codegen_parity $(DIR)/nanojpeg
 
 
 STD_LIB = ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 ############################################################
 # Python
@@ -70,7 +71,7 @@ $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 
 $(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -82,7 +83,7 @@ $(DIR)/isel_test:
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@.exe >$@.out
+	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
 	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
