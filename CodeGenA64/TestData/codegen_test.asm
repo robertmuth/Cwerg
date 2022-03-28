@@ -61,5 +61,12 @@
 .bbl skip
      ret
 
+.fun TestLea NORMAL [] = []
+  .reg A64 [fp argv]
+  .bbl entry
+#  TODO: try negative offsets
+#  lea argv@x1 fp@x2 -8:S64
 
+  lea argv@x1 fp@x2 8:U64
+  ret
 

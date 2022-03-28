@@ -1,12 +1,12 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <array>
+
 #include "Base/ir.h"
 #include "Base/lowering.h"
 #include "Base/reg_stats.h"
 #include "CpuA64/opcode_gen.h"
-
-#include <array>
 
 namespace cwerg::code_gen_a64 {
 using namespace cwerg;
@@ -58,10 +58,8 @@ extern const base::PushPopInterface* const PushPopInterfaceA64;
 // This will use up the "first_choice" regs first.  "second_choice"
 // may incur additional cost, e.g. due to the registers being "callee save".
 extern void AssignCpuRegOrMarkForSpilling(
-    const std::vector<base::Reg>& assign_to,
-    uint32_t cpu_reg_mask_first_choice,
-    uint32_t cpu_reg_mask_second_choice,
-    std::vector<base::Reg>* to_be_spilled);
+    const std::vector<base::Reg>& assign_to, uint32_t cpu_reg_mask_first_choice,
+    uint32_t cpu_reg_mask_second_choice, std::vector<base::Reg>* to_be_spilled);
 
 // Return a list of all cpu regs - this is primarily used by tests that
 // parse IR fragments with pre-allocated regs.
@@ -77,7 +75,9 @@ struct EmitContext {
 
   uint32_t FrameSize() const {
     uint32_t num_gpr = __builtin_popcount(gpr_reg_mask);
-    uint32_t num_flt = __builtin_popcount(gpr_reg_mask);
+    num_gpr = (num_gpr + 1) & ~1UL;
+    uint32_t num_flt = __builtin_popcount(flt_reg_mask);
+    num_flt = (num_flt + 1) & ~1UL;
     return (num_gpr + num_flt) * 8 + stk_size;
   }
 };

@@ -28,6 +28,7 @@ TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe)
 
 STD_LIB = ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
 
 tests: tests_py tests_c
 	@echo "[OK CodeGenA64]"
@@ -52,13 +53,13 @@ $(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
 
 $(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB) $< | $(PYPY) ./codegen.py -mode binary -add_startup_code - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary  -add_startup_code - $@.exe >$@.out
+	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
 	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
@@ -114,7 +115,6 @@ $(DIR)/syscall.a64.asm.c.exe: TestData/syscall.a64.asm $(CODEGEN_TOOL)
 	diff $@.actual.out $<.golden
 
 
-
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_isel_tester.exe
@@ -123,7 +123,7 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 
 $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
-	cat $(STD_LIB) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode binary -add_startup_code - $@.exe >$@.out
+	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode binary - $@.exe >$@.out
 	@chmod a+rx $@.exe
 	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual

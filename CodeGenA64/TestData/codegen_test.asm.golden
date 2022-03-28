@@ -139,3 +139,10 @@ PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID INVALID]
 
 INS: ret  []
     SPECIAL
+
+INS: lea argv@x1 fp@x2 8  [A64 A64 U64]
+PAT: reg:[A64 A64 U64]  imm:[INVALID INVALID IMM_SHIFTED_10_21_22]
+    add_x_imm x1 x2 0x8
+
+INS: ret  []
+    SPECIAL

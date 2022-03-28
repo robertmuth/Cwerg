@@ -101,12 +101,15 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     out = []
     for k in kinds:
         if k in {o.DK.F32, o.DK.F64}:
-            assert next_flt < len(_FLT_PARAMETER_REGS), "too many flt arguments"
+            assert next_flt < len(
+                _FLT_PARAMETER_REGS), "too many flt arguments"
             cpu_reg = _FLT_PARAMETER_REGS[next_flt]
             next_flt += 1
         else:
-            assert k in {o.DK.S32, o.DK.U32, o.DK.C64, o.DK.S64, o.DK.A64, o.DK.U64}
-            assert next_gpr <= len(_GPR_PARAMETER_REGS), "too many gpr arguments"
+            assert k in {o.DK.S32, o.DK.U32, o.DK.C64,
+                         o.DK.S64, o.DK.A64, o.DK.U64}
+            assert next_gpr <= len(
+                _GPR_PARAMETER_REGS), "too many gpr arguments"
             cpu_reg = _GPR_PARAMETER_REGS[next_gpr]
             next_gpr += 1
         out.append(cpu_reg)
@@ -223,9 +226,11 @@ class CpuRegPool(reg_alloc.RegPool):
         if self._allow_spilling:
             return ir.CPU_REG_SPILL
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        lines = [f"{n - 1:2} {x}" for n, x in enumerate(serialize.BblRenderToAsm(self._bbl))]
+        lines = [f"{n - 1:2} {x}" for n,
+                 x in enumerate(serialize.BblRenderToAsm(self._bbl))]
         print("\n".join(lines))
-        print(f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
+        print(
+            f"# ALLOCATION IMPOSSIBLE - no spilling allowed in {self._fun.name}:{self._bbl.name}")
         print(f"# {lr}")
         print(f"# ALLOCATOR status: {self}")
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -246,7 +251,8 @@ class CpuRegPool(reg_alloc.RegPool):
     def __str__(self):
         gpr_lac, gpr_not_lac = self._gpr_available_lac, self._gpr_available_not_lac
         flt_lac, flt_not_lac = self._flt_available_lac, self._flt_available_not_lac
-        out = [f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"]
+        out = [
+            f"POOL gpr:{gpr_lac:x}/{gpr_not_lac:x}  flt:{flt_lac:x}/{flt_not_lac:x}"]
         for n, pa in enumerate(self._gpr_reserved):
             if pa.ranges:
                 out.append(f"gpr{n} {len(pa.ranges)}")
@@ -379,7 +385,8 @@ def _FunCpuRegStats(fun: ir.Fun) -> Tuple[int, int]:
         for ins in bbl.inss:
             for reg in ins.operands:
                 if isinstance(reg, ir.Reg):
-                    assert reg.HasCpuReg(), f"missing cpu reg for {reg} in {ins} {ins.operands}"
+                    assert reg.HasCpuReg(
+                    ), f"missing cpu reg for {reg} in {ins} {ins.operands}"
                     if reg.cpu_reg.kind == CpuRegKind.GPR:
                         gpr |= 1 << reg.cpu_reg.no
                     else:
@@ -405,7 +412,8 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
         if mask == 0:
             out.append(reg)
             continue
-        while ((1 << pos) & mask) == 0: pos += 1
+        while ((1 << pos) & mask) == 0:
+            pos += 1
         assert reg.cpu_reg is None
         reg.cpu_reg = _KIND_TO_CPU_REG_LIST[reg.kind][pos]
         mask &= ~(1 << pos)
@@ -413,20 +421,25 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
     return out
 
 
+def popcount(x):
+    return bin(x).count('1')
+
+
 @dataclasses.dataclass()
 class EmitContext:
     """Grab bag of data needed for emitting instructions"""
     gpr_reg_mask: int = 0  # bitmask for saved gpr
-    flt_reg_mask: int = 0  # bitmask for saved flt (dbl, etc.) only lower 64bits are saved
+    # bitmask for saved flt (dbl, etc.) only lower 64bits are saved
+    flt_reg_mask: int = 0
     stk_size: int = 0
 
     scratch_cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
 
     def FrameSize(self):
-        num_gpr_regs = len(MaskToGpr64Regs(self.gpr_reg_mask))
+        num_gpr_regs = popcount(self.gpr_reg_mask)
         num_gpr_regs += 1
         num_gpr_regs &= ~1
-        num_flt_regs = len(MaskToFlt64Regs(self.flt_reg_mask))
+        num_flt_regs = popcount(self.flt_reg_mask)
         num_flt_regs += 1
         num_flt_regs &= ~1
         return 8 * (num_flt_regs + num_gpr_regs) + self.stk_size
