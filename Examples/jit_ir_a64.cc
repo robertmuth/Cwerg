@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
   code_gen_a64::LegalizeAll(unit, false, nullptr);
   code_gen_a64::RegAllocGlobal(unit, false, nullptr);
   code_gen_a64::RegAllocLocal(unit, false, nullptr);
-  a64::A64Unit a64unit = code_gen_a64::EmitUnitAsBinary(unit, false);
+  a64::A64Unit a64unit = code_gen_a64::EmitUnitAsBinary(unit);
   std::cerr << std::hex;
   std::cerr
             << "RODATA SIZE: 0x" << a64unit.sec_rodata->data->size() << "\n"

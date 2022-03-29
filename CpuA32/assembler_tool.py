@@ -14,7 +14,7 @@ from CpuA32 import assembler as a32
 
 def lint(input):
     src = sys.stdin if input == "-" else open(input)
-    print("UNIT", a32.UnitParse(src, False))
+    print("UNIT", a32.UnitParse(src))
 
 
 def assemble_common(input, output):
