@@ -1,11 +1,12 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CpuA64/assembler.h"
+
+#include <map>
+
 #include "CpuA64/opcode_gen.h"
 #include "CpuA64/symbolic.h"
 #include "Util/parse.h"
-
-#include <map>
 
 namespace cwerg::a64 {
 using namespace cwerg::elf;
@@ -30,30 +31,6 @@ void AddIns(A64Unit* unit, Ins* ins) {
   }
   uint32_t data = Assemble(*ins);
   unit->sec_text->AddData({(const char*)&data, 4});
-}
-
-std::array<std::string_view, 6> kStartupCode = {"ldr_x_imm x0 sp 0",    //
-                                                "add_x_imm x1 sp 8",    //
-                                                "bl expr:call26:main",  //
-                                                "movz_x_imm x8 0x5d",   //
-                                                "svc 0",                //
-                                                "brk 1"};
-
-void AddStartupCode(A64Unit* unit) {
-  unit->FunStart("_start", 16, padding_nop);
-  std::vector<std::string_view> token;
-  for (const auto line : kStartupCode) {
-    token.clear();
-    if (!ParseLineWithStrings(line, false, &token)) {
-      ASSERT(false, "bad internal code template " << line);
-    }
-    Ins ins;
-    if (!InsFromSymbolized(token, &ins)) {
-      ASSERT(false, "internal parse error " << token[0]);
-    }
-    AddIns(unit, &ins);
-  }
-  unit->FunEnd();
 }
 
 bool HandleDirective(A64Unit* unit,
@@ -121,7 +98,7 @@ bool HandleOpcode(A64Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-bool UnitParse(std::istream* input, bool add_startup_code, A64Unit* unit) {
+bool UnitParse(std::istream* input, A64Unit* unit) {
   A64Unit out;
   int line_num = 0;
   std::vector<std::string_view> token;
@@ -145,9 +122,6 @@ bool UnitParse(std::istream* input, bool add_startup_code, A64Unit* unit) {
     }
   }
   unit->AddLinkerDefs();
-  if (add_startup_code) {
-    AddStartupCode(unit);
-  }
   return true;
 }
 

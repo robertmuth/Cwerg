@@ -31,7 +31,7 @@ objdump_compat_test:
 ############################################################
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
 	${QEMU} $@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -96,16 +96,16 @@ $(DIR)/codegen_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
 	@echo
-	$(ASSEMBLER_TOOL) assemble_raw TestData/exit.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/exit.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/exit.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/exit.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
-	$(ASSEMBLER_TOOL) assemble_raw TestData/hello.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/hello.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/hello.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/hello.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
-	$(ASSEMBLER_TOOL) assemble_raw TestData/fib.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/fib.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/fib.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/fib.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 
 clean:

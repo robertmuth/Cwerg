@@ -41,3 +41,12 @@
     movz_x_imm x0 0
     ret x30
 .endfun	
+
+.fun _start 16
+    ldr_x_imm x0 sp 0
+    add_x_imm x1 sp 8
+    bl expr:call26:main
+    movz_x_imm x8 0x5d
+    svc 0
+    brk 1
+.endfun

@@ -32,7 +32,8 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
 def AddIns(unit: elf_unit.Unit, ins: a64.Ins):
     if ins.has_reloc():
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
-        unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
+        unit.AddReloc(ins.reloc_kind, unit.sec_text,
+                      sym, ins.operands[ins.reloc_pos])
         ins.clear_reloc()
     unit.sec_text.AddData(a64.Assemble(ins).to_bytes(4, byteorder='little'))
 
@@ -41,44 +42,11 @@ def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
     AddIns(unit, symbolic.InsFromSymbolized(mnemonic, token))
 
 
-def AddStartUpCode(unit: elf_unit.Unit):
-    """Add code for `_start` wrapper which calls main(()
-
-    When Linux transfers control to a new A32 program is does not follow any calling
-    convention so we need this shim.
-    The initial execution env looks like this:
-    0(sp)			argc
-    8(sp)			    argv[0] # argv start
-    16(sp)               argv[1]
-    ...
-    (8*argc)(sp)        NULL    # argv sentinel
-
-    (8*(argc+1))(sp)    envp[0] # envp start
-    (8*(argc+2))(sp)    envp[1]
-    ...
-                        NULL    # envp sentinel
-
-    This feature is needed by CodeGenA64/
-    """
-    unit.FunStart("_start", 16, NOP_BYTES)
-    for mnemonic, ops in [
-        ("ldr_x_imm", "x0 sp 0"),
-        ("add_x_imm", "x1 sp 8"),
-        ("bl", "expr:call26:main"),
-        # x0 contains result from main
-        ("movz_x_imm", "x8 0x5d"),
-        ("svc", "0"),
-        # unreachable
-        ("brk", "1")]:
-        HandleOpcode(mnemonic, ops.split(), unit)
-    unit.FunEnd()
-
-
 class ParseError(Exception):
     pass
 
 
-def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
+def UnitParse(fin) -> elf_unit.Unit:
     unit = elf_unit.Unit()
     dir_handlers = {
         ".fun": lambda x, y: unit.FunStart(x, int(y, 0), NOP_BYTES),
@@ -114,8 +82,6 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
             raise ParseError(
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
     unit.AddLinkerDefs()
-    if add_startup_code:
-        AddStartUpCode(unit)
     return unit
 
 
@@ -128,7 +94,8 @@ _OPCODE_B: a64.Opcode = a64.Opcode.name_to_opcode["b"]
 # sample 97fffcf7
 _OPCODE_BL: a64.Opcode = a64.Opcode.name_to_opcode["bl"]
 # sample
-_OPCODE_COND_BR = [a64.Opcode.name_to_opcode[f"b_{cond}"] for cond in a64.CONDITION_CODES]
+_OPCODE_COND_BR = [
+    a64.Opcode.name_to_opcode[f"b_{cond}"] for cond in a64.CONDITION_CODES]
 
 
 def _branch_offset(rel: elf.Reloc, sym_val: int) -> int:
@@ -146,20 +113,25 @@ def _RelWidth(rel_type: int):
 def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
-    width = _RelWidth( rel.r_type)
+    width = _RelWidth(rel.r_type)
     assert rel.r_offset + width <= len(sec_data)
-    old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + width], "little")
+    old_data = int.from_bytes(
+        sec_data[rel.r_offset:rel.r_offset + width], "little")
 
     if rel.r_type == enum_tab.RELOC_TYPE_AARCH64.ADR_PREL_PG_HI21.value:
-        new_data = a64.Patch(old_data, _OPCODE_ADRP, 1, _adrp_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_ADRP, 1,
+                             _adrp_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.ADD_ABS_LO12_NC.value:
         new_data = a64.Patch(old_data, _OPCODE_ADD_X_IMM, 2, sym_val & 0xfff)
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.CONDBR19.value:
-        new_data = a64.Patch(old_data, _OPCODE_COND_BR[old_data & 0xf], 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(
+            old_data, _OPCODE_COND_BR[old_data & 0xf], 0, _branch_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.JUMP26.value:
-        new_data = a64.Patch(old_data, _OPCODE_B, 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_B, 0,
+                             _branch_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.CALL26.value:
-        new_data = a64.Patch(old_data, _OPCODE_BL, 0, _branch_offset(rel, sym_val))
+        new_data = a64.Patch(old_data, _OPCODE_BL, 0,
+                             _branch_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.ABS32.value:
         new_data = sym_val
     elif rel.r_type == enum_tab.RELOC_TYPE_AARCH64.ABS64.value:
@@ -167,7 +139,8 @@ def _ApplyRelocation(rel: elf.Reloc):
     else:
         assert False, f"unknown kind reloc {rel}"
 
-    sec_data[rel.r_offset:rel.r_offset + width] = new_data.to_bytes(width, "little")
+    sec_data[rel.r_offset:rel.r_offset +
+             width] = new_data.to_bytes(width, "little")
     # print(f"PATCH INS {rel.r_type} {rel.r_offset:x} {sym_val:x} {old_data:x} {new_data:x} {rel.symbol.name}")
 
 
@@ -217,9 +190,11 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
         # we do not create the content here since we cannot really do this until
         # the section addresses are finalized
         which = enum_tab.EI_CLASS.X_64
-        sec_symtab = elf.Section.MakeSectionSymTab(".symtab", which, len(sections) + 1)
+        sec_symtab = elf.Section.MakeSectionSymTab(
+            ".symtab", which, len(sections) + 1)
         sections.append(sec_symtab)
-        sec_symtab.SetData(bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))
+        sec_symtab.SetData(
+            bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))
         seg_pseudo.sections.append(sec_symtab)
         # TODO: this is not quite right
         sec_symtab.sh_info = len(unit.symbols)

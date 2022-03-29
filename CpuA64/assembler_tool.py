@@ -14,13 +14,13 @@ from CpuA64 import assembler as asm
 
 def lint(input):
     src = sys.stdin if input == "-" else open(input)
-    print("UNIT", asm.UnitParse(src, False))
+    print("UNIT", asm.UnitParse(src))
 
 
-def assemble_common(input, output, add_startup_code):
+def assemble_common(input, output):
     src = sys.stdin if input == "-" else open(input)
     dst = sys.stdout if output == "-" else open(output, "wb")
-    unit = asm.UnitParse(src, add_startup_code)
+    unit = asm.UnitParse(src)
     for sym in unit.symbols:
         assert sym.section, f"undefined symbol: {sym}"
 
@@ -36,24 +36,17 @@ def assemble_common(input, output, add_startup_code):
         os.chmod(output, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)
 
 
-def assemble_raw(input, output):
-    assemble_common(input, output, False)
-
-
 def assemble(input, output):
-    assemble_common(input, output, True)
+    assemble_common(input, output)
 
 
 def main():
     parser = argparse.ArgumentParser(description='assembler_tool')
     subparsers = parser.add_subparsers(dest='subparser')
 
-    parser_lint = subparsers.add_parser('lint', description='just parse the input and print result')
+    parser_lint = subparsers.add_parser(
+        'lint', description='just parse the input and print result')
     parser_lint.add_argument('input', type=str, help='input file')
-
-    parser_assemble = subparsers.add_parser('assemble_raw', description='parse and emit elf exe')
-    parser_assemble.add_argument('input', type=str, help='input file')
-    parser_assemble.add_argument('output', type=str, help='output file')
 
     parser_assemble = subparsers.add_parser(
         'assemble',
