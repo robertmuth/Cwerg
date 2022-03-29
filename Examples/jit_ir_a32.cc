@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
   code_gen_a32::LegalizeAll(unit, false, nullptr);
   code_gen_a32::RegAllocGlobal(unit, false, nullptr);
   code_gen_a32::RegAllocLocal(unit, false, nullptr);
-  a32::A32Unit a32unit = code_gen_a32::EmitUnitAsBinary(unit, false);
+  a32::A32Unit a32unit = code_gen_a32::EmitUnitAsBinary(unit);
   std::cerr << std::hex;
   std::cerr
             << "RODATA SIZE: 0x" << a32unit.sec_rodata->data->size() << "\n"
