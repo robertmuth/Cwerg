@@ -56,8 +56,8 @@ if __name__ == '__main__':
     # First extract all the parser members into a dict
     kwargs: Dict[str, Any] = vars(parser.parse_args())
     # Next invoke the proper handler which is derived from the subparser
-    # name. E.g. subparser `assembler_raw` is handled by the Python
-    # function assembler_raw()
+    # name. E.g. subparser `assembler` is handled by the Python
+    # function assembler()
     handler = globals().get(kwargs.pop('subparser'))
     if handler:
         handler(**kwargs)

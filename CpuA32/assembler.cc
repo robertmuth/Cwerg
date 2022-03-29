@@ -102,7 +102,7 @@ bool HandleOpcode(A32Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit) {
+bool UnitParse(std::istream* input, A32Unit* unit) {
   A32Unit out;
   int line_num = 0;
   std::vector<std::string_view> token;

@@ -141,7 +141,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 # called from toplevel
 benchmark: $(CODEGEN_TOOL)
 	@echo "[$@]"
-	time $(CODEGEN_TOOL) -mode binary -add_startup_code TestData/benchmark.asm $(DIR)/$@.exe > $(DIR)/$@.out
+	time $(CODEGEN_TOOL) -mode binary TestData/benchmark.asm $(DIR)/$@.exe > $(DIR)/$@.out
 
 TEST_MODE = normal
 #TEST_MODE = reg_alloc_local
