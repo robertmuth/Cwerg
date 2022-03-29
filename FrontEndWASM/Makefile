@@ -52,7 +52,7 @@ $(DIR)/parse_test:
 $(DIR)/%.a32.exe: TestData/%.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 32 $< > $@.asm
-	cat ../StdLib/syscall.a32.asm wasi.32.asm  $@.asm  | $(PYPY) ../CodeGenA32/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm wasi.32.asm  $@.asm  | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@
 	$(QEMUA32) $@ hello world 1 2 3 >$@.out
 	diff $@.out $<.golden
 

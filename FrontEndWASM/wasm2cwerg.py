@@ -886,8 +886,8 @@ def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
 
     global_mem_base = unit.AddMem(ir.Mem("__memory_base", 0, o.MEM_KIND.EXTERN))
 
-    fun = unit.AddFun(ir.Fun("main", o.FUN_KIND.NORMAL, [o.DK.U32], [o.DK.U32, addr_type]))
-    argc = fun.AddReg(ir.Reg("argc", o.DK.U32))
+    fun = unit.AddFun(ir.Fun("main", o.FUN_KIND.NORMAL, [o.DK.S32], [o.DK.S32, addr_type]))
+    argc = fun.AddReg(ir.Reg("argc", o.DK.S32))
     argv = fun.AddReg(ir.Reg("argv", addr_type))
 
     bbl = fun.AddBbl(ir.Bbl("start"))
@@ -913,7 +913,7 @@ def GenerateStartup(unit: ir.Unit, global_argc, global_argv, main: ir.Fun,
 
     bbl.AddIns(ir.Ins(o.PUSHARG, [mem_base]))
     bbl.AddIns(ir.Ins(o.BSR, [main]))
-    bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.U32, 0)]))
+    bbl.AddIns(ir.Ins(o.PUSHARG, [ir.Const(o.DK.S32, 0)]))
     bbl.AddIns(ir.Ins(o.RET, []))
     return fun
 

@@ -33,7 +33,7 @@ tests_py: $(TEST_EXES) $(DIR)/queens.32.asm.s.exe $(DIR)/syscall.a32.asm.exe $(D
 
 tests_c: $(TEST_C_EXES) $(DIR)/isel_test_c $(DIR)/codegen_parity $(DIR)/nanojpeg_c
 
-STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
+STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 ############################################################
