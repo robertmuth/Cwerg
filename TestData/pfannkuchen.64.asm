@@ -265,12 +265,10 @@
   ret
 
 
-.fun main NORMAL [S32] = [S32 A64]
+.fun main NORMAL [S32] = []
 .reg S32 [%out]
 
 .bbl %start
-  poparg argc:S32
-  poparg v:A64
   .reg S32 [i]
   lea %A64_1:A64 = max_n
   mov %S32_2:S32 = 11

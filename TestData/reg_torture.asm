@@ -235,7 +235,7 @@
   ret
 
 
-.fun main NORMAL [U32] = []
+.fun main NORMAL [S32] = []
 
 .bbl start
     pusharg 10:U32
@@ -244,5 +244,5 @@
     pusharg y
     bsr print_u_ln
 
-    pusharg 0:U32
+    pusharg 0:S32
     ret
