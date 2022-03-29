@@ -37,31 +37,6 @@ void AddIns(A32Unit* unit, Ins* ins) {
   unit->sec_text->AddData({(const char*)&data, 4});
 }
 
-std::array<std::string_view, 6> kStartupCode = {  //
-    "ldr_imm_add al r0 sp 0",                     //
-    "add_imm al r1 sp 4",                         //
-    "bl expr:call:main",                          //
-    "movw al r7 1",                               //
-    "svc al 0",                                   //
-    "ud2 al"};
-
-void AddStartupCode(A32Unit* unit) {
-  unit->FunStart("_start", 16, padding_nop);
-  std::vector<std::string_view> token;
-  for (const auto line : kStartupCode) {
-    token.clear();
-    if (!ParseLineWithStrings(line, false, &token)) {
-      ASSERT(false, "bad internal code template " << line);
-    }
-    Ins ins;
-    if (!InsFromSymbolized(token, &ins)) {
-      ASSERT(false, "internal parse error " << token[0]);
-    }
-    AddIns(unit, &ins);
-  }
-  unit->FunEnd();
-}
-
 bool HandleDirective(A32Unit* unit,
                      const std::vector<std::string_view>& token) {
   const auto mnemonic = token[0];
@@ -151,9 +126,6 @@ bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit) {
     }
   }
   unit->AddLinkerDefs();
-  if (add_startup_code) {
-    AddStartupCode(unit);
-  }
   return true;
 }
 

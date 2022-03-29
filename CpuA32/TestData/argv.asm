@@ -40,3 +40,12 @@
     mov_imm al r0 0
     bx al lr
 .endfun	
+
+.fun _start 16
+    ldr_imm_add al r0 sp 0
+    add_imm al r1 sp 4                        
+    bl expr:call:main                          
+    movw al r7 1                            
+    svc al 0                                 
+    ud2 al
+.endfun	

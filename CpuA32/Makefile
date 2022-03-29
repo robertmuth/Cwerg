@@ -22,7 +22,7 @@ tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_p
 ############################################################
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
 	$@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -77,23 +77,23 @@ $(ASSEMBLER_TOOL):
 
 $(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
 	echo "[integration $@]"
-	$(ASSEMBLER_TOOL) assemble_raw $< $@.exe > $@.out
+	$(ASSEMBLER_TOOL) assemble $< $@.exe > $@.out
 	chmod a+x $@.exe
 	$(QEMU_A32) $@.exe > $@.actual_c.out
 	diff $@.actual_c.out $<.golden
 
 $(DIR)/codegen_parity: $(ASSEMBLER_TOOL)
 	@echo "[$@]"
-	$(ASSEMBLER_TOOL) assemble_raw TestData/fib.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/fib.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/fib.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/fib.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
-	$(ASSEMBLER_TOOL) assemble_raw TestData/switch.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/switch.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/switch.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/switch.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
 	$(ASSEMBLER_TOOL) assemble TestData/nanojpeg.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble  TestData/nanojpeg.asm $@.exe > $@.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/nanojpeg.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 
 $(DIR)/symbolize_parity: $(DISASSEMBLER_TOOL)

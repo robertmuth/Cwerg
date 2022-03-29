@@ -16,8 +16,6 @@ extern bool UnitParse(std::istream* input, bool add_startup_code, A32Unit* unit)
 
 extern void AddIns(A32Unit* unit, Ins* ins);
 
-extern void AddStartupCode(A32Unit* unit);
-
 extern void ApplyRelocation(const elf::Reloc<uint32_t>& rel);
 
 extern elf::Executable<uint32_t> MakeExe(A32Unit* unit, bool create_sym_tab);

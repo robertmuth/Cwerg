@@ -4,7 +4,7 @@
 .data 4 "0"
 
 # ========================================
-.fun main NORMAL [U32] = []
+.fun main NORMAL [S32] = []
 .bbl start
     ld.mem x:U32 = dummy 0
 
@@ -17,5 +17,5 @@
     pusharg x
     bsr print_x_ln
 
-    pusharg 0:U32
+    pusharg 0:S32
     ret

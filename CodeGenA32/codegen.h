@@ -10,7 +10,7 @@ using namespace cwerg;
 
 extern void EmitUnitAsText(base::Unit unit, std::ostream* output);
 
-extern a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code);
+extern a32::A32Unit EmitUnitAsBinary(base::Unit unit);
 
 extern void LegalizeAll(base::Unit unit, bool verbose, std::ostream* fout);
 

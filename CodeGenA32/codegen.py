@@ -185,7 +185,7 @@ def codegen(unit: ir.Unit) -> Unit:
 # binary emitter
 ############################################################
 
-def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
+def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
         assert mem.kind is not o.MEM_KIND.EXTERN
@@ -239,8 +239,6 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
                                          tmpl.MakeInsFromTmpl(ins, ctx))
         elfunit.FunEnd()
     elfunit.AddLinkerDefs()
-    if add_startup_code:
-        assembler.AddStartUpCode(elfunit)
     return elfunit
 
 
@@ -254,8 +252,6 @@ if __name__ == "__main__":
     def main():
         parser = argparse.ArgumentParser(description='CodeGenA32')
         parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('-add_startup_code', action='store_true',
-                            help='Add startup code (symbol _startup) which calls main and provides access to argc/argv')
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
@@ -269,10 +265,10 @@ if __name__ == "__main__":
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature
             # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-            LegalizeAll(unit, opt_stats, args.add_startup_code, None)
+            LegalizeAll(unit, opt_stats, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
-            armunit = EmitUnitAsBinary(unit, args.add_startup_code)
+            armunit = EmitUnitAsBinary(unit)
             exe = assembler.Assemble(armunit, True)
             exe.save(open(args.output, "wb"))
             os.chmod(args.output, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)

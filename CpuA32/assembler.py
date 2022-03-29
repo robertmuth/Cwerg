@@ -33,7 +33,8 @@ def DumpData(data: bytes, addr: int, syms: Dict[int, Any]) -> str:
 def AddIns(unit: elf_unit.Unit, ins: a32.Ins):
     if ins.has_reloc():
         sym = unit.FindOrAddSymbol(ins.reloc_symbol, ins.is_local_sym)
-        unit.AddReloc(ins.reloc_kind, unit.sec_text, sym, ins.operands[ins.reloc_pos])
+        unit.AddReloc(ins.reloc_kind, unit.sec_text,
+                      sym, ins.operands[ins.reloc_pos])
         ins.clear_reloc()
     unit.sec_text.AddData(a32.Assemble(ins).to_bytes(4, byteorder='little'))
 
@@ -42,42 +43,11 @@ def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
     AddIns(unit, symbolic.InsFromSymbolized(mnemonic, token))
 
 
-def AddStartUpCode(unit: elf_unit.Unit):
-    """Add code for `_start` wrapper which calls main(()
-
-    When Linux transfers control to a new A32 program is does not follow any calling
-    convention so we need this shim.
-    The initial execution env looks like this:
-    0(sp)			argc
-
-    4(sp)			    argv[0] # argv start
-    8(sp)               argv[1]
-    ...
-    (4*argc)(sp)        NULL    # argv sentinel
-
-    (4*(argc+1))(sp)    envp[0] # envp start
-    (4*(argc+2))(sp)    envp[1]
-    ...
-                        NULL    # envp sentinel
-
-    This feature is needed by CodeGenA32/
-    """
-    unit.FunStart("_start", 16, NOP_BYTES)
-    for mnemonic, ops in [("ldr_imm_add", "al r0 sp 0"),
-                          ("add_imm", "al r1 sp 4"),
-                          ("bl", "al expr:call:main"),
-                          ("movw", "al r7 1"),
-                          ("svc", "al 0"),
-                          ("ud2", "al")]:
-        HandleOpcode(mnemonic, ops.split(), unit)
-    unit.FunEnd()
-
-
 class ParseError(Exception):
     pass
 
 
-def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
+def UnitParse(fin) -> elf_unit.Unit:
     unit = elf_unit.Unit()
     dir_handlers = {
         ".fun": lambda x, y: unit.FunStart(x, int(y, 0), NOP_BYTES),
@@ -113,8 +83,6 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
             raise ParseError(
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
     unit.AddLinkerDefs()
-    if add_startup_code:
-        AddStartUpCode(unit)
     return unit
 
 
@@ -132,16 +100,20 @@ def _ApplyRelocation(rel: elf.Reloc):
     sec_data = rel.section.data
     sym_val = rel.symbol.st_value + rel.r_addend
     assert rel.r_offset + 4 <= len(sec_data)
-    old_data = int.from_bytes(sec_data[rel.r_offset:rel.r_offset + 4], "little")
+    old_data = int.from_bytes(
+        sec_data[rel.r_offset:rel.r_offset + 4], "little")
 
     if rel.r_type == enum_tab.RELOC_TYPE_ARM.MOVW_ABS_NC.value:
         new_data = a32.Patch(old_data, _OPCODE_MOVW, 2, sym_val & 0xffff)
     elif rel.r_type == enum_tab.RELOC_TYPE_ARM.MOVT_ABS.value:
-        new_data = a32.Patch(old_data, _OPCODE_MOVT, 2, (sym_val >> 16) & 0xffff)
+        new_data = a32.Patch(old_data, _OPCODE_MOVT, 2,
+                             (sym_val >> 16) & 0xffff)
     elif rel.r_type == enum_tab.RELOC_TYPE_ARM.JUMP24.value:
-        new_data = a32.Patch(old_data, _OPCODE_B, 1, _branch_offset(rel, sym_val))
+        new_data = a32.Patch(old_data, _OPCODE_B, 1,
+                             _branch_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_ARM.CALL.value:
-        new_data = a32.Patch(old_data, _OPCODE_BL, 1, _branch_offset(rel, sym_val))
+        new_data = a32.Patch(old_data, _OPCODE_BL, 1,
+                             _branch_offset(rel, sym_val))
     elif rel.r_type == enum_tab.RELOC_TYPE_ARM.ABS32.value:
         new_data = sym_val
     else:
@@ -201,9 +173,11 @@ def Assemble(unit: elf_unit.Unit, create_sym_tab: bool) -> elf.Executable:
         # we do not create the content here since we cannot really do this until
         # the section addresses are finalized
         which = enum_tab.EI_CLASS.X_32
-        sec_symtab = elf.Section.MakeSectionSymTab(".symtab", which, len(sections) + 1)
+        sec_symtab = elf.Section.MakeSectionSymTab(
+            ".symtab", which, len(sections) + 1)
         sections.append(sec_symtab)
-        sec_symtab.SetData(bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))
+        sec_symtab.SetData(
+            bytearray(len(unit.symbols) * elf.Symbol.SIZE[which]))
         seg_pseudo.sections.append(sec_symtab)
         # TODO: this is not quite right
         sec_symtab.sh_info = len(unit.symbols)

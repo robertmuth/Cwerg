@@ -145,7 +145,7 @@ void EmitUnitAsText(Unit unit, std::ostream* output) {
   }
 }
 
-a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
+a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
   a32::A32Unit out;
   for (Mem mem : UnitMemIter(unit)) {
     ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
@@ -215,9 +215,6 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
     out.FunEnd();
   }
   out.AddLinkerDefs();
-  if (add_startup_code) {
-    a32::AddStartupCode(&out);
-  }
   return out;
 }
 
