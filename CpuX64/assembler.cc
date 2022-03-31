@@ -1,11 +1,12 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CpuX64/assembler.h"
+
+#include <map>
+
 #include "CpuX64/opcode_gen.h"
 #include "CpuX64/symbolic.h"
 #include "Util/parse.h"
-
-#include <map>
 
 namespace cwerg::x64 {
 using namespace cwerg::elf;
@@ -20,16 +21,16 @@ constexpr auto operator+(T e) noexcept
 std::string_view padding_zero("\0", 1);
 
 const std::array<const std::string_view, 10> kCodePaddingSequences = {
-    "",
-    "\x90",
-    "\x66\x90",
-    "\x0f\x1f\x00",
-    "\x0f\x1f\x40\x00",
-    "\x0f\x1f\x44\x00\x00",
-    "\x66\x0f\x1f\x44\x00\x00",
-    "\x0f\x1f\x08\x00\x00\x00\x00",
-    "\x0f\x1f\x84\x00\x00\x00\x00\x00",
-    "\x66\x0f\x1f\x84\x00\x00\x00\x00\x00"};
+    std::string_view{"", 0},
+    std::string_view{"\x90", 1},
+    std::string_view{"\x66\x90", 2},
+    std::string_view{"\x0f\x1f\x00", 3},
+    std::string_view{"\x0f\x1f\x40\x00", 4},
+    std::string_view{"\x0f\x1f\x44\x00\x00", 5},
+    std::string_view{"\x66\x0f\x1f\x44\x00\x00", 6},
+    std::string_view{"\x0f\x1f\x08\x00\x00\x00\x00", 7},
+    std::string_view{"\x0f\x1f\x84\x00\x00\x00\x00\x00", 8},
+    std::string_view{"\x66\x0f\x1f\x84\x00\x00\x00\x00\x00", 9}};
 
 void TextPadder(size_t len, std::string* s) {
   const std::string_view largest = kCodePaddingSequences.back();
@@ -37,7 +38,6 @@ void TextPadder(size_t len, std::string* s) {
     s->append(largest);
     len -= largest.size();
   }
-
   s->append(kCodePaddingSequences[len]);
 }
 

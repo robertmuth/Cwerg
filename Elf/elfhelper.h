@@ -63,8 +63,8 @@ struct Chunk {
     ASSERT(!is_read_only_, "");
     if (alignment <= 1) return;
     const size_t new_size = Align(storage_rw_.size(), alignment);
-    padder(new_size, &storage_rw_);
-    ASSERT(storage_rw_.size() == new_size, "");
+    padder(new_size - storage_rw_.size(), &storage_rw_);
+    ASSERT(storage_rw_.size() == new_size, "failed to pad data " << alignment);
   }
 
   void PadData(size_t alignment, std::string_view padding) {
