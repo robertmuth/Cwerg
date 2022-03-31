@@ -70,9 +70,10 @@ struct Chunk {
   void PadData(size_t alignment, std::string_view padding) {
     ASSERT(alignment % padding.size() == 0, "");
     ASSERT(storage_rw_.size() % padding.size() == 0, "");
-    auto padder = [padding](size_t new_size, std::string* s) {
-      while (s->size() < new_size) {
+    auto padder = [padding](size_t len, std::string* s) {
+      while (len > 0) {
         s->append(padding);
+        len -= padding.size();
       }
     };
     PadData(alignment, padder);
