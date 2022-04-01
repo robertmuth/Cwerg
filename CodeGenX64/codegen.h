@@ -10,6 +10,6 @@ using namespace cwerg;
 
 extern void EmitUnitAsText(base::Unit unit, std::ostream* output);
 
-extern x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code);
+extern x64::X64Unit EmitUnitAsBinary(base::Unit unit);
 
 }  // namespace cwerg::code_gen_x64

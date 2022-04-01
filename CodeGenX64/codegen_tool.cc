@@ -73,9 +73,6 @@ SwitchInt32 sw_multiplier("multiplier",
 
 SwitchString sw_mode("mode", "mode indicating what to do", "optimize");
 
-SwitchBool sw_add_startup_code("add_startup_code", "Add startup code (symbol _startup) "
-                               "which calls main and provides access to argc/argv");
-
 SwitchBool sw_show_stats("show_stats", "emit stats to cout");
 
 SwitchBool sw_break_after_load("break_after_load", "break after load IR");
@@ -156,7 +153,7 @@ int main(int argc, const char* argv[]) {
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
-    x64::X64Unit cpuunit = EmitUnitAsBinary(unit, sw_add_startup_code.Value());
+    x64::X64Unit cpuunit = EmitUnitAsBinary(unit);
     auto exe = x64::MakeExe(&cpuunit, true);
     std::vector<std::string_view> chunks = exe.Save();
     for (const auto& c : chunks) {

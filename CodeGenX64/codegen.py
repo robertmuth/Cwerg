@@ -138,6 +138,8 @@ def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
             elif ins.opcode is o.RET:
                 out += [_RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
                         for tmpl in isel_tab.EmitFunEpilog(ctx)]
+            elif ins.opcode is o.INLINE:
+                out.append("    " + str(ins.operands[0], "ascii"))
             else:
                 pattern = isel_tab.FindMatchingPattern(ins)
                 assert pattern, (f"could not find pattern for\n{ins} {ins.operands} "
@@ -198,7 +200,7 @@ def codegen(unit: ir.Unit) -> Unit:
 # binary emitter
 ############################################################
 
-def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
+def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
     elfunit = elf_unit.Unit()
     for mem in unit.mems:
         assert mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
@@ -244,7 +246,11 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
                     for tmpl in isel_tab.EmitFunEpilog(ctx):
                         assembler.AddIns(elfunit,
                                          tmpl.MakeInsFromTmpl(None, ctx))
-
+                elif ins.opcode is o.INLINE:
+                    tokens = str(ins.operands[0], "ascii").split()
+                    cpu_ins = symbolic.InsFromSymbolized(tokens[0], tokens[1:])
+                    # intentionally no simplification for now
+                    assembler.AddIns(elfunit, cpu_ins)
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
                     assert pattern, f"could not find pattern in fun {fun.name}\n{ins} {ins.operands}"
@@ -254,8 +260,6 @@ def EmitUnitAsBinary(unit: ir.Unit, add_startup_code) -> elf_unit.Unit:
                             assembler.AddIns(elfunit, cpu_ins)
         elfunit.FunEnd()
     elfunit.AddLinkerDefs()
-    if add_startup_code:
-        assembler.AddStartUpCode(elfunit)
     return elfunit
 
 
@@ -269,8 +273,6 @@ if __name__ == "__main__":
     def main():
         parser = argparse.ArgumentParser(description='CodeGenA64')
         parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('-add_startup_code', action='store_true',
-                            help='Add startup code (symbol _startup) which calls main and provides access to argc/argv')
 
         parser.add_argument('input', type=str, help='input file')
         parser.add_argument('output', type=str, help='output file')
@@ -289,7 +291,7 @@ if __name__ == "__main__":
             LegalizeAll(unit, opt_stats, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
-            x64unit = EmitUnitAsBinary(unit, args.add_startup_code)
+            x64unit = EmitUnitAsBinary(unit)
             exe = assembler.Assemble(x64unit, True)
             exe.save(open(args.output, "wb"))
             os.chmod(args.output, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)

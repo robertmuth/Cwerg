@@ -2,6 +2,8 @@
 
 #include "CodeGenX64/codegen.h"
 
+#include <string_view>
+
 #include "Base/serialize.h"
 #include "CodeGenX64/isel_gen.h"
 #include "CodeGenX64/regs.h"
@@ -10,8 +12,6 @@
 #include "CpuX64/opcode_gen_enum.h"
 #include "CpuX64/symbolic.h"
 #include "Util/parse.h"
-
-#include <string_view>
 
 namespace cwerg::code_gen_x64 {
 
@@ -49,6 +49,16 @@ bool SimpifyCpuIns(x64::Ins cpu_ins) {
          opc != x64::OPC::mov_64_r_mr;
 }
 
+x64::Ins HandleInline(const char* cpu_asm_str) {
+  std::vector<std::string_view> token;
+  ParseLineWithStrings(cpu_asm_str, false, &token);
+  x64::Ins cpu_ins;
+  if (!InsFromSymbolized(token, &cpu_ins)) {
+    ASSERT(false, "internal parse error " << token[0]);
+  }
+  return cpu_ins;
+}
+
 void FunCodeGen(Fun fun, std::ostream* output) {
   ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
   *output << "# sig: IN: ";
@@ -84,6 +94,8 @@ void FunCodeGen(Fun fun, std::ostream* output) {
         ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
       } else if (InsOPC(ins) == OPC::RET) {
         EmitFunEpilog(ctx, &inss);
+      } else if (InsOPC(ins) == OPC::INLINE) {
+        inss.push_back(HandleInline(StrData(Str(InsOperand(ins, 0)))));
       } else {
         const Pattern* pat = FindMatchingPattern(ins);
         if (pat == nullptr) {
@@ -158,7 +170,7 @@ void EmitUnitAsText(base::Unit unit, std::ostream* output) {
   }
 }
 
-x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
+x64::X64Unit EmitUnitAsBinary(base::Unit unit) {
   x64::X64Unit out;
   for (Mem mem : UnitMemIter(unit)) {
     ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
@@ -215,6 +227,8 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
           ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
         } else if (InsOPC(ins) == OPC::RET) {
           EmitFunEpilog(ctx, &inss);
+        } else if (InsOPC(ins) == OPC::INLINE) {
+          inss.push_back(HandleInline(StrData(Str(InsOperand(ins, 0)))));
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
           ASSERT(pat != nullptr, "could not find matching pattern for "
@@ -232,9 +246,6 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit, bool add_startup_code) {
     out.FunEnd();
   }
   out.AddLinkerDefs();
-  if (add_startup_code) {
-    x64::AddStartupCode(&out);
-  }
   return out;
 }
 

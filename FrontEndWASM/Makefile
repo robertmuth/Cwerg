@@ -68,7 +68,7 @@ $(DIR)/%.a64.exe: TestData/%.wasm
 $(DIR)/%.x64.exe: TestData/%.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ hello world 1 2 3 >$@.out
 	diff $@.out $<.golden
 
@@ -96,7 +96,7 @@ $(DIR)/lists.a64.exe: TestData/lists.wasm
 $(DIR)/lists.x64.exe: TestData/lists.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@  3000 >$@.out
 	diff $@.out $<.golden
 
@@ -110,7 +110,7 @@ $(DIR)/spectral-norm.a64.exe: TestData/spectral-norm.wasm
 $(DIR)/spectral-norm.x64.exe: TestData/spectral-norm.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@  1000 >$@.out
 	diff $@.out $<.golden
 
@@ -124,7 +124,7 @@ $(DIR)/nbody.a64.exe: TestData/nbody.wasm
 $(DIR)/nbody.x64.exe: TestData/nbody.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@  500000 >$@.out
 	diff $@.out $<.golden
 
@@ -138,7 +138,7 @@ $(DIR)/fannkuch-redux.a64.exe: TestData/fannkuch-redux.wasm
 $(DIR)/fannkuch-redux.x64.exe: TestData/fannkuch-redux.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ 10 >$@.out
 	diff $@.out $<.golden
 
@@ -152,7 +152,7 @@ $(DIR)/matrix.a64.exe: TestData/matrix.wasm
 $(DIR)/matrix.x64.exe: TestData/matrix.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ 3000 >$@.out
 	diff $@.out $<.golden
 
@@ -166,7 +166,7 @@ $(DIR)/amoeba_test.a64.exe: TestData/amoeba_test.wasm
 $(DIR)/amoeba_test.x64.exe: TestData/amoeba_test.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ >$@.out
 	diff $@.out $<.golden
 
@@ -180,7 +180,7 @@ $(DIR)/nv_voronoi.a64.exe: TestData/nv_voronoi.wasm
 $(DIR)/nv_voronoi.x64.exe: TestData/nv_voronoi.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ >$@.out
 	diff $@.out $<.golden
 
@@ -215,7 +215,7 @@ $(DIR)/binary-trees.a64.exe: TestData/binary-trees.wasm
 $(DIR)/binary-trees.x64.exe: TestData/binary-trees.wasm
 	@echo "[$@]"
 	$(PYPY) ./wasm2cwerg.py 64 $< > $@.asm
-	cat ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary  -add_startup_code - $@
+	cat ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm wasi.lite.64.asm  $@.asm  | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@
 	$(QEMUX64) $@ 15 >$@.out
 	diff $@.out $<.golden
 
