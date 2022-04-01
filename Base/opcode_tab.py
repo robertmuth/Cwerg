@@ -51,7 +51,8 @@ class OPC_KIND(enum.Enum):
     BZERO = 22
     CAS = 23
     GETFP = 24
-    DIRECTIVE = 25  # not a real instruction
+    INLINE = 25
+    DIRECTIVE = 26  # not a real instruction
 
 
 _OF_TO_PURPOSE = {
@@ -79,6 +80,7 @@ _OF_TO_PURPOSE = {
     OPC_KIND.MOV: ["dst", "src"],
     OPC_KIND.CMP: ["dst", "src1", "src2", "cmp1", "cmp2"],
     OPC_KIND.CAS: ["dst", "cmp", "src", "base", "offset"],
+    OPC_KIND.INLINE: ["target-asm-ins"],
 }
 
 _OFS_CFG = {OPC_KIND.BSR, OPC_KIND.JSR, OPC_KIND.SYSCALL, OPC_KIND.SWITCH,
@@ -86,7 +88,7 @@ _OFS_CFG = {OPC_KIND.BSR, OPC_KIND.JSR, OPC_KIND.SYSCALL, OPC_KIND.SWITCH,
 
 # These instructions do not have a written register
 _OFS_NO_DEF = _OFS_CFG | {OPC_KIND.ST, OPC_KIND.BCOPY, OPC_KIND.BZERO,
-                          OPC_KIND.PUSHARG, OPC_KIND.NOP}
+                          OPC_KIND.PUSHARG, OPC_KIND.NOP, OPC_KIND.INLINE}
 
 # These instructions have a written register
 _OFS_WRITING_REGS = {
@@ -311,11 +313,12 @@ OKS_LIST = {OP_KIND.BYTES, OP_KIND.NAME_LIST, OP_KIND.BBL_TAB,
 OKS_ALLOWED_FOR_INSTRUCTIONS = {OP_KIND.REG, OP_KIND.CONST,
                                 OP_KIND.REG_OR_CONST,
                                 OP_KIND.FUN, OP_KIND.BBL, OP_KIND.JTB,
-                                OP_KIND.MEM, OP_KIND.STK, OP_KIND.FIELD}
+                                OP_KIND.MEM, OP_KIND.STK, OP_KIND.FIELD,
+                                OP_KIND.BYTES}
 
 # we do not want non-scalar operands in instructions as they
 # increase memory usage and complicate the code
-assert not (OKS_LIST & OKS_ALLOWED_FOR_INSTRUCTIONS)
+# assert not (OKS_LIST & OKS_ALLOWED_FOR_INSTRUCTIONS)
 
 OKS_ALLOWED_FOR_DIRECTIVES = {OP_KIND.INT, OP_KIND.MEM_KIND, OP_KIND.BYTES,
                               OP_KIND.NAME, OP_KIND.BBL_TAB,
@@ -676,7 +679,6 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
 
-
 GETFP = Opcode(0x37, "getfp", OPC_KIND.GETFP, [OP_KIND.REG],
              [TC.ADDR], OPC_GENUS.BASE,
              """materialize the framepointer. 
@@ -879,6 +881,15 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
 #              [TC.ANY], OPC_GENUS.BASE,
 #              "",
 #              OA.SPECIAL)
+
+############################################################
+# Misc
+############################################################
+
+INLINE = Opcode(0x78, "inline", OPC_KIND.INLINE, [OP_KIND.BYTES],
+              [TC.INVALID], OPC_GENUS.BASE,
+              "inject arbitrary target instructions into instruction stream",
+              OA.SPECIAL)
 
 ############################################################
 # Misc Experimental

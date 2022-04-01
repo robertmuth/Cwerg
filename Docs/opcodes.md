@@ -396,6 +396,9 @@ nop - internal use.
 #### [71] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
 nop with one reg - internal use. Can be used to `reserve` a reg for code generation.
 
+#### [78] inline *target-asm-ins* <sub>[BYTES]</sub>
+inject arbitrary target instructions into instruction stream
+
 ## Directives
 
 #### [01] .mem *name* <sub>[NAME]</sub> *alignment* <sub>[INT]</sub> *mem_kind* <sub>[MEM_KIND]</sub>

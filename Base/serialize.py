@@ -255,7 +255,7 @@ def ExtractBblTable(fun: ir.Fun, lst: List) -> Dict[int, ir.Bbl]:
     out = {}
     for num_str in it:
         bbl_name = next(it)
-        out[int(num_str)] = fun.GetBblOrAddForwardDeclaration(bbl_name)
+        out[int(num_str, 0)] = fun.GetBblOrAddForwardDeclaration(bbl_name)
     return out
 
 
@@ -288,7 +288,7 @@ def ExtractBytes(v) -> bytes:
         if num[1][0] == "f":
             val = float(num[0])
         else:
-            val = int(num[0])
+            val = int(num[0], 0)
         return struct.pack(fmt, val)
 
 
@@ -390,7 +390,7 @@ def _GetOperand(unit: ir.Unit, fun: ir.Fun, ok: o.OP_KIND, v: Any) -> Any:
     elif ok is o.OP_KIND.JTB:
         return fun.GetJbl(v)
     elif ok is o.OP_KIND.INT:
-        return int(v)
+        return int(v, 0)
     else:
         raise ir.ParseError(f"cannot read op type: {ok}")
 
