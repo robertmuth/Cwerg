@@ -6,7 +6,7 @@
 
 using namespace cwerg;
 
-bool Assemble(std::string_view input, std::string_view output, bool add_startup_code) {
+bool Assemble(std::string_view input, std::string_view output) {
   std::ifstream finFile;
   std::istream* fin = &std::cin;
   if (input != "-") {
@@ -15,7 +15,7 @@ bool Assemble(std::string_view input, std::string_view output, bool add_startup_
   }
 
   x64::X64Unit unit;
-  if (!x64::UnitParse(fin, add_startup_code, &unit)) {
+  if (!x64::UnitParse(fin, &unit)) {
     std::cerr << "cannot parse input file " << input << "\n";
     return false;
   }
@@ -45,22 +45,14 @@ int main(int argc, char* argv[]) {
 
   if (argv[1] == std::string_view("lint")) {
     x64::X64Unit unit;
-    x64::UnitParse(&std::cin, false, &unit);
+    x64::UnitParse(&std::cin, &unit);
     std::cout << unit << "\n";
-  } else if (argv[1] == std::string_view("assemble_raw")) {
-    if (argc <= 3) {
-      std::cerr << "need src and dst args\n";
-      return 1;
-    }
-    if (!Assemble(argv[2], argv[3], false)) {
-      return 1;
-    }
   } else if (argv[1] == std::string_view("assemble")) {
     if (argc <= 3) {
       std::cerr << "need src and dst args\n";
       return 1;
     }
-    if (!Assemble(argv[2], argv[3], true)) {
+    if (!Assemble(argv[2], argv[3])) {
       return 1;
     }
   }

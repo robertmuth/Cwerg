@@ -89,7 +89,7 @@ std::array<std::string_view, 12> kStartupCode = {
     "int3"};
 
 void AddStartupCode(X64Unit* unit) {
-  unit->FunStart("_start", 16, TextPadder);
+  unit->FunStart("main", 16, TextPadder);
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
     token.clear();
@@ -170,7 +170,7 @@ bool HandleOpcode(X64Unit* unit, const std::vector<std::string_view>& token) {
   return true;
 }
 
-bool UnitParse(std::istream* input, bool add_startup_code, X64Unit* unit) {
+bool UnitParse(std::istream* input, X64Unit* unit) {
   X64Unit out;
   int line_num = 0;
   std::vector<std::string_view> token;
@@ -194,9 +194,6 @@ bool UnitParse(std::istream* input, bool add_startup_code, X64Unit* unit) {
     }
   }
   unit->AddLinkerDefs();
-  if (add_startup_code) {
-    AddStartupCode(unit);
-  }
   return true;
 }
 

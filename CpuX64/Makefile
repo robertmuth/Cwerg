@@ -40,7 +40,7 @@ $(DIR)/disassembler_test:
 
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble_raw $< $@.exe > $@.out
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
 	$@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -106,8 +106,8 @@ $(DIR)/codegen_parity:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
 	@echo
-	$(ASSEMBLER_TOOL) assemble_raw TestData/hello.asm $@_c.exe > $@_c.exe.out
-	$(PYPY)	./assembler_tool.py assemble_raw  TestData/hello.asm $@.exe > $@.exe.out
+	$(ASSEMBLER_TOOL) assemble TestData/hello.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/hello.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
 

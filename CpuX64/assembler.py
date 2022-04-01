@@ -82,54 +82,11 @@ def AddIns(unit: elf_unit.Unit, ins: x64.Ins):
 def HandleOpcode(mnemonic, token: List[str], unit: elf_unit.Unit):
     AddIns(unit, symbolic.InsFromSymbolized(mnemonic, token))
 
-
-def AddStartUpCode(unit: elf_unit.Unit):
-    """Add code for `_start` wrapper which calls main(()
-
-    When Linux transfers control to a new A32 program is does not follow any calling
-    convention so we need this shim.
-    The initial execution env looks like this:
-    0(sp)			    argc
-    8(sp)			    argv[0] # argv start
-    16(sp)               argv[1]
-    ...
-    (8*argc)(sp)        NULL    # argv sentinel
-
-    (8*(argc+1))(sp)    envp[0] # envp start
-    (8*(argc+2))(sp)    envp[1]
-    ...
-                        NULL    # envp sentinel
-
-    This feature is needed by CodeGenA64/
-    """
-    unit.FunStart("_start", 16, TextPadder)
-    for mnemonic, ops in [
-        ("mov_64_r_mbis8", "rdi rsp noindex 0 0"),  # argc
-        ("lea_64_r_mbis8", "rsi rsp noindex 0 8"),  # argv
-        ("lea_64_r_mbis8", "rdx rsp rdi 3 16"),  # envp
-        # default mxcsr is 0x1f80
-        # description: https://wiki.osdev.org/SSE
-        # force "rounding down"
-        ("stmxcsr_32_mbis8", "rsp noindex 0 -4"),
-        ("and_32_mbis8_imm32", "rsp noindex 0 -4 0xffff9fff"),
-        ("or_32_mbis8_imm32", "rsp noindex 0 -4 0x2000"),
-        ("ldmxcsr_32_mbis8", "rsp noindex 0 -4"),
-        ("call_32", "expr:pcrel32:main"),
-        # edi contains result from main
-        ("mov_32_r_imm32", "edi 0x0"),
-        ("mov_64_mr_imm32", "rax 0x3c"),
-        ("syscall", ""),
-        # unreachable
-        ("int3", "")]:
-        HandleOpcode(mnemonic, ops.split(), unit)
-    unit.FunEnd()
-
-
 class ParseError(Exception):
     pass
 
 
-def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
+def UnitParse(fin) -> elf_unit.Unit:
     unit = elf_unit.Unit()
     dir_handlers = {
         ".fun": lambda x, y: unit.FunStart(x, int(y, 0), TextPadder),
@@ -165,8 +122,6 @@ def UnitParse(fin, add_startup_code) -> elf_unit.Unit:
             raise ParseError(
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
     unit.AddLinkerDefs()
-    if add_startup_code:
-        AddStartUpCode(unit)
     return unit
 
 
