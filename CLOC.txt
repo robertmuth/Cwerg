@@ -5,11 +5,11 @@
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             53           1435            437          11758
-Python                          44           2207           1845           8714
-C/C++ Header                    42            818            374           2788
+C++                             53           1449            445          11785
+Python                          44           2183           1799           8752
+C/C++ Header                    42            831            389           2805
 -------------------------------------------------------------------------------
-SUM:                           139           4460           2656          23260
+SUM:                           139           4463           2633          23342
 -------------------------------------------------------------------------------
 
 ## Tables
@@ -18,9 +18,9 @@ SUM:                           139           4460           2656          23260
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Python                           8           1427            980           8772
+Python                           8           1433            987           8821
 -------------------------------------------------------------------------------
-SUM:                             8           1427            980           8772
+SUM:                             8           1433            987           8821
 -------------------------------------------------------------------------------
 
 ## Generated Code
@@ -29,10 +29,10 @@ SUM:                             8           1427            980           8772
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C/C++ Header                    13            212             93          62150
-C++                              8            555            629          22069
+C/C++ Header                    13            212             93          62287
+C++                              8            555            629          22261
 -------------------------------------------------------------------------------
-SUM:                            21            767            722          84219
+SUM:                            21            767            722          84548
 -------------------------------------------------------------------------------
 
 ## Testing Code
@@ -54,15 +54,15 @@ SUM:                            18            421            332           1716
 File                                    blank        comment           code
 --------------------------------------------------------------------------------------
 ./CpuA64/opcode_tab.py                    260            177           1353
-./CodeGenX64/isel_tab.py                  146            106           1330
-./CpuX64/opcode_tab.py                    183            101           1227
-./CodeGenA64/isel_tab.py                  154            101           1090
+./CodeGenX64/isel_tab.py                  148            106           1334
+./CpuX64/opcode_tab.py                    182            102           1244
+./CodeGenA64/isel_tab.py                  155            101           1100
 ./CpuA32/opcode_tab.py                    238            144           1071
 ./Elf/enum_tab.py                          94             41           1029
-./CodeGenA32/isel_tab.py                  144            104            962
-./Base/opcode_tab.py                      208            206            710
+./CodeGenA32/isel_tab.py                  143            105            969
+./Base/opcode_tab.py                      213            211            721
 --------------------------------------------------------------------------------------
-SUM:                                     1427            980           8772
+SUM:                                     1433            987           8821
 --------------------------------------------------------------------------------------
 
 ## Breakdown: Generated Files
@@ -71,29 +71,29 @@ SUM:                                     1427            980           8772
 -----------------------------------------------------------------------------------
 File                                            blank        comment           code
 -----------------------------------------------------------------------------------
-./CodeGenX64/isel_gen_patterns.h                    3              0          27509
+./CodeGenX64/isel_gen_patterns.h                    3              0          27639
 ./CpuX64/opcode_gen_encodings.h                     1              2          13319
 ./CpuX64/opcode_gen_collisions.h                    3              1           9644
-./CodeGenA32/isel_gen.cc                           32             20           5708
+./CodeGenA32/isel_gen.cc                           32             20           5767
+./CodeGenA64/isel_gen.cc                           47             21           5393
 ./CpuX64/opcode_gen_names.h                         2              2           5383
-./CodeGenA64/isel_gen.cc                           47             21           5300
 ./CpuA64/opcode_gen.cc                            290            285           4704
 ./CpuX64/opcode_gen_enum.h                          1              0           3332
 ./CpuA32/opcode_gen.cc                             41            270           2477
 ./Elf/enum_gen.cc                                  41              4           1962
+./Base/opcode_gen.cc                               40              3           1055
 ./CpuA64/opcode_gen.h                              33             20           1047
-./Base/opcode_gen.cc                               40              3           1018
 ./Elf/enum_gen.h                                   22              4            639
 ./CpuA32/opcode_gen.h                              41             22            633
 ./CpuX64/opcode_gen.cc                             29              8            465
-./CodeGenX64/isel_gen.cc                           35             18            435
-./Base/opcode_gen.h                                31              5            226
+./CodeGenX64/isel_gen.cc                           35             18            438
+./Base/opcode_gen.h                                31              5            230
 ./CpuX64/opcode_gen.h                              25             15            121
-./CodeGenA32/isel_gen.h                            15              6            104
-./CodeGenA64/isel_gen.h                            17              8            101
-./CodeGenX64/isel_gen.h                            18              8             92
+./CodeGenA32/isel_gen.h                            15              6            105
+./CodeGenA64/isel_gen.h                            17              8            102
+./CodeGenX64/isel_gen.h                            18              8             93
 -----------------------------------------------------------------------------------
-SUM:                                              767            722          84219
+SUM:                                              767            722          84548
 -----------------------------------------------------------------------------------
 
 ## Breakdown: Regular Files
@@ -103,68 +103,68 @@ SUM:                                              767            722          84
 File                                                blank        comment           code
 ---------------------------------------------------------------------------------------
 ./Elf/elfhelper.py                                    153             95            870
-./Base/ir.h                                           170             99            767
-./Base/serialize.cc                                    74             20            762
+./Base/ir.h                                           179            107            791
+./Base/serialize.cc                                    74             20            759
 ./Base/lowering.cc                                     53             13            665
 ./Elf/elfhelper.cc                                     66             45            536
-./Base/ir.py                                          165             75            509
+./Base/ir.py                                          164             75            510
 ./CodeGenA32/regs.cc                                   55             10            506
-./Base/reaching_defs.cc                                45             23            490
-./CodeGenX64/legalize.cc                               50             18            464
+./Base/reaching_defs.cc                                46             23            481
+./CodeGenX64/legalize.cc                               50             18            471
+./Base/ir.cc                                           71             39            469
 ./Util/parse.cc                                        53             13            430
-./Elf/elfhelper.h                                      82             33            418
+./Elf/elfhelper.h                                      82             33            419
 ./Base/serialize.py                                    79             22            415
 ./CodeGenX64/regs.cc                                   45             18            414
-./Base/ir.cc                                           61             32            413
+./Base/cfg.cc                                          44             23            411
 ./CodeGenA64/regs.cc                                   43             25            410
 ./CodeGenC/codegen.py                                 103             17            406
 ./Base/lowering.py                                    110            142            399
-./Base/cfg.cc                                          38             22            369
-./CodeGenA32/regs.py                                   80             66            363
+./CodeGenA32/regs.py                                   83             67            377
 ./Base/liveness.cc                                     35             44            357
 ./CpuX64/symbolic.cc                                   24              1            349
+./CodeGenA64/legalize.cc                               44             13            347
 ./Base/reaching_defs.py                                81            108            343
-./CodeGenA64/legalize.cc                               44             13            340
 ./CodeGenA32/legalize.cc                               46             14            331
+./CodeGenX64/regs.py                                   69             54            327
 ./CodeGenX64/legalize.py                               92             82            321
-./CodeGenX64/regs.py                                   69             53            320
-./CpuX64/assembler.cc                                  38             11            306
-./CodeGenA64/regs.py                                   67             68            298
+./CodeGenA64/regs.py                                   70             69            316
+./CpuX64/assembler.cc                                  38             11            303
 ./Base/liveness.py                                     66             68            296
-./Base/reg_stats.cc                                    34              6            295
-./CpuA32/assembler.cc                                  34              6            286
-./CpuA64/assembler.cc                                  36              6            281
+./Base/reg_stats.cc                                    35              6            296
 ./CpuA64/opcode_test.py                                31             26            270
 ./CodeGenA32/legalize.py                               73             78            263
-./Base/reg_alloc.cc                                    25              2            256
-./CodeGenX64/codegen.py                                62             21            236
+./CpuA32/assembler.cc                                  32              6            261
+./CpuA64/assembler.cc                                  35              6            256
+./Base/cfg.py                                          43             37            244
+./CodeGenX64/codegen.py                                61             22            243
+./Base/reg_alloc.cc                                    26              2            237
+./CodeGenA64/codegen.py                                58             25            231
 ./CodeGenA64/legalize.py                               77             73            231
-./CodeGenA64/codegen.py                                59             25            230
-./Base/cfg.py                                          40             35            222
-./CodeGenA32/codegen.py                                61             18            222
-./CodeGenA32/codegen.cc                                24              2            221
+./CodeGenA32/codegen.cc                                24              2            227
+./CodeGenA32/codegen.py                                59             18            226
+./CodeGenX64/codegen.cc                                24              2            226
 ./CpuA32/symbolic.cc                                   21              3            221
-./CodeGenX64/codegen.cc                                21              2            212
-./CpuX64/assembler.py                                  49             37            212
-./Base/optimize_tool.cc                                38              7            204
+./Base/optimize_tool.cc                                37              7            205
 ./Util/bst.h                                           33             12            202
 ./Elf/elf_unit.h                                       28              5            196
-./CodeGenA64/codegen.cc                                20              2            195
-./CpuA64/assembler.py                                  50             34            192
+./CpuX64/assembler.py                                  43             17            193
+./CodeGenA64/codegen.cc                                20              2            192
 ./Tools/inspector.py                                   86            235            192
 ./Base/reg_stats.py                                    46             51            189
+./CpuA64/assembler.py                                  45             17            189
 ./CpuA64/symbolic.cc                                   16              3            187
-./CpuA32/assembler.py                                  48             27            185
 ./Elf/gen_elf_test.cc                                  39              9            184
 ./Base/reg_alloc.py                                    49             65            180
+./CpuA32/assembler.py                                  42             12            180
 ./Util/handle_test.cc                                  39              6            178
-./Base/optimize.py                                     48             26            175
-./Base/sanity.py                                       28             29            168
+./Base/optimize.py                                     48             26            177
+./Base/sanity.py                                       28             29            170
 ./Util/webserver.cc                                    24              2            152
-./CodeGenX64/codegen_tool.cc                           40              5            151
-./CodeGenA64/codegen_tool.cc                           39              5            149
-./CodeGenA32/codegen_tool.cc                           39              5            147
+./CodeGenX64/codegen_tool.cc                           39              5            149
+./CodeGenA64/codegen_tool.cc                           38              5            147
 ./Base/liveness_test.py                                46            101            146
+./CodeGenA32/codegen_tool.cc                           38              5            146
 ./Elf/gen_elf_test.py                                  36             10            144
 ./Util/parse.py                                        37             13            136
 ./Base/eval.cc                                         14              4            135
@@ -172,9 +172,10 @@ File                                                blank        comment        
 ./CpuX64/symbolic.py                                   26              9            124
 ./CpuA32/opcode_test.py                                29             17            121
 ./Util/list.h                                          21              7            115
-./Base/sanity.cc                                       20              1            113
+./Base/sanity.cc                                       21              1            113
 ./Util/bitvec.cc                                       22             11            113
 ./Base/reg_alloc_test.py                               45             67            111
+./Util/stripe.cc                                       18              4            105
 ./CpuA32/disassembler_tool.cc                           6              5            101
 ./CpuA32/symbolic.py                                   25             29            101
 ./CpuX64/opcode_test.py                                20             14            101
@@ -182,56 +183,55 @@ File                                                blank        comment        
 ./CpuA64/disassembler_tool.cc                           6              5             97
 ./CpuA64/symbolic.py                                   18             23             97
 ./Elf/elf_unit.py                                      21             17             97
-./Util/stripe.cc                                       17              4             97
 ./CodeGenA32/isel_tester.cc                            12              2             94
 ./CodeGenA64/isel_tester.cc                            12              2             94
 ./Util/parse.h                                         29             16             85
 ./Base/eval.py                                         25              6             82
 ./Util/parse_test.cc                                    8              0             79
 ./CodeGenX64/isel_tester.cc                            12              2             78
+./CodeGenX64/regs.h                                    24             18             72
 ./Elf/elf_tool.cc                                       8              3             71
 ./Util/breakpoint.h                                    15              6             70
-./CodeGenX64/regs.h                                    23             18             69
 ./Base/reaching_defs_test.py                           33             64             68
 ./Util/cgen.py                                         15              1             68
 ./Util/switch.h                                        25              5             64
 ./Base/opcode_contraints_test.py                       25              3             63
 ./Util/switch.cc                                       11              1             60
-./CpuA32/assembler_tool.cc                             10              1             57
-./CpuA64/assembler_tool.cc                             10              1             57
-./CpuX64/assembler_tool.cc                             10              1             57
+./CodeGenA64/regs.h                                    19             10             58
 ./CodeGenA32/isel_tester.py                            14              1             56
 ./Util/bitvec_test.cc                                  17              3             56
 ./Util/handlevec.cc                                    13              2             56
 ./CodeGenA64/isel_tester.py                            13              1             54
-./CodeGenA64/regs.h                                    18             10             53
+./CodeGenA32/regs.h                                    24              7             53
 ./CpuX64/disassembler_tool.py                          13              0             53
-./Base/optimize.cc                                     16              1             52
+./Base/optimize.cc                                     13              1             52
 ./Util/mem_pool.h                                      12             16             51
-./CodeGenA32/regs.h                                    23              7             50
+./CpuA32/assembler_tool.cc                             10              1             50
+./CpuA64/assembler_tool.cc                             10              1             49
+./CpuX64/assembler_tool.cc                             10              1             49
+./Util/stripe.h                                        32             40             49
 ./Base/liveness.h                                      19             17             48
-./Base/lowering.h                                      17              5             47
 ./Util/parse_test.py                                    9              3             47
-./Util/stripe.h                                        30             36             47
 ./Util/webserver.h                                     15              0             47
-./CpuA64/assembler_tool.py                             20             12             46
-./CpuX64/assembler_tool.py                             21             12             46
 ./Util/assert.cc                                       17              3             45
-./Base/reg_alloc.h                                     14              8             44
-./CpuA32/assembler_tool.py                             17             12             44
+./CpuA64/assembler_tool.py                             17             12             42
+./CpuX64/assembler_tool.py                             16             12             42
 ./CodeGenX64/isel_tester.py                            13              1             41
 ./CpuA32/disassembler_tool.py                           9              0             41
 ./CpuA64/disassembler_tool.py                           9              1             41
 ./Util/handlevec_test.cc                               10              0             41
 ./Base/canonicalize.cc                                  3              1             40
 ./CpuA64/opcode_test.cc                                10              9             40
+./CpuA32/assembler_tool.py                             14             12             39
+./Base/reg_alloc.h                                     15              8             38
 ./Util/breakpoint.cc                                    5              0             37
 ./Util/handle.h                                        13             10             37
-./Util/bitvec.h                                        23              7             31
-./Base/serialize.h                                     12              1             30
+./Base/lowering.h                                      17              5             34
+./Base/serialize.h                                     12              1             31
+./Util/bitvec.h                                        23             10             31
 ./Util/mem_pool_test.cc                                12              0             30
-./Base/reg_stats.h                                     18              4             28
 ./Util/immutable.cc                                     7              1             28
+./Base/reg_stats.h                                     17              4             27
 ./Base/canonicalize.py                                  5              4             26
 ./Util/assert.h                                        10              1             25
 ./Util/bst.cc                                           6              1             25
@@ -242,16 +242,16 @@ File                                                blank        comment        
 ./Util/handlevec.h                                     15             13             21
 ./CodeGenA64/legalize.h                                11              1             19
 ./CodeGenX64/legalize.h                                11              1             19
-./Base/cfg.h                                           15              1             16
+./Base/cfg.h                                           16              1             17
 ./CodeGenA32/legalize.h                                 7              1             16
-./CpuA32/assembler.h                                   11              2             14
-./CpuA64/assembler.h                                   11              2             14
 ./CpuX64/assembler.h                                   11              2             14
+./CpuA32/assembler.h                                   10              2             13
 ./CpuA32/symbolic.h                                     6              1             13
-./Base/reaching_defs.h                                  9              1             12
+./CpuA64/assembler.h                                   10              2             13
 ./CodeGenA32/codegen.h                                  8              1             12
 ./CodeGenA32/isel_test.py                               6              0             12
 ./CpuX64/symbolic.h                                     7              2             12
+./Base/reaching_defs.h                                  9              1             11
 ./CpuA64/symbolic.h                                     7              2             11
 ./Base/optimize.h                                       7              1              9
 ./CodeGenA64/codegen.h                                  5              1              9
@@ -260,5 +260,5 @@ File                                                blank        comment        
 ./Base/sanity.h                                         6              1              7
 ./Base/canonicalize.h                                   4              1              5
 ---------------------------------------------------------------------------------------
-SUM:                                                 4881           2988          24976
+SUM:                                                 4884           2965          25058
 ---------------------------------------------------------------------------------------
