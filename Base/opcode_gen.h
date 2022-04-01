@@ -74,6 +74,7 @@ enum class OPC : uint8_t {
 
     NOP = 0x70,
     NOP1 = 0x71,
+    INLINE = 0x78,
 
     DIR_MEM = 0x01,
     DIR_DATA = 0x02,
@@ -153,7 +154,8 @@ enum class OPC_KIND : uint8_t {
     BZERO = 22,
     CAS = 23,
     GETFP = 24,
-    DIRECTIVE = 25,
+    INLINE = 25,
+    DIRECTIVE = 26,
 };
 
 enum class DK : uint8_t {

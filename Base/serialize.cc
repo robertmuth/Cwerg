@@ -432,7 +432,10 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
       return jtb;
     }
       // case OK::FIELD: return Handle();
-
+    case OP_KIND::BYTES: {
+      ASSERT (s.size() >= 2 && s[0] == '"', "expected quoted string got " << s);
+      return StrNew({s.data() + 1, s.size() - 2}); 
+    }
     default:
       ASSERT(false, "unreachable");
       return Handle();
@@ -548,6 +551,9 @@ void InsRenderToAsm(Ins ins, std::ostream* output) {
         break;
       case RefKind::JTB:
         *output << " " << Name(Jtb(op));
+        break;
+      case RefKind::STR:
+        *output << " \"" << StrData(Str(op)) << "\"";
         break;
       default:
         ASSERT(false, "unsupported operand kind " << int(op.kind()));
