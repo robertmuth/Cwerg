@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
   code_gen_x64::LegalizeAll(unit, false, nullptr);
   code_gen_x64::RegAllocGlobal(unit, false, nullptr);
   code_gen_x64::RegAllocLocal(unit, false, nullptr);
-  x64::X64Unit x64unit = code_gen_x64::EmitUnitAsBinary(unit, false);
+  x64::X64Unit x64unit = code_gen_x64::EmitUnitAsBinary(unit);
   std::cerr << std::hex;
   std::cerr
             << "RODATA SIZE: 0x" << x64unit.sec_rodata->data->size() << "\n"
