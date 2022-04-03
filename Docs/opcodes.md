@@ -285,12 +285,6 @@ Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
-#### [37] getfp *dst* <sub>[REG:ADDR]</sub>
-materialize the framepointer. 
-             
-             Get the stack-pointer's value before the call. Used mainly to interface with
-             the Linux execution environment.
-
 ## Address Arithmetic
 
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
@@ -398,6 +392,21 @@ nop with one reg - internal use. Can be used to `reserve` a reg for code generat
 
 #### [78] inline *target-asm-ins* <sub>[BYTES]</sub>
 inject arbitrary target instructions into instruction stream
+
+#### [79] getfp *dst* <sub>[REG:ADDR]</sub>
+materialize the frame-pointer. 
+             
+             Get the stack-pointer's value before the call. Used mainly to interface with
+             the Linux execution environment at program startup.
+
+#### [7a] getsp *dst* <sub>[REG:ADDR]</sub>
+materialize the stack-pointer. 
+             
+             Get the current stack-pointer. Used mainly to interface with
+             the Linux execution environment after a clone syscall.
+
+#### [7b] gettp *dst* <sub>[REG:ADDR]</sub>
+materialize the tls-pointer. 
 
 ## Directives
 
