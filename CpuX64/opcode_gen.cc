@@ -98,7 +98,7 @@ const char* EnumToString(OK x) { return OK_ToStringMap[unsigned(x)]; }
 size_t GetRexPos(const Opcode& opcode, std::string_view data) {
   for (size_t i = 0; i < data.size(); ++i) {
     uint8_t d = data[i];
-    if (d == 0x66 || d == 0xf2 || d == 0xf3) continue;
+    if (d == 0x66 || d == 0xf0 || d == 0xf2 || d == 0xf3) continue;
     if ((d & 0xf0) == 0x40) return i;
     break;
   }
@@ -223,12 +223,13 @@ uint64_t GetOperand(OK ok, const Opcode& opcode, std::string_view data,
   return 0;
 }
 
-uint32_t _FP(bool b66, bool bf2, bool bf3, bool b0f, bool b48, uint8_t d) {
-  return (b66 << 12) | (bf2 << 11) | (bf3 << 10) | (b0f << 9) | (b48 << 8) | d;
+uint32_t _FP(bool bf0, bool b66, bool bf2, bool bf3, bool b0f, bool b48, uint8_t d) {
+  return (bf0 << 13) | (b66 << 12) | (bf2 << 11) | (bf3 << 10) | (b0f << 9) | (b48 << 8) | d;
 }
 
 uint32_t FingerPrintRawInstructions(std::string_view data) {
   bool b48 = false;
+  bool bf0 = false;
   bool bf2 = false;
   bool bf3 = false;
   bool b66 = false;
@@ -238,15 +239,17 @@ uint32_t FingerPrintRawInstructions(std::string_view data) {
       b48 = (d >> 3) & 1;
     else if (d == 0x66)
       b66 = true;
+    else if (d == 0xf0)
+      bf0 = true;
     else if (d == 0xf2)
       bf2 = true;
     else if (d == 0xf3)
       bf3 = true;
     else if (d == 0x0f) {
       ASSERT(i + 1 < data.size(), "");
-      return _FP(b66, bf2, bf3, 1, b48, data[i + 1]);
+      return _FP(bf0, b66, bf2, bf3, 1, b48, data[i + 1]);
     } else
-      return _FP(b66, bf2, bf3, 0, b48, d);
+      return _FP(bf0, b66, bf2, bf3, 0, b48, d);
   }
   ASSERT(false, "unreachable");
   return 0;
@@ -411,7 +414,7 @@ uint32_t Assemble(const Ins& ins, char* data) {
     for (unsigned pos = 0; pos < opcode.num_bytes; ++pos) {
       uint8_t d = data[pos];
       // skip other prefixes
-      if (d == 0xf2 || d == 0xf3 || d == 0x66) continue;
+      if (d == 0xf0 || d == 0xf2 || d == 0xf3 || d == 0x66) continue;
       // std::memmove(data + pos + 1, data + pos, opcode.num_bytes - pos);
       for (unsigned end = opcode.num_bytes; end > pos; --end)
         data[end] = data[end - 1];

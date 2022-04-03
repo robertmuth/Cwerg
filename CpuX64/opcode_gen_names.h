@@ -1,5 +1,5 @@
 // Indexed by OPC
-const char OpcodeTableNames[][24] = {
+const char OpcodeTableNames[][32] = {
   "invalid",
   "add_16_ax_imm16",
   "add_16_mB32_imm16",

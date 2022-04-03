@@ -20,7 +20,7 @@ using namespace cwerg;
 constexpr const unsigned MAX_OPERAND_COUNT = 6;
 constexpr const unsigned MAX_INSTRUCTION_LENGTH = 11;
 constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15;
-constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = 23;
+constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = 27;
 constexpr const unsigned MAX_FINGERPRINT = 6000;
 
 enum class MEM_WIDTH : uint8_t {
@@ -97,11 +97,11 @@ struct Opcode {
 };
 
 static_assert(sizeof(Opcode) == 32);
-static_assert(MAX_INSTRUCTION_NAME_LENGTH < 24);  // need null byte
+static_assert(MAX_INSTRUCTION_NAME_LENGTH < 32);  // need null byte
 
 // Indexed by OPC
 extern const Opcode OpcodeTableEncodings[];  // see
-extern const char OpcodeTableNames[][24];   // see
+extern const char OpcodeTableNames[][32];   // see
 
 inline const char* OpcodeName(const Opcode* opcode) {
   return OpcodeTableNames[opcode - OpcodeTableEncodings];

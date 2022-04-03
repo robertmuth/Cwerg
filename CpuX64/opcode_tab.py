@@ -24,7 +24,7 @@ from Util import cgen
 MAX_INSTRUCTION_LENGTH = 11
 MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
 MAX_OPERAND_COUNT = 6
-MAX_INSTRUCTION_NAME_LENGTH = 23
+MAX_INSTRUCTION_NAME_LENGTH = 27
 MAX_FINGERPRINT = 6000  # really (1 << 13)
 
 # list of opcodes we expect to use during X64 code generation
@@ -34,6 +34,7 @@ MAX_FINGERPRINT = 6000  # really (1 << 13)
 # work.
 SUPPORTED_OPCODES = {
     "cmpxchg",
+    "lockcmpxchg", # fake: cmpxchg with lock prefix
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
 
@@ -449,12 +450,13 @@ _IMPLICIT_TO_OK: Dict[str, OK] = {
 OK_TO_IMPLICIT: Dict[OK, str] = {v: k for k, v in _IMPLICIT_TO_OK.items()}
 
 
-def _FP(b66, bf2, bf3, b0f, b48, d):
-    return (b66 << 12) | (bf2 << 11) | (bf3 << 10) | (b0f << 9) | (b48 << 8) | d
+def _FP(bf0, b66, bf2, bf3, b0f, b48, d):
+    return (bf0 << 13) | (b66 << 12) | (bf2 << 11) | (bf3 << 10) | (b0f << 9) | (b48 << 8) | d
 
 
 def FingerPrintRawInstructions(data) -> int:
     b48 = 0
+    bf0 = 0
     bf2 = 0
     bf3 = 0
     b66 = 0
@@ -463,34 +465,40 @@ def FingerPrintRawInstructions(data) -> int:
             b48 = (d >> 3) & 1
         elif d == 0x66:
             b66 = 1
+        elif d == 0xf0:
+            bf0 = 1
         elif d == 0xf2:
             bf2 = 1
         elif d == 0xf3:
             bf3 = 1
         elif d == 0x0f:  # not a prefix
-            return _FP(b66, bf2, bf3, 1, b48, data[n + 1])
+            return _FP(bf0, b66, bf2, bf3, 1, b48, data[n + 1])
         else:
-            return _FP(b66, bf2, bf3, 0, b48, d)
+            return _FP(bf0, b66, bf2, bf3, 0, b48, d)
     assert False
 
 
 def FingerPrintOpcode(opc: "Opcode") -> List[int]:
     b48 = 1 if opc.rexw else 0
+    bf0 = 0
     bf2 = 0
     bf3 = 0
     b66 = 0
 
     def emit(d, m, b0f):
         if m == 0xff:
-            return [_FP(b66, bf2, bf3, b0f, b48, d)]
+            return [_FP(bf0, b66, bf2, bf3, b0f, b48, d)]
         else:
             assert m == 0xf8
             assert opc.byte_with_reg_pos >= 0
-            return [_FP(b66, bf2, bf3, b0f, b48, d | r) for r in range(8)]
+            return [_FP(bf0, b66, bf2, bf3, b0f, b48, d | r) for r in range(8)]
 
     for n, (d, m) in enumerate(zip(opc.data, opc.mask)):
         if d == 0x66:
             b66 = 1
+            assert m == 0xff
+        elif d == 0xf0:
+            bf0 = 1
             assert m == 0xff
         elif d == 0xf2:
             bf2 = 1
@@ -516,7 +524,7 @@ class MEM_MODE(enum.Enum):
 
 def StripRex(data: bytes) -> Tuple[int, bytes]:
     for n, b in enumerate(data):
-        if b in {0x66, 0xf2, 0xf3}:
+        if b in {0x66, 0xf0, 0xf2, 0xf3}:
             continue
         if (b & 0xf0) == 0x40:
             data = data[:]
@@ -545,7 +553,8 @@ class Opcode:
         self.variant: str = variant
         self.operands = operands
         self.format = format
-
+        # the discriminant uniquely identifies and instruction
+        # we also have the notion of a finger-print which is not unique 
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
         self.mem_width = 0
@@ -925,7 +934,7 @@ class Opcode:
         if rex:
             pos = 0
             for b in out:
-                if b in {0xf2, 0xf3, 0x66}:
+                if b in {0xf0, 0xf2, 0xf3, 0x66}:
                     pos += 1
                 else:
                     break
@@ -1225,9 +1234,10 @@ def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
 
     print(f"Checkin Opcodes for conflicts")
     for k, group in patterns.items():
-        assert len(
-            group) == 1, f"this should not happen, maybe the discriminant needs to be longer"
-
+        if len(group) != 1:
+            print (f"ERROR: this should not happen, maybe the discriminant needs to be longer")
+            print (f"{k[1]:x} {k[2]:x}", [x.name for x in group])
+            assert False
     print(f"Checkin Opcodes for overlap causing decoding ambiguity")
     for group in opcodes.values():
         for a, b in itertools.combinations(group, 2):
@@ -1340,6 +1350,12 @@ def CreateOpcodes(instructions: List, verbose: bool):
         if verbose:
             print(name, ops, format, encoding, metadata)
         HandlePattern(name, ops, format, encoding, metadata)
+        if "_XLock" in metadata:
+            name = "lock" + name
+            if name in SUPPORTED_OPCODES:
+                HandlePattern(name, ops, format, ["F0"] + encoding,  metadata)
+                count[name] += 1
+
     for k in SUPPORTED_OPCODES:
         assert count[k], f"unknown opcode [{k}]"
     for opcode in Opcode.Opcodes:

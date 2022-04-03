@@ -55,9 +55,16 @@ def As64BitInt(x: str) -> bool:
         assert False, f"unexpected {x}"
 
 
+OPCODES_WITH_IMPLICITS = {
+    "div", "idiv", "imul", "cwd", "cdq", "cqo",
+    "cmpxchg", "lockcmpxchg",
+}
+
 # data must be generated with: objdump -d  -M intel  --insn-width=12
 # and looks like:
 # 6f03b9:	4c 03 7e e8                   	add    r15,QWORD PTR [rsi-0x18]
+
+
 def ProcessObjdumpFile(fin):
     n = 0
     bad = collections.defaultdict(int)
@@ -67,10 +74,12 @@ def ProcessObjdumpFile(fin):
         try:
             addr_str, data_str, ins_str = line.strip().split("\t")
         except Exception as err:
+            print("@@@@@@", err)
             continue
         data_str = data_str.strip()
         if data_str in NOP:
             continue
+        ins_str = ins_str.replace("lock ", "lock")
         name = ins_str.split()[0]
         ops_str = ins_str[len(name):]
         # objdump use movabs to refer to 64bit immediate mov's
@@ -90,7 +99,8 @@ def ProcessObjdumpFile(fin):
             print(f"BAD {line}", end="")
             bad[name] += 1
             continue
-        assert len(data) == x64.InsLength(ins), f"length mismacth: {x64.InsLength(ins)} vs {len(data)}"
+        assert len(data) == x64.InsLength(
+            ins), f"length mismacth: {x64.InsLength(ins)} vs {len(data)}"
 
         data2 = x64.Assemble(ins)
         assert data == data2, f"{line}: {Hexify(data)} vs {Hexify(data2)} {ins.opcode}"
@@ -99,13 +109,13 @@ def ProcessObjdumpFile(fin):
 
         expected_ops = ExtractObjdumpOps(ops_str)
         # for some reason objdump suppressed the implicit operands for these
-        actual_name, actual_ops = symbolic.InsSymbolize(ins, name not in {"div", "idiv", "imul",
-                                                                          "cwd", "cdq", "cqo"}, True)
+        actual_name, actual_ops = symbolic.InsSymbolize(
+            ins, name not in OPCODES_WITH_IMPLICITS, True)
 
         assert name == actual_name, f"{name} vs {actual_name}"
         if expected_ops and expected_ops[-1] != actual_ops[-1]:
             if As64BitInt(expected_ops[-1]) == As64BitInt(actual_ops[-1]):
-                 expected_ops[-1] = actual_ops[-1]
+                expected_ops[-1] = actual_ops[-1]
         if expected_ops != actual_ops:
             if True:
                 print(line)
