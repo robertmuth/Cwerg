@@ -78,3 +78,10 @@ c7 85 dc 00 00 00 00 00 70 c2 mov_32_mB32_imm32 MEM32 rbp 0xdc 0xc2700000
     BYTE_WITH_REG64                     rax        (0x0)
     IMM64                               -0xbff000000000000 (-0xbff000000000000)
 
+0f b1 15 92 0e 02 00 cmpxchg_32_mpc32_r_eax MEM32 rip 0x20e92 edx eax
+    cmpxchg_32_mpc32_r_eax
+    RIP_BASE                            rip        (0x0)
+    OFFABS32                            134802     (0x20e92)
+    MODRM_REG32                         edx        (0x2)
+    IMPLICIT_EAX                        eax        (0x0)
+

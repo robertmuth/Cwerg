@@ -20,7 +20,7 @@ using namespace cwerg;
 constexpr const unsigned MAX_OPERAND_COUNT = 6;
 constexpr const unsigned MAX_INSTRUCTION_LENGTH = 11;
 constexpr const unsigned MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15;
-constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = 22;
+constexpr const unsigned MAX_INSTRUCTION_NAME_LENGTH = 23;
 constexpr const unsigned MAX_FINGERPRINT = 6000;
 
 enum class MEM_WIDTH : uint8_t {

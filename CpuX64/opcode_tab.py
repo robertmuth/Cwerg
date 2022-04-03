@@ -24,7 +24,7 @@ from Util import cgen
 MAX_INSTRUCTION_LENGTH = 11
 MAX_INSTRUCTION_LENGTH_WITH_PREFIXES = 15
 MAX_OPERAND_COUNT = 6
-MAX_INSTRUCTION_NAME_LENGTH = 22
+MAX_INSTRUCTION_NAME_LENGTH = 23
 MAX_FINGERPRINT = 6000  # really (1 << 13)
 
 # list of opcodes we expect to use during X64 code generation
@@ -33,6 +33,7 @@ MAX_FINGERPRINT = 6000  # really (1 << 13)
 # Many others can likely be addded by just adding the name here without additional
 # work.
 SUPPORTED_OPCODES = {
+    "cmpxchg",
     "add", "addss", "addsd",  #
     "sub", "subss", "subsd",  #
 
@@ -261,6 +262,7 @@ _SUPPORTED_FORMATS = {
     "Ox",  # xchg
     "xO",  # xchg
     "xx",  # cwd, cdq, cqo
+    "MRx", # cmpxchg
 }
 
 # Note. we do not support "h" registers
@@ -1038,7 +1040,7 @@ _SIB_MOD_COMBOS = [
 ]
 
 
-def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
+def HandlePatternMR(name: str, ops, format, encoding, inv: bool, after=[]):
     if name != "lea":
         # the register encoding does not make sense for lea
         opc = Opcode(name, "", ops, format)
@@ -1054,6 +1056,7 @@ def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
                 else:
                     opc.AddRegOp(None)
                     opc.AddReg()
+                opc.AddImplicits(after)
             elif x in {"ib", "iw", "id", "iq"}:
                 opc.AddImmOp(x)
             else:
@@ -1073,6 +1076,7 @@ def HandlePatternMR(name: str, ops, format, encoding, inv: bool):
                 else:
                     opc.AddMemOp(sib_mode, mod)
                     opc.AddReg()
+                opc.AddImplicits(after)
             elif x in {"ib", "iw", "id", "iq"}:
                 opc.AddImmOp(x)
             else:
@@ -1141,6 +1145,8 @@ def HandlePattern(name: str, ops: List[str], format: str, encoding: List[str], m
         HandlePatternMI(name, ops, format, encoding, before, after)
     elif format == "MR":
         HandlePatternMR(name, ops, format, encoding, inv=False)
+    elif format == "MRx":
+        HandlePatternMR(name, ops, format, encoding, inv=False, after=[ops[-1]])
     elif format == "RM" or format == "RMI":
         HandlePatternMR(name, ops, format, encoding, inv=True)
     elif format == "":
@@ -1251,7 +1257,7 @@ def OpcodeSanityCheck(opcodes: Dict[int, List[Opcode]]):
                     assert False
 
 
-def FixupFormat(format: str, ops: List, encoding) -> str:
+def FixupFormat(name: str, format: str, ops: List, encoding) -> str:
     """Make sure for each operands we have exactly one format character"""
     if format == "I" and ("B8+r" in encoding or "B0+r" in encoding):
         return "OI"
@@ -1264,13 +1270,13 @@ def FixupFormat(format: str, ops: List, encoding) -> str:
     if len(format) == len(ops):
         return format
 
-    assert len(format) <= 1, f"format={format}"
-
-    def tr(f):
-        if f in _IMPLICIT_OPERANDS or f == "1":
+    assert format in {"", "I", "M", "O", "MR"}, f"name={name} format={format}, ops={ops}"
+    f = [c for c in format]
+    def tr(x):
+        if x in _IMPLICIT_OPERANDS or x == "1":
             return "x"
         else:
-            return format
+            return f.pop(0)
 
     return "".join(tr(o) for o in ops)
 
@@ -1328,7 +1334,7 @@ def CreateOpcodes(instructions: List, verbose: bool):
         metadata = metadata.split()
         encoding = encoding.split()
         # hack
-        format = FixupFormat(format, ops, encoding)
+        format = FixupFormat(name, format, ops, encoding)
 
         assert format in _SUPPORTED_FORMATS, f"{format}"
         if verbose:

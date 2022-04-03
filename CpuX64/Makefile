@@ -17,7 +17,8 @@ TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
                     "c7 85 dc 00 00 00 00 00 70 c2" \
                     "48 8d 04 ad 00 00 00 00" \
                     "49 6b cd fc" \
-                    "48 b8 00 00 00 00 00 00 01 f4"
+                    "48 b8 00 00 00 00 00 00 01 f4" \
+                    "0f b1 15 92 0e 02 00"
 
 tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(DIR)/codegen_parity $(TESTS:%.asm=$(DIR)/%.test) objdump_tests
 	@echo "[OK CPUX64]"
@@ -74,6 +75,9 @@ opcode_gen_collisions.h: opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./opcode_tab.py gen_collisions >$@
 
+
+GENERATED = opcode_gen.cc opcode_gen.h opcode_gen_encodings.h opcode_gen_names.h \
+            opcode_gen_enum.h opcode_gen_collisions.h
 ############################################################
 # C++ Port
 ############################################################
@@ -82,10 +86,10 @@ BUILD_DIR=../build
 ASSEMBLER_TOOL=$(BUILD_DIR)/x64_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/x64_disassembler_tool.exe
 
-$(ASSEMBLER_TOOL):
+$(ASSEMBLER_TOOL): $(GENERATED)
 	@cd $(BUILD_DIR); $(MAKE) -s x64_assembler_tool.exe
 
-$(DISASSEMBLER_TOOL):
+$(DISASSEMBLER_TOOL): $(GENERATED)
 	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
 
 
