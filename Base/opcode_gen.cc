@@ -398,7 +398,9 @@ const struct StringKind OPCFromStringMap[] = {
     {"div", 19},
     {"exp", 94},
     {"floor", 81},
-    {"getfp", 55},
+    {"getfp", 121},
+    {"getsp", 122},
+    {"gettp", 123},
     {"inline", 120},
     {"jsr", 44},
     {"ld", 64},
@@ -437,7 +439,7 @@ const struct StringKind OPCFromStringMap[] = {
 };
 
 const uint8_t OPCJumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 36, 37, 38, 39, 255, 40, 41, 255, 42, 50, 52, 54, 55, 255, 57, 60, 70, 255, 255, 255, 73, 255, 255, 255, 255, 255, 255, 255,};
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 9, 14, 23, 36, 37, 38, 39, 255, 42, 43, 255, 44, 52, 54, 56, 57, 255, 59, 62, 72, 255, 255, 255, 75, 255, 255, 255, 255, 255, 255, 255,};
 const Opcode GlobalOpcodes[256] = {
      {  //  0 
        {}, 
@@ -714,11 +716,11 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::CMP, OPC_GENUS::BASE, 5, 1,
        {TC::ANY, TC::SAME_AS_PREV, TC::SAME_AS_PREV, TC::ADDR_NUM, TC::SAME_AS_PREV}, 
        "cmplt", 0 },
-     {  // 37 getfp
-       {OP_KIND::REG}, 
-       OPC_KIND::GETFP, OPC_GENUS::BASE, 1, 1,
-       {TC::ADDR}, 
-       "getfp", 0 },
+     {  // 37 
+       {}, 
+       OPC_KIND::INVALID, OPC_GENUS::INVALID, 0, 0,
+       {}, 
+       "", 0 },
      {  // 38 lea
        {OP_KIND::REG, OP_KIND::REG_OR_CONST, OP_KIND::REG_OR_CONST}, 
        OPC_KIND::LEA, OPC_GENUS::BASE, 3, 1,
@@ -1044,6 +1046,21 @@ const Opcode GlobalOpcodes[256] = {
        OPC_KIND::INLINE, OPC_GENUS::BASE, 1, 0,
        {TC::INVALID}, 
        "inline", OA::SPECIAL },
+     {  // 79 getfp
+       {OP_KIND::REG}, 
+       OPC_KIND::GETSPECIAL, OPC_GENUS::BASE, 1, 1,
+       {TC::ADDR}, 
+       "getfp", 0 },
+     {  // 7a getsp
+       {OP_KIND::REG}, 
+       OPC_KIND::GETSPECIAL, OPC_GENUS::BASE, 1, 1,
+       {TC::ADDR}, 
+       "getsp", 0 },
+     {  // 7b gettp
+       {OP_KIND::REG}, 
+       OPC_KIND::GETSPECIAL, OPC_GENUS::BASE, 1, 1,
+       {TC::ADDR}, 
+       "gettp", 0 },
 };
 
 /* @AUTOGEN-END@ */

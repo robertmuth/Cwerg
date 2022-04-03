@@ -777,7 +777,11 @@ def InitMovInt():
     Pattern(o.GETFP, [o.DK.A64], [C.SP_REG],
             [InsTmpl("lea_64_r_mbis32", [P.tmp_gpr] + Spilled(P.frame_size)),
                 InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
-
+    Pattern(o.GETSP, [o.DK.A64], [C.REG],
+            [InsTmpl("lea_64_r_mbis32", [P.reg0] + Spilled(0))])
+    Pattern(o.GETSP, [o.DK.A64], [C.SP_REG],
+            [InsTmpl("lea_64_r_mbis32", [P.tmp_gpr] + Spilled(0)),
+                InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
 
 def InitAluFlt():
     for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
@@ -1272,11 +1276,20 @@ def InitCFG():
     for kind in [o.DK.U8, o.DK.U16, o.DK.U32]:
         Pattern(o.SYSCALL, [o.DK.INVALID, kind],
                 [C.INVALID, C.SIMM32],
+                # save rcx, r11
+                # calling conv for syscalls is:
+                # ax=syscall [rdi rsi rdx r10 r8 r9] -> [rax]
+                # but for regualr calls in Cwerg it is:
+                # [rdi rsi rdx rcx r8 r9 r10 r11 rax] -> [rax ...]
+                # This matches up pretty well but we need to compensate for
+                # rcx/r10
                 [InsTmpl("push_64_mr", [F.RCX]),
                  InsTmpl("push_64_mr", [F.R11]),
                  InsTmpl("mov_64_mr_imm32", [F.RAX, P.num1]),
                  InsTmpl("mov_64_r_mr", [F.R10, F.RCX]),
                  InsTmpl("syscall", []),
+                 # NOTE: the two pop instructions below affect the clone syscall
+                 #       if you make changes here you need to update /StdLib/syscall.x64.asm  
                  InsTmpl("pop_64_mr", [F.R11]),
                  InsTmpl("pop_64_mr", [F.RCX])])
 

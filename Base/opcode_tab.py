@@ -50,7 +50,7 @@ class OPC_KIND(enum.Enum):
     BCOPY = 21
     BZERO = 22
     CAS = 23
-    GETFP = 24
+    GETSPECIAL = 24
     INLINE = 25
     DIRECTIVE = 26  # not a real instruction
 
@@ -76,7 +76,7 @@ _OF_TO_PURPOSE = {
     OPC_KIND.POPARG: ["dst"],
     OPC_KIND.PUSHARG: ["src"],
     OPC_KIND.CONV: ["dst", "src"],
-    OPC_KIND.GETFP: ["dst"],
+    OPC_KIND.GETSPECIAL: ["dst"],
     OPC_KIND.MOV: ["dst", "src"],
     OPC_KIND.CMP: ["dst", "src1", "src2", "cmp1", "cmp2"],
     OPC_KIND.CAS: ["dst", "cmp", "src", "base", "offset"],
@@ -679,12 +679,6 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
 
-GETFP = Opcode(0x37, "getfp", OPC_KIND.GETFP, [OP_KIND.REG],
-             [TC.ADDR], OPC_GENUS.BASE,
-             """materialize the framepointer. 
-             
-             Get the stack-pointer's value before the call. Used mainly to interface with
-             the Linux execution environment.""")
 
 # materialize addresses in a register
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
@@ -890,6 +884,24 @@ INLINE = Opcode(0x78, "inline", OPC_KIND.INLINE, [OP_KIND.BYTES],
               [TC.INVALID], OPC_GENUS.BASE,
               "inject arbitrary target instructions into instruction stream",
               OA.SPECIAL)
+
+GETFP = Opcode(0x79, "getfp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
+             [TC.ADDR], OPC_GENUS.BASE,
+             """materialize the frame-pointer. 
+             
+             Get the stack-pointer's value before the call. Used mainly to interface with
+             the Linux execution environment at program startup.""")
+
+GETSP = Opcode(0x7a, "getsp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
+             [TC.ADDR], OPC_GENUS.BASE,
+             """materialize the stack-pointer. 
+             
+             Get the current stack-pointer. Used mainly to interface with
+             the Linux execution environment after a clone syscall.""")   
+
+GETTP = Opcode(0x7b, "gettp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
+             [TC.ADDR], OPC_GENUS.BASE,
+             """materialize the tls-pointer. """)
 
 ############################################################
 # Misc Experimental
