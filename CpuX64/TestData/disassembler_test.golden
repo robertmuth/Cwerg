@@ -85,3 +85,8 @@ c7 85 dc 00 00 00 00 00 70 c2 mov_32_mB32_imm32 MEM32 rbp 0xdc 0xc2700000
     MODRM_REG32                         edx        (0x2)
     IMPLICIT_EAX                        eax        (0x0)
 
+48 be f0 ff ff ff ff ff ff ff mov_64_r_imm64 rsi -0x10
+    mov_64_r_imm64
+    BYTE_WITH_REG64                     rsi        (0x6)
+    IMM64                               -0x10      (-0x10)
+

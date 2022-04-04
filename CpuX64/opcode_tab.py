@@ -1470,7 +1470,7 @@ def _RenderMnemonicHashLookup():
 
 def _EmitNames(fout):
     print("// Indexed by OPC", file=fout)
-    print("const char OpcodeTableNames[][24] = {", file=fout)
+    print("const char OpcodeTableNames[][32] = {", file=fout)
     print('  "invalid",', file=fout)
     for name in sorted(Opcode.name_to_opcode.keys()):
         print(f'  "{name}",', file=fout)

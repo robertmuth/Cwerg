@@ -70,6 +70,8 @@ def SymbolizeOperand(ok: OK, val: int, show_implicits: bool, objdump_compat) -> 
             return str(1 << val)
         return str(val)
     elif ok in x64.OK_IMM_TO_SIZE:
+        if val >= 1 << 63:
+            val = -((1 << 64) - val)
         if val >= 0:
             return f"0x{val:x}"
         else:
