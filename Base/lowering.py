@@ -398,6 +398,7 @@ def _InsEliminateMemLoadStore(
     """
     opc = ins.opcode
     ops = ins.operands
+
     if opc is o.ST_MEM:
         st_offset = ops[1]
         lea_offset = ir.Const(offset_kind, 0)
@@ -413,9 +414,17 @@ def _InsEliminateMemLoadStore(
         if isinstance(ld_offset, ir.Const):
             ld_offset, lea_offset = lea_offset, ld_offset
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)
-        # TODO: should the Zero Offset stay with the ld op?
         lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[1], lea_offset])
         ins.Init(o.LD, [ops[0], scratch_reg, ld_offset])
+        return [lea, ins]
+    elif opc is o.CAS_MEM:
+        cas_offset = ops[4]
+        lea_offset = ir.Const(offset_kind, 0)
+        if isinstance(cas_offset, ir.Const):
+            cas_offset, lea_offset = lea_offset, cas_offset
+        scratch_reg = fun.GetScratchReg(base_kind, "base", False)
+        lea = ir.Ins(o.LEA_MEM, [scratch_reg, ops[3], lea_offset])
+        ins.Init(o.CAS, [ops[0], ops[1], ops[2], scratch_reg, cas_offset])
         return [lea, ins]
     elif opc is o.LEA_MEM and isinstance(ops[2], ir.Reg):
         scratch_reg = fun.GetScratchReg(base_kind, "base", False)

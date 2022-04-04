@@ -1,9 +1,10 @@
 // (c) Robert Muth - see LICENSE for more info
 #include "Base/lowering.h"
-#include "Base/cfg.h"
-#include "Base/ir.h"
 
 #include <algorithm>
+
+#include "Base/cfg.h"
+#include "Base/ir.h"
 
 namespace cwerg::base {
 namespace {
@@ -210,9 +211,7 @@ int FunMoveElimination(Fun fun, std::vector<Ins>* to_delete) {
 }
 
 // This is tricky and probably quite buggy at this point.
-void FunRegWidthWidening(Fun fun,
-                         DK narrow_kind,
-                         DK wide_kind,
+void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
                          std::vector<Ins>* inss) {
   ASSERT(DKFlavor(narrow_kind) == DKFlavor(wide_kind),
          "flavor mismatch " << EnumToString(narrow_kind) << " "
@@ -344,8 +343,7 @@ void FunRegWidthWidening(Fun fun,
   }
 }
 
-void FunEliminateStkLoadStoreWithRegOffset(Fun fun,
-                                           DK base_kind,
+void FunEliminateStkLoadStoreWithRegOffset(Fun fun, DK base_kind,
                                            DK offset_kind,
                                            std::vector<Ins>* inss) {
   auto add_lea_stk = [&](Handle stk) -> Reg {
@@ -384,9 +382,7 @@ void FunEliminateStkLoadStoreWithRegOffset(Fun fun,
   }
 }
 
-void FunEliminateMemLoadStore(Fun fun,
-                              DK base_kind,
-                              DK offset_kind,
+void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
                               std::vector<Ins>* inss) {
   auto add_lea_mem = [&](Handle mem, Handle offset) -> Reg {
     Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
@@ -417,6 +413,16 @@ void FunEliminateMemLoadStore(Fun fun,
         Reg tmp = add_lea_mem(InsOperand(ins, 1), lea_offset);
         inss->push_back(
             InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset));
+        dirty = true;
+      } else if (opc == OPC::CAS_MEM) {
+        Handle cas_offset = InsOperand(ins, 4);
+        Handle lea_offset = ConstNewU(offset_kind, 0);
+        if (cas_offset.kind() == RefKind::CONST)
+          std::swap(cas_offset, lea_offset);
+        Reg tmp = add_lea_mem(InsOperand(ins, 3), lea_offset);
+        inss->push_back(InsInit(ins, OPC::CAS, InsOperand(ins, 0),
+                                InsOperand(ins, 1), InsOperand(ins, 2), tmp,
+                                cas_offset));
         dirty = true;
       } else if (opc == OPC::LEA_MEM &&
                  InsOperand(ins, 2).kind() == RefKind::REG) {
@@ -469,7 +475,8 @@ void FunEliminateCntPop(Fun fun, std::vector<Ins>* inss) {
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
       if (InsOPC(ins) == OPC::CNTPOP) {
-        ASSERT(DKBitWidth(RegKind(Reg(InsOperand(ins, 0)))) == 32 , "only 32 bit supported");
+        ASSERT(DKBitWidth(RegKind(Reg(InsOperand(ins, 0)))) == 32,
+               "only 32 bit supported");
         DK kind = DK::U32;
         Reg m1 = FunGetScratchReg(fun, kind, "popcnt_m1", false);
         Reg m2 = FunGetScratchReg(fun, kind, "popcnt_m2", false);
@@ -582,9 +589,7 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void InsEliminateImmediateViaMov(Ins ins,
-                                 unsigned pos,
-                                 Fun fun,
+void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun,
                                  std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");
@@ -593,12 +598,8 @@ void InsEliminateImmediateViaMov(Ins ins,
   inss->push_back(InsNew(OPC::MOV, tmp, num));
 }
 
-void InsEliminateImmediateViaMem(Ins ins,
-                                 unsigned pos,
-                                 Fun fun,
-                                 Unit unit,
-                                 DK addr_kind,
-                                 DK offset_kind,
+void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
+                                 DK addr_kind, DK offset_kind,
                                  std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
   ASSERT(num.kind() == RefKind::CONST, "");

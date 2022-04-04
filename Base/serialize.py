@@ -43,6 +43,8 @@ def RenderOperand(v: Any, tc: o.TC):
         return s
     elif isinstance(v, ir.Jtb):
         return v.name
+    elif isinstance(v, bytes):
+        return '"' + str(v, "ascii") + '"'
     else:
         raise ir.ParseError(f"cannot read op type: {v}")
 
