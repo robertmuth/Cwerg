@@ -32,11 +32,14 @@
     mov i:U32 100
 .bbl loop
     sub i i 1
-    ld.mem sum:U64 gSUM 0
-    add sum sum arg
-    st.mem gSUM 0 sum
-    bsr yield
-    poparg res:S32
+.bbl cas_loop
+    ld.mem old_val:U64 gSUM 0
+    add new_val:U64 old_val arg
+    cas.mem prev_val:U64 old_val new_val gSUM 0
+    #bsr yield
+    #poparg res:S32
+    bne prev_val old_val cas_loop 
+
     bne i 0 loop
     ret
 

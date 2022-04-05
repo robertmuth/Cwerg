@@ -82,7 +82,10 @@ _SHIFT_MASK = {
 
 
 # These require implicit regs
-def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
+# Note, that rax is a scratch register. Using it here is a little iffy but
+# we are only using it with simple mov instructions which do not require
+# the scratch register 
+def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
     if opc is o.DIV and ops[0].kind.flavor() != o.DK_FLAVOR_F:
@@ -113,12 +116,19 @@ def _InsRewriteDivRemShifts(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
             return [mov, ir.Ins(o.AND, [rcx, rcx, mask]), ins]
         else:
             return [mov, ins]
+    elif opc in {o.CAS, o.CAS_MEM, o.CAS_STK}:
+        rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
+        mov_src = ir.Ins(o.MOV, [rax, ops[1]])
+        mov_dst = ir.Ins(o.MOV, [ops[0], rax])
+        ops[1] = rax
+        ops[0] = rax
+        return [mov_src, ins, mov_dst]
     else:
         return None
 
 
-def _FunRewriteDivRemShifts(fun: ir.Fun) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteDivRemShifts)
+def _FunRewriteDivRemShiftsCAS(fun: ir.Fun) -> int:
+    return ir.FunGenericRewrite(fun, _InsRewriteDivRemShiftsCAS)
 
 
 def InsNeedsAABFormRewrite(ins: ir.Ins):
@@ -228,7 +238,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
     # mul/div/rem need special treatment
-    _FunRewriteDivRemShifts(fun)
+    _FunRewriteDivRemShiftsCAS(fun)
 
     _FunRewriteIntoAABForm(fun, unit)
 

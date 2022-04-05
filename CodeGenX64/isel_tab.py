@@ -236,7 +236,7 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: P, ctx: regs.EmitContext) -> int:
         assert isinstance(reg, ir.Reg)
         assert reg.HasCpuReg()
         return reg.cpu_reg.no
-    elif arg in {P.reg0, P.reg1, P.reg2}:
+    elif arg in {P.reg0, P.reg1, P.reg2, P.reg3}:
         pos = arg.value - P.reg0.value
         reg = ops[pos]
         assert isinstance(
@@ -316,13 +316,12 @@ class InsTmpl:
                 assert op in {F.NO_INDEX, P.reg1, P.reg2,
                               P.tmp_gpr, P.scratch_gpr}, f"{op}"
             elif field is x64.OK.SIB_BASE:
-                assert op in {P.reg01, P.reg0, P.reg1, P.tmp_gpr,
+                assert op in {P.reg01, P.reg0, P.reg1, P.reg3, P.tmp_gpr,
                               P.scratch_gpr} or op in F_REGS, f"{op}"
             elif field is x64.OK.RIP_BASE:
                 assert op in {F.RIP}, f"{op}"
             elif field is x64.OK.OFFABS32:
-                assert isinstance(op, int) or op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2,
-                                                     P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel, P.jtb1_prel,
+                assert isinstance(op, int) or op in {P.spill0, P.spill1, P.spill2, P.spill01, P.num1, P.num2, P.num4,                                                      P.fun1_prel, P.mem0_num1_prel, P.mem1_num2_prel, P.jtb1_prel,
                                                      P.stk1_offset2, P.stk0_offset1, P.stk1, P.frame_size}, f"{op}"
             elif field is x64.OK.OFFABS8:
                 assert op in {0}, f"{op}"
@@ -334,14 +333,14 @@ class InsTmpl:
             elif field in {x64.OK.BYTE_WITH_REG8, x64.OK.BYTE_WITH_REG16, x64.OK.BYTE_WITH_REG32,
                            x64.OK.BYTE_WITH_REG64}:
                 assert op in {P.reg0, P.tmp_gpr} or op in F_REGS, f"{op}"
-            elif field in {x64.OK.IMPLICIT_AX, x64.OK.IMPLICIT_EAX, x64.OK.IMPLICIT_RAX}:
+            elif field in {x64.OK.IMPLICIT_AL, x64.OK.IMPLICIT_AX, x64.OK.IMPLICIT_EAX, x64.OK.IMPLICIT_RAX}:
                 assert op is F.RAX
             elif field in {x64.OK.IMPLICIT_DX, x64.OK.IMPLICIT_EDX, x64.OK.IMPLICIT_RDX}:
                 assert op is F.RDX
             elif field in {x64.OK.IMPLICIT_CL}:
                 assert op is F.RCX
             else:
-                assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, {field}"
+                assert False, f"{opcode_name}  {opcode.fields} {args}  -  {op}, field={field}"
 
         self.opcode = opcode
         self.args: List[Any] = args
@@ -664,6 +663,7 @@ def InitAluInt():
                  InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
 
     # TODO: handle 8 bit divide
+    # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
     for rdx, rax, kind1 in [("dx", "ax", o.DK.U16), ("edx", "eax", o.DK.U32), ("rdx", "rax", o.DK.U64)]:
         bw = kind1.bitwidth()
         Pattern(o.DIV, [kind1] * 3,
@@ -672,6 +672,7 @@ def InitAluInt():
                  InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
     # TODO: handle 8 bit divide
+    # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
     for rdx, rax, kind1, prep in [("dx", "ax", o.DK.S16, "cwd_16_dx_ax"),
                                   ("edx", "eax", o.DK.S32, "cdq_32_edx_eax"),
                                   ("rdx", "rax", o.DK.S64, "cqo_64_rdx_rax")]:
@@ -782,6 +783,7 @@ def InitMovInt():
     Pattern(o.GETSP, [o.DK.A64], [C.SP_REG],
             [InsTmpl("lea_64_r_mbis32", [P.tmp_gpr] + Spilled(0)),
                 InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
+
 
 def InitAluFlt():
     for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
@@ -1272,6 +1274,20 @@ def InitStore():
                      InsTmpl(x64_st("mbis8"), [P.scratch_gpr, F.NO_INDEX, F.SCALE1, 0, tmp_reg])])
 
 
+def InitCAS():
+    for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                  o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
+        for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64,
+                      o.DK.F32, o.DK.F64]:
+            bw = kind2.bitwidth()
+            rax = {8: "al", 16: "ax", 32: "eax", 64: "rax"}[bw]
+            # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
+            Pattern(o.CAS, [kind2, kind2, kind2, o.DK.A64, kind1],
+                    [C.REG_RAX, C.REG_RAX, C.REG, C.REG, C.SIMM32],
+                    [InsTmpl(f"lockcmpxchg_{bw}_mbis32_r_{rax}", [P.reg3, F.NO_INDEX, F.SCALE1, P.num4, P.reg2, F.RAX])])
+
+
 def InitCFG():
     for kind in [o.DK.U8, o.DK.U16, o.DK.U32]:
         Pattern(o.SYSCALL, [o.DK.INVALID, kind],
@@ -1289,7 +1305,7 @@ def InitCFG():
                  InsTmpl("mov_64_r_mr", [F.R10, F.RCX]),
                  InsTmpl("syscall", []),
                  # NOTE: the two pop instructions below affect the clone syscall
-                 #       if you make changes here you need to update /StdLib/syscall.x64.asm  
+                 #       if you make changes here you need to update /StdLib/syscall.x64.asm
                  InsTmpl("pop_64_mr", [F.R11]),
                  InsTmpl("pop_64_mr", [F.RCX])])
 
@@ -1466,6 +1482,7 @@ InitCondBraFlt()
 InitLea()
 InitLoad()
 InitStore()
+InitCAS()
 InitCFG()
 InitCONV()
 InitBITCAST()

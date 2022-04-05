@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "Base/cfg.h"
 #include "Base/canonicalize.h"
+#include "Base/cfg.h"
 #include "Base/liveness.h"
 #include "Base/lowering.h"
 #include "Base/optimize.h"
@@ -114,12 +114,13 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
   }
 }
 
-void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
+void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
-      if (InsOpcode(ins).kind == OPC_KIND::ALU) {
+      if (InsOpcode(ins).kind == OPC_KIND::ALU ||
+          InsOpcode(ins).kind == OPC_KIND::CAS) {
         const DK dk = RegKind(Reg(InsOperand(ins, 0)));
         if (DKFlavor(dk) != DK_FLAVOR_F) {
           switch (InsOPC(ins)) {
@@ -147,6 +148,18 @@ void FunRewriteDivRemShifts(Fun fun, Unit unit, std::vector<Ins>* inss) {
               // pick the x86 div instruction the computes both the dividend and
               // remainder
               InsInit(ins, OPC::DIV, rdx, rax, rcx);
+              dirty = true;
+              continue;
+            }
+            case OPC::CAS:
+            case OPC::CAS_MEM:
+            case OPC::CAS_STK: {
+              Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
+              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
+              inss->push_back(ins);
+              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
+              InsOperand(ins, 0) = rax;
+              InsOperand(ins, 1) = rax;
               dirty = true;
               continue;
             }
@@ -345,7 +358,7 @@ void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
   FunRewriteOutOfBoundsImmediates(fun, unit, &inss);
   // FunRenderToAsm(fun, fout);
 
-  FunRewriteDivRemShifts(fun, unit, &inss);
+  FunRewriteDivRemShiftsCAS(fun, unit, &inss);
   FunRewriteIntoAABForm(fun, &inss);
   //
   FunComputeRegStatsExceptLAC(fun);
