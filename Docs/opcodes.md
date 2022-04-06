@@ -312,35 +312,35 @@ Load from memory base with offset. dst := RAM[base + offset]
 #### [42] ld.stk *dst* <sub>[REG:ANY]</sub> = *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
 Load from stack base with offset. dst := RAM[base + offset]
 
-## Store
-
-#### [48] st *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
+#### [44] st *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
 Store to register base with offset. RAM[base + offset] := src
 
-#### [49] st.mem *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
+#### [45] st.mem *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
 Store to memory base with offset. RAM[base + offset] := src
 
-#### [4a] st.stk *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
+#### [46] st.stk *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
 Store to stack base with offset. RAM[base + offset] := src
 
-#### [4c] cas *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: Compare and swap  
+## Store
+
+#### [48] cas *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
+NYI: Atomic Compare and Swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
                 if dst == cmp: RAM[addr] = src
              
 
-#### [4d] cas.mem *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: Compare and swap  
+#### [49] cas.mem *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
+NYI: Atomic Compare and Swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
                  
 
-#### [4e] cas.stk *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: Compare and swap  
+#### [4a] cas.stk *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
+NYI: AtomicCompare and Swap  
 
                     addr = base + offset 
                     dst = RAM[addr] 

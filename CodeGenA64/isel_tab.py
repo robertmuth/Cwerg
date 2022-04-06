@@ -1019,7 +1019,8 @@ def InitMove():
         Pattern(o.GETFP, [o.DK.A64],
                 [InsTmpl("movz_x_imm", [PARAM.reg0, PARAM.frame_size]),
                 InsTmpl("add_x_reg_uxtx", [PARAM.reg0, FIXARG.SP, PARAM.reg0, 0])])
-
+        Pattern(o.GETSP, [o.DK.A64],
+                [InsTmpl("add_x_imm", [PARAM.reg0, FIXARG.SP, 0])])
 
 def InitConv():
     # truncation to operand of smaller bit width: nothing to be done here

@@ -724,31 +724,33 @@ LD_STK = Opcode(0x42, "ld.stk", OPC_KIND.LD,
                 "Load from stack base with offset. dst := RAM[base + offset]",
                 OA.MEM_RD)
 
-ST = Opcode(0x48, "st", OPC_KIND.ST,
+ST = Opcode(0x44, "st", OPC_KIND.ST,
             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
             [TC.ADDR, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
             "Store to register base with offset. RAM[base + offset] := src",
             OA.MEM_WR)
 
-ST_MEM = Opcode(0x49, "st.mem", OPC_KIND.ST,
+ST_MEM = Opcode(0x45, "st.mem", OPC_KIND.ST,
                 [OP_KIND.MEM, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                 [TC.INVALID, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
                 "Store to memory base with offset. RAM[base + offset] := src",
                 OA.MEM_WR)
 
-ST_STK = Opcode(0x4a, "st.stk", OPC_KIND.ST,
+ST_STK = Opcode(0x46, "st.stk", OPC_KIND.ST,
                 [OP_KIND.STK, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                 [TC.INVALID, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
                 "Store to stack base with offset. RAM[base + offset] := src",
                 OA.MEM_WR)
 
-# Atomics
-CAS = Opcode(0x4c, "cas", OPC_KIND.CAS,
+###########################################################
+# Atomics 0x48
+
+CAS = Opcode(0x48, "cas", OPC_KIND.CAS,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
                  OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                  TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
-             """NYI: Compare and swap  
+             """NYI: Atomic Compare and Swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
@@ -756,12 +758,12 @@ CAS = Opcode(0x4c, "cas", OPC_KIND.CAS,
              """,
              OA.MEM_WR)
 
-CAS_MEM = Opcode(0x4d, "cas.mem", OPC_KIND.CAS,
+CAS_MEM = Opcode(0x49, "cas.mem", OPC_KIND.CAS,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
                      OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """NYI: Compare and swap  
+                 """NYI: Atomic Compare and Swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
@@ -769,18 +771,19 @@ CAS_MEM = Opcode(0x4d, "cas.mem", OPC_KIND.CAS,
                  """,
                  OA.MEM_WR)
 
-CAS_STK = Opcode(0x4e, "cas.stk", OPC_KIND.CAS,
+CAS_STK = Opcode(0x4a, "cas.stk", OPC_KIND.CAS,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST,  OP_KIND.REG_OR_CONST,
                      OP_KIND.STK, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """NYI: Compare and swap  
+                 """NYI: AtomicCompare and Swap  
 
                     addr = base + offset 
                     dst = RAM[addr] 
                     if dst == cmp: RAM[addr] = src
              """,
                  OA.MEM_WR)
+
 ############################################################
 # FLOAT ALU OPERAND: 0x50
 
@@ -842,8 +845,8 @@ Opcode(0x5f, "log", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
        "TBD")
 
 ############################################################
-# Advanced ALU
-############################################################
+# Advanced ALU 0x60
+
 CNTLZ = Opcode(0x60, "cntlz", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                [TC.INT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                "Count leading zeros.")
@@ -860,8 +863,8 @@ CNTPOP = Opcode(0x62, "cntpop", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONS
 
 
 ############################################################
-# Annotations
-############################################################
+# Annotations 0x70
+
 NOP = Opcode(0x70, "nop", OPC_KIND.NOP, [],
              [], OPC_GENUS.BASE,
              "nop - internal use.")
@@ -877,31 +880,30 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
 #              OA.SPECIAL)
 
 ############################################################
-# Misc
-############################################################
+# Misc 0x78
 
 INLINE = Opcode(0x78, "inline", OPC_KIND.INLINE, [OP_KIND.BYTES],
-              [TC.INVALID], OPC_GENUS.BASE,
-              "inject arbitrary target instructions into instruction stream",
-              OA.SPECIAL)
+                [TC.INVALID], OPC_GENUS.BASE,
+                "inject arbitrary target instructions into instruction stream",
+                OA.SPECIAL)
 
 GETFP = Opcode(0x79, "getfp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
-             [TC.ADDR], OPC_GENUS.BASE,
-             """materialize the frame-pointer. 
+               [TC.ADDR], OPC_GENUS.BASE,
+               """materialize the frame-pointer. 
              
              Get the stack-pointer's value before the call. Used mainly to interface with
              the Linux execution environment at program startup.""")
 
 GETSP = Opcode(0x7a, "getsp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
-             [TC.ADDR], OPC_GENUS.BASE,
-             """materialize the stack-pointer. 
+               [TC.ADDR], OPC_GENUS.BASE,
+               """materialize the stack-pointer. 
              
              Get the current stack-pointer. Used mainly to interface with
-             the Linux execution environment after a clone syscall.""")   
+             the Linux execution environment after a clone syscall.""")
 
 GETTP = Opcode(0x7b, "gettp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
-             [TC.ADDR], OPC_GENUS.BASE,
-             """materialize the tls-pointer. """)
+               [TC.ADDR], OPC_GENUS.BASE,
+               """materialize the tls-pointer. """)
 
 ############################################################
 # Misc Experimental

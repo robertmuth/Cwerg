@@ -57,6 +57,12 @@ $(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
 	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
+$(DIR)/threads.a64.asm.exe: ../TestData/threads.64.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
 $(DIR)/nanojpeg:
 	@echo "[$@]"
 	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
@@ -73,12 +79,12 @@ $(DIR)/isel_test:
 # Code Gen
 ############################################################
 
-isel_gen.cc: isel_tab.py
+isel_gen.cc: isel_tab.py ../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-isel_gen.h: isel_tab.py
+isel_gen.h: isel_tab.py ../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
