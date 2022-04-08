@@ -24,7 +24,7 @@ The core project currently consists of:
 * [A64 Backend](CodeGenA64/) (code generator emitting ARM64 instructions)
 * [X64 Backend](CodeGenX64/) (code generator emitting X86-64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
-* [Standard Library](StdLib/) (rudimentary libratry of mostly syscall wrappers)
+* [Standard Library](StdLib/) (rudimentary library of mostly syscall wrappers)
 
 You may also find the following useful:
 * [Docs](Docs/) (misc. documentation)
