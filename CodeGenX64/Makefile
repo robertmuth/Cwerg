@@ -30,7 +30,10 @@ STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLi
 tests: tests_py tests_c
 	@echo "[OK CodeGenX64]"
 
-tests_py: $(DIR)/isel_test $(DIR)/syscall.x64.asm.exe $(DIR)/cli.x64.asm.exe $(TEST_EXES) $(DIR)/nanojpeg
+tests_py: $(DIR)/isel_test \
+        $(DIR)/syscall.x64.asm.exe \
+	    $(DIR)/cli.x64.asm.exe \
+		$(DIR)/threads.x64.asm.exe  $(TEST_EXES) $(DIR)/nanojpeg
 
 tests_c: $(DIR)/isel_test_c $(DIR)/codegen_parity
 

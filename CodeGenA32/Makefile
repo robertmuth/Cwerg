@@ -29,7 +29,13 @@ TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe) $(LOCAL_TESTS:%.asm=$(DIR)/%.asm
 tests: tests_py tests_c
 	@echo "[OK CodeGenA32]"
 
-tests_py: $(TEST_EXES) $(DIR)/queens.32.asm.s.exe $(DIR)/syscall.a32.asm.exe $(DIR)/cli.a32.asm.exe $(DIR)/isel_test $(DIR)/nanojpeg
+tests_py: $(TEST_EXES) \
+          $(DIR)/queens.32.asm.s.exe \
+		  $(DIR)/syscall.a32.asm.exe \
+		  $(DIR)/cli.a32.asm.exe \
+		  $(DIR)/isel_test \
+		  $(DIR)/nanojpeg \
+          $(DIR)/threads.a32.asm.exe
 
 tests_c: $(TEST_C_EXES) $(DIR)/isel_test_c $(DIR)/codegen_parity $(DIR)/nanojpeg_c
 
@@ -78,6 +84,12 @@ $(DIR)/isel_test:
 	@echo "[integration $@]"
 	$(PYPY) ./isel_tester.py < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
+
+$(DIR)/threads.a32.asm.exe: ../TestData/threads.32.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
@@ -129,12 +141,6 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@cd $(BUILD_DIR); $(MAKE) -s a32_isel_tester.exe
 	$(BUILD_DIR)/a32_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
-
-$(DIR)/threads.a32.asm.exe: ../TestData/threads.32.asm
-	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ > $@.actual.out
-	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"

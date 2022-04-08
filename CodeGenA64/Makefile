@@ -34,7 +34,12 @@ tests: tests_py tests_c
 	@echo "[OK CodeGenA64]"
 
 
-tests_py: $(TEST_EXES) $(DIR)/syscall.a64.asm.exe $(DIR)/cli.a64.asm.exe $(DIR)/nanojpeg $(DIR)/isel_test
+tests_py: $(TEST_EXES) \
+        $(DIR)/syscall.a64.asm.exe \
+		$(DIR)/cli.a64.asm.exe \
+		$(DIR)/nanojpeg \
+		$(DIR)/isel_test \
+        $(DIR)/threads.a64.asm.exe
 
 tests_c: $(DIR)/isel_test_c $(DIR)/syscall.a64.asm.c.exe $(TEST_C_EXES) $(DIR)/nanojpeg_c $(DIR)/codegen_parity
 
