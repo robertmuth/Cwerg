@@ -91,13 +91,14 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     elif opc is o.CNTPOP:
         scratch = fun.GetScratchReg(o.DK.F64, "popcnt", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
+    elif opc is o.CAS:
+        scratch = fun.GetScratchReg(o.DK.U64, "cas", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
 
 def FunAddNop1ForCodeSel(fun: ir.Fun):
     """Add dummy instruction to ensure we have a scratch register for the next instruction
-
-    Currently, SWITCH needs a scratch register
     """
     return ir.FunGenericRewrite(fun, _InsAddNop1ForCodeSel)
 
@@ -289,7 +290,7 @@ class InsTmpl:
     def __init__(self, opcode_name: str, args: List[Any]):
         opcode: a64.Opcode = a64.Opcode.name_to_opcode[opcode_name]
         assert len(args) == len(
-            opcode.fields), f"num arg mismatch for {opcode_name}"
+            opcode.fields), f"num arg mismatch for {opcode_name} {args} vs {opcode.fields}"
         for op in args:
             assert isinstance(op, (int, PARAM, FIXARG)), (
                 f"unknown op {op} for {opcode.name} {args}")
@@ -928,6 +929,71 @@ def InitStore():
     # TODO: add immediate flavors
 
 
+def _UnsignedExtension(reg, bw: int, set_cc:  bool) -> List[InsTmpl]:
+    cc = "s" if set_cc else ""
+    if bw == 8:
+        return InsTmpl(f"and{cc}_x_imm", [reg, reg, 0xff])
+    elif bw == 16:
+        return InsTmpl(f"and{cc}_x_imm", [reg, reg, 0xffff])
+    elif bw == 32:
+        return InsTmpl(f"add{cc}_w_imm", [reg, reg, 0])
+    else:
+        return InsTmpl(f"add{cc}_x_imm", [reg, reg, 0])
+
+
+def InitCAS():
+    """
+    4009e8:       2a0003f0        <zero-ext>     scratch, reg1
+    4009ec:       885ffc40        ldaxr   reg0, [reg3]
+    4009f0:       6b10001f        cmp     rego, scratch
+*   4009f4:       54000061        b.ne    3
+    4009f8:       8811fc41        stlxr   scratch, reg2, [x2]
+*   4009fc:       35ffff91        cbnz    scratch, -4
+    cas   dst expected src  base
+loop:
+    tmp = ldl base
+    tmp = xor tmp expected
+    tmp = ext tmp [set cc]
+    tmp = xor tmp expected
+    tmp = ext tmp
+    b.ne  done
+    tmp  = stc src
+    cbnz loop
+    mov tmp expected
+    done:
+         mov dst tmp
+
+
+    """
+    for kind, suffix in [(o.DK.U64, "x"), (o.DK.S64, "x"),
+                         (o.DK.A64, "x"), (o.DK.C64, "x"),
+                         (o.DK.U32, "w"), (o.DK.S32, "w"),
+                         (o.DK.U16, "h"), (o.DK.S16, "h"),
+                         (o.DK.U8, "b"), (o.DK.S8, "b")]:
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            # Note: this will break with peephole optimizations
+            # unless we fixup the branch targets
+            Pattern(o.CAS, [kind, kind, kind, o.DK.A64, offset_kind],
+                    [InsTmpl(f"ldaxr_{suffix}", [PARAM.scratch_gpr, PARAM.reg3]),
+                    InsTmpl(f"eor_x_reg",
+                            [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                    _UnsignedExtension(PARAM.scratch_gpr,
+                                        kind.bitwidth(), True),
+                    InsTmpl(f"eor_x_reg", [
+                        PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                    _UnsignedExtension(PARAM.scratch_gpr,
+                                        kind.bitwidth(), False),
+                    InsTmpl("b_ne", [4]),
+                    InsTmpl(f"stlxr_{suffix}", [
+                        PARAM.scratch_gpr, PARAM.reg3, PARAM.reg2]),
+                    InsTmpl("cbnz_w", [PARAM.scratch_gpr, -7]),
+                    InsTmpl(f"orr_x_reg", [
+                            PARAM.scratch_gpr,  FIXARG.XZR, PARAM.reg1, a64.SHIFT.lsl, 0]),
+                     InsTmpl(f"orr_x_reg", [
+                         PARAM.reg0,  FIXARG.XZR, PARAM.scratch_gpr, a64.SHIFT.lsl, 0]),
+                     ], imm_curb4=IMM_CURB.ZERO)
+
+
 def InitStackStore():
     for src_kind, opc, imm in [
         (o.DK.U64, "str_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
@@ -1021,6 +1087,7 @@ def InitMove():
                 InsTmpl("add_x_reg_uxtx", [PARAM.reg0, FIXARG.SP, PARAM.reg0, 0])])
         Pattern(o.GETSP, [o.DK.A64],
                 [InsTmpl("add_x_imm", [PARAM.reg0, FIXARG.SP, 0])])
+
 
 def InitConv():
     # truncation to operand of smaller bit width: nothing to be done here
@@ -1186,6 +1253,7 @@ def InitVFP():
 InitLoad()
 InitStackLoad()
 InitStore()
+InitCAS()
 InitStackStore()
 InitAlu()
 InitLea()
