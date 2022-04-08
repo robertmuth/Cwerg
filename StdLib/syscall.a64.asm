@@ -245,7 +245,7 @@
     # at this point.
     getsp sp:A64
     ld user_arg sp 0
-    # ld proc sp 8
+    ld proc sp 8
     pusharg user_arg
     jsr proc a64_thread_function
     pusharg 0:S32
