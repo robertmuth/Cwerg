@@ -325,7 +325,8 @@ class FieldInfo:
         self.bitwidth: int = sum([r[0] for r in ranges])
         self.kind: FK = kind
         self.enum_class = enum_class
-        self.names: List[str] = [p.name for p in enum_class] if enum_class else []
+        self.names: List[str] = [
+            p.name for p in enum_class] if enum_class else []
         self.prefix: str = prefix
         self.scale: int = scale
         self.decoder = decoder
@@ -724,7 +725,8 @@ root00 = (3, 0, 26)
 for ext, sr_update, s_bit in [("", SR_UPDATE.NONE, (1, 0, 20)),
                               ("s", SR_UPDATE.NZ, (1, 1, 20))]:
     Opcode("mul" + ext, "",
-           [root00, s_bit, (0xf, 0x0, 21), (1, 0, 25), (0xf, 0x0, 12), (0xf, 0x9, 4)],
+           [root00, s_bit, (0xf, 0x0, 21), (1, 0, 25),
+            (0xf, 0x0, 12), (0xf, 0x9, 4)],
            [OK.REG_16_19, OK.REG_0_3, OK.REG_8_11],
            OPC_FLAG.MUL, sr_update=sr_update)
 
@@ -769,17 +771,24 @@ for ext, n in [("bb", 8), ("tb", 10), ("bt", 12), ("tt", 14)]:
            [OK.REG_16_19, OK.REG_0_3, OK.REG_8_11],
            OPC_FLAG.MUL)
 
-Opcode("strex", "",
+for ext, n, width in [("", 0x18, MEM_WIDTH.W4),
+                      ("h", 0x1e, MEM_WIDTH.W2),
+                      ("b", 0x1c, MEM_WIDTH.W1)]:
+    Opcode(f"strex{ext}", "",
        # TODO: OK.REG_0_3 should move to the end
-       [root00, (0x3f, 0x18, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
+       [root00, (0x3f, n, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
        [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3],
-       OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=MEM_WIDTH.W4)
+       OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=width)
 
-Opcode("ldrex", "",
-       [root00, (0x3f, 0x19, 20), (0xf, 0xf, 8), (0xf, 0x9, 4),
-        (0xf, 0xf, 0)],
-       [OK.REG_12_15, OK.REG_16_19],
-       OPC_FLAG.ATOMIC | OPC_FLAG.LOAD, mem_width=MEM_WIDTH.W4)
+for ext, n, width in [("", 0x19, MEM_WIDTH.W4),
+                      ("h", 0x1f, MEM_WIDTH.W2),
+                      ("b", 0x1d, MEM_WIDTH.W1)]:
+
+    Opcode(f"ldrex{ext}", "",
+           [root00, (0x3f, n, 20), (0xf, 0xf, 8), (0xf, 0x9, 4),
+            (0xf, 0xf, 0)],
+           [OK.REG_12_15, OK.REG_16_19],
+           OPC_FLAG.ATOMIC | OPC_FLAG.LOAD, mem_width=width)
 
 for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
     for variant, bits, fields in [
@@ -831,7 +840,8 @@ for opcode, n in [("and", 0), ("eor", 1), ("sub", 2), ("rsb", 3),
 
 for ext, width, n in [("", MEM_WIDTH.W4, 8), ("b", MEM_WIDTH.W1, 0xa)]:
     Opcode("swp" + ext, "",
-           [root00, (0xf, n, 21), (1, 0, 25), (1, 0, 20), (0xf, 0x0, 8), (0xf, 0x9, 4)],
+           [root00, (0xf, n, 21), (1, 0, 25), (1, 0, 20),
+            (0xf, 0x0, 8), (0xf, 0x9, 4)],
            [OK.REG_12_15, OK.REG_0_3, OK.REG_16_19],
            OPC_FLAG.ATOMIC, mem_width=width)
 
@@ -951,7 +961,8 @@ for addr_mode, addr_bits, flag in STANDARD_ADDR_MODES:
         ("imm_" + addr_mode, [(1, 0, 25)] + addr_bits,
          [OK.REG_16_19, OK.IMM_0_11])]:
         Opcode("ldp", variant,
-               bits + [root01, (1, 1, 22), (1, 1, 20), (0xf, 0xf, 12), (0xf, 0xf, 28)],
+               bits + [root01, (1, 1, 22), (1, 1, 20),
+                       (0xf, 0xf, 12), (0xf, 0xf, 28)],
                fields,
                OPC_FLAG.PREFETCH | flag, has_pred=False)
 
@@ -1142,7 +1153,8 @@ for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
            OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
     Opcode("vldm" + mode, "f_" + update if update else "f",
-           [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
+           [root11, (1, 0, 25), (1, 1, 20), (0xf, 0xb, 8),
+            (1, 0, 0)] + addr_bits,
            [OK.DREG_12_15_22, OK.REG_RANGE_1_7, OK.REG_16_19],
            OPC_FLAG.LOAD | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
@@ -1152,7 +1164,8 @@ for mode, update, addr_bits, flag in MULTI_ADDR_MODES:
            OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
     Opcode("vstm" + mode, "f_" + update if update else "f",
-           [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 8), (1, 0, 0)] + addr_bits,
+           [root11, (1, 0, 25), (1, 0, 20), (0xf, 0xb, 8),
+            (1, 0, 0)] + addr_bits,
            [OK.REG_16_19, OK.DREG_12_15_22, OK.REG_RANGE_1_7],
            OPC_FLAG.STORE | OPC_FLAG.MULTIPLE | OPC_FLAG.VFP | flag)
 
@@ -1189,7 +1202,7 @@ class Ins:
         self.reloc_pos = 0
 
     def has_reloc(self):
-        return  self.reloc_kind != 0
+        return self.reloc_kind != 0
 
     def set_reloc(self, kind, is_local, pos, symbol):
         self.reloc_kind = kind
@@ -1260,12 +1273,16 @@ def hash_djb2(x: str):
 
 
 def _EmitCodeH(fout):
-    print(f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
-    print(f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_OPERANDS = {MAX_OPERANDS};", file=fout)
+    print(
+        f"constexpr const unsigned MAX_BIT_RANGES = {MAX_BIT_RANGES};", file=fout)
     cgen.RenderEnum(cgen.NameValues(FK), "class FK : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OK), "class OK : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(SR_UPDATE), "class SR_UPDATE : uint8_t", fout)
-    cgen.RenderEnum(cgen.NameValues(MEM_WIDTH), "class MEM_WIDTH : uint8_t", fout)
+    cgen.RenderEnum(cgen.NameValues(SR_UPDATE),
+                    "class SR_UPDATE : uint8_t", fout)
+    cgen.RenderEnum(cgen.NameValues(MEM_WIDTH),
+                    "class MEM_WIDTH : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(OPC_FLAG), "OPC_FLAG", fout)
     cgen.RenderEnum(cgen.NameValues(PRED), "class PRED : uint8_t", fout)
     cgen.RenderEnum(cgen.NameValues(REG), "class REG : uint8_t", fout)
@@ -1366,13 +1383,13 @@ def _EmitCodeC(fout):
     print(",\n".join(_RenderOpcodeTableJumper()), file=fout)
     print("};\n", file=fout)
 
-
-
-    print(f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
+    print(
+        f"constexpr const unsigned MNEMONIC_HASH_TABLE_SIZE = {_MNEMONIC_HASH_TABLE_SIZE};", file=fout)
 
     print("// Indexed by djb2 hash of mnemonic. Collisions are resolved via linear probing",
           file=fout)
-    print(f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
+    print(
+        f"static const OPC MnemonicHashTable[MNEMONIC_HASH_TABLE_SIZE] = {{", file=fout)
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
