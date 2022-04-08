@@ -46,6 +46,12 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
           inss->push_back(ins);
           dirty = true;
           break;
+        case OPC::CAS:
+          tmp = FunGetScratchReg(fun, DK::U64, "cas", false);
+          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(ins);
+          dirty = true;
+          break;
         case OPC::COPYSIGN:
           tmp = FunGetScratchReg(fun, DK::U64, "copysign", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
