@@ -44,7 +44,12 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
           inss->push_back(ins);
           dirty = true;
           break;
-
+        case OPC::CAS:
+          tmp = FunGetScratchReg(fun, DK::U32, "cas", false);
+          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(ins);
+          dirty = true;
+          break;
         case OPC::CONV:
           if (InsOperand(ins, 1).kind() == RefKind::REG) {
             DK src_kind = RegKind(Reg(InsOperand(ins, 1)));

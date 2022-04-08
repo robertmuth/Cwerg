@@ -2,8 +2,10 @@
 INS: syscall arm_syscall_exit 1:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 1
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -12,8 +14,10 @@ INS: ret  []
 INS: syscall arm_syscall_brk 45:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 45
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -22,8 +26,10 @@ INS: ret  []
 INS: syscall arm_syscall_open 5:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 5
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -32,8 +38,10 @@ INS: ret  []
 INS: syscall arm_syscall_close 6:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 6
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -42,8 +50,10 @@ INS: ret  []
 INS: syscall arm_syscall_write 4:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -52,8 +62,10 @@ INS: ret  []
 INS: syscall arm_syscall_read 3:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 3
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -89,8 +101,10 @@ PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
 INS: syscall arm_syscall_write 4:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: ret  []
@@ -111,8 +125,10 @@ PAT: reg:[S32 S32]  imm:[invalid pos_8_bits_shifted]
 INS: syscall arm_syscall_write 4:U32  [_ U32]
 PAT: reg:[INVALID U32]  imm:[invalid pos_16_bits]
     str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
     movw al r7 4
     svc al 0
+    ldr_imm_add_post al r7 sp 4
     ldr_imm_add_post al r7 sp 4
 
 INS: mov $r0_U32@r0 10  [U32 U32]

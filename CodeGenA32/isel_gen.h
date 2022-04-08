@@ -31,6 +31,7 @@ enum class IMM_CURB : uint8_t {
     pos_stk_combo_8_bits_times_4 = 15,
     pos_stk_combo_12_bits = 16,
     pos_stk_combo_16_bits = 17,
+    zero = 18,
 };
 
 enum class PARAM : uint8_t {

@@ -19,6 +19,11 @@
 .fun a32_syscall_read SIGNATURE [S32] = [S32 A32 U32]
 .fun a32_syscall_write SIGNATURE [S32] = [S32 A32 U32]
 .fun a32_syscall_xbrk SIGNATURE [A32] = [A32]
+.fun a32_syscall_nanosleep SIGNATURE [S32] = [A32 A32]
+.fun a32_syscall_waitid SIGNATURE [S32] = [S32 S32 A32 S32 A32]
+.fun a32_syscall_yield SIGNATURE [S32] = []
+
+.fun a32_thread_function SIGNATURE [] = [U32]
 
 ############################################################
 # Syscall wrappers
@@ -30,6 +35,17 @@
     pusharg timespec
     pusharg clk_id
     syscall a32_syscall_clock_gettime 0xe4:U32
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun nanosleep NORMAL [S32] = [A32 A32]
+.bbl start
+    poparg spec1:A32
+    poparg spec2:A32
+    pusharg spec2
+    pusharg spec1
+    syscall a32_syscall_nanosleep 162:U8
     poparg res:S32
     pusharg res
     ret
@@ -183,4 +199,58 @@
     syscall a32_syscall_xbrk 45:U32
     poparg res:A32
     pusharg res
+    ret
+
+.fun yield NORMAL [S32] = []
+.bbl start
+    syscall a32_syscall_yield 158:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun spawn NORMAL [S32] = [C32 A32 A32 U32 U32]   
+.bbl entry
+    poparg proc:C32
+    poparg new_stack:A32
+    poparg new_tls:A32
+    poparg user_arg:U32
+    poparg flags:U32
+    # align stack 
+    bitcast stk:U32 new_stack
+    sub stk stk 16  # make space for two parameters
+    and stk stk 0xfffffff8  # 8 byte aligned
+    bitcast new_stack stk
+    # We need to save this to the new stack as there is not guarantee
+    # that these values will end up in (preserved) registers. (see below)
+    st new_stack 4 proc
+    st new_stack 0 user_arg
+    #
+    pusharg 0:A32
+    pusharg 0:A32
+    pusharg 0:A32
+    pusharg new_stack
+    pusharg flags
+    syscall a32_syscall_clone 120:U32
+    poparg ret:S32
+    beq ret 0 child
+    pusharg ret
+    ret
+
+.bbl child
+    # Why do we have to save the user_arg temporarily onto the new stack?
+    # If user_arg ends up in register we might get lucky because the register
+    # are presumably preserved when we reach here.
+    # But if user_arg is spilled onto the old stack it is not clear if we can see it 
+    # at this point.
+    # NOTE: the syscall pops two regs of the stack. We have to compensate for this
+    getsp sp:A32
+    ld user_arg sp -8
+    ld proc sp -4
+    # trap
+    pusharg user_arg
+    jsr proc a32_thread_function
+    pusharg 0:S32
+    syscall a32_syscall_exit 1:U8
+    trap # unreachable 
+    pusharg 0:S32
     ret

@@ -1,12 +1,12 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <array>
+
 #include "Base/ir.h"
 #include "Base/lowering.h"
 #include "Base/reg_stats.h"
 #include "CpuA32/opcode_gen.h"
-
-#include <array>
 
 namespace cwerg::code_gen_a32 {
 using namespace cwerg;
@@ -43,10 +43,8 @@ extern const base::PushPopInterface* const PushPopInterfaceA32;
 // Note: regs must match the class of cpu_reg_mask, e.g. be all
 // floating point or all GPR
 extern void AssignCpuRegOrMarkForSpilling(
-    const std::vector<base::Reg>& regs,
-    uint32_t cpu_reg_mask_first_choice,
-    uint32_t cpu_reg_mask_second_choice,
-    std::vector<base::Reg>* to_be_spilled);
+    const std::vector<base::Reg>& regs, uint32_t cpu_reg_mask_first_choice,
+    uint32_t cpu_reg_mask_second_choice, std::vector<base::Reg>* to_be_spilled);
 
 extern std::vector<base::CpuReg> GetAllRegs();
 
@@ -63,7 +61,8 @@ struct EmitContext {
   base::CpuReg scratch_cpu_reg = base::CpuReg(0);
 
   uint32_t FrameSize() const {
-    return __builtin_popcount(ldm_regs) * 4 +  __builtin_popcount(vldm_regs) * 8 + stk_size;
+    return __builtin_popcount(ldm_regs) * 4 +
+           __builtin_popcount(vldm_regs) * 8 + stk_size;
   }
 };
 
@@ -73,8 +72,6 @@ extern void EmitFunProlog(const EmitContext& ctx,
                           std::vector<a32::Ins>* output);
 extern void EmitFunEpilog(const EmitContext& ctx,
                           std::vector<a32::Ins>* output);
-
-
 
 extern uint32_t A32RegToAllocMask(base::CpuReg cpu_reg);
 

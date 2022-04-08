@@ -130,6 +130,12 @@ $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	$(BUILD_DIR)/a32_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
+$(DIR)/threads.a32.asm.exe: ../TestData/threads.32.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
 $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
 	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm | $(CODEGEN_TOOL) -mode binary - $@.exe >$@.out
@@ -151,6 +157,10 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
+	@echo
+	cat $(STD_LIB_NO_ARGV) ../TestData/threads.32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
+	cat $(STD_LIB_NO_ARGV) ../TestData/threads.32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB_NO_ARGV) ../TestData/int_op.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
 	cat $(STD_LIB_NO_ARGV) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out

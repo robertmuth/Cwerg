@@ -41,6 +41,7 @@ class IMM_CURB(enum.IntEnum):
     pos_stk_combo_8_bits_times_4 = 15
     pos_stk_combo_12_bits = 16
     pos_stk_combo_16_bits = 17
+    zero = 18
 
 
 _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
@@ -66,6 +67,7 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
     IMM_CURB.pos_stk_combo_8_bits_times_4: lambda x: 0 <= (x // 4) < (1 << 8),
     IMM_CURB.pos_stk_combo_12_bits: lambda x: 0 <= x < (1 << 12),
     IMM_CURB.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
+    IMM_CURB.zero: lambda x: x == 0,
 }
 
 _IMM_KIND_STK: Set[IMM_CURB] = {
@@ -82,6 +84,10 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     if opc is o.SWITCH:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.C32, "switch", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
+    elif opc is o.CAS:
+        # needs scratch to compute the jmp address into
+        scratch = fun.GetScratchReg(o.DK.U32, "cas", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     elif (opc is o.CONV and o.RegIsInt(ins.operands[0].kind) and
           ins.operands[1].kind.flavor() == o.DK_FLAVOR_F):
@@ -175,7 +181,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
     elif arg in {PARAM.num0, PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4}:
         n = arg.value - PARAM.num0.value
         num = ins.operands[n]
-        assert isinstance(num, ir.Const), f"expected {arg} got {num} in {ins} {ins.operands}"
+        assert isinstance(
+            num, ir.Const), f"expected {arg} got {num} in {ins} {ins.operands}"
         return num.value
     elif arg in {PARAM.num0_neg, PARAM.num1_neg, PARAM.num2_neg, PARAM.num3_neg, PARAM.num4_neg}:
         n = arg.value - PARAM.num0_neg.value
@@ -575,7 +582,8 @@ def InsTmplMove(dst, src, kind, pred=arm.PRED.al):
     if src in {PARAM.reg1, PARAM.reg2, PARAM.reg3, PARAM.reg4}:
         return InsTmpl("mov_regimm", [dst, src, arm.SHIFT.lsl, 0], pred)
 
-    assert src in {PARAM.num1, PARAM.num2, PARAM.num3, PARAM.num4, PARAM.num1_not}
+    assert src in {PARAM.num1, PARAM.num2,
+                   PARAM.num3, PARAM.num4, PARAM.num1_not}
     if kind is IMM_CURB.pos_16_bits:
         return InsTmpl("movw", [dst, src], pred)
     elif kind is IMM_CURB.pos_8_bits_shifted:
@@ -648,14 +656,18 @@ def InitCmp():
             Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("vmrs_APSR_nzcv_fpscr", []),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.lt),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.pl),
+                     InsTmplMove(PARAM.reg0, PARAM.reg1,
+                                 IMM_CURB.invalid, arm.PRED.lt),
+                     InsTmplMove(PARAM.reg0, PARAM.reg2,
+                                 IMM_CURB.invalid, arm.PRED.pl),
                      ])
             Pattern(o.CMPEQ, [kind] * 3 + [kind2] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("vmrs_APSR_nzcv_fpscr", []),
-                     InsTmplMove(PARAM.reg0, PARAM.reg1, IMM_CURB.invalid, arm.PRED.eq),
-                     InsTmplMove(PARAM.reg0, PARAM.reg2, IMM_CURB.invalid, arm.PRED.ne),
+                     InsTmplMove(PARAM.reg0, PARAM.reg1,
+                                 IMM_CURB.invalid, arm.PRED.eq),
+                     InsTmplMove(PARAM.reg0, PARAM.reg2,
+                                 IMM_CURB.invalid, arm.PRED.ne),
                      ])
 
 
@@ -829,7 +841,8 @@ def InitStore():
                     imm_kind1=IMM_CURB.pos_stk_combo_16_bits)
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
-                     InsTmpl("movt", [PARAM.scratch_gpr, PARAM.stk0_offset1_hi]),
+                     InsTmpl("movt", [PARAM.scratch_gpr,
+                             PARAM.stk0_offset1_hi]),
                      InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
                                                 arm.SHIFT.lsl, 0, PARAM.reg2])],
                     imm_kind1=IMM_CURB.any_32_bits)
@@ -886,10 +899,59 @@ def InitStore():
                     imm_kind1=IMM_CURB.pos_stk_combo_16_bits)
             Pattern(o.ST_STK, [o.DK.INVALID, kind1, kind2],
                     [InsTmpl("movw", [PARAM.scratch_gpr, PARAM.stk0_offset1_lo]),
-                     InsTmpl("movt", [PARAM.scratch_gpr, PARAM.stk0_offset1_hi]),
+                     InsTmpl("movt", [PARAM.scratch_gpr,
+                             PARAM.stk0_offset1_hi]),
                      InsTmpl(opc + "_reg_add", [arm.REG.sp, PARAM.scratch_gpr,
                                                 PARAM.reg2])],
                     imm_kind1=IMM_CURB.any_32_bits)
+
+
+def InitCAS():
+    for kind in [o.DK.A32, o.DK.C32,  o.DK.U32, o.DK.S32]:
+        for offset_kind in [o.DK.S32, o.DK.U32]:
+            # Note: this will break with peephole optimizations
+            # unless we fixup the branch targets
+            Pattern(o.CAS, [kind, kind, kind, o.DK.A32, offset_kind],
+                    [  # label loop
+                    InsTmpl("ldrex", [PARAM.scratch_gpr, PARAM.reg3]),
+                    InsTmpl(f"eors_regimm",
+                            [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, arm.SHIFT.lsl, 0]),
+                    InsTmpl(f"eor_regimm",
+                            [PARAM.reg0, PARAM.scratch_gpr, PARAM.reg1,  arm.SHIFT.lsl, 0], pred=arm.PRED.ne),
+                    InsTmpl(f"b", [3], pred=arm.PRED.ne),  # end
+                    InsTmpl("strex", [PARAM.scratch_gpr,
+                            PARAM.reg3, PARAM.reg2]),
+                    InsTmpl(f"cmp_imm", [PARAM.scratch_gpr, 0]),
+                    InsTmpl("b", [-8], pred=arm.PRED.ne),  # loop
+                    InsTmpl(f"mov_regimm",
+                            [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, 0]),
+                    # label end
+                    ], imm_kind4=IMM_CURB.zero)
+    for kind, suffix, shift in [(o.DK.U16, "h", 16), (o.DK.S16, "h", 16),
+                                (o.DK.U8, "b", 24), (o.DK.S8, "b", 24)]:
+        for offset_kind in [o.DK.S32, o.DK.U32]:
+            # Note: this will break with peephole optimizations
+            # unless we fixup the branch targets
+            Pattern(o.CAS, [kind, kind, kind, o.DK.A32, offset_kind],
+                    [  # label loop
+                    InsTmpl(f"ldrex{suffix}", [PARAM.scratch_gpr, PARAM.reg3]),
+                    InsTmpl(f"eor_regimm",
+                            [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, arm.SHIFT.lsl, 0]),
+                    InsTmpl(f"movs_regimm",
+                            [PARAM.scratch_gpr, PARAM.scratch_gpr, arm.SHIFT.lsl, shift]),
+                    InsTmpl(f"eor_regimm",
+                            [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1,  arm.SHIFT.lsl, shift], pred=arm.PRED.ne),
+                    InsTmpl(f"movs_regimm",
+                            [PARAM.reg0, PARAM.scratch_gpr, arm.SHIFT.lsr, shift], pred=arm.PRED.ne),
+                    InsTmpl(f"b", [3], pred=arm.PRED.ne),  # end
+                    InsTmpl(f"strex{suffix}", [
+                            PARAM.scratch_gpr, PARAM.reg3, PARAM.reg2]),
+                    InsTmpl(f"cmp_imm", [PARAM.scratch_gpr, 0]),
+                    InsTmpl("b", [-10], pred=arm.PRED.ne),  # loop
+                    InsTmpl(f"mov_regimm",
+                            [PARAM.reg0, PARAM.reg1, arm.SHIFT.lsl, 0]),
+                    # label end
+                    ], imm_kind4=IMM_CURB.zero)
 
 
 def InitLea():
@@ -948,9 +1010,12 @@ def InitMove():
                 imm_kind1=IMM_CURB.any_32_bits)
         Pattern(o.GETFP, [o.DK.A32],
                 [InsTmpl("movw", [PARAM.reg0, PARAM.frame_size]),
-                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, PARAM.reg0,arm.SHIFT.lsl, 0])],
+                 InsTmpl("add_regimm", [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])],
                 # TODO: imm curb is not quite correct
                 imm_kind1=IMM_CURB.any_32_bits)
+        Pattern(o.GETSP, [o.DK.A32],
+                [InsTmpl("mov_regimm", [PARAM.reg0, arm.REG.sp, arm.SHIFT.lsl, 0])])
+
 
 def InitConv():
     for kind1 in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
@@ -997,13 +1062,18 @@ def InitMiscBra():
 
     Pattern(o.TRAP, [], [InsTmpl("ud2", [])])
 
+    # not any change in the stack behavior of the code below needs to be reflected
+    # in the spawn() code in StdLib/syscall.a32.asm
     Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
-            [InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),  # push r7 on stack
+            [  # push r7 on stack twice for 8 byte alignment
+             InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
+             InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
              InsTmpl("movw", [arm.REG.r7, PARAM.num1]),
              InsTmpl("svc", [0]),
+             InsTmpl("ldr_imm_add_post", [arm.REG.r7, arm.REG.sp, 4]),
              InsTmpl("ldr_imm_add_post",
                      [arm.REG.r7, arm.REG.sp, 4])],  # pop r7 from stack
-            imm_kind1=IMM_CURB.pos_16_bits)
+            imm_kind1 = IMM_CURB.pos_16_bits)
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
@@ -1061,6 +1131,7 @@ def InitVFP():
 
 InitLoad()
 InitStore()
+InitCAS()
 InitAlu()
 InitLea()
 InitMove()
@@ -1076,7 +1147,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 
     This can only be called AFTER the stack has been finalized
     """
-    patterns = Pattern.Table[ins.opcode.no]
+    patterns=Pattern.Table[ins.opcode.no]
     # print(f"@ {ins} {ins.operands}")
     for p in patterns:
         # print(f"@trying pattern {p}")
@@ -1093,40 +1164,42 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins,
 
     None means there was an error
     """
-    best = MATCH_IMPOSSIBLE
-    best_num_bits = bin(best).count('1')
-    patterns = Pattern.Table[ins.opcode.no]
+    best=MATCH_IMPOSSIBLE
+    best_num_bits=bin(best).count('1')
+    patterns=Pattern.Table[ins.opcode.no]
     for p in patterns:
         if not p.MatchesTypeConstraints(ins):
             continue
-        mismatches = p.MatchesImmConstraints(ins, assume_stk_op_matches)
-        if mismatches == 0: return 0
-        num_bits = bin(mismatches).count('1')
+        mismatches=p.MatchesImmConstraints(ins, assume_stk_op_matches)
+        if mismatches == 0:
+            return 0
+        num_bits=bin(mismatches).count('1')
         if num_bits < best_num_bits:
-            best, best_num_bits = mismatches, num_bits
+            best, best_num_bits=mismatches, num_bits
     return best
 
 
 def _EmitCodeH(fout):
     for cls in [IMM_CURB, PARAM]:
-        cgen.RenderEnum(cgen.NameValues(cls), f"class {cls.__name__} : uint8_t", fout)
+        cgen.RenderEnum(cgen.NameValues(
+            cls), f"class {cls.__name__} : uint8_t", fout)
 
 
 def _RenderOperands(operands: List[Any]):
-    out = []
-    mask = 0
+    out=[]
+    mask=0
     for n, op in enumerate(operands):
         if isinstance(op, PARAM):
             mask |= 1 << n
-            s = f"+PARAM::{op.name}"
+            s=f"+PARAM::{op.name}"
         elif isinstance(op, arm.PRED):
-            s = f"+PRED::{op.name}"
+            s=f"+PRED::{op.name}"
         elif isinstance(op, arm.REG):
-            s = f"+REG::{op.name}"
+            s=f"+REG::{op.name}"
         elif isinstance(op, arm.SHIFT):
-            s = f"+SHIFT::{op.name}"
+            s=f"+SHIFT::{op.name}"
         elif isinstance(op, int):
-            s = f"{op}"
+            s=f"{op}"
         else:
             assert False, f"bad op {op}"
         out.append(s)
@@ -1134,18 +1207,19 @@ def _RenderOperands(operands: List[Any]):
 
 
 def _EmitCodeC(fout):
-    print(f"\nconst InsTmpl kInsTemplates[] = {{", file=fout)
-    print("  { /*used first entry*/ },", file=fout)
-    num_ins = 1
+    print(f"\nconst InsTmpl kInsTemplates[] = {{", file = fout)
+    print("  { /*used first entry*/ },", file = fout)
+    num_ins=1
     for i in range(256):
-        patterns = Pattern.Table.get(i)
-        if patterns is None: continue
-        opcode = o.Opcode.TableByNo.get(i)
+        patterns=Pattern.Table.get(i)
+        if patterns is None:
+            continue
+        opcode=o.Opcode.TableByNo.get(i)
         for pat in patterns:
             for tmpl in pat.emit:
-                mask, ops = _RenderOperands(tmpl.args)
+                mask, ops=_RenderOperands(tmpl.args)
                 num_ins += 1
-                print(f"  {{ {{{', '.join(ops)}}},", file=fout)
+                print(f"  {{ {{{', '.join(ops)}}},", file = fout)
                 print(
                     f"    a32::OPC::{tmpl.opcode.name}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
                     file=fout)
@@ -1167,7 +1241,8 @@ def _EmitCodeC(fout):
     num_pattern = 0
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             reg_constraints = [f"DK::{c.name}" for c in pat.type_curbs]
@@ -1190,16 +1265,21 @@ def _EmitCodeC(fout):
 def _DumpCodeSelTable():
     for i in range(256):
         patterns = Pattern.Table.get(i)
-        if patterns is None: continue
+        if patterns is None:
+            continue
         opcode = o.Opcode.TableByNo[i]
-        print(f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
+        print(
+            f"{opcode.name} [{' '.join([k.name for k in opcode.operand_kinds])}]")
         for pat in patterns:
-            type_constraints = [x.name if x != o.DK.INVALID else '*' for x in pat.type_curbs]
+            type_constraints = [x.name if x !=
+                                o.DK.INVALID else '*' for x in pat.type_curbs]
             imm_constraints = [x.name if x else '*' for x in pat.imm_curbs]
 
-            print(f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
+            print(
+                f"  [{' '.join(type_constraints)}]  [{' '.join(imm_constraints)}]")
             for tmpl in pat.emit:
-                ops = [str(x) if isinstance(x, int) else x.name for x in tmpl.args]
+                ops = [str(x) if isinstance(x, int)
+                       else x.name for x in tmpl.args]
                 print(f"    {tmpl.opcode.name} [{' '.join(ops)}]")
         print()
 
