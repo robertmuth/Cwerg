@@ -151,7 +151,7 @@ Fun InsCallee(Ins ins) {
     case OPC::BSR:
       return Fun(InsOperand(ins, 0));
     case OPC::JSR:
-      return Fun(InsOperand(ins, 0));
+      return Fun(InsOperand(ins, 1));
     default:
       ASSERT(false, "bad ins: " << ins);
       return Fun(0);

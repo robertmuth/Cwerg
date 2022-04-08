@@ -665,6 +665,9 @@ void FunPushargConversion(Fun fun, const PushPopInterface& ppif) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIterReverse(bbl)) {
       if (InsOPC(ins) == OPC::PUSHARG) {
+        // everytime we see a PUSHARG we must have seen a call or return
+        // before with parameters that still needs to be processed.
+        // Note: that we are going backwards inside the BBL.
         ASSERT(!parameter.empty(),
                "possible undefined fun call in " << Name(fun));
         Handle src = InsOperand(ins, 0);
