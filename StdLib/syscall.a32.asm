@@ -188,7 +188,7 @@
     pusharg res
     ret
 
-# Note the syscall behaves differently from the library function:
+# Note the sbrk syscall behaves differently from the library function:
 # The Linux system call returns the new program break on success. On failure,
 # the system call returns the current break.
 # It also return the current program break when give zero as an argument
@@ -198,6 +198,23 @@
     pusharg addr
     syscall a32_syscall_xbrk 45:U32
     poparg res:A32
+    pusharg res
+    ret
+
+.fun waitid NORMAL [S32] = [S32 S32 A32 S32 A32]
+.bbl entry
+    poparg which:S32
+    poparg pid:S32
+    poparg infop:A32
+    poparg options:S32
+    poparg ru:A32
+    pusharg ru
+    pusharg options
+    pusharg infop
+    pusharg pid
+    pusharg which
+    syscall a32_syscall_waitid 280:U16
+    poparg res:S32
     pusharg res
     ret
 

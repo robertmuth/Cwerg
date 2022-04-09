@@ -4,7 +4,6 @@
 # one sec
 .data 1 [2 0 0 0  0 0 0 0   0 0 0 0   0 0 0 0]
 
-
 .mem gWORKER_SPAWNED_MSG 1 RO
 .data 1 "worker_spawned"
 .data 1 [0]
@@ -15,6 +14,13 @@
 .mem gSUM 16 RW
 .data 4 [0]
 
+# 128 (32/64 bit)
+.mem gSIGINFO 16 RW
+.data 128 [0]
+
+# 144 (64bit), 72 (32bit)
+.mem gRUSAGE 16 RW
+.data 72 [0]
 
 .fun short_sleep NORMAL [] = []
 .bbl entry
@@ -69,7 +75,22 @@
     pusharg msg
     bsr print_s_ln
 
-    bsr short_sleep
+    # bsr short_sleep
+     
+     mov i = 100
+.bbl loop2
+    sub i i 1
+    lea rusage:A32 gRUSAGE 0
+    lea siginfo:A32 gSIGINFO 0
+    pusharg rusage
+    pusharg 4:S32 # WEXITED
+    pusharg siginfo
+    pusharg 0:S32
+    pusharg 0:S32  # P_ALL
+    bsr waitid 
+    poparg x
+    bne i 0 loop2
+ 
     ld.mem sum:U32 gSUM 0
     conv iarg:U32 sum
     pusharg iarg

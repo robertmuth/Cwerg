@@ -172,7 +172,7 @@
     pusharg res
     ret
 
-# Note the syscall behaves differently from the library function:
+# Note the sbrk syscall behaves differently from the library function:
 # The Linux system call returns the new program break on success. On failure,
 # the system call returns the current break.
 # It also return the current program break when give zero as an argument
