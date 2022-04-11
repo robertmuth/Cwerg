@@ -5,8 +5,9 @@ This document sketches Cwerg's approach to the implementation of the existing ba
  like RISC V.
  
  The process is divided into the following steps
- 1. Implement an instruction encode/decoder for target
- 2. Implement the code selector
+ 1. Implement an instruction encode/decoder for the target ISA
+ 2. Implement the code/instruction selector which expands Cwerg IR instructions in to target
+    instructions.
  
  
  ### Target Instruction Encoder/Decoder
@@ -21,15 +22,15 @@ Not having a symbolic assembler means:
 * we need to deal with relocations ourselves and hence we try to limit the 
   relocations types in the code selection stage as much as possible
 * we need to disambiguate the (pseudo) instructions and addressing modes 
-  that look similar in the symbol notation but are wildly
+  that look similar in the "official" symbolic notation of the ISA but are wildly
   different in their binary encoding
   
-While not strictly necessary the existing backends implement a decoder and handle
+While not strictly necessary all existing backends implement a decoder and handle
 far more opcodes han necessary for the code selection stage.  
 
 Having a decoder is nice because it:
-* helps leverage a lot of work that went into `objdump`
 * allows us to test the encoder more easily 
+* helps leverage a lot of work that went into `objdump` (see below)
 * helps with the processing of relocations
 
 Our approach follow this playbook starting with the CpuXXX support
@@ -41,13 +42,15 @@ Our approach follow this playbook starting with the CpuXXX support
     The first (hex) number is the address (which can be ignored). The second number 
     is the hex encoding of the instruction. The rest is the symbolic form of
     instruction. 
-2.  Write a decode for all the hex encodings listed by `objdump`.
+2.  Write a decode for all the hex encodings listed by `objdump -d` into a raw form, e.g.
+    and enum identifying the opcode and a sequence of operands (integers copied out of 
+    the instructions word.).
 3.  Write a symbolizer that renders the intermediate representation produced by
     the decoder to symbolic form. 
-4.  Write some quick and dirty test verifying that this symbolic form is roughly
-    equivalent to symbolic form emitted by `objdump`.
+4.  Write some quick and dirty tests verifying that this symbolic form is roughly
+    equivalent to symbolic form emitted by `objdump -d`.
 5.  Write the encoder which converts the immediate representation back to hex
-    encoding.
+    encoding - both for the symbolic and raw representation.
 6.  Write an assembler_tool which converts simple textual programs (hello world 
     with syscalls) into working ELF-executables. Make an initial guess for what 
     relocation types will definitely needed and support/test those. 

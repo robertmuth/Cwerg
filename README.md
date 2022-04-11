@@ -77,7 +77,7 @@ any work on these):
   to fit into the complexity budget. Line numbers will likely be supported.
 * C++ exception/unwind tables. A lot of code and complexity that only benefits one language.
 * Linking against code produced with other toolchains. There are currently no plans
-  to emit linkable object code. And there is no ABI compatibility except for simple cases. 
+  to emit linkable object code. And there is no ABI compatibility except for simple cases and syscalls. 
 * Shared libs/dynamic linking adds complexity and slows programs down (both because
   of slower code idioms and prevention of optimizations), not
   to mention the DLL hell problem. (see also: https://drewdevault.com/dynlib, 
