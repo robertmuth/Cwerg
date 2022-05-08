@@ -162,22 +162,22 @@ enum class OPC_KIND : uint8_t {
 
 enum class DK : uint8_t {
     INVALID = 0,
-    S8 = 16,
-    S16 = 17,
-    S32 = 18,
-    S64 = 19,
-    U8 = 32,
-    U16 = 33,
-    U32 = 34,
-    U64 = 35,
-    F8 = 48,
-    F16 = 49,
-    F32 = 50,
-    F64 = 51,
-    A32 = 66,
-    A64 = 67,
-    C32 = 82,
-    C64 = 83,
+    S8 = 32,
+    S16 = 33,
+    S32 = 34,
+    S64 = 35,
+    U8 = 64,
+    U16 = 65,
+    U32 = 66,
+    U64 = 67,
+    F8 = 96,
+    F16 = 97,
+    F32 = 98,
+    F64 = 99,
+    A32 = 130,
+    A64 = 131,
+    C32 = 162,
+    C64 = 163,
 };
 
 enum class OP_KIND : uint8_t {
@@ -213,13 +213,13 @@ enum OA : uint16_t {
 };
 /* @AUTOGEN-END@ */
 
-constexpr const uint8_t DK_FLAVOR_S = 1 << 4;
-constexpr const uint8_t DK_FLAVOR_U = 2 << 4;
-constexpr const uint8_t DK_FLAVOR_F = 3 << 4;
-constexpr const uint8_t DK_FLAVOR_A = 4 << 4;
-constexpr const uint8_t DK_FLAVOR_C = 5 << 4;
+constexpr const uint8_t DK_FLAVOR_S = 0x20;
+constexpr const uint8_t DK_FLAVOR_U = 0x40;
+constexpr const uint8_t DK_FLAVOR_F = 0x60;
+constexpr const uint8_t DK_FLAVOR_A = 0x80;
+constexpr const uint8_t DK_FLAVOR_C = 0xa0;
 
-inline int DKFlavor(DK rk) { return uint8_t(rk) & 0x70; }
+inline int DKFlavor(DK rk) { return uint8_t(rk) & 0xe0; }
 inline int DKBitWidth(DK rk) { return 8 << (uint8_t(rk) & 0x7); }
 
 struct Opcode {

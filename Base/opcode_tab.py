@@ -186,19 +186,18 @@ class TC(enum.Enum):
 # DataType Flavors
 ############################################################
 
-DK_FLAVOR_S = 1 << 4   # signed int
-DK_FLAVOR_U = 2 << 4  # unsigned int
-DK_FLAVOR_F = 3 << 4  # ieee floating point
-DK_FLAVOR_A = 4 << 4  # data address
-DK_FLAVOR_C = 5 << 4 # code address
+DK_FLAVOR_S = 0x20  # signed int
+DK_FLAVOR_U = 0x40  # unsigned int
+DK_FLAVOR_F = 0x60  # ieee floating point
+DK_FLAVOR_A = 0x80  # data address
+DK_FLAVOR_C = 0xa0  # code address
 
 _DK_WIDTH_8 = 0
 _DK_WIDTH_16 = 1
 _DK_WIDTH_32 = 2
 _DK_WIDTH_64 = 3
 _DK_WIDTH_128 = 4
-_DK_WIDTH_256 = 5
-_DK_WIDTH_512 = 6
+
 
 class DK(enum.Enum):
     """Data Kind - primarily used to associate a type with Const and Reg"""
@@ -210,16 +209,19 @@ class DK(enum.Enum):
     S16 = DK_FLAVOR_S + _DK_WIDTH_16
     S32 = DK_FLAVOR_S + _DK_WIDTH_32
     S64 = DK_FLAVOR_S + _DK_WIDTH_64
+    # S128 = _RK_S + _RK_128
     # unsigned
     U8 = DK_FLAVOR_U + _DK_WIDTH_8
     U16 = DK_FLAVOR_U + _DK_WIDTH_16
     U32 = DK_FLAVOR_U + _DK_WIDTH_32
     U64 = DK_FLAVOR_U + _DK_WIDTH_64
+    # U128 = _RK_U + _RK_128
     # float
     F8 = DK_FLAVOR_F + _DK_WIDTH_8
     F16 = DK_FLAVOR_F + _DK_WIDTH_16
     F32 = DK_FLAVOR_F + _DK_WIDTH_32
     F64 = DK_FLAVOR_F + _DK_WIDTH_64
+    # F128 = _RK_F + _RK_128
     # data address
     A32 = DK_FLAVOR_A + _DK_WIDTH_32
     A64 = DK_FLAVOR_A + _DK_WIDTH_64
@@ -228,7 +230,7 @@ class DK(enum.Enum):
     C64 = DK_FLAVOR_C + _DK_WIDTH_64
 
     def flavor(self) -> int:
-        return self.value & 0x70
+        return self.value & 0xe0
 
     def bitwidth(self) -> int:
         return 8 << (self.value & 0x7)
