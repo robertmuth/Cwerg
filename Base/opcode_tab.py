@@ -748,7 +748,7 @@ CAS = Opcode(0x48, "cas", OPC_KIND.CAS,
                  OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                  TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
-             """NYI: Atomic Compare and Swap  
+             """Atomic Compare and Swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
@@ -761,7 +761,7 @@ CAS_MEM = Opcode(0x49, "cas.mem", OPC_KIND.CAS,
                      OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """NYI: Atomic Compare and Swap  
+                 """Atomic Compare and Swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
@@ -774,7 +774,7 @@ CAS_STK = Opcode(0x4a, "cas.stk", OPC_KIND.CAS,
                      OP_KIND.STK, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """NYI: AtomicCompare and Swap  
+                 """AtomicCompare and Swap  
 
                     addr = base + offset 
                     dst = RAM[addr] 

@@ -324,7 +324,7 @@ Store to stack base with offset. RAM[base + offset] := src
 ## Store
 
 #### [48] cas *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: Atomic Compare and Swap  
+Atomic Compare and Swap  
                 
                 addr = base + offset 
                 dst = RAM[addr] 
@@ -332,7 +332,7 @@ NYI: Atomic Compare and Swap
              
 
 #### [49] cas.mem *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: Atomic Compare and Swap  
+Atomic Compare and Swap  
                     
                     addr = base + offset 
                     dst = RAM[addr] 
@@ -340,7 +340,7 @@ NYI: Atomic Compare and Swap
                  
 
 #### [4a] cas.stk *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-NYI: AtomicCompare and Swap  
+AtomicCompare and Swap  
 
                     addr = base + offset 
                     dst = RAM[addr] 
