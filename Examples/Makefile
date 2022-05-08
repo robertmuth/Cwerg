@@ -7,8 +7,8 @@ tests: tests_c tests_py
 	@echo "[OK Examples]"
 
 tests_c: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
-         jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test 
-		
+         jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test
+
 tests_py: $(DIR)/jit_cpu_a32_pytest $(DIR)/jit_cpu_x64_pytest
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
@@ -16,16 +16,23 @@ QEMUX64 =
 QEMUA64 = qemu-aarch64-static
 QEMUA32 = qemu-arm-static
 
-
-
 ############################################################
 # A32
 ############################################################
 DIR_A32=builda32
-CXX_A32 = arm-linux-gnueabihf-g++
+
+# ubuntu is inconsistent in how it names the a32 toolchain 
+ifneq (, $(shell which arm-linux-gnueabihf-g++))
+  CXX_A32 = arm-linux-gnueabihf-g++
+else ifneq (, $(shell which arm-linux-gnueabi-g++-11))
+  CXX_A32 = arm-linux-gnueabi-g++-11
+else
+  $(error Cannot find a32 c++ compiler binary)
+endif
 CC_A32 = arm-linux-gnueabihf-gcc
 # https://stackoverflow.com/questions/48149323/what-does-the-gcc-warning-project-parameter-passing-for-x-changed-in-gcc-7-1-m
 A32_FLAGS = -DCWERG_DISABLE_UNWIND -Wl,-z,norelro -marm -march=armv7ve+fp -Wno-psabi
+
 
 setupa32:
 	mkdir -p $(DIR_A32) && cd $(DIR_A32) && CC=$(CC_A32) CXX=$(CXX_A32) cmake -DCWERG_FLAGS="$(A32_FLAGS)" -UCWERG_LIBS ../..
