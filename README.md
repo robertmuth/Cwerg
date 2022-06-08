@@ -4,7 +4,7 @@
 
 > **_NOTE:_**  The author is looking for projects that want to try out Cwerg. 
 > So if you are interested in using Cwerg for your own compiler
-> project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md]
+> project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md)
 > and/or reach out to the author.
 
 Cwerg is a lightweight compiler backend aimed at new programming 
