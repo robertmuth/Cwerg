@@ -190,7 +190,7 @@ DK_FLAVOR_S = 1 << 4   # signed int
 DK_FLAVOR_U = 2 << 4  # unsigned int
 DK_FLAVOR_F = 3 << 4  # ieee floating point
 DK_FLAVOR_A = 4 << 4  # data address
-DK_FLAVOR_C = 5 << 4 # code address
+DK_FLAVOR_C = 5 << 4  # code address
 
 _DK_WIDTH_8 = 0
 _DK_WIDTH_16 = 1
@@ -199,6 +199,7 @@ _DK_WIDTH_64 = 3
 _DK_WIDTH_128 = 4
 _DK_WIDTH_256 = 5
 _DK_WIDTH_512 = 6
+
 
 class DK(enum.Enum):
     """Data Kind - primarily used to associate a type with Const and Reg"""
@@ -1078,6 +1079,28 @@ def _render_h(fout):
 
 
 def _render_c(fout):
+    print("enum OPC {", file=fout)
+    last = 0
+    print(f"    INVALID = 0x00,", file=fout)
+    for opc in Opcode.Table.values():
+        if opc.group != OPC_GENUS.BASE:
+            continue
+        if (opc.no & 0xff0) != last & 0xff0:
+            print("", file=fout)
+            last = opc.no
+
+        name = opc.name.upper().replace(".", "_")
+        if opc.kind == OPC_KIND.DIRECTIVE:
+            name = "DIR_" + name[1:]
+        print(f"    {name} = 0x{opc.no:02x},", file=fout)
+    print("};", file=fout)
+
+    for cls in [FUN_KIND, MEM_KIND, DK]:
+        cgen.RenderEnum(cgen.NameValues(cls), f"{cls.__name__}",
+                        fout)
+
+
+def _render_cc(fout):
     def render(cls, both_ways=True):
         cgen.RenderEnumToStringMap(cgen.NameValues(cls), cls.__name__, fout)
         cgen.RenderEnumToStringFun(cls.__name__, fout)
@@ -1153,5 +1176,7 @@ if __name__ == "__main__":
             cgen.ReplaceContent(_render_h, sys.stdin, sys.stdout)
         elif sys.argv[1] == "gen_c":
             cgen.ReplaceContent(_render_c, sys.stdin, sys.stdout)
+        elif sys.argv[1] == "gen_cc":
+            cgen.ReplaceContent(_render_cc, sys.stdin, sys.stdout)
     else:
         Dump()
