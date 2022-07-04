@@ -80,7 +80,7 @@ opcode_gen.h: opcode_tab.py
 
 opcode_gen.cc: opcode_tab.py opcode_gen.h
 	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_c  < opcode_gen.cc > $(DIR)/$@.tmp
+	$(PYPY) ./opcode_tab.py gen_cc  < opcode_gen.cc > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
 $(DIR)/serialize_regression_test_c: opcode_gen.h opcode_gen.cc $(OPTIMIZE_TOOL)
