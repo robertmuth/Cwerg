@@ -1,6 +1,6 @@
 # Interfacing With Cwerg
 
-Cwerg inlcudes several components that might be interesting for other compiler projects
+Cwerg includes several components that might be helpful for other compiler projects:
 
 * the full backend
 * the Arm32 assembler (A32)
@@ -19,22 +19,28 @@ exectuables that accept textual input.
 
 
 Ports to other languages should be straight forward as all components are heavily
-table driven. Please contact the author if you need help with [porting](backend_porting.md)
-or have suggestions for making the code base easier to interface.
+table driven. Please contact the author if you need help with [porting](backend_porting.md) or have suggestions for making the code base easier to interface.
 
 
 
 Examples for JITing can be found in [Examples](../Examples).
 
 
-The A32 assembler can be found at [CpuA32/assembler_tool.py](../CpuA32/assembler_tool.py).
-[CpuA32/Makefile](../CpuA32/Makefile) has many usage examples as part of the `$(DIR)/%.test` target
+The Python3 implementation of the A32 assembler can be found at [CpuA32/assembler_tool.py](../CpuA32/assembler_tool.py).
+[CpuA32/Makefile](../CpuA32/Makefile) has many usage examples as part of the `$(DIR)/%.test` target.
  
 
+ The A64 and X64 assemblers follow the same organization.
 
 
+The full backend comes in 3 variants, one for each target architecture:
+ * [CodeGenA32](../CodeGenA32/)
+ * [CodeGenA64](../CodeGenA64/)
+ * [CodeGenX64](../CodeGenX64/)
 
-
+The Python3 implementation of the codegenerator (Cwert IR -> target code)
+lives in `codegen.py`. Usage examples are provided by the `$(DIR)/%.asm.exe` 
+targets in the `Makefile`.
 
 
 
