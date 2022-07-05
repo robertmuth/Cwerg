@@ -147,9 +147,10 @@ CW_Const CW_ConstNewU(enum CW_DK kind, uint64_t value);
 /* create unsigned int constant - must be of kind Sx, Ax  or Cx */
 CW_Const CW_ConstNewS(enum CW_DK kind, int64_t value);
 
-/* create unsigned int constant - must be of kind Fx */
+/* create floating point constant - must be of kind Fx */
 CW_Const ConstNewF(enum CW_DK kind, double value);
 
+/* create an Ins based on number of operands */
 CW_Ins CW_InsNew0(enum CW_OPC opc);
 CW_Ins CW_InsNew1(enum CW_OPC opc, CW_Handle op1);
 CW_Ins CW_InsNew2(enum CW_OPC opc, CW_Handle op1, CW_Handle op2);
@@ -162,16 +163,21 @@ CW_Ins CW_InsNew5(enum CW_OPC opc, CW_Handle op1, CW_Handle op2, CW_Handle op3,
 CW_Stk CW_StkNew(const char* name, uint32_t alignment, uint32_t size);
 
 CW_Bbl CW_BblNew(const char* name);
+  
+/* create a new function with the given signature */
 CW_Fun CW_FunNew(const char* name, enum CW_FUN_KIND kind, int num_out_args,
                  const enum CW_DK out_args[], int num_in_args,
                  const enum CW_DK in_args[]);
+  
 CW_Unit CW_UnitNew(const char* name);
 
 /* Add raw bytes to Mem */
 CW_Data CW_DataNewBytes(uint32_t num_bytes, const char* bytes, int repeat);
+  
 /* store address of Mem to Mem (num_bytes should be large enough to avoid
  * information loss) */
 CW_Data CW_DataNewMem(uint32_t num_bytes, CW_Mem mem);
+  
 /* store address of Fun to Mem* (num_bytes should be large enough to avoid
  * information loss) */
 CW_Data CW_DataNewFun(uint32_t num_bytes, CW_Fun fun);
@@ -180,9 +186,12 @@ CW_Mem CW_MemNew(const char* name, enum CW_MEM_KIND kind, uint32_t alignment);
 /* ============================================================ */
 /* linkers */
 /* ============================================================ */
+/* Add a Data item to the end of a Mem */ 
 CW_Data CW_MemDataAdd(CW_Mem mem, CW_Data data);
 
 CW_Mem CW_UnitMemAdd(CW_Unit unit, CW_Mem mem);
+
+/* Add a Fun to the end of a Unit */ 
 CW_Fun CW_UnitFunAdd(CW_Unit unit, CW_Fun fun);
 CW_Bbl CW_FunBblAdd(CW_Fun fun, CW_Bbl bbl);
 CW_Ins CW_BblInsAdd(CW_Bbl bbl, CW_Ins ins);
