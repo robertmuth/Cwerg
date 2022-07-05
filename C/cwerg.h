@@ -1,203 +1,193 @@
 #ifndef CWERG_H
 #define CWERG_H
 
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef uint32_t Handle; /* represent any of the typedefs below */
-typedef uint32_t Reg;    /* virtual register */
-typedef uint32_t Const;  /* concrete value that maybe stored in a register */
-typedef uint32_t Stk;    /* stack slot */
-typedef uint32_t Ins;    /* instruction */
-typedef uint32_t Bbl;    /* basic block */
-typedef uint32_t Fun;    /* function */
-typedef uint32_t Unit;   /* top level container for translation unit */
+#include <stdint.h>
 
-typedef uint32_t Jtb;  /* jump table */
-typedef uint32_t Mem;  /* named/addressable block of global memory */
-typedef uint32_t Data; /* Data Slice inside a Mem */
-typedef uint32_t Stk;  /* Stack slot */
 
-struct JtbEntry {
+typedef uint32_t CW_Handle; /* represent any of the typedefs below */
+typedef uint32_t CW_Reg;    /* virtual register */
+typedef uint32_t CW_Const;  /* concrete value that maybe stored in a register */
+typedef uint32_t CW_Stk;    /* stack slot */
+typedef uint32_t CW_Ins;    /* instruction */
+typedef uint32_t CW_Bbl;    /* basic block */
+typedef uint32_t CW_Fun;    /* function */
+typedef uint32_t CW_Unit;   /* top level container for translation unit */
+
+typedef uint32_t CW_Jtb;  /* jump table */
+typedef uint32_t CW_Mem;  /* named/addressable block of global memory */
+typedef uint32_t CW_Data; /* Data Slice inside a Mem */
+typedef uint32_t CW_Stk;  /* Stack slot */
+
+struct CW_JtbEntry {
   uint32_t pos;  // must be positive - value of case statement */
-  Bbl bbl;       // target of case statement */
+  CW_Bbl bbl;       // target of case statement */
 };
 
 /* @AUTOGEN-START@ */
-enum OPC {
-    INVALID = 0x00,
+enum CW_OPC {
 
-    ADD = 0x10,
-    SUB = 0x11,
-    MUL = 0x12,
-    DIV = 0x13,
-    XOR = 0x18,
-    AND = 0x19,
-    OR = 0x1a,
-    SHL = 0x1b,
-    SHR = 0x1c,
-    REM = 0x1d,
-    CLMUL = 0x1e,
+    CW_ADD = 0x10,
+    CW_SUB = 0x11,
+    CW_MUL = 0x12,
+    CW_DIV = 0x13,
+    CW_XOR = 0x18,
+    CW_AND = 0x19,
+    CW_OR = 0x1a,
+    CW_SHL = 0x1b,
+    CW_SHR = 0x1c,
+    CW_REM = 0x1d,
+    CW_CLMUL = 0x1e,
 
-    BEQ = 0x20,
-    BNE = 0x21,
-    BLT = 0x22,
-    BLE = 0x23,
-    SWITCH = 0x28,
-    BRA = 0x29,
-    RET = 0x2a,
-    BSR = 0x2b,
-    JSR = 0x2c,
-    SYSCALL = 0x2d,
-    TRAP = 0x2e,
+    CW_BEQ = 0x20,
+    CW_BNE = 0x21,
+    CW_BLT = 0x22,
+    CW_BLE = 0x23,
+    CW_SWITCH = 0x28,
+    CW_BRA = 0x29,
+    CW_RET = 0x2a,
+    CW_BSR = 0x2b,
+    CW_JSR = 0x2c,
+    CW_SYSCALL = 0x2d,
+    CW_TRAP = 0x2e,
 
-    PUSHARG = 0x30,
-    POPARG = 0x31,
-    CONV = 0x32,
-    BITCAST = 0x33,
-    MOV = 0x34,
-    CMPEQ = 0x35,
-    CMPLT = 0x36,
-    LEA = 0x38,
-    LEA_MEM = 0x39,
-    LEA_STK = 0x3a,
-    LEA_FUN = 0x3b,
+    CW_PUSHARG = 0x30,
+    CW_POPARG = 0x31,
+    CW_CONV = 0x32,
+    CW_BITCAST = 0x33,
+    CW_MOV = 0x34,
+    CW_CMPEQ = 0x35,
+    CW_CMPLT = 0x36,
+    CW_LEA = 0x38,
+    CW_LEA_MEM = 0x39,
+    CW_LEA_STK = 0x3a,
+    CW_LEA_FUN = 0x3b,
 
-    LD = 0x40,
-    LD_MEM = 0x41,
-    LD_STK = 0x42,
-    ST = 0x44,
-    ST_MEM = 0x45,
-    ST_STK = 0x46,
-    CAS = 0x48,
-    CAS_MEM = 0x49,
-    CAS_STK = 0x4a,
+    CW_LD = 0x40,
+    CW_LD_MEM = 0x41,
+    CW_LD_STK = 0x42,
+    CW_ST = 0x44,
+    CW_ST_MEM = 0x45,
+    CW_ST_STK = 0x46,
+    CW_CAS = 0x48,
+    CW_CAS_MEM = 0x49,
+    CW_CAS_STK = 0x4a,
 
-    CEIL = 0x50,
-    FLOOR = 0x51,
-    ROUND = 0x52,
-    TRUNC = 0x53,
-    COPYSIGN = 0x54,
-    SQRT = 0x55,
+    CW_CEIL = 0x50,
+    CW_FLOOR = 0x51,
+    CW_ROUND = 0x52,
+    CW_TRUNC = 0x53,
+    CW_COPYSIGN = 0x54,
+    CW_SQRT = 0x55,
 
-    CNTLZ = 0x60,
-    CNTTZ = 0x61,
-    CNTPOP = 0x62,
+    CW_CNTLZ = 0x60,
+    CW_CNTTZ = 0x61,
+    CW_CNTPOP = 0x62,
 
-    NOP = 0x70,
-    NOP1 = 0x71,
-    INLINE = 0x78,
-    GETFP = 0x79,
-    GETSP = 0x7a,
-    GETTP = 0x7b,
+    CW_NOP = 0x70,
+    CW_NOP1 = 0x71,
+    CW_INLINE = 0x78,
+    CW_GETFP = 0x79,
+    CW_GETSP = 0x7a,
+    CW_GETTP = 0x7b,
 
-    DIR_MEM = 0x01,
-    DIR_DATA = 0x02,
-    DIR_ADDR_FUN = 0x03,
-    DIR_ADDR_MEM = 0x04,
-    DIR_FUN = 0x05,
-    DIR_BBL = 0x06,
-    DIR_REG = 0x07,
-    DIR_STK = 0x08,
-    DIR_JTB = 0x09,
+};
+enum CW_DK {
+    CW_INVALID = 0x00,
+    CW_S8 = 0x10,
+    CW_S16 = 0x11,
+    CW_S32 = 0x12,
+    CW_S64 = 0x13,
+    CW_U8 = 0x20,
+    CW_U16 = 0x21,
+    CW_U32 = 0x22,
+    CW_U64 = 0x23,
+    CW_F8 = 0x30,
+    CW_F16 = 0x31,
+    CW_F32 = 0x32,
+    CW_F64 = 0x33,
+    CW_A32 = 0x42,
+    CW_A64 = 0x43,
+    CW_C32 = 0x52,
+    CW_C64 = 0x53,
 };
 
-enum FUN_KIND {
-    INVALID = 0,
-    BUILTIN = 1,
-    EXTERN = 2,
-    NORMAL = 3,
-    SIGNATURE = 4,
+enum CW_FUN_KIND {
+    CW_FUN_KIND_INVALID = 0,
+    CW_FUN_KIND_BUILTIN = 1,
+    CW_FUN_KIND_EXTERN = 2,
+    CW_FUN_KIND_NORMAL = 3,
+    CW_FUN_KIND_SIGNATURE = 4,
 };
 
-enum MEM_KIND {
-    INVALID = 0,
-    RO = 1,
-    RW = 2,
-    TLS = 3,
-    FIX = 4,
-    EXTERN = 5,
-    BUILTIN = 6,
-};
-
-enum DK {
-    INVALID = 0,
-    S8 = 16,
-    S16 = 17,
-    S32 = 18,
-    S64 = 19,
-    U8 = 32,
-    U16 = 33,
-    U32 = 34,
-    U64 = 35,
-    F8 = 48,
-    F16 = 49,
-    F32 = 50,
-    F64 = 51,
-    A32 = 66,
-    A64 = 67,
-    C32 = 82,
-    C64 = 83,
+enum CW_MEM_KIND {
+    CW_MEM_KIND_INVALID = 0,
+    CW_MEM_KIND_RO = 1,
+    CW_MEM_KIND_RW = 2,
+    CW_MEM_KIND_TLS = 3,
+    CW_MEM_KIND_FIX = 4,
+    CW_MEM_KIND_EXTERN = 5,
+    CW_MEM_KIND_BUILTIN = 6,
 };
 /* @AUTOGEN-END@ */
-
 
 
 /* ============================================================ */
 /* constructors */
 /* ============================================================ */
-Jtb JtbNew(const char* name, uint32_t size, Bbl def_bbl, int num_entries,
-           const JtbEntry entries[]);
+CW_Jtb CW_JtbNew(const char* name, uint32_t size, CW_Bbl def_bbl, int num_entries,
+           const CW_JtbEntry entries[]);
 
-Reg RegNew(DK kind, const char* name);
+CW_Reg CW_RegNew(CW_DK kind, const char* name);
 
 /* create unsigned int constant - must be of kind Ux */
-Const ConstNewU(DK kind, uint64_t value);
+CW_Const CW_ConstNewU(CW_DK kind, uint64_t value);
 
 /* create unsigned int constant - must be of kind Sx, Ax  or Cx */
-Const ConstNewS(DK kind, int64_t value);
+CW_Const CW_ConstNewS(CW_DK kind, int64_t value);
 
 /* create unsigned int constant - must be of kind Fx */
-Const ConstNewF(DK kind, double value);
+CW_Const ConstNewF(CW_DK kind, double value);
 
-Ins InsNew0(OPC opc);
-Ins InsNew1(OPC opc, Handle op1);
-Ins InsNew2(OPC opc, Handle op1, Handle op2);
-Ins InsNew3(OPC opc, Handle op1, Handle op2, Handle op3);
-Ins InsNew4(OPC opc, Handle op1, Handle op2, Handle op3, Handle op4);
-Ins InsNew5(OPC opc, Handle op1, Handle op2, Handle op3, Handle op4,
-            Handle op5);
+CW_Ins CW_InsNew0(CW_OPC opc);
+CW_Ins CW_InsNew1(CW_OPC opc, CW_Handle op1);
+CW_Ins CW_InsNew2(CW_OPC opc, CW_Handle op1, CW_Handle op2);
+CW_Ins CW_InsNew3(CW_OPC opc, CW_Handle op1, CW_Handle op2, CW_Handle op3);
+CW_Ins CW_InsNew4(CW_OPC opc, CW_Handle op1, CW_Handle op2, CW_Handle op3, CW_Handle op4);
+CW_Ins CW_InsNew5(CW_OPC opc, CW_Handle op1, CW_Handle op2, CW_Handle op3, CW_Handle op4,
+            CW_Handle op5);
 
-Stk StkNew(const char* const, uint32_t alignment, uint32_t size);
+CW_Stk CW_StkNew(const char* name, uint32_t alignment, uint32_t size);
 
-Bbl BblNew(const char* name);
-Fun FunNew(const char* name, FUN_KIND kind, int num_out_args, DK out_args[],
-           int num_in_args, DK in_argsp[]);
-Unit UnitNew(const char* name);
+CW_Bbl CW_BblNew(const char* name);
+CW_Fun CW_FunNew(const char* name, CW_FUN_KIND kind, int num_out_args, CW_DK out_args[],
+           int num_in_args, CW_DK in_argsp[]);
+CW_Unit CW_UnitNew(const char* name);
 
 /* Add raw bytes to Mem */
-Data DataNewBytes(int num_bytes, const char* bytes, int repeat);
+CW_Data CW_DataNewBytes(uint32_t num_bytes, const char* bytes, int repeat);
   /* store address of Mem to Mem (num_bytes should be large enough to avoid information loss) */
-Data DataNewMem(int num_bytes, Mem mem);
+CW_Data CW_DataNewMem(uint32_t num_bytes, CW_Mem mem);
  /* store address of Fun to Mem* (num_bytes should be large enough to avoid information loss) */
-Data DataNewFun(int num_bytes, Fun fun); 
+CW_Data CW_DataNewFun(uint32_t num_bytes, CW_Fun fun); 
 
 /* ============================================================ */
 /* linkers */
 /* ============================================================ */
-Data MemDataAdd(Mem mem, Data data);
+CW_Data CW_MemDataAdd(CW_Mem mem, CW_Data data);
 
-Mem UnitMemAdd(Unit unit, Mem mem);
-Fun UnitFunAdd(Unit unit, Fun fun);
-Bbl FunBblAdd(Fun fun, Bbl bbl);
-Ins BblInsAdd(Bbl bbl, Ins ins);
+CW_Mem CW_UnitMemAdd(CW_Unit unit, CW_Mem mem);
+CW_Fun CW_UnitFunAdd(CW_Unit unit, CW_Fun fun);
+CW_Bbl CW_FunBblAdd(CW_Fun fun, CW_Bbl bbl);
+CW_Ins CW_BblInsAdd(CW_Bbl bbl, CW_Ins ins);
 
-Reg FunRegAdd(Fun fun, Reg reg);
-Jtb FunJtbAdd(Fun, Jtb jtb);
-Stk FunStkAdd(Fun, Stk stk);
+CW_Reg CW_FunRegAdd(CW_Fun fun, CW_Reg reg);
+CW_Jtb CW_FunJtbAdd(CW_Fun fun, CW_Jtb jtb);
+CW_Stk CW_FunStkAdd(CW_Fun fun, CW_Stk stk);
 
 /* ============================================================ */
 /* */
@@ -207,4 +197,4 @@ Stk FunStkAdd(Fun, Stk stk);
 }
 #endif
 
-#endif CWERG_H
+#endif /* CWERG_H */

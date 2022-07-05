@@ -1079,9 +1079,8 @@ def _render_h(fout):
 
 
 def _render_c(fout):
-    print("enum OPC {", file=fout)
+    print("enum CW_OPC {", file=fout)
     last = 0
-    print(f"    INVALID = 0x00,", file=fout)
     for opc in Opcode.Table.values():
         if opc.group != OPC_GENUS.BASE:
             continue
@@ -1091,13 +1090,18 @@ def _render_c(fout):
 
         name = opc.name.upper().replace(".", "_")
         if opc.kind == OPC_KIND.DIRECTIVE:
-            name = "DIR_" + name[1:]
-        print(f"    {name} = 0x{opc.no:02x},", file=fout)
+            continue
+        print(f"    CW_{name} = 0x{opc.no:02x},", file=fout)
     print("};", file=fout)
 
-    for cls in [FUN_KIND, MEM_KIND, DK]:
-        cgen.RenderEnum(cgen.NameValues(cls), f"{cls.__name__}",
-                        fout)
+    print("enum CW_DK {", file=fout)
+    for name, value in cgen.NameValues(DK):
+        print(f"    CW_{name} = 0x{value:02x},", file=fout)
+    print("};", file=fout)
+
+    for cls in [FUN_KIND, MEM_KIND]:
+        cgen.RenderEnum(cgen.NameValues(cls), f"CW_{cls.__name__}",
+                        fout, prefix=f"CW_{cls.__name__}_")
 
 
 def _render_cc(fout):

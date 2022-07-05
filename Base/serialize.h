@@ -7,9 +7,16 @@
 
 namespace cwerg::base {
 
-extern Unit UnitParseFromAsm(const char* name, std::string_view input,
+extern bool UnitAppendFromAsm(Unit unit, std::string_view input,
                              const std::vector<CpuReg>& cpu_regs);
 
+inline Unit UnitParseFromAsm(const char* name, std::string_view input,
+                             const std::vector<CpuReg>& cpu_regs) {
+    Unit unit = UnitNew(StrNew(name));       
+    if (UnitAppendFromAsm(unit, input, cpu_regs)) return unit;
+    return Unit(0);  // unit leaks
+}
+                             
 extern void InsRenderToAsm(Ins ins, std::ostream* output);
 extern void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output,
                            bool number = false);
@@ -38,6 +45,11 @@ inline std::ostream& operator<<(std::ostream& os, Bbl bbl) {
 
 inline std::ostream& operator<<(std::ostream& os, Fun fun) {
   FunRenderToAsm(fun, &os);
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, Unit unit) {
+  UnitRenderToAsm(unit, &os);
   return os;
 }
 

@@ -433,8 +433,8 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
     }
       // case OK::FIELD: return Handle();
     case OP_KIND::BYTES: {
-      ASSERT (s.size() >= 2 && s[0] == '"', "expected quoted string got " << s);
-      return StrNew({s.data() + 1, s.size() - 2}); 
+      ASSERT(s.size() >= 2 && s[0] == '"', "expected quoted string got " << s);
+      return StrNew({s.data() + 1, s.size() - 2});
     }
     default:
       ASSERT(false, "unreachable");
@@ -777,14 +777,12 @@ void UnitRenderToAsm(Unit unit, std::ostream* output) {
   }
 }
 
-Unit UnitParseFromAsm(const char* name, std::string_view input,
-                      const std::vector<CpuReg>& cpu_regs) {
+bool UnitAppendFromAsm(Unit unit, std::string_view input,
+                       const std::vector<CpuReg>& cpu_regs) {
   std::map<std::string_view, CpuReg> cpu_reg_map;
   for (const CpuReg reg : cpu_regs) {
     cpu_reg_map[StrData(Name(reg))] = reg;
   }
-
-  Unit unit = UnitNew(StrNew(name));
 
   Handle operands[MAX_OPERANDS];
   std::vector<std::string_view> vec;
@@ -797,7 +795,7 @@ Unit UnitParseFromAsm(const char* name, std::string_view input,
     vec.clear();
     if (!ParseLineWithStrings(line, false, &vec)) {
       std::cerr << "Error while parsing line " << line_num << "\n" << line;
-      return Unit(0);
+      return false;
     }
 
     // std::cerr << "@@reading: " << line << "\n";
@@ -818,7 +816,7 @@ Unit UnitParseFromAsm(const char* name, std::string_view input,
     }
     if (opc == OPC::INVALID) {
       std::cerr << "Unknown opcode: " << line << "\n";
-      return Unit(0);
+      return false;
     }
 
     const Opcode& opcode = GlobalOpcodes[uint8_t(opc)];
@@ -827,7 +825,7 @@ Unit UnitParseFromAsm(const char* name, std::string_view input,
       ASSERT(handler != nullptr, "unsupported directive: " << opcode.name);
       if (!handler(token, unit)) {
         std::cerr << "Error processing line::\n" << line;
-        return Unit(0);
+        return false;
       }
     } else {
       const Fun fun = UnitFunList::Tail(unit);
@@ -836,7 +834,7 @@ Unit UnitParseFromAsm(const char* name, std::string_view input,
       ASSERT(!bbl.isnull(), "");
       if (!GetAllInsOperands(opcode, token, unit, fun, cpu_reg_map, operands)) {
         std::cerr << "Error parsing operands:\n" << line;
-        return Unit(0);
+        return false;
       }
       ASSERT(MAX_OPERANDS == 5, "Fix the call below if this fires");
       const Ins ins = InsNew(opc, operands[0], operands[1], operands[2],
@@ -846,8 +844,7 @@ Unit UnitParseFromAsm(const char* name, std::string_view input,
       // std::cerr << opcode.name << "\n";
     }
   }
-
-  return unit;
+  return true;
 }
 
 }  // namespace cwerg::base

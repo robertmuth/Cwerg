@@ -3,13 +3,13 @@ def NameValues(cls):
     return [(x.name, x.value) for x in cls]
 
 
-def RenderEnum(cls, name, fout):
+def RenderEnum(cls, name, fout, prefix=""):
     print(f"\nenum {name} {{", file=fout)
     for name, value in cls:
         if value <= 255:
-            print(f"    {name} = {value},", file=fout)
+            print(f"    {prefix}{name} = {value},", file=fout)
         else:
-            print(f"    {name} = 0x{value:x},", file=fout)
+            print(f"    {prefix}{name} = 0x{value:x},", file=fout)
     print("};", file=fout)
 
 
