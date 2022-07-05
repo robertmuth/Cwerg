@@ -21,7 +21,7 @@ extern "C" CW_Jtb CW_JtbNew(const char* name, uint32_t size, CW_Bbl def_bbl,
                             int num_entries, const CW_JtbEntry entries[]) {
   Jtb jtb = JtbNew(StrNew(name), size, Make<Bbl>(def_bbl));
   for (int i = 0; i < num_entries; ++i) {
-     JtbJenAdd(jtb, JenNew(entries[i].pos, Make<Bbl>(entries[i].bbl)));
+    JtbJenAdd(jtb, JenNew(entries[i].pos, Make<Bbl>(entries[i].bbl)));
   }
   return jtb.value;
 }
@@ -82,9 +82,20 @@ extern "C" CW_Bbl CW_BblNew(const char* name) {
   return BblNew(StrNew(name)).value;
 }
 
-extern "C" CW_Fun CW_FunNew(const char* name, CW_FUN_KIND kind,
-                            int num_out_args, CW_DK out_args[], int num_in_args,
-                            CW_DK in_argsp[]);
+extern "C" CW_Fun CW_FunNew(const char* name, enum CW_FUN_KIND kind,
+                            int num_out_args, const enum CW_DK out_args[],
+                            int num_in_args, const enum CW_DK in_args[]) {
+  Fun fun = FunNew(StrNew(name), FUN_KIND(kind));
+  FunNumOutputTypes(fun) = num_out_args;
+  for (int i = 0; i < num_out_args; ++i) {
+    FunOutputTypes(fun)[i] = DK(out_args[i]);
+  }
+  FunNumInputTypes(fun) = num_in_args;
+  for (int i = 0; i < num_in_args; ++i) {
+    FunInputTypes(fun)[i] = DK(in_args[i]);
+  }
+  return fun.value;
+}
 
 extern "C" CW_Unit CW_UnitNew(const char* name) {
   return UnitNew(StrNew(name)).value;
@@ -102,6 +113,11 @@ extern "C" CW_Data CW_DataNewMem(uint32_t num_bytes, CW_Mem mem) {
 
 extern "C" CW_Data CW_DataNewFun(uint32_t num_bytes, CW_Fun fun) {
   return DataNew(Make<Fun>(fun), num_bytes, 0).value;
+}
+
+extern "C" CW_Mem CW_MemNew(const char* name, enum CW_MEM_KIND kind,
+                            uint32_t alignment) {
+  return MemNew(StrNew(name), MEM_KIND(kind), alignment).value;
 }
 
 /* ============================================================ */
@@ -145,6 +161,10 @@ extern "C" CW_Stk CW_FunStkAdd(CW_Fun fun, CW_Stk stk) {
   return stk;
 }
 
-extern "C" void UnitDump(CW_Unit unit) {
-    UnitRenderToAsm(Make<Unit>(unit), &std::cout);
+extern "C" void CW_UnitDump(CW_Unit unit) {
+  UnitRenderToAsm(Make<Unit>(unit), &std::cout);
+}
+
+extern "C" void CW_InitStripes(uint32_t multiplier) {
+    InitStripes(multiplier);
 }

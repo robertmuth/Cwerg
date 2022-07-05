@@ -10,7 +10,8 @@ StripeGroup* StripeGroup::root = nullptr;
 
 Handle StripeGroup::New() {
   ASSERT(!first_free_.isnull(),
-         "out of item in " << name_ << ". Rerun with larger multiplier");
+         "out of items in " << name_ << ". Maybe re-run with larger multiplier, "
+         "Did you call InitStripes().");
   ++num_news_;
   Handle out = first_free_;
   StripeBase* sb = stripes_[0];

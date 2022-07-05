@@ -172,7 +172,7 @@ extern struct StripeGroup gStripeGroupMem;
 
 inline Str& Name(Mem mem) { return gMemBst[mem].name; }
 
-inline Mem MemNew(MEM_KIND kind, uint32_t alignment, Str name) {
+inline Mem MemNew(Str name, MEM_KIND kind, uint32_t alignment) {
   Mem out = Mem(gStripeGroupMem.New().index());
   gMemCore[out] = {Mem(0), Mem(0), alignment, kind, Data(out), Data(out)};
   Name(out) = name;

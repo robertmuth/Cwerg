@@ -89,7 +89,7 @@ bool MemHandler(const std::vector<std::string_view>& token, Unit unit) {
     std::cerr << "mem already defined: " << token[1] << "\n";
     return false;
   }
-  mem = MemNew(kind, num.value(), name);
+  mem = MemNew(name, kind, num.value());
 
   UnitMemAddBst(unit, mem);
   UnitMemAppendList(unit, mem);

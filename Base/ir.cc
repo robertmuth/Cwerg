@@ -555,7 +555,7 @@ Mem UnitFindOrAddConstMem(Unit unit, Const num) {
   Str name = StrNewMemConstName(data, ConstKind(num));
   Mem mem = UnitMemFind(unit, name);
   if (mem.isnull()) {
-    mem = MemNew(MEM_KIND::RO, data.size(), name);
+    mem = MemNew(name, MEM_KIND::RO, data.size());
     MemDataAdd(mem, DataNew(StrNew(data), data.size(), 1));
     UnitMemAdd(unit, mem);
   }
