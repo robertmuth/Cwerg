@@ -19,7 +19,6 @@ typedef uint32_t CW_Unit;   /* top level container for translation unit */
 typedef uint32_t CW_Jtb;  /* jump table */
 typedef uint32_t CW_Mem;  /* named/addressable block of global memory */
 typedef uint32_t CW_Data; /* Data Slice inside a Mem */
-typedef uint32_t CW_Stk;  /* Stack slot */
 
 struct CW_JtbEntry {
   uint32_t pos;  // must be positive - value of case statement */
