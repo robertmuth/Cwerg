@@ -25,6 +25,11 @@ struct CW_JtbEntry {
   CW_Bbl bbl;    // target of case statement */
 };
 
+/*
+CW_OPC enumerates all the available IR instructions.
+For more details see:  https://github.com/robertmuth/Cwerg/blob/master/Docs/opcodes.md
+*/
+  
 /* @AUTOGEN-START@ */
 enum CW_OPC {
 
