@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "C/cwerg.h"
 
 const enum CW_DK args[] = {CW_U32};
@@ -37,10 +40,23 @@ CW_Unit MakeFibonacci() {
   return unit;
 }
 
-int main() {
-  CW_InitStripes(4);
+int main(int argc, const char* argv[]) {
+  CW_Init(4);
 
   CW_Unit unit = MakeFibonacci();
-  CW_UnitDump(unit);
+
+  for (int i = 1; i < argc; ++i) {
+    FILE* fp = fopen(argv[i], "rb");
+    fseek(fp, 0L, SEEK_END);
+    int length = ftell(fp);
+    rewind(fp);
+    char* buf = malloc(length);
+    fread(buf, length, 1, fp);
+    fclose(fp);
+    CW_UnitAppendFromAsm(unit, buf);
+    free(buf);
+  }
+
+  puts(CW_UnitDump(unit));
   return 0;
 }

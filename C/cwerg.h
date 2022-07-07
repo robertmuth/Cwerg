@@ -207,9 +207,11 @@ CW_Stk CW_FunStkAdd(CW_Fun fun, CW_Stk stk);
 /* ============================================================ */
 /* */
 /* ============================================================ */
+void CW_Init(uint32_t stripe_multiplier);
 
-void CW_UnitDump(CW_Unit unit);
-void CW_InitStripes(uint32_t multiplier);
+char* CW_UnitDump(CW_Unit unit);
+
+int CW_UnitAppendFromAsm(CW_Unit unit, const char* buf);
 
 #ifdef __cplusplus
 }

@@ -3,6 +3,8 @@
 #include "Base/ir.h"
 #include "Base/serialize.h"
 
+#include <cstdlib>
+
 using namespace cwerg;
 using namespace cwerg::base;
 
@@ -14,7 +16,7 @@ T Make(CW_Handle h) {
 }  // namespace
 
 /* ============================================================ */
-/* constructors */
+/* Constructors */
 /* ============================================================ */
 
 extern "C" CW_Jtb CW_JtbNew(const char* name, uint32_t size, CW_Bbl def_bbl,
@@ -121,7 +123,7 @@ extern "C" CW_Mem CW_MemNew(const char* name, enum CW_MEM_KIND kind,
 }
 
 /* ============================================================ */
-/* linkers */
+/* Linkers */
 /* ============================================================ */
 
 extern "C" CW_Data CW_MemDataAdd(CW_Mem mem, CW_Data data) {
@@ -161,10 +163,22 @@ extern "C" CW_Stk CW_FunStkAdd(CW_Fun fun, CW_Stk stk) {
   return stk;
 }
 
-extern "C" void CW_UnitDump(CW_Unit unit) {
-  UnitRenderToAsm(Make<Unit>(unit), &std::cout);
+/* ============================================================ */
+/* Misc */
+/* ============================================================ */
+
+extern "C" char* CW_UnitDump(CW_Unit unit) {
+  std::ostringstream ss;
+  UnitRenderToAsm(Make<Unit>(unit), &ss);
+  char* buf = (char*)malloc(1 + ss.str().size());
+  strcpy(buf, ss.str().c_str());
+  return buf;
 }
 
-extern "C" void CW_InitStripes(uint32_t multiplier) {
-    InitStripes(multiplier);
+extern "C" int CW_UnitAppendFromAsm(CW_Unit unit, const char* buf) {
+    return UnitAppendFromAsm(Make<Unit>(unit), buf, {});
+}
+
+extern "C" void CW_Init(uint32_t stripe_multiplier) {
+    InitStripes(stripe_multiplier);
 }
