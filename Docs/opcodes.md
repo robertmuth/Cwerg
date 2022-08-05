@@ -146,6 +146,7 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 <!--- @AUTOGEN-START@ --->
 ### Overview
 | No | Format | Description |
+| ---- | ---- | ---- |
 | 0x10 | add dst = src1 src2 | Addition: dst := src1 + src2 |
 | 0x11 | sub dst = src1 src2 | Subtraction: dst := src1 - src2 |
 | 0x12 | mul dst = src1 src2 | Multiplication: dst := src1 \* src2 |
@@ -199,7 +200,7 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 | 0x62 | cntpop dst = src | Count set bits (pop count) |
 | 0x70 | nop  | nop - internal use. |
 | 0x71 | nop1 src_and_dst = | nop with one reg - internal use. Can be used to `reserve` a reg for code generation. |
-| 0x77 | line file line |  |
+| 0x77 | line file line | NYI |
 | 0x78 | inline target-asm-ins | inject arbitrary target instructions into instruction stream |
 | 0x79 | getfp dst | materialize the frame-pointer.  |
 | 0x7a | getsp dst | materialize the stack-pointer.  |
@@ -469,7 +470,7 @@ nop - internal use.
 nop with one reg - internal use. Can be used to `reserve` a reg for code generation.
 
 #### [77] line *file* <sub>[NAME]</sub> *line* <sub>[CONST:ANY]</sub>
-
+NYI
 
 #### [78] inline *target-asm-ins* <sub>[BYTES]</sub>
 inject arbitrary target instructions into instruction stream
