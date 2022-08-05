@@ -144,6 +144,75 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
    
 
 <!--- @AUTOGEN-START@ --->
+### Overview
+| No | Format | Description |
+| 0x10 | add dst = src1 src2 | Addition: dst := src1 + src2 |
+| 0x11 | sub dst = src1 src2 | Subtraction: dst := src1 - src2 |
+| 0x12 | mul dst = src1 src2 | Multiplication: dst := src1 \* src2 |
+| 0x13 | div dst = src1 src2 | Division: dst := src1 / src2  |
+| 0x18 | xor dst = src1 src2 | Bitwise exclusive or: dst := src1 ^ src2 |
+| 0x19 | and dst = src1 src2 | Bitwise and: dst := src1 & src2 |
+| 0x1a | or dst = src1 src2 | Bitwise or: dst := src1 | src2 |
+| 0x1b | shl dst = src1 src2 | Shift left: dst := src1 << src2 |
+| 0x1c | shr dst = src1 src2 | Shift right: dst := src1 >> src2 |
+| 0x1d | rem dst = src1 src2 | Modulo: dst := a % b |
+| 0x1e | clmul dst = src1 src2 | NYI: Carry-less multiplication |
+| 0x20 | beq op1 op2 target_bbl | Conditional branch: if equal |
+| 0x21 | bne op1 op2 target_bbl | Conditional branch: if not equal |
+| 0x22 | blt op1 op2 target_bbl | Conditional branch: if greater than |
+| 0x23 | ble op1 op2 target_bbl | Conditional branch: if less or equal |
+| 0x28 | switch index table | Multi target computed jump.  |
+| 0x29 | bra target_bbl | Unconditional branch. |
+| 0x2a | ret  | Return from subroutine. |
+| 0x2b | bsr target_fun | Branch to subroutine fun |
+| 0x2c | jsr target_fun_addr target_fun_sig | Jump indirectly to subroutine through reg |
+| 0x2d | syscall target_fun_sig syscall_no | Syscall to `syscall_no`.  |
+| 0x2e | trap  | Abort program. |
+| 0x30 | pusharg src | push a call or return arg  |
+| 0x31 | poparg dst = | pop a call or return arg  |
+| 0x32 | conv dst = src | Conversion of numerical regs |
+| 0x33 | bitcast dst = src | Cast between regs of same size.  |
+| 0x34 | mov dst = src | Move between registers.  |
+| 0x35 | cmpeq dst = src1 src2 cmp1 cmp2 | Conditional move (if equal). dst := (cmp1 == cmp2) ? src1 : src2 |
+| 0x36 | cmplt dst = src1 src2 cmp1 cmp2 | Conditional move (if less than). dst := (cmp1 < cmp2) ? src1 : src2  |
+| 0x38 | lea dst = base offset | Load effective address: dst  := base + offset   |
+| 0x39 | lea.mem dst = base offset | Load effective mem address with offset: dst := base + offset |
+| 0x3a | lea.stk dst = base offset | Load effective stk address with offset: dst := base + offset |
+| 0x3b | lea.fun dst = base | Load effective fun address: dst := base  |
+| 0x40 | ld dst = base offset | Load from reg base with offset:  dst := RAM[base + offset] |
+| 0x41 | ld.mem dst = base offset | Load from mem base with offset: dst := RAM[base + offset]  |
+| 0x42 | ld.stk dst = base offset | Load from stk base with offset: dst := RAM[base + offset] |
+| 0x44 | st base offset = src | Store to reg base with offset: RAM[base + offset] := src |
+| 0x45 | st.mem base offset = src | Store to mem base with offset: RAM[base + offset] := src |
+| 0x46 | st.stk base offset = src | Store to stk base with offset: RAM[base + offset] := src |
+| 0x48 | cas dst cmp src base offset | Atomic Compare and Swap   |
+| 0x49 | cas.mem dst cmp src base offset | Atomic Compare and Swap   |
+| 0x4a | cas.stk dst cmp src base offset | AtomicCompare and Swap   |
+| 0x50 | ceil dst = src | Round float to integral, toward positive infinity |
+| 0x51 | floor dst = src | Round float to integral, toward negative infinity |
+| 0x52 | round dst = src | Round float to integral, to nearest with ties to away |
+| 0x53 | trunc dst = src |  |
+| 0x54 | copysign dst = src1 src2 | Set the sign of src1 to match src2 (floating point only) |
+| 0x55 | sqrt dst = src | Compute the sqrt of floating point value |
+| 0x60 | cntlz dst = src | Count leading zeros. |
+| 0x61 | cnttz dst = src | Count trailing zeros. |
+| 0x62 | cntpop dst = src | Count set bits (pop count) |
+| 0x70 | nop  | nop - internal use. |
+| 0x71 | nop1 src_and_dst = | nop with one reg - internal use. Can be used to `reserve` a reg for code generation. |
+| 0x77 | line file line |  |
+| 0x78 | inline target-asm-ins | inject arbitrary target instructions into instruction stream |
+| 0x79 | getfp dst | materialize the frame-pointer.  |
+| 0x7a | getsp dst | materialize the stack-pointer.  |
+| 0x7b | gettp dst | materialize the tls-pointer.  |
+| 0x01 | .mem name alignment mem_kind | Add new memory region to unit |
+| 0x02 | .data repeat data | Add content to current memory region: multiple bytes |
+| 0x03 | .addr.fun width fun | Add content to current memory region: code address |
+| 0x04 | .addr.mem width mem offset | Add content to current memory region: memory address with offset |
+| 0x05 | .fun name fun_kind out_params in_params | Add new function to unit |
+| 0x06 | .bbl name | Add new basic block to current function |
+| 0x07 | .reg reg_kind names | Add new registers to current function |
+| 0x08 | .stk name alignment size | Add stack region to current function |
+| 0x09 | .jtb name size default_bbl map | bbl jump table: <name> <size> <default-bbl> <sparse-table> |
 ## Basic ALU
 
 #### [10] add *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
@@ -205,16 +274,16 @@ NYI: Carry-less multiplication
 ## Conditional Branches
 
 #### [20] beq *op1* <sub>[REG/CONST:ANY]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
-Conditional branch if equal.
+Conditional branch: if equal
 
 #### [21] bne *op1* <sub>[REG/CONST:ANY]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
-Conditional branch if not equal.
+Conditional branch: if not equal
 
 #### [22] blt *op1* <sub>[REG/CONST:ADDR_NUM]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
-Conditional branch if greater than.
+Conditional branch: if greater than
 
 #### [23] ble *op1* <sub>[REG/CONST:ADDR_NUM]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
-Conditional branch if less or equal.
+Conditional branch: if less or equal
 
 ## Other Control Flow
 
@@ -236,14 +305,14 @@ Return from subroutine.
 Branch to subroutine fun
 
 #### [2c] jsr *target_fun_addr* <sub>[REG:CODE]</sub> *target_fun_sig* <sub>[FUN]</sub>
-Jump indirectly to subroutine through register (fun describes the signature). 
+Jump indirectly to subroutine through reg
              
-             The signature must have been previously defined with the `.fun` directive.
+             Note: fun describes the signature which must have been previously defined with the `.fun` directive.
 
 #### [2d] syscall *target_fun_sig* <sub>[FUN]</sub> *syscall_no* <sub>[CONST:UINT]</sub>
-Syscall to `syscall_no`. (fun describes the signature). 
+Syscall to `syscall_no`. 
                  
-                 The signature must have been previously defined with the `.fun` directive.
+                 Note: fun describes the signature which must have been previously defined with the `.fun` directive.
 
 #### [2e] trap 
 Abort program.
@@ -251,20 +320,26 @@ Abort program.
 ## Move/Conversion
 
 #### [30] pusharg *src* <sub>[REG/CONST:ANY]</sub>
-push a call or return arg - must immediately precede bsr/jsr or ret.
+push a call or return arg 
+                 
+                 Note: must immediately precede bsr/jsr or ret.
 
 #### [31] poparg *dst* <sub>[REG:ANY]</sub> =
-pop a call or return arg - must immediately follow fun entry or bsr/jsr.
+pop a call or return arg 
+                
+                Note: must immediately follow fun entry or bsr/jsr.
 
 #### [32] conv *dst* <sub>[REG:NUM]</sub> = *src* <sub>[REG/CONST:NUM]</sub>
-Conversion of numerical regs which do not have to be of same size. Bits may change. 
+Conversion of numerical regs
               
+              Note: regs do not have to be of same size. Bits may change.
               If the conversion involves both a widening and a change of type, the widening is performed
               first. 
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
-Cast between regs of same size. Bits will be re-interpreted but do not change. 
+Cast between regs of same size. 
                  
+                 Note: Bits will be re-interpreted but do not change. 
                  This is useful for manipulating addresses in unusual ways or 
                  looking at the  binary representation of floats.
 
@@ -276,50 +351,52 @@ Move between registers.
              implement when combined with a canonicalization.
 
 #### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ANY]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2
+Conditional move (if equal). dst := (cmp1 == cmp2) ? src1 : src2
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 #### [36] cmplt *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ADDR_NUM]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
+Conditional move (if less than). dst := (cmp1 < cmp2) ? src1 : src2 
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 ## Address Arithmetic
 
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load effective Address. dst  := base + offset  
+Load effective address: dst  := base + offset  
              
              Note: dst and base are addresses but offset is not.
 
 #### [39] lea.mem *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load effective memory address with offset, dst := base + offset
+Load effective mem address with offset: dst := base + offset
 
 #### [3a] lea.stk *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load effective stack address with offset. dst := base + offset
+Load effective stk address with offset: dst := base + offset
 
 #### [3b] lea.fun *dst* <sub>[REG:CODE]</sub> = *base* <sub>[FUN]</sub>
-Load effective function address: dst := base (note: no offset).
+Load effective fun address: dst := base 
+                 
+                 Note: no offset
 
 ## Load
 
 #### [40] ld *dst* <sub>[REG:ANY]</sub> = *base* <sub>[REG/CONST:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load from register base with offset.  dst := RAM[base + offset]
+Load from reg base with offset:  dst := RAM[base + offset]
 
 #### [41] ld.mem *dst* <sub>[REG:ANY]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load from memory base with offset. dst := RAM[base + offset] 
+Load from mem base with offset: dst := RAM[base + offset] 
 
 #### [42] ld.stk *dst* <sub>[REG:ANY]</sub> = *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load from stack base with offset. dst := RAM[base + offset]
+Load from stk base with offset: dst := RAM[base + offset]
 
 #### [44] st *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
-Store to register base with offset. RAM[base + offset] := src
+Store to reg base with offset: RAM[base + offset] := src
 
 #### [45] st.mem *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
-Store to memory base with offset. RAM[base + offset] := src
+Store to mem base with offset: RAM[base + offset] := src
 
 #### [46] st.stk *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub> = *src* <sub>[REG/CONST:ANY]</sub>
-Store to stack base with offset. RAM[base + offset] := src
+Store to stk base with offset: RAM[base + offset] := src
 
 ## Store
 
@@ -361,6 +438,7 @@ Round float to integral, to nearest with ties to away
 #### [53] trunc *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 
                Round float to integral, toward zero.
+
                Note, frac(val) = val - trunc(val)
 
 #### [54] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
@@ -389,6 +467,9 @@ nop - internal use.
 
 #### [71] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
 nop with one reg - internal use. Can be used to `reserve` a reg for code generation.
+
+#### [77] line *file* <sub>[NAME]</sub> *line* <sub>[CONST:ANY]</sub>
+
 
 #### [78] inline *target-asm-ins* <sub>[BYTES]</sub>
 inject arbitrary target instructions into instruction stream

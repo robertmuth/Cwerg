@@ -73,6 +73,7 @@ enum class OPC : uint8_t {
 
     NOP = 0x70,
     NOP1 = 0x71,
+    LINE = 0x77,
     INLINE = 0x78,
     GETFP = 0x79,
     GETSP = 0x7a,
@@ -157,7 +158,8 @@ enum class OPC_KIND : uint8_t {
     CAS = 23,
     GETSPECIAL = 24,
     INLINE = 25,
-    DIRECTIVE = 26,
+    LINE = 26,
+    DIRECTIVE = 27,
 };
 
 enum class DK : uint8_t {

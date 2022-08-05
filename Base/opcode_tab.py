@@ -52,7 +52,8 @@ class OPC_KIND(enum.Enum):
     CAS = 23
     GETSPECIAL = 24
     INLINE = 25
-    DIRECTIVE = 26  # not a real instruction
+    LINE = 26
+    DIRECTIVE = 27  # not a real instruction
 
 
 _OF_TO_PURPOSE = {
@@ -71,6 +72,7 @@ _OF_TO_PURPOSE = {
     OPC_KIND.ST: ["base", "offset", "src"],
     OPC_KIND.NOP: [],
     OPC_KIND.NOP1: ["src_and_dst"],
+    OPC_KIND.LINE: ["file", "line"],
     OPC_KIND.BZERO: ["dst_addr", "width"],
     OPC_KIND.BCOPY: ["dst_addr", "src_addr", "width"],
     OPC_KIND.POPARG: ["dst"],
@@ -313,7 +315,8 @@ OKS_ALLOWED_FOR_INSTRUCTIONS = {OP_KIND.REG, OP_KIND.CONST,
                                 OP_KIND.REG_OR_CONST,
                                 OP_KIND.FUN, OP_KIND.BBL, OP_KIND.JTB,
                                 OP_KIND.MEM, OP_KIND.STK, OP_KIND.FIELD,
-                                OP_KIND.BYTES}
+                                OP_KIND.BYTES,
+                                OP_KIND.NAME}
 
 # we do not want non-scalar operands in instructions as they
 # increase memory usage and complicate the code
@@ -395,7 +398,7 @@ class Opcode:
         else:
             self.purpose = _OF_TO_PURPOSE[kind]
         assert len(self.purpose) == len(
-            operand_kinds), f"{name} {operand_kinds}"
+            operand_kinds), f"{name} {operand_kinds} vs {self.purpose}"
 
         assert len(operand_kinds) == len(constraints), f"{no} {name}"
         for ok, tc in zip(operand_kinds, constraints):
@@ -555,25 +558,25 @@ CLMUL = Opcode(0x1e, "clmul", OPC_KIND.ALU,
 BEQ = Opcode(0x20, "beq", OPC_KIND.COND_BRA,
              [OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST, OP_KIND.BBL],
              [TC.ANY, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.BASE,
-             "Conditional branch if equal.",
+             "Conditional branch: if equal",
              OA.COMMUTATIVE | OA.BBL_TERMINATOR)
 
 BNE = Opcode(0x21, "bne", OPC_KIND.COND_BRA,
              [OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST, OP_KIND.BBL],
              [TC.ANY, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.BASE,
-             "Conditional branch if not equal.",
+             "Conditional branch: if not equal",
              OA.COMMUTATIVE | OA.BBL_TERMINATOR)
 
 BLT = Opcode(0x22, "blt", OPC_KIND.COND_BRA,
              [OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST, OP_KIND.BBL],
              [TC.ADDR_NUM, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.BASE,
-             "Conditional branch if greater than.",
+             "Conditional branch: if greater than",
              OA.BBL_TERMINATOR)
 
 BLE = Opcode(0x23, "ble", OPC_KIND.COND_BRA,
              [OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST, OP_KIND.BBL],
              [TC.ADDR_NUM, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.BASE,
-             "Conditional branch if less or equal.",
+             "Conditional branch: if less or equal",
              OA.BBL_TERMINATOR)
 
 ############################################################
@@ -602,17 +605,17 @@ BSR = Opcode(0x2b, "bsr", OPC_KIND.BSR, [OP_KIND.FUN],
              OA.CALL)
 JSR = Opcode(0x2c, "jsr", OPC_KIND.JSR, [OP_KIND.REG, OP_KIND.FUN],
              [TC.CODE, TC.INVALID], OPC_GENUS.BASE,
-             """Jump indirectly to subroutine through register (fun describes the signature). 
+             """Jump indirectly to subroutine through reg
              
-             The signature must have been previously defined with the `.fun` directive.""",
+             Note: fun describes the signature which must have been previously defined with the `.fun` directive.""",
              OA.CALL)
 
 SYSCALL = Opcode(0x2d, "syscall", OPC_KIND.SYSCALL,
                  [OP_KIND.FUN, OP_KIND.CONST],
                  [TC.INVALID, TC.UINT], OPC_GENUS.BASE,
-                 """Syscall to `syscall_no`. (fun describes the signature). 
+                 """Syscall to `syscall_no`. 
                  
-                 The signature must have been previously defined with the `.fun` directive.""",
+                 Note: fun describes the signature which must have been previously defined with the `.fun` directive.""",
                  OA.CALL)
 
 TRAP = Opcode(0x2e, "trap", OPC_KIND.RET, [],
@@ -625,27 +628,33 @@ TRAP = Opcode(0x2e, "trap", OPC_KIND.RET, [],
 
 PUSHARG = Opcode(0x30, "pusharg", OPC_KIND.PUSHARG, [OP_KIND.REG_OR_CONST],
                  [TC.ANY], OPC_GENUS.BASE,
-                 "push a call or return arg - must immediately precede bsr/jsr or ret.",
+                 """push a call or return arg 
+                 
+                 Note: must immediately precede bsr/jsr or ret.""",
                  OA.SPECIAL)
 
 POPARG = Opcode(0x31, "poparg", OPC_KIND.POPARG, [OP_KIND.REG],
                 [TC.ANY], OPC_GENUS.BASE,
-                "pop a call or return arg - must immediately follow fun entry or bsr/jsr.",
+                """pop a call or return arg 
+                
+                Note: must immediately follow fun entry or bsr/jsr.""",
                 OA.SPECIAL)
 
 CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.NUM, TC.NUM], OPC_GENUS.BASE,
               # TODO: specify rounding and overflow for float <-> int conversions
-              """Conversion of numerical regs which do not have to be of same size. Bits may change. 
+              """Conversion of numerical regs
               
+              Note: regs do not have to be of same size. Bits may change.
               If the conversion involves both a widening and a change of type, the widening is performed
               first. """)
 
 BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_SIZE_AS_PREV], OPC_GENUS.BASE,
-                 """Cast between regs of same size. Bits will be re-interpreted but do not change. 
+                 """Cast between regs of same size. 
                  
+                 Note: Bits will be re-interpreted but do not change. 
                  This is useful for manipulating addresses in unusual ways or 
                  looking at the  binary representation of floats.""")
 
@@ -663,7 +672,7 @@ CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ANY,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               """Conditional move (compare equal). dst := (cmp1 == cmp2) ? src1 : src2
+               """Conditional move (if equal). dst := (cmp1 == cmp2) ? src1 : src2
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""",
                OA.COMMUTATIVE)
@@ -674,7 +683,7 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ADDR_NUM,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               """Conditional move (compare less than). dst := (cmp1 < cmp2) ? src1 : src2 
+               """Conditional move (if less than). dst := (cmp1 < cmp2) ? src1 : src2 
                
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
 
@@ -683,21 +692,23 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.ADDR, TC.SAME_AS_PREV, TC.OFFSET], OPC_GENUS.BASE,
-             """Load effective Address. dst  := base + offset  
+             """Load effective address: dst  := base + offset  
              
              Note: dst and base are addresses but offset is not.""")
 
 LEA_MEM = Opcode(0x39, "lea.mem", OPC_KIND.LEA,
                  [OP_KIND.REG, OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                  [TC.ADDR, TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 "Load effective memory address with offset, dst := base + offset")
+                 "Load effective mem address with offset: dst := base + offset")
 LEA_STK = Opcode(0x3a, "lea.stk", OPC_KIND.LEA,
                  [OP_KIND.REG, OP_KIND.STK, OP_KIND.REG_OR_CONST],
                  [TC.ADDR, TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 "Load effective stack address with offset. dst := base + offset")
+                 "Load effective stk address with offset: dst := base + offset")
 LEA_FUN = Opcode(0x3b, "lea.fun", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FUN],
                  [TC.CODE, TC.INVALID], OPC_GENUS.BASE,
-                 "Load effective function address: dst := base (note: no offset).")
+                 """Load effective fun address: dst := base 
+                 
+                 Note: no offset""")
 
 ############################################################
 # LOAD STORE 0x40
@@ -707,38 +718,38 @@ LEA_FUN = Opcode(0x3b, "lea.fun", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FUN],
 LD = Opcode(0x40, "ld", OPC_KIND.LD,
             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
             [TC.ANY, TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
-            "Load from register base with offset.  dst := RAM[base + offset]",
+            "Load from reg base with offset:  dst := RAM[base + offset]",
             OA.MEM_RD)
 
 # note: signedness of offset may matter here
 LD_MEM = Opcode(0x41, "ld.mem", OPC_KIND.LD,
                 [OP_KIND.REG, OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                 [TC.ANY, TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                "Load from memory base with offset. dst := RAM[base + offset] ",
+                "Load from mem base with offset: dst := RAM[base + offset] ",
                 OA.MEM_RD)
 
 LD_STK = Opcode(0x42, "ld.stk", OPC_KIND.LD,
                 [OP_KIND.REG, OP_KIND.STK, OP_KIND.REG_OR_CONST],
                 [TC.ANY, TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                "Load from stack base with offset. dst := RAM[base + offset]",
+                "Load from stk base with offset: dst := RAM[base + offset]",
                 OA.MEM_RD)
 
 ST = Opcode(0x44, "st", OPC_KIND.ST,
             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
             [TC.ADDR, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
-            "Store to register base with offset. RAM[base + offset] := src",
+            "Store to reg base with offset: RAM[base + offset] := src",
             OA.MEM_WR)
 
 ST_MEM = Opcode(0x45, "st.mem", OPC_KIND.ST,
                 [OP_KIND.MEM, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                 [TC.INVALID, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
-                "Store to memory base with offset. RAM[base + offset] := src",
+                "Store to mem base with offset: RAM[base + offset] := src",
                 OA.MEM_WR)
 
 ST_STK = Opcode(0x46, "st.stk", OPC_KIND.ST,
                 [OP_KIND.STK, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                 [TC.INVALID, TC.OFFSET, TC.ANY], OPC_GENUS.BASE,
-                "Store to stack base with offset. RAM[base + offset] := src",
+                "Store to stk base with offset: RAM[base + offset] := src",
                 OA.MEM_WR)
 
 ###########################################################
@@ -805,6 +816,7 @@ TRUNC = Opcode(0x53, "trunc", OPC_KIND.ALU1,
                [TC.FLT, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                """
                Round float to integral, toward zero.
+
                Note, frac(val) = val - trunc(val)""")
 
 COPYSIGN = Opcode(0x54, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
@@ -873,10 +885,10 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
               "nop with one reg - internal use. Can be used to `reserve` a reg for code generation.",
               OA.SPECIAL)
 
-# LINE = Opcode(0x78, "line", OPC_KIND., [OP_KIND.NAME, OP_KIND.CONST],
-#              [TC.ANY], OPC_GENUS.BASE,
-#              "",
-#              OA.SPECIAL)
+LINE = Opcode(0x77, "line", OPC_KIND.LINE, [OP_KIND.NAME, OP_KIND.CONST],
+              [TC.INVALID, TC.ANY], OPC_GENUS.BASE,
+              "NYI",
+              OA.SPECIAL)
 
 ############################################################
 # Misc 0x78
@@ -966,6 +978,7 @@ Directive(0x09, ".jtb",
           [OP_KIND.NAME, OP_KIND.INT, OP_KIND.BBL, OP_KIND.BBL_TAB],
           "bbl jump table: <name> <size> <default-bbl> <sparse-table>")
 
+
 ############################################################
 # experimental/unimplemented
 ############################################################
@@ -1038,7 +1051,23 @@ def _render_opcode_doc(o: Opcode, fout):
     # '.join(cons)}]"
 
 
+def _render_opcode_summary(fout):
+    print("### Overview", file=fout)
+    print("| No | Format | Description |", file=fout)
+    for o in Opcode.Table.values():
+        if o.group != OPC_GENUS.BASE:
+            continue
+        purposes = o.purpose[:]
+        if o.kind in _OFS_WRITING_REGS:
+            purposes.insert(1, "=")
+        if o.kind in {OPC_KIND.ST}:
+            purposes.insert(-1, "=")
+        desc = o.desc.split("\n")[0]
+        print(f"| 0x{o.no:02x} | {o.name} {' '.join(purposes)} | {desc} |", file=fout)
+
+
 def _render_documentation(fout):
+    _render_opcode_summary(fout)
     for opc in Opcode.Table.values():
         if opc.group != OPC_GENUS.BASE:
             continue
