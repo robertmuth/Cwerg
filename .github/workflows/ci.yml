@@ -45,8 +45,8 @@ jobs:
         chmod a+r qemu-user-static_4.2-3ubuntu6.17_amd64.deb
         sudo dpkg -i qemu-user-static_4.2-3ubuntu6.17_amd64.deb
         echo
-        sudo apt-get install libunwind-dev gcc-multilib
-        sudo apt-get install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf
+        sudo apt-get install libunwind-dev
+        sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu 
         # sudo apt-get install qemu-user-static
     - name: Show Version Summary
