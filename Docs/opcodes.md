@@ -205,15 +205,15 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 | 0x79 | getfp dst | Materialize the frame-pointer.  |
 | 0x7a | getsp dst | Materialize the stack-pointer.  |
 | 0x7b | gettp dst | Materialize the tls-pointer.  |
-| 0x01 | .mem name alignment mem_kind | Add new memory region to unit |
-| 0x02 | .data repeat data | Add content to current memory region: multiple bytes |
-| 0x03 | .addr.fun width fun | Add content to current memory region: code address |
-| 0x04 | .addr.mem width mem offset | Add content to current memory region: memory address with offset |
-| 0x05 | .fun name fun_kind out_params in_params | Add new function to unit |
-| 0x06 | .bbl name | Add new basic block to current function |
-| 0x07 | .reg reg_kind names | Add new registers to current function |
-| 0x08 | .stk name alignment size | Add stack region to current function |
-| 0x09 | .jtb name size default_bbl map | bbl jump table: <name> <size> <default-bbl> <sparse-table> |
+| 0x01 | .mem name alignment mem_kind | Add new mem region to unit |
+| 0x02 | .data repeat data | Add content to current mem region: multiple bytes |
+| 0x03 | .addr.fun width fun | Add content to current mem region: code address |
+| 0x04 | .addr.mem width mem offset | Add content to current mem region: memory address with offset |
+| 0x05 | .fun name fun_kind out_params in_params | Add new fun to unit |
+| 0x06 | .bbl name | Add new bbl to current fun |
+| 0x07 | .reg reg_kind names | Add new regs to current fun |
+| 0x08 | .stk name alignment size | Add stk region to current fun |
+| 0x09 | .jtb name size default_bbl map | Add jump table to current fun |
 ## Basic ALU
 
 #### [10] add *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
@@ -495,31 +495,31 @@ Materialize the tls-pointer.
 ## Directives
 
 #### [01] .mem *name* <sub>[NAME]</sub> *alignment* <sub>[INT]</sub> *mem_kind* <sub>[MEM_KIND]</sub>
-Add new memory region to unit
+Add new mem region to unit
 
 #### [02] .data *repeat* <sub>[INT]</sub> *data* <sub>[BYTES]</sub>
-Add content to current memory region: multiple bytes
+Add content to current mem region: multiple bytes
 
 #### [03] .addr.fun *width* <sub>[INT]</sub> *fun* <sub>[FUN]</sub>
-Add content to current memory region: code address
+Add content to current mem region: code address
 
 #### [04] .addr.mem *width* <sub>[INT]</sub> *mem* <sub>[MEM]</sub> *offset* <sub>[INT]</sub>
-Add content to current memory region: memory address with offset
+Add content to current mem region: memory address with offset
 
 #### [05] .fun *name* <sub>[NAME]</sub> *fun_kind* <sub>[FUN_KIND]</sub> *out_params* <sub>[TYPE_LIST]</sub> *in_params* <sub>[TYPE_LIST]</sub>
-Add new function to unit
+Add new fun to unit
 
 #### [06] .bbl *name* <sub>[NAME]</sub>
-Add new basic block to current function
+Add new bbl to current fun
 
 #### [07] .reg *reg_kind* <sub>[DATA_KIND]</sub> *names* <sub>[NAME_LIST]</sub>
-Add new registers to current function
+Add new regs to current fun
 
 #### [08] .stk *name* <sub>[NAME]</sub> *alignment* <sub>[INT]</sub> *size* <sub>[INT]</sub>
-Add stack region to current function
+Add stk region to current fun
 
 #### [09] .jtb *name* <sub>[NAME]</sub> *size* <sub>[INT]</sub> *default_bbl* <sub>[BBL]</sub> *map* <sub>[BBL_TAB]</sub>
-bbl jump table: <name> <size> <default-bbl> <sparse-table>
+Add jump table to current fun
 
 <!--- @AUTOGEN-END@ --->
 

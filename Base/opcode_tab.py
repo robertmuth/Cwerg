@@ -953,34 +953,34 @@ def Directive(no: int, name: str, operands, desc,
 
 
 Directive(0x01, ".mem", [OP_KIND.NAME, OP_KIND.INT, OP_KIND.MEM_KIND],
-          "Add new memory region to unit")
+          "Add new mem region to unit")
 
 Directive(0x02, ".data", [OP_KIND.INT, OP_KIND.BYTES],
-          "Add content to current memory region: multiple bytes")
+          "Add content to current mem region: multiple bytes")
 
 Directive(0x03, ".addr.fun", [OP_KIND.INT, OP_KIND.FUN],
-          "Add content to current memory region: code address")
+          "Add content to current mem region: code address")
 
 Directive(0x04, ".addr.mem", [OP_KIND.INT, OP_KIND.MEM, OP_KIND.INT],
-          "Add content to current memory region: "
+          "Add content to current mem region: "
           "memory address with offset")
 
 Directive(0x05, ".fun", [OP_KIND.NAME, OP_KIND.FUN_KIND, OP_KIND.TYPE_LIST,
                          OP_KIND.TYPE_LIST],
-          "Add new function to unit")
+          "Add new fun to unit")
 
 Directive(0x06, ".bbl", [OP_KIND.NAME],
-          "Add new basic block to current function")
+          "Add new bbl to current fun")
 
 Directive(0x07, ".reg", [OP_KIND.DATA_KIND, OP_KIND.NAME_LIST],
-          "Add new registers to current function")
+          "Add new regs to current fun")
 
 Directive(0x08, ".stk", [OP_KIND.NAME, OP_KIND.INT, OP_KIND.INT],
-          "Add stack region to current function")
+          "Add stk region to current fun")
 
 Directive(0x09, ".jtb",
           [OP_KIND.NAME, OP_KIND.INT, OP_KIND.BBL, OP_KIND.BBL_TAB],
-          "bbl jump table: <name> <size> <default-bbl> <sparse-table>")
+          "Add jump table to current fun")
 
 
 ############################################################
