@@ -7,6 +7,7 @@ TESTS = hello.asm
 
 TEST_INSTRUCTIONS = "ff b5 b8 f9 ff ff" \
                     "6a 12" \
+                    "40 b6 0a" \
                     "48 8b 05 a7 40 7f 00" \
                     "48 89 b4 04 50 01 00 00" \
                     "48 89 84 24 f0 00 00 00" \
@@ -93,7 +94,9 @@ $(ASSEMBLER_TOOL): $(GENERATED)
 $(DISASSEMBLER_TOOL): $(GENERATED)
 	@cd $(BUILD_DIR); $(MAKE) -s x64_disassembler_tool.exe
 
-
+############################################################
+# Parity
+############################################################
 
 $(DIR)/symbolize_parity:
 	@echo "[$@]"
@@ -115,7 +118,10 @@ $(DIR)/codegen_parity:
 	$(PYPY)	./assembler_tool.py assemble TestData/hello.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
-
+	$(ASSEMBLER_TOOL) assemble TestData/fib.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/fib.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
+	@echo
 
 clean:
 	rm -f $(DIR)/*

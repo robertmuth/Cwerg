@@ -956,7 +956,7 @@ class Opcode:
                      OK.BYTE_WITH_REG64}:
                 if o in {OK.MODRM_RM_REG8, OK.MODRM_REG8, OK.BYTE_WITH_REG8} and (4 <= v <= 7):
                     return True  # force rex, otherwise we select ah, ch, dh, bh
-                if v >> 3:
+                if v >> 3:   # uses register r8 or  higher
                     return True
         return False
 

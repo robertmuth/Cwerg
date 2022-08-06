@@ -7,6 +7,11 @@ ff b5 b8 f9 ff ff push_64_mB32 MEM64 rbp -0x648
     push_64_imm8
     IMM8_64                             0x12       (0x12)
 
+40 b6 0a mov_8_r_imm8 sil 0xa
+    mov_8_r_imm8
+    BYTE_WITH_REG8                      sil        (0x6)
+    IMM8                                0xa        (0xa)
+
 48 8b 05 a7 40 7f 00 mov_64_r_mpc32 rax MEM64 rip 0x7f40a7
     mov_64_r_mpc32
     MODRM_REG64                         rax        (0x0)

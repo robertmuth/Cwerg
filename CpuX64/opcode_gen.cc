@@ -367,7 +367,9 @@ void SetOperand(OK ok, int64_t v, const Opcode& opcode, char* data,
       return;
     case OK::BYTE_WITH_REG8:
       SetRegBits(data, v, opcode.byte_with_reg_pos, 0, 0, rex);
-      ASSERT(4 <= v && v <= 7, "high bytes are not supported (ah, ...)");
+      if (4 <= v && v <= 7) { // avoid high bytes 
+          *rex |= 0x40;
+      }
       return;
     case OK::BYTE_WITH_REG16:
     case OK::BYTE_WITH_REG32:
@@ -433,6 +435,7 @@ bool UsesRex(const Ins& ins) {
     switch (opcode.fields[i]) {
       case OK::MODRM_RM_REG8:
       case OK::MODRM_REG8:
+      case OK::BYTE_WITH_REG8:
         if (4 <= v && v <= 7) return true;
         // fallthrough
       case OK::MODRM_RM_REG16:
@@ -451,7 +454,6 @@ bool UsesRex(const Ins& ins) {
       case OK::SIB_BASE:
       case OK::SIB_INDEX:
       case OK::SIB_INDEX_AS_BASE:
-      case OK::BYTE_WITH_REG8:
       case OK::BYTE_WITH_REG16:
       case OK::BYTE_WITH_REG32:
       case OK::BYTE_WITH_REG64:

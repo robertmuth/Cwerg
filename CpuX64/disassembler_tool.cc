@@ -1,14 +1,14 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuX64/opcode_gen.h"
-#include "CpuX64/symbolic.h"
-#include "Util/assert.h"
-#include "Util/parse.h"
-
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <string_view>
+
+#include "CpuX64/opcode_gen.h"
+#include "CpuX64/symbolic.h"
+#include "Util/assert.h"
+#include "Util/parse.h"
 
 using namespace cwerg::x64;
 
@@ -105,8 +105,10 @@ void disass(std::string_view data, const std::string& line) {
   disass_long(ins, line);
   char buffer[128];
   const uint32_t num_bytes = Assemble(ins, buffer);
-  ASSERT(num_bytes == data.size(), "assembler size mismatch");
-  ASSERT(num_bytes == UsesRex(ins) + ins.opcode->num_bytes, "");
+  ASSERT(num_bytes == UsesRex(ins) + ins.opcode->num_bytes,
+         "size mismatch " << num_bytes << " vs "
+                          << UsesRex(ins) + ins.opcode->num_bytes);
+  ASSERT(num_bytes == data.size(), "re-assembler size mismatch");
   /*
   for (uint32_t i = 0; i < num_bytes; ++i) {
     std::cout << std::hex << (unsigned(data[i]) & 0xff) << " "
