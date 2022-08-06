@@ -28,7 +28,6 @@ constexpr auto operator+(T e) noexcept
 }
 
 std::string_view padding_zero("\0", 1);
-std::string_view padding_nop("\x90", 1);
 
 void JtbCodeGen(Jtb jtb, std::ostream* output) {
   std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
@@ -205,7 +204,7 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit) {
 
   for (Fun fun : UnitFunIter(unit)) {
     ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
-    out.FunStart(StrData(Name(fun)), 16, padding_nop);
+    out.FunStart(StrData(Name(fun)), 16, x64::TextPadder);
     for (Jtb jtb : FunJtbIter(fun)) {
       std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
       for (Jen jen : JtbJenIter(jtb)) {
@@ -221,7 +220,7 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit) {
     EmitFunProlog(ctx, &inss);
     drain();
     for (Bbl bbl : FunBblIter(fun)) {
-      out.AddLabel(StrData(Name(bbl)), 1, padding_nop);
+      out.AddLabel(StrData(Name(bbl)), 1, x64::TextPadder);
       for (Ins ins : BblInsIter(bbl)) {
         if (InsOPC(ins) == OPC::NOP1) {
           ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));

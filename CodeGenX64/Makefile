@@ -5,7 +5,9 @@ DIR=build
 QEMU=
 
 $(info $(shell mkdir -p $(DIR)))
-TESTS = cmp.asm \
+TESTS = fib.asm \
+        fib_debug.asm \
+        cmp.asm \
         reg_torture.asm \
         reg_torture_f32.asm \
         fp_op.asm \
@@ -17,7 +19,6 @@ TESTS = cmp.asm \
         stack.asm \
         int_op.asm \
         queens.64.asm \
-        fib.asm \
         stack.asm \
         pfannkuchen.64.asm
 
@@ -35,7 +36,9 @@ tests_py: $(DIR)/isel_test \
 	    $(DIR)/cli.x64.asm.exe \
 		$(DIR)/threads.x64.asm.exe  $(TEST_EXES) $(DIR)/nanojpeg
 
-tests_c: $(DIR)/isel_test_c $(DIR)/codegen_parity
+tests_c: $(DIR)/isel_test_c $(DIR)/codegen_parity 
+
+# $(TEST_C_EXES)
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
@@ -103,27 +106,40 @@ CODEGEN_TOOL=$(BUILD_DIR)/x64_codegen_tool.exe
 $(CODEGEN_TOOL)::
 	@cd $(BUILD_DIR); $(MAKE) -s x64_codegen_tool.exe
 
+$(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	@chmod a+rx $@
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"
 	@cd $(BUILD_DIR); $(MAKE) -s x64_isel_tester.exe
 	$(BUILD_DIR)/x64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
+############################################################
+# Parity
+############################################################
+
 TEST_MODE = normal
 #TEST_MODE = legalize
 #TEST_MODE = reg_alloc_global
 #TEST_MODE = reg_alloc_local
+#TEST_MODE = binary
 
 # ensure identical output when emitting textual assembly between
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
-	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
-	diff $@_c.out $@.out
-	@echo
 	cat $(STD_LIB_NO_ARGV) ../TestData/fib.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
 	cat $(STD_LIB_NO_ARGV) ../TestData/fib.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	diff $@_c.out $@.out
+	@echo
+	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
 	diff $@_c.out $@.out
 	@echo
 	cat $(STD_LIB_NO_ARGV) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out

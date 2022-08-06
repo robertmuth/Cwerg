@@ -140,7 +140,10 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
-
+	
+############################################################
+# Parity
+############################################################
 TEST_MODE = normal
 #TEST_MODE = reg_alloc_local
 #TEST_MODE = reg_alloc_global

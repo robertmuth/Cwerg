@@ -11,6 +11,8 @@ using namespace cwerg;
 
 using X64Unit = elf::Unit<uint64_t>;
 
+void TextPadder(size_t len, std::string* s);
+
 // Initialize a pristine A64Unit from a textual assembly content
 extern bool UnitParse(std::istream* input, X64Unit* unit);
 
