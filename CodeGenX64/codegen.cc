@@ -226,6 +226,8 @@ x64::X64Unit EmitUnitAsBinary(base::Unit unit) {
           ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
         } else if (InsOPC(ins) == OPC::RET) {
           EmitFunEpilog(ctx, &inss);
+        } else if (InsOPC(ins) == OPC::LINE) {
+          // TODO
         } else if (InsOPC(ins) == OPC::INLINE) {
           inss.push_back(HandleInline(StrData(Str(InsOperand(ins, 0)))));
         } else {

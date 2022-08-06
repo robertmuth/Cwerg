@@ -212,7 +212,8 @@ void ApplyRelocation(const Reloc<uint64_t>& rel) {
   void* patch_addr = (char*)rel.section->data->data() + rel.rel.r_offset;
   const int64_t sym_val = rel.symbol->sym.st_value + rel.rel.r_addend;
   const uint32_t width = RelWidth(RELOC_TYPE_X86_64(rel.rel.r_type));
-  ASSERT(rel.rel.r_offset + width < rel.section->data->size(), "");
+  ASSERT(rel.rel.r_offset + width <= rel.section->data->size(), "Relocation out of bounds " <<
+    rel.rel.r_offset + width << " " << rel.section->data->size() << " " << rel);
   switch (RELOC_TYPE_X86_64(rel.rel.r_type)) {
     case elf::RELOC_TYPE_X86_64::PC32:
       *((int32_t*)patch_addr) = PcOffset32(rel, sym_val);

@@ -652,6 +652,9 @@ class Reloc:
         else:
             return struct.pack(Reloc.FORMAT[which], self.r_offset,
                                self.r_type | (self.r_sym << 8, self.r_addend))
+    
+    def __str__(self):
+        return f"{self.section.name}  {self.r_offset} {self.r_type} {self.symbol.name}"
 
 
 # These Segment types are overlapping with LOAD Segments and the Sections they

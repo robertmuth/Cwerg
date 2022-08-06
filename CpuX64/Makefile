@@ -122,6 +122,10 @@ $(DIR)/codegen_parity:
 	$(PYPY)	./assembler_tool.py assemble TestData/fib.asm $@.exe > $@.exe.out
 	cmp -l  $@_c.exe $@.exe
 	@echo
+	$(ASSEMBLER_TOOL) assemble TestData/switch.asm $@_c.exe > $@_c.exe.out
+	$(PYPY)	./assembler_tool.py assemble TestData/switch.asm $@.exe > $@.exe.out
+	cmp -l  $@_c.exe $@.exe
+	@echo
 
 clean:
 	rm -f $(DIR)/*
