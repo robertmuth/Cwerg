@@ -241,7 +241,7 @@ Executable<uint64_t> MakeExe(X64Unit* unit, bool create_sym_tab) {
     sections.push_back(sec_null);
     seg_exe->sections.push_back(sec_null);
 
-    ASSERT(unit->sec_text->data->size() > 0, "");
+    ASSERT(unit->sec_text->data->size() > 0, "text sec has no data " << unit->sec_text->data->size());
     sections.push_back(unit->sec_text);
     seg_exe->sections.push_back(unit->sec_text);
   }
