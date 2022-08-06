@@ -147,17 +147,17 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 ### Overview
 | No | Format | Description |
 | ---- | ---- | ---- |
-| 0x10 | add dst = src1 src2 | Addition: `dst := src1 + src2` |
-| 0x11 | sub dst = src1 src2 | Subtraction: `dst := src1 - src2` |
-| 0x12 | mul dst = src1 src2 | Multiplication: `dst := src1 \* src2` |
-| 0x13 | div dst = src1 src2 | Division: `dst := src1 / src2`  |
-| 0x18 | xor dst = src1 src2 | Bitwise exclusive or: `dst := src1 ^ src2` |
-| 0x19 | and dst = src1 src2 | Bitwise and: `dst := src1 & src2` |
-| 0x1a | or dst = src1 src2 | Bitwise or: `dst := src1 | src2` |
-| 0x1b | shl dst = src1 src2 | Shift left: `dst := src1 << src2` |
-| 0x1c | shr dst = src1 src2 | Shift right: `dst := src1 >> src2` |
-| 0x1d | rem dst = src1 src2 | Modulo: `dst := src1 % src2` |
-| 0x1e | clmul dst = src1 src2 | NYI: Carry-less multiplication |
+| 0x10 | add dst src1 src2 | Addition: `dst := src1 + src2` |
+| 0x11 | sub dst src1 src2 | Subtraction: `dst := src1 - src2` |
+| 0x12 | mul dst src1 src2 | Multiplication: `dst := src1 \* src2` |
+| 0x13 | div dst src1 src2 | Division: `dst := src1 / src2`  |
+| 0x18 | xor dst src1 src2 | Bitwise exclusive or: `dst := src1 ^ src2` |
+| 0x19 | and dst src1 src2 | Bitwise and: `dst := src1 & src2` |
+| 0x1a | or dst src1 src2 | Bitwise or: `dst := src1 | src2` |
+| 0x1b | shl dst src1 src2 | Shift left: `dst := src1 << src2` |
+| 0x1c | shr dst src1 src2 | Shift right: `dst := src1 >> src2` |
+| 0x1d | rem dst src1 src2 | Modulo: `dst := src1 % src2` |
+| 0x1e | clmul dst src1 src2 | NYI: Carry-less multiplication |
 | 0x20 | beq op1 op2 target_bbl | Conditional branch (if equal) |
 | 0x21 | bne op1 op2 target_bbl | Conditional branch (if not equal) |
 | 0x22 | blt op1 op2 target_bbl | Conditional branch (if greater than) |
@@ -170,41 +170,41 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 | 0x2d | syscall target_fun_sig syscall_no | Syscall to `syscall_no`  |
 | 0x2e | trap  | Abort program |
 | 0x30 | pusharg src | Push a call or return arg  |
-| 0x31 | poparg dst = | Pop a call or return arg  |
-| 0x32 | conv dst = src | Conversion of numerical regs |
-| 0x33 | bitcast dst = src | Cast between regs of same size |
-| 0x34 | mov dst = src | Move between registers |
-| 0x35 | cmpeq dst = src1 src2 cmp1 cmp2 | Conditional move (if equal): `dst := (cmp1 == cmp2) ? src1 : src2` |
-| 0x36 | cmplt dst = src1 src2 cmp1 cmp2 | Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2`  |
-| 0x38 | lea dst = base offset | Load effective address: `dst  := base + offset`   |
-| 0x39 | lea.mem dst = base offset | Load effective mem address with offset: `dst := base + offset` |
-| 0x3a | lea.stk dst = base offset | Load effective stk address with offset: `dst := base + offset` |
-| 0x3b | lea.fun dst = base | Load effective fun address: `dst := base`  |
-| 0x40 | ld dst = base offset | Load from reg base with offset: `dst := RAM[base + offset]` |
-| 0x41 | ld.mem dst = base offset | Load from mem base with offset: `dst := RAM[base + offset]` |
-| 0x42 | ld.stk dst = base offset | Load from stk base with offset: `dst := RAM[base + offset]` |
-| 0x44 | st base offset = src | Store to reg base with offset: `RAM[base + offset] := src` |
-| 0x45 | st.mem base offset = src | Store to mem base with offset: `RAM[base + offset] := src` |
-| 0x46 | st.stk base offset = src | Store to stk base with offset: `RAM[base + offset] := src` |
+| 0x31 | poparg dst | Pop a call or return arg  |
+| 0x32 | conv dst src | Conversion of numerical regs |
+| 0x33 | bitcast dst src | Cast between regs of same size |
+| 0x34 | mov dst src | Move between registers |
+| 0x35 | cmpeq dst src1 src2 cmp1 cmp2 | Conditional move (if equal): `dst := (cmp1 == cmp2) ? src1 : src2` |
+| 0x36 | cmplt dst src1 src2 cmp1 cmp2 | Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2`  |
+| 0x38 | lea dst base offset | Load effective address: `dst  := base + offset`   |
+| 0x39 | lea.mem dst base offset | Load effective mem address with offset: `dst := base + offset` |
+| 0x3a | lea.stk dst base offset | Load effective stk address with offset: `dst := base + offset` |
+| 0x3b | lea.fun dst base | Load effective fun address: `dst := base`  |
+| 0x40 | ld dst base offset | Load from reg base with offset: `dst := RAM[base + offset]` |
+| 0x41 | ld.mem dst base offset | Load from mem base with offset: `dst := RAM[base + offset]` |
+| 0x42 | ld.stk dst base offset | Load from stk base with offset: `dst := RAM[base + offset]` |
+| 0x44 | st base offset src | Store to reg base with offset: `RAM[base + offset] := src` |
+| 0x45 | st.mem base offset src | Store to mem base with offset: `RAM[base + offset] := src` |
+| 0x46 | st.stk base offset src | Store to stk base with offset: `RAM[base + offset] := src` |
 | 0x48 | cas dst cmp src base offset | Atomic Compare and Swap   |
 | 0x49 | cas.mem dst cmp src base offset | Atomic Compare and Swap   |
 | 0x4a | cas.stk dst cmp src base offset | AtomicCompare and Swap   |
-| 0x50 | ceil dst = src | Round float to integral (toward positive infinity) |
-| 0x51 | floor dst = src | Round float to integral (toward negative infinity) |
-| 0x52 | round dst = src | Round float to integral (to nearest with ties to away) |
-| 0x53 | trunc dst = src |  |
-| 0x54 | copysign dst = src1 src2 | Set the sign of src1 to match src2 (floating point only) |
-| 0x55 | sqrt dst = src | Compute the sqrt of floating point value |
-| 0x60 | cntlz dst = src | Count leading zeros |
-| 0x61 | cnttz dst = src | Count trailing zeros |
-| 0x62 | cntpop dst = src | Count set bits (pop count) |
+| 0x50 | ceil dst src | Round float to integral (toward positive infinity) |
+| 0x51 | floor dst src | Round float to integral (toward negative infinity) |
+| 0x52 | round dst src | Round float to integral (to nearest with ties to away) |
+| 0x53 | trunc dst src |  |
+| 0x54 | copysign dst src1 src2 | Set the sign of src1 to match src2 (floating point only) |
+| 0x55 | sqrt dst src | Compute the sqrt of floating point value |
+| 0x60 | cntlz dst src | Count leading zeros |
+| 0x61 | cnttz dst src | Count trailing zeros |
+| 0x62 | cntpop dst src | Count set bits (pop count) |
 | 0x70 | nop  | nop - internal use |
-| 0x71 | nop1 src_and_dst = | nop with one reg - internal use |
-| 0x77 | line file line | NYI |
-| 0x78 | inline target-asm-ins | Inject arbitrary target instructions into instruction stream |
-| 0x79 | getfp dst | Materialize the frame-pointer.  |
-| 0x7a | getsp dst | Materialize the stack-pointer.  |
-| 0x7b | gettp dst | Materialize the tls-pointer.  |
+| 0x71 | nop1 src_and_dst | nop with one reg - internal use |
+| 0x77 | line file line | NYI: debug line number |
+| 0x78 | inline target-asm-ins | Inject arbitrary target instructions bytes into instruction stream |
+| 0x79 | getfp dst | Materialize the frame-pointer |
+| 0x7a | getsp dst | Materialize the stack-pointer |
+| 0x7b | gettp dst | Materialize the tls-pointer |
 | 0x01 | .mem name alignment mem_kind | Add new mem region to unit |
 | 0x02 | .data repeat data | Add content to current mem region: multiple bytes |
 | 0x03 | .addr.fun width fun | Add content to current mem region: code address |
@@ -471,26 +471,26 @@ nop with one reg - internal use
               
               Note: Can be used to `reserve` a reg for code generation.
 
-#### [77] line *file* <sub>[NAME]</sub> *line* <sub>[CONST:ANY]</sub>
-NYI
+#### [77] line *file* <sub>[STRING]</sub> *line* <sub>[CONST:ANY]</sub>
+NYI: debug line number
 
 #### [78] inline *target-asm-ins* <sub>[BYTES]</sub>
-Inject arbitrary target instructions into instruction stream
+Inject arbitrary target instructions bytes into instruction stream
 
 #### [79] getfp *dst* <sub>[REG:ADDR]</sub>
-Materialize the frame-pointer. 
+Materialize the frame-pointer
              
              Get the stack-pointer's value before the call. Used mainly to interface with
              the Linux execution environment at program startup.
 
 #### [7a] getsp *dst* <sub>[REG:ADDR]</sub>
-Materialize the stack-pointer. 
+Materialize the stack-pointer
              
              Get the current stack-pointer. Used mainly to interface with
              the Linux execution environment after a clone syscall.
 
 #### [7b] gettp *dst* <sub>[REG:ADDR]</sub>
-Materialize the tls-pointer. 
+Materialize the tls-pointer
 
 ## Directives
 
