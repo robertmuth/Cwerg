@@ -29,8 +29,9 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::RET ||  // handled via special epilog code
-         opc == OPC::NOP1;   // pseudo instruction
+  return  opc == OPC::LINE || // handled via special epilog code
+          opc == OPC::RET ||  // handled via special epilog code
+          opc == OPC::NOP1;   // pseudo instruction
 }
 
 void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {

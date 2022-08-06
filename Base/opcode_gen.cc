@@ -958,9 +958,9 @@ const Opcode GlobalOpcodes[256] = {
        {}, 
        "", 0 },
      {  // 77 line
-       {OP_KIND::NAME, OP_KIND::CONST}, 
-       OPC_KIND::LINE, OPC_GENUS::BASE, 2, 1,
-       {TC::INVALID, TC::ANY}, 
+       {OP_KIND::BYTES, OP_KIND::CONST}, 
+       OPC_KIND::LINE, OPC_GENUS::BASE, 2, 0,
+       {TC::INVALID, TC::UINT}, 
        "line", OA::SPECIAL },
      {  // 78 inline
        {OP_KIND::BYTES}, 

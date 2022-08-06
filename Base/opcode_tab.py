@@ -90,7 +90,7 @@ _OFS_CFG = {OPC_KIND.BSR, OPC_KIND.JSR, OPC_KIND.SYSCALL, OPC_KIND.SWITCH,
 
 # These instructions do not have a written register
 _OFS_NO_DEF = _OFS_CFG | {OPC_KIND.ST, OPC_KIND.BCOPY, OPC_KIND.BZERO,
-                          OPC_KIND.PUSHARG, OPC_KIND.NOP, OPC_KIND.INLINE}
+                          OPC_KIND.PUSHARG, OPC_KIND.NOP, OPC_KIND.INLINE, OPC_KIND.LINE}
 
 # These instructions have a written register
 _OFS_WRITING_REGS = {
@@ -889,9 +889,9 @@ NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
               Note: Can be used to `reserve` a reg for code generation.""",
               OA.SPECIAL)
 
-LINE = Opcode(0x77, "line", OPC_KIND.LINE, [OP_KIND.NAME, OP_KIND.CONST],
-              [TC.INVALID, TC.ANY], OPC_GENUS.BASE,
-              "NYI",
+LINE = Opcode(0x77, "line", OPC_KIND.LINE, [OP_KIND.BYTES, OP_KIND.CONST],
+              [TC.INVALID, TC.UINT], OPC_GENUS.BASE,
+              "NYI: debug line number",
               OA.SPECIAL)
 
 ############################################################
@@ -899,26 +899,26 @@ LINE = Opcode(0x77, "line", OPC_KIND.LINE, [OP_KIND.NAME, OP_KIND.CONST],
 
 INLINE = Opcode(0x78, "inline", OPC_KIND.INLINE, [OP_KIND.BYTES],
                 [TC.INVALID], OPC_GENUS.BASE,
-                "Inject arbitrary target instructions into instruction stream",
+                "Inject arbitrary target instructions bytes into instruction stream",
                 OA.SPECIAL)
 
 GETFP = Opcode(0x79, "getfp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
                [TC.ADDR], OPC_GENUS.BASE,
-               """Materialize the frame-pointer. 
+               """Materialize the frame-pointer
              
              Get the stack-pointer's value before the call. Used mainly to interface with
              the Linux execution environment at program startup.""")
 
 GETSP = Opcode(0x7a, "getsp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
                [TC.ADDR], OPC_GENUS.BASE,
-               """Materialize the stack-pointer. 
+               """Materialize the stack-pointer
              
              Get the current stack-pointer. Used mainly to interface with
              the Linux execution environment after a clone syscall.""")
 
 GETTP = Opcode(0x7b, "gettp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
                [TC.ADDR], OPC_GENUS.BASE,
-               """Materialize the tls-pointer. """)
+               """Materialize the tls-pointer""")
 
 ############################################################
 # Misc Experimental
@@ -1062,13 +1062,8 @@ def _render_opcode_summary(fout):
     for o in Opcode.Table.values():
         if o.group != OPC_GENUS.BASE:
             continue
-        purposes = o.purpose[:]
-        if o.kind in _OFS_WRITING_REGS:
-            purposes.insert(1, "=")
-        if o.kind in {OPC_KIND.ST}:
-            purposes.insert(-1, "=")
         desc = o.desc.split("\n")[0]
-        print(f"| 0x{o.no:02x} | {o.name} {' '.join(purposes)} | {desc} |", file=fout)
+        print(f"| 0x{o.no:02x} | {o.name} {' '.join(o.purpose)} | {desc} |", file=fout)
 
 
 def _render_documentation(fout):

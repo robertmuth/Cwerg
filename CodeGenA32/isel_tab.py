@@ -525,6 +525,7 @@ class Pattern:
 
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
+    o.LINE,  # line number 
     o.NOP1,  # pseudo instruction
     o.RET,  # handled via special epilog code
 }

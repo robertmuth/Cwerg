@@ -202,6 +202,8 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
           ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
         } else if (InsOPC(ins) == OPC::RET) {
           EmitFunEpilog(ctx, &inss);
+        } else if (InsOPC(ins) == OPC::LINE) {
+          // TODO
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
           ASSERT(pat != nullptr, "cannot find match for " << ins);

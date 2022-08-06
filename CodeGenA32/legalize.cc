@@ -27,7 +27,8 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return opc == OPC::RET ||  // handled via special epilog code
+  return opc == OPC::LINE ||  // line number
+         opc == OPC::RET ||  // handled via special epilog code
          opc == OPC::NOP1;   // pseudo instruction
 }
 

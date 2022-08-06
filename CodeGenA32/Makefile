@@ -15,6 +15,7 @@ TESTS = int_op.asm \
         switch.asm \
         indirect.32.asm \
         fib.asm \
+        fib_debug.asm \
         queens.32.asm \
         stack.asm \
         multiple_results.asm \
@@ -155,6 +156,9 @@ benchmark: $(CODEGEN_TOOL)
 	@echo "[$@]"
 	time $(CODEGEN_TOOL) -mode binary TestData/benchmark.asm $(DIR)/$@.exe > $(DIR)/$@.out
 
+############################################################
+# Parity
+############################################################
 TEST_MODE = normal
 #TEST_MODE = reg_alloc_local
 #TEST_MODE = reg_alloc_global

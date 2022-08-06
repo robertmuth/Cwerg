@@ -19,7 +19,7 @@ namespace {
 // +-prefix converts an enum the underlying type
 template <typename T>
 constexpr auto operator+(T e) noexcept
--> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>> {
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
@@ -154,10 +154,12 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit) {
       if (target.kind() == RefKind::STR) {
         out.AddData(extra, StrData(Str(target)), size);
       } else if (target.kind() == RefKind::FUN) {
-        out.AddFunAddr(size, +elf::RELOC_TYPE_AARCH64::ABS64, StrData(Name(Fun(target))));
+        out.AddFunAddr(size, +elf::RELOC_TYPE_AARCH64::ABS64,
+                       StrData(Name(Fun(target))));
       } else {
         ASSERT(target.kind() == RefKind::MEM, "");
-        out.AddMemAddr(size,  +elf::RELOC_TYPE_AARCH64::ABS64, StrData(Name(Mem(target))), extra);
+        out.AddMemAddr(size, +elf::RELOC_TYPE_AARCH64::ABS64,
+                       StrData(Name(Mem(target))), extra);
       }
     }
     out.MemEnd();
@@ -193,11 +195,14 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit) {
       for (Ins ins : BblInsIter(bbl)) {
         if (InsOPC(ins) == OPC::NOP1) {
           ctx.scratch_cpu_reg = CpuReg(RegCpuReg(Reg(InsOperand(ins, 0))));
+        } else if (InsOPC(ins) == OPC::LINE) {
+          // TODO
         } else if (InsOPC(ins) == OPC::RET) {
           EmitFunEpilog(ctx, &inss);
         } else {
           const Pattern* pat = FindMatchingPattern(ins);
-          ASSERT(pat != nullptr, "could not find matching pattern for " << ins << " in " << Name(fun));
+          ASSERT(pat != nullptr, "could not find matching pattern for "
+                                     << ins << " in " << Name(fun));
           for (unsigned i = 0; i < pat->length; ++i) {
             inss.push_back(MakeInsFromTmpl(pat->start[i], ins, ctx));
           }

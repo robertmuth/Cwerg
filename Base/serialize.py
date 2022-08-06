@@ -14,7 +14,7 @@ from Base import sanity
 PREFIX = ""
 
 
-def _RenderReg(reg: ir.Reg)-> str:
+def _RenderReg(reg: ir.Reg) -> str:
     if reg.HasCpuReg():
         return f"{reg.name}@{reg.cpu_reg.name}"
     elif reg.IsSpilled():
@@ -24,7 +24,7 @@ def _RenderReg(reg: ir.Reg)-> str:
 
 def RenderOperand(v: Any, tc: o.TC):
     if isinstance(v, ir.Reg):
-        return  _RenderReg(v)
+        return _RenderReg(v)
     elif isinstance(v, ir.Fun):
         return PREFIX + v.name
     elif isinstance(v, ir.Bbl):
@@ -104,9 +104,11 @@ def FunRenderToAsm(fun: ir.Fun) -> List[str]:
     if fun.cpu_live_in:
         out.append(f"# live_in: [{' '.join(r.name for r in fun.cpu_live_in)}]")
     if fun.cpu_live_out:
-        out.append(f"# live_out: [{' '.join(r.name for r in fun.cpu_live_out)}]")
+        out.append(
+            f"# live_out: [{' '.join(r.name for r in fun.cpu_live_out)}]")
     if fun.cpu_live_clobber:
-        out.append(f"# live_clobber: [{' '.join(r.name for r in fun.cpu_live_clobber)}]")
+        out.append(
+            f"# live_clobber: [{' '.join(r.name for r in fun.cpu_live_clobber)}]")
     regs: Dict[int, List[str]] = collections.defaultdict(list)
     for r in fun.regs:
         regs[r.kind.value].append(r)
@@ -118,7 +120,8 @@ def FunRenderToAsm(fun: ir.Fun) -> List[str]:
 
     for jtb in fun.jtbs:
         t = [f"{k} {v.name}" for k, v in sorted(jtb.bbl_tab.items())]
-        out.append(f".jtb {jtb.name} {jtb.size} {jtb.def_bbl.name} [{' '.join(t)}]")
+        out.append(
+            f".jtb {jtb.name} {jtb.size} {jtb.def_bbl.name} [{' '.join(t)}]")
     for bbl in fun.bbls:
         out += BblRenderToAsm(bbl)
     return out
@@ -351,7 +354,7 @@ def _GetRegOrConstOperand(fun: ir.Fun, last_kind: o.DK,
 def _GetOperand(unit: ir.Unit, fun: ir.Fun, ok: o.OP_KIND, v: Any) -> Any:
     if ok in o.OKS_LIST:
         assert isinstance(
-            v, list) or v[0] == v[-1] == '"', f"operand {ok}: [{v}]"
+            v, list) or v[0] == v[-1] == '"', f"operand {ok}: [{v}] expected list or quoted bytes"
     else:
         assert isinstance(v, str), f"bad operand {v} of type [{ok}]"
 
@@ -404,7 +407,8 @@ def RetrieveActualOperands(unit: ir.Unit, fun: ir.Fun,
     last_type: o.DK = o.DK.INVALID
     for ok, tc, token in zip(opc.operand_kinds, opc.constraints, token[1:]):
         if ok in {o.OP_KIND.REG_OR_CONST, o.OP_KIND.REG, o.OP_KIND.CONST}:
-            assert isinstance(token, str), f"bad operand {token} of type [{ok}]"
+            assert isinstance(
+                token, str), f"bad operand {token} of type [{ok}]"
             x = _GetRegOrConstOperand(fun, last_type, ok, tc, token, regs_cpu)
             last_type = x.kind
         else:
@@ -433,7 +437,8 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
         if opc != o.LEA_FUN and len(token) < 4:
             token.append("0")
     if len(token) - 1 != len(opc.operand_kinds):
-        raise ir.ParseError(f"operand number {len(opc.operand_kinds)} mismatch: {token}")
+        raise ir.ParseError(
+            f"operand number {len(opc.operand_kinds)} mismatch: {token}")
 
     if token[0].startswith("."):
         operands = RetrieveActualOperands(unit, fun, opc, token, {})
@@ -513,6 +518,5 @@ if __name__ == "__main__":
         # for fun in unit.funs:
         #    sanity.FunCheck(fun, unit, False, True, True)
         print("\n".join(UnitRenderToASM(unit)))
-
 
     process(sys.stdin)

@@ -14,6 +14,7 @@ TESTS = fp_op.asm \
         reg_torture.asm \
         cmp.asm \
         fib.asm \
+        fib_debug.asm \
         stack.asm \
         multiple_results.asm \
         multiple_results_f32.asm \

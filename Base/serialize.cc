@@ -437,7 +437,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
       return StrNew({s.data() + 1, s.size() - 2});
     }
     default:
-      ASSERT(false, "unreachable");
+      ASSERT(false, "unreachable " << base::EnumToString(ok));
       return Handle();
   }
 }

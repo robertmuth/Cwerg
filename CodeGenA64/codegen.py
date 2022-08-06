@@ -236,6 +236,9 @@ def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
             for ins in bbl.inss:
                 if ins.opcode is o.NOP1:
                     isel_tab.HandlePseudoNop1(ins, ctx)
+                elif ins.opcode is o.LINE:
+                    # TODO
+                    pass
                 elif ins.opcode is o.RET:
                     for tmpl in isel_tab.EmitFunEpilog(ctx):
                         assembler.AddIns(elfunit,
