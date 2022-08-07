@@ -53,8 +53,8 @@ jobs:
       run: |
         uname -a
         echo
-	cat /proc/cpuinfo
-	echo
+        cat /proc/cpuinfo
+        echo
         lsb_release -a
         echo
         python -V
