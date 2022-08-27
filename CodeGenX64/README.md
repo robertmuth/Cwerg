@@ -8,7 +8,7 @@ to convert from Cwerg's three address code.
 
 Limitations:
 
-* avoid  3now, mmx or x87 instructions 
+* avoid  3dnow, mmx or x87 instructions 
 * floating point handled via SSE xmmX registers 
 * expect certain instruction set extensions: SSE, lzcnt, tzcnt, popcnt, ...
 
@@ -29,10 +29,11 @@ instruction selector.
 The major differences to the A32 and A64 backends are:
 * no operand widening is performed as the code selector supports all widths 
 * X86-64 is resembling 2 address code rather than Cwerg's 3 addresss code requiring
-  a special processing descrined further down.
+  a special processing described further down.
+* spilling of regs does not result in explicit IR rewrites. The instruction selector is aware
+  of whether a regs is spilled or not.
 
- Legalization encompasses the following steps:
-
+Legalization encompasses the following steps:
 
 * replacement of `push`/`pop` instruction with `mov`s to and from CPU registers as
   required by the calling convention.
