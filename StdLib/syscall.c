@@ -117,9 +117,9 @@ int wait4(int pid, void* stat, int options, void* usage) {
 }
 
 int clone(long flags, void* stack, void* parent_tid, void* child_tid,
-          long tls) {
+          void* tls) {
   return _x64_syscall5(56, flags, (long)stack, (long)parent_tid,
-                       (long)child_tid, tls);
+                       (long)child_tid, (long)tls);
 }
 
 int nanosleep(void* req, void* rem) {
@@ -247,9 +247,9 @@ int wait4(int pid, void* stat, int options, void* usage) {
 }
 
 int clone(long flags, void* stack, void* parent_tid, void* child_tid,
-          long tls) {
+          void* tls) {
   return _x32_syscall5(120, flags, (long)stack, (long)parent_tid,
-                       (long)child_tid, tls);
+                       (long)child_tid, (long)tls);
 }
 
 int nanosleep(void* req, void* rem) {
@@ -392,9 +392,9 @@ int wait4(int pid, void* stat, int options, void* usage) {
 }
 
 int clone(long flags, void* stack, void* parent_tid, void* child_tid,
-          long tls) {
+          void* tls) {
   return _a64_syscall5(220, flags, (long)stack, (long)parent_tid,
-                       (long)child_tid, tls);
+                       (long)child_tid, (long)tls);
 }
 
 int nanosleep(void* req, void* rem) {
@@ -538,9 +538,9 @@ int wait4(int pid, void* stat, int options, void* usage) {
 }
 
 int clone(long flags, void* stack, void* parent_tid, void* child_tid,
-          long tls) {
+          void* tls) {
   return _a32_syscall5(114, flags, (long)stack, (long)parent_tid,
-                       (long)child_tid, tls);
+                       (long)child_tid, (long)tls);
 }
 
 int nanosleep(void* req, void* rem) {
