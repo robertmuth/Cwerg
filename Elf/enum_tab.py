@@ -333,7 +333,7 @@ class ST_INFO_BIND(enum.IntEnum):
     GLOBAL = 1
     WEAK = 2
     NUM = 3
-
+    GNU_UNIQUE = 10
 
 @enum.unique
 class ST_INFO_TYPE(enum.IntEnum):
@@ -1023,6 +1023,7 @@ class SH_FLAGS(enum.Flag):
     GROUP = 0x200
     TLS = 0x400
     COMPRESSED = 0x800
+    KEEP = 0x200000
 
 
 @enum.unique

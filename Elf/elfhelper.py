@@ -936,7 +936,7 @@ class Executable:
                     self.segments.append(pseudo_segment)
                 pseudo_segment.sections.append(sec)
 
-        print(self)
+        # print(self)
 
     def combined_header_size(self) -> int:
         """assumes a layout where the phdrs follow directly after the ehdr"""
