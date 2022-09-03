@@ -1,11 +1,6 @@
 #!/usr/bin/python3
 """
-objdump -Wl build/optimize_tool.exe
-
-https://dwarfstd.org/doc/DWARF5.pdf 
-
-* 6.2.4 The Line Number Program Header
-* 7.22 Line Number Information
+Tool for dumping dwarf line number info
 """
 
 from ctypes.wintypes import SIZE
@@ -120,6 +115,7 @@ class DW_LNE(enum.IntEnum):
     lo_user = 0x80
     hi_user = 0xff
 
+
 def ReadEntryList(data) -> Tuple[List, List]:
     format_count = ord(data.read(1))
     format = []
@@ -137,15 +133,24 @@ def ReadEntryList(data) -> Tuple[List, List]:
                 d.append(int.from_bytes(data.read(4), 'little'))
             elif form is DW_FORM.udata:
                 d.append(read_leb128(data))
+            elif form is DW_FORM.data1:
+                d.append(int.from_bytes(data.read(1), 'little'))
+            elif form is DW_FORM.data2:
+                d.append(int.from_bytes(data.read(2), 'little'))
+            elif form is DW_FORM.data4:
+                d.append(int.from_bytes(data.read(4), 'little'))
+            elif form is DW_FORM.data8:
+                d.append(int.from_bytes(data.read(8), 'little'))
             else:
-                assert False
+                assert False, f"{str(lnct)}, {str(form)}"
     return format, entries
+
 
 @dataclasses.dataclass
 class StateMachine:
-    address: int  = 0
-    # op_index:int  = 0  # irrelevant - vliw only 
-    file: int = 0
+    address: int = 0
+    # op_index:int  = 0  # irrelevant for our purposes- vliw only
+    file: int = 1
     line: int = 1
     column: int = 0
     is_stmt = True
@@ -162,11 +167,22 @@ class StateMachine:
         self.prologue_end = False
         self.epilogue_begin = False
 
-def ReadCommands(data: io.BytesIO, opcode_base, line_base, line_range, min_instruction_length):
-    sm = StateMachine()
+    @staticmethod
+    def New(default_is_stmt):
+        out = StateMachine()
+        out.is_stmt = default_is_stmt
+        return out
+
+
+def ReadCommands(end, data: io.BytesIO, default_is_stmt, opcode_base, line_base, line_range,
+                 min_instruction_length, maximum_operations_per_instruction):
+    sm = StateMachine.New(default_is_stmt)
     matrix = []
 
-    while True:
+    def addr_delta(x):
+        return ((x - opcode_base) // line_range) * min_instruction_length // maximum_operations_per_instruction
+
+    while data.tell() < end:
         print(f"[0x{data.tell():08x}]  ", end="")
         op = ord(data.read(1))
         if op == 0:
@@ -180,9 +196,11 @@ def ReadCommands(data: io.BytesIO, opcode_base, line_base, line_range, min_instr
             elif x is DW_LNE.end_sequence:
                 print(f"Extended opcode {op}: End of Sequence\n")
                 sm.end_sequence = True
+                sm = StateMachine.New(default_is_stmt)
             elif x is DW_LNE.set_discriminator:
                 sm.discriminator = read_leb128(data)
-                print(f"Extended opcode {op}: set Discriminator to {sm.discriminator}")
+                print(
+                    f"Extended opcode {op}: set Discriminator to {sm.discriminator}")
             else:
                 assert False, x
         elif op < opcode_base:
@@ -194,8 +212,6 @@ def ReadCommands(data: io.BytesIO, opcode_base, line_base, line_range, min_instr
             elif x is DW_LNS.advance_pc:
                 v = read_leb128(data)
                 sm.address += v
-                #sm.line += line_base +  x % line_range
-                #sm.clear()
                 print(f"Advance PC by {v} to 0x{sm.address:x}")
             elif x is DW_LNS.advance_line:
                 v = read_leb128(data, True)
@@ -209,24 +225,26 @@ def ReadCommands(data: io.BytesIO, opcode_base, line_base, line_range, min_instr
                 print(f"Set is_stmt to {int(sm.is_stmt)}")
             elif x is DW_LNS.set_file:
                 sm.file = read_leb128(data)
-                sm.is_stmt = True
-                sm.line = 1
-                print(f"Set File Name to entry {sm.file} in the File Name Table")
+                print(
+                    f"Set File Name to entry {sm.file} in the File Name Table")
             elif x is DW_LNS.const_add_pc:
-                x = 255
-                sm.address += (x // line_range) * min_instruction_length
-                sm.line += line_base +  x % line_range
+                x = 255 - opcode_base
+                delta = addr_delta(255)
+                sm.address += delta
                 sm.clear()
-                print(f"Advance PC by constant {v} to 0x{sm.address:x}")
+                print(f"Advance PC by constant {delta} to 0x{sm.address:x}")
             else:
                 assert False, x
         else:
             # special
-            x = op - opcode_base
-            sm.address += (x // line_range) * min_instruction_length
-            sm.line += line_base +  x % line_range
+            ad = addr_delta(op)
+            sm.address += ad
+            ld = line_base + (op - opcode_base) % line_range
+            sm.line += ld
             sm.clear()
-            print (f"Special opcode {x}: {sm.address:x} {sm.line}")
+            print(f"Special opcode {op - opcode_base}: advance Address by {ad} to 0x{sm.address:x} "
+                  f"and Line by {ld} to {sm.line}")
+
 
 @dataclasses.dataclass
 class DebugLineHeader:
@@ -258,6 +276,7 @@ class DebugLineHeader:
     SIZE = struct.calcsize(FORMAT)
 
     def unpack(self, data: BinaryIO):
+        start = data.tell()
         (self.length,
          self.version,
          self.address_size,
@@ -274,8 +293,9 @@ class DebugLineHeader:
         #
         self.directory_entry_format, self.directories = ReadEntryList(data)
         self.file_name_entry_format, self.file_names = ReadEntryList(data)
-        self.commands = ReadCommands(
-            data, self.opcode_base, self.line_base, self.line_range, self.min_instruction_length)
+        self.commands = ReadCommands(start + 4 + self.length,
+                                     data, self.default_is_stmt, self.opcode_base, self.line_base, self.line_range,
+                                     self.min_instruction_length, self.maximum_operations_per_instruction)
         #print(orig_size, len(data))
 
 
@@ -299,7 +319,8 @@ if __name__ == "__main__":
         exit(1)
     # print(len(sec_line.data))
     header = DebugLineHeader()
-    which = EI_CLASS.X_32
     data = io.BytesIO(sec_line.data)
-    header.unpack(data)
-    print(header)
+    while data.tell() < len(sec_line.data):
+        # print ("@@@@@@@@")
+        header.unpack(data)
+    # print(header)
