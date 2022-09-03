@@ -299,6 +299,7 @@ enum class SH_FLAGS : uint32_t {
     GROUP = 0x200,
     TLS = 0x400,
     COMPRESSED = 0x800,
+    KEEP = 0x200000,
 };
 
 enum class P_TYPE : uint32_t {
@@ -330,6 +331,7 @@ enum class ST_INFO_BIND : uint8_t {
     GLOBAL = 1,
     WEAK = 2,
     NUM = 3,
+    GNU_UNIQUE = 10,
 };
 
 enum class ST_INFO_TYPE : uint8_t {

@@ -464,6 +464,7 @@ const char* const SH_FLAGS_ToStringMap[] = {
     "GROUP", // 0x200,
     "TLS", // 0x400,
     "COMPRESSED", // 0x800,
+    "KEEP", // 0x200000,
 };
 const char* EnumToString(SH_FLAGS x) { return SH_FLAGS_ToStringMap[unsigned(x)]; }
 
@@ -506,6 +507,13 @@ const char* const ST_INFO_BIND_ToStringMap[] = {
     "GLOBAL", // 1
     "WEAK", // 2
     "NUM", // 3
+    "", // 4
+    "", // 5
+    "", // 6
+    "", // 7
+    "", // 8
+    "", // 9
+    "GNU_UNIQUE", // 10
 };
 const char* EnumToString(ST_INFO_BIND x) { return ST_INFO_BIND_ToStringMap[unsigned(x)]; }
 
