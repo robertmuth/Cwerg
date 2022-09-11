@@ -14,26 +14,11 @@ import typing
 import enum
 import dataclasses
 from FrontEndWASM.opcode_tab import Opcode, ARG_TYPE, FLAGS, OPC_KIND
-
-
-def read_leb128(r: typing.BinaryIO, signed: bool = False) -> int:
-    """
-    cf. http://en.wikipedia.org/wiki/LEB128
-    """
-    out = 0
-    shift = 0
-    while True:
-        b = ord(r.read(1))
-        out |= (b & 0x7f) << shift
-        shift += 7
-        if (b & 0x80) == 0:
-            if signed and b & 0x40:
-                out -= (1 << shift)
-            return out
+from Util import parse
 
 
 def read_bytes(r: typing.BinaryIO) -> bytes:
-    n = read_leb128(r)
+    n = parse.read_leb128(r)
     data = r.read(n)
     assert len(data) == n
     return data
@@ -44,7 +29,7 @@ def read_string(r: typing.BinaryIO) -> str:
 
 
 def read_vec(r: typing.BinaryIO, cls) -> typing.List:
-    n = read_leb128(r)
+    n = parse.read_leb128(r)
     return [cls.read(r) for _ in range(n)]
 
 
@@ -101,7 +86,7 @@ class ResultType:
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
-        n = read_leb128(r)
+        n = parse.read_leb128(r)
         return ResultType([VAL_TYPE(ord(r.read(1))) for _ in range(n)])
 
 
@@ -125,8 +110,8 @@ class Limits:
     @classmethod
     def read(cls, r: typing.BinaryIO):
         flag = ord(r.read(1))
-        a_min = read_leb128(r)
-        a_max = read_leb128(r) if flag else 0x00
+        a_min = parse.read_leb128(r)
+        a_max = parse.read_leb128(r) if flag else 0x00
         return Limits(a_min, a_max)
 
 
@@ -165,9 +150,9 @@ ExternalType = typing.Union[FunctionType, TableType, MemoryType, GlobalType]
 
 def ReadArg(r: typing.BinaryIO, at: ARG_TYPE) -> typing.Any:
     if at is ARG_TYPE.UINT:
-        return read_leb128(r)
+        return parse.read_leb128(r)
     elif at is ARG_TYPE.SINT:
-        return read_leb128(r, True)
+        return parse.read_leb128(r, True)
     elif at is ARG_TYPE.BYTE1_ZERO:
         return ord(r.read(1))
     elif at is ARG_TYPE.FLOAT:
@@ -195,7 +180,7 @@ def ReadArg(r: typing.BinaryIO, at: ARG_TYPE) -> typing.Any:
     elif at is ARG_TYPE.VEC_LABEL_IDX:
         return read_vec(r, LabelIdx)
     elif at is ARG_TYPE.BLOCK_TYPE:
-        block_type = read_leb128(r, True)
+        block_type = parse.read_leb128(r, True)
         if block_type >= 0:
             return TypeIdx(block_type)
         block_type += 0x80
@@ -232,7 +217,7 @@ class Idx(int):
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
-        return cls(read_leb128(r))
+        return cls(parse.read_leb128(r))
 
 
 class TypeIdx(Idx):
@@ -377,7 +362,7 @@ class Locals:
 
     @classmethod
     def read(cls, r: typing.BinaryIO):
-        count = read_leb128(r)
+        count = parse.read_leb128(r)
         kind = VAL_TYPE(ord(r.read(1)))
         return Locals(count, kind)
 
@@ -552,9 +537,9 @@ def ExtractFunNames(r: typing.BinaryIO) -> typing.Dict[int, str]:
         content = io.BytesIO(raw)
         if ord(map_id) != 1:
             continue
-        count = read_leb128(content)
+        count = parse.read_leb128(content)
         for i in range(count):
-            index = read_leb128(content)
+            index = parse.read_leb128(content)
             name = read_string(content)
             out[index] = name
     return out
@@ -585,7 +570,8 @@ class Module:
             sec_id = SECTION_ID(ord(id_byte))
             raw = read_bytes(r)
             io_data = io.BytesIO(raw)
-            logging.debug(f"Reading section of type {sec_id.name} size {len(raw)}")
+            logging.debug(
+                f"Reading section of type {sec_id.name} size {len(raw)}")
             data = _sec_id_to_reader[sec_id](io_data)
             if sec_id is SECTION_ID.CUSTOM:
                 assert isinstance(data, tuple)
@@ -594,7 +580,8 @@ class Module:
                 sections[sec_id] = Section(sec_id, data)
             # print (sections[sec_id])
             if io_data.read(1):
-                raise Exception(f'not all section data was consumed for {sec_id}')
+                raise Exception(
+                    f'not all section data was consumed for {sec_id}')
 
         fun_name_map = {}
         if "name" in custom:
@@ -619,4 +606,5 @@ if __name__ == '__main__':
             print(val)
         print("\nFunctions:")
         for n, f in enumerate(mod.functions):
-            print(f"{n}: [{f.name:30}] {type(f.impl).__name__:15}  {f.func_type}")
+            print(
+                f"{n}: [{f.name:30}] {type(f.impl).__name__:15}  {f.func_type}")

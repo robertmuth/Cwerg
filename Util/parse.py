@@ -2,7 +2,43 @@ import codecs
 import re
 import struct
 
-from typing import List, Optional
+from typing import List, Optional, BinaryIO
+
+
+def read_leb128(r: BinaryIO, signed: bool = False) -> int:
+    """
+    cf. http://en.wikipedia.org/wiki/LEB128
+    """
+    out = 0
+    shift = 0
+    while True:
+        b = ord(r.read(1))
+        out |= (b & 0x7f) << shift
+        shift += 7
+        if (b & 0x80) == 0:
+            if signed and b & 0x40:
+                out -= (1 << shift)
+            return out
+
+
+def write_leb128(x: int, signed: bool = False) -> List[int]:
+    out: List[int] = []
+    if signed:
+        while True:
+            b = x & 0x7f
+            x = x >> 7
+            if (x == 0 and b & 0x40 == 0) or (x == -1 and b & 0x40 != 0):
+                out.append(b)
+                return out
+            out.append(0x80 | b)
+    else:
+        while True:
+            b = x & 0x7f
+            x = x >> 7
+            if x == 0:
+                out.append(b)
+                return out
+            out.append(0x80 | b)
 
 
 def EscapedStringToBytes(s) -> bytes:

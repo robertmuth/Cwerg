@@ -13,22 +13,8 @@ from typing import List, Dict, Optional, Set, Tuple, Any, BinaryIO
 
 from Elf.elfhelper import Executable
 from Elf.enum_tab import EI_CLASS
+from Util import parse
 
-
-def read_leb128(r: BinaryIO, signed: bool = False) -> int:
-    """
-    cf. http://en.wikipedia.org/wiki/LEB128
-    """
-    out = 0
-    shift = 0
-    while True:
-        b = ord(r.read(1))
-        out |= (b & 0x7f) << shift
-        shift += 7
-        if (b & 0x80) == 0:
-            if signed and b & 0x40:
-                out -= (1 << shift)
-            return out
 
 
 @enum.unique
@@ -120,10 +106,10 @@ def ReadEntryList(data) -> Tuple[List, List]:
     format_count = ord(data.read(1))
     format = []
     for _ in range(format_count):
-        a = read_leb128(data)
-        b = read_leb128(data)
+        a = parse.read_leb128(data)
+        b = parse.read_leb128(data)
         format.append((DW_LNCT(a), DW_FORM(b)))
-    entry_count = read_leb128(data)
+    entry_count = parse.read_leb128(data)
     entries = []
     for _ in range(entry_count):
         d = []
@@ -132,7 +118,7 @@ def ReadEntryList(data) -> Tuple[List, List]:
             if form is DW_FORM.line_strp:
                 d.append(int.from_bytes(data.read(4), 'little'))
             elif form is DW_FORM.udata:
-                d.append(read_leb128(data))
+                d.append(parse.read_leb128(data))
             elif form is DW_FORM.data1:
                 d.append(int.from_bytes(data.read(1), 'little'))
             elif form is DW_FORM.data2:
@@ -220,7 +206,7 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
         op = ord(data.read(1))
         if op == 0:
             # extended
-            size = read_leb128(data)
+            size = parse.read_leb128(data)
             op = ord(data.read(1))
             x = DW_LNE(op)
             if x is DW_LNE.set_address:
@@ -234,7 +220,7 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
                 # if data.tell() > 900: return out  # HACK
                 # return out
             elif x is DW_LNE.set_discriminator:
-                sm.discriminator = read_leb128(data)
+                sm.discriminator = parse.read_leb128(data)
                 print(
                     f"Extended opcode {op}: set Discriminator to {sm.discriminator}")
             else:
@@ -243,14 +229,14 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
             # standard
             x = DW_LNS(op)
             if x is DW_LNS.set_column:
-                sm.column = read_leb128(data)
+                sm.column = parse.read_leb128(data)
                 print(f"Set column to {sm.column}")
             elif x is DW_LNS.advance_pc:
-                v = read_leb128(data)
+                v = parse.read_leb128(data)
                 sm.address += v
                 print(f"Advance PC by {v} to 0x{sm.address:x}")
             elif x is DW_LNS.advance_line:
-                v = read_leb128(data, True)
+                v = parse.read_leb128(data, True)
                 sm.line += v
                 print(f"Advance Line by {v} to {sm.line}")
             elif x is DW_LNS.copy:
@@ -263,7 +249,7 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
                 sm.is_stmt = not sm.is_stmt
                 print(f"Set is_stmt to {int(sm.is_stmt)}")
             elif x is DW_LNS.set_file:
-                sm.file = read_leb128(data)
+                sm.file = parse.read_leb128(data)
                 print(
                     f"Set File Name to entry {sm.file} in the File Name Table")
             elif x is DW_LNS.const_add_pc:
@@ -286,7 +272,8 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
 
 
 def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_stmt: bool,
-                     opcode_base: int):
+                     opcode_base: int) -> bytes:
+    out = []
     # max_line
     curr = StateMachine.New(default_is_stmt)
     while matrix:
