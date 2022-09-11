@@ -273,7 +273,27 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
 
 def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_stmt: bool,
                      opcode_base: int) -> bytes:
-    out = []
+    out: List[int] = []
+
+    def emit(code: int, val=None, signed=False):
+        nonlocal out
+        out.append(code)
+        if val is not None:
+            out += parse.write_leb128(val, signed)
+
+    def emit_extended(code: int, val=None, bytewidth=None):
+        nonlocal out
+        data = []
+        if bytewidth is not None:
+            data = int.to_bytes(val, bytewidth, "little")
+        elif val is not None:
+            data = parse.write_leb128(val)
+
+        out.append(0)
+        out += parse.write_leb128(1 + len(data))
+        out.append(code)
+        out += data
+
     # max_line
     curr = StateMachine.New(default_is_stmt)
     while matrix:
@@ -282,27 +302,31 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
             curr.file = next.file
             print(
                 f"@@@ Set File Name to entry {curr.file} in the File Name Table")
-        
+            emit(DW_LNS.set_file, curr.file)
         if next.column != curr.column:
-            print(f"@@@ Set column to {next.column}")
             curr.column = next.column
+            print(f"@@@ Set column to {curr.column}")
+            emit(DW_LNS.set_column, curr.column)
         if next.discriminator != curr.discriminator:
             curr.discriminator = next.discriminator
             print(
                 f"@@@ Extended opcode 4: set Discriminator to {curr.discriminator}")
-
+            emit_extended(DW_LNE.set_discriminator, curr.discriminator)
         if next.is_stmt != curr.is_stmt:
             curr.is_stmt = not curr.is_stmt
             print(f"@@@ Set is_stmt to {int(curr.is_stmt)}")
-
+            emit(DW_LNS.negate_stmt)
         if curr.address == 0:
+            curr.address = next.address
             print(
                 f"@@@ Extended opcode {DW_LNE.set_address}: set Address to 0x{next.address:x}")
+            emit_extended(DW_LNE.set_address, curr.address, 8)
             ld = next.line - curr.line
-            print(f"@@@ Advance Line by {ld} to {next.line}")
-            print(f"@@@ Copy")
-            curr.address = next.address
             curr.line = next.line
+            print(f"@@@ Advance Line by {ld} to {curr.line}")
+            emit(DW_LNS.advance_line, ld, signed=True)
+            print(f"@@@ Copy")
+            emit(DW_LNS.copy)
             assert curr == next
             curr.clear()
             continue
@@ -311,11 +335,13 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
         ld = next.line - curr.line
         if not next.end_sequence:
             if not de.ld_within_range(ld):
-                print(f"@@@ Advance Line by {ld} to {next.line}")
                 curr.line += ld
+                print(f"@@@ Advance Line by {ld} to {curr.line}")
+                emit(DW_LNS.advance_line, ld, signed=True)
                 ld = 0
             if ad == 0 and ld == 0:
                 print(f"@@@ Copy")
+                emit(DW_LNS.copy)
                 assert curr == next
                 curr.clear()
                 continue
@@ -325,6 +351,7 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
             if opc is None:
                 curr.address += ad
                 print(f"@@@ Advance PC by {ad} to 0x{curr.address:x}")
+                emit(DW_LNS.advance_pc, ad)
                 ad = 0
                 opc, const_add_pc = de.code_from_delta(ad, ld)
 
@@ -333,8 +360,10 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
                 ad -= de.max_ad
                 print(
                     f"@@@ Advance PC by constant {de.max_ad} to 0x{curr.address:x}")
+                emit(DW_LNS.const_add_pc)
             print(
                 f"@@@ Special opcode {opc - opcode_base}: advance Address by {ad} to 0x{next.address:x} and Line by {ld} to {next.line}")
+            emit(opc)
             curr.address += ad
             curr.line += ld
             assert curr == next
@@ -342,16 +371,21 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
             continue
 
         if ad != 0:
-            print(f"@@@ Advance PC by {ad} to 0x{next.address:x}")
             curr.address += ad
+            print(f"@@@ Advance PC by {ad} to 0x{curr.address:x}")
+            emit(DW_LNS.advance_pc, ad)
+            ad = 0
 
         if ld != 0:
-            print(f"@@@ Advance Line by {ld} to {next.line}")
             curr.line += ld
-
+            print(f"@@@ Advance Line by {ld} to {next.line}")
+            emit(DW_LNS.advance_line, ld, signed=True)
+            ld = 0
+        assert ld == 0 and ad == 0
         curr.end_sequence = True
         assert curr == next
         print("@@@ Extended opcode 1: End of Sequence")
+        emit_extended(DW_LNE.end_sequence)
         curr = StateMachine.New(default_is_stmt)
         print()
 
