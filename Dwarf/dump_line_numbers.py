@@ -16,7 +16,6 @@ from Elf.enum_tab import EI_CLASS
 from Util import parse
 
 
-
 @enum.unique
 class DW_LNCT(enum.IntEnum):
     path = 1
@@ -196,7 +195,7 @@ class StateMachine:
         return out
 
 
-def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
+def MatrixDecode(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
                  opcode_base: int) -> List[StateMachine]:
     sm = StateMachine.New(default_is_stmt)
     out: List[StateMachine] = []
@@ -218,6 +217,7 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
                 out.append(dataclasses.replace(sm))
                 sm = StateMachine.New(default_is_stmt)
                 # if data.tell() > 900: return out  # HACK
+                # print ("@@@@@@@@@@@@@@@@@@@", len(out))
                 # return out
             elif x is DW_LNE.set_discriminator:
                 sm.discriminator = parse.read_leb128(data)
@@ -271,8 +271,8 @@ def ReadCommands(end, data: io.BytesIO, delta_enc, default_is_stmt: bool,
     return out
 
 
-def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_stmt: bool,
-                     opcode_base: int) -> bytes:
+def MatrixEncode(matrix: List[StateMachine], de: DeltaEncoder, default_is_stmt: bool,
+                 opcode_base: int) -> bytes:
     out: List[int] = []
 
     def emit(code: int, val=None, signed=False):
@@ -388,7 +388,7 @@ def GenerateCommands(matrix: List[StateMachine], de: DeltaEncoder, default_is_st
         emit_extended(DW_LNE.end_sequence)
         curr = StateMachine.New(default_is_stmt)
         print()
-
+    return out
 
 @ dataclasses.dataclass
 class LineNumberProgram:
@@ -445,10 +445,17 @@ class LineNumberProgram:
                           self.line_range, self.min_instruction_length)
         print(f"# opcode_base={self.opcode_base} min_instruction_length={self.min_instruction_length} "
               f"line_base={self.line_base} line_range={self.line_range} default_is_stmt={self.default_is_stmt}")
-        self.commands = ReadCommands(start + 4 + self.length,
-                                     data, de, bool(self.default_is_stmt), self.opcode_base)
-        GenerateCommands(self.commands, de,
-                         bool(self.default_is_stmt), self.opcode_base)
+        matrix = MatrixDecode(start + 4 + self.length,
+                              data, de, bool(self.default_is_stmt), self.opcode_base)
+        data2 = MatrixEncode(matrix[:], de,
+                             bool(self.default_is_stmt), self.opcode_base)
+        matrix2 = MatrixDecode(len(data2),
+                               io.BytesIO(bytes(data2)), de, bool(self.default_is_stmt), self.opcode_base)
+        # for m in matrix2: print (m)
+        print (f"matrix length: {len(matrix)}")
+        assert len(matrix) == len(matrix2), f"{len(matrix)} vs {len(matrix2)}_"
+        for a, b in zip(matrix, matrix2):
+            assert a == b, f"{a} {b}"
 
         # print(orig_size, len(data))
 
