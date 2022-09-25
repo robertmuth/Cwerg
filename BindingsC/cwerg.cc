@@ -1,4 +1,4 @@
-#include "C/cwerg.h"
+#include "BindingsC/cwerg.h"
 
 #include "Base/ir.h"
 #include "Base/serialize.h"

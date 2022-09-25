@@ -8,7 +8,7 @@ Cwerg includes several components that might be helpful for other compiler proje
 * the X86-64 assembler (X64)
 
 
-All 4 components have Python3 and C++ implementations which can be used as libraries. [C bindigs](../BindingsC/) wrapping parts of the C++ API also exist.
+All 4 components have Python3 and C++ implementations which can be used as libraries. [C bindings](../BindingsC/) wrapping parts of the C++ API also exist.
 
 The components can be used AOT style and emit ELF images or JIT style and emit to memory where the code be called directly.
 In addition, the full backend can emit testual assembler.
