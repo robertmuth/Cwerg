@@ -28,6 +28,7 @@ The core project currently consists of:
 * [X64 Backend](CodeGenX64/) (code generator emitting X86-64 instructions)
 * [C Backend](CodeGenC/) (code generator emitting C code)
 * [Standard Library](StdLib/) (rudimentary library of mostly syscall wrappers)
+* [C Bindings](BindingsC/) (C bindings: wrappers around the C++ code)
 
 You may also find the following useful:
 * [Docs](Docs/) (misc. documentation)
