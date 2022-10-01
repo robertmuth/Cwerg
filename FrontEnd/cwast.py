@@ -124,14 +124,14 @@ class TypeSum:
 
 @dataclasses.dataclass()
 class TypePtr:
+    mut: bool   # pointee is mutable
     type: TypeNode
-    mutable: bool
 
 
 @dataclasses.dataclass()
 class TypeSlice:
     type: TypeNode
-    mutable: bool
+    mut: bool  # slice is mutable
 
 
 @dataclasses.dataclass()
@@ -440,8 +440,8 @@ class StmtReturn:
 
 @dataclasses.dataclass()
 class StmtExpr:
-    expr: ExprCall
     discard: bool
+    expr: ExprCall
 
 
 @dataclasses.dataclass()
@@ -463,23 +463,24 @@ class StmtAssignment:
 @dataclasses.dataclass()
 class DefType:
     """Type Definition"""
+    pub:  bool
+    wrapped: bool
     name: str
     type: TypeNode
-    public:  bool
-    wrapped: bool
+
 
 @dataclasses.dataclass()
 class DefConst:
     """Const Definition"""
     name: str
     value: Val
-    public:  bool
+    pub:  bool
 
 @dataclasses.dataclass()
 class DefFun:
     """Function Definition"""
+    pub: bool
     name: str
-    public: bool
     type: TypeNode
     body: List[StmtNode]
 
@@ -494,7 +495,7 @@ class DefFun:
 ############################################################
 # Partitioning of all the field names in the node classes above
 # Terminal fields do NOT contain other node instances
-_TERMINAL_BOOL = {"public", "mutable", "wrapped", "discard"}
+_TERMINAL_BOOL = {"pub", "mut", "wrapped", "discard"}
 _TERMINAL_INT = {"size", "number"}
 _TERMINAL_STR = {"name", "string", "field"}
 _TERMINAL_FIELDS = _TERMINAL_BOOL | _TERMINAL_INT | _TERMINAL_STR
@@ -539,6 +540,8 @@ _NODES = {
     "if": StmtIf,
     "type": DefType,
     "fun": DefFun,
+    "field": RecField,
+    "ptr": TypePtr,
 }
 
 
@@ -618,31 +621,30 @@ def ExpandShortHand(field, t) -> Any:
         assert False, f"cannot expand short hand: {field} {t}"
 
 
-def ReadPiece(field, stream) -> Any:
-    t = next(stream)
+def ReadPiece(field, token, stream) -> Any:
     if field in _TERMINAL_FIELDS:
         if field in _TERMINAL_BOOL:
-            return bool(t)
-        return t
+            return bool(token)
+        return token
     elif field in _KIND_FIELDS:
         enum = _KIND_FIELDS.get(field)
-        assert enum is not None, f"{field} {t}"
-        return enum[t]
+        assert enum is not None, f"{field} {token}"
+        return enum[token]
     elif field in _NODE_FIELDS:
-        if t == "(":
+        if token == "(":
             return ReadSExpr(stream)
-        return ExpandShortHand(field, t)
+        return ExpandShortHand(field, token)
     elif field in _LIST_FIELDS:
-        assert t == "[", f"expected list start for: {field} {t}"
+        assert token == "[", f"expected list start for: {field} {token}"
         out = []
         while True:
-            t = next(stream)
-            if t == "]":
+            token = next(stream)
+            if token == "]":
                 break
-            if t == "(":
+            if token == "(":
                 out.append(ReadSExpr(stream))
             else:
-                out.append(ExpandShortHand(field, t))
+                out.append(ExpandShortHand(field, token))
         return out
     else:
         assert False
@@ -656,7 +658,6 @@ _BINOP_SHORTCUT = {
     #
     "+": BINARY_EXPR_KIND.PLUS,
     "-": BINARY_EXPR_KIND.MINUS,
-
 }
 
 
@@ -665,9 +666,8 @@ def ReadSExpr(stream) -> Any:
     tag = next(stream)
     print("@@ TAG", tag)
     if tag in _BINOP_SHORTCUT:
-        op1 = ReadPiece("expr1", stream)
-        print()
-        op2 = ReadPiece("expr2", stream)
+        op1 = ReadPiece("expr1", next(stream), stream)
+        op2 = ReadPiece("expr2", next(stream), stream)
         t = next(stream)
         assert t == ")", f"{pieces}  {t}"
         return Expr2(_BINOP_SHORTCUT[tag], op1, op2)
@@ -675,10 +675,18 @@ def ReadSExpr(stream) -> Any:
         cls = _NODES.get(tag)
         assert cls is not None, f"Non node: {tag}"
         pieces = []
+        token = next(stream)
         for field, _ in cls.__annotations__.items():
-            pieces.append(ReadPiece(field, stream))
-        t = next(stream)
-        assert t == ")", f"{pieces}  {t}"
+            if field in _TERMINAL_BOOL:
+                if token == field:
+                    pieces.append(True)
+                    token = next(stream)
+                else:
+                    pieces.append(False)
+            else:
+                pieces.append(ReadPiece(field, token, stream))
+                token = next(stream)
+        assert token == ")", f"{pieces}  {token}"
         return cls(*pieces)
 
 
