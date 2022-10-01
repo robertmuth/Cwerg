@@ -58,10 +58,10 @@ TypeNode = Union["Id", "TypeBase", "TypeEnum", "TypeRec",
 
 
 @dataclasses.dataclass()
-class FunArg:
+class FunParam:
     """Function argument"""
-    type: TypeNode
     name: str      # empty str means no var specified (fun proto type)
+    type: TypeNode
 
 
 @dataclasses.dataclass()
@@ -142,7 +142,7 @@ class TypeArray:
 
 @dataclasses.dataclass()
 class TypeFunSig:
-    params: List[FunArg]
+    params: List[FunParam]
     result: TypeNode
 
 
@@ -236,11 +236,11 @@ class Expr1:
 @enum.unique
 class BINARY_EXPR_KIND(enum.Enum):
     INVALID = 0
-    PLUS = 1
-    MINUS = 2
+    ADD = 1
+    SUB = 2
     DIV = 3
     MUL = 4
-    MOD = 5
+    REM = 5
 
     AND = 10
     OR = 11
@@ -256,8 +256,8 @@ class BINARY_EXPR_KIND(enum.Enum):
     ANDSC = 30  # &&
     ORSC = 31   # ||
 
-    RSH = 40    # >>
-    LSH = 41    # <<
+    SHR = 40    # >>
+    SHL = 41    # <<
 
 
 @dataclasses.dataclass()
@@ -355,7 +355,7 @@ class ValUndef:
 
 @dataclasses.dataclass()
 class ValVoid:
-    name: string  # void or wrapped void
+    pass
 
 
 @dataclasses.dataclass()
@@ -393,12 +393,19 @@ class ValRec:
 # Stmt
 ############################################################
 StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
-                 "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert"]
+                 "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
+                 "StmtBlock"]
 
 
 @dataclasses.dataclass()
 class StmtWhile:
     cond: ExprNode       # must be of type bool
+    body: List[StmtNode]
+
+
+@dataclasses.dataclass()
+class StmtBlock:
+    label: str
     body: List[StmtNode]
 
 
@@ -425,17 +432,17 @@ class StmtIf:
 
 @dataclasses.dataclass()
 class StmtBreak:
-    pass
+    target: str  # use "" for no value
 
 
 @dataclasses.dataclass()
 class StmtContinue:
-    pass
+    target: str  # use "" for no value
 
 
 @dataclasses.dataclass()
 class StmtReturn:
-    expr: ExprNode  # use void for no value
+    expr_ret: ExprNode  # use void for no value
 
 
 @dataclasses.dataclass()
@@ -476,6 +483,7 @@ class DefConst:
     value: Val
     pub:  bool
 
+
 @dataclasses.dataclass()
 class DefFun:
     """Function Definition"""
@@ -495,9 +503,10 @@ class DefFun:
 ############################################################
 # Partitioning of all the field names in the node classes above
 # Terminal fields do NOT contain other node instances
-_TERMINAL_BOOL = {"pub", "mut", "wrapped", "discard"}
 _TERMINAL_INT = {"size", "number"}
-_TERMINAL_STR = {"name", "string", "field"}
+_TERMINAL_STR = {"name", "string", "field", "label", "target"}
+# BOOLs are optional and must come first
+_TERMINAL_BOOL = {"pub", "mut", "wrapped", "discard"}
 _TERMINAL_FIELDS = _TERMINAL_BOOL | _TERMINAL_INT | _TERMINAL_STR
 
 # terminal field containing an enum ampped to the enum class
@@ -518,30 +527,44 @@ _LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
 _NODE_FIELDS = {"type", "result",
                 # expr
                 "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
+                "expr_ret",
                 "container",
                 "callee", "index", "length", "start", "end", "step",
                 "value", "lhs", "rhs", "default"}
 
 
-# Note: we rely on the matching being done greedily
-TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
-TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
-TOKEN_OP = r'[\[\]\(\)]'
-RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [
-    TOKEN_STR, TOKEN_OP, TOKEN_NAMENUM]]))
+# must come last
+_OPTIONAL_FIELDS = {
+    "expr_ret":  ValVoid(),
+    "target": "",
+    "result": TypeBase(BASE_TYPE_KIND.VOID)
+}
 
-TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
-TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]')
+# Note: we rely on the matching being done greedily
+_TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
+_TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
+_TOKEN_OP = r'[\[\]\(\)]'
+_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
+    _TOKEN_STR, _TOKEN_OP, _TOKEN_NAMENUM]]))
+
+_TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
+_TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]')
 
 # maps node class name to class
 _NODES = {
     "#": Comment,
     "return": StmtReturn,
+    "continue": StmtContinue,
+    "break": StmtBreak,
     "if": StmtIf,
+    #
     "type": DefType,
+    "sig": TypeFunSig,
     "fun": DefFun,
     "field": RecField,
     "ptr": TypePtr,
+    "param": FunParam,
+    "block": StmtBlock,
 }
 
 
@@ -569,7 +592,7 @@ def DumpFields(node_class):
 
 def ReadTokens(fp):
     for line in fp:
-        tokens = re.findall(RE_COMBINED, line)
+        tokens = re.findall(_TOKENS_ALL, line)
         for t in tokens:
             yield t
 
@@ -612,10 +635,10 @@ def ExpandShortHand(field, t) -> Any:
     if x is not None:
         assert x is not None, f"{t}"
         return x
-    elif TOKEN_ID.match(t):
+    elif _TOKEN_ID.match(t):
         parts = t.split("::")
         return Id(parts[:-1], parts[-1])
-    elif TOKEN_NUM.match(t):
+    elif _TOKEN_NUM.match(t):
         return ValNum(t, BASE_TYPE_KIND.AUTO)
     else:
         assert False, f"cannot expand short hand: {field} {t}"
@@ -651,14 +674,45 @@ def ReadPiece(field, token, stream) -> Any:
 
 
 _BINOP_SHORTCUT = {
+    ">=": BINARY_EXPR_KIND.GE,
+    ">": BINARY_EXPR_KIND.GT,
     "<=": BINARY_EXPR_KIND.LE,
     "<": BINARY_EXPR_KIND.LT,
     "==": BINARY_EXPR_KIND.EQ,
     "!=": BINARY_EXPR_KIND.NE,
     #
-    "+": BINARY_EXPR_KIND.PLUS,
-    "-": BINARY_EXPR_KIND.MINUS,
+    "+": BINARY_EXPR_KIND.ADD,
+    "-": BINARY_EXPR_KIND.SUB,
+    "*": BINARY_EXPR_KIND.MUL,
+    "/": BINARY_EXPR_KIND.DIV,
+    "%": BINARY_EXPR_KIND.REM,
+    #
+    "&": BINARY_EXPR_KIND.AND,
+    "|": BINARY_EXPR_KIND.OR,
+    "^": BINARY_EXPR_KIND.XOR,
+    #
+    #
+
 }
+
+
+def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
+    token = next(stream)
+    for field in fields:
+        if token == ")":
+            assert field in _OPTIONAL_FIELDS, f"unknown optional: {field}"
+            pieces.append(_OPTIONAL_FIELDS[field])
+        elif field in _TERMINAL_BOOL:
+            if token == field:
+                pieces.append(True)
+                token = next(stream)
+            else:
+                pieces.append(False)
+        else:
+            pieces.append(ReadPiece(field, token, stream))
+            token = next(stream)
+    assert token == ")", f"{pieces}  {token}"
+    return cls(*pieces)
 
 
 def ReadSExpr(stream) -> Any:
@@ -666,28 +720,13 @@ def ReadSExpr(stream) -> Any:
     tag = next(stream)
     print("@@ TAG", tag)
     if tag in _BINOP_SHORTCUT:
-        op1 = ReadPiece("expr1", next(stream), stream)
-        op2 = ReadPiece("expr2", next(stream), stream)
-        t = next(stream)
-        assert t == ")", f"{pieces}  {t}"
-        return Expr2(_BINOP_SHORTCUT[tag], op1, op2)
+        return ReadRestAndMakeNode(Expr2, [_BINOP_SHORTCUT[tag]],
+                                   ["expr1", "expr2"])
     else:
         cls = _NODES.get(tag)
         assert cls is not None, f"Non node: {tag}"
-        pieces = []
-        token = next(stream)
-        for field, _ in cls.__annotations__.items():
-            if field in _TERMINAL_BOOL:
-                if token == field:
-                    pieces.append(True)
-                    token = next(stream)
-                else:
-                    pieces.append(False)
-            else:
-                pieces.append(ReadPiece(field, token, stream))
-                token = next(stream)
-        assert token == ")", f"{pieces}  {token}"
-        return cls(*pieces)
+        fields = [f for f, _ in cls.__annotations__.items()]
+        return ReadRestAndMakeNode(cls, [], fields)
 
 
 if __name__ == "__main__":
