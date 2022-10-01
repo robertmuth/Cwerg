@@ -491,29 +491,36 @@ class DefFun:
 
 
 ############################################################
-# S-Expression Serialization
+# S-Expression Serialization (Introspection driven)
 ############################################################
-# Partitioning of all the field names in the nodes above
-TERMINAL_BOOL = {"public", "mutable", "wrapped", "discard"}
-TERMINAL_INT = {"size", "number"}
-TERMINAL_STR = {"name", "string", "field"}
+# Partitioning of all the field names in the node classes above
+# Terminal fields do NOT contain other node instances
+_TERMINAL_BOOL = {"public", "mutable", "wrapped", "discard"}
+_TERMINAL_INT = {"size", "number"}
+_TERMINAL_STR = {"name", "string", "field"}
+_TERMINAL_FIELDS = _TERMINAL_BOOL | _TERMINAL_INT | _TERMINAL_STR
 
-TERMINAL_FIELDS = TERMINAL_BOOL | TERMINAL_INT | TERMINAL_STR
+# terminal field containing an enum ampped to the enum class
+_KIND_FIELDS = {
+    "unary_expr_kind": UNARY_EXPR_KIND,
+    "binary_expr_kind": BINARY_EXPR_KIND,
+    "base_type_kind": BASE_TYPE_KIND,
+    "mod_type_kind": MOD_TYPE_KIND,
+}
 
+# contain list of nodes
+_LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
+                "values",
+                #
+                "body", "body_t", "body_f"}
 
-LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
-               "values",
-               #
-               "body", "body_t", "body_f"}
+# contain one nodes
+_NODE_FIELDS = {"type", "result",
+                # expr
+                "expr", "cond", "expr_t", "expr_f", "container",
+                "callee", "index", "length", "start", "end", "step",
+                "value", "lhs", "rhs", "default"}
 
-NODE_FIELDS = {"type", "result",
-               # expr
-               "expr", "cond", "expr_t", "expr_f", "container",
-               "callee", "index", "length", "start", "end", "step",
-               "value", "lhs", "rhs", "default"}
-
-KIND_FIELDS = {"unary_expr_kind", "binary_expr_kind", "base_type_kind",
-               "mod_type_kind"}
 
 # Note: we rely on the matching being done greedily
 TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
@@ -523,11 +530,10 @@ RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [
     TOKEN_STR, TOKEN_OP, TOKEN_NAMENUM]]))
 
 TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9](::[_A-Za-z$][_A-Za-z$0-9])*')
+TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]')
 
+# maps node class name to class
 NODES = {}
-ENUMS = {
-    "base_type_kind": BASE_TYPE_KIND,
-}
 
 
 for name, obj in inspect.getmembers(sys.modules[__name__]):
@@ -535,13 +541,13 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
         if obj.__base__ is object:
             NODES[obj.__name__] = obj
             for field, type in obj.__annotations__.items():
-                if field in TERMINAL_FIELDS:
+                if field in _TERMINAL_FIELDS:
                     pass
-                elif field in KIND_FIELDS:
+                elif field in _KIND_FIELDS:
                     pass
-                elif field in NODE_FIELDS:
+                elif field in _NODE_FIELDS:
                     pass
-                elif field in LIST_FIELDS:
+                elif field in _LIST_FIELDS:
                     pass
                 else:
                     assert False, f"unexpected field {obj.__name__} {field}"
@@ -559,56 +565,68 @@ def ReadTokens(fp):
             yield t
 
 
-SHORT_HAND_NODES = {
-    "s8": TypeBase(BASE_TYPE_KIND.S8),
-    "s16": TypeBase(BASE_TYPE_KIND.S16),
-    "s32": TypeBase(BASE_TYPE_KIND.S32),
-    "s64": TypeBase(BASE_TYPE_KIND.S64),
+_SCALAR_TYPES = [
+    #
+    BASE_TYPE_KIND.S8,
+    BASE_TYPE_KIND.S16,
+    BASE_TYPE_KIND.S32,
+    BASE_TYPE_KIND.S64,
+    #
+    BASE_TYPE_KIND.U8,
+    BASE_TYPE_KIND.U16,
+    BASE_TYPE_KIND.U32,
+    BASE_TYPE_KIND.U64,
+    #
+    BASE_TYPE_KIND.F32,
+    BASE_TYPE_KIND.F64,
+]
 
-    "u8": TypeBase(BASE_TYPE_KIND.U8),
-    "u16":  TypeBase(BASE_TYPE_KIND.U16),
-    "u32":  TypeBase(BASE_TYPE_KIND.U32),
-    "u64":  TypeBase(BASE_TYPE_KIND.U64),
-
-    "f32": TypeBase(BASE_TYPE_KIND.F32),
-    "f64": TypeBase(BASE_TYPE_KIND.F64),
-
+_SHORT_HAND_NODES = {
     "void": TypeBase(BASE_TYPE_KIND.VOID),
     "auto": TypeBase(BASE_TYPE_KIND.AUTO),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
 
-     "undef": TypeBase(BASE_TYPE_KIND.BOOL),
+    "undef": ValUndef(BASE_TYPE_KIND.AUTO),
+    "false": ValBool(False),
+    "true": ValBool(True),
 }
+
+for t in _SCALAR_TYPES:
+    name = t.name.lower()
+    _SHORT_HAND_NODES[name] = TypeBase(t)
+    _SHORT_HAND_NODES[f"undef_{name}"] = ValUndef(t)
 
 
 def ExpandShortHand(field, field_type, t) -> Any:
-    x = SHORT_HAND_NODES.get(t)
+    x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
         return x
     elif TOKEN_ID.match(t):
         parts = t.split("::")
         return Id(parts[:-1], parts[-1])
+    elif TOKEN_NUM.match(t):
+        return ValNum(t, BASE_TYPE_KIND.AUTO)
     else:
         assert False, f"{field} {t}"
 
 
 def ReadPiece(field, field_type, stream) -> Any:
     t = next(stream)
-    if field in TERMINAL_FIELDS:
-        if field in TERMINAL_BOOL:
+    if field in _TERMINAL_FIELDS:
+        if field in _TERMINAL_BOOL:
             return bool(t)
         return t
-    elif field in KIND_FIELDS:
-        enum = ENUMS.get(field)
+    elif field in _KIND_FIELDS:
+        enum = _KIND_FIELDS.get(field)
         assert enum is not None, f"{field} {t}"
         return enum[t]
-    elif field in NODE_FIELDS:
+    elif field in _NODE_FIELDS:
         if t == "(":
             return ReadSExpr(stream)
         return ExpandShortHand(field, field_type, t)
-    elif field in LIST_FIELDS:
+    elif field in _LIST_FIELDS:
         assert t == "["
         out = []
         while True:
