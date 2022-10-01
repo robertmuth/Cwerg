@@ -263,7 +263,8 @@ class BINARY_EXPR_KIND(enum.Enum):
 @dataclasses.dataclass()
 class Expr2:
     binary_expr_kind: BINARY_EXPR_KIND
-    expr: ExprNode
+    expr1: ExprNode
+    expr2: ExprNode
 
 
 @dataclasses.dataclass()
@@ -463,18 +464,16 @@ class StmtAssignment:
 class DefType:
     """Type Definition"""
     name: str
+    type: TypeNode
     public:  bool
     wrapped: bool
-    type: TypeNode
-
 
 @dataclasses.dataclass()
 class DefConst:
     """Const Definition"""
     name: str
-    public:  bool
     value: Val
-
+    public:  bool
 
 @dataclasses.dataclass()
 class DefFun:
@@ -517,7 +516,8 @@ _LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
 # contain one nodes
 _NODE_FIELDS = {"type", "result",
                 # expr
-                "expr", "cond", "expr_t", "expr_f", "container",
+                "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
+                "container",
                 "callee", "index", "length", "start", "end", "step",
                 "value", "lhs", "rhs", "default"}
 
@@ -529,17 +529,23 @@ TOKEN_OP = r'[\[\]\(\)]'
 RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [
     TOKEN_STR, TOKEN_OP, TOKEN_NAMENUM]]))
 
-TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9](::[_A-Za-z$][_A-Za-z$0-9])*')
+TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
 TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]')
 
 # maps node class name to class
-NODES = {}
+_NODES = {
+    "#": Comment,
+    "return": StmtReturn,
+    "if": StmtIf,
+    "type": DefType,
+    "fun": DefFun,
+}
 
 
 for name, obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isclass(obj):
         if obj.__base__ is object:
-            NODES[obj.__name__] = obj
+            _NODES[obj.__name__] = obj
             for field, type in obj.__annotations__.items():
                 if field in _TERMINAL_FIELDS:
                     pass
@@ -598,7 +604,7 @@ for t in _SCALAR_TYPES:
     _SHORT_HAND_NODES[f"undef_{name}"] = ValUndef(t)
 
 
-def ExpandShortHand(field, field_type, t) -> Any:
+def ExpandShortHand(field, t) -> Any:
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
@@ -609,10 +615,10 @@ def ExpandShortHand(field, field_type, t) -> Any:
     elif TOKEN_NUM.match(t):
         return ValNum(t, BASE_TYPE_KIND.AUTO)
     else:
-        assert False, f"{field} {t}"
+        assert False, f"cannot expand short hand: {field} {t}"
 
 
-def ReadPiece(field, field_type, stream) -> Any:
+def ReadPiece(field, stream) -> Any:
     t = next(stream)
     if field in _TERMINAL_FIELDS:
         if field in _TERMINAL_BOOL:
@@ -625,33 +631,55 @@ def ReadPiece(field, field_type, stream) -> Any:
     elif field in _NODE_FIELDS:
         if t == "(":
             return ReadSExpr(stream)
-        return ExpandShortHand(field, field_type, t)
+        return ExpandShortHand(field, t)
     elif field in _LIST_FIELDS:
-        assert t == "["
+        assert t == "[", f"expected list start for: {field} {t}"
         out = []
         while True:
             t = next(stream)
             if t == "]":
                 break
-            assert t == "("
-            out.append(ReadSExpr(stream))
+            if t == "(":
+                out.append(ReadSExpr(stream))
+            else:
+                out.append(ExpandShortHand(field, t))
         return out
     else:
         assert False
 
 
+_BINOP_SHORTCUT = {
+    "<=": BINARY_EXPR_KIND.LE,
+    "<": BINARY_EXPR_KIND.LT,
+    "==": BINARY_EXPR_KIND.EQ,
+    "!=": BINARY_EXPR_KIND.NE,
+    #
+    "+": BINARY_EXPR_KIND.PLUS,
+    "-": BINARY_EXPR_KIND.MINUS,
+
+}
+
+
 def ReadSExpr(stream) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
-    cls = NODES.get(tag)
     print("@@ TAG", tag)
-    assert cls is not None, f"{tag}"
-    pieces = []
-    for field, field_type in cls.__annotations__.items():
-        pieces.append(ReadPiece(field, field_type, stream))
-    t = next(stream)
-    assert t == ")", f"{pieces}  {t}"
-    return cls(*pieces)
+    if tag in _BINOP_SHORTCUT:
+        op1 = ReadPiece("expr1", stream)
+        print()
+        op2 = ReadPiece("expr2", stream)
+        t = next(stream)
+        assert t == ")", f"{pieces}  {t}"
+        return Expr2(_BINOP_SHORTCUT[tag], op1, op2)
+    else:
+        cls = _NODES.get(tag)
+        assert cls is not None, f"Non node: {tag}"
+        pieces = []
+        for field, _ in cls.__annotations__.items():
+            pieces.append(ReadPiece(field, stream))
+        t = next(stream)
+        assert t == ")", f"{pieces}  {t}"
+        return cls(*pieces)
 
 
 if __name__ == "__main__":
