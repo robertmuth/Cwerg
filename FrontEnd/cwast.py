@@ -2,16 +2,7 @@
 
 """AST Nodes and SExpr reader/writer for the Cwerg frontend
 
-Highlights
 
-* Comments are nodes and cannot occur in arbitrary places
-* wrapped types
-* variables are non-mutable by default
-* pointees are non-mutable by default
-* sum type with emphasis on error and optional handling
-* init/fini function order defined by module dependencies
-* templated module system
-* visibilty identifier is non-public by default
 """
 
 import sys
@@ -34,36 +25,57 @@ class Comment:
     string: str
 
 ############################################################
+# Identifier
+############################################################
+
+
+@dataclasses.dataclass()
+class ModId:
+    name: str
+
+
+@enum.unique
+class ID_KIND(enum.Enum):
+    INVALID = 0
+    VAR = 1
+    CONST = 2
+    FUN = 3
+
+
+@dataclasses.dataclass()
+class Id:
+    path: List[ModId]  # first components of mod1::mod2:id
+    name: str          # last component of mod1::mod2:id
+    # id_kind = ID_KIND  # may be filled in later
+
+############################################################
 # TypeNode
 ############################################################
 
 
-TypeNode = Union["TypeId", "TypeBase", "TypeEnum", "TypeRec",
+TypeNode = Union["Id", "TypeBase", "TypeEnum", "TypeRec",
                  "TypeSum", "TypeSlice", "TypeArray", "TypeFunSig"]
 
 
 @dataclasses.dataclass()
 class FunArg:
+    """Function argument"""
     type: TypeNode
     name: str      # empty str means no var specified (fun proto type)
 
 
 @dataclasses.dataclass()
-class VarTypeDef:  #
+class RecField:  #
     name: str
     type: TypeNode
     default: "ExprNode"    # must be const
 
 
 @dataclasses.dataclass()
-class NameVal:    # for enum elemenets
+class NameVal:
+    """ Enum element - `value: auto` means previous value + 1"""
     name: str
-    value: Optional[str]  # TODO: wrong
-
-
-@dataclasses.dataclass()
-class TypeId:
-    name: str
+    value: Union["ValNum", "ValAuto"]
 
 
 @enum.unique
@@ -96,7 +108,7 @@ class TypeBase:
 
 @dataclasses.dataclass()
 class TypeRec:
-    fields: List[Union[VarTypeDef, Comment]]
+    fields: List[Union[RecField, Comment]]
 
 
 @dataclasses.dataclass()
@@ -125,14 +137,6 @@ class TypeSlice:
 @dataclasses.dataclass()
 class TypeArray:
     size: int      # must be const and unsigned
-    type: TypeNode
-
-
-@dataclasses.dataclass()
-class DefType:
-    name: str
-    public:  bool
-    wrapped: bool
     type: TypeNode
 
 
@@ -179,26 +183,6 @@ ExprNode = Union["Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                  "Expr1", "Expr2", "Expr3",
                  "ExprUnwrap",
                  "ExprLen", "ExprSizeof"]
-
-
-@dataclasses.dataclass()
-class ModId:
-    name: str
-
-
-@enum.unique
-class ID_KIND(enum.Enum):
-    INVALID = 0
-    VAR = 1
-    CONST = 2
-    FUN = 3
-
-
-@dataclasses.dataclass()
-class Id:
-    path: List[ModId]  # first components of mod1::mod2:id
-    name: str          # last component of mod1::mod2:id
-    # id_kind = ID_KIND  # may be filled in later
 
 
 @dataclasses.dataclass()
@@ -401,13 +385,12 @@ class ValArrayString:
 @dataclasses.dataclass()
 class ValRec:
     type: TypeNode
-    values: List[FieldVal]
+    values: List[Union[FieldVal, Comment]]
+
 
 ############################################################
-# StmtNode
+# Stmt
 ############################################################
-
-
 StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
                  "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert"]
 
@@ -477,8 +460,27 @@ class StmtAssignment:
 
 
 @dataclasses.dataclass()
-class FunDef:
+class DefType:
+    """Type Definition"""
     name: str
+    public:  bool
+    wrapped: bool
+    type: TypeNode
+
+
+@dataclasses.dataclass()
+class DefConst:
+    """Const Definition"""
+    name: str
+    public:  bool
+    value: Val
+
+
+@dataclasses.dataclass()
+class DefFun:
+    """Function Definition"""
+    name: str
+    public: bool
     type: TypeNode
     body: List[StmtNode]
 
@@ -488,12 +490,16 @@ class FunDef:
 #    body: List[TopLevelItems]
 
 
+############################################################
+# S-Expression Serialization
+############################################################
 # Partitioning of all the field names in the nodes above
-TERMINAL_FIELDS = {"name", "string", "field",
-                   # int
-                   "size", "number",
-                   # bools
-                   "public", "mutable", "wrapped", "discard"}
+TERMINAL_BOOL = {"public", "mutable", "wrapped", "discard"}
+TERMINAL_INT = {"size", "number"}
+TERMINAL_STR = {"name", "string", "field"}
+
+TERMINAL_FIELDS = TERMINAL_BOOL | TERMINAL_INT | TERMINAL_STR
+
 
 LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
                "values",
@@ -516,9 +522,12 @@ TOKEN_OP = r'[\[\]\(\)]'
 RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [
     TOKEN_STR, TOKEN_OP, TOKEN_NAMENUM]]))
 
+TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9](::[_A-Za-z$][_A-Za-z$0-9])*')
 
 NODES = {}
-ENUMS = set()
+ENUMS = {
+    "base_type_kind": BASE_TYPE_KIND,
+}
 
 
 for name, obj in inspect.getmembers(sys.modules[__name__]):
@@ -536,8 +545,6 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
                     pass
                 else:
                     assert False, f"unexpected field {obj.__name__} {field}"
-        elif obj.__base__ is enum.Enum:
-            ENUMS.add(obj)
 
 
 def DumpFields(node_class):
@@ -570,25 +577,37 @@ SHORT_HAND_NODES = {
     "auto": TypeBase(BASE_TYPE_KIND.AUTO),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
+
+     "undef": TypeBase(BASE_TYPE_KIND.BOOL),
 }
 
 
-def ShortHandExpr(field, field_type, t) -> Any:
+def ExpandShortHand(field, field_type, t) -> Any:
     x = SHORT_HAND_NODES.get(t)
-    assert x is not None, f"{t}"
-    return x
+    if x is not None:
+        assert x is not None, f"{t}"
+        return x
+    elif TOKEN_ID.match(t):
+        parts = t.split("::")
+        return Id(parts[:-1], parts[-1])
+    else:
+        assert False, f"{field} {t}"
 
 
 def ReadPiece(field, field_type, stream) -> Any:
     t = next(stream)
     if field in TERMINAL_FIELDS:
+        if field in TERMINAL_BOOL:
+            return bool(t)
         return t
     elif field in KIND_FIELDS:
-        return t
+        enum = ENUMS.get(field)
+        assert enum is not None, f"{field} {t}"
+        return enum[t]
     elif field in NODE_FIELDS:
         if t == "(":
             return ReadSExpr(stream)
-        return ShortHandExpr(field, field_type, t)
+        return ExpandShortHand(field, field_type, t)
     elif field in LIST_FIELDS:
         assert t == "["
         out = []
@@ -608,7 +627,7 @@ def ReadSExpr(stream) -> Any:
     tag = next(stream)
     cls = NODES.get(tag)
     print("@@ TAG", tag)
-    assert cls is not None
+    assert cls is not None, f"{tag}"
     pieces = []
     for field, field_type in cls.__annotations__.items():
         pieces.append(ReadPiece(field, field_type, stream))
@@ -619,6 +638,11 @@ def ReadSExpr(stream) -> Any:
 
 if __name__ == "__main__":
     stream = ReadTokens(sys.stdin)
-    t = next(stream)
-    assert t == "("
-    print(ReadSExpr(stream))
+    try:
+        while True:
+            t = next(stream)
+            assert t == "("
+            print(ReadSExpr(stream))
+            print()
+    except StopIteration:
+        pass
