@@ -40,9 +40,9 @@
 
 (fun foo (TypeFunSig [(param a s32) (param b s32) (param c s32)] s32) [
    (# "this is a comment with \" with quotes \t ")
-   (if (& a b) 
+   (if (and a b) 
     [(return a)]
-    [(return (^ a b))])
+    [(return (xor a b))])
    (if (<=  a b) 
     []
     [])
@@ -61,3 +61,12 @@
     ])
    (return) 
 ])
+
+
+(mod main [] [
+   (# "this is a comment with \" with quotes \t ")
+   (fun main (sig [(param argc uint32) (param argv (ptr u8))] s32) [
+         (return 0)
+   ])
+])
+

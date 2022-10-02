@@ -29,11 +29,6 @@ class Comment:
 ############################################################
 
 
-@dataclasses.dataclass()
-class ModId:
-    name: str
-
-
 @enum.unique
 class ID_KIND(enum.Enum):
     INVALID = 0
@@ -44,7 +39,7 @@ class ID_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Id:
-    path: List[ModId]  # first components of mod1::mod2:id
+    path: List[str]  # first components of mod1::mod2:id
     name: str          # last component of mod1::mod2:id
     # id_kind = ID_KIND  # may be filled in later
 
@@ -144,30 +139,6 @@ class TypeArray:
 class TypeFunSig:
     params: List[FunParam]
     result: TypeNode
-
-
-############################################################
-# TypeMod
-############################################################
-
-@enum.unique
-class MOD_TYPE_KIND(enum.Enum):
-    INVALID = 0
-    CONST = 1
-    MOD = 2
-    TYPE = 3
-
-
-@dataclasses.dataclass()
-class VarTypeMod:
-    name: str
-    mod_type_kind: MOD_TYPE_KIND
-    type: Optional[TypeNode]     # if mod_type_kind == TYPE
-
-
-@dataclasses.dataclass()
-class TypeMod:
-    params: List[VarTypeMod]
 
 
 ############################################################
@@ -292,6 +263,11 @@ class ExprSlice:
 
 @dataclasses.dataclass()
 class ExprLen:
+    container: ExprNode   # must be of type slice or array
+
+
+@dataclasses.dataclass()
+class ExprStart:
     container: ExprNode   # must be of type slice or array
 
 
@@ -457,8 +433,33 @@ class StmtAssert:
     string: str
 
 
+@enum.unique
+class ASSIGNMENT_KIND(enum.Enum):
+    INVALID = 0
+    ADD = 1
+    SUB = 2
+    DIV = 3
+    MUL = 4
+    REM = 5
+
+    AND = 10
+    OR = 11
+    XOR = 12
+
+    SHR = 20    # >>
+    SHL = 31    # <<
+
+
+@dataclasses.dataclass()
+class StmtAssignment2:
+    assignment_kind: ASSIGNMENT_KIND
+    lhs: ExprLHS
+    expr: ExprNode
+
+
 @dataclasses.dataclass()
 class StmtAssignment:
+    assignment_kind: ASSIGNMENT_KIND
     lhs: ExprLHS
     expr: ExprNode
 
@@ -492,10 +493,29 @@ class DefFun:
     type: TypeNode
     body: List[StmtNode]
 
-# @dataclasses.dataclass()
-# class Mod:
-#    mod_param: List[ModParam]
-#    body: List[TopLevelItems]
+
+@enum.unique
+class MOD_PARAM_KIND(enum.Enum):
+    INVALID = 0
+    CONST = 1
+    MOD = 2
+    TYPE = 3
+
+
+@dataclasses.dataclass()
+class ModParam:
+    """Module argument"""
+    name: str
+    mod_param_kind: MOD_PARAM_KIND
+
+
+@dataclasses.dataclass()
+class DefMod:
+    """Module Definition"""
+    pub: bool
+    name: str
+    params: List[ModParam]
+    body: List[StmtNode]
 
 
 ############################################################
@@ -514,7 +534,8 @@ _KIND_FIELDS = {
     "unary_expr_kind": UNARY_EXPR_KIND,
     "binary_expr_kind": BINARY_EXPR_KIND,
     "base_type_kind": BASE_TYPE_KIND,
-    "mod_type_kind": MOD_TYPE_KIND,
+    "mod_param_kind": MOD_PARAM_KIND,
+    "assignment_kind": ASSIGNMENT_KIND,
 }
 
 # contain list of nodes
@@ -548,11 +569,15 @@ _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     _TOKEN_STR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
-_TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]')
+_TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
 
 # maps node class name to class
 _NODES = {
     "#": Comment,
+    "^": ExprDeref,
+    "&": ExprAddrOf,
+    ".": ExprField,
+    "=": StmtAssignment,
     "return": StmtReturn,
     "continue": StmtContinue,
     "break": StmtBreak,
@@ -565,6 +590,7 @@ _NODES = {
     "ptr": TypePtr,
     "param": FunParam,
     "block": StmtBlock,
+    "mod":  DefMod,
 }
 
 
@@ -687,14 +713,25 @@ _BINOP_SHORTCUT = {
     "/": BINARY_EXPR_KIND.DIV,
     "%": BINARY_EXPR_KIND.REM,
     #
-    "&": BINARY_EXPR_KIND.AND,
-    "|": BINARY_EXPR_KIND.OR,
-    "^": BINARY_EXPR_KIND.XOR,
+    "and": BINARY_EXPR_KIND.AND,
+    "or": BINARY_EXPR_KIND.OR,
+    "xor": BINARY_EXPR_KIND.XOR,
     #
-    #
-
 }
 
+_ASSIGNMENT_SHORTCUT = {
+    #
+    "+=": ASSIGNMENT_KIND.ADD,
+    "-=": ASSIGNMENT_KIND.SUB,
+    "*=": ASSIGNMENT_KIND.MUL,
+    "/=": ASSIGNMENT_KIND.DIV,
+    "%=": ASSIGNMENT_KIND.REM,
+    #
+    "and=": ASSIGNMENT_KIND.AND,
+    "or=": ASSIGNMENT_KIND.OR,
+    "xor=": ASSIGNMENT_KIND.XOR,
+    #
+}
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
     token = next(stream)
@@ -711,7 +748,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
         else:
             pieces.append(ReadPiece(field, token, stream))
             token = next(stream)
-    assert token == ")", f"{pieces}  {token}"
+    assert token == ")", f"while parsing {cls.__name__}  expected end but got {token}"
     return cls(*pieces)
 
 
