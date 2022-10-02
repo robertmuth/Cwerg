@@ -63,7 +63,7 @@ class FunParam:
 class RecField:  #
     name: str
     type: TypeNode
-    default: "ExprNode"    # must be const
+    initial: "ExprNode"    # must be const
 
 
 @dataclasses.dataclass()
@@ -77,15 +77,17 @@ class NameVal:
 class BASE_TYPE_KIND(enum.Enum):
     INVALID = 0
 
-    S8 = 10
-    S16 = 11
-    S32 = 12
-    S64 = 13
+    SINT = 10
+    S8 = 11
+    S16 = 12
+    S32 = 13
+    S64 = 14
 
-    U8 = 20
-    U16 = 21
-    U32 = 22
-    U64 = 23
+    UINT = 20
+    U8 = 21
+    U16 = 22
+    U32 = 23
+    U64 = 24
 
     F32 = 30
     F64 = 31
@@ -125,8 +127,8 @@ class TypePtr:
 
 @dataclasses.dataclass()
 class TypeSlice:
-    type: TypeNode
     mut: bool  # slice is mutable
+    type: TypeNode
 
 
 @dataclasses.dataclass()
@@ -142,17 +144,81 @@ class TypeFunSig:
 
 
 ############################################################
-# ExprNode (inlcudes const)
+# Val (includes const)
 ############################################################
+ValNode = Union["ValBool", "ValNum", "ValUndef",
+                "ValVoid", "ValArray", "ValArrayString",
+                "ValRec"]
+
+
+@dataclasses.dataclass()
+class ValBool:
+    value: bool
+
+
+@dataclasses.dataclass()
+class ValNum:
+    number: str   # maybe a (unicode) character as well
+    base_type_kind: BASE_TYPE_KIND
+
+
+class ValAuto:  # placeholder for unspecified val (note: not in ValNode)
+    pass
+
+
+@dataclasses.dataclass()
+class ValUndef:
+    base_type_kind: BASE_TYPE_KIND
+
+
+@dataclasses.dataclass()
+class ValVoid:
+    pass
+
+
+@dataclasses.dataclass()
+class IndexVal:   # for array initialization {.1 = 5, .2 = 6}
+    index: str
+    value: ValNode
+
+
+@dataclasses.dataclass()
+class FieldVal:   # for rec initialization {.imag = 5, .real = 1}
+    index: str
+    value: ValNode
+
+
+@dataclasses.dataclass()
+class ValArray:
+    type: TypeNode
+    size: Union[ValNum, ValAuto]
+    values: List[IndexVal]
+
+
+@dataclasses.dataclass()
+class ValArrayString:
+    # type: u8, size: strlen(value)
+    value: str
+
+
+@dataclasses.dataclass()
+class ValRec:
+    type: TypeNode
+    values: List[Union[FieldVal, Comment]]
+
+############################################################
+# ExprNode
+############################################################
+
 
 ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
                 "ExprCall"]
 
 
-ExprNode = Union["Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
+ExprNode = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                  "ExprField", "ExprCall", "ExprParen",
                  "Expr1", "Expr2", "Expr3",
-                 "ExprUnwrap",
+                 "ExprUnwrap", "ExprChop",
                  "ExprLen", "ExprSizeof"]
 
 
@@ -255,7 +321,7 @@ class ExprIndex:
 
 
 @dataclasses.dataclass()
-class ExprSlice:
+class ExprChop:
     container: ExprNode  # must be of type slice or array
     start: Union[ExprNode, "ValAuto"]  # must be of int type
     length: Union[ExprNode, "ValAuto"]  # must be of int type
@@ -263,11 +329,6 @@ class ExprSlice:
 
 @dataclasses.dataclass()
 class ExprLen:
-    container: ExprNode   # must be of type slice or array
-
-
-@dataclasses.dataclass()
-class ExprStart:
     container: ExprNode   # must be of type slice or array
 
 
@@ -301,68 +362,11 @@ class ExprOffsetof:
     field: str
 
 
-############################################################
-# Val (includes const)
-############################################################
-Val = Union["ValBool", "ValNum", "ValUndef",
-            "ValVoid", "ValArray", "ValArrayString",
-            "ValRec"]
-
-
 @dataclasses.dataclass()
-class ValBool:
-    value: bool
-
-
-@dataclasses.dataclass()
-class ValNum:
-    number: str   # maybe a (unicode) character as well
-    base_type_kind: BASE_TYPE_KIND
-
-
-class ValAuto:  # placeholder for unspecified val
-    pass
-
-
-@dataclasses.dataclass()
-class ValUndef:
-    base_type_kind: BASE_TYPE_KIND
-
-
-@dataclasses.dataclass()
-class ValVoid:
-    pass
-
-
-@dataclasses.dataclass()
-class IndexVal:   # for array initialization {.1 = 5, .2 = 6}
-    index: str
-    value: Val
-
-
-@dataclasses.dataclass()
-class FieldVal:   # for rec initialization {.imag = 5, .real = 1}
-    index: str
-    value: Val
-
-
-@dataclasses.dataclass()
-class ValArray:
-    type: TypeNode
-    size: Union[ValNum, ValAuto]
-    values: List[IndexVal]
-
-
-@dataclasses.dataclass()
-class ValArrayString:
-    # type: u8, size: strlen(value)
-    value: str
-
-
-@dataclasses.dataclass()
-class ValRec:
-    type: TypeNode
-    values: List[Union[FieldVal, Comment]]
+class ExprRange:
+    end: ExprNode   # start, end ,step work like range(start, end, step)
+    start: Union["ValAuto", ExprNode]
+    step: Union["ValAuto", ExprNode]
 
 
 ############################################################
@@ -388,11 +392,9 @@ class StmtBlock:
 @dataclasses.dataclass()
 class StmtFor:
     name: str
-    base_type_kind: BASE_TYPE_KIND
-    end: ExprNode   # start, end ,step work like range(start, end, step)
-    start: Union["ValAuto", ExprNode]
-    step: Union["ValAuto", ExprNode]
-
+    type: TypeNode
+    range: ExprRange
+    body: List[StmtNode]
 
 @dataclasses.dataclass()
 class StmtDefer:
@@ -464,7 +466,7 @@ class StmtAssignment:
     expr: ExprNode
 
 ############################################################
-#
+# Definitions
 ############################################################
 
 
@@ -481,14 +483,25 @@ class DefType:
 class DefConst:
     """Const Definition"""
     name: str
-    value: Val
+    value: ValNode
     pub:  bool
+
+
+@dataclasses.dataclass()
+class DefVar:
+    """Function Definition"""
+    pub: bool
+    mut: bool
+    name: str
+    type: TypeNode
+    initial: ExprNode
 
 
 @dataclasses.dataclass()
 class DefFun:
     """Function Definition"""
     pub: bool
+    extern: bool
     name: str
     type: TypeNode
     body: List[StmtNode]
@@ -526,7 +539,7 @@ class DefMod:
 _TERMINAL_INT = {"size", "number"}
 _TERMINAL_STR = {"name", "string", "field", "label", "target"}
 # BOOLs are optional and must come first
-_TERMINAL_BOOL = {"pub", "mut", "wrapped", "discard"}
+_TERMINAL_BOOL = {"pub", "extern", "mut", "wrapped", "discard"}
 _TERMINAL_FIELDS = _TERMINAL_BOOL | _TERMINAL_INT | _TERMINAL_STR
 
 # terminal field containing an enum ampped to the enum class
@@ -548,15 +561,17 @@ _LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
 _NODE_FIELDS = {"type", "result",
                 # expr
                 "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
-                "expr_ret",
+                "expr_ret",  "range",
                 "container",
                 "callee", "index", "length", "start", "end", "step",
-                "value", "lhs", "rhs", "default"}
+                "value", "lhs", "rhs", "initial"}
 
 
 # must come last
 _OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
+    "start":   ValAuto(),
+    "step":   ValAuto(),
     "target": "",
     "result": TypeBase(BASE_TYPE_KIND.VOID)
 }
@@ -577,20 +592,27 @@ _NODES = {
     "^": ExprDeref,
     "&": ExprAddrOf,
     ".": ExprField,
+    "at": ExprIndex,
+    "range": ExprRange,
+    #
     "=": StmtAssignment,
     "return": StmtReturn,
     "continue": StmtContinue,
     "break": StmtBreak,
     "if": StmtIf,
+    "for": StmtFor,
+    "block": StmtBlock,
     #
-    "type": DefType,
-    "sig": TypeFunSig,
-    "fun": DefFun,
     "field": RecField,
     "ptr": TypePtr,
     "param": FunParam,
-    "block": StmtBlock,
+    "type": DefType,
+    "sig": TypeFunSig,
+    #
+    "fun": DefFun,
+
     "mod":  DefMod,
+    "let": DefVar,
 }
 
 
@@ -733,6 +755,7 @@ _ASSIGNMENT_SHORTCUT = {
     #
 }
 
+
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
     token = next(stream)
     for field in fields:
@@ -748,7 +771,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
         else:
             pieces.append(ReadPiece(field, token, stream))
             token = next(stream)
-    assert token == ")", f"while parsing {cls.__name__}  expected end but got {token}"
+    assert token == ")", f"while parsing {cls.__name__}  expected node-end but got {token}"
     return cls(*pieces)
 
 

@@ -1,6 +1,10 @@
 ## Experimental Frontend For The Cwerg Language
 
-This is completely unfinished and experimental
+Cwerg tries to trade-off language expressiveness with compiler
+implementation complexity. We hope to reach a sweet spot *above* what
+C goves us today.
+
+Warning: This is completely unfinished and experimental
 
 ### Expected Highlights
 
@@ -60,3 +64,29 @@ Slices
 Strings 
 * are just Arrays of unsigned bytes
 * they are not null terminated
+
+
+
+### Discussion of Features
+
+####  Increment/decrement operators (`++`/`--`)
+
+Pro: Helpful for writing very succint code. 
+
+Con: Impure expression with side-effects requiring the concept of [Sequence Point](https://en.wikipedia.org/wiki/Sequence_point) to get handle on the semantics. 
+
+Decision: omitted 
+
+#### Enhahanced Assignment (`+=`, `-=`, etc.)
+
+Pro: Convenient shorthand, especially if increment/decrement is not availabe. Helps with code generation in the absence of CSE pass.
+
+Con: `a += b` is *mostly* syntactic sugar for `a = a + b` so not much expressive power is gained.
+
+Decision: included
+
+
+##### Mutability (aka `const`) attribute 
+
+
+Decision: Supported for variable, pointees and slices. `mut` pointers/slices can be assigned to non-`mut` slices 

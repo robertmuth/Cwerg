@@ -63,10 +63,3 @@
 ])
 
 
-(mod main [] [
-   (# "this is a comment with \" with quotes \t ")
-   (fun main (sig [(param argc uint32) (param argv (ptr u8))] s32) [
-         (return 0)
-   ])
-])
-
