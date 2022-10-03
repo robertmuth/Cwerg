@@ -18,8 +18,6 @@ from typing import List, Dict, Set, Optional, Union, Any
 ############################################################
 # Comment
 ############################################################
-
-
 @dataclasses.dataclass()
 class Comment:
     string: str
@@ -27,8 +25,6 @@ class Comment:
 ############################################################
 # Identifier
 ############################################################
-
-
 @enum.unique
 class ID_KIND(enum.Enum):
     INVALID = 0
@@ -44,10 +40,8 @@ class Id:
     # id_kind = ID_KIND  # may be filled in later
 
 ############################################################
-# TypeNode
+# TypeNodes
 ############################################################
-
-
 TypeNode = Union["Id", "TypeBase", "TypeEnum", "TypeRec",
                  "TypeSum", "TypeSlice", "TypeArray", "TypeFunSig"]
 
@@ -144,7 +138,7 @@ class TypeFunSig:
 
 
 ############################################################
-# Val (includes const)
+# Val Nodes
 ############################################################
 ValNode = Union["ValBool", "ValNum", "ValUndef",
                 "ValVoid", "ValArray", "ValArrayString",
@@ -162,7 +156,10 @@ class ValNum:
     base_type_kind: BASE_TYPE_KIND
 
 
-class ValAuto:  # placeholder for unspecified val (note: not in ValNode)
+class ValAuto:  
+    """placeholder for an unspecified value
+    
+    Note: it is not part of the ValNode Union"""
     pass
 
 
@@ -177,13 +174,15 @@ class ValVoid:
 
 
 @dataclasses.dataclass()
-class IndexVal:   # for array initialization {.1 = 5, .2 = 6}
+class IndexVal:   
+    "for array initialization {.1 = 5, .2 = 6}"
     index: str
     value: ValNode
 
 
 @dataclasses.dataclass()
-class FieldVal:   # for rec initialization {.imag = 5, .real = 1}
+class FieldVal:   
+    "for rec initialization {.imag = 5, .real = 1}"
     index: str
     value: ValNode
 
@@ -209,12 +208,6 @@ class ValRec:
 ############################################################
 # ExprNode
 ############################################################
-
-
-ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
-                "ExprCall"]
-
-
 ExprNode = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                  "ExprField", "ExprCall", "ExprParen",
                  "Expr1", "Expr2", "Expr3",
@@ -376,6 +369,8 @@ StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
                  "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
                  "StmtBlock"]
 
+ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
+                "ExprCall"]
 
 @dataclasses.dataclass()
 class StmtWhile:
@@ -395,6 +390,7 @@ class StmtFor:
     type: TypeNode
     range: ExprRange
     body: List[StmtNode]
+
 
 @dataclasses.dataclass()
 class StmtDefer:
@@ -500,6 +496,8 @@ class DefVar:
 @dataclasses.dataclass()
 class DefFun:
     """Function Definition"""
+    init: bool
+    fini: bool
     pub: bool
     extern: bool
     name: str
@@ -534,16 +532,16 @@ class DefMod:
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
-# Partitioning of all the field names in the node classes above
-# Terminal fields do NOT contain other node instances
-_TERMINAL_INT = {"size", "number"}
-_TERMINAL_STR = {"name", "string", "field", "label", "target"}
-# BOOLs are optional and must come first
-_TERMINAL_BOOL = {"pub", "extern", "mut", "wrapped", "discard"}
-_TERMINAL_FIELDS = _TERMINAL_BOOL | _TERMINAL_INT | _TERMINAL_STR
+# Partitioning of all the field names in the node classes above.
+# Atom fields do NOT contain other node instances
+_ATOM_INT = {"size", "number"}
+_ATOM_STR = {"name", "string", "field", "label", "target"}
+# BOOLs are optional and must come first in a dataclass
+_ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini"}
+_ATOM_FIELDS = _ATOM_BOOL | _ATOM_INT | _ATOM_STR
 
-# terminal field containing an enum ampped to the enum class
-_KIND_FIELDS = {
+# Fields containing an enum. Mapped to the enum class
+_ATOM_KIND = {
     "unary_expr_kind": UNARY_EXPR_KIND,
     "binary_expr_kind": BINARY_EXPR_KIND,
     "base_type_kind": BASE_TYPE_KIND,
@@ -567,7 +565,7 @@ _NODE_FIELDS = {"type", "result",
                 "value", "lhs", "rhs", "initial"}
 
 
-# must come last
+# must come last in a dataclass
 _OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
     "start":   ValAuto(),
@@ -594,6 +592,7 @@ _NODES = {
     ".": ExprField,
     "at": ExprIndex,
     "range": ExprRange,
+    "call": ExprCall,
     #
     "=": StmtAssignment,
     "return": StmtReturn,
@@ -602,6 +601,7 @@ _NODES = {
     "if": StmtIf,
     "for": StmtFor,
     "block": StmtBlock,
+    "expr": StmtExpr,
     #
     "field": RecField,
     "ptr": TypePtr,
@@ -621,9 +621,9 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
         if obj.__base__ is object:
             _NODES[obj.__name__] = obj
             for field, type in obj.__annotations__.items():
-                if field in _TERMINAL_FIELDS:
+                if field in _ATOM_FIELDS:
                     pass
-                elif field in _KIND_FIELDS:
+                elif field in _ATOM_KIND:
                     pass
                 elif field in _NODE_FIELDS:
                     pass
@@ -647,11 +647,13 @@ def ReadTokens(fp):
 
 _SCALAR_TYPES = [
     #
+    BASE_TYPE_KIND.SINT,
     BASE_TYPE_KIND.S8,
     BASE_TYPE_KIND.S16,
     BASE_TYPE_KIND.S32,
     BASE_TYPE_KIND.S64,
     #
+    BASE_TYPE_KIND.UINT,
     BASE_TYPE_KIND.U8,
     BASE_TYPE_KIND.U16,
     BASE_TYPE_KIND.U32,
@@ -661,6 +663,7 @@ _SCALAR_TYPES = [
     BASE_TYPE_KIND.F64,
 ]
 
+# maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
     "void": TypeBase(BASE_TYPE_KIND.VOID),
     "auto": TypeBase(BASE_TYPE_KIND.AUTO),
@@ -679,6 +682,7 @@ for t in _SCALAR_TYPES:
 
 
 def ExpandShortHand(field, t) -> Any:
+    """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
@@ -693,12 +697,13 @@ def ExpandShortHand(field, t) -> Any:
 
 
 def ReadPiece(field, token, stream) -> Any:
-    if field in _TERMINAL_FIELDS:
-        if field in _TERMINAL_BOOL:
+    """Read a single component of an SExpr including lists."""
+    if field in _ATOM_FIELDS:
+        if field in _ATOM_BOOL:
             return bool(token)
         return token
-    elif field in _KIND_FIELDS:
-        enum = _KIND_FIELDS.get(field)
+    elif field in _ATOM_KIND:
+        enum = _ATOM_KIND.get(field)
         assert enum is not None, f"{field} {token}"
         return enum[token]
     elif field in _NODE_FIELDS:
@@ -757,12 +762,18 @@ _ASSIGNMENT_SHORTCUT = {
 
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
+    """Read the remaining componts of an SExpr (after the tag).
+    
+    Can handle optional bools at the beginning and an optional 'tail'
+    """
     token = next(stream)
     for field in fields:
         if token == ")":
+            # we have reached the end before all the fields were processed 
+            # fill in default values
             assert field in _OPTIONAL_FIELDS, f"unknown optional: {field}"
             pieces.append(_OPTIONAL_FIELDS[field])
-        elif field in _TERMINAL_BOOL:
+        elif field in _ATOM_BOOL:
             if token == field:
                 pieces.append(True)
                 token = next(stream)
@@ -782,6 +793,9 @@ def ReadSExpr(stream) -> Any:
     if tag in _BINOP_SHORTCUT:
         return ReadRestAndMakeNode(Expr2, [_BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"])
+    elif tag in _ASSIGNMENT_SHORTCUT:
+        return ReadRestAndMakeNode(StmtAssignment2, [_ASSIGNMENT_SHORTCUT[tag]],
+                                   ["lhs", "rhs"])
     else:
         cls = _NODES.get(tag)
         assert cls is not None, f"Non node: {tag}"
@@ -795,7 +809,8 @@ if __name__ == "__main__":
         while True:
             t = next(stream)
             assert t == "("
-            print(ReadSExpr(stream))
+            sexpr = ReadSExpr(stream)
+            print(sexpr)
             print()
     except StopIteration:
         pass
