@@ -94,6 +94,14 @@ Decision: included via `[]` operator. But unchecked pointer arithmetic is also a
 
 Decision: included but see section on Arrays, Slices, etc. below.
 
+#### Default function arguments UNDECIDED
+
+Con: Complicate/obscure Function dispatch in combination with overloaded Functions.
+
+#### All variables must be initialized YES
+
+Decision: included. Variables and Struct can explicitly marked as `undef`
+
 ### Typing
 
 #### Vararg (...) NO
@@ -229,6 +237,13 @@ Decision: included. Will be guided by acyclic Module dependency graph to avoid t
 
 ### Misc
 
+#### When-style support for conditional compilation YES
+
+Pro: Super useful for code re-use and portability
+
+Con: Must disable some semantic checking in the non-included code portions.   
+
+Decision: included
 
 ##### Support for printing/stringification of custom data structure
 
