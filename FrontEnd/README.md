@@ -1,9 +1,10 @@
 # Experimental Frontend For The Cwerg Language
 
-Cwerg tries to trade-off language expressiveness with compiler implementation complexity. 
-The hope os to reach a sweet spot *above* what C gives us today.
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. 
+The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write system software like operating systems and compilers in 
+this language.
 
-Complexity budget: about 10kLOC for a compiler frontend with basic optimization
+Complexity budget: about 10kLOC for a compiler frontend with basic optimizations
 
 Warning: This is completely unfinished and experimental. We expexct to gain some
 more insights about the design-space by bootstrapping the front- and backend.
@@ -132,13 +133,16 @@ Con: Cause a lot of bugs.
 
 Decision: omitted - use optional pointers of sum type  (*A | void) to model nullable Pointers safely.
 
-#### Sum Types YES
+#### Sum Types (aka tagged union) YES
 
 Pro: Very useful for implementing Result and Optional types
 
 Decision: included with special optimization for optional pointers so that 
           nullable pointer can be implemented efficiently 
 
+#### Untagged Unions PROBABLY NO
+
+Bitcasting will be available to support some of the (ab)uses of untagged unions.
 
 #### Member functions for structs PROBABLY NO
 
