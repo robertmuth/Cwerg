@@ -20,11 +20,14 @@ from typing import List, Dict, Set, Optional, Union, Any
 ############################################################
 @dataclasses.dataclass()
 class Comment:
+    ALIAS = "#"
     string: str
 
 ############################################################
 # Identifier
 ############################################################
+
+
 @enum.unique
 class ID_KIND(enum.Enum):
     INVALID = 0
@@ -35,9 +38,11 @@ class ID_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Id:
+    ALIAS = None
     path: List[str]  # first components of mod1::mod2:id
     name: str          # last component of mod1::mod2:id
     # id_kind = ID_KIND  # may be filled in later
+
 
 ############################################################
 # TypeNodes
@@ -49,22 +54,9 @@ TypeNode = Union["Id", "TypeBase", "TypeEnum", "TypeRec",
 @dataclasses.dataclass()
 class FunParam:
     """Function argument"""
+    ALIAS = "param"
     name: str      # empty str means no var specified (fun proto type)
     type: TypeNode
-
-
-@dataclasses.dataclass()
-class RecField:  #
-    name: str
-    type: TypeNode
-    initial: "ExprNode"    # must be const
-
-
-@dataclasses.dataclass()
-class NameVal:
-    """ Enum element - `value: auto` means previous value + 1"""
-    name: str
-    value: Union["ValNum", "ValAuto"]
 
 
 @enum.unique
@@ -94,45 +86,69 @@ class BASE_TYPE_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class TypeBase:
+    ALIAS = None
     base_type_kind: BASE_TYPE_KIND
 
 
 @dataclasses.dataclass()
+class RecField:  #
+    ALIAS = "field"
+    name: str
+    type: TypeNode
+    initial: "ExprNode"    # must be const
+
+
+@dataclasses.dataclass()
 class TypeRec:
+    ALIAS = "rec"
     fields: List[Union[RecField, Comment]]
 
 
 @dataclasses.dataclass()
+class NameVal:
+    """ Enum element - `value: auto` means previous value + 1"""
+    ALIAS = None
+    name: str
+    value: Union["ValNum", "ValAuto"]
+
+
+@dataclasses.dataclass()
 class TypeEnum:
+    ALIAS = "enum"
     base_type_kind: BASE_TYPE_KIND
     items:  List[Union[NameVal, Comment]]
 
 
 @dataclasses.dataclass()
 class TypeSum:
+    ALIAS = "|"
     types: List[Union[TypeNode, Comment]]
 
 
 @dataclasses.dataclass()
 class TypePtr:
+    ALIAS = "ptr"
     mut: bool   # pointee is mutable
     type: TypeNode
 
 
 @dataclasses.dataclass()
 class TypeSlice:
+    ALIAS = None
     mut: bool  # slice is mutable
     type: TypeNode
 
 
 @dataclasses.dataclass()
 class TypeArray:
+    ALIAS = None
     size: int      # must be const and unsigned
     type: TypeNode
 
 
 @dataclasses.dataclass()
 class TypeFunSig:
+    ALIAS = "sig"
     params: List[FunParam]
     result: TypeNode
 
@@ -147,48 +163,54 @@ ValNode = Union["ValBool", "ValNum", "ValUndef",
 
 @dataclasses.dataclass()
 class ValBool:
+    ALIAS = None
     value: bool
 
 
 @dataclasses.dataclass()
 class ValNum:
+    ALIAS = None
     number: str   # maybe a (unicode) character as well
     base_type_kind: BASE_TYPE_KIND
 
 
-class ValAuto:  
+class ValAuto:
     """placeholder for an unspecified value
-    
+
     Note: it is not part of the ValNode Union"""
-    pass
+    ALIAS = None
 
 
 @dataclasses.dataclass()
 class ValUndef:
+    ALIAS = None
     base_type_kind: BASE_TYPE_KIND
 
 
 @dataclasses.dataclass()
 class ValVoid:
-    pass
+    ALIAS = None
 
 
 @dataclasses.dataclass()
-class IndexVal:   
+class IndexVal:
     "for array initialization {.1 = 5, .2 = 6}"
+    ALIAS = None
     index: str
     value: ValNode
 
 
 @dataclasses.dataclass()
-class FieldVal:   
+class FieldVal:
     "for rec initialization {.imag = 5, .real = 1}"
+    ALIAS = None
     index: str
     value: ValNode
 
 
 @dataclasses.dataclass()
 class ValArray:
+    ALIAS = None
     type: TypeNode
     size: Union[ValNum, ValAuto]
     values: List[IndexVal]
@@ -196,14 +218,17 @@ class ValArray:
 
 @dataclasses.dataclass()
 class ValArrayString:
+    ALIAS = None
     # type: u8, size: strlen(value)
     value: str
 
 
 @dataclasses.dataclass()
 class ValRec:
+    ALIAS = None
     type: TypeNode
     values: List[Union[FieldVal, Comment]]
+
 
 ############################################################
 # ExprNode
@@ -217,36 +242,35 @@ ExprNode = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
 
 @dataclasses.dataclass()
 class ExprDeref:
+    ALIAS = "^"
     expr: ExprNode  # must be of type AddrOf
 
 
 @dataclasses.dataclass()
 class ExprAddrOf:
+    ALIAS = "&"
     expr: ExprNode
 
 
 @dataclasses.dataclass()
 class ExprCall:
+    ALIAS = "call"
     callee: ExprNode  # must of type fun
     args: List[ExprNode]
 
 
 @dataclasses.dataclass()
-class ExprParen:      # used for preserving parenthesis in the source
+class ExprParen:
+    "used for preserving parenthesis in the source"
+    ALIAS = None
     expr: ExprNode
 
 
 @dataclasses.dataclass()
 class ExprField:
+    ALIAS = "."
     container: ExprNode  # must be of type rec
     field: str
-
-
-@dataclasses.dataclass()
-class Expr1:
-    cond: ExprNode  # must be of type  bool
-    expr_t: ExprNode
-    expr_f: ExprNode
 
 
 @enum.unique
@@ -259,6 +283,7 @@ class UNARY_EXPR_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Expr1:
+    ALIAS = None
     unary_expr_kind: UNARY_EXPR_KIND
     expr: ExprNode
 
@@ -292,6 +317,7 @@ class BINARY_EXPR_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Expr2:
+    ALIAS = None
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: ExprNode
     expr2: ExprNode
@@ -299,6 +325,7 @@ class Expr2:
 
 @dataclasses.dataclass()
 class Expr3:
+    ALIAS = "?"
     cond: ExprNode  # must be of type  bool
     expr_t: ExprNode
     expr_f: ExprNode
@@ -309,12 +336,14 @@ class Expr3:
 
 @dataclasses.dataclass()
 class ExprIndex:
+    ALIAS = "at"
     container: ExprNode  # must be of type slice or array
     index: ExprNode  # must be of int type
 
 
 @dataclasses.dataclass()
 class ExprChop:
+    ALIAS = "chop"
     container: ExprNode  # must be of type slice or array
     start: Union[ExprNode, "ValAuto"]  # must be of int type
     length: Union[ExprNode, "ValAuto"]  # must be of int type
@@ -322,22 +351,29 @@ class ExprChop:
 
 @dataclasses.dataclass()
 class ExprLen:
+    ALIAS = "len"
     container: ExprNode   # must be of type slice or array
 
 
 # Cast Like Expressions
 
 @dataclasses.dataclass()
-class ExprUnwrap:  # converts from wrapped/enum type to underlying type
+class ExprUnwrap:
+    "converts from wrapped/enum type to underlying type"
+    ALIAS = None
     expr: ExprNode
 
 
-class ExprCastAs:  # number <-> number, number -> enum,  val -> wrapped val
+class ExprCastAs:
+    "number <-> number, number -> enum,  val -> wrapped val"
+    ALIAS = None
     type: TypeNode
     expr: ExprNode
 
 
-class ExprBitCastAs:  # type must have saame size as type of item
+class ExprBitCastAs:
+    "type must have saame size as type of item"
+    ALIAS = None
     type: TypeNode
     expr: ExprNode
 
@@ -346,17 +382,20 @@ class ExprBitCastAs:  # type must have saame size as type of item
 
 @dataclasses.dataclass()
 class ExprSizeof:
+    ALIAS = "sizeof"
     expr: TypeNode
 
 
 @dataclasses.dataclass()
 class ExprOffsetof:
+    ALIAS = "offsetof"
     type: TypeNode  # must be rec
     field: str
 
 
 @dataclasses.dataclass()
 class ExprRange:
+    ALIAS = "range"
     end: ExprNode   # start, end ,step work like range(start, end, step)
     start: Union["ValAuto", ExprNode]
     step: Union["ValAuto", ExprNode]
@@ -367,25 +406,29 @@ class ExprRange:
 ############################################################
 StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
                  "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
-                 "StmtBlock"]
+                 "StmtBlock", "StmtWhen"]
 
 ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
                 "ExprCall"]
 
+
 @dataclasses.dataclass()
 class StmtWhile:
+    ALIAS = "while"
     cond: ExprNode       # must be of type bool
     body: List[StmtNode]
 
 
 @dataclasses.dataclass()
 class StmtBlock:
+    ALIAS = "block"
     label: str
     body: List[StmtNode]
 
 
 @dataclasses.dataclass()
 class StmtFor:
+    ALIAS = "for"
     name: str
     type: TypeNode
     range: ExprRange
@@ -394,11 +437,22 @@ class StmtFor:
 
 @dataclasses.dataclass()
 class StmtDefer:
+    ALIAS = "defer"
     body: List[StmtNode]  # must NOT contain RETURN
 
 
 @dataclasses.dataclass()
 class StmtIf:
+    ALIAS = "if"
+    cond: ExprNode        # must be of type bool
+    body_t: List[StmtNode]
+    body_f: List[StmtNode]
+
+
+@dataclasses.dataclass()
+class StmtWhen:
+    "compile time conditional"
+    ALIAS = "when"
     cond: ExprNode        # must be of type bool
     body_t: List[StmtNode]
     body_f: List[StmtNode]
@@ -406,27 +460,32 @@ class StmtIf:
 
 @dataclasses.dataclass()
 class StmtBreak:
+    ALIAS = "break"
     target: str  # use "" for no value
 
 
 @dataclasses.dataclass()
 class StmtContinue:
+    ALIAS = "continue"
     target: str  # use "" for no value
 
 
 @dataclasses.dataclass()
 class StmtReturn:
+    ALIAS = "return"
     expr_ret: ExprNode  # use void for no value
 
 
 @dataclasses.dataclass()
 class StmtExpr:
+    ALIAS = "expr"
     discard: bool
     expr: ExprCall
 
 
 @dataclasses.dataclass()
 class StmtAssert:
+    ALIAS = "assert"
     cond: ExprNode  # must be of type bool
     string: str
 
@@ -450,6 +509,7 @@ class ASSIGNMENT_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class StmtAssignment2:
+    ALIAS = None
     assignment_kind: ASSIGNMENT_KIND
     lhs: ExprLHS
     expr: ExprNode
@@ -457,6 +517,7 @@ class StmtAssignment2:
 
 @dataclasses.dataclass()
 class StmtAssignment:
+    ALIAS = "="
     assignment_kind: ASSIGNMENT_KIND
     lhs: ExprLHS
     expr: ExprNode
@@ -469,6 +530,7 @@ class StmtAssignment:
 @dataclasses.dataclass()
 class DefType:
     """Type Definition"""
+    ALIAS = "type"
     pub:  bool
     wrapped: bool
     name: str
@@ -478,6 +540,7 @@ class DefType:
 @dataclasses.dataclass()
 class DefConst:
     """Const Definition"""
+    ALIAS = "const"
     name: str
     value: ValNode
     pub:  bool
@@ -486,6 +549,7 @@ class DefConst:
 @dataclasses.dataclass()
 class DefVar:
     """Function Definition"""
+    ALIAS = "let"
     pub: bool
     mut: bool
     name: str
@@ -496,6 +560,7 @@ class DefVar:
 @dataclasses.dataclass()
 class DefFun:
     """Function Definition"""
+    ALIAS = "fun"
     init: bool
     fini: bool
     pub: bool
@@ -516,6 +581,7 @@ class MOD_PARAM_KIND(enum.Enum):
 @dataclasses.dataclass()
 class ModParam:
     """Module argument"""
+    ALIAS = "None"
     name: str
     mod_param_kind: MOD_PARAM_KIND
 
@@ -523,6 +589,7 @@ class ModParam:
 @dataclasses.dataclass()
 class DefMod:
     """Module Definition"""
+    ALIAS = "mod"
     pub: bool
     name: str
     params: List[ModParam]
@@ -585,29 +652,11 @@ _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
 _TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
 
 # maps node class name to class
-_NODES = {
-    "#": Comment,
-    "^": ExprDeref,
-    "&": ExprAddrOf,
-    ".": ExprField,
-    "at": ExprIndex,
-    "range": ExprRange,
-    "call": ExprCall,
-    #
-    "=": StmtAssignment,
-    "return": StmtReturn,
-    "continue": StmtContinue,
-    "break": StmtBreak,
-    "if": StmtIf,
-    "for": StmtFor,
-    "block": StmtBlock,
+_NODES_ALIASES = {
+
     "expr": StmtExpr,
     #
-    "field": RecField,
-    "ptr": TypePtr,
-    "param": FunParam,
     "type": DefType,
-    "sig": TypeFunSig,
     #
     "fun": DefFun,
 
@@ -619,7 +668,10 @@ _NODES = {
 for name, obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isclass(obj):
         if obj.__base__ is object:
-            _NODES[obj.__name__] = obj
+            _NODES_ALIASES[obj.__name__] = obj
+            if obj.ALIAS is not None:
+                _NODES_ALIASES[obj.ALIAS] = obj
+
             for field, type in obj.__annotations__.items():
                 if field in _ATOM_FIELDS:
                     pass
@@ -763,13 +815,13 @@ _ASSIGNMENT_SHORTCUT = {
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str]):
     """Read the remaining componts of an SExpr (after the tag).
-    
+
     Can handle optional bools at the beginning and an optional 'tail'
     """
     token = next(stream)
     for field in fields:
         if token == ")":
-            # we have reached the end before all the fields were processed 
+            # we have reached the end before all the fields were processed
             # fill in default values
             assert field in _OPTIONAL_FIELDS, f"unknown optional: {field}"
             pieces.append(_OPTIONAL_FIELDS[field])
@@ -797,7 +849,7 @@ def ReadSExpr(stream) -> Any:
         return ReadRestAndMakeNode(StmtAssignment2, [_ASSIGNMENT_SHORTCUT[tag]],
                                    ["lhs", "rhs"])
     else:
-        cls = _NODES.get(tag)
+        cls = _NODES_ALIASES.get(tag)
         assert cls is not None, f"Non node: {tag}"
         fields = [f for f, _ in cls.__annotations__.items()]
         return ReadRestAndMakeNode(cls, [], fields)
