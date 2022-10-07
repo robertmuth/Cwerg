@@ -5,7 +5,7 @@
    (fun pub extern write_s (sig [(param fd s32) (param s (ptr u8))] sint) [])
 
    (# "main() function as in C")
-   (fun main (sig [(param argc uint32) (param argv (ptr u8))] s32) [
+   (fun main (sig [(param argc uint) (param argv (ptr u8))] s32) [
          (for i u32 (range argc) [
             (let s (ptr u8) (at argv i))
             (expr discard (call write_s [1 s]))

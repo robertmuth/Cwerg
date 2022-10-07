@@ -9,9 +9,8 @@ import sys
 import re
 import inspect
 import dataclasses
-import collections
+import logging
 import enum
-import string
 from typing import List, Dict, Set, Optional, Union, Any
 
 
@@ -196,7 +195,7 @@ class IndexVal:
     "for array initialization {.1 = 5, .2 = 6}"
     ALIAS = None
     index: str
-    value: ValNode
+    value: "ExprNode"
 
     def children(self): return [self.value]
 
@@ -206,7 +205,7 @@ class FieldVal:
     "for rec initialization {.imag = 5, .real = 1}"
     ALIAS = None
     index: str
-    value: ValNode
+    value: "ExprNode"
 
     def children(self): return [self.value]
 
@@ -680,7 +679,7 @@ class DefFun:
     pub: bool
     extern: bool
     name: str
-    type: TypeNode
+    type: TypeFunSig
     body: List[StmtNode]
 
     def children(self): return [self.type] + self.body
@@ -961,7 +960,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
 def ReadSExpr(stream) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
-    print("@@ TAG", tag)
+    logging.info("Readding TAG %s", tag)
     if tag in _BINOP_SHORTCUT:
         return ReadRestAndMakeNode(Expr2, [_BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
