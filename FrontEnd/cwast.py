@@ -11,6 +11,7 @@ import inspect
 import dataclasses
 import logging
 import enum
+import string
 from typing import List, Dict, Set, Optional, Union, Any
 
 
@@ -23,6 +24,9 @@ class Comment:
     string: str
 
     def children(self): return []
+
+    def __str__(self):
+        return "# " + self.string
 
 ############################################################
 # Identifier
@@ -46,11 +50,15 @@ class Id:
 
     def children(self): return []
 
+    def __str__(self):
+        path = '/'.join(self.path) + "/" if self.path else ""
+        return f"{path}{self.name}"
+
 
 ############################################################
 # TypeNodes
 ############################################################
-TypeNode = Union["Id", "TypeBase", 
+TypeNode = Union["Id", "TypeBase",
                  "TypeSum", "TypeSlice", "TypeArray", "TypeFunSig"]
 
 
@@ -62,6 +70,9 @@ class FunParam:
     type: TypeNode
 
     def children(self): return [self.type]
+
+    def __str__(self):
+        return f"{self.name}: {self.type}"
 
 
 @enum.unique
@@ -96,6 +107,9 @@ class TypeBase:
 
     def children(self): return []
 
+    def __str__(self):
+        return self.base_type_kind.name
+
 
 @dataclasses.dataclass()
 class TypeSum:
@@ -112,6 +126,10 @@ class TypePtr:
     type: TypeNode
 
     def children(self): return [self.type]
+
+    def __str__(self):
+        mod = "-MUT" if self.mut else ""
+        return f"PTR{mod}({self.type})"
 
 
 @dataclasses.dataclass()
@@ -156,6 +174,9 @@ class ValBool:
 
     def children(self): return []
 
+    def __str__(self):
+        return "TRUE" if self.value else "FALSE"
+
 
 @dataclasses.dataclass()
 class ValNum:
@@ -164,6 +185,9 @@ class ValNum:
     base_type_kind: BASE_TYPE_KIND
 
     def children(self): return []
+
+    def __str__(self):
+        return f"{self.number}_{self.base_type_kind.name}"
 
 
 class ValAuto:
@@ -174,6 +198,9 @@ class ValAuto:
 
     def children(self): return []
 
+    def __str__(self):
+        return "AUTO"
+
 
 @dataclasses.dataclass()
 class ValUndef:
@@ -182,12 +209,17 @@ class ValUndef:
 
     def children(self): return []
 
+    def __str__(self):
+        return f"UNDEF_{self.base_type_kind.name}"
+
 
 @dataclasses.dataclass()
 class ValVoid:
     ALIAS = None
 
     def children(self): return []
+
+    def __str__(self): return "VOID"
 
 
 @dataclasses.dataclass()
@@ -224,10 +256,11 @@ class ValArray:
 class ValArrayString:
     ALIAS = None
     # type: u8, size: strlen(value)
-    value: str
+    string: str
 
     def children(self): return []
 
+    def __str__(self): return f"STRING({self.string})"
 
 @dataclasses.dataclass()
 class ValRec:
@@ -343,6 +376,9 @@ class Expr2:
     expr2: ExprNode
 
     def children(self): return [self.expr1, self.expr2]
+
+    def __str__(self):
+        return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
 
 
 @dataclasses.dataclass()
@@ -461,6 +497,10 @@ class StmtWhile:
 
     def children(self): return [self.cond] + self.body
 
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        return f"WHILE {self.cond}:\n{body}"
+
 
 @dataclasses.dataclass()
 class StmtBlock:
@@ -469,6 +509,10 @@ class StmtBlock:
     body: List[StmtNode]
 
     def children(self): return self.body
+
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        return f"BLOCK {self.label}:\n{body}"
 
 
 @dataclasses.dataclass()
@@ -489,6 +533,10 @@ class StmtDefer:
 
     def children(self): return self.body
 
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        return f"DEFER:\n{body}"
+
 
 @dataclasses.dataclass()
 class StmtIf:
@@ -498,6 +546,11 @@ class StmtIf:
     body_f: List[StmtNode]
 
     def children(self): return [self.cond] + self.body_t + self.body_f
+
+    def __str__(self):
+        body_t = '\n'.join(str(s) for s in self.body_t)
+        body_f = '\n'.join(str(s) for s in self.body_f)
+        return f"IF {self.cond}:\n{body_t}\nELSE:\n{body_f}"
 
 
 @dataclasses.dataclass()
@@ -518,6 +571,9 @@ class StmtBreak:
 
     def children(self): return []
 
+    def __str__(self):
+        return f"BREAK {self.target}"
+
 
 @dataclasses.dataclass()
 class StmtContinue:
@@ -526,6 +582,9 @@ class StmtContinue:
 
     def children(self): return []
 
+    def __str__(self):
+        return f"CONTINUE {self.target}"
+
 
 @dataclasses.dataclass()
 class StmtReturn:
@@ -533,6 +592,9 @@ class StmtReturn:
     expr_ret: ExprNode  # use void for no value
 
     def children(self): return [self.expr_ret]
+
+    def __str__(self):
+        return f"RETURN {self.expr_ret}"
 
 
 @dataclasses.dataclass()
@@ -595,6 +657,7 @@ class StmtAssignment:
 ############################################################
 DefNode = Union["DefType", "DefConst", "DefVar", "DefFun", "DefMod"]
 
+
 @dataclasses.dataclass()
 class RecField:  #
     ALIAS = "field"
@@ -603,6 +666,9 @@ class RecField:  #
     initial: "ExprNode"    # must be const
 
     def children(self): return [self.type, self.initial]
+
+    def __str__(self):
+        return f"{self.name}: {self.type} = {self.initial}"
 
 
 @dataclasses.dataclass()
@@ -614,6 +680,11 @@ class DefRec:
 
     def children(self): return self.fields
 
+    def __str__(self):
+        fields = '\n'.join(str(s) for s in self.fields)
+        return f"REC {self.name}:\n{fields}"
+
+
 @dataclasses.dataclass()
 class EnumEntry:
     """ Enum element - `value: auto` means previous value + 1"""
@@ -622,6 +693,9 @@ class EnumEntry:
     value: Union["ValNum", "ValAuto"]
 
     def children(self): return [self.value]
+
+    def __str__(self):
+        return f"{self.name}: {self.value}"
 
 
 @dataclasses.dataclass()
@@ -634,6 +708,11 @@ class DefEnum:
 
     def children(self): return self.items
 
+    def __str__(self):
+        items = '\n'.join(str(s) for s in self.items)
+        return f"REC {self.name}:\n{items}"
+
+
 @dataclasses.dataclass()
 class DefType:
     """Type Definition"""
@@ -645,16 +724,23 @@ class DefType:
 
     def children(self): return [self.type]
 
+    def __str__(self):
+        return f"TYPE {self.name} = {self.type}"
+
 
 @dataclasses.dataclass()
 class DefConst:
     """Const Definition"""
     ALIAS = "const"
-    name: str
-    value: ValNode
     pub:  bool
+    name: str
+    type: TypeNode
+    value: ValNode
 
     def children(self): return [self.value]
+
+    def __str__(self):
+        return f"CONST {self.name}: {self.type} = {self.value}"
 
 
 @dataclasses.dataclass()
@@ -669,6 +755,9 @@ class DefVar:
 
     def children(self): return [self.type, self.initial]
 
+    def __str__(self):
+        return f"LET {self.name}: {self.type} = {self.initial}"
+
 
 @dataclasses.dataclass()
 class DefFun:
@@ -679,10 +768,16 @@ class DefFun:
     pub: bool
     extern: bool
     name: str
-    type: TypeFunSig
+    params: List[TypeNode]
+    result: TypeNode
     body: List[StmtNode]
 
-    def children(self): return [self.type] + self.body
+    def children(self): return self.params + [self.result] + self.body
+
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        params = ', '.join(str(p) for p in self.params)
+        return f"FUN {self.name} [{params}]->{self.result}:\n{body}"
 
 
 @enum.unique
@@ -702,6 +797,9 @@ class ModParam:
 
     def children(self): return []
 
+    def __str__(self):
+        return f"{self.name}: {self.mod_param_kind.name}"
+
 
 @dataclasses.dataclass()
 class DefMod:
@@ -713,6 +811,11 @@ class DefMod:
     body: List[StmtNode]
 
     def children(self): return self.params + self.body
+
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        params = ', '.join(str(p) for p in self.params)
+        return f"MOD {self.name} [{params}]:\n{body}"
 
 
 ############################################################

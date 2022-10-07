@@ -76,11 +76,13 @@ class SymTab:
         for l in reversed(self.local_var_syms):
             s = l.get(name)
             if s:
+                self.links[id(node)] = s
                 return s
         for syms in (self.type_syms, self.const_syms, self.fun_syms,
                      self.rec_syms, self.enum_syms, self.var_syms):
             s = syms.get(name)
             if s:
+                self.links[id(node)] = s
                 return s
         return None
 
@@ -104,9 +106,7 @@ def ResolveSymbols(node, symtab: SymTab):
         if isinstance(node, cwast.StmtFor):
             symtab.add_local_symbol(node)
         elif isinstance(node, cwast.DefFun):
-            sig = node.type
-            assert isinstance(sig, cwast.TypeFunSig)
-            for p in sig.params:
+            for p in node.params:
                 symtab.add_local_symbol(p)
   
 
@@ -116,6 +116,8 @@ def ResolveSymbols(node, symtab: SymTab):
 
     if isinstance(node, _NODE_SCOPE):
         symtab.pop_scope()
+
+
 
 
 def ExtractSymbolTable(asts: List):
@@ -136,6 +138,18 @@ def ExtractSymbolTable(asts: List):
         for node in mod.children():
             ResolveSymbols(node,symtab)
 
+class TypeCorpus:
+    ""
+    def __init__(self):
+        self.corpus = {}
+        for x in cwast.BASE_TYPE_KIND:
+            if x.name == "INVALID" or x.name == "AUTO":
+                continue
+            self.corpus[t.name.lower()] = cwast.TypeBase(t)
+
+
+def InferAndCanonicalizeTypes(node, type_corpus):
+    pass
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

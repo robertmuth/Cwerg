@@ -1,13 +1,19 @@
-(fun pub foo (TypeFunSig [(param a (TypeBase S32)) (param b s32) (param c s32)] s32) [
+(mod m1 [] [
+
+(fun pub foo [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (Comment "this is a comment with \" with quotes \t ")
    (StmtExpr (ExprCall (Id [] foo) []))
    (StmtExpr discard (ExprCall foo []))
    (return (ValNum 7 S32)) 
 ])
 
-(type wrapped cool s32)
+(type wrapped t1 s32)
 
 
+(let pub v1 auto 7)
+
+(const pub c1 auto 7)
+(const pub c2 auto (ValArrayString "xxxxxx"))
 
 (rec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
@@ -29,12 +35,16 @@
    (entry s4 auto)
 ])
 
+])
+
+(mod m2 [] [
+
 (type  type_ptr (ptr mut s32))
 
 (type pub type_union (TypeSum [s32 void type_ptr]))
 
 
-(fun foo (TypeFunSig [(param a (TypeBase S32)) (param b s32) (param c s32)] s32) [
+(fun foo [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
     (if (Expr2 LE  a b) 
     []
@@ -45,7 +55,7 @@
    (return (ValNum 7 S32)) 
 ])
 
-(fun foo (TypeFunSig [(param a s32) (param b s32) (param c s32)] s32) [
+(fun foo [(param a s32) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
    (if (and a b) 
     [(return a)]
@@ -57,7 +67,7 @@
 ])
 
 
-(fun foo (sig [(param a s32) (param b s32) (param c s32)]) [
+(fun foo [(param a s32) (param b s32) (param c s32)] void [
    (# "this is a comment with \" with quotes \t ")
    (block my_block [
       (# "this is a comment with \" with quotes \t ")
@@ -70,3 +80,4 @@
 ])
 
 
+])
