@@ -17,7 +17,7 @@ more insights about the design-space by bootstrapping the front- and backend.
   The tooling will do most of the syntax and semantic checking.
   Comments wil be explicit in the AST and cannot occur in arbitrary places.
   Similarly, parenthesis used to group expression will be modelled in the AST.
-
+ 
 
 ## Discussion of Features
 
@@ -101,6 +101,18 @@ Con: Complicate/obscure Function dispatch in combination with overloaded Functio
 #### All variables must be initialized YES
 
 Decision: included. Variables and Struct can explicitly marked as `undef`
+
+#### Allow the const/enum/struct definitions inside Function NO
+
+Pro: Allow better information hiding by scope narrowing 
+
+Con: Makes parsing more complex. Modules help with scope narrowing 
+
+Decision: omitted
+
+#### Allow Function definitions inside Function PROBABLY NO
+
+Con: Closures have tricky semantics, even simple [gcc style nested functions](https://gcc.gnu.org/onlinedocs/gcc/Nested-Functions.html)
 
 ### Typing
 
@@ -289,4 +301,15 @@ Strings
 * are just Arrays of unsigned bytes
 * they are not null terminated
 
+## Interesting References:
 
+  * [Readable Lisp S-expressions](https://readable.sourceforge.io/)
+  * https://github.com/robertmuth/awesome-low-level-programming-languages
+  * https://c3.handmade.network/
+  * http://c2lang.org/site/
+  * https://www.c3-lang.org/
+  * https://odin-lang.org/docs/overview/
+  * https://github.com/vlang/v/blob/master/doc/docs.md
+  * https://nim-lang.org/documentation.html
+  * https://github.com/oberon-lang/specification/blob/master/The_Programming_Language_Oberon%2B.adoc
+  * 

@@ -9,7 +9,7 @@
 
 
 
-(type pub type_rec (TypeRec [
+(rec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
    (field s1 s32 (ValNum 7 S32))
    (field s2 s32 (ValUndef S32))
@@ -19,8 +19,15 @@
    (field b1 bool false)
    (field u1 u64 666)
    (field u2 u64 666_u64)
-]))
+])
 
+(enum pub type_enum S32 [
+   (# "this is a comment with \" with quotes \t ")
+   (entry s1 (ValNum 7 S32))
+   (entry s2 (ValAuto))
+   (entry s3 19)
+   (entry s4 auto)
+])
 
 (type  type_ptr (ptr mut s32))
 
