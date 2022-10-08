@@ -1,9 +1,20 @@
 (mod m1 [] [
 
-(fun pub foo [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
+(fun pub foo1 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (Comment "this is a comment with \" with quotes \t ")
-   (StmtExpr (ExprCall (Id [] foo) []))
-   (StmtExpr discard (ExprCall foo []))
+   (StmtExpr (ExprCall (Id [] foo1) []))
+   (StmtExpr discard (ExprCall foo2 []))
+   (return (ValNum 7 S32)) 
+])
+
+(fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
+   (# "this is a comment with \" with quotes \t ")
+    (if (Expr2 LE  a b) 
+    []
+    [])
+   (if (<=  a b) 
+    []
+    [])
    (return (ValNum 7 S32)) 
 ])
 
@@ -44,18 +55,9 @@
 (type pub type_union (TypeSum [s32 void type_ptr]))
 
 
-(fun foo [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
-   (# "this is a comment with \" with quotes \t ")
-    (if (Expr2 LE  a b) 
-    []
-    [])
-   (if (<=  a b) 
-    []
-    [])
-   (return (ValNum 7 S32)) 
-])
 
-(fun foo [(param a s32) (param b s32) (param c s32)] s32 [
+
+(fun foo3 [(param a bool) (param b bool) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
    (if (and a b) 
     [(return a)]

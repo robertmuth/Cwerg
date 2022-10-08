@@ -54,6 +54,9 @@ class SymTab:
         elif isinstance(node, cwast.DefEnum):
             assert node.name not in self.enum_syms
             self.enum_syms[node.name] = node
+        elif isinstance(node, cwast.DefType):
+            assert node.name not in self.type_syms
+            self.type_syms[node.name] = node
         else:
             assert False, f"unexpected node: {node}"
 
@@ -102,13 +105,13 @@ def ResolveSymbols(node, symtab: SymTab):
             logging.error(f"cannot resolve symbol {node}")
             exit(1)
     elif isinstance(node, _NODE_SCOPE):
+        logging.info("push scope for %s", type(node).__name__)
         symtab.push_scope()
         if isinstance(node, cwast.StmtFor):
             symtab.add_local_symbol(node)
         elif isinstance(node, cwast.DefFun):
             for p in node.params:
                 symtab.add_local_symbol(p)
-  
 
     # recurse
     for c in node.children():
@@ -116,11 +119,10 @@ def ResolveSymbols(node, symtab: SymTab):
 
     if isinstance(node, _NODE_SCOPE):
         symtab.pop_scope()
+        logging.info("pop scope for %s", type(node).__name__)
 
 
-
-
-def ExtractSymbolTable(asts: List):
+def ExtractSymbolTable(asts: List) -> SymTab:
     global MODULES
     symtab = SymTab()
     for mod in asts:
@@ -136,10 +138,23 @@ def ExtractSymbolTable(asts: List):
 
         # pass 2:
         for node in mod.children():
-            ResolveSymbols(node,symtab)
+            if isinstance(node, cwast.Comment):
+                continue
+            logging.info("ExtractSymbolTable %s", node.name)
+            if isinstance(node, cwast.DefVar):
+                # we already registered the var in the previous step
+                for c in node.children():
+                    ResolveSymbols(c, symtab)
+            else:
+                ResolveSymbols(node, symtab)
+        #
+        assert not symtab.local_var_syms
+    return symtab
+
 
 class TypeCorpus:
     ""
+
     def __init__(self):
         self.corpus = {}
         for x in cwast.BASE_TYPE_KIND:
@@ -149,7 +164,14 @@ class TypeCorpus:
 
 
 def InferAndCanonicalizeTypes(node, type_corpus):
+    """This checks types and maps them to a cananical node
+
+    Since array type include a fixed bound this also also includes
+    the evaluation of constant expressions.
+    Which is also used for the handling of When
+    """
     pass
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
