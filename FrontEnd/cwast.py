@@ -95,9 +95,17 @@ class BASE_TYPE_KIND(enum.Enum):
     F64 = 31
 
     VOID = 40
-    AUTO = 41
-    NORET = 42
-    BOOL = 43
+    NORET = 41
+    BOOL = 42
+
+
+@dataclasses.dataclass()
+class TypeAuto:
+    ALIAS = None
+
+    def children(self): return []
+
+    def __str__(self): return "AUTO"
 
 
 @dataclasses.dataclass()
@@ -182,12 +190,10 @@ class ValBool:
 class ValNum:
     ALIAS = None
     number: str   # maybe a (unicode) character as well
-    base_type_kind: BASE_TYPE_KIND
 
     def children(self): return []
 
-    def __str__(self):
-        return f"{self.number}_{self.base_type_kind.name}"
+    def __str__(self): return self.number
 
 
 class ValAuto:
@@ -205,12 +211,10 @@ class ValAuto:
 @dataclasses.dataclass()
 class ValUndef:
     ALIAS = None
-    base_type_kind: BASE_TYPE_KIND
 
     def children(self): return []
 
-    def __str__(self):
-        return f"UNDEF_{self.base_type_kind.name}"
+    def __str__(self): return f"UNDEF"
 
 
 @dataclasses.dataclass()
@@ -261,6 +265,7 @@ class ValArrayString:
     def children(self): return []
 
     def __str__(self): return f"STRING({self.string})"
+
 
 @dataclasses.dataclass()
 class ValRec:
@@ -476,7 +481,9 @@ class ExprRange:
     step: Union["ValAuto", ExprNode]
 
     def children(self): return [self.end, self.start, self.step]
-
+ 
+    def __str__(self):
+        return f"RANGE({self.end}, {self.start}, {self.step})"
 
 ############################################################
 # Stmt
@@ -525,6 +532,9 @@ class StmtFor:
 
     def children(self): return [self.type, self.range] + self.body
 
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        return f"FOR  {self.name}: {self.type} = {self.range}:\n{body}"
 
 @dataclasses.dataclass()
 class StmtDefer:
@@ -720,7 +730,7 @@ class DefType:
     pub:  bool
     wrapped: bool
     name: str
-    type: TypeNode
+    type: Union[TypeNode, TypeAuto]
 
     def children(self): return [self.type]
 
@@ -939,12 +949,12 @@ _SCALAR_TYPES = [
 
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
+    "auto": TypeAuto(),
     "void": TypeBase(BASE_TYPE_KIND.VOID),
-    "auto": TypeBase(BASE_TYPE_KIND.AUTO),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
 
-    "undef": ValUndef(BASE_TYPE_KIND.AUTO),
+    "undef": ValUndef(),
     "false": ValBool(False),
     "true": ValBool(True),
 }
@@ -952,7 +962,6 @@ _SHORT_HAND_NODES = {
 for t in _SCALAR_TYPES:
     name = t.name.lower()
     _SHORT_HAND_NODES[name] = TypeBase(t)
-    _SHORT_HAND_NODES[f"undef_{name}"] = ValUndef(t)
 
 
 def ExpandShortHand(field, t) -> Any:
@@ -965,7 +974,7 @@ def ExpandShortHand(field, t) -> Any:
         parts = t.split("::")
         return Id(parts[:-1], parts[-1])
     elif _TOKEN_NUM.match(t):
-        return ValNum(t, BASE_TYPE_KIND.AUTO)
+        return ValNum(t)
     else:
         assert False, f"cannot expand short hand: {field} {t}"
 

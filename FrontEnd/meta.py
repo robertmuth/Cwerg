@@ -152,36 +152,67 @@ def ExtractSymbolTable(asts: List) -> SymTab:
     return symtab
 
 
-class TypeCorpus:
+CanonType = str
+
+class TypeTab:
     ""
 
-    def __init__(self):
+    def __init__(self, uint_kind, sint_kind):
+        def c(kind):
+            return kind.name.lower()
+
+        self.links = {}
         self.corpus = {}
         for x in cwast.BASE_TYPE_KIND:
-            if x.name == "INVALID" or x.name == "AUTO":
+            if x.name in ("INVALID", "AUTO", "UINT", "SINT"):
                 continue
-            self.corpus[t.name.lower()] = cwast.TypeBase(t)
+            self.corpus[c(x)] = cwast.TypeBase(x)
+        self.corpus[c(cwast.BASE_TYPE_KIND.UINT)] = self.corpus[c(uint_kind)]
+        self.corpus[c(cwast.BASE_TYPE_KIND.SINT)] = self.corpus[c(sint_kind)]
 
 
-def InferAndCanonicalizeTypes(node, type_corpus):
+# Node is not typed itself but there are type subnodes
+_NODES_WITH_INTERNAL_TYPES = (
+    cwast.FunParam, cwast.StmtFor,
+    cwast.StmtAssignment, cwast.StmtAssignment2, cwast.DefVar,
+    cwast.DefEnum, cwast.DefConst, cwast.DefFun, cwast.StmtReturn
+)
+
+
+_TYPED_NODES = (
+    cwast.TypeBase, cwast.TypeSum, cwast.TypePtr, cwast.TypeSlice,
+    cwast.TypeArray, cwast.TypeFunSig,
+    #
+    cwast.ValBool, cwast.ValNum,
+    cwast.ValUndef, cwast.ValVoid, cwast.FieldVal, cwast.ValArray,
+    cwast.ValArrayString, cwast.ValRec,
+    #
+    cwast.Id, cwast. ExprAddrOf, cwast.ExprDeref, cwast.ExprIndex,
+                 cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
+                 cwast.Expr1, cwast.Expr2, cwast.Expr3,
+                 cwast.ExprUnwrap, cwast.ExprChop,
+                 cwast.ExprLen, cwast.ExprSizeof)
+
+
+
+def InferTypes(node, target_type, typetab: TypeTab) -> CanonType:
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
-    Which is also used for the handling of When
     """
+    # if isinstance(node, 
     pass
 
-
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    asts = []
+    logging.basicConfig(level = logging.INFO)
+    asts=[]
     try:
         while True:
-            stream = cwast.ReadTokens(sys.stdin)
-            t = next(stream)
+            stream=cwast.ReadTokens(sys.stdin)
+            t=next(stream)
             assert t == "("
-            sexpr = cwast.ReadSExpr(stream)
+            sexpr=cwast.ReadSExpr(stream)
             # print(sexpr)
             asts.append(sexpr)
     except StopIteration:

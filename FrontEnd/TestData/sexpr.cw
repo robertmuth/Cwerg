@@ -4,7 +4,7 @@
    (Comment "this is a comment with \" with quotes \t ")
    (StmtExpr (ExprCall (Id [] foo1) []))
    (StmtExpr discard (ExprCall foo2 []))
-   (return (ValNum 7 S32)) 
+   (return (ValNum 7)) 
 ])
 
 (fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
@@ -15,7 +15,7 @@
    (if (<=  a b) 
     []
     [])
-   (return (ValNum 7 S32)) 
+   (return (ValNum 7)) 
 ])
 
 (type wrapped t1 s32)
@@ -28,10 +28,10 @@
 
 (rec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 s32 (ValNum 7 S32))
-   (field s2 s32 (ValUndef S32))
-   (field s3 s32 (ValUndef S32))
-   (field s3 s32 undef_s32)
+   (field s1 s32 (ValNum 7))
+   (field s2 s32 (ValUndef))
+   (field s3 s32 (ValUndef))
+   (field s3 s32 undef)
 
    (field b1 bool false)
    (field u1 u64 666)
@@ -40,7 +40,7 @@
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
-   (entry s1 (ValNum 7 S32))
+   (entry s1 (ValNum 7))
    (entry s2 (ValAuto))
    (entry s3 19)
    (entry s4 auto)
@@ -65,7 +65,7 @@
    (if (<=  a b) 
     []
     [])
-   (return (ValNum 7 S32)) 
+   (return (ValNum 7)) 
 ])
 
 
