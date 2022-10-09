@@ -154,65 +154,147 @@ def ExtractSymbolTable(asts: List) -> SymTab:
 
 CanonType = str
 
-class TypeTab:
-    ""
 
-    def __init__(self, uint_kind, sint_kind):
-        def c(kind):
-            return kind.name.lower()
+_NODES_WITH_VALUES = (
+    cwast.StmtWhen,  # value(node): bool indicating if condition is true
+    cwast.TypeArray,  # value(node): uint indicating dim of array
+)
 
-        self.links = {}
-        self.corpus = {}
-        for x in cwast.BASE_TYPE_KIND:
-            if x.name in ("INVALID", "AUTO", "UINT", "SINT"):
-                continue
-            self.corpus[c(x)] = cwast.TypeBase(x)
-        self.corpus[c(cwast.BASE_TYPE_KIND.UINT)] = self.corpus[c(uint_kind)]
-        self.corpus[c(cwast.BASE_TYPE_KIND.SINT)] = self.corpus[c(sint_kind)]
+_NODES_WITH_CANONICAL_TYPES = (
+    cwast.FunParam,  # type(node) = node.type
+    cwast.RecField,  # type(node) = node.type
 
+    cwast.StmtFor,  # type(node) = node.type
+    cwast.StmtAssignment,  cwast.StmtAssignment2,
+    # if necessary: type-target(node.expr) = type(node.lhs)
+    #
+    cwast.DefVar, cwast.DefConst,
+    # if node.type == auto:
+    #  type=target(node) = type(node.initial)
+    # else:
+    #  type=target(node) = node.type
 
-# Node is not typed itself but there are type subnodes
-_NODES_WITH_INTERNAL_TYPES = (
-    cwast.FunParam, cwast.StmtFor,
-    cwast.StmtAssignment, cwast.StmtAssignment2, cwast.DefVar,
-    cwast.DefEnum, cwast.DefConst, cwast.DefFun, cwast.StmtReturn
+    cwast.DefEnum,  # type(node) = enum(node.name)
+    cwast.DefFun,  # type(node) = fun-sig(node)
+    cwast.DefType,
+    # if wrapped:
+    #   type(node) = wrapped(self)
+    # else:
+    #   type(node) = node.type
+    cwast.ValArray,  # type(node)= array(node.type, node.size)
+    cwast.ValRec,    # type(node) = rec(node.name)
+    #
+    cwast.ExprCastAs,  # type(node) = node.type
+    cwast.ExprBitCastAs,  # type(node) = node.type
+    cwast.ExprOffsetof,   # type(node) = uint
+    #
+    cwast.StmtReturn,   # type(node) = fun-result
+    #
+    cwast.TypeBase,
+    cwast.TypeSum,
+    cwast.TypePtr,
+    cwast.TypeSlice,
+    cwast.TypeArray,
+    cwast.TypeFun,
 )
 
 
+class TypeTab:
+    ""
+
+    def link(self, node) -> CanonType:
+        return self.link[id(node)]
+
+    def dim(self, node) -> int:
+        return self.dims[id(node)]
+
+    def canonicalize_type(self, mod_name, node) -> CanonType:
+        if isinstance(node, cwast.TypeBase):
+            kind = node.base_type_kind
+            if kind == cwast.BASE_TYPE_KIND.UINT:
+                kind = self.uint_kind
+            elif kind == cwast.BASE_TYPE_KIND.SINT:
+                kind = self.sint_kind
+            c = kind.name.lower()
+        elif isinstance(node, cwast.TypePtr):
+            if node.mut:
+                c = f"ptr-mut({self.link(node.type)})"
+            else:
+                c = f"ptr({self.link(node.type)})"
+        elif isinstance(node, cwast.TypeSlice):
+            c = f"slice({self.link(node.type)})"
+        elif isinstance(node, cwast.FunParam):
+            c = self.links(node.type)
+        elif isinstance(node, cwast.TypeFun):
+            x = [self.links[p] for p in node.params]
+            x.append(self.links(node.result))
+            c = f"fun({','.join(x)})"
+        elif isinstance(node, cwast.TypeArray):
+            c = f"slice({self.link(node.type)},{self.dim(node)})"
+        elif isinstance(node, cwast.DefRec):
+            c = f"rec({mod_name}/{self.name})"
+        elif isinstance(node, cwast.DefEnum):
+            c = f"enum({mod_name}/{self.name})"
+        elif isinstance(node, cwast.DefType):
+            if node.wrapped:
+                c = self.links(node.type)
+            else:
+                uid = self.wrapped_curr
+                self.wrapped_curr += 1
+                c = f"wrapped({uid},{self.link(node.type)})"
+        elif isinstance(node, cwast.TypeSum):
+            pass
+
+    def __init__(self, uint_kind, sint_kind):
+        self.uint_kind = uint_kind
+        self.sint_kind = sint_kind
+
+        self.wrapped_curr = 1
+        self.corpus = {}
+        self.dims: Dict[int, int] = {}
+        self.links: Dict[int, CanonType] = {}
+
+        for x in cwast.BASE_TYPE_KIND:
+            if x.name in ("INVALID", "UINT", "SINT"):
+                continue
+            node = cwast.TypeBase(x)
+            self.canonicalize_type(node)
+
+    def canonicalize_type(self, node) -> str:
+        pass
+
+
 _TYPED_NODES = (
-    cwast.TypeBase, cwast.TypeSum, cwast.TypePtr, cwast.TypeSlice,
-    cwast.TypeArray, cwast.TypeFunSig,
     #
     cwast.ValBool, cwast.ValNum,
     cwast.ValUndef, cwast.ValVoid, cwast.FieldVal, cwast.ValArray,
     cwast.ValArrayString, cwast.ValRec,
     #
     cwast.Id, cwast. ExprAddrOf, cwast.ExprDeref, cwast.ExprIndex,
-                 cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
-                 cwast.Expr1, cwast.Expr2, cwast.Expr3,
-                 cwast.ExprUnwrap, cwast.ExprChop,
-                 cwast.ExprLen, cwast.ExprSizeof)
+    cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
+    cwast.Expr1, cwast.Expr2, cwast.Expr3,
+    cwast.ExprUnwrap, cwast.ExprChop,
+    cwast.ExprLen, cwast.ExprSizeof)
 
 
-
-def InferTypes(node, target_type, typetab: TypeTab) -> CanonType:
+def Typify(node, target_type, typetab: TypeTab) -> CanonType:
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
     """
-    # if isinstance(node, 
-    pass
+    # if isinstance(node,
+
 
 if __name__ == "__main__":
-    logging.basicConfig(level = logging.INFO)
-    asts=[]
+    logging.basicConfig(level=logging.INFO)
+    asts = []
     try:
         while True:
-            stream=cwast.ReadTokens(sys.stdin)
-            t=next(stream)
+            stream = cwast.ReadTokens(sys.stdin)
+            t = next(stream)
             assert t == "("
-            sexpr=cwast.ReadSExpr(stream)
+            sexpr = cwast.ReadSExpr(stream)
             # print(sexpr)
             asts.append(sexpr)
     except StopIteration:

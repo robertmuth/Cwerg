@@ -159,7 +159,7 @@ class TypeArray:
 
 
 @dataclasses.dataclass()
-class TypeFunSig:
+class TypeFun:
     ALIAS = "sig"
     params: List[FunParam]
     result: TypeNode
@@ -730,7 +730,7 @@ class DefType:
     pub:  bool
     wrapped: bool
     name: str
-    type: Union[TypeNode, TypeAuto]
+    type: TypeNode
 
     def children(self): return [self.type]
 
@@ -744,7 +744,7 @@ class DefConst:
     ALIAS = "const"
     pub:  bool
     name: str
-    type: TypeNode
+    type: Union[TypeNode, TypeAuto]
     value: ValNode
 
     def children(self): return [self.value]
@@ -760,7 +760,7 @@ class DefVar:
     pub: bool
     mut: bool
     name: str
-    type: TypeNode
+    type: Union[TypeNode, TypeAuto]
     initial: ExprNode
 
     def children(self): return [self.type, self.initial]
