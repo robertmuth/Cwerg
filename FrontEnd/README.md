@@ -249,13 +249,12 @@ Decision: included. Will be guided by acyclic Module dependency graph to avoid t
 
 ### Misc
 
-#### When-style support for conditional compilation YES
+#### When-style support for conditional compilation UNDECIDED
 
-Pro: Super useful for code re-use and portability
+Pro: Useful for code re-use and portability
 
-Con: Must disable some semantic checking in the non-included code portions.   
-
-Decision: included
+Con: Can make code hard to understand. Tricky to implement unless limited to be used inside functions. Must disable some semantic checking in the non-included code portions.    
+Competes with simpler approaches of selecting from a set of API compatible modules at link-time.
 
 ##### Support for printing/stringification of custom data structure
 

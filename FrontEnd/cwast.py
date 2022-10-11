@@ -59,7 +59,7 @@ class Id:
 # TypeNodes
 ############################################################
 TypeNode = Union["Id", "TypeBase",
-                 "TypeSum", "TypeSlice", "TypeArray", "TypeFunSig"]
+                 "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
 
 
 @dataclasses.dataclass()
@@ -152,10 +152,10 @@ class TypeSlice:
 @dataclasses.dataclass()
 class TypeArray:
     ALIAS = None
-    size: int      # must be const and unsigned
+    size: "ExprNode"      # must be const and unsigned
     type: TypeNode
 
-    def children(self): return [self.type]
+    def children(self): return [self.size, self.type]
 
 
 @dataclasses.dataclass()
@@ -366,8 +366,8 @@ class BINARY_EXPR_KIND(enum.Enum):
     GT = 24
     GE = 25
 
-    ANDSC = 30  # &&
-    ORSC = 31   # ||
+    ANDSC = 30  # && (SC = short circuit)
+    ORSC = 31   # || (SC = short circuit)
 
     SHR = 40    # >>
     SHL = 41    # <<
@@ -481,16 +481,17 @@ class ExprRange:
     step: Union["ValAuto", ExprNode]
 
     def children(self): return [self.end, self.start, self.step]
- 
+
     def __str__(self):
         return f"RANGE({self.end}, {self.start}, {self.step})"
+
 
 ############################################################
 # Stmt
 ############################################################
 StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
                  "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
-                 "StmtBlock", "StmtWhen"]
+                 "StmtBlock"]
 
 ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
                 "ExprCall"]
@@ -536,6 +537,7 @@ class StmtFor:
         body = '\n'.join(str(s) for s in self.body)
         return f"FOR  {self.name}: {self.type} = {self.range}:\n{body}"
 
+
 @dataclasses.dataclass()
 class StmtDefer:
     ALIAS = "defer"
@@ -563,15 +565,15 @@ class StmtIf:
         return f"IF {self.cond}:\n{body_t}\nELSE:\n{body_f}"
 
 
-@dataclasses.dataclass()
-class StmtWhen:
-    "compile time conditional"
-    ALIAS = "when"
-    cond: ExprNode        # must be of type bool
-    body_t: List[StmtNode]
-    body_f: List[StmtNode]
+# @dataclasses.dataclass()
+# class StmtWhen:
+#    "compile time conditional"
+#    ALIAS = "when"
+#    cond: ExprNode        # must be of type bool
+#    body_t: List[StmtNode]
+#    body_f: List[StmtNode]
 
-    def children(self): return [self.cond] + self.body_t + self.body_f
+#    def children(self): return [self.cond] + self.body_t + self.body_f
 
 
 @dataclasses.dataclass()
@@ -713,7 +715,7 @@ class DefEnum:
     ALIAS = "enum"
     pub:  bool
     name: str
-    base_type_kind: BASE_TYPE_KIND
+    base_type_kind: BASE_TYPE_KIND   # must be integer
     items:  List[Union[EnumEntry, Comment]]
 
     def children(self): return self.items
@@ -778,7 +780,7 @@ class DefFun:
     pub: bool
     extern: bool
     name: str
-    params: List[TypeNode]
+    params: List[FunParam]
     result: TypeNode
     body: List[StmtNode]
 
@@ -833,7 +835,7 @@ class DefMod:
 ############################################################
 # Partitioning of all the field names in the node classes above.
 # Atom fields do NOT contain other node instances
-_ATOM_INT = {"size", "number"}
+_ATOM_INT = {"number"}
 _ATOM_STR = {"name", "string", "field", "label", "target"}
 # BOOLs are optional and must come first in a dataclass
 _ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini"}
@@ -856,6 +858,7 @@ _LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
 
 # contain one nodes
 _NODE_FIELDS = {"type", "result",
+                "size",
                 # expr
                 "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
                 "expr_ret",  "range",
