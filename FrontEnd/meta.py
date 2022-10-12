@@ -50,10 +50,27 @@ class SymTab:
         else:
             assert False, f"unexpected node: {node}"
 
+    def _resolve_enum_fields(self, components) -> Optional[cwast.EnumEntry]:
+        if len(components) != 2:
+            return None
+        node = self._enum_syms.get(components[0])
+        assert isinstance(node, cwast.DefEnum)
+        for item in node.children():
+            if isinstance(item, cwast.EnumEntry) and item.name == components[1]:
+                return item
+        return None
+
     def _resolve_sym(self, node: cwast.Id) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         logging.info("resolving %s", node)
         name = node.name
+        components = name.split("/")
+        if len(components) > 1:
+            s = self._resolve_enum_fields(components)
+            if s:
+                return s
+            assert False
+
         for l in reversed(self._local_var_syms):
             s = l.get(name)
             if s:
@@ -77,7 +94,10 @@ class SymTab:
         if isinstance(node, cwast.DefVar):
             self._add_local_symbol(node)
         elif isinstance(node, cwast.Id):
-            if not self._resolve_sym(node):
+            node = self._resolve_sym(node)
+            if node:
+                return node
+            else:
                 logging.error(f"cannot resolve symbol {node}")
                 exit(1)
         elif isinstance(node, _NODE_SCOPE):
@@ -249,7 +269,8 @@ class TypeTab:
 
     def typify_type_node(self, node,  mod_name, sym_tab: SymTab) -> CanonType:
         logging.info(f"TYPIFYING {node}")
-        assert isinstance(node, _NODES_RELATED_TO_TYPES), f"unexpected node {node}"
+        assert isinstance(
+            node, _NODES_RELATED_TO_TYPES), f"unexpected node {node}"
         cnode = node
         cstr = self.links.get(id(node))
         if cstr is not None:
@@ -320,8 +341,8 @@ class TypeTab:
                         pieces.append(cc)
                 else:
                     pieces.append(c)
-            pp = sorted(self.typify_type_node(p, mod_name, sym_tab) 
-            for p in pieces)
+            pp = sorted(self.typify_type_node(p, mod_name, sym_tab)
+                        for p in pieces)
             cstr = f"sum({','.join(pp)})"
             if cstr not in self.corpus:
                 cnode = cwast.TypeSum(pieces)
@@ -330,7 +351,8 @@ class TypeTab:
             assert False, f"unexpected node {node}"
         self.links[id(node)] = cstr
         if cstr not in self.corpus:
-            assert isinstance(cnode, _ROOT_NODES_FOR_TYPE), f"unexpected node {cnode}"
+            assert isinstance(
+                cnode, _ROOT_NODES_FOR_TYPE), f"unexpected node {cnode}"
             self.corpus[cstr] = cnode
         return cstr
 
@@ -385,7 +407,7 @@ def ExtractTypeTab(asts: List, symtab: SymTab) -> TypeTab:
     for m in asts:
         for node in m.children():
             if isinstance(node, _NODES_RELATED_TO_TYPES):
-                 typetab.typify_type_node(node, m.name, symtab)
+                typetab.typify_type_node(node, m.name, symtab)
     return typetab
 
 

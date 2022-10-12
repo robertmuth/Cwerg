@@ -240,7 +240,7 @@ class IndexVal:
 class FieldVal:
     "for rec initialization {.imag = 5, .real = 1}"
     ALIAS = None
-    index: str
+    field: str
     value: "ExprNode"
 
     def children(self): return [self.value]
@@ -273,7 +273,7 @@ class ValRec:
     type: TypeNode
     values: List[Union[FieldVal, Comment]]
 
-    def children(self): return [type] + self.values
+    def children(self): return [self.type] + self.values
 
 
 ############################################################
@@ -402,9 +402,9 @@ class Expr3:
 class ExprIndex:
     ALIAS = "at"
     container: ExprNode  # must be of type slice or array
-    index: ExprNode  # must be of int type
+    expr_index: ExprNode  # must be of int type
 
-    def children(self): return [self.container, self.index]
+    def children(self): return [self.container, self.expr_index]
 
 
 @dataclasses.dataclass()
@@ -716,7 +716,7 @@ class DefEnum:
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
-    items:  List[Union[EnumEntry, Comment]]
+    items: List[Union[EnumEntry, Comment]]
 
     def children(self): return self.items
 
@@ -859,6 +859,7 @@ _LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
 # contain one nodes
 _NODE_FIELDS = {"type", "result",
                 "size",
+                "expr_index",
                 # expr
                 "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
                 "expr_ret",  "range",
@@ -969,6 +970,10 @@ for t in _SCALAR_TYPES:
 
 def ExpandShortHand(field, t) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
+    if field == "index":
+        return int(t)
+    elif field == "field":
+        return t
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
@@ -1090,6 +1095,7 @@ def ReadSExpr(stream) -> Any:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     stream = ReadTokens(sys.stdin)
     try:
         while True:
