@@ -50,7 +50,7 @@ class SymTab:
         else:
             assert False, f"unexpected node: {node}"
 
-    def _resolve_enum_fields(self, components) -> Optional[cwast.EnumEntry]:
+    def _resolve_enum_item(self, components) -> Optional[cwast.EnumEntry]:
         if len(components) != 2:
             return None
         node = self._enum_syms.get(components[0])
@@ -60,13 +60,23 @@ class SymTab:
                 return item
         return None
 
+    def _resolve_rec_field(self, components) -> Optional[cwast.RecField]:
+        if len(components) != 2:
+            return None
+        node = self._enum_syms.get(components[0])
+        assert isinstance(node, cwast.DefRec)
+        for item in node.children():
+            if isinstance(item, cwast.RecField) and item.name == components[1]:
+                return item
+        return None
+
     def _resolve_sym(self, node: cwast.Id) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         logging.info("resolving %s", node)
         name = node.name
         components = name.split("/")
         if len(components) > 1:
-            s = self._resolve_enum_fields(components)
+            s = self._resolve_enum_item(components)
             if s:
                 return s
             assert False
@@ -239,6 +249,14 @@ _TYPED_NODES = (
 )
 
 
+class TypeContext:
+    def __init__(self, symtab, mod_name):
+        self.symtab: SymTab = symtab
+        self.mod_name: str = mod_name
+        self.enclosing_fun = None
+        self.target_type = None
+
+
 class TypeTab:
     """Type Table
 
@@ -258,7 +276,7 @@ class TypeTab:
             if x.name in ("INVALID", "UINT", "SINT"):
                 continue
             node = cwast.TypeBase(x)
-            self.typify_type_node(node, None, None)
+            self.typify_node(node, None)
 
     def link(self, node) -> CanonType:
         return self.links[id(node)]
@@ -267,73 +285,93 @@ class TypeTab:
         assert isinstance(node, cwast.ValNum), f"unexpected number: {node}"
         return int(node.number)
 
-    def typify_type_node(self, node,  mod_name, sym_tab: SymTab) -> CanonType:
+    def annotate(self, node, cstr: CanonType, cnode=None):
+        self.links[id(node)] = cstr
+        if cnode is None:
+            assert  cstr in self.corpus
+        elif cstr not in self.corpus:
+            assert isinstance(
+                cnode, _ROOT_NODES_FOR_TYPE), f"unexpected node {cnode}"
+            self.corpus[cstr] = cnode
+        return cstr
+
+    def typify_node(self, node,  ctx: TypeContext) -> CanonType:
         logging.info(f"TYPIFYING {node}")
         assert isinstance(
             node, _NODES_RELATED_TO_TYPES), f"unexpected node {node}"
-        cnode = node
         cstr = self.links.get(id(node))
         if cstr is not None:
             # has been typified already
             return cstr
         if isinstance(node, cwast.Id):
             # this case is why we need the sym_tab
-            def_node = sym_tab.get_definition_for_symbol(node)
+            def_node = ctx.symtab.get_definition_for_symbol(node)
             #assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
-            cstr = self.typify_type_node(def_node, mod_name, sym_tab)
+            cstr = self.typify_node(def_node, ctx)
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.TypeBase):
             kind = node.base_type_kind
             if kind == cwast.BASE_TYPE_KIND.UINT:
                 kind = self.uint_kind
             elif kind == cwast.BASE_TYPE_KIND.SINT:
                 kind = self.sint_kind
-            cstr = kind.name.lower()
+            return self.annotate(node, kind.name.lower(), node)
         elif isinstance(node, cwast.TypePtr):
-            t = self.typify_type_node(node.type, mod_name, sym_tab)
+            t = self.typify_node(node.type, ctx)
             if node.mut:
                 cstr = f"ptr-mut({t})"
             else:
                 cstr = f"ptr({cstr})"
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.TypeSlice):
-            t = self.typify_type_node(node.type, mod_name, sym_tab)
-            cstr = f"slice({t})"
+            t = self.typify_node(node.type, ctx)
+            return self.annotate(node, f"slice({t})", node)
         elif isinstance(node, (cwast.FunParam, cwast.RecField)):
-            cstr = self.typify_type_node(node.type, mod_name, sym_tab)
+            cstr = self.typify_node(node.type, ctx)
+            return self.annotate(node, cstr, node)
         elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
-            x = [self.typify_type_node(p, mod_name, sym_tab)
+            x = [self.typify_node(p, ctx)
                  for p in node.params if not isinstance(p, cwast.Comment)]
-            res = self.typify_type_node(node.result, mod_name, sym_tab)
+            res = self.typify_node(node.result, ctx)
             x.append(res)
+            cstr =  f"fun({','.join(x)}"
             if isinstance(node, cwast.DefFun):
-                cnode = cwast.TypeFun(node.params, node.result)
-            cstr = f"fun({','.join(x)})"
+                return self.annotate(node, cstr, cwast.TypeFun(node.params, node.result))
+            return self.annotate(node, cstr, node)
+
         elif isinstance(node, cwast.TypeArray):
             # note this is the only place where we need a comptime eval
-            t = self.typify_type_node(node.type, mod_name, sym_tab)
+            t = self.typify_node(node.type, ctx)
             cstr = f"array({t},{self.compute_dim(node.size)})"
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.DefRec):
             for f in node.fields:
                 if not isinstance(f, cwast.Comment):
-                    t = self.typify_type_node(f.type, mod_name, sym_tab)
+                    t = self.typify_node(f.type, ctx)
                     self.links[id(f)] = t
-            cstr = f"rec({mod_name}/{node.name})"
+            cstr = f"rec({ctx.mod_name}/{node.name})"
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.DefEnum):
             base_type = cwast.TypeBase(node.base_type_kind)
-            t = self.typify_type_node(base_type, mod_name, sym_tab)
+            t = self.typify_node(base_type, ctx)
             for f in node.items:
                 if not isinstance(f, cwast.Comment):
                     self.links[id(f)] = t
-            cstr = f"enum({mod_name}/{node.name})"
+            cstr = f"enum({ctx.mod_name}/{node.name})"
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.DefType):
-            cstr = self.typify_type_node(node.type, mod_name, sym_tab)
+            cstr = self.typify_node(node.type, ctx)
             if node.wrapped:
                 uid = self.wrapped_curr
                 self.wrapped_curr += 1
                 cstr = f"wrapped({uid},{cstr})"
+            return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.TypeSum):
+            # this is tricky code to ensure that children of TypeSum
+            # are not TypeSum themselves on the canonical side 
             pieces = []
             for c in node.types:
-                t = self.typify_type_node(c, mod_name, sym_tab)
+                t = self.typify_node(c, ctx)
                 # takes care of the case where c is an Id node
                 c = self.corpus[t]
                 if isinstance(c, cwast.TypeSum):
@@ -341,20 +379,27 @@ class TypeTab:
                         pieces.append(cc)
                 else:
                     pieces.append(c)
-            pp = sorted(self.typify_type_node(p, mod_name, sym_tab)
+            pp = sorted(self.typify_node(p, ctx)
                         for p in pieces)
             cstr = f"sum({','.join(pp)})"
+            cnode = node
             if cstr not in self.corpus:
                 cnode = cwast.TypeSum(pieces)
                 self.links[id(cnode)] = cstr
+            return self.annotate(node, cstr, cnode)
+        if isinstance(node, cwast.ValBool):
+            base_type = cwast.TypeBase(cwast.BASE_TYPE_KIND.BOOL)
+            cstr = self.typify_type(base_type, ctx)
+            return self.annotate(node, cstr)
+        elif isinstance(node, cwast.ValVoid):
+            base_type = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID)
+            cstr = self.typify_type(base_type, mod_name, sym_tab)
+        elif isinstance(node, cwast.cwast.ValUndef):
+            assert target_type is not None
+            cstr = target_type
         else:
             assert False, f"unexpected node {node}"
-        self.links[id(node)] = cstr
-        if cstr not in self.corpus:
-            assert isinstance(
-                cnode, _ROOT_NODES_FOR_TYPE), f"unexpected node {cnode}"
-            self.corpus[cstr] = cnode
-        return cstr
+
 
     def typify_value_node(self, node,  target_type: Optional[CanonType], mod_name,
                           sym_tab: SymTab) -> CanonType:
@@ -364,15 +409,7 @@ class TypeTab:
         if cstr is not None:
             # has been typified already
             return cstr
-        if isinstance(node, cwast.ValBool):
-            base_type = cwast.TypeBase(cwast.BASE_TYPE_KIND.BOOL)
-            cstr = self.typify_type(base_type, mod_name, sym_tab)
-        elif isinstance(node, cwast.ValVoid):
-            base_type = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID)
-            cstr = self.typify_type(base_type, mod_name, sym_tab)
-        elif isinstance(node, cwast.cwast.ValUndef):
-            assert target_type is not None
-            cstr = target_type
+      
         elif isinstance(node, cwast.cwast.ValNum):
             pass
         elif isinstance(node, cwast.cwast.ValRec):
@@ -382,6 +419,37 @@ class TypeTab:
 
     def canonicalize_type(self, node) -> str:
         pass
+
+
+CanonConst = Any
+
+
+class ConstTab:
+    """Type Table
+
+    Requires SymTab info to resolve DefType symnbols
+    """
+
+    def __init__(self):
+        self.links = {}
+
+    def link(self, node) -> CanonConst:
+        return self.links[id(node)]
+
+    def constify_value_node(self, node,  target_type: Optional[CanonType], mod_name,
+                            sym_tab: SymTab) -> CanonType:
+        logging.info(f"CONSTFYING {node}")
+        assert isinstance(node, _VALUE_NODES), f"unexpected node {node}"
+        if isinstance(node, cwast.Id):
+            pass
+            # this case is why we need the sym_tab
+            def_node = sym_tab.get_definition_for_symbol(node)
+            #assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
+            cstr = self.typify_type_node(def_node, mod_name, sym_tab)
+        elif isinstance(node, (cwast.ValBool, cwast.ValUndef, cwast.ValVoid)):
+            self.links[id(node)] = node
+        elif isinstance(node, cwast.ValNum):
+            self.links[id(node)] = node
 
 
 _TYPED_NODES = (
@@ -405,9 +473,10 @@ def ExtractTypeTab(asts: List, symtab: SymTab) -> TypeTab:
     """
     typetab = TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
     for m in asts:
+        ctx = TypeContext(symtab, m.name)
         for node in m.children():
             if isinstance(node, _NODES_RELATED_TO_TYPES):
-                typetab.typify_type_node(node, m.name, symtab)
+                typetab.typify_node(node, ctx)
     return typetab
 
 
