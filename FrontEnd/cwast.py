@@ -54,6 +54,16 @@ class Id:
         path = '/'.join(self.path) + "/" if self.path else ""
         return f"{path}{self.name}"
 
+class Auto:
+    """placeholder for an unspecified value or type
+
+    Note: it is not part of the ValNode Union or TypeUnion"""
+    ALIAS = None
+
+    def children(self): return []
+
+    def __str__(self):
+        return "AUTO"
 
 ############################################################
 # TypeNodes
@@ -98,14 +108,6 @@ class BASE_TYPE_KIND(enum.Enum):
     NORET = 41
     BOOL = 42
 
-
-@dataclasses.dataclass()
-class TypeAuto:
-    ALIAS = None
-
-    def children(self): return []
-
-    def __str__(self): return "AUTO"
 
 
 @dataclasses.dataclass()
@@ -196,18 +198,6 @@ class ValNum:
     def __str__(self): return self.number
 
 
-class ValAuto:
-    """placeholder for an unspecified value
-
-    Note: it is not part of the ValNode Union"""
-    ALIAS = None
-
-    def children(self): return []
-
-    def __str__(self):
-        return "AUTO"
-
-
 @dataclasses.dataclass()
 class ValUndef:
     ALIAS = None
@@ -250,7 +240,7 @@ class FieldVal:
 class ValArray:
     ALIAS = None
     type: TypeNode
-    size: Union[ValNum, ValAuto]
+    size: Union[ValNum, Auto]
     values: List[IndexVal]
 
     def children(self): return [self.type, self.size] + self.values
@@ -411,8 +401,8 @@ class ExprIndex:
 class ExprChop:
     ALIAS = "chop"
     container: ExprNode  # must be of type slice or array
-    start: Union[ExprNode, "ValAuto"]  # must be of int type
-    length: Union[ExprNode, "ValAuto"]  # must be of int type
+    start: Union[ExprNode, "Auto"]  # must be of int type
+    length: Union[ExprNode, "Auto"]  # must be of int type
 
     def children(self): return [self.container, self.start, self.length]
 
@@ -477,8 +467,8 @@ class ExprOffsetof:
 class ExprRange:
     ALIAS = "range"
     end: ExprNode   # start, end ,step work like range(start, end, step)
-    start: Union["ValAuto", ExprNode]
-    step: Union["ValAuto", ExprNode]
+    start: Union["Auto", ExprNode]
+    step: Union["Auto", ExprNode]
 
     def children(self): return [self.end, self.start, self.step]
 
@@ -702,7 +692,7 @@ class EnumEntry:
     """ Enum element - `value: auto` means previous value + 1"""
     ALIAS = "entry"
     name: str
-    value: Union["ValNum", "ValAuto"]
+    value: Union["ValNum", "Auto"]
 
     def children(self): return [self.value]
 
@@ -722,7 +712,7 @@ class DefEnum:
 
     def __str__(self):
         items = '\n'.join(str(s) for s in self.items)
-        return f"REC {self.name}:\n{items}"
+        return f"ENUM {self.name}:\n{items}"
 
 
 @dataclasses.dataclass()
@@ -746,7 +736,7 @@ class DefConst:
     ALIAS = "const"
     pub:  bool
     name: str
-    type: Union[TypeNode, TypeAuto]
+    type: Union[TypeNode, Auto]
     value: ValNode
 
     def children(self): return [self.type, self.value]
@@ -762,7 +752,7 @@ class DefVar:
     pub: bool
     mut: bool
     name: str
-    type: Union[TypeNode, TypeAuto]
+    type: Union[TypeNode, Auto]
     initial: ExprNode
 
     def children(self): return [self.type, self.initial]
@@ -871,8 +861,8 @@ _NODE_FIELDS = {"type", "result",
 # must come last in a dataclass
 _OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
-    "start":   ValAuto(),
-    "step":   ValAuto(),
+    "start":   Auto(),
+    "step":   Auto(),
     "target": "",
     "result": TypeBase(BASE_TYPE_KIND.VOID)
 }
@@ -953,7 +943,7 @@ _SCALAR_TYPES = [
 
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
-    "auto": TypeAuto(),
+    "auto": Auto(),
     "void": TypeBase(BASE_TYPE_KIND.VOID),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
