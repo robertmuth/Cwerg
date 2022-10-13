@@ -11,7 +11,7 @@ more insights about the design-space by bootstrapping the front- and backend.
 
 ## Syntax
   
-  Source code will be stored as serialized S-Exprression with tooling to
+  Source code will be stored as serialized S-Expressions with tooling to
   convert back and forth to a yet to be defined concrete syntax.
 
   The tooling will do most of the syntax and semantic checking.
@@ -29,7 +29,6 @@ Pro: Helpful for writing very succint code.
 
 Con: Expressions with side-effects requiring the concept of [Sequence Point](https://en.wikipedia.org/wiki/Sequence_point) which adds complexity.
 
-Decision: omitted 
 
 #### Enhanced Assignments (`+=`, `-=`, etc.) YES
 
@@ -37,7 +36,6 @@ Pro: Convenient shorthand, especially if increment/decrement is not availabe. He
 
 Con: `a += b` is *mostly* syntactic sugar for `a = a + b` so not much expressive power is gained.
 
-Decision: included
 
 #### Multi-assignment PROBABLY NO
 
@@ -45,7 +43,6 @@ Pro: Nice for swaps: `a, b = b, a` and when Functions return multiple values.
 
 Con: Needs tuples, makes syntax more complicated.
 
-Decision: probably omitted
 
 #### Multi-definition of Variables and Parameters NO
 
@@ -53,7 +50,6 @@ Pro: `x,y,z: int` is very succint
 
 Con: Makes syntax more complicated.
 
-Decision: omitted
 
 #### Short-circuit operators (`&&`, `||`) YES
 
@@ -61,7 +57,6 @@ Pro: Very common and useful
 
 Con: Adds implementation complexity
 
-Decision: included
 
 #### Select operators (`? :`) YES
 
@@ -69,7 +64,6 @@ Pro: Very common and useful.
 
 Con: Does not add a lot of expressiveness.
 
-Decision: included
 
 #### Symbol visbility control YES
 
@@ -108,11 +102,15 @@ Pro: Allow better information hiding by scope narrowing
 
 Con: Makes parsing more complex. Modules help with scope narrowing 
 
-Decision: omitted
 
 #### Allow Function definitions inside Function PROBABLY NO
 
 Con: Closures have tricky semantics, even simple [gcc style nested functions](https://gcc.gnu.org/onlinedocs/gcc/Nested-Functions.html)
+
+
+#### Bitfields NO
+
+Con: Not portable
 
 ### Typing
 
@@ -122,7 +120,6 @@ Pro: Handy for printf style function
 
 Con: High implementation complexity
 
-Decision: omitted 
 
 #### Mutability (aka `const`) control  YES
 
@@ -194,13 +191,9 @@ Pro: Provides a path to promote `[4]f32` into SIMD operands
 
 Pro: Modules will provide namespaces.
 
-Decision: included
-
 #### Parameterized Modules YES
 
 Pro: Parameterized Modules will provide template style generics (similar to later versions of Oberon). Modules can be parameterized by Constants, Types or other Modules.
-
-Decision: included
 
 #### Implicit conversion of Numbers (ints/floats) UNDECIDED
 
@@ -210,7 +203,7 @@ Must not permit information loss.
 
 Pro: `i := 666_u32` or `i: u32 := 666` reduces clutter
 
-#### Iterators UNDECIDED
+#### Iterators PROBABLY YES
 
 At a minimum should allow iteration over linked lists in one line of code.
 
@@ -220,7 +213,7 @@ TBD
 
 #### Overloaded Functions (adhoc polymorphism) UNDECIDED 
 
-TBD
+Likely only supported for a fixed feature set, e.g. iterators and stringification 
 
 ### Control Flow
 
@@ -253,8 +246,9 @@ Decision: included. Will be guided by acyclic Module dependency graph to avoid t
 
 Pro: Useful for code re-use and portability
 
-Con: Can make code hard to understand. Tricky to implement unless limited to be used inside functions. Must disable some semantic checking in the non-included code portions.    
-Competes with simpler approaches of selecting from a set of API compatible modules at link-time.
+Con: Can make code hard to understand. Tricky to implement unless limited to be
+     used inside functions. Must disable some semantic checking in the non-included code portions or run very early.    
+     Competes with simpler approaches of selecting from a set of API compatible modules at link-time.
 
 ##### Support for printing/stringification of custom data structure
 
