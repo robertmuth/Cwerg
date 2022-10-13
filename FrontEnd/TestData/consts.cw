@@ -28,7 +28,7 @@
 
 (const  c2 u32 7) 
 
-(const  c3 auto (ValNum 7.0_f32)) 
+(const  c3 auto (ValNum 7.0_r32)) 
 
 (const c10 auto c2)
 

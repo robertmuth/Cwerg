@@ -13,7 +13,12 @@ from termios import CWERASE
 from FrontEnd import cwast
 from typing import List, Dict, Set, Optional, Union, Any
 
-UNRESOLVED_STRUCT_UNION_MEMBER = 6
+
+class Unresolved:
+    def __init__(self):
+        pass
+
+UNRESOLVED_STRUCT_UNION_MEMBER = Unresolved()
 
 MODULES = {}
 
@@ -70,7 +75,7 @@ class SymTab:
                 return item
         return None
 
-    def _resolve_sym(self, node: cwast.Id) -> Optional[Any]:
+    def resolve_sym(self, node: cwast.Id) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         logging.info("resolving %s", node)
         name = node.name
@@ -96,17 +101,21 @@ class SymTab:
 
     def _add_link(self, id_node: cwast.Id, def_node):
         assert isinstance(id_node, (cwast.Id))
-        assert def_node is UNRESOLVED_STRUCT_UNION_MEMBER or isinstance(
-            cwast.DefConst, cwast.DefFun, cwast.DefMod, cwast.DefType, cwast.DefVar)
-        self._links[id_node] = def_node
+        assert isinstance(def_node,
+            (Unresolved, cwast.DefConst, cwast.DefFun, cwast.DefMod, cwast.DefType, 
+            cwast.DefVar, cwast.EnumEntry, cwast.DefRec, cwast.DefEnum,
+            cwast.FunParam, cwast.StmtFor)), f"unpexpected node: {def_node}"
+        self._links[id(id_node)] = def_node
 
     def resolve_symbols_recursively(self, node):
+        logging.info("UNSYMBOLIZE %s", type(node).__name__)
         if isinstance(node, cwast.DefVar):
             self._add_local_symbol(node)
         elif isinstance(node, cwast.Id):
-            node = self._resolve_sym(node)
-            if node:
-                return node
+            def_node = self.resolve_sym(node)
+            if def_node:
+                self._add_link(node, def_node)
+                return 
             else:
                 logging.error(f"cannot resolve symbol {node}")
                 exit(1)
@@ -253,9 +262,29 @@ class TypeContext:
     def __init__(self, symtab, mod_name):
         self.symtab: SymTab = symtab
         self.mod_name: str = mod_name
-        self.enclosing_fun = None
-        self.target_type = None
+        self.enclosing_fun: Optional[cwast.DefFun] = None
+        self.target_type: Optional[CanonType]= None
 
+
+class TypeCorpus:
+    def __init__(self, uint_kind, sint_kind):
+        self.uint_kind = uint_kind
+        self.sint_kind = sint_kind
+
+        self.wrapped_curr = 1
+        self.corpus = {}
+
+        for x in cwast.BASE_TYPE_KIND:
+            if x.name in ("INVALID", "UINT", "SINT"):
+                continue
+            node = cwast.TypeBase(x)
+            self.typify_node(node, None)
+
+    def _corpus_lookup_or_insert_base_type(self, kind: cwast.BASE_TYPE_KIND):
+        if kind == cwast.BASE_TYPE_KIND.UINT:
+            kind = self.uint_kind
+        elif kind == cwast.BASE_TYPE_KIND.SINT:
+            kind = self.sint_kind
 
 class TypeTab:
     """Type Table
@@ -288,17 +317,28 @@ class TypeTab:
     def annotate(self, node, cstr: CanonType, cnode=None):
         self.links[id(node)] = cstr
         if cnode is None:
-            assert  cstr in self.corpus
+            assert cstr in self.corpus, f"{cstr}"
         elif cstr not in self.corpus:
             assert isinstance(
                 cnode, _ROOT_NODES_FOR_TYPE), f"unexpected node {cnode}"
-            self.corpus[cstr] = cnode
+            self.corpus[cstr]=cnode
         return cstr
+
+    def num_type(self, num:str) -> Optional[CanonType]:
+        for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
+            if num.endswith(x):
+                return x
+        if num.endswith("sint"):
+            return cwast.BASE_TYPE_KIND.SINT.name.lower()
+        elif num.endswith("uint"):
+            return cwast.BASE_TYPE_KIND.UINT.name.lower()
+        else:
+            return None
+
+
 
     def typify_node(self, node,  ctx: TypeContext) -> CanonType:
         logging.info(f"TYPIFYING {node}")
-        assert isinstance(
-            node, _NODES_RELATED_TO_TYPES), f"unexpected node {node}"
         cstr = self.links.get(id(node))
         if cstr is not None:
             # has been typified already
@@ -306,7 +346,7 @@ class TypeTab:
         if isinstance(node, cwast.Id):
             # this case is why we need the sym_tab
             def_node = ctx.symtab.get_definition_for_symbol(node)
-            #assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
+            # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
             cstr = self.typify_node(def_node, ctx)
             return self.annotate(node, cstr, node)
         elif isinstance(node, cwast.TypeBase):
@@ -392,30 +432,31 @@ class TypeTab:
             cstr = self.typify_type(base_type, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValVoid):
-            base_type = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID)
-            cstr = self.typify_type(base_type, mod_name, sym_tab)
-        elif isinstance(node, cwast.cwast.ValUndef):
-            assert target_type is not None
-            cstr = target_type
+            return self.annotate(node, "void")
+        elif isinstance(node, cwast.ValUndef):
+            return self.annotate(node, ctx.target_type)
+        elif isinstance(node, cwast.ValNum):
+            cstr = self.num_type(node.number)
+            if cstr:
+                return self.annotate(node, cstr)
+            return self.annotate(node, ctx.target_type)
+        elif isinstance(node, cwast.DefConst):
+            saved_target_type = ctx.target_type
+            if not isinstance(node.type, cwast.TypeAuto):
+                ctx.target_type = self.typify_node(node.type, ctx)
+            cstr = self.typify_node(node.value, ctx)
+            ctx.target_type = saved_target_type
+            return self.annotate(node, cstr)
+        elif isinstance(node, cwast.ValArray):
+            saved_target_type = ctx.target_type
+            ctx.target_type = self.typify_node(node.type, ctx)
+            for x in node.values:
+                self.typify_node(x, ctx)
+            cstr = self.typify_node(node.value, ctx)
+            ctx.target_type = saved_target_type
+            return self.annotate(node, cstr)
         else:
             assert False, f"unexpected node {node}"
-
-
-    def typify_value_node(self, node,  target_type: Optional[CanonType], mod_name,
-                          sym_tab: SymTab) -> CanonType:
-        assert isinstance(node, _VALUE_NODES)
-        cnode = node
-        cstr = self.link.get(id(node))
-        if cstr is not None:
-            # has been typified already
-            return cstr
-      
-        elif isinstance(node, cwast.cwast.ValNum):
-            pass
-        elif isinstance(node, cwast.cwast.ValRec):
-            pass
-        elif isinstance(node, cwast.cwast.cwast.ValArray):
-            pass
 
     def canonicalize_type(self, node) -> str:
         pass
@@ -444,7 +485,7 @@ class ConstTab:
             pass
             # this case is why we need the sym_tab
             def_node = sym_tab.get_definition_for_symbol(node)
-            #assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
+            # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
             cstr = self.typify_type_node(def_node, mod_name, sym_tab)
         elif isinstance(node, (cwast.ValBool, cwast.ValUndef, cwast.ValVoid)):
             self.links[id(node)] = node

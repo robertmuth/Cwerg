@@ -91,8 +91,8 @@ class BASE_TYPE_KIND(enum.Enum):
     U32 = 23
     U64 = 24
 
-    F32 = 30
-    F64 = 31
+    R32 = 30  # real
+    R64 = 31  # real
 
     VOID = 40
     NORET = 41
@@ -749,7 +749,7 @@ class DefConst:
     type: Union[TypeNode, TypeAuto]
     value: ValNode
 
-    def children(self): return [self.value]
+    def children(self): return [self.type, self.value]
 
     def __str__(self):
         return f"CONST {self.name}: {self.type} = {self.value}"
@@ -947,8 +947,8 @@ _SCALAR_TYPES = [
     BASE_TYPE_KIND.U32,
     BASE_TYPE_KIND.U64,
     #
-    BASE_TYPE_KIND.F32,
-    BASE_TYPE_KIND.F64,
+    BASE_TYPE_KIND.R32,
+    BASE_TYPE_KIND.R64,
 ]
 
 # maps "atoms" to the nodes they will be expanded to
