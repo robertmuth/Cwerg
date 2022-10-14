@@ -14,6 +14,7 @@ import enum
 import string
 from typing import List, Dict, Set, Optional, Union, Any
 
+logger = logging.getLogger(__name__)
 
 ############################################################
 # Comment
@@ -54,6 +55,7 @@ class Id:
         path = '/'.join(self.path) + "/" if self.path else ""
         return f"{path}{self.name}"
 
+
 class Auto:
     """placeholder for an unspecified value or type
 
@@ -64,6 +66,7 @@ class Auto:
 
     def __str__(self):
         return "AUTO"
+
 
 ############################################################
 # TypeNodes
@@ -107,7 +110,6 @@ class BASE_TYPE_KIND(enum.Enum):
     VOID = 40
     NORET = 41
     BOOL = 42
-
 
 
 @dataclasses.dataclass()
@@ -240,7 +242,7 @@ class FieldVal:
 class ValArray:
     ALIAS = None
     type: TypeNode
-    size: Union[ValNum, Auto]
+    size: Union["ExprNode", Auto]  # must be constant
     values: List[IndexVal]
 
     def children(self): return [self.type, self.size] + self.values
@@ -249,6 +251,7 @@ class ValArray:
 @dataclasses.dataclass()
 class ValArrayString:
     ALIAS = None
+    noesc: bool
     # type: u8, size: strlen(value)
     string: str
 
@@ -828,7 +831,8 @@ class DefMod:
 _ATOM_INT = {"number"}
 _ATOM_STR = {"name", "string", "field", "label", "target"}
 # BOOLs are optional and must come first in a dataclass
-_ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini"}
+_ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini",
+              "noesc"}
 _ATOM_FIELDS = _ATOM_BOOL | _ATOM_INT | _ATOM_STR
 
 # Fields containing an enum. Mapped to the enum class
@@ -1070,7 +1074,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
 def ReadSExpr(stream) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
-    logging.info("Readding TAG %s", tag)
+    logger.info("Readding TAG %s", tag)
     if tag in _BINOP_SHORTCUT:
         return ReadRestAndMakeNode(Expr2, [_BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
@@ -1085,6 +1089,7 @@ def ReadSExpr(stream) -> Any:
 
 
 if __name__ == "__main__":
+    
     logging.basicConfig(level=logging.INFO)
     stream = ReadTokens(sys.stdin)
     try:

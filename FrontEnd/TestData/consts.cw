@@ -30,6 +30,8 @@
 
 (const  c3 auto (ValNum 7.0_r32)) 
 
+(const pub c4 auto (ValArrayString "xxxxxx"))
+
 (const c10 auto c2)
 
 (const c20 auto type_enum/e3)
