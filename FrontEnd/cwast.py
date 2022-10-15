@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 ############################################################
 # Comment
 ############################################################
+
+
 @dataclasses.dataclass()
 class Comment:
     ALIAS = "#"
@@ -1088,8 +1090,15 @@ def ReadSExpr(stream) -> Any:
         return ReadRestAndMakeNode(cls, [], fields, stream)
 
 
+SCOPING_NODES = (StmtBlock, StmtWhile, StmtFor, StmtDefer,
+                 StmtIf, DefFun)
+
+VALUE_NODES = (ValBool, ValNum, IndexVal,
+               ValUndef, ValVoid, FieldVal, ValArray,
+               ValArrayString, ValRec)
+
 if __name__ == "__main__":
-    
+
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     stream = ReadTokens(sys.stdin)

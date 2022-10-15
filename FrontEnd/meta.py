@@ -4,266 +4,25 @@
 
 """
 
-from ast import mod
 import dataclasses
-from doctest import OutputChecker
 import sys
 import logging
-from termios import CWERASE
 
 from FrontEnd import cwast
+from FrontEnd import symtab
+
 from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
-
-class Unresolved:
-    def __init__(self):
-        pass
-
-
-UNRESOLVED_STRUCT_UNION_MEMBER = Unresolved()
-
-MODULES = {}
-
-
-_NODE_SCOPE = (cwast.StmtBlock, cwast.StmtWhile, cwast.StmtFor, cwast.StmtDefer,
-               cwast.StmtIf, cwast.DefFun)
-
-
-class SymTab:
-
-    def __init__(self):
-        self._type_syms = {}
-        self._const_syms = {}
-
-        self._rec_syms = {}
-        self._enum_syms = {}
-
-        self._fun_syms = {}
-        self.var_syms = {}
-
-        self._local_var_syms = []
-        #
-        self._links = {}
-
-    def _push_scope(self):
-        self._local_var_syms.append({})
-
-    def _pop_scope(self):
-        self._local_var_syms.pop(-1)
-
-    def _add_local_symbol(self, node):
-        if isinstance(node, (cwast.DefVar, cwast.StmtFor, cwast.FunParam)):
-            self._local_var_syms[-1][node.name] = node
-        else:
-            assert False, f"unexpected node: {node}"
-
-    def _resolve_enum_item(self, components) -> Optional[cwast.EnumEntry]:
-        if len(components) != 2:
-            return None
-        node = self._enum_syms.get(components[0])
-        assert isinstance(node, cwast.DefEnum)
-        for item in node.children():
-            if isinstance(item, cwast.EnumEntry) and item.name == components[1]:
-                return item
-        return None
-
-    def _resolve_rec_field(self, components) -> Optional[cwast.RecField]:
-        if len(components) != 2:
-            return None
-        node = self._enum_syms.get(components[0])
-        assert isinstance(node, cwast.DefRec)
-        for item in node.children():
-            if isinstance(item, cwast.RecField) and item.name == components[1]:
-                return item
-        return None
-
-    def resolve_sym(self, node: cwast.Id) -> Optional[Any]:
-        """We could be more specific here if we narrow down the symbol type"""
-        logger.info("resolving %s", node)
-        name = node.name
-        components = name.split("/")
-        if len(components) > 1:
-            s = self._resolve_enum_item(components)
-            if s:
-                return s
-            assert False
-
-        for l in reversed(self._local_var_syms):
-            s = l.get(name)
-            if s:
-                self._links[id(node)] = s
-                return s
-        for syms in (self._type_syms, self._const_syms, self._fun_syms,
-                     self._rec_syms, self._enum_syms, self.var_syms):
-            s = syms.get(name)
-            if s:
-                self._links[id(node)] = s
-                return s
-        return None
-
-    def _add_link(self, id_node: cwast.Id, def_node):
-        assert isinstance(id_node, (cwast.Id))
-        assert isinstance(def_node,
-                          (Unresolved, cwast.DefConst, cwast.DefFun, cwast.DefMod, cwast.DefType,
-                           cwast.DefVar, cwast.EnumEntry, cwast.DefRec, cwast.DefEnum,
-                           cwast.FunParam, cwast.StmtFor)), f"unpexpected node: {def_node}"
-        self._links[id(id_node)] = def_node
-
-    def resolve_symbols_recursively(self, node):
-        logger.info("UNSYMBOLIZE %s", type(node).__name__)
-        if isinstance(node, cwast.DefVar):
-            self._add_local_symbol(node)
-        elif isinstance(node, cwast.Id):
-            def_node = self.resolve_sym(node)
-            if def_node:
-                self._add_link(node, def_node)
-                return
-            else:
-                logger.error(f"cannot resolve symbol {node}")
-                exit(1)
-        elif isinstance(node, _NODE_SCOPE):
-            logger.info("push scope for %s", type(node).__name__)
-            self._push_scope()
-            if isinstance(node, cwast.StmtFor):
-                self._add_local_symbol(node)
-            elif isinstance(node, cwast.DefFun):
-                for p in node.params:
-                    self._add_local_symbol(p)
-
-        # recurse
-        for c in node.children():
-            self.resolve_symbols_recursively(c)
-
-        if isinstance(node, _NODE_SCOPE):
-            self._pop_scope()
-            logger.info("pop scope for %s", type(node).__name__)
-
-    def add_top_level_sym(self, node):
-        logger.info("recording top level symbol [%s]", node.name)
-        if isinstance(node, cwast.DefFun):
-            assert node.name not in self._fun_syms
-            self._fun_syms[node.name] = node
-        elif isinstance(node, cwast.DefVar):
-            assert node.name not in self.var_syms
-            self.var_syms[node.name] = node
-        elif isinstance(node, cwast.DefConst):
-            assert node.name not in self._const_syms
-            self._const_syms[node.name] = node
-        elif isinstance(node, cwast.DefRec):
-            assert node.name not in self._rec_syms
-            self._rec_syms[node.name] = node
-        elif isinstance(node, cwast.DefEnum):
-            assert node.name not in self._enum_syms
-            self._enum_syms[node.name] = node
-        elif isinstance(node, cwast.DefType):
-            assert node.name not in self._type_syms
-            self._type_syms[node.name] = node
-        else:
-            assert False, f"unexpected node: {node}"
-
-    def get_definition_for_symbol(self, node: cwast.Id):
-        return self._links[id(node)]
-
-
-def ExtractSymTab(asts: List) -> SymTab:
-    global MODULES
-    symtab = SymTab()
-    for mod in asts:
-        assert isinstance(mod, cwast.DefMod), mod
-        logger.info("Processing %s", mod.name)
-        MODULES[mod.name] = mod
-        # pass 1: get all the top level symbols
-        for node in mod.children():
-            if isinstance(node, cwast.Comment):
-                pass
-            else:
-                symtab.add_top_level_sym(node)
-
-        # pass 2:
-        for node in mod.children():
-            if isinstance(node, cwast.Comment):
-                continue
-            logger.info("ExtractSymbolTable %s", node.name)
-            if isinstance(node, cwast.DefVar):
-                # we already registered the var in the previous step
-                for c in node.children():
-                    symtab.resolve_symbols_recursively(c)
-            else:
-                symtab.resolve_symbols_recursively(node)
-        #
-        assert not symtab._local_var_syms
-    return symtab
 
 
 CanonType = str
 NO_TYPE = "typeless"
 
-_NODES_WITH_VALUES = (
-    # cwast.StmtWhen,  # value(node): bool indicating if condition is true
-    cwast.TypeArray,  # value(node): uint indicating dim of array
-)
-
-_ROOT_NODES_FOR_TYPE = (
-    cwast.DefEnum,
-    cwast.DefRec,
-    cwast.TypeArray,
-    cwast.TypeSlice,
-    cwast.TypeBase,
-    cwast.TypeSum,
-    cwast.TypePtr,
-    cwast.TypeFun,
-    cwast.DefType,  # must be wrapped=true
-)
-
-_NODES_RELATED_TO_TYPES = _ROOT_NODES_FOR_TYPE + (
-    cwast.Id,
-    cwast.FunParam,  # type(node) = node.type
-    cwast.RecField,  # type(node) = node.type
-    cwast.EnumEntry,  # type(node) = base-type(enum)
-    cwast.DefFun,     # odd-ball (but better here than in values)
-    # cwast.DefType,
-    # if wrapped:
-    #   type(node) = wrapped(self)
-    # else:    #   type(node) = node.type
-)
-
-
-_VALUE_NODES = (
-    cwast.ValBool,   # type(node) = bool
-    cwast.ValVoid,   # type(node) = void
-    cwast.ValUndef,  # type(node) = undef(target_kind)
-
-    cwast.ValNum,    # type(node) = target_kind OR kind(node.value)
-    cwast.ValRec,    # type(node) = rec(node.name)
-    cwast.ValArray,  # type(node) = array(node.type, node.size)
-    cwast.ValRec,    # type(node) = rec(node.name)
-)
-
-_TYPED_NODES = (
-    cwast.StmtFor,  # type(node) = node.type
-    cwast.StmtAssignment,  cwast.StmtAssignment2,
-    # if necessary: type-target(node.expr) = type(node.lhs)
-    #
-    cwast.DefVar, cwast.DefConst,
-    # if node.type == auto:
-    #  type=target(node) = type(node.initial)
-    # else:
-    #  type=target(node) = node.type
-
-    #
-    cwast.ExprCastAs,  # type(node) = node.type
-    cwast.ExprBitCastAs,  # type(node) = node.type
-    cwast.ExprOffsetof,   # type(node) = uint
-    #
-    cwast.StmtReturn,   # type(node) = fun-result
-
-)
-
 
 class TypeContext:
     def __init__(self, symtab, mod_name):
-        self.symtab: SymTab = symtab
+        self.symtab: symtab.SymTab = symtab
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
         self._target_type: List[CanonType] = [NO_TYPE]
@@ -276,6 +35,15 @@ class TypeContext:
 
     def get_target_type(self):
         return self._target_type[-1]
+
+
+TYPE_CORPUS_NODES = (cwast.DefType,  # must be `wrapped`
+                     cwast.DefRec,  # uses the orginal node
+                     cwast.DefEnum,  # uses the orginal node
+                     cwast.TypeBase, cwast.TypePtr, cwast.TypeArray,
+                     cwast.TypeSlice, cwast.TypeFun,
+                     cwast.TypeSum,
+                     )
 
 
 class TypeCorpus:
@@ -301,6 +69,8 @@ class TypeCorpus:
             self.insert_base_type(kind)
 
     def _insert(self, name, node):
+        assert isinstance(
+            node, TYPE_CORPUS_NODES), f"not a corpus node: {node}"
         assert name not in self.corpus
         self.corpus[name] = node
         assert id(node) not in self._links
@@ -425,6 +195,7 @@ class TypeCorpus:
         self._insert(name, node)
         return name
 
+
 def ComputeStringSize(noesc: bool, string: str) -> int:
     assert string[0] == '"'
     assert string[-1] == '"'
@@ -443,6 +214,29 @@ def ComputeStringSize(noesc: bool, string: str) -> int:
         elif c == "\\":
             esc = True
     return 8
+
+
+
+TYPED_ANNOTATED_NODES = TYPE_CORPUS_NODES + cwast.VALUE_NODES + (
+    cwast.FunParam,
+    cwast.RecField,
+    cwast.EnumEntry,
+    cwast.DefFun,
+    cwast.DefVar,
+    cwast.StmtFor,
+    cwast.DefConst,
+    #
+    cwast.Id,
+    #
+    cwast. ExprAddrOf, cwast.ExprDeref, cwast.ExprIndex,
+    cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
+    cwast.Expr1, cwast.Expr2, cwast.Expr3,
+    cwast.ExprUnwrap, cwast.ExprChop,
+    cwast.ExprLen, cwast.ExprSizeof,
+    cwast.ExprRange,
+    #
+)
+
 
 class TypeTab:
     """Type Table
@@ -464,8 +258,10 @@ class TypeTab:
         return int(node.number)
 
     def annotate(self, node, cstr: CanonType):
-        assert cstr, F"No valid type for {node}"
-        assert id(node) not in self.links
+        assert isinstance(
+            node, TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
+        assert cstr, f"No valid type for {node}"
+        assert id(node) not in self.links, f"duplicate annotation for {node}"
         self.links[id(node)] = cstr
         return cstr
 
@@ -657,7 +453,7 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.StmtExpr):
             self.typify_node(node.expr, ctx)
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         elif isinstance(node, cwast.ExprCall):
             cstr = self.typify_node(node.callee, ctx)
             params = self.corpus.get_children_types(cstr)
@@ -673,24 +469,25 @@ class TypeTab:
             ctx.push_target(cstr)
             self.typify_node(node.expr_ret, ctx)
             ctx.pop_target()
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         elif isinstance(node, cwast.StmtIf):
-            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL))
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL))
             self.typify_node(node.cond, ctx)
             ctx.pop_target()
             for c in node.body_f:
                 self.typify_node(c, ctx)
             for c in node.body_t:
                 self.typify_node(c, ctx)
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         elif isinstance(node, cwast.StmtBlock):
             for c in node.body:
                 self.typify_node(c, ctx)
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         elif isinstance(node, cwast.StmtBreak):
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         elif isinstance(node, cwast.StmtContinue):
-            return self.annotate(node, NO_TYPE)
+            return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
 
@@ -714,7 +511,7 @@ class ConstTab:
         return self.links[id(node)]
 
     def constify_value_node(self, node,  target_type: Optional[CanonType], mod_name,
-                            sym_tab: SymTab) -> CanonType:
+                            sym_tab: symtab.SymTab) -> CanonType:
         logger.info(f"CONSTFYING {node}")
         assert isinstance(node, _VALUE_NODES), f"unexpected node {node}"
         if isinstance(node, cwast.Id):
@@ -729,20 +526,7 @@ class ConstTab:
             self.links[id(node)] = node
 
 
-_TYPED_NODES = (
-    #
-    cwast.ValBool, cwast.ValNum,
-    cwast.ValUndef, cwast.ValVoid, cwast.FieldVal, cwast.ValArray,
-    cwast.ValArrayString, cwast.ValRec,
-    #
-    cwast.Id, cwast. ExprAddrOf, cwast.ExprDeref, cwast.ExprIndex,
-    cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
-    cwast.Expr1, cwast.Expr2, cwast.Expr3,
-    cwast.ExprUnwrap, cwast.ExprChop,
-    cwast.ExprLen, cwast.ExprSizeof)
-
-
-def ExtractTypeTab(asts: List, symtab: SymTab) -> TypeTab:
+def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -771,7 +555,7 @@ if __name__ == "__main__":
             asts.append(sexpr)
     except StopIteration:
         pass
-    symtab = ExtractSymTab(asts)
+    symtab = symtab.ExtractSymTab(asts)
     typetab = ExtractTypeTab(asts, symtab)
     for t in typetab.corpus.corpus:
         print(t)
