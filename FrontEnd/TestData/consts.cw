@@ -37,10 +37,16 @@
 (const c20 auto type_enum/e3)
 
 (const c30 auto (ValArray uint 30 [
-   (IndexVal 0 7) (IndexVal 10 9) (IndexVal 20 7)]))
+   (# "this is a comment with \" with quotes \t ")
+   (IndexVal 0 7) 
+   (IndexVal 10 9) 
+   (IndexVal 20 7)]))
 
 (const c31 auto (ValRec type_rec [
-   (FieldVal s1 7) (FieldVal s2 9) (FieldVal s3 7)]))
+   (# "this is a comment with \" with quotes \t ")
+   (FieldVal s1 7) 
+   (FieldVal s2 9) 
+   (FieldVal s3 7)]))
 
 (const c40 auto  (ExprIndex c30 0))
 

@@ -529,10 +529,13 @@ class TypeTab:
             t = self.typify_node(f.type, ctx)
             return self.annotate(node, t)
         elif isinstance(node, cwast.DefRec):
+            # allow recursive definitions referring back to rec inside
+            # the fields
+            cstr = self.corpus.insert_rec_type(node.name, node)
+            self.annotate(node, cstr)
             for f in node.fields:
                 self.typify_node(f, ctx)
-            cstr = self.corpus.insert_rec_type(node.name, node)
-            return self.annotate(node, cstr)
+            return cstr
         elif isinstance(node, cwast.EnumEntry):
             cstr = ctx.get_target_type()
             if not isinstance(node.value, cwast.Auto):
@@ -755,7 +758,9 @@ def ExtractTypeTab(asts: List, symtab: SymTab) -> TypeTab:
 
 
 if __name__ == "__main__":
-    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
     asts = []
     try:
         while True:

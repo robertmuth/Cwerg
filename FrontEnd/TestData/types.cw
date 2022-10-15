@@ -17,6 +17,12 @@
    (field u2 u64 666_u64)
 ])
 
+
+(rec pub linked_list [
+   (# "this is a comment with \" with quotes \t ")
+   (field s1 (TypeSum [void (ptr linked_list)]) void)
+])
+
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry s1 (ValNum 7))
