@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Translator from AST to Cwerg IR
+"""Type annotator for Cwerg AST
 
 """
 

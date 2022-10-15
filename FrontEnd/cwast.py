@@ -17,6 +17,22 @@ from typing import List, Dict, Set, Optional, Union, Any
 logger = logging.getLogger(__name__)
 
 ############################################################
+# The AST Nodes and the fields they contain follow these rules 
+#
+# All flields belong to one of these categories: 
+# * _ATOM_BOOL: bools 
+# * _ATOM_STR: strings
+# * _ATOM_INT: ints
+# * _ATOM_KIND: enums 
+# * _NODE_FIELD: a single AST Node
+# * _LIST_FIELDS: zero or more AST Nodes
+#
+# The order of fields in the Node is:
+#
+# * fields from _ATOM_BOOL which are treated like flags
+# * fields from other categories
+# If fields are in _OPTIONAL_FIELDS they must come last
+############################################################
 # Comment
 ############################################################
 
@@ -407,7 +423,7 @@ class ExprChop:
     ALIAS = "chop"
     container: ExprNode  # must be of type slice or array
     start: Union[ExprNode, "Auto"]  # must be of int type
-    length: Union[ExprNode, "Auto"]  # must be of int type
+    width: Union[ExprNode, "Auto"]  # must be of int type
 
     def children(self): return [self.container, self.start, self.length]
 
@@ -617,7 +633,7 @@ class StmtExpr:
 class StmtAssert:
     ALIAS = "assert"
     cond: ExprNode  # must be of type bool
-    string: str
+    string: str     # should this be an expression?
 
     def children(self): return [self.cond]
 
@@ -835,7 +851,6 @@ _ATOM_STR = {"name", "string", "field", "label", "target"}
 # BOOLs are optional and must come first in a dataclass
 _ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini",
               "noesc"}
-_ATOM_FIELDS = _ATOM_BOOL | _ATOM_INT | _ATOM_STR
 
 # Fields containing an enum. Mapped to the enum class
 _ATOM_KIND = {
@@ -860,17 +875,17 @@ _NODE_FIELDS = {"type", "result",
                 "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
                 "expr_ret",  "range",
                 "container",
-                "callee", "index", "length", "start", "end", "step",
+                "callee", "index", "length", "start", "end", "step", "width",
                 "value", "lhs", "rhs", "initial"}
 
 
 # must come last in a dataclass
 _OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
+    "width":  Auto(),
     "start":   Auto(),
     "step":   Auto(),
     "target": "",
-    "result": TypeBase(BASE_TYPE_KIND.VOID)
 }
 
 # Note: we rely on the matching being done greedily
@@ -904,18 +919,26 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
             if obj.ALIAS is not None:
                 _NODES_ALIASES[obj.ALIAS] = obj
 
+            flags = []
+            other = []
             for field, type in obj.__annotations__.items():
-                if field in _ATOM_FIELDS:
-                    pass
-                elif field in _ATOM_KIND:
-                    pass
+                if field in _ATOM_BOOL:
+                    assert not other, "bools must come first"
+                    flags.append(field)
+                elif field in _ATOM_STR or field in _ATOM_INT or  field in _ATOM_KIND:
+                    other.append(field)
                 elif field in _NODE_FIELDS:
-                    pass
+                    other.append(field)
                 elif field in _LIST_FIELDS:
-                    pass
+                    other.append(field)
                 else:
                     assert False, f"unexpected field {obj.__name__} {field}"
-
+            seen_optional = False
+            for x in other:
+                if x in _OPTIONAL_FIELDS:
+                    seen_optional = True
+                else:
+                    assert not seen_optional, f"in {obj.__name__} optional fields must come last: {other}: {x}"
 
 def DumpFields(node_class):
     for tag, val in node_class.__annotations__.items():
@@ -985,9 +1008,11 @@ def ExpandShortHand(field, t) -> Any:
 
 def ReadPiece(field, token, stream) -> Any:
     """Read a single component of an SExpr including lists."""
-    if field in _ATOM_FIELDS:
-        if field in _ATOM_BOOL:
-            return bool(token)
+    if field in _ATOM_BOOL:
+        return bool(token)
+    elif field in _ATOM_STR:
+        return token
+    elif field in _ATOM_INT:
         return token
     elif field in _ATOM_KIND:
         enum = _ATOM_KIND.get(field)
