@@ -59,7 +59,7 @@ class SymTab:
             return None
         node = self._enum_syms.get(components[0])
         assert isinstance(node, cwast.DefEnum)
-        for item in node.children():
+        for item in node.items:
             if isinstance(item, cwast.EnumEntry) and item.name == components[1]:
                 return item
         return None
@@ -69,7 +69,7 @@ class SymTab:
             return None
         node = self._enum_syms.get(components[0])
         assert isinstance(node, cwast.DefRec)
-        for item in node.children():
+        for item in node.fields:
             if isinstance(item, cwast.RecField) and item.name == components[1]:
                 return item
         return None
@@ -126,9 +126,14 @@ class SymTab:
                 for p in node.params:
                     self._add_local_symbol(p)
 
-        # recurse
-        for c in node.children():
-            self.resolve_symbols_recursively(c)
+        # recurse using a little bit of introspection
+        for c in node.__class__.FIELDS:
+            print(node.__class__.__name__, c)
+            if c in cwast.NODE_FIELDS:
+                self.resolve_symbols_recursively(getattr(node, c))
+            elif c in cwast.LIST_FIELDS:
+                for cc in getattr(node, c):
+                    self.resolve_symbols_recursively(cc)
 
         if isinstance(node, cwast.SCOPING_NODES):
             self._pop_scope()
@@ -169,21 +174,21 @@ def ExtractSymTab(asts: List) -> SymTab:
         logger.info("Processing %s", mod.name)
         MODULES[mod.name] = mod
         # pass 1: get all the top level symbols
-        for node in mod.children():
+        for node in mod.body:
             if isinstance(node, cwast.Comment):
                 pass
             else:
                 symtab.add_top_level_sym(node)
 
         # pass 2:
-        for node in mod.children():
+        for node in mod.body:
             if isinstance(node, cwast.Comment):
                 continue
             logger.info("ExtractSymbolTable %s", node.name)
             if isinstance(node, cwast.DefVar):
                 # we already registered the var in the previous step
-                for c in node.children():
-                    symtab.resolve_symbols_recursively(c)
+                symtab.resolve_symbols_recursively(node.type)
+                symtab.resolve_symbols_recursively(node.initial)
             else:
                 symtab.resolve_symbols_recursively(node)
         #

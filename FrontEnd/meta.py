@@ -355,7 +355,7 @@ class TypeTab:
             # are not TypeSum themselves on the canonical side
             pieces = [self.typify_node(f, ctx) for f in node.types]
             return self.annotate(node, self.corpus.insert_sum_type(pieces))
-        if isinstance(node, cwast.ValBool):
+        if isinstance(node, (cwast.ValTrue,cwast.ValFalse)):
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.TypeBase(cwast.BASE_TYPE_KIND.BOOL)))
         elif isinstance(node, cwast.ValVoid):
@@ -535,8 +535,8 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     typetab = TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
     for m in asts:
         ctx = TypeContext(symtab, m.name)
-        for node in m.children():
-            # if isinstance(node, _NODES_RELATED_TO_TYPES):
+        assert isinstance(m, cwast.DefMod)
+        for node in m.body:
             typetab.typify_node(node, ctx)
     return typetab
 

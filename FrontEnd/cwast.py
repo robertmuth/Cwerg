@@ -17,21 +17,21 @@ from typing import List, Dict, Set, Optional, Union, Any
 logger = logging.getLogger(__name__)
 
 ############################################################
-# The AST Nodes and the fields they contain follow these rules 
+# The AST Nodes and the fields they contain follow these rules
 #
-# All flields belong to one of these categories: 
-# * _ATOM_BOOL: bools 
-# * _ATOM_STR: strings
-# * _ATOM_INT: ints
-# * _ATOM_KIND: enums 
-# * _NODE_FIELD: a single AST Node
-# * _LIST_FIELDS: zero or more AST Nodes
+# All flields belong to one of these categories:
+# * FLAG_FIELDS: bools
+# * STR_FIELDS: strings
+# * INT_FIELDS: ints
+# * KIND_FIELDS: enums
+# * NODE_FIELD: a single AST Node
+# * LIST_FIELDS: zero or more AST Nodes
 #
 # The order of fields in the Node is:
 #
-# * fields from _ATOM_BOOL which are treated like flags
+# * fields from FLAG_FIELDS
 # * fields from other categories
-# If fields are in _OPTIONAL_FIELDS they must come last
+# If fields are in OPTIONAL_FIELDS they must come last
 ############################################################
 # Comment
 ############################################################
@@ -41,8 +41,6 @@ logger = logging.getLogger(__name__)
 class Comment:
     ALIAS = "#"
     string: str
-
-    def children(self): return []
 
     def __str__(self):
         return "# " + self.string
@@ -67,8 +65,6 @@ class Id:
     name: str          # last component of mod1::mod2:id
     # id_kind = ID_KIND  # may be filled in later
 
-    def children(self): return []
-
     def __str__(self):
         path = '/'.join(self.path) + "/" if self.path else ""
         return f"{path}{self.name}"
@@ -79,8 +75,6 @@ class Auto:
 
     Note: it is not part of the ValNode Union or TypeUnion"""
     ALIAS = None
-
-    def children(self): return []
 
     def __str__(self):
         return "AUTO"
@@ -135,8 +129,6 @@ class TypeBase:
     ALIAS = None
     base_type_kind: BASE_TYPE_KIND
 
-    def children(self): return []
-
     def __str__(self):
         return self.base_type_kind.name
 
@@ -146,16 +138,12 @@ class TypeSum:
     ALIAS = "|"
     types: List[Union[TypeNode, Comment]]
 
-    def children(self): return self.types
-
 
 @dataclasses.dataclass()
 class TypePtr:
     ALIAS = "ptr"
     mut: bool   # pointee is mutable
     type: TypeNode
-
-    def children(self): return [self.type]
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -168,16 +156,12 @@ class TypeSlice:
     mut: bool  # slice is mutable
     type: TypeNode
 
-    def children(self): return [self.type]
-
 
 @dataclasses.dataclass()
 class TypeArray:
     ALIAS = None
     size: "ExprNode"      # must be const and unsigned
     type: TypeNode
-
-    def children(self): return [self.size, self.type]
 
 
 @dataclasses.dataclass()
@@ -186,34 +170,35 @@ class TypeFun:
     params: List[FunParam]
     result: TypeNode
 
-    def children(self): return self.params + [self.result]
-
 
 ############################################################
 # Val Nodes
 ############################################################
-ValNode = Union["ValBool", "ValNum", "ValUndef",
+ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
                 "ValVoid", "ValArray", "ValArrayString",
                 "ValRec"]
 
 
 @dataclasses.dataclass()
-class ValBool:
+class ValTrue:
     ALIAS = None
-    value: bool
-
-    def children(self): return []
 
     def __str__(self):
-        return "TRUE" if self.value else "FALSE"
+        return "TRUE"
+
+
+@dataclasses.dataclass()
+class ValFalse:
+    ALIAS = None
+
+    def __str__(self):
+        return "FALSE"
 
 
 @dataclasses.dataclass()
 class ValNum:
     ALIAS = None
     number: str   # maybe a (unicode) character as well
-
-    def children(self): return []
 
     def __str__(self): return self.number
 
@@ -222,16 +207,12 @@ class ValNum:
 class ValUndef:
     ALIAS = None
 
-    def children(self): return []
-
     def __str__(self): return f"UNDEF"
 
 
 @dataclasses.dataclass()
 class ValVoid:
     ALIAS = None
-
-    def children(self): return []
 
     def __str__(self): return "VOID"
 
@@ -243,8 +224,6 @@ class IndexVal:
     index: str
     value: "ExprNode"
 
-    def children(self): return [self.value]
-
 
 @dataclasses.dataclass()
 class FieldVal:
@@ -252,8 +231,6 @@ class FieldVal:
     ALIAS = None
     field: str
     value: "ExprNode"
-
-    def children(self): return [self.value]
 
 
 @dataclasses.dataclass()
@@ -263,8 +240,6 @@ class ValArray:
     size: Union["ExprNode", Auto]  # must be constant
     values: List[IndexVal]
 
-    def children(self): return [self.type, self.size] + self.values
-
 
 @dataclasses.dataclass()
 class ValArrayString:
@@ -272,8 +247,6 @@ class ValArrayString:
     noesc: bool
     # type: u8, size: strlen(value)
     string: str
-
-    def children(self): return []
 
     def __str__(self): return f"STRING({self.string})"
 
@@ -283,8 +256,6 @@ class ValRec:
     ALIAS = None
     type: TypeNode
     values: List[Union[FieldVal, Comment]]
-
-    def children(self): return [self.type] + self.values
 
 
 ############################################################
@@ -302,15 +273,11 @@ class ExprDeref:
     ALIAS = "^"
     expr: ExprNode  # must be of type AddrOf
 
-    def children(self): return [self.expr]
-
 
 @dataclasses.dataclass()
 class ExprAddrOf:
     ALIAS = "&"
     expr: ExprNode
-
-    def children(self): return [self.expr]
 
 
 @dataclasses.dataclass()
@@ -319,8 +286,6 @@ class ExprCall:
     callee: ExprNode  # must of type fun
     args: List[ExprNode]
 
-    def children(self): return [self.callee] + self.args
-
 
 @dataclasses.dataclass()
 class ExprParen:
@@ -328,16 +293,12 @@ class ExprParen:
     ALIAS = None
     expr: ExprNode
 
-    def children(self): return [self.expr]
-
 
 @dataclasses.dataclass()
 class ExprField:
     ALIAS = "."
     container: ExprNode  # must be of type rec
     field: str
-
-    def children(self): return [self.container]
 
 
 @enum.unique
@@ -353,8 +314,6 @@ class Expr1:
     ALIAS = None
     unary_expr_kind: UNARY_EXPR_KIND
     expr: ExprNode
-
-    def children(self): return [self.expr]
 
 
 @enum.unique
@@ -391,8 +350,6 @@ class Expr2:
     expr1: ExprNode
     expr2: ExprNode
 
-    def children(self): return [self.expr1, self.expr2]
-
     def __str__(self):
         return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
 
@@ -404,7 +361,6 @@ class Expr3:
     expr_t: ExprNode
     expr_f: ExprNode
 
-    def children(self): return [self.expr_f, self.expr_t]
 
 # Array/Slice Expressions
 
@@ -415,7 +371,6 @@ class ExprIndex:
     container: ExprNode  # must be of type slice or array
     expr_index: ExprNode  # must be of int type
 
-    def children(self): return [self.container, self.expr_index]
 
 
 @dataclasses.dataclass()
@@ -662,8 +617,6 @@ class StmtAssignment2:
     lhs: ExprLHS
     expr: ExprNode
 
-    def children(self): return [self.lhs, self.expr]
-
 
 @dataclasses.dataclass()
 class StmtAssignment:
@@ -671,8 +624,6 @@ class StmtAssignment:
     assignment_kind: ASSIGNMENT_KIND
     lhs: ExprLHS
     expr: ExprNode
-
-    def children(self): return [self.lhs, self.expr]
 
 
 ############################################################
@@ -688,8 +639,6 @@ class RecField:  #
     type: TypeNode
     initial: "ExprNode"    # must be const
 
-    def children(self): return [self.type, self.initial]
-
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial}"
 
@@ -700,8 +649,6 @@ class DefRec:
     pub:  bool
     name: str
     fields: List[Union[RecField, Comment]]
-
-    def children(self): return self.fields
 
     def __str__(self):
         fields = '\n'.join(str(s) for s in self.fields)
@@ -715,8 +662,6 @@ class EnumEntry:
     name: str
     value: Union["ValNum", "Auto"]
 
-    def children(self): return [self.value]
-
     def __str__(self):
         return f"{self.name}: {self.value}"
 
@@ -728,8 +673,6 @@ class DefEnum:
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: List[Union[EnumEntry, Comment]]
-
-    def children(self): return self.items
 
     def __str__(self):
         items = '\n'.join(str(s) for s in self.items)
@@ -745,8 +688,6 @@ class DefType:
     name: str
     type: TypeNode
 
-    def children(self): return [self.type]
-
     def __str__(self):
         return f"TYPE {self.name} = {self.type}"
 
@@ -759,8 +700,6 @@ class DefConst:
     name: str
     type: Union[TypeNode, Auto]
     value: ValNode
-
-    def children(self): return [self.type, self.value]
 
     def __str__(self):
         return f"CONST {self.name}: {self.type} = {self.value}"
@@ -775,8 +714,6 @@ class DefVar:
     name: str
     type: Union[TypeNode, Auto]
     initial: ExprNode
-
-    def children(self): return [self.type, self.initial]
 
     def __str__(self):
         return f"LET {self.name}: {self.type} = {self.initial}"
@@ -794,8 +731,6 @@ class DefFun:
     params: List[FunParam]
     result: TypeNode
     body: List[StmtNode]
-
-    def children(self): return self.params + [self.result] + self.body
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -818,8 +753,6 @@ class ModParam:
     name: str
     mod_param_kind: MOD_PARAM_KIND
 
-    def children(self): return []
-
     def __str__(self):
         return f"{self.name}: {self.mod_param_kind.name}"
 
@@ -833,8 +766,6 @@ class DefMod:
     params: List[ModParam]
     body: List[StmtNode]
 
-    def children(self): return self.params + self.body
-
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
         params = ', '.join(str(p) for p in self.params)
@@ -846,14 +777,14 @@ class DefMod:
 ############################################################
 # Partitioning of all the field names in the node classes above.
 # Atom fields do NOT contain other node instances
-_ATOM_INT = {"number"}
-_ATOM_STR = {"name", "string", "field", "label", "target"}
+INT_FIELDS = {"number"}
+STR_FIELDS = {"name", "string", "field", "label", "target", "index"}
 # BOOLs are optional and must come first in a dataclass
-_ATOM_BOOL = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini",
-              "noesc"}
+FLAG_FIELDS = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini",
+               "noesc"}
 
 # Fields containing an enum. Mapped to the enum class
-_ATOM_KIND = {
+KIND_FIELDS = {
     "unary_expr_kind": UNARY_EXPR_KIND,
     "binary_expr_kind": BINARY_EXPR_KIND,
     "base_type_kind": BASE_TYPE_KIND,
@@ -861,26 +792,33 @@ _ATOM_KIND = {
     "assignment_kind": ASSIGNMENT_KIND,
 }
 
-# contain list of nodes
-_LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
-                "values",
-                #
-                "body", "body_t", "body_f"}
+# Fields contains list of nodes
+LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
+               "values",
+               #
+               "body", "body_t", "body_f"}
 
-# contain one nodes
-_NODE_FIELDS = {"type", "result",
-                "size",
-                "expr_index",
-                # expr
-                "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
-                "expr_ret",  "range",
-                "container",
-                "callee", "index", "length", "start", "end", "step", "width",
-                "value", "lhs", "rhs", "initial"}
+# Fields containing one node
+NODE_FIELDS = {"type", "result",
+               "size",
+               "expr_index",
+               # expr
+               "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
+               "expr_ret",  "range",
+               "container",
+               "callee", "length", "start", "end", "step", "width",
+               "value", "lhs", "rhs", "initial"}
 
+
+ALL_FIELDS = FLAG_FIELDS | INT_FIELDS | STR_FIELDS | KIND_FIELDS.keys(
+) | NODE_FIELDS | LIST_FIELDS
+
+# check disjointness
+assert len(ALL_FIELDS) == (len(FLAG_FIELDS) + len(STR_FIELDS) + len(INT_FIELDS) + len(KIND_FIELDS) +
+                           len(NODE_FIELDS) + len(LIST_FIELDS))
 
 # must come last in a dataclass
-_OPTIONAL_FIELDS = {
+OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
     "width":  Auto(),
     "start":   Auto(),
@@ -922,23 +860,25 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
             flags = []
             other = []
             for field, type in obj.__annotations__.items():
-                if field in _ATOM_BOOL:
+                if field in FLAG_FIELDS:
                     assert not other, "bools must come first"
                     flags.append(field)
-                elif field in _ATOM_STR or field in _ATOM_INT or  field in _ATOM_KIND:
+                elif field in STR_FIELDS or field in INT_FIELDS or field in KIND_FIELDS:
                     other.append(field)
-                elif field in _NODE_FIELDS:
+                elif field in NODE_FIELDS:
                     other.append(field)
-                elif field in _LIST_FIELDS:
+                elif field in LIST_FIELDS:
                     other.append(field)
                 else:
                     assert False, f"unexpected field {obj.__name__} {field}"
             seen_optional = False
             for x in other:
-                if x in _OPTIONAL_FIELDS:
+                if x in OPTIONAL_FIELDS:
                     seen_optional = True
                 else:
                     assert not seen_optional, f"in {obj.__name__} optional fields must come last: {other}: {x}"
+            obj.FIELDS = flags + other
+
 
 def DumpFields(node_class):
     for tag, val in node_class.__annotations__.items():
@@ -978,8 +918,8 @@ _SHORT_HAND_NODES = {
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
 
     "undef": ValUndef(),
-    "false": ValBool(False),
-    "true": ValBool(True),
+    "false": ValTrue(),
+    "true": ValFalse(),
 }
 
 for t in _SCALAR_TYPES:
@@ -1008,21 +948,21 @@ def ExpandShortHand(field, t) -> Any:
 
 def ReadPiece(field, token, stream) -> Any:
     """Read a single component of an SExpr including lists."""
-    if field in _ATOM_BOOL:
+    if field in FLAG_FIELDS:
         return bool(token)
-    elif field in _ATOM_STR:
+    elif field in STR_FIELDS:
         return token
-    elif field in _ATOM_INT:
+    elif field in INT_FIELDS:
         return token
-    elif field in _ATOM_KIND:
-        enum = _ATOM_KIND.get(field)
+    elif field in KIND_FIELDS:
+        enum = KIND_FIELDS.get(field)
         assert enum is not None, f"{field} {token}"
         return enum[token]
-    elif field in _NODE_FIELDS:
+    elif field in NODE_FIELDS:
         if token == "(":
             return ReadSExpr(stream)
         return ExpandShortHand(field, token)
-    elif field in _LIST_FIELDS:
+    elif field in LIST_FIELDS:
         assert token == "[", f"expected list start for: {field} {token}"
         out = []
         while True:
@@ -1083,9 +1023,9 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
-            assert field in _OPTIONAL_FIELDS, f"unknown optional: {field}"
-            pieces.append(_OPTIONAL_FIELDS[field])
-        elif field in _ATOM_BOOL:
+            assert field in OPTIONAL_FIELDS, f"unknown optional: {field}"
+            pieces.append(OPTIONAL_FIELDS[field])
+        elif field in FLAG_FIELDS:
             if token == field:
                 pieces.append(True)
                 token = next(stream)
@@ -1118,7 +1058,7 @@ def ReadSExpr(stream) -> Any:
 SCOPING_NODES = (StmtBlock, StmtWhile, StmtFor, StmtDefer,
                  StmtIf, DefFun)
 
-VALUE_NODES = (ValBool, ValNum, IndexVal,
+VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
                ValArrayString, ValRec)
 
