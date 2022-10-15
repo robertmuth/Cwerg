@@ -1090,7 +1090,8 @@ def ReadSExpr(stream) -> Any:
 
 if __name__ == "__main__":
     
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
+    logger.setLevel(logging.INFO)
     stream = ReadTokens(sys.stdin)
     try:
         while True:

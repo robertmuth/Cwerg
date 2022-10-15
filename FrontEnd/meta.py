@@ -758,8 +758,7 @@ def ExtractTypeTab(asts: List, symtab: SymTab) -> TypeTab:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger().setLevel(logging.INFO)
+    logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     asts = []
     try:
