@@ -13,33 +13,52 @@ from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
+def MaybeSimplifyLeafNode(node) -> Optional[str]:
+    if isinstance(node, cwast.TypeBase):
+        return node.base_type_kind.name.lower()
+    elif isinstance(node, cwast.ValUndef):
+        return "undef"
+    elif isinstance(node, cwast.Auto):
+        return "auto"
+    elif isinstance(node, cwast.Id):
+        return node.name
+    elif isinstance(node, cwast.ValTrue):
+        return "true"
+    elif isinstance(node, cwast.ValFalse):
+        return "false"
+    elif isinstance(node, cwast.ValNum):
+        return node.number    
+    elif isinstance(node, cwast.ValVoid):
+        return "void"
+    elif isinstance(node, cwast.ValArrayString):
+        return node.string
+    else:
+        return None
+
+
+def GetNodeTypeAndFields(node):
+    cls = node.__class__
+    fields = cls.FIELDS[:]
+    if isinstance(node, cwast.Expr2):
+        fields.pop(0)
+        return cwast.BINOP_SHORTCUT_INV[node.binary_expr_kind], fields
+    elif cls.ALIAS:
+        return cls.ALIAS, fields
+    else:
+        return cls.__name__, fields
 
 def _RenderRecursively(node, out, indent: str):
     line = out[-1]
-    if isinstance(node, cwast.TypeBase):
-        line.append(node.base_type_kind.name.lower())
+    abbrev = MaybeSimplifyLeafNode(node)
+    if abbrev:
+        line.append(abbrev)
         return
-    elif isinstance(node, cwast.ValUndef):
-        line.append("undef")
-        return
-    elif isinstance(node, cwast.Auto):
-        line.append("auto")
-        return
-    elif isinstance(node, cwast.Id):
-        line.append(node.name)
-        return 
-    elif isinstance(node, cwast.ValTrue):
-        line.append("true")
-        return 
-    elif isinstance(node, cwast.ValFalse):
-        line.append("true")
-        return 
-    elif isinstance(node, cwast.ValNum):
-        line.append(node.number)
-        return 
 
-    line.append("(" + node.__class__.__name__)
-    for field in node.__class__.FIELDS:
+    
+    node_name, fields = GetNodeTypeAndFields(node) 
+    line.append("(" + node_name)
+
+    for field in fields:
         line = out[-1]
         val = getattr(node, field)
         if field in cwast.FLAG_FIELDS:

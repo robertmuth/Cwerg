@@ -22,7 +22,7 @@
 ])
 
 
-(const c0 void (ValVoid))
+(const c0 void void)
 
 (const  c1 auto (ValNum 7_u32)) 
 
@@ -30,7 +30,7 @@
 
 (const  c3 auto (ValNum 7.0_r32)) 
 
-(const pub c4 auto (ValArrayString "xxxxxx"))
+(const pub c4 auto "xxxxxx")
 
 (const c10 auto c2)
 

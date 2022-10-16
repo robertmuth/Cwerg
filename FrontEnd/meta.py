@@ -37,15 +37,6 @@ class TypeContext:
         return self._target_type[-1]
 
 
-TYPE_CORPUS_NODES = (cwast.DefType,  # must be `wrapped`
-                     cwast.DefRec,  # uses the orginal node
-                     cwast.DefEnum,  # uses the orginal node
-                     cwast.TypeBase, cwast.TypePtr, cwast.TypeArray,
-                     cwast.TypeSlice, cwast.TypeFun,
-                     cwast.TypeSum,
-                     )
-
-
 class TypeCorpus:
     """The type corpus uniquifies types
 
@@ -70,7 +61,7 @@ class TypeCorpus:
 
     def _insert(self, name, node):
         assert isinstance(
-            node, TYPE_CORPUS_NODES), f"not a corpus node: {node}"
+            node, cwast.TYPE_CORPUS_NODES), f"not a corpus node: {node}"
         assert name not in self.corpus
         self.corpus[name] = node
         assert id(node) not in self._links
@@ -216,28 +207,6 @@ def ComputeStringSize(noesc: bool, string: str) -> int:
     return 8
 
 
-
-TYPED_ANNOTATED_NODES = TYPE_CORPUS_NODES + cwast.VALUE_NODES + (
-    cwast.FunParam,
-    cwast.RecField,
-    cwast.EnumEntry,
-    cwast.DefFun,
-    cwast.DefVar,
-    cwast.StmtFor,
-    cwast.DefConst,
-    #
-    cwast.Id,
-    #
-    cwast. ExprAddrOf, cwast.ExprDeref, cwast.ExprIndex,
-    cwast.ExprField, cwast.ExprCall, cwast.ExprParen,
-    cwast.Expr1, cwast.Expr2, cwast.Expr3,
-    cwast.ExprUnwrap, cwast.ExprChop,
-    cwast.ExprLen, cwast.ExprSizeof,
-    cwast.ExprRange,
-    #
-)
-
-
 class TypeTab:
     """Type Table
 
@@ -259,7 +228,7 @@ class TypeTab:
 
     def annotate(self, node, cstr: CanonType):
         assert isinstance(
-            node, TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
+            node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
         assert id(node) not in self.links, f"duplicate annotation for {node}"
         self.links[id(node)] = cstr

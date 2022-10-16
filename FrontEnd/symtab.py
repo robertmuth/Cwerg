@@ -21,10 +21,6 @@ class Unresolved:
 
 MODULES = {}
 
-NODES_DEFINING_LOCAL_SYMBOLS = (cwast.DefVar, cwast.StmtFor, cwast.FunParam)
-NODES_DEFINING_GLOBAL_SYMBOLS = (cwast.DefConst, cwast.DefFun, cwast.DefMod, cwast.DefType,
-                                 cwast.DefVar, cwast.EnumEntry, cwast.DefRec, cwast.DefEnum)
-
 
 class SymTab:
 
@@ -49,7 +45,7 @@ class SymTab:
         self._local_var_syms.pop(-1)
 
     def _add_local_symbol(self, node):
-        if isinstance(node, NODES_DEFINING_LOCAL_SYMBOLS):
+        if isinstance(node, cwast.LOCAL_SYM_DEF_NODES):
             self._local_var_syms[-1][node.name] = node
         else:
             assert False, f"unexpected node: {node}"
@@ -101,8 +97,8 @@ class SymTab:
     def _add_link(self, id_node: cwast.Id, def_node):
         assert isinstance(id_node, (cwast.Id))
         assert isinstance(def_node,
-                          NODES_DEFINING_GLOBAL_SYMBOLS +
-                          NODES_DEFINING_LOCAL_SYMBOLS), f"unpexpected node: {def_node}"
+                          cwast.GLOBAL_SYM_DEF_NODES +
+                          cwast.LOCAL_SYM_DEF_NODES), f"unpexpected node: {def_node}"
         self._links[id(id_node)] = def_node
 
     def resolve_symbols_recursively(self, node):
@@ -128,7 +124,6 @@ class SymTab:
 
         # recurse using a little bit of introspection
         for c in node.__class__.FIELDS:
-            print(node.__class__.__name__, c)
             if c in cwast.NODE_FIELDS:
                 self.resolve_symbols_recursively(getattr(node, c))
             elif c in cwast.LIST_FIELDS:

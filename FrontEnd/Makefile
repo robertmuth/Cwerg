@@ -8,8 +8,9 @@ TESTS = print_argv.cw types.cw consts.cw sexpr.cw
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 TESTS_META = $(TESTS:%.cw=$(DIR)/%.cw.meta)
+TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
-tests_py: $(TESTS_PARSE) $(TESTS_META)
+tests_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_PP)
 
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
@@ -22,6 +23,10 @@ $(DIR)/%.cw.meta: TestData/%.cw
 $(DIR)/%.cw.symtab: TestData/%.cw
 	@echo "[parse $@]"
 	./symtab.py < $<
+
+$(DIR)/%.cw.pp: TestData/%.cw
+	@echo "[parse $@]"
+	./pp.py < $<
 
 clean:
 	@rm -f $(DIR)/* 
