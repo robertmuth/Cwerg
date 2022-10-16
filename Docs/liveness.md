@@ -7,14 +7,14 @@ Liveness analysis of a `fun` is triggered as follows for Python
   liveness.FunComputeLivenessInfo(fun)
 ```
 
-This will make the following datastructures available:
+This will make the following datastructure available:
 ```
  bbl.live_out: Set[Reg]  # set of reg live at the end of the Bbl
 ```
 
-For C++ thins are only slightly more elaborate:
+For C++ things are only slightly more elaborate:
 ```  
-FunNumberReg(fun);  // create an injectivce mapping int <-> Reg
+FunNumberReg(fun);  // create an injective mapping int <-> Reg
 FunComputeLivenessInfo(fun);  // compute the actual liveness information
 ```
 
@@ -25,6 +25,11 @@ bv = BblLiveOut(Bbl bbl)  // a BitVec that can be queried like so:
 bv.GetBit(RegNo(reg));
 ```
 
-Note, we only save the liveness information at the end of the `bbl`.
-To use liveness informtation at the `ins` level, iterate backwards
+Usage
+
+We only save the liveness information at the end of the `bbl`.
+To use liveness information at the `ins` level, iterate backwards
 through the `ins` in the `bbl` and update the livenss info along the way.
+
+
+Liveness is primarily used to compute live ranges.

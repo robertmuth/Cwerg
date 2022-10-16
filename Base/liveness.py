@@ -1,5 +1,6 @@
 """This file contains code for Register Liveness analysis and
-optimization depending on it, e.g. useless code removal"""
+
+the LiveRange computation using it"""
 
 import dataclasses
 from typing import List, Tuple, Set, Dict
@@ -14,8 +15,8 @@ from Base import opcode_tab as o
 class Liveness:
     """Liveness summary for Bbl
 
-    Only live_out is used for optimizations. live_in, live_def, live_use
-    are used  only during the analysis phase.
+    Only `live_out` is persisted for the use by optimizations. 
+    `live_in`, `live_def`, `live_use` are used  only during the analysis phase.
     """
 
     live_in: Set[ir.Reg] = dataclasses.field(default_factory=set)
@@ -223,20 +224,20 @@ class LiveRangeFlag(enum.Flag):
 
 
 @dataclasses.dataclass()
-class LiveRange:
-    """Represents and intra Bbl live-range
+class LiveRange: 
+    """Represents and intra Bbl live-range (LR)
 
     This is pretty standard stuff except for LRs with is_use_lr() == True
     Those are fake LiveRanges to mark uses of registers - not necessarily at
     at the end of a LiveRange. These are useful for spilling.
     """
-    def_pos: int
-    last_use_pos: int
-    reg: ir.Reg  # contains a proper register
+    def_pos: int  # start of the LR (each definition starts a LR)
+    last_use_pos: int   # end of the LR
+    reg: ir.Reg  # IR register
     num_uses: int
     uses: List["LiveRange"] = dataclasses.field(default_factory=list)
     flags: LiveRangeFlag = LiveRangeFlag(0)
-    cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID
+    cpu_reg: ir.CpuReg = ir.CPU_REG_INVALID  # CPU register after allocation
 
     def is_cross_bbl(self):
         return self.last_use_pos is AFTER_BBL or self.def_pos is BEFORE_BBL
@@ -253,6 +254,10 @@ class LiveRange:
                 (other.def_pos, other.last_use_pos))
 
     def __repr__(self):
+        """Generate a textual representation of LR
+        
+        This can be parsed with `ParseLiveRanges()`
+        """
         def render_pos(pos) -> str:
             if pos == BEFORE_BBL: return "BB"
             if pos == AFTER_BBL: return "AB"
@@ -264,9 +269,9 @@ class LiveRange:
             flags_str = f" {' '.join(f.name for f in LiveRangeFlag if f in self.flags)}"
 
         if self.is_use_lr():
-            # commented to make output compatible with c++ implementation
             starts = ",".join([f"{lr.reg.name}:{lr.def_pos}" for lr in self.uses])
             extra_str = f" uses:{len(self.uses)} {starts}"
+            # commented out to make output compatible with c++ implementation
             # extra_str = f" uses:{len(self.uses)}"
         else:
             extra_str = f" def:{self.reg.name}:{self.reg.kind.name}"
@@ -278,7 +283,7 @@ class LiveRange:
 
 
 def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[LiveRange]:
-    """ LiveRanges are use to do register allocation
+    """ Compute LiveRanges for one BBL (e.g. for use with register allocation)
 
     Note: function call handling is quite adhoc and likely has bugs.
     The output contains the following special LiveRanges
@@ -389,6 +394,11 @@ def _ParsePos(s: str) -> int:
 
 
 def ParseLiveRanges(fin, cpu_reg_map: Dict[str, ir.CpuReg]) -> List[LiveRange]:
+    """For testing it is nice to have a serialized form of the LRs for on BBL
+    
+    
+    This function parses the textual representation.
+    """
     out: List[LiveRange] = []
     for line in fin:
         token = line.split()
