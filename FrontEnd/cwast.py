@@ -38,12 +38,12 @@ logger = logging.getLogger(__name__)
 class NF(enum.Flag):
     """Node Flags"""
     NONE = 0
-    NEW_SCOPE = 1
-    TYPE_ANNOTATED = 2
-    TYPE_CORPUS = 3
-    CONTROL_FLOW = 4
-    GLOBAL_SYM_DEF = 5
-    LOCAL_SYM_DEF = 6
+    NEW_SCOPE = enum.auto()
+    TYPE_ANNOTATED = enum.auto()
+    TYPE_CORPUS = enum.auto()
+    CONTROL_FLOW = enum.auto()
+    GLOBAL_SYM_DEF = enum.auto()
+    LOCAL_SYM_DEF = enum.auto()
 
 ############################################################
 # Comment
@@ -52,6 +52,7 @@ class NF(enum.Flag):
 
 @dataclasses.dataclass()
 class Comment:
+    """Comment are proper AST nodes and can only occur in certain parts of the tree"""
     ALIAS = "#"
     FLAGS = NF.NONE
 
@@ -75,6 +76,10 @@ class ID_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Id:
+    """Ids represent types, variables, constants, functions, modules
+
+    They may contain a path component indicating which modules they reference.
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
     path: List[str]  # first components of mod1::mod2:id
@@ -89,7 +94,7 @@ class Id:
 class Auto:
     """placeholder for an unspecified value or type
 
-    Note: it is not part of the ValNode Union or TypeUnion"""
+    They are only allowed when explicitly mentioned"""
     ALIAS = None
     FLAGS = NF.NONE
 
@@ -106,7 +111,7 @@ TypeNode = Union["Id", "TypeBase",
 
 @dataclasses.dataclass()
 class FunParam:
-    """Function argument"""
+    """Function parameter"""
     ALIAS = "param"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
@@ -143,6 +148,7 @@ class BASE_TYPE_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class TypeBase:
+    """Base type (void, r32, r64, u8, u16, u32, u64, s8 ...)"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -154,6 +160,11 @@ class TypeBase:
 
 @dataclasses.dataclass()
 class TypeSum:
+    """Sum type
+
+    Sum types are tagged unions and "auto flattening", e.g.
+    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    """
     ALIAS = "|"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -162,6 +173,7 @@ class TypeSum:
 
 @dataclasses.dataclass()
 class TypePtr:
+    """Pointer type (mutable/non-mutable)"""
     ALIAS = "ptr"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -175,6 +187,11 @@ class TypePtr:
 
 @dataclasses.dataclass()
 class TypeSlice:
+    """A view of an array with compile time unknown dimentions
+
+    Internally, this is tuple of `start` and `length`
+    (mutable/non-mutable)
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -184,6 +201,9 @@ class TypeSlice:
 
 @dataclasses.dataclass()
 class TypeArray:
+    """An array of the given `size` 
+
+    which must be evaluatable as a compile time constant"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -193,6 +213,10 @@ class TypeArray:
 
 @dataclasses.dataclass()
 class TypeFun:
+    """A function signature 
+
+    The `FunParam.name` field is ignored and should be `_`
+    """
     ALIAS = "sig"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -210,6 +234,7 @@ ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
 
 @dataclasses.dataclass()
 class ValTrue:
+    """Bool constant `true`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -219,6 +244,7 @@ class ValTrue:
 
 @dataclasses.dataclass()
 class ValFalse:
+    """Bool constant `false`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -228,6 +254,11 @@ class ValFalse:
 
 @dataclasses.dataclass()
 class ValNum:
+    """Numeric constant (signed int, unsigned int, real
+
+    Underscores in `number` are ignored. `number` can be explicitly types via
+    suffices like `_u64`, `_s16`, `_r32`.
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -238,6 +269,7 @@ class ValNum:
 
 @dataclasses.dataclass()
 class ValUndef:
+    """Special constant to indiciate *no default value*"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -246,6 +278,10 @@ class ValUndef:
 
 @dataclasses.dataclass()
 class ValVoid:
+    """The void value is the only value inhabiting the `TypeVoid` type
+
+    It can be used to model *null* in nullable pointers via a sum type. 
+     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -254,7 +290,7 @@ class ValVoid:
 
 @dataclasses.dataclass()
 class IndexVal:
-    "for array initialization {.1 = 5, .2 = 6}"
+    "Used for array initialization {.1 = 5, .2 = 6}"
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -264,7 +300,7 @@ class IndexVal:
 
 @dataclasses.dataclass()
 class FieldVal:
-    "for rec initialization {.imag = 5, .real = 1}"
+    "Used for rec initialization {.imag = 5, .real = 1}"
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -274,6 +310,7 @@ class FieldVal:
 
 @dataclasses.dataclass()
 class ValArray:
+    """An array literal"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -284,10 +321,14 @@ class ValArray:
 
 @dataclasses.dataclass()
 class ValArrayString:
+    """An array value encoded as a string 
+
+    type is `u8[strlen(string)]`. `string` may be escaped/raw
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    noesc: bool
+    raw: bool
     # type: u8, size: strlen(value)
     string: str
 
@@ -296,6 +337,7 @@ class ValArrayString:
 
 @dataclasses.dataclass()
 class ValRec:
+    """A record literal"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -309,12 +351,13 @@ class ValRec:
 ExprNode = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                  "ExprField", "ExprCall", "ExprParen",
                  "Expr1", "Expr2", "Expr3",
-                 "ExprUnwrap", "ExprChop",
+                 "ExprChop",
                  "ExprLen", "ExprSizeof"]
 
 
 @dataclasses.dataclass()
 class ExprDeref:
+    """Dereference a pointer represented by `expr`"""
     ALIAS = "^"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -323,6 +366,7 @@ class ExprDeref:
 
 @dataclasses.dataclass()
 class ExprAddrOf:
+    """Create a pointer to object represented by `expr`"""
     ALIAS = "&"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -331,6 +375,7 @@ class ExprAddrOf:
 
 @dataclasses.dataclass()
 class ExprCall:
+    """Function call expression."""
     ALIAS = "call"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -340,7 +385,7 @@ class ExprCall:
 
 @dataclasses.dataclass()
 class ExprParen:
-    "used for preserving parenthesis in the source"
+    "Used for preserving parenthesis in the source"
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -349,6 +394,7 @@ class ExprParen:
 
 @dataclasses.dataclass()
 class ExprField:
+    """Access field in expression representing a record."""
     ALIAS = "."
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -366,6 +412,7 @@ class UNARY_EXPR_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Expr1:
+    """Unary expression."""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -402,6 +449,7 @@ class BINARY_EXPR_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Expr2:
+    """Binary expression."""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -415,6 +463,7 @@ class Expr2:
 
 @dataclasses.dataclass()
 class Expr3:
+    """Tertiary expression (like C's `? :`) """
     ALIAS = "?"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -428,6 +477,7 @@ class Expr3:
 
 @dataclasses.dataclass()
 class ExprIndex:
+    """Checked indexed access of array or slice """
     ALIAS = "at"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -437,6 +487,7 @@ class ExprIndex:
 
 @dataclasses.dataclass()
 class ExprChop:
+    """Slicing expression of array or slice"""
     ALIAS = "chop"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -447,6 +498,7 @@ class ExprChop:
 
 @dataclasses.dataclass()
 class ExprLen:
+    """Length of array or slice"""
     ALIAS = "len"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -456,17 +508,10 @@ class ExprLen:
 # Cast Like Expressions
 
 
-@dataclasses.dataclass()
-class ExprUnwrap:
-    "converts from wrapped/enum type to underlying type"
-    ALIAS = "unwrap"
-    FLAGS = NF.TYPE_ANNOTATED
-
-    expr: ExprNode
-
-
 class ExprCastAs:
-    "number <-> number, number -> enum,  val -> wrapped val"
+    """Cast
+
+    number <-> number, number -> enum,  val -> wrapped val"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -475,7 +520,9 @@ class ExprCastAs:
 
 
 class ExprBitCastAs:
-    "type must have saame size as type of item"
+    """Bit cast.
+
+    Type must have saame size as type of item"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -488,6 +535,9 @@ class ExprBitCastAs:
 
 @dataclasses.dataclass()
 class ExprSizeof:
+    """Byte size of type
+
+    Type is `uint`"""
     ALIAS = "sizeof"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -496,6 +546,9 @@ class ExprSizeof:
 
 @dataclasses.dataclass()
 class ExprOffsetof:
+    """Byte offset of field in record types
+
+    Type is `uint`"""
     ALIAS = "offsetof"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -505,6 +558,7 @@ class ExprOffsetof:
 
 @dataclasses.dataclass()
 class ExprRange:
+    """Range expression for simple for-loops"""
     ALIAS = "range"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -529,6 +583,8 @@ ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
 
 @dataclasses.dataclass()
 class StmtWhile:
+    """While statement.
+    """
     ALIAS = "while"
     FLAGS = NF.NEW_SCOPE
 
@@ -542,6 +598,10 @@ class StmtWhile:
 
 @dataclasses.dataclass()
 class StmtBlock:
+    """Block statement.
+
+    if `label` is non-empty, nested break/continue statements can target this `block`.     
+    """
     ALIAS = "block"
     FLAGS = NF.NEW_SCOPE
 
@@ -555,6 +615,10 @@ class StmtBlock:
 
 @dataclasses.dataclass()
 class StmtFor:
+    """For statement.
+
+    Defines the non-mut variable `name`.
+    """
     ALIAS = "for"
     FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
@@ -570,6 +634,11 @@ class StmtFor:
 
 @dataclasses.dataclass()
 class StmtDefer:
+    """Defer statement
+
+    Note: defer body's containing return statments have 
+    non-straightforward semantics.
+    """
     ALIAS = "defer"
     FLAGS = NF.NEW_SCOPE
 
@@ -582,6 +651,7 @@ class StmtDefer:
 
 @dataclasses.dataclass()
 class StmtIf:
+    """If statement"""
     ALIAS = "if"
     FLAGS = NF.NEW_SCOPE
 
@@ -606,6 +676,9 @@ class StmtIf:
 
 @dataclasses.dataclass()
 class StmtBreak:
+    """Break statement
+
+    use "" if the target is the nearest for/while/block """
     ALIAS = "break"
     FLAGS = NF.CONTROL_FLOW
 
@@ -617,6 +690,9 @@ class StmtBreak:
 
 @dataclasses.dataclass()
 class StmtContinue:
+    """Continue statement
+
+    use "" if the target is the nearest for/while/block """
     ALIAS = "continue"
     FLAGS = NF.CONTROL_FLOW
     target: str  # use "" for no value
@@ -627,9 +703,13 @@ class StmtContinue:
 
 @dataclasses.dataclass()
 class StmtReturn:
+    """Return statement
+
+    Use `void` value if the function's return type is `void`  
+    """
     ALIAS = "return"
     FLAGS = NF.CONTROL_FLOW
-    expr_ret: ExprNode  # use void for no value
+    expr_ret: ExprNode
 
     def __str__(self):
         return f"RETURN {self.expr_ret}"
@@ -637,6 +717,10 @@ class StmtReturn:
 
 @dataclasses.dataclass()
 class StmtExpr:
+    """Expression statement
+
+    If expression does not have type void, `discard` must be `true`
+    """
     ALIAS = "expr"
     FLAGS = NF.NONE
 
@@ -646,6 +730,7 @@ class StmtExpr:
 
 @dataclasses.dataclass()
 class StmtAssert:
+    """Assert statement"""
     ALIAS = "assert"
     FLAGS = NF.NONE
 
@@ -672,6 +757,7 @@ class ASSIGNMENT_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class StmtAssignment2:
+    """Compound assignment statement"""
     ALIAS = None
     FLAGS = NF.NONE
 
@@ -682,6 +768,7 @@ class StmtAssignment2:
 
 @dataclasses.dataclass()
 class StmtAssignment:
+    """Assignment statement"""
     ALIAS = "="
     FLAGS = NF.NONE
 
@@ -698,12 +785,15 @@ DefNode = Union["DefType", "DefConst", "DefVar", "DefFun", "DefMod"]
 
 @dataclasses.dataclass()
 class RecField:  #
+    """Record field
+
+    `initial` must be a compile-time constant or `ValUndef`"""
     ALIAS = "field"
     FLAGS = NF.TYPE_ANNOTATED
 
     name: str
     type: TypeNode
-    initial: "ExprNode"    # must be const
+    initial: Union["ExprNode", ValUndef]    # must be const
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial}"
@@ -711,6 +801,7 @@ class RecField:  #
 
 @dataclasses.dataclass()
 class DefRec:
+    """Record definition"""
     ALIAS = "rec"
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
@@ -724,10 +815,12 @@ class DefRec:
 
 
 @dataclasses.dataclass()
-class EnumEntry:
-    """ Enum element - `value: auto` means previous value + 1"""
+class EnumVal:
+    """ Enum element.
+
+     `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
-    FLAGS = NF.TYPE_ANNOTATED  | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     name: str
     value: Union["ValNum", "Auto"]
@@ -738,13 +831,14 @@ class EnumEntry:
 
 @dataclasses.dataclass()
 class DefEnum:
+    """Enum definition"""
     ALIAS = "enum"
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED  | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
-    items: List[Union[EnumEntry, Comment]]
+    items: List[Union[EnumVal, Comment]]
 
     def __str__(self):
         items = '\n'.join(str(s) for s in self.items)
@@ -753,7 +847,10 @@ class DefEnum:
 
 @dataclasses.dataclass()
 class DefType:
-    """Type Definition"""
+    """Type definition
+
+    `wrapped` forces by-name equivalence).
+    """
     ALIAS = "type"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF
 
@@ -768,7 +865,7 @@ class DefType:
 
 @dataclasses.dataclass()
 class DefConst:
-    """Const Definition"""
+    """Constant definition"""
     ALIAS = "const"
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
@@ -783,7 +880,7 @@ class DefConst:
 
 @dataclasses.dataclass()
 class DefVar:
-    """Function Definition"""
+    """Variable definition"""
     ALIAS = "let"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
 
@@ -799,9 +896,9 @@ class DefVar:
 
 @dataclasses.dataclass()
 class DefFun:
-    """Function Definition"""
+    """Function fefinition"""
     ALIAS = "fun"
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE
 
     init: bool
     fini: bool
@@ -828,7 +925,7 @@ class MOD_PARAM_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class ModParam:
-    """Module argument"""
+    """Module Parameters"""
     ALIAS = "None"
     FLAGS = NF.GLOBAL_SYM_DEF
 
@@ -841,7 +938,9 @@ class ModParam:
 
 @dataclasses.dataclass()
 class DefMod:
-    """Module Definition"""
+    """Module Definition
+
+    The module is a template if `params` is non-empty"""
     ALIAS = "mod"
     FLAGS = NF.GLOBAL_SYM_DEF
 
@@ -861,11 +960,27 @@ class DefMod:
 ############################################################
 # Partitioning of all the field names in the node classes above.
 # Atom fields do NOT contain other node instances
-INT_FIELDS = {"number"}
-STR_FIELDS = {"name", "string", "field", "label", "target", "index"}
+INT_FIELDS = {}
+STR_FIELDS = {
+    "number": "a number",
+    "name": "name of the object",
+    "string": "",
+    "field": "record field",
+    "label": "block  name (if not empty)",
+    "target": "name of enclosing while/for/block to brach to (empty means nearest)",
+    "index": "",
+}
 # BOOLs are optional and must come first in a dataclass
-FLAG_FIELDS = {"pub", "extern", "mut", "wrapped", "discard", "init", "fini",
-               "noesc"}
+FLAG_FIELDS = {
+    "pub": "has public visibility",
+    "extern": "is external function (empty body)",
+    "mut": "is mutable",
+    "wrapped": "is wrapped type (uses name equivalence",
+    "discard": "ignore non-void expression",
+    "init": "run function at startup",
+    "fini": "run function at shutdown",
+    "raw": "ignore escape sequences in string"
+}
 
 # Fields containing an enum. Mapped to the enum class
 KIND_FIELDS = {
@@ -894,7 +1009,7 @@ NODE_FIELDS = {"type", "result",
                "value", "lhs", "rhs", "initial"}
 
 
-ALL_FIELDS = FLAG_FIELDS | INT_FIELDS | STR_FIELDS | KIND_FIELDS.keys(
+ALL_FIELDS = FLAG_FIELDS.keys() | INT_FIELDS | STR_FIELDS.keys() | KIND_FIELDS.keys(
 ) | NODE_FIELDS | LIST_FIELDS
 
 # check disjointness
@@ -973,8 +1088,42 @@ LOCAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.LOCAL_SYM_DEF in n.FLAGS)
 GLOBAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.GLOBAL_SYM_DEF in n.FLAGS)
+SCOPING_NODES = tuple(
+    [n for n in ALL_NODES if NF.NEW_SCOPE in n.FLAGS])
+
+##########################################################################################
+PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
+
+WIP 
+"""
 
 
+def GenerateDocumentation(fout):
+    print (PROLOG, file=fout)
+    nodes = sorted((node.__name__, node) for node in ALL_NODES)
+    for name, cls in nodes:
+        print(f"", file=fout)
+        print(f"### {name}", file=fout)
+
+        print(cls.__doc__,  file=fout)
+
+        if NF.NEW_SCOPE in cls.FLAGS:
+            print(f"", file=fout)
+            print(f"Creates a new scope", file=fout)
+        if len(cls.__annotations__):
+            print(f"", file=fout)
+            print("Fields:",  file=fout)
+
+            for field, type in cls.__annotations__.items():
+                desc = ""
+                if field in FLAG_FIELDS:
+                    desc = ": " + FLAG_FIELDS[field]
+                if field in STR_FIELDS:
+                    desc = ": " + STR_FIELDS[field]
+                print(f"* {field}{desc}", file=fout)
+
+
+##########################################################################################
 def DumpFields(node_class):
     for tag, val in node_class.__annotations__.items():
         print(f"    {tag}: {val}")
@@ -1161,24 +1310,24 @@ def ReadSExpr(stream) -> Any:
         return ReadRestAndMakeNode(cls, [], fields, stream)
 
 
-SCOPING_NODES = (StmtBlock, StmtWhile, StmtFor, StmtDefer,
-                 StmtIf, DefFun)
-
 VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
                ValArrayString, ValRec)
 
 if __name__ == "__main__":
-
+    import sys
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    stream = ReadTokens(sys.stdin)
-    try:
-        while True:
-            t = next(stream)
-            assert t == "("
-            sexpr = ReadSExpr(stream)
-            print(sexpr)
-            print()
-    except StopIteration:
-        pass
+    if len(sys.argv) > 1 and sys.argv[1] == "gendoc":
+        GenerateDocumentation(sys.stdout)
+    else:
+        stream = ReadTokens(sys.stdin)
+        try:
+            while True:
+                t = next(stream)
+                assert t == "("
+                sexpr = ReadSExpr(stream)
+                print(sexpr)
+                print()
+        except StopIteration:
+            pass

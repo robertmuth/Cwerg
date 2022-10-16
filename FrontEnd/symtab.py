@@ -50,13 +50,13 @@ class SymTab:
         else:
             assert False, f"unexpected node: {node}"
 
-    def _resolve_enum_item(self, components) -> Optional[cwast.EnumEntry]:
+    def _resolve_enum_item(self, components) -> Optional[cwast.EnumVal]:
         if len(components) != 2:
             return None
         node = self._enum_syms.get(components[0])
         assert isinstance(node, cwast.DefEnum)
         for item in node.items:
-            if isinstance(item, cwast.EnumEntry) and item.name == components[1]:
+            if isinstance(item, cwast.EnumVal) and item.name == components[1]:
                 return item
         return None
 

@@ -173,7 +173,7 @@ class TypeCorpus:
     def insert_fun_type(self, params: List[CanonType], result: CanonType) -> CanonType:
         name = f"fun({','.join(params +[result])})"
         if name not in self.corpus:
-            p = [cwast.FunParam("", self.corpus[x]) for x in params]
+            p = [cwast.FunParam("_", self.corpus[x]) for x in params]
             self._insert(name, cwast.TypeFun(p, self.corpus[result]))
         return name
 
@@ -187,12 +187,12 @@ class TypeCorpus:
         return name
 
 
-def ComputeStringSize(noesc: bool, string: str) -> int:
+def ComputeStringSize(raw: bool, string: str) -> int:
     assert string[0] == '"'
     assert string[-1] == '"'
     string = string[1:-1]
     n = len(string)
-    if noesc:
+    if raw:
         return n
     esc = False
     for c in string:
@@ -301,7 +301,7 @@ class TypeTab:
             for f in node.fields:
                 self.typify_node(f, ctx)
             return cstr
-        elif isinstance(node, cwast.EnumEntry):
+        elif isinstance(node, cwast.EnumVal):
             cstr = ctx.get_target_type()
             if not isinstance(node.value, cwast.Auto):
                 cstr = self.typify_node(node.value, ctx)
@@ -372,7 +372,7 @@ class TypeTab:
                 ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValArrayString):
-            dim = ComputeStringSize(node.noesc, node.string)
+            dim = ComputeStringSize(node.raw, node.string)
             cstr = self.corpus.insert_array_type(
                 dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
             return self.annotate(node, cstr)
