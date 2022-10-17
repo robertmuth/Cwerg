@@ -56,10 +56,10 @@ class Comment:
     ALIAS = "#"
     FLAGS = NF.NONE
 
-    string: str
+    comment: str
 
     def __str__(self):
-        return "# " + self.string
+        return "# " + self.comment
 
 ############################################################
 # Identifier
@@ -747,7 +747,7 @@ class StmtAssert:
     FLAGS = NF.NONE
 
     cond: ExprNode  # must be of type bool
-    string: str     # should this be an expression?
+    message: str     # should this be an expression?
 
 
 @enum.unique
@@ -981,16 +981,20 @@ class DefMod:
 # Partitioning of all the field names in the node classes above.
 # Atom fields do NOT contain other node instances
 INT_FIELDS = {}
+
 STR_FIELDS = {
     "number": "a number",
     "name": "name of the object",
-    "string": "",
+    "string": "string literal",
+    "comment": "comment",
+    "message": "message for assert failures",
     "field": "record field",
     "label": "block  name (if not empty)",
     "target": "name of enclosing while/for/block to brach to (empty means nearest)",
     "index": "",
 }
-# BOOLs are optional and must come first in a dataclass
+
+# These are optional and must come first in a dataclass
 FLAG_FIELDS = {
     "pub": "has public visibility",
     "extern": "is external function (empty body)",
@@ -1014,6 +1018,24 @@ KIND_FIELDS = {
 
 # Fields contains list of nodes
 LIST_FIELDS = {
+    "params":  "function parameters",
+    "params_mod":  "module template parameters",
+    "args":  "function call arguments",
+    "path":  "TBD",
+    "items":  "enum items",
+    "fields":  "record fields",
+    "types":  "union types",
+    "inits_array":  "array initializers",
+    "inits_rec":  "record initializers",
+    #
+    "body_mod": "toplevel module definitions",
+    "body":  "statement list",
+    "body_t":  "statement list",
+    "body_f":  "statement list",
+}
+
+# Fields contains list of nodes
+LIST_FIELDS_NODE_RESTRICTIONS = {
     "params":  PARAMS_NODES,
     "params_mod":  PARAMS_MOD_NODES,
     "args":  "",
@@ -1031,19 +1053,48 @@ LIST_FIELDS = {
 }
 
 # Fields containing one node
-NODE_FIELDS = {"type", "result",
-               "size",
-               "expr_index",
-               # expr
-               "expr", "cond", "expr_t", "expr_f", "expr1", "expr2",
-               "expr_ret",  "range",
-               "container",
-               "callee", "length", "start", "end", "step", "width",
-               "value", "lhs", "rhs", "initial"}
+NODE_FIELDS = {
+    "type": "",
+    "result": "return type",
+    "size": "",
+    "expr_index": "",
+    # expr
+    "expr": "",
+    "cond": "conditional expression",
+    "expr_t": "",
+    "expr_f": "",
+    "expr1": "",
+    "expr2": "",
+    "expr_ret": "result expression (ValVoid means no result)",
+    "range": "range expression",
+    "container": "array and slice",
+    "callee": "",
+    "start": "",
+    "end": "",
+    "step": "",
+    "width": "",
+    "value": "",
+    "lhs": "",
+    "initial": "initializer (must be compile-time constant)",
+}
+
+NODE_FIELDS_RESTRICTIONS = {
+    "type", "result",
+    "size",
+    "expr_index",
+    # expr
+    "expr", "cond",
+    "expr_t", "expr_f", "expr1", "expr2",
+    "expr_ret",
+    "range",
+    "container",
+    "callee", "start", "end", "step", "width",
+    "value", "lhs", "initial"
+}
 
 
 ALL_FIELDS = FLAG_FIELDS.keys() | INT_FIELDS | STR_FIELDS.keys() | KIND_FIELDS.keys(
-) | NODE_FIELDS | LIST_FIELDS.keys()
+) | NODE_FIELDS.keys() | LIST_FIELDS.keys()
 
 # check disjointness
 assert len(ALL_FIELDS) == (len(FLAG_FIELDS) + len(STR_FIELDS) + len(INT_FIELDS) + len(KIND_FIELDS) +
@@ -1140,9 +1191,13 @@ def GenerateDocumentation(fout):
             for field, type in cls.__annotations__.items():
                 desc = ""
                 if field in FLAG_FIELDS:
-                    desc = ": " + FLAG_FIELDS[field]
-                if field in STR_FIELDS:
-                    desc = ": " + STR_FIELDS[field]
+                    desc = " [bool]: " + FLAG_FIELDS[field]
+                elif field in STR_FIELDS:
+                    desc = " [str]: " + STR_FIELDS[field]
+                elif field in NODE_FIELDS:
+                    desc = " []: " + NODE_FIELDS[field]
+                elif field in LIST_FIELDS:
+                    desc = " [List[]]: " + LIST_FIELDS[field]
                 print(f"* {field}{desc}", file=fout)
 
 
