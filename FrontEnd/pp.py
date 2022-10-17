@@ -13,6 +13,7 @@ from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 def MaybeSimplifyLeafNode(node) -> Optional[str]:
     if isinstance(node, cwast.TypeBase):
         return node.base_type_kind.name.lower()
@@ -27,7 +28,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValFalse):
         return "false"
     elif isinstance(node, cwast.ValNum):
-        return node.number    
+        return node.number
     elif isinstance(node, cwast.ValVoid):
         return "void"
     elif isinstance(node, cwast.ValArrayString):
@@ -36,9 +37,17 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return None
 
 
-def GetNodeTypeAndFields(node):
+def IsFieldWithDefaultValue(field, val):
+    expected = cwast.OPTIONAL_FIELDS.get(field)
+    return val == expected
+
+
+def GetNodeTypeAndFields(node, condense=True):
     cls = node.__class__
     fields = cls.FIELDS[:]
+    if not condense:
+        return cls.__name__, fields
+
     if isinstance(node, cwast.Expr2):
         fields.pop(0)
         return cwast.BINOP_SHORTCUT_INV[node.binary_expr_kind], fields
@@ -47,6 +56,7 @@ def GetNodeTypeAndFields(node):
     else:
         return cls.__name__, fields
 
+
 def _RenderRecursively(node, out, indent: str):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
@@ -54,8 +64,7 @@ def _RenderRecursively(node, out, indent: str):
         line.append(abbrev)
         return
 
-    
-    node_name, fields = GetNodeTypeAndFields(node) 
+    node_name, fields = GetNodeTypeAndFields(node)
     line.append("(" + node_name)
 
     for field in fields:
@@ -64,6 +73,8 @@ def _RenderRecursively(node, out, indent: str):
         if field in cwast.FLAG_FIELDS:
             if val:
                 line.append(" " + field)
+        elif IsFieldWithDefaultValue(field, val):
+            continue
         elif field in cwast.STR_FIELDS:
             line.append(" " + str(val))
         elif field in cwast.INT_FIELDS:

@@ -159,19 +159,6 @@ class TypeBase:
 
 
 @dataclasses.dataclass()
-class TypeSum:
-    """Sum type
-
-    Sum types are tagged unions and "auto flattening", e.g.
-    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
-    """
-    ALIAS = "|"
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
-    types: List[Union[TypeNode, Comment]]
-
-
-@dataclasses.dataclass()
 class TypePtr:
     """Pointer type (mutable/non-mutable)"""
     ALIAS = "ptr"
@@ -211,6 +198,9 @@ class TypeArray:
     type: TypeNode
 
 
+PARAMS_NODES = Union[Comment, FunParam]
+
+
 @dataclasses.dataclass()
 class TypeFun:
     """A function signature 
@@ -220,8 +210,24 @@ class TypeFun:
     ALIAS = "sig"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
-    params: List[FunParam]
+    params: List[PARAMS_NODES]
     result: TypeNode
+
+
+TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
+
+
+@dataclasses.dataclass()
+class TypeSum:
+    """Sum type
+
+    Sum types are tagged unions and "auto flattening", e.g.
+    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    """
+    ALIAS = "union"
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+
+    types: List[TYPES_NODES]
 
 
 ############################################################
@@ -308,6 +314,9 @@ class FieldVal:
     value: "ExprNode"
 
 
+INITS_ARRAY_NODES = Union[Comment, IndexVal]
+
+
 @dataclasses.dataclass()
 class ValArray:
     """An array literal"""
@@ -316,7 +325,7 @@ class ValArray:
 
     type: TypeNode
     size: Union["ExprNode", Auto]  # must be constant
-    values: List[IndexVal]
+    inits_array: List[INITS_ARRAY_NODES]
 
 
 @dataclasses.dataclass()
@@ -335,6 +344,9 @@ class ValArrayString:
     def __str__(self): return f"STRING({self.string})"
 
 
+INITS_REC_NODES = Union[Comment, FieldVal]
+
+
 @dataclasses.dataclass()
 class ValRec:
     """A record literal"""
@@ -342,7 +354,7 @@ class ValRec:
     FLAGS = NF.TYPE_ANNOTATED
 
     type: TypeNode
-    values: List[Union[FieldVal, Comment]]
+    inits_rec: List[INITS_REC_NODES]
 
 
 ############################################################
@@ -573,12 +585,12 @@ class ExprRange:
 ############################################################
 # Stmt
 ############################################################
-StmtNode = Union["StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
-                 "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
-                 "StmtBlock"]
+BODY_NODES = Union["Comment", "StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
+                   "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
+                   "StmtBlock"]
 
-ExprLHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
-                "ExprCall"]
+EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
+                 "ExprCall"]
 
 
 @dataclasses.dataclass()
@@ -589,7 +601,7 @@ class StmtWhile:
     FLAGS = NF.NEW_SCOPE
 
     cond: ExprNode       # must be of type bool
-    body: List[StmtNode]
+    body: List[BODY_NODES]
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -606,7 +618,7 @@ class StmtBlock:
     FLAGS = NF.NEW_SCOPE
 
     label: str
-    body: List[StmtNode]
+    body: List[BODY_NODES]
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -625,7 +637,7 @@ class StmtFor:
     name: str
     type: TypeNode
     range: ExprNode
-    body: List[StmtNode]
+    body: List[BODY_NODES]
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -642,7 +654,7 @@ class StmtDefer:
     ALIAS = "defer"
     FLAGS = NF.NEW_SCOPE
 
-    body: List[StmtNode]  # must NOT contain RETURN
+    body: List[BODY_NODES]  # must NOT contain RETURN
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -656,8 +668,8 @@ class StmtIf:
     FLAGS = NF.NEW_SCOPE
 
     cond: ExprNode        # must be of type bool
-    body_t: List[StmtNode]
-    body_f: List[StmtNode]
+    body_t: List[BODY_NODES]
+    body_f: List[BODY_NODES]
 
     def __str__(self):
         body_t = '\n'.join(str(s) for s in self.body_t)
@@ -762,7 +774,7 @@ class StmtAssignment2:
     FLAGS = NF.NONE
 
     assignment_kind: ASSIGNMENT_KIND
-    lhs: ExprLHS
+    lhs: EXPR_LHS
     expr: ExprNode
 
 
@@ -773,16 +785,13 @@ class StmtAssignment:
     FLAGS = NF.NONE
 
     assignment_kind: ASSIGNMENT_KIND
-    lhs: ExprLHS
+    lhs: EXPR_LHS
     expr: ExprNode
 
 
 ############################################################
 # Definitions
 ############################################################
-DefNode = Union["DefType", "DefConst", "DefVar", "DefFun", "DefMod"]
-
-
 @dataclasses.dataclass()
 class RecField:  #
     """Record field
@@ -799,6 +808,9 @@ class RecField:  #
         return f"{self.name}: {self.type} = {self.initial}"
 
 
+FIELDS_NODES = Union[Comment, RecField]
+
+
 @dataclasses.dataclass()
 class DefRec:
     """Record definition"""
@@ -807,7 +819,7 @@ class DefRec:
 
     pub:  bool
     name: str
-    fields: List[Union[RecField, Comment]]
+    fields: List[FIELDS_NODES]
 
     def __str__(self):
         fields = '\n'.join(str(s) for s in self.fields)
@@ -829,6 +841,9 @@ class EnumVal:
         return f"{self.name}: {self.value}"
 
 
+ITEMS_NODES = Union[Comment, EnumVal]
+
+
 @dataclasses.dataclass()
 class DefEnum:
     """Enum definition"""
@@ -838,7 +853,7 @@ class DefEnum:
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
-    items: List[Union[EnumVal, Comment]]
+    items: List[ITEMS_NODES]
 
     def __str__(self):
         items = '\n'.join(str(s) for s in self.items)
@@ -905,9 +920,9 @@ class DefFun:
     pub: bool
     extern: bool
     name: str
-    params: List[FunParam]
+    params: List[PARAMS_NODES]
     result: TypeNode
-    body: List[StmtNode]
+    body: List[BODY_NODES]
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -936,6 +951,11 @@ class ModParam:
         return f"{self.name}: {self.mod_param_kind.name}"
 
 
+BODY_MOD_NODES = Union[Comment, DefFun, DefRec, DefConst, DefEnum, DefVar]
+
+PARAMS_MOD_NODES = Union[Comment, ModParam]
+
+
 @dataclasses.dataclass()
 class DefMod:
     """Module Definition
@@ -946,12 +966,12 @@ class DefMod:
 
     pub: bool
     name: str
-    params: List[ModParam]
-    body: List[StmtNode]
+    params_mod: List[PARAMS_MOD_NODES]
+    body_mod: List[BODY_MOD_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        params = ', '.join(str(p) for p in self.params)
+        body = '\n'.join(str(s) for s in self.body_mod)
+        params = ', '.join(str(p) for p in self.params_mod)
         return f"MOD {self.name} [{params}]:\n{body}"
 
 
@@ -991,11 +1011,24 @@ KIND_FIELDS = {
     "assignment_kind": ASSIGNMENT_KIND,
 }
 
+
 # Fields contains list of nodes
-LIST_FIELDS = {"params", "args", "path", "items", "fields", "types",
-               "values",
-               #
-               "body", "body_t", "body_f"}
+LIST_FIELDS = {
+    "params":  PARAMS_NODES,
+    "params_mod":  PARAMS_MOD_NODES,
+    "args":  "",
+    "path":  "",
+    "items":  ITEMS_NODES,
+    "fields":  FIELDS_NODES,
+    "types":  TYPES_NODES,
+    "inits_array":  INITS_ARRAY_NODES,
+    "inits_rec":  INITS_REC_NODES,
+    #
+    "body_mod": BODY_MOD_NODES,
+    "body":  BODY_NODES,
+    "body_t":  BODY_NODES,
+    "body_f":  BODY_NODES,
+}
 
 # Fields containing one node
 NODE_FIELDS = {"type", "result",
@@ -1010,7 +1043,7 @@ NODE_FIELDS = {"type", "result",
 
 
 ALL_FIELDS = FLAG_FIELDS.keys() | INT_FIELDS | STR_FIELDS.keys() | KIND_FIELDS.keys(
-) | NODE_FIELDS | LIST_FIELDS
+) | NODE_FIELDS | LIST_FIELDS.keys()
 
 # check disjointness
 assert len(ALL_FIELDS) == (len(FLAG_FIELDS) + len(STR_FIELDS) + len(INT_FIELDS) + len(KIND_FIELDS) +
@@ -1035,18 +1068,8 @@ _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
 _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
 _TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
 
-# maps node class name to class
-_NODES_ALIASES = {
-
-    "expr": StmtExpr,
-    #
-    "type": DefType,
-    #
-    "fun": DefFun,
-
-    "mod":  DefMod,
-    "let": DefVar,
-}
+# maps node class name and aliases to class
+_NODES_ALIASES = {}
 
 ALL_NODES = set()
 
@@ -1099,7 +1122,7 @@ WIP
 
 
 def GenerateDocumentation(fout):
-    print (PROLOG, file=fout)
+    print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
     for name, cls in nodes:
         print(f"", file=fout)

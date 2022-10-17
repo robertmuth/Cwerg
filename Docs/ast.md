@@ -55,8 +55,8 @@ Module Definition
 Fields:
 * pub: has public visibility
 * name: name of the object
-* params
-* body
+* params_mod
+* body_mod
 
 ### DefRec
 Record definition
@@ -439,7 +439,7 @@ An array literal
 Fields:
 * type
 * size
-* values
+* inits_array
 
 ### ValArrayString
 An array value encoded as a string 
@@ -469,7 +469,7 @@ A record literal
 
 Fields:
 * type
-* values
+* inits_rec
 
 ### ValTrue
 Bool constant `true`

@@ -127,8 +127,14 @@ class SymTab:
             if c in cwast.NODE_FIELDS:
                 self.resolve_symbols_recursively(getattr(node, c))
             elif c in cwast.LIST_FIELDS:
+                if c in ("body_t", "body_f"):
+                    logger.info("push scope for if blocks")
+                    self._push_scope()
                 for cc in getattr(node, c):
                     self.resolve_symbols_recursively(cc)
+                if c in ("body_t", "body_f"):
+                    logger.info("push scope for if blocks")
+                    self._pop_scope()
 
         if isinstance(node, cwast.SCOPING_NODES):
             self._pop_scope()
@@ -169,14 +175,14 @@ def ExtractSymTab(asts: List) -> SymTab:
         logger.info("Processing %s", mod.name)
         MODULES[mod.name] = mod
         # pass 1: get all the top level symbols
-        for node in mod.body:
+        for node in mod.body_mod:
             if isinstance(node, cwast.Comment):
                 pass
             else:
                 symtab.add_top_level_sym(node)
 
         # pass 2:
-        for node in mod.body:
+        for node in mod.body_mod:
             if isinstance(node, cwast.Comment):
                 continue
             logger.info("ExtractSymbolTable %s", node.name)

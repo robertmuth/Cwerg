@@ -352,7 +352,7 @@ class TypeTab:
         elif isinstance(node, cwast.ValArray):
             cstr = self.typify_node(node.type, ctx)
             ctx.push_target(cstr)
-            for x in node.values:
+            for x in node.inits_array:
                 self.typify_node(x, ctx)
             ctx.pop_target()
             dim = self.compute_dim(node.size)
@@ -362,7 +362,7 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
-            for val in node.values:
+            for val in node.inits_rec:
                 field_cstr = NO_TYPE
                 if isinstance(val, cwast.FieldVal):
                     field = self.corpus.lookup_rec_field(cstr, val.field)
@@ -505,7 +505,7 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     for m in asts:
         ctx = TypeContext(symtab, m.name)
         assert isinstance(m, cwast.DefMod)
-        for node in m.body:
+        for node in m.body_mod:
             typetab.typify_node(node, ctx)
     return typetab
 
