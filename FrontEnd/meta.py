@@ -393,7 +393,7 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
-            if not isinstance(node.start, cwast.Auto):
+            if not isinstance(node.begin, cwast.Auto):
                 self.typify_node(node.start, ctx)
             if not isinstance(node.step, cwast.Auto):
                 self.typify_node(node.step, ctx)

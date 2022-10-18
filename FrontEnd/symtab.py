@@ -124,9 +124,10 @@ class SymTab:
 
         # recurse using a little bit of introspection
         for c in node.__class__.FIELDS:
-            if c in cwast.NODE_FIELDS:
+            nfd = cwast.ALL_FIELDS_MAP[c]
+            if nfd.kind is cwast.NFK.NODE:
                 self.resolve_symbols_recursively(getattr(node, c))
-            elif c in cwast.LIST_FIELDS:
+            elif nfd.kind is cwast.NFK.LIST:
                 if c in ("body_t", "body_f"):
                     logger.info("push scope for if blocks")
                     self._push_scope()

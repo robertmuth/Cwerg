@@ -69,22 +69,23 @@ def _RenderRecursively(node, out, indent: str):
 
     for field in fields:
         line = out[-1]
+        field_kind = cwast.ALL_FIELDS_MAP[field].kind
         val = getattr(node, field)
-        if field in cwast.FLAG_FIELDS:
+        if field_kind is cwast.NFK.FLAG:
             if val:
                 line.append(" " + field)
         elif IsFieldWithDefaultValue(field, val):
             continue
-        elif field in cwast.STR_FIELDS:
+        elif field_kind is cwast.NFK.STR:
             line.append(" " + str(val))
-        elif field in cwast.INT_FIELDS:
+        elif field_kind is cwast.NFK.INT:
             line.append(" " + str(val))
-        elif field in cwast.KIND_FIELDS:
+        elif field_kind is cwast.NFK.KIND:
             line.append(" " + val.name)
-        elif field in cwast.NODE_FIELDS:
+        elif field_kind is cwast.NFK.NODE:
             line.append(" ")
             _RenderRecursively(val, out, indent)
-        elif field in cwast.LIST_FIELDS:
+        elif field_kind is cwast.NFK.LIST:
             if not val:
                 line.append(" []")
             else:

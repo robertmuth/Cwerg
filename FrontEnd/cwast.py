@@ -188,7 +188,7 @@ class TypeSlice:
 
 @dataclasses.dataclass()
 class TypeArray:
-    """An array of the given `size` 
+    """An array of the given `size`
 
     which must be evaluatable as a compile time constant"""
     ALIAS = None
@@ -203,7 +203,7 @@ PARAMS_NODES = Union[Comment, FunParam]
 
 @dataclasses.dataclass()
 class TypeFun:
-    """A function signature 
+    """A function signature
 
     The `FunParam.name` field is ignored and should be `_`
     """
@@ -219,9 +219,9 @@ TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
 
 @dataclasses.dataclass()
 class TypeSum:
-    """Sum type
+    """Sum types are tagged unions
 
-    Sum types are tagged unions and "auto flattening", e.g.
+    Sums are "auto flattening", e.g.
     Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
     """
     ALIAS = "union"
@@ -284,9 +284,9 @@ class ValUndef:
 
 @dataclasses.dataclass()
 class ValVoid:
-    """The void value is the only value inhabiting the `TypeVoid` type
+    """The ValValue is the only value inhabiting the `TypeVoid` type
 
-    It can be used to model *null* in nullable pointers via a sum type. 
+    It can be used to model *null* in nullable pointers via a sum type.
      """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
@@ -296,7 +296,7 @@ class ValVoid:
 
 @dataclasses.dataclass()
 class IndexVal:
-    "Used for array initialization {.1 = 5, .2 = 6}"
+    "Used for array initialization, e.g. `.1 = 5`"
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -306,7 +306,7 @@ class IndexVal:
 
 @dataclasses.dataclass()
 class FieldVal:
-    "Used for rec initialization {.imag = 5, .real = 1}"
+    """Used for rec initialization, e.g. `.imag = 5`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -319,7 +319,10 @@ INITS_ARRAY_NODES = Union[Comment, IndexVal]
 
 @dataclasses.dataclass()
 class ValArray:
-    """An array literal"""
+    """An array literal
+
+    `[10]int{.1 = 5, .2 = 6}`
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -330,7 +333,7 @@ class ValArray:
 
 @dataclasses.dataclass()
 class ValArrayString:
-    """An array value encoded as a string 
+    """An array value encoded as a string
 
     type is `u8[strlen(string)]`. `string` may be escaped/raw
     """
@@ -338,7 +341,6 @@ class ValArrayString:
     FLAGS = NF.TYPE_ANNOTATED
 
     raw: bool
-    # type: u8, size: strlen(value)
     string: str
 
     def __str__(self): return f"STRING({self.string})"
@@ -349,7 +351,10 @@ INITS_REC_NODES = Union[Comment, FieldVal]
 
 @dataclasses.dataclass()
 class ValRec:
-    """A record literal"""
+    """A record literal
+
+    `complex{.imag = 5, .real = 1}`
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -391,7 +396,7 @@ class ExprCall:
     ALIAS = "call"
     FLAGS = NF.TYPE_ANNOTATED
 
-    callee: ExprNode  # must of type fun
+    callee: ExprNode
     args: List[ExprNode]
 
 
@@ -570,16 +575,23 @@ class ExprOffsetof:
 
 @dataclasses.dataclass()
 class ExprRange:
-    """Range expression for simple for-loops"""
+    """Range expression for simple for-loops
+
+    Modelled after Python's `range`, e.g.
+    Range(end=5) = [0, 1, 2, 3, 4]
+    Range(end=5, start=2) = [2, 3, 4]
+    Range(end=5, start=1, step=2) = [1, 3]
+    Range(end=1, start=5, step=-2) = [5, 3]
+    """
     ALIAS = "range"
     FLAGS = NF.TYPE_ANNOTATED
 
     end: ExprNode   # start, end ,step work like range(start, end, step)
-    start: Union["Auto", ExprNode]
+    begin: Union["Auto", ExprNode]
     step: Union["Auto", ExprNode]
 
     def __str__(self):
-        return f"RANGE({self.end}, {self.start}, {self.step})"
+        return f"RANGE({self.end}, {self.begin}, {self.step})"
 
 
 ############################################################
@@ -600,7 +612,7 @@ class StmtWhile:
     ALIAS = "while"
     FLAGS = NF.NEW_SCOPE
 
-    cond: ExprNode       # must be of type bool
+    cond: ExprNode
     body: List[BODY_NODES]
 
     def __str__(self):
@@ -612,7 +624,7 @@ class StmtWhile:
 class StmtBlock:
     """Block statement.
 
-    if `label` is non-empty, nested break/continue statements can target this `block`.     
+    if `label` is non-empty, nested break/continue statements can target this `block`.
     """
     ALIAS = "block"
     FLAGS = NF.NEW_SCOPE
@@ -648,7 +660,7 @@ class StmtFor:
 class StmtDefer:
     """Defer statement
 
-    Note: defer body's containing return statments have 
+    Note: defer body's containing return statments have
     non-straightforward semantics.
     """
     ALIAS = "defer"
@@ -717,7 +729,7 @@ class StmtContinue:
 class StmtReturn:
     """Return statement
 
-    Use `void` value if the function's return type is `void`  
+    Use `void` value if the function's return type is `void`
     """
     ALIAS = "return"
     FLAGS = NF.CONTROL_FLOW
@@ -878,6 +890,10 @@ class DefType:
         return f"TYPE {self.name} = {self.type}"
 
 
+CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
+                   ValVoid, ValRec, ValArray, ValArrayString]
+
+
 @dataclasses.dataclass()
 class DefConst:
     """Constant definition"""
@@ -887,7 +903,7 @@ class DefConst:
     pub:  bool
     name: str
     type: Union[TypeNode, Auto]
-    value: ValNode
+    value: CONST_NODE
 
     def __str__(self):
         return f"CONST {self.name}: {self.type} = {self.value}"
@@ -978,133 +994,99 @@ class DefMod:
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
-# Partitioning of all the field names in the node classes above.
-# Atom fields do NOT contain other node instances
-INT_FIELDS = {}
-
-STR_FIELDS = {
-    "number": "a number",
-    "name": "name of the object",
-    "string": "string literal",
-    "comment": "comment",
-    "message": "message for assert failures",
-    "field": "record field",
-    "label": "block  name (if not empty)",
-    "target": "name of enclosing while/for/block to brach to (empty means nearest)",
-    "index": "",
-}
-
-# These are optional and must come first in a dataclass
-FLAG_FIELDS = {
-    "pub": "has public visibility",
-    "extern": "is external function (empty body)",
-    "mut": "is mutable",
-    "wrapped": "is wrapped type (uses name equivalence",
-    "discard": "ignore non-void expression",
-    "init": "run function at startup",
-    "fini": "run function at shutdown",
-    "raw": "ignore escape sequences in string"
-}
-
-# Fields containing an enum. Mapped to the enum class
-KIND_FIELDS = {
-    "unary_expr_kind": UNARY_EXPR_KIND,
-    "binary_expr_kind": BINARY_EXPR_KIND,
-    "base_type_kind": BASE_TYPE_KIND,
-    "mod_param_kind": MOD_PARAM_KIND,
-    "assignment_kind": ASSIGNMENT_KIND,
-}
+@enum.unique
+class NFK(enum.Enum):
+    INT = 1
+    STR = 2
+    FLAG = 3
+    KIND = 4
+    NODE = 5
+    LIST = 6
 
 
-# Fields contains list of nodes
-LIST_FIELDS = {
-    "params":  "function parameters",
-    "params_mod":  "module template parameters",
-    "args":  "function call arguments",
-    "path":  "TBD",
-    "items":  "enum items",
-    "fields":  "record fields",
-    "types":  "union types",
-    "inits_array":  "array initializers",
-    "inits_rec":  "record initializers",
+@dataclasses.dataclass()
+class NFD:
+    """Node Field Descriptor"""
+    kind: NFK
+    name: str
+    doc: str
+    extra: Any = None
+
+
+ALL_FIELDS = [
+    NFD(NFK.STR, "number", "a number"),
+    NFD(NFK.STR, "name", "name of the object"),
+    NFD(NFK.STR, "string", "string literal"),
+    NFD(NFK.STR, "comment", "comment"),
+    NFD(NFK.STR, "message", "message for assert failures"),
+    NFD(NFK.STR, "field", "record field"),
+    NFD(NFK.STR, "label", "block  name (if not empty)"),
+    NFD(NFK.STR, "target",
+        "name of enclosing while/for/block to brach to (empty means nearest)"),
+    NFD(NFK.STR, "index", "initializer index"),
     #
-    "body_mod": "toplevel module definitions",
-    "body":  "statement list",
-    "body_t":  "statement list",
-    "body_f":  "statement list",
-}
-
-# Fields contains list of nodes
-LIST_FIELDS_NODE_RESTRICTIONS = {
-    "params":  PARAMS_NODES,
-    "params_mod":  PARAMS_MOD_NODES,
-    "args":  "",
-    "path":  "",
-    "items":  ITEMS_NODES,
-    "fields":  FIELDS_NODES,
-    "types":  TYPES_NODES,
-    "inits_array":  INITS_ARRAY_NODES,
-    "inits_rec":  INITS_REC_NODES,
+    NFD(NFK.FLAG, "pub", "has public visibility"),
+    NFD(NFK.FLAG, "extern", "is external function (empty body)"),
+    NFD(NFK.FLAG, "mut", "is mutable"),
+    NFD(NFK.FLAG, "wrapped", "is wrapped type (uses name equivalence"),
+    NFD(NFK.FLAG, "discard", "ignore non-void expression"),
+    NFD(NFK.FLAG, "init", "run function at startup"),
+    NFD(NFK.FLAG, "fini", "run function at shutdown"),
+    NFD(NFK.FLAG, "raw", "ignore escape sequences in string"),
     #
-    "body_mod": BODY_MOD_NODES,
-    "body":  BODY_NODES,
-    "body_t":  BODY_NODES,
-    "body_f":  BODY_NODES,
-}
+    NFD(NFK.KIND, "unary_expr_kind", "TBD", UNARY_EXPR_KIND),
+    NFD(NFK.KIND, "binary_expr_kind", "TBD", BINARY_EXPR_KIND),
+    NFD(NFK.KIND, "base_type_kind", "TBD", BASE_TYPE_KIND),
+    NFD(NFK.KIND, "mod_param_kind", "TBD",  MOD_PARAM_KIND),
+    NFD(NFK.KIND, "assignment_kind", "TBD", ASSIGNMENT_KIND),
+    #
+    NFD(NFK.LIST,  "params",  "function parameters", PARAMS_NODES),
+    NFD(NFK.LIST, "params_mod",  "module template parameters", PARAMS_MOD_NODES),
+    NFD(NFK.LIST, "args",  "function call arguments", "TBD"),
+    NFD(NFK.LIST, "path",  "TBD"),
+    NFD(NFK.LIST, "items",  "enum items", ITEMS_NODES),
+    NFD(NFK.LIST, "fields",  "record fields", TYPES_NODES),
+    NFD(NFK.LIST, "types",  "union types", TYPES_NODES),
+    NFD(NFK.LIST, "inits_array",  "array initializers", INITS_ARRAY_NODES),
+    NFD(NFK.LIST, "inits_rec",  "record initializers", INITS_REC_NODES),
+    #
+    NFD(NFK.LIST, "body_mod", "toplevel module definitions", BODY_MOD_NODES),
+    NFD(NFK.LIST, "body",  "statement list", BODY_NODES),
+    NFD(NFK.LIST, "body_t",  "statement list", BODY_NODES),
+    NFD(NFK.LIST, "body_f",  "statement list", BODY_NODES),
 
-# Fields containing one node
-NODE_FIELDS = {
-    "type": "",
-    "result": "return type",
-    "size": "",
-    "expr_index": "",
-    # expr
-    "expr": "",
-    "cond": "conditional expression",
-    "expr_t": "",
-    "expr_f": "",
-    "expr1": "",
-    "expr2": "",
-    "expr_ret": "result expression (ValVoid means no result)",
-    "range": "range expression",
-    "container": "array and slice",
-    "callee": "",
-    "start": "",
-    "end": "",
-    "step": "",
-    "width": "",
-    "value": "",
-    "lhs": "",
-    "initial": "initializer (must be compile-time constant)",
-}
+    NFD(NFK.NODE, "type", "TBD"),
+    NFD(NFK.NODE,   "result", "return type"),
+    NFD(NFK.NODE,  "size", "TBD"),
+    NFD(NFK.NODE,  "expr_index", "expression determining the index to be accessed"),
+    NFD(NFK.NODE,  "expr", "expression"),
+    NFD(NFK.NODE,  "cond", "conditional expression must evaluate to a boolean"),
+    NFD(NFK.NODE, "expr_t", "expression (will only be evaluated if cond == true)"),
+    NFD(NFK.NODE,  "expr_f", "expression (will only be evaluated if cond == false)"),
+    NFD(NFK.NODE,  "expr1", "left operand expression"),
+    NFD(NFK.NODE,  "expr2", "righ operand expression"),
+    NFD(NFK.NODE,  "expr_ret", "result expression (ValVoid means no result)"),
+    NFD(NFK.NODE,  "range", "range expression"),
+    NFD(NFK.NODE,  "container", "array and slice"),
+    NFD(NFK.NODE,  "callee", "expression evaluating to the function to be called"),
+    NFD(NFK.NODE,  "start", ""),
+    NFD(NFK.NODE,  "begin", "range begin: `Auto` => 0"),
+    NFD(NFK.NODE,  "end", "range end"),
+    NFD(NFK.NODE,  "step", "range step, `Auto` => 1"),
+    NFD(NFK.NODE,  "width", ""),
+    NFD(NFK.NODE,  "value", ""),
+    NFD(NFK.NODE,  "lhs", "l-value expression"),
+    NFD(NFK.NODE,  "initial", "initializer (must be compile-time constant)"),
+]
 
-NODE_FIELDS_RESTRICTIONS = {
-    "type", "result",
-    "size",
-    "expr_index",
-    # expr
-    "expr", "cond",
-    "expr_t", "expr_f", "expr1", "expr2",
-    "expr_ret",
-    "range",
-    "container",
-    "callee", "start", "end", "step", "width",
-    "value", "lhs", "initial"
-}
-
-
-ALL_FIELDS = FLAG_FIELDS.keys() | INT_FIELDS | STR_FIELDS.keys() | KIND_FIELDS.keys(
-) | NODE_FIELDS.keys() | LIST_FIELDS.keys()
-
-# check disjointness
-assert len(ALL_FIELDS) == (len(FLAG_FIELDS) + len(STR_FIELDS) + len(INT_FIELDS) + len(KIND_FIELDS) +
-                           len(NODE_FIELDS) + len(LIST_FIELDS))
+ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 # must come last in a dataclass
 OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
     "width":  Auto(),
     "start":   Auto(),
+    "begin":   Auto(),
     "step":   Auto(),
     "target": "",
 }
@@ -1125,43 +1107,40 @@ _NODES_ALIASES = {}
 ALL_NODES = set()
 
 for name, obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isclass(obj):
-        if obj.__base__ is object:
-            ALL_NODES.add(obj)
-            _NODES_ALIASES[obj.__name__] = obj
-            if obj.ALIAS is not None:
-                _NODES_ALIASES[obj.ALIAS] = obj
+    if inspect.isclass(obj) and obj.__base__ is object and hasattr(obj, "ALIAS"):
+        ALL_NODES.add(obj)
+        _NODES_ALIASES[obj.__name__] = obj
+        if obj.ALIAS is not None:
+            _NODES_ALIASES[obj.ALIAS] = obj
 
-            flags = []
-            other = []
-            for field, type in obj.__annotations__.items():
-                if field in FLAG_FIELDS:
-                    assert not other, "bools must come first"
-                    flags.append(field)
-                elif field in STR_FIELDS or field in INT_FIELDS or field in KIND_FIELDS:
-                    other.append(field)
-                elif field in NODE_FIELDS:
-                    other.append(field)
-                elif field in LIST_FIELDS:
-                    other.append(field)
-                else:
-                    assert False, f"unexpected field {obj.__name__} {field}"
-            seen_optional = False
-            for x in other:
-                if x in OPTIONAL_FIELDS:
-                    seen_optional = True
-                else:
-                    assert not seen_optional, f"in {obj.__name__} optional fields must come last: {other}: {x}"
-            obj.FIELDS = flags + other
+        obj.FIELDS = []
+        seen_optional = False
+        seen_non_flag = False
+        for field, type in obj.__annotations__.items():
+            obj.FIELDS.append(field)
+            nfd = ALL_FIELDS_MAP[field]
+            if field in OPTIONAL_FIELDS:
+                seen_optional = True
+            else:
+                assert not seen_optional, f"in {obj.__name__} optional fields must come last: {field}"
+
+            if nfd.kind is NFK.FLAG:
+                assert not seen_non_flag, "flags must come first"
+            else:
+                seen_non_flag = True
 
 
 TYPED_ANNOTATED_NODES = tuple(
     n for n in ALL_NODES if NF.TYPE_ANNOTATED in n.FLAGS)
+
 TYPE_CORPUS_NODES = tuple(n for n in ALL_NODES if NF.TYPE_CORPUS in n.FLAGS)
+
 LOCAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.LOCAL_SYM_DEF in n.FLAGS)
+
 GLOBAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.GLOBAL_SYM_DEF in n.FLAGS)
+
 SCOPING_NODES = tuple(
     [n for n in ALL_NODES if NF.NEW_SCOPE in n.FLAGS])
 
@@ -1189,16 +1168,9 @@ def GenerateDocumentation(fout):
             print("Fields:",  file=fout)
 
             for field, type in cls.__annotations__.items():
-                desc = ""
-                if field in FLAG_FIELDS:
-                    desc = " [bool]: " + FLAG_FIELDS[field]
-                elif field in STR_FIELDS:
-                    desc = " [str]: " + STR_FIELDS[field]
-                elif field in NODE_FIELDS:
-                    desc = " []: " + NODE_FIELDS[field]
-                elif field in LIST_FIELDS:
-                    desc = " [List[]]: " + LIST_FIELDS[field]
-                print(f"* {field}{desc}", file=fout)
+                nfd = ALL_FIELDS_MAP[field]
+                kind = nfd.kind
+                print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
 
 
 ##########################################################################################
@@ -1278,21 +1250,21 @@ def ExpandShortHand(field, t) -> Any:
 
 def ReadPiece(field, token, stream) -> Any:
     """Read a single component of an SExpr including lists."""
-    if field in FLAG_FIELDS:
+    nfd = ALL_FIELDS_MAP[field]
+    if nfd.kind is NFK.FLAG:
         return bool(token)
-    elif field in STR_FIELDS:
+    elif nfd.kind is NFK.STR:
         return token
-    elif field in INT_FIELDS:
+    elif nfd.kind is NFK.INT:
         return token
-    elif field in KIND_FIELDS:
-        enum = KIND_FIELDS.get(field)
-        assert enum is not None, f"{field} {token}"
-        return enum[token]
-    elif field in NODE_FIELDS:
+    elif nfd.kind is NFK.KIND:
+        assert nfd.extra is not None, f"{field} {token}"
+        return nfd.extra[token]
+    elif nfd.kind is NFK.NODE:
         if token == "(":
             return ReadSExpr(stream)
         return ExpandShortHand(field, token)
-    elif field in LIST_FIELDS:
+    elif nfd.kind is NFK.LIST:
         assert token == "[", f"expected list start for: {field} {token}"
         out = []
         while True:
@@ -1353,12 +1325,13 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
     """
     token = next(stream)
     for field in fields:
+        nfd = ALL_FIELDS_MAP[field]
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
             assert field in OPTIONAL_FIELDS, f"unknown optional: {field}"
             pieces.append(OPTIONAL_FIELDS[field])
-        elif field in FLAG_FIELDS:
+        elif nfd.kind is NFK.FLAG:
             if token == field:
                 pieces.append(True)
                 token = next(stream)
