@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Pretty printer Cwerg AST
+"""Pretty printer (PP) for Cwerg AST
 
 """
 

@@ -82,13 +82,12 @@ class Id:
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
-    path: List[str]  # first components of mod1::mod2:id
-    name: str          # last component of mod1::mod2:id
-    # id_kind = ID_KIND  # may be filled in later
+    name: str          # last component of mod1::mod2:id: id
+    path: str          # first components of mod1::mod2:id: mod1::mod2
 
     def __str__(self):
-        path = '/'.join(self.path) + "/" if self.path else ""
-        return f"{path}{self.name}"
+        joiner = "::" if self.path else ""
+        return f"{self.path}{joiner}{self.name}"
 
 
 class Auto:
@@ -1024,6 +1023,7 @@ ALL_FIELDS = [
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
     NFD(NFK.STR, "index", "initializer index"),
+    NFD(NFK.STR, "path",  "TBD"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
@@ -1043,7 +1043,6 @@ ALL_FIELDS = [
     NFD(NFK.LIST,  "params",  "function parameters", PARAMS_NODES),
     NFD(NFK.LIST, "params_mod",  "module template parameters", PARAMS_MOD_NODES),
     NFD(NFK.LIST, "args",  "function call arguments", "TBD"),
-    NFD(NFK.LIST, "path",  "TBD"),
     NFD(NFK.LIST, "items",  "enum items", ITEMS_NODES),
     NFD(NFK.LIST, "fields",  "record fields", TYPES_NODES),
     NFD(NFK.LIST, "types",  "union types", TYPES_NODES),
@@ -1089,6 +1088,7 @@ OPTIONAL_FIELDS = {
     "begin":   Auto(),
     "step":   Auto(),
     "target": "",
+    "path": "",
 }
 
 # Note: we rely on the matching being done greedily
@@ -1240,8 +1240,8 @@ def ExpandShortHand(field, t) -> Any:
         assert x is not None, f"{t}"
         return x
     elif _TOKEN_ID.match(t):
-        parts = t.split("::")
-        return Id(parts[:-1], parts[-1])
+        parts = t.rsplit("::", 1)
+        return Id(parts[-1], "" if len(parts) == 1 else parts[0])
     elif _TOKEN_NUM.match(t):
         return ValNum(t)
     else:
