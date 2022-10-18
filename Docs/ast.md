@@ -12,25 +12,25 @@ placeholder for an unspecified value or type
 Comment are proper AST nodes and can only occur in certain parts of the tree
 
 Fields:
-* comment [str]: comment
+* comment [STR]: comment
 
 ### DefConst
 Constant definition
 
 Fields:
-* pub [bool]: has public visibility
-* name [str]: name of the object
-* type []: 
-* value []: 
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* value [NODE]: 
 
 ### DefEnum
 Enum definition
 
 Fields:
-* pub [bool]: has public visibility
-* name [str]: name of the object
-* base_type_kind
-* items [List[]]: enum items
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* base_type_kind [KIND]: TBD
+* items [LIST]: enum items
 
 ### DefFun
 Function fefinition
@@ -38,14 +38,14 @@ Function fefinition
 Creates a new scope
 
 Fields:
-* init [bool]: run function at startup
-* fini [bool]: run function at shutdown
-* pub [bool]: has public visibility
-* extern [bool]: is external function (empty body)
-* name [str]: name of the object
-* params [List[]]: function parameters
-* result []: return type
-* body [List[]]: statement list
+* init [FLAG]: run function at startup
+* fini [FLAG]: run function at shutdown
+* pub [FLAG]: has public visibility
+* extern [FLAG]: is external function (empty body)
+* name [STR]: name of the object
+* params [LIST]: function parameters
+* result [NODE]: return type
+* body [LIST]: statement list
 
 ### DefMod
 Module Definition
@@ -53,18 +53,18 @@ Module Definition
     The module is a template if `params` is non-empty
 
 Fields:
-* pub [bool]: has public visibility
-* name [str]: name of the object
-* params_mod [List[]]: module template parameters
-* body_mod [List[]]: toplevel module definitions
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* params_mod [LIST]: module template parameters
+* body_mod [LIST]: toplevel module definitions
 
 ### DefRec
 Record definition
 
 Fields:
-* pub [bool]: has public visibility
-* name [str]: name of the object
-* fields [List[]]: record fields
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* fields [LIST]: record fields
 
 ### DefType
 Type definition
@@ -73,20 +73,20 @@ Type definition
     
 
 Fields:
-* pub [bool]: has public visibility
-* wrapped [bool]: is wrapped type (uses name equivalence
-* name [str]: name of the object
-* type []: 
+* pub [FLAG]: has public visibility
+* wrapped [FLAG]: is wrapped type (uses name equivalence
+* name [STR]: name of the object
+* type [NODE]: type expression
 
 ### DefVar
 Variable definition
 
 Fields:
-* pub [bool]: has public visibility
-* mut [bool]: is mutable
-* name [str]: name of the object
-* type []: 
-* initial []: initializer (must be compile-time constant)
+* pub [FLAG]: has public visibility
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* initial [NODE]: initializer (must be compile-time constant)
 
 ### EnumVal
  Enum element.
@@ -94,37 +94,37 @@ Fields:
      `value: ValAuto` means previous value + 1
 
 Fields:
-* name [str]: name of the object
-* value []: 
+* name [STR]: name of the object
+* value [NODE]: 
 
 ### Expr1
 Unary expression.
 
 Fields:
-* unary_expr_kind
-* expr []: 
+* unary_expr_kind [KIND]: TBD
+* expr [NODE]: expression
 
 ### Expr2
 Binary expression.
 
 Fields:
-* binary_expr_kind
-* expr1 []: 
-* expr2 []: 
+* binary_expr_kind [KIND]: TBD
+* expr1 [NODE]: left operand expression
+* expr2 [NODE]: righ operand expression
 
 ### Expr3
 Tertiary expression (like C's `? :`) 
 
 Fields:
-* cond []: conditional expression
-* expr_t []: 
-* expr_f []: 
+* cond [NODE]: conditional expression must evaluate to a boolean
+* expr_t [NODE]: expression (will only be evaluated if cond == true)
+* expr_f [NODE]: expression (will only be evaluated if cond == false)
 
 ### ExprAddrOf
 Create a pointer to object represented by `expr`
 
 Fields:
-* expr []: 
+* expr [NODE]: expression
 
 ### ExprBitCastAs
 Bit cast.
@@ -132,15 +132,15 @@ Bit cast.
     Type must have saame size as type of item
 
 Fields:
-* type []: 
-* expr []: 
+* type [NODE]: type expression
+* expr [NODE]: expression
 
 ### ExprCall
 Function call expression.
 
 Fields:
-* callee []: 
-* args [List[]]: function call arguments
+* callee [NODE]: expression evaluating to the function to be called
+* args [LIST]: function call arguments
 
 ### ExprCastAs
 Cast
@@ -148,42 +148,42 @@ Cast
     number <-> number, number -> enum,  val -> wrapped val
 
 Fields:
-* type []: 
-* expr []: 
+* type [NODE]: type expression
+* expr [NODE]: expression
 
 ### ExprChop
 Slicing expression of array or slice
 
 Fields:
-* container []: array and slice
-* start []: 
-* width []: 
+* container [NODE]: array and slice
+* start [NODE]: desired start of slice
+* width [NODE]: desired width of slice
 
 ### ExprDeref
 Dereference a pointer represented by `expr`
 
 Fields:
-* expr []: 
+* expr [NODE]: expression
 
 ### ExprField
 Access field in expression representing a record.
 
 Fields:
-* container []: array and slice
-* field [str]: record field
+* container [NODE]: array and slice
+* field [STR]: record field
 
 ### ExprIndex
 Checked indexed access of array or slice 
 
 Fields:
-* container []: array and slice
-* expr_index []: 
+* container [NODE]: array and slice
+* expr_index [NODE]: expression determining the index to be accessed
 
 ### ExprLen
 Length of array or slice
 
 Fields:
-* container []: array and slice
+* container [NODE]: array and slice
 
 ### ExprOffsetof
 Byte offset of field in record types
@@ -191,22 +191,29 @@ Byte offset of field in record types
     Type is `uint`
 
 Fields:
-* type []: 
-* field [str]: record field
+* type [NODE]: type expression
+* field [STR]: record field
 
 ### ExprParen
 Used for preserving parenthesis in the source
 
 Fields:
-* expr []: 
+* expr [NODE]: expression
 
 ### ExprRange
 Range expression for simple for-loops
 
+    Modelled after Python's `range`, e.g.
+    Range(end=5) = [0, 1, 2, 3, 4]
+    Range(end=5, start=2) = [2, 3, 4]
+    Range(end=5, start=1, step=2) = [1, 3]
+    Range(end=1, start=5, step=-2) = [5, 3]
+    
+
 Fields:
-* end []: 
-* start []: 
-* step []: 
+* end [NODE]: range end
+* begin [NODE]: range begin: `Auto` => 0
+* step [NODE]: range step, `Auto` => 1
 
 ### ExprSizeof
 Byte size of type
@@ -214,21 +221,21 @@ Byte size of type
     Type is `uint`
 
 Fields:
-* expr []: 
+* expr [NODE]: expression
 
 ### FieldVal
-Used for rec initialization {.imag = 5, .real = 1}
+Used for rec initialization, e.g. `.imag = 5`
 
 Fields:
-* field [str]: record field
-* value []: 
+* field [STR]: record field
+* value [NODE]: 
 
 ### FunParam
 Function parameter
 
 Fields:
-* name [str]: name of the object
-* type []: 
+* name [STR]: name of the object
+* type [NODE]: type expression
 
 ### Id
 Ids represent types, variables, constants, functions, modules
@@ -237,22 +244,22 @@ Ids represent types, variables, constants, functions, modules
     
 
 Fields:
-* path [List[]]: TBD
-* name [str]: name of the object
+* name [STR]: name of the object
+* path [STR]: TBD
 
 ### IndexVal
-Used for array initialization {.1 = 5, .2 = 6}
+Used for array initialization, e.g. `.1 = 5`
 
 Fields:
-* index [str]: 
-* value []: 
+* index [STR]: initializer index
+* value [NODE]: 
 
 ### ModParam
 Module Parameters
 
 Fields:
-* name [str]: name of the object
-* mod_param_kind
+* name [STR]: name of the object
+* mod_param_kind [KIND]: TBD
 
 ### RecField
 Record field
@@ -260,44 +267,44 @@ Record field
     `initial` must be a compile-time constant or `ValUndef`
 
 Fields:
-* name [str]: name of the object
-* type []: 
-* initial []: initializer (must be compile-time constant)
+* name [STR]: name of the object
+* type [NODE]: type expression
+* initial [NODE]: initializer (must be compile-time constant)
 
 ### StmtAssert
 Assert statement
 
 Fields:
-* cond []: conditional expression
-* message [str]: message for assert failures
+* cond [NODE]: conditional expression must evaluate to a boolean
+* message [STR]: message for assert failures
 
 ### StmtAssignment
 Assignment statement
 
 Fields:
-* assignment_kind
-* lhs []: 
-* expr []: 
+* assignment_kind [KIND]: TBD
+* lhs [NODE]: l-value expression
+* expr [NODE]: expression
 
 ### StmtAssignment2
 Compound assignment statement
 
 Fields:
-* assignment_kind
-* lhs []: 
-* expr []: 
+* assignment_kind [KIND]: TBD
+* lhs [NODE]: l-value expression
+* expr [NODE]: expression
 
 ### StmtBlock
 Block statement.
 
-    if `label` is non-empty, nested break/continue statements can target this `block`.     
+    if `label` is non-empty, nested break/continue statements can target this `block`.
     
 
 Creates a new scope
 
 Fields:
-* label [str]: block  name (if not empty)
-* body [List[]]: statement list
+* label [STR]: block  name (if not empty)
+* body [LIST]: statement list
 
 ### StmtBreak
 Break statement
@@ -305,7 +312,7 @@ Break statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [str]: name of enclosing while/for/block to brach to (empty means nearest)
+* target [STR]: name of enclosing while/for/block to brach to (empty means nearest)
 
 ### StmtContinue
 Continue statement
@@ -313,19 +320,19 @@ Continue statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [str]: name of enclosing while/for/block to brach to (empty means nearest)
+* target [STR]: name of enclosing while/for/block to brach to (empty means nearest)
 
 ### StmtDefer
 Defer statement
 
-    Note: defer body's containing return statments have 
+    Note: defer body's containing return statments have
     non-straightforward semantics.
     
 
 Creates a new scope
 
 Fields:
-* body [List[]]: statement list
+* body [LIST]: statement list
 
 ### StmtExpr
 Expression statement
@@ -334,8 +341,8 @@ Expression statement
     
 
 Fields:
-* discard [bool]: ignore non-void expression
-* expr []: 
+* discard [FLAG]: ignore non-void expression
+* expr [NODE]: expression
 
 ### StmtFor
 For statement.
@@ -346,10 +353,10 @@ For statement.
 Creates a new scope
 
 Fields:
-* name [str]: name of the object
-* type []: 
-* range []: range expression
-* body [List[]]: statement list
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* range [NODE]: range expression
+* body [LIST]: statement list
 
 ### StmtIf
 If statement
@@ -357,18 +364,18 @@ If statement
 Creates a new scope
 
 Fields:
-* cond []: conditional expression
-* body_t [List[]]: statement list
-* body_f [List[]]: statement list
+* cond [NODE]: conditional expression must evaluate to a boolean
+* body_t [LIST]: statement list
+* body_f [LIST]: statement list
 
 ### StmtReturn
 Return statement
 
-    Use `void` value if the function's return type is `void`  
+    Use `void` value if the function's return type is `void`
     
 
 Fields:
-* expr_ret []: result expression (ValVoid means no result)
+* expr_ret [NODE]: result expression (ValVoid means no result)
 
 ### StmtWhile
 While statement.
@@ -377,40 +384,40 @@ While statement.
 Creates a new scope
 
 Fields:
-* cond []: conditional expression
-* body [List[]]: statement list
+* cond [NODE]: conditional expression must evaluate to a boolean
+* body [LIST]: statement list
 
 ### TypeArray
-An array of the given `size` 
+An array of the given `size`
 
     which must be evaluatable as a compile time constant
 
 Fields:
-* size []: 
-* type []: 
+* size [NODE]: compile-time constant size
+* type [NODE]: type expression
 
 ### TypeBase
 Base type (void, r32, r64, u8, u16, u32, u64, s8 ...)
 
 Fields:
-* base_type_kind
+* base_type_kind [KIND]: TBD
 
 ### TypeFun
-A function signature 
+A function signature
 
     The `FunParam.name` field is ignored and should be `_`
     
 
 Fields:
-* params [List[]]: function parameters
-* result []: return type
+* params [LIST]: function parameters
+* result [NODE]: return type
 
 ### TypePtr
 Pointer type (mutable/non-mutable)
 
 Fields:
-* mut [bool]: is mutable
-* type []: 
+* mut [FLAG]: is mutable
+* type [NODE]: type expression
 
 ### TypeSlice
 A view of an array with compile time unknown dimentions
@@ -420,36 +427,39 @@ A view of an array with compile time unknown dimentions
     
 
 Fields:
-* mut [bool]: is mutable
-* type []: 
+* mut [FLAG]: is mutable
+* type [NODE]: type expression
 
 ### TypeSum
-Sum type
+Sum types are tagged unions
 
-    Sum types are tagged unions and "auto flattening", e.g.
+    Sums are "auto flattening", e.g.
     Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
     
 
 Fields:
-* types [List[]]: union types
+* types [LIST]: union types
 
 ### ValArray
 An array literal
 
+    `[10]int{.1 = 5, .2 = 6}`
+    
+
 Fields:
-* type []: 
-* size []: 
-* inits_array [List[]]: array initializers
+* type [NODE]: type expression
+* expr_size [NODE]: expression determining the size or auto
+* inits_array [LIST]: array initializers
 
 ### ValArrayString
-An array value encoded as a string 
+An array value encoded as a string
 
     type is `u8[strlen(string)]`. `string` may be escaped/raw
     
 
 Fields:
-* raw [bool]: ignore escape sequences in string
-* string [str]: string literal
+* raw [FLAG]: ignore escape sequences in string
+* string [STR]: string literal
 
 ### ValFalse
 Bool constant `false`
@@ -462,14 +472,17 @@ Numeric constant (signed int, unsigned int, real
     
 
 Fields:
-* number [str]: a number
+* number [STR]: a number
 
 ### ValRec
 A record literal
 
+    `complex{.imag = 5, .real = 1}`
+    
+
 Fields:
-* type []: 
-* inits_rec [List[]]: record initializers
+* type [NODE]: type expression
+* inits_rec [LIST]: record initializers
 
 ### ValTrue
 Bool constant `true`
@@ -478,7 +491,7 @@ Bool constant `true`
 Special constant to indiciate *no default value*
 
 ### ValVoid
-The void value is the only value inhabiting the `TypeVoid` type
+The ValValue is the only value inhabiting the `TypeVoid` type
 
-    It can be used to model *null* in nullable pointers via a sum type. 
+    It can be used to model *null* in nullable pointers via a sum type.
      

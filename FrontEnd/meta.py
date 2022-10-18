@@ -341,8 +341,8 @@ class TypeTab:
             assert False, "Must not try to typify AUTO"
         elif isinstance(node, cwast.DefConst):
             ctx.push_target(NO_TYPE if
-                            isinstance(node.type, cwast.Auto) else
-                            self.typify_node(node.type, ctx))
+                            isinstance(node.type_or_auto, cwast.Auto) else
+                            self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.value, ctx)
             ctx.pop_target()
             return self.annotate(node, cstr)
@@ -355,7 +355,7 @@ class TypeTab:
             for x in node.inits_array:
                 self.typify_node(x, ctx)
             ctx.pop_target()
-            dim = self.compute_dim(node.size)
+            dim = self.compute_dim(node.expr_size)
             return self.annotate(node, self.corpus.insert_array_type(dim, cstr))
         elif isinstance(node, cwast.FieldVal):
             cstr = self.typify_node(node.value, ctx)
@@ -386,8 +386,8 @@ class TypeTab:
             return self.annotate(node, self.links[id(field_node)])
         elif isinstance(node, cwast.DefVar):
             ctx.push_target(NO_TYPE if
-                            isinstance(node.type, cwast.Auto)
-                            else self.typify_node(node.type, ctx))
+                            isinstance(node.type_or_auto, cwast.Auto)
+                            else self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.initial, ctx)
             ctx.pop_target()
             return self.annotate(node, cstr)
@@ -400,8 +400,8 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtFor):
             ctx.push_target(NO_TYPE if
-                            isinstance(node.type, cwast.Auto)
-                            else self.typify_node(node.type, ctx))
+                            isinstance(node.type_or_auto, cwast.Auto)
+                            else self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.range, ctx)
             ctx.pop_target()
             self.annotate(node, cstr)

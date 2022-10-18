@@ -326,7 +326,7 @@ class ValArray:
     FLAGS = NF.TYPE_ANNOTATED
 
     type: TypeNode
-    size: Union["ExprNode", Auto]  # must be constant
+    expr_size: Union["ExprNode", Auto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
 
 
@@ -646,13 +646,13 @@ class StmtFor:
     FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str
-    type: TypeNode
+    type_or_auto: Union[TypeNode, Auto]
     range: ExprNode
     body: List[BODY_NODES]
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
-        return f"FOR  {self.name}: {self.type} = {self.range}:\n{body}"
+        return f"FOR  {self.name}: {self.type_or_auto} = {self.range}:\n{body}"
 
 
 @dataclasses.dataclass()
@@ -901,11 +901,11 @@ class DefConst:
 
     pub:  bool
     name: str
-    type: Union[TypeNode, Auto]
+    type_or_auto: Union[TypeNode, Auto]
     value: CONST_NODE
 
     def __str__(self):
-        return f"CONST {self.name}: {self.type} = {self.value}"
+        return f"CONST {self.name}: {self.type_or_auto} = {self.value}"
 
 
 @dataclasses.dataclass()
@@ -917,11 +917,11 @@ class DefVar:
     pub: bool
     mut: bool
     name: str
-    type: Union[TypeNode, Auto]
+    type_or_auto: Union[TypeNode, Auto]
     initial: ExprNode
 
     def __str__(self):
-        return f"LET {self.name}: {self.type} = {self.initial}"
+        return f"LET {self.name}: {self.type_or_auto} = {self.initial}"
 
 
 @dataclasses.dataclass()
@@ -1023,7 +1023,7 @@ ALL_FIELDS = [
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
     NFD(NFK.STR, "index", "initializer index"),
-    NFD(NFK.STR, "path",  "TBD"),
+    NFD(NFK.STR, "path", "TBD"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
@@ -1040,42 +1040,44 @@ ALL_FIELDS = [
     NFD(NFK.KIND, "mod_param_kind", "TBD",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind", "TBD", ASSIGNMENT_KIND),
     #
-    NFD(NFK.LIST,  "params",  "function parameters", PARAMS_NODES),
-    NFD(NFK.LIST, "params_mod",  "module template parameters", PARAMS_MOD_NODES),
-    NFD(NFK.LIST, "args",  "function call arguments", "TBD"),
-    NFD(NFK.LIST, "items",  "enum items", ITEMS_NODES),
-    NFD(NFK.LIST, "fields",  "record fields", TYPES_NODES),
-    NFD(NFK.LIST, "types",  "union types", TYPES_NODES),
-    NFD(NFK.LIST, "inits_array",  "array initializers", INITS_ARRAY_NODES),
-    NFD(NFK.LIST, "inits_rec",  "record initializers", INITS_REC_NODES),
+    NFD(NFK.LIST, "params", "function parameters", PARAMS_NODES),
+    NFD(NFK.LIST, "params_mod", "module template parameters", PARAMS_MOD_NODES),
+    NFD(NFK.LIST, "args", "function call arguments", "TBD"),
+    NFD(NFK.LIST, "items", "enum items", ITEMS_NODES),
+    NFD(NFK.LIST, "fields", "record fields", TYPES_NODES),
+    NFD(NFK.LIST, "types", "union types", TYPES_NODES),
+    NFD(NFK.LIST, "inits_array", "array initializers", INITS_ARRAY_NODES),
+    NFD(NFK.LIST, "inits_rec", "record initializers", INITS_REC_NODES),
     #
     NFD(NFK.LIST, "body_mod", "toplevel module definitions", BODY_MOD_NODES),
-    NFD(NFK.LIST, "body",  "statement list", BODY_NODES),
-    NFD(NFK.LIST, "body_t",  "statement list", BODY_NODES),
-    NFD(NFK.LIST, "body_f",  "statement list", BODY_NODES),
-
-    NFD(NFK.NODE, "type", "TBD"),
-    NFD(NFK.NODE,   "result", "return type"),
-    NFD(NFK.NODE,  "size", "TBD"),
-    NFD(NFK.NODE,  "expr_index", "expression determining the index to be accessed"),
-    NFD(NFK.NODE,  "expr", "expression"),
-    NFD(NFK.NODE,  "cond", "conditional expression must evaluate to a boolean"),
+    NFD(NFK.LIST, "body", "statement list", BODY_NODES),
+    NFD(NFK.LIST, "body_t", "statement list", BODY_NODES),
+    NFD(NFK.LIST, "body_f", "statement list", BODY_NODES),
+    #
+    NFD(NFK.NODE, "type", "type expression"),
+    NFD(NFK.NODE, "type_or_auto", "type expression"),
+    NFD(NFK.NODE, "result", "return type"),
+    NFD(NFK.NODE, "size", "compile-time constant size"),
+    NFD(NFK.NODE, "expr_size", "expression determining the size or auto"),
+    NFD(NFK.NODE, "expr_index", "expression determining the index to be accessed"),
+    NFD(NFK.NODE, "expr", "expression"),
+    NFD(NFK.NODE, "cond", "conditional expression must evaluate to a boolean"),
     NFD(NFK.NODE, "expr_t", "expression (will only be evaluated if cond == true)"),
-    NFD(NFK.NODE,  "expr_f", "expression (will only be evaluated if cond == false)"),
-    NFD(NFK.NODE,  "expr1", "left operand expression"),
-    NFD(NFK.NODE,  "expr2", "righ operand expression"),
-    NFD(NFK.NODE,  "expr_ret", "result expression (ValVoid means no result)"),
-    NFD(NFK.NODE,  "range", "range expression"),
-    NFD(NFK.NODE,  "container", "array and slice"),
-    NFD(NFK.NODE,  "callee", "expression evaluating to the function to be called"),
-    NFD(NFK.NODE,  "start", ""),
-    NFD(NFK.NODE,  "begin", "range begin: `Auto` => 0"),
-    NFD(NFK.NODE,  "end", "range end"),
-    NFD(NFK.NODE,  "step", "range step, `Auto` => 1"),
-    NFD(NFK.NODE,  "width", ""),
-    NFD(NFK.NODE,  "value", ""),
-    NFD(NFK.NODE,  "lhs", "l-value expression"),
-    NFD(NFK.NODE,  "initial", "initializer (must be compile-time constant)"),
+    NFD(NFK.NODE, "expr_f", "expression (will only be evaluated if cond == false)"),
+    NFD(NFK.NODE, "expr1", "left operand expression"),
+    NFD(NFK.NODE, "expr2", "righ operand expression"),
+    NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)"),
+    NFD(NFK.NODE, "range", "range expression"),
+    NFD(NFK.NODE, "container", "array and slice"),
+    NFD(NFK.NODE, "callee", "expression evaluating to the function to be called"),
+    NFD(NFK.NODE, "start", "desired start of slice"),
+    NFD(NFK.NODE, "begin", "range begin: `Auto` => 0"),
+    NFD(NFK.NODE, "end", "range end"),
+    NFD(NFK.NODE, "step", "range step, `Auto` => 1"),
+    NFD(NFK.NODE, "width", "desired width of slice"),
+    NFD(NFK.NODE, "value", ""),
+    NFD(NFK.NODE, "lhs", "l-value expression"),
+    NFD(NFK.NODE, "initial", "initializer (must be compile-time constant)"),
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
