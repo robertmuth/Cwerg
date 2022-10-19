@@ -307,12 +307,18 @@ class TypeTab:
                 ctx.enclosing_fun = save_fun
             return cstr
         elif isinstance(node, cwast.TypeArray):
-            # note this is the only place where we need a comptime eval
+            # note this is the only place where we need a comptime eval for types
             t = self.typify_node(node.type, ctx)
+            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            self.typify_node(node.size, ctx)
+            ctx.pop_target()
             dim = self.compute_dim(node.size)
             return self.annotate(node, self.corpus.insert_array_type(dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
+            ctx.push_target(cstr)
+            self.typify_node(node.initial, ctx)
+            ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefRec):
             # allow recursive definitions referring back to rec inside
@@ -347,7 +353,7 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_sum_type(pieces))
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
             return self.annotate(node, self.corpus.insert_base_type(
-                cwast.TypeBase(cwast.BASE_TYPE_KIND.BOOL)))
+                cwast.BASE_TYPE_KIND.BOOL))
         elif isinstance(node, cwast.ValVoid):
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.VOID))
@@ -375,6 +381,9 @@ class TypeTab:
             ctx.push_target(cstr)
             for x in node.inits_array:
                 self.typify_node(x, ctx)
+            ctx.pop_target()
+            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
             dim = self.compute_dim(node.expr_size)
             return self.annotate(node, self.corpus.insert_array_type(dim, cstr))
@@ -493,7 +502,8 @@ class TypeTab:
             assert False, f"unexpected node {node}"
 
     def verify_node(self, node, ctx: TypeContext):
-        pass
+        if isinstance(node, cwast.TYPED_ANNOTATED_NODES):
+            assert id(node) in self._links, f"untypified node {node}"
 
     def verify_node_recursively(self, node, ctx: TypeContext):
         if isinstance(node, cwast.DefFun):
