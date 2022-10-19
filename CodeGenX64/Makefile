@@ -64,11 +64,12 @@ $(DIR)/cli.x64.asm.exe: TestData/cli.x64.asm
 	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
-$(DIR)/threads.x64.asm.exe: ../TestData/threads.64.asm
-	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ > $@.actual.out
-	diff $@.actual.out $<.golden
+# Flaky see https://github.com/robertmuth/Cwerg/issues/17
+# $(DIR)/threads.x64.asm.exe: ../TestData/threads.64.asm
+# 	@echo "[integration $@]"
+# 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+# 	${QEMU} $@ > $@.actual.out
+# 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
