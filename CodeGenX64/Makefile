@@ -34,7 +34,10 @@ tests: tests_py tests_c
 tests_py: $(DIR)/isel_test \
         $(DIR)/syscall.x64.asm.exe \
 	    $(DIR)/cli.x64.asm.exe \
-		$(DIR)/threads.x64.asm.exe  $(TEST_EXES) $(DIR)/nanojpeg
+		$(TEST_EXES) $(DIR)/nanojpeg
+
+# flaky
+# $(DIR)/threads.x64.asm.exe
 
 tests_c: $(DIR)/isel_test_c $(DIR)/codegen_parity $(TEST_C_EXES)
 
