@@ -570,7 +570,7 @@ BNE = Opcode(0x21, "bne", OPC_KIND.COND_BRA,
 BLT = Opcode(0x22, "blt", OPC_KIND.COND_BRA,
              [OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST, OP_KIND.BBL],
              [TC.ADDR_NUM, TC.SAME_AS_PREV, TC.INVALID], OPC_GENUS.BASE,
-             "Conditional branch (if greater than)",
+             "Conditional branch (if less than)",
              OA.BBL_TERMINATOR)
 
 BLE = Opcode(0x23, "ble", OPC_KIND.COND_BRA,

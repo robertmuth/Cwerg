@@ -160,7 +160,7 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 | 0x1e | clmul dst src1 src2 | NYI: Carry-less multiplication |
 | 0x20 | beq op1 op2 target_bbl | Conditional branch (if equal) |
 | 0x21 | bne op1 op2 target_bbl | Conditional branch (if not equal) |
-| 0x22 | blt op1 op2 target_bbl | Conditional branch (if greater than) |
+| 0x22 | blt op1 op2 target_bbl | Conditional branch (if less than) |
 | 0x23 | ble op1 op2 target_bbl | Conditional branch (if less or equal) |
 | 0x28 | switch index table | Multi target computed jump |
 | 0x29 | bra target_bbl | Unconditional branch |
@@ -281,7 +281,7 @@ Conditional branch (if equal)
 Conditional branch (if not equal)
 
 #### [22] blt *op1* <sub>[REG/CONST:ADDR_NUM]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
-Conditional branch (if greater than)
+Conditional branch (if less than)
 
 #### [23] ble *op1* <sub>[REG/CONST:ADDR_NUM]</sub> *op2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *target_bbl* <sub>[BBL]</sub>
 Conditional branch (if less or equal)
@@ -471,7 +471,7 @@ nop with one reg - internal use
               
               Note: Can be used to `reserve` a reg for code generation.
 
-#### [77] line *file* <sub>[STRING]</sub> *line* <sub>[CONST:ANY]</sub>
+#### [77] line *file* <sub>[BYTES]</sub> *line* <sub>[CONST:UINT]</sub>
 NYI: debug line number
 
 #### [78] inline *target-asm-ins* <sub>[BYTES]</sub>

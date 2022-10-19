@@ -10,8 +10,11 @@ Cwerg includes several components that might be helpful for other compiler proje
 
 All 4 components have Python3 and C++ implementations which can be used as libraries. [C bindings](../BindingsC/) wrapping parts of the C++ API also exist.
 
-The components can be used AOT style and emit ELF images or JIT style and emit to memory where the code be called directly.
-In addition, the full backend can emit testual assembler.
+The components can be used:
+1. AOT style emitting to ELF images or 
+2. JIT style emitting to memory where the code can be called directly
+
+In addition, the full backend can emit textual assembler (albeit Cwerg flavored).
 
 
 Besides using the components programmatically as libraries, there are also standalone exectuables that accept textual input.
