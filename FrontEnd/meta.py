@@ -134,6 +134,10 @@ class TypeCorpus:
             return cstr[6:-1]
         else:
             assert False
+   
+    def get_pointee_type(self, cstr: CanonType):
+        assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
+        return cstr.split("(", 1)[1][:-1]
 
     def lookup_rec_field(self, rec_cstr: CanonType, field_name):
         """Oddball since the node returned is NOT inside corpus
@@ -147,9 +151,7 @@ class TypeCorpus:
                 return x
         assert False
 
-    def get_pointee_type(self, cstr: CanonType):
-        assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
-        return cstr.split("(", 1)[:-1]
+ 
 
     def insert_rec_type(self, name: str, node) -> CanonType:
         name = f"rec({name})"
@@ -235,7 +237,7 @@ class TypeTab:
     def type_link(self, node) -> CanonType:
         return self._links[id(node)]
 
-    def fields_link(self, node) -> cwast.RecField:
+    def field_link(self, node) -> cwast.RecField:
         return self._field_links[id(node)]
 
     def compute_dim(self, node) -> int:
@@ -309,7 +311,8 @@ class TypeTab:
         elif isinstance(node, cwast.TypeArray):
             # note this is the only place where we need a comptime eval for types
             t = self.typify_node(node.type, ctx)
-            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.size, ctx)
             ctx.pop_target()
             dim = self.compute_dim(node.size)
@@ -382,7 +385,8 @@ class TypeTab:
             for x in node.inits_array:
                 self.typify_node(x, ctx)
             ctx.pop_target()
-            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
             dim = self.compute_dim(node.expr_size)
@@ -504,6 +508,31 @@ class TypeTab:
     def verify_node(self, node, ctx: TypeContext):
         if isinstance(node, cwast.TYPED_ANNOTATED_NODES):
             assert id(node) in self._links, f"untypified node {node}"
+        if isinstance(node, cwast.ValArray):
+            cstr = self.type_link(node.type)
+            for x in node.inits_array:
+                if not isinstance(x, cwast.Comment):
+                    assert cstr == self.type_link(
+                        x), f"expected {cstr} got {self.type_link(x)}"
+        elif isinstance(node, cwast.ValRec):
+            for x in node.inits_rec:
+                if not isinstance(x, cwast.Comment):
+                    field_node = self.field_link(x)
+                    assert self.type_link(field_node) == self.type_link(x)
+        elif isinstance(node, cwast.ExprIndex):
+            cstr = self.type_link(node)
+            assert cstr == self.corpus.get_contained_type(
+                self.type_link(node.container))
+        elif isinstance(node, cwast.ExprField):
+            cstr = self.type_link(node)
+            field_node = self.field_link(node)
+            assert cstr == self.type_link(field_node)
+        elif isinstance(node, cwast.DefVar):
+            cstr = self.type_link(node)
+            assert cstr == self.type_link(node.initial)
+            if not isinstance(node.type_or_auto, cwast.Auto):
+                  assert cstr == self.type_link(node.type_or_auto), f"expected {cstr} got {self.type_link(node.type_or_auto)}"
+        # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):
         if isinstance(node, cwast.DefFun):
