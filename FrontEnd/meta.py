@@ -134,7 +134,7 @@ class TypeCorpus:
             return cstr[6:-1]
         else:
             assert False
-   
+
     def get_pointee_type(self, cstr: CanonType):
         assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
         return cstr.split("(", 1)[1][:-1]
@@ -150,8 +150,6 @@ class TypeCorpus:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         assert False
-
- 
 
     def insert_rec_type(self, name: str, node) -> CanonType:
         name = f"rec({name})"
@@ -436,10 +434,10 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
-            if not isinstance(node.begin, cwast.Auto):
-                self.typify_node(node.start, ctx)
-            if not isinstance(node.step, cwast.Auto):
-                self.typify_node(node.step, ctx)
+            if not isinstance(node.begin_or_auto, cwast.Auto):
+                self.typify_node(node.begin_or_auto, ctx)
+            if not isinstance(node.step_or_auto, cwast.Auto):
+                self.typify_node(node.step_or_auto, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtFor):
             ctx.push_target(NO_TYPE if
@@ -531,7 +529,30 @@ class TypeTab:
             cstr = self.type_link(node)
             assert cstr == self.type_link(node.initial)
             if not isinstance(node.type_or_auto, cwast.Auto):
-                  assert cstr == self.type_link(node.type_or_auto), f"expected {cstr} got {self.type_link(node.type_or_auto)}"
+                assert cstr == self.type_link(
+                    node.type_or_auto), f"expected {cstr} got {self.type_link(node.type_or_auto)}"
+        elif isinstance(node, cwast.ExprRange):
+            cstr = self.type_link(node)
+            if not isinstance(node.begin_or_auto, cwast.Auto):
+                assert cstr == self.type_link(node.begin_or_auto)
+            assert cstr == self.type_link(node.end)
+            if not isinstance(node.step_or_auto, cwast.Auto):
+                assert cstr == self.type_link(node.step_or_auto)
+        elif isinstance(node, cwast.StmtFor):
+            if not isinstance(node.type_or_auto, cwast.Auto):
+                assert self.type_link(
+                    node.range) == self.type_link(node.type_or_auto)
+        elif isinstance(node, cwast.ExprDeref):
+            cstr = self.type_link(node)
+            assert cstr == self.corpus.get_pointee_type(self.type_link(node.expr))
+        elif isinstance(node, cwast.Expr1):
+            cstr = self.type_link(node)
+            assert cstr == self.type_link(node.expr)
+        # elif isinstance(node, cwast.Expr2):
+        #    cstr = self.type_link(node)
+        #    assert cstr == self.type_link(node.expr1)
+        #    assert cstr == self.type_link(node.expr2), f"{cstr} vs {self.type_link(node.expr2)}"
+
         # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):

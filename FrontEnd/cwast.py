@@ -589,11 +589,11 @@ class ExprRange:
     FLAGS = NF.TYPE_ANNOTATED
 
     end: ExprNode   # start, end ,step work like range(start, end, step)
-    begin: Union["Auto", ExprNode]
-    step: Union["Auto", ExprNode]
+    begin_or_auto: Union[Auto, ExprNode]
+    step_or_auto: Union[Auto, ExprNode]
 
     def __str__(self):
-        return f"RANGE({self.end}, {self.begin}, {self.step})"
+        return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
 
 
 ############################################################
@@ -1074,9 +1074,9 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "container", "array and slice"),
     NFD(NFK.NODE, "callee", "expression evaluating to the function to be called"),
     NFD(NFK.NODE, "start", "desired start of slice"),
-    NFD(NFK.NODE, "begin", "range begin: `Auto` => 0"),
+    NFD(NFK.NODE, "begin_or_auto", "range begin: `Auto` => 0"),
     NFD(NFK.NODE, "end", "range end"),
-    NFD(NFK.NODE, "step", "range step, `Auto` => 1"),
+    NFD(NFK.NODE, "step_or_auto", "range step, `Auto` => 1"),
     NFD(NFK.NODE, "width", "desired width of slice"),
     NFD(NFK.NODE, "value", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
@@ -1090,8 +1090,8 @@ OPTIONAL_FIELDS = {
     "expr_ret":  ValVoid(),
     "width":  Auto(),
     "start":   Auto(),
-    "begin":   Auto(),
-    "step":   Auto(),
+    "begin_or_auto":   Auto(),
+    "step_or_auto":   Auto(),
     "target": "",
     "path": "",
 }
