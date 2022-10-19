@@ -25,6 +25,7 @@ class TypeContext:
         self.symtab: symtab.SymTab = symtab
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
+        self._enclosing_rec_type: List[CanonType] = []
         self._target_type: List[CanonType] = [NO_TYPE]
 
     def push_target(self, cstr: CanonType):
@@ -35,6 +36,15 @@ class TypeContext:
 
     def get_target_type(self):
         return self._target_type[-1]
+
+    def push_rec_type(self, cstr: CanonType):
+        self._enclosing_rec_type.append(cstr)
+
+    def pop_rec_type(self):
+        self._enclosing_rec_type.pop(-1)
+
+    def get_rec_type(self):
+        return self._enclosing_rec_type[-1]
 
 
 class TypeCorpus:
@@ -217,10 +227,16 @@ class TypeTab:
         self.wrapped_curr = 1
         self.corpus = TypeCorpus(uint_kind, sint_kind)
         self.dims: Dict[int, int] = {}
-        self.links: Dict[int, CanonType] = {}
+        # links node-ids to strings from corpus
+        self._links: Dict[int, CanonType] = {}
+        # links nodes with
+        self._field_links: Dict[int, cwast.RecField] = {}
 
-    def link(self, node) -> CanonType:
-        return self.links[id(node)]
+    def type_link(self, node) -> CanonType:
+        return self._links[id(node)]
+
+    def fields_link(self, node) -> cwast.RecField:
+        return self._field_links[id(node)]
 
     def compute_dim(self, node) -> int:
         assert isinstance(node, cwast.ValNum), f"unexpected number: {node}"
@@ -230,9 +246,14 @@ class TypeTab:
         assert isinstance(
             node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
-        assert id(node) not in self.links, f"duplicate annotation for {node}"
-        self.links[id(node)] = cstr
+        assert id(node) not in self._links, f"duplicate annotation for {node}"
+        self._links[id(node)] = cstr
         return cstr
+
+    def annotate_field(self, node, field_node):
+        assert isinstance(node, (cwast.ExprField, cwast.FieldVal))
+        assert isinstance(field_node, cwast.RecField)
+        self._field_links[id(node)] = field_node
 
     def num_type(self, num: str) -> CanonType:
         for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
@@ -249,7 +270,7 @@ class TypeTab:
         target_type = ctx.get_target_type()
         extra = "" if target_type == NO_TYPE else f"[{target_type}]"
         logger.info(f"TYPIFYING{extra} {node}")
-        cstr = self.links.get(id(node))
+        cstr = self._links.get(id(node))
         if cstr is not None:
             # has been typified already
             return cstr
@@ -269,7 +290,7 @@ class TypeTab:
         elif isinstance(node, cwast.TypeSlice):
             t = self.typify_node(node.type, ctx)
             return self.annotate(node, self.corpus.insert_slice_type(node.mut, t))
-        elif isinstance(node, (cwast.FunParam, cwast.RecField)):
+        elif isinstance(node, cwast.FunParam):
             cstr = self.typify_node(node.type, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
@@ -291,8 +312,8 @@ class TypeTab:
             dim = self.compute_dim(node.size)
             return self.annotate(node, self.corpus.insert_array_type(dim, t))
         elif isinstance(node, cwast.RecField):
-            t = self.typify_node(f.type, ctx)
-            return self.annotate(node, t)
+            cstr = self.typify_node(node.type, ctx)
+            return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefRec):
             # allow recursive definitions referring back to rec inside
             # the fields
@@ -324,7 +345,7 @@ class TypeTab:
             # are not TypeSum themselves on the canonical side
             pieces = [self.typify_node(f, ctx) for f in node.types]
             return self.annotate(node, self.corpus.insert_sum_type(pieces))
-        if isinstance(node, (cwast.ValTrue,cwast.ValFalse)):
+        if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.TypeBase(cwast.BASE_TYPE_KIND.BOOL)))
         elif isinstance(node, cwast.ValVoid):
@@ -358,18 +379,26 @@ class TypeTab:
             dim = self.compute_dim(node.expr_size)
             return self.annotate(node, self.corpus.insert_array_type(dim, cstr))
         elif isinstance(node, cwast.FieldVal):
+            field_node = self.corpus.lookup_rec_field(
+                ctx.get_rec_type(), node.field)
+            self.annotate_field(node, field_node)
+            # TODO: make sure this link is set
+            ctx.push_target(self.type_link(field_node))
             cstr = self.typify_node(node.value, ctx)
             return self.annotate(node, cstr)
+            ctx.pop_target()
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
+            ctx.push_rec_type(cstr)
             for val in node.inits_rec:
                 field_cstr = NO_TYPE
                 if isinstance(val, cwast.FieldVal):
                     field = self.corpus.lookup_rec_field(cstr, val.field)
-                    field_cstr = self.links[id(field)]
+                    field_cstr = self.type_link(field)
                 ctx.push_target(field_cstr)
                 self.typify_node(val, ctx)
                 ctx.pop_target()
+            ctx.pop_rec_type()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValArrayString):
             dim = ComputeStringSize(node.raw, node.string)
@@ -383,7 +412,8 @@ class TypeTab:
         elif isinstance(node, cwast.ExprField):
             cstr = self.typify_node(node.container, ctx)
             field_node = self.corpus.lookup_rec_field(cstr, node.field)
-            return self.annotate(node, self.links[id(field_node)])
+            self.annotate_field(node, field_node)
+            return self.annotate(node, self._links[id(field_node)])
         elif isinstance(node, cwast.DefVar):
             ctx.push_target(NO_TYPE if
                             isinstance(node.type_or_auto, cwast.Auto)
@@ -436,7 +466,7 @@ class TypeTab:
                 ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtReturn):
-            cstr = self.links[id(ctx.enclosing_fun.result)]
+            cstr = self._links[id(ctx.enclosing_fun.result)]
             ctx.push_target(cstr)
             self.typify_node(node.expr_ret, ctx)
             ctx.pop_target()
@@ -461,6 +491,21 @@ class TypeTab:
             return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
+
+    def verify_node(self, node, ctx: TypeContext):
+        pass
+
+    def verify_node_recursively(self, node, ctx: TypeContext):
+        if isinstance(node, cwast.DefFun):
+            ctx.enclosing_fun = node
+        self.verify_node(node, ctx)
+        for c in node.__class__.FIELDS:
+            nfd = cwast.ALL_FIELDS_MAP[c]
+            if nfd.kind is cwast.NFK.NODE:
+                self.verify_node_recursively(getattr(node, c), ctx)
+            elif nfd.kind is cwast.NFK.LIST:
+                for cc in getattr(node, c):
+                    self.verify_node_recursively(cc, ctx)
 
 
 def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
@@ -494,5 +539,7 @@ if __name__ == "__main__":
         pass
     symtab = symtab.ExtractSymTab(asts)
     typetab = ExtractTypeTab(asts, symtab)
+    for node in asts:
+        typetab.verify_node_recursively(node, TypeContext(None, None))
     for t in typetab.corpus.corpus:
         print(t)
