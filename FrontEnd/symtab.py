@@ -23,7 +23,7 @@ MODULES = {}
 
 
 class SymTab:
-
+    """Symbol Table"""
     def __init__(self):
         self._type_syms = {}
         self._const_syms = {}

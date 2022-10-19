@@ -461,6 +461,9 @@ class BINARY_EXPR_KIND(enum.Enum):
 
     SHR = 40    # >>
     SHL = 41    # <<
+    PADD = 50   # pointer add int
+    PSUB = 51   # pointer sub int
+    PDELTA = 52  # pointer delta result is sint
 
 
 @dataclasses.dataclass()
@@ -1300,6 +1303,18 @@ BINOP_SHORTCUT = {
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
+    "padd": BINARY_EXPR_KIND.PADD,
+    "psub": BINARY_EXPR_KIND.PSUB,
+    "pdelta": BINARY_EXPR_KIND.PDELTA,
+}
+
+BINOP_BOOL = {
+    BINARY_EXPR_KIND.GE,
+    BINARY_EXPR_KIND.GT,
+    BINARY_EXPR_KIND.LE,
+    BINARY_EXPR_KIND.LT,
+    BINARY_EXPR_KIND.EQ,
+    BINARY_EXPR_KIND.NE, 
 }
 
 BINOP_SHORTCUT_INV = {v: k for k, v in BINOP_SHORTCUT.items()}

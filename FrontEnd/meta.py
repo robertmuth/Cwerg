@@ -138,7 +138,7 @@ class TypeCorpus:
         assert False
 
     def get_pointee_type(self, cstr: CanonType):
-        assert cstr.startswith("ptr")
+        assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
         return cstr.split("(", 1)[:-1]
 
     def insert_rec_type(self, name: str, node) -> CanonType:
@@ -415,11 +415,13 @@ class TypeTab:
             cstr = self.typify_node(node.expr, ctx)
             return self.annotate(node, self.corpus.get_pointee_type(cstr))
         elif isinstance(node, cwast.Expr2):
-            # cstr = ctx.get_target_type()
-            # Needs tons of work
             cstr = self.typify_node(node.expr1, ctx)
-            self.typify_node(node.expr1, ctx)
-            return cstr
+            self.typify_node(node.expr2, ctx)
+            if node.binary_expr_kind in cwast.BINOP_BOOL:
+                cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+            elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
+                cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+            return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtExpr):
             self.typify_node(node.expr, ctx)
             return NO_TYPE
@@ -459,40 +461,6 @@ class TypeTab:
             return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
-
-    def canonicalize_type(self, node) -> str:
-        pass
-
-
-CanonConst = Any
-
-
-class ConstTab:
-    """Type Table
-
-    Requires SymTab info to resolve DefType symnbols
-    """
-
-    def __init__(self):
-        self.links = {}
-
-    def link(self, node) -> CanonConst:
-        return self.links[id(node)]
-
-    def constify_value_node(self, node,  target_type: Optional[CanonType], mod_name,
-                            sym_tab: symtab.SymTab) -> CanonType:
-        logger.info(f"CONSTFYING {node}")
-        assert isinstance(node, _VALUE_NODES), f"unexpected node {node}"
-        if isinstance(node, cwast.Id):
-            pass
-            # this case is why we need the sym_tab
-            def_node = sym_tab.get_definition_for_symbol(node)
-            # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
-            cstr = self.typify_type_node(def_node, mod_name, sym_tab)
-        elif isinstance(node, (cwast.ValBool, cwast.ValUndef, cwast.ValVoid)):
-            self.links[id(node)] = node
-        elif isinstance(node, cwast.ValNum):
-            self.links[id(node)] = node
 
 
 def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
