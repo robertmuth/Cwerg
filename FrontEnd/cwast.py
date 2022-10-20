@@ -276,7 +276,7 @@ class ValNum:
 class ValUndef:
     """Special constant to indiciate *no default value*"""
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF(0)
 
     def __str__(self): return f"UNDEF"
 
@@ -816,10 +816,10 @@ class RecField:  #
 
     name: str
     type: TypeNode
-    initial: Union["ExprNode", ValUndef]    # must be const
+    initial_or_undef: Union["ExprNode", ValUndef]    # must be const
 
     def __str__(self):
-        return f"{self.name}: {self.type} = {self.initial}"
+        return f"{self.name}: {self.type} = {self.initial_or_undef}"
 
 
 FIELDS_NODES = Union[Comment, RecField]
@@ -921,10 +921,10 @@ class DefVar:
     mut: bool
     name: str
     type_or_auto: Union[TypeNode, Auto]
-    initial: ExprNode
+    initial_or_undef: ExprNode
 
     def __str__(self):
-        return f"LET {self.name}: {self.type_or_auto} = {self.initial}"
+        return f"LET {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1080,7 +1080,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "width", "desired width of slice"),
     NFD(NFK.NODE, "value", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
-    NFD(NFK.NODE, "initial", "initializer (must be compile-time constant)"),
+    NFD(NFK.NODE, "initial_or_undef", "initializer (must be compile-time constant)"),
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1216,8 +1216,8 @@ _SHORT_HAND_NODES = {
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
 
     "undef": ValUndef(),
-    "false": ValTrue(),
-    "true": ValFalse(),
+    "true": ValTrue(),
+    "false": ValFalse(),
 }
 
 for t in _SCALAR_TYPES:

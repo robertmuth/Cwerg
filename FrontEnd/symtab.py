@@ -190,7 +190,7 @@ def ExtractSymTab(asts: List) -> SymTab:
             if isinstance(node, cwast.DefVar):
                 # we already registered the var in the previous step
                 symtab.resolve_symbols_recursively(node.type_or_auto)
-                symtab.resolve_symbols_recursively(node.initial)
+                symtab.resolve_symbols_recursively(node.initial_or_undef)
             else:
                 symtab.resolve_symbols_recursively(node)
         #

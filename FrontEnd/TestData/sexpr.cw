@@ -71,6 +71,10 @@
 
 (fun foo [(param a s32) (param b s32) (param c s32)] void [
    (# "this is a comment with \" with quotes \t ")
+   (let p1 (ptr u8) undef)
+   (let p2 (ptr u8) undef)
+   (if (== p1 p2) [] [])
+   (let p3 auto (? false p1 p2))
    (block my_block [
       (# "this is a comment with \" with quotes \t ")
       (break)

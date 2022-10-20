@@ -139,6 +139,12 @@ class TypeCorpus:
         assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
         return cstr.split("(", 1)[1][:-1]
 
+    def is_pointer(self, cstr):
+        return cstr.startswith("ptr")
+    
+    def is_int(self, cstr):
+        return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
+
     def lookup_rec_field(self, rec_cstr: CanonType, field_name):
         """Oddball since the node returned is NOT inside corpus
 
@@ -317,9 +323,10 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_array_type(dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
-            ctx.push_target(cstr)
-            self.typify_node(node.initial, ctx)
-            ctx.pop_target()
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                ctx.push_target(cstr)
+                self.typify_node(node.initial_or_undef, ctx)
+                ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefRec):
             # allow recursive definitions referring back to rec inside
@@ -359,7 +366,7 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.VOID))
         elif isinstance(node, cwast.ValUndef):
-            return self.annotate(node, ctx.get_target_type())
+            assert False, "Must not try to typify UNDEF"
         elif isinstance(node, cwast.ValNum):
             cstr = self.num_type(node.number)
             if cstr != NO_TYPE:
@@ -426,11 +433,12 @@ class TypeTab:
             self.annotate_field(node, field_node)
             return self.annotate(node, self._links[id(field_node)])
         elif isinstance(node, cwast.DefVar):
-            ctx.push_target(NO_TYPE if
-                            isinstance(node.type_or_auto, cwast.Auto)
-                            else self.typify_node(node.type_or_auto, ctx))
-            cstr = self.typify_node(node.initial, ctx)
-            ctx.pop_target()
+            cstr = (NO_TYPE if isinstance(node.type_or_auto, cwast.Auto)
+                    else self.typify_node(node.type_or_auto, ctx))
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                ctx.push_target(cstr)
+                cstr = self.typify_node(node.initial_or_undef, ctx)
+                ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
@@ -462,6 +470,13 @@ class TypeTab:
                 cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
                 cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+            return self.annotate(node, cstr)
+        elif isinstance(node, cwast.Expr3):
+            self.typify_node(node.cond, ctx)
+            cstr = self.typify_node(node.expr_t, ctx)
+            ctx.push_target(cstr)
+            self.typify_node(node.expr_f, ctx)
+            ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtExpr):
             self.typify_node(node.expr, ctx)
@@ -527,10 +542,11 @@ class TypeTab:
             assert cstr == self.type_link(field_node)
         elif isinstance(node, cwast.DefVar):
             cstr = self.type_link(node)
-            assert cstr == self.type_link(node.initial)
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                assert cstr == self.type_link(node.initial_or_undef)
             if not isinstance(node.type_or_auto, cwast.Auto):
                 assert cstr == self.type_link(
-                    node.type_or_auto), f"expected {cstr} got {self.type_link(node.type_or_auto)}"
+                    node.type_or_auto), f"{node}: expected {cstr} got {self.type_link(node.type_or_auto)}"
         elif isinstance(node, cwast.ExprRange):
             cstr = self.type_link(node)
             if not isinstance(node.begin_or_auto, cwast.Auto):
@@ -544,15 +560,40 @@ class TypeTab:
                     node.range) == self.type_link(node.type_or_auto)
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.type_link(node)
-            assert cstr == self.corpus.get_pointee_type(self.type_link(node.expr))
+            assert cstr == self.corpus.get_pointee_type(
+                self.type_link(node.expr))
         elif isinstance(node, cwast.Expr1):
             cstr = self.type_link(node)
             assert cstr == self.type_link(node.expr)
-        # elif isinstance(node, cwast.Expr2):
-        #    cstr = self.type_link(node)
-        #    assert cstr == self.type_link(node.expr1)
-        #    assert cstr == self.type_link(node.expr2), f"{cstr} vs {self.type_link(node.expr2)}"
-
+        elif isinstance(node, cwast.Expr2):
+            cstr = self.type_link(node)
+            cstr1 = self.type_link(node.expr1)
+            cstr2 = self.type_link(node.expr2)
+            if node.binary_expr_kind in cwast.BINOP_BOOL:
+                assert cstr1 == cstr2
+                assert cstr == self.corpus.insert_base_type(
+                    cwast.BASE_TYPE_KIND.BOOL)
+            elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
+                                           cwast.BINARY_EXPR_KIND.PSUB):
+                assert cstr == cstr1
+                assert self.corpus.is_int(cstr2)
+            elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
+                assert self.corpus.get_pointee_type(
+                    cstr1) == self.corpus.get_pointee_type(cstr2)
+                assert cstr == self.corpus.insert_base_type(
+                    cwast.BASE_TYPE_KIND.SINT)
+            else:
+                assert cstr == cstr1
+                assert cstr == cstr2
+        elif isinstance(node, cwast.Expr3):
+            cstr = self.type_link(node)
+            cstr_t = self.type_link(node.expr_t)
+            cstr_f = self.type_link(node.expr_f)
+            cstr_cond = self.type_link(node.cond)
+            assert cstr == cstr_t
+            assert cstr == cstr_f
+            assert cstr_cond == self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL)
         # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):
