@@ -11,13 +11,14 @@ more insights about the design-space by bootstrapping the front- and backend.
 
 ## Syntax
   
-  Source code will be stored as serialized S-Expressions with tooling to
-  convert back and forth to a yet to be defined concrete syntax.
+Source code will be stored as serialized S-Expressions with tooling to
+convert back and forth to a yet to be defined concrete syntax.
 
-  The tooling will do most of the syntax and semantic checking.
-  Comments wil be explicit in the AST and cannot occur in arbitrary places.
-  Similarly, parenthesis used to group expression will be modelled in the AST.
+The tooling will do most of the syntax and semantic checking.
+Comments wil be explicit in the AST and cannot occur in arbitrary places.
+Similarly, parenthesis used to group expression will be modelled in the AST.
  
+[List of S-Expression Nodes](../Doc/ast.md)
 
 ## Discussion of Features
 

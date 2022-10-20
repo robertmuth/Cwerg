@@ -2,23 +2,23 @@
 
 [[Documentation]](Docs/) ![Status](../../workflows/cwerg-tests/badge.svg)
 
-> **_NOTE:_**  The author is looking for projects that want to try out Cwerg. 
-> So if you are interested in using Cwerg for your own compiler
+> **_NOTE:_**  The author is looking for projects that want to try out the Cwerg
+> backend. If you are interested in using Cwerg as backend for your own compiler
 > project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md)
 > and/or reach out to the author.
 
-Cwerg is a lightweight compiler backend aimed at new programming 
+Cwerg aims to be a complete compiler for a C-like language. The [frontend](FrontEnd) is still in its infancy but the backend is fairly far along and 
+can be used independently from the frontend.
+The Cwerg backend is lightweight and suitable for new programming 
 language implementations that want to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
 ELF executables for Arm32, Arm64 and X86-64 ISAs.
 Besides AOT compilation, (one-shot) JITing is also supported.
 
-The core project currently consists of:
+The backend currently consists of:
 
 * RISC like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
-* [C Frontend](FrontEndC/)  (subset of C to IR compiler)
-* [WASM Frontend](FrontEndWASM/) (WASM/WASI to IR transpiler)
 * [Elf Support Lib](Elf/)   ((de-)compiler for ELF object files)
 * [A32 Support Lib](CpuA32/) ((dis-) assembler for ARM32 instructions)
 * [A64 Support Lib](CpuA64/) ((dis-) assembler for ARM64 instructions)
@@ -30,6 +30,11 @@ The core project currently consists of:
 * [Standard Library](StdLib/) (rudimentary library of mostly syscall wrappers)
 * [C Bindings](BindingsC/) (C bindings: wrappers around the C++ code)
 
+The following frontends are available:
+* [Cwerg Frontend](FrontEnd) work in progress
+* [C Frontend](FrontEndC/)  (subset of C to IR compiler)
+* [WASM Frontend](FrontEndWASM/) (WASM/WASI to IR transpiler)
+  
 You may also find the following useful:
 * [Docs](Docs/) (misc. documentation)
 * [Examples](Examples/) (examples demonstrating API usage)
@@ -47,16 +52,19 @@ understood by a single developer and very fast translation times.
 
 ### Size Targets
 
-The project tracks code size in [LOC](CLOC.txt) carefully. The goal is to limit 
-the IR optimizer to 10kLOC and an additional 5kLOC for each supported target 
-[ISA](https://en.wikipedia.org/wiki/Instruction_set_architecture) 
-(per implementation language).
-Note, that code generated from tables is not counted but the tables (written in Python) are.
+The project tracks code size in [LOC](CLOC.txt) carefully. 
+We use code size as a proxy for complexity and have the following self-imposed limits:
+* frontend: 10kLOC
+* IR optimizer: 10kLOC 
+* backend targets: 5kLOC per [ISA](https://en.wikipedia.org/wiki/Instruction_set_architecture)
+
+The limits are per implementation (e.g. C++ and Python)
+Code generated from tables is not counted but the tables (written in Python) are.
 
 ### Speed Targets
 
-The goal for the c++ implementation is to translate the IR to an Elf executable at a speed of 
-500k IR instructions per sec using at most 4 cores on a 2020 era midrange desktop or high end laptop.
+The goal for the c++ implementation of the backend is to translate the IR to an
+Elf executable at a speed of 500k IR instructions per sec using at most 4 cores on a 2020 era midrange desktop or high end laptop.
 
 Whole program translation and parallel translation at the function level are 
 explicit design goals for the C++ implementations.
