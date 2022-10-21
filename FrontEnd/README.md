@@ -30,24 +30,26 @@ Removed:
 * separate compilation
 * pre-processor
 * varargs
+* implcit conversations
+* unions
 * ++/-- 
 * null
 * goto
 
 Added
-* modules
-* templates 
+* modules (with templates) 
 * enum namespaces 
-* sum types (tagged unions)
-* visibility control
-* mutability control
-* iterators
+* sum types (support nullable types and result types (error code + payload))
+* visibility control (default private)
+* mutability control (default not mutable)
 * slices (fat pointers)
 * structural and by-name type equality
 * defer
 * named blocks
-* stringifiers
 * checked array accesses
+* stringifiers
+* iterators
+
 
 ## Discussion of Features
 
@@ -171,7 +173,8 @@ Decision: omitted. Can be implemented in libraries.
 
 #### Structural Type equivalence vs name equivalence BOTH
 
-Default is structural equivalence but all types can be wrapped (similar to `distinct` in Nim/Odin) which forces name equivalence.
+Default is structural equivalence (except for enums and recs) but all types 
+can be wrapped (similar to `distinct` in Nim/Odin) which forces name equivalence.
 
 
 #### NULL pointers (aka nullptr, nil, None, etc.) NO
