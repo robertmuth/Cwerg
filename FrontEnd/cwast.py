@@ -782,7 +782,7 @@ class ASSIGNMENT_KIND(enum.Enum):
 
 
 @dataclasses.dataclass()
-class StmtAssignment2:
+class StmtCompoundAssignment:
     """Compound assignment statement"""
     ALIAS = None
     FLAGS = NF.NONE
@@ -798,7 +798,6 @@ class StmtAssignment:
     ALIAS = "="
     FLAGS = NF.NONE
 
-    assignment_kind: ASSIGNMENT_KIND
     lhs: EXPR_LHS
     expr: ExprNode
 
@@ -1369,8 +1368,8 @@ def ReadSExpr(stream) -> Any:
         return ReadRestAndMakeNode(Expr2, [BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
     elif tag in _ASSIGNMENT_SHORTCUT:
-        return ReadRestAndMakeNode(StmtAssignment2, [_ASSIGNMENT_SHORTCUT[tag]],
-                                   ["lhs", "rhs"], stream)
+        return ReadRestAndMakeNode(StmtCompoundAssignment, [_ASSIGNMENT_SHORTCUT[tag]],
+                                   ["lhs", "expr"], stream)
     else:
         cls = _NODES_ALIASES.get(tag)
         assert cls is not None, f"Non node: {tag}"

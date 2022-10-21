@@ -560,6 +560,18 @@ class TypeTab:
             return NO_TYPE
         elif isinstance(node, cwast.StmtContinue):
             return NO_TYPE
+        elif isinstance(node, cwast.StmtAssignment):
+            var_cstr = self.typify_node(node.lhs, ctx)
+            ctx.push_target(var_cstr)
+            self.typify_node(node.expr, ctx)
+            ctx.pop_target()
+            return NO_TYPE
+        elif isinstance(node, cwast.StmtCompoundAssignment):
+            var_cstr = self.typify_node(node.lhs, ctx)
+            ctx.push_target(var_cstr)
+            self.typify_node(node.expr, ctx)
+            ctx.pop_target()
+            return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
 
@@ -581,7 +593,8 @@ class TypeTab:
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 type_cstr = self.type_link(node.type)
                 initial_cstr = self.type_link(node.initial_or_undef)
-                assert is_compatible(initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
+                assert is_compatible(
+                    initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
         elif isinstance(node, cwast.ExprIndex):
             cstr = self.type_link(node)
             assert cstr == get_contained_type(self.type_link(node.container))
@@ -647,7 +660,7 @@ class TypeTab:
             params = get_children_types(fun)
             assert params.pop(-1) == result
             for p, a in zip(params, node.args):
-                assert p == self.type_link(a)
+                assert is_compatible(self.type_link(a), p)
         elif isinstance(node, cwast.StmtReturn):
             fun = self.type_link(ctx.enclosing_fun)
             assert is_fun(fun)
@@ -657,6 +670,14 @@ class TypeTab:
                 actual, expected), f"{node}: {actual} {expected}"
         elif isinstance(node, cwast.StmtIf):
             assert is_bool(self.type_link(node.cond))
+        elif isinstance(node, cwast.StmtAssignment):
+            var_cstr = self.type_link(node.lhs)
+            expr_cstr = self.type_link(node.expr)
+            assert is_compatible(expr_cstr, var_cstr)
+        elif isinstance(node, cwast.StmtCompoundAssignment):
+            var_cstr = self.type_link(node.lhs)
+            expr_cstr = self.type_link(node.expr)
+            assert is_compatible(expr_cstr, var_cstr)
         # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):
