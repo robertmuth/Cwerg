@@ -6,6 +6,7 @@
 
 import dataclasses
 from inspect import signature
+from math import exp
 import sys
 import logging
 
@@ -21,6 +22,74 @@ CanonType = str
 NO_TYPE = "typeless"
 
 
+def get_children_types(cstr: CanonType) -> List[CanonType]:
+    out: List[CanonType] = []
+    cstr = cstr.split("(", 1)[1][:-1]
+    open_paren = 0
+    start = 0
+    for n, c in enumerate(cstr):
+        if c == ',' and open_paren == 0:
+            out.append(cstr[start:n])
+            start = n+1
+        elif c == '(':
+            open_paren += 1
+        elif c == ")":
+            open_paren -= 1
+    out.append(cstr[start:])
+    return out
+
+
+def get_contained_type(cstr: CanonType) -> CanonType:
+    if cstr.startswith("array("):
+        return cstr[6:].rsplit(",", 1)[0]
+    elif cstr.startswith("slice("):
+        return cstr[6:-1]
+    else:
+        assert False
+
+
+def get_pointee(cstr: CanonType) -> CanonType:
+    assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
+    return cstr.split("(", 1)[1][:-1]
+
+
+def is_ptr(cstr: CanonType) -> bool:
+    return cstr.startswith("ptr")
+
+
+def is_sum(cstr: CanonType) -> bool:
+    return cstr.startswith("sum")
+
+
+def is_fun(cstr: CanonType) -> bool:
+    return cstr.startswith("fun")
+
+
+def is_bool(cstr: CanonType) -> bool:
+    return cstr == "bool"
+
+
+def is_int(cstr: CanonType) -> bool:
+    return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
+
+
+def is_compatible(actual: CanonType, expected: CanonType) -> bool:
+    if actual == expected:
+        return True
+    if not is_sum(expected):
+        return False
+
+    expected_children = set(get_children_types(expected))
+    if actual in expected_children:
+        return True
+
+    if not is_sum(actual):
+        return False
+
+    actual_children = set(get_children_types(actual))
+    return actual_children.issubset(expected_children)
+
+
 class TypeContext:
     def __init__(self, symtab, mod_name):
         self.symtab: symtab.SymTab = symtab
@@ -30,7 +99,16 @@ class TypeContext:
         self._target_type: List[CanonType] = [NO_TYPE]
 
     def push_target(self, cstr: CanonType):
-        self._target_type.append(cstr)
+        """use to suport limited type inference
+
+        contains the type the current expression/type is expected to
+        have or NO_TYPE
+        """
+        if is_sum(cstr):
+            # sums are currently not used to guide type inference
+            self._target_type.append(NO_TYPE)
+        else:
+            self._target_type.append(cstr)
 
     def pop_target(self):
         self._target_type.pop(-1)
@@ -111,46 +189,6 @@ class TypeCorpus:
         if name not in self.corpus:
             self._insert(name, cwast.TypeArray(size, self.corpus[cstr]))
         return name
-
-    def get_children_types(self, cstr: CanonType) -> List[CanonType]:
-        out: List[CanonType] = []
-        cstr = cstr.split("(", 1)[1][:-1]
-        open_paren = 0
-        start = 0
-        for n, c in enumerate(cstr):
-            if c == ',' and open_paren == 0:
-                out.append(cstr[start:n])
-                start = n+1
-            elif c == '(':
-                open_paren += 1
-            elif c == ")":
-                open_paren -= 1
-        out.append(cstr[start:])
-        return out
-
-    def get_contained_type(self, cstr: CanonType):
-        if cstr.startswith("array("):
-            return cstr[6:].rsplit(",", 1)[0]
-        elif cstr.startswith("slice("):
-            return cstr[6:-1]
-        else:
-            assert False
-
-    def get_pointee_type(self, cstr: CanonType):
-        assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
-        return cstr.split("(", 1)[1][:-1]
-
-    def is_pointer(self, cstr):
-        return cstr.startswith("ptr")
-    
-    def is_fun(self, cstr):
-        return cstr.startswith("fun")
-
-    def is_bool(self, cstr):
-        return cstr == "bool"
-
-    def is_int(self, cstr):
-        return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
 
     def lookup_rec_field(self, rec_cstr: CanonType, field_name):
         """Oddball since the node returned is NOT inside corpus
@@ -433,7 +471,7 @@ class TypeTab:
         elif isinstance(node, cwast.ExprIndex):
             self.typify_node(node.expr_index, ctx)
             cstr = self.typify_node(node.container, ctx)
-            return self.annotate(node, self.corpus.get_contained_type(cstr))
+            return self.annotate(node, get_contained_type(cstr))
         elif isinstance(node, cwast.ExprField):
             cstr = self.typify_node(node.container, ctx)
             field_node = self.corpus.lookup_rec_field(cstr, node.field)
@@ -466,10 +504,10 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
-            return self.annotate(node, self.corpus.get_pointee_type(cstr))
+            return self.annotate(node, get_pointee(cstr))
         elif isinstance(node, cwast.Expr1):
             cstr = self.typify_node(node.expr, ctx)
-            return self.annotate(node, self.corpus.get_pointee_type(cstr))
+            return self.annotate(node, get_pointee(cstr))
         elif isinstance(node, cwast.Expr2):
             cstr = self.typify_node(node.expr1, ctx)
             self.typify_node(node.expr2, ctx)
@@ -490,7 +528,7 @@ class TypeTab:
             return NO_TYPE
         elif isinstance(node, cwast.ExprCall):
             cstr = self.typify_node(node.callee, ctx)
-            params = self.corpus.get_children_types(cstr)
+            params = get_children_types(cstr)
             cstr = params.pop(-1)
             assert len(params) == len(node.args)
             for p, a in zip(params, node.args):
@@ -541,8 +579,7 @@ class TypeTab:
                     assert self.type_link(field_node) == self.type_link(x)
         elif isinstance(node, cwast.ExprIndex):
             cstr = self.type_link(node)
-            assert cstr == self.corpus.get_contained_type(
-                self.type_link(node.container))
+            assert cstr == get_contained_type(self.type_link(node.container))
         elif isinstance(node, cwast.ExprField):
             cstr = self.type_link(node)
             field_node = self.field_link(node)
@@ -567,8 +604,7 @@ class TypeTab:
                     node.range) == self.type_link(node.type_or_auto)
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.type_link(node)
-            assert cstr == self.corpus.get_pointee_type(
-                self.type_link(node.expr))
+            assert cstr == get_pointee(self.type_link(node.expr))
         elif isinstance(node, cwast.Expr1):
             cstr = self.type_link(node)
             assert cstr == self.type_link(node.expr)
@@ -578,14 +614,13 @@ class TypeTab:
             cstr2 = self.type_link(node.expr2)
             if node.binary_expr_kind in cwast.BINOP_BOOL:
                 assert cstr1 == cstr2
-                assert self.corpus.is_bool(cstr)
+                assert is_bool(cstr)
             elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
                                            cwast.BINARY_EXPR_KIND.PSUB):
                 assert cstr == cstr1
-                assert self.corpus.is_int(cstr2)
+                assert is_int(cstr2)
             elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-                assert self.corpus.get_pointee_type(
-                    cstr1) == self.corpus.get_pointee_type(cstr2)
+                assert get_pointee(cstr1) == get_pointee(cstr2)
                 assert cstr == self.corpus.insert_base_type(
                     cwast.BASE_TYPE_KIND.SINT)
             else:
@@ -598,22 +633,24 @@ class TypeTab:
             cstr_cond = self.type_link(node.cond)
             assert cstr == cstr_t
             assert cstr == cstr_f
-            assert self.corpus.is_bool(cstr_cond)
-        elif isinstance(node, cwast.ExprCall):  
+            assert is_bool(cstr_cond)
+        elif isinstance(node, cwast.ExprCall):
             result = self.type_link(node)
             fun = self.type_link(node.callee)
-            assert self.corpus.is_fun(fun)
-            params = self.corpus.get_children_types(fun)
+            assert is_fun(fun)
+            params = get_children_types(fun)
             assert params.pop(-1) == result
             for p, a in zip(params, node.args):
                 assert p == self.type_link(a)
         elif isinstance(node, cwast.StmtReturn):
-            fun =  self.type_link(ctx.enclosing_fun)
-            assert self.corpus.is_fun(fun)
-            result = self.corpus.get_children_types(fun)[-1]
-            assert result == self.type_link(node.expr_ret), f"{node}: {result} {self.type_link(node.expr_ret)}"
+            fun = self.type_link(ctx.enclosing_fun)
+            assert is_fun(fun)
+            expected = get_children_types(fun)[-1]
+            actual = self.type_link(node.expr_ret)
+            assert is_compatible(
+                actual, expected), f"{node}: {actual} {expected}"
         elif isinstance(node, cwast.StmtIf):
-            assert self.corpus.is_bool(self.type_link(node.cond))
+            assert is_bool(self.type_link(node.cond))
         # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):

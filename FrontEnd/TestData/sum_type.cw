@@ -11,7 +11,11 @@
 
 (type pub type_union2 (TypeSum [s32 void (TypeSum [type_union u8])]))
 
-(fun foo3 [(param a bool) (param b bool) (param c s32)] bool [
+
+
+(type pub fun1_result (TypeSum [bool s32]))
+
+(fun fun1 [(param a bool) (param b bool) (param c s32)] fun1_result [
    (return true) 
 ])
 
