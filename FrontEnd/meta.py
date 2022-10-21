@@ -5,6 +5,7 @@
 """
 
 import dataclasses
+from inspect import signature
 import sys
 import logging
 
@@ -142,6 +143,12 @@ class TypeCorpus:
     def is_pointer(self, cstr):
         return cstr.startswith("ptr")
     
+    def is_fun(self, cstr):
+        return cstr.startswith("fun")
+
+    def is_bool(self, cstr):
+        return cstr == "bool"
+
     def is_int(self, cstr):
         return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
 
@@ -571,8 +578,7 @@ class TypeTab:
             cstr2 = self.type_link(node.expr2)
             if node.binary_expr_kind in cwast.BINOP_BOOL:
                 assert cstr1 == cstr2
-                assert cstr == self.corpus.insert_base_type(
-                    cwast.BASE_TYPE_KIND.BOOL)
+                assert self.corpus.is_bool(cstr)
             elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
                                            cwast.BINARY_EXPR_KIND.PSUB):
                 assert cstr == cstr1
@@ -592,8 +598,22 @@ class TypeTab:
             cstr_cond = self.type_link(node.cond)
             assert cstr == cstr_t
             assert cstr == cstr_f
-            assert cstr_cond == self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL)
+            assert self.corpus.is_bool(cstr_cond)
+        elif isinstance(node, cwast.ExprCall):  
+            result = self.type_link(node)
+            fun = self.type_link(node.callee)
+            assert self.corpus.is_fun(fun)
+            params = self.corpus.get_children_types(fun)
+            assert params.pop(-1) == result
+            for p, a in zip(params, node.args):
+                assert p == self.type_link(a)
+        elif isinstance(node, cwast.StmtReturn):
+            fun =  self.type_link(ctx.enclosing_fun)
+            assert self.corpus.is_fun(fun)
+            result = self.corpus.get_children_types(fun)[-1]
+            assert result == self.type_link(node.expr_ret), f"{node}: {result} {self.type_link(node.expr_ret)}"
+        elif isinstance(node, cwast.StmtIf):
+            assert self.corpus.is_bool(self.type_link(node.cond))
         # TODO: check more properties
 
     def verify_node_recursively(self, node, ctx: TypeContext):

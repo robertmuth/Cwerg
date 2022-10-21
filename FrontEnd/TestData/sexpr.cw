@@ -57,7 +57,7 @@
 
 
 
-(fun foo3 [(param a bool) (param b bool) (param c s32)] s32 [
+(fun foo3 [(param a bool) (param b bool) (param c s32)] bool [
    (# "this is a comment with \" with quotes \t ")
    (if (and a b) 
     [(return a)]
@@ -65,7 +65,7 @@
    (if (<=  a b) 
     []
     [])
-   (return (ValNum 7)) 
+   (return true) 
 ])
 
 
