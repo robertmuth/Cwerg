@@ -3,7 +3,7 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = print_argv.cw types.cw consts.cw sexpr.cw
+TESTS = print_argv.cw types.cw consts.cw sexpr.cw sum_type.cw
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
