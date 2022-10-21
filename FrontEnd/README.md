@@ -1,4 +1,4 @@
-# Experimental Frontend For The Cwerg Language
+# Cwerg Language (Experimental Frontend)
 
 Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. 
 The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write system software like operating systems and compilers in 
@@ -19,6 +19,35 @@ Comments wil be explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
  
 [List of S-Expression Nodes](../Doc/ast.md)
+
+
+
+## Features Relative to C
+
+Removed:
+* decaying arrays
+* bitfields
+* separate compilation
+* pre-processor
+* varargs
+* ++/-- 
+* null
+* goto
+
+Added
+* modules
+* templates 
+* enum namespaces 
+* sum types (tagged unions)
+* visibility control
+* mutability control
+* iterators
+* slices (fat pointers)
+* structural and by-name type equality
+* defer
+* named blocks
+* stringifiers
+* checked array accesses
 
 ## Discussion of Features
 
