@@ -482,9 +482,9 @@ class TypeTab:
                     else self.typify_node(node.type_or_auto, ctx))
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 ctx.push_target(cstr)
-                cstr = self.typify_node(node.initial_or_undef, ctx)
+                initial_cstr = self.typify_node(node.initial_or_undef, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr)
+            return self.annotate(node, cstr if cstr != NO_TYPE else initial_cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
             if not isinstance(node.begin_or_auto, cwast.Auto):
@@ -577,6 +577,11 @@ class TypeTab:
                 if not isinstance(x, cwast.Comment):
                     field_node = self.field_link(x)
                     assert self.type_link(field_node) == self.type_link(x)
+        elif isinstance(node, cwast.RecField):
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                type_cstr = self.type_link(node.type)
+                initial_cstr = self.type_link(node.initial_or_undef)
+                assert is_compatible(initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
         elif isinstance(node, cwast.ExprIndex):
             cstr = self.type_link(node)
             assert cstr == get_contained_type(self.type_link(node.container))
@@ -587,10 +592,11 @@ class TypeTab:
         elif isinstance(node, cwast.DefVar):
             cstr = self.type_link(node)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                assert cstr == self.type_link(node.initial_or_undef)
+                initial_cstr = self.type_link(node.initial_or_undef)
+                assert is_compatible(initial_cstr, cstr)
             if not isinstance(node.type_or_auto, cwast.Auto):
-                assert cstr == self.type_link(
-                    node.type_or_auto), f"{node}: expected {cstr} got {self.type_link(node.type_or_auto)}"
+                type_cstr = self.type_link(node.type_or_auto)
+                assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
         elif isinstance(node, cwast.ExprRange):
             cstr = self.type_link(node)
             if not isinstance(node.begin_or_auto, cwast.Auto):
