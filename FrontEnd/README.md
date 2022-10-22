@@ -25,12 +25,12 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 ## Features Relative to C
 
 Removed:
-* decaying arrays
+* arrays decay to pointers
 * bitfields
 * separate compilation
 * pre-processor
 * varargs
-* implcit conversations
+* implcit type conversions
 * unions
 * ++/-- 
 * null
@@ -48,7 +48,7 @@ Added
 * named blocks
 * checked array accesses
 * stringifiers
-* iterators
+* simple iterators (generalized for loops)
 
 
 ## Discussion of Features
