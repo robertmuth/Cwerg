@@ -7,15 +7,34 @@
 > project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md)
 > and/or reach out to the author.
 
-Cwerg aims to be a complete compiler for a C-like language. The [frontend](FrontEnd) is still in its infancy but the backend is fairly far along and 
-can be used independently from the frontend.
+Cwerg aims to be a complete "from-scratch" compiler for a C-like language. 
+The [frontend](FrontEnd) is still in its infancy but the multi-target backend 
+is fairly far along and can be used independently from the frontend.
+
+Documentation:
+* [Docs](Docs/) (misc. documentation)
+* [Examples](Examples/) (examples demonstrating backend API usage)
+
+Most components are implemented twice (see [rationale](Docs/why_python.md)):
+1. spec/reference implementation: Python 3.9
+2. high performance implementation: C++17 (with limited STL usage)
+
+Re-implementations in other languages are explicitly encouraged. A lot of
+code is table driven to facilitate that.
+
+Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
+of state of the art  compilers) in favor of a small code base that can be
+understood by a single developer and very fast translation times.
+
+### Backend
+
 The Cwerg backend is lightweight and suitable for new programming 
 language implementations that want to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
 ELF executables for Arm32, Arm64 and X86-64 ISAs.
 Besides AOT compilation, (one-shot) JITing is also supported.
 
-The backend currently consists of:
+It currently consists of:
 
 * RISC like [Intermediate Representation (IR)](Docs/opcodes.md) 
 * Optimizer for the IR
@@ -30,25 +49,13 @@ The backend currently consists of:
 * [Standard Library](StdLib/) (rudimentary library of mostly syscall wrappers)
 * [C Bindings](BindingsC/) (C bindings: wrappers around the C++ code)
 
+### Frontends
+
 The following frontends are available:
-* [Cwerg Frontend](FrontEnd) work in progress
+* [Cwerg Frontend](FrontEnd) The primary frontend - work in progress
 * [C Frontend](FrontEndC/)  (subset of C to IR compiler)
 * [WASM Frontend](FrontEndWASM/) (WASM/WASI to IR transpiler)
   
-You may also find the following useful:
-* [Docs](Docs/) (misc. documentation)
-* [Examples](Examples/) (examples demonstrating API usage)
-
-Most components are implemented twice (see [rationale](Docs/why_python.md)):
-1. spec/reference implementation: Python 3.9
-2. high performance implementation: C++17 (with limited STL usage)
-
-Re-implementations in other languages are explicitly encouraged. A lot of
-code is table driven to facilitate that.
-
-Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
-of state of the art  compilers) in favor of a small code base that can be
-understood by a single developer and very fast translation times.
 
 ### Size Targets
 
