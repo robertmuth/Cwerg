@@ -2,7 +2,7 @@
 
 (fun pub foo1 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (Comment "this is a comment with \" with quotes \t ")
-   (StmtExpr (ExprCall (Id foo1) [0 0 0]))
+   (StmtExpr discard (ExprCall (Id foo1) [0 0 0]))
    (StmtExpr discard (ExprCall foo2 [1 2 3]))
    (return (ValNum 7)) 
 ])

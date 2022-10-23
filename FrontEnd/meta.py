@@ -69,8 +69,20 @@ def is_bool(cstr: CanonType) -> bool:
     return cstr == "bool"
 
 
+def is_wrapped(cstr: CanonType) -> bool:
+    return cstr == "wrapped"
+
+
+def is_void(cstr: CanonType) -> bool:
+    return cstr == "void"
+
+
 def is_int(cstr: CanonType) -> bool:
     return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
+
+
+def is_real(cstr: CanonType) -> bool:
+    return cstr in ("r32", "r64")
 
 
 def is_compatible(actual: CanonType, expected: CanonType) -> bool:
@@ -317,6 +329,13 @@ class TypeTab:
         else:
             return NO_TYPE
 
+    def is_compatible_for_as(self, src: CanonType, dst: CanonType) -> bool:
+        if is_wrapped(src):
+            pass
+
+        if is_int(src):
+            return is_int(dst) or is_real(dst)
+
     def typify_node(self, node,  ctx: TypeContext) -> CanonType:
         target_type = ctx.get_target_type()
         extra = "" if target_type == NO_TYPE else f"[{target_type}]"
@@ -390,7 +409,8 @@ class TypeTab:
             base_type = self.corpus.insert_base_type(node.base_type_kind)
             ctx.push_target(base_type)
             for f in node.items:
-                self.typify_node(f, ctx)
+                if not isinstance(f, cwast.Comment):
+                    self.typify_node(f, ctx)
             ctx.pop_target()
             return self.annotate(node, self.corpus.insert_enum_type(
                 f"{ctx.mod_name}/{node.name}", node))
@@ -507,7 +527,7 @@ class TypeTab:
             return self.annotate(node, get_pointee(cstr))
         elif isinstance(node, cwast.Expr1):
             cstr = self.typify_node(node.expr, ctx)
-            return self.annotate(node, get_pointee(cstr))
+            return self.annotate(node, cstr)
         elif isinstance(node, cwast.Expr2):
             cstr = self.typify_node(node.expr1, ctx)
             self.typify_node(node.expr2, ctx)
@@ -572,6 +592,10 @@ class TypeTab:
             self.typify_node(node.expr, ctx)
             ctx.pop_target()
             return NO_TYPE
+        elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+            cstr = self.typify_node(node.type, ctx)
+            self.typify_node(node.expr, ctx)
+            return self.annotate(node, cstr)
         else:
             assert False, f"unexpected node {node}"
 
@@ -678,14 +702,39 @@ class TypeTab:
             var_cstr = self.type_link(node.lhs)
             expr_cstr = self.type_link(node.expr)
             assert is_compatible(expr_cstr, var_cstr)
-        # TODO: check more properties
+        elif isinstance(node, cwast.StmtExpr):
+            cstr = self.type_link(node.expr)
+            assert is_void(cstr) != node.discard
+        elif isinstance(node, cwast.ExprAs):
+            src=self.type_link(node.expr)
+            dst=self.type_link(node.type)
+            # assert is_compatible_for_as(src, dst)
+        elif isinstance(node, cwast.ExprUnsafeCast):
+            src=self.type_link(node.expr)
+            dst=self.type_link(node.type)
+            # assert is_compatible_for_as(src, dst)
+        elif isinstance(node, cwast.ExprBitCast):
+            src=self.type_link(node.expr)
+            dst=self.type_link(node.type)
+            # assert is_compatible_for_as(src, dst)
+        elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
+                               cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
+                               cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,
+                               cwast.ValNum, cwast.DefType, cwast.DefRec, cwast.ValTrue,
+                               cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
+                               cwast.TypeFun, cwast.DefConst, cwast.ValArrayString,
+                               cwast.IndexVal, cwast.FieldVal, cwast.StmtBlock, cwast.StmtBreak,
+                               cwast.StmtContinue, cwast.StmtDefer)):
+            pass
+        else:
+            assert False, f"unsupported  node type: {node.__class__} {node}"
 
     def verify_node_recursively(self, node, ctx: TypeContext):
         if isinstance(node, cwast.DefFun):
-            ctx.enclosing_fun = node
+            ctx.enclosing_fun=node
         self.verify_node(node, ctx)
         for c in node.__class__.FIELDS:
-            nfd = cwast.ALL_FIELDS_MAP[c]
+            nfd=cwast.ALL_FIELDS_MAP[c]
             if nfd.kind is cwast.NFK.NODE:
                 self.verify_node_recursively(getattr(node, c), ctx)
             elif nfd.kind is cwast.NFK.LIST:
@@ -699,9 +748,9 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
     """
-    typetab = TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
+    typetab=TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
     for m in asts:
-        ctx = TypeContext(symtab, m.name)
+        ctx=TypeContext(symtab, m.name)
         assert isinstance(m, cwast.DefMod)
         for node in m.body_mod:
             typetab.typify_node(node, ctx)
@@ -711,19 +760,19 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = []
+    asts=[]
     try:
         while True:
-            stream = cwast.ReadTokens(sys.stdin)
-            t = next(stream)
+            stream=cwast.ReadTokens(sys.stdin)
+            t=next(stream)
             assert t == "("
-            sexpr = cwast.ReadSExpr(stream)
+            sexpr=cwast.ReadSExpr(stream)
             # print(sexpr)
             asts.append(sexpr)
     except StopIteration:
         pass
-    symtab = symtab.ExtractSymTab(asts)
-    typetab = ExtractTypeTab(asts, symtab)
+    symtab=symtab.ExtractSymTab(asts)
+    typetab=ExtractTypeTab(asts, symtab)
     for node in asts:
         typetab.verify_node_recursively(node, TypeContext(None, None))
     for t in typetab.corpus.corpus:

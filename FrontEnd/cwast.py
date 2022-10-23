@@ -526,27 +526,57 @@ class ExprLen:
 
 # Cast Like Expressions
 
+@dataclasses.dataclass()
+class ExprAs:
+    """Safe Cast (Conversion)
 
-class ExprCastAs:
-    """Cast
+    Allowed:
+    enum <-> undelying enum type
+    wrapped type <-> undelying enum type
+    u8-u64, s8-s64 <-> u8-u64, s8-s64
+    u8-u64, s8-s64 -> r32-r64  (note: one way only)
 
-    number <-> number, number -> enum,  val -> wrapped val"""
-    ALIAS = None
+    Possibly
+    slice -> ptr
+    ptr to rec -> ptr to first element of rec
+    """
+    ALIAS = "as"
     FLAGS = NF.TYPE_ANNOTATED
 
-    type: TypeNode
     expr: ExprNode
+    type: TypeNode
 
 
-class ExprBitCastAs:
+@dataclasses.dataclass()
+class ExprUnsafeCast:
+    """Unsafe Cast
+
+    Allowed:
+    ptr a <-> ptr b
+
+    """
+    ALIAS = "cast"
+    FLAGS = NF.TYPE_ANNOTATED
+
+    expr: ExprNode
+    type: TypeNode
+
+
+@dataclasses.dataclass()
+class ExprBitCast:
     """Bit cast.
 
-    Type must have saame size as type of item"""
-    ALIAS = None
+    Type must have saame size as type of item
+
+    s32,u32 <-> f32
+    s64,u64 <-> f64
+    sint, uint <-> ptr
+    """
+    ALIAS = "bitcast"
     FLAGS = NF.TYPE_ANNOTATED
 
-    type: TypeNode
     expr: ExprNode
+    type: TypeNode
 
 
 # Const Expression
@@ -1079,7 +1109,8 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "width", "desired width of slice"),
     NFD(NFK.NODE, "value", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
-    NFD(NFK.NODE, "initial_or_undef", "initializer (must be compile-time constant)"),
+    NFD(NFK.NODE, "initial_or_undef",
+        "initializer (must be compile-time constant)"),
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1313,7 +1344,7 @@ BINOP_BOOL = {
     BINARY_EXPR_KIND.LE,
     BINARY_EXPR_KIND.LT,
     BINARY_EXPR_KIND.EQ,
-    BINARY_EXPR_KIND.NE, 
+    BINARY_EXPR_KIND.NE,
 }
 
 BINOP_SHORTCUT_INV = {v: k for k, v in BINOP_SHORTCUT.items()}
