@@ -1,6 +1,6 @@
 # Cwerg
 
-[[Documentation]](Docs/) ![Status](../../workflows/cwerg-tests/badge.svg)
+![Status](../../workflows/cwerg-tests/badge.svg)
 
 > **_NOTE:_**  The author is looking for projects that want to try out the Cwerg
 > backend. If you are interested in using Cwerg as backend for your own compiler

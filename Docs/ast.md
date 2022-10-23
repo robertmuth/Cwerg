@@ -86,7 +86,7 @@ Fields:
 * mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial [NODE]: initializer (must be compile-time constant)
+* initial_or_undef [NODE]: initializer (must be compile-time constant)
 
 ### EnumVal
  Enum element.
@@ -126,14 +126,37 @@ Create a pointer to object represented by `expr`
 Fields:
 * expr [NODE]: expression
 
-### ExprBitCastAs
+### ExprAs
+Safe Cast (Conversion)
+
+    Allowed:
+    enum <-> undelying enum type
+    wrapped type <-> undelying enum type
+    u8-u64, s8-s64 <-> u8-u64, s8-s64
+    u8-u64, s8-s64 -> r32-r64  (note: one way only)
+
+    Possibly
+    slice -> ptr
+    ptr to rec -> ptr to first element of rec
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
+
+### ExprBitCast
 Bit cast.
 
     Type must have saame size as type of item
 
+    s32,u32 <-> f32
+    s64,u64 <-> f64
+    sint, uint <-> ptr
+    
+
 Fields:
-* type [NODE]: type expression
 * expr [NODE]: expression
+* type [NODE]: type expression
 
 ### ExprCall
 Function call expression.
@@ -141,15 +164,6 @@ Function call expression.
 Fields:
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
-
-### ExprCastAs
-Cast
-
-    number <-> number, number -> enum,  val -> wrapped val
-
-Fields:
-* type [NODE]: type expression
-* expr [NODE]: expression
 
 ### ExprChop
 Slicing expression of array or slice
@@ -212,8 +226,8 @@ Range expression for simple for-loops
 
 Fields:
 * end [NODE]: range end
-* begin [NODE]: range begin: `Auto` => 0
-* step [NODE]: range step, `Auto` => 1
+* begin_or_auto [NODE]: range begin: `Auto` => 0
+* step_or_auto [NODE]: range step, `Auto` => 1
 
 ### ExprSizeof
 Byte size of type
@@ -222,6 +236,18 @@ Byte size of type
 
 Fields:
 * expr [NODE]: expression
+
+### ExprUnsafeCast
+Unsafe Cast
+
+    Allowed:
+    ptr a <-> ptr b
+
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
 
 ### FieldVal
 Used for rec initialization, e.g. `.imag = 5`
@@ -269,7 +295,7 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
-* initial [NODE]: initializer (must be compile-time constant)
+* initial_or_undef [NODE]: initializer (must be compile-time constant)
 
 ### StmtAssert
 Assert statement
@@ -282,15 +308,6 @@ Fields:
 Assignment statement
 
 Fields:
-* assignment_kind [KIND]: TBD
-* lhs [NODE]: l-value expression
-* expr [NODE]: expression
-
-### StmtAssignment2
-Compound assignment statement
-
-Fields:
-* assignment_kind [KIND]: TBD
 * lhs [NODE]: l-value expression
 * expr [NODE]: expression
 
@@ -313,6 +330,14 @@ Break statement
 
 Fields:
 * target [STR]: name of enclosing while/for/block to brach to (empty means nearest)
+
+### StmtCompoundAssignment
+Compound assignment statement
+
+Fields:
+* assignment_kind [KIND]: TBD
+* lhs [NODE]: l-value expression
+* expr [NODE]: expression
 
 ### StmtContinue
 Continue statement

@@ -5,8 +5,6 @@
 
 [Getting Started](getting_started.md)
 
-[Opcode Description](opcodes.md)
-
 [Why Python](why_python.md)
 
 [TODOs](todo.md)
@@ -15,7 +13,19 @@
 
 [Debugging Hints](debugging.md)
 
-## Implementation Details
+
+## Frontend
+
+[Intro](../FrontEnd/README.md)
+
+[AST Node Description](ast.md)
+
+## Backend
+
+[Opcode Description](opcodes.md)
+
+
+### Implementation Details
 
 [Liveness Analysis](liveness.md)
 
@@ -32,8 +42,9 @@
 
 ### Frontends
 
-Generate Cwerg IR from input languages.
+Emit Cwerg IR from input languages.
 
+[Cwerg Frontend](../FrontEnd/README.md),
 [C (Lite) Frontend](../FrontEndC/README.md), 
 [WASM/WASI Frontend](../FrontEndWASM/README.md)
 
@@ -50,7 +61,7 @@ Implementations: Python, C++ (except for C Backend which is Python only)
 
 ### Target ISAs (Assembler/Disassembler)
 
-These can be used standalone (without the rest of Cwerg)
+Can be used standalone (without the rest of Cwerg)
 
 Implementations: Python, C++ 
 
@@ -59,9 +70,9 @@ Implementations: Python, C++
 [X86-64 (X64)) ISA](../CpuX64/README.md) 
 
 
-### Object File Formats
+### Object File Format Suuport
 
-This can be used standalone (without the rest of Cwerg)
+Can be used standalone (without the rest of Cwerg)
 
 Implementations: Python, C++ 
 
@@ -72,8 +83,6 @@ Implementations: Python, C++
 Very basic standard lib
 
 [StdLib](../StdLib/README.md)
-
-
 
 
 ### Misc
