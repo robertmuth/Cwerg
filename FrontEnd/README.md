@@ -18,7 +18,7 @@ The tooling will do most of the syntax and semantic checking.
 Comments wil be explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
  
-[List of S-Expression Nodes](../Doc/ast.md)
+[List of S-Expression Nodes](../Docs/ast.md)
 
 
 
@@ -39,7 +39,7 @@ Removed:
 Added
 * modules (with templates) 
 * enum namespaces 
-* sum types (support nullable types and result types (error code + payload))
+* sum types (supports nullable types and result types (error code + payload))
 * visibility control (default private)
 * mutability control (default not mutable)
 * slices (fat pointers)
