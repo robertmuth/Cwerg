@@ -11,7 +11,7 @@ Placeholder for an unspecified value or type
 
 ### Comment
 Comment 
-    
+
     Comments are proper AST nodes and may only occur where explicitly allowed.
     They refer to the next sibling in the tree.
     
@@ -20,7 +20,7 @@ Fields:
 * comment [STR]: comment
 
 ### DefConst
-Constant definition
+Constant definition (only allowed at top-level)
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -29,7 +29,7 @@ Fields:
 * value [NODE]: 
 
 ### DefEnum
-Enum definition
+Enum definition (only allowed at top-level)
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -38,7 +38,7 @@ Fields:
 * items [LIST]: enum items and/or comments
 
 ### DefFun
-Function definition
+Function definition (only allowed at top-level)
 
 Creates a new scope
 
@@ -64,7 +64,7 @@ Fields:
 * body_mod [LIST]: toplevel module definitions and/or comments
 
 ### DefRec
-Record definition
+Record definition (only allowed at top-level)
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -72,20 +72,19 @@ Fields:
 * fields [LIST]: record fields and/or comments
 
 ### DefType
-Type definition
+Type definition (only allowed at top-level)
 
-    `wrapped` forces by-name equivalence).
     
 
 Fields:
 * pub [FLAG]: has public visibility
-* wrapped [FLAG]: is wrapped type (uses name equivalence
+* wrapped [FLAG]: is wrapped type (forces type equivalence by name)
 * name [STR]: name of the object
 * type [NODE]: type expression
 
 ### DefVar
 Variable definition (at module level and inside functions)
-    
+
 
     public visibily only makes sense for module level definitions.
     
@@ -123,6 +122,7 @@ Fields:
 
 ### Expr3
 Tertiary expression (like C's `? :`) 
+    
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
@@ -131,7 +131,7 @@ Fields:
 
 ### ExprAddrOf
 Create a pointer to object represented by `expr`
-    
+
     Pointer can optionally point to a mutable object if the
     pointee is mutable.
     
@@ -182,6 +182,7 @@ Fields:
 
 ### ExprChop
 Slicing expression of array or slice
+    
 
 Fields:
 * container [NODE]: array and slice
@@ -196,6 +197,7 @@ Fields:
 
 ### ExprField
 Access field in expression representing a record.
+    
 
 Fields:
 * container [NODE]: array and slice
@@ -203,10 +205,20 @@ Fields:
 
 ### ExprIndex
 Checked indexed access of array or slice 
+    
 
 Fields:
 * container [NODE]: array and slice
 * expr_index [NODE]: expression determining the index to be accessed
+
+### ExprIs
+Test actual expression type within a Sum Type
+
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
 
 ### ExprLen
 Length of array or slice
@@ -225,6 +237,7 @@ Fields:
 
 ### ExprParen
 Used for preserving parenthesis in the source
+    
 
 Fields:
 * expr [NODE]: expression
@@ -273,7 +286,7 @@ Fields:
 
 ### FunParam
 Function parameter
-    
+
     
 
 Fields:
@@ -294,8 +307,8 @@ Fields:
 Used for array initialization, e.g. `.1 = 5`
 
 Fields:
-* index [STR]: initializer index
 * value [NODE]: 
+* index [STR]: initializer index or empty
 
 ### ModParam
 Module Parameters
@@ -440,7 +453,7 @@ Fields:
 
 ### TypeBase
 Base type 
-    
+
     One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
     
 
