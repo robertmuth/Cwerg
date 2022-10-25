@@ -52,7 +52,11 @@ class NF(enum.Flag):
 
 @dataclasses.dataclass()
 class Comment:
-    """Comment are proper AST nodes and can only occur in certain parts of the tree"""
+    """Comment 
+    
+    Comments are proper AST nodes and may only occur where explicitly allowed.
+    They refer to the next sibling in the tree.
+    """
     ALIAS = "#"
     FLAGS = NF.NONE
 
@@ -76,7 +80,7 @@ class ID_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class Id:
-    """Ids represent types, variables, constants, functions, modules
+    """Refers to a type, variable, constant, function, module by name.
 
     They may contain a path component indicating which modules they reference.
     """
@@ -91,9 +95,10 @@ class Id:
 
 
 class Auto:
-    """placeholder for an unspecified value or type
+    """Placeholder for an unspecified value or type
 
-    They are only allowed when explicitly mentioned"""
+    My only occur where explicitly allowed.
+    """
     ALIAS = None
     FLAGS = NF.NONE
 
@@ -110,7 +115,9 @@ TypeNode = Union["Id", "TypeBase",
 
 @dataclasses.dataclass()
 class FunParam:
-    """Function parameter"""
+    """Function parameter
+    
+    """
     ALIAS = "param"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
@@ -147,7 +154,10 @@ class BASE_TYPE_KIND(enum.Enum):
 
 @dataclasses.dataclass()
 class TypeBase:
-    """Base type (void, r32, r64, u8, u16, u32, u64, s8 ...)"""
+    """Base type 
+    
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -159,7 +169,8 @@ class TypeBase:
 
 @dataclasses.dataclass()
 class TypePtr:
-    """Pointer type (mutable/non-mutable)"""
+    """Pointer type (mutable/non-mutable)
+    """
     ALIAS = "ptr"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -173,7 +184,7 @@ class TypePtr:
 
 @dataclasses.dataclass()
 class TypeSlice:
-    """A view of an array with compile time unknown dimentions
+    """A view/slice of an array with compile time unknown dimentions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -187,9 +198,9 @@ class TypeSlice:
 
 @dataclasses.dataclass()
 class TypeArray:
-    """An array of the given `size`
+    """An array of the given type and `size`
 
-    which must be evaluatable as a compile time constant"""
+    Size must be evaluatable as a compile time constant"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -218,7 +229,7 @@ TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
 
 @dataclasses.dataclass()
 class TypeSum:
-    """Sum types are tagged unions
+    """Sum types (tagged unions)
 
     Sums are "auto flattening", e.g.
     Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
@@ -261,7 +272,7 @@ class ValFalse:
 class ValNum:
     """Numeric constant (signed int, unsigned int, real
 
-    Underscores in `number` are ignored. `number` can be explicitly types via
+    Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     """
     ALIAS = None
@@ -274,7 +285,8 @@ class ValNum:
 
 @dataclasses.dataclass()
 class ValUndef:
-    """Special constant to indiciate *no default value*"""
+    """Special constant to indiciate *no default value*
+    """
     ALIAS = None
     FLAGS = NF(0)
 
@@ -283,7 +295,7 @@ class ValUndef:
 
 @dataclasses.dataclass()
 class ValVoid:
-    """The ValValue is the only value inhabiting the `TypeVoid` type
+    """Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
      """
@@ -352,7 +364,7 @@ INITS_REC_NODES = Union[Comment, FieldVal]
 class ValRec:
     """A record literal
 
-    `complex{.imag = 5, .real = 1}`
+    `E.g.: complex{.imag = 5, .real = 1}`
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
@@ -382,16 +394,21 @@ class ExprDeref:
 
 @dataclasses.dataclass()
 class ExprAddrOf:
-    """Create a pointer to object represented by `expr`"""
+    """Create a pointer to object represented by `expr`
+    
+    Pointer can optionally point to a mutable object if the
+    pointee is mutable.
+    """
     ALIAS = "&"
     FLAGS = NF.TYPE_ANNOTATED
-
+    mut: bool
     expr: ExprNode
 
 
 @dataclasses.dataclass()
 class ExprCall:
-    """Function call expression."""
+    """Function call expression.
+    """
     ALIAS = "call"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -566,7 +583,7 @@ class ExprUnsafeCast:
 class ExprBitCast:
     """Bit cast.
 
-    Type must have saame size as type of item
+    Type must have same size as type of item
 
     s32,u32 <-> f32
     s64,u64 <-> f64
@@ -942,7 +959,11 @@ class DefConst:
 
 @dataclasses.dataclass()
 class DefVar:
-    """Variable definition"""
+    """Variable definition (at module level and inside functions)
+    
+
+    public visibily only makes sense for module level definitions.
+    """
     ALIAS = "let"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
 
@@ -958,7 +979,7 @@ class DefVar:
 
 @dataclasses.dataclass()
 class DefFun:
-    """Function fefinition"""
+    """Function definition"""
     ALIAS = "fun"
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE
 
@@ -1072,19 +1093,19 @@ ALL_FIELDS = [
     NFD(NFK.KIND, "mod_param_kind", "TBD",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind", "TBD", ASSIGNMENT_KIND),
     #
-    NFD(NFK.LIST, "params", "function parameters", PARAMS_NODES),
+    NFD(NFK.LIST, "params", "function parameters and/or comments", PARAMS_NODES),
     NFD(NFK.LIST, "params_mod", "module template parameters", PARAMS_MOD_NODES),
     NFD(NFK.LIST, "args", "function call arguments", "TBD"),
-    NFD(NFK.LIST, "items", "enum items", ITEMS_NODES),
-    NFD(NFK.LIST, "fields", "record fields", TYPES_NODES),
+    NFD(NFK.LIST, "items", "enum items and/or comments", ITEMS_NODES),
+    NFD(NFK.LIST, "fields", "record fields and/or comments", TYPES_NODES),
     NFD(NFK.LIST, "types", "union types", TYPES_NODES),
-    NFD(NFK.LIST, "inits_array", "array initializers", INITS_ARRAY_NODES),
-    NFD(NFK.LIST, "inits_rec", "record initializers", INITS_REC_NODES),
+    NFD(NFK.LIST, "inits_array", "array initializers and/or comments", INITS_ARRAY_NODES),
+    NFD(NFK.LIST, "inits_rec", "record initializers and/or comments", INITS_REC_NODES),
     #
-    NFD(NFK.LIST, "body_mod", "toplevel module definitions", BODY_MOD_NODES),
-    NFD(NFK.LIST, "body", "statement list", BODY_NODES),
-    NFD(NFK.LIST, "body_t", "statement list", BODY_NODES),
-    NFD(NFK.LIST, "body_f", "statement list", BODY_NODES),
+    NFD(NFK.LIST, "body_mod", "toplevel module definitions and/or comments", BODY_MOD_NODES),
+    NFD(NFK.LIST, "body", "statement list and/or comments", BODY_NODES),
+    NFD(NFK.LIST, "body_t", "statement list and/or comments", BODY_NODES),
+    NFD(NFK.LIST, "body_f", "statement list and/or comments", BODY_NODES),
     #
     NFD(NFK.NODE, "type", "type expression"),
     NFD(NFK.NODE, "type_or_auto", "type expression"),

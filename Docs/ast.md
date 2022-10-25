@@ -4,12 +4,17 @@ WIP
 
 
 ### Auto
-placeholder for an unspecified value or type
+Placeholder for an unspecified value or type
 
-    They are only allowed when explicitly mentioned
+    My only occur where explicitly allowed.
+    
 
 ### Comment
-Comment are proper AST nodes and can only occur in certain parts of the tree
+Comment 
+    
+    Comments are proper AST nodes and may only occur where explicitly allowed.
+    They refer to the next sibling in the tree.
+    
 
 Fields:
 * comment [STR]: comment
@@ -30,10 +35,10 @@ Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * base_type_kind [KIND]: TBD
-* items [LIST]: enum items
+* items [LIST]: enum items and/or comments
 
 ### DefFun
-Function fefinition
+Function definition
 
 Creates a new scope
 
@@ -43,9 +48,9 @@ Fields:
 * pub [FLAG]: has public visibility
 * extern [FLAG]: is external function (empty body)
 * name [STR]: name of the object
-* params [LIST]: function parameters
+* params [LIST]: function parameters and/or comments
 * result [NODE]: return type
-* body [LIST]: statement list
+* body [LIST]: statement list and/or comments
 
 ### DefMod
 Module Definition
@@ -56,7 +61,7 @@ Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * params_mod [LIST]: module template parameters
-* body_mod [LIST]: toplevel module definitions
+* body_mod [LIST]: toplevel module definitions and/or comments
 
 ### DefRec
 Record definition
@@ -64,7 +69,7 @@ Record definition
 Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
-* fields [LIST]: record fields
+* fields [LIST]: record fields and/or comments
 
 ### DefType
 Type definition
@@ -79,7 +84,11 @@ Fields:
 * type [NODE]: type expression
 
 ### DefVar
-Variable definition
+Variable definition (at module level and inside functions)
+    
+
+    public visibily only makes sense for module level definitions.
+    
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -122,8 +131,13 @@ Fields:
 
 ### ExprAddrOf
 Create a pointer to object represented by `expr`
+    
+    Pointer can optionally point to a mutable object if the
+    pointee is mutable.
+    
 
 Fields:
+* mut [FLAG]: is mutable
 * expr [NODE]: expression
 
 ### ExprAs
@@ -147,7 +161,7 @@ Fields:
 ### ExprBitCast
 Bit cast.
 
-    Type must have saame size as type of item
+    Type must have same size as type of item
 
     s32,u32 <-> f32
     s64,u64 <-> f64
@@ -160,6 +174,7 @@ Fields:
 
 ### ExprCall
 Function call expression.
+    
 
 Fields:
 * callee [NODE]: expression evaluating to the function to be called
@@ -258,13 +273,15 @@ Fields:
 
 ### FunParam
 Function parameter
+    
+    
 
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
 
 ### Id
-Ids represent types, variables, constants, functions, modules
+Refers to a type, variable, constant, function, module by name.
 
     They may contain a path component indicating which modules they reference.
     
@@ -321,7 +338,7 @@ Creates a new scope
 
 Fields:
 * label [STR]: block  name (if not empty)
-* body [LIST]: statement list
+* body [LIST]: statement list and/or comments
 
 ### StmtBreak
 Break statement
@@ -357,7 +374,7 @@ Defer statement
 Creates a new scope
 
 Fields:
-* body [LIST]: statement list
+* body [LIST]: statement list and/or comments
 
 ### StmtExpr
 Expression statement
@@ -381,7 +398,7 @@ Fields:
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
 * range [NODE]: range expression
-* body [LIST]: statement list
+* body [LIST]: statement list and/or comments
 
 ### StmtIf
 If statement
@@ -390,8 +407,8 @@ Creates a new scope
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* body_t [LIST]: statement list
-* body_f [LIST]: statement list
+* body_t [LIST]: statement list and/or comments
+* body_f [LIST]: statement list and/or comments
 
 ### StmtReturn
 Return statement
@@ -410,19 +427,22 @@ Creates a new scope
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* body [LIST]: statement list
+* body [LIST]: statement list and/or comments
 
 ### TypeArray
-An array of the given `size`
+An array of the given type and `size`
 
-    which must be evaluatable as a compile time constant
+    Size must be evaluatable as a compile time constant
 
 Fields:
 * size [NODE]: compile-time constant size
 * type [NODE]: type expression
 
 ### TypeBase
-Base type (void, r32, r64, u8, u16, u32, u64, s8 ...)
+Base type 
+    
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
+    
 
 Fields:
 * base_type_kind [KIND]: TBD
@@ -434,18 +454,19 @@ A function signature
     
 
 Fields:
-* params [LIST]: function parameters
+* params [LIST]: function parameters and/or comments
 * result [NODE]: return type
 
 ### TypePtr
 Pointer type (mutable/non-mutable)
+    
 
 Fields:
 * mut [FLAG]: is mutable
 * type [NODE]: type expression
 
 ### TypeSlice
-A view of an array with compile time unknown dimentions
+A view/slice of an array with compile time unknown dimentions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -456,7 +477,7 @@ Fields:
 * type [NODE]: type expression
 
 ### TypeSum
-Sum types are tagged unions
+Sum types (tagged unions)
 
     Sums are "auto flattening", e.g.
     Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
@@ -474,7 +495,7 @@ An array literal
 Fields:
 * type [NODE]: type expression
 * expr_size [NODE]: expression determining the size or auto
-* inits_array [LIST]: array initializers
+* inits_array [LIST]: array initializers and/or comments
 
 ### ValArrayString
 An array value encoded as a string
@@ -492,7 +513,7 @@ Bool constant `false`
 ### ValNum
 Numeric constant (signed int, unsigned int, real
 
-    Underscores in `number` are ignored. `number` can be explicitly types via
+    Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     
 
@@ -502,21 +523,22 @@ Fields:
 ### ValRec
 A record literal
 
-    `complex{.imag = 5, .real = 1}`
+    `E.g.: complex{.imag = 5, .real = 1}`
     
 
 Fields:
 * type [NODE]: type expression
-* inits_rec [LIST]: record initializers
+* inits_rec [LIST]: record initializers and/or comments
 
 ### ValTrue
 Bool constant `true`
 
 ### ValUndef
 Special constant to indiciate *no default value*
+    
 
 ### ValVoid
-The ValValue is the only value inhabiting the `TypeVoid` type
+Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
      

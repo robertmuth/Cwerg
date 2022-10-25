@@ -706,16 +706,16 @@ class TypeTab:
             cstr = self.type_link(node.expr)
             assert is_void(cstr) != node.discard
         elif isinstance(node, cwast.ExprAs):
-            src=self.type_link(node.expr)
-            dst=self.type_link(node.type)
+            src = self.type_link(node.expr)
+            dst = self.type_link(node.type)
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprUnsafeCast):
-            src=self.type_link(node.expr)
-            dst=self.type_link(node.type)
+            src = self.type_link(node.expr)
+            dst = self.type_link(node.type)
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprBitCast):
-            src=self.type_link(node.expr)
-            dst=self.type_link(node.type)
+            src = self.type_link(node.expr)
+            dst = self.type_link(node.type)
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
@@ -731,10 +731,10 @@ class TypeTab:
 
     def verify_node_recursively(self, node, ctx: TypeContext):
         if isinstance(node, cwast.DefFun):
-            ctx.enclosing_fun=node
+            ctx.enclosing_fun = node
         self.verify_node(node, ctx)
         for c in node.__class__.FIELDS:
-            nfd=cwast.ALL_FIELDS_MAP[c]
+            nfd = cwast.ALL_FIELDS_MAP[c]
             if nfd.kind is cwast.NFK.NODE:
                 self.verify_node_recursively(getattr(node, c), ctx)
             elif nfd.kind is cwast.NFK.LIST:
@@ -748,9 +748,9 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
     """
-    typetab=TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
+    typetab = TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
     for m in asts:
-        ctx=TypeContext(symtab, m.name)
+        ctx = TypeContext(symtab, m.name)
         assert isinstance(m, cwast.DefMod)
         for node in m.body_mod:
             typetab.typify_node(node, ctx)
@@ -760,19 +760,19 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts=[]
+    asts = []
     try:
         while True:
-            stream=cwast.ReadTokens(sys.stdin)
-            t=next(stream)
+            stream = cwast.ReadTokens(sys.stdin)
+            t = next(stream)
             assert t == "("
-            sexpr=cwast.ReadSExpr(stream)
+            sexpr = cwast.ReadSExpr(stream)
             # print(sexpr)
             asts.append(sexpr)
     except StopIteration:
         pass
-    symtab=symtab.ExtractSymTab(asts)
-    typetab=ExtractTypeTab(asts, symtab)
+    symtab = symtab.ExtractSymTab(asts)
+    typetab = ExtractTypeTab(asts, symtab)
     for node in asts:
         typetab.verify_node_recursively(node, TypeContext(None, None))
     for t in typetab.corpus.corpus:
