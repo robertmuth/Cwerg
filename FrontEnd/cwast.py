@@ -53,7 +53,7 @@ class NF(enum.Flag):
 @dataclasses.dataclass()
 class Comment:
     """Comment 
-    
+
     Comments are proper AST nodes and may only occur where explicitly allowed.
     They refer to the next sibling in the tree.
     """
@@ -116,7 +116,7 @@ TypeNode = Union["Id", "TypeBase",
 @dataclasses.dataclass()
 class FunParam:
     """Function parameter
-    
+
     """
     ALIAS = "param"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
@@ -155,7 +155,7 @@ class BASE_TYPE_KIND(enum.Enum):
 @dataclasses.dataclass()
 class TypeBase:
     """Base type 
-    
+
     One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
     """
     ALIAS = None
@@ -395,7 +395,7 @@ class ExprDeref:
 @dataclasses.dataclass()
 class ExprAddrOf:
     """Create a pointer to object represented by `expr`
-    
+
     Pointer can optionally point to a mutable object if the
     pointee is mutable.
     """
@@ -418,7 +418,8 @@ class ExprCall:
 
 @dataclasses.dataclass()
 class ExprParen:
-    "Used for preserving parenthesis in the source"
+    """Used for preserving parenthesis in the source
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -427,7 +428,8 @@ class ExprParen:
 
 @dataclasses.dataclass()
 class ExprField:
-    """Access field in expression representing a record."""
+    """Access field in expression representing a record.
+    """
     ALIAS = "."
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -499,7 +501,8 @@ class Expr2:
 
 @dataclasses.dataclass()
 class Expr3:
-    """Tertiary expression (like C's `? :`) """
+    """Tertiary expression (like C's `? :`) 
+    """
     ALIAS = "?"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -513,7 +516,8 @@ class Expr3:
 
 @dataclasses.dataclass()
 class ExprIndex:
-    """Checked indexed access of array or slice """
+    """Checked indexed access of array or slice 
+    """
     ALIAS = "at"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -523,7 +527,8 @@ class ExprIndex:
 
 @dataclasses.dataclass()
 class ExprChop:
-    """Slicing expression of array or slice"""
+    """Slicing expression of array or slice
+    """
     ALIAS = "chop"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -544,6 +549,17 @@ class ExprLen:
 # Cast Like Expressions
 
 @dataclasses.dataclass()
+class ExprIs:
+    """Test actual expression type within a Sum Type
+
+    """
+    ALIAS = "is"
+    FLAGS = NF.TYPE_ANNOTATED
+
+    expr: ExprNode
+    type: TypeNode
+
+@dataclasses.dataclass()
 class ExprAs:
     """Safe Cast (Conversion)
 
@@ -562,7 +578,6 @@ class ExprAs:
 
     expr: ExprNode
     type: TypeNode
-
 
 @dataclasses.dataclass()
 class ExprUnsafeCast:
@@ -960,7 +975,7 @@ class DefConst:
 @dataclasses.dataclass()
 class DefVar:
     """Variable definition (at module level and inside functions)
-    
+
 
     public visibily only makes sense for module level definitions.
     """
@@ -1099,10 +1114,12 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "items", "enum items and/or comments", ITEMS_NODES),
     NFD(NFK.LIST, "fields", "record fields and/or comments", TYPES_NODES),
     NFD(NFK.LIST, "types", "union types", TYPES_NODES),
-    NFD(NFK.LIST, "inits_array", "array initializers and/or comments", INITS_ARRAY_NODES),
+    NFD(NFK.LIST, "inits_array",
+        "array initializers and/or comments", INITS_ARRAY_NODES),
     NFD(NFK.LIST, "inits_rec", "record initializers and/or comments", INITS_REC_NODES),
     #
-    NFD(NFK.LIST, "body_mod", "toplevel module definitions and/or comments", BODY_MOD_NODES),
+    NFD(NFK.LIST, "body_mod",
+        "toplevel module definitions and/or comments", BODY_MOD_NODES),
     NFD(NFK.LIST, "body", "statement list and/or comments", BODY_NODES),
     NFD(NFK.LIST, "body_t", "statement list and/or comments", BODY_NODES),
     NFD(NFK.LIST, "body_f", "statement list and/or comments", BODY_NODES),

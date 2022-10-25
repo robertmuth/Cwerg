@@ -21,6 +21,7 @@
     (let x sum2_t true)
     (let y sum1_t x)
    (= x false)
+   (if (is x sum2_t) [(return false)] [])
    (or= x false)
    (expr discard (call fun1 [true false 1]))
    (return true) 

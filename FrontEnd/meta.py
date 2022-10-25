@@ -596,6 +596,11 @@ class TypeTab:
             cstr = self.typify_node(node.type, ctx)
             self.typify_node(node.expr, ctx)
             return self.annotate(node, cstr)
+        elif isinstance(node, cwast.ExprIs):
+            self.typify_node(node.type, ctx)
+            self.typify_node(node.expr, ctx)
+            return self.annotate(node, self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL))
         else:
             assert False, f"unexpected node {node}"
 
@@ -708,15 +713,20 @@ class TypeTab:
         elif isinstance(node, cwast.ExprAs):
             src = self.type_link(node.expr)
             dst = self.type_link(node.type)
+            # TODO
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprUnsafeCast):
             src = self.type_link(node.expr)
             dst = self.type_link(node.type)
+            # TODO
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprBitCast):
             src = self.type_link(node.expr)
             dst = self.type_link(node.type)
+            # TODO
             # assert is_compatible_for_as(src, dst)
+        elif isinstance(node, cwast.ExprIs):
+            assert is_bool(self.type_link(node))
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,
