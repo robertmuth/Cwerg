@@ -604,6 +604,7 @@ class ExprBitCast:
     s32,u32 <-> f32
     s64,u64 <-> f64
     sint, uint <-> ptr
+    uX <-> sX
     """
     ALIAS = "bitcast"
     FLAGS = NF.TYPE_ANNOTATED
@@ -1230,7 +1231,10 @@ def GenerateDocumentation(fout):
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
     for name, cls in nodes:
         print(f"", file=fout)
-        print(f"### {name}", file=fout)
+        alias = "" 
+        if cls.ALIAS: 
+            alias = f" ({cls.ALIAS})"
+        print(f"### {name}{alias}", file=fout)
 
         print(cls.__doc__,  file=fout)
 
