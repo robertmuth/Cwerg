@@ -42,8 +42,19 @@ def get_children_types(cstr: CanonType) -> List[CanonType]:
 def get_contained_type(cstr: CanonType) -> CanonType:
     if cstr.startswith("array("):
         return cstr[6:].rsplit(",", 1)[0]
+    elif cstr.startswith("array-mut("):
+        return cstr[10:].rsplit(",", 1)[0]
     elif cstr.startswith("slice("):
         return cstr[6:-1]
+    elif cstr.startswith("slice-mut("):
+        return cstr[10:-1]
+    else:
+        assert False
+
+
+def get_array_dim(cstr: CanonType) -> int:
+    if cstr.startswith("array(") or cstr.startswith("array-mut("):
+        return int(cstr[:-1].rsplit(",", 1)[1])
     else:
         assert False
 
@@ -53,8 +64,16 @@ def get_pointee(cstr: CanonType) -> CanonType:
     return cstr.split("(", 1)[1][:-1]
 
 
+def is_array(cstr: CanonType) -> bool:
+    return cstr.startswith("array")
+
+
 def is_ptr(cstr: CanonType) -> bool:
     return cstr.startswith("ptr")
+
+
+def is_mutable(cstr: CanonType) -> bool:
+    return cstr.startswith("ptr-mut") or cstr.startswith("slice-mut") or cstr.startswith("array-mut")
 
 
 def is_sum(cstr: CanonType) -> bool:
@@ -196,8 +215,11 @@ class TypeCorpus:
             self._insert(name, cwast.TypeSlice(mut, self.corpus[cstr]))
         return name
 
-    def insert_array_type(self, size: int, cstr: CanonType) -> CanonType:
-        name = f"array({cstr},{size})"
+    def insert_array_type(self, mut: bool, size: int, cstr: CanonType) -> CanonType:
+        if mut:
+            name = f"array-mut({cstr},{size})"
+        else:
+            name = f"array({cstr},{size})"
         if name not in self.corpus:
             self._insert(name, cwast.TypeArray(size, self.corpus[cstr]))
         return name
@@ -280,6 +302,16 @@ def ComputeStringSize(raw: bool, string: str) -> int:
     return 8
 
 
+def ParseInt(num: str) -> int:
+    num = num.replace("_", "")
+    if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
+        return int(num[: -3])
+    elif num[-2:] in ("u8", "s8"):
+        return int(num[: -2])
+    else:
+        return int(num)
+
+
 class TypeTab:
     """Type Table
 
@@ -301,9 +333,16 @@ class TypeTab:
     def field_link(self, node) -> cwast.RecField:
         return self._field_links[id(node)]
 
-    def compute_dim(self, node) -> int:
-        assert isinstance(node, cwast.ValNum), f"unexpected number: {node}"
-        return int(node.number)
+    def compute_dim(self, node, ctx) -> int:
+        if isinstance(node, cwast.ValNum):
+            return ParseInt(node.number)
+        elif isinstance(node, cwast.Id):
+            node = ctx.symtab.get_definition_for_symbol(node)
+            return self.compute_dim(node, ctx)
+        elif isinstance(node, cwast.DefConst):
+            return self.compute_dim(node.value, ctx)
+        else:
+            assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: CanonType):
         assert isinstance(
@@ -383,8 +422,8 @@ class TypeTab:
                 cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.size, ctx)
             ctx.pop_target()
-            dim = self.compute_dim(node.size)
-            return self.annotate(node, self.corpus.insert_array_type(dim, t))
+            dim = self.compute_dim(node.size, ctx)
+            return self.annotate(node, self.corpus.insert_array_type(False, dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -459,8 +498,8 @@ class TypeTab:
                 cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
-            dim = self.compute_dim(node.expr_size)
-            return self.annotate(node, self.corpus.insert_array_type(dim, cstr))
+            dim = self.compute_dim(node.expr_size, ctx)
+            return self.annotate(node, self.corpus.insert_array_type(False, dim, cstr))
         elif isinstance(node, cwast.FieldVal):
             field_node = self.corpus.lookup_rec_field(
                 ctx.get_rec_type(), node.field)
@@ -486,7 +525,7 @@ class TypeTab:
         elif isinstance(node, cwast.ValArrayString):
             dim = ComputeStringSize(node.raw, node.string)
             cstr = self.corpus.insert_array_type(
-                dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
+                False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprIndex):
             self.typify_node(node.expr_index, ctx)
@@ -500,10 +539,18 @@ class TypeTab:
         elif isinstance(node, cwast.DefVar):
             cstr = (NO_TYPE if isinstance(node.type_or_auto, cwast.Auto)
                     else self.typify_node(node.type_or_auto, ctx))
+            initial_cstr = NO_TYPE
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 ctx.push_target(cstr)
                 initial_cstr = self.typify_node(node.initial_or_undef, ctx)
                 ctx.pop_target()
+            # special hack fopr arrays: if variable is mutable and of type array,
+            # this means we can update array elements but we cannot assign a new
+            # array to the variable.
+            if is_array(initial_cstr) and node.mut:
+                cstr = get_contained_type(initial_cstr)
+                dim = get_array_dim(initial_cstr)
+                return self.annotate(node, self.corpus.insert_array_type(True, dim, cstr))
             return self.annotate(node, cstr if cstr != NO_TYPE else initial_cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
@@ -601,6 +648,19 @@ class TypeTab:
             self.typify_node(node.expr, ctx)
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.BOOL))
+        elif isinstance(node, cwast.ExprLen):
+            self.typify_node(node.container, ctx)
+            return self.annotate(node, self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT))
+        elif isinstance(node, cwast.ExprChop):
+            if not isinstance(node.start, cwast.Auto):
+                self.typify_node(node.start, ctx)
+            if not isinstance(node.width, cwast.Auto):
+                self.typify_node(node.width, ctx)
+            cstr_cont = self.typify_node(node.container, ctx)
+            cstr = get_contained_type(cstr_cont)
+            mut = is_mutable(cstr_cont)
+            return self.annotate(node, self.corpus.insert_slice_type(mut, cstr))
         else:
             assert False, f"unexpected node {node}"
 
@@ -633,6 +693,10 @@ class TypeTab:
             assert cstr == self.type_link(field_node)
         elif isinstance(node, cwast.DefVar):
             cstr = self.type_link(node)
+            if node.mut and is_array(cstr):
+                assert is_mutable(cstr)
+                cstr = "array" + cstr[9:] # strip "-mut"
+
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 initial_cstr = self.type_link(node.initial_or_undef)
                 assert is_compatible(initial_cstr, cstr)
@@ -727,6 +791,18 @@ class TypeTab:
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprIs):
             assert is_bool(self.type_link(node))
+        elif isinstance(node, cwast.ExprLen):
+            assert self.type_link(node) == self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT)
+        elif isinstance(node, cwast.ExprChop):
+            cstr = self.type_link(node)
+            cstr_cont = self.type_link(node.container)
+            assert get_contained_type(cstr_cont) == get_contained_type(cstr)
+            assert is_mutable(cstr_cont) == is_mutable(cstr)
+            if not isinstance(node.start, cwast.Auto):
+                assert is_int(self.type_link(node.start))
+            if not isinstance(node.width, cwast.Auto):
+                assert is_int(self.type_link(node.width))
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,

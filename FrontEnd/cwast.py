@@ -311,8 +311,9 @@ class IndexVal:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    index: str
     value: "ExprNode"
+    index: str
+
 
 
 @dataclasses.dataclass()
@@ -888,7 +889,7 @@ FIELDS_NODES = Union[Comment, RecField]
 
 @dataclasses.dataclass()
 class DefRec:
-    """Record definition"""
+    """Record definition (only allowed at top-level)"""
     ALIAS = "rec"
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
@@ -921,7 +922,7 @@ ITEMS_NODES = Union[Comment, EnumVal]
 
 @dataclasses.dataclass()
 class DefEnum:
-    """Enum definition"""
+    """Enum definition (only allowed at top-level)"""
     ALIAS = "enum"
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
@@ -937,9 +938,8 @@ class DefEnum:
 
 @dataclasses.dataclass()
 class DefType:
-    """Type definition
+    """Type definition (only allowed at top-level)
 
-    `wrapped` forces by-name equivalence).
     """
     ALIAS = "type"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF
@@ -959,7 +959,7 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
 
 @dataclasses.dataclass()
 class DefConst:
-    """Constant definition"""
+    """Constant definition (only allowed at top-level)"""
     ALIAS = "const"
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
@@ -994,7 +994,7 @@ class DefVar:
 
 @dataclasses.dataclass()
 class DefFun:
-    """Function definition"""
+    """Function definition (only allowed at top-level)"""
     ALIAS = "fun"
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE
 
@@ -1090,13 +1090,13 @@ ALL_FIELDS = [
     NFD(NFK.STR, "label", "block  name (if not empty)"),
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NFD(NFK.STR, "index", "initializer index"),
+    NFD(NFK.STR, "index", "initializer index or empty"),
     NFD(NFK.STR, "path", "TBD"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
     NFD(NFK.FLAG, "mut", "is mutable"),
-    NFD(NFK.FLAG, "wrapped", "is wrapped type (uses name equivalence"),
+    NFD(NFK.FLAG, "wrapped", "is wrapped type (forces type equivalence by name)"),
     NFD(NFK.FLAG, "discard", "ignore non-void expression"),
     NFD(NFK.FLAG, "init", "run function at startup"),
     NFD(NFK.FLAG, "fini", "run function at shutdown"),
@@ -1162,6 +1162,7 @@ OPTIONAL_FIELDS = {
     "step_or_auto":   Auto(),
     "target": "",
     "path": "",
+    "index": "",
 }
 
 # Note: we rely on the matching being done greedily
