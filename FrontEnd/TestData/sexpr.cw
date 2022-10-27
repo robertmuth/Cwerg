@@ -16,16 +16,13 @@
     (if (Expr2 LE  a b) 
     [(= (^ v1a) 666)]
     [])
-   (if (<=  a b) 
+   (if (!(<=  a b)) 
     []
     [])
    (return (ValNum 7)) 
 ])
 
 (type wrapped t1 s32)
-
-
-
 
 (const pub c1 auto 7_s64)
 

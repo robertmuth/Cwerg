@@ -48,7 +48,10 @@ def GetNodeTypeAndFields(node, condense=True):
     if not condense:
         return cls.__name__, fields
 
-    if isinstance(node, cwast.Expr2):
+    if isinstance(node, cwast.Expr1):
+        fields.pop(0)
+        return cwast.UNARY_SHORTCUT_INV[node.unary_expr_kind], fields
+    elif isinstance(node, cwast.Expr2):
         fields.pop(0)
         return cwast.BINOP_SHORTCUT_INV[node.binary_expr_kind], fields
     elif cls.ALIAS:

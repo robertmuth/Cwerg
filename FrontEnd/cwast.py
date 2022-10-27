@@ -315,7 +315,6 @@ class IndexVal:
     index: str
 
 
-
 @dataclasses.dataclass()
 class FieldVal:
     """Used for rec initialization, e.g. `.imag = 5`"""
@@ -441,9 +440,9 @@ class ExprField:
 @enum.unique
 class UNARY_EXPR_KIND(enum.Enum):
     INVALID = 0
-    NOT = '!'
-    MINUS = '~'
-    NEG = 'not'
+    NOT = 1
+    MINUS = 2
+    NEG = 3
 
 
 @dataclasses.dataclass()
@@ -560,6 +559,7 @@ class ExprIs:
     expr: ExprNode
     type: TypeNode
 
+
 @dataclasses.dataclass()
 class ExprAs:
     """Safe Cast (Conversion)
@@ -579,6 +579,7 @@ class ExprAs:
 
     expr: ExprNode
     type: TypeNode
+
 
 @dataclasses.dataclass()
 class ExprUnsafeCast:
@@ -1231,8 +1232,8 @@ def GenerateDocumentation(fout):
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
     for name, cls in nodes:
         print(f"", file=fout)
-        alias = "" 
-        if cls.ALIAS: 
+        alias = ""
+        if cls.ALIAS:
             alias = f" ({cls.ALIAS})"
         print(f"### {name}{alias}", file=fout)
 
@@ -1358,6 +1359,15 @@ def ReadPiece(field, token, stream) -> Any:
         assert False
 
 
+UNARY_SHORTCUT = {
+    "!": UNARY_EXPR_KIND.NOT,
+    "neg": UNARY_EXPR_KIND.NEG,
+    "~": UNARY_EXPR_KIND.MINUS,
+}
+
+UNARY_SHORTCUT_INV = {v: k for k, v in UNARY_SHORTCUT.items()}
+
+
 BINOP_SHORTCUT = {
     ">=": BINARY_EXPR_KIND.GE,
     ">": BINARY_EXPR_KIND.GT,
@@ -1438,7 +1448,10 @@ def ReadSExpr(stream) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
     logger.info("Readding TAG %s", tag)
-    if tag in BINOP_SHORTCUT:
+    if tag in UNARY_SHORTCUT:
+        return ReadRestAndMakeNode(Expr1, [UNARY_SHORTCUT[tag]],
+                                   ["expr"], stream)
+    elif tag in BINOP_SHORTCUT:
         return ReadRestAndMakeNode(Expr2, [BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
     elif tag in _ASSIGNMENT_SHORTCUT:
