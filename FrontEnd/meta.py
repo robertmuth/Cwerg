@@ -345,6 +345,7 @@ class TypeTab:
             assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: CanonType):
+        assert cstr != NO_TYPE, f"no_type for: {node}"
         assert isinstance(
             node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
@@ -528,7 +529,9 @@ class TypeTab:
                 False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprIndex):
+            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_index, ctx)
+            ctx.pop_target()
             cstr = self.typify_node(node.container, ctx)
             return self.annotate(node, get_contained_type(cstr))
         elif isinstance(node, cwast.ExprField):
@@ -661,6 +664,9 @@ class TypeTab:
             cstr = get_contained_type(cstr_cont)
             mut = is_mutable(cstr_cont)
             return self.annotate(node, self.corpus.insert_slice_type(mut, cstr))
+        elif isinstance(node, cwast.ExprAddrOf):
+            cstr_expr = self.typify_node(node.expr, ctx)
+            return self.annotate(node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
         else:
             assert False, f"unexpected node {node}"
 
@@ -695,7 +701,7 @@ class TypeTab:
             cstr = self.type_link(node)
             if node.mut and is_array(cstr):
                 assert is_mutable(cstr)
-                cstr = "array" + cstr[9:] # strip "-mut"
+                cstr = "array" + cstr[9:]  # strip "-mut"
 
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 initial_cstr = self.type_link(node.initial_or_undef)
@@ -803,6 +809,14 @@ class TypeTab:
                 assert is_int(self.type_link(node.start))
             if not isinstance(node.width, cwast.Auto):
                 assert is_int(self.type_link(node.width))
+        elif isinstance(node, cwast.Id):
+             cstr = self.type_link(node)
+             assert cstr != NO_TYPE
+        elif isinstance(node, cwast.ExprAddrOf):
+            cstr_expr = self.type_link(node.expr)
+            cstr = self.type_link(node)
+            assert is_ptr(cstr)
+            assert get_pointee(cstr) == cstr_expr
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,

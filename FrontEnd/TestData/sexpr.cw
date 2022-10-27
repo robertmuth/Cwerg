@@ -21,9 +21,11 @@
 (type wrapped t1 s32)
 
 
-(let pub v1 auto 7)
+(let pub v1 auto 7_u64)
 
-(const pub c1 auto 7)
+(let pub v1a auto (& v1))
+
+(const pub c1 auto 7_s64)
 
 
 (rec pub type_rec [
