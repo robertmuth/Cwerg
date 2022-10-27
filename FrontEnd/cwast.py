@@ -99,7 +99,7 @@ class Auto:
 
     My only occur where explicitly allowed.
     """
-    ALIAS = None
+    ALIAS = "auto"
     FLAGS = NF.NONE
 
     def __str__(self):

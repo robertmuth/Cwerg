@@ -529,7 +529,8 @@ class TypeTab:
                 False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ExprIndex):
-            ctx.push_target(self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_index, ctx)
             ctx.pop_target()
             cstr = self.typify_node(node.container, ctx)
@@ -574,6 +575,7 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
+            # TODO: how is mutability propagated?
             return self.annotate(node, get_pointee(cstr))
         elif isinstance(node, cwast.Expr1):
             cstr = self.typify_node(node.expr, ctx)
@@ -667,6 +669,12 @@ class TypeTab:
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.typify_node(node.expr, ctx)
             return self.annotate(node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
+        elif isinstance(node, cwast.ExprOffsetof):
+            cstr = self.typify_node(node.type, ctx)
+            return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+        elif isinstance(node, cwast.ExprSizeof):
+            cstr = self.typify_node(node.type, ctx)
+            return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
         else:
             assert False, f"unexpected node {node}"
 
@@ -810,13 +818,19 @@ class TypeTab:
             if not isinstance(node.width, cwast.Auto):
                 assert is_int(self.type_link(node.width))
         elif isinstance(node, cwast.Id):
-             cstr = self.type_link(node)
-             assert cstr != NO_TYPE
+            cstr = self.type_link(node)
+            assert cstr != NO_TYPE
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.type_link(node.expr)
             cstr = self.type_link(node)
             assert is_ptr(cstr)
             assert get_pointee(cstr) == cstr_expr
+        elif isinstance(node, cwast.ExprOffsetof):
+            assert self.type_link(node) == self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT)
+        elif isinstance(node, cwast.ExprSizeof):
+            assert self.type_link(node) == self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT)
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,

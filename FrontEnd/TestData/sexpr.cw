@@ -7,10 +7,14 @@
    (return (ValNum 7)) 
 ])
 
+(let pub v1 auto 7_u64)
+
+(let pub v1a auto (& v1))
+
 (fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
     (if (Expr2 LE  a b) 
-    []
+    [(= (^ v1a) 666)]
     [])
    (if (<=  a b) 
     []
@@ -21,9 +25,7 @@
 (type wrapped t1 s32)
 
 
-(let pub v1 auto 7_u64)
 
-(let pub v1a auto (& v1))
 
 (const pub c1 auto 7_s64)
 
@@ -39,6 +41,9 @@
    (field u1 u64 666)
    (field u2 u64 666_u64)
 ])
+
+
+(const c2 auto (offsetof type_rec s1))
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
