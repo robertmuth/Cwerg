@@ -445,13 +445,13 @@ class UNARY_EXPR_KIND(enum.Enum):
     NEG = 3
 
 
-UNARY_SHORTCUT = {
+UNARY_EXPR_SHORTCUT = {
     "!": UNARY_EXPR_KIND.NOT,
     "neg": UNARY_EXPR_KIND.NEG,
     "~": UNARY_EXPR_KIND.MINUS,
 }
 
-UNARY_SHORTCUT_INV = {v: k for k, v in UNARY_SHORTCUT.items()}
+UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 
 
 @dataclasses.dataclass()
@@ -494,7 +494,7 @@ class BINARY_EXPR_KIND(enum.Enum):
     PDELTA = 52  # pointer delta result is sint
 
 
-BINOP_SHORTCUT = {
+BINARY_EXPR_SHORTCUT = {
     ">=": BINARY_EXPR_KIND.GE,
     ">": BINARY_EXPR_KIND.GT,
     "<=": BINARY_EXPR_KIND.LE,
@@ -508,6 +508,12 @@ BINOP_SHORTCUT = {
     "/": BINARY_EXPR_KIND.DIV,
     "%": BINARY_EXPR_KIND.REM,
     #
+    "&&": BINARY_EXPR_KIND.ANDSC,
+    "||": BINARY_EXPR_KIND.ORSC,
+    #
+    "<<": BINARY_EXPR_KIND.SHL,
+    ">>": BINARY_EXPR_KIND.SHR,
+    #
     "and": BINARY_EXPR_KIND.AND,
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
@@ -517,7 +523,7 @@ BINOP_SHORTCUT = {
     "pdelta": BINARY_EXPR_KIND.PDELTA,
 }
 
-BINOP_SHORTCUT_INV = {v: k for k, v in BINOP_SHORTCUT.items()}
+BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 
 
 @dataclasses.dataclass()
@@ -1305,9 +1311,24 @@ def GenerateDocumentation(fout):
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
-
-
+    print("\n### Expr1 Kind\n", file=fout)
+    for x in UNARY_EXPR_KIND:
+        if x is UNARY_EXPR_KIND.INVALID:
+            continue
+        print(f"{x.name:10}{UNARY_EXPR_SHORTCUT_INV[x]}", file=fout)
+    print("\n### Expr2 Kind\n", file=fout)
+    for x in BINARY_EXPR_KIND:
+        if x is BINARY_EXPR_KIND.INVALID:
+            continue
+        print(f"{x.name:10}{BINARY_EXPR_SHORTCUT_INV[x]}", file=fout)
+    print("\n### StmtCompoundAssignment Kind\n", file=fout)
+    for x in ASSIGNMENT_KIND:
+        if x is ASSIGNMENT_KIND.INVALID:
+            continue
+        print(f"{x.name:10}{ASSIGMENT_SHORTCUT_INV[x]}", file=fout)
 ##########################################################################################
+
+
 def DumpFields(node_class):
     for tag, val in node_class.__annotations__.items():
         print(f"    {tag}: {val}")
@@ -1454,11 +1475,11 @@ def ReadSExpr(stream) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
     logger.info("Readding TAG %s", tag)
-    if tag in UNARY_SHORTCUT:
-        return ReadRestAndMakeNode(Expr1, [UNARY_SHORTCUT[tag]],
+    if tag in UNARY_EXPR_SHORTCUT:
+        return ReadRestAndMakeNode(Expr1, [UNARY_EXPR_SHORTCUT[tag]],
                                    ["expr"], stream)
-    elif tag in BINOP_SHORTCUT:
-        return ReadRestAndMakeNode(Expr2, [BINOP_SHORTCUT[tag]],
+    elif tag in BINARY_EXPR_SHORTCUT:
+        return ReadRestAndMakeNode(Expr2, [BINARY_EXPR_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
     elif tag in ASSIGNMENT_SHORTCUT:
         return ReadRestAndMakeNode(StmtCompoundAssignment, [ASSIGNMENT_SHORTCUT[tag]],

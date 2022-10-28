@@ -62,7 +62,7 @@ Pro: Helpful for writing very succint code.
 Con: Expressions with side-effects requiring the concept of [Sequence Point](https://en.wikipedia.org/wiki/Sequence_point) which adds complexity.
 
 
-#### Enhanced Assignments (`+=`, `-=`, etc.) YES
+#### Compound Assignments (`+=`, `-=`, etc.) YES
 
 Pro: Convenient shorthand, especially if increment/decrement is not availabe. Helps with code generation in the absence of CSE optimzation pass.
 

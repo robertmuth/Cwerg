@@ -3,7 +3,7 @@
 WIP 
 
 
-### Auto
+### Auto (auto)
 Placeholder for an unspecified value or type
 
     My only occur where explicitly allowed.
@@ -556,3 +556,46 @@ Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
      
+
+### Expr1 Kind
+
+NOT       !
+MINUS     ~
+NEG       neg
+
+### Expr2 Kind
+
+ADD       +
+SUB       -
+DIV       /
+MUL       *
+REM       %
+AND       and
+OR        or
+XOR       xor
+EQ        ==
+NE        !=
+LT        <
+LE        <=
+GT        >
+GE        >=
+ANDSC     &&
+ORSC      ||
+SHR       >>
+SHL       <<
+PADD      padd
+PSUB      psub
+PDELTA    pdelta
+
+### StmtCompoundAssignment Kind
+
+ADD       +=
+SUB       -=
+DIV       /=
+MUL       *=
+REM       %=
+AND       and=
+OR        or=
+XOR       xor=
+SHR       >>=
+SHL       <<=

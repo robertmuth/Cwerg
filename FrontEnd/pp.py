@@ -53,10 +53,10 @@ def GetNodeTypeAndFields(node, condense=True):
         return cwast.ASSIGMENT_SHORTCUT_INV[node.assignment_kind], fields
     elif isinstance(node, cwast.Expr1):
         fields.pop(0)
-        return cwast.UNARY_SHORTCUT_INV[node.unary_expr_kind], fields
+        return cwast.UNARY_EXPR_SHORTCUT_INV[node.unary_expr_kind], fields
     elif isinstance(node, cwast.Expr2):
         fields.pop(0)
-        return cwast.BINOP_SHORTCUT_INV[node.binary_expr_kind], fields
+        return cwast.BINARY_EXPR_SHORTCUT_INV[node.binary_expr_kind], fields
     elif cls.ALIAS:
         return cls.ALIAS, fields
     else:
