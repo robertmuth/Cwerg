@@ -31,7 +31,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return node.number
     elif isinstance(node, cwast.ValVoid):
         return "void"
-    elif isinstance(node, cwast.ValArrayString):
+    elif isinstance(node, cwast.ValString):
         return node.string
     else:
         return None

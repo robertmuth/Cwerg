@@ -36,21 +36,33 @@
 
 (const c20 auto type_enum/e3)
 
+(# "array literal with explicit indices")
 (const c30 auto (ValArray uint 30 [
-   (# "this is a comment with \" with quotes \t ")
-   (IndexVal 0 7) 
-   (IndexVal 10 9) 
-   (IndexVal 20 7)]))
+   (IndexVal 0 1) 
+   (IndexVal 10 2) 
+   (IndexVal 20 3)]))
 
-(const c31 auto (ValRec type_rec [
-   (# "this is a comment with \" with quotes \t ")
-   (FieldVal s1 7) 
-   (FieldVal s2 9) 
-   (FieldVal s3 7)]))
+(# "array literal")
+(const c31 auto (ValArray uint 30 [
+   (IndexVal 0) 
+   (IndexVal 10) 
+   (IndexVal 20)]))
+
+(# "rec literal with explicit field name")
+(const c32 auto (ValRec type_rec [
+   (FieldVal 7 s1) 
+   (FieldVal 9 s2) 
+   (FieldVal 7 s3)]))
+
+(# "rec literal")
+(const c33 auto (ValRec type_rec [
+   (FieldVal 7) 
+   (FieldVal 9) 
+   (FieldVal 7)]))
 
 (const c40 auto  (ExprIndex c30 0))
 
-(const c41 auto  (ExprField c31 s1))
+(const c41 auto  (ExprField c32 s1))
 
 (# "can Functions be assigned to consts?")
 

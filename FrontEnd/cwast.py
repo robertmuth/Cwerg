@@ -82,7 +82,7 @@ class ID_KIND(enum.Enum):
 class Id:
     """Refers to a type, variable, constant, function, module by name.
 
-    They may contain a path component indicating which modules they reference.
+    Ids may contain a path component indicating which modules they reference.
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
@@ -169,7 +169,7 @@ class TypeBase:
 
 @dataclasses.dataclass()
 class TypePtr:
-    """Pointer type (mutable/non-mutable)
+    """Pointer type
     """
     ALIAS = "ptr"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
@@ -184,7 +184,7 @@ class TypePtr:
 
 @dataclasses.dataclass()
 class TypeSlice:
-    """A view/slice of an array with compile time unknown dimentions
+    """A view/slice of an array with compile time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -244,7 +244,7 @@ class TypeSum:
 # Val Nodes
 ############################################################
 ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
-                "ValVoid", "ValArray", "ValArrayString",
+                "ValVoid", "ValArray", "ValString",
                 "ValRec"]
 
 
@@ -307,22 +307,30 @@ class ValVoid:
 
 @dataclasses.dataclass()
 class IndexVal:
-    "Used for array initialization, e.g. `.1 = 5`"
+    """Part of an array literal
+
+    e.g. `.1 = 5`
+    If index is empty use `0` or `previous index + 1`.
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
     value: "ExprNode"
-    index: str
+    init_index: str
 
 
 @dataclasses.dataclass()
 class FieldVal:
-    """Used for rec initialization, e.g. `.imag = 5`"""
+    """Part of rec literal
+
+    e.g. `.imag = 5`
+    If field is empty use `first field` or `next field`.
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    field: str
     value: "ExprNode"
+    init_field: str
 
 
 INITS_ARRAY_NODES = Union[Comment, IndexVal]
@@ -343,10 +351,10 @@ class ValArray:
 
 
 @dataclasses.dataclass()
-class ValArrayString:
+class ValString:
     """An array value encoded as a string
 
-    type is `u8[strlen(string)]`. `string` may be escaped/raw
+    type is `[strlen(string)]u8`. `string` may be escaped/raw
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
@@ -643,19 +651,15 @@ class ExprBitCast:
 
     Type must have same size as type of item
 
-    s32,u32 <-> f32
-    s64,u64 <-> f64
+    s32,u32,f32 <-> s32,u32,f32
+    s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr
-    uX <-> sX
     """
     ALIAS = "bitcast"
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: ExprNode
     type: TypeNode
-
-
-# Const Expression
 
 
 @dataclasses.dataclass()
@@ -1017,7 +1021,7 @@ class DefType:
 
 
 CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
-                   ValVoid, ValRec, ValArray, ValArrayString]
+                   ValVoid, ValRec, ValArray, ValString]
 
 
 @dataclasses.dataclass()
@@ -1153,7 +1157,8 @@ ALL_FIELDS = [
     NFD(NFK.STR, "label", "block  name (if not empty)"),
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NFD(NFK.STR, "index", "initializer index or empty"),
+    NFD(NFK.STR, "init_index", "initializer index or empty"),
+    NFD(NFK.STR, "init_field", "initializer field or empty"),
     NFD(NFK.STR, "path", "TBD"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
@@ -1225,7 +1230,8 @@ OPTIONAL_FIELDS = {
     "step_or_auto":   Auto(),
     "target": "",
     "path": "",
-    "index": "",
+    "init_index": "",
+    "init_field": "",
 }
 
 # Note: we rely on the matching being done greedily
@@ -1290,7 +1296,7 @@ WIP
 
 def _RenderKind(node, kind, inv, fout):
 
-    print(f"\n### {node.__class__.__name__} Kind\n", file=fout)
+    print(f"\n### {node.__name__} Kind\n", file=fout)
     print("|Kind|Abbrev|", file=fout)
     print("|----|------|", file=fout)
     for x in kind:
@@ -1389,7 +1395,7 @@ def ExpandShortHand(field, t) -> Any:
             return ValVoid()
     elif t[0] == '"':
         # TODO: r"
-        return ValArrayString(False, t)
+        return ValString(False, t)
 
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
@@ -1494,7 +1500,7 @@ def ReadSExpr(stream) -> Any:
 
 VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
-               ValArrayString, ValRec)
+               ValString, ValRec)
 
 if __name__ == "__main__":
     import sys
