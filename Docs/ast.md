@@ -557,45 +557,51 @@ Only value inhabiting the `TypeVoid` type
     It can be used to model *null* in nullable pointers via a sum type.
      
 
-### Expr1 Kind
+### type Kind
 
-NOT       !
-MINUS     ~
-NEG       neg
+|Kind|Abbrev|
+|----|------|
+|NOT       |!|
+|MINUS     |~|
+|NEG       |neg|
 
-### Expr2 Kind
+### type Kind
 
-ADD       +
-SUB       -
-DIV       /
-MUL       *
-REM       %
-AND       and
-OR        or
-XOR       xor
-EQ        ==
-NE        !=
-LT        <
-LE        <=
-GT        >
-GE        >=
-ANDSC     &&
-ORSC      ||
-SHR       >>
-SHL       <<
-PADD      padd
-PSUB      psub
-PDELTA    pdelta
+|Kind|Abbrev|
+|----|------|
+|ADD       |+|
+|SUB       |-|
+|DIV       |/|
+|MUL       |*|
+|REM       |%|
+|AND       |and|
+|OR        |or|
+|XOR       |xor|
+|EQ        |==|
+|NE        |!=|
+|LT        |<|
+|LE        |<=|
+|GT        |>|
+|GE        |>=|
+|ANDSC     |&&|
+|ORSC      ||||
+|SHR       |>>|
+|SHL       |<<|
+|PADD      |padd|
+|PSUB      |psub|
+|PDELTA    |pdelta|
 
-### StmtCompoundAssignment Kind
+### type Kind
 
-ADD       +=
-SUB       -=
-DIV       /=
-MUL       *=
-REM       %=
-AND       and=
-OR        or=
-XOR       xor=
-SHR       >>=
-SHL       <<=
+|Kind|Abbrev|
+|----|------|
+|ADD       |+=|
+|SUB       |-=|
+|DIV       |/=|
+|MUL       |*=|
+|REM       |%=|
+|AND       |and=|
+|OR        |or=|
+|XOR       |xor=|
+|SHR       |>>=|
+|SHL       |<<=|

@@ -1288,6 +1288,17 @@ WIP
 """
 
 
+def _RenderKind(node, kind, inv, fout):
+
+    print(f"\n### {node.__class__.__name__} Kind\n", file=fout)
+    print("|Kind|Abbrev|", file=fout)
+    print("|----|------|", file=fout)
+    for x in kind:
+        if x is kind.INVALID:
+            continue
+        print(f"|{x.name:10}|{inv[x]}|", file=fout)
+
+
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
@@ -1311,21 +1322,11 @@ def GenerateDocumentation(fout):
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
-    print("\n### Expr1 Kind\n", file=fout)
-    for x in UNARY_EXPR_KIND:
-        if x is UNARY_EXPR_KIND.INVALID:
-            continue
-        print(f"{x.name:10}{UNARY_EXPR_SHORTCUT_INV[x]}", file=fout)
-    print("\n### Expr2 Kind\n", file=fout)
-    for x in BINARY_EXPR_KIND:
-        if x is BINARY_EXPR_KIND.INVALID:
-            continue
-        print(f"{x.name:10}{BINARY_EXPR_SHORTCUT_INV[x]}", file=fout)
-    print("\n### StmtCompoundAssignment Kind\n", file=fout)
-    for x in ASSIGNMENT_KIND:
-        if x is ASSIGNMENT_KIND.INVALID:
-            continue
-        print(f"{x.name:10}{ASSIGMENT_SHORTCUT_INV[x]}", file=fout)
+    _RenderKind(Expr1,  UNARY_EXPR_KIND, UNARY_EXPR_SHORTCUT_INV, fout)
+    _RenderKind(Expr2,  BINARY_EXPR_KIND, BINARY_EXPR_SHORTCUT_INV, fout)
+    _RenderKind(StmtCompoundAssignment,
+                ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
+
 ##########################################################################################
 
 
