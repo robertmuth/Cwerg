@@ -147,14 +147,6 @@ class TypeContext:
     def get_target_type(self):
         return self._target_type[-1]
 
-    def push_rec_type(self, cstr: CanonType):
-        self._enclosing_rec_type.append(cstr)
-
-    def pop_rec_type(self):
-        self._enclosing_rec_type.pop(-1)
-
-    def get_rec_type(self):
-        return self._enclosing_rec_type[-1]
 
 
 class TypeCorpus:
@@ -235,6 +227,15 @@ class TypeCorpus:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         assert False
+    
+    def get_fields(self, rec_cstr) -> List[str]:
+        """Oddball since the node returned is NOT inside corpus
+
+        See implementation of insert_rec_type
+        """
+        node = self.corpus[rec_cstr]
+        assert isinstance(node, cwast.DefRec)
+        return  [x for x in node.fields if isinstance(x, cwast.RecField)]
 
     def insert_rec_type(self, name: str, node) -> CanonType:
         name = f"rec({name})"
@@ -501,29 +502,26 @@ class TypeTab:
             ctx.pop_target()
             dim = self.compute_dim(node.expr_size, ctx)
             return self.annotate(node, self.corpus.insert_array_type(False, dim, cstr))
-        elif isinstance(node, cwast.FieldVal):
-            field_node = self.corpus.lookup_rec_field(
-                ctx.get_rec_type(), node.field)
-            self.annotate_field(node, field_node)
-            # TODO: make sure this link is set
-            ctx.push_target(self.type_link(field_node))
-            cstr = self.typify_node(node.value, ctx)
-            return self.annotate(node, cstr)
-            ctx.pop_target()
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
-            ctx.push_rec_type(cstr)
+            all_fields: List[cwast.RecField] = self.corpus.get_fields(cstr)
             for val in node.inits_rec:
-                field_cstr = NO_TYPE
-                if isinstance(val, cwast.FieldVal):
-                    field = self.corpus.lookup_rec_field(cstr, val.field)
-                    field_cstr = self.type_link(field)
+                if not isinstance(val, cwast.FieldVal): continue
+                if val.init_field:
+                    while True:
+                        field_node = all_fields.pop(0)
+                        if val.init_field == field_node.name: break
+                else:
+                    field_node = all_fields.pop(0)
+                # TODO: make sure this link is set
+                field_cstr = self.type_link(field_node)
+                self.annotate_field(val, field_node)
+                self.annotate(val, field_cstr)
                 ctx.push_target(field_cstr)
-                self.typify_node(val, ctx)
+                self.typify_node(val.value, ctx)
                 ctx.pop_target()
-            ctx.pop_rec_type()
             return self.annotate(node, cstr)
-        elif isinstance(node, cwast.ValArrayString):
+        elif isinstance(node, cwast.ValString):
             dim = ComputeStringSize(node.raw, node.string)
             cstr = self.corpus.insert_array_type(
                 False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
@@ -689,7 +687,7 @@ class TypeTab:
                         x), f"expected {cstr} got {self.type_link(x)}"
         elif isinstance(node, cwast.ValRec):
             for x in node.inits_rec:
-                if not isinstance(x, cwast.Comment):
+                if isinstance(x, cwast.IndexVal):
                     field_node = self.field_link(x)
                     assert self.type_link(field_node) == self.type_link(x)
         elif isinstance(node, cwast.RecField):
@@ -836,7 +834,7 @@ class TypeTab:
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,
                                cwast.ValNum, cwast.DefType, cwast.DefRec, cwast.ValTrue,
                                cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
-                               cwast.TypeFun, cwast.DefConst, cwast.ValArrayString,
+                               cwast.TypeFun, cwast.DefConst, cwast.ValString,
                                cwast.IndexVal, cwast.FieldVal, cwast.StmtBlock, cwast.StmtBreak,
                                cwast.StmtContinue, cwast.StmtDefer)):
             pass

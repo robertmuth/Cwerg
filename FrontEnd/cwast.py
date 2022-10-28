@@ -1327,7 +1327,13 @@ def GenerateDocumentation(fout):
             for field, type in cls.__annotations__.items():
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
-                print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
+                extra = ""
+                optional_val = OPTIONAL_FIELDS.get(field)
+                if optional_val == "":
+                    extra = f' (default "")'
+                elif optional_val is not None:
+                    extra = f' (default {optional_val.__class__.__name__})'
+                print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
     _RenderKind(Expr1,  UNARY_EXPR_KIND, UNARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(Expr2,  BINARY_EXPR_KIND, BINARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(StmtCompoundAssignment,

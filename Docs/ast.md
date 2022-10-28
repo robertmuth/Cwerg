@@ -163,10 +163,9 @@ Bit cast.
 
     Type must have same size as type of item
 
-    s32,u32 <-> f32
-    s64,u64 <-> f64
+    s32,u32,f32 <-> s32,u32,f32
+    s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr
-    uX <-> sX
     
 
 Fields:
@@ -187,8 +186,8 @@ Slicing expression of array or slice
 
 Fields:
 * container [NODE]: array and slice
-* start [NODE]: desired start of slice
-* width [NODE]: desired width of slice
+* start [NODE] (default Auto): desired start of slice
+* width [NODE] (default Auto): desired width of slice
 
 ### ExprDeref (^)
 Dereference a pointer represented by `expr`
@@ -255,8 +254,8 @@ Range expression for simple for-loops
 
 Fields:
 * end [NODE]: range end
-* begin_or_auto [NODE]: range begin: `Auto` => 0
-* step_or_auto [NODE]: range step, `Auto` => 1
+* begin_or_auto [NODE] (default Auto): range begin: `Auto` => 0
+* step_or_auto [NODE] (default Auto): range step, `Auto` => 1
 
 ### ExprSizeof (sizeof)
 Byte size of type
@@ -279,11 +278,15 @@ Fields:
 * type [NODE]: type expression
 
 ### FieldVal
-Used for rec initialization, e.g. `.imag = 5`
+Part of rec literal
+
+    e.g. `.imag = 5`
+    If field is empty use `first field` or `next field`.
+    
 
 Fields:
-* field [STR]: record field
 * value [NODE]: 
+* init_field [STR] (default ""): initializer field or empty
 
 ### FunParam (param)
 Function parameter
@@ -297,19 +300,23 @@ Fields:
 ### Id
 Refers to a type, variable, constant, function, module by name.
 
-    They may contain a path component indicating which modules they reference.
+    Ids may contain a path component indicating which modules they reference.
     
 
 Fields:
 * name [STR]: name of the object
-* path [STR]: TBD
+* path [STR] (default ""): TBD
 
 ### IndexVal
-Used for array initialization, e.g. `.1 = 5`
+Part of an array literal
+
+    e.g. `.1 = 5`
+    If index is empty use `0` or `previous index + 1`.
+    
 
 Fields:
 * value [NODE]: 
-* index [STR]: initializer index or empty
+* init_index [STR] (default ""): initializer index or empty
 
 ### ModParam (None)
 Module Parameters
@@ -360,7 +367,7 @@ Break statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [STR]: name of enclosing while/for/block to brach to (empty means nearest)
+* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
 ### StmtCompoundAssignment
 Compound assignment statement
@@ -376,7 +383,7 @@ Continue statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [STR]: name of enclosing while/for/block to brach to (empty means nearest)
+* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
 ### StmtDefer (defer)
 Defer statement
@@ -431,7 +438,7 @@ Return statement
     
 
 Fields:
-* expr_ret [NODE]: result expression (ValVoid means no result)
+* expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
 ### StmtWhile (while)
 While statement.
@@ -472,7 +479,7 @@ Fields:
 * result [NODE]: return type
 
 ### TypePtr (ptr)
-Pointer type (mutable/non-mutable)
+Pointer type
     
 
 Fields:
@@ -480,7 +487,7 @@ Fields:
 * type [NODE]: type expression
 
 ### TypeSlice
-A view/slice of an array with compile time unknown dimentions
+A view/slice of an array with compile time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -511,16 +518,6 @@ Fields:
 * expr_size [NODE]: expression determining the size or auto
 * inits_array [LIST]: array initializers and/or comments
 
-### ValArrayString
-An array value encoded as a string
-
-    type is `u8[strlen(string)]`. `string` may be escaped/raw
-    
-
-Fields:
-* raw [FLAG]: ignore escape sequences in string
-* string [STR]: string literal
-
 ### ValFalse
 Bool constant `false`
 
@@ -544,6 +541,16 @@ Fields:
 * type [NODE]: type expression
 * inits_rec [LIST]: record initializers and/or comments
 
+### ValString
+An array value encoded as a string
+
+    type is `[strlen(string)]u8`. `string` may be escaped/raw
+    
+
+Fields:
+* raw [FLAG]: ignore escape sequences in string
+* string [STR]: string literal
+
 ### ValTrue
 Bool constant `true`
 
@@ -557,7 +564,7 @@ Only value inhabiting the `TypeVoid` type
     It can be used to model *null* in nullable pointers via a sum type.
      
 
-### type Kind
+### Expr1 Kind
 
 |Kind|Abbrev|
 |----|------|
@@ -565,7 +572,7 @@ Only value inhabiting the `TypeVoid` type
 |MINUS     |~|
 |NEG       |neg|
 
-### type Kind
+### Expr2 Kind
 
 |Kind|Abbrev|
 |----|------|
@@ -591,7 +598,7 @@ Only value inhabiting the `TypeVoid` type
 |PSUB      |psub|
 |PDELTA    |pdelta|
 
-### type Kind
+### StmtCompoundAssignment Kind
 
 |Kind|Abbrev|
 |----|------|
