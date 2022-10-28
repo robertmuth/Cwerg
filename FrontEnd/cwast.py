@@ -445,6 +445,15 @@ class UNARY_EXPR_KIND(enum.Enum):
     NEG = 3
 
 
+UNARY_SHORTCUT = {
+    "!": UNARY_EXPR_KIND.NOT,
+    "neg": UNARY_EXPR_KIND.NEG,
+    "~": UNARY_EXPR_KIND.MINUS,
+}
+
+UNARY_SHORTCUT_INV = {v: k for k, v in UNARY_SHORTCUT.items()}
+
+
 @dataclasses.dataclass()
 class Expr1:
     """Unary expression."""
@@ -483,6 +492,32 @@ class BINARY_EXPR_KIND(enum.Enum):
     PADD = 50   # pointer add int
     PSUB = 51   # pointer sub int
     PDELTA = 52  # pointer delta result is sint
+
+
+BINOP_SHORTCUT = {
+    ">=": BINARY_EXPR_KIND.GE,
+    ">": BINARY_EXPR_KIND.GT,
+    "<=": BINARY_EXPR_KIND.LE,
+    "<": BINARY_EXPR_KIND.LT,
+    "==": BINARY_EXPR_KIND.EQ,
+    "!=": BINARY_EXPR_KIND.NE,
+    #
+    "+": BINARY_EXPR_KIND.ADD,
+    "-": BINARY_EXPR_KIND.SUB,
+    "*": BINARY_EXPR_KIND.MUL,
+    "/": BINARY_EXPR_KIND.DIV,
+    "%": BINARY_EXPR_KIND.REM,
+    #
+    "and": BINARY_EXPR_KIND.AND,
+    "or": BINARY_EXPR_KIND.OR,
+    "xor": BINARY_EXPR_KIND.XOR,
+    #
+    "padd": BINARY_EXPR_KIND.PADD,
+    "psub": BINARY_EXPR_KIND.PSUB,
+    "pdelta": BINARY_EXPR_KIND.PDELTA,
+}
+
+BINOP_SHORTCUT_INV = {v: k for k, v in BINOP_SHORTCUT.items()}
 
 
 @dataclasses.dataclass()
@@ -831,6 +866,7 @@ class StmtAssert:
 
 @enum.unique
 class ASSIGNMENT_KIND(enum.Enum):
+    """Compound Assignment Kinds"""
     INVALID = 0
     ADD = 1
     SUB = 2
@@ -844,6 +880,25 @@ class ASSIGNMENT_KIND(enum.Enum):
 
     SHR = 20    # >>
     SHL = 31    # <<
+
+
+ASSIGNMENT_SHORTCUT = {
+    #
+    "+=": ASSIGNMENT_KIND.ADD,
+    "-=": ASSIGNMENT_KIND.SUB,
+    "*=": ASSIGNMENT_KIND.MUL,
+    "/=": ASSIGNMENT_KIND.DIV,
+    "%=": ASSIGNMENT_KIND.REM,
+    #
+    "and=": ASSIGNMENT_KIND.AND,
+    "or=": ASSIGNMENT_KIND.OR,
+    "xor=": ASSIGNMENT_KIND.XOR,
+    #
+    "<<=": ASSIGNMENT_KIND.SHL,
+    ">>=": ASSIGNMENT_KIND.SHR,
+}
+
+ASSIGMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 
 
 @dataclasses.dataclass()
@@ -1359,38 +1414,6 @@ def ReadPiece(field, token, stream) -> Any:
         assert False
 
 
-UNARY_SHORTCUT = {
-    "!": UNARY_EXPR_KIND.NOT,
-    "neg": UNARY_EXPR_KIND.NEG,
-    "~": UNARY_EXPR_KIND.MINUS,
-}
-
-UNARY_SHORTCUT_INV = {v: k for k, v in UNARY_SHORTCUT.items()}
-
-
-BINOP_SHORTCUT = {
-    ">=": BINARY_EXPR_KIND.GE,
-    ">": BINARY_EXPR_KIND.GT,
-    "<=": BINARY_EXPR_KIND.LE,
-    "<": BINARY_EXPR_KIND.LT,
-    "==": BINARY_EXPR_KIND.EQ,
-    "!=": BINARY_EXPR_KIND.NE,
-    #
-    "+": BINARY_EXPR_KIND.ADD,
-    "-": BINARY_EXPR_KIND.SUB,
-    "*": BINARY_EXPR_KIND.MUL,
-    "/": BINARY_EXPR_KIND.DIV,
-    "%": BINARY_EXPR_KIND.REM,
-    #
-    "and": BINARY_EXPR_KIND.AND,
-    "or": BINARY_EXPR_KIND.OR,
-    "xor": BINARY_EXPR_KIND.XOR,
-    #
-    "padd": BINARY_EXPR_KIND.PADD,
-    "psub": BINARY_EXPR_KIND.PSUB,
-    "pdelta": BINARY_EXPR_KIND.PDELTA,
-}
-
 BINOP_BOOL = {
     BINARY_EXPR_KIND.GE,
     BINARY_EXPR_KIND.GT,
@@ -1398,23 +1421,6 @@ BINOP_BOOL = {
     BINARY_EXPR_KIND.LT,
     BINARY_EXPR_KIND.EQ,
     BINARY_EXPR_KIND.NE,
-}
-
-BINOP_SHORTCUT_INV = {v: k for k, v in BINOP_SHORTCUT.items()}
-
-
-_ASSIGNMENT_SHORTCUT = {
-    #
-    "+=": ASSIGNMENT_KIND.ADD,
-    "-=": ASSIGNMENT_KIND.SUB,
-    "*=": ASSIGNMENT_KIND.MUL,
-    "/=": ASSIGNMENT_KIND.DIV,
-    "%=": ASSIGNMENT_KIND.REM,
-    #
-    "and=": ASSIGNMENT_KIND.AND,
-    "or=": ASSIGNMENT_KIND.OR,
-    "xor=": ASSIGNMENT_KIND.XOR,
-    #
 }
 
 
@@ -1454,8 +1460,8 @@ def ReadSExpr(stream) -> Any:
     elif tag in BINOP_SHORTCUT:
         return ReadRestAndMakeNode(Expr2, [BINOP_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
-    elif tag in _ASSIGNMENT_SHORTCUT:
-        return ReadRestAndMakeNode(StmtCompoundAssignment, [_ASSIGNMENT_SHORTCUT[tag]],
+    elif tag in ASSIGNMENT_SHORTCUT:
+        return ReadRestAndMakeNode(StmtCompoundAssignment, [ASSIGNMENT_SHORTCUT[tag]],
                                    ["lhs", "expr"], stream)
     else:
         cls = _NODES_ALIASES.get(tag)

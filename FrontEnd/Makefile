@@ -25,8 +25,10 @@ $(DIR)/%.cw.symtab: TestData/%.cw
 	./symtab.py < $<
 
 $(DIR)/%.cw.pp: TestData/%.cw
-	@echo "[parse $@]"
-	./pp.py < $<
+	@echo "[prettyprint $@]"
+	./pp.py < $< >$@.tmp
+	./pp.py < $@.tmp >$@
+	diff $@.tmp $@
 
 clean:
 	@rm -f $(DIR)/* 
