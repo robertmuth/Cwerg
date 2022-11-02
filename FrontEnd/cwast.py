@@ -631,6 +631,22 @@ class ExprAs:
 
 
 @dataclasses.dataclass()
+class ExprTryAs:
+    """Narrow a `expr` which is of Sum to `type` 
+
+    If the is not possible return `default_or_undef` if that is not undef
+    or trap otherwise.
+
+    """
+    ALIAS = "tryas"
+    FLAGS = NF.TYPE_ANNOTATED
+
+    expr: ExprNode
+    type: TypeNode
+    default_or_undef: Union[ExprNode, ValUndef]
+
+
+@dataclasses.dataclass()
 class ExprUnsafeCast:
     """Unsafe Cast
 
@@ -874,6 +890,13 @@ class StmtAssert:
     message: str     # should this be an expression?
 
 
+@dataclasses.dataclass()
+class StmtTrap:
+    """Trap statement"""
+    ALIAS = "trap"
+    FLAGS = NF.NONE
+
+
 @enum.unique
 class ASSIGNMENT_KIND(enum.Enum):
     """Compound Assignment Kinds"""
@@ -1059,6 +1082,36 @@ class DefVar:
         return f"LET {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
 
 
+class Try:
+    """Variable definition if type matches else exception
+
+    This is the most complex node in Cwerg. It only makes sense for `expr` that
+    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
+    The statement desugar to this:
+
+    (let `mut` tmp auto `expr`)
+    if (tmp is `type`) [] [
+        (let `name-other` auto (tmp as `type-rest`)
+        ...`body_except`
+        (trap)
+    ])
+    (let `name` auto (tmp as `type`))
+
+    """
+    ALIAS = "try"
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
+
+    mut: bool
+    name: str
+    type: TypeNode
+    expr: ExprNode
+    name_other: str
+    body_except: List[BODY_NODES]
+
+    def __str__(self):
+        return f"TRY {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
+
+
 @dataclasses.dataclass()
 class DefFun:
     """Function definition (only allowed at top-level)"""
@@ -1150,6 +1203,8 @@ class NFD:
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
     NFD(NFK.STR, "name", "name of the object"),
+    NFD(NFK.STR, "name_other", "name of the other object"),
+
     NFD(NFK.STR, "string", "string literal"),
     NFD(NFK.STR, "comment", "comment"),
     NFD(NFK.STR, "message", "message for assert failures"),
@@ -1170,11 +1225,12 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "fini", "run function at shutdown"),
     NFD(NFK.FLAG, "raw", "ignore escape sequences in string"),
     #
-    NFD(NFK.KIND, "unary_expr_kind", "TBD", UNARY_EXPR_KIND),
-    NFD(NFK.KIND, "binary_expr_kind", "TBD", BINARY_EXPR_KIND),
-    NFD(NFK.KIND, "base_type_kind", "TBD", BASE_TYPE_KIND),
+    NFD(NFK.KIND, "unary_expr_kind", "see Expr1 Kind below", UNARY_EXPR_KIND),
+    NFD(NFK.KIND, "binary_expr_kind", "see Expr2 Kind below", BINARY_EXPR_KIND),
+    NFD(NFK.KIND, "base_type_kind", "see Base Types below", BASE_TYPE_KIND),
     NFD(NFK.KIND, "mod_param_kind", "TBD",  MOD_PARAM_KIND),
-    NFD(NFK.KIND, "assignment_kind", "TBD", ASSIGNMENT_KIND),
+    NFD(NFK.KIND, "assignment_kind",
+        "see StmtCompoundAssignment Kind below", ASSIGNMENT_KIND),
     #
     NFD(NFK.LIST, "params", "function parameters and/or comments", PARAMS_NODES),
     NFD(NFK.LIST, "params_mod", "module template parameters", PARAMS_MOD_NODES),
@@ -1189,8 +1245,10 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "body_mod",
         "toplevel module definitions and/or comments", BODY_MOD_NODES),
     NFD(NFK.LIST, "body", "statement list and/or comments", BODY_NODES),
-    NFD(NFK.LIST, "body_t", "statement list and/or comments", BODY_NODES),
-    NFD(NFK.LIST, "body_f", "statement list and/or comments", BODY_NODES),
+    NFD(NFK.LIST, "body_t", "statement list and/or comments for true branch", BODY_NODES),
+    NFD(NFK.LIST, "body_f", "statement list and/or comments for false branch", BODY_NODES),
+    NFD(NFK.LIST, "body_except",
+        "statement list and/or comments when type narrowing fails", BODY_NODES),
     #
     NFD(NFK.NODE, "type", "type expression"),
     NFD(NFK.NODE, "type_or_auto", "type expression"),
@@ -1217,6 +1275,8 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "lhs", "l-value expression"),
     NFD(NFK.NODE, "initial_or_undef",
         "initializer (must be compile-time constant)"),
+    NFD(NFK.NODE, "default_or_undef",
+        "value if type narrowing fail or trap if undef "),
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1294,9 +1354,20 @@ WIP
 """
 
 
-def _RenderKind(node, kind, inv, fout):
+def _RenderKindSimple(name, kind, fout):
 
-    print(f"\n### {node.__name__} Kind\n", file=fout)
+    print(f"\n### {name} Kind\n", file=fout)
+    print("|Kind|", file=fout)
+    print("|----|", file=fout)
+    for x in kind:
+        if x is kind.INVALID:
+            continue
+        print(f"|{x.name:10}|", file=fout)
+
+
+def _RenderKind(name, kind, inv, fout):
+
+    print(f"\n### {name} Kind\n", file=fout)
     print("|Kind|Abbrev|", file=fout)
     print("|----|------|", file=fout)
     for x in kind:
@@ -1334,11 +1405,14 @@ def GenerateDocumentation(fout):
                 elif optional_val is not None:
                     extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
-    _RenderKind(Expr1,  UNARY_EXPR_KIND, UNARY_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(Expr2,  BINARY_EXPR_KIND, BINARY_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(StmtCompoundAssignment,
+    _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
+                UNARY_EXPR_SHORTCUT_INV, fout)
+    _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
+                BINARY_EXPR_SHORTCUT_INV, fout)
+    _RenderKind(StmtCompoundAssignment.__name__,
                 ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
-
+    _RenderKindSimple("Base Types",
+                      BASE_TYPE_KIND, fout)
 ##########################################################################################
 
 

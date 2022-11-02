@@ -34,7 +34,7 @@ Enum definition (only allowed at top-level)
 Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
-* base_type_kind [KIND]: TBD
+* base_type_kind [KIND]: see Base Types below
 * items [LIST]: enum items and/or comments
 
 ### DefFun (fun)
@@ -109,14 +109,14 @@ Fields:
 Unary expression.
 
 Fields:
-* unary_expr_kind [KIND]: TBD
+* unary_expr_kind [KIND]: see Expr1 Kind below
 * expr [NODE]: expression
 
 ### Expr2
 Binary expression.
 
 Fields:
-* binary_expr_kind [KIND]: TBD
+* binary_expr_kind [KIND]: see Expr2 Kind below
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: righ operand expression
 
@@ -265,6 +265,19 @@ Byte size of type
 Fields:
 * expr [NODE]: expression
 
+### ExprTryAs (tryas)
+Narrow a `expr` which is of Sum to `type` 
+
+    If the is not possible return `default_or_undef` if that is not undef
+    or trap otherwise.
+
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
+* default_or_undef [NODE]: value if type narrowing fail or trap if undef 
+
 ### ExprUnsafeCast (cast)
 Unsafe Cast
 
@@ -373,7 +386,7 @@ Fields:
 Compound assignment statement
 
 Fields:
-* assignment_kind [KIND]: TBD
+* assignment_kind [KIND]: see StmtCompoundAssignment Kind below
 * lhs [NODE]: l-value expression
 * expr [NODE]: expression
 
@@ -428,8 +441,8 @@ Creates a new scope
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* body_t [LIST]: statement list and/or comments
-* body_f [LIST]: statement list and/or comments
+* body_t [LIST]: statement list and/or comments for true branch
+* body_f [LIST]: statement list and/or comments for false branch
 
 ### StmtReturn (return)
 Return statement
@@ -440,6 +453,9 @@ Return statement
 Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
+### StmtTrap (trap)
+Trap statement
+
 ### StmtWhile (while)
 While statement.
     
@@ -449,6 +465,31 @@ Creates a new scope
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: statement list and/or comments
+
+### Try (try)
+Variable definition if type matches else exception
+
+    This is the most complex node in Cwerg. It only makes sense for `expr` that
+    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
+    The statement desugar to this:
+
+    (let `mut` tmp auto `expr`)
+    if (tmp is `type`) [] [
+        (let `name-other` auto (tmp as `type-rest`)
+        ...`body_except`
+        (trap)
+    ])
+    (let `name` auto (tmp as `type`))
+
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type [NODE]: type expression
+* expr [NODE]: expression
+* name_other [STR]: name of the other object
+* body_except [LIST]: statement list and/or comments when type narrowing fails
 
 ### TypeArray
 An array of the given type and `size`
@@ -466,7 +507,7 @@ Base type
     
 
 Fields:
-* base_type_kind [KIND]: TBD
+* base_type_kind [KIND]: see Base Types below
 
 ### TypeFun (sig)
 A function signature
@@ -612,3 +653,23 @@ Only value inhabiting the `TypeVoid` type
 |XOR       |xor=|
 |SHR       |>>=|
 |SHL       |<<=|
+
+### Base Types Kind
+
+|Kind|
+|----|
+|SINT      |
+|S8        |
+|S16       |
+|S32       |
+|S64       |
+|UINT      |
+|U8        |
+|U16       |
+|U32       |
+|U64       |
+|R32       |
+|R64       |
+|VOID      |
+|NORET     |
+|BOOL      |
