@@ -69,11 +69,11 @@
    (if (<=  a b) 
     []
     [])
-   (return true) 
+   (return (== a b)) 
 ])
 
 
-(fun foo [(param a s32) (param b s32) (param c s32)] void [
+(fun foo [(param a s32) (param b s32) (param c s32)] (ptr u8) [
    (# "this is a comment with \" with quotes \t ")
    (let p1 (ptr u8) undef)
    (let p2 (ptr u8) undef)
@@ -86,7 +86,7 @@
       (break my_block)
       (continue my_block)
     ])
-   (return) 
+   (return p1) 
 ])
 
 

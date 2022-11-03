@@ -135,18 +135,14 @@ class TypeContext:
         contains the type the current expression/type is expected to
         have or NO_TYPE
         """
-        if is_sum(cstr):
-            # sums are currently not used to guide type inference
-            self._target_type.append(NO_TYPE)
-        else:
-            self._target_type.append(cstr)
+
+        self._target_type.append(cstr)
 
     def pop_target(self):
         self._target_type.pop(-1)
 
     def get_target_type(self):
         return self._target_type[-1]
-
 
 
 class TypeCorpus:
@@ -227,7 +223,7 @@ class TypeCorpus:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         assert False
-    
+
     def get_fields(self, rec_cstr) -> List[str]:
         """Oddball since the node returned is NOT inside corpus
 
@@ -235,7 +231,7 @@ class TypeCorpus:
         """
         node = self.corpus[rec_cstr]
         assert isinstance(node, cwast.DefRec)
-        return  [x for x in node.fields if isinstance(x, cwast.RecField)]
+        return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
     def insert_rec_type(self, name: str, node) -> CanonType:
         name = f"rec({name})"
@@ -252,6 +248,7 @@ class TypeCorpus:
         return name
 
     def insert_sum_type(self, components: List[CanonType]) -> CanonType:
+        assert len(components) > 1
         pieces = []
         for c in components:
             node = self.corpus[c]
@@ -281,6 +278,22 @@ class TypeCorpus:
         assert name not in self.corpus
         self._insert(name, node)
         return name
+
+    def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
+        assert is_sum(all)
+        if is_sum(part):
+            part_children = get_children_types(part) + [None]
+        else:
+            part_children = [part, None]
+        out = []
+        i = 0
+        for x in get_children_types(all):
+            if x == part_children[i]:
+                i += 1
+            else:
+                out.append(x)
+        if len(out) == 1: return out[0]
+        return self.insert_sum_type(out)
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:
@@ -447,14 +460,15 @@ class TypeTab:
                 cstr = self.typify_node(node.value, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefEnum):
+            cstr =  self.corpus.insert_enum_type(
+                f"{ctx.mod_name}/{node.name}", node)
             base_type = self.corpus.insert_base_type(node.base_type_kind)
-            ctx.push_target(base_type)
+            ctx.push_target(cstr)
             for f in node.items:
                 if not isinstance(f, cwast.Comment):
                     self.typify_node(f, ctx)
             ctx.pop_target()
-            return self.annotate(node, self.corpus.insert_enum_type(
-                f"{ctx.mod_name}/{node.name}", node))
+            return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefType):
             cstr = self.typify_node(node.type, ctx)
             if node.wrapped:
@@ -506,11 +520,13 @@ class TypeTab:
             cstr = self.typify_node(node.type, ctx)
             all_fields: List[cwast.RecField] = self.corpus.get_fields(cstr)
             for val in node.inits_rec:
-                if not isinstance(val, cwast.FieldVal): continue
+                if not isinstance(val, cwast.FieldVal):
+                    continue
                 if val.init_field:
                     while True:
                         field_node = all_fields.pop(0)
-                        if val.init_field == field_node.name: break
+                        if val.init_field == field_node.name:
+                            break
                 else:
                     field_node = all_fields.pop(0)
                 # TODO: make sure this link is set
@@ -673,6 +689,20 @@ class TypeTab:
         elif isinstance(node, cwast.ExprSizeof):
             cstr = self.typify_node(node.type, ctx)
             return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+        elif isinstance(node, cwast.Try):
+            cstr = self.typify_node(node.type, ctx)
+            cstr_expr = self.typify_node(node.expr, ctx)
+            cstr_complement = self.corpus.insert_sum_complement(
+                cstr_expr, cstr)
+            ctx.push_target(cstr_complement)
+            self.typify_node(node.catch, ctx)
+            ctx.pop_target()
+            return self.annotate(node, cstr)
+        elif isinstance(node, cwast.Catch):
+            cstr = self.annotate(node, ctx.get_target_type())
+            for c in node.body_except:
+                self.typify_node(c, ctx)
+            return cstr
         else:
             assert False, f"unexpected node {node}"
 
@@ -765,7 +795,7 @@ class TypeTab:
             params = get_children_types(fun)
             assert params.pop(-1) == result
             for p, a in zip(params, node.args):
-                assert is_compatible(self.type_link(a), p)
+                assert is_compatible(self.type_link(a), p), f"incompatible fun arg: {a} {self.type_link(a)} {p}"
         elif isinstance(node, cwast.StmtReturn):
             fun = self.type_link(ctx.enclosing_fun)
             assert is_fun(fun)
@@ -829,6 +859,21 @@ class TypeTab:
         elif isinstance(node, cwast.ExprSizeof):
             assert self.type_link(node) == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
+        elif isinstance(node, cwast.Try):
+            all = []
+            cstr = self.type_link(node)
+            if is_sum(cstr):
+                all += get_children_types(cstr)
+            else:
+                all.append(cstr)
+            cstr_complement = self.type_link(node.catch)
+            if is_sum(cstr_complement):
+                all += get_children_types(cstr_complement)
+            else:
+                all.append(cstr_complement)
+            assert set(all) == set(get_children_types(self.type_link(node.expr)))
+        elif isinstance(node, cwast.Catch):
+            pass
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
                                cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,

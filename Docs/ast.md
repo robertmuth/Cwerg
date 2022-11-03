@@ -9,6 +9,15 @@ Placeholder for an unspecified value or type
     My only occur where explicitly allowed.
     
 
+### Catch (catch)
+Used with Try only
+
+Creates a new scope
+
+Fields:
+* name [STR]: name of the object
+* body_except [LIST]: statement list and/or comments when type narrowing fails
+
 ### Comment (#)
 Comment 
 
@@ -94,7 +103,7 @@ Fields:
 * mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE]: initializer (must be compile-time constant)
+* initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
 
 ### EnumVal (entry)
  Enum element.
@@ -276,7 +285,7 @@ Narrow a `expr` which is of Sum to `type`
 Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
-* default_or_undef [NODE]: value if type narrowing fail or trap if undef 
+* default_or_undef [NODE]: value if type narrowing fail or trap if undef
 
 ### ExprUnsafeCast (cast)
 Unsafe Cast
@@ -346,7 +355,7 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
-* initial_or_undef [NODE]: initializer (must be compile-time constant)
+* initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
 
 ### StmtAssert (assert)
 Assert statement
@@ -467,18 +476,18 @@ Fields:
 * body [LIST]: statement list and/or comments
 
 ### Try (try)
-Variable definition if type matches else exception
+Variable definition if type matches otherwise `catch`
 
     This is the most complex node in Cwerg. It only makes sense for `expr` that
     evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
     The statement desugar to this:
 
     (let `mut` tmp auto `expr`)
-    if (tmp is `type`) [] [
-        (let `name-other` auto (tmp as `type-rest`)
-        ...`body_except`
+    if (tmp is `type-rest`) [
+        (let `catch.name` (tmp as `type-rest`)
+        ...`catch.body_except`
         (trap)
-    ])
+    ] [])
     (let `name` auto (tmp as `type`))
 
     
@@ -488,8 +497,7 @@ Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
 * expr [NODE]: expression
-* name_other [STR]: name of the other object
-* body_except [LIST]: statement list and/or comments when type narrowing fails
+* catch [NODE]: handler for type mismatch (implictly terminated by trap)
 
 ### TypeArray
 An array of the given type and `size`
@@ -527,7 +535,7 @@ Fields:
 * mut [FLAG]: is mutable
 * type [NODE]: type expression
 
-### TypeSlice
+### TypeSlice (slice)
 A view/slice of an array with compile time unknown dimensions
 
     Internally, this is tuple of `start` and `length`

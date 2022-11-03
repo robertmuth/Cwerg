@@ -44,9 +44,9 @@ class SymTab:
     def _pop_scope(self):
         self._local_var_syms.pop(-1)
 
-    def _add_local_symbol(self, node):
+    def _add_local_symbol(self, name, node):
         if isinstance(node, cwast.LOCAL_SYM_DEF_NODES):
-            self._local_var_syms[-1][node.name] = node
+            self._local_var_syms[-1][name] = node
         else:
             assert False, f"unexpected node: {node}"
 
@@ -104,7 +104,13 @@ class SymTab:
     def resolve_symbols_recursively(self, node):
         logger.info("UNSYMBOLIZE %s", type(node).__name__)
         if isinstance(node, cwast.DefVar):
-            self._add_local_symbol(node)
+            self._add_local_symbol(node.name, node)
+        elif isinstance(node, cwast.Catch):
+            self._add_local_symbol(node.name, node)
+        elif isinstance(node, cwast.Try):
+            # we do not want to add the local symbol yet.
+            # Otherwise, we would make that symbol visible to `catch``
+            pass
         elif isinstance(node, cwast.Id):
             def_node = self.resolve_sym(node)
             if def_node:
@@ -113,14 +119,15 @@ class SymTab:
             else:
                 logger.error(f"cannot resolve symbol {node}")
                 exit(1)
-        elif isinstance(node, cwast.SCOPING_NODES):
+        
+        if isinstance(node, cwast.SCOPING_NODES):
             logger.info("push scope for %s", type(node).__name__)
             self._push_scope()
             if isinstance(node, cwast.StmtFor):
-                self._add_local_symbol(node)
+                self._add_local_symbol(node.name, node)
             elif isinstance(node, cwast.DefFun):
                 for p in node.params:
-                    self._add_local_symbol(p)
+                    self._add_local_symbol(p.name, p)
 
         # recurse using a little bit of introspection
         for c in node.__class__.FIELDS:
@@ -140,6 +147,8 @@ class SymTab:
         if isinstance(node, cwast.SCOPING_NODES):
             self._pop_scope()
             logger.info("pop scope for %s", type(node).__name__)
+        if isinstance(node, cwast.Try):
+            self._add_local_symbol(node.name, node)
 
     def add_top_level_sym(self, node):
         logger.info("recording top level symbol [%s]", node.name)

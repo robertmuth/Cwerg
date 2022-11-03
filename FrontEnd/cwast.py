@@ -109,8 +109,8 @@ class Auto:
 ############################################################
 # TypeNodes
 ############################################################
-TypeNode = Union["Id", "TypeBase",
-                 "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
+TYPE_NODE = Union["Id", "TypeBase",
+                  "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
 
 
 @dataclasses.dataclass()
@@ -122,7 +122,7 @@ class FunParam:
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str      # empty str means no var specified (fun proto type)
-    type: TypeNode
+    type: TYPE_NODE
 
     def __str__(self):
         return f"{self.name}: {self.type}"
@@ -175,7 +175,7 @@ class TypePtr:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     mut: bool   # pointee is mutable
-    type: TypeNode
+    type: TYPE_NODE
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -189,11 +189,11 @@ class TypeSlice:
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
     """
-    ALIAS = None
+    ALIAS = "slice"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     mut: bool  # slice is mutable
-    type: TypeNode
+    type: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -204,8 +204,8 @@ class TypeArray:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
-    size: "ExprNode"      # must be const and unsigned
-    type: TypeNode
+    size: "EXPR_NODE"      # must be const and unsigned
+    type: TYPE_NODE
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -221,7 +221,7 @@ class TypeFun:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     params: List[PARAMS_NODES]
-    result: TypeNode
+    result: TYPE_NODE
 
 
 TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
@@ -315,7 +315,7 @@ class IndexVal:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    value: "ExprNode"
+    value: "EXPR_NODE"
     init_index: str
 
 
@@ -329,7 +329,7 @@ class FieldVal:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    value: "ExprNode"
+    value: "EXPR_NODE"
     init_field: str
 
 
@@ -345,8 +345,8 @@ class ValArray:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    type: TypeNode
-    expr_size: Union["ExprNode", Auto]  # must be constant
+    type: TYPE_NODE
+    expr_size: Union["EXPR_NODE", Auto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
 
 
@@ -377,18 +377,18 @@ class ValRec:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    type: TypeNode
+    type: TYPE_NODE
     inits_rec: List[INITS_REC_NODES]
 
 
 ############################################################
 # ExprNode
 ############################################################
-ExprNode = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
-                 "ExprField", "ExprCall", "ExprParen",
-                 "Expr1", "Expr2", "Expr3",
-                 "ExprChop",
-                 "ExprLen", "ExprSizeof"]
+EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
+                  "ExprField", "ExprCall", "ExprParen",
+                  "Expr1", "Expr2", "Expr3",
+                  "ExprChop",
+                  "ExprLen", "ExprSizeof"]
 
 
 @dataclasses.dataclass()
@@ -397,7 +397,7 @@ class ExprDeref:
     ALIAS = "^"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode  # must be of type AddrOf
+    expr: EXPR_NODE  # must be of type AddrOf
 
 
 @dataclasses.dataclass()
@@ -410,7 +410,7 @@ class ExprAddrOf:
     ALIAS = "&"
     FLAGS = NF.TYPE_ANNOTATED
     mut: bool
-    expr: ExprNode
+    expr: EXPR_NODE
 
 
 @dataclasses.dataclass()
@@ -420,8 +420,8 @@ class ExprCall:
     ALIAS = "call"
     FLAGS = NF.TYPE_ANNOTATED
 
-    callee: ExprNode
-    args: List[ExprNode]
+    callee: EXPR_NODE
+    args: List[EXPR_NODE]
 
 
 @dataclasses.dataclass()
@@ -431,7 +431,7 @@ class ExprParen:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
+    expr: EXPR_NODE
 
 
 @dataclasses.dataclass()
@@ -441,7 +441,7 @@ class ExprField:
     ALIAS = "."
     FLAGS = NF.TYPE_ANNOTATED
 
-    container: ExprNode  # must be of type rec
+    container: EXPR_NODE  # must be of type rec
     field: str
 
 
@@ -469,7 +469,7 @@ class Expr1:
     FLAGS = NF.TYPE_ANNOTATED
 
     unary_expr_kind: UNARY_EXPR_KIND
-    expr: ExprNode
+    expr: EXPR_NODE
 
 
 @enum.unique
@@ -541,8 +541,8 @@ class Expr2:
     FLAGS = NF.TYPE_ANNOTATED
 
     binary_expr_kind: BINARY_EXPR_KIND
-    expr1: ExprNode
-    expr2: ExprNode
+    expr1: EXPR_NODE
+    expr2: EXPR_NODE
 
     def __str__(self):
         return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
@@ -555,9 +555,9 @@ class Expr3:
     ALIAS = "?"
     FLAGS = NF.TYPE_ANNOTATED
 
-    cond: ExprNode  # must be of type  bool
-    expr_t: ExprNode
-    expr_f: ExprNode
+    cond: EXPR_NODE  # must be of type  bool
+    expr_t: EXPR_NODE
+    expr_f: EXPR_NODE
 
 
 # Array/Slice Expressions
@@ -570,8 +570,8 @@ class ExprIndex:
     ALIAS = "at"
     FLAGS = NF.TYPE_ANNOTATED
 
-    container: ExprNode  # must be of type slice or array
-    expr_index: ExprNode  # must be of int type
+    container: EXPR_NODE  # must be of type slice or array
+    expr_index: EXPR_NODE  # must be of int type
 
 
 @dataclasses.dataclass()
@@ -581,9 +581,9 @@ class ExprChop:
     ALIAS = "chop"
     FLAGS = NF.TYPE_ANNOTATED
 
-    container: ExprNode  # must be of type slice or array
-    start: Union[ExprNode, "Auto"]  # must be of int type
-    width: Union[ExprNode, "Auto"]  # must be of int type
+    container: EXPR_NODE  # must be of type slice or array
+    start: Union[EXPR_NODE, "Auto"]  # must be of int type
+    width: Union[EXPR_NODE, "Auto"]  # must be of int type
 
 
 @dataclasses.dataclass()
@@ -592,7 +592,7 @@ class ExprLen:
     ALIAS = "len"
     FLAGS = NF.TYPE_ANNOTATED
 
-    container: ExprNode   # must be of type slice or array
+    container: EXPR_NODE   # must be of type slice or array
 
 
 # Cast Like Expressions
@@ -605,8 +605,8 @@ class ExprIs:
     ALIAS = "is"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
-    type: TypeNode
+    expr: EXPR_NODE
+    type: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -626,8 +626,8 @@ class ExprAs:
     ALIAS = "as"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
-    type: TypeNode
+    expr: EXPR_NODE
+    type: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -641,9 +641,9 @@ class ExprTryAs:
     ALIAS = "tryas"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
-    type: TypeNode
-    default_or_undef: Union[ExprNode, ValUndef]
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    default_or_undef: Union[EXPR_NODE, ValUndef]
 
 
 @dataclasses.dataclass()
@@ -657,8 +657,8 @@ class ExprUnsafeCast:
     ALIAS = "cast"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
-    type: TypeNode
+    expr: EXPR_NODE
+    type: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -674,8 +674,8 @@ class ExprBitCast:
     ALIAS = "bitcast"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: ExprNode
-    type: TypeNode
+    expr: EXPR_NODE
+    type: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -686,7 +686,7 @@ class ExprSizeof:
     ALIAS = "sizeof"
     FLAGS = NF.TYPE_ANNOTATED
 
-    expr: TypeNode
+    expr: TYPE_NODE
 
 
 @dataclasses.dataclass()
@@ -697,7 +697,7 @@ class ExprOffsetof:
     ALIAS = "offsetof"
     FLAGS = NF.TYPE_ANNOTATED
 
-    type: TypeNode  # must be rec
+    type: TYPE_NODE  # must be rec
     field: str
 
 
@@ -714,9 +714,9 @@ class ExprRange:
     ALIAS = "range"
     FLAGS = NF.TYPE_ANNOTATED
 
-    end: ExprNode   # start, end ,step work like range(start, end, step)
-    begin_or_auto: Union[Auto, ExprNode]
-    step_or_auto: Union[Auto, ExprNode]
+    end: EXPR_NODE   # start, end ,step work like range(start, end, step)
+    begin_or_auto: Union[Auto, EXPR_NODE]
+    step_or_auto: Union[Auto, EXPR_NODE]
 
     def __str__(self):
         return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
@@ -740,7 +740,7 @@ class StmtWhile:
     ALIAS = "while"
     FLAGS = NF.NEW_SCOPE
 
-    cond: ExprNode
+    cond: EXPR_NODE
     body: List[BODY_NODES]
 
     def __str__(self):
@@ -775,8 +775,8 @@ class StmtFor:
     FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str
-    type_or_auto: Union[TypeNode, Auto]
-    range: ExprNode
+    type_or_auto: Union[TYPE_NODE, Auto]
+    range: EXPR_NODE
     body: List[BODY_NODES]
 
     def __str__(self):
@@ -807,7 +807,7 @@ class StmtIf:
     ALIAS = "if"
     FLAGS = NF.NEW_SCOPE
 
-    cond: ExprNode        # must be of type bool
+    cond: EXPR_NODE        # must be of type bool
     body_t: List[BODY_NODES]
     body_f: List[BODY_NODES]
 
@@ -861,7 +861,7 @@ class StmtReturn:
     """
     ALIAS = "return"
     FLAGS = NF.CONTROL_FLOW
-    expr_ret: ExprNode
+    expr_ret: EXPR_NODE
 
     def __str__(self):
         return f"RETURN {self.expr_ret}"
@@ -886,7 +886,7 @@ class StmtAssert:
     ALIAS = "assert"
     FLAGS = NF.NONE
 
-    cond: ExprNode  # must be of type bool
+    cond: EXPR_NODE  # must be of type bool
     message: str     # should this be an expression?
 
 
@@ -942,7 +942,7 @@ class StmtCompoundAssignment:
 
     assignment_kind: ASSIGNMENT_KIND
     lhs: EXPR_LHS
-    expr: ExprNode
+    expr: EXPR_NODE
 
 
 @dataclasses.dataclass()
@@ -952,7 +952,7 @@ class StmtAssignment:
     FLAGS = NF.NONE
 
     lhs: EXPR_LHS
-    expr: ExprNode
+    expr: EXPR_NODE
 
 
 ############################################################
@@ -967,8 +967,8 @@ class RecField:  #
     FLAGS = NF.TYPE_ANNOTATED
 
     name: str
-    type: TypeNode
-    initial_or_undef: Union["ExprNode", ValUndef]    # must be const
+    type: TYPE_NODE
+    initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial_or_undef}"
@@ -1037,7 +1037,7 @@ class DefType:
     pub:  bool
     wrapped: bool
     name: str
-    type: TypeNode
+    type: TYPE_NODE
 
     def __str__(self):
         return f"TYPE {self.name} = {self.type}"
@@ -1055,7 +1055,7 @@ class DefConst:
 
     pub:  bool
     name: str
-    type_or_auto: Union[TypeNode, Auto]
+    type_or_auto: Union[TYPE_NODE, Auto]
     value: CONST_NODE
 
     def __str__(self):
@@ -1075,41 +1075,52 @@ class DefVar:
     pub: bool
     mut: bool
     name: str
-    type_or_auto: Union[TypeNode, Auto]
-    initial_or_undef: ExprNode
+    type_or_auto: Union[TYPE_NODE, Auto]
+    initial_or_undef: EXPR_NODE
 
     def __str__(self):
         return f"LET {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
 
 
+@dataclasses.dataclass()
+class Catch:
+    """Used with Try only"""
+    ALIAS = "catch"
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.NEW_SCOPE
+    name: str
+    body_except: List[BODY_NODES]
+
+
+CATCH_NODE = Catch
+
+
+@dataclasses.dataclass()
 class Try:
-    """Variable definition if type matches else exception
+    """Variable definition if type matches otherwise `catch`
 
     This is the most complex node in Cwerg. It only makes sense for `expr` that
     evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
     The statement desugar to this:
 
     (let `mut` tmp auto `expr`)
-    if (tmp is `type`) [] [
-        (let `name-other` auto (tmp as `type-rest`)
-        ...`body_except`
+    if (tmp is `type-rest`) [
+        (let `catch.name` (tmp as `type-rest`)
+        ...`catch.body_except`
         (trap)
-    ])
+    ] [])
     (let `name` auto (tmp as `type`))
 
     """
     ALIAS = "try"
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
-
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     mut: bool
     name: str
-    type: TypeNode
-    expr: ExprNode
-    name_other: str
-    body_except: List[BODY_NODES]
+    type: TYPE_NODE
+    expr: EXPR_NODE
+    catch: CATCH_NODE
 
     def __str__(self):
-        return f"TRY {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
+        return f"TRY {self.name} := {self.expr} as {self.type}"
 
 
 @dataclasses.dataclass()
@@ -1124,7 +1135,7 @@ class DefFun:
     extern: bool
     name: str
     params: List[PARAMS_NODES]
-    result: TypeNode
+    result: TYPE_NODE
     body: List[BODY_NODES]
 
     def __str__(self):
@@ -1203,7 +1214,6 @@ class NFD:
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
     NFD(NFK.STR, "name", "name of the object"),
-    NFD(NFK.STR, "name_other", "name of the other object"),
 
     NFD(NFK.STR, "string", "string literal"),
     NFD(NFK.STR, "comment", "comment"),
@@ -1276,7 +1286,9 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "initial_or_undef",
         "initializer (must be compile-time constant)"),
     NFD(NFK.NODE, "default_or_undef",
-        "value if type narrowing fail or trap if undef "),
+        "value if type narrowing fail or trap if undef"),
+    NFD(NFK.NODE, "catch",
+        "handler for type mismatch (implictly terminated by trap)"),
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1292,6 +1304,7 @@ OPTIONAL_FIELDS = {
     "path": "",
     "init_index": "",
     "init_field": "",
+    "initial_or_undef": ValUndef(),
 }
 
 # Note: we rely on the matching being done greedily
