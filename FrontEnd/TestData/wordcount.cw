@@ -1,5 +1,5 @@
 (defmod main [] [
-    (# "Word Count example")
+    (# "Word Count Example")
 
     (# "File StdLib bindings")
     (defenum pub Mode U32 [

@@ -20,6 +20,14 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
  
 [List of S-Expression Nodes](../Docs/ast.md)
 
+
+## Code Examples (using S-Expr Syntax)
+
+* [Print Argv](TestData/print_argv.cw)
+* [Linked List](TestData/linked_list.cw)
+* [Binary Tree](TestData/binary_tree.cw)
+* [Dealing With Error Codes](TestData/wordcount.cw)
+
 ## Features Relative to C
 
 Removed:
@@ -46,6 +54,7 @@ Added
 * defer
 * named blocks/continue/break
 * checked array accesses
+* strict distinction between expressions and statements
 * stringifiers (built-in for basic types and enums + custom)
 * simple iterators (generalized for loops)
 
@@ -289,74 +298,6 @@ TBD
 #### Support for minimal overhead logging
 
 TBD
-
-## Sum Type Example Use Cases
-
-Note, we use a python like syntax here which will likely not be the final form
-
-
-### Modelling of Nullable Pointers
-
-```
-rec BinaryTree:
-   left: *mut BinaryTree | void
-   right: *mut BinaryTree | void
-   payload: SomeType 
-
-
-fun InorderTraversal(root: *BinaryTree | void, visitor: sig(node: *mut BinaryTree)->void) -> void:
-    not_null_root := try root as *BinaryTree else: return
-    InorderTraversal(not_null_root->left, visitor)
-    visitor(not_null_root)
-    InorderTraversal(not_null_root->rigth, visitor)
-```
-
-
-### Modelling of Functions Returning Error Codes
-
-```
-type errorOpen = distinct void
-type errorClose = distinct void
-type errorRead = distinct void
-
-type errorIO = errorOpen | errorClose | errorRead
- 
-type FP = ...
-
-fun extern fopen(fname: []u8, mode: Mode) -> FP | errorsOpen
-fun extern fclose(fp: FP) -> void | errorsClose
-fun extern fread(fp: FP, data: []u8) -> u64 | errorRead
-
-
-rec TextStats:
-      num_lines := 0_u64
-      num_words := 0_u64
-      num_chars := 0_u64
-
-
-fun wordcouunt(fname: slice u8) ->  TextStats | errorIO:
-     stats := TextStats{}
-     in_word := false
-     fp := try open(fname, Mode.r) as FP else(err): return err
-     block:
-          defer: discard fclose(fp) 
-          mut buf := [128]u8{undef}[:]
-          while true:
-              n := try fread(fp, buf) as u64 else(err): return err
-              stats.num_chars += 1
-              for i in range(n):
-                    x := buf[i]:
-                    if x == '\n':
-                        stats.num_lines += 1
-                    elif is_white_space(x):
-                        in_word = false
-                    else:
-                        if !in_word:
-                           stats.num_words += 1
-                           in_word = true
-                    if len != len(buf): break
-     return stats
-```
 
 
 ## Pointers, Arrays, Slices, Strings
