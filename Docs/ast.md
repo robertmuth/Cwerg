@@ -9,6 +9,15 @@ Placeholder for an unspecified value or type
     My only occur where explicitly allowed.
     
 
+### Case (case)
+Single case of a Cond statement
+
+Creates a new scope
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* body [LIST]: statement list and/or comments
+
 ### Catch (catch)
 Used with Try only
 
@@ -94,8 +103,10 @@ Fields:
 ### DefVar (let)
 Variable definition (at module level and inside functions)
 
-
     public visibily only makes sense for module level definitions.
+   
+    Variables must be explicitly initialized. Use `ValUndef` in performance 
+    sensitive situations.
     
 
 Fields:
@@ -308,7 +319,7 @@ Part of rec literal
 
 Fields:
 * value [NODE]: 
-* init_field [STR] (default ""): initializer field or empty
+* init_field [STR] (default ""): initializer field or empty (empty means next field)
 
 ### FunParam (param)
 Function parameter
@@ -337,8 +348,8 @@ Part of an array literal
     
 
 Fields:
-* value [NODE]: 
-* init_index [STR] (default ""): initializer index or empty
+* value_or_undef [NODE]: 
+* init_index [STR] (default ""): initializer index or empty (empty mean next index)
 
 ### ModParam (None)
 Module Parameters
@@ -350,7 +361,9 @@ Fields:
 ### RecField (field)
 Record field
 
-    `initial` must be a compile-time constant or `ValUndef`
+    All fields must be explicitly initialized. Use `ValUndef` in performance 
+    sensitive situations.
+    
 
 Fields:
 * name [STR]: name of the object
@@ -398,6 +411,12 @@ Fields:
 * assignment_kind [KIND]: see StmtCompoundAssignment Kind below
 * lhs [NODE]: l-value expression
 * expr [NODE]: expression
+
+### StmtCond (cond)
+Multicase if-elif-else statement
+
+Fields:
+* cases [LIST]: list of case statements
 
 ### StmtContinue (continue)
 Continue statement
@@ -559,7 +578,7 @@ Fields:
 ### ValArray
 An array literal
 
-    `[10]int{.1 = 5, .2 = 6}`
+    `[10]int{.1 = 5, .2 = 6, 77}`
     
 
 Fields:

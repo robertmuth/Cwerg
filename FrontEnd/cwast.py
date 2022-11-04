@@ -315,7 +315,7 @@ class IndexVal:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
 
-    value: "EXPR_NODE"
+    value_or_undef: "EXPR_NODE"
     init_index: str
 
 
@@ -340,7 +340,7 @@ INITS_ARRAY_NODES = Union[Comment, IndexVal]
 class ValArray:
     """An array literal
 
-    `[10]int{.1 = 5, .2 = 6}`
+    `[10]int{.1 = 5, .2 = 6, 77}`
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
@@ -727,7 +727,7 @@ class ExprRange:
 ############################################################
 BODY_NODES = Union["Comment", "StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
                    "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
-                   "StmtBlock"]
+                   "StmtBlock", "StmtCond"]
 
 EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
                  "ExprCall"]
@@ -816,6 +816,30 @@ class StmtIf:
         body_f = '\n'.join(str(s) for s in self.body_f)
         return f"IF {self.cond}:\n{body_t}\nELSE:\n{body_f}"
 
+
+@dataclasses.dataclass()
+class Case:
+    """Single case of a Cond statement"""
+    ALIAS = "case"
+    FLAGS = NF.NEW_SCOPE
+
+    cond: EXPR_NODE        # must be of type bool
+    body: List[BODY_NODES]
+
+    def __str__(self):
+        body = '\n'.join(str(s) for s in self.body)
+        return f"CASE {self.cond}:\n{body}"
+
+@dataclasses.dataclass()
+class StmtCond:
+    """Multicase if-elif-else statement"""
+    ALIAS = "cond"
+    FLAGS = NF(0)
+
+    cases: List[Case]
+
+    def __str__(self):
+        return f"COND"
 
 # @dataclasses.dataclass()
 # class StmtWhen:
@@ -962,7 +986,9 @@ class StmtAssignment:
 class RecField:  #
     """Record field
 
-    `initial` must be a compile-time constant or `ValUndef`"""
+    All fields must be explicitly initialized. Use `ValUndef` in performance 
+    sensitive situations.
+    """
     ALIAS = "field"
     FLAGS = NF.TYPE_ANNOTATED
 
@@ -1066,8 +1092,10 @@ class DefConst:
 class DefVar:
     """Variable definition (at module level and inside functions)
 
-
     public visibily only makes sense for module level definitions.
+   
+    Variables must be explicitly initialized. Use `ValUndef` in performance 
+    sensitive situations.
     """
     ALIAS = "let"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
@@ -1222,8 +1250,8 @@ ALL_FIELDS = [
     NFD(NFK.STR, "label", "block  name (if not empty)"),
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NFD(NFK.STR, "init_index", "initializer index or empty"),
-    NFD(NFK.STR, "init_field", "initializer field or empty"),
+    NFD(NFK.STR, "init_index", "initializer index or empty (empty mean next index)"),
+    NFD(NFK.STR, "init_field", "initializer field or empty (empty means next field)"),
     NFD(NFK.STR, "path", "TBD"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
@@ -1282,6 +1310,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "step_or_auto", "range step, `Auto` => 1"),
     NFD(NFK.NODE, "width", "desired width of slice"),
     NFD(NFK.NODE, "value", ""),
+    NFD(NFK.NODE, "value_or_undef", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
     NFD(NFK.NODE, "initial_or_undef",
         "initializer (must be compile-time constant)"),
@@ -1289,6 +1318,8 @@ ALL_FIELDS = [
         "value if type narrowing fail or trap if undef"),
     NFD(NFK.NODE, "catch",
         "handler for type mismatch (implictly terminated by trap)"),
+    NFD(NFK.LIST, "cases", "list of case statements"),
+
 ]
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1308,11 +1339,12 @@ OPTIONAL_FIELDS = {
 }
 
 # Note: we rely on the matching being done greedily
+_TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
 _TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
 _TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
 _TOKEN_OP = r'[\[\]\(\)]'
 _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
-    _TOKEN_STR, _TOKEN_OP, _TOKEN_NAMENUM]]))
+    _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
 _TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
@@ -1486,7 +1518,7 @@ def ExpandShortHand(field, t) -> Any:
             return TypeBase(BASE_TYPE_KIND.VOID)
         else:
             return ValVoid()
-    elif t[0] == '"':
+    elif len(t) >= 2 and t[0] == '"' and t[-1] == '"':
         # TODO: r"
         return ValString(False, t)
 
@@ -1499,8 +1531,10 @@ def ExpandShortHand(field, t) -> Any:
         return Id(parts[-1], "" if len(parts) == 1 else parts[0])
     elif _TOKEN_NUM.match(t):
         return ValNum(t)
+    elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
+        return ValNum(t)
     else:
-        assert False, f"cannot expand short hand: {field} {t}"
+        assert False, f"cannot expand short hand: {field} [{t}]"
 
 
 def ReadPiece(field, token, stream) -> Any:
@@ -1542,8 +1576,34 @@ BINOP_BOOL = {
     BINARY_EXPR_KIND.LT,
     BINARY_EXPR_KIND.EQ,
     BINARY_EXPR_KIND.NE,
+    BINARY_EXPR_KIND.ANDSC,
+    BINARY_EXPR_KIND.ORSC,
 }
 
+BINOP_OPS_HAVE_SAME_TYPE = {
+    BINARY_EXPR_KIND.GE,
+    BINARY_EXPR_KIND.GT,
+    BINARY_EXPR_KIND.LE,
+    BINARY_EXPR_KIND.LT,
+    BINARY_EXPR_KIND.EQ,
+    BINARY_EXPR_KIND.NE,
+    #
+    BINARY_EXPR_KIND.ADD,
+    BINARY_EXPR_KIND.SUB,
+    BINARY_EXPR_KIND.MUL,
+    BINARY_EXPR_KIND.DIV,
+    BINARY_EXPR_KIND.REM,
+    #
+    BINARY_EXPR_KIND.ANDSC,
+    BINARY_EXPR_KIND.ORSC,
+    # ???
+    # BINARY_EXPR_KIND.SHL,
+    # BINARY_EXPR_KIND.SHR,
+    #
+    BINARY_EXPR_KIND.AND,
+    BINARY_EXPR_KIND.OR,
+    BINARY_EXPR_KIND.XOR,
+}
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
     """Read the remaining componts of an SExpr (after the tag).

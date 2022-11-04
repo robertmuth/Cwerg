@@ -107,12 +107,22 @@ def is_real(cstr: CanonType) -> bool:
 def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     if actual == expected:
         return True
-    if not is_sum(expected):
-        return False
+
+    if actual.startswith("slice-mut(") and expected.startswith("slice("):
+        if actual[10:] == expected[6:]:
+            return True
+
+    if actual.startswith("array") and expected.startswith("slice"):
+        comma = actual.rfind(",")
+        if actual[5:comma] == expected[5:-1]:
+            return True
 
     expected_children = set(get_children_types(expected))
     if actual in expected_children:
         return True
+
+    if not is_sum(expected):
+        return False
 
     if not is_sum(actual):
         return False
@@ -292,7 +302,8 @@ class TypeCorpus:
                 i += 1
             else:
                 out.append(x)
-        if len(out) == 1: return out[0]
+        if len(out) == 1:
+            return out[0]
         return self.insert_sum_type(out)
 
 
@@ -460,7 +471,7 @@ class TypeTab:
                 cstr = self.typify_node(node.value, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefEnum):
-            cstr =  self.corpus.insert_enum_type(
+            cstr = self.corpus.insert_enum_type(
                 f"{ctx.mod_name}/{node.name}", node)
             base_type = self.corpus.insert_base_type(node.base_type_kind)
             ctx.push_target(cstr)
@@ -502,13 +513,16 @@ class TypeTab:
             ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.IndexVal):
-            cstr = self.typify_node(node.value, ctx)
+            cstr = ctx.get_target_type()
+            if not isinstance(node.value_or_undef, cwast.ValUndef):
+                self.typify_node(node.value_or_undef, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValArray):
             cstr = self.typify_node(node.type, ctx)
             ctx.push_target(cstr)
             for x in node.inits_array:
-                self.typify_node(x, ctx)
+                if isinstance(x, cwast.IndexVal):
+                    self.typify_node(x, ctx)
             ctx.pop_target()
             ctx.push_target(self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT))
@@ -562,7 +576,7 @@ class TypeTab:
                 ctx.push_target(cstr)
                 initial_cstr = self.typify_node(node.initial_or_undef, ctx)
                 ctx.pop_target()
-            # special hack fopr arrays: if variable is mutable and of type array,
+            # special hack for arrays: if variable is mutable and of type array,
             # this means we can update array elements but we cannot assign a new
             # array to the variable.
             if is_array(initial_cstr) and node.mut:
@@ -596,7 +610,13 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.Expr2):
             cstr = self.typify_node(node.expr1, ctx)
-            self.typify_node(node.expr2, ctx)
+            if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE:
+                ctx.push_target(cstr)
+                self.typify_node(node.expr2, ctx)
+                ctx.pop_target()
+            else:
+                self.typify_node(node.expr2, ctx)
+
             if node.binary_expr_kind in cwast.BINOP_BOOL:
                 cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
@@ -636,6 +656,18 @@ class TypeTab:
             for c in node.body_f:
                 self.typify_node(c, ctx)
             for c in node.body_t:
+                self.typify_node(c, ctx)
+            return NO_TYPE
+        elif isinstance(node, cwast.Case):
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL))
+            self.typify_node(node.cond, ctx)
+            ctx.pop_target()
+            for c in node.body:
+                self.typify_node(c, ctx)
+            return NO_TYPE
+        elif isinstance(node, cwast.StmtCond):
+            for c in node.cases:
                 self.typify_node(c, ctx)
             return NO_TYPE
         elif isinstance(node, cwast.StmtBlock):
@@ -703,6 +735,14 @@ class TypeTab:
             for c in node.body_except:
                 self.typify_node(c, ctx)
             return cstr
+        elif isinstance(node, cwast.StmtWhile):
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL))
+            self.typify_node(node.cond, ctx)
+            ctx.pop_target()
+            for c in node.body:
+                self.typify_node(c, ctx)
+            return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
 
@@ -755,7 +795,7 @@ class TypeTab:
         elif isinstance(node, cwast.StmtFor):
             if not isinstance(node.type_or_auto, cwast.Auto):
                 assert self.type_link(
-                    node.range) == self.type_link(node.type_or_auto)
+                    node.range) == self.type_link(node.type_or_auto), f"type mismatch in FOR"
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.type_link(node)
             assert cstr == get_pointee(self.type_link(node.expr))
@@ -767,7 +807,7 @@ class TypeTab:
             cstr1 = self.type_link(node.expr1)
             cstr2 = self.type_link(node.expr2)
             if node.binary_expr_kind in cwast.BINOP_BOOL:
-                assert cstr1 == cstr2
+                assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2}"
                 assert is_bool(cstr)
             elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
                                            cwast.BINARY_EXPR_KIND.PSUB):
@@ -795,7 +835,9 @@ class TypeTab:
             params = get_children_types(fun)
             assert params.pop(-1) == result
             for p, a in zip(params, node.args):
-                assert is_compatible(self.type_link(a), p), f"incompatible fun arg: {a} {self.type_link(a)} {p}"
+                arg_cstr = self.type_link(a)
+                assert is_compatible(
+                    arg_cstr, p), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
         elif isinstance(node, cwast.StmtReturn):
             fun = self.type_link(ctx.enclosing_fun)
             assert is_fun(fun)
@@ -804,6 +846,10 @@ class TypeTab:
             assert is_compatible(
                 actual, expected), f"{node}: {actual} {expected}"
         elif isinstance(node, cwast.StmtIf):
+            assert is_bool(self.type_link(node.cond))
+        elif isinstance(node, cwast.Case):
+            assert is_bool(self.type_link(node.cond))
+        elif isinstance(node, cwast.StmtWhile):
             assert is_bool(self.type_link(node.cond))
         elif isinstance(node, cwast.StmtAssignment):
             var_cstr = self.type_link(node.lhs)
@@ -871,7 +917,8 @@ class TypeTab:
                 all += get_children_types(cstr_complement)
             else:
                 all.append(cstr_complement)
-            assert set(all) == set(get_children_types(self.type_link(node.expr)))
+            assert set(all) == set(
+                get_children_types(self.type_link(node.expr)))
         elif isinstance(node, cwast.Catch):
             pass
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
@@ -881,7 +928,7 @@ class TypeTab:
                                cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
                                cwast.TypeFun, cwast.DefConst, cwast.ValString,
                                cwast.IndexVal, cwast.FieldVal, cwast.StmtBlock, cwast.StmtBreak,
-                               cwast.StmtContinue, cwast.StmtDefer)):
+                               cwast.StmtContinue, cwast.StmtDefer, cwast.StmtCond)):
             pass
         else:
             assert False, f"unsupported  node type: {node.__class__} {node}"
@@ -905,7 +952,7 @@ def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
     """
-    typetab = TypeTab(cwast.BASE_TYPE_KIND.U32, cwast.BASE_TYPE_KIND.S32)
+    typetab = TypeTab(cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     for m in asts:
         ctx = TypeContext(symtab, m.name)
         assert isinstance(m, cwast.DefMod)
