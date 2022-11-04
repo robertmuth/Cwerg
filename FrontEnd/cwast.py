@@ -374,7 +374,7 @@ class ValRec:
 
     `E.g.: complex{.imag = 5, .real = 1}`
     """
-    ALIAS = None
+    ALIAS = "rec"
     FLAGS = NF.TYPE_ANNOTATED
 
     type: TYPE_NODE
@@ -1006,7 +1006,7 @@ FIELDS_NODES = Union[Comment, RecField]
 @dataclasses.dataclass()
 class DefRec:
     """Record definition (only allowed at top-level)"""
-    ALIAS = "rec"
+    ALIAS = "defrec"
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     pub:  bool
@@ -1039,7 +1039,7 @@ ITEMS_NODES = Union[Comment, EnumVal]
 @dataclasses.dataclass()
 class DefEnum:
     """Enum definition (only allowed at top-level)"""
-    ALIAS = "enum"
+    ALIAS = "defenum"
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     pub:  bool
@@ -1057,7 +1057,7 @@ class DefType:
     """Type definition (only allowed at top-level)
 
     """
-    ALIAS = "type"
+    ALIAS = "deftype"
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF
 
     pub:  bool
@@ -1154,7 +1154,7 @@ class Try:
 @dataclasses.dataclass()
 class DefFun:
     """Function definition (only allowed at top-level)"""
-    ALIAS = "fun"
+    ALIAS = "defun"
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE
 
     init: bool
@@ -1203,7 +1203,7 @@ class DefMod:
     """Module Definition
 
     The module is a template if `params` is non-empty"""
-    ALIAS = "mod"
+    ALIAS = "defmod"
     FLAGS = NF.GLOBAL_SYM_DEF
 
     pub: bool

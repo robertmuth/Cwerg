@@ -1,7 +1,7 @@
-(mod m1 [] [
+(defmod m1 [] [
 
 
-(rec pub type_rec [
+(defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
    (field s1 s32 (ValNum 7))
    (field s2 s32 (ValUndef))
@@ -13,7 +13,7 @@
    (field u2 u64 666_u64)
 ])
 
-(enum pub type_enum S32 [
+(defenum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry e1 (ValNum 7))
    (entry e2 (Auto))

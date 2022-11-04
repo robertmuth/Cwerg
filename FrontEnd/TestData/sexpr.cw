@@ -1,6 +1,6 @@
-(mod m1 [] [
+(defmod m1 [] [
 
-(fun pub foo1 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
+(defun pub foo1 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (Comment "this is a comment with \" with quotes \t ")
    (StmtExpr discard (ExprCall (Id foo1) [0 0 0]))
    (StmtExpr discard (ExprCall foo2 [1 2 3]))
@@ -11,7 +11,7 @@
 
 (let pub v1a auto (& v1))
 
-(fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
+(defun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
     (if (Expr2 LE  a b) 
     [(= (^ v1a) 666)]
@@ -22,12 +22,12 @@
    (return (ValNum 7)) 
 ])
 
-(type wrapped t1 s32)
+(deftype wrapped t1 s32)
 
 (const pub c1 auto 7_s64)
 
 
-(rec pub type_rec [
+(defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
    (field s1 s32 (ValNum 7))
    (field s2 s32 (ValUndef))
@@ -42,7 +42,7 @@
 
 (const c2 auto (offsetof type_rec s1))
 
-(enum pub type_enum S32 [
+(defenum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry s1 (ValNum 7))
    (entry s2 (Auto))
@@ -52,16 +52,16 @@
 
 ])
 
-(mod m2 [] [
+(defmod m2 [] [
 
-(type  type_ptr (ptr mut s32))
+(deftype  type_ptr (ptr mut s32))
 
-(type pub type_union (TypeSum [s32 void type_ptr]))
-
-
+(deftype pub type_union (TypeSum [s32 void type_ptr]))
 
 
-(fun foo3 [(param a bool) (param b bool) (param c s32)] bool [
+
+
+(defun foo3 [(param a bool) (param b bool) (param c s32)] bool [
    (# "this is a comment with \" with quotes \t ")
    (if (and a b) 
     [(return a)]
@@ -73,7 +73,7 @@
 ])
 
 
-(fun foo [(param a s32) (param b s32) (param c s32)] (ptr u8) [
+(defun foo [(param a s32) (param b s32) (param c s32)] (ptr u8) [
    (# "this is a comment with \" with quotes \t ")
    (let p1 (ptr u8) undef)
    (let p2 (ptr u8) undef)
