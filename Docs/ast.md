@@ -46,7 +46,7 @@ Fields:
 * type_or_auto [NODE]: type expression
 * value [NODE]: 
 
-### DefEnum (enum)
+### DefEnum (defenum)
 Enum definition (only allowed at top-level)
 
 Fields:
@@ -55,7 +55,7 @@ Fields:
 * base_type_kind [KIND]: see Base Types below
 * items [LIST]: enum items and/or comments
 
-### DefFun (fun)
+### DefFun (defun)
 Function definition (only allowed at top-level)
 
 Creates a new scope
@@ -70,7 +70,7 @@ Fields:
 * result [NODE]: return type
 * body [LIST]: statement list and/or comments
 
-### DefMod (mod)
+### DefMod (defmod)
 Module Definition
 
     The module is a template if `params` is non-empty
@@ -81,7 +81,7 @@ Fields:
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
-### DefRec (rec)
+### DefRec (defrec)
 Record definition (only allowed at top-level)
 
 Fields:
@@ -89,7 +89,7 @@ Fields:
 * name [STR]: name of the object
 * fields [LIST]: record fields and/or comments
 
-### DefType (type)
+### DefType (deftype)
 Type definition (only allowed at top-level)
 
     
@@ -599,7 +599,7 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
-### ValRec
+### ValRec (rec)
 A record literal
 
     `E.g.: complex{.imag = 5, .real = 1}`
