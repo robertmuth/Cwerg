@@ -3,11 +3,8 @@ TestData/* linguist-vendored
 FrontEndWASM/TestData/* linguist-vendored
 
 */opcode_gen*.h linguist-language=C++
-CpuX64/opcode_gen*.h linguist-language=C++
-CpuA32/opcode_gen*.h linguist-language=C++
-CpuA64/opcode_gen*.h linguist-language=C++
+*/isel_gen*.h linguist-language=C++
 
+
+*/isel_gen* linguist-generated	
 */opcode_gen* linguist-generated	
-CpuX64/opcode_gen*.h linguist-generated
-CpuA32/opcode_gen*.h linguist-generated
-CpuA64/opcode_gen*.h linguist-generated
