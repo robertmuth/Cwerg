@@ -1375,11 +1375,11 @@ def LoadOpcodes(filename: str):
     CreateOpcodes(tables["instructions"], False)
 
 
-def _render_enum_simple(symbols, name):
-    print("\n%s {" % name)
+def _render_enum_simple(symbols, name, fout):
+    print("\n%s {" % name, file=fout)
     for sym in symbols:
-        print(f"    {sym},")
-    print("};")
+        print(f"    {sym},", file=fout)
+    print("};", file=fout)
 
 
 def _EmitCodeH(fout):
@@ -1428,9 +1428,10 @@ def _RenderOpcodeTable():
 
 
 def _EmitEnum(fout):
+    print ("// auto generated - do not edit", file=fout)
     opcodes = list(sorted(Opcode.name_to_opcode.keys()))
     # note we sneak in an invalid first entry
-    _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t")
+    _render_enum_simple(["invalid"] + opcodes, "enum class OPC : uint16_t", fout)
 
 
 def _EmitEncodings(fout):
@@ -1469,7 +1470,8 @@ def _RenderMnemonicHashLookup():
 
 
 def _EmitNames(fout):
-    print("// Indexed by OPC", file=fout)
+    print("// auto generated - do not edit", file=fout)
+    print("// OpcodeTableName is indexed by OPC", file=fout)
     print("const char OpcodeTableNames[][32] = {", file=fout)
     print('  "invalid",', file=fout)
     for name in sorted(Opcode.name_to_opcode.keys()):

@@ -1,3 +1,4 @@
+// auto generated - do not edit
 
 enum class OPC : uint16_t {
     invalid,

@@ -1,4 +1,5 @@
-// Indexed by OPC
+// auto generated - do not edit
+// OpcodeTableName is indexed by OPC
 const char OpcodeTableNames[][32] = {
   "invalid",
   "add_16_ax_imm16",
