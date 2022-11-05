@@ -1179,7 +1179,7 @@ class MOD_PARAM_KIND(enum.Enum):
 @dataclasses.dataclass()
 class ModParam:
     """Module Parameters"""
-    ALIAS = "None"
+    ALIAS = None
     FLAGS = NF.GLOBAL_SYM_DEF
 
     name: str
@@ -1409,8 +1409,7 @@ WIP
 """
 
 def _RenderKindSimple(name, kind, fout):
-    anchor = "{#" + kind.__name__ + "}"
-    print(f"\n### {name} Kind {anchor}\n", file=fout)
+    print(f"\n### {name} Kind\n", file=fout)
     print("|Kind|", file=fout)
     print("|----|", file=fout)
     for x in kind:
@@ -1420,8 +1419,7 @@ def _RenderKindSimple(name, kind, fout):
 
 
 def _RenderKind(name, kind, inv, fout):
-    anchor = "{#" + kind.__name__ + "}"
-    print(f"\n### {name} Kind {anchor}\n", file=fout)
+    print(f"\n### {name} Kind\n", file=fout)
     print("|Kind|Abbrev|", file=fout)
     print("|----|------|", file=fout)
     for x in kind:
@@ -1429,26 +1427,39 @@ def _RenderKind(name, kind, inv, fout):
             continue
         print(f"|{x.name:10}|{inv[x]}|", file=fout)
 
+def MakeAnchor(name, alias):
+    out = name.lower()
+    if alias:
+        out += "-" + alias
+    tab = str.maketrans(" ", "-", "?,^&=@#$%")
+    return out.lower().translate(tab)
 
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
-    print("## Node Overview",  file=fout)
+    print("\n## Node Overview",  file=fout)
     for name, cls in nodes:
         alias = ""
         if cls.ALIAS:
             alias = f"&nbsp;({cls.ALIAS})"
-        print(f"[{name}{alias}](#{name}) &ensp;", file=fout)
+        anchor = MakeAnchor(name, cls.ALIAS)
+        print(f"[{anchor}{alias}](#{anchor}) &ensp;", file=fout)
+ 
+    print("\n## Enum Overview",  file=fout)
+    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types", "ModParam Types"]:
+        name = cls + " Kind"
+        anchor = MakeAnchor(name, None)
+        print(f"[{name}](#{anchor}) &ensp;", file=fout)
 
-    print("## Node Details",  file=fout)
+
+    print("\n## Node Details",  file=fout)
 
     for name, cls in nodes:
         print(f"", file=fout)
         alias = ""
         if cls.ALIAS:
             alias = f" ({cls.ALIAS})"
-        anchor = "{#" + name + "}"
-        print(f"### {name}{alias} {anchor}", file=fout)
+        print(f"### {name}{alias}", file=fout)
 
         print(cls.__doc__,  file=fout)
 
