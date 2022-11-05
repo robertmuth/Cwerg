@@ -104,7 +104,7 @@ Fields:
 Variable definition (at module level and inside functions)
 
     public visibily only makes sense for module level definitions.
-   
+
     Variables must be explicitly initialized. Use `ValUndef` in performance 
     sensitive situations.
     
@@ -339,6 +339,12 @@ Refers to a type, variable, constant, function, module by name.
 Fields:
 * name [STR]: name of the object
 * path [STR] (default ""): TBD
+
+### Import (import)
+Import another Module
+
+Fields:
+* name [STR]: name of the object
 
 ### IndexVal
 Part of an array literal
