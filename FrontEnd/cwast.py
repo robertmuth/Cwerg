@@ -1443,7 +1443,7 @@ def GenerateDocumentation(fout):
         if cls.ALIAS:
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
-        print(f"[{anchor}{alias}](#{anchor}) &ensp;", file=fout)
+        print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
  
     print("\n## Enum Overview",  file=fout)
     for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types", "ModParam Types"]:
