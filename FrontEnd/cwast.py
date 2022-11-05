@@ -44,6 +44,8 @@ class NF(enum.Flag):
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
+    TOP_LEVEL_ONLY = enum.auto()
+    TOP_LEVEL = enum.auto()
 
 ############################################################
 # Comment
@@ -744,8 +746,7 @@ class StmtWhile:
     body: List[BODY_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        return f"WHILE {self.cond}:\n{body}"
+        return f"WHILE {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -761,8 +762,7 @@ class StmtBlock:
     body: List[BODY_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        return f"BLOCK {self.label}:\n{body}"
+        return f"BLOCK {self.label}"
 
 
 @dataclasses.dataclass()
@@ -797,8 +797,7 @@ class StmtDefer:
     body: List[BODY_NODES]  # must NOT contain RETURN
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        return f"DEFER:\n{body}"
+        return f"DEFER"
 
 
 @dataclasses.dataclass()
@@ -827,8 +826,7 @@ class Case:
     body: List[BODY_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        return f"CASE {self.cond}:\n{body}"
+        return f"CASE {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1006,17 +1004,16 @@ FIELDS_NODES = Union[Comment, RecField]
 
 @dataclasses.dataclass()
 class DefRec:
-    """Record definition (only allowed at top-level)"""
+    """Record definition"""
     ALIAS = "defrec"
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
     name: str
     fields: List[FIELDS_NODES]
 
     def __str__(self):
-        fields = '\n'.join(str(s) for s in self.fields)
-        return f"REC {self.name}:\n{fields}"
+        return f"REC {self.name}"
 
 
 @dataclasses.dataclass()
@@ -1039,9 +1036,9 @@ ITEMS_NODES = Union[Comment, EnumVal]
 
 @dataclasses.dataclass()
 class DefEnum:
-    """Enum definition (only allowed at top-level)"""
+    """Enum definition"""
     ALIAS = "defenum"
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
     name: str
@@ -1049,17 +1046,16 @@ class DefEnum:
     items: List[ITEMS_NODES]
 
     def __str__(self):
-        items = '\n'.join(str(s) for s in self.items)
-        return f"ENUM {self.name}:\n{items}"
+        return f"ENUM {self.name}"
 
 
 @dataclasses.dataclass()
 class DefType:
-    """Type definition (only allowed at top-level)
+    """Type definition
 
     """
     ALIAS = "deftype"
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
     wrapped: bool
@@ -1076,9 +1072,9 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
 
 @dataclasses.dataclass()
 class DefConst:
-    """Constant definition (only allowed at top-level)"""
+    """Constant definition"""
     ALIAS = "const"
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
     name: str
@@ -1091,7 +1087,7 @@ class DefConst:
 
 @dataclasses.dataclass()
 class DefVar:
-    """Variable definition (at module level and inside functions)
+    """Variable definition
 
     public visibily only makes sense for module level definitions.
 
@@ -1099,7 +1095,7 @@ class DefVar:
     sensitive situations.
     """
     ALIAS = "let"
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
 
     pub: bool
     mut: bool
@@ -1154,9 +1150,9 @@ class Try:
 
 @dataclasses.dataclass()
 class DefFun:
-    """Function definition (only allowed at top-level)"""
+    """Function definition"""
     ALIAS = "defun"
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
 
     init: bool
     fini: bool
@@ -1168,9 +1164,8 @@ class DefFun:
     body: List[BODY_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
         params = ', '.join(str(p) for p in self.params)
-        return f"FUN {self.name} [{params}]->{self.result}:\n{body}"
+        return f"FUN {self.name} [{params}]->{self.result}"
 
 
 @enum.unique
@@ -1213,9 +1208,8 @@ class DefMod:
     body_mod: List[BODY_MOD_NODES]
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body_mod)
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"MOD {self.name} [{params}]:\n{body}"
+        return f"MOD {self.name} [{params}]"
 
 
 @dataclasses.dataclass()
@@ -1224,9 +1218,11 @@ class Import:
     ALIAS = "import"
     FLAGS = NF.GLOBAL_SYM_DEF
     name: str
+    alias: str
 
     def __str__(self):
         return f"IMPORT {self.name}"
+
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
@@ -1265,6 +1261,7 @@ ALL_FIELDS = [
     NFD(NFK.STR, "init_index", "initializer index or empty (empty mean next index)"),
     NFD(NFK.STR, "init_field", "initializer field or empty (empty means next field)"),
     NFD(NFK.STR, "path", "TBD"),
+    NFD(NFK.STR, "alias", "name of imported module to be used instead of given name"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
@@ -1278,7 +1275,7 @@ ALL_FIELDS = [
     NFD(NFK.KIND, "unary_expr_kind", "see Expr1 Kind below", UNARY_EXPR_KIND),
     NFD(NFK.KIND, "binary_expr_kind", "see Expr2 Kind below", BINARY_EXPR_KIND),
     NFD(NFK.KIND, "base_type_kind", "see Base Types below", BASE_TYPE_KIND),
-    NFD(NFK.KIND, "mod_param_kind", "TBD",  MOD_PARAM_KIND),
+    NFD(NFK.KIND, "mod_param_kind", "see ModParam Kind below",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind",
         "see StmtCompoundAssignment Kind below", ASSIGNMENT_KIND),
     #
@@ -1345,6 +1342,7 @@ OPTIONAL_FIELDS = {
     "step_or_auto":   Auto(),
     "target": "",
     "path": "",
+    "alias": "",
     "init_index": "",
     "init_field": "",
     "initial_or_undef": ValUndef(),
@@ -1410,10 +1408,9 @@ PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
 WIP 
 """
 
-
 def _RenderKindSimple(name, kind, fout):
-
-    print(f"\n### {name} Kind\n", file=fout)
+    anchor = "{#" + kind.__name__ + "}"
+    print(f"\n### {name} Kind {anchor}\n", file=fout)
     print("|Kind|", file=fout)
     print("|----|", file=fout)
     for x in kind:
@@ -1423,8 +1420,8 @@ def _RenderKindSimple(name, kind, fout):
 
 
 def _RenderKind(name, kind, inv, fout):
-
-    print(f"\n### {name} Kind\n", file=fout)
+    anchor = "{#" + kind.__name__ + "}"
+    print(f"\n### {name} Kind {anchor}\n", file=fout)
     print("|Kind|Abbrev|", file=fout)
     print("|----|------|", file=fout)
     for x in kind:
@@ -1436,18 +1433,34 @@ def _RenderKind(name, kind, inv, fout):
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
+    print("## Node Overview",  file=fout)
+    for name, cls in nodes:
+        alias = ""
+        if cls.ALIAS:
+            alias = f"&nbsp;({cls.ALIAS})"
+        print(f"[{name}{alias}](#{name}) &ensp;", file=fout)
+
+    print("## Node Details",  file=fout)
+
     for name, cls in nodes:
         print(f"", file=fout)
         alias = ""
         if cls.ALIAS:
             alias = f" ({cls.ALIAS})"
-        print(f"### {name}{alias}", file=fout)
+        anchor = "{#" + name + "}"
+        print(f"### {name}{alias} {anchor}", file=fout)
 
         print(cls.__doc__,  file=fout)
 
         if NF.NEW_SCOPE in cls.FLAGS:
             print(f"", file=fout)
             print(f"Creates a new scope", file=fout)
+        if NF.TOP_LEVEL_ONLY in cls.FLAGS:
+            print(f"", file=fout)
+            print(f"Allowed at top level only", file=fout)
+        if NF.TOP_LEVEL in cls.FLAGS:
+            print(f"", file=fout)
+            print(f"Allowed at top level", file=fout)
         if len(cls.__annotations__):
             print(f"", file=fout)
             print("Fields:",  file=fout)
@@ -1462,6 +1475,9 @@ def GenerateDocumentation(fout):
                 elif optional_val is not None:
                     extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
+    
+    print("## Enum Details",  file=fout)
+
     _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
                 UNARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
@@ -1470,6 +1486,8 @@ def GenerateDocumentation(fout):
                 ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
     _RenderKindSimple("Base Types",
                       BASE_TYPE_KIND, fout)
+    _RenderKindSimple("ModParam Types",
+                      MOD_PARAM_KIND, fout)
 ##########################################################################################
 
 

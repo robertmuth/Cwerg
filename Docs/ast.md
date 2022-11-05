@@ -2,14 +2,83 @@
 
 WIP 
 
+## Node Overview
+[Auto&nbsp;(auto)](#Auto) &ensp;
+[Case&nbsp;(case)](#Case) &ensp;
+[Catch&nbsp;(catch)](#Catch) &ensp;
+[Comment&nbsp;(#)](#Comment) &ensp;
+[DefConst&nbsp;(const)](#DefConst) &ensp;
+[DefEnum&nbsp;(defenum)](#DefEnum) &ensp;
+[DefFun&nbsp;(defun)](#DefFun) &ensp;
+[DefMod&nbsp;(defmod)](#DefMod) &ensp;
+[DefRec&nbsp;(defrec)](#DefRec) &ensp;
+[DefType&nbsp;(deftype)](#DefType) &ensp;
+[DefVar&nbsp;(let)](#DefVar) &ensp;
+[EnumVal&nbsp;(entry)](#EnumVal) &ensp;
+[Expr1](#Expr1) &ensp;
+[Expr2](#Expr2) &ensp;
+[Expr3&nbsp;(?)](#Expr3) &ensp;
+[ExprAddrOf&nbsp;(&)](#ExprAddrOf) &ensp;
+[ExprAs&nbsp;(as)](#ExprAs) &ensp;
+[ExprBitCast&nbsp;(bitcast)](#ExprBitCast) &ensp;
+[ExprCall&nbsp;(call)](#ExprCall) &ensp;
+[ExprChop&nbsp;(chop)](#ExprChop) &ensp;
+[ExprDeref&nbsp;(^)](#ExprDeref) &ensp;
+[ExprField&nbsp;(.)](#ExprField) &ensp;
+[ExprIndex&nbsp;(at)](#ExprIndex) &ensp;
+[ExprIs&nbsp;(is)](#ExprIs) &ensp;
+[ExprLen&nbsp;(len)](#ExprLen) &ensp;
+[ExprOffsetof&nbsp;(offsetof)](#ExprOffsetof) &ensp;
+[ExprParen](#ExprParen) &ensp;
+[ExprRange&nbsp;(range)](#ExprRange) &ensp;
+[ExprSizeof&nbsp;(sizeof)](#ExprSizeof) &ensp;
+[ExprTryAs&nbsp;(tryas)](#ExprTryAs) &ensp;
+[ExprUnsafeCast&nbsp;(cast)](#ExprUnsafeCast) &ensp;
+[FieldVal](#FieldVal) &ensp;
+[FunParam&nbsp;(param)](#FunParam) &ensp;
+[Id](#Id) &ensp;
+[Import&nbsp;(import)](#Import) &ensp;
+[IndexVal](#IndexVal) &ensp;
+[ModParam&nbsp;(None)](#ModParam) &ensp;
+[RecField&nbsp;(field)](#RecField) &ensp;
+[StmtAssert&nbsp;(assert)](#StmtAssert) &ensp;
+[StmtAssignment&nbsp;(=)](#StmtAssignment) &ensp;
+[StmtBlock&nbsp;(block)](#StmtBlock) &ensp;
+[StmtBreak&nbsp;(break)](#StmtBreak) &ensp;
+[StmtCompoundAssignment](#StmtCompoundAssignment) &ensp;
+[StmtCond&nbsp;(cond)](#StmtCond) &ensp;
+[StmtContinue&nbsp;(continue)](#StmtContinue) &ensp;
+[StmtDefer&nbsp;(defer)](#StmtDefer) &ensp;
+[StmtExpr&nbsp;(expr)](#StmtExpr) &ensp;
+[StmtFor&nbsp;(for)](#StmtFor) &ensp;
+[StmtIf&nbsp;(if)](#StmtIf) &ensp;
+[StmtReturn&nbsp;(return)](#StmtReturn) &ensp;
+[StmtTrap&nbsp;(trap)](#StmtTrap) &ensp;
+[StmtWhile&nbsp;(while)](#StmtWhile) &ensp;
+[Try&nbsp;(try)](#Try) &ensp;
+[TypeArray](#TypeArray) &ensp;
+[TypeBase](#TypeBase) &ensp;
+[TypeFun&nbsp;(sig)](#TypeFun) &ensp;
+[TypePtr&nbsp;(ptr)](#TypePtr) &ensp;
+[TypeSlice&nbsp;(slice)](#TypeSlice) &ensp;
+[TypeSum&nbsp;(union)](#TypeSum) &ensp;
+[ValArray](#ValArray) &ensp;
+[ValFalse](#ValFalse) &ensp;
+[ValNum](#ValNum) &ensp;
+[ValRec&nbsp;(rec)](#ValRec) &ensp;
+[ValString](#ValString) &ensp;
+[ValTrue](#ValTrue) &ensp;
+[ValUndef](#ValUndef) &ensp;
+[ValVoid](#ValVoid) &ensp;
+## Node Details
 
-### Auto (auto)
+### Auto (auto) {#Auto}
 Placeholder for an unspecified value or type
 
     My only occur where explicitly allowed.
     
 
-### Case (case)
+### Case (case) {#Case}
 Single case of a Cond statement
 
 Creates a new scope
@@ -18,7 +87,7 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: statement list and/or comments
 
-### Catch (catch)
+### Catch (catch) {#Catch}
 Used with Try only
 
 Creates a new scope
@@ -27,7 +96,7 @@ Fields:
 * name [STR]: name of the object
 * body_except [LIST]: statement list and/or comments when type narrowing fails
 
-### Comment (#)
+### Comment (#) {#Comment}
 Comment 
 
     Comments are proper AST nodes and may only occur where explicitly allowed.
@@ -37,8 +106,10 @@ Comment
 Fields:
 * comment [STR]: comment
 
-### DefConst (const)
-Constant definition (only allowed at top-level)
+### DefConst (const) {#DefConst}
+Constant definition
+
+Allowed at top level only
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -46,8 +117,10 @@ Fields:
 * type_or_auto [NODE]: type expression
 * value [NODE]: 
 
-### DefEnum (defenum)
-Enum definition (only allowed at top-level)
+### DefEnum (defenum) {#DefEnum}
+Enum definition
+
+Allowed at top level only
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -55,10 +128,12 @@ Fields:
 * base_type_kind [KIND]: see Base Types below
 * items [LIST]: enum items and/or comments
 
-### DefFun (defun)
-Function definition (only allowed at top-level)
+### DefFun (defun) {#DefFun}
+Function definition
 
 Creates a new scope
+
+Allowed at top level only
 
 Fields:
 * init [FLAG]: run function at startup
@@ -70,7 +145,7 @@ Fields:
 * result [NODE]: return type
 * body [LIST]: statement list and/or comments
 
-### DefMod (defmod)
+### DefMod (defmod) {#DefMod}
 Module Definition
 
     The module is a template if `params` is non-empty
@@ -81,18 +156,22 @@ Fields:
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
-### DefRec (defrec)
-Record definition (only allowed at top-level)
+### DefRec (defrec) {#DefRec}
+Record definition
+
+Allowed at top level only
 
 Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * fields [LIST]: record fields and/or comments
 
-### DefType (deftype)
-Type definition (only allowed at top-level)
+### DefType (deftype) {#DefType}
+Type definition
 
     
+
+Allowed at top level only
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -100,14 +179,16 @@ Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
 
-### DefVar (let)
-Variable definition (at module level and inside functions)
+### DefVar (let) {#DefVar}
+Variable definition
 
     public visibily only makes sense for module level definitions.
 
     Variables must be explicitly initialized. Use `ValUndef` in performance 
     sensitive situations.
     
+
+Allowed at top level
 
 Fields:
 * pub [FLAG]: has public visibility
@@ -116,7 +197,7 @@ Fields:
 * type_or_auto [NODE]: type expression
 * initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
 
-### EnumVal (entry)
+### EnumVal (entry) {#EnumVal}
  Enum element.
 
      `value: ValAuto` means previous value + 1
@@ -125,14 +206,14 @@ Fields:
 * name [STR]: name of the object
 * value [NODE]: 
 
-### Expr1
+### Expr1 {#Expr1}
 Unary expression.
 
 Fields:
 * unary_expr_kind [KIND]: see Expr1 Kind below
 * expr [NODE]: expression
 
-### Expr2
+### Expr2 {#Expr2}
 Binary expression.
 
 Fields:
@@ -140,7 +221,7 @@ Fields:
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: righ operand expression
 
-### Expr3 (?)
+### Expr3 (?) {#Expr3}
 Tertiary expression (like C's `? :`) 
     
 
@@ -149,7 +230,7 @@ Fields:
 * expr_t [NODE]: expression (will only be evaluated if cond == true)
 * expr_f [NODE]: expression (will only be evaluated if cond == false)
 
-### ExprAddrOf (&)
+### ExprAddrOf (&) {#ExprAddrOf}
 Create a pointer to object represented by `expr`
 
     Pointer can optionally point to a mutable object if the
@@ -160,7 +241,7 @@ Fields:
 * mut [FLAG]: is mutable
 * expr [NODE]: expression
 
-### ExprAs (as)
+### ExprAs (as) {#ExprAs}
 Safe Cast (Conversion)
 
     Allowed:
@@ -178,7 +259,7 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
-### ExprBitCast (bitcast)
+### ExprBitCast (bitcast) {#ExprBitCast}
 Bit cast.
 
     Type must have same size as type of item
@@ -192,7 +273,7 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
-### ExprCall (call)
+### ExprCall (call) {#ExprCall}
 Function call expression.
     
 
@@ -200,7 +281,7 @@ Fields:
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
 
-### ExprChop (chop)
+### ExprChop (chop) {#ExprChop}
 Slicing expression of array or slice
     
 
@@ -209,13 +290,13 @@ Fields:
 * start [NODE] (default Auto): desired start of slice
 * width [NODE] (default Auto): desired width of slice
 
-### ExprDeref (^)
+### ExprDeref (^) {#ExprDeref}
 Dereference a pointer represented by `expr`
 
 Fields:
 * expr [NODE]: expression
 
-### ExprField (.)
+### ExprField (.) {#ExprField}
 Access field in expression representing a record.
     
 
@@ -223,7 +304,7 @@ Fields:
 * container [NODE]: array and slice
 * field [STR]: record field
 
-### ExprIndex (at)
+### ExprIndex (at) {#ExprIndex}
 Checked indexed access of array or slice 
     
 
@@ -231,7 +312,7 @@ Fields:
 * container [NODE]: array and slice
 * expr_index [NODE]: expression determining the index to be accessed
 
-### ExprIs (is)
+### ExprIs (is) {#ExprIs}
 Test actual expression type within a Sum Type
 
     
@@ -240,13 +321,13 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
-### ExprLen (len)
+### ExprLen (len) {#ExprLen}
 Length of array or slice
 
 Fields:
 * container [NODE]: array and slice
 
-### ExprOffsetof (offsetof)
+### ExprOffsetof (offsetof) {#ExprOffsetof}
 Byte offset of field in record types
 
     Type is `uint`
@@ -255,14 +336,14 @@ Fields:
 * type [NODE]: type expression
 * field [STR]: record field
 
-### ExprParen
+### ExprParen {#ExprParen}
 Used for preserving parenthesis in the source
     
 
 Fields:
 * expr [NODE]: expression
 
-### ExprRange (range)
+### ExprRange (range) {#ExprRange}
 Range expression for simple for-loops
 
     Modelled after Python's `range`, e.g.
@@ -277,7 +358,7 @@ Fields:
 * begin_or_auto [NODE] (default Auto): range begin: `Auto` => 0
 * step_or_auto [NODE] (default Auto): range step, `Auto` => 1
 
-### ExprSizeof (sizeof)
+### ExprSizeof (sizeof) {#ExprSizeof}
 Byte size of type
 
     Type is `uint`
@@ -285,7 +366,7 @@ Byte size of type
 Fields:
 * expr [NODE]: expression
 
-### ExprTryAs (tryas)
+### ExprTryAs (tryas) {#ExprTryAs}
 Narrow a `expr` which is of Sum to `type` 
 
     If the is not possible return `default_or_undef` if that is not undef
@@ -298,7 +379,7 @@ Fields:
 * type [NODE]: type expression
 * default_or_undef [NODE]: value if type narrowing fail or trap if undef
 
-### ExprUnsafeCast (cast)
+### ExprUnsafeCast (cast) {#ExprUnsafeCast}
 Unsafe Cast
 
     Allowed:
@@ -310,7 +391,7 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
-### FieldVal
+### FieldVal {#FieldVal}
 Part of rec literal
 
     e.g. `.imag = 5`
@@ -321,7 +402,7 @@ Fields:
 * value [NODE]: 
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
-### FunParam (param)
+### FunParam (param) {#FunParam}
 Function parameter
 
     
@@ -330,7 +411,7 @@ Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
 
-### Id
+### Id {#Id}
 Refers to a type, variable, constant, function, module by name.
 
     Ids may contain a path component indicating which modules they reference.
@@ -340,13 +421,14 @@ Fields:
 * name [STR]: name of the object
 * path [STR] (default ""): TBD
 
-### Import (import)
+### Import (import) {#Import}
 Import another Module
 
 Fields:
 * name [STR]: name of the object
+* alias [STR] (default ""): name of imported module to be used instead of given name
 
-### IndexVal
+### IndexVal {#IndexVal}
 Part of an array literal
 
     e.g. `.1 = 5`
@@ -357,14 +439,14 @@ Fields:
 * value_or_undef [NODE]: 
 * init_index [STR] (default ""): initializer index or empty (empty mean next index)
 
-### ModParam (None)
+### ModParam (None) {#ModParam}
 Module Parameters
 
 Fields:
 * name [STR]: name of the object
-* mod_param_kind [KIND]: TBD
+* mod_param_kind [KIND]: see ModParam Kind below
 
-### RecField (field)
+### RecField (field) {#RecField}
 Record field
 
     All fields must be explicitly initialized. Use `ValUndef` in performance 
@@ -376,21 +458,21 @@ Fields:
 * type [NODE]: type expression
 * initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
 
-### StmtAssert (assert)
+### StmtAssert (assert) {#StmtAssert}
 Assert statement
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * message [STR]: message for assert failures
 
-### StmtAssignment (=)
+### StmtAssignment (=) {#StmtAssignment}
 Assignment statement
 
 Fields:
 * lhs [NODE]: l-value expression
 * expr [NODE]: expression
 
-### StmtBlock (block)
+### StmtBlock (block) {#StmtBlock}
 Block statement.
 
     if `label` is non-empty, nested break/continue statements can target this `block`.
@@ -402,7 +484,7 @@ Fields:
 * label [STR]: block  name (if not empty)
 * body [LIST]: statement list and/or comments
 
-### StmtBreak (break)
+### StmtBreak (break) {#StmtBreak}
 Break statement
 
     use "" if the target is the nearest for/while/block 
@@ -410,7 +492,7 @@ Break statement
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
-### StmtCompoundAssignment
+### StmtCompoundAssignment {#StmtCompoundAssignment}
 Compound assignment statement
 
 Fields:
@@ -418,13 +500,13 @@ Fields:
 * lhs [NODE]: l-value expression
 * expr [NODE]: expression
 
-### StmtCond (cond)
+### StmtCond (cond) {#StmtCond}
 Multicase if-elif-else statement
 
 Fields:
 * cases [LIST]: list of case statements
 
-### StmtContinue (continue)
+### StmtContinue (continue) {#StmtContinue}
 Continue statement
 
     use "" if the target is the nearest for/while/block 
@@ -432,7 +514,7 @@ Continue statement
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
-### StmtDefer (defer)
+### StmtDefer (defer) {#StmtDefer}
 Defer statement
 
     Note: defer body's containing return statments have
@@ -444,7 +526,7 @@ Creates a new scope
 Fields:
 * body [LIST]: statement list and/or comments
 
-### StmtExpr (expr)
+### StmtExpr (expr) {#StmtExpr}
 Expression statement
 
     If expression does not have type void, `discard` must be `true`
@@ -454,7 +536,7 @@ Fields:
 * discard [FLAG]: ignore non-void expression
 * expr [NODE]: expression
 
-### StmtFor (for)
+### StmtFor (for) {#StmtFor}
 For statement.
 
     Defines the non-mut variable `name`.
@@ -468,7 +550,7 @@ Fields:
 * range [NODE]: range expression
 * body [LIST]: statement list and/or comments
 
-### StmtIf (if)
+### StmtIf (if) {#StmtIf}
 If statement
 
 Creates a new scope
@@ -478,7 +560,7 @@ Fields:
 * body_t [LIST]: statement list and/or comments for true branch
 * body_f [LIST]: statement list and/or comments for false branch
 
-### StmtReturn (return)
+### StmtReturn (return) {#StmtReturn}
 Return statement
 
     Use `void` value if the function's return type is `void`
@@ -487,10 +569,10 @@ Return statement
 Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
-### StmtTrap (trap)
+### StmtTrap (trap) {#StmtTrap}
 Trap statement
 
-### StmtWhile (while)
+### StmtWhile (while) {#StmtWhile}
 While statement.
     
 
@@ -500,7 +582,7 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: statement list and/or comments
 
-### Try (try)
+### Try (try) {#Try}
 Variable definition if type matches otherwise `catch`
 
     This is the most complex node in Cwerg. It only makes sense for `expr` that
@@ -524,7 +606,7 @@ Fields:
 * expr [NODE]: expression
 * catch [NODE]: handler for type mismatch (implictly terminated by trap)
 
-### TypeArray
+### TypeArray {#TypeArray}
 An array of the given type and `size`
 
     Size must be evaluatable as a compile time constant
@@ -533,7 +615,7 @@ Fields:
 * size [NODE]: compile-time constant size
 * type [NODE]: type expression
 
-### TypeBase
+### TypeBase {#TypeBase}
 Base type 
 
     One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
@@ -542,7 +624,7 @@ Base type
 Fields:
 * base_type_kind [KIND]: see Base Types below
 
-### TypeFun (sig)
+### TypeFun (sig) {#TypeFun}
 A function signature
 
     The `FunParam.name` field is ignored and should be `_`
@@ -552,7 +634,7 @@ Fields:
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
 
-### TypePtr (ptr)
+### TypePtr (ptr) {#TypePtr}
 Pointer type
     
 
@@ -560,7 +642,7 @@ Fields:
 * mut [FLAG]: is mutable
 * type [NODE]: type expression
 
-### TypeSlice (slice)
+### TypeSlice (slice) {#TypeSlice}
 A view/slice of an array with compile time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
@@ -571,7 +653,7 @@ Fields:
 * mut [FLAG]: is mutable
 * type [NODE]: type expression
 
-### TypeSum (union)
+### TypeSum (union) {#TypeSum}
 Sum types (tagged unions)
 
     Sums are "auto flattening", e.g.
@@ -581,7 +663,7 @@ Sum types (tagged unions)
 Fields:
 * types [LIST]: union types
 
-### ValArray
+### ValArray {#ValArray}
 An array literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
@@ -592,10 +674,10 @@ Fields:
 * expr_size [NODE]: expression determining the size or auto
 * inits_array [LIST]: array initializers and/or comments
 
-### ValFalse
+### ValFalse {#ValFalse}
 Bool constant `false`
 
-### ValNum
+### ValNum {#ValNum}
 Numeric constant (signed int, unsigned int, real
 
     Underscores in `number` are ignored. `number` can be explicitly typed via
@@ -605,7 +687,7 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
-### ValRec (rec)
+### ValRec (rec) {#ValRec}
 A record literal
 
     `E.g.: complex{.imag = 5, .real = 1}`
@@ -615,7 +697,7 @@ Fields:
 * type [NODE]: type expression
 * inits_rec [LIST]: record initializers and/or comments
 
-### ValString
+### ValString {#ValString}
 An array value encoded as a string
 
     type is `[strlen(string)]u8`. `string` may be escaped/raw
@@ -625,20 +707,21 @@ Fields:
 * raw [FLAG]: ignore escape sequences in string
 * string [STR]: string literal
 
-### ValTrue
+### ValTrue {#ValTrue}
 Bool constant `true`
 
-### ValUndef
+### ValUndef {#ValUndef}
 Special constant to indiciate *no default value*
     
 
-### ValVoid
+### ValVoid {#ValVoid}
 Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
      
+## Enum Details
 
-### Expr1 Kind
+### Expr1 Kind {#UNARY_EXPR_KIND}
 
 |Kind|Abbrev|
 |----|------|
@@ -646,7 +729,7 @@ Only value inhabiting the `TypeVoid` type
 |MINUS     |~|
 |NEG       |neg|
 
-### Expr2 Kind
+### Expr2 Kind {#BINARY_EXPR_KIND}
 
 |Kind|Abbrev|
 |----|------|
@@ -672,7 +755,7 @@ Only value inhabiting the `TypeVoid` type
 |PSUB      |psub|
 |PDELTA    |pdelta|
 
-### StmtCompoundAssignment Kind
+### StmtCompoundAssignment Kind {#ASSIGNMENT_KIND}
 
 |Kind|Abbrev|
 |----|------|
@@ -687,7 +770,7 @@ Only value inhabiting the `TypeVoid` type
 |SHR       |>>=|
 |SHL       |<<=|
 
-### Base Types Kind
+### Base Types Kind {#BASE_TYPE_KIND}
 
 |Kind|
 |----|
@@ -706,3 +789,11 @@ Only value inhabiting the `TypeVoid` type
 |VOID      |
 |NORET     |
 |BOOL      |
+
+### ModParam Types Kind {#MOD_PARAM_KIND}
+
+|Kind|
+|----|
+|CONST     |
+|MOD       |
+|TYPE      |

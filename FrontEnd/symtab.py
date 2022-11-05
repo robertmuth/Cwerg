@@ -81,7 +81,7 @@ class SymTab:
                 assert isinstance(s, cwast.DefMod), f"{s}"
                 mod_symtab = symtab_map[s.name]
                 return mod_symtab.resolve_sym(components[1:], symtab_map)
-            assert False
+            assert False, f"could not resolve name {components}"
 
         for l in reversed(self._local_var_syms):
             s = l.get(components[0])
@@ -171,8 +171,9 @@ class SymTab:
             assert node.name not in self._type_syms
             self._type_syms[node.name] = node
         elif isinstance(node, cwast.Import):
-            assert node.name not in self._type_syms
-            self._mod_syms[node.name] = mod_map[node.name]
+            name = node.alias if node.alias else node.name
+            assert name not in self._mod_syms
+            self._mod_syms[name] = mod_map[node.name]
         else:
             assert False, f"unexpected node: {node}"
 

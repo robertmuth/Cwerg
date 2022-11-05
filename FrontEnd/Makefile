@@ -13,7 +13,8 @@ TESTS = array.cw \
         wordcount.cw \
         linked_list.cw \
         binary_tree.cw \
-        import.cw
+        import.cw \
+        import2.cw
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
