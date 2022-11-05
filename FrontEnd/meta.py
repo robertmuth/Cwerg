@@ -743,6 +743,8 @@ class TypeTab:
             for c in node.body:
                 self.typify_node(c, ctx)
             return NO_TYPE
+        elif isinstance(node, cwast.Import):
+            return NO_TYPE
         else:
             assert False, f"unexpected node {node}"
 
@@ -928,7 +930,7 @@ class TypeTab:
                                cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
                                cwast.TypeFun, cwast.DefConst, cwast.ValString,
                                cwast.IndexVal, cwast.FieldVal, cwast.StmtBlock, cwast.StmtBreak,
-                               cwast.StmtContinue, cwast.StmtDefer, cwast.StmtCond)):
+                               cwast.StmtContinue, cwast.StmtDefer, cwast.StmtCond, cwast.Import)):
             pass
         else:
             assert False, f"unsupported  node type: {node.__class__} {node}"
@@ -946,17 +948,17 @@ class TypeTab:
                     self.verify_node_recursively(cc, ctx)
 
 
-def ExtractTypeTab(asts: List, symtab: symtab.SymTab) -> TypeTab:
+def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
+                      mod_map: Dict[str, cwast.DefMod], symtab: Dict[str, symtab.SymTab]) -> TypeTab:
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
     """
     typetab = TypeTab(cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    for m in asts:
-        ctx = TypeContext(symtab, m.name)
-        assert isinstance(m, cwast.DefMod)
-        for node in m.body_mod:
+    for m in mod_topo_order:
+        ctx = TypeContext(symtab_map[m], m)
+        for node in mod_map[m].body_mod:
             typetab.typify_node(node, ctx)
     return typetab
 
@@ -975,9 +977,11 @@ if __name__ == "__main__":
             asts.append(sexpr)
     except StopIteration:
         pass
-    symtab = symtab.ExtractSymTab(asts)
-    typetab = ExtractTypeTab(asts, symtab)
-    for node in asts:
-        typetab.verify_node_recursively(node, TypeContext(None, None))
+
+    mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
+    symtab_map = symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
+    typetab = ExtractTypeTab(mod_topo_order, mod_map, symtab_map)
+    for m in mod_topo_order:
+        typetab.verify_node_recursively(mod_map[m], TypeContext(None, None))
     for t in typetab.corpus.corpus:
         print(t)

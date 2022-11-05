@@ -3,7 +3,17 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = array.cw print_argv.cw types.cw consts.cw sexpr.cw sum_type.cw cast.cw wordcount.cw
+TESTS = array.cw \
+        print_argv.cw \
+        types.cw \
+        consts.cw \
+        sexpr.cw \
+        sum_type.cw \
+        cast.cw \
+        wordcount.cw \
+        linked_list.cw \
+        binary_tree.cw \
+        import.cw
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)

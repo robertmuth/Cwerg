@@ -830,6 +830,7 @@ class Case:
         body = '\n'.join(str(s) for s in self.body)
         return f"CASE {self.cond}:\n{body}"
 
+
 @dataclasses.dataclass()
 class StmtCond:
     """Multicase if-elif-else statement"""
@@ -1093,7 +1094,7 @@ class DefVar:
     """Variable definition (at module level and inside functions)
 
     public visibily only makes sense for module level definitions.
-   
+
     Variables must be explicitly initialized. Use `ValUndef` in performance 
     sensitive situations.
     """
@@ -1217,9 +1218,20 @@ class DefMod:
         return f"MOD {self.name} [{params}]:\n{body}"
 
 
+@dataclasses.dataclass()
+class Import:
+    """Import another Module"""
+    ALIAS = "import"
+    FLAGS = NF.GLOBAL_SYM_DEF
+    name: str
+
+    def __str__(self):
+        return f"IMPORT {self.name}"
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
+
+
 @enum.unique
 class NFK(enum.Enum):
     INT = 1
@@ -1604,6 +1616,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     BINARY_EXPR_KIND.OR,
     BINARY_EXPR_KIND.XOR,
 }
+
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
     """Read the remaining componts of an SExpr (after the tag).
