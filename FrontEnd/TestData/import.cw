@@ -14,9 +14,9 @@
 
     (deftype pub fileHandle s32)
     
-    (const stdin fileHandle 0)
-    (const stdout fileHandle 1)
-    (const stderr fileHandle 2)
+    (const pub stdin fileHandle 0)
+    (const pub stdout fileHandle 1)
+    (const pub stderr fileHandle 2)
 
 
     (defun pub extern open 

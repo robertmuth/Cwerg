@@ -68,19 +68,22 @@ class SymTab:
                 return item
         return None
 
-    def resolve_sym(self, components: List[str], symtab_map) -> Optional[Any]:
+    def resolve_sym(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         logger.info("resolving %s", components)
         if len(components) > 1:
             s = self._enum_syms.get(components[0])
             if s:
                 assert isinstance(s, cwast.DefEnum)
+                if must_be_public:
+                    assert s.pub, f"{components} must be public"
                 return self._resolve_enum_item(s, components[1:])
+            # TODO: pub check?
             s = self._mod_syms.get(components[0])
             if s:
                 assert isinstance(s, cwast.DefMod), f"{s}"
                 mod_symtab = symtab_map[s.name]
-                return mod_symtab.resolve_sym(components[1:], symtab_map)
+                return mod_symtab.resolve_sym(components[1:], symtab_map, True)
             assert False, f"could not resolve name {components}"
 
         for l in reversed(self._local_var_syms):
@@ -91,6 +94,8 @@ class SymTab:
                      self._rec_syms, self._enum_syms, self._var_syms):
             s = syms.get(components[0])
             if s:
+                if must_be_public:
+                    assert s.pub, f"{components} must be public"
                 return s
         return None
 
@@ -112,7 +117,7 @@ class SymTab:
             # Otherwise, we would make that symbol visible to `catch``
             pass
         elif isinstance(node, cwast.Id):
-            def_node = self.resolve_sym(node.name.split("/"), symtab_map)
+            def_node = self.resolve_sym(node.name.split("/"), symtab_map, False)
             if def_node:
                 self._add_link(node, def_node)
                 return

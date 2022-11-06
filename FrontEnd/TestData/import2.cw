@@ -1,22 +1,22 @@
 (defmod mod1 [] [    
-    (let var u32 1)
+    (let pub var u32 1)
 ])
 
 
 (defmod mod2 [] [    
-    (let var u32 2)
+    (let pub var u32 2)
 ])
 
 (defmod mod3 [] [    
-    (let var u32 3)
+    (let pub var u32 3)
 ])
 
 (defmod mod4 [] [    
-    (let var u32 4)
+    (let pub var u32 4)
 ])
 
 (defmod mod5 [] [    
-    (let var u32 5)
+    (let pub var u32 5)
 ])
 
 
