@@ -466,7 +466,7 @@ SUB = Opcode(0x11, "sub", OPC_KIND.ALU,
 MUL = Opcode(0x12, "mul", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             "Multiplication: `dst := src1 \\* src2`",
+             "Multiplication: `dst := src1 * src2`",
              OA.COMMUTATIVE)
 
 DIV = Opcode(0x13, "div", OPC_KIND.ALU,
@@ -501,7 +501,7 @@ AND = Opcode(0x19, "and", OPC_KIND.ALU,
 OR = Opcode(0x1a, "or", OPC_KIND.ALU,
             [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
             [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-            "Bitwise or: `dst := src1 | src2`",
+            "Bitwise or: `dst := src1 \\| src2`",
             OA.COMMUTATIVE)
 
 # shift amount is determined as follows:

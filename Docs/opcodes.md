@@ -149,11 +149,11 @@ All kinds except for `CONST` must match the following regex: `[%_$a-zA-Z][%_$a-z
 | ---- | ---- | ---- |
 | 0x10 | add dst src1 src2 | Addition: `dst := src1 + src2` |
 | 0x11 | sub dst src1 src2 | Subtraction: `dst := src1 - src2` |
-| 0x12 | mul dst src1 src2 | Multiplication: `dst := src1 \* src2` |
+| 0x12 | mul dst src1 src2 | Multiplication: `dst := src1 * src2` |
 | 0x13 | div dst src1 src2 | Division: `dst := src1 / src2`  |
 | 0x18 | xor dst src1 src2 | Bitwise exclusive or: `dst := src1 ^ src2` |
 | 0x19 | and dst src1 src2 | Bitwise and: `dst := src1 & src2` |
-| 0x1a | or dst src1 src2 | Bitwise or: `dst := src1 | src2` |
+| 0x1a | or dst src1 src2 | Bitwise or: `dst := src1 \| src2` |
 | 0x1b | shl dst src1 src2 | Shift left: `dst := src1 << src2` |
 | 0x1c | shr dst src1 src2 | Shift right: `dst := src1 >> src2` |
 | 0x1d | rem dst src1 src2 | Modulo: `dst := src1 % src2` |
@@ -227,7 +227,7 @@ Subtraction: `dst := src1 - src2`
              
 
 #### [12] mul *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Multiplication: `dst := src1 \* src2`
+Multiplication: `dst := src1 * src2`
 
 #### [13] div *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Division: `dst := src1 / src2` 
@@ -244,7 +244,7 @@ Bitwise exclusive or: `dst := src1 ^ src2`
 Bitwise and: `dst := src1 & src2`
 
 #### [1a] or *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Bitwise or: `dst := src1 | src2`
+Bitwise or: `dst := src1 \| src2`
 
 #### [1b] shl *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Shift left: `dst := src1 << src2`
