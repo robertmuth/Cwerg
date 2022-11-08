@@ -1025,10 +1025,10 @@ class EnumVal:
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     name: str
-    value: Union["ValNum", "Auto"]
+    value_or_auto: Union["ValNum", "Auto"]
 
     def __str__(self):
-        return f"{self.name}: {self.value}"
+        return f"{self.name}: {self.value_or_auto}"
 
 
 ITEMS_NODES = Union[Comment, EnumVal]
@@ -1319,6 +1319,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "step_or_auto", "range step, `Auto` => 1"),
     NFD(NFK.NODE, "width", "desired width of slice"),
     NFD(NFK.NODE, "value", ""),
+    NFD(NFK.NODE, "value_or_auto", "enum constant or auto"),
     NFD(NFK.NODE, "value_or_undef", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
     NFD(NFK.NODE, "initial_or_undef",
@@ -1340,6 +1341,7 @@ OPTIONAL_FIELDS = {
     "start":   Auto(),
     "begin_or_auto":   Auto(),
     "step_or_auto":   Auto(),
+    "value_or_auto":   Auto(),
     "target": "",
     "path": "",
     "alias": "",
@@ -1408,6 +1410,7 @@ PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
 WIP 
 """
 
+
 def _RenderKindSimple(name, kind, fout):
     print(f"\n### {name} Kind\n", file=fout)
     print("|Kind|", file=fout)
@@ -1427,12 +1430,14 @@ def _RenderKind(name, kind, inv, fout):
             continue
         print(f"|{x.name:10}|{inv[x]}|", file=fout)
 
+
 def MakeAnchor(name, alias):
     out = name.lower()
     if alias:
         out += "-" + alias
     tab = str.maketrans(" ", "-", "?,^&=@#$%")
     return out.lower().translate(tab)
+
 
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
@@ -1444,13 +1449,12 @@ def GenerateDocumentation(fout):
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
- 
+
     print("\n## Enum Overview",  file=fout)
     for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types", "ModParam Types"]:
         name = cls + " Kind"
         anchor = MakeAnchor(name, None)
         print(f"[{name}](#{anchor}) &ensp;", file=fout)
-
 
     print("\n## Node Details",  file=fout)
 
@@ -1486,7 +1490,7 @@ def GenerateDocumentation(fout):
                 elif optional_val is not None:
                     extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
-    
+
     print("## Enum Details",  file=fout)
 
     _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
@@ -1507,11 +1511,20 @@ def DumpFields(node_class):
         print(f"    {tag}: {val}")
 
 
-def ReadTokens(fp):
-    for line in fp:
-        tokens = re.findall(_TOKENS_ALL, line)
-        for t in tokens:
-            yield t
+class ReadTokens:
+    def __init__(self, fp):
+        self._fp = fp
+        self.line_no = 0
+        self._tokens = []
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        while not self._tokens:
+            self._tokens = re.findall(_TOKENS_ALL, next(self._fp))
+            self.line_no += 1
+        return self._tokens.pop(0)
 
 
 _SCALAR_TYPES = [
@@ -1658,7 +1671,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
-            assert field in OPTIONAL_FIELDS, f"unknown optional: {field}"
+            assert field in OPTIONAL_FIELDS, f"in {cls.__name__} unknown optional (or missing) field: {field}"
             pieces.append(OPTIONAL_FIELDS[field])
         elif nfd.kind is NFK.FLAG:
             if token == field:
@@ -1669,7 +1682,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
         else:
             pieces.append(ReadPiece(field, token, stream))
             token = next(stream)
-    assert token == ")", f"while parsing {cls.__name__}  expected node-end but got {token}"
+    assert token == ")", f"[{stream.line_no}] while parsing {cls.__name__}  expected node-end but got {token}"
     return cls(*pieces)
 
 

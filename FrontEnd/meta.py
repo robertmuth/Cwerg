@@ -467,8 +467,8 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.EnumVal):
             cstr = ctx.get_target_type()
-            if not isinstance(node.value, cwast.Auto):
-                cstr = self.typify_node(node.value, ctx)
+            if not isinstance(node.value_or_auto, cwast.Auto):
+                cstr = self.typify_node(node.value_or_auto, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefEnum):
             cstr = self.corpus.insert_enum_type(
