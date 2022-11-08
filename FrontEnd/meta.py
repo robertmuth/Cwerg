@@ -467,7 +467,7 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.EnumVal):
             cstr = ctx.get_target_type()
-            if not isinstance(node.value_or_auto, cwast.Auto):
+            if not isinstance(node.value_or_auto, cwast.ValAuto):
                 cstr = self.typify_node(node.value_or_auto, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.DefEnum):
@@ -503,11 +503,13 @@ class TypeTab:
             if cstr != NO_TYPE:
                 return self.annotate(node, cstr)
             return self.annotate(node, ctx.get_target_type())
-        elif isinstance(node, cwast.Auto):
-            assert False, "Must not try to typify AUTO"
+        elif isinstance(node, cwast.TypeAuto):
+            assert False, "Must not try to typify TypeAuto"
+        elif isinstance(node, cwast.ValAuto):
+            assert False, "Must not try to typify ValAuto"
         elif isinstance(node, cwast.DefConst):
             ctx.push_target(NO_TYPE if
-                            isinstance(node.type_or_auto, cwast.Auto) else
+                            isinstance(node.type_or_auto, cwast.TypeAuto) else
                             self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.value, ctx)
             ctx.pop_target()
@@ -569,7 +571,7 @@ class TypeTab:
             self.annotate_field(node, field_node)
             return self.annotate(node, self._links[id(field_node)])
         elif isinstance(node, cwast.DefVar):
-            cstr = (NO_TYPE if isinstance(node.type_or_auto, cwast.Auto)
+            cstr = (NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
                     else self.typify_node(node.type_or_auto, ctx))
             initial_cstr = NO_TYPE
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -586,14 +588,14 @@ class TypeTab:
             return self.annotate(node, cstr if cstr != NO_TYPE else initial_cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
-            if not isinstance(node.begin_or_auto, cwast.Auto):
+            if not isinstance(node.begin_or_auto, cwast.ValAuto):
                 self.typify_node(node.begin_or_auto, ctx)
-            if not isinstance(node.step_or_auto, cwast.Auto):
+            if not isinstance(node.step_or_auto, cwast.ValAuto):
                 self.typify_node(node.step_or_auto, ctx)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtFor):
             ctx.push_target(NO_TYPE if
-                            isinstance(node.type_or_auto, cwast.Auto)
+                            isinstance(node.type_or_auto, cwast.TypeAuto)
                             else self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.range, ctx)
             ctx.pop_target()
@@ -704,9 +706,9 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT))
         elif isinstance(node, cwast.ExprChop):
-            if not isinstance(node.start, cwast.Auto):
+            if not isinstance(node.start, cwast.ValAuto):
                 self.typify_node(node.start, ctx)
-            if not isinstance(node.width, cwast.Auto):
+            if not isinstance(node.width, cwast.ValAuto):
                 self.typify_node(node.width, ctx)
             cstr_cont = self.typify_node(node.container, ctx)
             cstr = get_contained_type(cstr_cont)
@@ -784,18 +786,18 @@ class TypeTab:
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 initial_cstr = self.type_link(node.initial_or_undef)
                 assert is_compatible(initial_cstr, cstr)
-            if not isinstance(node.type_or_auto, cwast.Auto):
+            if not isinstance(node.type_or_auto, cwast.TypeAuto):
                 type_cstr = self.type_link(node.type_or_auto)
                 assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
         elif isinstance(node, cwast.ExprRange):
             cstr = self.type_link(node)
-            if not isinstance(node.begin_or_auto, cwast.Auto):
+            if not isinstance(node.begin_or_auto, cwast.ValAuto):
                 assert cstr == self.type_link(node.begin_or_auto)
             assert cstr == self.type_link(node.end)
-            if not isinstance(node.step_or_auto, cwast.Auto):
+            if not isinstance(node.step_or_auto, cwast.ValAuto):
                 assert cstr == self.type_link(node.step_or_auto)
         elif isinstance(node, cwast.StmtFor):
-            if not isinstance(node.type_or_auto, cwast.Auto):
+            if not isinstance(node.type_or_auto, cwast.TypeAuto):
                 assert self.type_link(
                     node.range) == self.type_link(node.type_or_auto), f"type mismatch in FOR"
         elif isinstance(node, cwast.ExprDeref):
@@ -889,9 +891,9 @@ class TypeTab:
             cstr_cont = self.type_link(node.container)
             assert get_contained_type(cstr_cont) == get_contained_type(cstr)
             assert is_mutable(cstr_cont) == is_mutable(cstr)
-            if not isinstance(node.start, cwast.Auto):
+            if not isinstance(node.start, cwast.ValAuto):
                 assert is_int(self.type_link(node.start))
-            if not isinstance(node.width, cwast.Auto):
+            if not isinstance(node.width, cwast.ValAuto):
                 assert is_int(self.type_link(node.width))
         elif isinstance(node, cwast.Id):
             cstr = self.type_link(node)
@@ -925,7 +927,7 @@ class TypeTab:
             pass
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
                                cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
-                               cwast.TypeSlice, cwast.TypeSum, cwast.Auto, cwast.ValUndef,
+                               cwast.TypeSlice, cwast.TypeSum, cwast.TypeAuto, cwast.ValAuto, cwast.ValUndef,
                                cwast.ValNum, cwast.DefType, cwast.DefRec, cwast.ValTrue,
                                cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
                                cwast.TypeFun, cwast.DefConst, cwast.ValString,

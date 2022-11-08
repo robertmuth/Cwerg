@@ -45,9 +45,9 @@
 (defenum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry s1 (ValNum 7))
-   (entry s2 (Auto))
+   (entry s2)
    (entry s3 19)
-   (entry s4 auto)
+   (entry s4)
 ])
 
 ])

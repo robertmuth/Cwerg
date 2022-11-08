@@ -45,6 +45,8 @@ class NF(enum.Flag):
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
     TOP_LEVEL_ONLY = enum.auto()
+    MAY_BE_CONST = enum.auto()
+    MAY_HAVE_CONST_CHILDREN = enum.auto()
     TOP_LEVEL = enum.auto()
 
 ############################################################
@@ -87,7 +89,7 @@ class Id:
     Ids may contain a path component indicating which modules they reference.
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.MAY_BE_CONST
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
 
@@ -96,8 +98,8 @@ class Id:
         return f"{self.path}{joiner}{self.name}"
 
 
-class Auto:
-    """Placeholder for an unspecified value or type
+class TypeAuto:
+    """Placeholder for an unspecified (auto derived) type
 
     My only occur where explicitly allowed.
     """
@@ -107,7 +109,16 @@ class Auto:
     def __str__(self):
         return "AUTO"
 
+class ValAuto:
+    """Placeholder for an unspecified (auto derived) value 
 
+    Used for: array dimensions, enum values, chap and range
+    """
+    ALIAS = None
+    FLAGS = NF.NONE
+
+    def __str__(self):
+        return "VAL-AUTO"
 ############################################################
 # TypeNodes
 ############################################################
@@ -348,7 +359,7 @@ class ValArray:
     FLAGS = NF.TYPE_ANNOTATED
 
     type: TYPE_NODE
-    expr_size: Union["EXPR_NODE", Auto]  # must be constant
+    expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
 
 
@@ -584,8 +595,8 @@ class ExprChop:
     FLAGS = NF.TYPE_ANNOTATED
 
     container: EXPR_NODE  # must be of type slice or array
-    start: Union[EXPR_NODE, "Auto"]  # must be of int type
-    width: Union[EXPR_NODE, "Auto"]  # must be of int type
+    start: Union[EXPR_NODE, "ValAuto"]  # must be of int type
+    width: Union[EXPR_NODE, "ValAuto"]  # must be of int type
 
 
 @dataclasses.dataclass()
@@ -717,8 +728,8 @@ class ExprRange:
     FLAGS = NF.TYPE_ANNOTATED
 
     end: EXPR_NODE   # start, end ,step work like range(start, end, step)
-    begin_or_auto: Union[Auto, EXPR_NODE]
-    step_or_auto: Union[Auto, EXPR_NODE]
+    begin_or_auto: Union[ValAuto, EXPR_NODE]
+    step_or_auto: Union[ValAuto, EXPR_NODE]
 
     def __str__(self):
         return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
@@ -775,7 +786,7 @@ class StmtFor:
     FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str
-    type_or_auto: Union[TYPE_NODE, Auto]
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
     range: EXPR_NODE
     body: List[BODY_NODES]
 
@@ -1025,7 +1036,7 @@ class EnumVal:
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
 
     name: str
-    value_or_auto: Union["ValNum", "Auto"]
+    value_or_auto: Union["ValNum", ValAuto]
 
     def __str__(self):
         return f"{self.name}: {self.value_or_auto}"
@@ -1078,7 +1089,7 @@ class DefConst:
 
     pub:  bool
     name: str
-    type_or_auto: Union[TYPE_NODE, Auto]
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
     value: CONST_NODE
 
     def __str__(self):
@@ -1100,7 +1111,7 @@ class DefVar:
     pub: bool
     mut: bool
     name: str
-    type_or_auto: Union[TYPE_NODE, Auto]
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
     initial_or_undef: EXPR_NODE
 
     def __str__(self):
@@ -1336,19 +1347,20 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 # must come last in a dataclass
 OPTIONAL_FIELDS = {
-    "expr_ret":  ValVoid(),
-    "width":  Auto(),
-    "start":   Auto(),
-    "begin_or_auto":   Auto(),
-    "step_or_auto":   Auto(),
-    "value_or_auto":   Auto(),
-    "target": "",
-    "path": "",
-    "alias": "",
-    "init_index": "",
-    "init_field": "",
-    "initial_or_undef": ValUndef(),
+    "expr_ret":  lambda: ValVoid(),
+    "width":  lambda: ValAuto(),
+    "start":   lambda: ValAuto(),
+    "begin_or_auto":   lambda: ValAuto(),
+    "step_or_auto":   lambda: ValAuto(),
+    "value_or_auto":   lambda: ValAuto(),
+    "target": lambda: "",
+    "path": lambda: "",
+    "alias": lambda: "",
+    "init_index": lambda: "",
+    "init_field": lambda: "",
+    "initial_or_undef": lambda: ValUndef(),
 }
+
 
 # Note: we rely on the matching being done greedily
 _TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
@@ -1484,11 +1496,13 @@ def GenerateDocumentation(fout):
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 extra = ""
-                optional_val = OPTIONAL_FIELDS.get(field)
-                if optional_val == "":
-                    extra = f' (default "")'
-                elif optional_val is not None:
-                    extra = f' (default {optional_val.__class__.__name__})'
+                optional_fun = OPTIONAL_FIELDS.get(field)
+                if optional_fun is not None:
+                    optional_val = optional_fun()
+                    if optional_val == "":
+                        extra = f' (default "")'
+                    elif optional_val is not None:
+                        extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
 
     print("## Enum Details",  file=fout)
@@ -1547,7 +1561,7 @@ _SCALAR_TYPES = [
 
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
-    "auto": Auto(),
+    "auto": TypeAuto(),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
 
@@ -1672,7 +1686,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
             # we have reached the end before all the fields were processed
             # fill in default values
             assert field in OPTIONAL_FIELDS, f"in {cls.__name__} unknown optional (or missing) field: {field}"
-            pieces.append(OPTIONAL_FIELDS[field])
+            pieces.append(OPTIONAL_FIELDS[field]())
         elif nfd.kind is NFK.FLAG:
             if token == field:
                 pieces.append(True)
@@ -1686,7 +1700,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
     return cls(*pieces)
 
 
-def ReadSExpr(stream) -> Any:
+def ReadSExpr(stream: ReadTokens) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
     logger.info("Readding TAG %s", tag)
@@ -1701,7 +1715,7 @@ def ReadSExpr(stream) -> Any:
                                    ["lhs", "expr"], stream)
     else:
         cls = _NODES_ALIASES.get(tag)
-        assert cls is not None, f"Non node: {tag}"
+        assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
         fields = [f for f, _ in cls.__annotations__.items()]
         return ReadRestAndMakeNode(cls, [], fields, stream)
 

@@ -19,7 +19,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return node.base_type_kind.name.lower()
     elif isinstance(node, cwast.ValUndef):
         return "undef"
-    elif isinstance(node, cwast.Auto):
+    elif isinstance(node, cwast.TypeAuto):
         return "auto"
     elif isinstance(node, cwast.Id):
         return node.name
