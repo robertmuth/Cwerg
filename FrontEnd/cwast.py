@@ -40,13 +40,12 @@ class NF(enum.Flag):
     NONE = 0
     NEW_SCOPE = enum.auto()
     TYPE_ANNOTATED = enum.auto()
+    VALUE_ANNOTATED = enum.auto()
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
     TOP_LEVEL_ONLY = enum.auto()
-    MAY_BE_CONST = enum.auto()
-    MAY_HAVE_CONST_CHILDREN = enum.auto()
     TOP_LEVEL = enum.auto()
 
 ############################################################
@@ -89,9 +88,11 @@ class Id:
     Ids may contain a path component indicating which modules they reference.
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED | NF.MAY_BE_CONST
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         joiner = "::" if self.path else ""
@@ -105,6 +106,9 @@ class TypeAuto:
     """
     ALIAS = "auto"
     FLAGS = NF.NONE
+    # TODO
+    # FLAGS = NF.TYPE_ANNOTATED
+    # x_type: Optional[Any] = None
 
     def __str__(self):
         return "AUTO"
@@ -115,7 +119,8 @@ class ValAuto:
     Used for: array dimensions, enum values, chap and range
     """
     ALIAS = None
-    FLAGS = NF.NONE
+    FLAGS = NF.VALUE_ANNOTATED
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return "VAL-AUTO"
@@ -136,6 +141,7 @@ class FunParam:
 
     name: str      # empty str means no var specified (fun proto type)
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{self.name}: {self.type}"
@@ -175,6 +181,7 @@ class TypeBase:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     base_type_kind: BASE_TYPE_KIND
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return self.base_type_kind.name
@@ -189,6 +196,7 @@ class TypePtr:
 
     mut: bool   # pointee is mutable
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -207,6 +215,7 @@ class TypeSlice:
 
     mut: bool  # slice is mutable
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -219,6 +228,7 @@ class TypeArray:
 
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -235,6 +245,7 @@ class TypeFun:
 
     params: List[PARAMS_NODES]
     result: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
@@ -251,6 +262,7 @@ class TypeSum:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     types: List[TYPES_NODES]
+    x_type: Optional[Any] = None
 
 
 ############################################################
@@ -266,6 +278,7 @@ class ValTrue:
     """Bool constant `true`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return "TRUE"
@@ -276,6 +289,7 @@ class ValFalse:
     """Bool constant `false`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return "FALSE"
@@ -292,6 +306,7 @@ class ValNum:
     FLAGS = NF.TYPE_ANNOTATED
 
     number: str   # maybe a (unicode) character as well
+    x_type: Optional[Any] = None
 
     def __str__(self): return self.number
 
@@ -314,6 +329,7 @@ class ValVoid:
      """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
+    x_type: Optional[Any] = None
 
     def __str__(self): return "VOID"
 
@@ -330,6 +346,7 @@ class IndexVal:
 
     value_or_undef: "EXPR_NODE"
     init_index: str
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -344,6 +361,7 @@ class FieldVal:
 
     value: "EXPR_NODE"
     init_field: str
+    x_type: Optional[Any] = None
 
 
 INITS_ARRAY_NODES = Union[Comment, IndexVal]
@@ -361,6 +379,7 @@ class ValArray:
     type: TYPE_NODE
     expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -374,6 +393,7 @@ class ValString:
 
     raw: bool
     string: str
+    x_type: Optional[Any] = None
 
     def __str__(self): return f"STRING({self.string})"
 
@@ -392,6 +412,7 @@ class ValRec:
 
     type: TYPE_NODE
     inits_rec: List[INITS_REC_NODES]
+    x_type: Optional[Any] = None
 
 
 ############################################################
@@ -411,6 +432,7 @@ class ExprDeref:
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: EXPR_NODE  # must be of type AddrOf
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -424,6 +446,7 @@ class ExprAddrOf:
     FLAGS = NF.TYPE_ANNOTATED
     mut: bool
     expr: EXPR_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -435,6 +458,7 @@ class ExprCall:
 
     callee: EXPR_NODE
     args: List[EXPR_NODE]
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -445,6 +469,7 @@ class ExprParen:
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: EXPR_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -456,6 +481,7 @@ class ExprField:
 
     container: EXPR_NODE  # must be of type rec
     field: str
+    x_type: Optional[Any] = None
 
 
 @enum.unique
@@ -483,6 +509,7 @@ class Expr1:
 
     unary_expr_kind: UNARY_EXPR_KIND
     expr: EXPR_NODE
+    x_type: Optional[Any] = None
 
 
 @enum.unique
@@ -556,6 +583,7 @@ class Expr2:
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: EXPR_NODE
     expr2: EXPR_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
@@ -571,6 +599,7 @@ class Expr3:
     cond: EXPR_NODE  # must be of type  bool
     expr_t: EXPR_NODE
     expr_f: EXPR_NODE
+    x_type: Optional[Any] = None
 
 
 # Array/Slice Expressions
@@ -585,6 +614,7 @@ class ExprIndex:
 
     container: EXPR_NODE  # must be of type slice or array
     expr_index: EXPR_NODE  # must be of int type
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -597,6 +627,7 @@ class ExprChop:
     container: EXPR_NODE  # must be of type slice or array
     start: Union[EXPR_NODE, "ValAuto"]  # must be of int type
     width: Union[EXPR_NODE, "ValAuto"]  # must be of int type
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -606,6 +637,7 @@ class ExprLen:
     FLAGS = NF.TYPE_ANNOTATED
 
     container: EXPR_NODE   # must be of type slice or array
+    x_type: Optional[Any] = None
 
 
 # Cast Like Expressions
@@ -620,6 +652,7 @@ class ExprIs:
 
     expr: EXPR_NODE
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -641,6 +674,7 @@ class ExprAs:
 
     expr: EXPR_NODE
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -657,6 +691,7 @@ class ExprTryAs:
     expr: EXPR_NODE
     type: TYPE_NODE
     default_or_undef: Union[EXPR_NODE, ValUndef]
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -672,6 +707,7 @@ class ExprUnsafeCast:
 
     expr: EXPR_NODE
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -689,6 +725,7 @@ class ExprBitCast:
 
     expr: EXPR_NODE
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -700,6 +737,7 @@ class ExprSizeof:
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: TYPE_NODE
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -712,6 +750,7 @@ class ExprOffsetof:
 
     type: TYPE_NODE  # must be rec
     field: str
+    x_type: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -730,6 +769,7 @@ class ExprRange:
     end: EXPR_NODE   # start, end ,step work like range(start, end, step)
     begin_or_auto: Union[ValAuto, EXPR_NODE]
     step_or_auto: Union[ValAuto, EXPR_NODE]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
@@ -789,6 +829,7 @@ class StmtFor:
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     range: EXPR_NODE
     body: List[BODY_NODES]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         body = '\n'.join(str(s) for s in self.body)
@@ -844,7 +885,7 @@ class Case:
 class StmtCond:
     """Multicase if-elif-else statement"""
     ALIAS = "cond"
-    FLAGS = NF(0)
+    FLAGS = NF.NONE
 
     cases: List[Case]
 
@@ -1005,6 +1046,7 @@ class RecField:  #
     name: str
     type: TYPE_NODE
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial_or_undef}"
@@ -1022,6 +1064,7 @@ class DefRec:
     pub:  bool
     name: str
     fields: List[FIELDS_NODES]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"REC {self.name}"
@@ -1037,6 +1080,7 @@ class EnumVal:
 
     name: str
     value_or_auto: Union["ValNum", ValAuto]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{self.name}: {self.value_or_auto}"
@@ -1055,6 +1099,7 @@ class DefEnum:
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: List[ITEMS_NODES]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"ENUM {self.name}"
@@ -1072,6 +1117,7 @@ class DefType:
     wrapped: bool
     name: str
     type: TYPE_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"TYPE {self.name} = {self.type}"
@@ -1091,6 +1137,7 @@ class DefConst:
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     value: CONST_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"CONST {self.name}: {self.type_or_auto} = {self.value}"
@@ -1113,6 +1160,7 @@ class DefVar:
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     initial_or_undef: EXPR_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"LET {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
@@ -1123,8 +1171,10 @@ class Catch:
     """Used with Try only"""
     ALIAS = "catch"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.NEW_SCOPE
+
     name: str
     body_except: List[BODY_NODES]
+    x_type: Optional[Any] = None
 
 
 CATCH_NODE = Catch
@@ -1149,11 +1199,13 @@ class Try:
     """
     ALIAS = "try"
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+
     mut: bool
     name: str
     type: TYPE_NODE
     expr: EXPR_NODE
     catch: CATCH_NODE
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"TRY {self.name} := {self.expr} as {self.type}"
@@ -1173,6 +1225,7 @@ class DefFun:
     params: List[PARAMS_NODES]
     result: TYPE_NODE
     body: List[BODY_NODES]
+    x_type: Optional[Any] = None
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -1389,6 +1442,7 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
         seen_optional = False
         seen_non_flag = False
         for field, type in obj.__annotations__.items():
+            if field.startswith("x_"): continue
             obj.FIELDS.append(field)
             nfd = ALL_FIELDS_MAP[field]
             if field in OPTIONAL_FIELDS:
@@ -1716,7 +1770,7 @@ def ReadSExpr(stream: ReadTokens) -> Any:
     else:
         cls = _NODES_ALIASES.get(tag)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
-        fields = [f for f, _ in cls.__annotations__.items()]
+        fields = [f for f, _ in cls.__annotations__.items() if not f.startswith("x_")]
         return ReadRestAndMakeNode(cls, [], fields, stream)
 
 

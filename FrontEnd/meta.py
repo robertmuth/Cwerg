@@ -87,13 +87,11 @@ class TypeTab:
         self.wrapped_curr = 1
         self.corpus = types.TypeCorpus(uint_kind, sint_kind)
         self.dims: Dict[int, int] = {}
-        # links node-ids to strings from corpus
-        self._links: Dict[int, types.CanonType] = {}
         # links nodes with
         self._field_links: Dict[int, cwast.RecField] = {}
 
     def type_link(self, node) -> types.CanonType:
-        return self._links[id(node)]
+        return node.x_type
 
     def field_link(self, node) -> cwast.RecField:
         return self._field_links[id(node)]
@@ -114,8 +112,8 @@ class TypeTab:
         assert isinstance(
             node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
-        assert id(node) not in self._links, f"duplicate annotation for {node}"
-        self._links[id(node)] = cstr
+        assert node.x_type is None, f"duplicate annotation for {node}"
+        node.x_type = cstr
         return cstr
 
     def annotate_field(self, node, field_node):
@@ -145,7 +143,9 @@ class TypeTab:
         target_type = ctx.get_target_type()
         extra = "" if target_type == types.NO_TYPE else f"[{target_type}]"
         logger.info(f"TYPIFYING{extra} {node}")
-        cstr = self._links.get(id(node))
+        cstr = None
+        if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+            cstr = node.x_type
         if cstr is not None:
             # has been typified already
             return cstr
@@ -309,7 +309,7 @@ class TypeTab:
             cstr = self.typify_node(node.container, ctx)
             field_node = self.corpus.lookup_rec_field(cstr, node.field)
             self.annotate_field(node, field_node)
-            return self.annotate(node, self._links[id(field_node)])
+            return self.annotate(node, field_node.x_type)
         elif isinstance(node, cwast.DefVar):
             cstr = (types.NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
                     else self.typify_node(node.type_or_auto, ctx))
@@ -385,7 +385,7 @@ class TypeTab:
                 ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.StmtReturn):
-            cstr = self._links[id(ctx.enclosing_fun.result)]
+            cstr = ctx.enclosing_fun.result.x_type
             ctx.push_target(cstr)
             self.typify_node(node.expr_ret, ctx)
             ctx.pop_target()
@@ -492,7 +492,7 @@ class TypeTab:
 
     def verify_node(self, node, ctx: TypeContext):
         if isinstance(node, cwast.TYPED_ANNOTATED_NODES):
-            assert id(node) in self._links, f"untypified node {node}"
+            assert node.x_type is not None, f"untypified node {node}"
         if isinstance(node, cwast.ValArray):
             cstr = self.type_link(node.type)
             for x in node.inits_array:
