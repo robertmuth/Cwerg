@@ -9,48 +9,23 @@ logger = logging.getLogger(__name__)
 
 
 CanonType = str
-NO_TYPE = "typeless"
+NO_TYPE = None
 
 
 def align(x, a):
     return (x + a - 1) // a * a
 
 
-def get_children_types(cstr: CanonType) -> List[CanonType]:
-    out: List[CanonType] = []
-    cstr = cstr.split("(", 1)[1][:-1]
-    open_paren = 0
-    start = 0
-    for n, c in enumerate(cstr):
-        if c == ',' and open_paren == 0:
-            out.append(cstr[start:n])
-            start = n+1
-        elif c == '(':
-            open_paren += 1
-        elif c == ")":
-            open_paren -= 1
-    out.append(cstr[start:])
-    return out
-
-
-def get_contained_type(cstr: CanonType) -> CanonType:
-    if cstr.startswith("array("):
-        return cstr[6:].rsplit(",", 1)[0]
-    elif cstr.startswith("array-mut("):
-        return cstr[10:].rsplit(",", 1)[0]
-    elif cstr.startswith("slice("):
-        return cstr[6:-1]
-    elif cstr.startswith("slice-mut("):
-        return cstr[10:-1]
+def get_contained_type(cstr) -> CanonType:
+    if isinstance(cstr, (cwast.TypeArray, cwast.TypeSlice)):
+        return cstr.type
     else:
-        assert False
+        assert False, f"unexpected type: {cstr}"
 
 
-def get_array_dim(cstr: CanonType) -> int:
-    if cstr.startswith("array(") or cstr.startswith("array-mut("):
-        return int(cstr[:-1].rsplit(",", 1)[1])
-    else:
-        assert False
+def get_array_dim(cstr: cwast.TypeArray) -> int:
+    # TODO
+    return int(cstr.size)
 
 
 def get_pointee(cstr: CanonType) -> CanonType:
@@ -58,28 +33,20 @@ def get_pointee(cstr: CanonType) -> CanonType:
     return cstr.split("(", 1)[1][:-1]
 
 
-def is_array(cstr: CanonType) -> bool:
-    return cstr.startswith("array")
-
-
-def is_ptr(cstr: CanonType) -> bool:
-    return cstr.startswith("ptr")
-
-
 def is_mutable(cstr: CanonType) -> bool:
-    return cstr.startswith("ptr-mut") or cstr.startswith("slice-mut") or cstr.startswith("array-mut")
-
-
-def is_sum(cstr: CanonType) -> bool:
-    return cstr.startswith("sum")
-
-
-def is_fun(cstr: CanonType) -> bool:
-    return cstr.startswith("fun")
+    if isinstance(cstr, cwast.TypePtr):
+        return cstr.mut
+    elif isinstance(cstr, cwast.TypeSlice):
+        return cstr.mut
+    elif isinstance(cstr, cwast.TypeArray):
+        return cstr.mut
+    else:
+        assert False
 
 
 def is_bool(cstr: CanonType) -> bool:
-    return cstr == "bool"
+    assert isinstance(cstr, cwast.TypeBase)
+    return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
 
 
 def is_wrapped(cstr: CanonType) -> bool:
@@ -87,41 +54,41 @@ def is_wrapped(cstr: CanonType) -> bool:
 
 
 def is_void(cstr: CanonType) -> bool:
-    return cstr == "void"
+    return isinstance(cstr, cwast.TypeBase) and cstr.base_type_kind is cwast.BASE_TYPE_KIND.VOID
 
 
 def is_int(cstr: CanonType) -> bool:
-    return cstr in ("u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64")
+    assert isinstance(cstr, cwast.TypeBase)
+    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_INT
 
 
 def is_real(cstr: CanonType) -> bool:
-    return cstr in ("r32", "r64")
+    assert isinstance(cstr, cwast.TypeBase)
+    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_REAL
 
 
 def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     if actual == expected:
         return True
 
-    if actual.startswith("slice-mut(") and expected.startswith("slice("):
-        if actual[10:] == expected[6:]:
+    if isinstance(actual, cwast.TypeSlice) and actual.mut and isinstance(expected, cwast.TypeSlice):
+        if actual.type == expected.type:
             return True
 
-    if actual.startswith("array") and expected.startswith("slice"):
-        comma = actual.rfind(",")
-        if actual[5:comma] == expected[5:-1]:
+    if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
+        if actual.type == expected.type:
             return True
 
-    expected_children = set(get_children_types(expected))
-    if actual in expected_children:
-        return True
-
-    if not is_sum(expected):
+    if not isinstance(expected, cwast.TypeSum):
         return False
 
-    if not is_sum(actual):
-        return False
+    expected_children = set([id(c) for c in expected.types])
 
-    actual_children = set(get_children_types(actual))
+    if isinstance(actual, cwast.TypeSum):
+        actual_children = set([id(c) for c in actual.types])
+    else:
+        actual_children = set([id(actual)])
+
     return actual_children.issubset(expected_children)
 
 # def GetStructOffset(node: cwast.DefRec, field_name: str) -> int:
@@ -184,13 +151,13 @@ class TypeCorpus:
     using AST nodes.
     """
 
-    def __init__(self, uint_kind, sint_kind):
+    def __init__(self, uint_kind: cwast.BASE_TYPE_KIND, sint_kind: cwast.BASE_TYPE_KIND):
         self.uint_kind = uint_kind
         self.sint_kind = sint_kind
 
         self.wrapped_curr = 1
         # maps to ast
-        self.corpus: Dict[CanonType, Any] = {}
+        self.corpus: Dict[int, Any] = {}
         self._canon_name: Dict[int, CanonType] = {}
 
         for kind in cwast.BASE_TYPE_KIND:
@@ -200,14 +167,13 @@ class TypeCorpus:
 
     def _insert(self, name, node) -> CanonType:
         if name in self.corpus:
-            return name
+            return self.corpus[name]
         assert isinstance(
             node, cwast.TYPE_CORPUS_NODES), f"not a corpus node: {node}"
-        assert name not in self.corpus
         self.corpus[name] = node
         assert id(node) not in self._canon_name
         self._canon_name[id(node)] = name
-        return name
+        return node
 
     def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> CanonType:
         if kind == cwast.BASE_TYPE_KIND.UINT:
@@ -216,37 +182,37 @@ class TypeCorpus:
             kind = self.sint_kind
         name = kind.name.lower()
         return self._insert(name, cwast.TypeBase(kind))
-    
+
+    def canon_name(self, node):
+        return self._canon_name[id(node)]
 
     def insert_ptr_type(self, mut: bool, cstr: CanonType) -> CanonType:
         if mut:
             name = f"ptr-mut({cstr})"
         else:
             name = f"ptr({cstr})"
-        return self._insert(name, cwast.TypePtr(mut, self.corpus[cstr]))
+        return self._insert(name, cwast.TypePtr(mut, cstr))
 
     def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
         if mut:
             name = f"slice-mut({cstr})"
         else:
             name = f"slice({cstr})"
-        return self._insert(name, cwast.TypeSlice(mut, self.corpus[cstr]))
+        return self._insert(name, cwast.TypeSlice(mut, cstr))
 
     def insert_array_type(self, mut: bool, size: int, cstr: CanonType) -> CanonType:
         if mut:
             name = f"array-mut({cstr},{size})"
         else:
             name = f"array({cstr},{size})"
-        return self._insert(name, cwast.TypeArray(size, self.corpus[cstr]))
+        return self._insert(name, cwast.TypeArray(mut, size, cstr))
 
-    def lookup_rec_field(self, rec_cstr: CanonType, field_name):
+    def lookup_rec_field(self, rec: cwast.DefRec, field_name):
         """Oddball since the node returned is NOT inside corpus
 
         See implementation of insert_rec_type
         """
-        node = self.corpus[rec_cstr]
-        assert isinstance(node, cwast.DefRec)
-        for x in node.fields:
+        for x in rec.fields:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         assert False
@@ -256,7 +222,7 @@ class TypeCorpus:
 
         See implementation of insert_rec_type
         """
-        node = self.corpus[rec_cstr]
+        node = self.corpus[id(rec_cstr)]
         assert isinstance(node, cwast.DefRec)
         return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
@@ -275,20 +241,21 @@ class TypeCorpus:
         assert len(components) > 1
         pieces = []
         for c in components:
-            node = self.corpus[c]
-            if isinstance(node, cwast.TypeSum):
-                for cc in node.types:
+            if isinstance(c, cwast.TypeSum):
+                for cc in c.types:
                     pieces.append(cc)
             else:
-                pieces.append(node)
+                pieces.append(c)
         pp = sorted(self._canon_name[id(p)] for p in pieces)
         name = f"sum({','.join(pp)})"
         return self._insert(name, cwast.TypeSum(pieces))
 
     def insert_fun_type(self, params: List[CanonType], result: CanonType) -> CanonType:
-        name = f"fun({','.join(params +[result])})"
-        p = [cwast.FunParam("_", self.corpus[x]) for x in params]
-        return self._insert(name, cwast.TypeFun(p, self.corpus[result]))
+        x = [self.canon_name(p) for p in params]
+        x.append(self.canon_name(result))
+        name = f"fun({','.join(x)})"
+        p = [cwast.FunParam("_", x) for x in params]
+        return self._insert(name, cwast.TypeFun(p, result))
 
     def insert_wrapped_type(self, cstr: CanonType, node: cwast.DefType) -> CanonType:
         """Note: we tr-use the original ast node"""
@@ -300,19 +267,35 @@ class TypeCorpus:
         return self._insert(name, node)
 
     def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
-        assert is_sum(all)
-        if is_sum(part):
-            part_children = get_children_types(part) + [None]
+        assert isinstance(all, cwast.TypeSum)
+        if isinstance(part, cwast.TypeSum):
+            part_children = [id(c) for c in part.types]
         else:
-            part_children = [part, None]
+            part_children = [id(part)]
         out = []
-        i = 0
-        for x in get_children_types(all):
-            if x == part_children[i]:
-                i += 1
-            else:
+        for x in all.types:
+            if id(x) not in part_children:
                 out.append(x)
         if len(out) == 1:
             return out[0]
         return self.insert_sum_type(out)
 
+    def drop_mutability(self, cstr: CanonType) -> CanonType:
+        assert isinstance(cstr, cwast.TypeArray)
+        name = self.canon_name(cstr)
+        node = self.corpus.get("array" + name[9:])
+        if node:
+            return node
+        node = cwast.TypeArray(cstr.mut, cstr.size, cstr.type)
+        return self._insert(name, node)
+
+    def num_type(self, num: str) -> CanonType:
+        for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
+            if num.endswith(x):
+                return self.corpus[x]
+        if num.endswith("sint"):
+            return self.corpus[self.sint_kind.name.lower()]
+        elif num.endswith("uint"):
+            return self.corpus[self.uint_kind.name.lower()]
+        else:
+            return NO_TYPE

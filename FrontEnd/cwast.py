@@ -113,6 +113,7 @@ class TypeAuto:
     def __str__(self):
         return "AUTO"
 
+
 class ValAuto:
     """Placeholder for an unspecified (auto derived) value 
 
@@ -124,6 +125,8 @@ class ValAuto:
 
     def __str__(self):
         return "VAL-AUTO"
+
+
 ############################################################
 # TypeNodes
 ############################################################
@@ -169,6 +172,23 @@ class BASE_TYPE_KIND(enum.Enum):
     VOID = 40
     NORET = 41
     BOOL = 42
+
+
+BASE_TYPE_KIND_INT = set([
+    BASE_TYPE_KIND.S8,
+    BASE_TYPE_KIND.S16,
+    BASE_TYPE_KIND.S32,
+    BASE_TYPE_KIND.S64,
+    BASE_TYPE_KIND.U8,
+    BASE_TYPE_KIND.U16,
+    BASE_TYPE_KIND.U32,
+    BASE_TYPE_KIND.U64,
+])
+
+BASE_TYPE_KIND_REAL = set([
+    BASE_TYPE_KIND.R32,
+    BASE_TYPE_KIND.R64,
+])
 
 
 @dataclasses.dataclass()
@@ -226,6 +246,7 @@ class TypeArray:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
+    mut: bool  # array is mutable, TODO: rethink this 
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
     x_type: Optional[Any] = None
@@ -1400,12 +1421,12 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 # must come last in a dataclass
 OPTIONAL_FIELDS = {
-    "expr_ret":  lambda: ValVoid(),
-    "width":  lambda: ValAuto(),
-    "start":   lambda: ValAuto(),
-    "begin_or_auto":   lambda: ValAuto(),
-    "step_or_auto":   lambda: ValAuto(),
-    "value_or_auto":   lambda: ValAuto(),
+    "expr_ret": lambda: ValVoid(),
+    "width": lambda: ValAuto(),
+    "start": lambda: ValAuto(),
+    "begin_or_auto": lambda: ValAuto(),
+    "step_or_auto": lambda: ValAuto(),
+    "value_or_auto": lambda: ValAuto(),
     "target": lambda: "",
     "path": lambda: "",
     "alias": lambda: "",
@@ -1442,7 +1463,8 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
         seen_optional = False
         seen_non_flag = False
         for field, type in obj.__annotations__.items():
-            if field.startswith("x_"): continue
+            if field.startswith("x_"):
+                continue
             obj.FIELDS.append(field)
             nfd = ALL_FIELDS_MAP[field]
             if field in OPTIONAL_FIELDS:
@@ -1770,7 +1792,8 @@ def ReadSExpr(stream: ReadTokens) -> Any:
     else:
         cls = _NODES_ALIASES.get(tag)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
-        fields = [f for f, _ in cls.__annotations__.items() if not f.startswith("x_")]
+        fields = [f for f, _ in cls.__annotations__.items()
+                  if not f.startswith("x_")]
         return ReadRestAndMakeNode(cls, [], fields, stream)
 
 

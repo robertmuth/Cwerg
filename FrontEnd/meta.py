@@ -108,7 +108,8 @@ class TypeTab:
             assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: types.CanonType):
-        assert cstr != types.NO_TYPE, f"no_type for: {node}"
+        assert isinstance(
+            cstr, cwast.TYPE_CORPUS_NODES), f"bad type corpus node {repr(cstr)}"
         assert isinstance(
             node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
@@ -120,17 +121,6 @@ class TypeTab:
         assert isinstance(node, (cwast.ExprField, cwast.FieldVal))
         assert isinstance(field_node, cwast.RecField)
         self._field_links[id(node)] = field_node
-
-    def num_type(self, num: str) -> types.CanonType:
-        for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
-            if num.endswith(x):
-                return x
-        if num.endswith("sint"):
-            return cwast.BASE_TYPE_KIND.SINT.name.lower()
-        elif num.endswith("uint"):
-            return cwast.BASE_TYPE_KIND.UINT.name.lower()
-        else:
-            return types.NO_TYPE
 
     def is_compatible_for_as(self, src: types.CanonType, dst: types.CanonType) -> bool:
         if types.is_wrapped(src):
@@ -239,7 +229,7 @@ class TypeTab:
         elif isinstance(node, cwast.ValUndef):
             assert False, "Must not try to typify UNDEF"
         elif isinstance(node, cwast.ValNum):
-            cstr = self.num_type(node.number)
+            cstr = self.corpus.num_type(node.number)
             if cstr != types.NO_TYPE:
                 return self.annotate(node, cstr)
             return self.annotate(node, ctx.get_target_type())
@@ -274,7 +264,8 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_array_type(False, dim, cstr))
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
-            all_fields: List[cwast.RecField] = self.corpus.get_fields(cstr)
+            assert isinstance(cstr, cwast.DefRec)
+            all_fields: List[cwast.RecField] = [f for f in  cstr.fields if isinstance(f, cwast.RecField)]
             for val in node.inits_rec:
                 if not isinstance(val, cwast.FieldVal):
                     continue
@@ -321,7 +312,7 @@ class TypeTab:
             # special hack for arrays: if variable is mutable and of type array,
             # this means we can update array elements but we cannot assign a new
             # array to the variable.
-            if types.is_array(initial_cstr) and node.mut:
+            if isinstance(initial_cstr, cwast.TypeArray) and node.mut:
                 cstr = types.get_contained_type(initial_cstr)
                 dim = types.get_array_dim(initial_cstr)
                 return self.annotate(node, self.corpus.insert_array_type(True, dim, cstr))
@@ -345,8 +336,9 @@ class TypeTab:
             return cstr
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
+            assert isinstance(cstr, cwast.TypePtr)
             # TODO: how is mutability propagated?
-            return self.annotate(node, types.get_pointee(cstr))
+            return self.annotate(node, cstr.type)
         elif isinstance(node, cwast.Expr1):
             cstr = self.typify_node(node.expr, ctx)
             return self.annotate(node, cstr)
@@ -376,14 +368,13 @@ class TypeTab:
             return types.NO_TYPE
         elif isinstance(node, cwast.ExprCall):
             cstr = self.typify_node(node.callee, ctx)
-            params = types.get_children_types(cstr)
-            cstr = params.pop(-1)
-            assert len(params) == len(node.args)
-            for p, a in zip(params, node.args):
-                ctx.push_target(p)
+            assert isinstance(cstr, cwast.TypeFun)
+            assert len(cstr.params) == len(node.args)
+            for p, a in zip(cstr.params, node.args):
+                ctx.push_target(p.type)
                 self.typify_node(a, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr)
+            return self.annotate(node, cstr.result)
         elif isinstance(node, cwast.StmtReturn):
             cstr = ctx.enclosing_fun.result.x_type
             ctx.push_target(cstr)
@@ -520,10 +511,9 @@ class TypeTab:
             assert cstr == self.type_link(field_node)
         elif isinstance(node, cwast.DefVar):
             cstr = self.type_link(node)
-            if node.mut and types.is_array(cstr):
-                assert types.is_mutable(cstr)
-                cstr = "array" + cstr[9:]  # strip "-mut"
-
+            if node.mut and isinstance(cstr, cwast.TypeArray):
+                assert cstr.mut
+                cstr = self.corpus.drop_mutability(cstr)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 initial_cstr = self.type_link(node.initial_or_undef)
                 assert types.is_compatible(initial_cstr, cstr)
@@ -543,7 +533,7 @@ class TypeTab:
                     node.range) == self.type_link(node.type_or_auto), f"type mismatch in FOR"
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.type_link(node)
-            assert cstr == types.get_pointee(self.type_link(node.expr))
+            assert cstr == self.type_link(node.expr).type
         elif isinstance(node, cwast.Expr1):
             cstr = self.type_link(node)
             assert cstr == self.type_link(node.expr)
@@ -559,7 +549,8 @@ class TypeTab:
                 assert cstr == cstr1
                 assert types.is_int(cstr2)
             elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-                assert types.get_pointee(cstr1) == types.get_pointee(cstr2)
+                assert (isinstance(cstr1, cwast.TypePtr) and isinstance(cstr2, cwast.TypePtr) and
+                        cstr1.type == cstr2.type)
                 assert cstr == self.corpus.insert_base_type(
                     cwast.BASE_TYPE_KIND.SINT)
             else:
@@ -576,20 +567,18 @@ class TypeTab:
         elif isinstance(node, cwast.ExprCall):
             result = self.type_link(node)
             fun = self.type_link(node.callee)
-            assert types.is_fun(fun)
-            params = types.get_children_types(fun)
-            assert params.pop(-1) == result
-            for p, a in zip(params, node.args):
+            assert (fun, cwast.TypeFun)
+            assert fun.result == result
+            for p, a in zip(fun.params, node.args):
                 arg_cstr = self.type_link(a)
                 assert types.is_compatible(
-                    arg_cstr, p), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
+                    arg_cstr, p.type), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
         elif isinstance(node, cwast.StmtReturn):
             fun = self.type_link(ctx.enclosing_fun)
-            assert types.is_fun(fun)
-            expected = types.get_children_types(fun)[-1]
+            assert isinstance(fun, cwast.TypeFun)
             actual = self.type_link(node.expr_ret)
             assert types.is_compatible(
-                actual, expected), f"{node}: {actual} {expected}"
+                actual, fun.result), f"{node}: {actual} {fun.result}"
         elif isinstance(node, cwast.StmtIf):
             assert types.is_bool(self.type_link(node.cond))
         elif isinstance(node, cwast.Case):
@@ -643,8 +632,7 @@ class TypeTab:
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.type_link(node.expr)
             cstr = self.type_link(node)
-            assert types.is_ptr(cstr)
-            assert types.get_pointee(cstr) == cstr_expr
+            assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
         elif isinstance(node, cwast.ExprOffsetof):
             assert self.type_link(node) == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
@@ -652,19 +640,20 @@ class TypeTab:
             assert self.type_link(node) == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
         elif isinstance(node, cwast.Try):
-            all = []
+            all = set()
             cstr = self.type_link(node)
-            if types.is_sum(cstr):
-                all += types.get_children_types(cstr)
+            if isinstance(cstr, cwast.TypeSum):
+                for c in cstr.types:
+                    all.add(id(c))
             else:
-                all.append(cstr)
+                all.add(id(cstr))
             cstr_complement = self.type_link(node.catch)
-            if types.is_sum(cstr_complement):
-                all += types.get_children_types(cstr_complement)
+            if isinstance(cstr_complement, cwast.TypeSum):
+                for c in cstr_complement.types:
+                    all.add(id(c))
             else:
-                all.append(cstr_complement)
-            assert set(all) == set(
-                types.get_children_types(self.type_link(node.expr)))
+                all.add(id(cstr_complement))
+            assert all == set(id(c) for c in self.type_link(node.expr).types)
         elif isinstance(node, cwast.Catch):
             pass
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
