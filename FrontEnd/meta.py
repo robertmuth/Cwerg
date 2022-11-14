@@ -86,12 +86,6 @@ class TypeTab:
     def __init__(self, uint_kind, sint_kind):
         self.corpus = types.TypeCorpus(uint_kind, sint_kind)
 
-    def type_link(self, node) -> types.CanonType:
-        return node.x_type
-
-    def field_link(self, node) -> cwast.RecField:
-        return node.x_field
-
     def compute_dim(self, node, ctx) -> int:
         if isinstance(node, cwast.ValNum):
             return ParseInt(node.number)
@@ -273,7 +267,7 @@ class TypeTab:
                 else:
                     field_node = all_fields.pop(0)
                 # TODO: make sure this link is set
-                field_cstr = self.type_link(field_node)
+                field_cstr = field_node.x_type
                 self.annotate_field(val, field_node)
                 self.annotate(val, field_cstr)
                 ctx.push_target(field_cstr)
@@ -481,62 +475,59 @@ class TypeTab:
         if isinstance(node, cwast.TYPED_ANNOTATED_NODES):
             assert node.x_type is not None, f"untypified node {node}"
         if isinstance(node, cwast.ValArray):
-            cstr = self.type_link(node.type)
+            cstr = node.type.x_type
             for x in node.inits_array:
                 if not isinstance(x, cwast.Comment):
-                    assert cstr == self.type_link(
-                        x), f"expected {cstr} got {self.type_link(x)}"
+                    assert cstr == x.x_type, f"expected {cstr} got {x.x_type}"
         elif isinstance(node, cwast.ValRec):
             for x in node.inits_rec:
                 if isinstance(x, cwast.IndexVal):
-                    field_node = self.field_link(x)
-                    assert self.type_link(field_node) == self.type_link(x)
+                    field_node = x.x_field
+                    assert field_node.x_type == x.x_type
         elif isinstance(node, cwast.RecField):
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                type_cstr = self.type_link(node.type)
-                initial_cstr = self.type_link(node.initial_or_undef)
+                type_cstr = node.type.x_type
+                initial_cstr = node.initial_or_undef.x_type
                 assert types.is_compatible(
                     initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
         elif isinstance(node, cwast.ExprIndex):
-            cstr = self.type_link(node)
-            assert cstr == types.get_contained_type(
-                self.type_link(node.container))
+            cstr = node.x_type
+            assert cstr == types.get_contained_type(node.container.x_type)
         elif isinstance(node, cwast.ExprField):
-            cstr = self.type_link(node)
-            field_node = self.field_link(node)
-            assert cstr == self.type_link(field_node)
+            cstr = node.x_type
+            field_node = node.x_field
+            assert cstr == field_node.x_type
         elif isinstance(node, cwast.DefVar):
-            cstr = self.type_link(node)
+            cstr = node.x_type
             if node.mut and isinstance(cstr, cwast.TypeArray):
                 assert cstr.mut
                 cstr = self.corpus.drop_mutability(cstr)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                initial_cstr = self.type_link(node.initial_or_undef)
+                initial_cstr = node.initial_or_undef.x_type
                 assert types.is_compatible(initial_cstr, cstr)
             if not isinstance(node.type_or_auto, cwast.TypeAuto):
-                type_cstr = self.type_link(node.type_or_auto)
+                type_cstr = node.type_or_auto.x_type
                 assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
         elif isinstance(node, cwast.ExprRange):
-            cstr = self.type_link(node)
+            cstr = node.x_type
             if not isinstance(node.begin_or_auto, cwast.ValAuto):
-                assert cstr == self.type_link(node.begin_or_auto)
-            assert cstr == self.type_link(node.end)
+                assert cstr == node.begin_or_auto.x_type
+            assert cstr == node.end.x_type
             if not isinstance(node.step_or_auto, cwast.ValAuto):
-                assert cstr == self.type_link(node.step_or_auto)
+                assert cstr == node.step_or_auto.x_type
         elif isinstance(node, cwast.StmtFor):
             if not isinstance(node.type_or_auto, cwast.TypeAuto):
-                assert self.type_link(
-                    node.range) == self.type_link(node.type_or_auto), f"type mismatch in FOR"
+                assert node.range.x_type == node.type_or_auto.x_type, f"type mismatch in FOR"
         elif isinstance(node, cwast.ExprDeref):
-            cstr = self.type_link(node)
-            assert cstr == self.type_link(node.expr).type
+            cstr = node.x_type
+            assert cstr == node.expr.x_type.type
         elif isinstance(node, cwast.Expr1):
-            cstr = self.type_link(node)
-            assert cstr == self.type_link(node.expr)
+            cstr = node.x_type
+            assert cstr == node.expr.x_type
         elif isinstance(node, cwast.Expr2):
-            cstr = self.type_link(node)
-            cstr1 = self.type_link(node.expr1)
-            cstr2 = self.type_link(node.expr2)
+            cstr = node.x_type
+            cstr1 = node.expr1.x_type
+            cstr2 = node.expr2.x_type
             if node.binary_expr_kind in cwast.BINOP_BOOL:
                 assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2}"
                 assert types.is_bool(cstr)
@@ -553,103 +544,103 @@ class TypeTab:
                 assert cstr == cstr1
                 assert cstr == cstr2
         elif isinstance(node, cwast.Expr3):
-            cstr = self.type_link(node)
-            cstr_t = self.type_link(node.expr_t)
-            cstr_f = self.type_link(node.expr_f)
-            cstr_cond = self.type_link(node.cond)
+            cstr = node.x_type
+            cstr_t = node.expr_t.x_type
+            cstr_f = node.expr_f.x_type
+            cstr_cond = node.cond.x_type
             assert cstr == cstr_t
             assert cstr == cstr_f
             assert types.is_bool(cstr_cond)
         elif isinstance(node, cwast.ExprCall):
-            result = self.type_link(node)
-            fun = self.type_link(node.callee)
+            result = node.x_type
+            fun = node.callee.x_type
             assert (fun, cwast.TypeFun)
             assert fun.result == result
             for p, a in zip(fun.params, node.args):
-                arg_cstr = self.type_link(a)
+                arg_cstr = a.x_type
                 assert types.is_compatible(
                     arg_cstr, p.type), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
         elif isinstance(node, cwast.StmtReturn):
-            fun = self.type_link(ctx.enclosing_fun)
+            fun = ctx.enclosing_fun.x_type
             assert isinstance(fun, cwast.TypeFun)
-            actual = self.type_link(node.expr_ret)
+            actual = node.expr_ret.x_type
             assert types.is_compatible(
                 actual, fun.result), f"{node}: {actual} {fun.result}"
         elif isinstance(node, cwast.StmtIf):
-            assert types.is_bool(self.type_link(node.cond))
+            assert types.is_bool(node.cond.x_type)
         elif isinstance(node, cwast.Case):
-            assert types.is_bool(self.type_link(node.cond))
+            assert types.is_bool(node.cond.x_type)
         elif isinstance(node, cwast.StmtWhile):
-            assert types.is_bool(self.type_link(node.cond))
+            assert types.is_bool(node.cond.x_type)
         elif isinstance(node, cwast.StmtAssignment):
-            var_cstr = self.type_link(node.lhs)
-            expr_cstr = self.type_link(node.expr)
+            var_cstr = node.lhs.x_type
+            expr_cstr = node.expr.x_type
             assert types.is_compatible(expr_cstr, var_cstr)
         elif isinstance(node, cwast.StmtCompoundAssignment):
-            var_cstr = self.type_link(node.lhs)
-            expr_cstr = self.type_link(node.expr)
+            var_cstr = node.lhs.x_type
+            expr_cstr = node.expr.x_type
             assert types.is_compatible(expr_cstr, var_cstr)
         elif isinstance(node, cwast.StmtExpr):
-            cstr = self.type_link(node.expr)
+            cstr = node.expr.x_type
             assert types.is_void(cstr) != node.discard
         elif isinstance(node, cwast.ExprAs):
-            src = self.type_link(node.expr)
-            dst = self.type_link(node.type)
+            src = node.expr.x_type
+            dst = node.type.x_type
             # TODO
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprUnsafeCast):
-            src = self.type_link(node.expr)
-            dst = self.type_link(node.type)
+            src = node.expr.x_type
+            dst = node.type.x_type
             # TODO
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprBitCast):
-            src = self.type_link(node.expr)
-            dst = self.type_link(node.type)
+            src = node.expr.x_type
+            dst = node.type.x_type
             # TODO
             # assert is_compatible_for_as(src, dst)
         elif isinstance(node, cwast.ExprIs):
-            assert types.is_bool(self.type_link(node))
+            assert types.is_bool(node.x_type)
         elif isinstance(node, cwast.ExprLen):
-            assert self.type_link(node) == self.corpus.insert_base_type(
+            assert node.x_type == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
         elif isinstance(node, cwast.ExprChop):
-            cstr = self.type_link(node)
-            cstr_cont = self.type_link(node.container)
+            cstr = node.x_type
+            cstr_cont = node.container.x_type
             assert types.get_contained_type(
                 cstr_cont) == types.get_contained_type(cstr)
             assert types.is_mutable(cstr_cont) == types.is_mutable(cstr)
             if not isinstance(node.start, cwast.ValAuto):
-                assert types.is_int(self.type_link(node.start))
+                assert types.is_int(node.start.x_type)
             if not isinstance(node.width, cwast.ValAuto):
-                assert types.is_int(self.type_link(node.width))
+                assert types.is_int(node.width.x_type)
         elif isinstance(node, cwast.Id):
-            cstr = self.type_link(node)
+            cstr = node.x_type
             assert cstr != types.NO_TYPE
         elif isinstance(node, cwast.ExprAddrOf):
-            cstr_expr = self.type_link(node.expr)
-            cstr = self.type_link(node)
+            cstr_expr = node.expr.x_type
+            cstr = node.x_type
             assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
         elif isinstance(node, cwast.ExprOffsetof):
-            assert self.type_link(node) == self.corpus.insert_base_type(
+            assert node.x_type == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
         elif isinstance(node, cwast.ExprSizeof):
-            assert self.type_link(node) == self.corpus.insert_base_type(
+            assert node.x_type == self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT)
         elif isinstance(node, cwast.Try):
             all = set()
-            cstr = self.type_link(node)
+            cstr = node.x_type
             if isinstance(cstr, cwast.TypeSum):
                 for c in cstr.types:
                     all.add(id(c))
             else:
                 all.add(id(cstr))
-            cstr_complement = self.type_link(node.catch)
+            cstr_complement = node.catch.x_type
             if isinstance(cstr_complement, cwast.TypeSum):
                 for c in cstr_complement.types:
                     all.add(id(c))
             else:
                 all.add(id(cstr_complement))
-            assert all == set(id(c) for c in self.type_link(node.expr).types)
+            assert all == set(id(c) for c in node.expr.x_type.types)
         elif isinstance(node, cwast.Catch):
             pass
         elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
