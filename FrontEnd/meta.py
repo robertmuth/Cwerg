@@ -54,8 +54,7 @@ def ParseArrayIndex(pos: str) -> int:
 
 
 class TypeContext:
-    def __init__(self, symtab, mod_name):
-        self.symtab: symtab.SymTab = symtab
+    def __init__(self, mod_name):
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
         self._enclosing_rec_type: List[types.CanonType] = []
@@ -97,7 +96,7 @@ class TypeTab:
         if isinstance(node, cwast.ValNum):
             return ParseInt(node.number)
         elif isinstance(node, cwast.Id):
-            node = ctx.symtab.get_definition_for_symbol(node)
+            node = node.x_symbol
             return self.compute_dim(node, ctx)
         elif isinstance(node, cwast.DefConst):
             return self.compute_dim(node.value, ctx)
@@ -139,7 +138,7 @@ class TypeTab:
             return types.NO_TYPE
         elif isinstance(node, cwast.Id):
             # this case is why we need the sym_tab
-            def_node = ctx.symtab.get_definition_for_symbol(node)
+            def_node = node.x_symbol
             # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
             cstr = self.typify_node(def_node, ctx)
             return self.annotate(node, cstr)
@@ -679,7 +678,7 @@ class TypeTab:
 
 
 def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
-                   mod_map: Dict[str, cwast.DefMod], symtab: Dict[str, symtab.SymTab]) -> TypeTab:
+                   mod_map: Dict[str, cwast.DefMod]) -> TypeTab:
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -687,7 +686,7 @@ def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
     """
     typetab = TypeTab(cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     for m in mod_topo_order:
-        ctx = TypeContext(symtab_map[m], m)
+        ctx = TypeContext(m)
         for node in mod_map[m].body_mod:
             typetab.typify_node(node, ctx)
     return typetab
@@ -709,9 +708,9 @@ if __name__ == "__main__":
         pass
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-    symtab_map = symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
-    typetab = ExtractTypeTab(mod_topo_order, mod_map, symtab_map)
+    symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
+    typetab = ExtractTypeTab(mod_topo_order, mod_map)
     for m in mod_topo_order:
-        typetab.verify_node_recursively(mod_map[m], TypeContext(None, None))
+        typetab.verify_node_recursively(mod_map[m], TypeContext(None))
     for t in typetab.corpus.corpus:
         print(t)

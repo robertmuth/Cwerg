@@ -37,7 +37,6 @@ class SymTab:
 
         self._local_var_syms: Dict[str, cwast.DefVar] = []
         #
-        self._links = {}
 
     def _push_scope(self):
         self._local_var_syms.append({})
@@ -100,11 +99,11 @@ class SymTab:
         return None
 
     def _add_link(self, id_node: cwast.Id, def_node):
-        assert isinstance(id_node, (cwast.Id))
+        assert isinstance(id_node, cwast.Id)
         assert isinstance(def_node,
                           cwast.GLOBAL_SYM_DEF_NODES +
                           cwast.LOCAL_SYM_DEF_NODES), f"unpexpected node: {def_node}"
-        self._links[id(id_node)] = def_node
+        id_node.x_symbol = def_node
 
     def resolve_symbols_recursively(self, node, mod_map, symtab_map):
         logger.info("UNSYMBOLIZE %s", type(node).__name__)
@@ -117,7 +116,8 @@ class SymTab:
             # Otherwise, we would make that symbol visible to `catch``
             pass
         elif isinstance(node, cwast.Id):
-            def_node = self.resolve_sym(node.name.split("/"), symtab_map, False)
+            def_node = self.resolve_sym(
+                node.name.split("/"), symtab_map, False)
             if def_node:
                 self._add_link(node, def_node)
                 return
@@ -138,7 +138,8 @@ class SymTab:
         for c in node.__class__.FIELDS:
             nfd = cwast.ALL_FIELDS_MAP[c]
             if nfd.kind is cwast.NFK.NODE:
-                self.resolve_symbols_recursively(getattr(node, c), mod_map, symtab_map)
+                self.resolve_symbols_recursively(
+                    getattr(node, c), mod_map, symtab_map)
             elif nfd.kind is cwast.NFK.LIST:
                 if c in ("body_t", "body_f"):
                     logger.info("push scope for if blocks")
@@ -182,9 +183,6 @@ class SymTab:
         else:
             assert False, f"unexpected node: {node}"
 
-    def get_definition_for_symbol(self, node: cwast.Id):
-        return self._links[id(node)]
-
 
 def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
     symtab = SymTab()
@@ -204,8 +202,10 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
         logger.info("ExtractSymbolTable %s", node.name)
         if isinstance(node, cwast.DefVar):
             # we already registered the var in the previous step
-            symtab.resolve_symbols_recursively(node.type_or_auto, mod_map, symtab_map)
-            symtab.resolve_symbols_recursively(node.initial_or_undef, mod_map, symtab_map)
+            symtab.resolve_symbols_recursively(
+                node.type_or_auto, mod_map, symtab_map)
+            symtab.resolve_symbols_recursively(
+                node.initial_or_undef, mod_map, symtab_map)
         else:
             symtab.resolve_symbols_recursively(node, mod_map, symtab_map)
     #

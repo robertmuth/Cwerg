@@ -94,6 +94,7 @@ class Id:
     path: str          # first components of mod1::mod2:id: mod1::mod2
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+    x_symbol: Optional[Any] = None  
 
     def __str__(self):
         joiner = "::" if self.path else ""
@@ -175,16 +176,21 @@ class BASE_TYPE_KIND(enum.Enum):
     BOOL = 42
 
 
-BASE_TYPE_KIND_INT = set([
-    BASE_TYPE_KIND.S8,
-    BASE_TYPE_KIND.S16,
-    BASE_TYPE_KIND.S32,
-    BASE_TYPE_KIND.S64,
+BASE_TYPE_KIND_UINT = set([
     BASE_TYPE_KIND.U8,
     BASE_TYPE_KIND.U16,
     BASE_TYPE_KIND.U32,
     BASE_TYPE_KIND.U64,
 ])
+
+BASE_TYPE_KIND_SINT = set([
+    BASE_TYPE_KIND.S8,
+    BASE_TYPE_KIND.S16,
+    BASE_TYPE_KIND.S32,
+    BASE_TYPE_KIND.S64,
+])
+
+BASE_TYPE_KIND_INT = BASE_TYPE_KIND_UINT | BASE_TYPE_KIND_SINT
 
 BASE_TYPE_KIND_REAL = set([
     BASE_TYPE_KIND.R32,
@@ -532,8 +538,8 @@ class UNARY_EXPR_KIND(enum.Enum):
 
 
 UNARY_EXPR_SHORTCUT = {
-    "!": UNARY_EXPR_KIND.NOT,
-    "neg": UNARY_EXPR_KIND.NEG,
+    "!": UNARY_EXPR_KIND.NOT,     # boolean not
+    "neg": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
     "~": UNARY_EXPR_KIND.MINUS,
 }
 
