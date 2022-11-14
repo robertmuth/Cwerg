@@ -81,20 +81,17 @@ class TypeTab:
     """Type Table
 
     Requires SymTab info to resolve DefType symnbols
+    TODO: get rid of this class
     """
 
     def __init__(self, uint_kind, sint_kind):
-        self.wrapped_curr = 1
         self.corpus = types.TypeCorpus(uint_kind, sint_kind)
-        self.dims: Dict[int, int] = {}
-        # links nodes with
-        self._field_links: Dict[int, cwast.RecField] = {}
 
     def type_link(self, node) -> types.CanonType:
         return node.x_type
 
     def field_link(self, node) -> cwast.RecField:
-        return self._field_links[id(node)]
+        return node.x_field
 
     def compute_dim(self, node, ctx) -> int:
         if isinstance(node, cwast.ValNum):
@@ -117,14 +114,13 @@ class TypeTab:
         node.x_type = cstr
         return cstr
 
-    def annotate_field(self, node, field_node):
+    def annotate_field(self, node, field_node: cwast.RecField):
         assert isinstance(node, (cwast.ExprField, cwast.FieldVal))
-        assert isinstance(field_node, cwast.RecField)
-        self._field_links[id(node)] = field_node
+        assert node.x_field is None
+        node.x_field = field_node
 
     def is_compatible_for_as(self, src: types.CanonType, dst: types.CanonType) -> bool:
-        if types.is_wrapped(src):
-            pass
+        # TODO: deal with distinct types
 
         if types.is_int(src):
             return types.is_int(dst) or types.is_real(dst)
@@ -265,7 +261,8 @@ class TypeTab:
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
             assert isinstance(cstr, cwast.DefRec)
-            all_fields: List[cwast.RecField] = [f for f in  cstr.fields if isinstance(f, cwast.RecField)]
+            all_fields: List[cwast.RecField] = [
+                f for f in cstr.fields if isinstance(f, cwast.RecField)]
             for val in node.inits_rec:
                 if not isinstance(val, cwast.FieldVal):
                     continue

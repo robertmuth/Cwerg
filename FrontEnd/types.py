@@ -24,8 +24,7 @@ def get_contained_type(cstr) -> CanonType:
 
 
 def get_array_dim(cstr: cwast.TypeArray) -> int:
-    # TODO
-    return int(cstr.size)
+    return cstr.size.x_value
 
 
 def get_pointee(cstr: CanonType) -> CanonType:
@@ -47,10 +46,6 @@ def is_mutable(cstr: CanonType) -> bool:
 def is_bool(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
-
-
-def is_wrapped(cstr: CanonType) -> bool:
-    return cstr == "wrapped"
 
 
 def is_void(cstr: CanonType) -> bool:
@@ -205,9 +200,11 @@ class TypeCorpus:
             name = f"array-mut({cstr},{size})"
         else:
             name = f"array({cstr},{size})"
-        return self._insert(name, cwast.TypeArray(mut, size, cstr))
+        dim = cwast.ValNum(str(size))
+        dim.x_value = size
+        return self._insert(name, cwast.TypeArray(mut, dim, cstr))
 
-    def lookup_rec_field(self, rec: cwast.DefRec, field_name):
+    def lookup_rec_field(self, rec: cwast.DefRec, field_name) -> cwast.RecField:
         """Oddball since the node returned is NOT inside corpus
 
         See implementation of insert_rec_type

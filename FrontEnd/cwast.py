@@ -39,8 +39,9 @@ class NF(enum.Flag):
     """Node Flags"""
     NONE = 0
     NEW_SCOPE = enum.auto()
-    TYPE_ANNOTATED = enum.auto()
-    VALUE_ANNOTATED = enum.auto()
+    TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
+    VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
+    FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
@@ -246,7 +247,7 @@ class TypeArray:
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
-    mut: bool  # array is mutable, TODO: rethink this 
+    mut: bool  # array is mutable, TODO: rethink this
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
     x_type: Optional[Any] = None
@@ -299,6 +300,7 @@ class ValTrue:
     """Bool constant `true`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
+
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -310,6 +312,7 @@ class ValFalse:
     """Bool constant `false`"""
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED
+
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -324,10 +327,11 @@ class ValNum:
     suffices like `_u64`, `_s16`, `_r32`.
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     number: str   # maybe a (unicode) character as well
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self): return self.number
 
@@ -349,8 +353,10 @@ class ValVoid:
     It can be used to model *null* in nullable pointers via a sum type.
      """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self): return "VOID"
 
@@ -363,11 +369,12 @@ class IndexVal:
     If index is empty use `0` or `previous index + 1`.
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     value_or_undef: "EXPR_NODE"
-    init_index: str
+    init_index: str    # TODO: make this an expression
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -378,11 +385,13 @@ class FieldVal:
     If field is empty use `first field` or `next field`.
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     value: "EXPR_NODE"
     init_field: str
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
 
 
 INITS_ARRAY_NODES = Union[Comment, IndexVal]
@@ -395,12 +404,13 @@ class ValArray:
     `[10]int{.1 = 5, .2 = 6, 77}`
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE
     expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -410,11 +420,12 @@ class ValString:
     type is `[strlen(string)]u8`. `string` may be escaped/raw
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     raw: bool
     string: str
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self): return f"STRING({self.string})"
 
@@ -429,11 +440,12 @@ class ValRec:
     `E.g.: complex{.imag = 5, .real = 1}`
     """
     ALIAS = "rec"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE
     inits_rec: List[INITS_REC_NODES]
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 ############################################################
@@ -454,6 +466,7 @@ class ExprDeref:
 
     expr: EXPR_NODE  # must be of type AddrOf
     x_type: Optional[Any] = None
+    # TODO: maybe track symbolic values
 
 
 @dataclasses.dataclass()
@@ -468,6 +481,7 @@ class ExprAddrOf:
     mut: bool
     expr: EXPR_NODE
     x_type: Optional[Any] = None
+    # TODO: maybe track symbolic values
 
 
 @dataclasses.dataclass()
@@ -475,11 +489,12 @@ class ExprCall:
     """Function call expression.
     """
     ALIAS = "call"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     callee: EXPR_NODE
     args: List[EXPR_NODE]
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -487,10 +502,11 @@ class ExprParen:
     """Used for preserving parenthesis in the source
     """
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -498,11 +514,13 @@ class ExprField:
     """Access field in expression representing a record.
     """
     ALIAS = "."
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     container: EXPR_NODE  # must be of type rec
     field: str
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
 
 
 @enum.unique
@@ -526,11 +544,12 @@ UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 class Expr1:
     """Unary expression."""
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     unary_expr_kind: UNARY_EXPR_KIND
     expr: EXPR_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @enum.unique
@@ -599,12 +618,13 @@ BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 class Expr2:
     """Binary expression."""
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: EXPR_NODE
     expr2: EXPR_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
@@ -615,13 +635,13 @@ class Expr3:
     """Tertiary expression (like C's `? :`) 
     """
     ALIAS = "?"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     cond: EXPR_NODE  # must be of type  bool
     expr_t: EXPR_NODE
     expr_f: EXPR_NODE
     x_type: Optional[Any] = None
-
+    x_value: Optional[Any] = None
 
 # Array/Slice Expressions
 
@@ -631,11 +651,12 @@ class ExprIndex:
     """Checked indexed access of array or slice 
     """
     ALIAS = "at"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     container: EXPR_NODE  # must be of type slice or array
     expr_index: EXPR_NODE  # must be of int type
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -655,13 +676,14 @@ class ExprChop:
 class ExprLen:
     """Length of array or slice"""
     ALIAS = "len"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     container: EXPR_NODE   # must be of type slice or array
     x_type: Optional[Any] = None
-
+    x_value: Optional[Any] = None
 
 # Cast Like Expressions
+
 
 @dataclasses.dataclass()
 class ExprIs:
@@ -669,11 +691,12 @@ class ExprIs:
 
     """
     ALIAS = "is"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -691,11 +714,12 @@ class ExprAs:
     ptr to rec -> ptr to first element of rec
     """
     ALIAS = "as"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -742,11 +766,12 @@ class ExprBitCast:
     sint, uint <-> ptr
     """
     ALIAS = "bitcast"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -755,10 +780,11 @@ class ExprSizeof:
 
     Type is `uint`"""
     ALIAS = "sizeof"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: TYPE_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -767,11 +793,12 @@ class ExprOffsetof:
 
     Type is `uint`"""
     ALIAS = "offsetof"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE  # must be rec
     field: str
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -1062,12 +1089,13 @@ class RecField:  #
     sensitive situations.
     """
     ALIAS = "field"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     name: str
     type: TYPE_NODE
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial_or_undef}"
@@ -1097,11 +1125,12 @@ class EnumVal:
 
      `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
 
     name: str
     value_or_auto: Union["ValNum", ValAuto]
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{self.name}: {self.value_or_auto}"
