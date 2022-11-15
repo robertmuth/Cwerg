@@ -41,6 +41,7 @@ class NF(enum.Flag):
     NEW_SCOPE = enum.auto()
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
+    MUST_HAVE_VALUE = enum.auto()
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
@@ -94,7 +95,7 @@ class Id:
     path: str          # first components of mod1::mod2:id: mod1::mod2
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
-    x_symbol: Optional[Any] = None  
+    x_symbol: Optional[Any] = None
 
     def __str__(self):
         joiner = "::" if self.path else ""
@@ -305,9 +306,10 @@ ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
 class ValTrue:
     """Bool constant `true`"""
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return "TRUE"
@@ -317,9 +319,10 @@ class ValTrue:
 class ValFalse:
     """Bool constant `false`"""
     ALIAS = None
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return "FALSE"
@@ -378,7 +381,7 @@ class IndexVal:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     value_or_undef: "EXPR_NODE"
-    init_index: str    # TODO: make this an expression
+    init_index: "EXPR_NODE"  # compile time constant
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1465,7 +1468,7 @@ OPTIONAL_FIELDS = {
     "target": lambda: "",
     "path": lambda: "",
     "alias": lambda: "",
-    "init_index": lambda: "",
+    "init_index": lambda: ValAuto(),
     "init_field": lambda: "",
     "initial_or_undef": lambda: ValUndef(),
 }
@@ -1512,11 +1515,6 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
             else:
                 seen_non_flag = True
 
-
-TYPED_ANNOTATED_NODES = tuple(
-    n for n in ALL_NODES if NF.TYPE_ANNOTATED in n.FLAGS)
-
-TYPE_CORPUS_NODES = tuple(n for n in ALL_NODES if NF.TYPE_CORPUS in n.FLAGS)
 
 LOCAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.LOCAL_SYM_DEF in n.FLAGS)

@@ -98,10 +98,8 @@ class TypeTab:
             assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: types.CanonType):
-        assert isinstance(
-            cstr, cwast.TYPE_CORPUS_NODES), f"bad type corpus node {repr(cstr)}"
-        assert isinstance(
-            node, cwast.TYPED_ANNOTATED_NODES), f"node not meant for type annotation: {node}"
+        assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
+        assert cwast.NF.TYPE_ANNOTATED in  node.__class__.FLAGS, f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
         assert node.x_type is None, f"duplicate annotation for {node}"
         node.x_type = cstr
@@ -471,201 +469,207 @@ class TypeTab:
         else:
             assert False, f"unexpected node {node}"
 
-    def verify_node(self, node, ctx: TypeContext):
-        if isinstance(node, cwast.TYPED_ANNOTATED_NODES):
-            assert node.x_type is not None, f"untypified node {node}"
-        if isinstance(node, cwast.ValArray):
-            cstr = node.type.x_type
-            for x in node.inits_array:
-                if not isinstance(x, cwast.Comment):
-                    assert cstr == x.x_type, f"expected {cstr} got {x.x_type}"
-        elif isinstance(node, cwast.ValRec):
-            for x in node.inits_rec:
-                if isinstance(x, cwast.IndexVal):
-                    field_node = x.x_field
-                    assert field_node.x_type == x.x_type
-        elif isinstance(node, cwast.RecField):
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                type_cstr = node.type.x_type
-                initial_cstr = node.initial_or_undef.x_type
-                assert types.is_compatible(
-                    initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
-        elif isinstance(node, cwast.ExprIndex):
-            cstr = node.x_type
-            assert cstr == types.get_contained_type(node.container.x_type)
-        elif isinstance(node, cwast.ExprField):
-            cstr = node.x_type
-            field_node = node.x_field
-            assert cstr == field_node.x_type
-        elif isinstance(node, cwast.DefVar):
-            cstr = node.x_type
-            if node.mut and isinstance(cstr, cwast.TypeArray):
-                assert cstr.mut
-                cstr = self.corpus.drop_mutability(cstr)
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                initial_cstr = node.initial_or_undef.x_type
-                assert types.is_compatible(initial_cstr, cstr)
-            if not isinstance(node.type_or_auto, cwast.TypeAuto):
-                type_cstr = node.type_or_auto.x_type
-                assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
-        elif isinstance(node, cwast.ExprRange):
-            cstr = node.x_type
-            if not isinstance(node.begin_or_auto, cwast.ValAuto):
-                assert cstr == node.begin_or_auto.x_type
-            assert cstr == node.end.x_type
-            if not isinstance(node.step_or_auto, cwast.ValAuto):
-                assert cstr == node.step_or_auto.x_type
-        elif isinstance(node, cwast.StmtFor):
-            if not isinstance(node.type_or_auto, cwast.TypeAuto):
-                assert node.range.x_type == node.type_or_auto.x_type, f"type mismatch in FOR"
-        elif isinstance(node, cwast.ExprDeref):
-            cstr = node.x_type
-            assert cstr == node.expr.x_type.type
-        elif isinstance(node, cwast.Expr1):
-            cstr = node.x_type
-            assert cstr == node.expr.x_type
-        elif isinstance(node, cwast.Expr2):
-            cstr = node.x_type
-            cstr1 = node.expr1.x_type
-            cstr2 = node.expr2.x_type
-            if node.binary_expr_kind in cwast.BINOP_BOOL:
-                assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2}"
-                assert types.is_bool(cstr)
-            elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
-                                           cwast.BINARY_EXPR_KIND.PSUB):
-                assert cstr == cstr1
-                assert types.is_int(cstr2)
-            elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-                assert (isinstance(cstr1, cwast.TypePtr) and isinstance(cstr2, cwast.TypePtr) and
-                        cstr1.type == cstr2.type)
-                assert cstr == self.corpus.insert_base_type(
-                    cwast.BASE_TYPE_KIND.SINT)
-            else:
-                assert cstr == cstr1
-                assert cstr == cstr2
-        elif isinstance(node, cwast.Expr3):
-            cstr = node.x_type
-            cstr_t = node.expr_t.x_type
-            cstr_f = node.expr_f.x_type
-            cstr_cond = node.cond.x_type
-            assert cstr == cstr_t
-            assert cstr == cstr_f
-            assert types.is_bool(cstr_cond)
-        elif isinstance(node, cwast.ExprCall):
-            result = node.x_type
-            fun = node.callee.x_type
-            assert (fun, cwast.TypeFun)
-            assert fun.result == result
-            for p, a in zip(fun.params, node.args):
-                arg_cstr = a.x_type
-                assert types.is_compatible(
-                    arg_cstr, p.type), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
-        elif isinstance(node, cwast.StmtReturn):
-            fun = ctx.enclosing_fun.x_type
-            assert isinstance(fun, cwast.TypeFun)
-            actual = node.expr_ret.x_type
-            assert types.is_compatible(
-                actual, fun.result), f"{node}: {actual} {fun.result}"
-        elif isinstance(node, cwast.StmtIf):
-            assert types.is_bool(node.cond.x_type)
-        elif isinstance(node, cwast.Case):
-            assert types.is_bool(node.cond.x_type)
-        elif isinstance(node, cwast.StmtWhile):
-            assert types.is_bool(node.cond.x_type)
-        elif isinstance(node, cwast.StmtAssignment):
-            var_cstr = node.lhs.x_type
-            expr_cstr = node.expr.x_type
-            assert types.is_compatible(expr_cstr, var_cstr)
-        elif isinstance(node, cwast.StmtCompoundAssignment):
-            var_cstr = node.lhs.x_type
-            expr_cstr = node.expr.x_type
-            assert types.is_compatible(expr_cstr, var_cstr)
-        elif isinstance(node, cwast.StmtExpr):
-            cstr = node.expr.x_type
-            assert types.is_void(cstr) != node.discard
-        elif isinstance(node, cwast.ExprAs):
-            src = node.expr.x_type
-            dst = node.type.x_type
-            # TODO
-            # assert is_compatible_for_as(src, dst)
-        elif isinstance(node, cwast.ExprUnsafeCast):
-            src = node.expr.x_type
-            dst = node.type.x_type
-            # TODO
-            # assert is_compatible_for_as(src, dst)
-        elif isinstance(node, cwast.ExprBitCast):
-            src = node.expr.x_type
-            dst = node.type.x_type
-            # TODO
-            # assert is_compatible_for_as(src, dst)
-        elif isinstance(node, cwast.ExprIs):
-            assert types.is_bool(node.x_type)
-        elif isinstance(node, cwast.ExprLen):
-            assert node.x_type == self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT)
-        elif isinstance(node, cwast.ExprChop):
-            cstr = node.x_type
-            cstr_cont = node.container.x_type
-            assert types.get_contained_type(
-                cstr_cont) == types.get_contained_type(cstr)
-            assert types.is_mutable(cstr_cont) == types.is_mutable(cstr)
-            if not isinstance(node.start, cwast.ValAuto):
-                assert types.is_int(node.start.x_type)
-            if not isinstance(node.width, cwast.ValAuto):
-                assert types.is_int(node.width.x_type)
-        elif isinstance(node, cwast.Id):
-            cstr = node.x_type
-            assert cstr != types.NO_TYPE
-        elif isinstance(node, cwast.ExprAddrOf):
-            cstr_expr = node.expr.x_type
-            cstr = node.x_type
-            assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
-        elif isinstance(node, cwast.ExprOffsetof):
-            assert node.x_type == self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT)
-        elif isinstance(node, cwast.ExprSizeof):
-            assert node.x_type == self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT)
-        elif isinstance(node, cwast.Try):
-            all = set()
-            cstr = node.x_type
-            if isinstance(cstr, cwast.TypeSum):
-                for c in cstr.types:
-                    all.add(id(c))
-            else:
-                all.add(id(cstr))
-            cstr_complement = node.catch.x_type
-            if isinstance(cstr_complement, cwast.TypeSum):
-                for c in cstr_complement.types:
-                    all.add(id(c))
-            else:
-                all.add(id(cstr_complement))
-            assert all == set(id(c) for c in node.expr.x_type.types)
-        elif isinstance(node, cwast.Catch):
-            pass
-        elif isinstance(node, (cwast.Comment, cwast.DefMod, cwast.DefFun, cwast.FunParam,
-                               cwast.TypeBase, cwast.TypeArray, cwast.TypePtr, cwast.Id,
-                               cwast.TypeSlice, cwast.TypeSum, cwast.TypeAuto, cwast.ValAuto, cwast.ValUndef,
-                               cwast.ValNum, cwast.DefType, cwast.DefRec, cwast.ValTrue,
-                               cwast.ValFalse, cwast.ValVoid, cwast.DefEnum, cwast.EnumVal,
-                               cwast.TypeFun, cwast.DefConst, cwast.ValString,
-                               cwast.IndexVal, cwast.FieldVal, cwast.StmtBlock, cwast.StmtBreak,
-                               cwast.StmtContinue, cwast.StmtDefer, cwast.StmtCond, cwast.Import)):
-            pass
-        else:
-            assert False, f"unsupported  node type: {node.__class__} {node}"
 
-    def verify_node_recursively(self, node, ctx: TypeContext):
-        if isinstance(node, cwast.DefFun):
-            ctx.enclosing_fun = node
-        self.verify_node(node, ctx)
-        for c in node.__class__.FIELDS:
-            nfd = cwast.ALL_FIELDS_MAP[c]
-            if nfd.kind is cwast.NFK.NODE:
-                self.verify_node_recursively(getattr(node, c), ctx)
-            elif nfd.kind is cwast.NFK.LIST:
-                for cc in getattr(node, c):
-                    self.verify_node_recursively(cc, ctx)
+def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
+    assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS
+
+    if isinstance(node, cwast.ValArray):
+        cstr = node.type.x_type
+        for x in node.inits_array:
+            if not isinstance(x, cwast.Comment):
+                assert cstr == x.x_type, f"expected {cstr} got {x.x_type}"
+    elif isinstance(node, cwast.ValRec):
+        for x in node.inits_rec:
+            if isinstance(x, cwast.IndexVal):
+                field_node = x.x_field
+                assert field_node.x_type == x.x_type
+    elif isinstance(node, cwast.RecField):
+        if not isinstance(node.initial_or_undef, cwast.ValUndef):
+            type_cstr = node.type.x_type
+            initial_cstr = node.initial_or_undef.x_type
+            assert types.is_compatible(
+                initial_cstr, type_cstr), f"{node}: {type_cstr} {initial_cstr}"
+    elif isinstance(node, cwast.ExprIndex):
+        cstr = node.x_type
+        assert cstr == types.get_contained_type(node.container.x_type)
+    elif isinstance(node, cwast.ExprField):
+        cstr = node.x_type
+        field_node = node.x_field
+        assert cstr == field_node.x_type
+    elif isinstance(node, cwast.DefVar):
+        cstr = node.x_type
+        if node.mut and isinstance(cstr, cwast.TypeArray):
+            assert cstr.mut
+            cstr = corpus.drop_mutability(cstr)
+        if not isinstance(node.initial_or_undef, cwast.ValUndef):
+            initial_cstr = node.initial_or_undef.x_type
+            assert types.is_compatible(initial_cstr, cstr)
+        if not isinstance(node.type_or_auto, cwast.TypeAuto):
+            type_cstr = node.type_or_auto.x_type
+            assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
+    elif isinstance(node, cwast.ExprRange):
+        cstr = node.x_type
+        if not isinstance(node.begin_or_auto, cwast.ValAuto):
+            assert cstr == node.begin_or_auto.x_type
+        assert cstr == node.end.x_type
+        if not isinstance(node.step_or_auto, cwast.ValAuto):
+            assert cstr == node.step_or_auto.x_type
+    elif isinstance(node, cwast.StmtFor):
+        if not isinstance(node.type_or_auto, cwast.TypeAuto):
+            assert node.range.x_type == node.type_or_auto.x_type, f"type mismatch in FOR"
+    elif isinstance(node, cwast.ExprDeref):
+        cstr = node.x_type
+        assert cstr == node.expr.x_type.type
+    elif isinstance(node, cwast.Expr1):
+        cstr = node.x_type
+        assert cstr == node.expr.x_type
+    elif isinstance(node, cwast.Expr2):
+        cstr = node.x_type
+        cstr1 = node.expr1.x_type
+        cstr2 = node.expr2.x_type
+        if node.binary_expr_kind in cwast.BINOP_BOOL:
+            assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2}"
+            assert types.is_bool(cstr)
+        elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
+                                       cwast.BINARY_EXPR_KIND.PSUB):
+            assert cstr == cstr1
+            assert types.is_int(cstr2)
+        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
+            assert (isinstance(cstr1, cwast.TypePtr) and isinstance(cstr2, cwast.TypePtr) and
+                    cstr1.type == cstr2.type)
+            assert cstr == corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.SINT)
+        else:
+            assert cstr == cstr1
+            assert cstr == cstr2
+    elif isinstance(node, cwast.Expr3):
+        cstr = node.x_type
+        cstr_t = node.expr_t.x_type
+        cstr_f = node.expr_f.x_type
+        cstr_cond = node.cond.x_type
+        assert cstr == cstr_t
+        assert cstr == cstr_f
+        assert types.is_bool(cstr_cond)
+    elif isinstance(node, cwast.ExprCall):
+        result = node.x_type
+        fun = node.callee.x_type
+        assert (fun, cwast.TypeFun)
+        assert fun.result == result
+        for p, a in zip(fun.params, node.args):
+            arg_cstr = a.x_type
+            assert types.is_compatible(
+                arg_cstr, p.type), f"incompatible fun arg: {a} {arg_cstr} expected={p}"
+    elif isinstance(node, cwast.StmtReturn):
+        fun = enclosing_fun.x_type
+        assert isinstance(fun, cwast.TypeFun)
+        actual = node.expr_ret.x_type
+        assert types.is_compatible(
+            actual, fun.result), f"{node}: {actual} {fun.result}"
+    elif isinstance(node, cwast.StmtIf):
+        assert types.is_bool(node.cond.x_type)
+    elif isinstance(node, cwast.Case):
+        assert types.is_bool(node.cond.x_type)
+    elif isinstance(node, cwast.StmtWhile):
+        assert types.is_bool(node.cond.x_type)
+    elif isinstance(node, cwast.StmtAssignment):
+        var_cstr = node.lhs.x_type
+        expr_cstr = node.expr.x_type
+        assert types.is_compatible(expr_cstr, var_cstr)
+    elif isinstance(node, cwast.StmtCompoundAssignment):
+        var_cstr = node.lhs.x_type
+        expr_cstr = node.expr.x_type
+        assert types.is_compatible(expr_cstr, var_cstr)
+    elif isinstance(node, cwast.StmtExpr):
+        cstr = node.expr.x_type
+        assert types.is_void(cstr) != node.discard
+    elif isinstance(node, cwast.ExprAs):
+        src = node.expr.x_type
+        dst = node.type.x_type
+        # TODO
+        # assert is_compatible_for_as(src, dst)
+    elif isinstance(node, cwast.ExprUnsafeCast):
+        src = node.expr.x_type
+        dst = node.type.x_type
+        # TODO
+        # assert is_compatible_for_as(src, dst)
+    elif isinstance(node, cwast.ExprBitCast):
+        src = node.expr.x_type
+        dst = node.type.x_type
+        # TODO
+        # assert is_compatible_for_as(src, dst)
+    elif isinstance(node, cwast.ExprIs):
+        assert types.is_bool(node.x_type)
+    elif isinstance(node, cwast.ExprLen):
+        assert node.x_type == corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT)
+    elif isinstance(node, cwast.ExprChop):
+        cstr = node.x_type
+        cstr_cont = node.container.x_type
+        assert types.get_contained_type(
+            cstr_cont) == types.get_contained_type(cstr)
+        assert types.is_mutable(cstr_cont) == types.is_mutable(cstr)
+        if not isinstance(node.start, cwast.ValAuto):
+            assert types.is_int(node.start.x_type)
+        if not isinstance(node.width, cwast.ValAuto):
+            assert types.is_int(node.width.x_type)
+    elif isinstance(node, cwast.Id):
+        cstr = node.x_type
+        assert cstr != types.NO_TYPE
+    elif isinstance(node, cwast.ExprAddrOf):
+        cstr_expr = node.expr.x_type
+        cstr = node.x_type
+        assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
+    elif isinstance(node, cwast.ExprOffsetof):
+        assert node.x_type == corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT)
+    elif isinstance(node, cwast.ExprSizeof):
+        assert node.x_type == corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT)
+    elif isinstance(node, cwast.Try):
+        all = set()
+        cstr = node.x_type
+        if isinstance(cstr, cwast.TypeSum):
+            for c in cstr.types:
+                all.add(id(c))
+        else:
+            all.add(id(cstr))
+        cstr_complement = node.catch.x_type
+        if isinstance(cstr_complement, cwast.TypeSum):
+            for c in cstr_complement.types:
+                all.add(id(c))
+        else:
+            all.add(id(cstr_complement))
+        assert all == set(id(c) for c in node.expr.x_type.types)
+    elif isinstance(node, cwast.Catch):
+        pass
+    elif isinstance(node, cwast.TypeSum):
+        assert isinstance(node.x_type, cwast.TypeSum)
+    elif isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValVoid)):
+        assert isinstance(node.x_type, cwast.TypeBase)
+    elif isinstance(node, (cwast.DefFun, cwast.TypeFun)):
+        assert isinstance(node.x_type, cwast.TypeFun)
+    elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
+                           cwast.TypeArray, cwast.ValNum, cwast.DefConst, cwast.DefFun,
+                           cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum, 
+                           cwast.EnumVal, cwast.ValString, cwast.FieldVal)):
+        pass
+    else:
+        assert False, f"unsupported  node type: {node.__class__} {node}"
+
+
+def TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
+    if isinstance(node, cwast.DefFun):
+        enclosing_fun = node
+    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_type is not None, f"untyped node: {node}"
+        _TypeVerifyNode(node, corpus, enclosing_fun)
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            TypeVerifyNodeRecursively(getattr(node, c), corpus, enclosing_fun)
+        elif nfd.kind is cwast.NFK.LIST:
+            for cc in getattr(node, c):
+                TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
 
 
 def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
@@ -702,6 +706,6 @@ if __name__ == "__main__":
     symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
     typetab = ExtractTypeTab(mod_topo_order, mod_map)
     for m in mod_topo_order:
-        typetab.verify_node_recursively(mod_map[m], TypeContext(None))
+        TypeVerifyNodeRecursively(mod_map[m], typetab.corpus, None)
     for t in typetab.corpus.corpus:
         print(t)

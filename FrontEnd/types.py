@@ -42,6 +42,7 @@ def is_mutable(cstr: CanonType) -> bool:
     else:
         assert False
 
+
 def is_bool(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
@@ -55,9 +56,11 @@ def is_int(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_INT
 
+
 def is_uint(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_UINT
+
 
 def is_real(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
@@ -165,8 +168,7 @@ class TypeCorpus:
     def _insert(self, name, node) -> CanonType:
         if name in self.corpus:
             return self.corpus[name]
-        assert isinstance(
-            node, cwast.TYPE_CORPUS_NODES), f"not a corpus node: {node}"
+        assert cwast.NF.TYPE_CORPUS in node.__class__.FLAGS, f"not a corpus node: {node}"
         self.corpus[name] = node
         assert id(node) not in self._canon_name
         self._canon_name[id(node)] = name

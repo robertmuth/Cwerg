@@ -125,7 +125,7 @@ class SymTab:
                 logger.error(f"cannot resolve symbol {node}")
                 exit(1)
 
-        if isinstance(node, cwast.SCOPING_NODES):
+        if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
             logger.info("push scope for %s", type(node).__name__)
             self._push_scope()
             if isinstance(node, cwast.StmtFor):
@@ -150,7 +150,7 @@ class SymTab:
                     logger.info("push scope for if blocks")
                     self._pop_scope()
 
-        if isinstance(node, cwast.SCOPING_NODES):
+        if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
             self._pop_scope()
             logger.info("pop scope for %s", type(node).__name__)
         if isinstance(node, cwast.Try):
