@@ -39,12 +39,23 @@ def ComputeStringSize(raw: bool, string: str) -> int:
     return 8
 
 
-def ParseInt(num: str) -> int:
+def ParseNum(num: str) -> int:
     num = num.replace("_", "")
     if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
         return int(num[: -3])
     elif num[-2:] in ("u8", "s8"):
         return int(num[: -2])
+    elif num[-3:] in ("r32", "r64"):
+        return float(num[: -3])
+    if num[0] == "'":
+        assert num[-1] == "'"
+        if num[1] == "\\":
+            if num[2] == "n":
+                return 10
+            assert False, f"unsupported escape sequence: [{num}]"
+
+        else:
+            return ord(num[1])
     else:
         return int(num)
 
@@ -88,7 +99,7 @@ class TypeTab:
 
     def compute_dim(self, node, ctx) -> int:
         if isinstance(node, cwast.ValNum):
-            return ParseInt(node.number)
+            return ParseNum(node.number)
         elif isinstance(node, cwast.Id):
             node = node.x_symbol
             return self.compute_dim(node, ctx)
@@ -235,6 +246,11 @@ class TypeTab:
             cstr = ctx.get_target_type()
             if not isinstance(node.value_or_undef, cwast.ValUndef):
                 self.typify_node(node.value_or_undef, ctx)
+            if not isinstance(node.init_index, cwast.ValAuto):
+                ctx.push_target(self.corpus.insert_base_type(
+                    cwast.BASE_TYPE_KIND.UINT))
+                self.typify_node(node.init_index, ctx)
+                ctx.pop_target()
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.ValArray):
             cstr = self.typify_node(node.type, ctx)
@@ -476,11 +492,13 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
     if isinstance(node, cwast.ValArray):
         cstr = node.type.x_type
         for x in node.inits_array:
-            if not isinstance(x, cwast.Comment):
+            if isinstance(x, cwast.IndexVal):
+                if not isinstance(x.init_index, cwast.ValAuto):
+                    assert types.is_int(x.init_index.x_type)
                 assert cstr == x.x_type, f"expected {cstr} got {x.x_type}"
     elif isinstance(node, cwast.ValRec):
         for x in node.inits_rec:
-            if isinstance(x, cwast.IndexVal):
+            if isinstance(x, cwast.FieldVal):
                 field_node = x.x_field
                 assert field_node.x_type == x.x_type
     elif isinstance(node, cwast.RecField):
@@ -553,7 +571,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
     elif isinstance(node, cwast.ExprCall):
         result = node.x_type
         fun = node.callee.x_type
-        assert (fun, cwast.TypeFun)
+        assert isinstance(fun, cwast.TypeFun)
         assert fun.result == result
         for p, a in zip(fun.params, node.args):
             arg_cstr = a.x_type

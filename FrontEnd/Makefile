@@ -19,20 +19,27 @@ TESTS = array.cw \
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 TESTS_META = $(TESTS:%.cw=$(DIR)/%.cw.meta)
+TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
+
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
-tests_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_PP)
+tests_py: $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
+tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
 	./cwast.py < $<
 
 $(DIR)/%.cw.meta: TestData/%.cw
-	@echo "[parse $@]"
+	@echo "[meta $@]"
 	./meta.py < $<
 
+$(DIR)/%.cw.eval: TestData/%.cw
+	@echo "[eval $@]"
+	./eval.py < $<
+
 $(DIR)/%.cw.symtab: TestData/%.cw
-	@echo "[parse $@]"
+	@echo "[symtab $@]"
 	./symtab.py < $<
 
 $(DIR)/%.cw.pp: TestData/%.cw

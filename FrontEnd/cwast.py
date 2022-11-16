@@ -57,7 +57,7 @@ class NF(enum.Flag):
 
 @dataclasses.dataclass()
 class Comment:
-    """Comment 
+    """Comment
 
     Comments are proper AST nodes and may only occur where explicitly allowed.
     They refer to the next sibling in the tree.
@@ -118,7 +118,7 @@ class TypeAuto:
 
 
 class ValAuto:
-    """Placeholder for an unspecified (auto derived) value 
+    """Placeholder for an unspecified (auto derived) value
 
     Used for: array dimensions, enum values, chap and range
     """
@@ -201,9 +201,9 @@ BASE_TYPE_KIND_REAL = set([
 
 @dataclasses.dataclass()
 class TypeBase:
-    """Base type 
+    """Base type
 
-    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
     """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
@@ -245,6 +245,10 @@ class TypeSlice:
     type: TYPE_NODE
     x_type: Optional[Any] = None
 
+    def __str__(self):
+        mod = "-MUT" if self.mut else ""
+        return f"SLICE{mod}({self.type})"
+
 
 @dataclasses.dataclass()
 class TypeArray:
@@ -258,6 +262,10 @@ class TypeArray:
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
     x_type: Optional[Any] = None
+
+    def __str__(self):
+        mod = "-MUT" if self.mut else ""
+        return f"TypeArray {self.mut} ({self.type}) {self.size}"
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -276,6 +284,10 @@ class TypeFun:
     result: TYPE_NODE
     x_type: Optional[Any] = None
 
+    def __str__(self):
+        t = [str(t) for t in self.params]
+        return f"TypeFun {' '.join(t)} -> {self.result}"
+
 
 TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
 
@@ -292,6 +304,10 @@ class TypeSum:
 
     types: List[TYPES_NODES]
     x_type: Optional[Any] = None
+
+    def __str__(self):
+        t = [str(t) for t in self.types]
+        return f"TypeSum {' '.join(t)}"
 
 
 ############################################################
@@ -385,6 +401,9 @@ class IndexVal:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"IndexVal [{self.init_index}] = {self.value_or_undef}"
+
 
 @dataclasses.dataclass()
 class FieldVal:
@@ -401,6 +420,9 @@ class FieldVal:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
+
+    def __str__(self):
+        return f"FieldVal [{self.init_field}] = {self.value}"
 
 
 INITS_ARRAY_NODES = Union[Comment, IndexVal]
@@ -420,6 +442,9 @@ class ValArray:
     inits_array: List[INITS_ARRAY_NODES]
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+
+    def __str__(self):
+        return "ValArray {self.expr_size}"
 
 
 @dataclasses.dataclass()
@@ -456,6 +481,10 @@ class ValRec:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        t = [str(i) for i in self.inits_rec]
+        return f"ValRec [{self.type}] {' '.join(t)}"
+
 
 ############################################################
 # ExprNode
@@ -477,6 +506,9 @@ class ExprDeref:
     x_type: Optional[Any] = None
     # TODO: maybe track symbolic values
 
+    def __str__(self):
+        return f"DEREF {self.expr}"
+
 
 @dataclasses.dataclass()
 class ExprAddrOf:
@@ -492,6 +524,9 @@ class ExprAddrOf:
     x_type: Optional[Any] = None
     # TODO: maybe track symbolic values
 
+    def __str__(self):
+        return f"ADDR_OF {self.mut} {self.expr}"
+
 
 @dataclasses.dataclass()
 class ExprCall:
@@ -504,6 +539,9 @@ class ExprCall:
     args: List[EXPR_NODE]
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"CALL"
 
 
 @dataclasses.dataclass()
@@ -530,6 +568,9 @@ class ExprField:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
+
+    def __str__(self):
+        return f"ExprField {self.container} . {self.field}"
 
 
 @enum.unique
@@ -652,6 +693,9 @@ class Expr3:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"COND {self.cond} {self.expr_t} {self.expr_f}"
+
 # Array/Slice Expressions
 
 
@@ -667,6 +711,9 @@ class ExprIndex:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"AT {self.container} {self.expr_index}"
+
 
 @dataclasses.dataclass()
 class ExprChop:
@@ -680,6 +727,9 @@ class ExprChop:
     width: Union[EXPR_NODE, "ValAuto"]  # must be of int type
     x_type: Optional[Any] = None
 
+    def __str__(self):
+        return f"CHOP {self.container} {self.start} {self.width}"
+
 
 @dataclasses.dataclass()
 class ExprLen:
@@ -691,6 +741,8 @@ class ExprLen:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return self.__class__.__name__
 # Cast Like Expressions
 
 
@@ -889,8 +941,7 @@ class StmtFor:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        body = '\n'.join(str(s) for s in self.body)
-        return f"FOR  {self.name}: {self.type_or_auto} = {self.range}:\n{body}"
+        return f"FOR  {self.name}: {self.type_or_auto} = {self.range}"
 
 
 @dataclasses.dataclass()
@@ -920,9 +971,7 @@ class StmtIf:
     body_f: List[BODY_NODES]
 
     def __str__(self):
-        body_t = '\n'.join(str(s) for s in self.body_t)
-        body_f = '\n'.join(str(s) for s in self.body_f)
-        return f"IF {self.cond}:\n{body_t}\nELSE:\n{body_f}"
+        return f"IF {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1011,6 +1060,9 @@ class StmtExpr:
     discard: bool
     expr: ExprCall
 
+    def __str__(self):
+        return f"StmtExpr {self.discard}"
+
 
 @dataclasses.dataclass()
 class StmtAssert:
@@ -1076,6 +1128,8 @@ class StmtCompoundAssignment:
     lhs: EXPR_LHS
     expr: EXPR_NODE
 
+    def __str__(self):
+        return f"StmtAssignment [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
 
 @dataclasses.dataclass()
 class StmtAssignment:
@@ -1086,10 +1140,14 @@ class StmtAssignment:
     lhs: EXPR_LHS
     expr: EXPR_NODE
 
+    def __str__(self):
+        return f"StmtAssignment {self.lhs} = {self.expr}"
 
 ############################################################
 # Definitions
 ############################################################
+
+
 @dataclasses.dataclass()
 class RecField:  #
     """Record field
@@ -1190,13 +1248,14 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
 class DefConst:
     """Constant definition"""
     ALIAS = "const"
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
 
     pub:  bool
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     value: CONST_NODE
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"CONST {self.name}: {self.type_or_auto} = {self.value}"
@@ -1222,7 +1281,7 @@ class DefVar:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"LET {self.name}: {self.type_or_auto} = {self.initial_or_undef}"
+        return f"LET {self.pub} {self.mut} {self.name} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1235,6 +1294,8 @@ class Catch:
     body_except: List[BODY_NODES]
     x_type: Optional[Any] = None
 
+    def __str__(self):
+        return f"CATCH {self.name}"
 
 CATCH_NODE = Catch
 
@@ -1381,7 +1442,6 @@ ALL_FIELDS = [
     NFD(NFK.STR, "label", "block  name (if not empty)"),
     NFD(NFK.STR, "target",
         "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NFD(NFK.STR, "init_index", "initializer index or empty (empty mean next index)"),
     NFD(NFK.STR, "init_field", "initializer field or empty (empty means next field)"),
     NFD(NFK.STR, "path", "TBD"),
     NFD(NFK.STR, "alias", "name of imported module to be used instead of given name"),
@@ -1420,6 +1480,7 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "body_except",
         "statement list and/or comments when type narrowing fails", BODY_NODES),
     #
+    NFD(NFK.NODE, "init_index", "initializer index or empty (empty mean next index)"),
     NFD(NFK.NODE, "type", "type expression"),
     NFD(NFK.NODE, "type_or_auto", "type expression"),
     NFD(NFK.NODE, "result", "return type"),
@@ -1522,8 +1583,6 @@ LOCAL_SYM_DEF_NODES = tuple(
 GLOBAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.GLOBAL_SYM_DEF in n.FLAGS)
 
-SCOPING_NODES = tuple(
-    [n for n in ALL_NODES if NF.NEW_SCOPE in n.FLAGS])
 
 ##########################################################################################
 PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
