@@ -366,8 +366,9 @@ class ValUndef:
     """Special constant to indiciate *no default value*
     """
     ALIAS = None
-    FLAGS = NF(0)
+    FLAGS = NF.VALUE_ANNOTATED
 
+    x_value: Optional[Any] = None    # this is always a ValUndef() object
     def __str__(self): return f"UNDEF"
 
 
@@ -500,11 +501,12 @@ EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
 class ExprDeref:
     """Dereference a pointer represented by `expr`"""
     ALIAS = "^"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE  # must be of type AddrOf
+
     x_type: Optional[Any] = None
-    # TODO: maybe track symbolic values
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"DEREF {self.expr}"
@@ -518,11 +520,12 @@ class ExprAddrOf:
     pointee is mutable.
     """
     ALIAS = "&"
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     mut: bool
     expr: EXPR_NODE
+
     x_type: Optional[Any] = None
-    # TODO: maybe track symbolic values
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"ADDR_OF {self.mut} {self.expr}"
@@ -1131,6 +1134,7 @@ class StmtCompoundAssignment:
     def __str__(self):
         return f"StmtAssignment [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
 
+
 @dataclasses.dataclass()
 class StmtAssignment:
     """Assignment statement"""
@@ -1210,13 +1214,14 @@ ITEMS_NODES = Union[Comment, EnumVal]
 class DefEnum:
     """Enum definition"""
     ALIAS = "defenum"
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
 
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: List[ITEMS_NODES]
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
 
     def __str__(self):
         return f"ENUM {self.name}"
@@ -1296,6 +1301,7 @@ class Catch:
 
     def __str__(self):
         return f"CATCH {self.name}"
+
 
 CATCH_NODE = Catch
 

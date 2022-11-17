@@ -4,10 +4,6 @@
 
 """
 
-import dataclasses
-from inspect import signature
-from math import exp
-import sys
 import logging
 
 from FrontEnd import cwast
@@ -18,6 +14,9 @@ from FrontEnd import meta
 from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
+
+_UNDEF = cwast.ValUndef()
+_VOID = cwast.ValVoid()
 
 
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
@@ -36,7 +35,6 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
             val = init.x_value
 
         if val is not None:
-            out = True
             init.x_value = val
             c.x_value = val
             val += 1
@@ -49,14 +47,12 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
     for c in node.inits_rec:
         if not isinstance(c, cwast.FieldVal):
             continue
-        out |= _EvalNode(c.value)
         if c.value.x_value is None:
             num_unknown += 1
     for c in node.x_type.fields:
         if not isinstance(c, cwast.RecField):
             continue
         if not isinstance(c.initial_or_undef, cwast.ValUndef):
-            out |= _EvalNode(c.initial_or_undef)
             if c.initial_or_undef.x_value is None:
                 num_unknown += 1
 
@@ -70,7 +66,7 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
 
     rec = {}
     for f in fields:
-        if values and (f.name == values[0].init_field or values[0].init_field== ""):
+        if values and (f.name == values[0].init_field or values[0].init_field == ""):
             rec[f.name] = values[0].x_value
             values.pop(0)
         else:
@@ -79,8 +75,6 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
     node.x_value = rec
     return True
 
-
-_UNDEF = cwast.ValUndef()
 
 def _EvalValArray(node: cwast.ValArray) -> bool:
     out = False
@@ -105,7 +99,9 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
     for c in node.inits_array:
         if not isinstance(c, cwast.IndexVal):
             continue
-        if not isinstance(c.init_index, cwast.ValAuto):
+        if isinstance(c.init_index, cwast.ValAuto):
+            c.init_index.x_value = len(array)
+        else:
             index = c.init_index.x_value
             while len(array) < index:
                 array.append(curr_val)
@@ -228,10 +224,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return True
         return False
     elif isinstance(node, cwast.RecField):
-        out = _EvalNode(node.initial_or_undef)
-        if out:
+        if node.initial_or_undef.x_value is not None:
             node.x_value = node.initial_or_undef.x_value
-        return out
+            return True
+        return False
     elif isinstance(node, cwast.EnumVal):
         return False  # handles as part of DefEnum
     elif isinstance(node, cwast.DefEnum):
@@ -243,10 +239,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         node.x_value = False
         return True
     elif isinstance(node, cwast.ValVoid):
-        node.x_value = node
+        node.x_value = _VOID
         return True
     elif isinstance(node, cwast.ValUndef):
-        node.x_value = node
+        node.x_value = _UNDEF
         return True
     elif isinstance(node, cwast.ValNum):
         node.x_value = meta.ParseNum(node.number)
@@ -254,7 +250,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValAuto):
         return False
     elif isinstance(node, cwast.DefConst):
-        if _EvalNode(node.value):
+        if node.value.x_value is not None:
             node.x_value = node.value.x_value
             return True
         return False
@@ -263,7 +259,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValArray):
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
-        return False  # handled by ValRec
+        if node.value.x_value is not None:
+            node.x_value = node.value.x_value
+            return True
+        return False
     elif isinstance(node, cwast.ValRec):
         return _EvalValRec(node)
     elif isinstance(node, cwast.ValString):
@@ -276,7 +275,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return True
         return False
     elif isinstance(node, cwast.ExprField):
-        # TODO
+        if node.container.x_value is not None:
+            assert node.field in node.container.x_value
+            node.x_value = node.container.x_value[node.field]
+            return True
         return False
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
@@ -302,11 +304,18 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprAddrOf):
         return False
     elif isinstance(node, cwast.ExprOffsetof):
-        # TODO
-        return False
+        # TODO FIXME
+        node.x_value = 666
+        return True
     elif isinstance(node, cwast.ExprSizeof):
         # TODO
         return False
+    elif isinstance(node, cwast.ExprDeref):
+        # TODO maybe track symbolic addresses
+        return False
+    elif isinstance(node, cwast.ExprAddrOf):
+        # TODO maybe track symbolic addresses
+        return False 
     else:
         assert False, f"unexpected node {node}"
 
@@ -347,7 +356,38 @@ def PartialEvaluation(mod_topo_order: List[cwast.DefMod],
                 seen_change |= EvalRecursively(node)
 
 
+def VerifyEvalRecursively(node, is_const) -> bool:
+    logger.info(f"EVAL-VERIFY: {node}")
+
+    if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
+        if isinstance(node, cwast.Id):
+            def_node = node.x_symbol
+            if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS:
+                assert def_node.x_value is not None, f"unevaluated const node: {def_node}"
+        else:
+            assert node.x_value is not None, f"unevaluated const node: {node}"
+
+    if isinstance(node, cwast.DefConst):
+        is_const = True
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            VerifyEvalRecursively(getattr(node, c), is_const)
+        elif nfd.kind is cwast.NFK.LIST:
+            for cc in getattr(node, c):
+                VerifyEvalRecursively(cc, is_const)
+
+
+def VerifyPartialEvaluation(mod_topo_order: List[cwast.DefMod],
+                            mod_map: Dict[str, cwast.DefMod]):
+    for m in mod_topo_order:
+        for node in mod_map[m].body_mod:
+            VerifyEvalRecursively(node, False)
+
+
 if __name__ == "__main__":
+    import sys
+
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     asts = []
@@ -366,3 +406,4 @@ if __name__ == "__main__":
     symtab_map = symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
     meta.ExtractTypeTab(mod_topo_order, mod_map)
     PartialEvaluation(mod_topo_order, mod_map)
+    VerifyPartialEvaluation(mod_topo_order, mod_map)
