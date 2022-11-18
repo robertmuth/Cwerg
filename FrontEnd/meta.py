@@ -117,7 +117,7 @@ class TypeTab:
         return cstr
 
     def annotate_field(self, node, field_node: cwast.RecField):
-        assert isinstance(node, (cwast.ExprField, cwast.FieldVal))
+        assert isinstance(node, (cwast.ExprField, cwast.FieldVal,cwast.ExprOffsetof))
         assert node.x_field is None
         node.x_field = field_node
 
@@ -454,6 +454,8 @@ class TypeTab:
             return self.annotate(node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
         elif isinstance(node, cwast.ExprOffsetof):
             cstr = self.typify_node(node.type, ctx)
+            field_node = self.corpus.lookup_rec_field(cstr, node.field)
+            self.annotate_field(node, field_node)
             return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
         elif isinstance(node, cwast.ExprSizeof):
             cstr = self.typify_node(node.type, ctx)
@@ -696,6 +698,11 @@ def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
 
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
+
+    The following node fields will be initialized:
+    * x_type
+    * x_field
+    * some x_value (only array dimention as they are related to types)
     """
     typetab = TypeTab(cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     for m in mod_topo_order:

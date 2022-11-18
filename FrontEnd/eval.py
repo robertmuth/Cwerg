@@ -305,7 +305,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # TODO FIXME
-        node.x_value = 666
+        node.x_value = node.x_field.x_offset
         return True
     elif isinstance(node, cwast.ExprSizeof):
         # TODO

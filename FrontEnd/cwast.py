@@ -304,6 +304,7 @@ class TypeSum:
 
     types: List[TYPES_NODES]
     x_type: Optional[Any] = None
+    x_size: int = 0
 
     def __str__(self):
         t = [str(t) for t in self.types]
@@ -564,7 +565,7 @@ class ExprField:
     """Access field in expression representing a record.
     """
     ALIAS = "."
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     container: EXPR_NODE  # must be of type rec
     field: str
@@ -857,12 +858,13 @@ class ExprOffsetof:
 
     Type is `uint`"""
     ALIAS = "offsetof"
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     type: TYPE_NODE  # must be rec
     field: str
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
 
 
 @dataclasses.dataclass()
@@ -1167,6 +1169,7 @@ class RecField:  #
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+    x_offset: int = 0
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial_or_undef}"
@@ -1185,6 +1188,8 @@ class DefRec:
     name: str
     fields: List[FIELDS_NODES]
     x_type: Optional[Any] = None
+    x_alignment: int = 0
+    x_size: int = 0
 
     def __str__(self):
         return f"REC {self.name}"
@@ -1541,6 +1546,17 @@ OPTIONAL_FIELDS = {
 }
 
 
+X_FIELDS  = {
+    "x_type",   # 
+    "x_value",  #
+    "x_field", #
+    "x_symbol", #
+    "x_alignment",
+    "x_size", #
+    "x_offset",
+
+}
+
 # Note: we rely on the matching being done greedily
 _TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
 _TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
@@ -1569,6 +1585,7 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
         seen_non_flag = False
         for field, type in obj.__annotations__.items():
             if field.startswith("x_"):
+                assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
                 continue
             obj.FIELDS.append(field)
             nfd = ALL_FIELDS_MAP[field]
