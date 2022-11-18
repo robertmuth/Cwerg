@@ -213,13 +213,17 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
     return symtab
 
 
-def ExtractAllSymTabs(mod_topo_order: List[cwast.DefMod],
-                      mod_map: Dict[str, cwast.DefMod]) -> Dict[str, SymTab]:
+def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
+                      mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
         symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
-    return symtab_map
 
+def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
+                      mod_map: Dict[str, cwast.DefMod]):
+    symtab_map: Dict[str, SymTab] = {}
+    for m in mod_topo_order:
+        symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         List[cwast.DefMod], Dict[str, cwast.DefMod]]:
@@ -277,4 +281,4 @@ if __name__ == "__main__":
         pass
 
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
-    ExtractAllSymTabs(mod_topo_order, mod_map)
+    DecorateASTWithSymbols(mod_topo_order, mod_map)

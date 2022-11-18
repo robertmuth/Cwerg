@@ -4,7 +4,6 @@ WIP
 
 
 ## Node Overview
-[Auto&nbsp;(auto)](#auto-auto) &ensp;
 [Case&nbsp;(case)](#case-case) &ensp;
 [Catch&nbsp;(catch)](#catch-catch) &ensp;
 [Comment&nbsp;(#)](#comment-) &ensp;
@@ -58,12 +57,14 @@ WIP
 [StmtWhile&nbsp;(while)](#stmtwhile-while) &ensp;
 [Try&nbsp;(try)](#try-try) &ensp;
 [TypeArray](#typearray) &ensp;
+[TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
 [ValArray](#valarray) &ensp;
+[ValAuto](#valauto) &ensp;
 [ValFalse](#valfalse) &ensp;
 [ValNum](#valnum) &ensp;
 [ValRec&nbsp;(rec)](#valrec-rec) &ensp;
@@ -80,12 +81,6 @@ WIP
 [ModParam Types Kind](#modparam-types-kind) &ensp;
 
 ## Node Details
-
-### Auto (auto)
-Placeholder for an unspecified value or type
-
-    My only occur where explicitly allowed.
-    
 
 ### Case (case)
 Single case of a Cond statement
@@ -106,7 +101,7 @@ Fields:
 * body_except [LIST]: statement list and/or comments when type narrowing fails
 
 ### Comment (#)
-Comment 
+Comment
 
     Comments are proper AST nodes and may only occur where explicitly allowed.
     They refer to the next sibling in the tree.
@@ -213,7 +208,7 @@ Fields:
 
 Fields:
 * name [STR]: name of the object
-* value [NODE]: 
+* value_or_auto [NODE] (default ValAuto): enum constant or auto
 
 ### Expr1
 Unary expression.
@@ -296,8 +291,8 @@ Slicing expression of array or slice
 
 Fields:
 * container [NODE]: array and slice
-* start [NODE] (default Auto): desired start of slice
-* width [NODE] (default Auto): desired width of slice
+* start [NODE] (default ValAuto): desired start of slice
+* width [NODE] (default ValAuto): desired width of slice
 
 ### ExprDeref (^)
 Dereference a pointer represented by `expr`
@@ -364,8 +359,8 @@ Range expression for simple for-loops
 
 Fields:
 * end [NODE]: range end
-* begin_or_auto [NODE] (default Auto): range begin: `Auto` => 0
-* step_or_auto [NODE] (default Auto): range step, `Auto` => 1
+* begin_or_auto [NODE] (default 0): range begin
+* step_or_auto [NODE] (default 1): range step
 
 ### ExprSizeof (sizeof)
 Byte size of type
@@ -446,7 +441,7 @@ Part of an array literal
 
 Fields:
 * value_or_undef [NODE]: 
-* init_index [STR] (default ""): initializer index or empty (empty mean next index)
+* init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
 
 ### ModParam
 Module Parameters
@@ -621,13 +616,20 @@ An array of the given type and `size`
     Size must be evaluatable as a compile time constant
 
 Fields:
+* mut [FLAG]: is mutable
 * size [NODE]: compile-time constant size
 * type [NODE]: type expression
 
-### TypeBase
-Base type 
+### TypeAuto (auto)
+Placeholder for an unspecified (auto derived) type
 
-    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64    
+    My only occur where explicitly allowed.
+    
+
+### TypeBase
+Base type
+
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
     
 
 Fields:
@@ -683,8 +685,18 @@ Fields:
 * expr_size [NODE]: expression determining the size or auto
 * inits_array [LIST]: array initializers and/or comments
 
+### ValAuto
+Placeholder for an unspecified (auto derived) value
+
+    Used for: array dimensions, enum values, chap and range
+    
+
+Fields:
+
 ### ValFalse
 Bool constant `false`
+
+Fields:
 
 ### ValNum
 Numeric constant (signed int, unsigned int, real
@@ -719,15 +731,21 @@ Fields:
 ### ValTrue
 Bool constant `true`
 
+Fields:
+
 ### ValUndef
 Special constant to indiciate *no default value*
     
+
+Fields:
 
 ### ValVoid
 Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
      
+
+Fields:
 ## Enum Details
 
 ### Expr1 Kind

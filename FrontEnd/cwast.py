@@ -1508,11 +1508,11 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "range", "range expression"),
     NFD(NFK.NODE, "container", "array and slice"),
     NFD(NFK.NODE, "callee", "expression evaluating to the function to be called"),
-    NFD(NFK.NODE, "start", "desired start of slice"),
-    NFD(NFK.NODE, "begin_or_auto", "range begin: `Auto` => 0"),
+    NFD(NFK.NODE, "start", "desired start of slice (default 0)"),
+    NFD(NFK.NODE, "begin_or_auto", "range begin"),
     NFD(NFK.NODE, "end", "range end"),
-    NFD(NFK.NODE, "step_or_auto", "range step, `Auto` => 1"),
-    NFD(NFK.NODE, "width", "desired width of slice"),
+    NFD(NFK.NODE, "step_or_auto", "range step"),
+    NFD(NFK.NODE, "width", "desired width of slice (default: length of container)"),
     NFD(NFK.NODE, "value", ""),
     NFD(NFK.NODE, "value_or_auto", "enum constant or auto"),
     NFD(NFK.NODE, "value_or_undef", ""),
@@ -1533,9 +1533,9 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 OPTIONAL_FIELDS = {
     "expr_ret": lambda: ValVoid(),
     "width": lambda: ValAuto(),
-    "start": lambda: ValAuto(),
-    "begin_or_auto": lambda: ValAuto(),
-    "step_or_auto": lambda: ValAuto(),
+    "start": lambda:  ValAuto(),
+    "begin_or_auto": lambda: ValNum("0"),
+    "step_or_auto": lambda: ValNum("1"),
     "value_or_auto": lambda: ValAuto(),
     "target": lambda: "",
     "path": lambda: "",
@@ -1546,13 +1546,13 @@ OPTIONAL_FIELDS = {
 }
 
 
-X_FIELDS  = {
-    "x_type",   # 
+X_FIELDS = {
+    "x_type",   #
     "x_value",  #
-    "x_field", #
-    "x_symbol", #
+    "x_field",
+    "x_symbol",
     "x_alignment",
-    "x_size", #
+    "x_size",
     "x_offset",
 
 }
@@ -1684,6 +1684,8 @@ def GenerateDocumentation(fout):
             print("Fields:",  file=fout)
 
             for field, type in cls.__annotations__.items():
+                if field in X_FIELDS:
+                    continue
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 extra = ""
@@ -1692,6 +1694,8 @@ def GenerateDocumentation(fout):
                     optional_val = optional_fun()
                     if optional_val == "":
                         extra = f' (default "")'
+                    elif isinstance(optional_val, ValNum):
+                        extra = f' (default {optional_val.number})'
                     elif optional_val is not None:
                         extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)

@@ -39,7 +39,8 @@ def ComputeStringSize(raw: bool, string: str) -> int:
     return 8
 
 
-def ParseNum(num: str) -> int:
+def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> int:
+    # TODO use kind argument
     num = num.replace("_", "")
     if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
         return int(num[: -3])
@@ -99,7 +100,7 @@ class TypeTab:
 
     def compute_dim(self, node, ctx) -> int:
         if isinstance(node, cwast.ValNum):
-            return ParseNum(node.number)
+            return ParseNum(node.number, cwast.BASE_TYPE_KIND.INVALID)
         elif isinstance(node, cwast.Id):
             node = node.x_symbol
             return self.compute_dim(node, ctx)
@@ -110,14 +111,15 @@ class TypeTab:
 
     def annotate(self, node, cstr: types.CanonType):
         assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
-        assert cwast.NF.TYPE_ANNOTATED in  node.__class__.FLAGS, f"node not meant for type annotation: {node}"
+        assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS, f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
         assert node.x_type is None, f"duplicate annotation for {node}"
         node.x_type = cstr
         return cstr
 
     def annotate_field(self, node, field_node: cwast.RecField):
-        assert isinstance(node, (cwast.ExprField, cwast.FieldVal,cwast.ExprOffsetof))
+        assert isinstance(
+            node, (cwast.ExprField, cwast.FieldVal, cwast.ExprOffsetof))
         assert node.x_field is None
         node.x_field = field_node
 
@@ -662,6 +664,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
         assert all == set(id(c) for c in node.expr.x_type.types)
     elif isinstance(node, cwast.Catch):
         pass
+    elif isinstance(node, cwast.ValNum):
+        assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)
+                          ), f"bad type for {node}: {node.x_type}"
     elif isinstance(node, cwast.TypeSum):
         assert isinstance(node.x_type, cwast.TypeSum)
     elif isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValVoid)):
@@ -669,8 +674,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
     elif isinstance(node, (cwast.DefFun, cwast.TypeFun)):
         assert isinstance(node.x_type, cwast.TypeFun)
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
-                           cwast.TypeArray, cwast.ValNum, cwast.DefConst, cwast.DefFun,
-                           cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum, 
+                           cwast.TypeArray, cwast.DefConst, cwast.DefFun,
+                           cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
                            cwast.EnumVal, cwast.ValString, cwast.FieldVal)):
         pass
     else:
@@ -692,7 +697,7 @@ def TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
                 TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
 
 
-def ExtractTypeTab(mod_topo_order: List[cwast.DefMod],
+def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                    mod_map: Dict[str, cwast.DefMod]) -> TypeTab:
     """This checks types and maps them to a cananical node
 
@@ -728,8 +733,8 @@ if __name__ == "__main__":
         pass
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-    symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
-    typetab = ExtractTypeTab(mod_topo_order, mod_map)
+    symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    typetab = DecorateASTWithTypes(mod_topo_order, mod_map)
     for m in mod_topo_order:
         TypeVerifyNodeRecursively(mod_map[m], typetab.corpus, None)
     for t in typetab.corpus.corpus:

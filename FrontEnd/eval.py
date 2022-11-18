@@ -245,7 +245,13 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         node.x_value = _UNDEF
         return True
     elif isinstance(node, cwast.ValNum):
-        node.x_value = meta.ParseNum(node.number)
+        cstr = node.x_type
+        if isinstance(cstr, cwast.TypeBase):
+            node.x_value = meta.ParseNum(node.number, cstr.base_type_kind)
+        elif isinstance(cstr, cwast.DefEnum):
+            node.x_value = meta.ParseNum(node.number, cstr.base_type_kind)
+        else:
+            assert False, f"unepxected type for ValNum: {cstr}"
         return True
     elif isinstance(node, cwast.ValAuto):
         return False
@@ -315,7 +321,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return False
     elif isinstance(node, cwast.ExprAddrOf):
         # TODO maybe track symbolic addresses
-        return False 
+        return False
     else:
         assert False, f"unexpected node {node}"
 
@@ -356,7 +362,7 @@ def PartialEvaluation(mod_topo_order: List[cwast.DefMod],
                 seen_change |= EvalRecursively(node)
 
 
-def VerifyEvalRecursively(node, is_const) -> bool:
+def VerifyEvalRecursively(node, parent, is_const) -> bool:
     logger.info(f"EVAL-VERIFY: {node}")
 
     if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
@@ -369,20 +375,24 @@ def VerifyEvalRecursively(node, is_const) -> bool:
 
     if isinstance(node, cwast.DefConst):
         is_const = True
+
+    if isinstance(node, cwast.ValAuto) and not isinstance(parent, cwast.ExprChop):
+        assert node.x_value is not None, f"unevaluated auto node: {node}"
+
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            VerifyEvalRecursively(getattr(node, c), is_const)
+            VerifyEvalRecursively(getattr(node, c), node, is_const)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                VerifyEvalRecursively(cc, is_const)
+                VerifyEvalRecursively(cc, node, is_const)
 
 
 def VerifyPartialEvaluation(mod_topo_order: List[cwast.DefMod],
                             mod_map: Dict[str, cwast.DefMod]):
     for m in mod_topo_order:
         for node in mod_map[m].body_mod:
-            VerifyEvalRecursively(node, False)
+            VerifyEvalRecursively(node, None, False)
 
 
 if __name__ == "__main__":
@@ -403,7 +413,7 @@ if __name__ == "__main__":
         pass
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-    symtab_map = symtab.ExtractAllSymTabs(mod_topo_order, mod_map)
-    meta.ExtractTypeTab(mod_topo_order, mod_map)
+    symtab_map = symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    meta.DecorateASTWithTypes(mod_topo_order, mod_map)
     PartialEvaluation(mod_topo_order, mod_map)
     VerifyPartialEvaluation(mod_topo_order, mod_map)
