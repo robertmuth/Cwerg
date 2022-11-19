@@ -254,7 +254,7 @@ class TypeSlice:
 class TypeArray:
     """An array of the given type and `size`
 
-    Size must be evaluatable as a compile time constant"""
+    """
     ALIAS = None
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -785,6 +785,9 @@ class ExprAs:
     type: TYPE_NODE
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} AS {self.type}"
 
 
 @dataclasses.dataclass()
@@ -1517,8 +1520,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "value_or_auto", "enum constant or auto"),
     NFD(NFK.NODE, "value_or_undef", ""),
     NFD(NFK.NODE, "lhs", "l-value expression"),
-    NFD(NFK.NODE, "initial_or_undef",
-        "initializer (must be compile-time constant)"),
+    NFD(NFK.NODE, "initial_or_undef", "initializer"),
     NFD(NFK.NODE, "default_or_undef",
         "value if type narrowing fail or trap if undef"),
     NFD(NFK.NODE, "catch",

@@ -214,16 +214,30 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
-                      mod_map: Dict[str, cwast.DefMod]):
+                           mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
         symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
 
+
+def _VerifyASTSymbolsRecursively(node):
+    if isinstance(node, cwast.Id):
+        assert node.x_symbol is not None
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            _VerifyASTSymbolsRecursively(getattr(node, c))
+        elif nfd.kind is cwast.NFK.LIST:
+            for cc in getattr(node, c):
+                _VerifyASTSymbolsRecursively(cc)
+
+
 def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
-                      mod_map: Dict[str, cwast.DefMod]):
+                     mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
-        symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
+        symtab_map[m] = _VerifyASTSymbolsRecursively(mod_map[m])
+
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         List[cwast.DefMod], Dict[str, cwast.DefMod]]:
@@ -282,3 +296,4 @@ if __name__ == "__main__":
 
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
+    VerifyASTSymbols(mod_topo_order, mod_map)

@@ -199,7 +199,7 @@ Fields:
 * mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
+* initial_or_undef [NODE] (default ValUndef): initializer
 
 ### EnumVal (entry)
  Enum element.
@@ -291,8 +291,8 @@ Slicing expression of array or slice
 
 Fields:
 * container [NODE]: array and slice
-* start [NODE] (default ValAuto): desired start of slice
-* width [NODE] (default ValAuto): desired width of slice
+* start [NODE] (default ValAuto): desired start of slice (default 0)
+* width [NODE] (default ValAuto): desired width of slice (default: length of container)
 
 ### ExprDeref (^)
 Dereference a pointer represented by `expr`
@@ -460,7 +460,7 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer (must be compile-time constant)
+* initial_or_undef [NODE] (default ValUndef): initializer
 
 ### StmtAssert (assert)
 Assert statement
@@ -613,7 +613,7 @@ Fields:
 ### TypeArray
 An array of the given type and `size`
 
-    Size must be evaluatable as a compile time constant
+    
 
 Fields:
 * mut [FLAG]: is mutable

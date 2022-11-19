@@ -1,7 +1,8 @@
 (defmod main [] [
 (# "Linked List Example")
 
-(deftype wrapped None void)
+(deftype wrapped NoneType void)
+(const None auto (as void NoneType))
 
 (defrec pub LinkedListNode [
    (# "this is a comment with \" with quotes \t ")

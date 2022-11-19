@@ -95,8 +95,8 @@ class TypeTab:
     TODO: get rid of this class
     """
 
-    def __init__(self, uint_kind, sint_kind):
-        self.corpus = types.TypeCorpus(uint_kind, sint_kind)
+    def __init__(self, corpus):
+        self.corpus = corpus
 
     def compute_dim(self, node, ctx) -> int:
         if isinstance(node, cwast.ValNum):
@@ -682,23 +682,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
-    if isinstance(node, cwast.DefFun):
-        enclosing_fun = node
-    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_type is not None, f"untyped node: {node}"
-        _TypeVerifyNode(node, corpus, enclosing_fun)
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            TypeVerifyNodeRecursively(getattr(node, c), corpus, enclosing_fun)
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
-
-
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
-                   mod_map: Dict[str, cwast.DefMod]) -> TypeTab:
+                         mod_map: Dict[str, cwast.DefMod], type_corpus):
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -709,12 +694,34 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * x_field
     * some x_value (only array dimention as they are related to types)
     """
-    typetab = TypeTab(cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+    typetab = TypeTab(type_corpus)
     for m in mod_topo_order:
         ctx = TypeContext(m)
         for node in mod_map[m].body_mod:
             typetab.typify_node(node, ctx)
-    return typetab
+
+
+def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
+    if isinstance(node, cwast.DefFun):
+        enclosing_fun = node
+    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_type is not None, f"untyped node: {node}"
+        _TypeVerifyNode(node, corpus, enclosing_fun)
+    if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_field is not None, f"node withou field annotation: {node}"
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            _TypeVerifyNodeRecursively(getattr(node, c), corpus, enclosing_fun)
+        elif nfd.kind is cwast.NFK.LIST:
+            for cc in getattr(node, c):
+                _TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
+
+
+def VerifyASTTypes(mod_topo_order: List[cwast.DefMod],
+                   mod_map: Dict[str, cwast.DefMod], type_corpus):
+    for m in mod_topo_order:
+        _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
 
 
 if __name__ == "__main__":
@@ -734,8 +741,10 @@ if __name__ == "__main__":
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
     symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)
-    typetab = DecorateASTWithTypes(mod_topo_order, mod_map)
-    for m in mod_topo_order:
-        TypeVerifyNodeRecursively(mod_map[m], typetab.corpus, None)
-    for t in typetab.corpus.corpus:
+    type_corpus = types.TypeCorpus(
+        cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+    DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
+    VerifyASTTypes(mod_topo_order, mod_map, type_corpus)
+
+    for t in type_corpus.corpus:
         print(t)
