@@ -199,6 +199,21 @@ BASE_TYPE_KIND_REAL = set([
 ])
 
 
+BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
+    BASE_TYPE_KIND.U8: 1,
+    BASE_TYPE_KIND.U16: 2,
+    BASE_TYPE_KIND.U32: 4,
+    BASE_TYPE_KIND.U64: 8,
+
+    BASE_TYPE_KIND.S8: 1,
+    BASE_TYPE_KIND.S16: 2,
+    BASE_TYPE_KIND.S32: 4,
+    BASE_TYPE_KIND.S64: 8,
+    BASE_TYPE_KIND.R32: 4,
+    BASE_TYPE_KIND.R64: 8,
+}
+
+
 @dataclasses.dataclass()
 class TypeBase:
     """Base type
@@ -233,7 +248,7 @@ class TypePtr:
 
 @dataclasses.dataclass()
 class TypeSlice:
-    """A view/slice of an array with compile time unknown dimensions
+    """A view/slice of an array with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -304,7 +319,7 @@ class TypeSum:
 
     types: List[TYPES_NODES]
     x_type: Optional[Any] = None
-    x_size: int = 0
+    x_size: int = -1
 
     def __str__(self):
         t = [str(t) for t in self.types]
@@ -1008,7 +1023,7 @@ class StmtCond:
 
 # @dataclasses.dataclass()
 # class StmtWhen:
-#    "compile time conditional"
+#    "compile-time conditional"
 #    ALIAS = "when"
 #    cond: ExprNode        # must be of type bool
 #    body_t: List[StmtNode]
@@ -1081,6 +1096,18 @@ class StmtAssert:
     cond: EXPR_NODE  # must be of type bool
     message: str     # should this be an expression?
 
+
+@dataclasses.dataclass()
+class StmtStaticAssert:
+    """Static assert statement (must evaluate to true at compile-time"""
+    ALIAS = "static_assert"
+    FLAGS = NF.TOP_LEVEL
+
+    cond: EXPR_NODE  # must be of type bool
+    message: str     # should this be an expression?
+
+    def __str__(self):
+        return f"StaticAssert {self.cond}"
 
 @dataclasses.dataclass()
 class StmtTrap:
@@ -1172,7 +1199,7 @@ class RecField:  #
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
-    x_offset: int = 0
+    x_offset: int = -1
 
     def __str__(self):
         return f"{self.name}: {self.type} = {self.initial_or_undef}"
@@ -1191,8 +1218,8 @@ class DefRec:
     name: str
     fields: List[FIELDS_NODES]
     x_type: Optional[Any] = None
-    x_alignment: int = 0
-    x_size: int = 0
+    x_alignment: int = -1
+    x_size: int = -1
 
     def __str__(self):
         return f"REC {self.name}"
@@ -1542,6 +1569,7 @@ OPTIONAL_FIELDS = {
     "target": lambda: "",
     "path": lambda: "",
     "alias": lambda: "",
+    "message": lambda: "",
     "init_index": lambda: ValAuto(),
     "init_field": lambda: "",
     "initial_or_undef": lambda: ValUndef(),

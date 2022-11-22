@@ -44,9 +44,9 @@
 
 (# "array literal")
 (const c31 auto (ValArray uint 30 [
-   (IndexVal 0) 
    (IndexVal 10) 
-   (IndexVal 20)]))
+   (IndexVal 20) 
+   (IndexVal 30)]))
 
 (# "rec literal with explicit field name")
 (const c32 auto (ValRec type_rec [
@@ -60,7 +60,9 @@
    (FieldVal 9) 
    (FieldVal 7)]))
 
-(const c40 auto  (ExprIndex c30 0))
+(const c40 auto  (ExprIndex c30 1))
+
+(static_assert (== c40 0))
 
 (const c41 auto  (ExprField c32 s1))
 

@@ -190,8 +190,8 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
     logger.info("Processing %s", mod.name)
     # pass 1: get all the top level symbols
     for node in mod.body_mod:
-        if isinstance(node, cwast.Comment):
-            pass
+        if isinstance(node, (cwast.StmtStaticAssert, cwast.Comment)):
+            continue
         else:
             symtab.add_top_level_sym(node, mod_map)
 
@@ -199,8 +199,7 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
     for node in mod.body_mod:
         if isinstance(node, cwast.Comment):
             continue
-        logger.info("ExtractSymbolTable %s", node.name)
-        if isinstance(node, cwast.DefVar):
+        elif isinstance(node, cwast.DefVar):
             # we already registered the var in the previous step
             symtab.resolve_symbols_recursively(
                 node.type_or_auto, mod_map, symtab_map)
@@ -222,7 +221,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
 def _VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.Id):
-        assert node.x_symbol is not None
+        assert node.x_symbol is not None, f"unresolved {node}"
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:

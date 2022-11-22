@@ -19,6 +19,12 @@ _UNDEF = cwast.ValUndef()
 _VOID = cwast.ValVoid()
 
 
+def _AssignValue(node, val):
+    logger.info(f"EVAL of {node}: {val}")
+    node.x_value = val
+    return True
+
+
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     out = False
     val = 0
@@ -35,8 +41,8 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
             val = init.x_value
 
         if val is not None:
-            init.x_value = val
-            c.x_value = val
+            _AssignValue(init, val)
+            _AssignValue(c, val)
             val += 1
     return out
 
@@ -72,8 +78,7 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
         else:
             rec[f.name] = f.x_value
 
-    node.x_value = rec
-    return True
+    return _AssignValue(node, rec)
 
 
 def _EvalValArray(node: cwast.ValArray) -> bool:
@@ -100,7 +105,7 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
         if not isinstance(c, cwast.IndexVal):
             continue
         if isinstance(c.init_index, cwast.ValAuto):
-            c.init_index.x_value = len(array)
+            _AssignValue(c.init_index, len(array))
         else:
             index = c.init_index.x_value
             while len(array) < index:
@@ -109,12 +114,11 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
         if not isinstance(c.value_or_undef, cwast.ValUndef):
             curr_val = c.value_or_undef.x_value
         array.append(curr_val)
-        c.x_value = curr_val
+        _AssignValue(c, curr_val)
 
     while len(array) < node.x_type.size.x_value:
         array.append(curr_val)
-    node.x_value = array
-    return True
+    return _AssignValue(node, array)
 
 
 def _eval_not(node) -> bool:
@@ -141,8 +145,7 @@ _EVAL1 = {
 def _EvalExpr1(node: cwast.Expr1) -> bool:
     if node.expr.x_value is None:
         return False
-    node.x_value = _EVAL1[node.unary_expr_kind](node.expr)
-    return True
+    return _AssignValue(node, _EVAL1[node.unary_expr_kind](node.expr))
 
 
 # TODO: naive implementation -> needs a lot more scrutiny
@@ -182,20 +185,16 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
         return False
     op = node.binary_expr_kind
     if op in _EVAL2_ANY:
-        node.x_value = _EVAL2_ANY[op](node.expr1, node.expr2)
-        return True
+        return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
     elif types.is_real(node.x_type):
         if op in _EVAL2_REAL:
-            node.x_value = _EVAL2_REAL[op](node.expr1, node.expr2)
-            return True
+            return _AssignValue(node, _EVAL2_REAL[op](node.expr1, node.expr2))
     elif types.is_int(node.x_type):
         if op in _EVAL2_INT:
-            node.x_value = _EVAL2_INT[op](node.expr1, node.expr2)
-            return True
+            return _AssignValue(node, _EVAL2_INT[op](node.expr1, node.expr2))
     elif types.is_real(node.x_type):
         if op in _EVAL2_UINT:
-            node.x_value = _EVAL2_UINT[op](node.expr1, node.expr2)
-            return True
+            return _AssignValue(node, _EVAL2_UINT[op](node.expr1, node.expr2))
     return False
 
 
@@ -204,12 +203,10 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
         return False
     if node.cond.x_value:
         if node.expr_t.x_value is not None:
-            node.x_value = node.expr_t.x_value
-            return True
+            return _AssignValue(node, node.expr_t.x_value)
     else:
         if node.expr_f.x_value is not None:
-            node.x_value = node.expr_f.x_value
-            return True
+            return _AssignValue(node, node.expr_f.x_value)
     return False
 
 
@@ -219,46 +216,39 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # this case is why we need the sym_tab
         def_node = node.x_symbol
         assert def_node is not None
-        if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS and def_node.x_value:
-            node.x_value = def_node.x_value
-            return True
+        if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS and def_node.x_value is not None:
+            return _AssignValue(node, def_node.x_value)
         return False
     elif isinstance(node, cwast.RecField):
         if node.initial_or_undef.x_value is not None:
-            node.x_value = node.initial_or_undef.x_value
-            return True
+            return _AssignValue(node, node.initial_or_undef.x_value)
         return False
     elif isinstance(node, cwast.EnumVal):
         return False  # handles as part of DefEnum
     elif isinstance(node, cwast.DefEnum):
         return _EvalDefEnum(node)
     elif isinstance(node, cwast.ValTrue):
-        node.x_value = True
-        return True
+        return _AssignValue(node, True)
     if isinstance(node, cwast.ValFalse):
-        node.x_value = False
-        return True
+        return _AssignValue(node, False)
     elif isinstance(node, cwast.ValVoid):
-        node.x_value = _VOID
-        return True
+        return _AssignValue(node, _VOID)
     elif isinstance(node, cwast.ValUndef):
-        node.x_value = _UNDEF
-        return True
+        return _AssignValue(node, _UNDEF)
     elif isinstance(node, cwast.ValNum):
         cstr = node.x_type
         if isinstance(cstr, cwast.TypeBase):
-            node.x_value = meta.ParseNum(node.number, cstr.base_type_kind)
+            return _AssignValue(node, meta.ParseNum(node.number, cstr.base_type_kind))
         elif isinstance(cstr, cwast.DefEnum):
-            node.x_value = meta.ParseNum(node.number, cstr.base_type_kind)
+            return _AssignValue(node, meta.ParseNum(node.number, cstr.base_type_kind))
         else:
             assert False, f"unepxected type for ValNum: {cstr}"
-        return True
+            return False
     elif isinstance(node, cwast.ValAuto):
         return False
     elif isinstance(node, cwast.DefConst):
         if node.value.x_value is not None:
-            node.x_value = node.value.x_value
-            return True
+            return _AssignValue(node, node.value.x_value)
         return False
     elif isinstance(node, cwast.IndexVal):
         return False  # handled by ValArray
@@ -266,25 +256,21 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
         if node.value.x_value is not None:
-            node.x_value = node.value.x_value
-            return True
+            return _AssignValue(node, node.value.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
         return _EvalValRec(node)
     elif isinstance(node, cwast.ValString):
-        node.x_value = node.string
-        return True
+        return _AssignValue(node, node.string)
     elif isinstance(node, cwast.ExprIndex):
         if node.container.x_value is not None and node.expr_index.x_value is not None:
             assert type(node.container.x_value) is list
-            node.x_value = node.container.x_value[node.expr_index.x_value]
-            return True
+            return _AssignValue(node, node.container.x_value[node.expr_index.x_value])
         return False
     elif isinstance(node, cwast.ExprField):
         if node.container.x_value is not None:
             assert node.field in node.container.x_value
-            node.x_value = node.container.x_value[node.field]
-            return True
+            return _AssignValue(node, node.container.x_value[node.field])
         return False
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
@@ -298,7 +284,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprAs):
         # TODO: some transforms may need to be applied
         if node.expr.x_value is not None:
-            node.x_value =  node.expr.x_value
+            return _AssignValue(node, node.expr.x_value)
             return True
         return False
     elif isinstance(node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
@@ -316,8 +302,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprAddrOf):
         return False
     elif isinstance(node, cwast.ExprOffsetof):
-        # TODO FIXME
-        node.x_value = node.x_field.x_offset
+        # assert node.x_field.x_offset > 0
+        return _AssignValue(node, node.x_field.x_offset)
         return True
     elif isinstance(node, cwast.ExprSizeof):
         # TODO
@@ -333,7 +319,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
 
 
 def EvalRecursively(node) -> bool:
-    logger.info(f"EVAL: {node}")
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS and node.x_value is not None:
         return False
     seen_change = False
@@ -347,7 +332,6 @@ def EvalRecursively(node) -> bool:
                 seen_change |= EvalRecursively(cc)
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
         seen_change |= _EvalNode(node)
-        logger.info(f"RESULT: {node.x_value} {node}")
     if seen_change:
         logger.info(f"SEEN CHANGE {node}")
     return seen_change
@@ -391,6 +375,9 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
 
     if isinstance(node, cwast.ValAuto) and not isinstance(parent, cwast.ExprChop):
         assert node.x_value is not None, f"unevaluated auto node: {node}"
+
+    if isinstance(node, cwast.StmtStaticAssert):
+        assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
 
     # Note: this info is currently filled in by the Type Decorator
     if isinstance(node, cwast.TypeArray):

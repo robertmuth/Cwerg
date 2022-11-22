@@ -484,6 +484,12 @@ class TypeTab:
             for c in node.body:
                 self.typify_node(c, ctx)
             return types.NO_TYPE
+        elif isinstance(node, (cwast.StmtAssert, cwast.StmtStaticAssert)):
+            ctx.push_target(self.corpus.insert_base_type(
+                cwast.BASE_TYPE_KIND.BOOL))
+            self.typify_node(node.cond, ctx)
+            ctx.pop_target()
+            return types.NO_TYPE
         elif isinstance(node, cwast.Import):
             return types.NO_TYPE
         else:
