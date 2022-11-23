@@ -32,9 +32,12 @@
 
 (const pub c4 auto "xxxxxx")
 
+
 (const c10 auto c2)
 
 (const c20 auto type_enum/e3)
+
+(static_assert (== (as c20 s32) 19))
 
 (# "array literal with explicit indices")
 (const c30 auto (ValArray uint 30 [
@@ -65,6 +68,12 @@
 (static_assert (== c40 0))
 
 (const c41 auto  (ExprField c32 s1))
+
+(static_assert (== c41 7))
+
+(static_assert (== (ExprField c33 s1) 7))
+
+(static_assert (== (+ 3_s32 4) 7))
 
 (# "can Functions be assigned to consts?")
 

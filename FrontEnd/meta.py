@@ -110,6 +110,7 @@ class TypeTab:
             assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: types.CanonType):
+        logger.info(f"TYPE of {node}: {self.corpus.canon_name(cstr)}")
         assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
         assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS, f"node not meant for type annotation: {node}"
         assert cstr, f"No valid type for {node}"
@@ -132,7 +133,7 @@ class TypeTab:
     def typify_node(self, node,  ctx: TypeContext) -> types.CanonType:
         target_type = ctx.get_target_type()
         extra = "" if target_type == types.NO_TYPE else f"[{target_type}]"
-        logger.info(f"TYPIFYING{extra} {node}")
+        logger.debug(f"TYPIFYING{extra} {node}")
         cstr = None
         if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
             cstr = node.x_type
@@ -350,7 +351,7 @@ class TypeTab:
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.Expr2):
             cstr = self.typify_node(node.expr1, ctx)
-            if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE:
+            if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and types.is_number(cstr):
                 ctx.push_target(cstr)
                 self.typify_node(node.expr2, ctx)
                 ctx.pop_target()
@@ -556,7 +557,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
         cstr1 = node.expr1.x_type
         cstr2 = node.expr2.x_type
         if node.binary_expr_kind in cwast.BINOP_BOOL:
-            assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2}"
+            assert cstr1 == cstr2, f"binop mismatch {cstr1} != {cstr2} in {node}"
             assert types.is_bool(cstr)
         elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
                                        cwast.BINARY_EXPR_KIND.PSUB):

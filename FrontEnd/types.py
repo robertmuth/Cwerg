@@ -3,7 +3,7 @@ import logging
 
 from FrontEnd import cwast
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import List, Dict, Tuple, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,10 @@ def is_real(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_REAL
 
+def is_number(cstr: CanonType) -> bool:
+    if not isinstance(cstr, cwast.TypeBase): return False
+    kind = cstr.base_type_kind
+    return kind in cwast.BASE_TYPE_KIND_REAL or kind in cwast.BASE_TYPE_KIND_INT
 
 def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     if actual == expected:
@@ -91,56 +95,6 @@ def is_compatible(actual: CanonType, expected: CanonType) -> bool:
 
     return actual_children.issubset(expected_children)
 
-# def GetStructOffset(node: cwast.DefRec, field_name: str) -> int:
-#     offset = 0
-#     for f in node:
-#         if f.name == field.name:
-#             return offset
-#         s, a = SizeOfAndAlignment(f.type, meta_info)
-#         offset = align(offset, a) + s
-#     assert False, f"GetStructOffset unknown field {struct} {field}"
-
-
-# def ScalarBitSize(cstr:CanonType, ptr_size: int) -> int:
-
-
-# def SizeOfAndAlignmentStruct(struct: c_ast.Struct, meta_info):
-#     if struct.decls is None:
-#         struct = meta_info.struct_links[struct]
-#     alignment = 1
-#     size = 0
-#     for f in struct.decls:
-#         s, a = SizeOfAndAlignment(f.type, meta_info)
-#         if a > alignment:
-#             alignment = a
-#         size = align(size, a) + s
-#         # print ("@@", s, a, size, alignment, f)
-
-#     return size, alignment
-
-# def SizeOfAndAlignment(node, meta_info):
-#     if isinstance(node, (c_ast.Typename, c_ast.Decl, c_ast.TypeDecl)):
-#         return SizeOfAndAlignment(node.type, meta_info)
-
-#     if isinstance(node, c_ast.Struct):
-#         return SizeOfAndAlignmentStruct(node, meta_info)
-#     elif isinstance(node, c_ast.Union):
-#         return SizeOfAndAlignmentUnion(node, meta_info)
-#     elif isinstance(node, c_ast.IdentifierType):
-#         type_name = TYPE_TRANSLATION[tuple(node.names)]
-#         assert type_name, f"could not determine sizeof {node}"
-#         bitsize = int(type_name[1:])
-#         return bitsize // 8, bitsize // 8
-#     elif isinstance(node, c_ast.ArrayDecl):
-#         size, align = SizeOfAndAlignment(node.type, meta_info)
-#         size = (size + align - 1) // align * align
-#         return size * int(node.dim.value), align
-#     elif isinstance(node, c_ast.PtrDecl):
-#         type_name = TYPE_TRANSLATION[POINTER]
-#         bitsize = int(type_name[1:])
-#         return bitsize // 8, bitsize // 8
-#     else:
-#         assert False, node
 
 class TypeCorpus:
     """The type corpus uniquifies types
@@ -152,8 +106,8 @@ class TypeCorpus:
     """
 
     def __init__(self, uint_kind: cwast.BASE_TYPE_KIND, sint_kind: cwast.BASE_TYPE_KIND):
-        self.uint_kind = uint_kind
-        self.sint_kind = sint_kind
+        self.uint_kind: cwast.BASE_TYPE_KIND = uint_kind  # also used for ptr cast to ints
+        self.sint_kind: cwast.BASE_TYPE_KIND = sint_kind
 
         self.wrapped_curr = 1
         # maps to ast
@@ -227,8 +181,95 @@ class TypeCorpus:
         assert isinstance(node, cwast.DefRec)
         return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
+    def _TypeBaseAlignmentSize(self, kind: cwast.BASE_TYPE_KIND):
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[kind]
+        return size, size
+
+    def _TypeSumAlignmentSize(self, node: cwast.TypeSum):
+        num_void = 0
+        num_pointer = 0
+        num_other = 0
+        ptr_size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+        max_size = 0
+        max_alignment = 1
+        for f in node.types:
+            if isinstance(f, cwast.Comment):
+                continue
+            t = f.x_type
+            if is_void(t):
+                num_void += 1
+            elif isinstance(t, cwast.TypePtr):
+                num_pointer += 1
+                max_size = max(max_size, ptr_size)
+                max_alignment = max(max_alignment, ptr_size)
+            else:
+                num_other += 1
+                alignment, size = self._AlignmentSize(t)
+                max_size = max(max_size, size)
+                max_alignment = max(max_alignment, alignment)
+        if num_other == 0 and num_pointer == 1:
+            # special hack for pointer + error-code
+            return ptr_size, ptr_size
+        max_alignment = max(max_alignment, 2)
+        size = align(2, max_alignment)
+        return max_alignment, size + max_size
+        
+
+
+    def _AlignmentSize(self, t) -> Tuple[int, int]:
+        if isinstance(t, cwast.TypeArray):
+            alignment, size = self._AlignmentSize(t.type.x_type)
+            size = align(size, alignment)
+            dim = t.size.x_value
+            return alignment, dim * size
+        elif isinstance(t, cwast.TypeSlice):
+            # a slize consists of a pointer and a size which both are of size uint
+            alignment, size = self._TypeBaseAlignmentSize(self.uint_kind)
+            return alignment, size * 2
+        elif isinstance(t, cwast.TypeBase):
+            return self._TypeBaseAlignmentSize(t.base_type_kind)
+        elif isinstance(t, cwast.TypeFun):
+            # functions are function pointers which are of size uint
+            return self._TypeBaseAlignmentSize(self.uint_kind)
+        elif isinstance(t, cwast.TypeSum):
+            pass
+        elif isinstance(t, cwast.DefRec):
+            assert t.x_size >= 0
+            assert t.x_alignment >= 0
+            return t.x_alignment, t.x_size
+        elif isinstance(t, cwast.TypePtr):
+            #  pointers are of size uint
+            return self._TypeBaseAlignmentSize(self.uint_kind)
+        else:
+            assert False
+
+    def _DecorateRecAlignmentOffsetSize(self, node: cwast.DefRec):
+        max_alignment = 1
+        total_size = 0
+        for f in node.fields:
+            if isinstance(f, cwast.RecField):
+                alignment = -1
+                size = -1
+                t = f.x_type
+                if isinstance(t, cwast.TypeArray):
+                    pass
+                elif isinstance(t, cwast.TypeSlice):
+                    pass
+                elif isinstance(t, cwast.TypeBase):
+                    alignment, size = self._TypeBaseAlignmentSize(
+                        t.base_type_kind)
+                elif isinstance(t, cwast.TypeFun):
+                    alignment, size = self._TypeBaseAlignmentSize(
+                        self.uint_kind)
+                elif isinstance(t, cwast.TypeSum):
+                    pass
+                elif isinstance(t, cwast.TypePtr):
+                    alignment, size = self._TypeBaseAlignmentSize(
+                        self.uint_kind)
+
     def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
-        """Note: we tr-use the original ast node"""
+        """Note: we re-use the original ast node"""
+        self._DecorateRecAlignmentOffsetSize(node)
         name = f"rec({name})"
         return self._insert(name, node)
 

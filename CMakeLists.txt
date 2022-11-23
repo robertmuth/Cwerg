@@ -3,7 +3,8 @@ project(Cwerg)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -Wall -Werror -pedantic -Wno-class-memaccess -Wno-sign-compare ${CWERG_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+# lto is broke in 22.04: "bytecode mismatch 11.2 vs 11.3"
+set(CMAKE_EXE_LINKER_FLAGS "-static -fno-lto")
 
 # with static linking, see
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909
