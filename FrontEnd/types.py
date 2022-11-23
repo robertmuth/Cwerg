@@ -134,7 +134,7 @@ class TypeCorpus:
         elif kind == cwast.BASE_TYPE_KIND.SINT:
             kind = self.sint_kind
         name = kind.name.lower()
-        return self._insert(name, cwast.TypeBase(kind))
+        return self._insert(name, cwast.TypeBase(kind, x_size=cwast.BASE_TYPE_KIND_TO_SIZE[kind]))
 
     def canon_name(self, node):
         return self._canon_name[id(node)]

@@ -46,6 +46,8 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> int:
         return int(num[: -3])
     elif num[-2:] in ("u8", "s8"):
         return int(num[: -2])
+    elif num[-4:] in ("uint", "sint"):
+        return int(num[: -4])
     elif num[-3:] in ("r32", "r64"):
         return float(num[: -3])
     if num[0] == "'":

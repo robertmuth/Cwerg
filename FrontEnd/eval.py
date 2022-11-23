@@ -306,8 +306,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _AssignValue(node, node.x_field.x_offset)
         return True
     elif isinstance(node, cwast.ExprSizeof):
-        # TODO
-        return False
+        return _AssignValue(node, node.type.x_type.x_size)
     elif isinstance(node, cwast.ExprDeref):
         # TODO maybe track symbolic addresses
         return False

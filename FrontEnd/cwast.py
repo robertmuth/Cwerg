@@ -211,6 +211,9 @@ BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
     BASE_TYPE_KIND.S64: 8,
     BASE_TYPE_KIND.R32: 4,
     BASE_TYPE_KIND.R64: 8,
+    BASE_TYPE_KIND.VOID: 0,
+    BASE_TYPE_KIND.NORET: 0,
+    BASE_TYPE_KIND.BOOL: 1,
 }
 
 
@@ -225,6 +228,7 @@ class TypeBase:
 
     base_type_kind: BASE_TYPE_KIND
     x_type: Optional[Any] = None
+    x_size: int = -1
 
     def __str__(self):
         return self.base_type_kind.name
@@ -865,10 +869,12 @@ class ExprSizeof:
     ALIAS = "sizeof"
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
-    expr: TYPE_NODE
+    type: TYPE_NODE
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"SIZEOF {self.type}"
 
 @dataclasses.dataclass()
 class ExprOffsetof:
