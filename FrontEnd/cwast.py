@@ -228,6 +228,7 @@ class TypeBase:
 
     base_type_kind: BASE_TYPE_KIND
     x_type: Optional[Any] = None
+    x_alignment: int = -1
     x_size: int = -1
 
     def __str__(self):
@@ -244,6 +245,8 @@ class TypePtr:
     mut: bool   # pointee is mutable
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -263,6 +266,8 @@ class TypeSlice:
     mut: bool  # slice is mutable
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -281,6 +286,8 @@ class TypeArray:
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
     x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -302,6 +309,8 @@ class TypeFun:
     params: List[PARAMS_NODES]
     result: TYPE_NODE
     x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
 
     def __str__(self):
         t = [str(t) for t in self.params]
@@ -323,6 +332,8 @@ class TypeSum:
 
     types: List[TYPES_NODES]
     x_type: Optional[Any] = None
+    x_size: int = -1
+    x_alignment: int = -1
     x_size: int = -1
 
     def __str__(self):
@@ -1263,7 +1274,9 @@ class DefEnum:
     items: List[ITEMS_NODES]
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
-
+    x_alignment: int = -1
+    x_size: int = -1
+    
     def __str__(self):
         return f"ENUM {self.name}"
 

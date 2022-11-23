@@ -66,10 +66,13 @@ def is_real(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_REAL
 
+
 def is_number(cstr: CanonType) -> bool:
-    if not isinstance(cstr, cwast.TypeBase): return False
+    if not isinstance(cstr, cwast.TypeBase):
+        return False
     kind = cstr.base_type_kind
     return kind in cwast.BASE_TYPE_KIND_REAL or kind in cwast.BASE_TYPE_KIND_INT
+
 
 def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     if actual == expected:
@@ -134,7 +137,8 @@ class TypeCorpus:
         elif kind == cwast.BASE_TYPE_KIND.SINT:
             kind = self.sint_kind
         name = kind.name.lower()
-        return self._insert(name, cwast.TypeBase(kind, x_size=cwast.BASE_TYPE_KIND_TO_SIZE[kind]))
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[kind]
+        return self._insert(name, cwast.TypeBase(kind, x_size=size, x_alignment=size))
 
     def canon_name(self, node):
         return self._canon_name[id(node)]
@@ -144,23 +148,28 @@ class TypeCorpus:
             name = f"ptr-mut({cstr})"
         else:
             name = f"ptr({cstr})"
-        return self._insert(name, cwast.TypePtr(mut, cstr))
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+        return self._insert(name, cwast.TypePtr(mut, cstr, x_size=size, x_alignment=size))
 
     def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
         if mut:
             name = f"slice-mut({cstr})"
         else:
             name = f"slice({cstr})"
-        return self._insert(name, cwast.TypeSlice(mut, cstr))
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+        return self._insert(name, cwast.TypeSlice(mut, cstr, x_size=2 * size, x_alignment=size))
 
-    def insert_array_type(self, mut: bool, size: int, cstr: CanonType) -> CanonType:
+    def insert_array_type(self, mut: bool, len: int, cstr: CanonType) -> CanonType:
         if mut:
-            name = f"array-mut({cstr},{size})"
+            name = f"array-mut({cstr},{len})"
         else:
-            name = f"array({cstr},{size})"
-        dim = cwast.ValNum(str(size))
-        dim.x_value = size
-        return self._insert(name, cwast.TypeArray(mut, dim, cstr))
+            name = f"array({cstr},{len})"
+        dim = cwast.ValNum(str(len))
+        dim.x_value = len
+        alignment = cstr.x_alignment
+        size = cstr.x_size
+        size = align(size, alignment)
+        return self._insert(name, cwast.TypeArray(mut, dim, cstr, x_size=len*size, x_alignment=alignment))
 
     def lookup_rec_field(self, rec: cwast.DefRec, field_name) -> cwast.RecField:
         """Oddball since the node returned is NOT inside corpus
@@ -213,35 +222,7 @@ class TypeCorpus:
         max_alignment = max(max_alignment, 2)
         size = align(2, max_alignment)
         return max_alignment, size + max_size
-        
 
-
-    def _AlignmentSize(self, t) -> Tuple[int, int]:
-        if isinstance(t, cwast.TypeArray):
-            alignment, size = self._AlignmentSize(t.type.x_type)
-            size = align(size, alignment)
-            dim = t.size.x_value
-            return alignment, dim * size
-        elif isinstance(t, cwast.TypeSlice):
-            # a slize consists of a pointer and a size which both are of size uint
-            alignment, size = self._TypeBaseAlignmentSize(self.uint_kind)
-            return alignment, size * 2
-        elif isinstance(t, cwast.TypeBase):
-            return self._TypeBaseAlignmentSize(t.base_type_kind)
-        elif isinstance(t, cwast.TypeFun):
-            # functions are function pointers which are of size uint
-            return self._TypeBaseAlignmentSize(self.uint_kind)
-        elif isinstance(t, cwast.TypeSum):
-            pass
-        elif isinstance(t, cwast.DefRec):
-            assert t.x_size >= 0
-            assert t.x_alignment >= 0
-            return t.x_alignment, t.x_size
-        elif isinstance(t, cwast.TypePtr):
-            #  pointers are of size uint
-            return self._TypeBaseAlignmentSize(self.uint_kind)
-        else:
-            assert False
 
     def _DecorateRecAlignmentOffsetSize(self, node: cwast.DefRec):
         max_alignment = 1
@@ -277,6 +258,9 @@ class TypeCorpus:
         """Note: we tr-use the original ast node"""
         assert isinstance(node, cwast.DefEnum)
         name = f"enum({name})"
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[node.base_type_kind]
+        node.x_size = size
+        node.x_alignment = size
         return self._insert(name, node)
 
     def insert_sum_type(self, components: List[CanonType]) -> CanonType:
@@ -297,7 +281,8 @@ class TypeCorpus:
         x.append(self.canon_name(result))
         name = f"fun({','.join(x)})"
         p = [cwast.FunParam("_", x) for x in params]
-        return self._insert(name, cwast.TypeFun(p, result))
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+        return self._insert(name, cwast.TypeFun(p, result, x_size=size, x_alignment=size))
 
     def insert_wrapped_type(self, cstr: CanonType, node: cwast.DefType) -> CanonType:
         """Note: we tr-use the original ast node"""
