@@ -90,6 +90,25 @@ class TypeContext:
         return self._target_type[-1]
 
 
+def is_compatible_for_as(self, src: types.CanonType, dst: types.CanonType) -> bool:
+    # TODO: deal with distinct types
+
+    if types.is_int(src):
+        return types.is_int(dst) or types.is_real(dst)
+
+
+def _ComputeArrayLength(node) -> int:
+    if isinstance(node, cwast.ValNum):
+        return ParseNum(node.number, cwast.BASE_TYPE_KIND.INVALID)
+    elif isinstance(node, cwast.Id):
+        node = node.x_symbol
+        return _ComputeArrayLength(node)
+    elif isinstance(node, cwast.DefConst):
+        return _ComputeArrayLength(node.value)
+    else:
+        assert False, f"unexpected dim node: {node}"
+
+
 class TypeTab:
     """Type Table
 
@@ -99,17 +118,6 @@ class TypeTab:
 
     def __init__(self, corpus):
         self.corpus = corpus
-
-    def compute_dim(self, node, ctx) -> int:
-        if isinstance(node, cwast.ValNum):
-            return ParseNum(node.number, cwast.BASE_TYPE_KIND.INVALID)
-        elif isinstance(node, cwast.Id):
-            node = node.x_symbol
-            return self.compute_dim(node, ctx)
-        elif isinstance(node, cwast.DefConst):
-            return self.compute_dim(node.value, ctx)
-        else:
-            assert False, f"unexpected dim node: {node}"
 
     def annotate(self, node, cstr: types.CanonType):
         logger.info(f"TYPE of {node}: {self.corpus.canon_name(cstr)}")
@@ -125,12 +133,6 @@ class TypeTab:
             node, (cwast.ExprField, cwast.FieldVal, cwast.ExprOffsetof))
         assert node.x_field is None
         node.x_field = field_node
-
-    def is_compatible_for_as(self, src: types.CanonType, dst: types.CanonType) -> bool:
-        # TODO: deal with distinct types
-
-        if types.is_int(src):
-            return types.is_int(dst) or types.is_real(dst)
 
     def typify_node(self, node,  ctx: TypeContext) -> types.CanonType:
         target_type = ctx.get_target_type()
@@ -181,7 +183,7 @@ class TypeTab:
                 cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.size, ctx)
             ctx.pop_target()
-            dim = self.compute_dim(node.size, ctx)
+            dim = _ComputeArrayLength(node.size)
             return self.annotate(node, self.corpus.insert_array_type(False, dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
@@ -270,7 +272,7 @@ class TypeTab:
                 cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
-            dim = self.compute_dim(node.expr_size, ctx)
+            dim = _ComputeArrayLength(node.expr_size)
             return self.annotate(node, self.corpus.insert_array_type(False, dim, cstr))
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)

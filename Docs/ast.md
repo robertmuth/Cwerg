@@ -53,6 +53,7 @@ WIP
 [StmtFor&nbsp;(for)](#stmtfor-for) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
+[StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
 [StmtWhile&nbsp;(while)](#stmtwhile-while) &ensp;
 [Try&nbsp;(try)](#try-try) &ensp;
@@ -368,7 +369,7 @@ Byte size of type
     Type is `uint`
 
 Fields:
-* expr [NODE]: expression
+* type [NODE]: type expression
 
 ### ExprTryAs (tryas)
 Narrow a `expr` which is of Sum to `type` 
@@ -467,7 +468,7 @@ Assert statement
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* message [STR]: message for assert failures
+* message [STR] (default ""): message for assert failures
 
 ### StmtAssignment (=)
 Assignment statement
@@ -573,6 +574,15 @@ Return statement
 Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
+### StmtStaticAssert (static_assert)
+Static assert statement (must evaluate to true at compile-time
+
+Allowed at top level
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* message [STR] (default ""): message for assert failures
+
 ### StmtTrap (trap)
 Trap statement
 
@@ -654,7 +664,7 @@ Fields:
 * type [NODE]: type expression
 
 ### TypeSlice (slice)
-A view/slice of an array with compile time unknown dimensions
+A view/slice of an array with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
