@@ -887,6 +887,7 @@ class ExprSizeof:
     def __str__(self):
         return f"SIZEOF {self.type}"
 
+
 @dataclasses.dataclass()
 class ExprOffsetof:
     """Byte offset of field in record types
@@ -901,6 +902,8 @@ class ExprOffsetof:
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
+    def __str__(self):
+        return f"OFFSETOF {self.type} {self.field}"
 
 @dataclasses.dataclass()
 class ExprRange:
@@ -1126,6 +1129,7 @@ class StmtStaticAssert:
     def __str__(self):
         return f"StaticAssert {self.cond}"
 
+
 @dataclasses.dataclass()
 class StmtTrap:
     """Trap statement"""
@@ -1276,7 +1280,7 @@ class DefEnum:
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
     x_alignment: int = -1
     x_size: int = -1
-    
+
     def __str__(self):
         return f"ENUM {self.name}"
 

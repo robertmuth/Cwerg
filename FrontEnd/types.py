@@ -190,21 +190,17 @@ class TypeCorpus:
         assert isinstance(node, cwast.DefRec)
         return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
-    def _TypeBaseAlignmentSize(self, kind: cwast.BASE_TYPE_KIND):
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[kind]
-        return size, size
 
-    def _TypeSumAlignmentSize(self, node: cwast.TypeSum):
+    def set_size_and_offset_for_sum_type(self, node: cwast.TypeSum):
         num_void = 0
         num_pointer = 0
         num_other = 0
         ptr_size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         max_size = 0
         max_alignment = 1
-        for f in node.types:
-            if isinstance(f, cwast.Comment):
-                continue
-            t = f.x_type
+        for t in node.types:
+            if isinstance(t, cwast.DefType):
+                t = t.type
             if is_void(t):
                 num_void += 1
             elif isinstance(t, cwast.TypePtr):
@@ -213,46 +209,35 @@ class TypeCorpus:
                 max_alignment = max(max_alignment, ptr_size)
             else:
                 num_other += 1
-                alignment, size = self._AlignmentSize(t)
-                max_size = max(max_size, size)
-                max_alignment = max(max_alignment, alignment)
+                max_size = max(max_size, t.x_size)
+                max_alignment = max(max_alignment, t.x_alignment)
         if num_other == 0 and num_pointer == 1:
             # special hack for pointer + error-code
             return ptr_size, ptr_size
         max_alignment = max(max_alignment, 2)
         size = align(2, max_alignment)
-        return max_alignment, size + max_size
-
-
-    def _DecorateRecAlignmentOffsetSize(self, node: cwast.DefRec):
-        max_alignment = 1
-        total_size = 0
-        for f in node.fields:
-            if isinstance(f, cwast.RecField):
-                alignment = -1
-                size = -1
-                t = f.x_type
-                if isinstance(t, cwast.TypeArray):
-                    pass
-                elif isinstance(t, cwast.TypeSlice):
-                    pass
-                elif isinstance(t, cwast.TypeBase):
-                    alignment, size = self._TypeBaseAlignmentSize(
-                        t.base_type_kind)
-                elif isinstance(t, cwast.TypeFun):
-                    alignment, size = self._TypeBaseAlignmentSize(
-                        self.uint_kind)
-                elif isinstance(t, cwast.TypeSum):
-                    pass
-                elif isinstance(t, cwast.TypePtr):
-                    alignment, size = self._TypeBaseAlignmentSize(
-                        self.uint_kind)
+        node.x_alignment = max_alignment
+        node.x_size = size + max_size
 
     def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
         """Note: we re-use the original ast node"""
-        self._DecorateRecAlignmentOffsetSize(node)
         name = f"rec({name})"
         return self._insert(name, node)
+
+    def set_size_and_offset_for_rec_type(self, node: cwast.DefRec):
+        size = 0
+        alignment = 1
+        for f in node.fields:
+            if not isinstance(f, cwast.RecField):
+                continue
+            print (f, f.type)
+            t = f.type.x_type
+            size = align(size, t.x_alignment)
+            f.x_offset = size
+            size += t.x_size
+            alignment = max(alignment, t.x_alignment)
+        node.x_size = size
+        node.x_alignment = alignment
 
     def insert_enum_type(self, name: str, node: cwast.DefEnum) -> CanonType:
         """Note: we tr-use the original ast node"""
@@ -274,7 +259,9 @@ class TypeCorpus:
                 pieces.append(c)
         pp = sorted(self._canon_name[id(p)] for p in pieces)
         name = f"sum({','.join(pp)})"
-        return self._insert(name, cwast.TypeSum(pieces))
+        node = cwast.TypeSum(pieces)
+        self.set_size_and_offset_for_sum_type(node)
+        return self._insert(name, node)
 
     def insert_fun_type(self, params: List[CanonType], result: CanonType) -> CanonType:
         x = [self.canon_name(p) for p in params]
@@ -284,14 +271,13 @@ class TypeCorpus:
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypeFun(p, result, x_size=size, x_alignment=size))
 
-    def insert_wrapped_type(self, cstr: CanonType, node: cwast.DefType) -> CanonType:
+    def insert_wrapped_type(self, cstr: CanonType) -> CanonType:
         """Note: we tr-use the original ast node"""
-        assert isinstance(node, cwast.DefType)
         uid = self.wrapped_curr
         self.wrapped_curr += 1
-        name = f"wrapped({uid},{cstr})"
+        name = f"wrapped({uid},{self.canon_name(cstr)})"
         assert name not in self.corpus
-        return self._insert(name, node)
+        return self._insert(name, cwast.DefType(False, True, "_", cstr))
 
     def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
         assert isinstance(all, cwast.TypeSum)

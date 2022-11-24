@@ -197,6 +197,8 @@ class TypeTab:
             self.annotate(node, cstr)
             for f in node.fields:
                 self.typify_node(f, ctx)
+            # we delay this until after fields have been typified
+            self.corpus.set_size_and_offset_for_rec_type(node)
             return cstr
         elif isinstance(node, cwast.EnumVal):
             cstr = ctx.get_target_type()
@@ -216,7 +218,7 @@ class TypeTab:
         elif isinstance(node, cwast.DefType):
             cstr = self.typify_node(node.type, ctx)
             if node.wrapped:
-                cstr = self.corpus.insert_wrapped_type(cstr, node)
+                cstr = self.corpus.insert_wrapped_type(cstr)
             return self.annotate(node, cstr)
         elif isinstance(node, cwast.TypeSum):
             # this is tricky code to ensure that children of TypeSum
