@@ -109,6 +109,23 @@ def _ComputeArrayLength(node) -> int:
         assert False, f"unexpected dim node: {node}"
 
 
+def _AnnotateType(corpus, node, cstr: types.CanonType):
+    logger.info(f"TYPE of {node}: {corpus.canon_name(cstr)}")
+    assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
+    assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS, f"node not meant for type annotation: {node}"
+    assert cstr, f"No valid type for {node}"
+    assert node.x_type is None, f"duplicate annotation for {node}"
+    node.x_type = cstr
+    return cstr
+
+
+def _AnnotateField(node, field_node: cwast.RecField):
+    assert isinstance(
+        node, (cwast.ExprField, cwast.FieldVal, cwast.ExprOffsetof))
+    assert node.x_field is None
+    node.x_field = field_node
+
+
 class TypeTab:
     """Type Table
 
@@ -118,21 +135,6 @@ class TypeTab:
 
     def __init__(self, corpus):
         self.corpus = corpus
-
-    def annotate(self, node, cstr: types.CanonType):
-        logger.info(f"TYPE of {node}: {self.corpus.canon_name(cstr)}")
-        assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
-        assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS, f"node not meant for type annotation: {node}"
-        assert cstr, f"No valid type for {node}"
-        assert node.x_type is None, f"duplicate annotation for {node}"
-        node.x_type = cstr
-        return cstr
-
-    def annotate_field(self, node, field_node: cwast.RecField):
-        assert isinstance(
-            node, (cwast.ExprField, cwast.FieldVal, cwast.ExprOffsetof))
-        assert node.x_field is None
-        node.x_field = field_node
 
     def typify_node(self, node,  ctx: TypeContext) -> types.CanonType:
         target_type = ctx.get_target_type()
@@ -151,24 +153,24 @@ class TypeTab:
             def_node = node.x_symbol
             # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
             cstr = self.typify_node(def_node, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.TypeBase):
-            return self.annotate(node, self.corpus.insert_base_type(node.base_type_kind))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(node.base_type_kind))
         elif isinstance(node, cwast.TypePtr):
             t = self.typify_node(node.type, ctx)
-            return self.annotate(node, self.corpus.insert_ptr_type(node.mut, t))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_ptr_type(node.mut, t))
         elif isinstance(node, cwast.TypeSlice):
             t = self.typify_node(node.type, ctx)
-            return self.annotate(node, self.corpus.insert_slice_type(node.mut, t))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(node.mut, t))
         elif isinstance(node, cwast.FunParam):
             cstr = self.typify_node(node.type, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
             params = [self.typify_node(p, ctx)
                       for p in node.params if not isinstance(p, cwast.Comment)]
             result = self.typify_node(node.result, ctx)
             cstr = self.corpus.insert_fun_type(params, result)
-            self.annotate(node, cstr)
+            _AnnotateType(self.corpus, node, cstr)
             if isinstance(node, cwast.DefFun) and not node.extern:
                 save_fun = ctx.enclosing_fun
                 ctx.enclosing_fun = node
@@ -184,19 +186,19 @@ class TypeTab:
             self.typify_node(node.size, ctx)
             ctx.pop_target()
             dim = _ComputeArrayLength(node.size)
-            return self.annotate(node, self.corpus.insert_array_type(False, dim, t))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(False, dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 ctx.push_target(cstr)
                 self.typify_node(node.initial_or_undef, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.DefRec):
             # allow recursive definitions referring back to rec inside
             # the fields
             cstr = self.corpus.insert_rec_type(node.name, node)
-            self.annotate(node, cstr)
+            _AnnotateType(self.corpus, node, cstr)
             for f in node.fields:
                 self.typify_node(f, ctx)
             # we delay this until after fields have been typified
@@ -206,7 +208,7 @@ class TypeTab:
             cstr = ctx.get_target_type()
             if not isinstance(node.value_or_auto, cwast.ValAuto):
                 cstr = self.typify_node(node.value_or_auto, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.DefEnum):
             cstr = self.corpus.insert_enum_type(
                 f"{ctx.mod_name}/{node.name}", node)
@@ -216,30 +218,30 @@ class TypeTab:
                 if not isinstance(f, cwast.Comment):
                     self.typify_node(f, ctx)
             ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.DefType):
             cstr = self.typify_node(node.type, ctx)
             if node.wrapped:
                 cstr = self.corpus.insert_wrapped_type(cstr)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.TypeSum):
             # this is tricky code to ensure that children of TypeSum
             # are not TypeSum themselves on the canonical side
             pieces = [self.typify_node(f, ctx) for f in node.types]
-            return self.annotate(node, self.corpus.insert_sum_type(pieces))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_sum_type(pieces))
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
-            return self.annotate(node, self.corpus.insert_base_type(
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.BOOL))
         elif isinstance(node, cwast.ValVoid):
-            return self.annotate(node, self.corpus.insert_base_type(
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.VOID))
         elif isinstance(node, cwast.ValUndef):
             assert False, "Must not try to typify UNDEF"
         elif isinstance(node, cwast.ValNum):
             cstr = self.corpus.num_type(node.number)
             if cstr != types.NO_TYPE:
-                return self.annotate(node, cstr)
-            return self.annotate(node, ctx.get_target_type())
+                return _AnnotateType(self.corpus, node, cstr)
+            return _AnnotateType(self.corpus, node, ctx.get_target_type())
         elif isinstance(node, cwast.TypeAuto):
             assert False, "Must not try to typify TypeAuto"
         elif isinstance(node, cwast.ValAuto):
@@ -250,7 +252,7 @@ class TypeTab:
                             self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.value, ctx)
             ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.IndexVal):
             cstr = ctx.get_target_type()
             if not isinstance(node.value_or_undef, cwast.ValUndef):
@@ -260,7 +262,7 @@ class TypeTab:
                     cwast.BASE_TYPE_KIND.UINT))
                 self.typify_node(node.init_index, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ValArray):
             cstr = self.typify_node(node.type, ctx)
             ctx.push_target(cstr)
@@ -273,7 +275,7 @@ class TypeTab:
             self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
             dim = _ComputeArrayLength(node.expr_size)
-            return self.annotate(node, self.corpus.insert_array_type(False, dim, cstr))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(False, dim, cstr))
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
             assert isinstance(cstr, cwast.DefRec)
@@ -291,29 +293,29 @@ class TypeTab:
                     field_node = all_fields.pop(0)
                 # TODO: make sure this link is set
                 field_cstr = field_node.x_type
-                self.annotate_field(val, field_node)
-                self.annotate(val, field_cstr)
+                _AnnotateField(val, field_node)
+                _AnnotateType(self.corpus, val, field_cstr)
                 ctx.push_target(field_cstr)
                 self.typify_node(val.value, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ValString):
             dim = ComputeStringSize(node.raw, node.string)
             cstr = self.corpus.insert_array_type(
                 False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ExprIndex):
             ctx.push_target(self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT))
             self.typify_node(node.expr_index, ctx)
             ctx.pop_target()
             cstr = self.typify_node(node.container, ctx)
-            return self.annotate(node, types.get_contained_type(cstr))
+            return _AnnotateType(self.corpus, node, types.get_contained_type(cstr))
         elif isinstance(node, cwast.ExprField):
             cstr = self.typify_node(node.container, ctx)
             field_node = self.corpus.lookup_rec_field(cstr, node.field)
-            self.annotate_field(node, field_node)
-            return self.annotate(node, field_node.x_type)
+            _AnnotateField(node, field_node)
+            return _AnnotateType(self.corpus, node, field_node.x_type)
         elif isinstance(node, cwast.DefVar):
             cstr = (types.NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
                     else self.typify_node(node.type_or_auto, ctx))
@@ -328,22 +330,22 @@ class TypeTab:
             if isinstance(initial_cstr, cwast.TypeArray) and node.mut:
                 cstr = types.get_contained_type(initial_cstr)
                 dim = types.get_array_dim(initial_cstr)
-                return self.annotate(node, self.corpus.insert_array_type(True, dim, cstr))
-            return self.annotate(node, cstr if cstr != types.NO_TYPE else initial_cstr)
+                return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(True, dim, cstr))
+            return _AnnotateType(self.corpus, node, cstr if cstr != types.NO_TYPE else initial_cstr)
         elif isinstance(node, cwast.ExprRange):
             cstr = self.typify_node(node.end, ctx)
             if not isinstance(node.begin_or_auto, cwast.ValAuto):
                 self.typify_node(node.begin_or_auto, ctx)
             if not isinstance(node.step_or_auto, cwast.ValAuto):
                 self.typify_node(node.step_or_auto, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.StmtFor):
             ctx.push_target(types.NO_TYPE if
                             isinstance(node.type_or_auto, cwast.TypeAuto)
                             else self.typify_node(node.type_or_auto, ctx))
             cstr = self.typify_node(node.range, ctx)
             ctx.pop_target()
-            self.annotate(node, cstr)
+            _AnnotateType(self.corpus, node, cstr)
             for c in node.body:
                 self.typify_node(c, ctx)
             return cstr
@@ -351,10 +353,10 @@ class TypeTab:
             cstr = self.typify_node(node.expr, ctx)
             assert isinstance(cstr, cwast.TypePtr)
             # TODO: how is mutability propagated?
-            return self.annotate(node, cstr.type)
+            return _AnnotateType(self.corpus, node, cstr.type)
         elif isinstance(node, cwast.Expr1):
             cstr = self.typify_node(node.expr, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.Expr2):
             cstr = self.typify_node(node.expr1, ctx)
             if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and types.is_number(cstr):
@@ -368,14 +370,14 @@ class TypeTab:
                 cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
                 cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.Expr3):
             self.typify_node(node.cond, ctx)
             cstr = self.typify_node(node.expr_t, ctx)
             ctx.push_target(cstr)
             self.typify_node(node.expr_f, ctx)
             ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.StmtExpr):
             self.typify_node(node.expr, ctx)
             return types.NO_TYPE
@@ -387,7 +389,7 @@ class TypeTab:
                 ctx.push_target(p.type)
                 self.typify_node(a, ctx)
                 ctx.pop_target()
-            return self.annotate(node, cstr.result)
+            return _AnnotateType(self.corpus, node, cstr.result)
         elif isinstance(node, cwast.StmtReturn):
             cstr = ctx.enclosing_fun.result.x_type
             ctx.push_target(cstr)
@@ -439,15 +441,15 @@ class TypeTab:
         elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
             cstr = self.typify_node(node.type, ctx)
             self.typify_node(node.expr, ctx)
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ExprIs):
             self.typify_node(node.type, ctx)
             self.typify_node(node.expr, ctx)
-            return self.annotate(node, self.corpus.insert_base_type(
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.BOOL))
         elif isinstance(node, cwast.ExprLen):
             self.typify_node(node.container, ctx)
-            return self.annotate(node, self.corpus.insert_base_type(
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT))
         elif isinstance(node, cwast.ExprChop):
             if not isinstance(node.start, cwast.ValAuto):
@@ -457,18 +459,18 @@ class TypeTab:
             cstr_cont = self.typify_node(node.container, ctx)
             cstr = types.get_contained_type(cstr_cont)
             mut = types.is_mutable(cstr_cont)
-            return self.annotate(node, self.corpus.insert_slice_type(mut, cstr))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(mut, cstr))
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.typify_node(node.expr, ctx)
-            return self.annotate(node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
         elif isinstance(node, cwast.ExprOffsetof):
             cstr = self.typify_node(node.type, ctx)
             field_node = self.corpus.lookup_rec_field(cstr, node.field)
-            self.annotate_field(node, field_node)
-            return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            _AnnotateField(node, field_node)
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
         elif isinstance(node, cwast.ExprSizeof):
             cstr = self.typify_node(node.type, ctx)
-            return self.annotate(node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
         elif isinstance(node, cwast.Try):
             cstr = self.typify_node(node.type, ctx)
             cstr_expr = self.typify_node(node.expr, ctx)
@@ -477,9 +479,9 @@ class TypeTab:
             ctx.push_target(cstr_complement)
             self.typify_node(node.catch, ctx)
             ctx.pop_target()
-            return self.annotate(node, cstr)
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.Catch):
-            cstr = self.annotate(node, ctx.get_target_type())
+            cstr = _AnnotateType(self.corpus, node, ctx.get_target_type())
             for c in node.body_except:
                 self.typify_node(c, ctx)
             return cstr

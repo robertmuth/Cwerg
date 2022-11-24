@@ -56,12 +56,22 @@
 
 (deftype pub sum2 (TypeSum [bool s32 s64]))
 
+(static_assert (== (sizeof sum2) 16))
+
 (deftype pub sum3 (TypeSum [bool w3]))
+
+(static_assert (== (sizeof sum3) 3))
 
 (deftype pub sum4 (TypeSum [ptr1 w3]))
 
+(static_assert (== (sizeof sum4) 8))
+
 (deftype pub sum5 (TypeSum [ptr1 w2 w3]))
 
+(static_assert (== (sizeof sum5) 8))
+
 (deftype pub sum6 (TypeSum [ptr1 w1 w2 w3]))
+
+(static_assert (== (sizeof sum6) 16))
 
 ])

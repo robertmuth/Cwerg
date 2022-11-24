@@ -190,7 +190,6 @@ class TypeCorpus:
         assert isinstance(node, cwast.DefRec)
         return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
-
     def set_size_and_offset_for_sum_type(self, node: cwast.TypeSum):
         num_void = 0
         num_pointer = 0
@@ -213,7 +212,9 @@ class TypeCorpus:
                 max_alignment = max(max_alignment, t.x_alignment)
         if num_other == 0 and num_pointer == 1:
             # special hack for pointer + error-code
-            return ptr_size, ptr_size
+            node.x_alignment = ptr_size
+            node.x_size = ptr_size
+            return
         max_alignment = max(max_alignment, 2)
         size = align(2, max_alignment)
         node.x_alignment = max_alignment
@@ -230,7 +231,7 @@ class TypeCorpus:
         for f in node.fields:
             if not isinstance(f, cwast.RecField):
                 continue
-            print (f, f.type)
+            print(f, f.type)
             t = f.type.x_type
             size = align(size, t.x_alignment)
             f.x_offset = size
