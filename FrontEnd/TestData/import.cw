@@ -33,7 +33,7 @@
 (defmod main [] [
     (import std)
     (defun main [(param argc u32) (param argv (ptr (ptr u8)))] s32 [
-        (expr discard (call std/write [std/stdout "hello world\n"]))
+        (stmt discard (call std/write [std/stdout "hello world\n"]))
         (return 0)
     ])
 ])

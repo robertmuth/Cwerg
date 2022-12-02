@@ -8,7 +8,7 @@
    (defun main [(param argc u32) (param argv (ptr (ptr u8)))] s32 [
          (for i u32 (range argc) [
             (let s (ptr u8) (^ (padd argv i)))
-            (expr discard (call write_s [1 s]))
+            (stmt discard (call write_s [1 s]))
          ])
          (return 0)
    ])

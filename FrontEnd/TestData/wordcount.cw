@@ -39,7 +39,7 @@
     (let mut buf auto (ValArray u8 128 [(IndexVal undef)]))
     (while true [
         (try n u64 (call fread [fp buf]) (catch err [
-            (expr discard (call fclose [fp]))
+            (stmt discard (call fclose [fp]))
             (return err)]))
         (+= (. stats num_chars) n)
         (for i u64 (range n) [

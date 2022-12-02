@@ -1158,7 +1158,7 @@ class StmtExpr:
 
     If expression does not have type void, `discard` must be `true`
     """
-    ALIAS = "expr"
+    ALIAS = "stmt"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
@@ -1792,7 +1792,6 @@ def GenerateDocumentation(fout):
         anchor = MakeAnchor(name, None)
         print(f"[{name}](#{anchor}) &ensp;", file=fout)
 
-    print("\n## Node Details",  file=fout)
     nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
     last_group = ""
     for group, name, cls in nodes:

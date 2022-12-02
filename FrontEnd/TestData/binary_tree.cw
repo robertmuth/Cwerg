@@ -16,9 +16,9 @@
 
 (defun InorderTraversal [(param root MaybeNode) (param visitor Visitor)] void [
     (try node (ptr mut BinaryTreeNode) root (catch _ [(return)]))
-    (expr (call InorderTraversal [(. (^ node) left) visitor]))
-    (expr (call visitor [node]))
-    (expr (call InorderTraversal [(. (^ node) right) visitor]))
+    (stmt (call InorderTraversal [(. (^ node) left) visitor]))
+    (stmt (call visitor [node]))
+    (stmt (call InorderTraversal [(. (^ node) right) visitor]))
 ])
 
 ])
