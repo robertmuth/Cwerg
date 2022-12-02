@@ -83,6 +83,147 @@ WIP
 
 ## Node Details
 
+## Misc Node Details
+
+### Comment (#)
+Comment
+
+    Comments are proper AST nodes and may only occur where explicitly allowed.
+    They refer to the next sibling in the tree.
+    
+
+Fields:
+* comment [STR]: comment
+
+### Id
+Refers to a type, variable, constant, function, module by name.
+
+    Ids may contain a path component indicating which modules they reference.
+    
+
+Fields:
+* name [STR]: name of the object
+* path [STR] (default ""): TBD
+
+## Type Node Details
+
+### DefEnum (defenum)
+Enum definition
+
+Allowed at top level only
+
+Fields:
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* base_type_kind [KIND]: see Base Types below
+* items [LIST]: enum items and/or comments
+
+### DefRec (defrec)
+Record definition
+
+Allowed at top level only
+
+Fields:
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* fields [LIST]: record fields and/or comments
+
+### EnumVal (entry)
+ Enum element.
+
+     `value: ValAuto` means previous value + 1
+
+Fields:
+* name [STR]: name of the object
+* value_or_auto [NODE] (default ValAuto): enum constant or auto
+
+### FunParam (param)
+Function parameter
+
+    
+
+Fields:
+* name [STR]: name of the object
+* type [NODE]: type expression
+
+### RecField (field)
+Record field
+
+    All fields must be explicitly initialized. Use `ValUndef` in performance 
+    sensitive situations.
+    
+
+Fields:
+* name [STR]: name of the object
+* type [NODE]: type expression
+* initial_or_undef [NODE] (default ValUndef): initializer
+
+### TypeArray
+An array of the given type and `size`
+
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* size [NODE]: compile-time constant size
+* type [NODE]: type expression
+
+### TypeAuto (auto)
+Placeholder for an unspecified (auto derived) type
+
+    My only occur where explicitly allowed.
+    
+
+### TypeBase
+Base type
+
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
+    
+
+Fields:
+* base_type_kind [KIND]: see Base Types below
+
+### TypeFun (sig)
+A function signature
+
+    The `FunParam.name` field is ignored and should be `_`
+    
+
+Fields:
+* params [LIST]: function parameters and/or comments
+* result [NODE]: return type
+
+### TypePtr (ptr)
+Pointer type
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* type [NODE]: type expression
+
+### TypeSlice (slice)
+A view/slice of an array with compile-time unknown dimensions
+
+    Internally, this is tuple of `start` and `length`
+    (mutable/non-mutable)
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* type [NODE]: type expression
+
+### TypeSum (union)
+Sum types (tagged unions)
+
+    Sums are "auto flattening", e.g.
+    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    
+
+Fields:
+* types [LIST]: union types
+
+## Statement Node Details
+
 ### Case (case)
 Single case of a Cond statement
 
@@ -100,38 +241,6 @@ Creates a new scope
 Fields:
 * name [STR]: name of the object
 * body_except [LIST]: statement list and/or comments when type narrowing fails
-
-### Comment (#)
-Comment
-
-    Comments are proper AST nodes and may only occur where explicitly allowed.
-    They refer to the next sibling in the tree.
-    
-
-Fields:
-* comment [STR]: comment
-
-### DefConst (const)
-Constant definition
-
-Allowed at top level only
-
-Fields:
-* pub [FLAG]: has public visibility
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* value [NODE]: 
-
-### DefEnum (defenum)
-Enum definition
-
-Allowed at top level only
-
-Fields:
-* pub [FLAG]: has public visibility
-* name [STR]: name of the object
-* base_type_kind [KIND]: see Base Types below
-* items [LIST]: enum items and/or comments
 
 ### DefFun (defun)
 Function definition
@@ -160,16 +269,6 @@ Fields:
 * name [STR]: name of the object
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
-
-### DefRec (defrec)
-Record definition
-
-Allowed at top level only
-
-Fields:
-* pub [FLAG]: has public visibility
-* name [STR]: name of the object
-* fields [LIST]: record fields and/or comments
 
 ### DefType (deftype)
 Type definition
@@ -202,14 +301,286 @@ Fields:
 * type_or_auto [NODE]: type expression
 * initial_or_undef [NODE] (default ValUndef): initializer
 
-### EnumVal (entry)
- Enum element.
-
-     `value: ValAuto` means previous value + 1
+### Import (import)
+Import another Module
 
 Fields:
 * name [STR]: name of the object
-* value_or_auto [NODE] (default ValAuto): enum constant or auto
+* alias [STR] (default ""): name of imported module to be used instead of given name
+
+### ModParam
+Module Parameters
+
+Fields:
+* name [STR]: name of the object
+* mod_param_kind [KIND]: see ModParam Kind below
+
+### StmtAssert (assert)
+Assert statement
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* message [STR] (default ""): message for assert failures
+
+### StmtAssignment (=)
+Assignment statement
+
+Fields:
+* lhs [NODE]: l-value expression
+* expr [NODE]: expression
+
+### StmtBlock (block)
+Block statement.
+
+    if `label` is non-empty, nested break/continue statements can target this `block`.
+    
+
+Creates a new scope
+
+Fields:
+* label [STR]: block  name (if not empty)
+* body [LIST]: statement list and/or comments
+
+### StmtBreak (break)
+Break statement
+
+    use "" if the target is the nearest for/while/block 
+
+Fields:
+* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
+### StmtCompoundAssignment
+Compound assignment statement
+
+Fields:
+* assignment_kind [KIND]: see StmtCompoundAssignment Kind below
+* lhs [NODE]: l-value expression
+* expr [NODE]: expression
+
+### StmtCond (cond)
+Multicase if-elif-else statement
+
+Fields:
+* cases [LIST]: list of case statements
+
+### StmtContinue (continue)
+Continue statement
+
+    use "" if the target is the nearest for/while/block 
+
+Fields:
+* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
+### StmtDefer (defer)
+Defer statement
+
+    Note: defer body's containing return statments have
+    non-straightforward semantics.
+    
+
+Creates a new scope
+
+Fields:
+* body [LIST]: statement list and/or comments
+
+### StmtExpr (expr)
+Expression statement
+
+    If expression does not have type void, `discard` must be `true`
+    
+
+Fields:
+* discard [FLAG]: ignore non-void expression
+* expr [NODE]: expression
+
+### StmtFor (for)
+For statement.
+
+    Defines the non-mut variable `name`.
+    
+
+Creates a new scope
+
+Fields:
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* range [NODE]: range expression
+* body [LIST]: statement list and/or comments
+
+### StmtIf (if)
+If statement
+
+Creates a new scope
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* body_t [LIST]: statement list and/or comments for true branch
+* body_f [LIST]: statement list and/or comments for false branch
+
+### StmtReturn (return)
+Return statement
+
+    Use `void` value if the function's return type is `void`
+    
+
+Fields:
+* expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
+
+### StmtStaticAssert (static_assert)
+Static assert statement (must evaluate to true at compile-time
+
+Allowed at top level
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* message [STR] (default ""): message for assert failures
+
+### StmtTrap (trap)
+Trap statement
+
+### StmtWhile (while)
+While statement.
+    
+
+Creates a new scope
+
+Fields:
+* cond [NODE]: conditional expression must evaluate to a boolean
+* body [LIST]: statement list and/or comments
+
+### Try (try)
+Variable definition if type matches otherwise `catch`
+
+    This is the most complex node in Cwerg. It only makes sense for `expr` that
+    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
+    The statement desugar to this:
+
+    (let `mut` tmp auto `expr`)
+    if (tmp is `type-rest`) [
+        (let `catch.name` (tmp as `type-rest`)
+        ...`catch.body_except`
+        (trap)
+    ] [])
+    (let `name` auto (tmp as `type`))
+
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type [NODE]: type expression
+* expr [NODE]: expression
+* catch [NODE]: handler for type mismatch (implictly terminated by trap)
+
+## Value Node Details
+
+### DefConst (const)
+Constant definition
+
+Allowed at top level only
+
+Fields:
+* pub [FLAG]: has public visibility
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* value [NODE]: 
+
+### FieldVal
+Part of rec literal
+
+    e.g. `.imag = 5`
+    If field is empty use `first field` or `next field`.
+    
+
+Fields:
+* value [NODE]: 
+* init_field [STR] (default ""): initializer field or empty (empty means next field)
+
+### IndexVal
+Part of an array literal
+
+    e.g. `.1 = 5`
+    If index is empty use `0` or `previous index + 1`.
+    
+
+Fields:
+* value_or_undef [NODE]: 
+* init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
+
+### ValArray
+An array literal
+
+    `[10]int{.1 = 5, .2 = 6, 77}`
+    
+
+Fields:
+* type [NODE]: type expression
+* expr_size [NODE]: expression determining the size or auto
+* inits_array [LIST]: array initializers and/or comments
+
+### ValAuto
+Placeholder for an unspecified (auto derived) value
+
+    Used for: array dimensions, enum values, chap and range
+    
+
+Fields:
+
+### ValFalse
+Bool constant `false`
+
+Fields:
+
+### ValNum
+Numeric constant (signed int, unsigned int, real
+
+    Underscores in `number` are ignored. `number` can be explicitly typed via
+    suffices like `_u64`, `_s16`, `_r32`.
+    
+
+Fields:
+* number [STR]: a number
+
+### ValRec (rec)
+A record literal
+
+    `E.g.: complex{.imag = 5, .real = 1}`
+    
+
+Fields:
+* type [NODE]: type expression
+* inits_rec [LIST]: record initializers and/or comments
+
+### ValString
+An array value encoded as a string
+
+    type is `[strlen(string)]u8`. `string` may be escaped/raw
+    
+
+Fields:
+* raw [FLAG]: ignore escape sequences in string
+* string [STR]: string literal
+
+### ValTrue
+Bool constant `true`
+
+Fields:
+
+### ValUndef
+Special constant to indiciate *no default value*
+    
+
+Fields:
+
+### ValVoid
+Only value inhabiting the `TypeVoid` type
+
+    It can be used to model *null* in nullable pointers via a sum type.
+     
+
+Fields:
+
+## Expression Node Details
 
 ### Expr1
 Unary expression.
@@ -395,367 +766,6 @@ Unsafe Cast
 Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
-
-### FieldVal
-Part of rec literal
-
-    e.g. `.imag = 5`
-    If field is empty use `first field` or `next field`.
-    
-
-Fields:
-* value [NODE]: 
-* init_field [STR] (default ""): initializer field or empty (empty means next field)
-
-### FunParam (param)
-Function parameter
-
-    
-
-Fields:
-* name [STR]: name of the object
-* type [NODE]: type expression
-
-### Id
-Refers to a type, variable, constant, function, module by name.
-
-    Ids may contain a path component indicating which modules they reference.
-    
-
-Fields:
-* name [STR]: name of the object
-* path [STR] (default ""): TBD
-
-### Import (import)
-Import another Module
-
-Fields:
-* name [STR]: name of the object
-* alias [STR] (default ""): name of imported module to be used instead of given name
-
-### IndexVal
-Part of an array literal
-
-    e.g. `.1 = 5`
-    If index is empty use `0` or `previous index + 1`.
-    
-
-Fields:
-* value_or_undef [NODE]: 
-* init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
-
-### ModParam
-Module Parameters
-
-Fields:
-* name [STR]: name of the object
-* mod_param_kind [KIND]: see ModParam Kind below
-
-### RecField (field)
-Record field
-
-    All fields must be explicitly initialized. Use `ValUndef` in performance 
-    sensitive situations.
-    
-
-Fields:
-* name [STR]: name of the object
-* type [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
-
-### StmtAssert (assert)
-Assert statement
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* message [STR] (default ""): message for assert failures
-
-### StmtAssignment (=)
-Assignment statement
-
-Fields:
-* lhs [NODE]: l-value expression
-* expr [NODE]: expression
-
-### StmtBlock (block)
-Block statement.
-
-    if `label` is non-empty, nested break/continue statements can target this `block`.
-    
-
-Creates a new scope
-
-Fields:
-* label [STR]: block  name (if not empty)
-* body [LIST]: statement list and/or comments
-
-### StmtBreak (break)
-Break statement
-
-    use "" if the target is the nearest for/while/block 
-
-Fields:
-* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
-
-### StmtCompoundAssignment
-Compound assignment statement
-
-Fields:
-* assignment_kind [KIND]: see StmtCompoundAssignment Kind below
-* lhs [NODE]: l-value expression
-* expr [NODE]: expression
-
-### StmtCond (cond)
-Multicase if-elif-else statement
-
-Fields:
-* cases [LIST]: list of case statements
-
-### StmtContinue (continue)
-Continue statement
-
-    use "" if the target is the nearest for/while/block 
-
-Fields:
-* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
-
-### StmtDefer (defer)
-Defer statement
-
-    Note: defer body's containing return statments have
-    non-straightforward semantics.
-    
-
-Creates a new scope
-
-Fields:
-* body [LIST]: statement list and/or comments
-
-### StmtExpr (expr)
-Expression statement
-
-    If expression does not have type void, `discard` must be `true`
-    
-
-Fields:
-* discard [FLAG]: ignore non-void expression
-* expr [NODE]: expression
-
-### StmtFor (for)
-For statement.
-
-    Defines the non-mut variable `name`.
-    
-
-Creates a new scope
-
-Fields:
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* range [NODE]: range expression
-* body [LIST]: statement list and/or comments
-
-### StmtIf (if)
-If statement
-
-Creates a new scope
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* body_t [LIST]: statement list and/or comments for true branch
-* body_f [LIST]: statement list and/or comments for false branch
-
-### StmtReturn (return)
-Return statement
-
-    Use `void` value if the function's return type is `void`
-    
-
-Fields:
-* expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
-
-### StmtStaticAssert (static_assert)
-Static assert statement (must evaluate to true at compile-time
-
-Allowed at top level
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* message [STR] (default ""): message for assert failures
-
-### StmtTrap (trap)
-Trap statement
-
-### StmtWhile (while)
-While statement.
-    
-
-Creates a new scope
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* body [LIST]: statement list and/or comments
-
-### Try (try)
-Variable definition if type matches otherwise `catch`
-
-    This is the most complex node in Cwerg. It only makes sense for `expr` that
-    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
-    The statement desugar to this:
-
-    (let `mut` tmp auto `expr`)
-    if (tmp is `type-rest`) [
-        (let `catch.name` (tmp as `type-rest`)
-        ...`catch.body_except`
-        (trap)
-    ] [])
-    (let `name` auto (tmp as `type`))
-
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* name [STR]: name of the object
-* type [NODE]: type expression
-* expr [NODE]: expression
-* catch [NODE]: handler for type mismatch (implictly terminated by trap)
-
-### TypeArray
-An array of the given type and `size`
-
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* size [NODE]: compile-time constant size
-* type [NODE]: type expression
-
-### TypeAuto (auto)
-Placeholder for an unspecified (auto derived) type
-
-    My only occur where explicitly allowed.
-    
-
-### TypeBase
-Base type
-
-    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
-    
-
-Fields:
-* base_type_kind [KIND]: see Base Types below
-
-### TypeFun (sig)
-A function signature
-
-    The `FunParam.name` field is ignored and should be `_`
-    
-
-Fields:
-* params [LIST]: function parameters and/or comments
-* result [NODE]: return type
-
-### TypePtr (ptr)
-Pointer type
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* type [NODE]: type expression
-
-### TypeSlice (slice)
-A view/slice of an array with compile-time unknown dimensions
-
-    Internally, this is tuple of `start` and `length`
-    (mutable/non-mutable)
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* type [NODE]: type expression
-
-### TypeSum (union)
-Sum types (tagged unions)
-
-    Sums are "auto flattening", e.g.
-    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
-    
-
-Fields:
-* types [LIST]: union types
-
-### ValArray
-An array literal
-
-    `[10]int{.1 = 5, .2 = 6, 77}`
-    
-
-Fields:
-* type [NODE]: type expression
-* expr_size [NODE]: expression determining the size or auto
-* inits_array [LIST]: array initializers and/or comments
-
-### ValAuto
-Placeholder for an unspecified (auto derived) value
-
-    Used for: array dimensions, enum values, chap and range
-    
-
-Fields:
-
-### ValFalse
-Bool constant `false`
-
-Fields:
-
-### ValNum
-Numeric constant (signed int, unsigned int, real
-
-    Underscores in `number` are ignored. `number` can be explicitly typed via
-    suffices like `_u64`, `_s16`, `_r32`.
-    
-
-Fields:
-* number [STR]: a number
-
-### ValRec (rec)
-A record literal
-
-    `E.g.: complex{.imag = 5, .real = 1}`
-    
-
-Fields:
-* type [NODE]: type expression
-* inits_rec [LIST]: record initializers and/or comments
-
-### ValString
-An array value encoded as a string
-
-    type is `[strlen(string)]u8`. `string` may be escaped/raw
-    
-
-Fields:
-* raw [FLAG]: ignore escape sequences in string
-* string [STR]: string literal
-
-### ValTrue
-Bool constant `true`
-
-Fields:
-
-### ValUndef
-Special constant to indiciate *no default value*
-    
-
-Fields:
-
-### ValVoid
-Only value inhabiting the `TypeVoid` type
-
-    It can be used to model *null* in nullable pointers via a sum type.
-     
-
-Fields:
 ## Enum Details
 
 ### Expr1 Kind

@@ -50,6 +50,16 @@ class NF(enum.Flag):
     TOP_LEVEL_ONLY = enum.auto()
     TOP_LEVEL = enum.auto()
 
+
+
+@enum.unique
+class GROUP(enum.IntEnum):
+    Misc = enum.auto()
+    Type = enum.auto()
+    Statement = enum.auto()
+    Value = enum.auto()
+    Expression = enum.auto()
+
 ############################################################
 # Comment
 ############################################################
@@ -63,6 +73,7 @@ class Comment:
     They refer to the next sibling in the tree.
     """
     ALIAS = "#"
+    GROUP = GROUP.Misc
     FLAGS = NF.NONE
 
     comment: str
@@ -90,6 +101,7 @@ class Id:
     Ids may contain a path component indicating which modules they reference.
     """
     ALIAS = None
+    GROUP = GROUP.Misc
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
@@ -108,6 +120,7 @@ class TypeAuto:
     My only occur where explicitly allowed.
     """
     ALIAS = "auto"
+    GROUP = GROUP.Type
     FLAGS = NF.NONE
     # TODO
     # FLAGS = NF.TYPE_ANNOTATED
@@ -115,19 +128,6 @@ class TypeAuto:
 
     def __str__(self):
         return "AUTO"
-
-
-class ValAuto:
-    """Placeholder for an unspecified (auto derived) value
-
-    Used for: array dimensions, enum values, chap and range
-    """
-    ALIAS = None
-    FLAGS = NF.VALUE_ANNOTATED
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return "VAL-AUTO"
 
 
 ############################################################
@@ -143,6 +143,7 @@ class FunParam:
 
     """
     ALIAS = "param"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str      # empty str means no var specified (fun proto type)
@@ -224,6 +225,7 @@ class TypeBase:
     One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
     """
     ALIAS = None
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     base_type_kind: BASE_TYPE_KIND
@@ -240,6 +242,7 @@ class TypePtr:
     """Pointer type
     """
     ALIAS = "ptr"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     mut: bool   # pointee is mutable
@@ -261,6 +264,7 @@ class TypeSlice:
     (mutable/non-mutable)
     """
     ALIAS = "slice"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     mut: bool  # slice is mutable
@@ -280,6 +284,7 @@ class TypeArray:
 
     """
     ALIAS = None
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     mut: bool  # array is mutable, TODO: rethink this
@@ -304,6 +309,7 @@ class TypeFun:
     The `FunParam.name` field is ignored and should be `_`
     """
     ALIAS = "sig"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     params: List[PARAMS_NODES]
@@ -328,6 +334,7 @@ class TypeSum:
     Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
     """
     ALIAS = "union"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
     types: List[TYPES_NODES]
@@ -349,10 +356,25 @@ ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
                 "ValRec"]
 
 
+class ValAuto:
+    """Placeholder for an unspecified (auto derived) value
+
+    Used for: array dimensions, enum values, chap and range
+    """
+    ALIAS = None
+    GROUP = GROUP.Value
+    FLAGS = NF.VALUE_ANNOTATED
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return "VAL-AUTO"
+
+
 @dataclasses.dataclass()
 class ValTrue:
     """Bool constant `true`"""
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
@@ -366,6 +388,7 @@ class ValTrue:
 class ValFalse:
     """Bool constant `false`"""
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
@@ -383,6 +406,7 @@ class ValNum:
     suffices like `_u64`, `_s16`, `_r32`.
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     number: str   # maybe a (unicode) character as well
@@ -397,6 +421,7 @@ class ValUndef:
     """Special constant to indiciate *no default value*
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
 
     x_value: Optional[Any] = None    # this is always a ValUndef() object
@@ -410,6 +435,7 @@ class ValVoid:
     It can be used to model *null* in nullable pointers via a sum type.
      """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
@@ -426,6 +452,7 @@ class IndexVal:
     If index is empty use `0` or `previous index + 1`.
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     value_or_undef: "EXPR_NODE"
@@ -445,6 +472,7 @@ class FieldVal:
     If field is empty use `first field` or `next field`.
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     value: "EXPR_NODE"
@@ -467,6 +495,7 @@ class ValArray:
     `[10]int{.1 = 5, .2 = 6, 77}`
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE
@@ -486,6 +515,7 @@ class ValString:
     type is `[strlen(string)]u8`. `string` may be escaped/raw
     """
     ALIAS = None
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     raw: bool
@@ -506,6 +536,7 @@ class ValRec:
     `E.g.: complex{.imag = 5, .real = 1}`
     """
     ALIAS = "rec"
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE
@@ -532,6 +563,7 @@ EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
 class ExprDeref:
     """Dereference a pointer represented by `expr`"""
     ALIAS = "^"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE  # must be of type AddrOf
@@ -551,6 +583,7 @@ class ExprAddrOf:
     pointee is mutable.
     """
     ALIAS = "&"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     mut: bool
     expr: EXPR_NODE
@@ -567,6 +600,7 @@ class ExprCall:
     """Function call expression.
     """
     ALIAS = "call"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     callee: EXPR_NODE
@@ -583,6 +617,7 @@ class ExprParen:
     """Used for preserving parenthesis in the source
     """
     ALIAS = None
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
@@ -595,6 +630,7 @@ class ExprField:
     """Access field in expression representing a record.
     """
     ALIAS = "."
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     container: EXPR_NODE  # must be of type rec
@@ -628,6 +664,7 @@ UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 class Expr1:
     """Unary expression."""
     ALIAS = None
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     unary_expr_kind: UNARY_EXPR_KIND
@@ -702,6 +739,7 @@ BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 class Expr2:
     """Binary expression."""
     ALIAS = None
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     binary_expr_kind: BINARY_EXPR_KIND
@@ -719,6 +757,7 @@ class Expr3:
     """Tertiary expression (like C's `? :`) 
     """
     ALIAS = "?"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     cond: EXPR_NODE  # must be of type  bool
@@ -738,6 +777,7 @@ class ExprIndex:
     """Checked indexed access of array or slice 
     """
     ALIAS = "at"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     container: EXPR_NODE  # must be of type slice or array
@@ -754,6 +794,7 @@ class ExprChop:
     """Slicing expression of array or slice
     """
     ALIAS = "chop"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
 
     container: EXPR_NODE  # must be of type slice or array
@@ -769,6 +810,7 @@ class ExprChop:
 class ExprLen:
     """Length of array or slice"""
     ALIAS = "len"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     container: EXPR_NODE   # must be of type slice or array
@@ -786,6 +828,7 @@ class ExprIs:
 
     """
     ALIAS = "is"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
@@ -809,6 +852,7 @@ class ExprAs:
     ptr to rec -> ptr to first element of rec
     """
     ALIAS = "as"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
@@ -829,6 +873,7 @@ class ExprTryAs:
 
     """
     ALIAS = "tryas"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: EXPR_NODE
@@ -846,6 +891,7 @@ class ExprUnsafeCast:
 
     """
     ALIAS = "cast"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
 
     expr: EXPR_NODE
@@ -864,6 +910,7 @@ class ExprBitCast:
     sint, uint <-> ptr
     """
     ALIAS = "bitcast"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     expr: EXPR_NODE
@@ -878,6 +925,7 @@ class ExprSizeof:
 
     Type is `uint`"""
     ALIAS = "sizeof"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     type: TYPE_NODE
@@ -894,6 +942,7 @@ class ExprOffsetof:
 
     Type is `uint`"""
     ALIAS = "offsetof"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
 
     type: TYPE_NODE  # must be rec
@@ -904,6 +953,7 @@ class ExprOffsetof:
 
     def __str__(self):
         return f"OFFSETOF {self.type} {self.field}"
+
 
 @dataclasses.dataclass()
 class ExprRange:
@@ -916,6 +966,7 @@ class ExprRange:
     Range(end=1, start=5, step=-2) = [5, 3]
     """
     ALIAS = "range"
+    GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
 
     end: EXPR_NODE   # start, end ,step work like range(start, end, step)
@@ -943,6 +994,7 @@ class StmtWhile:
     """While statement.
     """
     ALIAS = "while"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
     cond: EXPR_NODE
@@ -959,6 +1011,7 @@ class StmtBlock:
     if `label` is non-empty, nested break/continue statements can target this `block`.
     """
     ALIAS = "block"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
     label: str
@@ -975,6 +1028,7 @@ class StmtFor:
     Defines the non-mut variable `name`.
     """
     ALIAS = "for"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     name: str
@@ -995,6 +1049,7 @@ class StmtDefer:
     non-straightforward semantics.
     """
     ALIAS = "defer"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
     body: List[BODY_NODES]  # must NOT contain RETURN
@@ -1007,6 +1062,7 @@ class StmtDefer:
 class StmtIf:
     """If statement"""
     ALIAS = "if"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
     cond: EXPR_NODE        # must be of type bool
@@ -1021,6 +1077,7 @@ class StmtIf:
 class Case:
     """Single case of a Cond statement"""
     ALIAS = "case"
+    GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
     cond: EXPR_NODE        # must be of type bool
@@ -1034,6 +1091,7 @@ class Case:
 class StmtCond:
     """Multicase if-elif-else statement"""
     ALIAS = "cond"
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
     cases: List[Case]
@@ -1056,6 +1114,7 @@ class StmtBreak:
 
     use "" if the target is the nearest for/while/block """
     ALIAS = "break"
+    GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
 
     target: str  # use "" for no value
@@ -1070,6 +1129,7 @@ class StmtContinue:
 
     use "" if the target is the nearest for/while/block """
     ALIAS = "continue"
+    GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
     target: str  # use "" for no value
 
@@ -1084,6 +1144,7 @@ class StmtReturn:
     Use `void` value if the function's return type is `void`
     """
     ALIAS = "return"
+    GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
     expr_ret: EXPR_NODE
 
@@ -1098,6 +1159,7 @@ class StmtExpr:
     If expression does not have type void, `discard` must be `true`
     """
     ALIAS = "expr"
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
     discard: bool
@@ -1111,6 +1173,7 @@ class StmtExpr:
 class StmtAssert:
     """Assert statement"""
     ALIAS = "assert"
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
     cond: EXPR_NODE  # must be of type bool
@@ -1121,6 +1184,7 @@ class StmtAssert:
 class StmtStaticAssert:
     """Static assert statement (must evaluate to true at compile-time"""
     ALIAS = "static_assert"
+    GROUP = GROUP.Statement
     FLAGS = NF.TOP_LEVEL
 
     cond: EXPR_NODE  # must be of type bool
@@ -1134,6 +1198,7 @@ class StmtStaticAssert:
 class StmtTrap:
     """Trap statement"""
     ALIAS = "trap"
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
 
@@ -1178,6 +1243,7 @@ ASSIGMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 class StmtCompoundAssignment:
     """Compound assignment statement"""
     ALIAS = None
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
     assignment_kind: ASSIGNMENT_KIND
@@ -1192,6 +1258,7 @@ class StmtCompoundAssignment:
 class StmtAssignment:
     """Assignment statement"""
     ALIAS = "="
+    GROUP = GROUP.Statement
     FLAGS = NF.NONE
 
     lhs: EXPR_LHS
@@ -1213,6 +1280,7 @@ class RecField:  #
     sensitive situations.
     """
     ALIAS = "field"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     name: str
@@ -1233,6 +1301,7 @@ FIELDS_NODES = Union[Comment, RecField]
 class DefRec:
     """Record definition"""
     ALIAS = "defrec"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
@@ -1252,6 +1321,7 @@ class EnumVal:
 
      `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
 
     name: str
@@ -1270,6 +1340,7 @@ ITEMS_NODES = Union[Comment, EnumVal]
 class DefEnum:
     """Enum definition"""
     ALIAS = "defenum"
+    GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
 
     pub:  bool
@@ -1291,6 +1362,7 @@ class DefType:
 
     """
     ALIAS = "deftype"
+    GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
     pub:  bool
@@ -1311,6 +1383,7 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
 class DefConst:
     """Constant definition"""
     ALIAS = "const"
+    GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
 
     pub:  bool
@@ -1334,6 +1407,7 @@ class DefVar:
     sensitive situations.
     """
     ALIAS = "let"
+    GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
 
     pub: bool
@@ -1351,6 +1425,7 @@ class DefVar:
 class Catch:
     """Used with Try only"""
     ALIAS = "catch"
+    GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.NEW_SCOPE
 
     name: str
@@ -1382,6 +1457,7 @@ class Try:
 
     """
     ALIAS = "try"
+    GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
 
     mut: bool
@@ -1399,6 +1475,7 @@ class Try:
 class DefFun:
     """Function definition"""
     ALIAS = "defun"
+    GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
 
     init: bool
@@ -1428,6 +1505,7 @@ class MOD_PARAM_KIND(enum.Enum):
 class ModParam:
     """Module Parameters"""
     ALIAS = None
+    GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
 
     name: str
@@ -1448,6 +1526,7 @@ class DefMod:
 
     The module is a template if `params` is non-empty"""
     ALIAS = "defmod"
+    GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
 
     pub: bool
@@ -1464,6 +1543,7 @@ class DefMod:
 class Import:
     """Import another Module"""
     ALIAS = "import"
+    GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
     name: str
     alias: str
@@ -1713,8 +1793,12 @@ def GenerateDocumentation(fout):
         print(f"[{name}](#{anchor}) &ensp;", file=fout)
 
     print("\n## Node Details",  file=fout)
-
-    for name, cls in nodes:
+    nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+    last_group = ""
+    for group, name, cls in nodes:
+        if last_group  != group:
+             print(f"\n## {group.name} Node Details",  file=fout)
+             last_group = group
         print(f"", file=fout)
         alias = ""
         if cls.ALIAS:
