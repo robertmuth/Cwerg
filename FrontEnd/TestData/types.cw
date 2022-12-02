@@ -43,6 +43,8 @@
 
 (deftype type_fun (sig [(param a bool) (param b bool) (param c s32)] s32))
 
-
+(defun fun [(param a type_union)] s32 [
+   (return (asnot a (TypeSum [void type_ptr]))) 
+])
 
 ])

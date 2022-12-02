@@ -4,9 +4,6 @@
 
 """
 
-import dataclasses
-from inspect import signature
-from math import exp
 import sys
 import logging
 
@@ -442,6 +439,10 @@ class TypeTab:
             cstr = self.typify_node(node.type, ctx)
             self.typify_node(node.expr, ctx)
             return _AnnotateType(self.corpus, node, cstr)
+        elif isinstance(node, cwast.ExprAsNot):
+            cstr = self.typify_node(node.type, ctx)
+            union = self.typify_node(node.expr, ctx)
+            return _AnnotateType(self.corpus, node, self.corpus.insert_sum_complement(union, cstr))
         elif isinstance(node, cwast.ExprIs):
             self.typify_node(node.type, ctx)
             self.typify_node(node.expr, ctx)
@@ -505,8 +506,14 @@ class TypeTab:
             assert False, f"unexpected node {node}"
 
 
+UNTYPED_NODES_TO_BE_TYPECHECKED = (
+    cwast.StmtReturn, cwast.StmtWhile, cwast.StmtIf, cwast.StmtWhile, cwast.StmtFor,
+    cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
+
+
 def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
-    assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS
+    assert (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or isinstance(
+        node, UNTYPED_NODES_TO_BE_TYPECHECKED))
 
     if isinstance(node, cwast.ValArray):
         cstr = node.type.x_type
@@ -600,6 +607,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
         fun = enclosing_fun.x_type
         assert isinstance(fun, cwast.TypeFun)
         actual = node.expr_ret.x_type
+        print("@@@@", actual)
         assert types.is_compatible(
             actual, fun.result), f"{node}: {actual} {fun.result}"
     elif isinstance(node, cwast.StmtIf):
@@ -619,6 +627,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard
+    elif isinstance(node, cwast.ExprAsNot):
+        pass
     elif isinstance(node, cwast.ExprAs):
         src = node.expr.x_type
         dst = node.type.x_type
@@ -717,11 +727,16 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
 
 
 def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
+    logger.info(f"VERIFYING {node}")
+
     if isinstance(node, cwast.DefFun):
         enclosing_fun = node
-    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_type is not None, f"untyped node: {node}"
+    if (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or
+            isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
+        if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+            assert node.x_type is not None, f"untyped node: {node}"
         _TypeVerifyNode(node, corpus, enclosing_fun)
+
     if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
         assert node.x_field is not None, f"node withou field annotation: {node}"
     for c in node.__class__.FIELDS:

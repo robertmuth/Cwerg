@@ -287,19 +287,23 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, node.expr.x_value)
             return True
         return False
+    elif isinstance(node, cwast.ExprAsNot):
+        # TODO: we can do better here
+        return False
     elif isinstance(node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
-        # TODO
+        # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprIs):
-        # TODO
+        # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprLen):
-        # TODO
+        # TODO: 
         return False
     elif isinstance(node, cwast.ExprChop):
-        # TODO
+        # TODO: 
         return False
     elif isinstance(node, cwast.ExprAddrOf):
+        # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0

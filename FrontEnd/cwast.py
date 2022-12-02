@@ -347,7 +347,6 @@ class TypeSum:
         t = [str(t) for t in self.types]
         return f"TypeSum {' '.join(t)}"
 
-
 ############################################################
 # Val Nodes
 ############################################################
@@ -863,6 +862,22 @@ class ExprAs:
     def __str__(self):
         return f"{self.expr} AS {self.type}"
 
+@dataclasses.dataclass()
+class ExprAsNot:
+    """Cast of Union to diff of the union and the given type
+
+    """
+    ALIAS = "asnot"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} AS {self.type}"
 
 @dataclasses.dataclass()
 class ExprTryAs:
