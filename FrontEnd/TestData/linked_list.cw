@@ -2,7 +2,7 @@
 (# "Linked List Example")
 
 (deftype wrapped NoneType void)
-(const None auto (as void NoneType))
+(const None auto (as void_val NoneType))
 
 (defrec pub LinkedListNode [
    (# "this is a comment with \" with quotes \t ")

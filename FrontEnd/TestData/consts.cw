@@ -22,7 +22,7 @@
 ])
 
 
-(const c0 void void)
+(const c0 void void_val)
 
 (const  c1 auto (ValNum 7_u32)) 
 

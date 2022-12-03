@@ -20,7 +20,7 @@
 
 (defrec pub linked_list [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 (TypeSum [void (ptr linked_list)]) void)
+   (field s1 (TypeSum [void (ptr linked_list)]) void_val)
 ])
 
 (defenum pub type_enum S32 [

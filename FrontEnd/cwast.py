@@ -1178,7 +1178,7 @@ class StmtContinue:
 class StmtReturn:
     """Return statement
 
-    Use `void` value if the function's return type is `void`
+    Uses void_val if the function's return type is void
     """
     ALIAS = "return"
     GROUP = GROUP.Statement
@@ -1616,7 +1616,7 @@ class MacroId:
 
     name: str
     x_symbol: Optional[Any] = None
- 
+
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
@@ -1689,6 +1689,20 @@ class MacroParam:
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
 
+
+class MacroInvoke:
+    """Macro Invocation"""
+    ALIAS = "macro_param"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+
+    name: str
+    args: List[EXPR_NODE]
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
 PARAMS_MACRO_NODES = Union[Comment, MacroParam]
 
 
@@ -1705,6 +1719,7 @@ class DefMacro:
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
+
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
@@ -2058,7 +2073,8 @@ _SHORT_HAND_NODES = {
     "auto": TypeAuto(),
     "noret": TypeBase(BASE_TYPE_KIND.NORET),
     "bool": TypeBase(BASE_TYPE_KIND.BOOL),
-
+    "void":  TypeBase(BASE_TYPE_KIND.VOID),
+    "void_val": ValVoid(),
     "undef": ValUndef(),
     "true": ValTrue(),
     "false": ValFalse(),
@@ -2069,25 +2085,18 @@ for t in _SCALAR_TYPES:
     _SHORT_HAND_NODES[name] = TypeBase(t)
 
 
-def ExpandShortHand(field, t) -> Any:
+def ExpandShortHand(t) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
-    if field == "index":
-        return int(t)
-    elif field == "field":
-        return t
-    elif t == "void":
-        if field == "type":
-            return TypeBase(BASE_TYPE_KIND.VOID)
-        else:
-            return ValVoid()
-    elif len(t) >= 2 and t[0] == '"' and t[-1] == '"':
-        # TODO: r"
-        return ValString(False, t)
+
 
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
         return x
+    
+    if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
+        # TODO: r"
+        return ValString(False, t)
     elif _TOKEN_ID.match(t):
         parts = t.rsplit("::", 1)
         return Id(parts[-1], "" if len(parts) == 1 else parts[0])
@@ -2096,7 +2105,20 @@ def ExpandShortHand(field, t) -> Any:
     elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
         return ValNum(t)
     else:
-        assert False, f"cannot expand short hand: {field} [{t}]"
+        return None
+
+
+def ReadList(stream):
+    out = []
+    while True:
+        token = next(stream)
+        if token == "]":
+            break
+        if token == "(":
+            out.append(ReadSExpr(stream))
+        else:
+            out.append(ExpandShortHand(token))
+    return out
 
 
 def ReadPiece(field, token, stream) -> Any:
@@ -2114,21 +2136,14 @@ def ReadPiece(field, token, stream) -> Any:
     elif nfd.kind is NFK.NODE:
         if token == "(":
             return ReadSExpr(stream)
-        return ExpandShortHand(field, token)
+        out = ExpandShortHand(token)
+        assert out is not None, f"Cannot expand {token} for {field}"
+        return out
     elif nfd.kind is NFK.LIST:
         assert token == "[", f"expected list start for: {field} {token}"
-        out = []
-        while True:
-            token = next(stream)
-            if token == "]":
-                break
-            if token == "(":
-                out.append(ReadSExpr(stream))
-            else:
-                out.append(ExpandShortHand(field, token))
-        return out
+        return ReadList(stream)
     else:
-        assert False
+        assert None
 
 
 BINOP_BOOL = {
@@ -2166,6 +2181,19 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     BINARY_EXPR_KIND.OR,
     BINARY_EXPR_KIND.XOR,
 }
+
+
+def ReadMacroInvocation(tag, stream):
+    logger.info("Readding MACRO %s", tag)
+    args = []
+    while True:
+        token = next(stream)
+        if token == ")":
+            return MacroInvoke(tag, args)
+        elif token == "(":
+            args.append(ReadSExpr(stream))
+        elif token == "[":
+            args.append(ReadList(stream))
 
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
@@ -2209,6 +2237,8 @@ def ReadSExpr(stream: ReadTokens) -> Any:
                                    ["lhs", "expr"], stream)
     else:
         cls = _NODES_ALIASES.get(tag)
+        if not cls:
+            return ReadMacroInvocation(tag, stream)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
         fields = [f for f, _ in cls.__annotations__.items()
                   if not f.startswith("x_")]
