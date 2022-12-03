@@ -32,10 +32,12 @@ class SymTab:
         self._enum_syms: Dict[str, cwast.DefEnum] = {}
 
         self._fun_syms: Dict[str, cwast.DefFun] = {}
+        self._macro_syms: Dict[str, cwast.DefFun] = {}
+
         self._var_syms: Dict[str, cwast.DefVar] = {}
         self._mod_syms: Dict[str, cwast.DefMod] = {}
 
-        self._local_var_syms: Dict[str, cwast.DefVar] = []
+        self._local_var_syms: List[Dict[str, cwast.DefVar]] = []
         #
 
     def _push_scope(self):
@@ -45,6 +47,8 @@ class SymTab:
         self._local_var_syms.pop(-1)
 
     def _add_local_symbol(self, name, node):
+        logger.info("recording local symbol [%s]", node)
+
         if isinstance(node, cwast.LOCAL_SYM_DEF_NODES):
             self._local_var_syms[-1][name] = node
         else:
@@ -67,9 +71,11 @@ class SymTab:
                 return item
         return None
 
+    def resolve_macro_sym(self, name: str) -> Optional[Any]:
+        return self._local_var_syms[0].get(name)
+
     def resolve_sym(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        logger.info("resolving %s", components)
         if len(components) > 1:
             s = self._enum_syms.get(components[0])
             if s:
@@ -98,16 +104,16 @@ class SymTab:
                 return s
         return None
 
-    def _add_link(self, id_node: cwast.Id, def_node):
-        assert isinstance(id_node, cwast.Id)
+    def _add_link(self, id_node, def_node):
+        logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
+        assert cwast.NF.SYMBOL_ANNOTATED in id_node.__class__.FLAGS
         assert isinstance(def_node,
                           cwast.GLOBAL_SYM_DEF_NODES +
                           cwast.LOCAL_SYM_DEF_NODES), f"unpexpected node: {def_node}"
         id_node.x_symbol = def_node
 
     def resolve_symbols_recursively(self, node, mod_map, symtab_map):
-        logger.info("UNSYMBOLIZE %s", type(node).__name__)
-        if isinstance(node, cwast.DefVar):
+        if isinstance(node, (cwast.DefVar, cwast.MacroVar, cwast.MacroVarIndirect)):
             self._add_local_symbol(node.name, node)
         elif isinstance(node, cwast.Catch):
             self._add_local_symbol(node.name, node)
@@ -118,20 +124,25 @@ class SymTab:
         elif isinstance(node, cwast.Id):
             def_node = self.resolve_sym(
                 node.name.split("/"), symtab_map, False)
-            if def_node:
-                self._add_link(node, def_node)
-                return
-            else:
-                logger.error(f"cannot resolve symbol {node}")
-                exit(1)
+            assert def_node is not None, f"cannot resolve symbol {node}"
+            self._add_link(node, def_node)
+            return
+
+        if isinstance(node, (cwast.MacroId, cwast.MacroVarIndirect)):
+            def_node = self.resolve_macro_sym(node.name)
+            assert def_node is not None, f"cannot resolve symbol {node}"
+            self._add_link(node, def_node)
 
         if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
-            logger.info("push scope for %s", type(node).__name__)
+            logger.info("push scope for %s", node)
             self._push_scope()
             if isinstance(node, cwast.StmtFor):
                 self._add_local_symbol(node.name, node)
             elif isinstance(node, cwast.DefFun):
                 for p in node.params:
+                    self._add_local_symbol(p.name, p)
+            elif isinstance(node, cwast.DefMacro):
+                for p in node.params_macro:
                     self._add_local_symbol(p.name, p)
 
         # recurse using a little bit of introspection
@@ -142,25 +153,28 @@ class SymTab:
                     getattr(node, c), mod_map, symtab_map)
             elif nfd.kind is cwast.NFK.LIST:
                 if c in ("body_t", "body_f"):
-                    logger.info("push scope for if blocks")
+                    logger.info("push scope for if block: %s" % c)
                     self._push_scope()
                 for cc in getattr(node, c):
                     self.resolve_symbols_recursively(cc, mod_map, symtab_map)
                 if c in ("body_t", "body_f"):
-                    logger.info("push scope for if blocks")
+                    logger.info("pop scope for if block: %s" %c )
                     self._pop_scope()
 
         if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
             self._pop_scope()
-            logger.info("pop scope for %s", type(node).__name__)
+            logger.info("pop scope for %s", node)
         if isinstance(node, cwast.Try):
             self._add_local_symbol(node.name, node)
 
     def add_top_level_sym(self, node, mod_map):
-        logger.info("recording top level symbol [%s]", node.name)
+        logger.info("recording global symbol [%s]", node)
         if isinstance(node, cwast.DefFun):
             assert node.name not in self._fun_syms
             self._fun_syms[node.name] = node
+        elif isinstance(node, cwast.DefMacro):
+            assert node.name not in self._macro_syms
+            self._macro_syms[node.name] = node
         elif isinstance(node, cwast.DefVar):
             assert node.name not in self._var_syms
             self._var_syms[node.name] = node
@@ -219,23 +233,23 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
 
 
-def _VerifyASTSymbolsRecursively(node):
-    if isinstance(node, cwast.Id):
-        assert node.x_symbol is not None, f"unresolved {node}"
+def _VerifyASTSymbolsRecursively(node, parent):
+    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            _VerifyASTSymbolsRecursively(getattr(node, c))
+            _VerifyASTSymbolsRecursively(getattr(node, c), node)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                _VerifyASTSymbolsRecursively(cc)
+                _VerifyASTSymbolsRecursively(cc, node)
 
 
 def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
                      mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
-        symtab_map[m] = _VerifyASTSymbolsRecursively(mod_map[m])
+        symtab_map[m] = _VerifyASTSymbolsRecursively(mod_map[m], None)
 
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[

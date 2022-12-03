@@ -43,13 +43,13 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     MUST_HAVE_VALUE = enum.auto()
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
+    SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
     TOP_LEVEL_ONLY = enum.auto()
     TOP_LEVEL = enum.auto()
-
 
 
 @enum.unique
@@ -59,6 +59,11 @@ class GROUP(enum.IntEnum):
     Statement = enum.auto()
     Value = enum.auto()
     Expression = enum.auto()
+    Macro = enum.auto()
+
+
+def _NAME(node):
+    return "[" + node.ALIAS + "]"
 
 ############################################################
 # Comment
@@ -79,7 +84,7 @@ class Comment:
     comment: str
 
     def __str__(self):
-        return "# " + self.comment
+        return f"{_NAME(self)} {self.comment}"
 
 ############################################################
 # Identifier
@@ -100,9 +105,9 @@ class Id:
 
     Ids may contain a path component indicating which modules they reference.
     """
-    ALIAS = None
+    ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
     x_type: Optional[Any] = None
@@ -111,7 +116,7 @@ class Id:
 
     def __str__(self):
         joiner = "::" if self.path else ""
-        return f"{self.path}{joiner}{self.name}"
+        return f"{_NAME(self)} {self.path}{joiner}{self.name}"
 
 
 class TypeAuto:
@@ -127,7 +132,7 @@ class TypeAuto:
     # x_type: Optional[Any] = None
 
     def __str__(self):
-        return "AUTO"
+        return f"{_NAME(self)}"
 
 
 ############################################################
@@ -253,7 +258,7 @@ class TypePtr:
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
-        return f"PTR{mod}({self.type})"
+        return f"{_NAME(self)}({self.type})"
 
 
 @dataclasses.dataclass()
@@ -275,7 +280,7 @@ class TypeSlice:
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
-        return f"SLICE{mod}({self.type})"
+        return f"{_NAME(self)}{mod}({self.type})"
 
 
 @dataclasses.dataclass()
@@ -283,7 +288,7 @@ class TypeArray:
     """An array of the given type and `size`
 
     """
-    ALIAS = None
+    ALIAS = "array"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
@@ -296,7 +301,7 @@ class TypeArray:
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
-        return f"TypeArray {self.mut} ({self.type}) {self.size}"
+        return f"{_NAME(self)} {self.mut} ({self.type}) {self.size}"
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -320,7 +325,7 @@ class TypeFun:
 
     def __str__(self):
         t = [str(t) for t in self.params]
-        return f"TypeFun {' '.join(t)} -> {self.result}"
+        return f"{_NAME(self)} {' '.join(t)} -> {self.result}"
 
 
 TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
@@ -345,7 +350,8 @@ class TypeSum:
 
     def __str__(self):
         t = [str(t) for t in self.types]
-        return f"TypeSum {' '.join(t)}"
+        return f"{_NAME(self)} {' '.join(t)}"
+
 
 ############################################################
 # Val Nodes
@@ -360,19 +366,19 @@ class ValAuto:
 
     Used for: array dimensions, enum values, chap and range
     """
-    ALIAS = None
+    ALIAS = "auto_val"
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return "VAL-AUTO"
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
 class ValTrue:
     """Bool constant `true`"""
-    ALIAS = None
+    ALIAS = "true"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
@@ -380,13 +386,13 @@ class ValTrue:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return "TRUE"
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
 class ValFalse:
     """Bool constant `false`"""
-    ALIAS = None
+    ALIAS = "false"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
@@ -394,7 +400,7 @@ class ValFalse:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return "FALSE"
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
@@ -419,12 +425,14 @@ class ValNum:
 class ValUndef:
     """Special constant to indiciate *no default value*
     """
-    ALIAS = None
+    ALIAS = "undef"
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
 
     x_value: Optional[Any] = None    # this is always a ValUndef() object
-    def __str__(self): return f"UNDEF"
+
+    def __str__(self):
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
@@ -433,14 +441,15 @@ class ValVoid:
 
     It can be used to model *null* in nullable pointers via a sum type.
      """
-    ALIAS = None
+    ALIAS = "void_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return "VOID"
+    def __str__(self):
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
@@ -753,7 +762,7 @@ class Expr2:
 
 @dataclasses.dataclass()
 class Expr3:
-    """Tertiary expression (like C's `? :`) 
+    """Tertiary expression (like C's `? :`)
     """
     ALIAS = "?"
     GROUP = GROUP.Expression
@@ -773,7 +782,7 @@ class Expr3:
 
 @dataclasses.dataclass()
 class ExprIndex:
-    """Checked indexed access of array or slice 
+    """Checked indexed access of array or slice
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
@@ -862,6 +871,7 @@ class ExprAs:
     def __str__(self):
         return f"{self.expr} AS {self.type}"
 
+
 @dataclasses.dataclass()
 class ExprAsNot:
     """Cast of Union to diff of the union and the given type
@@ -879,9 +889,10 @@ class ExprAsNot:
     def __str__(self):
         return f"{self.expr} AS {self.type}"
 
+
 @dataclasses.dataclass()
 class ExprTryAs:
-    """Narrow a `expr` which is of Sum to `type` 
+    """Narrow a `expr` which is of Sum to `type`
 
     If the is not possible return `default_or_undef` if that is not undef
     or trap otherwise.
@@ -948,7 +959,7 @@ class ExprSizeof:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"SIZEOF {self.type}"
+        return f"{self.ALIAS} {self.type}"
 
 
 @dataclasses.dataclass()
@@ -991,6 +1002,17 @@ class ExprRange:
 
     def __str__(self):
         return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
+
+
+@dataclasses.dataclass()
+class ExprSrcLoc:
+    """Source Location encoded as u32"""
+    ALIAS = "src_loc"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
 
 ############################################################
@@ -1085,7 +1107,7 @@ class StmtIf:
     body_f: List[BODY_NODES]
 
     def __str__(self):
-        return f"IF {self.cond}"
+        return f"{_NAME(self)} {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1112,7 +1134,7 @@ class StmtCond:
     cases: List[Case]
 
     def __str__(self):
-        return f"COND"
+        return f"{self.ALIAS}"
 
 # @dataclasses.dataclass()
 # class StmtWhen:
@@ -1135,7 +1157,7 @@ class StmtBreak:
     target: str  # use "" for no value
 
     def __str__(self):
-        return f"BREAK {self.target}"
+        return f"{self.ALIAS} {self.target}"
 
 
 @dataclasses.dataclass()
@@ -1149,7 +1171,7 @@ class StmtContinue:
     target: str  # use "" for no value
 
     def __str__(self):
-        return f"CONTINUE {self.target}"
+        return f"{self.ALIAS} {self.target}"
 
 
 @dataclasses.dataclass()
@@ -1164,7 +1186,7 @@ class StmtReturn:
     expr_ret: EXPR_NODE
 
     def __str__(self):
-        return f"RETURN {self.expr_ret}"
+        return f"{self.ALIAS} {self.expr_ret}"
 
 
 @dataclasses.dataclass()
@@ -1181,7 +1203,7 @@ class StmtExpr:
     expr: ExprCall
 
     def __str__(self):
-        return f"StmtExpr {self.discard}"
+        return f"{self.ALIAS} {self.discard}"
 
 
 @dataclasses.dataclass()
@@ -1206,7 +1228,7 @@ class StmtStaticAssert:
     message: str     # should this be an expression?
 
     def __str__(self):
-        return f"StaticAssert {self.cond}"
+        return f"{self.ALIAS} {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1291,7 +1313,7 @@ class StmtAssignment:
 class RecField:  #
     """Record field
 
-    All fields must be explicitly initialized. Use `ValUndef` in performance 
+    All fields must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     """
     ALIAS = "field"
@@ -1418,7 +1440,7 @@ class DefVar:
 
     public visibily only makes sense for module level definitions.
 
-    Variables must be explicitly initialized. Use `ValUndef` in performance 
+    Variables must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     """
     ALIAS = "let"
@@ -1459,7 +1481,7 @@ class Try:
     """Variable definition if type matches otherwise `catch`
 
     This is the most complex node in Cwerg. It only makes sense for `expr` that
-    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
+    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest].
     The statement desugar to this:
 
     (let `mut` tmp auto `expr`)
@@ -1564,8 +1586,125 @@ class Import:
     alias: str
 
     def __str__(self):
-        return f"IMPORT {self.name}"
+        return f"{self.ALIAS} {self.name}"
 
+############################################################
+# Macro
+############################################################
+
+
+@enum.unique
+class MACRO_PARAM_KIND(enum.Enum):
+    """Macro Parameter Kinds"""
+    INVALID = 0
+    FLAG = 1
+    ID = 2
+    EXPR = 3
+    STMT_LIST = 4
+    LAZY_EXPR = 5
+
+
+@dataclasses.dataclass()
+class MacroId:
+    """Placeholder for a parameter
+
+    This node will be expanded with the actual argument
+    """
+    ALIAS = "macro_id"
+    GROUP = GROUP.Macro
+    FLAGS = NF.SYMBOL_ANNOTATED
+
+    name: str
+    x_symbol: Optional[Any] = None
+ 
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+@dataclasses.dataclass()
+class MacroVar:
+    """Macro Variable definition with a name that will be uniquified
+
+    Will generate a unique name inspired by the provided name to avoid accidental
+    capture.
+
+    Variable must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    """
+    ALIAS = "macro_let"
+    GROUP = GROUP.Macro
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.mut} {self.name} {self.initial_or_undef}"
+
+
+@dataclasses.dataclass()
+class MacroVarIndirect:
+    """Macro Variable definition whose name is a macro parameter
+
+
+    Variable must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    """
+    ALIAS = "macro_let_indirect"
+    GROUP = GROUP.Macro
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.SYMBOL_ANNOTATED
+
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+
+    x_symbol: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.mut} {self.name} {self.initial_or_undef}"
+
+
+@dataclasses.dataclass()
+class MacroRepeat:
+    """Macro Repeated Statement"""
+    ALIAS = "macro_repeat"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+
+
+@dataclasses.dataclass()
+class MacroParam:
+    """Macro Parameter"""
+    ALIAS = "macro_param"
+    GROUP = GROUP.Macro
+    FLAGS = NF.LOCAL_SYM_DEF
+
+    repeat: bool
+    name: str
+    macro_param_kind: MACRO_PARAM_KIND
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
+
+PARAMS_MACRO_NODES = Union[Comment, MacroParam]
+
+
+@dataclasses.dataclass()
+class DefMacro:
+    """Define a macro"""
+    ALIAS = "macro"
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
+
+    name: str
+    params_macro: List[PARAMS_MACRO_NODES]
+    body_macro: List[Any]
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
 ############################################################
 # S-Expression Serialization (Introspection driven)
 ############################################################
@@ -1613,6 +1752,7 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "init", "run function at startup"),
     NFD(NFK.FLAG, "fini", "run function at shutdown"),
     NFD(NFK.FLAG, "raw", "ignore escape sequences in string"),
+    NFD(NFK.FLAG, "repeat", "last macro parameter is repeated"),
     #
     NFD(NFK.KIND, "unary_expr_kind", "see Expr1 Kind below", UNARY_EXPR_KIND),
     NFD(NFK.KIND, "binary_expr_kind", "see Expr2 Kind below", BINARY_EXPR_KIND),
@@ -1620,9 +1760,12 @@ ALL_FIELDS = [
     NFD(NFK.KIND, "mod_param_kind", "see ModParam Kind below",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind",
         "see StmtCompoundAssignment Kind below", ASSIGNMENT_KIND),
+    NFD(NFK.KIND,  "macro_param_kind",
+        "see MacroParam Kind below",  MACRO_PARAM_KIND),
     #
     NFD(NFK.LIST, "params", "function parameters and/or comments", PARAMS_NODES),
     NFD(NFK.LIST, "params_mod", "module template parameters", PARAMS_MOD_NODES),
+    NFD(NFK.LIST, "params_macro", "macro parameters", PARAMS_MACRO_NODES),
     NFD(NFK.LIST, "args", "function call arguments", "TBD"),
     NFD(NFK.LIST, "items", "enum items and/or comments", ITEMS_NODES),
     NFD(NFK.LIST, "fields", "record fields and/or comments", TYPES_NODES),
@@ -1638,6 +1781,8 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "body_f", "statement list and/or comments for false branch", BODY_NODES),
     NFD(NFK.LIST, "body_except",
         "statement list and/or comments when type narrowing fails", BODY_NODES),
+    NFD(NFK.LIST, "body_macro",
+        "macro statments/expression", BODY_MOD_NODES),
     #
     NFD(NFK.NODE, "init_index", "initializer index or empty (empty mean next index)"),
     NFD(NFK.NODE, "type", "type expression"),
@@ -1802,7 +1947,8 @@ def GenerateDocumentation(fout):
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
 
     print("\n## Enum Overview",  file=fout)
-    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types", "ModParam Types"]:
+    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types",
+                "ModParam Types", "MacroParam Types"]:
         name = cls + " Kind"
         anchor = MakeAnchor(name, None)
         print(f"[{name}](#{anchor}) &ensp;", file=fout)
@@ -1810,9 +1956,9 @@ def GenerateDocumentation(fout):
     nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
     last_group = ""
     for group, name, cls in nodes:
-        if last_group  != group:
-             print(f"\n## {group.name} Node Details",  file=fout)
-             last_group = group
+        if last_group != group:
+            print(f"\n## {group.name} Node Details",  file=fout)
+            last_group = group
         print(f"", file=fout)
         alias = ""
         if cls.ALIAS:
@@ -1863,6 +2009,8 @@ def GenerateDocumentation(fout):
                       BASE_TYPE_KIND, fout)
     _RenderKindSimple("ModParam Types",
                       MOD_PARAM_KIND, fout)
+    _RenderKindSimple("MacroParam Types",
+                      MACRO_PARAM_KIND, fout)
 ##########################################################################################
 
 

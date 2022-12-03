@@ -10,6 +10,7 @@ WIP
 [DefConst&nbsp;(const)](#defconst-const) &ensp;
 [DefEnum&nbsp;(defenum)](#defenum-defenum) &ensp;
 [DefFun&nbsp;(defun)](#deffun-defun) &ensp;
+[DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [DefMod&nbsp;(defmod)](#defmod-defmod) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
 [DefType&nbsp;(deftype)](#deftype-deftype) &ensp;
@@ -20,6 +21,7 @@ WIP
 [Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
 [ExprAs&nbsp;(as)](#expras-as) &ensp;
+[ExprAsNot&nbsp;(asnot)](#exprasnot-asnot) &ensp;
 [ExprBitCast&nbsp;(bitcast)](#exprbitcast-bitcast) &ensp;
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
 [ExprChop&nbsp;(chop)](#exprchop-chop) &ensp;
@@ -32,13 +34,19 @@ WIP
 [ExprParen](#exprparen) &ensp;
 [ExprRange&nbsp;(range)](#exprrange-range) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
+[ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [FieldVal](#fieldval) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
-[Id](#id) &ensp;
+[Id&nbsp;(id)](#id-id) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [IndexVal](#indexval) &ensp;
+[MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
+[MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
+[MacroRepeat&nbsp;(macro_repeat)](#macrorepeat-macro_repeat) &ensp;
+[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
+[MacroVarIndirect&nbsp;(macro_let_indirect)](#macrovarindirect-macro_let_indirect) &ensp;
 [ModParam](#modparam) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssert&nbsp;(assert)](#stmtassert-assert) &ensp;
@@ -49,7 +57,7 @@ WIP
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtContinue&nbsp;(continue)](#stmtcontinue-continue) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
-[StmtExpr&nbsp;(expr)](#stmtexpr-expr) &ensp;
+[StmtExpr&nbsp;(stmt)](#stmtexpr-stmt) &ensp;
 [StmtFor&nbsp;(for)](#stmtfor-for) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
@@ -57,7 +65,7 @@ WIP
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
 [StmtWhile&nbsp;(while)](#stmtwhile-while) &ensp;
 [Try&nbsp;(try)](#try-try) &ensp;
-[TypeArray](#typearray) &ensp;
+[TypeArray&nbsp;(array)](#typearray-array) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
@@ -65,14 +73,14 @@ WIP
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
 [ValArray](#valarray) &ensp;
-[ValAuto](#valauto) &ensp;
-[ValFalse](#valfalse) &ensp;
+[ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
+[ValFalse&nbsp;(false)](#valfalse-false) &ensp;
 [ValNum](#valnum) &ensp;
 [ValRec&nbsp;(rec)](#valrec-rec) &ensp;
 [ValString](#valstring) &ensp;
-[ValTrue](#valtrue) &ensp;
-[ValUndef](#valundef) &ensp;
-[ValVoid](#valvoid) &ensp;
+[ValTrue&nbsp;(true)](#valtrue-true) &ensp;
+[ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
+[ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
 
 ## Enum Overview
 [Expr1 Kind](#expr1-kind) &ensp;
@@ -80,8 +88,7 @@ WIP
 [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) &ensp;
 [Base Types Kind](#base-types-kind) &ensp;
 [ModParam Types Kind](#modparam-types-kind) &ensp;
-
-## Node Details
+[MacroParam Types Kind](#macroparam-types-kind) &ensp;
 
 ## Misc Node Details
 
@@ -95,7 +102,7 @@ Comment
 Fields:
 * comment [STR]: comment
 
-### Id
+### Id (id)
 Refers to a type, variable, constant, function, module by name.
 
     Ids may contain a path component indicating which modules they reference.
@@ -149,7 +156,7 @@ Fields:
 ### RecField (field)
 Record field
 
-    All fields must be explicitly initialized. Use `ValUndef` in performance 
+    All fields must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     
 
@@ -158,7 +165,7 @@ Fields:
 * type [NODE]: type expression
 * initial_or_undef [NODE] (default ValUndef): initializer
 
-### TypeArray
+### TypeArray (array)
 An array of the given type and `size`
 
     
@@ -259,6 +266,18 @@ Fields:
 * result [NODE]: return type
 * body [LIST]: statement list and/or comments
 
+### DefMacro (macro)
+Define a macro
+
+Creates a new scope
+
+Allowed at top level only
+
+Fields:
+* name [STR]: name of the object
+* params_macro [LIST]: macro parameters
+* body_macro [LIST]: macro statments/expression
+
 ### DefMod (defmod)
 Module Definition
 
@@ -288,7 +307,7 @@ Variable definition
 
     public visibily only makes sense for module level definitions.
 
-    Variables must be explicitly initialized. Use `ValUndef` in performance 
+    Variables must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     
 
@@ -383,7 +402,7 @@ Creates a new scope
 Fields:
 * body [LIST]: statement list and/or comments
 
-### StmtExpr (expr)
+### StmtExpr (stmt)
 Expression statement
 
     If expression does not have type void, `discard` must be `true`
@@ -452,7 +471,7 @@ Fields:
 Variable definition if type matches otherwise `catch`
 
     This is the most complex node in Cwerg. It only makes sense for `expr` that
-    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest]. 
+    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest].
     The statement desugar to this:
 
     (let `mut` tmp auto `expr`)
@@ -518,7 +537,7 @@ Fields:
 * expr_size [NODE]: expression determining the size or auto
 * inits_array [LIST]: array initializers and/or comments
 
-### ValAuto
+### ValAuto (auto_val)
 Placeholder for an unspecified (auto derived) value
 
     Used for: array dimensions, enum values, chap and range
@@ -526,7 +545,7 @@ Placeholder for an unspecified (auto derived) value
 
 Fields:
 
-### ValFalse
+### ValFalse (false)
 Bool constant `false`
 
 Fields:
@@ -561,18 +580,18 @@ Fields:
 * raw [FLAG]: ignore escape sequences in string
 * string [STR]: string literal
 
-### ValTrue
+### ValTrue (true)
 Bool constant `true`
 
 Fields:
 
-### ValUndef
+### ValUndef (undef)
 Special constant to indiciate *no default value*
     
 
 Fields:
 
-### ValVoid
+### ValVoid (void_val)
 Only value inhabiting the `TypeVoid` type
 
     It can be used to model *null* in nullable pointers via a sum type.
@@ -598,7 +617,7 @@ Fields:
 * expr2 [NODE]: righ operand expression
 
 ### Expr3 (?)
-Tertiary expression (like C's `? :`) 
+Tertiary expression (like C's `? :`)
     
 
 Fields:
@@ -629,6 +648,15 @@ Safe Cast (Conversion)
     Possibly
     slice -> ptr
     ptr to rec -> ptr to first element of rec
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
+
+### ExprAsNot (asnot)
+Cast of Union to diff of the union and the given type
+
     
 
 Fields:
@@ -681,7 +709,7 @@ Fields:
 * field [STR]: record field
 
 ### ExprIndex (at)
-Checked indexed access of array or slice 
+Checked indexed access of array or slice
     
 
 Fields:
@@ -742,8 +770,13 @@ Byte size of type
 Fields:
 * type [NODE]: type expression
 
+### ExprSrcLoc (src_loc)
+Source Location encoded as u32
+
+Fields:
+
 ### ExprTryAs (tryas)
-Narrow a `expr` which is of Sum to `type` 
+Narrow a `expr` which is of Sum to `type`
 
     If the is not possible return `default_or_undef` if that is not undef
     or trap otherwise.
@@ -766,6 +799,58 @@ Unsafe Cast
 Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
+
+## Macro Node Details
+
+### MacroId (macro_id)
+Placeholder for a parameter
+
+    This node will be expanded with the actual argument
+    
+
+Fields:
+* name [STR]: name of the object
+
+### MacroParam (macro_param)
+Macro Parameter
+
+Fields:
+* repeat [FLAG]: last macro parameter is repeated
+* name [STR]: name of the object
+* macro_param_kind [KIND]: see MacroParam Kind below
+
+### MacroRepeat (macro_repeat)
+Macro Repeated Statement
+
+### MacroVar (macro_let)
+Macro Variable definition with a name that will be uniquified
+
+    Will generate a unique name inspired by the provided name to avoid accidental
+    capture.
+
+    Variable must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* initial_or_undef [NODE] (default ValUndef): initializer
+
+### MacroVarIndirect (macro_let_indirect)
+Macro Variable definition whose name is a macro parameter
+
+
+    Variable must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    
+
+Fields:
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* initial_or_undef [NODE] (default ValUndef): initializer
 ## Enum Details
 
 ### Expr1 Kind
@@ -844,3 +929,13 @@ Fields:
 |CONST     |
 |MOD       |
 |TYPE      |
+
+### MacroParam Types Kind
+
+|Kind|
+|----|
+|FLAG      |
+|ID        |
+|EXPR      |
+|STMT_LIST |
+|LAZY_EXPR |
