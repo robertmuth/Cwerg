@@ -112,6 +112,25 @@ class SymTab:
                           cwast.LOCAL_SYM_DEF_NODES), f"unpexpected node: {def_node}"
         id_node.x_symbol = def_node
 
+    def resolve_symbols_recursively_outside_functions_and_macros(
+            self, node, mod_map, symtab_map):
+        if isinstance(node, cwast.Id):
+            def_node = self.resolve_sym(
+                node.name.split("/"), symtab_map, False)
+            assert def_node is not None, f"cannot resolve symbol {node}"
+            self._add_link(node, def_node)
+            return
+
+        # recurse using a little bit of introspection
+        for c in node.__class__.FIELDS:
+            nfd = cwast.ALL_FIELDS_MAP[c]
+            if nfd.kind is cwast.NFK.NODE:
+                self.resolve_symbols_recursively_outside_functions_and_macros(
+                    getattr(node, c), mod_map, symtab_map)
+            elif nfd.kind is cwast.NFK.LIST:
+                for cc in getattr(node, c):
+                    self.resolve_symbols_recursively_outside_functions_and_macros(cc, mod_map, symtab_map)
+
     def resolve_symbols_recursively(self, node, mod_map, symtab_map):
         if isinstance(node, (cwast.DefVar, cwast.MacroVar, cwast.MacroVarIndirect)):
             self._add_local_symbol(node.name, node)
@@ -211,19 +230,13 @@ def ExtractGlobalSymTab(mod, mod_map) -> SymTab:
     return symtab
 
 
-def ResolveSymbolsOutsideFunctions(mod, mod_map, symtab_map):
+def ResolveSymbolsOutsideFunctionsOrMacros(mod, mod_map, symtab_map):
     symtab = symtab_map[mod.name]
     for node in mod.body_mod:
         if isinstance(node, cwast.Comment):
             continue
-        elif isinstance(node, cwast.DefVar):
-            # we already registered the var in the previous step
-            symtab.resolve_symbols_recursively(
-                node.type_or_auto, mod_map, symtab_map)
-            symtab.resolve_symbols_recursively(
-                node.initial_or_undef, mod_map, symtab_map)
         elif not isinstance(node, cwast.DefFun):
-            symtab.resolve_symbols_recursively(node, mod_map, symtab_map)
+            symtab.resolve_symbols_recursively_outside_functions_and_macros(node, mod_map, symtab_map)
 
 
 def ResolveSymbolsInsideFunctions(mod, mod_map, symtab_map):
@@ -241,7 +254,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
     for m in mod_topo_order:
         symtab_map[m] = ExtractGlobalSymTab(mod_map[m], mod_map)
     for m in mod_topo_order:
-        ResolveSymbolsOutsideFunctions(mod_map[m], mod_map, symtab_map)
+        ResolveSymbolsOutsideFunctionsOrMacros(mod_map[m], mod_map, symtab_map)
     for m in mod_topo_order:
         ResolveSymbolsInsideFunctions(mod_map[m], mod_map, symtab_map)
 
