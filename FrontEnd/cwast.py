@@ -617,7 +617,7 @@ class ExprCall:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"CALL"
+        return f"{_NAME(self)} {self.callee}"
 
 
 @dataclasses.dataclass()
@@ -1676,6 +1676,16 @@ class MacroRepeat:
 
 
 @dataclasses.dataclass()
+class MacroListArg:
+    """Macro Repeated Statement"""
+    ALIAS = "macro_list_arg"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+
+    args: List[EXPR_NODE]
+
+
+@dataclasses.dataclass()
 class MacroParam:
     """Macro Parameter"""
     ALIAS = "macro_param"
@@ -1690,9 +1700,10 @@ class MacroParam:
         return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
 
 
+@dataclasses.dataclass()
 class MacroInvoke:
     """Macro Invocation"""
-    ALIAS = "macro_param"
+    ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
     FLAGS = NF(0)
 
@@ -2088,12 +2099,11 @@ for t in _SCALAR_TYPES:
 def ExpandShortHand(t) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
 
-
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         assert x is not None, f"{t}"
         return x
-    
+
     if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
         # TODO: r"
         return ValString(False, t)
@@ -2193,7 +2203,13 @@ def ReadMacroInvocation(tag, stream):
         elif token == "(":
             args.append(ReadSExpr(stream))
         elif token == "[":
-            args.append(ReadList(stream))
+            args.append(MacroListArg(ReadList(stream)))
+        else:   
+            out = ExpandShortHand(token)
+            assert out is not None, f"unexpected macro arg {token}"
+            args.append(out)
+    return args
+
 
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):

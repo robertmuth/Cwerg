@@ -158,7 +158,7 @@ class SymTab:
                 for cc in getattr(node, c):
                     self.resolve_symbols_recursively(cc, mod_map, symtab_map)
                 if c in ("body_t", "body_f"):
-                    logger.info("pop scope for if block: %s" %c )
+                    logger.info("pop scope for if block: %s" % c)
                     self._pop_scope()
 
         if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
@@ -198,7 +198,7 @@ class SymTab:
             assert False, f"unexpected node: {node}"
 
 
-def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
+def ExtractGlobalSymTab(mod, mod_map) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
     logger.info("Processing %s", mod.name)
@@ -208,8 +208,11 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
             continue
         else:
             symtab.add_top_level_sym(node, mod_map)
+    return symtab
 
-    # pass 2:
+
+def ResolveSymbolsOutsideFunctions(mod, mod_map, symtab_map):
+    symtab = symtab_map[mod.name]
     for node in mod.body_mod:
         if isinstance(node, cwast.Comment):
             continue
@@ -219,18 +222,28 @@ def ExtractSymTab(mod, mod_map, symtab_map) -> SymTab:
                 node.type_or_auto, mod_map, symtab_map)
             symtab.resolve_symbols_recursively(
                 node.initial_or_undef, mod_map, symtab_map)
-        else:
+        elif not isinstance(node, cwast.DefFun):
+            symtab.resolve_symbols_recursively(node, mod_map, symtab_map)
+
+
+def ResolveSymbolsInsideFunctions(mod, mod_map, symtab_map):
+    symtab = symtab_map[mod.name]
+    for node in mod.body_mod:
+        if isinstance(node, cwast.DefFun):
             symtab.resolve_symbols_recursively(node, mod_map, symtab_map)
     #
     assert not symtab._local_var_syms
-    return symtab
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                            mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
-        symtab_map[m] = ExtractSymTab(mod_map[m], mod_map, symtab_map)
+        symtab_map[m] = ExtractGlobalSymTab(mod_map[m], mod_map)
+    for m in mod_topo_order:
+        ResolveSymbolsOutsideFunctions(mod_map[m], mod_map, symtab_map)
+    for m in mod_topo_order:
+        ResolveSymbolsInsideFunctions(mod_map[m], mod_map, symtab_map)
 
 
 def _VerifyASTSymbolsRecursively(node, parent):
@@ -247,9 +260,8 @@ def _VerifyASTSymbolsRecursively(node, parent):
 
 def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
                      mod_map: Dict[str, cwast.DefMod]):
-    symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
-        symtab_map[m] = _VerifyASTSymbolsRecursively(mod_map[m], None)
+        _VerifyASTSymbolsRecursively(mod_map[m], None)
 
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
