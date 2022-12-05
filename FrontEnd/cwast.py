@@ -1527,7 +1527,7 @@ class DefFun:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
-        return f"FUN {self.name} [{params}]->{self.result}"
+        return f"{_NAME(self)} {self.name} [{params}]->{self.result}"
 
 
 @enum.unique
