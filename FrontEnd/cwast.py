@@ -63,7 +63,9 @@ class GROUP(enum.IntEnum):
 
 
 def _NAME(node):
-    return "[" + node.ALIAS + "]"
+    if node.ALIAS is not None:
+        return "[" + node.ALIAS + "]"
+    return "[" + node.__class__.__name__ + "]"
 
 ############################################################
 # Comment
@@ -156,7 +158,7 @@ class FunParam:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"{self.name}: {self.type}"
+        return f"{_NAME(self)} {self.name}: {self.type}"
 
 
 @enum.unique
@@ -239,7 +241,7 @@ class TypeBase:
     x_size: int = -1
 
     def __str__(self):
-        return self.base_type_kind.name
+        return f"{_NAME(self)} {self.base_type_kind.name}"
 
 
 @dataclasses.dataclass()
@@ -418,7 +420,7 @@ class ValNum:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return self.number
+    def __str__(self): return f"{_NAME(self)} {self.number}"
 
 
 @dataclasses.dataclass()
@@ -469,7 +471,7 @@ class IndexVal:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"IndexVal [{self.init_index}] = {self.value_or_undef}"
+        return f"{_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -490,7 +492,7 @@ class FieldVal:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"FieldVal [{self.init_field}] = {self.value}"
+        return f"{_NAME(self)} [{self.init_field}] = {self.value}"
 
 
 INITS_ARRAY_NODES = Union[Comment, IndexVal]
@@ -513,7 +515,7 @@ class ValArray:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return "ValArray {self.expr_size}"
+        return f"{_NAME(self)} {self.expr_size}"
 
 
 @dataclasses.dataclass()
@@ -531,7 +533,7 @@ class ValString:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return f"STRING({self.string})"
+    def __str__(self): return f"{_NAME(self)} {self.string}"
 
 
 INITS_REC_NODES = Union[Comment, FieldVal]
@@ -554,7 +556,7 @@ class ValRec:
 
     def __str__(self):
         t = [str(i) for i in self.inits_rec]
-        return f"ValRec [{self.type}] {' '.join(t)}"
+        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
 
 
 ############################################################
@@ -580,7 +582,7 @@ class ExprDeref:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"DEREF {self.expr}"
+        return f"{_NAME(self)} {self.expr}"
 
 
 @dataclasses.dataclass()
@@ -600,7 +602,7 @@ class ExprAddrOf:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"ADDR_OF {self.mut} {self.expr}"
+        return f"{_NAME(self)} {self.mut} {self.expr}"
 
 
 @dataclasses.dataclass()
@@ -648,7 +650,7 @@ class ExprField:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"ExprField {self.container} . {self.field}"
+        return f"{_NAME(self)} {self.container} . {self.field}"
 
 
 @enum.unique
@@ -1367,7 +1369,7 @@ class EnumVal:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{self.name}: {self.value_or_auto}"
+        return f"{_NAME(self)} {self.name}: {self.value_or_auto}"
 
 
 ITEMS_NODES = Union[Comment, EnumVal]
@@ -1390,7 +1392,7 @@ class DefEnum:
     x_size: int = -1
 
     def __str__(self):
-        return f"ENUM {self.name}"
+        return f"{_NAME(self)} {self.name}"
 
 
 @dataclasses.dataclass()
@@ -1409,7 +1411,7 @@ class DefType:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"TYPE {self.name} = {self.type}"
+        return f"{_NAME(self)} {self.name} = {self.type}"
 
 
 CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
@@ -1431,7 +1433,7 @@ class DefConst:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"CONST {self.name}: {self.type_or_auto} = {self.value}"
+        return f"{_NAME(self)} {self.name}: {self.type_or_auto} = {self.value}"
 
 
 @dataclasses.dataclass()
@@ -1455,7 +1457,7 @@ class DefVar:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"LET {self.pub} {self.mut} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)} {self.pub} {self.mut} {self.name} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1470,7 +1472,7 @@ class Catch:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"CATCH {self.name}"
+        return f"{_NAME(self)} {self.name}"
 
 
 CATCH_NODE = Catch
@@ -1505,7 +1507,7 @@ class Try:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"TRY {self.name} := {self.expr} as {self.type}"
+        return f"{_NAME(self)} {self.name} := {self.expr} as {self.type}"
 
 
 @dataclasses.dataclass()
@@ -1549,7 +1551,7 @@ class ModParam:
     mod_param_kind: MOD_PARAM_KIND
 
     def __str__(self):
-        return f"{self.name}: {self.mod_param_kind.name}"
+        return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
 
 
 BODY_MOD_NODES = Union[Comment, DefFun, DefRec, DefConst, DefEnum, DefVar]
@@ -1573,7 +1575,7 @@ class DefMod:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"MOD {self.name} [{params}]"
+        return f"{_NAME(self)} {self.name} [{params}]"
 
 
 @dataclasses.dataclass()
@@ -1586,7 +1588,7 @@ class Import:
     alias: str
 
     def __str__(self):
-        return f"{self.ALIAS} {self.name}"
+        return f"{_NAME(self)} {self.name}"
 
 ############################################################
 # Macro
@@ -1705,7 +1707,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF(0)
+    FLAGS = NF.SYMBOL_ANNOTATED | NF.NEW_SCOPE  # this is a technicality
 
     name: str
     args: List[EXPR_NODE]
@@ -2204,12 +2206,11 @@ def ReadMacroInvocation(tag, stream):
             args.append(ReadSExpr(stream))
         elif token == "[":
             args.append(MacroListArg(ReadList(stream)))
-        else:   
+        else:
             out = ExpandShortHand(token)
             assert out is not None, f"unexpected macro arg {token}"
             args.append(out)
     return args
-
 
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
