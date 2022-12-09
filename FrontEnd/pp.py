@@ -118,11 +118,13 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     try:
+        stream = cwast.ReadTokens(sys.stdin)
         while True:
-            stream = cwast.ReadTokens(sys.stdin)
             t = next(stream)
-            assert t == "("
+            assert t == "(", f"expect start of new node, got '{t}']"
             sexpr = cwast.ReadSExpr(stream)
+            assert isinstance(sexpr, cwast.DefMod)
             PrettyPrint(sexpr)
+
     except StopIteration:
         pass

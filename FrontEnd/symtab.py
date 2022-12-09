@@ -310,17 +310,7 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
-    asts = []
-    try:
-        while True:
-            stream = cwast.ReadTokens(sys.stdin)
-            t = next(stream)
-            assert t == "("
-            sexpr = cwast.ReadSExpr(stream)
-            # print(sexpr)
-            asts.append(sexpr)
-    except StopIteration:
-        pass
+    asts = cwast.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)

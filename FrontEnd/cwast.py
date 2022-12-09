@@ -365,6 +365,7 @@ ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
                 "ValRec"]
 
 
+@dataclasses.dataclass()
 class ValAuto:
     """Placeholder for an unspecified (auto derived) value
 
@@ -1022,7 +1023,7 @@ class ExprSrcLoc:
 @dataclasses.dataclass()
 class ExprStringify:
     """Human readable representation of the expression
-    
+
     This is useful to implement for assert like features
     """
     ALIAS = "stringify"
@@ -2298,6 +2299,23 @@ VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
                ValString, ValRec)
 
+
+def ReadModsFromStream(fp) -> List[DefMod]:
+    asts = []
+    stream = ReadTokens(fp)
+    try:
+        while True:
+            t = next(stream)
+            assert t == "("
+            sexpr = ReadSExpr(stream)
+            assert isinstance(sexpr, DefMod)
+            print(sexpr)
+            asts.append(sexpr)
+    except StopIteration:
+        pass
+    return asts
+
+
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARN)
@@ -2305,13 +2323,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "gendoc":
         GenerateDocumentation(sys.stdout)
     else:
-        stream = ReadTokens(sys.stdin)
-        try:
-            while True:
-                t = next(stream)
-                assert t == "("
-                sexpr = ReadSExpr(stream)
-                print(sexpr)
-                print()
-        except StopIteration:
-            pass
+        ReadModsFromStream(sys.stdin)
