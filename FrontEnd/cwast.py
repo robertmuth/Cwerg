@@ -121,6 +121,7 @@ class Id:
         return f"{_NAME(self)} {self.path}{joiner}{self.name}"
 
 
+@dataclasses.dataclass()
 class TypeAuto:
     """Placeholder for an unspecified (auto derived) type
 
@@ -961,7 +962,7 @@ class ExprSizeof:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{self.ALIAS} {self.type}"
+        return f"{_NAME(self)} {self.type}"
 
 
 @dataclasses.dataclass()
@@ -980,7 +981,7 @@ class ExprOffsetof:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"OFFSETOF {self.type} {self.field}"
+        return f"{_NAME(self)} {self.type} {self.field}"
 
 
 @dataclasses.dataclass()
@@ -1057,7 +1058,7 @@ class StmtBlock:
     body: List[BODY_NODES]
 
     def __str__(self):
-        return f"BLOCK {self.label}"
+        return f"{_NAME(self)} {self.label}"
 
 
 @dataclasses.dataclass()
@@ -1077,7 +1078,7 @@ class StmtFor:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"FOR  {self.name}: {self.type_or_auto} = {self.range}"
+        return f"{_NAME(self)} {self.name}: {self.type_or_auto} = {self.range}"
 
 
 @dataclasses.dataclass()
@@ -1094,7 +1095,7 @@ class StmtDefer:
     body: List[BODY_NODES]  # must NOT contain RETURN
 
     def __str__(self):
-        return f"DEFER"
+        return f"{_NAME(self)}"
 
 
 @dataclasses.dataclass()
@@ -1123,7 +1124,7 @@ class Case:
     body: List[BODY_NODES]
 
     def __str__(self):
-        return f"CASE {self.cond}"
+        return f"{_NAME(self)} {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1136,7 +1137,7 @@ class StmtCond:
     cases: List[Case]
 
     def __str__(self):
-        return f"{self.ALIAS}"
+        return f"{_NAME(self)}"
 
 # @dataclasses.dataclass()
 # class StmtWhen:
@@ -1159,7 +1160,7 @@ class StmtBreak:
     target: str  # use "" for no value
 
     def __str__(self):
-        return f"{self.ALIAS} {self.target}"
+        return f"{_NAME(self)} {self.target}"
 
 
 @dataclasses.dataclass()
@@ -1173,7 +1174,7 @@ class StmtContinue:
     target: str  # use "" for no value
 
     def __str__(self):
-        return f"{self.ALIAS} {self.target}"
+        return f"{_NAME(self)} {self.target}"
 
 
 @dataclasses.dataclass()
@@ -1188,7 +1189,7 @@ class StmtReturn:
     expr_ret: EXPR_NODE
 
     def __str__(self):
-        return f"{self.ALIAS} {self.expr_ret}"
+        return f"{_NAME(self)} {self.expr_ret}"
 
 
 @dataclasses.dataclass()
@@ -1205,7 +1206,7 @@ class StmtExpr:
     expr: ExprCall
 
     def __str__(self):
-        return f"{self.ALIAS} {self.discard}"
+        return f"{_NAME(self)} {self.discard}"
 
 
 @dataclasses.dataclass()
@@ -1230,7 +1231,7 @@ class StmtStaticAssert:
     message: str     # should this be an expression?
 
     def __str__(self):
-        return f"{self.ALIAS} {self.cond}"
+        return f"{_NAME(self)} {self.cond}"
 
 
 @dataclasses.dataclass()
@@ -1290,7 +1291,7 @@ class StmtCompoundAssignment:
     expr: EXPR_NODE
 
     def __str__(self):
-        return f"StmtAssignment [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
+        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
 
 
 @dataclasses.dataclass()
@@ -1304,7 +1305,7 @@ class StmtAssignment:
     expr: EXPR_NODE
 
     def __str__(self):
-        return f"StmtAssignment {self.lhs} = {self.expr}"
+        return f"{_NAME(self)} {self.lhs} = {self.expr}"
 
 ############################################################
 # Definitions
@@ -1330,7 +1331,7 @@ class RecField:  #
     x_offset: int = -1
 
     def __str__(self):
-        return f"{self.name}: {self.type} = {self.initial_or_undef}"
+        return f"{_NAME(self)} {self.name}: {self.type} = {self.initial_or_undef}"
 
 
 FIELDS_NODES = Union[Comment, RecField]
@@ -1351,7 +1352,7 @@ class DefRec:
     x_size: int = -1
 
     def __str__(self):
-        return f"REC {self.name}"
+        return f" {self.name}"
 
 
 @dataclasses.dataclass()
@@ -1599,11 +1600,11 @@ class Import:
 class MACRO_PARAM_KIND(enum.Enum):
     """Macro Parameter Kinds"""
     INVALID = 0
-    FLAG = 1
     ID = 2
     EXPR = 3
     STMT_LIST = 4
     LAZY_EXPR = 5
+    FIELD = 6
 
 
 @dataclasses.dataclass()
@@ -1711,6 +1712,8 @@ class MacroInvoke:
 
     name: str
     args: List[EXPR_NODE]
+
+    x_symbol: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2110,6 +2113,8 @@ def ExpandShortHand(t) -> Any:
         # TODO: r"
         return ValString(False, t)
     elif _TOKEN_ID.match(t):
+        if t[0] == "$":
+            return MacroId(t, "")
         parts = t.rsplit("::", 1)
         return Id(parts[-1], "" if len(parts) == 1 else parts[0])
     elif _TOKEN_NUM.match(t):

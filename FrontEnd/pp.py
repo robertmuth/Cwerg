@@ -63,7 +63,7 @@ def GetNodeTypeAndFields(node, condense=True):
         return cls.__name__, fields
 
 
-def _RenderRecursively(node, out, indent: str):
+def RenderRecursively(node, out, indent: str):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -90,7 +90,7 @@ def _RenderRecursively(node, out, indent: str):
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:
             line.append(" ")
-            _RenderRecursively(val, out, indent)
+            RenderRecursively(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
             if not val:
                 line.append(" []")
@@ -98,7 +98,7 @@ def _RenderRecursively(node, out, indent: str):
                 line.append(" [")
                 for cc in val:
                     out.append([" " * (indent + 1)])
-                    _RenderRecursively(cc, out, indent + 1)
+                    RenderRecursively(cc, out, indent + 1)
                 out[-1].append("]")
         else:
             assert False
@@ -109,7 +109,7 @@ def _RenderRecursively(node, out, indent: str):
 
 def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
     out = [[""]]
-    _RenderRecursively(mod, out, 0)
+    RenderRecursively(mod, out, 0)
     for a in out:
         print("".join(a))
 
