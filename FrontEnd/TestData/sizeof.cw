@@ -45,32 +45,32 @@
 
 (static_assert (== (sizeof type_enum) 4))
 
-(deftype wrapped w1 s32)
-(deftype wrapped w2 void)
-(deftype wrapped w3 void)
-(deftype ptr1 (ptr mut s32))
+(type wrapped w1 s32)
+(type wrapped w2 void)
+(type wrapped w3 void)
+(type ptr1 (ptr mut s32))
 
-(deftype pub sum1 (TypeSum [bool u8]))
+(type pub sum1 (TypeSum [bool u8]))
 
 (static_assert (== (sizeof sum1) 3))
 
-(deftype pub sum2 (TypeSum [bool s32 s64]))
+(type pub sum2 (TypeSum [bool s32 s64]))
 
 (static_assert (== (sizeof sum2) 16))
 
-(deftype pub sum3 (TypeSum [bool w3]))
+(type pub sum3 (TypeSum [bool w3]))
 
 (static_assert (== (sizeof sum3) 3))
 
-(deftype pub sum4 (TypeSum [ptr1 w3]))
+(type pub sum4 (TypeSum [ptr1 w3]))
 
 (static_assert (== (sizeof sum4) 8))
 
-(deftype pub sum5 (TypeSum [ptr1 w2 w3]))
+(type pub sum5 (TypeSum [ptr1 w2 w3]))
 
 (static_assert (== (sizeof sum5) 8))
 
-(deftype pub sum6 (TypeSum [ptr1 w1 w2 w3]))
+(type pub sum6 (TypeSum [ptr1 w1 w2 w3]))
 
 (static_assert (== (sizeof sum6) 16))
 

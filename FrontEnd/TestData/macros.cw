@@ -47,9 +47,9 @@
     (macro_let_indirect $name (tryas $expr $type undef))
 ])
 
-(defun pub extern IsLogActive [(param level u8) (param loc u32)] void [])
+(fun pub extern IsLogActive [(param level u8) (param loc u32)] void [])
 
-(defun pub extern print [(param buffer (slice u8))] void [])
+(fun pub extern print [(param buffer (slice u8))] void [])
 
 (macro log [(macro_param $level EXPR) 
             (macro_param repeat $x LAZY_EXPR)] [
@@ -66,11 +66,11 @@
 ])
 
 
-(defun TestRightArrowMacro [(param pointer (ptr MyRec))] u32 [
+(fun TestRightArrowMacro [(param pointer (ptr MyRec))] u32 [
     (return (-> pointer s2))
 ])
   
-(defun TestWhileMacro [(param end u32)] u32 [
+(fun TestWhileMacro [(param end u32)] u32 [
     (let mut sum u32 0)
     (whileM (< sum end) [
         (+= sum i)
@@ -79,7 +79,7 @@
 ])
 
 
-(defun TestForMacro [(param end u32)] u32 [
+(fun TestForMacro [(param end u32)] u32 [
     (let mut sum u32 0)
     (forM i 0_u32 end 1 [
         (+= sum i)

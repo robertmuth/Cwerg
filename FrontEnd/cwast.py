@@ -50,6 +50,7 @@ class NF(enum.Flag):
     LOCAL_SYM_DEF = enum.auto()
     TOP_LEVEL_ONLY = enum.auto()
     TOP_LEVEL = enum.auto()
+    MACRO_BODY_ONLY = enum.auto()
 
 
 @enum.unique
@@ -1018,6 +1019,21 @@ class ExprSrcLoc:
     x_value: Optional[Any] = None
 
 
+@dataclasses.dataclass()
+class ExprStringify:
+    """Human readable representation of the expression
+    
+    This is useful to implement for assert like features
+    """
+    ALIAS = "stringify"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
+    expr:  EXPR_NODE
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+
 ############################################################
 # Stmt
 ############################################################
@@ -1401,7 +1417,7 @@ class DefType:
     """Type definition
 
     """
-    ALIAS = "deftype"
+    ALIAS = "type"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
 
@@ -1514,7 +1530,7 @@ class Try:
 @dataclasses.dataclass()
 class DefFun:
     """Function definition"""
-    ALIAS = "defun"
+    ALIAS = "fun"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
 
@@ -1628,15 +1644,15 @@ class MacroId:
 class MacroVar:
     """Macro Variable definition with a name that will be uniquified
 
-    Will generate a unique name inspired by the provided name to avoid accidental
-    capture.
+    `name` must start with a `$`. 
+    All MacroVars inside a macro body must use different names.
 
-    Variable must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
+    `name` will be replace by a unique name inspired by `name` to avoid accidental
+    capture.
     """
     ALIAS = "macro_let"
     GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
 
     mut: bool
     name: str
@@ -1651,13 +1667,13 @@ class MacroVar:
 class MacroVarIndirect:
     """Macro Variable definition whose name is a macro parameter
 
+    `name` must start with a `$`. 
+    All MacroVarIndirects inside a macro body must use different names.
 
-    Variable must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
     """
     ALIAS = "macro_let_indirect"
     GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.SYMBOL_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.SYMBOL_ANNOTATED | NF.MACRO_BODY_ONLY
 
     mut: bool
     name: str
@@ -1672,15 +1688,20 @@ class MacroVarIndirect:
 
 @dataclasses.dataclass()
 class MacroRepeat:
-    """Macro Repeated Statement"""
+    """Macro Repeated Statement
+
+    NYI
+    """
     ALIAS = "macro_repeat"
     GROUP = GROUP.Macro
-    FLAGS = NF(0)
+    FLAGS = NF.MACRO_BODY_ONLY
 
 
 @dataclasses.dataclass()
 class MacroListArg:
-    """Macro Repeated Statement"""
+    """Container for macro arguments that consists of multiple node (e.g. list of statements)
+
+    """
     ALIAS = "macro_list_arg"
     GROUP = GROUP.Macro
     FLAGS = NF(0)
@@ -1724,7 +1745,13 @@ PARAMS_MACRO_NODES = Union[Comment, MacroParam]
 
 @dataclasses.dataclass()
 class DefMacro:
-    """Define a macro"""
+    """Define a macro
+
+
+    A macro consists of parameters whose name starts with a '$'
+    and a body. Macros that evaluate to expressions will typically
+    have a single node body
+    """
     ALIAS = "macro"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY

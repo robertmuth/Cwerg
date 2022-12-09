@@ -1,7 +1,7 @@
 (defmod main [] [
 (# "Linked List Example")
 
-(deftype wrapped NoneType void)
+(type wrapped NoneType void)
 (const None auto (as void_val NoneType))
 
 (defrec pub LinkedListNode [
@@ -10,9 +10,9 @@
    (field payload u32 0)
 ])
 
-(deftype MaybeNode (union [None (ptr mut LinkedListNode)]))
+(type MaybeNode (union [None (ptr mut LinkedListNode)]))
 
-(defun SumPayload [(param root MaybeNode)] u32 [
+(fun SumPayload [(param root MaybeNode)] u32 [
     (let mut sum u32 0)
     (let mut node auto root)
     (while true [

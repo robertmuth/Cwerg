@@ -1,9 +1,9 @@
 (defmod m1 [] [
 
 
-(deftype wrapped t1 s32)
-(deftype wrapped t2 void)
-(deftype wrapped t3 void)
+(type wrapped t1 s32)
+(type wrapped t2 void)
+(type wrapped t3 void)
 
 (defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
@@ -31,19 +31,19 @@
    (entry s4)
 ])
 
-(deftype type_array (TypeArray (ValNum 3) bool))
+(type type_array (TypeArray (ValNum 3) bool))
 
-(deftype type_slice (TypeSlice type_rec))
+(type type_slice (TypeSlice type_rec))
 
-(deftype type_ptr (ptr mut s32))
+(type type_ptr (ptr mut s32))
 
-(deftype pub type_union (TypeSum [s32 void type_ptr]))
+(type pub type_union (TypeSum [s32 void type_ptr]))
 
-(deftype pub type_union2 (TypeSum [s32 void (TypeSum [type_union u8])]))
+(type pub type_union2 (TypeSum [s32 void (TypeSum [type_union u8])]))
 
-(deftype type_fun (sig [(param a bool) (param b bool) (param c s32)] s32))
+(type type_fun (sig [(param a bool) (param b bool) (param c s32)] s32))
 
-(defun fun [(param a type_union)] s32 [
+(fun funx [(param a type_union)] s32 [
    (return (asnot a (TypeSum [void type_ptr]))) 
 ])
 

@@ -9,11 +9,11 @@ WIP
 [Comment&nbsp;(#)](#comment-) &ensp;
 [DefConst&nbsp;(const)](#defconst-const) &ensp;
 [DefEnum&nbsp;(defenum)](#defenum-defenum) &ensp;
-[DefFun&nbsp;(defun)](#deffun-defun) &ensp;
+[DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [DefMod&nbsp;(defmod)](#defmod-defmod) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
-[DefType&nbsp;(deftype)](#deftype-deftype) &ensp;
+[DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
 [EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
 [Expr1](#expr1) &ensp;
@@ -35,6 +35,7 @@ WIP
 [ExprRange&nbsp;(range)](#exprrange-range) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
+[ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [FieldVal](#fieldval) &ensp;
@@ -43,6 +44,8 @@ WIP
 [Import&nbsp;(import)](#import-import) &ensp;
 [IndexVal](#indexval) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
+[MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
+[MacroListArg&nbsp;(macro_list_arg)](#macrolistarg-macro_list_arg) &ensp;
 [MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
 [MacroRepeat&nbsp;(macro_repeat)](#macrorepeat-macro_repeat) &ensp;
 [MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
@@ -249,7 +252,7 @@ Fields:
 * name [STR]: name of the object
 * body_except [LIST]: statement list and/or comments when type narrowing fails
 
-### DefFun (defun)
+### DefFun (fun)
 Function definition
 
 Creates a new scope
@@ -268,6 +271,12 @@ Fields:
 
 ### DefMacro (macro)
 Define a macro
+
+
+    A macro consists of parameters whose name starts with a '$'
+    and a body. Macros that evaluate to expressions will typically
+    have a single node body
+    
 
 Creates a new scope
 
@@ -289,7 +298,7 @@ Fields:
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
-### DefType (deftype)
+### DefType (type)
 Type definition
 
     
@@ -439,7 +448,7 @@ Fields:
 ### StmtReturn (return)
 Return statement
 
-    Use `void` value if the function's return type is `void`
+    Uses void_val if the function's return type is void
     
 
 Fields:
@@ -775,6 +784,15 @@ Source Location encoded as u32
 
 Fields:
 
+### ExprStringify (stringify)
+Human readable representation of the expression
+    
+    This is useful to implement for assert like features
+    
+
+Fields:
+* expr [NODE]: expression
+
 ### ExprTryAs (tryas)
 Narrow a `expr` which is of Sum to `type`
 
@@ -811,6 +829,23 @@ Placeholder for a parameter
 Fields:
 * name [STR]: name of the object
 
+### MacroInvoke (macro_invoke)
+Macro Invocation
+
+Creates a new scope
+
+Fields:
+* name [STR]: name of the object
+* args [LIST]: function call arguments
+
+### MacroListArg (macro_list_arg)
+Container for macro arguments that consists of multiple node (e.g. list of statements)
+
+    
+
+Fields:
+* args [LIST]: function call arguments
+
 ### MacroParam (macro_param)
 Macro Parameter
 
@@ -822,14 +857,17 @@ Fields:
 ### MacroRepeat (macro_repeat)
 Macro Repeated Statement
 
+    NYI
+    
+
 ### MacroVar (macro_let)
 Macro Variable definition with a name that will be uniquified
 
-    Will generate a unique name inspired by the provided name to avoid accidental
-    capture.
+    `name` must start with a `$`. 
+    All MacroVars inside a macro body must use different names.
 
-    Variable must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
+    `name` will be replace by a unique name inspired by `name` to avoid accidental
+    capture.
     
 
 Fields:
@@ -841,9 +879,9 @@ Fields:
 ### MacroVarIndirect (macro_let_indirect)
 Macro Variable definition whose name is a macro parameter
 
+    `name` must start with a `$`. 
+    All MacroVarIndirects inside a macro body must use different names.
 
-    Variable must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
     
 
 Fields:
@@ -934,8 +972,8 @@ Fields:
 
 |Kind|
 |----|
-|FLAG      |
 |ID        |
 |EXPR      |
 |STMT_LIST |
 |LAZY_EXPR |
+|FIELD     |
