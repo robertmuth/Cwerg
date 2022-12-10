@@ -1,4 +1,4 @@
-(defmod main [] [
+(module main [] [
    (# "main module with program entry point `main`")
 
    (# "library provided puts style function") 

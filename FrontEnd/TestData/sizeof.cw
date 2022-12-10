@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 
 (static_assert (== (sizeof u8) 1_uint))
@@ -34,7 +34,7 @@
 (static_assert (== (offsetof type_rec b1) 16))
 (static_assert (== (offsetof type_rec u1) 24))
 
-(defenum pub type_enum S32 [
+(enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry e1 (ValNum 7))
    (entry e2)

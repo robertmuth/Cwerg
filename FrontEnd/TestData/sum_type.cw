@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 
 (type wrapped t1 s32)

@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 (fun fun1 [(param a s32) (param b u32) (param c r32)] u8 [
    (let x s8 (as a s8 ))

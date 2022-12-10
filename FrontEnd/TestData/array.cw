@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 
 (type type_array (TypeArray (ValNum 3) bool))

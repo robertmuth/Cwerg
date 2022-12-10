@@ -1,4 +1,4 @@
-(defmod main [] [
+(module main [] [
 (# "Binary Tree Example")
 
 (type wrapped NoneType void)

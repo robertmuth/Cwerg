@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 
 (defrec pub type_rec [
@@ -13,7 +13,7 @@
    (field u2 u64 666_u64)
 ])
 
-(defenum pub type_enum S32 [
+(enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry e1 (ValNum 7))
    (entry e2)

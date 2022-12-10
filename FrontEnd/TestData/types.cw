@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 
 (type wrapped t1 s32)
@@ -23,7 +23,7 @@
    (field s1 (TypeSum [void (ptr linked_list)]) void_val)
 ])
 
-(defenum pub type_enum S32 [
+(enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry s1 (ValNum 7))
    (entry s2)

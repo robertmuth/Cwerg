@@ -1,4 +1,4 @@
-(defmod macro_testing [] [
+(module macro_testing [] [
 
 (# "Macro Examples")
 

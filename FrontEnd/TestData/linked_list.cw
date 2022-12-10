@@ -1,4 +1,4 @@
-(defmod main [] [
+(module main [] [
 (# "Linked List Example")
 
 (type wrapped NoneType void)

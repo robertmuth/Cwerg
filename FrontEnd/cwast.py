@@ -424,7 +424,7 @@ class ValNum:
     Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     """
-    ALIAS = None
+    ALIAS = "num"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
@@ -1342,7 +1342,7 @@ ITEMS_NODES = Union[Comment, EnumVal]
 @dataclasses.dataclass()
 class DefEnum:
     """Enum definition"""
-    ALIAS = "defenum"
+    ALIAS = "enum"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
 
@@ -1479,7 +1479,7 @@ class DefMod:
     """Module Definition
 
     The module is a template if `params` is non-empty"""
-    ALIAS = "defmod"
+    ALIAS = "module"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
 

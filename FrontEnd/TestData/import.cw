@@ -1,4 +1,4 @@
-(defmod std [] [
+(module std [] [
     (# "File StdLib bindings")
 
     (type pub wrapped errorOpen void)
@@ -7,7 +7,7 @@
     (type pub wrapped errorWrite void)
     (type pub errorIO (union [errorOpen errorClose errorRead errorWrite]))
  
-    (defenum pub Mode U32 [
+    (enum pub Mode U32 [
         (entry r 1)
         (entry w 2)
         (entry rw 3)])
@@ -30,7 +30,7 @@
 ])
 
 
-(defmod main [] [
+(module main [] [
     (import std)
     (fun main [(param argc u32) (param argv (ptr (ptr u8)))] s32 [
         (stmt discard (call std/write [std/stdout "hello world\n"]))

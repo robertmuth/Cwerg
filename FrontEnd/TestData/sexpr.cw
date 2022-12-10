@@ -1,4 +1,4 @@
-(defmod m1 [] [
+(module m1 [] [
 
 (fun pub foo1 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (Comment "this is a comment with \" with quotes \t ")
@@ -42,7 +42,7 @@
 
 (const c2 auto (offsetof type_rec s1))
 
-(defenum pub type_enum S32 [
+(enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
    (entry s1 (ValNum 7))
    (entry s2)
@@ -52,7 +52,7 @@
 
 ])
 
-(defmod m2 [] [
+(module m2 [] [
 
 (type  type_ptr (ptr mut s32))
 

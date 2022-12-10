@@ -1,4 +1,4 @@
-(defmod $builtin [] [
+(module $builtin [] [
 (# "Macro Examples")
 
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void [])

@@ -1,54 +1,54 @@
-(defmod mod1 [] [    
+(module mod1 [] [    
     (let pub var u32 1)
 ])
 
 
-(defmod mod2 [] [    
+(module mod2 [] [    
     (let pub var u32 2)
 ])
 
-(defmod mod3 [] [    
+(module mod3 [] [    
     (let pub var u32 3)
 ])
 
-(defmod mod4 [] [    
+(module mod4 [] [    
     (let pub var u32 4)
 ])
 
-(defmod mod5 [] [    
+(module mod5 [] [    
     (let pub var u32 5)
 ])
 
 
 
-(defmod mod11 [] [    
+(module mod11 [] [    
     (import mod1)
     (let var auto (+ mod1/var 11))
 ])
 
-(defmod mod12 [] [    
+(module mod12 [] [    
     (import mod1)
     (import mod2)
     (let var auto (+ mod1/var mod2/var))
 ])
 
-(defmod mod13 [] [    
+(module mod13 [] [    
     (import mod2 mod102)
     (import mod1)
     (let var auto (+ mod1/var mod102/var))
 ])
 
-(defmod mod14 [] [    
+(module mod14 [] [    
     (import mod1)
     (let var auto (+ mod1/var 14))
 ])
 
-(defmod mod15 [] [    
+(module mod15 [] [    
     (import mod1)
     (let var auto (+ mod1/var 15))
 ])
 
-(defmod mod16 [] [    
+(module mod16 [] [    
     (import mod2)
     (import mod1 mod101)
     (let var auto (+ mod101/var mod2/var))

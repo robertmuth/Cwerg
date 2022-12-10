@@ -1,8 +1,8 @@
-(defmod main [] [
+(module main [] [
     (# "Word Count Example")
 
     (# "File StdLib bindings")
-    (defenum pub Mode U32 [
+    (enum pub Mode U32 [
         (entry r 1)
         (entry w 2)
         (entry rw 3)])

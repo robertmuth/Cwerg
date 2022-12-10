@@ -130,8 +130,8 @@ class TypeTab:
     TODO: get rid of this class
     """
 
-    def __init__(self, corpus):
-        self.corpus = corpus
+    def __init__(self, corpus: types.TypeCorpus):
+        self.corpus: types.TypeCorpus = corpus
 
     def typify_node(self, node,  ctx: TypeContext) -> types.CanonType:
         target_type = ctx.get_target_type()
@@ -326,6 +326,7 @@ class TypeTab:
             # special hack for arrays: if variable is mutable and of type array,
             # this means we can update array elements but we cannot assign a new
             # array to the variable.
+            # TODO: revisit this
             if isinstance(cstr, cwast.TypeArray) and node.mut:
                 cstr = self.corpus.insert_array_type(True,
                                                      types.get_array_dim(cstr),

@@ -5,13 +5,12 @@ WIP
 
 ## Node Overview
 [Case&nbsp;(case)](#case-case) &ensp;
-[Catch&nbsp;(catch)](#catch-catch) &ensp;
 [Comment&nbsp;(#)](#comment-) &ensp;
 [DefConst&nbsp;(const)](#defconst-const) &ensp;
-[DefEnum&nbsp;(defenum)](#defenum-defenum) &ensp;
+[DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
-[DefMod&nbsp;(defmod)](#defmod-defmod) &ensp;
+[DefMod&nbsp;(module)](#defmod-module) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
 [DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
@@ -32,7 +31,6 @@ WIP
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
 [ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
 [ExprParen](#exprparen) &ensp;
-[ExprRange&nbsp;(range)](#exprrange-range) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
@@ -52,7 +50,6 @@ WIP
 [MacroVarIndirect&nbsp;(macro_let_indirect)](#macrovarindirect-macro_let_indirect) &ensp;
 [ModParam](#modparam) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
-[StmtAssert&nbsp;(assert)](#stmtassert-assert) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
 [StmtBreak&nbsp;(break)](#stmtbreak-break) &ensp;
@@ -61,13 +58,10 @@ WIP
 [StmtContinue&nbsp;(continue)](#stmtcontinue-continue) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtExpr&nbsp;(stmt)](#stmtexpr-stmt) &ensp;
-[StmtFor&nbsp;(for)](#stmtfor-for) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
-[StmtWhile&nbsp;(while)](#stmtwhile-while) &ensp;
-[Try&nbsp;(try)](#try-try) &ensp;
 [TypeArray&nbsp;(array)](#typearray-array) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
@@ -78,7 +72,7 @@ WIP
 [ValArray](#valarray) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
-[ValNum](#valnum) &ensp;
+[ValNum&nbsp;(num)](#valnum-num) &ensp;
 [ValRec&nbsp;(rec)](#valrec-rec) &ensp;
 [ValString](#valstring) &ensp;
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
@@ -117,7 +111,7 @@ Fields:
 
 ## Type Node Details
 
-### DefEnum (defenum)
+### DefEnum (enum)
 Enum definition
 
 Allowed at top level only
@@ -243,15 +237,6 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: statement list and/or comments
 
-### Catch (catch)
-Used with Try only
-
-Creates a new scope
-
-Fields:
-* name [STR]: name of the object
-* body_except [LIST]: statement list and/or comments when type narrowing fails
-
 ### DefFun (fun)
 Function definition
 
@@ -287,7 +272,7 @@ Fields:
 * params_macro [LIST]: macro parameters
 * body_macro [LIST]: macro statments/expression
 
-### DefMod (defmod)
+### DefMod (module)
 Module Definition
 
     The module is a template if `params` is non-empty
@@ -314,10 +299,11 @@ Fields:
 ### DefVar (let)
 Variable definition
 
-    public visibily only makes sense for module level definitions.
+    Allocates space on stack or static memory (if at module level) and 
+    initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
 
-    Variables must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
+    `pub`lic visibily only makes sense for module level definitions.
     
 
 Allowed at top level
@@ -342,13 +328,6 @@ Module Parameters
 Fields:
 * name [STR]: name of the object
 * mod_param_kind [KIND]: see ModParam Kind below
-
-### StmtAssert (assert)
-Assert statement
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* message [STR] (default ""): message for assert failures
 
 ### StmtAssignment (=)
 Assignment statement
@@ -421,20 +400,6 @@ Fields:
 * discard [FLAG]: ignore non-void expression
 * expr [NODE]: expression
 
-### StmtFor (for)
-For statement.
-
-    Defines the non-mut variable `name`.
-    
-
-Creates a new scope
-
-Fields:
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* range [NODE]: range expression
-* body [LIST]: statement list and/or comments
-
 ### StmtIf (if)
 If statement
 
@@ -465,40 +430,6 @@ Fields:
 
 ### StmtTrap (trap)
 Trap statement
-
-### StmtWhile (while)
-While statement.
-    
-
-Creates a new scope
-
-Fields:
-* cond [NODE]: conditional expression must evaluate to a boolean
-* body [LIST]: statement list and/or comments
-
-### Try (try)
-Variable definition if type matches otherwise `catch`
-
-    This is the most complex node in Cwerg. It only makes sense for `expr` that
-    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest].
-    The statement desugar to this:
-
-    (let `mut` tmp auto `expr`)
-    if (tmp is `type-rest`) [
-        (let `catch.name` (tmp as `type-rest`)
-        ...`catch.body_except`
-        (trap)
-    ] [])
-    (let `name` auto (tmp as `type`))
-
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* name [STR]: name of the object
-* type [NODE]: type expression
-* expr [NODE]: expression
-* catch [NODE]: handler for type mismatch (implictly terminated by trap)
 
 ## Value Node Details
 
@@ -559,7 +490,7 @@ Bool constant `false`
 
 Fields:
 
-### ValNum
+### ValNum (num)
 Numeric constant (signed int, unsigned int, real
 
     Underscores in `number` are ignored. `number` can be explicitly typed via
@@ -756,21 +687,6 @@ Used for preserving parenthesis in the source
 Fields:
 * expr [NODE]: expression
 
-### ExprRange (range)
-Range expression for simple for-loops
-
-    Modelled after Python's `range`, e.g.
-    Range(end=5) = [0, 1, 2, 3, 4]
-    Range(end=5, start=2) = [2, 3, 4]
-    Range(end=5, start=1, step=2) = [1, 3]
-    Range(end=1, start=5, step=-2) = [5, 3]
-    
-
-Fields:
-* end [NODE]: range end
-* begin_or_auto [NODE] (default 0): range begin
-* step_or_auto [NODE] (default 1): range step
-
 ### ExprSizeof (sizeof)
 Byte size of type
 
@@ -786,7 +702,7 @@ Fields:
 
 ### ExprStringify (stringify)
 Human readable representation of the expression
-    
+
     This is useful to implement for assert like features
     
 
@@ -831,8 +747,6 @@ Fields:
 
 ### MacroInvoke (macro_invoke)
 Macro Invocation
-
-Creates a new scope
 
 Fields:
 * name [STR]: name of the object
@@ -973,7 +887,7 @@ Fields:
 |Kind|
 |----|
 |ID        |
-|EXPR      |
 |STMT_LIST |
-|LAZY_EXPR |
+|EXPR      |
 |FIELD     |
+|TYPE      |
