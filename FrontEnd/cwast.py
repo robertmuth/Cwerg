@@ -1730,12 +1730,10 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.SYMBOL_ANNOTATED | NF.NEW_SCOPE  # this is a technicality
+    FLAGS = NF(0)
 
     name: str
     args: List[EXPR_NODE]
-
-    x_symbol: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"

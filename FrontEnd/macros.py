@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Type annotator for Cwerg AST
+"""Macro Expander
 
 """
 
@@ -20,10 +20,9 @@ logger = logging.getLogger(__name__)
 
 class CloningContext:
 
-    def __init__(self, no, symtab_map: Dict[str, symtab.SymTab]):
+    def __init__(self, no):
         self._no = no
         self.macro_parameter: Dict[str, Tuple[cwast.MacroParam, Any]] = {}
-        self.symtab_map = symtab_map
 
     def GenUniqueName(self, name: str):
         assert name.startswith("$"), f"expected macro id {name}"
@@ -105,11 +104,7 @@ def ExpandMacroRecursively(node, ctx: CloningContext) -> Any:
     return clone
 
 
-def ExpandMacro(invoke: cwast.MacroInvoke, sym_tab: symtab.SymTab, ctx: CloningContext) -> Any:
-    macro = sym_tab.resolve_macro(
-        invoke.name.split("/"), ctx.symtab_map, False)
-    assert isinstance(
-        macro, cwast.DefMacro), f"could not find macro def for {invoke}"
+def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: CloningContext) -> Any:
     params = macro.params_macro
     args = invoke.args
     assert len(params) == len(invoke.args)
@@ -148,23 +143,31 @@ def ExpandMacro(invoke: cwast.MacroInvoke, sym_tab: symtab.SymTab, ctx: CloningC
     return cwast.MacroListArg(out)
 
 
-def FindAndExpandMacrosRecursively(node, sym_tab,  ctx):
+def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             if isinstance(child, cwast.MacroInvoke):
-                new_child = ExpandMacro(child, sym_tab, ctx)
+                # TODO: handle the case where the macro returns another
+                #       macro invocation 
+                macro = sym_tab.resolve_macro(
+                    child.name.split("/"), symtab_map, False)
+                new_child = ExpandMacro(child, macro, ctx)
                 setattr(node, c, new_child)
                 child = new_child
-            FindAndExpandMacrosRecursively(child, sym_tab, ctx)
+            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
             new_children = []
             for child in children:
                 if isinstance(child, cwast.MacroInvoke):
-                    exp = ExpandMacro(child, sym_tab, ctx)
+                    # TODO: handle the case where the macro returns another
+                    #       macro invocation 
+                    macro = sym_tab.resolve_macro(
+                        child.name.split("/"), symtab_map, False)
+                    exp = ExpandMacro(child, macro, ctx)
                     if isinstance(exp, cwast.MacroListArg):
                         new_children += exp.args
                     else:
@@ -173,7 +176,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab,  ctx):
                     new_children.append(child)
             setattr(node, c, new_children)
             for child in new_children:
-                FindAndExpandMacrosRecursively(child, sym_tab, ctx)
+                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
 
 
 if __name__ == "__main__":
@@ -202,8 +205,8 @@ if __name__ == "__main__":
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expand macros in fun: %s", node)
-                ctx = CloningContext(1, symtab_map)
-                FindAndExpandMacrosRecursively(node, sym_tab, ctx)
+                ctx = CloningContext(1)
+                FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx)
                 out = [[""]]
                 pp.RenderRecursively(node, out, 0)
                 for a in out:
