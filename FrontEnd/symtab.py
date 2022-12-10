@@ -185,6 +185,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 #       macro invocation
                 macro = sym_tab.resolve_macro(
                     child.name.split("/"), symtab_map, False)
+                assert macro is not None, f"unknown macro {child}"
                 new_child = macros.ExpandMacro(child, macro, ctx)
                 setattr(node, c, new_child)
                 child = new_child
@@ -198,6 +199,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                     #       macro invocation
                     macro = sym_tab.resolve_macro(
                         child.name.split("/"), symtab_map, False)
+                    assert macro is not None, f"unknown macro {child}"
                     exp = macros.ExpandMacro(child, macro, ctx)
                     if isinstance(exp, cwast.MacroListArg):
                         new_children += exp.args

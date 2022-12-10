@@ -352,10 +352,13 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
         seen_change = False
         for m in mod_topo_order:
             for node in mod_map[m].body_mod:
-                seen_change |= EvalRecursively(node)
+                if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
+                    seen_change |= EvalRecursively(node)
 
 
 def _VerifyEvalRecursively(node, parent, is_const) -> bool:
+    if isinstance(node, (cwast.Comment, cwast.DefMacro)):
+        return
     logger.info(f"EVAL-VERIFY: {node}")
 
     if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
@@ -407,17 +410,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = []
-    try:
-        while True:
-            stream = cwast.ReadTokens(sys.stdin)
-            t = next(stream)
-            assert t == "("
-            sexpr = cwast.ReadSExpr(stream)
-            # print(sexpr)
-            asts.append(sexpr)
-    except StopIteration:
-        pass
+    asts = cwast.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
     symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)

@@ -423,6 +423,8 @@ class TypeTab:
             return types.NO_TYPE
         elif isinstance(node, cwast.StmtContinue):
             return types.NO_TYPE
+        elif isinstance(node, cwast.StmtTrap):
+            return types.NO_TYPE
         elif isinstance(node, cwast.StmtAssignment):
             var_cstr = self.typify_node(node.lhs, ctx)
             ctx.push_target(var_cstr)
@@ -723,10 +725,13 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     for m in mod_topo_order:
         ctx = TypeContext(m)
         for node in mod_map[m].body_mod:
-            typetab.typify_node(node, ctx)
+            if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
+                typetab.typify_node(node, ctx)
 
 
 def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
+    if isinstance(node, (cwast.Comment, cwast.DefMacro)):
+        return
     logger.info(f"VERIFYING {node}")
 
     if isinstance(node, cwast.DefFun):
@@ -751,6 +756,7 @@ def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
 def VerifyASTTypes(mod_topo_order: List[cwast.DefMod],
                    mod_map: Dict[str, cwast.DefMod], type_corpus):
     for m in mod_topo_order:
+
         _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
 
 
