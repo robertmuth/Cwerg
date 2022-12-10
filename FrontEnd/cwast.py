@@ -1039,7 +1039,7 @@ class ExprStringify:
 # Stmt
 ############################################################
 BODY_NODES = Union["Comment", "StmtDefer", "StmtIf", "StmtBreak",
-                   "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
+                   "StmtContinue", "StmtReturn", "StmtExpr",
                    "StmtBlock", "StmtCond"]
 
 EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
@@ -1209,17 +1209,6 @@ class StmtExpr:
 
     def __str__(self):
         return f"{_NAME(self)} {self.discard}"
-
-
-@dataclasses.dataclass()
-class StmtAssert:
-    """Assert statement"""
-    ALIAS = "assert"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-
-    cond: EXPR_NODE  # must be of type bool
-    message: str     # should this be an expression?
 
 
 @dataclasses.dataclass()

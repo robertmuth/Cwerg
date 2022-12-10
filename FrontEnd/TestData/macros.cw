@@ -30,7 +30,7 @@
 ])
 
 (fun TestAssertMacro [(param xxx u32)] u32 [
-    (assertM (< xxx 777))
+    (assert (< xxx 777))
     (return 0)
 ])
 

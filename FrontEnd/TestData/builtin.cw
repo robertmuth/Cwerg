@@ -40,7 +40,7 @@
 
 
 
-(macro assertM [(macro_param $cond EXPR)] [
+(macro assert [(macro_param $cond EXPR)] [
       (if $cond [] [
         (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
         (macro_let mut $curr (slice u8) $buffer)
