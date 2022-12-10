@@ -9,7 +9,7 @@
 ])
 
 (# "macro for number range for-loop")
-(macro forM [(macro_param $index ID) 
+(macro for [(macro_param $index ID) 
             (macro_param $type TYPE) 
             (macro_param $start EXPR) 
             (macro_param $end EXPR) 

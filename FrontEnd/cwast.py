@@ -987,29 +987,6 @@ class ExprOffsetof:
 
 
 @dataclasses.dataclass()
-class ExprRange:
-    """Range expression for simple for-loops
-
-    Modelled after Python's `range`, e.g.
-    Range(end=5) = [0, 1, 2, 3, 4]
-    Range(end=5, start=2) = [2, 3, 4]
-    Range(end=5, start=1, step=2) = [1, 3]
-    Range(end=1, start=5, step=-2) = [5, 3]
-    """
-    ALIAS = "range"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
-
-    end: EXPR_NODE   # start, end ,step work like range(start, end, step)
-    begin_or_auto: Union[ValAuto, EXPR_NODE]
-    step_or_auto: Union[ValAuto, EXPR_NODE]
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"RANGE({self.end}, {self.begin_or_auto}, {self.step_or_auto})"
-
-
-@dataclasses.dataclass()
 class ExprSrcLoc:
     """Source Location encoded as u32"""
     ALIAS = "src_loc"
@@ -1061,26 +1038,6 @@ class StmtBlock:
 
     def __str__(self):
         return f"{_NAME(self)} {self.label}"
-
-
-@dataclasses.dataclass()
-class StmtFor:
-    """For statement.
-
-    Defines the non-mut variable `name`.
-    """
-    ALIAS = "for"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE | NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
-
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    range: EXPR_NODE
-    body: List[BODY_NODES]
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type_or_auto} = {self.range}"
 
 
 @dataclasses.dataclass()

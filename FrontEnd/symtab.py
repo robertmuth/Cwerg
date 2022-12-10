@@ -247,9 +247,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
     if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
         logger.info("push scope for %s", node)
         scopes.append({})
-        if isinstance(node, cwast.StmtFor):
-            record_local_sym(node)
-        elif isinstance(node, cwast.DefFun):
+        if isinstance(node, cwast.DefFun):
             for p in node.params:
                 record_local_sym(p)
 

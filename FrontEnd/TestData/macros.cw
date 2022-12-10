@@ -23,7 +23,7 @@
 
 (fun TestForMacro [(param end u32)] u32 [
     (let mut sum u32 0)
-    (forM i u32 0 end 1 [
+    (for i u32 0 end 1 [
         (+= sum i)
     ])
     (return sum)

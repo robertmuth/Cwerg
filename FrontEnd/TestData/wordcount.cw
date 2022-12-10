@@ -42,7 +42,7 @@
             (stmt discard (call fclose [fp]))
             (return err)]))
         (+= (. stats num_chars) n)
-        (for i u64 (range n) [
+        (for i u64 0 n 1 [
              (let c auto (at buf i))
              (cond [
                  (case (== c '\n') [

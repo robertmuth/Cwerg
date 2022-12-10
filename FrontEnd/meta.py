@@ -329,23 +329,6 @@ class TypeTab:
                 dim = types.get_array_dim(initial_cstr)
                 return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(True, dim, cstr))
             return _AnnotateType(self.corpus, node, cstr if cstr != types.NO_TYPE else initial_cstr)
-        elif isinstance(node, cwast.ExprRange):
-            cstr = self.typify_node(node.end, ctx)
-            if not isinstance(node.begin_or_auto, cwast.ValAuto):
-                self.typify_node(node.begin_or_auto, ctx)
-            if not isinstance(node.step_or_auto, cwast.ValAuto):
-                self.typify_node(node.step_or_auto, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.StmtFor):
-            ctx.push_target(types.NO_TYPE if
-                            isinstance(node.type_or_auto, cwast.TypeAuto)
-                            else self.typify_node(node.type_or_auto, ctx))
-            cstr = self.typify_node(node.range, ctx)
-            ctx.pop_target()
-            _AnnotateType(self.corpus, node, cstr)
-            for c in node.body:
-                self.typify_node(c, ctx)
-            return cstr
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
             assert isinstance(cstr, cwast.TypePtr)
@@ -501,7 +484,7 @@ class TypeTab:
 
 
 UNTYPED_NODES_TO_BE_TYPECHECKED = (
-    cwast.StmtReturn, cwast.StmtIf, cwast.StmtFor,
+    cwast.StmtReturn, cwast.StmtIf,
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
@@ -546,16 +529,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
             assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"
-    elif isinstance(node, cwast.ExprRange):
-        cstr = node.x_type
-        if not isinstance(node.begin_or_auto, cwast.ValAuto):
-            assert cstr == node.begin_or_auto.x_type
-        assert cstr == node.end.x_type
-        if not isinstance(node.step_or_auto, cwast.ValAuto):
-            assert cstr == node.step_or_auto.x_type
-    elif isinstance(node, cwast.StmtFor):
-        if not isinstance(node.type_or_auto, cwast.TypeAuto):
-            assert node.range.x_type == node.type_or_auto.x_type, f"type mismatch in FOR"
     elif isinstance(node, cwast.ExprDeref):
         cstr = node.x_type
         assert cstr == node.expr.x_type.type
