@@ -41,20 +41,14 @@ class CloningContext:
         self.macro_parameter.clear()
 
 
-def CloneRecursively(node, ctx: CloningContext):
+def CloneNodeRecursively(node):
     clone = dataclasses.replace(node)
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            setattr(clone, c, CloneRecursively(getattr(node, c), ctx))
+            setattr(clone, c, CloneNodeRecursively(getattr(node, c)))
         elif nfd.kind is cwast.NFK.LIST:
-            out = []
-            if c in ("body_t", "body_f"):
-                pass
-            for cc in getattr(node, c):
-                out.append(CloneRecursively(cc, ctx))
-            if c in ("body_t", "body_f"):
-                pass
+            out = [CloneNodeRecursively(cc) for cc in getattr(node, c)]
             setattr(clone, c, out)
     return clone
 
@@ -80,9 +74,9 @@ def ExpandMacroRecursively(node, ctx: CloningContext) -> Any:
         assert node.name.startswith("$")
         kind, arg = ctx.GetSymbol(node.name)
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
-                        cwast.MACRO_PARAM_KIND.LAZY_EXPR,
+                        cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
-        return arg
+        return CloneNodeRecursively(arg)
 
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
@@ -112,8 +106,10 @@ def ExpandMacroRecursively(node, ctx: CloningContext) -> Any:
 
 
 def ExpandMacro(invoke: cwast.MacroInvoke, sym_tab: symtab.SymTab, ctx: CloningContext) -> Any:
-    macro = sym_tab.resolve_sym(invoke.name.split("/"), ctx.symtab_map, False)
-    assert isinstance(macro, cwast.DefMacro)
+    macro = sym_tab.resolve_macro(
+        invoke.name.split("/"), ctx.symtab_map, False)
+    assert isinstance(
+        macro, cwast.DefMacro), f"could not find macro def for {invoke}"
     params = macro.params_macro
     args = invoke.args
     assert len(params) == len(invoke.args)
@@ -124,13 +120,11 @@ def ExpandMacro(invoke: cwast.MacroInvoke, sym_tab: symtab.SymTab, ctx: CloningC
     for p, a in zip(params, invoke.args):
         assert p.name.startswith("$")
         if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
-            name = ctx.GenUniqueName("$eval")
-            out.append(cwast.DefVar(False, False, name, cwast.TypeAuto(), a))
-            arg = cwast.Id(name, "")
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.LAZY_EXPR:
             arg = a
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
             assert isinstance(a, cwast.MacroListArg)
+            arg = a
+        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
             arg = a
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
             assert isinstance(a, cwast.Id)
@@ -185,17 +179,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab,  ctx):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = []
-    try:
-        while True:
-            stream = cwast.ReadTokens(sys.stdin)
-            t = next(stream)
-            assert t == "("
-            sexpr = cwast.ReadSExpr(stream)
-            # print(sexpr)
-            asts.append(sexpr)
-    except StopIteration:
-        pass
+    asts = cwast.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
 

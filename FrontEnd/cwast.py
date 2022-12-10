@@ -1617,11 +1617,11 @@ class Import:
 class MACRO_PARAM_KIND(enum.Enum):
     """Macro Parameter Kinds"""
     INVALID = 0
-    ID = 2
+    ID = 1
+    STMT_LIST = 2
     EXPR = 3
-    STMT_LIST = 4
-    LAZY_EXPR = 5
-    FIELD = 6
+    FIELD = 4
+    TYPE = 5
 
 
 @dataclasses.dataclass()

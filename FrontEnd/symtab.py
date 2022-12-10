@@ -15,6 +15,8 @@ from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
+BUILTIN_MOD = "$builtin"
+
 
 def _add_symbol_link(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
@@ -49,6 +51,17 @@ class SymTab:
         self._var_syms: Dict[str, cwast.DefVar] = {}
         self._mod_syms: Dict[str, cwast.DefMod] = {}
 
+    def resolve_sym_here(self, name, must_be_public):
+        for syms in (self._type_syms, self._const_syms, self._fun_syms,
+                     self._rec_syms, self._enum_syms, self._var_syms, self._macro_syms):
+            s = syms.get(name)
+            if s:
+                if must_be_public:
+                    assert s.pub, f"{name} must be public"
+                return s
+
+        return None
+
     def resolve_sym(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         if len(components) == 2:
@@ -67,14 +80,28 @@ class SymTab:
                 return mod_symtab.resolve_sym(components[1:], symtab_map, True)
             assert False, f"could not resolve name {components}"
 
-        for syms in (self._type_syms, self._const_syms, self._fun_syms,
-                     self._rec_syms, self._enum_syms, self._var_syms, self._macro_syms):
-            s = syms.get(components[0])
+        out = self.resolve_sym_here(components[0], must_be_public)
+        return out
+
+    def resolve_macro(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
+        """We could be more specific here if we narrow down the symbol type"""
+        if len(components) > 1:
+            assert len(components) == 2
+            # TODO: pub check?
+            s = self._mod_syms.get(components[0])
             if s:
-                if must_be_public:
-                    assert s.pub, f"{components} must be public"
-                return s
-        return None
+                assert isinstance(s, cwast.DefMod), f"{s}"
+                mod_symtab = symtab_map[s.name]
+                return mod_symtab._macro_syms.get(components[1])
+            assert False, f"could not resolve name {components}"
+
+        out = self._macro_syms.get(components[0])
+        if not out:
+            s = symtab_map.get(BUILTIN_MOD)
+            if s:
+                out = s._macro_syms.get(components[0])
+
+        return out
 
     def add_top_level_sym(self, node, mod_map):
         logger.info("recording global symbol: %s", node)
@@ -151,7 +178,7 @@ def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_m
     return symtab.resolve_sym(components, symtab_map, False)
 
 
-def ResolveSymbolsInsideFunctionsAndMacrosRecursively(
+def ResolveSymbolsInsideFunctionsRecursively(
         node, symtab, symtab_map, scopes):
 
     def record_local_sym(node, name=None):
@@ -160,7 +187,7 @@ def ResolveSymbolsInsideFunctionsAndMacrosRecursively(
         logger.info("recording local symbol: %s", node)
         scopes[-1][name] = node
 
-    if isinstance(node, (cwast.DefVar, cwast.MacroVar, cwast.MacroVarIndirect, cwast.Catch)):
+    if isinstance(node, (cwast.DefVar, cwast.Catch)):
         record_local_sym(node)
     elif isinstance(node, cwast.Try):
         # we do not want to add the local symbol yet.
@@ -173,12 +200,6 @@ def ResolveSymbolsInsideFunctionsAndMacrosRecursively(
         _add_symbol_link(node, def_node)
         return
 
-    if isinstance(node, (cwast.MacroId, cwast.MacroVarIndirect, cwast.MacroInvoke)):
-        def_node = _resolve_symbol_inside_function_or_macro(
-            node.name, symtab, symtab_map, scopes)
-        assert def_node is not None, f"cannot resolve symbol {node}"
-        _add_symbol_link(node, def_node)
-
     if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
         logger.info("push scope for %s", node)
         scopes.append({})
@@ -187,31 +208,19 @@ def ResolveSymbolsInsideFunctionsAndMacrosRecursively(
         elif isinstance(node, cwast.DefFun):
             for p in node.params:
                 record_local_sym(p)
-        elif isinstance(node, cwast.DefMacro):
-            for p in node.params_macro:
-                record_local_sym(p)
-        elif isinstance(node, cwast.MacroInvoke):
-            logger.info("handle %s", node)
-            params = node.x_symbol.params_macro
-            assert len(params) == len(node.args)
-            for p, a in zip(params, node.args):
-                assert isinstance(p, cwast.MacroParam)
-                if p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
-                    assert isinstance(a, cwast.Id)
-                    record_local_sym(p, a.name)
 
     # recurse using a little bit of introspection
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            ResolveSymbolsInsideFunctionsAndMacrosRecursively(
+            ResolveSymbolsInsideFunctionsRecursively(
                 getattr(node, c), symtab, symtab_map, scopes)
         elif nfd.kind is cwast.NFK.LIST:
             if c in ("body_t", "body_f"):
                 logger.info("push scope for if block: %s" % c)
                 scopes.append({})
             for cc in getattr(node, c):
-                ResolveSymbolsInsideFunctionsAndMacrosRecursively(
+                ResolveSymbolsInsideFunctionsRecursively(
                     cc, symtab, symtab_map, scopes)
             if c in ("body_t", "body_f"):
                 logger.info("pop scope for if block: %s" % c)
@@ -245,7 +254,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving fun/macro: %s", node)
-                ResolveSymbolsInsideFunctionsAndMacrosRecursively(
+                ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, [])
 
 
