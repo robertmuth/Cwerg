@@ -849,6 +849,9 @@ class ExprIs:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr} {self.type}"
+
 
 @dataclasses.dataclass()
 class ExprAs:
@@ -911,6 +914,9 @@ class ExprTryAs:
     type: TYPE_NODE
     default_or_undef: Union[EXPR_NODE, ValUndef]
     x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr} {self.type} {self.default_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1407,56 +1413,6 @@ class DefVar:
 
     def __str__(self):
         return f"{_NAME(self)} {self.pub} {self.mut} {self.name} {self.initial_or_undef}"
-
-
-@dataclasses.dataclass()
-class Catch:
-    """Used with Try only"""
-    ALIAS = "catch"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.NEW_SCOPE
-
-    name: str
-    body_except: List[BODY_NODES]
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
-CATCH_NODE = Catch
-
-
-@dataclasses.dataclass()
-class Try:
-    """Variable definition if type matches otherwise `catch`
-
-    This is the most complex node in Cwerg. It only makes sense for `expr` that
-    evaluate to a sum type `S`. Assuming that `S = Union[type, type-rest].
-    The statement desugar to this:
-
-    (let `mut` tmp auto `expr`)
-    if (tmp is `type-rest`) [
-        (let `catch.name` (tmp as `type-rest`)
-        ...`catch.body_except`
-        (trap)
-    ] [])
-    (let `name` auto (tmp as `type`))
-
-    """
-    ALIAS = "try"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
-
-    mut: bool
-    name: str
-    type: TYPE_NODE
-    expr: EXPR_NODE
-    catch: CATCH_NODE
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name} := {self.expr} as {self.type}"
 
 
 @dataclasses.dataclass()

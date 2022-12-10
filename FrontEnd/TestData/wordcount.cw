@@ -35,12 +35,12 @@
   (fun pub WordCount [(param fname (slice u8))]  (union [TextStats errorIO]) [
     (let mut stats (rec TextStats []))
     (let in_word false)
-    (try fp FP (call fopen [fname Mode/r]) (catch err [(return err)]))
+    (try fp FP (call fopen [fname Mode/r]) err [(return err)])
     (let mut buf auto (ValArray u8 128 [(IndexVal undef)]))
     (while true [
-        (try n u64 (call fread [fp buf]) (catch err [
+        (try n u64 (call fread [fp buf]) err [
             (stmt discard (call fclose [fp]))
-            (return err)]))
+            (return err)])
         (+= (. stats num_chars) n)
         (for i u64 0 n 1 [
              (let c auto (at buf i))
@@ -56,7 +56,7 @@
              (if (!= n (len buf)) [(break)] [])
         ])
     ])
-    (try _ void (call fclose [fp]) (catch err [(return err)]))
+    (try _ void (call fclose [fp]) err [(return err)])
     (return stats)
   ])
 ])

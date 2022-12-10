@@ -50,14 +50,14 @@
     
 ])
 
-(macro tryM [(macro_param $name ID) 
+(macro try [(macro_param $name ID) 
             (macro_param $type EXPR) 
             (macro_param $expr EXPR) 
             (macro_param $catch_name ID) 
             (macro_param $catch_body STMT_LIST)] [
     (if (is $expr $type) [] [
         (macro_let_indirect $catch_name auto (asnot $expr $type))
-        (macro_id catch_body)
+        (macro_id $catch_body)
         (trap)
     ]) 
     (macro_let_indirect $name (tryas $expr $type undef))

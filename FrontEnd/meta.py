@@ -457,20 +457,12 @@ class TypeTab:
         elif isinstance(node, cwast.ExprSizeof):
             cstr = self.typify_node(node.type, ctx)
             return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
-        elif isinstance(node, cwast.Try):
+        elif isinstance(node, cwast.ExprTryAs):
             cstr = self.typify_node(node.type, ctx)
-            cstr_expr = self.typify_node(node.expr, ctx)
-            cstr_complement = self.corpus.insert_sum_complement(
-                cstr_expr, cstr)
-            ctx.push_target(cstr_complement)
-            self.typify_node(node.catch, ctx)
-            ctx.pop_target()
+            self.typify_node(node.expr, ctx)
+            if not isinstance(node.default_or_undef, cwast.ValUndef):
+                self.typify_node(node.default_or_undef, ctx)
             return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.Catch):
-            cstr = _AnnotateType(self.corpus, node, ctx.get_target_type())
-            for c in node.body_except:
-                self.typify_node(c, ctx)
-            return cstr
         elif isinstance(node, (cwast.StmtStaticAssert)):
             ctx.push_target(self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.BOOL))
@@ -575,7 +567,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         fun = enclosing_fun.x_type
         assert isinstance(fun, cwast.TypeFun)
         actual = node.expr_ret.x_type
-        print("@@@@", actual)
         assert types.is_compatible(
             actual, fun.result), f"{node}: {actual} {fun.result}"
     elif isinstance(node, cwast.StmtIf):
@@ -638,23 +629,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.ExprSizeof):
         assert node.x_type == corpus.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT)
-    elif isinstance(node, cwast.Try):
-        all = set()
+    elif isinstance(node, cwast.ExprTryAs):
         cstr = node.x_type
-        if isinstance(cstr, cwast.TypeSum):
-            for c in cstr.types:
-                all.add(id(c))
-        else:
-            all.add(id(cstr))
-        cstr_complement = node.catch.x_type
-        if isinstance(cstr_complement, cwast.TypeSum):
-            for c in cstr_complement.types:
-                all.add(id(c))
-        else:
-            all.add(id(cstr_complement))
-        assert all == set(id(c) for c in node.expr.x_type.types)
-    elif isinstance(node, cwast.Catch):
-        pass
+        assert cstr == node.type.x_type, f"type mismatch {cstr} vs {node.type.x_type}"
+        if not isinstance(node.default_or_undef, cwast.ValUndef):
+            assert cstr == node.default_or_undef.x_type, f"type mismatch {cstr} vs {node.type.x_type}"
+        assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
         assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)
                           ), f"bad type for {node}: {node.x_type}"

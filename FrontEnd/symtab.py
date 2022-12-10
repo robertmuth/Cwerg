@@ -231,12 +231,8 @@ def ResolveSymbolsInsideFunctionsRecursively(
         logger.info("recording local symbol: %s", node)
         scopes[-1][name] = node
 
-    if isinstance(node, (cwast.DefVar, cwast.Catch)):
+    if isinstance(node, cwast.DefVar):
         record_local_sym(node)
-    elif isinstance(node, cwast.Try):
-        # we do not want to add the local symbol yet.
-        # Otherwise, we would make that symbol visible to `catch``
-        pass
     elif isinstance(node, cwast.Id):
         def_node = _resolve_symbol_inside_function_or_macro(
             node.name, symtab, symtab_map, scopes)
@@ -271,8 +267,6 @@ def ResolveSymbolsInsideFunctionsRecursively(
     if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
         scopes.pop(-1)
         logger.info("pop scope for %s", node)
-    if isinstance(node, cwast.Try):
-        record_local_sym(node)
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],

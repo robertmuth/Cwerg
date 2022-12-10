@@ -16,7 +16,7 @@
     (let mut sum u32 0)
     (let mut node auto root)
     (while true [
-        (try x (ptr mut LinkedListNode) node (catch _ [(break)]))
+        (try x (ptr mut LinkedListNode) node _ [(break)])
         (+= sum (. (^ x) payload))
         (= node (. (^ x) next))
     ])

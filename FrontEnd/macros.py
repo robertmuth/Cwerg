@@ -68,7 +68,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         initial_or_undef = ExpandMacroRecursively(node.initial_or_undef, ctx)
         return cwast.DefVar(False, node.mut, new_name, type_or_auto, initial_or_undef)
     elif isinstance(node, cwast.MacroId):
-        assert node.name.startswith("$")
+        assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
                         cwast.MACRO_PARAM_KIND.TYPE,
@@ -105,7 +105,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
     args = invoke.args
-    assert len(params) == len(invoke.args)
+    assert len(params) == len(invoke.args), f"parameter mismatch in: {invoke}"
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     ctx.Reset()
