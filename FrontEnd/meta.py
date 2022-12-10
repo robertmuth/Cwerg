@@ -513,7 +513,7 @@ UNTYPED_NODES_TO_BE_TYPECHECKED = (
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
-def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
+def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_fun):
     assert (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or isinstance(
         node, UNTYPED_NODES_TO_BE_TYPECHECKED))
 
@@ -549,7 +549,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus, enclosing_fun):
             cstr = corpus.drop_mutability(cstr)
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
-            assert types.is_compatible(initial_cstr, cstr)
+            assert types.is_compatible_for_defvar(initial_cstr, cstr), (
+                f"incompatible types {corpus.canon_name(initial_cstr)} {corpus.canon_name(cstr)}")
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
             assert cstr == type_cstr, f"{node}: expected {cstr} got {type_cstr}"

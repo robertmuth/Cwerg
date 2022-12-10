@@ -78,12 +78,12 @@ def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     if actual == expected:
         return True
 
-    if isinstance(actual, cwast.TypeSlice) and actual.mut and isinstance(expected, cwast.TypeSlice):
-        if actual.type == expected.type:
+    if isinstance(actual, cwast.TypeSlice) and isinstance(expected, cwast.TypeSlice):
+        if actual.type == expected.type and actual.mut or not expected.mut:
             return True
 
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
-        if actual.type == expected.type:
+        if actual.type == expected.type and actual.mut or not expected.mut:
             return True
 
     if not isinstance(expected, cwast.TypeSum):
@@ -97,6 +97,13 @@ def is_compatible(actual: CanonType, expected: CanonType) -> bool:
         actual_children = set([id(actual)])
 
     return actual_children.issubset(expected_children)
+
+
+def is_compatible_for_defvar(actual: CanonType, expected: CanonType) -> bool:
+    if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeArray):
+        if actual.type == expected.type:
+            return True
+    return is_compatible(actual, expected)
 
 
 class TypeCorpus:
