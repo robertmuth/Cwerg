@@ -3,7 +3,8 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-TESTS = array.cw \
+TESTS = macros.cw \
+        array.cw \
         print_argv.cw \
         types.cw \
         consts.cw \

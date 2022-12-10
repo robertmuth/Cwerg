@@ -68,6 +68,16 @@ def _NAME(node):
         return "[" + node.ALIAS + "]"
     return "[" + node.__class__.__name__ + "]"
 
+
+def _FLAGS(node):
+    out = []
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.FLAG and getattr(node, c):
+            out.append(c)
+    outs = " ".join(out)
+    return " " + outs if outs else outs
+
 ############################################################
 # Comment
 ############################################################
@@ -262,7 +272,7 @@ class TypePtr:
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
-        return f"{_NAME(self)}({self.type})"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
 
 
 @dataclasses.dataclass()
@@ -304,8 +314,7 @@ class TypeArray:
     x_size: int = -1
 
     def __str__(self):
-        mod = "-MUT" if self.mut else ""
-        return f"{_NAME(self)} {self.mut} ({self.type}) {self.size}"
+        return f"{_NAME(self)}{_FLAGS(self)} ({self.type}) {self.size}"
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -605,7 +614,7 @@ class ExprAddrOf:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.mut} {self.expr}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.expr}"
 
 
 @dataclasses.dataclass()
@@ -1306,7 +1315,7 @@ class DefRec:
     x_size: int = -1
 
     def __str__(self):
-        return f" {self.name}"
+        return f" {_NAME(self)}{_FLAGS(self)}"
 
 
 @dataclasses.dataclass()
@@ -1347,7 +1356,7 @@ class DefEnum:
     x_size: int = -1
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
 
 
 @dataclasses.dataclass()
@@ -1366,7 +1375,7 @@ class DefType:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name} = {self.type}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
 
 
 CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
@@ -1388,17 +1397,18 @@ class DefConst:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type_or_auto} = {self.value}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}: {self.type_or_auto} = {self.value}"
 
 
 @dataclasses.dataclass()
 class DefVar:
     """Variable definition
 
-    public visibily only makes sense for module level definitions.
+    Allocates space on stack or static memory (if at module level) and 
+    initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
 
-    Variables must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
+    `pub`lic visibily only makes sense for module level definitions.
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
@@ -1412,7 +1422,7 @@ class DefVar:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.pub} {self.mut} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1434,7 +1444,7 @@ class DefFun:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
-        return f"{_NAME(self)} {self.name} [{params}]->{self.result}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]->{self.result}"
 
 
 @enum.unique
@@ -1480,7 +1490,7 @@ class DefMod:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"{_NAME(self)} {self.name} [{params}]"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
 
 
 @dataclasses.dataclass()
@@ -1548,7 +1558,7 @@ class MacroVar:
     initial_or_undef: EXPR_NODE
 
     def __str__(self):
-        return f"{_NAME(self)} {self.mut} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()
@@ -1571,7 +1581,7 @@ class MacroVarIndirect:
     x_symbol: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.mut} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()

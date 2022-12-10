@@ -183,7 +183,7 @@ class TypeTab:
             self.typify_node(node.size, ctx)
             ctx.pop_target()
             dim = _ComputeArrayLength(node.size)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(False, dim, t))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(node.mut, dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -321,14 +321,16 @@ class TypeTab:
                 ctx.push_target(cstr)
                 initial_cstr = self.typify_node(node.initial_or_undef, ctx)
                 ctx.pop_target()
+            if cstr == types.NO_TYPE:
+                cstr = initial_cstr
             # special hack for arrays: if variable is mutable and of type array,
             # this means we can update array elements but we cannot assign a new
             # array to the variable.
-            if isinstance(initial_cstr, cwast.TypeArray) and node.mut:
-                cstr = types.get_contained_type(initial_cstr)
-                dim = types.get_array_dim(initial_cstr)
-                return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(True, dim, cstr))
-            return _AnnotateType(self.corpus, node, cstr if cstr != types.NO_TYPE else initial_cstr)
+            if isinstance(cstr, cwast.TypeArray) and node.mut:
+                cstr = self.corpus.insert_array_type(True,
+                                                     types.get_array_dim(cstr),
+                                                     types.get_contained_type(cstr))
+            return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
             assert isinstance(cstr, cwast.TypePtr)
