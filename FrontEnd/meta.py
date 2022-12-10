@@ -488,14 +488,6 @@ class TypeTab:
             for c in node.body_except:
                 self.typify_node(c, ctx)
             return cstr
-        elif isinstance(node, cwast.StmtWhile):
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-            self.typify_node(node.cond, ctx)
-            ctx.pop_target()
-            for c in node.body:
-                self.typify_node(c, ctx)
-            return types.NO_TYPE
         elif isinstance(node, (cwast.StmtAssert, cwast.StmtStaticAssert)):
             ctx.push_target(self.corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.BOOL))
@@ -509,7 +501,7 @@ class TypeTab:
 
 
 UNTYPED_NODES_TO_BE_TYPECHECKED = (
-    cwast.StmtReturn, cwast.StmtWhile, cwast.StmtIf, cwast.StmtWhile, cwast.StmtFor,
+    cwast.StmtReturn, cwast.StmtIf, cwast.StmtFor,
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
@@ -616,8 +608,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.StmtIf):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.Case):
-        assert types.is_bool(node.cond.x_type)
-    elif isinstance(node, cwast.StmtWhile):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = node.lhs.x_type

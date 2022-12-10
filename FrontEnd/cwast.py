@@ -1038,27 +1038,12 @@ class ExprStringify:
 ############################################################
 # Stmt
 ############################################################
-BODY_NODES = Union["Comment", "StmtWhile", "StmtDefer", "StmtIf", "StmtBreak",
+BODY_NODES = Union["Comment", "StmtDefer", "StmtIf", "StmtBreak",
                    "StmtContinue", "StmtReturn", "StmtExpr", "StmtAssert",
                    "StmtBlock", "StmtCond"]
 
 EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
                  "ExprCall"]
-
-
-@dataclasses.dataclass()
-class StmtWhile:
-    """While statement.
-    """
-    ALIAS = "whileXXX"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE
-
-    cond: EXPR_NODE
-    body: List[BODY_NODES]
-
-    def __str__(self):
-        return f"WHILE {self.cond}"
 
 
 @dataclasses.dataclass()
