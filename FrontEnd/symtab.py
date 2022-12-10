@@ -10,6 +10,8 @@ import logging
 import collections
 import heapq
 
+from FrontEnd import pp
+from FrontEnd import macros
 from FrontEnd import cwast
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -81,6 +83,10 @@ class SymTab:
             assert False, f"could not resolve name {components}"
 
         out = self.resolve_sym_here(components[0], must_be_public)
+        if not out:
+            s = symtab_map.get(BUILTIN_MOD)
+            if s:
+                out = s.resolve_sym_here(components[0], must_be_public)
         return out
 
     def resolve_macro(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
@@ -168,6 +174,42 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     cc, symtab, symtab_map)
 
 
+def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroContext):
+    # TODO: support macro-invocatios which produce new macro-invocations
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            if isinstance(child, cwast.MacroInvoke):
+                # TODO: handle the case where the macro returns another
+                #       macro invocation
+                macro = sym_tab.resolve_macro(
+                    child.name.split("/"), symtab_map, False)
+                new_child = macros.ExpandMacro(child, macro, ctx)
+                setattr(node, c, new_child)
+                child = new_child
+            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
+        elif nfd.kind is cwast.NFK.LIST:
+            children = getattr(node, c)
+            new_children = []
+            for child in children:
+                if isinstance(child, cwast.MacroInvoke):
+                    # TODO: handle the case where the macro returns another
+                    #       macro invocation
+                    macro = sym_tab.resolve_macro(
+                        child.name.split("/"), symtab_map, False)
+                    exp = macros.ExpandMacro(child, macro, ctx)
+                    if isinstance(exp, cwast.MacroListArg):
+                        new_children += exp.args
+                    else:
+                        new_children.append(exp)
+                else:
+                    new_children.append(child)
+            setattr(node, c, new_children)
+            for child in new_children:
+                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
+
+
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
     components = name.split("/")
     if len(components) == 1:
@@ -247,18 +289,30 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 logger.info("Resolving global object: %s", node)
                 ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, symtab, symtab_map)
+    for m in mod_topo_order:
+        mod = mod_map[m]
+        symtab = symtab_map[mod.name]
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefFun):
+                logger.info("Expanding macros in: %s", node)
+                ctx = macros.MacroContext(1)
+                FindAndExpandMacrosRecursively(
+                    node, symtab, symtab_map, ctx)
 
     for m in mod_topo_order:
         mod = mod_map[m]
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
-            if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                logger.info("Resolving fun/macro: %s", node)
+            if isinstance(node, (cwast.DefFun)):
+                logger.info("Resolving symbols inside fun: %s", node)
+                # pp.PrettyPrint(node)
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, [])
 
 
 def _VerifyASTSymbolsRecursively(node, parent):
+    if isinstance(node, cwast.DefMacro):
+        return
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
         assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
     for c in node.__class__.FIELDS:

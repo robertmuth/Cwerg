@@ -2286,6 +2286,7 @@ def ReadSExpr(stream: ReadTokens) -> Any:
     else:
         cls = _NODES_ALIASES.get(tag)
         if not cls:
+            # unknown node name - assume it is a macro
             return ReadMacroInvocation(tag, stream)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
         fields = [f for f, _ in cls.__annotations__.items()

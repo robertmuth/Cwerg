@@ -9,16 +9,14 @@ import sys
 import logging
 
 from FrontEnd import cwast
-from FrontEnd import symtab
-from FrontEnd import types
-from FrontEnd import pp
+
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
 
-class CloningContext:
+class MacroContext:
 
     def __init__(self, no):
         self._no = no
@@ -52,7 +50,7 @@ def CloneNodeRecursively(node):
     return clone
 
 
-def ExpandMacroRecursively(node, ctx: CloningContext) -> Any:
+def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     if isinstance(node, cwast.MacroVar):
         assert node.name.startswith("$")
         new_name = ctx.GenUniqueName(node.name)
@@ -104,7 +102,7 @@ def ExpandMacroRecursively(node, ctx: CloningContext) -> Any:
     return clone
 
 
-def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: CloningContext) -> Any:
+def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
     args = invoke.args
     assert len(params) == len(invoke.args)
@@ -141,73 +139,3 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: CloningCo
     if len(out) == 1:
         return out[0]
     return cwast.MacroListArg(out)
-
-
-def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx):
-    # TODO: support macro-invocatios which produce new macro-invocations
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            if isinstance(child, cwast.MacroInvoke):
-                # TODO: handle the case where the macro returns another
-                #       macro invocation 
-                macro = sym_tab.resolve_macro(
-                    child.name.split("/"), symtab_map, False)
-                new_child = ExpandMacro(child, macro, ctx)
-                setattr(node, c, new_child)
-                child = new_child
-            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
-        elif nfd.kind is cwast.NFK.LIST:
-            children = getattr(node, c)
-            new_children = []
-            for child in children:
-                if isinstance(child, cwast.MacroInvoke):
-                    # TODO: handle the case where the macro returns another
-                    #       macro invocation 
-                    macro = sym_tab.resolve_macro(
-                        child.name.split("/"), symtab_map, False)
-                    exp = ExpandMacro(child, macro, ctx)
-                    if isinstance(exp, cwast.MacroListArg):
-                        new_children += exp.args
-                    else:
-                        new_children.append(exp)
-                else:
-                    new_children.append(child)
-            setattr(node, c, new_children)
-            for child in new_children:
-                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
-    asts = cwast.ReadModsFromStream(sys.stdin)
-
-    mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-
-    symtab_map: Dict[str, symtab.SymTab] = {}
-    for m in mod_topo_order:
-        symtab_map[m] = symtab.ExtractGlobalSymTab(mod_map[m], mod_map)
-
-    for m in mod_topo_order:
-        mod = mod_map[m]
-        sym_tab = symtab_map[mod.name]
-        for node in mod.body_mod:
-            if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.Comment)):
-                logger.info("Resolving global object: %s", node)
-                symtab.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, sym_tab, symtab_map)
-
-    for m in mod_topo_order:
-        mod = mod_map[m]
-        sym_tab = symtab_map[mod.name]
-        for node in mod.body_mod:
-            if isinstance(node, cwast.DefFun):
-                logger.info("Expand macros in fun: %s", node)
-                ctx = CloningContext(1)
-                FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx)
-                out = [[""]]
-                pp.RenderRecursively(node, out, 0)
-                for a in out:
-                    print("".join(a))
