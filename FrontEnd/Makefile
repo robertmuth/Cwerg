@@ -27,21 +27,23 @@ TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 tests_py: $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
+BUILTINS = TestData/builtin.cw 
+
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
-	./cwast.py < $<
+	cat $(BUILTINS) $< | ./cwast.py 
 
 $(DIR)/%.cw.meta: TestData/%.cw
 	@echo "[meta $@]"
-	./meta.py < $<
+	cat $(BUILTINS) $< |./meta.py 
 
 $(DIR)/%.cw.eval: TestData/%.cw
 	@echo "[eval $@]"
-	./eval.py < $<
+	cat $(BUILTINS) $< |./eval.py 
 
 $(DIR)/%.cw.symtab: TestData/%.cw
 	@echo "[symtab $@]"
-	./symtab.py < $<
+	cat $(BUILTINS) $< |./symtab.py 
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"

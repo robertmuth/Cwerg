@@ -29,7 +29,7 @@
 ])
 
 (# "macro for while-loop")
-(macro whileM [(macro_param $cond EXPR) 
+(macro while [(macro_param $cond EXPR) 
               (macro_param $body STMT_LIST)] [
     (block _ [
           (if $cond [] [(break)])

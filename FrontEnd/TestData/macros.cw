@@ -14,8 +14,8 @@
   
 (fun TestWhileMacro [(param end u32)] u32 [
     (let mut sum u32 0)
-    (whileM (< sum end) [
-        (+= sum i)
+    (while (< sum end) [
+        (+= sum 1)
     ])
     (return sum)
 ])

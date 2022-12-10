@@ -1050,7 +1050,7 @@ EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
 class StmtWhile:
     """While statement.
     """
-    ALIAS = "while"
+    ALIAS = "whileXXX"
     GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
 
