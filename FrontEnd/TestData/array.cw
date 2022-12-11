@@ -21,7 +21,7 @@
 ])
 
 (let d1 (array 6 s32) (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
-(let d2 (array mut 8 s32) (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(let mut d2 (array 8 s32) (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
 (let e1 (slice s32) d1)

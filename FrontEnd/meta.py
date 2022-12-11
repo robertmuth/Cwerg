@@ -323,14 +323,6 @@ class TypeTab:
                 ctx.pop_target()
             if cstr == types.NO_TYPE:
                 cstr = initial_cstr
-            # special hack for arrays: if variable is mutable and of type array,
-            # this means we can update array elements but we cannot assign a new
-            # array to the variable.
-            # TODO: revisit this
-            if isinstance(cstr, cwast.TypeArray) and node.mut:
-                cstr = self.corpus.insert_array_type(True,
-                                                     types.get_array_dim(cstr),
-                                                     types.get_contained_type(cstr))
             return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ExprDeref):
             cstr = self.typify_node(node.expr, ctx)
@@ -520,13 +512,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         assert cstr == field_node.x_type
     elif isinstance(node, cwast.DefVar):
         cstr = node.x_type
-        if node.mut and isinstance(cstr, cwast.TypeArray):
-            assert cstr.mut
-            cstr = corpus.drop_mutability(cstr)
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
-            assert types.is_compatible_for_defvar(initial_cstr, cstr), _TypeMismatch(
-                f"incompatible types", initial_cstr, cstr)
+            assert types.is_compatible_for_defvar(initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef)), _TypeMismatch(
+                corpus, f"incompatible types", initial_cstr, cstr)
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
             assert cstr == type_cstr, _TypeMismatch(f"{node}", cstr, type_cstr)
@@ -542,7 +531,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         cstr2 = node.expr2.x_type
         if node.binary_expr_kind in cwast.BINOP_BOOL:
             assert cstr1 == cstr2, _TypeMismatch(
-                f"binop mismatch in {node}:", cstr1, cstr2)
+                corpus, f"binop mismatch in {node}:", cstr1, cstr2)
             assert types.is_bool(cstr)
         elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
                                        cwast.BINARY_EXPR_KIND.PSUB):
@@ -572,13 +561,13 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         for p, a in zip(fun.params, node.args):
             arg_cstr = a.x_type
             assert types.is_compatible(
-                arg_cstr, p.type), _TypeMismatch(f"incompatible fun arg: {a}",  arg_cstr, p)
+                arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(corpus, f"incompatible fun arg: {a}",  arg_cstr, p.type)
     elif isinstance(node, cwast.StmtReturn):
         fun = enclosing_fun.x_type
         assert isinstance(fun, cwast.TypeFun)
         actual = node.expr_ret.x_type
         assert types.is_compatible(
-            actual, fun.result),  _TypeMismatch(f"{node}", actual, fun.result)
+            actual, fun.result),  _TypeMismatch(corpus, f"{node}", actual, fun.result)
     elif isinstance(node, cwast.StmtIf):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.Case):
@@ -641,9 +630,11 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             cwast.BASE_TYPE_KIND.UINT)
     elif isinstance(node, cwast.ExprTryAs):
         cstr = node.x_type
-        assert cstr == node.type.x_type, _TypeMismatch(f"type mismatch", cstr, node.type.x_type)
+        assert cstr == node.type.x_type, _TypeMismatch(corpus,
+                                                       f"type mismatch", cstr, node.type.x_type)
         if not isinstance(node.default_or_undef, cwast.ValUndef):
-            assert cstr == node.default_or_undef.x_type, _TypeMismatch(f"type mismatch", cstr, node.type.x_type)
+            assert cstr == node.default_or_undef.x_type, _TypeMismatch(corpus,
+                                                                       f"type mismatch", cstr, node.type.x_type)
         assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
         assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)

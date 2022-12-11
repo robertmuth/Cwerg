@@ -12,6 +12,14 @@ CanonType = str
 NO_TYPE = None
 
 
+def is_mutable_def(node):
+    if isinstance(node, cwast.Id):
+        s = node.x_symbol
+        if isinstance(s, cwast.DefVar):
+            return s.mut
+    return False
+
+
 def align(x, a):
     return (x + a - 1) // a * a
 
@@ -74,7 +82,7 @@ def is_number(cstr: CanonType) -> bool:
     return kind in cwast.BASE_TYPE_KIND_REAL or kind in cwast.BASE_TYPE_KIND_INT
 
 
-def is_compatible(actual: CanonType, expected: CanonType) -> bool:
+def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False) -> bool:
     if actual == expected:
         return True
 
@@ -83,8 +91,7 @@ def is_compatible(actual: CanonType, expected: CanonType) -> bool:
             return True
 
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
-        if actual.type == expected.type and actual.mut or not expected.mut:
-            return True
+        return actual.type == expected.type and (not expected.mut or actual_is_lvalue)
 
     if not isinstance(expected, cwast.TypeSum):
         return False
@@ -99,11 +106,11 @@ def is_compatible(actual: CanonType, expected: CanonType) -> bool:
     return actual_children.issubset(expected_children)
 
 
-def is_compatible_for_defvar(actual: CanonType, expected: CanonType) -> bool:
+def is_compatible_for_defvar(actual: CanonType, expected: CanonType, is_mut) -> bool:
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeArray):
         if actual.type == expected.type:
             return True
-    return is_compatible(actual, expected)
+    return is_compatible(actual, expected, is_mut)
 
 
 class TypeCorpus:
