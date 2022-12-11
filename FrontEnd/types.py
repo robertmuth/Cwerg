@@ -151,26 +151,29 @@ class TypeCorpus:
         return self._canon_name[id(node)]
 
     def insert_ptr_type(self, mut: bool, cstr: CanonType) -> CanonType:
+        s = self.canon_name(cstr)
         if mut:
-            name = f"ptr-mut({cstr})"
+            name = f"ptr-mut({s})"
         else:
-            name = f"ptr({cstr})"
+            name = f"ptr({s})"
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypePtr(mut, cstr, x_size=size, x_alignment=size))
 
     def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
+        s = self.canon_name(cstr)
         if mut:
-            name = f"slice-mut({cstr})"
+            name = f"slice-mut({s})"
         else:
-            name = f"slice({cstr})"
+            name = f"slice({s})"
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypeSlice(mut, cstr, x_size=2 * size, x_alignment=size))
 
     def insert_array_type(self, mut: bool, len: int, cstr: CanonType) -> CanonType:
+        s = self.canon_name(cstr)
         if mut:
-            name = f"array-mut({cstr},{len})"
+            name = f"array-mut({s},{len})"
         else:
-            name = f"array({cstr},{len})"
+            name = f"array({s},{len})"
         dim = cwast.ValNum(str(len))
         dim.x_value = len
         alignment = cstr.x_alignment
@@ -265,7 +268,7 @@ class TypeCorpus:
                     pieces.append(cc)
             else:
                 pieces.append(c)
-        pp = sorted(self._canon_name[id(p)] for p in pieces)
+        pp = sorted(self.canon_name(p) for p in pieces)
         name = f"sum({','.join(pp)})"
         node = cwast.TypeSum(pieces)
         self.set_size_and_offset_for_sum_type(node)
