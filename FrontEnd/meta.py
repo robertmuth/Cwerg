@@ -183,7 +183,7 @@ class TypeTab:
             self.typify_node(node.size, ctx)
             ctx.pop_target()
             dim = _ComputeArrayLength(node.size)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(node.mut, dim, t))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(dim, t))
         elif isinstance(node, cwast.RecField):
             cstr = self.typify_node(node.type, ctx)
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -272,7 +272,7 @@ class TypeTab:
             self.typify_node(node.expr_size, ctx)
             ctx.pop_target()
             dim = _ComputeArrayLength(node.expr_size)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(False, dim, cstr))
+            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(dim, cstr))
         elif isinstance(node, cwast.ValRec):
             cstr = self.typify_node(node.type, ctx)
             assert isinstance(cstr, cwast.DefRec)
@@ -299,7 +299,7 @@ class TypeTab:
         elif isinstance(node, cwast.ValString):
             dim = ComputeStringSize(node.raw, node.string)
             cstr = self.corpus.insert_array_type(
-                False, dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
+                dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
             return _AnnotateType(self.corpus, node, cstr)
         elif isinstance(node, cwast.ExprIndex):
             ctx.push_target(self.corpus.insert_base_type(
@@ -439,7 +439,7 @@ class TypeTab:
                 self.typify_node(node.width, ctx)
             cstr_cont = self.typify_node(node.container, ctx)
             cstr = types.get_contained_type(cstr_cont)
-            mut = types.is_mutable(cstr_cont)
+            mut = types.is_mutable(cstr_cont, types.is_mutable_def(node.container))
             return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(mut, cstr))
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.typify_node(node.expr, ctx)

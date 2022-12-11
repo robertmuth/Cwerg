@@ -306,7 +306,6 @@ class TypeArray:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
 
-    mut: bool  # array is mutable, TODO: rethink this
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
     x_type: Optional[Any] = None
@@ -314,7 +313,7 @@ class TypeArray:
     x_size: int = -1
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} ({self.type}) {self.size}"
+        return f"{_NAME(self)} ({self.type}) {self.size}"
 
 
 PARAMS_NODES = Union[Comment, FunParam]
@@ -1422,7 +1421,7 @@ class DefVar:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
 
 
 @dataclasses.dataclass()

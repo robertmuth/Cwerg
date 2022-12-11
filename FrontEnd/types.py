@@ -40,13 +40,13 @@ def get_pointee(cstr: CanonType) -> CanonType:
     return cstr.split("(", 1)[1][:-1]
 
 
-def is_mutable(cstr: CanonType) -> bool:
+def is_mutable(cstr: CanonType, actual_is_lvalue=False) -> bool:
     if isinstance(cstr, cwast.TypePtr):
         return cstr.mut
     elif isinstance(cstr, cwast.TypeSlice):
         return cstr.mut
     elif isinstance(cstr, cwast.TypeArray):
-        return cstr.mut
+        return actual_is_lvalue
     else:
         assert False
 
@@ -91,6 +91,7 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
             return True
 
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
+        print("@@@@@@", actual.type, expected.type, actual_is_lvalue)
         return actual.type == expected.type and (not expected.mut or actual_is_lvalue)
 
     if not isinstance(expected, cwast.TypeSum):
@@ -175,18 +176,15 @@ class TypeCorpus:
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypeSlice(mut, cstr, x_size=2 * size, x_alignment=size))
 
-    def insert_array_type(self, mut: bool, len: int, cstr: CanonType) -> CanonType:
+    def insert_array_type(self, len: int, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
-        if mut:
-            name = f"array-mut({s},{len})"
-        else:
-            name = f"array({s},{len})"
+        name = f"array({s},{len})"
         dim = cwast.ValNum(str(len))
         dim.x_value = len
         alignment = cstr.x_alignment
         size = cstr.x_size
         size = align(size, alignment)
-        return self._insert(name, cwast.TypeArray(mut, dim, cstr, x_size=len*size, x_alignment=alignment))
+        return self._insert(name, cwast.TypeArray(dim, cstr, x_size=len*size, x_alignment=alignment))
 
     def lookup_rec_field(self, rec: cwast.DefRec, field_name) -> cwast.RecField:
         """Oddball since the node returned is NOT inside corpus
@@ -310,15 +308,6 @@ class TypeCorpus:
         if len(out) == 1:
             return out[0]
         return self.insert_sum_type(out)
-
-    def drop_mutability(self, cstr: CanonType) -> CanonType:
-        assert isinstance(cstr, cwast.TypeArray)
-        name = self.canon_name(cstr)
-        node = self.corpus.get("array" + name[9:])
-        if node:
-            return node
-        node = cwast.TypeArray(cstr.mut, cstr.size, cstr.type)
-        return self._insert(name, node)
 
     def num_type(self, num: str) -> CanonType:
         for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
