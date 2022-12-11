@@ -7,7 +7,7 @@
    (return (ValNum 7)) 
 ])
 
-(let pub v1 auto 7_u64)
+(let pub mut v1 auto 7_u64)
 
 (let pub v1a auto (& mut v1))
 

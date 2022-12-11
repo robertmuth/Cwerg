@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 def is_proper_lhs(node):
     return (types.is_mutable_def(node) or
-            isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type))
+            isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type) or
+            isinstance(node, cwast.ExprField) and is_proper_lhs(node.container))
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:
@@ -587,6 +588,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
         assert types.is_compatible(expr_cstr, var_cstr)
+        assert is_proper_lhs(node.lhs)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard
