@@ -18,8 +18,8 @@
 
 
 (fun fun1 [(param a sum1_t) (param b bool) (param c s32)] sum2_t [
-    (let x sum2_t true)
-    (let y sum1_t x)
+   (let mut x sum2_t true)
+   (let y sum1_t x)
    (= x false)
    (if (is x sum2_t) [(return false)] [])
    (or= x false)

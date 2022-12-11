@@ -16,6 +16,11 @@ from typing import List, Dict, Set, Optional, Union, Any
 logger = logging.getLogger(__name__)
 
 
+def is_proper_lhs(node):
+    return (types.is_mutable_def(node) or
+            isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type))
+
+
 def ComputeStringSize(raw: bool, string: str) -> int:
     assert string[0] == '"'
     assert string[-1] == '"'
@@ -439,7 +444,8 @@ class TypeTab:
                 self.typify_node(node.width, ctx)
             cstr_cont = self.typify_node(node.container, ctx)
             cstr = types.get_contained_type(cstr_cont)
-            mut = types.is_mutable(cstr_cont, types.is_mutable_def(node.container))
+            mut = types.is_mutable(
+                cstr_cont, types.is_mutable_def(node.container))
             return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(mut, cstr))
         elif isinstance(node, cwast.ExprAddrOf):
             cstr_expr = self.typify_node(node.expr, ctx)
@@ -576,6 +582,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
         assert types.is_compatible(expr_cstr, var_cstr)
+        assert is_proper_lhs(node.lhs)
     elif isinstance(node, cwast.StmtCompoundAssignment):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type

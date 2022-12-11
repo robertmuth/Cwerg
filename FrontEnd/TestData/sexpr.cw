@@ -9,7 +9,7 @@
 
 (let pub v1 auto 7_u64)
 
-(let pub v1a auto (& v1))
+(let pub v1a auto (& mut v1))
 
 (fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")

@@ -48,7 +48,7 @@ def is_mutable(cstr: CanonType, actual_is_lvalue=False) -> bool:
     elif isinstance(cstr, cwast.TypeArray):
         return actual_is_lvalue
     else:
-        assert False
+        assert False, f"unexpected node for mutable test: {cstr}"
 
 
 def is_bool(cstr: CanonType) -> bool:
