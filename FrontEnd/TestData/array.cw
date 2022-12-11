@@ -17,6 +17,10 @@
 
 (fun fun1 [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
    (let v1 auto (chop a))
+   (let v2 auto (at c1 0))
+   (let v3 auto (& (at c1 0)))
+   (let v4 auto (& mut (at c2 0)))
+
    (return 66) 
 ])
 

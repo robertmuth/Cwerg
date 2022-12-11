@@ -229,6 +229,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         if name == None:
             name = node.name
         logger.info("recording local symbol: %s", node)
+        assert name not in scopes[-1], f"duplicate symbol: {name}"
         scopes[-1][name] = node
 
     if isinstance(node, cwast.DefVar):
