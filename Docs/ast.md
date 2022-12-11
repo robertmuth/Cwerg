@@ -168,7 +168,6 @@ An array of the given type and `size`
     
 
 Fields:
-* mut [FLAG]: is mutable
 * size [NODE]: compile-time constant size
 * type [NODE]: type expression
 
