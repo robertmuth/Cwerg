@@ -174,41 +174,52 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     cc, symtab, symtab_map)
 
 
+MAX_MACRO_NESTING = 5
+
 def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
-            if isinstance(child, cwast.MacroInvoke):
-                # TODO: handle the case where the macro returns another
-                #       macro invocation
+            nesting_level = MAX_MACRO_NESTING
+            while nesting_level > 0 and isinstance(child, cwast.MacroInvoke):
+                nesting_level -= 1
+                # the while loop handles the case where the macro returns
+                #  another macro invocation
                 macro = sym_tab.resolve_macro(
                     child.name.split("/"), symtab_map, False)
                 assert macro is not None, f"unknown macro {child}"
                 new_child = macros.ExpandMacro(child, macro, ctx)
                 setattr(node, c, new_child)
                 child = new_child
+            assert nesting_level > 0, f"macro_nesting level too deep"
             FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
-            new_children = []
-            for child in children:
-                if isinstance(child, cwast.MacroInvoke):
-                    # TODO: handle the case where the macro returns another
-                    #       macro invocation
-                    macro = sym_tab.resolve_macro(
-                        child.name.split("/"), symtab_map, False)
-                    assert macro is not None, f"unknown macro {child}"
-                    exp = macros.ExpandMacro(child, macro, ctx)
-                    if isinstance(exp, cwast.MacroListArg):
-                        new_children += exp.args
+            num_macros_expanded = 1
+            nesting_level = MAX_MACRO_NESTING + 1
+            while nesting_level > 0 and num_macros_expanded > 0:
+                nesting_level -= 1
+                new_children = []
+                num_macros_expanded = 0
+                for child in children:
+                    if isinstance(child, cwast.MacroInvoke):
+                        num_macros_expanded += 1
+                        macro = sym_tab.resolve_macro(
+                            child.name.split("/"), symtab_map, False)
+                        assert macro is not None, f"unknown macro {child}"
+                        exp = macros.ExpandMacro(child, macro, ctx)
+                        if isinstance(exp, cwast.MacroListArg):
+                            new_children += exp.args
+                        else:
+                            new_children.append(exp)
                     else:
-                        new_children.append(exp)
-                else:
-                    new_children.append(child)
-            setattr(node, c, new_children)
-            for child in new_children:
+                        new_children.append(child)
+                children = new_children
+            setattr(node, c, children)
+            assert nesting_level > 0, f"macro_nesting level too deep"
+            for child in children:
                 FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
 
 
@@ -327,7 +338,11 @@ def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         List[cwast.DefMod], Dict[str, cwast.DefMod]]:
-    """The order is also deterministic"""
+    """The order is also deterministic
+    
+    This means modules cannot have circular dependencies except for module arguments
+    to parameterized modules which are ignored in the topo order.
+    """
     mod_map: Dict[str, cwast.DefMod] = {}
     for mod in asts:
         assert isinstance(mod, cwast.DefMod)

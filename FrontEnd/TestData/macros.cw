@@ -34,4 +34,15 @@
     (return 0)
 ])
 
+(macro nested0 [] [])
+(macro nested1 [] [(nested0 [])])
+(macro nested2 [] [(nested1 [])])
+(macro nested3 [] [(nested2 [])])
+(macro nested4 [] [(nested3 [])])
+
+(fun TestInfiniteMacro [] u32 [
+    (nested3)
+    (return 0)
+])
+
 ])
