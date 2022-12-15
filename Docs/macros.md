@@ -9,15 +9,18 @@ On the other hand macros make it easy to provide feature like:
 * lazy evaluation as needed for logging, etc
 * printf like functionality
 
-Ultimately a macro system with the following properties was added to Cwerg: 
+As a compromise a fairly restricted macro system with the following properties was added:
 
-* macros and their invocation are represented in the ASTs
-* only a small number of additional AST node are related to macros (< 10)
-  (several other AST nodes like `for` and `while` could be replaced by macros)
+* only a small number (< 10) of additional AST nodes where introduced to support macros.
+* several other AST nodes like `for` and `while` could be replaced by macros and were removed.
+* macros and their invocation are represented in the ASTs so the existing parser could be used
+  almost unchanged
+* macros expansion occurs before types resolution and partial evaluation so these and later phases
+  of the compiler do not need to change
+* since partial evaluation follow macro expansion #if style conditional compilation is NOT available
 * macro definitions can only occur at the module level
 * macro invocations can only occur inside function bodies
-* the expansion of macros occurs early on before most symbols or types have been resolved.
-* it is possible to write hygenic macros by allowing the creation of per macro invocation unique symbols
+* hygenic macros are supported by allowing the creation of per macro invocation unique symbols
 * macros can invoke other macros, exapansion happens "outside-in".
 
 ### Macro Definition
@@ -59,7 +62,7 @@ which looks like a regular AST node and hence can be used
 to create syntactic sugar.
 
 `argX` is an AST node. A special node `MacroListArg` 
-can be used when the argument is a list of nodes.
+can be used when the argument is logically a list of nodes.
 
 ### Simple example: c-style -> operator
 
@@ -87,7 +90,7 @@ which is short for
 (macro_invoke -> [list_pointer next])
 ```
 
-will be expanded towiamis77
+will be expanded to:
 : 
 ```
  (. (^ list_pointer) next)
@@ -101,7 +104,7 @@ Given the macro:
 ```
 (macro while [(macro_param $cond EXPR) 
               (macro_param $body STMT_LIST)] [
-    (block _ [
+    (block [
           (if $cond [] [(break)])
           $body
           (continue)
@@ -128,7 +131,7 @@ which is short for
 
 Expands to:
 ```
-(block _ [
+(block [
     (if (!= i 1) [] [(break)])
     (stmt call print [i])
     (if (== (% i 2) 0)  [(= i (/ i 2))]  [(= i (+ (* i 3) 1))])
@@ -150,7 +153,7 @@ Expands to:
     (macro_let $end_eval $type $end)
     (macro_let $step_eval $type $step)
     (macro_let mut $it $type $start)
-    (block _ [
+    (block [
           (if (>= $it $end_eval) [(break)] [])
           (macro_let_indirect $index auto $it)
           (+=  $it $step_eval)
@@ -169,7 +172,7 @@ Sample invocation:
 
 
 `(macro_let $var ...)` defines a new variable `$var`. 
-The name must start with a "$" and will be replaced with a
+The name must start with a "$" and will be suffixed with a
 unique name at macro expansion time to avoid nameclashes.
 
 `(macro_let_indirect $var ...)` defines a new variable whose name
@@ -177,13 +180,13 @@ is detemined by the macro argument `$var`.
 
 So the sample invocation exapands to:
 ```
-(let end_eval_312 uint32 (* 10 10))
-(let step_eval_312 uint32 1)
-(let mut it_312 uint32 0)
-(block _ [
-      (if (>= it_312 end_eval_312) [(break)] [])
-      (let_indirect i auto it_312)
-      (+=  it_312 step_eval_312)
+(let end_eval_$312 uint32 (* 10 10))
+(let step_eval_$312 uint32 1)
+(let mut it_$312 uint32 0)
+(block [
+      (if (>= it_$312 end_eval_$312) [(break)] [])
+      (let_indirect i auto it_$312)
+      (+=  it_$312 step_eval_$312)
       (stmt call print [i])
       (continue)
 ])
