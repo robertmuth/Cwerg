@@ -51,26 +51,27 @@ def CloneNodeRecursively(node):
 
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
-    if isinstance(node, cwast.MacroVar):
+    if isinstance(node, cwast.MacroGenId):
         assert node.name.startswith("$")
         new_name = ctx.GenUniqueName(node.name)
-        type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
-        initial_or_undef = ExpandMacroRecursively(node.initial_or_undef, ctx)
         ctx.RegisterSymbol(
-            node.name, (cwast.MACRO_PARAM_KIND.EXPR, cwast.Id(new_name, "")))
-        return cwast.DefVar(False, node.mut, new_name, type_or_auto, initial_or_undef)
-    elif isinstance(node, cwast.MacroVarIndirect):
+            node.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, "")))
+        # this just updates meta info so no node will be returned
+        return cwast.MacroListArg([])
+    elif isinstance(node, cwast.MacroVar):
         assert node.name.startswith("$")
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
-        assert not new_name.startswith("$")
+        assert isinstance(new_name, cwast.Id)
+        assert not new_name.name.startswith("$")
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial_or_undef = ExpandMacroRecursively(node.initial_or_undef, ctx)
-        return cwast.DefVar(False, node.mut, new_name, type_or_auto, initial_or_undef)
+        return cwast.DefVar(False, node.mut, new_name.name, type_or_auto, initial_or_undef)
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
+                        cwast.MACRO_PARAM_KIND.ID,
                         cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return CloneNodeRecursively(arg)
@@ -83,7 +84,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     elif isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.field)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
-        clone.field = arg
+        clone.field = arg.name
 
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
@@ -109,26 +110,23 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     ctx.Reset()
-    out = []
     for p, a in zip(params, invoke.args):
         assert p.name.startswith("$")
         if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
-            arg = a
+            pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
             assert isinstance(a, cwast.MacroListArg)
-            arg = a
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
-            arg = a
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
-            assert isinstance(a, cwast.Id)
-            arg = a.name
+            pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:
             assert isinstance(a, cwast.Id)
-            arg = a.name
+        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
+            assert isinstance(a, cwast.Id)
         else:
             assert False
-        ctx.RegisterSymbol(p.name, (p.macro_param_kind, arg))
+        ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
 
+    out = []
     for node in macro.body_macro:
         logger.info("Expand macro body node: %s", node)
         exp = ExpandMacroRecursively(node, ctx)

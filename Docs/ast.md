@@ -41,13 +41,13 @@ WIP
 [Id&nbsp;(id)](#id-id) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [IndexVal](#indexval) &ensp;
+[MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
+[MacroGenId&nbsp;(macro_gen_id)](#macrogenid-macro_gen_id) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
 [MacroListArg&nbsp;(macro_list_arg)](#macrolistarg-macro_list_arg) &ensp;
 [MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
-[MacroRepeat&nbsp;(macro_repeat)](#macrorepeat-macro_repeat) &ensp;
-[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
-[MacroVarIndirect&nbsp;(macro_let_indirect)](#macrovarindirect-macro_let_indirect) &ensp;
+[MacroVar&nbsp;(macro_let_indirect)](#macrovar-macro_let_indirect) &ensp;
 [ModParam](#modparam) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
@@ -248,6 +248,7 @@ Fields:
 * fini [FLAG]: run function at shutdown
 * pub [FLAG]: has public visibility
 * extern [FLAG]: is external function (empty body)
+* polymorphic [FLAG]: function definition or call is polymorphic
 * name [STR]: name of the object
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
@@ -621,6 +622,7 @@ Function call expression.
     
 
 Fields:
+* polymorphic [FLAG]: function definition or call is polymorphic
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
 
@@ -735,6 +737,27 @@ Fields:
 
 ## Macro Node Details
 
+### MacroFor (macro_for)
+Macro for-loop like statement
+
+    NYI
+    
+
+Fields:
+* name [STR]: name of the object
+* name_list [STR]: name of the object list
+* body [LIST]: statement list and/or comments
+
+### MacroGenId (macro_gen_id)
+Generate a unique Id prefixed with the given name
+
+    All macro_gen_id occuring in macrobody must use different names
+    which also must not clash with macro parameters.
+    
+
+Fields:
+* name [STR]: name of the object
+
 ### MacroId (macro_id)
 Placeholder for a parameter
 
@@ -763,37 +786,13 @@ Fields:
 Macro Parameter
 
 Fields:
-* repeat [FLAG]: last macro parameter is repeated
 * name [STR]: name of the object
 * macro_param_kind [KIND]: see MacroParam Kind below
 
-### MacroRepeat (macro_repeat)
-Macro Repeated Statement
-
-    NYI
-    
-
-### MacroVar (macro_let)
-Macro Variable definition with a name that will be uniquified
+### MacroVar (macro_let_indirect)
+Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
     `name` must start with a `$`. 
-    All MacroVars inside a macro body must use different names.
-
-    `name` will be replace by a unique name inspired by `name` to avoid accidental
-    capture.
-    
-
-Fields:
-* mut [FLAG]: is mutable
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
-
-### MacroVarIndirect (macro_let_indirect)
-Macro Variable definition whose name is a macro parameter
-
-    `name` must start with a `$`. 
-    All MacroVarIndirects inside a macro body must use different names.
 
     
 

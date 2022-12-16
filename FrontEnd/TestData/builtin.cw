@@ -2,6 +2,19 @@
 (# "Macro Examples")
 
 
+(# "This gets passed to the actual formatters which decide how to interpret the options.")
+(defrec SysFormatOptions [
+    (# "min width")
+    (field witdh u8 0)
+    (field precission u8 0)
+    (field padding u8 0)
+    (field style u8 0)
+    (field show_sign bool false)
+    (field left_justify bool false)
+])
+
+
+
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void [])
 
 
@@ -19,9 +32,12 @@
             (macro_param $step EXPR) 
             (macro_param $body STMT_LIST)] [
     
-    (macro_let $end_eval $type $end)
-    (macro_let $step_eval $type $step)
-    (macro_let mut $it $type $start)
+    (macro_gen_id $end_eval)
+    (macro_let_indirect $end_eval $type $end)
+    (macro_gen_id $step_eval)
+    (macro_let_indirect $step_eval $type $step)
+    (macro_gen_id $it)
+    (macro_let_indirect mut $it $type $start)
     (block _ [
           (if (>= $it $end_eval) [(break)] [])
           (macro_let_indirect $index auto $it)
@@ -45,8 +61,10 @@
 
 (macro assert [(macro_param $cond EXPR)] [
       (if $cond [] [
-        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_let mut $curr (slice mut u8) $buffer)
+        (macro_gen_id $buffer)
+        (macro_let_indirect mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
+        (macro_gen_id $curr)
+        (macro_let_indirect mut $curr (slice mut u8) $buffer)
         (stmt (call SysErrorPrint [$curr]))
         (trap)
     ]) 
@@ -75,11 +93,37 @@
 
 
 (macro log [(macro_param $level EXPR) 
-            (macro_param repeat $x EXPR)] [
+            (macro_param $parts STMT_LIST)] [
     (if (call IsLogActive [$level (src_loc)]) [
-        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
+        (macro_gen_id $buffer)
+        (macro_let_indirect mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
+        (macro_gen_id $curr)
+        (macro_let_indirect mut $curr (slice mut u8) $buffer)
         (# "TODO complete this")
+        (macro_for $i $parts [
+            (= $curr (call SysStringfy [$i $curr]))
+        ])
+        (stmt (call SysErrorPrint [$curr]))
     ] [])
+])
+
+
+
+
+(macro copy_slice [(macro_param $item_type TYPE) 
+                   (macro_param $src EXPR)
+                   (macro_param $dst EXPR)] [
+    (macro_gen_id $n)              
+    (macro_let_indirect $n uint 
+        (? (< (len $dst) (len $src)) (len $dst) (len $src)))
+    (for i )
+])
+
+
+(fun polymorphic SysRender [(param v bool) 
+                            (param buffer (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] (slice u8)  [
+
 ])
 
 ])

@@ -150,12 +150,15 @@ Expands to:
             (macro_param $end EXPR) 
             (macro_param $step EXPR) 
             (macro_param $body STMT_LIST)] [
+    (macro_gen_id $end_eval)      
     (macro_let $end_eval $type $end)
+    (macro_gen_id $step_eval)      
     (macro_let $step_eval $type $step)
+    (macro_gen_id $it)      
     (macro_let mut $it $type $start)
     (block [
           (if (>= $it $end_eval) [(break)] [])
-          (macro_let_indirect $index auto $it)
+          (macro_let $index auto $it)
           (+=  $it $step_eval)
           $body
           (continue)
@@ -171,12 +174,13 @@ Sample invocation:
 ```
 
 
-`(macro_let $var ...)` defines a new variable `$var`. 
-The name must start with a "$" and will be suffixed with a
-unique name at macro expansion time to avoid nameclashes.
+`(macro_gen_id $var ...)` defines a new identifier `$var`. 
+The identifier must start with a "$" and will be bound to a new unique name
+picked for this macro expansion. 
+This will guarantee the absence of name clashes and/or involuntary capture.
 
-`(macro_let_indirect $var ...)` defines a new variable whose name
-is detemined by the macro argument `$var`. 
+`(macro_let $var ...)` defines a new variable whose name
+is detemined by the macro argument or macro_gen_id `$var`. 
 
 So the sample invocation exapands to:
 ```

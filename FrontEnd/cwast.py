@@ -606,6 +606,7 @@ class ExprAddrOf:
     ALIAS = "&"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
     mut: bool
     expr: EXPR_NODE
 
@@ -624,6 +625,7 @@ class ExprCall:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
+    polymorphic: bool
     callee: EXPR_NODE
     args: List[EXPR_NODE]
     x_type: Optional[Any] = None
@@ -1435,6 +1437,8 @@ class DefFun:
     fini: bool
     pub: bool
     extern: bool
+    polymorphic: bool
+
     name: str
     params: List[PARAMS_NODES]
     result: TYPE_NODE
@@ -1536,36 +1540,28 @@ class MacroId:
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
+@dataclasses.dataclass()
+class MacroGenId:
+    """Generate a unique Id prefixed with the given name
+
+    All macro_gen_id occuring in macrobody must use different names
+    which also must not clash with macro parameters.
+    """
+    ALIAS = "macro_gen_id"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+
+    name: str
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
 
 @dataclasses.dataclass()
 class MacroVar:
-    """Macro Variable definition with a name that will be uniquified
+    """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
     `name` must start with a `$`. 
-    All MacroVars inside a macro body must use different names.
-
-    `name` will be replace by a unique name inspired by `name` to avoid accidental
-    capture.
-    """
-    ALIAS = "macro_let"
-    GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
-
-    mut: bool
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
-
-
-@dataclasses.dataclass()
-class MacroVarIndirect:
-    """Macro Variable definition whose name is a macro parameter
-
-    `name` must start with a `$`. 
-    All MacroVarIndirects inside a macro body must use different names.
 
     """
     ALIAS = "macro_let_indirect"
@@ -1584,15 +1580,17 @@ class MacroVarIndirect:
 
 
 @dataclasses.dataclass()
-class MacroRepeat:
-    """Macro Repeated Statement
+class MacroFor:
+    """Macro for-loop like statement
 
     NYI
     """
-    ALIAS = "macro_repeat"
+    ALIAS = "macro_for"
     GROUP = GROUP.Macro
     FLAGS = NF.MACRO_BODY_ONLY
-
+    name: str
+    name_list: str
+    body: List[Any]
 
 @dataclasses.dataclass()
 class MacroListArg:
@@ -1613,7 +1611,6 @@ class MacroParam:
     GROUP = GROUP.Macro
     FLAGS = NF.LOCAL_SYM_DEF
 
-    repeat: bool
     name: str
     macro_param_kind: MACRO_PARAM_KIND
 
@@ -1685,6 +1682,7 @@ class NFD:
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
     NFD(NFK.STR, "name", "name of the object"),
+    NFD(NFK.STR, "name_list", "name of the object list"),
 
     NFD(NFK.STR, "string", "string literal"),
     NFD(NFK.STR, "comment", "comment"),
@@ -1705,7 +1703,8 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "init", "run function at startup"),
     NFD(NFK.FLAG, "fini", "run function at shutdown"),
     NFD(NFK.FLAG, "raw", "ignore escape sequences in string"),
-    NFD(NFK.FLAG, "repeat", "last macro parameter is repeated"),
+    NFD(NFK.FLAG, "polymorphic", "function definition or call is polymorphic"),
+
     #
     NFD(NFK.KIND, "unary_expr_kind", "see Expr1 Kind below", UNARY_EXPR_KIND),
     NFD(NFK.KIND, "binary_expr_kind", "see Expr2 Kind below", BINARY_EXPR_KIND),

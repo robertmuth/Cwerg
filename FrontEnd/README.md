@@ -55,8 +55,7 @@ Added
 * named blocks/continue/break
 * checked array accesses
 * strict distinction between expressions and statements
-* stringifiers (built-in for basic types and enums + custom)
-* simple iterators (generalized for loops)
+* simple macro system (optionally hygienic)
 
 
 ## Discussion of Features
