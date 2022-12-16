@@ -176,6 +176,7 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
 
 MAX_MACRO_NESTING = 5
 
+
 def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
@@ -339,7 +340,7 @@ def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         List[cwast.DefMod], Dict[str, cwast.DefMod]]:
     """The order is also deterministic
-    
+
     This means modules cannot have circular dependencies except for module arguments
     to parameterized modules which are ignored in the topo order.
     """
@@ -388,3 +389,4 @@ if __name__ == "__main__":
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
     VerifyASTSymbols(mod_topo_order, mod_map)
+    # for ast in asts: pp.PrettyPrint(ast)
