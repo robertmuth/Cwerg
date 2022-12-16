@@ -21,6 +21,11 @@
 ])
 
 
+(fun TestAssertMacro [(param xxx u32)] u32 [
+    (assert (< xxx 777))
+    (return 0)
+])
+
 (fun TestForMacro [(param end u32)] u32 [
     (let mut sum u32 0)
     (for i u32 0 end 1 [
@@ -29,20 +34,16 @@
     (return sum)
 ])
 
-(fun TestAssertMacro [(param xxx u32)] u32 [
-    (assert (< xxx 777))
-    (return 0)
-])
-
 (macro nested0 [] [])
-(macro nested1 [] [(nested0 [])])
-(macro nested2 [] [(nested1 [])])
-(macro nested3 [] [(nested2 [])])
-(macro nested4 [] [(nested3 [])])
+(macro nested1 [] [(nested0)])
+(macro nested2 [] [(nested1)])
+(macro nested3 [] [(nested2)])
+(macro nested4 [] [(nested3)])
 
-(fun TestInfiniteMacro [] u32 [
+(fun TestRecursiveMacro [] u32 [
     (nested3)
     (return 0)
 ])
+
 
 ])

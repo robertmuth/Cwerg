@@ -5,8 +5,8 @@
 """
 
 import dataclasses
-import sys
 import logging
+import pp
 
 from FrontEnd import cwast
 
@@ -95,7 +95,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
             out = []
             for cc in getattr(node, c):
                 exp = ExpandMacroRecursively(cc, ctx)
-                if isinstance(exp, cwast.MacroListArg):
+                if isinstance(exp, cwast.MacroListArg) and not isinstance(cc, cwast.MacroListArg):
                     out += exp.args
                 else:
                     out.append(exp)
@@ -106,9 +106,11 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
     args = invoke.args
-    assert len(params) == len(invoke.args), f"parameter mismatch in: {invoke}"
+    assert len(params) == len(invoke.args), f"parameter mismatch in: {invoke}: actual {invoke.args} expected: {len(params)}"
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
+    # pp.PrettyPrint(invoke)
+    # pp.PrettyPrint(macro)
     ctx.Reset()
     for p, a in zip(params, invoke.args):
         assert p.name.startswith("$")
@@ -129,7 +131,9 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     out = []
     for node in macro.body_macro:
         logger.info("Expand macro body node: %s", node)
+        # pp.PrettyPrint(node)
         exp = ExpandMacroRecursively(node, ctx)
+        # pp.PrettyPrint(exp)
         if isinstance(exp, cwast.MacroListArg):
             out += exp.args
         else:

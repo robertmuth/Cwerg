@@ -1542,8 +1542,9 @@ class MacroId:
 
 @dataclasses.dataclass()
 class MacroGenId:
-    """Generate a unique Id prefixed with the given name
+    """Generate a unique Id bound to the give name
 
+    Only relevant to during macro expansion.
     All macro_gen_id occuring in macrobody must use different names
     which also must not clash with macro parameters.
     """
@@ -1564,7 +1565,7 @@ class MacroVar:
     `name` must start with a `$`. 
 
     """
-    ALIAS = "macro_let_indirect"
+    ALIAS = "macro_let"
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.SYMBOL_ANNOTATED | NF.MACRO_BODY_ONLY
 
@@ -2122,7 +2123,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 
 
 def ReadMacroInvocation(tag, stream):
-    logger.info("Readding MACRO %s", tag)
+    logger.info("Readdng MACRO INVOCATION %s", tag)
     args = []
     while True:
         token = next(stream)
@@ -2134,7 +2135,7 @@ def ReadMacroInvocation(tag, stream):
             args.append(MacroListArg(ReadList(stream)))
         else:
             out = ExpandShortHand(token)
-            assert out is not None, f"unexpected macro arg {token}"
+            assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
             args.append(out)
     return args
 

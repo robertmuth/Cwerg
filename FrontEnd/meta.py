@@ -551,8 +551,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             assert cstr == corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.SINT)
         else:
-            assert cstr == cstr1
-            assert cstr == cstr2
+            assert cstr == cstr1, _TypeMismatch(f"in {node}", cstr, cstr1)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
         cstr_t = node.expr_t.x_type

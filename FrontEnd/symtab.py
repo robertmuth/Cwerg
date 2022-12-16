@@ -191,7 +191,9 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 macro = sym_tab.resolve_macro(
                     child.name.split("/"), symtab_map, False)
                 assert macro is not None, f"unknown macro {child}"
+                #pp.PrettyPrint(child)
                 new_child = macros.ExpandMacro(child, macro, ctx)
+                #pp.PrettyPrint(new_child)
                 setattr(node, c, new_child)
                 child = new_child
             assert nesting_level > 0, f"macro_nesting level too deep"
@@ -210,7 +212,9 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                         macro = sym_tab.resolve_macro(
                             child.name.split("/"), symtab_map, False)
                         assert macro is not None, f"unknown macro {child}"
+                        # pp.PrettyPrint(child)
                         exp = macros.ExpandMacro(child, macro, ctx)
+                        # pp.PrettyPrint(exp)
                         if isinstance(exp, cwast.MacroListArg):
                             new_children += exp.args
                         else:
@@ -249,7 +253,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
     elif isinstance(node, cwast.Id):
         def_node = _resolve_symbol_inside_function_or_macro(
             node.name, symtab, symtab_map, scopes)
-        assert def_node is not None, f"cannot resolve symbol {node}"
+        assert def_node is not None, f"cannot resolve symbol for {node}"
         _add_symbol_link(node, def_node)
         return
 
@@ -389,4 +393,5 @@ if __name__ == "__main__":
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
     VerifyASTSymbols(mod_topo_order, mod_map)
-    # for ast in asts: pp.PrettyPrint(ast)
+    for ast in asts:
+        pp.PrettyPrint(ast)
