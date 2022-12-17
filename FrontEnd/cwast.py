@@ -1405,7 +1405,7 @@ class DefConst:
 class DefVar:
     """Variable definition
 
-    Allocates space on stack or static memory (if at module level) and 
+    Allocates space on stack or static memory (if at module level) and
     initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
 
@@ -1540,6 +1540,7 @@ class MacroId:
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
+
 @dataclasses.dataclass()
 class MacroGenId:
     """Generate a unique Id bound to the give name
@@ -1562,7 +1563,7 @@ class MacroGenId:
 class MacroVar:
     """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
-    `name` must start with a `$`. 
+    `name` must start with a `$`.
 
     """
     ALIAS = "macro_let"
@@ -1592,6 +1593,7 @@ class MacroFor:
     name: str
     name_list: str
     body: List[Any]
+
 
 @dataclasses.dataclass()
 class MacroListArg:
@@ -1655,6 +1657,7 @@ class DefMacro:
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
+
 
 ############################################################
 # S-Expression Serialization (Introspection driven)
@@ -1852,11 +1855,59 @@ LOCAL_SYM_DEF_NODES = tuple(
 GLOBAL_SYM_DEF_NODES = tuple(
     n for n in ALL_NODES if NF.GLOBAL_SYM_DEF in n.FLAGS)
 
+############################################################
+#
+############################################################
+
+
+class _CheckASTContext:
+    def __init__(self):
+        self.toplevel = True
+        self.in_fun = False
+        self.in_macro = False
+
+
+def _CheckMacro(node, seen_names: Set[str]):
+    if isinstance(node, (MacroParam, MacroGenId, MacroFor)):
+        assert node.name.startswith("$")
+        assert node.name not in seen_names, f"duplicate name: {node.name}"
+        seen_names.add(node.name)
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            _CheckMacro(getattr(node, c), seen_names)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, c):
+                _CheckMacro(cc, seen_names)
+
+
+def _CheckAST(node, ctx: _CheckASTContext):
+    if NF.TOP_LEVEL_ONLY in node.FLAGS:
+        assert ctx.toplevel, f"only allowed at toplevel: {node}"
+    if NF.MACRO_BODY_ONLY in node.FLAGS:
+        assert ctx.in_macro, f"only allowed in macros: {node}"
+    if isinstance(node, DefMacro):
+        _CheckMacro(node, set())
+
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            ctx.toplevel = isinstance(node, DefMod)
+            ctx.in_fun |= isinstance(node, DefFun)
+            ctx.in_macro |= isinstance(node, DefMacro)
+            _CheckAST(getattr(node, c), ctx)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, c):
+                ctx.toplevel = isinstance(node, DefMod)
+                ctx.in_fun |= isinstance(node, DefFun)
+                ctx.in_macro |= isinstance(node, DefMacro)
+                _CheckAST(cc, ctx)
+
 
 ##########################################################################################
 PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
 
-WIP 
+WIP
 """
 
 
@@ -2204,7 +2255,7 @@ def ReadModsFromStream(fp) -> List[DefMod]:
             assert t == "("
             sexpr = ReadSExpr(stream)
             assert isinstance(sexpr, DefMod)
-            print(sexpr)
+            _CheckAST(sexpr, _CheckASTContext())
             asts.append(sexpr)
     except StopIteration:
         pass
