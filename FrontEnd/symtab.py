@@ -115,7 +115,7 @@ class SymTab:
             assert node.name not in self._fun_syms
             self._fun_syms[node.name] = node
         elif isinstance(node, cwast.DefMacro):
-            assert node.name not in self._macro_syms
+            assert node.name not in self._macro_syms, f"duplicate symbol {node.name}"
             self._macro_syms[node.name] = node
         elif isinstance(node, cwast.DefVar):
             assert node.name not in self._var_syms

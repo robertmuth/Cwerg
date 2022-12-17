@@ -27,8 +27,9 @@ class MacroContext:
         self._no += 1
         return f"{name[1:]}${self._no}"
 
-    def RegisterSymbol(self, name, value):
-        assert name not in self.macro_parameter
+    def RegisterSymbol(self, name, value, check_clash=False):
+        if check_clash:
+            assert name not in self.macro_parameter
         self.macro_parameter[name] = value
 
     def GetSymbol(self, name):
@@ -75,12 +76,27 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return CloneNodeRecursively(arg)
+    elif isinstance(node, cwast.MacroFor):
+        assert node.name.startswith("$"), f" non macro name: {node}"
+        kind, arg = ctx.GetSymbol(node.name_list)
+        assert isinstance(arg, cwast.MacroListArg)
+        out = []
+        for item in arg.args:
+            ctx.RegisterSymbol(node.name, (cwast.MACRO_PARAM_KIND.EXPR, item))
+            for b in node.body:
+                exp = ExpandMacroRecursively(b, ctx)
+                if isinstance(exp, cwast.MacroListArg):
+                    out += exp.args
+                else:
+                    out.append(exp)
+        return cwast.MacroListArg(out)
 
+    print("&&&&&&&&&&&&&&&&&&&&&&&", type(node))
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.init_field)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD
-        clone.init_field = arg
+        clone.init_field = arg.name
     elif isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.field)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
@@ -106,7 +122,8 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
     args = invoke.args
-    assert len(params) == len(invoke.args), f"parameter mismatch in: {invoke}: actual {invoke.args} expected: {len(params)}"
+    assert len(params) == len(
+        invoke.args), f"parameter mismatch in: {invoke}: actual {invoke.args} expected: {len(params)}"
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)

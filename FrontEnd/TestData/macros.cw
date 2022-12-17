@@ -45,5 +45,16 @@
     (return 0)
 ])
 
+(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [
+    (macro_for $x $factors [
+        (= $result (* $result $x))
+    ])
+])
+
+(fun TestProductMacro [] u32 [
+    (let mut result u32 1)
+    (product result [111 (* 2 111) 333 444 555 666])
+    (return result)
+])
 
 ])
