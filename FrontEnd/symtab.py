@@ -18,6 +18,7 @@ from typing import List, Dict, Set, Optional, Union, Any, Tuple
 logger = logging.getLogger(__name__)
 
 BUILTIN_MOD = "$builtin"
+POLYMORPHIC_MOD = "$polymorphic"
 
 
 def _add_symbol_link(id_node, def_node):
@@ -112,7 +113,7 @@ class SymTab:
     def add_top_level_sym(self, node, mod_map):
         logger.info("recording global symbol: %s", node)
         if isinstance(node, cwast.DefFun):
-            assert node.name not in self._fun_syms
+            assert node.name not in self._fun_syms, f"duplicate symbol {node.name}"
             self._fun_syms[node.name] = node
         elif isinstance(node, cwast.DefMacro):
             assert node.name not in self._macro_syms, f"duplicate symbol {node.name}"
@@ -140,7 +141,7 @@ class SymTab:
             assert False, f"unexpected node: {node}"
 
 
-def ExtractGlobalSymTab(mod, mod_map) -> SymTab:
+def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
     logger.info("Processing %s", mod.name)
@@ -148,12 +149,15 @@ def ExtractGlobalSymTab(mod, mod_map) -> SymTab:
     for node in mod.body_mod:
         if isinstance(node, (cwast.StmtStaticAssert, cwast.Comment)):
             continue
+        elif isinstance(node, cwast.DefFun) and node.polymorphic:
+            # these can only be handled when we have types
+            continue
         else:
             symtab.add_top_level_sym(node, mod_map)
     return symtab
 
 
-def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
         node, symtab: SymTab, symtab_map):
     if isinstance(node, cwast.Id):
         def_node = symtab.resolve_sym(
@@ -166,11 +170,11 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+            _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                 getattr(node, c), symtab, symtab_map)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     cc, symtab, symtab_map)
 
 
@@ -266,6 +270,9 @@ def ResolveSymbolsInsideFunctionsRecursively(
 
     # recurse using a little bit of introspection
     for c in node.__class__.FIELDS:
+        if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
+            # polymorphic stuff can only be handled once we have types
+            continue
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             ResolveSymbolsInsideFunctionsRecursively(
@@ -290,7 +297,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                            mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for m in mod_topo_order:
-        symtab_map[m] = ExtractGlobalSymTab(mod_map[m], mod_map)
+        symtab_map[m] = _ExtractSymTabPopulatedWithGlobals(mod_map[m], mod_map)
 
     for m in mod_topo_order:
         mod = mod_map[m]
@@ -298,7 +305,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.Comment)):
                 logger.info("Resolving global object: %s", node)
-                ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, symtab, symtab_map)
     for m in mod_topo_order:
         mod = mod_map[m]

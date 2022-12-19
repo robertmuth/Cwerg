@@ -91,7 +91,6 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                     out.append(exp)
         return cwast.MacroListArg(out)
 
-    print("&&&&&&&&&&&&&&&&&&&&&&&", type(node))
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.init_field)

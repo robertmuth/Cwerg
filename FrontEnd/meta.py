@@ -71,7 +71,7 @@ def ParseArrayIndex(pos: str) -> int:
     return int(pos)
 
 
-class TypeContext:
+class _TypeContext:
     def __init__(self, mod_name):
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
@@ -130,352 +130,343 @@ def _AnnotateField(node, field_node: cwast.RecField):
     node.x_field = field_node
 
 
-class TypeTab:
-    """Type Table
-
-    Requires SymTab info to resolve DefType symnbols
-    TODO: get rid of this class
-    """
-
-    def __init__(self, corpus: types.TypeCorpus):
-        self.corpus: types.TypeCorpus = corpus
-
-    def typify_node(self, node,  ctx: TypeContext) -> types.CanonType:
-        target_type = ctx.get_target_type()
-        extra = "" if target_type == types.NO_TYPE else f"[{target_type}]"
-        logger.debug(f"TYPIFYING{extra} {node}")
-        cstr = None
-        if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
-            cstr = node.x_type
-        if cstr is not None:
-            # has been typified already
-            return cstr
-        if isinstance(node, cwast.Comment):
-            return types.NO_TYPE
-        elif isinstance(node, cwast.Id):
-            # this case is why we need the sym_tab
-            def_node = node.x_symbol
-            # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
-            cstr = self.typify_node(def_node, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.TypeBase):
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(node.base_type_kind))
-        elif isinstance(node, cwast.TypePtr):
-            t = self.typify_node(node.type, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_ptr_type(node.mut, t))
-        elif isinstance(node, cwast.TypeSlice):
-            t = self.typify_node(node.type, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(node.mut, t))
-        elif isinstance(node, cwast.FunParam):
-            cstr = self.typify_node(node.type, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
-            params = [self.typify_node(p, ctx)
-                      for p in node.params if not isinstance(p, cwast.Comment)]
-            result = self.typify_node(node.result, ctx)
-            cstr = self.corpus.insert_fun_type(params, result)
-            _AnnotateType(self.corpus, node, cstr)
-            if isinstance(node, cwast.DefFun) and not node.extern:
-                save_fun = ctx.enclosing_fun
-                ctx.enclosing_fun = node
-                for c in node.body:
-                    self.typify_node(c, ctx)
-                ctx.enclosing_fun = save_fun
-            return cstr
-        elif isinstance(node, cwast.TypeArray):
-            # note this is the only place where we need a comptime eval for types
-            t = self.typify_node(node.type, ctx)
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT))
-            self.typify_node(node.size, ctx)
-            ctx.pop_target()
-            dim = _ComputeArrayLength(node.size)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(dim, t))
-        elif isinstance(node, cwast.RecField):
-            cstr = self.typify_node(node.type, ctx)
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                ctx.push_target(cstr)
-                self.typify_node(node.initial_or_undef, ctx)
-                ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.DefRec):
-            # allow recursive definitions referring back to rec inside
-            # the fields
-            cstr = self.corpus.insert_rec_type(node.name, node)
-            _AnnotateType(self.corpus, node, cstr)
-            for f in node.fields:
-                self.typify_node(f, ctx)
-            # we delay this until after fields have been typified
-            self.corpus.set_size_and_offset_for_rec_type(node)
-            return cstr
-        elif isinstance(node, cwast.EnumVal):
-            cstr = ctx.get_target_type()
-            if not isinstance(node.value_or_auto, cwast.ValAuto):
-                cstr = self.typify_node(node.value_or_auto, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.DefEnum):
-            cstr = self.corpus.insert_enum_type(
-                f"{ctx.mod_name}/{node.name}", node)
-            base_type = self.corpus.insert_base_type(node.base_type_kind)
+def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) -> types.CanonType:
+    target_type = ctx.get_target_type()
+    extra = "" if target_type == types.NO_TYPE else f"[{target_type}]"
+    logger.debug(f"TYPIFYING{extra} {node}")
+    cstr = None
+    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+        cstr = node.x_type
+    if cstr is not None:
+        # has been typified already
+        return cstr
+    if isinstance(node, cwast.Comment):
+        return types.NO_TYPE
+    elif isinstance(node, cwast.Id):
+        # this case is why we need the sym_tab
+        def_node = node.x_symbol
+        # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
+        cstr = _TypifyNodeRecursively(def_node, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.TypeBase):
+        return _AnnotateType(corpus, node, corpus.insert_base_type(node.base_type_kind))
+    elif isinstance(node, cwast.TypePtr):
+        t = _TypifyNodeRecursively(node.type, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_ptr_type(node.mut, t))
+    elif isinstance(node, cwast.TypeSlice):
+        t = _TypifyNodeRecursively(node.type, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_slice_type(node.mut, t))
+    elif isinstance(node, cwast.FunParam):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
+        params = [_TypifyNodeRecursively(p, corpus, ctx)
+                  for p in node.params if not isinstance(p, cwast.Comment)]
+        result = _TypifyNodeRecursively(node.result, corpus, ctx)
+        cstr = corpus.insert_fun_type(params, result)
+        _AnnotateType(corpus, node, cstr)
+        if isinstance(node, cwast.DefFun) and not node.extern:
+            save_fun = ctx.enclosing_fun
+            ctx.enclosing_fun = node
+            for c in node.body:
+                _TypifyNodeRecursively(c, corpus, ctx)
+            ctx.enclosing_fun = save_fun
+        return cstr
+    elif isinstance(node, cwast.TypeArray):
+        # note this is the only place where we need a comptime eval for types
+        t = _TypifyNodeRecursively(node.type, corpus, ctx)
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT))
+        _TypifyNodeRecursively(node.size, corpus, ctx)
+        ctx.pop_target()
+        dim = _ComputeArrayLength(node.size)
+        return _AnnotateType(corpus, node, corpus.insert_array_type(dim, t))
+    elif isinstance(node, cwast.RecField):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        if not isinstance(node.initial_or_undef, cwast.ValUndef):
             ctx.push_target(cstr)
-            for f in node.items:
-                if not isinstance(f, cwast.Comment):
-                    self.typify_node(f, ctx)
+            _TypifyNodeRecursively(node.initial_or_undef, corpus, ctx)
             ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.DefType):
-            cstr = self.typify_node(node.type, ctx)
-            if node.wrapped:
-                cstr = self.corpus.insert_wrapped_type(cstr)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.TypeSum):
-            # this is tricky code to ensure that children of TypeSum
-            # are not TypeSum themselves on the canonical side
-            pieces = [self.typify_node(f, ctx) for f in node.types]
-            return _AnnotateType(self.corpus, node, self.corpus.insert_sum_type(pieces))
-        if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-        elif isinstance(node, cwast.ValVoid):
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.VOID))
-        elif isinstance(node, cwast.ValUndef):
-            assert False, "Must not try to typify UNDEF"
-        elif isinstance(node, cwast.ValNum):
-            cstr = self.corpus.num_type(node.number)
-            if cstr != types.NO_TYPE:
-                return _AnnotateType(self.corpus, node, cstr)
-            return _AnnotateType(self.corpus, node, ctx.get_target_type())
-        elif isinstance(node, cwast.TypeAuto):
-            assert False, "Must not try to typify TypeAuto"
-        elif isinstance(node, cwast.ValAuto):
-            assert False, "Must not try to typify ValAuto"
-        elif isinstance(node, cwast.DefConst):
-            ctx.push_target(types.NO_TYPE if
-                            isinstance(node.type_or_auto, cwast.TypeAuto) else
-                            self.typify_node(node.type_or_auto, ctx))
-            cstr = self.typify_node(node.value, ctx)
-            ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.IndexVal):
-            cstr = ctx.get_target_type()
-            if not isinstance(node.value_or_undef, cwast.ValUndef):
-                self.typify_node(node.value_or_undef, ctx)
-            if not isinstance(node.init_index, cwast.ValAuto):
-                ctx.push_target(self.corpus.insert_base_type(
-                    cwast.BASE_TYPE_KIND.UINT))
-                self.typify_node(node.init_index, ctx)
-                ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.ValArray):
-            cstr = self.typify_node(node.type, ctx)
-            ctx.push_target(cstr)
-            for x in node.inits_array:
-                if isinstance(x, cwast.IndexVal):
-                    self.typify_node(x, ctx)
-            ctx.pop_target()
-            ctx.push_target(self.corpus.insert_base_type(
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.DefRec):
+        # allow recursive definitions referring back to rec inside
+        # the fields
+        cstr = corpus.insert_rec_type(node.name, node)
+        _AnnotateType(corpus, node, cstr)
+        for f in node.fields:
+            _TypifyNodeRecursively(f, corpus, ctx)
+        # we delay this until after fields have been typified
+        corpus.set_size_and_offset_for_rec_type(node)
+        return cstr
+    elif isinstance(node, cwast.EnumVal):
+        cstr = ctx.get_target_type()
+        if not isinstance(node.value_or_auto, cwast.ValAuto):
+            cstr = _TypifyNodeRecursively(node.value_or_auto, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.DefEnum):
+        cstr = corpus.insert_enum_type(
+            f"{ctx.mod_name}/{node.name}", node)
+        base_type = corpus.insert_base_type(node.base_type_kind)
+        ctx.push_target(cstr)
+        for f in node.items:
+            if not isinstance(f, cwast.Comment):
+                _TypifyNodeRecursively(f, corpus, ctx)
+        ctx.pop_target()
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.DefType):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        if node.wrapped:
+            cstr = corpus.insert_wrapped_type(cstr)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.TypeSum):
+        # this is tricky code to ensure that children of TypeSum
+        # are not TypeSum themselves on the canonical side
+        pieces = [_TypifyNodeRecursively(f, corpus, ctx) for f in node.types]
+        return _AnnotateType(corpus, node, corpus.insert_sum_type(pieces))
+    if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
+        return _AnnotateType(corpus, node, corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.BOOL))
+    elif isinstance(node, cwast.ValVoid):
+        return _AnnotateType(corpus, node, corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.VOID))
+    elif isinstance(node, cwast.ValUndef):
+        assert False, "Must not try to typify UNDEF"
+    elif isinstance(node, cwast.ValNum):
+        cstr = corpus.num_type(node.number)
+        if cstr != types.NO_TYPE:
+            return _AnnotateType(corpus, node, cstr)
+        return _AnnotateType(corpus, node, ctx.get_target_type())
+    elif isinstance(node, cwast.TypeAuto):
+        assert False, "Must not try to typify TypeAuto"
+    elif isinstance(node, cwast.ValAuto):
+        assert False, "Must not try to typify ValAuto"
+    elif isinstance(node, cwast.DefConst):
+        ctx.push_target(types.NO_TYPE if
+                        isinstance(node.type_or_auto, cwast.TypeAuto) else
+                        _TypifyNodeRecursively(node.type_or_auto, corpus, ctx))
+        cstr = _TypifyNodeRecursively(node.value, corpus, ctx)
+        ctx.pop_target()
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.IndexVal):
+        cstr = ctx.get_target_type()
+        if not isinstance(node.value_or_undef, cwast.ValUndef):
+            _TypifyNodeRecursively(node.value_or_undef, corpus, ctx)
+        if not isinstance(node.init_index, cwast.ValAuto):
+            ctx.push_target(corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT))
-            self.typify_node(node.expr_size, ctx)
+            _TypifyNodeRecursively(node.init_index, corpus, ctx)
             ctx.pop_target()
-            dim = _ComputeArrayLength(node.expr_size)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_array_type(dim, cstr))
-        elif isinstance(node, cwast.ValRec):
-            cstr = self.typify_node(node.type, ctx)
-            assert isinstance(cstr, cwast.DefRec)
-            all_fields: List[cwast.RecField] = [
-                f for f in cstr.fields if isinstance(f, cwast.RecField)]
-            for val in node.inits_rec:
-                if not isinstance(val, cwast.FieldVal):
-                    continue
-                if val.init_field:
-                    while True:
-                        field_node = all_fields.pop(0)
-                        if val.init_field == field_node.name:
-                            break
-                else:
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.ValArray):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        ctx.push_target(cstr)
+        for x in node.inits_array:
+            if isinstance(x, cwast.IndexVal):
+                _TypifyNodeRecursively(x, corpus, ctx)
+        ctx.pop_target()
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT))
+        _TypifyNodeRecursively(node.expr_size, corpus, ctx)
+        ctx.pop_target()
+        dim = _ComputeArrayLength(node.expr_size)
+        return _AnnotateType(corpus, node, corpus.insert_array_type(dim, cstr))
+    elif isinstance(node, cwast.ValRec):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        assert isinstance(cstr, cwast.DefRec)
+        all_fields: List[cwast.RecField] = [
+            f for f in cstr.fields if isinstance(f, cwast.RecField)]
+        for val in node.inits_rec:
+            if not isinstance(val, cwast.FieldVal):
+                continue
+            if val.init_field:
+                while True:
                     field_node = all_fields.pop(0)
-                # TODO: make sure this link is set
-                field_cstr = field_node.x_type
-                _AnnotateField(val, field_node)
-                _AnnotateType(self.corpus, val, field_cstr)
-                ctx.push_target(field_cstr)
-                self.typify_node(val.value, ctx)
-                ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.ValString):
-            dim = ComputeStringSize(node.raw, node.string)
-            cstr = self.corpus.insert_array_type(
-                dim, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.ExprIndex):
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT))
-            self.typify_node(node.expr_index, ctx)
-            ctx.pop_target()
-            cstr = self.typify_node(node.container, ctx)
-            return _AnnotateType(self.corpus, node, types.get_contained_type(cstr))
-        elif isinstance(node, cwast.ExprField):
-            cstr = self.typify_node(node.container, ctx)
-            field_node = self.corpus.lookup_rec_field(cstr, node.field)
-            _AnnotateField(node, field_node)
-            return _AnnotateType(self.corpus, node, field_node.x_type)
-        elif isinstance(node, cwast.DefVar):
-            cstr = (types.NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
-                    else self.typify_node(node.type_or_auto, ctx))
-            initial_cstr = types.NO_TYPE
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                ctx.push_target(cstr)
-                initial_cstr = self.typify_node(node.initial_or_undef, ctx)
-                ctx.pop_target()
-            if cstr == types.NO_TYPE:
-                cstr = initial_cstr
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.ExprDeref):
-            cstr = self.typify_node(node.expr, ctx)
-            assert isinstance(cstr, cwast.TypePtr)
-            # TODO: how is mutability propagated?
-            return _AnnotateType(self.corpus, node, cstr.type)
-        elif isinstance(node, cwast.Expr1):
-            cstr = self.typify_node(node.expr, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.Expr2):
-            cstr = self.typify_node(node.expr1, ctx)
-            if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and types.is_number(cstr):
-                ctx.push_target(cstr)
-                self.typify_node(node.expr2, ctx)
-                ctx.pop_target()
+                    if val.init_field == field_node.name:
+                        break
             else:
-                self.typify_node(node.expr2, ctx)
-
-            if node.binary_expr_kind in cwast.BINOP_BOOL:
-                cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
-            elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-                cstr = self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.Expr3):
-            self.typify_node(node.cond, ctx)
-            cstr = self.typify_node(node.expr_t, ctx)
+                field_node = all_fields.pop(0)
+            # TODO: make sure this link is set
+            field_cstr = field_node.x_type
+            _AnnotateField(val, field_node)
+            _AnnotateType(corpus, val, field_cstr)
+            ctx.push_target(field_cstr)
+            _TypifyNodeRecursively(val.value, corpus, ctx)
+            ctx.pop_target()
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.ValString):
+        dim = ComputeStringSize(node.raw, node.string)
+        cstr = corpus.insert_array_type(
+            dim, corpus.insert_base_type(cwast.BASE_TYPE_KIND.U8))
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.ExprIndex):
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT))
+        _TypifyNodeRecursively(node.expr_index, corpus, ctx)
+        ctx.pop_target()
+        cstr = _TypifyNodeRecursively(node.container, corpus, ctx)
+        return _AnnotateType(corpus, node, types.get_contained_type(cstr))
+    elif isinstance(node, cwast.ExprField):
+        cstr = _TypifyNodeRecursively(node.container, corpus, ctx)
+        field_node = corpus.lookup_rec_field(cstr, node.field)
+        _AnnotateField(node, field_node)
+        return _AnnotateType(corpus, node, field_node.x_type)
+    elif isinstance(node, cwast.DefVar):
+        cstr = (types.NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
+                else _TypifyNodeRecursively(node.type_or_auto, corpus, ctx))
+        initial_cstr = types.NO_TYPE
+        if not isinstance(node.initial_or_undef, cwast.ValUndef):
             ctx.push_target(cstr)
-            self.typify_node(node.expr_f, ctx)
+            initial_cstr = _TypifyNodeRecursively(
+                node.initial_or_undef, corpus, ctx)
             ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.StmtExpr):
-            self.typify_node(node.expr, ctx)
-            return types.NO_TYPE
-        elif isinstance(node, cwast.ExprCall):
-            cstr = self.typify_node(node.callee, ctx)
-            assert isinstance(cstr, cwast.TypeFun)
-            assert len(cstr.params) == len(node.args)
-            for p, a in zip(cstr.params, node.args):
-                ctx.push_target(p.type)
-                self.typify_node(a, ctx)
-                ctx.pop_target()
-            return _AnnotateType(self.corpus, node, cstr.result)
-        elif isinstance(node, cwast.StmtReturn):
-            cstr = ctx.enclosing_fun.result.x_type
+        if cstr == types.NO_TYPE:
+            cstr = initial_cstr
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.ExprDeref):
+        cstr = _TypifyNodeRecursively(node.expr, corpus, ctx)
+        assert isinstance(cstr, cwast.TypePtr)
+        # TODO: how is mutability propagated?
+        return _AnnotateType(corpus, node, cstr.type)
+    elif isinstance(node, cwast.Expr1):
+        cstr = _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.Expr2):
+        cstr = _TypifyNodeRecursively(node.expr1, corpus, ctx)
+        if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and types.is_number(cstr):
             ctx.push_target(cstr)
-            self.typify_node(node.expr_ret, ctx)
+            _TypifyNodeRecursively(node.expr2, corpus, ctx)
             ctx.pop_target()
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtIf):
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-            self.typify_node(node.cond, ctx)
-            ctx.pop_target()
-            for c in node.body_f:
-                self.typify_node(c, ctx)
-            for c in node.body_t:
-                self.typify_node(c, ctx)
-            return types.NO_TYPE
-        elif isinstance(node, cwast.Case):
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-            self.typify_node(node.cond, ctx)
-            ctx.pop_target()
-            for c in node.body:
-                self.typify_node(c, ctx)
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtCond):
-            for c in node.cases:
-                self.typify_node(c, ctx)
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtBlock):
-            for c in node.body:
-                self.typify_node(c, ctx)
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtBreak):
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtContinue):
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtTrap):
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtAssignment):
-            var_cstr = self.typify_node(node.lhs, ctx)
-            ctx.push_target(var_cstr)
-            self.typify_node(node.expr, ctx)
-            ctx.pop_target()
-            return types.NO_TYPE
-        elif isinstance(node, cwast.StmtCompoundAssignment):
-            var_cstr = self.typify_node(node.lhs, ctx)
-            ctx.push_target(var_cstr)
-            self.typify_node(node.expr, ctx)
-            ctx.pop_target()
-            return types.NO_TYPE
-        elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
-            cstr = self.typify_node(node.type, ctx)
-            self.typify_node(node.expr, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, cwast.ExprAsNot):
-            cstr = self.typify_node(node.type, ctx)
-            union = self.typify_node(node.expr, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_sum_complement(union, cstr))
-        elif isinstance(node, cwast.ExprIs):
-            self.typify_node(node.type, ctx)
-            self.typify_node(node.expr, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-        elif isinstance(node, cwast.ExprLen):
-            self.typify_node(node.container, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT))
-        elif isinstance(node, cwast.ExprChop):
-            if not isinstance(node.start, cwast.ValAuto):
-                self.typify_node(node.start, ctx)
-            if not isinstance(node.width, cwast.ValAuto):
-                self.typify_node(node.width, ctx)
-            cstr_cont = self.typify_node(node.container, ctx)
-            cstr = types.get_contained_type(cstr_cont)
-            mut = types.is_mutable(
-                cstr_cont, types.is_mutable_def(node.container))
-            return _AnnotateType(self.corpus, node, self.corpus.insert_slice_type(mut, cstr))
-        elif isinstance(node, cwast.ExprAddrOf):
-            cstr_expr = self.typify_node(node.expr, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_ptr_type(node.mut, cstr_expr))
-        elif isinstance(node, cwast.ExprOffsetof):
-            cstr = self.typify_node(node.type, ctx)
-            field_node = self.corpus.lookup_rec_field(cstr, node.field)
-            _AnnotateField(node, field_node)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
-        elif isinstance(node, cwast.ExprSizeof):
-            cstr = self.typify_node(node.type, ctx)
-            return _AnnotateType(self.corpus, node, self.corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
-        elif isinstance(node, cwast.ExprTryAs):
-            cstr = self.typify_node(node.type, ctx)
-            self.typify_node(node.expr, ctx)
-            if not isinstance(node.default_or_undef, cwast.ValUndef):
-                self.typify_node(node.default_or_undef, ctx)
-            return _AnnotateType(self.corpus, node, cstr)
-        elif isinstance(node, (cwast.StmtStaticAssert)):
-            ctx.push_target(self.corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.BOOL))
-            self.typify_node(node.cond, ctx)
-            ctx.pop_target()
-            return types.NO_TYPE
-        elif isinstance(node, cwast.Import):
-            return types.NO_TYPE
         else:
-            assert False, f"unexpected node {node}"
+            _TypifyNodeRecursively(node.expr2, corpus, ctx)
+
+        if node.binary_expr_kind in cwast.BINOP_BOOL:
+            cstr = corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
+            cstr = corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.Expr3):
+        _TypifyNodeRecursively(node.cond, corpus, ctx)
+        cstr = _TypifyNodeRecursively(node.expr_t, corpus, ctx)
+        ctx.push_target(cstr)
+        _TypifyNodeRecursively(node.expr_f, corpus, ctx)
+        ctx.pop_target()
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.StmtExpr):
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return types.NO_TYPE
+    elif isinstance(node, cwast.ExprCall):
+        cstr = _TypifyNodeRecursively(node.callee, corpus, ctx)
+        assert isinstance(cstr, cwast.TypeFun)
+        assert len(cstr.params) == len(node.args)
+        for p, a in zip(cstr.params, node.args):
+            ctx.push_target(p.type)
+            _TypifyNodeRecursively(a, corpus, ctx)
+            ctx.pop_target()
+        return _AnnotateType(corpus, node, cstr.result)
+    elif isinstance(node, cwast.StmtReturn):
+        cstr = ctx.enclosing_fun.result.x_type
+        ctx.push_target(cstr)
+        _TypifyNodeRecursively(node.expr_ret, corpus, ctx)
+        ctx.pop_target()
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtIf):
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.BOOL))
+        _TypifyNodeRecursively(node.cond, corpus, ctx)
+        ctx.pop_target()
+        for c in node.body_f:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        for c in node.body_t:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        return types.NO_TYPE
+    elif isinstance(node, cwast.Case):
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.BOOL))
+        _TypifyNodeRecursively(node.cond, corpus, ctx)
+        ctx.pop_target()
+        for c in node.body:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtCond):
+        for c in node.cases:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtBlock):
+        for c in node.body:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtBreak):
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtContinue):
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtTrap):
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtAssignment):
+        var_cstr = _TypifyNodeRecursively(node.lhs, corpus, ctx)
+        ctx.push_target(var_cstr)
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        ctx.pop_target()
+        return types.NO_TYPE
+    elif isinstance(node, cwast.StmtCompoundAssignment):
+        var_cstr = _TypifyNodeRecursively(node.lhs, corpus, ctx)
+        ctx.push_target(var_cstr)
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        ctx.pop_target()
+        return types.NO_TYPE
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, cwast.ExprAsNot):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        union = _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_sum_complement(union, cstr))
+    elif isinstance(node, cwast.ExprIs):
+        _TypifyNodeRecursively(node.type, corpus, ctx)
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.BOOL))
+    elif isinstance(node, cwast.ExprLen):
+        _TypifyNodeRecursively(node.container, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT))
+    elif isinstance(node, cwast.ExprChop):
+        if not isinstance(node.start, cwast.ValAuto):
+            _TypifyNodeRecursively(node.start, corpus, ctx)
+        if not isinstance(node.width, cwast.ValAuto):
+            _TypifyNodeRecursively(node.width, corpus, ctx)
+        cstr_cont = _TypifyNodeRecursively(node.container, corpus, ctx)
+        cstr = types.get_contained_type(cstr_cont)
+        mut = types.is_mutable(
+            cstr_cont, types.is_mutable_def(node.container))
+        return _AnnotateType(corpus, node, corpus.insert_slice_type(mut, cstr))
+    elif isinstance(node, cwast.ExprAddrOf):
+        cstr_expr = _TypifyNodeRecursively(node.expr, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_ptr_type(node.mut, cstr_expr))
+    elif isinstance(node, cwast.ExprOffsetof):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        field_node = corpus.lookup_rec_field(cstr, node.field)
+        _AnnotateField(node, field_node)
+        return _AnnotateType(corpus, node, corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+    elif isinstance(node, cwast.ExprSizeof):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        return _AnnotateType(corpus, node, corpus.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
+    elif isinstance(node, cwast.ExprTryAs):
+        cstr = _TypifyNodeRecursively(node.type, corpus, ctx)
+        _TypifyNodeRecursively(node.expr, corpus, ctx)
+        if not isinstance(node.default_or_undef, cwast.ValUndef):
+            _TypifyNodeRecursively(node.default_or_undef, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
+    elif isinstance(node, (cwast.StmtStaticAssert)):
+        ctx.push_target(corpus.insert_base_type(
+            cwast.BASE_TYPE_KIND.BOOL))
+        _TypifyNodeRecursively(node.cond, corpus, ctx)
+        ctx.pop_target()
+        return types.NO_TYPE
+    elif isinstance(node, cwast.Import):
+        return types.NO_TYPE
+    else:
+        assert False, f"unexpected node {node}"
 
 
 UNTYPED_NODES_TO_BE_TYPECHECKED = (
@@ -665,26 +656,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
-                         mod_map: Dict[str, cwast.DefMod], type_corpus):
-    """This checks types and maps them to a cananical node
-
-    Since array type include a fixed bound this also also includes
-    the evaluation of constant expressions.
-
-    The following node fields will be initialized:
-    * x_type
-    * x_field
-    * some x_value (only array dimention as they are related to types)
-    """
-    typetab = TypeTab(type_corpus)
-    for m in mod_topo_order:
-        ctx = TypeContext(m)
-        for node in mod_map[m].body_mod:
-            if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                typetab.typify_node(node, ctx)
-
-
 def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
     if isinstance(node, (cwast.Comment, cwast.DefMacro)):
         return
@@ -709,10 +680,25 @@ def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
                 _TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
 
 
-def VerifyASTTypes(mod_topo_order: List[cwast.DefMod],
-                   mod_map: Dict[str, cwast.DefMod], type_corpus):
-    for m in mod_topo_order:
+def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
+                         mod_map: Dict[str, cwast.DefMod], type_corpus):
+    """This checks types and maps them to a cananical node
 
+    Since array type include a fixed bound this also also includes
+    the evaluation of constant expressions.
+
+    The following node fields will be initialized:
+    * x_type
+    * x_field
+    * some x_value (only array dimention as they are related to types)
+    """
+    for m in mod_topo_order:
+        ctx = _TypeContext(m)
+        for node in mod_map[m].body_mod:
+            if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
+                _TypifyNodeRecursively(node, type_corpus, ctx)
+                
+    for m in mod_topo_order:
         _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
 
 
@@ -726,7 +712,6 @@ if __name__ == "__main__":
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
-    VerifyASTTypes(mod_topo_order, mod_map, type_corpus)
 
     for t in type_corpus.corpus:
         print(t)
