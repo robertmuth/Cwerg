@@ -181,6 +181,22 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
 MAX_MACRO_NESTING = 5
 
 
+def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, ctx: macros.MacroContext):
+    assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
+    if isinstance(node, cwast.ExprSrcLoc):
+        # TODO: encode file and line properly
+        return cwast.ValNum(f"{12345}_u32")
+    elif isinstance(node, cwast.ExprStringify):
+        assert isinstance(node.expr, cwast.Id)
+        return cwast.ValString(True, f'"{node.expr.name}"')
+
+    assert isinstance(node, cwast.MacroInvoke)
+    macro = sym_tab.resolve_macro(
+        node.name.split("/"), symtab_map, False)
+    assert macro is not None, f"unknown macro {node}"
+    return macros.ExpandMacro(node, macro, ctx)
+
+
 def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
@@ -188,16 +204,14 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             nesting_level = MAX_MACRO_NESTING
-            while nesting_level > 0 and isinstance(child, cwast.MacroInvoke):
+            while nesting_level > 0 and cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 nesting_level -= 1
                 # the while loop handles the case where the macro returns
                 #  another macro invocation
-                macro = sym_tab.resolve_macro(
-                    child.name.split("/"), symtab_map, False)
-                assert macro is not None, f"unknown macro {child}"
-                #pp.PrettyPrint(child)
-                new_child = macros.ExpandMacro(child, macro, ctx)
-                #pp.PrettyPrint(new_child)
+                # pp.PrettyPrint(child)
+                new_child = ExpandMacroOrMacroLike(child, sym_tab, symtab_map, ctx)
+                assert not isinstance(new_child, cwast.MacroListArg)
+                # pp.PrettyPrint(new_child)
                 setattr(node, c, new_child)
                 child = new_child
             assert nesting_level > 0, f"macro_nesting level too deep"
@@ -211,13 +225,10 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 new_children = []
                 num_macros_expanded = 0
                 for child in children:
-                    if isinstance(child, cwast.MacroInvoke):
+                    if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                         num_macros_expanded += 1
-                        macro = sym_tab.resolve_macro(
-                            child.name.split("/"), symtab_map, False)
-                        assert macro is not None, f"unknown macro {child}"
                         # pp.PrettyPrint(child)
-                        exp = macros.ExpandMacro(child, macro, ctx)
+                        exp = ExpandMacroOrMacroLike(child, sym_tab, symtab_map, ctx)
                         # pp.PrettyPrint(exp)
                         if isinstance(exp, cwast.MacroListArg):
                             new_children += exp.args

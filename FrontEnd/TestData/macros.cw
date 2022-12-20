@@ -57,4 +57,9 @@
     (return result)
 ])
 
+
+(fun TestForMacroStringify [] (slice u8) [
+    (return (stringify TestForMacroStringify))
+])
+
 ])

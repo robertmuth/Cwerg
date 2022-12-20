@@ -51,7 +51,7 @@ class NF(enum.Flag):
     TOP_LEVEL_ONLY = enum.auto()
     TOP_LEVEL = enum.auto()
     MACRO_BODY_ONLY = enum.auto()
-
+    TO_BE_EXPANDED = enum.auto()
 
 @enum.unique
 class GROUP(enum.IntEnum):
@@ -1002,32 +1002,6 @@ class ExprOffsetof:
         return f"{_NAME(self)} {self.type} {self.field}"
 
 
-@dataclasses.dataclass()
-class ExprSrcLoc:
-    """Source Location encoded as u32"""
-    ALIAS = "src_loc"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class ExprStringify:
-    """Human readable representation of the expression
-
-    This is useful to implement for assert like features
-    """
-    ALIAS = "stringify"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
-    expr:  EXPR_NODE
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-
 ############################################################
 # Stmt
 ############################################################
@@ -1508,6 +1482,32 @@ class Import:
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
+
+############################################################
+# Macro Like
+############################################################
+
+@dataclasses.dataclass()
+class ExprSrcLoc:
+    """Source Location encoded as u32"""
+    ALIAS = "src_loc"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TO_BE_EXPANDED
+
+
+@dataclasses.dataclass()
+class ExprStringify:
+    """Human readable representation of the expression
+
+    This is useful to implement for assert like features
+    """
+    ALIAS = "stringify"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TO_BE_EXPANDED
+
+    expr:  EXPR_NODE
+
+
 ############################################################
 # Macro
 ############################################################
@@ -1532,10 +1532,9 @@ class MacroId:
     """
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
-    FLAGS = NF.SYMBOL_ANNOTATED
+    FLAGS = NF(0)
 
     name: str
-    x_symbol: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1568,14 +1567,12 @@ class MacroVar:
     """
     ALIAS = "macro_let"
     GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.SYMBOL_ANNOTATED | NF.MACRO_BODY_ONLY
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
 
     mut: bool
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     initial_or_undef: EXPR_NODE
-
-    x_symbol: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
@@ -1626,7 +1623,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF(0)
+    FLAGS = NF.TO_BE_EXPANDED
 
     name: str
     args: List[EXPR_NODE]
@@ -2087,7 +2084,7 @@ def ExpandShortHand(t) -> Any:
         return ValString(False, t)
     elif _TOKEN_ID.match(t):
         if t[0] == "$":
-            return MacroId(t, "")
+            return MacroId(t)
         parts = t.rsplit("::", 1)
         return Id(parts[-1], "" if len(parts) == 1 else parts[0])
     elif _TOKEN_NUM.match(t):
