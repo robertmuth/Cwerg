@@ -203,6 +203,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
+            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
             nesting_level = MAX_MACRO_NESTING
             while nesting_level > 0 and cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 nesting_level -= 1
@@ -215,9 +216,10 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 setattr(node, c, new_child)
                 child = new_child
             assert nesting_level > 0, f"macro_nesting level too deep"
-            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
+            for child in children:
+                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
             num_macros_expanded = 1
             nesting_level = MAX_MACRO_NESTING + 1
             while nesting_level > 0 and num_macros_expanded > 0:
@@ -239,8 +241,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 children = new_children
             setattr(node, c, children)
             assert nesting_level > 0, f"macro_nesting level too deep"
-            for child in children:
-                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
+
 
 
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
@@ -342,6 +343,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 def _VerifyASTSymbolsRecursively(node, parent):
     if isinstance(node, cwast.DefMacro):
         return
+    assert cwast.NF.TO_BE_EXPANDED not in node
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
         assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
     for c in node.__class__.FIELDS:

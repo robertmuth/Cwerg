@@ -165,12 +165,7 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         result = _TypifyNodeRecursively(node.result, corpus, ctx)
         cstr = corpus.insert_fun_type(params, result)
         _AnnotateType(corpus, node, cstr)
-        if isinstance(node, cwast.DefFun) and not node.extern:
-            save_fun = ctx.enclosing_fun
-            ctx.enclosing_fun = node
-            for c in node.body:
-                _TypifyNodeRecursively(c, corpus, ctx)
-            ctx.enclosing_fun = save_fun
+        # recursing into the body is done explicitly
         return cstr
     elif isinstance(node, cwast.TypeArray):
         # note this is the only place where we need a comptime eval for types
@@ -697,7 +692,17 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
         for node in mod_map[m].body_mod:
             if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
                 _TypifyNodeRecursively(node, type_corpus, ctx)
-                
+        
+    for m in mod_topo_order:
+        ctx = _TypeContext(m)
+        for node in mod_map[m].body_mod:
+            if isinstance(node, cwast.DefFun) and not node.extern:
+                save_fun = ctx.enclosing_fun
+                ctx.enclosing_fun = node
+                for c in node.body:
+                    _TypifyNodeRecursively(c, type_corpus, ctx)
+                ctx.enclosing_fun = save_fun
+    
     for m in mod_topo_order:
         _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
 
