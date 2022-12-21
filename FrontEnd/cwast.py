@@ -53,6 +53,7 @@ class NF(enum.Flag):
     MACRO_BODY_ONLY = enum.auto()
     TO_BE_EXPANDED = enum.auto()
 
+
 @enum.unique
 class GROUP(enum.IntEnum):
     Misc = enum.auto()
@@ -515,7 +516,7 @@ class ValArray:
 
     `[10]int{.1 = 5, .2 = 6, 77}`
     """
-    ALIAS = None
+    ALIAS = "array_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
 
@@ -527,6 +528,28 @@ class ValArray:
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr_size}"
+
+
+@dataclasses.dataclass()
+class ValSlice:
+    """A slice value comprised of a pointer and length
+
+    type and mutability is defined by the pointer
+    """
+    ALIAS = "slice_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+
+    pointer: "EXPR_NODE"
+    expr_size: "EXPR_NODE"
+
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self): return f"{_NAME(self)} {self.string}"
+
+
+INITS_REC_NODES = Union[Comment, FieldVal]
 
 
 @dataclasses.dataclass()
@@ -704,6 +727,8 @@ class BINARY_EXPR_KIND(enum.Enum):
     DIV = 3
     MUL = 4
     REM = 5
+    MIN = 6
+    MAX = 7
 
     AND = 10
     OR = 11
@@ -721,8 +746,8 @@ class BINARY_EXPR_KIND(enum.Enum):
 
     SHR = 40    # >>
     SHL = 41    # <<
-    PADD = 50   # pointer add int
-    PSUB = 51   # pointer sub int
+    INCP = 50   # pointer add int
+    DECP = 51   # pointer sub int
     PDELTA = 52  # pointer delta result is sint
 
 
@@ -739,6 +764,8 @@ BINARY_EXPR_SHORTCUT = {
     "*": BINARY_EXPR_KIND.MUL,
     "/": BINARY_EXPR_KIND.DIV,
     "%": BINARY_EXPR_KIND.REM,
+    "max": BINARY_EXPR_KIND.MAX,
+    "min": BINARY_EXPR_KIND.MIN,
     #
     "&&": BINARY_EXPR_KIND.ANDSC,
     "||": BINARY_EXPR_KIND.ORSC,
@@ -750,8 +777,8 @@ BINARY_EXPR_SHORTCUT = {
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
-    "padd": BINARY_EXPR_KIND.PADD,
-    "psub": BINARY_EXPR_KIND.PSUB,
+    "incp": BINARY_EXPR_KIND.INCP,
+    "decp": BINARY_EXPR_KIND.DECP,
     "pdelta": BINARY_EXPR_KIND.PDELTA,
 }
 
@@ -1189,11 +1216,14 @@ class ASSIGNMENT_KIND(enum.Enum):
     DIV = 3
     MUL = 4
     REM = 5
-
+    #
+    INCP = 6
+    DECP = 7
+    #
     AND = 10
     OR = 11
     XOR = 12
-
+    #
     SHR = 20    # >>
     SHL = 31    # <<
 
@@ -1205,6 +1235,9 @@ ASSIGNMENT_SHORTCUT = {
     "*=": ASSIGNMENT_KIND.MUL,
     "/=": ASSIGNMENT_KIND.DIV,
     "%=": ASSIGNMENT_KIND.REM,
+    #
+    "incp=": ASSIGNMENT_KIND.INCP,
+    "decp=": ASSIGNMENT_KIND.DECP,
     #
     "and=": ASSIGNMENT_KIND.AND,
     "or=": ASSIGNMENT_KIND.OR,
@@ -1751,6 +1784,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "expr1", "left operand expression"),
     NFD(NFK.NODE, "expr2", "righ operand expression"),
     NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)"),
+    NFD(NFK.NODE, "pointer", "pointer component of slice"),
     NFD(NFK.NODE, "range", "range expression"),
     NFD(NFK.NODE, "container", "array and slice"),
     NFD(NFK.NODE, "callee", "expression evaluating to the function to be called"),
@@ -1789,6 +1823,7 @@ OPTIONAL_FIELDS = {
     "init_index": lambda: ValAuto(),
     "init_field": lambda: "",
     "initial_or_undef": lambda: ValUndef(),
+    "inits_array": lambda: [],
 }
 
 
@@ -1925,6 +1960,7 @@ def _RenderKind(name, kind, inv, fout):
     for x in kind:
         if x is kind.INVALID:
             continue
+        assert x in inv, f"No custom name defined for emnum {x}"
         print(f"|{x.name:10}|{inv[x]}|", file=fout)
 
 
@@ -2157,6 +2193,8 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     BINARY_EXPR_KIND.MUL,
     BINARY_EXPR_KIND.DIV,
     BINARY_EXPR_KIND.REM,
+    BINARY_EXPR_KIND.MIN,
+    BINARY_EXPR_KIND.MAX,
     #
     BINARY_EXPR_KIND.ANDSC,
     BINARY_EXPR_KIND.ORSC,

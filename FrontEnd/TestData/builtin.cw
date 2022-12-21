@@ -16,6 +16,7 @@
 
 
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void [])
+(fun pub extern SysPrint [(param buffer (slice u8))] void [])
 
 
 (# "macro for c-style -> operator")
@@ -92,23 +93,6 @@
 (fun pub extern print [(param buffer (slice u8))] void [])
 
 
-(macro log [(macro_param $level EXPR) 
-            (macro_param $parts STMT_LIST)] [
-    (if (call IsLogActive [$level (src_loc)]) [
-        (macro_gen_id $buffer)
-        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_gen_id $curr)
-        (macro_let mut $curr (slice mut u8) $buffer)
-        (# "TODO complete this")
-        (macro_for $i $parts [
-            (= $curr (call SysStringfy [$i $curr]))
-        ])
-        (stmt (call SysErrorPrint [$curr]))
-    ] [])
-])
-
-
-
 (# "generic copy of data from slice/array to slice")
 (macro copy_slice [(macro_param $item_type TYPE) 
                    (macro_param $src EXPR)
@@ -122,7 +106,13 @@
     (macro_let $n uint $len)
     (macro_gen_id $i)              
     (for $i uint 0 $n 1 [
-        (= (^(+ $pdst $i)) (^ (+ $psrc $i)))])
+        (= (^(incp $pdst $i)) (^ (incp $psrc $i)))])
+])
+
+
+(fun memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] void [
+    (for i uint 0 len 1 [
+        (= (^(incp dst i)) (^ (incp src i)))])
 ])
 
 
@@ -134,5 +124,58 @@
     (copy_slice u8 buffer s n)
     (return n)
 ])
+
+
+(fun polymorphic SysRender [(param v uint) 
+                            (param out (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    (let mut tmp auto (ValArray u8 16 []))
+    (let mut pos uint 16)
+    (let mut val v)
+    (block _ [
+        (-= pos 1)
+        (let c (% val 10))
+        (let mut c8 (as c u8))
+        (+= c8 '0')
+        (= (at tmp pos) c8)
+        (/= val 10)
+        (if (!= val 0) [(continue)] [])
+    ])
+    (let len uint (min (- 16_uint pos) (len out)))
+    (stmt (call memcpy [(as out (ptr mut u8)) (incp (as tmp (ptr u8)) pos) len]))
+    (return len)
+])
+
+
+(macro print [(macro_param $parts STMT_LIST)] [
+    (macro_gen_id $buffer)
+    (macro_let mut $buffer auto (ValArray u8 1024))
+    (macro_gen_id $curr)
+    (macro_let mut $curr (slice mut u8) $buffer)
+    (macro_gen_id $options)
+    (macro_let mut $options auto (rec SysFormatOptions []))
+    (macro_for $i $parts [
+        (incp= $curr (call polymorphic SysRender [$i $curr (& mut $options)]))
+    ])
+    (stmt (call SysPrint [$curr])) 
+])
+
+(macro log [(macro_param $level EXPR) 
+            (macro_param $parts STMT_LIST)] [
+    (if (call IsLogActive [$level (src_loc)]) [
+        (macro_gen_id $buffer)
+        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
+        (macro_gen_id $curr)
+        (macro_let mut $curr (slice mut u8) $buffer)
+        (macro_gen_id $options)
+        (macro_let mut $options auto (rec SysFormatOptions []))
+        (macro_for $i $parts [
+            (let n uint (call polymorphic SysRender [$i $curr (& mut $options)]))
+        ])
+        (stmt (call SysErrorPrint [$curr]))
+    ] [])
+])
+
+
 
 ])

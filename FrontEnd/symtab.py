@@ -343,12 +343,15 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 def _VerifyASTSymbolsRecursively(node, parent):
     if isinstance(node, cwast.DefMacro):
         return
-    assert cwast.NF.TO_BE_EXPANDED not in node
+    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
         assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
+            if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
+                # polymorphic stuff can only be handled once we have types
+                continue
             _VerifyASTSymbolsRecursively(getattr(node, c), node)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):

@@ -72,11 +72,12 @@ def ParseArrayIndex(pos: str) -> int:
 
 
 class _TypeContext:
-    def __init__(self, mod_name):
+    def __init__(self, mod_name, poly_map):
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
         self._enclosing_rec_type: List[types.CanonType] = []
         self._target_type: List[types.CanonType] = [types.NO_TYPE]
+        self._poly_map = poly_map
 
     def push_target(self, cstr: types.CanonType):
         """use to suport limited type inference
@@ -135,7 +136,7 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
     extra = "" if target_type == types.NO_TYPE else f"[{target_type}]"
     logger.debug(f"TYPIFYING{extra} {node}")
     cstr = None
-    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+    if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         cstr = node.x_type
     if cstr is not None:
         # has been typified already
@@ -350,14 +351,35 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         _TypifyNodeRecursively(node.expr, corpus, ctx)
         return types.NO_TYPE
     elif isinstance(node, cwast.ExprCall):
-        cstr = _TypifyNodeRecursively(node.callee, corpus, ctx)
-        assert isinstance(cstr, cwast.TypeFun)
-        assert len(cstr.params) == len(node.args)
-        for p, a in zip(cstr.params, node.args):
-            ctx.push_target(p.type)
-            _TypifyNodeRecursively(a, corpus, ctx)
-            ctx.pop_target()
-        return _AnnotateType(corpus, node, cstr.result)
+        if node.polymorphic:
+            assert len(node.args) > 0
+            assert isinstance(node.callee, cwast.Id)
+            t = _TypifyNodeRecursively(node.args[0], corpus, ctx)
+            first_param_type = corpus.canon_name(t)
+            logger.info("Call to polymorphic fun %s: %s",
+                        node.callee.name, first_param_type)
+            called_fun =  ctx._poly_map[(
+                node.callee.name, first_param_type)]
+            node.callee.x_symbol = called_fun
+            node.callee.x_type = called_fun.x_type
+            cstr = called_fun.x_type
+            assert isinstance(cstr, cwast.TypeFun), f"{cstr}"
+            assert len(cstr.params) == len(node.args)
+            # we already process the first arg
+            for p, a in zip(cstr.params[1:], node.args[1:]):
+                ctx.push_target(p.type)
+                _TypifyNodeRecursively(a, corpus, ctx)
+                ctx.pop_target()
+            return _AnnotateType(corpus, node, cstr.result)
+        else:
+            cstr = _TypifyNodeRecursively(node.callee, corpus, ctx)
+            assert isinstance(cstr, cwast.TypeFun)
+            assert len(cstr.params) == len(node.args)
+            for p, a in zip(cstr.params, node.args):
+                ctx.push_target(p.type)
+                _TypifyNodeRecursively(a, corpus, ctx)
+                ctx.pop_target()
+            return _AnnotateType(corpus, node, cstr.result)
     elif isinstance(node, cwast.StmtReturn):
         cstr = ctx.enclosing_fun.result.x_type
         ctx.push_target(cstr)
@@ -527,8 +549,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             assert cstr1 == cstr2, _TypeMismatch(
                 corpus, f"binop mismatch in {node}:", cstr1, cstr2)
             assert types.is_bool(cstr)
-        elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.PADD,
-                                       cwast.BINARY_EXPR_KIND.PSUB):
+        elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.INCP,
+                                       cwast.BINARY_EXPR_KIND.DECP):
+            # TODO: check for pointer or slice
             assert cstr == cstr1
             assert types.is_int(cstr2)
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
@@ -537,6 +560,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             assert cstr == corpus.insert_base_type(
                 cwast.BASE_TYPE_KIND.SINT)
         else:
+            assert cstr1 == cstr2, _TypeMismatch(
+                corpus, f"binop mismatch in {node}:", cstr1, cstr2)
             assert cstr == cstr1, _TypeMismatch(f"in {node}", cstr, cstr1)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
@@ -549,7 +574,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.ExprCall):
         result = node.x_type
         fun = node.callee.x_type
-        assert isinstance(fun, cwast.TypeFun)
+        assert isinstance(fun, cwast.TypeFun), f"{fun}"
         assert fun.result == result
         for p, a in zip(fun.params, node.args):
             arg_cstr = a.x_type
@@ -568,13 +593,19 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
-        assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(corpus, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
+        assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
+            corpus, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
         assert is_proper_lhs(node.lhs)
     elif isinstance(node, cwast.StmtCompoundAssignment):
+        assert is_proper_lhs(node.lhs)
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
-        assert types.is_compatible(expr_cstr, var_cstr)
-        assert is_proper_lhs(node.lhs)
+        if node.assignment_kind in (cwast.ASSIGNMENT_KIND.DECP, cwast.ASSIGNMENT_KIND.INCP):
+             # TODO: check for pointer or slice
+            assert types.is_int(expr_cstr)
+        else:
+            assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
+                corpus, f"incompatible assignment arg: {node}",  expr_cstr, var_cstr)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard
@@ -689,20 +720,21 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     """
     poly_map = {}
     for m in mod_topo_order:
-        ctx = _TypeContext(m)
+        ctx = _TypeContext(m, poly_map)
         for node in mod_map[m].body_mod:
             if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
+                # Note: we do not recurse into function bodies
                 cstr = _TypifyNodeRecursively(node, type_corpus, ctx)
                 if isinstance(node, cwast.DefFun) and node.polymorphic:
                     assert isinstance(cstr, cwast.TypeFun)
                     first_param_type = type_corpus.canon_name(
                         cstr.params[0].type)
-                    logger.info("Polymorphic fun %s: %s",
+                    logger.info("Def of polymorphic fun %s: %s",
                                 node.name, first_param_type)
                     poly_map[(node.name, first_param_type)] = node
 
     for m in mod_topo_order:
-        ctx = _TypeContext(m)
+        ctx = _TypeContext(m, poly_map)
         for node in mod_map[m].body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 save_fun = ctx.enclosing_fun

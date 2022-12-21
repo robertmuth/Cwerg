@@ -62,4 +62,8 @@
     (return (stringify TestForMacroStringify))
 ])
 
+(fun TestForMacroPrint [] void [
+    (print [true false]) 
+])
+
 ])
