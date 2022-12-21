@@ -568,7 +568,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
-        assert types.is_compatible(expr_cstr, var_cstr)
+        assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(corpus, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
         assert is_proper_lhs(node.lhs)
     elif isinstance(node, cwast.StmtCompoundAssignment):
         var_cstr = node.lhs.x_type
@@ -676,7 +676,7 @@ def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
 
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
-                         mod_map: Dict[str, cwast.DefMod], type_corpus):
+                         mod_map: Dict[str, cwast.DefMod], type_corpus: types.TypeCorpus):
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -687,12 +687,20 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * x_field
     * some x_value (only array dimention as they are related to types)
     """
+    poly_map = {}
     for m in mod_topo_order:
         ctx = _TypeContext(m)
         for node in mod_map[m].body_mod:
             if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                _TypifyNodeRecursively(node, type_corpus, ctx)
-        
+                cstr = _TypifyNodeRecursively(node, type_corpus, ctx)
+                if isinstance(node, cwast.DefFun) and node.polymorphic:
+                    assert isinstance(cstr, cwast.TypeFun)
+                    first_param_type = type_corpus.canon_name(
+                        cstr.params[0].type)
+                    logger.info("Polymorphic fun %s: %s",
+                                node.name, first_param_type)
+                    poly_map[(node.name, first_param_type)] = node
+
     for m in mod_topo_order:
         ctx = _TypeContext(m)
         for node in mod_map[m].body_mod:
@@ -702,7 +710,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                 for c in node.body:
                     _TypifyNodeRecursively(c, type_corpus, ctx)
                 ctx.enclosing_fun = save_fun
-    
+
     for m in mod_topo_order:
         _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
 
