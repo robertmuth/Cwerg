@@ -52,14 +52,7 @@ def CloneNodeRecursively(node):
 
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
-    if isinstance(node, cwast.MacroGenId):
-        assert node.name.startswith("$")
-        new_name = ctx.GenUniqueName(node.name)
-        ctx.RegisterSymbol(
-            node.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, "")))
-        # this just updates meta info so no node will be returned
-        return cwast.MacroListArg([])
-    elif isinstance(node, cwast.MacroVar):
+    if isinstance(node, cwast.MacroVar):
         assert node.name.startswith("$")
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
@@ -143,7 +136,11 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         else:
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
-
+    for gen_id in macro.gen_ids:
+        assert gen_id.startswith("$")
+        new_name = ctx.GenUniqueName(gen_id)
+        ctx.RegisterSymbol(
+            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, "")))
     out = []
     for node in macro.body_macro:
         logger.info("Expand macro body node: %s", node)

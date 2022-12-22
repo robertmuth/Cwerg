@@ -20,7 +20,7 @@
 
 
 (# "macro for c-style -> operator")
-(macro pub -> [(macro_param $pointer EXPR) (macro_param $field FIELD)] [
+(macro pub -> [(macro_param $pointer EXPR) (macro_param $field FIELD)] [] [
        (. (^ $pointer) $field)
 ])
 
@@ -31,13 +31,10 @@
                 (macro_param $start EXPR) 
                 (macro_param $end EXPR) 
                 (macro_param $step EXPR) 
-                (macro_param $body STMT_LIST)] [
+                (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] [
     
-    (macro_gen_id $end_eval)
     (macro_let $end_eval $type $end)
-    (macro_gen_id $step_eval)
     (macro_let $step_eval $type $step)
-    (macro_gen_id $it)
     (macro_let mut $it $type $start)
     (block _ [
           (if (>= $it $end_eval) [(break)] [])
@@ -51,7 +48,7 @@
 
 (# "macro for while-loop")
 (macro pub while [(macro_param $cond EXPR) 
-                  (macro_param $body STMT_LIST)] [
+                  (macro_param $body STMT_LIST)] [] [
     (block _ [
           (if $cond [] [(break)])
           $body
@@ -60,11 +57,9 @@
 ])        
 
 
-(macro pub assert [(macro_param $cond EXPR)] [
+(macro pub assert [(macro_param $cond EXPR)] [$buffer $curr] [
       (if $cond [] [
-        (macro_gen_id $buffer)
         (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_gen_id $curr)
         (macro_let mut $curr (slice mut u8) $buffer)
         (stmt (call SysErrorPrint [$curr]))
         (trap)
@@ -77,7 +72,7 @@
                 (macro_param $type EXPR) 
                 (macro_param $expr EXPR) 
                 (macro_param $catch_name ID) 
-                (macro_param $catch_body STMT_LIST)] [
+                (macro_param $catch_body STMT_LIST)] [] [
     (if (is $expr $type) [] [
         (macro_let $catch_name auto (asnot $expr $type))
         (macro_id $catch_body)
@@ -97,14 +92,10 @@
 (macro copy_slice [(macro_param $item_type TYPE) 
                    (macro_param $src EXPR)
                    (macro_param $dst EXPR)
-                   (macro_param $len EXPR)] [
-    (macro_gen_id $psrc)   
+                   (macro_param $len EXPR)] [$psrc $pdst $n $i] [
     (macro_let $psrc auto (as $src (ptr $item_type))) 
-    (macro_gen_id $pdst)   
     (macro_let $pdst auto (as $dst (ptr mut $item_type)))
-    (macro_gen_id $n)              
     (macro_let $n uint $len)
-    (macro_gen_id $i)              
     (for $i uint 0 $n 1 [
         (= (^(incp $pdst $i)) (^ (incp $psrc $i)))])
 ])
@@ -147,12 +138,9 @@
 ])
 
 
-(macro pub print [(macro_param $parts STMT_LIST)] [
-    (macro_gen_id $buffer)
+(macro pub print [(macro_param $parts STMT_LIST)] [$buffer $curr $options] [
     (macro_let mut $buffer auto (ValArray u8 1024))
-    (macro_gen_id $curr)
     (macro_let mut $curr (slice mut u8) $buffer)
-    (macro_gen_id $options)
     (macro_let mut $options auto (rec SysFormatOptions []))
     (macro_for $i $parts [
         (incp= $curr (call polymorphic SysRender [$i $curr (& mut $options)]))
@@ -161,13 +149,10 @@
 ])
 
 (macro pub log [(macro_param $level EXPR) 
-                (macro_param $parts STMT_LIST)] [
+                (macro_param $parts STMT_LIST)] [$buffer $curr $options] [
     (if (call IsLogActive [$level (src_loc)]) [
-        (macro_gen_id $buffer)
         (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_gen_id $curr)
         (macro_let mut $curr (slice mut u8) $buffer)
-        (macro_gen_id $options)
         (macro_let mut $options auto (rec SysFormatOptions []))
         (macro_for $i $parts [
             (let n uint (call polymorphic SysRender [$i $curr (& mut $options)]))

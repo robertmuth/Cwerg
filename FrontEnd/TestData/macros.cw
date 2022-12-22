@@ -34,18 +34,18 @@
     (return sum)
 ])
 
-(macro nested0 [] [])
-(macro nested1 [] [(nested0)])
-(macro nested2 [] [(nested1)])
-(macro nested3 [] [(nested2)])
-(macro nested4 [] [(nested3)])
+(macro nested0 [] [] [])
+(macro nested1 [] [] [(nested0)])
+(macro nested2 [] [] [(nested1)])
+(macro nested3 [] [] [(nested2)])
+(macro nested4 [] [] [(nested3)])
 
 (fun TestRecursiveMacro [] u32 [
     (nested3)
     (return 0)
 ])
 
-(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [
+(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [] [
     (macro_for $x $factors [
         (= $result (* $result $x))
     ])

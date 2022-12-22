@@ -1574,24 +1574,6 @@ class MacroId:
 
 
 @dataclasses.dataclass()
-class MacroGenId:
-    """Generate a unique Id bound to the give name
-
-    Only relevant to during macro expansion.
-    All macro_gen_id occuring in macrobody must use different names
-    which also must not clash with macro parameters.
-    """
-    ALIAS = "macro_gen_id"
-    GROUP = GROUP.Macro
-    FLAGS = NF(0)
-
-    name: str
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
-@dataclasses.dataclass()
 class MacroVar:
     """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
@@ -1684,6 +1666,7 @@ class DefMacro:
 
     name: str
     params_macro: List[PARAMS_MACRO_NODES]
+    gen_ids: List[str]
     body_macro: List[Any]
 
     def __str__(self):
@@ -1703,6 +1686,7 @@ class NFK(enum.Enum):
     KIND = 4
     NODE = 5
     LIST = 6
+    STR_LIST = 7
 
 
 @dataclasses.dataclass()
@@ -1729,6 +1713,8 @@ ALL_FIELDS = [
     NFD(NFK.STR, "init_field", "initializer field or empty (empty means next field)"),
     NFD(NFK.STR, "path", "TBD"),
     NFD(NFK.STR, "alias", "name of imported module to be used instead of given name"),
+    NFD(NFK.STR_LIST, "gen_ids",
+        "name placeholder ids to be generated at macro instantiation time"),
     #
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
@@ -1770,6 +1756,8 @@ ALL_FIELDS = [
         "statement list and/or comments when type narrowing fails", BODY_NODES),
     NFD(NFK.LIST, "body_macro",
         "macro statments/expression", BODY_MOD_NODES),
+    NFD(NFK.LIST, "cases", "list of case statements"),
+
     #
     NFD(NFK.NODE, "init_index", "initializer index or empty (empty mean next index)"),
     NFD(NFK.NODE, "type", "type expression"),
@@ -1803,7 +1791,6 @@ ALL_FIELDS = [
         "value if type narrowing fail or trap if undef"),
     NFD(NFK.NODE, "catch",
         "handler for type mismatch (implictly terminated by trap)"),
-    NFD(NFK.LIST, "cases", "list of case statements"),
 
 ]
 
@@ -1901,7 +1888,7 @@ class _CheckASTContext:
 
 
 def _CheckMacro(node, seen_names: Set[str]):
-    if isinstance(node, (MacroParam, MacroGenId, MacroFor)):
+    if isinstance(node, (MacroParam, MacroFor)):
         assert node.name.startswith("$")
         assert node.name not in seen_names, f"duplicate name: {node.name}"
         seen_names.add(node.name)
@@ -2132,7 +2119,7 @@ def ExpandShortHand(t) -> Any:
         return None
 
 
-def ReadList(stream):
+def ReadNodeList(stream):
     out = []
     while True:
         token = next(stream)
@@ -2142,6 +2129,17 @@ def ReadList(stream):
             out.append(ReadSExpr(stream))
         else:
             out.append(ExpandShortHand(token))
+    return out
+
+
+def ReadStrList(stream) -> List[str]:
+    out = []
+    while True:
+        token = next(stream)
+        if token == "]":
+            break
+        else:
+            out.append(token)
     return out
 
 
@@ -2163,9 +2161,12 @@ def ReadPiece(field, token, stream) -> Any:
         out = ExpandShortHand(token)
         assert out is not None, f"Cannot expand {token} for {field}"
         return out
+    elif nfd.kind is NFK.STR_LIST:
+        assert token == "[", f"expected list start for: {field} {token}"
+        return ReadStrList(stream)
     elif nfd.kind is NFK.LIST:
         assert token == "[", f"expected list start for: {field} {token}"
-        return ReadList(stream)
+        return ReadNodeList(stream)
     else:
         assert None
 
@@ -2219,7 +2220,7 @@ def ReadMacroInvocation(tag, stream):
         elif token == "(":
             args.append(ReadSExpr(stream))
         elif token == "[":
-            args.append(MacroListArg(ReadList(stream)))
+            args.append(MacroListArg(ReadNodeList(stream)))
         else:
             out = ExpandShortHand(token)
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"

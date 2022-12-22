@@ -100,6 +100,8 @@ def RenderRecursively(node, out, indent: str):
                     out.append([" " * (indent + 1)])
                     RenderRecursively(cc, out, indent + 1)
                 out[-1].append("]")
+        elif field_kind is cwast.NFK.STR_LIST:
+            line.append(f" [{' '.join(val)}]")
         else:
             assert False
 
