@@ -1680,6 +1680,7 @@ class DefMacro:
     ALIAS = "macro"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
+    pub: bool
 
     name: str
     params_macro: List[PARAMS_MACRO_NODES]

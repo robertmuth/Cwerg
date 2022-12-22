@@ -3,7 +3,7 @@
 
 
 (# "This gets passed to the actual formatters which decide how to interpret the options.")
-(defrec SysFormatOptions [
+(defrec pub SysFormatOptions [
     (# "min width")
     (field witdh u8 0)
     (field precission u8 0)
@@ -20,18 +20,18 @@
 
 
 (# "macro for c-style -> operator")
-(macro -> [(macro_param $pointer EXPR) (macro_param $field FIELD)] [
+(macro pub -> [(macro_param $pointer EXPR) (macro_param $field FIELD)] [
        (. (^ $pointer) $field)
 ])
 
 
 (# "macro for number range for-loop")
-(macro for [(macro_param $index ID) 
-            (macro_param $type TYPE) 
-            (macro_param $start EXPR) 
-            (macro_param $end EXPR) 
-            (macro_param $step EXPR) 
-            (macro_param $body STMT_LIST)] [
+(macro pub for [(macro_param $index ID) 
+                (macro_param $type TYPE) 
+                (macro_param $start EXPR) 
+                (macro_param $end EXPR) 
+                (macro_param $step EXPR) 
+                (macro_param $body STMT_LIST)] [
     
     (macro_gen_id $end_eval)
     (macro_let $end_eval $type $end)
@@ -50,8 +50,8 @@
 
 
 (# "macro for while-loop")
-(macro while [(macro_param $cond EXPR) 
-              (macro_param $body STMT_LIST)] [
+(macro pub while [(macro_param $cond EXPR) 
+                  (macro_param $body STMT_LIST)] [
     (block _ [
           (if $cond [] [(break)])
           $body
@@ -60,7 +60,7 @@
 ])        
 
 
-(macro assert [(macro_param $cond EXPR)] [
+(macro pub assert [(macro_param $cond EXPR)] [
       (if $cond [] [
         (macro_gen_id $buffer)
         (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
@@ -73,11 +73,11 @@
 ])
 
 
-(macro try [(macro_param $name ID) 
-            (macro_param $type EXPR) 
-            (macro_param $expr EXPR) 
-            (macro_param $catch_name ID) 
-            (macro_param $catch_body STMT_LIST)] [
+(macro pub try [(macro_param $name ID) 
+                (macro_param $type EXPR) 
+                (macro_param $expr EXPR) 
+                (macro_param $catch_name ID) 
+                (macro_param $catch_body STMT_LIST)] [
     (if (is $expr $type) [] [
         (macro_let $catch_name auto (asnot $expr $type))
         (macro_id $catch_body)
@@ -110,7 +110,7 @@
 ])
 
 
-(fun memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] void [
+(fun pub memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] void [
     (for i uint 0 len 1 [
         (= (^(incp dst i)) (^ (incp src i)))])
 ])
@@ -147,7 +147,7 @@
 ])
 
 
-(macro print [(macro_param $parts STMT_LIST)] [
+(macro pub print [(macro_param $parts STMT_LIST)] [
     (macro_gen_id $buffer)
     (macro_let mut $buffer auto (ValArray u8 1024))
     (macro_gen_id $curr)
@@ -160,8 +160,8 @@
     (stmt (call SysPrint [$curr])) 
 ])
 
-(macro log [(macro_param $level EXPR) 
-            (macro_param $parts STMT_LIST)] [
+(macro pub log [(macro_param $level EXPR) 
+                (macro_param $parts STMT_LIST)] [
     (if (call IsLogActive [$level (src_loc)]) [
         (macro_gen_id $buffer)
         (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
