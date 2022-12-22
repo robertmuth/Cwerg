@@ -21,10 +21,8 @@
 ])
 
 
-(fun TestAssertMacro [(param xxx u32)] u32 [
-    (assert (< xxx 777))
-    (return 0)
-])
+
+
 
 (fun TestForMacro [(param end u32)] u32 [
     (let mut sum u32 0)

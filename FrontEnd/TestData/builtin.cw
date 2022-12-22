@@ -57,17 +57,6 @@
 ])        
 
 
-(macro pub assert [(macro_param $cond EXPR)] [$buffer $curr] [
-      (if $cond [] [
-        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_let mut $curr (slice mut u8) $buffer)
-        (stmt (call SysErrorPrint [$curr]))
-        (trap)
-    ]) 
-    
-])
-
-
 (macro pub try [(macro_param $name ID) 
                 (macro_param $type EXPR) 
                 (macro_param $expr EXPR) 
@@ -138,7 +127,7 @@
 ])
 
 
-(macro pub print [(macro_param $parts STMT_LIST)] [$buffer $curr $options] [
+(macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] [$buffer $options] [
     (macro_let mut $buffer auto (ValArray u8 1024))
     (macro_let mut $curr (slice mut u8) $buffer)
     (macro_let mut $options auto (rec SysFormatOptions []))
@@ -147,20 +136,29 @@
     ])
     (stmt (call SysPrint [$curr])) 
 ])
+  
+(macro pub print [(macro_param $parts STMT_LIST)] [$curr] [
+    (print_common $curr [$parts])
+    (stmt (call SysPrint [$curr])) 
+])
+
 
 (macro pub log [(macro_param $level EXPR) 
-                (macro_param $parts STMT_LIST)] [$buffer $curr $options] [
+                (macro_param $parts STMT_LIST)] [$curr] [
     (if (call IsLogActive [$level (src_loc)]) [
-        (macro_let mut $buffer auto (ValArray u8 1024 [(IndexVal undef)]))
-        (macro_let mut $curr (slice mut u8) $buffer)
-        (macro_let mut $options auto (rec SysFormatOptions []))
-        (macro_for $i $parts [
-            (let n uint (call polymorphic SysRender [$i $curr (& mut $options)]))
-        ])
+        (print_common $curr [$parts])
         (stmt (call SysErrorPrint [$curr]))
     ] [])
 ])
 
+(macro pub assert [(macro_param $cond EXPR) (macro_param $parts STMT_LIST)] [$curr] [
+      (if $cond [] [
+        (print_common $curr [$parts])
+        (stmt (call SysErrorPrint [$curr]))
+        (trap)
+    ]) 
+    
+])
 
 
 ])

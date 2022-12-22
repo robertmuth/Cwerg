@@ -210,7 +210,8 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 # the while loop handles the case where the macro returns
                 #  another macro invocation
                 # pp.PrettyPrint(child)
-                new_child = ExpandMacroOrMacroLike(child, sym_tab, symtab_map, ctx)
+                new_child = ExpandMacroOrMacroLike(
+                    child, sym_tab, symtab_map, ctx)
                 assert not isinstance(new_child, cwast.MacroListArg)
                 # pp.PrettyPrint(new_child)
                 setattr(node, c, new_child)
@@ -230,7 +231,8 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                     if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                         num_macros_expanded += 1
                         # pp.PrettyPrint(child)
-                        exp = ExpandMacroOrMacroLike(child, sym_tab, symtab_map, ctx)
+                        exp = ExpandMacroOrMacroLike(
+                            child, sym_tab, symtab_map, ctx)
                         # pp.PrettyPrint(exp)
                         if isinstance(exp, cwast.MacroListArg):
                             new_children += exp.args
@@ -241,7 +243,6 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                 children = new_children
             setattr(node, c, children)
             assert nesting_level > 0, f"macro_nesting level too deep"
-
 
 
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
@@ -305,6 +306,28 @@ def ResolveSymbolsInsideFunctionsRecursively(
         logger.info("pop scope for %s", node)
 
 
+def _VerifyASTSymbolsRecursively(node, parent):
+    if isinstance(node, cwast.DefMacro):
+        return
+    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
+    if isinstance(node, cwast.Id):
+        # all macros should have been resolved
+        assert not node.name.startswith("$")
+    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
+    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
+                # polymorphic stuff can only be handled once we have types
+                continue
+            _VerifyASTSymbolsRecursively(getattr(node, c), node)
+        elif nfd.kind is cwast.NFK.LIST:
+            for cc in getattr(node, c):
+                _VerifyASTSymbolsRecursively(cc, node)
+
+
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                            mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
@@ -335,31 +358,10 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
-                # pp.PrettyPrint(node)
+                pp.PrettyPrint(node)
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, [])
-
-
-def _VerifyASTSymbolsRecursively(node, parent):
-    if isinstance(node, cwast.DefMacro):
-        return
-    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
-    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
-                # polymorphic stuff can only be handled once we have types
-                continue
-            _VerifyASTSymbolsRecursively(getattr(node, c), node)
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                _VerifyASTSymbolsRecursively(cc, node)
-
-
-def VerifyASTSymbols(mod_topo_order: List[cwast.DefMod],
-                     mod_map: Dict[str, cwast.DefMod]):
+    
     for m in mod_topo_order:
         _VerifyASTSymbolsRecursively(mod_map[m], None)
 
@@ -415,6 +417,5 @@ if __name__ == "__main__":
 
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
-    VerifyASTSymbols(mod_topo_order, mod_map)
     for ast in asts:
         pp.PrettyPrint(ast)
