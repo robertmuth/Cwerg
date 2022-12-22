@@ -204,19 +204,15 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
-            nesting_level = MAX_MACRO_NESTING
-            while nesting_level > 0 and cwast.NF.TO_BE_EXPANDED in child.FLAGS:
-                nesting_level -= 1
-                # the while loop handles the case where the macro returns
-                #  another macro invocation
+            while cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 # pp.PrettyPrint(child)
                 new_child = ExpandMacroOrMacroLike(
                     child, sym_tab, symtab_map, ctx)
-                assert not isinstance(new_child, cwast.MacroListArg)
                 # pp.PrettyPrint(new_child)
+                assert not isinstance(new_child, cwast.MacroListArg)
+                FindAndExpandMacrosRecursively(new_child, sym_tab, symtab_map, ctx)
                 setattr(node, c, new_child)
                 child = new_child
-            assert nesting_level > 0, f"macro_nesting level too deep"
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
             for child in children:
@@ -235,8 +231,11 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                             child, sym_tab, symtab_map, ctx)
                         # pp.PrettyPrint(exp)
                         if isinstance(exp, cwast.MacroListArg):
-                            new_children += exp.args
+                            for a in exp.args:
+                                FindAndExpandMacrosRecursively(a, sym_tab, symtab_map, ctx)
+                                new_children.append(a)
                         else:
+                            FindAndExpandMacrosRecursively(exp, sym_tab, symtab_map, ctx)
                             new_children.append(exp)
                     else:
                         new_children.append(child)
