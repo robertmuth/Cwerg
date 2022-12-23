@@ -21,6 +21,7 @@ As a compromise a fairly restricted macro system with the following properties w
 * macro definitions can only occur at the module level
 * macro invocations can only occur inside function bodies
 * hygenic macros are supported by allowing the creation of per macro invocation unique symbols
+* macro invocations can be nested, children nodes are expanded before parents.
 * macros can invoke other macros, exapansion happens "outside-in".
 
 ### Macro Definition
@@ -30,13 +31,16 @@ Macro definitions have the form:
 ```
 (macro <name> 
     [<parameter1> <parameter2> ...] 
+    [<unique-id1> <unique-id2> ...]
     [<body-node1> <body-node2> ...])
 ```
 `Body-nodeX` represent the AST nodes used for expansion.
 
 `ParameterX` have the form: `(macro_parameter <name> <kind>)`
 
-`Name` must start with `$` which is not permitted for identifiers outside of macros.
+`Unique-idX` are indentfier placeholder which get instantiated at each dynamic invocation
+
+`Name` and `unique-id` must start with `$` which is not permitted for identifiers outside of macros.
 
 `Kind` is one of the following:
 * `ID`: argument is a `Id` node (only the Id `name` is relevant)
@@ -73,7 +77,7 @@ In Cwerg this can be expressed as a macro:
 (# "^ is the reference operator in Cwerg")
 
 (macro -> [(macro_param $pointer EXPR) 
-           (macro_param $field FIELD)] [
+           (macro_param $field FIELD)] [] [
     (. (^ $pointer) $field)
 ])
 ```
@@ -90,8 +94,8 @@ which is short for
 (macro_invoke -> [list_pointer next])
 ```
 
-will be expanded to:
-: 
+After expansion:
+
 ```
  (. (^ list_pointer) next)
 ```
@@ -103,7 +107,7 @@ Given the macro:
 
 ```
 (macro while [(macro_param $cond EXPR) 
-              (macro_param $body STMT_LIST)] [
+              (macro_param $body STMT_LIST)] [] [
     (block [
           (if $cond [] [(break)])
           $body
@@ -128,8 +132,7 @@ which is short for
 ]]))
 ```
 
-
-Expands to:
+After expansion:
 ```
 (block [
     (if (!= i 1) [] [(break)])
@@ -149,12 +152,9 @@ Expands to:
             (macro_param $start EXPR) 
             (macro_param $end EXPR) 
             (macro_param $step EXPR) 
-            (macro_param $body STMT_LIST)] [
-    (macro_gen_id $end_eval)      
+            (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] [
     (macro_let $end_eval $type $end)
-    (macro_gen_id $step_eval)      
     (macro_let $step_eval $type $step)
-    (macro_gen_id $it)      
     (macro_let mut $it $type $start)
     (block [
           (if (>= $it $end_eval) [(break)] [])
@@ -173,16 +173,15 @@ Sample invocation:
 ])
 ```
 
-
-`(macro_gen_id $var ...)` defines a new identifier `$var`. 
-The identifier must start with a "$" and will be bound to a new unique name
-picked for this macro expansion. 
+Note the use of `$end_eval`,  `$step_eval` and `$it`.
+These identifiers will be bound to a new unique name
+picked for each perfromed macro expansion. 
 This will guarantee the absence of name clashes and/or involuntary capture.
 
 `(macro_let $var ...)` defines a new variable whose name
 is detemined by the macro argument or macro_gen_id `$var`. 
 
-So the sample invocation exapands to:
+After expansion:
 ```
 (let end_eval_$312 uint32 (* 10 10))
 (let step_eval_$312 uint32 1)
@@ -197,4 +196,36 @@ So the sample invocation exapands to:
 ```
 
 
+### Codegen loops in macros
 
+The macros features a simple looping mechanism to iterate over
+`STMT_LIST` parameters
+
+Example:
+```
+(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [] [
+    (macro_for $x $factors [
+        (= $result (* $result $x))
+    ])
+])
+
+```
+
+Sample invocation:
+
+```
+(let mut result u32 1)
+(product result [111 (* 2 111) 333 444 555 666])
+```
+
+
+After expansion:
+```
+(let mut result u32 1)
+(= result (* result 111))
+(= result (* result (* 2 111)))
+(= result (* result 333)
+(= result (* result 444)
+(= result (* result 555))
+(= result (* result 666))
+```
