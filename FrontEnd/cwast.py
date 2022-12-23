@@ -94,8 +94,10 @@ class Comment:
     ALIAS = "#"
     GROUP = GROUP.Misc
     FLAGS = NF.NONE
-
+    #
     comment: str
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.comment}"
@@ -122,8 +124,11 @@ class Id:
     ALIAS = "id"
     GROUP = GROUP.Misc
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED
+    #
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
@@ -142,6 +147,9 @@ class TypeAuto:
     ALIAS = "auto"
     GROUP = GROUP.Type
     FLAGS = NF.NONE
+    #
+    x_srcloc: Optional[Any] = None
+
     # TODO
     # FLAGS = NF.TYPE_ANNOTATED
     # x_type: Optional[Any] = None
@@ -165,9 +173,11 @@ class FunParam:
     ALIAS = "param"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
-
+    #
     name: str      # empty str means no var specified (fun proto type)
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -247,8 +257,10 @@ class TypeBase:
     ALIAS = None
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     base_type_kind: BASE_TYPE_KIND
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -264,9 +276,11 @@ class TypePtr:
     ALIAS = "ptr"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     mut: bool   # pointee is mutable
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -286,9 +300,11 @@ class TypeSlice:
     ALIAS = "slice"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     mut: bool  # slice is mutable
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -306,9 +322,11 @@ class TypeArray:
     ALIAS = "array"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     size: "EXPR_NODE"      # must be const and unsigned
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -329,9 +347,11 @@ class TypeFun:
     ALIAS = "sig"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     params: List[PARAMS_NODES]
     result: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -354,8 +374,10 @@ class TypeSum:
     ALIAS = "union"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-
+    #
     types: List[TYPES_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_size: int = -1
     x_alignment: int = -1
@@ -383,6 +405,8 @@ class ValAuto:
     ALIAS = "auto_val"
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
+    #
+    x_srcloc: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -395,7 +419,8 @@ class ValTrue:
     ALIAS = "true"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -427,8 +452,10 @@ class ValNum:
     ALIAS = "num"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     number: str   # maybe a (unicode) character as well
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -442,7 +469,8 @@ class ValUndef:
     ALIAS = "undef"
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
-
+    #
+    x_srcloc: Optional[Any] = None
     x_value: Optional[Any] = None    # this is always a ValUndef() object
 
     def __str__(self):
@@ -458,7 +486,8 @@ class ValVoid:
     ALIAS = "void_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -476,9 +505,11 @@ class IndexVal:
     ALIAS = None
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     value_or_undef: "EXPR_NODE"
     init_index: "EXPR_NODE"  # compile time constant
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -496,9 +527,11 @@ class FieldVal:
     ALIAS = None
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-
+    #
     value: "EXPR_NODE"
     init_field: str
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -519,10 +552,12 @@ class ValArray:
     ALIAS = "array_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     type: TYPE_NODE
     expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
     inits_array: List[INITS_ARRAY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -539,10 +574,11 @@ class ValSlice:
     ALIAS = "slice_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     pointer: "EXPR_NODE"
     expr_size: "EXPR_NODE"
-
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -561,9 +597,11 @@ class ValString:
     ALIAS = None
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     raw: bool
     string: str
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -582,9 +620,11 @@ class ValRec:
     ALIAS = "rec"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     type: TYPE_NODE
     inits_rec: List[INITS_REC_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -609,9 +649,10 @@ class ExprDeref:
     ALIAS = "^"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE  # must be of type AddrOf
-
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -629,10 +670,11 @@ class ExprAddrOf:
     ALIAS = "&"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     mut: bool
     expr: EXPR_NODE
-
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -647,10 +689,12 @@ class ExprCall:
     ALIAS = "call"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     polymorphic: bool
     callee: EXPR_NODE
     args: List[EXPR_NODE]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -665,8 +709,10 @@ class ExprParen:
     ALIAS = None
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -678,9 +724,11 @@ class ExprField:
     ALIAS = "."
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-
+    #
     container: EXPR_NODE  # must be of type rec
     field: str
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -712,9 +760,11 @@ class Expr1:
     ALIAS = None
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     unary_expr_kind: UNARY_EXPR_KIND
     expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -791,10 +841,12 @@ class Expr2:
     ALIAS = None
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: EXPR_NODE
     expr2: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -809,10 +861,12 @@ class Expr3:
     ALIAS = "?"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     cond: EXPR_NODE  # must be of type  bool
     expr_t: EXPR_NODE
     expr_f: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -829,9 +883,11 @@ class ExprIndex:
     ALIAS = "at"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     container: EXPR_NODE  # must be of type slice or array
     expr_index: EXPR_NODE  # must be of int type
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -846,10 +902,12 @@ class ExprChop:
     ALIAS = "chop"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
-
+    #
     container: EXPR_NODE  # must be of type slice or array
     start: Union[EXPR_NODE, "ValAuto"]  # must be of int type
     width: Union[EXPR_NODE, "ValAuto"]  # must be of int type
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -862,8 +920,10 @@ class ExprLen:
     ALIAS = "len"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     container: EXPR_NODE   # must be of type slice or array
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -880,9 +940,11 @@ class ExprIs:
     ALIAS = "is"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -907,9 +969,11 @@ class ExprAs:
     ALIAS = "as"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -925,9 +989,11 @@ class ExprAsNot:
     ALIAS = "asnot"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -946,10 +1012,12 @@ class ExprTryAs:
     ALIAS = "tryas"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
     default_or_undef: Union[EXPR_NODE, ValUndef]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -967,9 +1035,11 @@ class ExprUnsafeCast:
     ALIAS = "cast"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
 
@@ -986,9 +1056,11 @@ class ExprBitCast:
     ALIAS = "bitcast"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     expr: EXPR_NODE
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1001,8 +1073,10 @@ class ExprSizeof:
     ALIAS = "sizeof"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1018,9 +1092,11 @@ class ExprOffsetof:
     ALIAS = "offsetof"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-
+    #
     type: TYPE_NODE  # must be rec
     field: str
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -1049,9 +1125,11 @@ class StmtBlock:
     ALIAS = "block"
     GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
-
+    #
     label: str
     body: List[BODY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.label}"
@@ -1067,8 +1145,10 @@ class StmtDefer:
     ALIAS = "defer"
     GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
-
-    body: List[BODY_NODES]  # must NOT contain RETURN
+    #
+    body:  List[BODY_NODES]  # must NOT contain RETURN
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1080,10 +1160,12 @@ class StmtIf:
     ALIAS = "if"
     GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
-
+    #
     cond: EXPR_NODE        # must be of type bool
     body_t: List[BODY_NODES]
     body_f: List[BODY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1095,9 +1177,11 @@ class Case:
     ALIAS = "case"
     GROUP = GROUP.Statement
     FLAGS = NF.NEW_SCOPE
-
+    #
     cond: EXPR_NODE        # must be of type bool
     body: List[BODY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1109,8 +1193,10 @@ class StmtCond:
     ALIAS = "cond"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
-
+    #
     cases: List[Case]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1132,8 +1218,10 @@ class StmtBreak:
     ALIAS = "break"
     GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
-
+    #
     target: str  # use "" for no value
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1147,7 +1235,10 @@ class StmtContinue:
     ALIAS = "continue"
     GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
+    #
     target: str  # use "" for no value
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1162,7 +1253,10 @@ class StmtReturn:
     ALIAS = "return"
     GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
+    #
     expr_ret: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr_ret}"
@@ -1177,9 +1271,11 @@ class StmtExpr:
     ALIAS = "stmt"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
-
+    #
     discard: bool
     expr: ExprCall
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.discard}"
@@ -1191,9 +1287,11 @@ class StmtStaticAssert:
     ALIAS = "static_assert"
     GROUP = GROUP.Statement
     FLAGS = NF.TOP_LEVEL
-
+    #
     cond: EXPR_NODE  # must be of type bool
     message: str     # should this be an expression?
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1205,6 +1303,8 @@ class StmtTrap:
     ALIAS = "trap"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
+    #
+    x_srcloc: Optional[Any] = None
 
 
 @enum.unique
@@ -1256,10 +1356,12 @@ class StmtCompoundAssignment:
     ALIAS = None
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
-
+    #
     assignment_kind: ASSIGNMENT_KIND
     lhs: EXPR_LHS
     expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
@@ -1271,9 +1373,11 @@ class StmtAssignment:
     ALIAS = "="
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
-
+    #
     lhs: EXPR_LHS
     expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.lhs} = {self.expr}"
@@ -1293,10 +1397,12 @@ class RecField:  #
     ALIAS = "field"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     name: str
     type: TYPE_NODE
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_offset: int = -1
@@ -1314,10 +1420,12 @@ class DefRec:
     ALIAS = "defrec"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
-
+    #
     pub:  bool
     name: str
     fields: List[FIELDS_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1334,9 +1442,11 @@ class EnumVal:
     ALIAS = "entry"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
-
+    #
     name: str
     value_or_auto: Union["ValNum", ValAuto]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1353,11 +1463,13 @@ class DefEnum:
     ALIAS = "enum"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
-
+    #
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: List[ITEMS_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
     x_alignment: int = -1
@@ -1375,11 +1487,13 @@ class DefType:
     ALIAS = "type"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
-
+    #
     pub:  bool
     wrapped: bool
     name: str
     type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1396,11 +1510,13 @@ class DefConst:
     ALIAS = "const"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
-
+    #
     pub:  bool
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     value: CONST_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1421,12 +1537,14 @@ class DefVar:
     ALIAS = "let"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-
+    #
     pub: bool
     mut: bool
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1439,17 +1557,18 @@ class DefFun:
     ALIAS = "fun"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
-
+    #
     init: bool
     fini: bool
     pub: bool
     extern: bool
     polymorphic: bool
-
     name: str
     params: List[PARAMS_NODES]
     result: TYPE_NODE
     body: List[BODY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1471,9 +1590,11 @@ class ModParam:
     ALIAS = None
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
-
+    #
     name: str
     mod_param_kind: MOD_PARAM_KIND
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
@@ -1492,11 +1613,13 @@ class DefMod:
     ALIAS = "module"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
-
+    #
     pub: bool
     name: str
     params_mod: List[PARAMS_MOD_NODES]
     body_mod: List[BODY_MOD_NODES]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
@@ -1509,8 +1632,11 @@ class Import:
     ALIAS = "import"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
+    #
     name: str
     alias: str
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1526,6 +1652,8 @@ class ExprSrcLoc:
     ALIAS = "src_loc"
     GROUP = GROUP.Expression
     FLAGS = NF.TO_BE_EXPANDED
+    #
+    x_srcloc: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -1537,9 +1665,10 @@ class ExprStringify:
     ALIAS = "stringify"
     GROUP = GROUP.Expression
     FLAGS = NF.TO_BE_EXPANDED
-
+    #
     expr:  EXPR_NODE
-
+    #
+    x_srcloc: Optional[Any] = None
 
 ############################################################
 # Macro
@@ -1566,8 +1695,10 @@ class MacroId:
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
     FLAGS = NF(0)
-
+    #
     name: str
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1583,11 +1714,13 @@ class MacroVar:
     ALIAS = "macro_let"
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
-
+    #
     mut: bool
     name: str
     type_or_auto: Union[TYPE_NODE, TypeAuto]
     initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
@@ -1602,10 +1735,12 @@ class MacroFor:
     ALIAS = "macro_for"
     GROUP = GROUP.Macro
     FLAGS = NF.MACRO_BODY_ONLY
+    #
     name: str
     name_list: str
     body: List[Any]
-
+    #
+    x_srcloc: Optional[Any] = None
 
 @dataclasses.dataclass()
 class MacroListArg:
@@ -1615,9 +1750,10 @@ class MacroListArg:
     ALIAS = "macro_list_arg"
     GROUP = GROUP.Macro
     FLAGS = NF(0)
-
+    #
     args: List[EXPR_NODE]
-
+    #
+    x_srcloc: Optional[Any] = None
 
 @dataclasses.dataclass()
 class MacroParam:
@@ -1625,9 +1761,11 @@ class MacroParam:
     ALIAS = "macro_param"
     GROUP = GROUP.Macro
     FLAGS = NF.LOCAL_SYM_DEF
-
+    #
     name: str
     macro_param_kind: MACRO_PARAM_KIND
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
@@ -1639,9 +1777,11 @@ class MacroInvoke:
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
     FLAGS = NF.TO_BE_EXPANDED
-
+    #
     name: str
     args: List[EXPR_NODE]
+    #
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1663,12 +1803,14 @@ class DefMacro:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
     pub: bool
-
+    #
     name: str
     params_macro: List[PARAMS_MACRO_NODES]
     gen_ids: List[str]
     body_macro: List[Any]
-
+    #
+    x_srcloc: Optional[Any] = None
+    
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
@@ -1823,6 +1965,7 @@ X_FIELDS = {
     "x_alignment",
     "x_size",
     "x_offset",
+    "x_srcloc",
 
 }
 
@@ -2287,15 +2430,18 @@ def ReadModsFromStream(fp) -> List[DefMod]:
     asts = []
     stream = ReadTokens(fp)
     try:
+        failure = False
         while True:
             t = next(stream)
+            failure = True
             assert t == "("
             sexpr = ReadSExpr(stream)
             assert isinstance(sexpr, DefMod)
             _CheckAST(sexpr, _CheckASTContext())
             asts.append(sexpr)
+            failure = False
     except StopIteration:
-        pass
+        assert not failure, f"truncated file"
     return asts
 
 
