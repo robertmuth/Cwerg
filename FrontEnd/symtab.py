@@ -181,7 +181,8 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
 MAX_MACRO_NESTING = 5
 
 
-def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, ctx: macros.MacroContext):
+def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
+    assert nesting < MAX_MACRO_NESTING
     assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
     if isinstance(node, cwast.ExprSrcLoc):
         # TODO: encode file and line properly
@@ -194,33 +195,38 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, ctx: macros.MacroContext):
     macro = sym_tab.resolve_macro(
         node.name.split("/"), symtab_map, False)
     assert macro is not None, f"unknown macro {node}"
-    return macros.ExpandMacro(node, macro, ctx)
+    exp = macros.ExpandMacro(node, macro, ctx)
+    assert not isinstance(exp, list)
+    FindAndExpandMacrosRecursively(
+                    exp, sym_tab, symtab_map, nesting + 1, ctx)
+    if cwast.NF.TO_BE_EXPANDED in exp.FLAGS:
+        return ExpandMacroOrMacroLike(exp, sym_tab, symtab_map, nesting + 1, ctx)
+    return exp
 
-
-def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroContext):
+def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
-            FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
+            FindAndExpandMacrosRecursively(
+                child, sym_tab, symtab_map, nesting, ctx)
             while cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 # pp.PrettyPrint(child)
                 new_child = ExpandMacroOrMacroLike(
-                    child, sym_tab, symtab_map, ctx)
+                    child, sym_tab, symtab_map, nesting, ctx)
                 # pp.PrettyPrint(new_child)
                 assert not isinstance(new_child, cwast.MacroListArg)
-                FindAndExpandMacrosRecursively(new_child, sym_tab, symtab_map, ctx)
                 setattr(node, c, new_child)
                 child = new_child
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
             for child in children:
-                FindAndExpandMacrosRecursively(child, sym_tab, symtab_map, ctx)
+                FindAndExpandMacrosRecursively(
+                    child, sym_tab, symtab_map, nesting, ctx)
+            saved_nesting = nesting  
             num_macros_expanded = 1
-            nesting_level = MAX_MACRO_NESTING + 1
-            while nesting_level > 0 and num_macros_expanded > 0:
-                nesting_level -= 1
+            while num_macros_expanded > 0:
                 new_children = []
                 num_macros_expanded = 0
                 for child in children:
@@ -228,20 +234,18 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, ctx: macros.MacroC
                         num_macros_expanded += 1
                         # pp.PrettyPrint(child)
                         exp = ExpandMacroOrMacroLike(
-                            child, sym_tab, symtab_map, ctx)
+                            child, sym_tab, symtab_map, nesting, ctx)
                         # pp.PrettyPrint(exp)
                         if isinstance(exp, cwast.MacroListArg):
                             for a in exp.args:
-                                FindAndExpandMacrosRecursively(a, sym_tab, symtab_map, ctx)
                                 new_children.append(a)
                         else:
-                            FindAndExpandMacrosRecursively(exp, sym_tab, symtab_map, ctx)
                             new_children.append(exp)
                     else:
                         new_children.append(child)
                 children = new_children
+            nesting = saved_nesting
             setattr(node, c, children)
-            assert nesting_level > 0, f"macro_nesting level too deep"
 
 
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
@@ -349,7 +353,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 logger.info("Expanding macros in: %s", node)
                 ctx = macros.MacroContext(1)
                 FindAndExpandMacrosRecursively(
-                    node, symtab, symtab_map, ctx)
+                    node, symtab, symtab_map, 0, ctx)
 
     for m in mod_topo_order:
         mod = mod_map[m]
@@ -360,7 +364,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 pp.PrettyPrint(node)
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, [])
-    
+
     for m in mod_topo_order:
         _VerifyASTSymbolsRecursively(mod_map[m], None)
 
