@@ -64,7 +64,7 @@
 ])
 
 (fun TestForMacroPrint [] void [
-    (print [true false]) 
+    (print [true false 0_u32 12_u8 "wow"]) 
 ])
 
 ])

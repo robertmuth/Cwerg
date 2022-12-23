@@ -71,13 +71,44 @@ def ParseArrayIndex(pos: str) -> int:
     return int(pos)
 
 
+class _PolyMap:
+
+    def __init__(self, type_corpus: types.TypeCorpus):
+        self._map = {}
+        self._type_corpus = type_corpus
+
+    def Register(self, fun: cwast.DefFun):
+        cstr = fun.x_type
+        first_param_type = self._type_corpus.canon_name(
+            cstr.params[0].type)
+        logger.info("Register polymorphic fun %s: %s",
+                    fun.name, first_param_type)
+        self._map[(fun.name, first_param_type)] = fun
+
+    def Resolve(self, fun_name: str, first_param_type) -> cwast.DefFun:
+        type_name = self._type_corpus.canon_name(first_param_type)
+        logger.info("Resolving polymorphic fun %s: %s",
+                    fun_name, type_name)
+        out = self._map.get((fun_name, type_name))
+        if out:
+            return out
+        if isinstance(first_param_type, cwast.TypeArray):
+            slice_type = self._type_corpus. insert_slice_type(
+                False, first_param_type.type)
+        type_name = self._type_corpus.canon_name(slice_type)
+        out = self._map.get((fun_name, type_name))
+        if out:
+            return out
+        assert False, f"cannot resolve polymorphic {fun_name}"
+
+
 class _TypeContext:
-    def __init__(self, mod_name, poly_map):
+    def __init__(self, mod_name, poly_map: _PolyMap):
         self.mod_name: str = mod_name
         self.enclosing_fun: Optional[cwast.DefFun] = None
         self._enclosing_rec_type: List[types.CanonType] = []
         self._target_type: List[types.CanonType] = [types.NO_TYPE]
-        self._poly_map = poly_map
+        self._poly_map: _PolyMap = poly_map
 
     def push_target(self, cstr: types.CanonType):
         """use to suport limited type inference
@@ -355,11 +386,7 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
             assert len(node.args) > 0
             assert isinstance(node.callee, cwast.Id)
             t = _TypifyNodeRecursively(node.args[0], corpus, ctx)
-            first_param_type = corpus.canon_name(t)
-            logger.info("Call to polymorphic fun %s: %s",
-                        node.callee.name, first_param_type)
-            called_fun =  ctx._poly_map[(
-                node.callee.name, first_param_type)]
+            called_fun = ctx._poly_map.Resolve(node.callee.name, t)
             node.callee.x_symbol = called_fun
             node.callee.x_type = called_fun.x_type
             cstr = called_fun.x_type
@@ -601,7 +628,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
         if node.assignment_kind in (cwast.ASSIGNMENT_KIND.DECP, cwast.ASSIGNMENT_KIND.INCP):
-             # TODO: check for pointer or slice
+            # TODO: check for pointer or slice
             assert types.is_int(expr_cstr)
         else:
             assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
@@ -718,7 +745,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * x_field
     * some x_value (only array dimention as they are related to types)
     """
-    poly_map = {}
+    poly_map = _PolyMap(type_corpus)
     for m in mod_topo_order:
         ctx = _TypeContext(m, poly_map)
         for node in mod_map[m].body_mod:
@@ -727,11 +754,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                 cstr = _TypifyNodeRecursively(node, type_corpus, ctx)
                 if isinstance(node, cwast.DefFun) and node.polymorphic:
                     assert isinstance(cstr, cwast.TypeFun)
-                    first_param_type = type_corpus.canon_name(
-                        cstr.params[0].type)
-                    logger.info("Def of polymorphic fun %s: %s",
-                                node.name, first_param_type)
-                    poly_map[(node.name, first_param_type)] = node
+                    poly_map.Register(node)
 
     for m in mod_topo_order:
         ctx = _TypeContext(m, poly_map)

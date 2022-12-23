@@ -84,15 +84,16 @@
                    (macro_param $len EXPR)] [$psrc $pdst $n $i] [
     (macro_let $psrc auto (as $src (ptr $item_type))) 
     (macro_let $pdst auto (as $dst (ptr mut $item_type)))
-    (macro_let $n uint $len)
+    (macro_let $n uint (min $len (len $dst)))
     (for $i uint 0 $n 1 [
         (= (^(incp $pdst $i)) (^ (incp $psrc $i)))])
 ])
 
 
-(fun pub memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] void [
+(fun pub memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] uint [
     (for i uint 0 len 1 [
         (= (^(incp dst i)) (^ (incp src i)))])
+    (return len)
 ])
 
 
@@ -100,31 +101,67 @@
                             (param buffer (slice mut u8)) 
                             (param options (ptr mut SysFormatOptions))] uint [
     (let s auto (? v (as "true" (slice u8)) (as "false" (slice u8))))                           
-    (let n uint (? (< (len buffer) (len s)) (len buffer) (len s)))
-    (copy_slice u8 buffer s n)
-    (return n)
+    (let n uint (min (len buffer) (len s)))
+    (return (call memcpy [(as buffer (ptr mut u8)) (as s (ptr u8)) n]))
 ])
 
 
-(fun polymorphic SysRender [(param v uint) 
-                            (param out (slice mut u8)) 
-                            (param options (ptr mut SysFormatOptions))] uint [
-    (let mut tmp auto (ValArray u8 16 []))
-    (let mut pos uint 16)
-    (let mut val v)
+
+(macro unsigned_to_dec [(macro_param $val EXPR) 
+                        (macro_param $max_width EXPR) 
+                        (macro_param $out ID)]  [$v $tmp $pos] [
+    (macro_let mut $v auto $val)
+    (macro_let mut $tmp auto (ValArray u8 $max_width []))
+    (macro_let mut $pos uint $max_width)
     (block _ [
-        (-= pos 1)
-        (let c (% val 10))
+        (-= $pos 1)
+        (let c (% $v 10))
         (let mut c8 (as c u8))
         (+= c8 '0')
-        (= (at tmp pos) c8)
-        (/= val 10)
-        (if (!= val 0) [(continue)] [])
+        (= (at $tmp $pos) c8)
+        (/= $v 10)
+        (if (!= $v 0) [(continue)] [])
     ])
-    (let len uint (min (- 16_uint pos) (len out)))
-    (stmt (call memcpy [(as out (ptr mut u8)) (incp (as tmp (ptr u8)) pos) len]))
-    (return len)
+    (let n uint (min (- $max_width $pos) (len $out)))
+    (return (call memcpy [(as $out (ptr mut u8)) (incp (as $tmp (ptr u8)) $pos) n]))
 ])
+
+
+(fun polymorphic SysRender [(param v u8) 
+                            (param out (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    
+    (unsigned_to_dec v 32_uint out)
+])
+
+(fun polymorphic SysRender [(param v u16) 
+                            (param out (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    
+    (unsigned_to_dec v 32_uint out)
+])
+
+(fun polymorphic SysRender [(param v u32) 
+                            (param out (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    
+    (unsigned_to_dec v 32_uint out)
+])
+
+(fun polymorphic SysRender [(param v u64) 
+                            (param out (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    
+    (unsigned_to_dec v 32_uint out)
+])
+
+(fun polymorphic SysRender [(param v (slice u8)) 
+                            (param buffer (slice mut u8)) 
+                            (param options (ptr mut SysFormatOptions))] uint [
+    (let n uint (min (len buffer) (len v)))
+    (return (call memcpy [(as buffer (ptr mut u8)) (as v (ptr u8)) n]))
+])
+
 
 
 (macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] [$buffer $options] [
