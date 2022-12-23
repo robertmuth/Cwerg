@@ -178,7 +178,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     cc, symtab, symtab_map)
 
 
-MAX_MACRO_NESTING = 5
+MAX_MACRO_NESTING = 4
 
 
 def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
@@ -198,10 +198,11 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
     FindAndExpandMacrosRecursively(
-                    exp, sym_tab, symtab_map, nesting + 1, ctx)
+        exp, sym_tab, symtab_map, nesting + 1, ctx)
     if cwast.NF.TO_BE_EXPANDED in exp.FLAGS:
         return ExpandMacroOrMacroLike(exp, sym_tab, symtab_map, nesting + 1, ctx)
     return exp
+
 
 def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
@@ -211,41 +212,32 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
             child = getattr(node, c)
             FindAndExpandMacrosRecursively(
                 child, sym_tab, symtab_map, nesting, ctx)
-            while cwast.NF.TO_BE_EXPANDED in child.FLAGS:
+            if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 # pp.PrettyPrint(child)
                 new_child = ExpandMacroOrMacroLike(
                     child, sym_tab, symtab_map, nesting, ctx)
                 # pp.PrettyPrint(new_child)
                 assert not isinstance(new_child, cwast.MacroListArg)
                 setattr(node, c, new_child)
-                child = new_child
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
+            new_children = []
             for child in children:
                 FindAndExpandMacrosRecursively(
                     child, sym_tab, symtab_map, nesting, ctx)
-            saved_nesting = nesting  
-            num_macros_expanded = 1
-            while num_macros_expanded > 0:
-                new_children = []
-                num_macros_expanded = 0
-                for child in children:
-                    if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
-                        num_macros_expanded += 1
-                        # pp.PrettyPrint(child)
-                        exp = ExpandMacroOrMacroLike(
-                            child, sym_tab, symtab_map, nesting, ctx)
-                        # pp.PrettyPrint(exp)
-                        if isinstance(exp, cwast.MacroListArg):
-                            for a in exp.args:
-                                new_children.append(a)
-                        else:
-                            new_children.append(exp)
+                if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
+                    new_children.append(child)
+                else:
+                    # pp.PrettyPrint(child)
+                    exp = ExpandMacroOrMacroLike(
+                        child, sym_tab, symtab_map, nesting, ctx)
+                    # pp.PrettyPrint(exp)
+                    if isinstance(exp, cwast.MacroListArg):
+                        for a in exp.args:
+                            new_children.append(a)
                     else:
-                        new_children.append(child)
-                children = new_children
-            nesting = saved_nesting
-            setattr(node, c, children)
+                        new_children.append(exp)
+            setattr(node, c, new_children)
 
 
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
