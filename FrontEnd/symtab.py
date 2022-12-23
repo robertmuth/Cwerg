@@ -201,6 +201,7 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
         exp, sym_tab, symtab_map, nesting + 1, ctx)
     if cwast.NF.TO_BE_EXPANDED in exp.FLAGS:
         return ExpandMacroOrMacroLike(exp, sym_tab, symtab_map, nesting + 1, ctx)
+    # pp.PrettyPrint(exp)
     return exp
 
 
@@ -213,10 +214,8 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
             FindAndExpandMacrosRecursively(
                 child, sym_tab, symtab_map, nesting, ctx)
             if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
-                # pp.PrettyPrint(child)
                 new_child = ExpandMacroOrMacroLike(
                     child, sym_tab, symtab_map, nesting, ctx)
-                # pp.PrettyPrint(new_child)
                 assert not isinstance(new_child, cwast.MacroListArg)
                 setattr(node, c, new_child)
         elif nfd.kind is cwast.NFK.LIST:
@@ -228,10 +227,8 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
                 if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
                     new_children.append(child)
                 else:
-                    # pp.PrettyPrint(child)
                     exp = ExpandMacroOrMacroLike(
                         child, sym_tab, symtab_map, nesting, ctx)
-                    # pp.PrettyPrint(exp)
                     if isinstance(exp, cwast.MacroListArg):
                         for a in exp.args:
                             new_children.append(a)
@@ -409,7 +406,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
     asts = cwast.ReadModsFromStream(sys.stdin)
-
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:

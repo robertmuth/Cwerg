@@ -103,6 +103,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
             out = []
             for cc in getattr(node, c):
                 exp = ExpandMacroRecursively(cc, ctx)
+                # TODO: this tricky and needs a comment
                 if isinstance(exp, cwast.MacroListArg) and not isinstance(cc, cwast.MacroListArg):
                     out += exp.args
                 else:
