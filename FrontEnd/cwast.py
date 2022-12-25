@@ -434,9 +434,10 @@ class ValFalse:
     ALIAS = "false"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-
+    #
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+    x_srcloc: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1742,6 +1743,7 @@ class MacroFor:
     #
     x_srcloc: Optional[Any] = None
 
+
 @dataclasses.dataclass()
 class MacroListArg:
     """Container for macro arguments that consists of multiple node (e.g. list of statements)
@@ -1754,6 +1756,7 @@ class MacroListArg:
     args: List[EXPR_NODE]
     #
     x_srcloc: Optional[Any] = None
+
 
 @dataclasses.dataclass()
 class MacroParam:
@@ -1940,20 +1943,20 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 # must come last in a dataclass
 OPTIONAL_FIELDS = {
-    "expr_ret": lambda: ValVoid(),
-    "width": lambda: ValAuto(),
-    "start": lambda:  ValAuto(),
-    "begin_or_auto": lambda: ValNum("0"),
-    "step_or_auto": lambda: ValNum("1"),
-    "value_or_auto": lambda: ValAuto(),
-    "target": lambda: "",
-    "path": lambda: "",
-    "alias": lambda: "",
-    "message": lambda: "",
-    "init_index": lambda: ValAuto(),
-    "init_field": lambda: "",
-    "initial_or_undef": lambda: ValUndef(),
-    "inits_array": lambda: [],
+    "expr_ret": lambda srcloc: ValVoid(x_srcloc=srcloc),
+    "width": lambda srcloc: ValAuto(x_srcloc=srcloc),
+    "start": lambda srcloc:  ValAuto(x_srcloc=srcloc),
+    "begin_or_auto": lambda srcloc:  ValNum("0", x_srcloc=srcloc),
+    "step_or_auto": lambda srcloc:  ValNum("1", x_srcloc=srcloc),
+    "value_or_auto": lambda srcloc: ValAuto(x_srcloc=srcloc),
+    "target": lambda srcloc: "",
+    "path": lambda srcloc: "",
+    "alias": lambda srcloc: "",
+    "message": lambda srcloc: "",
+    "init_index": lambda srcloc: ValAuto(x_srcloc=srcloc),
+    "init_field": lambda srcloc: "",
+    "initial_or_undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
+    "inits_array": lambda srcloc: [],
 }
 
 
@@ -2045,6 +2048,7 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
 
 
 def _CheckAST(node, ctx: _CheckASTContext):
+    assert node.x_srcloc, f"Node without srcloc {node}"
     if NF.TOP_LEVEL_ONLY in node.FLAGS:
         assert ctx.toplevel, f"only allowed at toplevel: {node}"
     if NF.MACRO_BODY_ONLY in node.FLAGS:
@@ -2160,7 +2164,7 @@ def GenerateDocumentation(fout):
                 extra = ""
                 optional_fun = OPTIONAL_FIELDS.get(field)
                 if optional_fun is not None:
-                    optional_val = optional_fun()
+                    optional_val = optional_fun(0)
                     if optional_val == "":
                         extra = f' (default "")'
                     elif isinstance(optional_val, ValNum):
@@ -2200,6 +2204,10 @@ class ReadTokens:
     def __iter__(self):
         return self
 
+    def srcloc(self):
+        # TODO: should also reflect the file once we support multiple input files
+        return self.line_no
+
     def __next__(self):
         while not self._tokens:
             self._tokens = re.findall(_TOKENS_ALL, next(self._fp))
@@ -2225,48 +2233,54 @@ _SCALAR_TYPES = [
     BASE_TYPE_KIND.R64,
 ]
 
+
+def _MakeTypeBaseLambda(kind: BASE_TYPE_KIND):
+    return lambda srcloc: TypeBase(kind, x_srcloc=srcloc)
+
+
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
-    "auto": TypeAuto(),
-    "noret": TypeBase(BASE_TYPE_KIND.NORET),
-    "bool": TypeBase(BASE_TYPE_KIND.BOOL),
-    "void":  TypeBase(BASE_TYPE_KIND.VOID),
-    "void_val": ValVoid(),
-    "undef": ValUndef(),
-    "true": ValTrue(),
-    "false": ValFalse(),
+    "auto": lambda srcloc: TypeAuto(x_srcloc=srcloc),
+    #
+    "noret": _MakeTypeBaseLambda(BASE_TYPE_KIND.NORET),
+    "bool": _MakeTypeBaseLambda(BASE_TYPE_KIND.BOOL),
+    "void": _MakeTypeBaseLambda(BASE_TYPE_KIND.VOID),
+    #
+    "void_val": lambda srcloc: ValVoid(x_srcloc=srcloc),
+    "undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
+    "true": lambda srcloc: ValTrue(x_srcloc=srcloc),
+    "false": lambda srcloc: ValFalse(x_srcloc=srcloc),
 }
+
 
 for t in _SCALAR_TYPES:
     name = t.name.lower()
-    _SHORT_HAND_NODES[name] = TypeBase(t)
+    _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(t)
 
 
-def ExpandShortHand(t) -> Any:
+def ExpandShortHand(t, srcloc) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
-
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
-        assert x is not None, f"{t}"
-        return x
+        return x(srcloc)
 
     if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
         # TODO: r"
-        return ValString(False, t)
+        return ValString(False, t, x_srcloc=srcloc)
     elif _TOKEN_ID.match(t):
         if t[0] == "$":
-            return MacroId(t)
+            return MacroId(t, x_srcloc=srcloc)
         parts = t.rsplit("::", 1)
-        return Id(parts[-1], "" if len(parts) == 1 else parts[0])
+        return Id(parts[-1], "" if len(parts) == 1 else parts[0], x_srcloc=srcloc)
     elif _TOKEN_NUM.match(t):
-        return ValNum(t)
+        return ValNum(t, x_srcloc=srcloc)
     elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
-        return ValNum(t)
+        return ValNum(t, x_srcloc=srcloc)
     else:
         return None
 
 
-def ReadNodeList(stream, parent_cls):
+def ReadNodeList(stream: ReadTokens, parent_cls):
     out = []
     while True:
         token = next(stream)
@@ -2275,7 +2289,7 @@ def ReadNodeList(stream, parent_cls):
         if token == "(":
             out.append(ReadSExpr(stream, parent_cls))
         else:
-            out.append(ExpandShortHand(token))
+            out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 
 
@@ -2290,7 +2304,7 @@ def ReadStrList(stream) -> List[str]:
     return out
 
 
-def ReadPiece(field, token, stream, parent_cls) -> Any:
+def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
     """Read a single component of an SExpr including lists."""
     nfd = ALL_FIELDS_MAP[field]
     if nfd.kind is NFK.FLAG:
@@ -2305,7 +2319,7 @@ def ReadPiece(field, token, stream, parent_cls) -> Any:
     elif nfd.kind is NFK.NODE:
         if token == "(":
             return ReadSExpr(stream, parent_cls)
-        out = ExpandShortHand(token)
+        out = ExpandShortHand(token, stream.srcloc())
         assert out is not None, f"Cannot expand {token} for {field}"
         return out
     elif nfd.kind is NFK.STR_LIST:
@@ -2357,20 +2371,22 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 }
 
 
-def ReadMacroInvocation(tag, stream):
+def ReadMacroInvocation(tag, stream: ReadTokens):
     parent_cls = MacroInvoke
-    logger.info("Readdng MACRO INVOCATION %s", tag)
+    srcloc = stream.srcloc()
+    logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
     args = []
     while True:
         token = next(stream)
         if token == ")":
-            return MacroInvoke(tag, args)
+            return MacroInvoke(tag, args, x_srcloc=srcloc)
         elif token == "(":
             args.append(ReadSExpr(stream, parent_cls))
         elif token == "[":
-            args.append(MacroListArg(ReadNodeList(stream, parent_cls)))
+            args.append(MacroListArg(ReadNodeList(
+                stream, parent_cls), x_srcloc=srcloc))
         else:
-            out = ExpandShortHand(token)
+            out = ExpandShortHand(token, stream.srcloc())
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
             args.append(out)
     return args
@@ -2381,6 +2397,8 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
 
     Can handle optional bools at the beginning and an optional 'tail'
     """
+    srcloc = stream.srcloc()
+    logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
     token = next(stream)
     for field in fields:
         nfd = ALL_FIELDS_MAP[field]
@@ -2388,7 +2406,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
             # we have reached the end before all the fields were processed
             # fill in default values
             assert field in OPTIONAL_FIELDS, f"in {cls.__name__} unknown optional (or missing) field: {field}"
-            pieces.append(OPTIONAL_FIELDS[field]())
+            pieces.append(OPTIONAL_FIELDS[field](srcloc))
         elif nfd.kind is NFK.FLAG:
             if token == field:
                 pieces.append(True)
@@ -2399,13 +2417,12 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
             pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)
     assert token == ")", f"[{stream.line_no}] while parsing {cls.__name__}  expected node-end but got {token}"
-    return cls(*pieces)
+    return cls(*pieces, x_srcloc=srcloc)
 
 
 def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
-    logger.info("Readding TAG %s", tag)
     if tag in UNARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(Expr1, [UNARY_EXPR_SHORTCUT[tag]],
                                    ["expr"], stream)
