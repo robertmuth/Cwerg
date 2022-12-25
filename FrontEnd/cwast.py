@@ -2030,7 +2030,7 @@ class _CheckASTContext:
         self.in_macro = False
 
 
-def _CheckMacro(node, seen_names: Set[str]):
+def _CheckMacroRecursively(node, seen_names: Set[str]):
     if isinstance(node, (MacroParam, MacroFor)):
         assert node.name.startswith("$")
         assert node.name not in seen_names, f"duplicate name: {node.name}"
@@ -2038,10 +2038,10 @@ def _CheckMacro(node, seen_names: Set[str]):
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
-            _CheckMacro(getattr(node, c), seen_names)
+            _CheckMacroRecursively(getattr(node, c), seen_names)
         elif nfd.kind is NFK.LIST:
             for cc in getattr(node, c):
-                _CheckMacro(cc, seen_names)
+                _CheckMacroRecursively(cc, seen_names)
 
 
 def _CheckAST(node, ctx: _CheckASTContext):
@@ -2050,7 +2050,11 @@ def _CheckAST(node, ctx: _CheckASTContext):
     if NF.MACRO_BODY_ONLY in node.FLAGS:
         assert ctx.in_macro, f"only allowed in macros: {node}"
     if isinstance(node, DefMacro):
-        _CheckMacro(node, set())
+        for p in node.params_macro:
+            assert p.name.startswith("$")
+        for i in node.gen_ids:
+            assert i.startswith("$")
+        _CheckMacroRecursively(node, set())
 
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]

@@ -17,10 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 def is_proper_lhs(node):
+    # TODO: this needs to be rethought and cleaned up
     return (types.is_mutable_def(node) or
             isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type) or
             isinstance(node, cwast.ExprField) and is_proper_lhs(node.container) or
-            isinstance(node, cwast.ExprIndex) and is_proper_lhs(node.container))
+            isinstance(node, cwast.ExprIndex) and types.is_mutable_def(node.container) or
+            isinstance(node, cwast.ExprIndex) and types.is_mutable(node.container.x_type))
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:

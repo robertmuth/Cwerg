@@ -180,6 +180,12 @@
 ])
 
 
+(macro swap [(macro_param $a EXPR) (macro_param $b EXPR)] [$t] [
+    (macro_let $t auto $a)
+    (= $a $b)
+    (= $b $t)
+])
+
 (macro pub log [(macro_param $level EXPR) 
                 (macro_param $parts STMT_LIST)] [$curr] [
     (if (call IsLogActive [$level (src_loc)]) [

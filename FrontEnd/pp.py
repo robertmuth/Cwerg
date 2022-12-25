@@ -124,7 +124,7 @@ if __name__ == "__main__":
         while True:
             t = next(stream)
             assert t == "(", f"expect start of new node, got '{t}']"
-            sexpr = cwast.ReadSExpr(stream)
+            sexpr = cwast.ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
             PrettyPrint(sexpr)
 

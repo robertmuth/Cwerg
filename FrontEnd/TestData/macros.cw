@@ -63,6 +63,11 @@
     (return (stringify TestForMacroStringify))
 ])
 
+(fun TestSwap [(param vec (slice mut u8))] void [
+    (swap (at vec 1) (at vec 2))
+])
+
+
 (fun TestForMacroPrint [] void [
     (print [true false 0_u32 12_u8 "wow"]) 
 ])

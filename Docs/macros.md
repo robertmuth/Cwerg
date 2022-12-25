@@ -6,7 +6,7 @@ create in code using them.
 
 On the other hand macros make it easy to provide feature like:
 * syntactic sugar
-* lazy evaluation as needed for logging, etc
+* lazy evaluation as needed for logging, etc.
 * printf like functionality
 
 As a compromise a fairly restricted macro system with the following properties was added:
@@ -20,7 +20,7 @@ As a compromise a fairly restricted macro system with the following properties w
 * since partial evaluation follow macro expansion #if style conditional compilation is NOT available
 * macro definitions can only occur at the module level
 * macro invocations can only occur inside function bodies
-* hygenic macros are supported by allowing the creation of per macro invocation unique symbols
+* hygenic macros are supported by per macro invocation unique symbols
 * macro invocations can be nested, children nodes are expanded before parents.
 * macros can invoke other macros, exapansion happens "outside-in".
 
@@ -34,13 +34,13 @@ Macro definitions have the form:
     [<unique-id1> <unique-id2> ...]
     [<body-node1> <body-node2> ...])
 ```
-`Body-nodeX` represent the AST nodes used for expansion.
-
 `ParameterX` have the form: `(macro_parameter <name> <kind>)`
 
-`Unique-idX` are indentfier placeholder which get instantiated at each dynamic invocation
+`Unique-idX` are indentfier placeholder which get instantiated at each dynamic expansion.
 
-`Name` and `unique-id` must start with `$` which is not permitted for identifiers outside of macros.
+`Body-nodeX` represent the AST nodes used for expansion.
+
+`name` and `unique-id` must start with `$` which is not permitted for identifiers outside of macros.
 
 `Kind` is one of the following:
 * `ID`: argument is a `Id` node (only the Id `name` is relevant)
@@ -52,12 +52,12 @@ Macro definitions have the form:
 ### Macro Invocations
 
 
-Macro invocations have the form:
+A macro invocation has the form:
 ```
 (macro_invoke <name> [<arg1> < arg2> ...])
 ```
 
-However, invocation can be abbreviated like so:
+However, a invocation can be abbreviated like so:
 ```
 (<name> <arg1> < arg2> ...)
 ```
@@ -142,8 +142,23 @@ After expansion:
 ])
 
 ```
+### Hygienic Macros: simple example
 
-### Hygienic example: for loop over range
+The `swap` macro can be implemented like so:
+```
+(macro swap [(macro_param $a EXPR) (macro_param $b EXPR)] [$t] [
+    (macro_let $t auto $a)
+    (= $a $b)
+    (= $b $t)
+])
+```
+
+'$t' denotes a temporary variable. To prevent the actual
+name of `$t` from clashing with `$a` or `$b` it will uniquely generated everytime the 
+macro in expanded.
+
+
+### Hygienic Macros: for loop over range
 
 ```
 (# "loop over range equivalent to Python's range($start, $end, $step)")
@@ -198,7 +213,7 @@ After expansion:
 
 ### Codegen loops in macros
 
-The macros features a simple looping mechanism to iterate over
+The macro system features a simple looping mechanism to iterate over
 `STMT_LIST` parameters
 
 Example:
