@@ -1810,7 +1810,7 @@ class DefMacro:
     body_macro: List[Any]
     #
     x_srcloc: Optional[Any] = None
-    
+
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
 
@@ -2262,14 +2262,14 @@ def ExpandShortHand(t) -> Any:
         return None
 
 
-def ReadNodeList(stream):
+def ReadNodeList(stream, parent_cls):
     out = []
     while True:
         token = next(stream)
         if token == "]":
             break
         if token == "(":
-            out.append(ReadSExpr(stream))
+            out.append(ReadSExpr(stream, parent_cls))
         else:
             out.append(ExpandShortHand(token))
     return out
@@ -2286,7 +2286,7 @@ def ReadStrList(stream) -> List[str]:
     return out
 
 
-def ReadPiece(field, token, stream) -> Any:
+def ReadPiece(field, token, stream, parent_cls) -> Any:
     """Read a single component of an SExpr including lists."""
     nfd = ALL_FIELDS_MAP[field]
     if nfd.kind is NFK.FLAG:
@@ -2300,7 +2300,7 @@ def ReadPiece(field, token, stream) -> Any:
         return nfd.extra[token]
     elif nfd.kind is NFK.NODE:
         if token == "(":
-            return ReadSExpr(stream)
+            return ReadSExpr(stream, parent_cls)
         out = ExpandShortHand(token)
         assert out is not None, f"Cannot expand {token} for {field}"
         return out
@@ -2309,7 +2309,7 @@ def ReadPiece(field, token, stream) -> Any:
         return ReadStrList(stream)
     elif nfd.kind is NFK.LIST:
         assert token == "[", f"expected list start for: {field} {token}"
-        return ReadNodeList(stream)
+        return ReadNodeList(stream, parent_cls)
     else:
         assert None
 
@@ -2354,6 +2354,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 
 
 def ReadMacroInvocation(tag, stream):
+    parent_cls = MacroInvoke
     logger.info("Readdng MACRO INVOCATION %s", tag)
     args = []
     while True:
@@ -2361,9 +2362,9 @@ def ReadMacroInvocation(tag, stream):
         if token == ")":
             return MacroInvoke(tag, args)
         elif token == "(":
-            args.append(ReadSExpr(stream))
+            args.append(ReadSExpr(stream, parent_cls))
         elif token == "[":
-            args.append(MacroListArg(ReadNodeList(stream)))
+            args.append(MacroListArg(ReadNodeList(stream, parent_cls)))
         else:
             out = ExpandShortHand(token)
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
@@ -2391,13 +2392,13 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
             else:
                 pieces.append(False)
         else:
-            pieces.append(ReadPiece(field, token, stream))
+            pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)
     assert token == ")", f"[{stream.line_no}] while parsing {cls.__name__}  expected node-end but got {token}"
     return cls(*pieces)
 
 
-def ReadSExpr(stream: ReadTokens) -> Any:
+def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
     """The leading '(' has already been consumed"""
     tag = next(stream)
     logger.info("Readding TAG %s", tag)
@@ -2416,6 +2417,11 @@ def ReadSExpr(stream: ReadTokens) -> Any:
             # unknown node name - assume it is a macro
             return ReadMacroInvocation(tag, stream)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
+
+        # This helps catching missing closing braces early
+        if NF.TOP_LEVEL_ONLY in cls.FLAGS:
+            assert parent_cls is DefMod, f"{cls} {parent_cls}"
+
         fields = [f for f, _ in cls.__annotations__.items()
                   if not f.startswith("x_")]
         return ReadRestAndMakeNode(cls, [], fields, stream)
@@ -2435,7 +2441,7 @@ def ReadModsFromStream(fp) -> List[DefMod]:
             t = next(stream)
             failure = True
             assert t == "("
-            sexpr = ReadSExpr(stream)
+            sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, DefMod)
             _CheckAST(sexpr, _CheckASTContext())
             asts.append(sexpr)
