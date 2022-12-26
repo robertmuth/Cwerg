@@ -363,15 +363,21 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         cstr = _TypifyNodeRecursively(node.expr1, corpus, ctx)
         if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and types.is_number(cstr):
             ctx.push_target(cstr)
-            _TypifyNodeRecursively(node.expr2, corpus, ctx)
+            cstr2 = _TypifyNodeRecursively(node.expr2, corpus, ctx)
             ctx.pop_target()
         else:
-            _TypifyNodeRecursively(node.expr2, corpus, ctx)
+            cstr2 = _TypifyNodeRecursively(node.expr2, corpus, ctx)
 
         if node.binary_expr_kind in cwast.BINOP_BOOL:
             cstr = corpus.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-            cstr = corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+            if isinstance(cstr, cwast.TypePtr):
+                assert isinstance(cstr2, cwast.TypePtr)
+                cstr = corpus.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+            elif isinstance(cstr, cwast.TypeSlice):
+                assert isinstance(cstr2, cwast.TypeSlice)
+            else:
+                assert False
         return _AnnotateType(corpus, node, cstr)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, corpus, ctx)
@@ -584,10 +590,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             assert cstr == cstr1
             assert types.is_int(cstr2)
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-            assert (isinstance(cstr1, cwast.TypePtr) and isinstance(cstr2, cwast.TypePtr) and
-                    cstr1.type == cstr2.type)
-            assert cstr == corpus.insert_base_type(
-                cwast.BASE_TYPE_KIND.SINT)
+            if isinstance(cstr1, cwast.TypePtr):
+                assert (isinstance(cstr2, cwast.TypeSlice) and
+                        cstr1.type == cstr2.type)
+                assert cstr == corpus.insert_base_type(
+                    cwast.BASE_TYPE_KIND.SINT)
+            elif isinstance(cstr1, cwast.TypeSlice):    
+                assert (isinstance(cstr2, cwast.TypeSlice) and
+                        cstr1.type == cstr2.type)
+                assert cstr == cstr1
+            else:
+                    assert False  
         else:
             assert cstr1 == cstr2, _TypeMismatch(
                 corpus, f"binop mismatch in {node}:", cstr1, cstr2)

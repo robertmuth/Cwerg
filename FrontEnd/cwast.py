@@ -2392,7 +2392,7 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
+def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag).
 
     Can handle optional bools at the beginning and an optional 'tail'
@@ -2416,7 +2416,8 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream):
         else:
             pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)
-    assert token == ")", f"[{stream.line_no}] while parsing {cls.__name__}  expected node-end but got {token}"
+    if token != ")":
+        CompilerError(stream.srcloc(), f"while parsing {cls.__name__} expected node-end but got {token}")
     return cls(*pieces, x_srcloc=srcloc)
 
 
@@ -2441,7 +2442,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
 
         # This helps catching missing closing braces early
         if NF.TOP_LEVEL_ONLY in cls.FLAGS:
-            assert parent_cls is DefMod, f"{cls} {parent_cls}"
+            if parent_cls is not DefMod:
+                CompilerError(stream.srcloc(), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}") 
 
         fields = [f for f, _ in cls.__annotations__.items()
                   if not f.startswith("x_")]
@@ -2471,6 +2473,10 @@ def ReadModsFromStream(fp) -> List[DefMod]:
         assert not failure, f"truncated file"
     return asts
 
+
+def CompilerError(srcloc, msg):
+    print (f"{srcloc} ERROR: {msg}", file=sys.stdout)
+    assert False
 
 if __name__ == "__main__":
     import sys

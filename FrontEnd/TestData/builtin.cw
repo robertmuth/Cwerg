@@ -106,20 +106,21 @@
 ])
 
 
-
-(macro unsigned_to_dec [(macro_param $val EXPR) 
+(macro unsigned_to_str [(macro_param $val EXPR) 
+                        (macro_param $base EXPR)
                         (macro_param $max_width EXPR) 
                         (macro_param $out ID)]  [$v $tmp $pos] [
+    (# "unsigned to str with give base")
     (macro_let mut $v auto $val)
     (macro_let mut $tmp auto (ValArray u8 $max_width []))
     (macro_let mut $pos uint $max_width)
     (block _ [
         (-= $pos 1)
-        (let c (% $v 10))
+        (let c (% $v $base))
         (let mut c8 (as c u8))
-        (+= c8 '0')
+        (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
         (= (at $tmp $pos) c8)
-        (/= $v 10)
+        (/= $v $base)
         (if (!= $v 0) [(continue)] [])
     ])
     (let n uint (min (- $max_width $pos) (len $out)))
@@ -131,29 +132,33 @@
                             (param out (slice mut u8)) 
                             (param options (ptr mut SysFormatOptions))] uint [
     
-    (unsigned_to_dec v 32_uint out)
+    (unsigned_to_str v 10 32_uint out)
 ])
+
 
 (fun polymorphic SysRender [(param v u16) 
                             (param out (slice mut u8)) 
                             (param options (ptr mut SysFormatOptions))] uint [
     
-    (unsigned_to_dec v 32_uint out)
+    (unsigned_to_str v 10 32_uint out)
 ])
+
 
 (fun polymorphic SysRender [(param v u32) 
                             (param out (slice mut u8)) 
                             (param options (ptr mut SysFormatOptions))] uint [
     
-    (unsigned_to_dec v 32_uint out)
+    (unsigned_to_str v 10 32_uint out)
 ])
+
 
 (fun polymorphic SysRender [(param v u64) 
                             (param out (slice mut u8)) 
                             (param options (ptr mut SysFormatOptions))] uint [
     
-    (unsigned_to_dec v 32_uint out)
+    (unsigned_to_str v 10 32_uint out)
 ])
+
 
 (fun polymorphic SysRender [(param v (slice u8)) 
                             (param buffer (slice mut u8)) 
@@ -164,16 +169,19 @@
 
 
 
-(macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] [$buffer $options] [
+(macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] 
+                    [$buffer $options $buffer_orig] [
     (macro_let mut $buffer auto (ValArray u8 1024))
     (macro_let mut $curr (slice mut u8) $buffer)
     (macro_let mut $options auto (rec SysFormatOptions []))
     (macro_for $i $parts [
         (incp= $curr (call polymorphic SysRender [$i $curr (& mut $options)]))
     ])
-    (stmt (call SysPrint [$curr])) 
+    (macro_let $buffer_orig (slice u8) $buffer)
+    (stmt (call SysPrint [(pdelta $buffer_orig $curr)])) 
 ])
-  
+
+
 (macro pub print [(macro_param $parts STMT_LIST)] [$curr] [
     (print_common $curr [$parts])
     (stmt (call SysPrint [$curr])) 
