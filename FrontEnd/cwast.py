@@ -640,7 +640,6 @@ class ValRec:
 EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                   "ExprField", "ExprCall", "ExprParen",
                   "Expr1", "Expr2", "Expr3",
-                  "ExprChop",
                   "ExprLen", "ExprSizeof"]
 
 
@@ -769,6 +768,8 @@ class Expr1:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"{_NAME(self)} {self.unary_expr_kind} {self.expr}"
 
 @enum.unique
 class BINARY_EXPR_KIND(enum.Enum):
@@ -894,25 +895,6 @@ class ExprIndex:
 
     def __str__(self):
         return f"AT {self.container} {self.expr_index}"
-
-
-@dataclasses.dataclass()
-class ExprChop:
-    """Slicing expression of array or slice
-    """
-    ALIAS = "chop"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
-    #
-    container: EXPR_NODE  # must be of type slice or array
-    start: Union[EXPR_NODE, "ValAuto"]  # must be of int type
-    width: Union[EXPR_NODE, "ValAuto"]  # must be of int type
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"CHOP {self.container} {self.start} {self.width}"
 
 
 @dataclasses.dataclass()
@@ -1537,7 +1519,7 @@ class DefVar:
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     pub: bool
     mut: bool
@@ -1547,6 +1529,7 @@ class DefVar:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"

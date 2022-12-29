@@ -250,6 +250,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         if node.value.x_value is not None:
             return _AssignValue(node, node.value.x_value)
         return False
+    elif isinstance(node, cwast.DefVar):
+        if not node.mut and node.initial_or_undef.x_value is not None:
+            return _AssignValue(node, node.initial_or_undef.x_value)
+        return False
     elif isinstance(node, cwast.IndexVal):
         return False  # handled by ValArray
     elif isinstance(node, cwast.ValArray):
@@ -299,9 +303,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprLen):
         # TODO:
         return False
-    elif isinstance(node, cwast.ExprChop):
-        # TODO:
-        return False
     elif isinstance(node, cwast.ExprAddrOf):
         # TODO: we can do better here
         return False
@@ -321,7 +322,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         assert False, f"unexpected node {node}"
 
 
-def EvalRecursively(node) -> bool:
+def EvalRecursively(node, parent) -> bool:
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS and node.x_value is not None:
         return False
     seen_change = False
@@ -329,10 +330,10 @@ def EvalRecursively(node) -> bool:
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            seen_change = EvalRecursively(getattr(node, c))
+            seen_change = EvalRecursively(getattr(node, c), node)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                seen_change |= EvalRecursively(cc)
+                seen_change |= EvalRecursively(cc, node)
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
         seen_change |= _EvalNode(node)
     if seen_change:
@@ -343,17 +344,26 @@ def EvalRecursively(node) -> bool:
 def _VerifyEvalRecursively(node, parent, is_const) -> bool:
     if isinstance(node, (cwast.Comment, cwast.DefMacro)):
         return
-    logger.info(f"EVAL-VERIFY: {node}")
+    # logger.info(f"EVAL-VERIFY: {node}")
 
     if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
         if isinstance(node, cwast.Id):
             def_node = node.x_symbol
             if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS:
-                assert def_node.x_value is not None, f"unevaluated const node: {def_node}"
+
+                if def_node.x_value is None:
+                    if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+                        # TODO: we do not track constant addresses yet
+                        cwast.CompilerError(def_node.x_srcloc,
+                                            f"expected const node: {node} inside: {parent}")
         elif isinstance(node, cwast.ValUndef):
             pass
         else:
-            assert node.x_value is not None, f"unevaluated const node: {node}"
+            if node.x_value is None:
+                if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+                    # TODO: we do not track constant addresses yet
+                    cwast.CompilerError(
+                        node.x_srcloc, f"expected const node: {node} inside {parent}")
 
     if isinstance(node, cwast.DefConst):
         is_const = True
@@ -363,7 +373,7 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
     if isinstance(node, cwast.DefRec):
         is_const = True
 
-    if isinstance(node, cwast.ValAuto) and not isinstance(parent, cwast.ExprChop):
+    if isinstance(node, cwast.ValAuto):
         assert node.x_value is not None, f"unevaluated auto node: {node}"
 
     if isinstance(node, cwast.StmtStaticAssert):
@@ -393,13 +403,15 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
         logger.info("Eval Iteration %d", iteration)
         seen_change = False
         for m in mod_topo_order:
-            for node in mod_map[m].body_mod:
+            mod = mod_map[m]
+            for node in mod.body_mod:
                 if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                    seen_change |= EvalRecursively(node)
+                    seen_change |= EvalRecursively(node, mod)
 
     for m in mod_topo_order:
-        for node in mod_map[m].body_mod:
-            _VerifyEvalRecursively(node, None, False)
+        mod = mod_map[m]
+        for node in mod.body_mod:
+            _VerifyEvalRecursively(node, mod, False)
 
 
 if __name__ == "__main__":

@@ -9,14 +9,13 @@
 (let mut c2 auto (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
-(let c20 auto (len c1))
+(# "(let c20 auto (len c1)" )
 
-(let c21 auto (at c1 2))
+(# "(let c21 auto (at c1 2))" )
 
 (const dim auto 5_u16)
 
 (fun fun1 [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
-   (let v1 auto (chop a))
    (let v2 auto (at c1 0))
    (let v3 auto (& (at c1 0)))
    (let v4 auto (& mut (at c2 0)))

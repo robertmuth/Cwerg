@@ -484,16 +484,6 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         _TypifyNodeRecursively(node.container, corpus, ctx)
         return _AnnotateType(corpus, node, corpus.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT))
-    elif isinstance(node, cwast.ExprChop):
-        if not isinstance(node.start, cwast.ValAuto):
-            _TypifyNodeRecursively(node.start, corpus, ctx)
-        if not isinstance(node.width, cwast.ValAuto):
-            _TypifyNodeRecursively(node.width, corpus, ctx)
-        cstr_cont = _TypifyNodeRecursively(node.container, corpus, ctx)
-        cstr = types.get_contained_type(cstr_cont)
-        mut = types.is_mutable(
-            cstr_cont, types.is_mutable_def(node.container))
-        return _AnnotateType(corpus, node, corpus.insert_slice_type(mut, cstr))
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = _TypifyNodeRecursively(node.expr, corpus, ctx)
         return _AnnotateType(corpus, node, corpus.insert_ptr_type(node.mut, cstr_expr))
@@ -675,16 +665,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.ExprLen):
         assert node.x_type == corpus.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT)
-    elif isinstance(node, cwast.ExprChop):
-        cstr = node.x_type
-        cstr_cont = node.container.x_type
-        assert types.get_contained_type(
-            cstr_cont) == types.get_contained_type(cstr)
-        assert types.is_mutable(cstr_cont) == types.is_mutable(cstr)
-        if not isinstance(node.start, cwast.ValAuto):
-            assert types.is_int(node.start.x_type)
-        if not isinstance(node.width, cwast.ValAuto):
-            assert types.is_int(node.width.x_type)
     elif isinstance(node, cwast.Id):
         cstr = node.x_type
         assert cstr != types.NO_TYPE
