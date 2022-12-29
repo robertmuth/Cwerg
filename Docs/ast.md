@@ -1,12 +1,11 @@
 ## Abstract Syntax Tree (AST) Nodes used by Cwerg
 
-WIP 
+WIP
 
 
 ## Node Overview
 [Case&nbsp;(case)](#case-case) &ensp;
 [Comment&nbsp;(#)](#comment-) &ensp;
-[DefConst&nbsp;(const)](#defconst-const) &ensp;
 [DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
@@ -23,7 +22,6 @@ WIP
 [ExprAsNot&nbsp;(asnot)](#exprasnot-asnot) &ensp;
 [ExprBitCast&nbsp;(bitcast)](#exprbitcast-bitcast) &ensp;
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
-[ExprChop&nbsp;(chop)](#exprchop-chop) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
@@ -42,12 +40,11 @@ WIP
 [Import&nbsp;(import)](#import-import) &ensp;
 [IndexVal](#indexval) &ensp;
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
-[MacroGenId&nbsp;(macro_gen_id)](#macrogenid-macro_gen_id) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
 [MacroListArg&nbsp;(macro_list_arg)](#macrolistarg-macro_list_arg) &ensp;
 [MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
-[MacroVar&nbsp;(macro_let_indirect)](#macrovar-macro_let_indirect) &ensp;
+[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
 [ModParam](#modparam) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
@@ -69,11 +66,12 @@ WIP
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
-[ValArray](#valarray) &ensp;
+[ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
 [ValNum&nbsp;(num)](#valnum-num) &ensp;
 [ValRec&nbsp;(rec)](#valrec-rec) &ensp;
+[ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
 [ValString](#valstring) &ensp;
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
@@ -177,6 +175,8 @@ Placeholder for an unspecified (auto derived) type
     My only occur where explicitly allowed.
     
 
+Fields:
+
 ### TypeBase
 Base type
 
@@ -268,8 +268,10 @@ Creates a new scope
 Allowed at top level only
 
 Fields:
+* pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * params_macro [LIST]: macro parameters
+* gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
 * body_macro [LIST]: macro statments/expression
 
 ### DefMod (module)
@@ -299,7 +301,7 @@ Fields:
 ### DefVar (let)
 Variable definition
 
-    Allocates space on stack or static memory (if at module level) and 
+    Allocates space on stack or static memory (if at module level) and
     initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
 
@@ -431,18 +433,9 @@ Fields:
 ### StmtTrap (trap)
 Trap statement
 
-## Value Node Details
-
-### DefConst (const)
-Constant definition
-
-Allowed at top level only
-
 Fields:
-* pub [FLAG]: has public visibility
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* value [NODE]: 
+
+## Value Node Details
 
 ### FieldVal
 Part of rec literal
@@ -466,7 +459,7 @@ Fields:
 * value_or_undef [NODE]: 
 * init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
 
-### ValArray
+### ValArray (array_val)
 An array literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
@@ -475,7 +468,7 @@ An array literal
 Fields:
 * type [NODE]: type expression
 * expr_size [NODE]: expression determining the size or auto
-* inits_array [LIST]: array initializers and/or comments
+* inits_array [LIST] (default list): array initializers and/or comments
 
 ### ValAuto (auto_val)
 Placeholder for an unspecified (auto derived) value
@@ -509,6 +502,16 @@ A record literal
 Fields:
 * type [NODE]: type expression
 * inits_rec [LIST]: record initializers and/or comments
+
+### ValSlice (slice_val)
+A slice value comprised of a pointer and length
+
+    type and mutability is defined by the pointer
+    
+
+Fields:
+* pointer [NODE]: pointer component of slice
+* expr_size [NODE]: expression determining the size or auto
 
 ### ValString
 An array value encoded as a string
@@ -626,15 +629,6 @@ Fields:
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
 
-### ExprChop (chop)
-Slicing expression of array or slice
-    
-
-Fields:
-* container [NODE]: array and slice
-* start [NODE] (default ValAuto): desired start of slice (default 0)
-* width [NODE] (default ValAuto): desired width of slice (default: length of container)
-
 ### ExprDeref (^)
 Dereference a pointer represented by `expr`
 
@@ -748,16 +742,6 @@ Fields:
 * name_list [STR]: name of the object list
 * body [LIST]: statement list and/or comments
 
-### MacroGenId (macro_gen_id)
-Generate a unique Id prefixed with the given name
-
-    All macro_gen_id occuring in macrobody must use different names
-    which also must not clash with macro parameters.
-    
-
-Fields:
-* name [STR]: name of the object
-
 ### MacroId (macro_id)
 Placeholder for a parameter
 
@@ -789,10 +773,10 @@ Fields:
 * name [STR]: name of the object
 * macro_param_kind [KIND]: see MacroParam Kind below
 
-### MacroVar (macro_let_indirect)
+### MacroVar (macro_let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
-    `name` must start with a `$`. 
+    `name` must start with a `$`.
 
     
 
@@ -820,6 +804,8 @@ Fields:
 |DIV       |/|
 |MUL       |*|
 |REM       |%|
+|MIN       |min|
+|MAX       |max|
 |AND       |and|
 |OR        |or|
 |XOR       |xor|
@@ -833,8 +819,8 @@ Fields:
 |ORSC      ||||
 |SHR       |>>|
 |SHL       |<<|
-|PADD      |padd|
-|PSUB      |psub|
+|INCP      |incp|
+|DECP      |decp|
 |PDELTA    |pdelta|
 
 ### StmtCompoundAssignment Kind
@@ -846,6 +832,8 @@ Fields:
 |DIV       |/=|
 |MUL       |*=|
 |REM       |%=|
+|INCP      |incp=|
+|DECP      |decp=|
 |AND       |and=|
 |OR        |or=|
 |XOR       |xor=|
