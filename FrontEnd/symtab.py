@@ -194,7 +194,8 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
     assert isinstance(node, cwast.MacroInvoke)
     macro = sym_tab.resolve_macro(
         node.name.split("/"), symtab_map, False)
-    assert macro is not None, f"unknown macro {node}"
+    if macro is None:
+        cwast.CompilerError(node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
     FindAndExpandMacrosRecursively(
@@ -350,7 +351,6 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
-                pp.PrettyPrint(node)
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, [])
 

@@ -297,10 +297,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprLen):
-        # TODO: 
+        # TODO:
         return False
     elif isinstance(node, cwast.ExprChop):
-        # TODO: 
+        # TODO:
         return False
     elif isinstance(node, cwast.ExprAddrOf):
         # TODO: we can do better here
@@ -338,22 +338,6 @@ def EvalRecursively(node) -> bool:
     if seen_change:
         logger.info(f"SEEN CHANGE {node}")
     return seen_change
-
-
-def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
-                                     mod_map: Dict[str, cwast.DefMod]):
-    """
-    """
-    iteration = 0
-    seen_change = True
-    while seen_change:
-        iteration += 1
-        logger.info("Eval Iteration %d", iteration)
-        seen_change = False
-        for m in mod_topo_order:
-            for node in mod_map[m].body_mod:
-                if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                    seen_change |= EvalRecursively(node)
 
 
 def _VerifyEvalRecursively(node, parent, is_const) -> bool:
@@ -398,8 +382,21 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
                 _VerifyEvalRecursively(cc, node, is_const)
 
 
-def VerifyASTPartialEvaluation(mod_topo_order: List[cwast.DefMod],
-                               mod_map: Dict[str, cwast.DefMod]):
+def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
+                                     mod_map: Dict[str, cwast.DefMod]):
+    """
+    """
+    iteration = 0
+    seen_change = True
+    while seen_change:
+        iteration += 1
+        logger.info("Eval Iteration %d", iteration)
+        seen_change = False
+        for m in mod_topo_order:
+            for node in mod_map[m].body_mod:
+                if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
+                    seen_change |= EvalRecursively(node)
+
     for m in mod_topo_order:
         for node in mod_map[m].body_mod:
             _VerifyEvalRecursively(node, None, False)
@@ -418,4 +415,3 @@ if __name__ == "__main__":
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     meta.DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
     DecorateASTWithPartialEvaluation(mod_topo_order, mod_map)
-    VerifyASTPartialEvaluation(mod_topo_order, mod_map)

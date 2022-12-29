@@ -409,7 +409,9 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         else:
             cstr = _TypifyNodeRecursively(node.callee, corpus, ctx)
             assert isinstance(cstr, cwast.TypeFun)
-            assert len(cstr.params) == len(node.args)
+            if len(cstr.params) != len(node.args):
+                cwast.CompilerError(node.x_srcloc, 
+                f"number of args does not match for call to {node.callee}")
             for p, a in zip(cstr.params, node.args):
                 ctx.push_target(p.type)
                 _TypifyNodeRecursively(a, corpus, ctx)
@@ -598,7 +600,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             elif isinstance(cstr1, cwast.TypeSlice):    
                 assert (isinstance(cstr2, cwast.TypeSlice) and
                         cstr1.type == cstr2.type)
-                assert cstr == cstr1
+                assert cstr == cstr1 
             else:
                     assert False  
         else:
