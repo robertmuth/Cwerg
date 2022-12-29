@@ -141,8 +141,8 @@ def _ComputeArrayLength(node) -> int:
     elif isinstance(node, cwast.Id):
         node = node.x_symbol
         return _ComputeArrayLength(node)
-    elif isinstance(node, cwast.DefConst):
-        return _ComputeArrayLength(node.value)
+    elif isinstance(node, cwast.DefVar) and not node.mut:
+        return _ComputeArrayLength(node.initial_or_undef)
     else:
         assert False, f"unexpected dim node: {node}"
 
@@ -269,13 +269,6 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         assert False, "Must not try to typify TypeAuto"
     elif isinstance(node, cwast.ValAuto):
         assert False, "Must not try to typify ValAuto"
-    elif isinstance(node, cwast.DefConst):
-        ctx.push_target(types.NO_TYPE if
-                        isinstance(node.type_or_auto, cwast.TypeAuto) else
-                        _TypifyNodeRecursively(node.type_or_auto, corpus, ctx))
-        cstr = _TypifyNodeRecursively(node.value, corpus, ctx)
-        ctx.pop_target()
-        return _AnnotateType(corpus, node, cstr)
     elif isinstance(node, cwast.IndexVal):
         cstr = ctx.get_target_type()
         if not isinstance(node.value_or_undef, cwast.ValUndef):
@@ -698,7 +691,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, (cwast.DefFun, cwast.TypeFun)):
         assert isinstance(node.x_type, cwast.TypeFun)
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
-                           cwast.TypeArray, cwast.DefConst, cwast.DefFun,
+                           cwast.TypeArray, cwast.DefFun,
                            cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
                            cwast.EnumVal, cwast.ValString, cwast.FieldVal)):
         pass

@@ -13,7 +13,7 @@
 
 (# "(let c21 auto (at c1 2))" )
 
-(const dim auto 5_u16)
+(let dim auto 5_u16)
 
 (fun fun1 [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
    (let v2 auto (at c1 0))

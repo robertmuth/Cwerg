@@ -43,7 +43,6 @@ class SymTab:
 
     def __init__(self):
         self._type_syms: Dict[str, cwast.DefType] = {}
-        self._const_syms: Dict[str, cwast.DefConst] = {}
 
         self._rec_syms: Dict[str, cwast.DefRec] = {}
         self._enum_syms: Dict[str, cwast.DefEnum] = {}
@@ -55,7 +54,7 @@ class SymTab:
         self._mod_syms: Dict[str, cwast.DefMod] = {}
 
     def resolve_sym_here(self, name, must_be_public):
-        for syms in (self._type_syms, self._const_syms, self._fun_syms,
+        for syms in (self._type_syms, self._fun_syms,
                      self._rec_syms, self._enum_syms, self._var_syms, self._macro_syms):
             s = syms.get(name)
             if s:
@@ -121,9 +120,6 @@ class SymTab:
         elif isinstance(node, cwast.DefVar):
             assert node.name not in self._var_syms
             self._var_syms[node.name] = node
-        elif isinstance(node, cwast.DefConst):
-            assert node.name not in self._const_syms
-            self._const_syms[node.name] = node
         elif isinstance(node, cwast.DefRec):
             assert node.name not in self._rec_syms
             self._rec_syms[node.name] = node

@@ -246,10 +246,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return False
     elif isinstance(node, cwast.ValAuto):
         return False
-    elif isinstance(node, cwast.DefConst):
-        if node.value.x_value is not None:
-            return _AssignValue(node, node.value.x_value)
-        return False
     elif isinstance(node, cwast.DefVar):
         if not node.mut and node.initial_or_undef.x_value is not None:
             return _AssignValue(node, node.initial_or_undef.x_value)
@@ -365,8 +361,6 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
                     cwast.CompilerError(
                         node.x_srcloc, f"expected const node: {node} inside {parent}")
 
-    if isinstance(node, cwast.DefConst):
-        is_const = True
     # top level definition
     if isinstance(node, cwast.DefVar) and isinstance(parent, cwast.DefMod):
         is_const = True

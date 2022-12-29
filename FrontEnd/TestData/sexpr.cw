@@ -24,7 +24,7 @@
 
 (type wrapped t1 s32)
 
-(const pub c1 auto 7_s64)
+(let pub c1 auto 7_s64)
 
 
 (defrec pub type_rec [
@@ -40,7 +40,7 @@
 ])
 
 
-(const c2 auto (offsetof type_rec s1))
+(let c2 auto (offsetof type_rec s1))
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")

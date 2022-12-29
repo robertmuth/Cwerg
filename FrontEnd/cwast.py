@@ -1487,24 +1487,6 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
                    ValVoid, ValRec, ValArray, ValString]
 
 
-@dataclasses.dataclass()
-class DefConst:
-    """Constant definition"""
-    ALIAS = "const"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
-    #
-    pub:  bool
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    value: CONST_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}: {self.type_or_auto} = {self.value}"
 
 
 @dataclasses.dataclass()
@@ -1584,7 +1566,7 @@ class ModParam:
         return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
 
 
-BODY_MOD_NODES = Union[Comment, DefFun, DefRec, DefConst, DefEnum, DefVar]
+BODY_MOD_NODES = Union[Comment, DefFun, DefRec, DefEnum, DefVar]
 
 PARAMS_MOD_NODES = Union[Comment, ModParam]
 

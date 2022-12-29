@@ -22,52 +22,52 @@
 ])
 
 
-(const c0 void void_val)
+(let c0 void void_val)
 
-(const  c1 auto (ValNum 7_u32)) 
+(let c1 auto (ValNum 7_u32)) 
 
-(const  c2 u32 7) 
+(let c2 u32 7) 
 
-(const  c3 auto (ValNum 7.0_r32)) 
+(let c3 auto (ValNum 7.0_r32)) 
 
-(const pub c4 auto "xxxxxx")
+(let pub c4 auto "xxxxxx")
 
 
-(const c10 auto c2)
+(let c10 auto c2)
 
-(const c20 auto type_enum/e3)
+(let c20 auto type_enum/e3)
 
 (static_assert (== (as c20 s32) 19))
 
 (# "array literal with explicit indices")
-(const c30 auto (ValArray uint 30 [
+(let c30 auto (ValArray uint 30 [
    (IndexVal 0 1) 
    (IndexVal 10 2) 
    (IndexVal 20 3)]))
 
 (# "array literal")
-(const c31 auto (ValArray uint 30 [
+(let c31 auto (ValArray uint 30 [
    (IndexVal 10) 
    (IndexVal 20) 
    (IndexVal 30)]))
 
 (# "rec literal with explicit field name")
-(const c32 auto (ValRec type_rec [
+(let c32 auto (ValRec type_rec [
    (FieldVal 7 s1) 
    (FieldVal 9 s2) 
    (FieldVal 7 s3)]))
 
 (# "rec literal")
-(const c33 auto (ValRec type_rec [
+(let c33 auto (ValRec type_rec [
    (FieldVal 7) 
    (FieldVal 9) 
    (FieldVal 7)]))
 
-(const c40 auto  (ExprIndex c30 1))
+(let c40 auto  (ExprIndex c30 1))
 
 (static_assert (== c40 0))
 
-(const c41 auto  (ExprField c32 s1))
+(let c41 auto  (ExprField c32 s1))
 
 (static_assert (== c41 7))
 
@@ -75,6 +75,6 @@
 
 (static_assert (== (+ 3_s32 4) 7))
 
-(# "can Functions be assigned to consts?")
+(# "TODO add examples with Functions")
 
 ])
