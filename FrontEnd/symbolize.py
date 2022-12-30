@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Symbol Table for Cwerg AST
+"""Symbol Resolution
 
 """
 

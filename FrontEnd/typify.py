@@ -8,7 +8,7 @@ import sys
 import logging
 
 from FrontEnd import cwast
-from FrontEnd import symtab
+from FrontEnd import symbolize
 from FrontEnd import types
 
 from typing import List, Dict, Set, Optional, Union, Any
@@ -765,8 +765,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     asts = cwast.ReadModsFromStream(sys.stdin)
 
-    mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-    symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)

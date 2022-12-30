@@ -35,16 +35,16 @@ $(DIR)/%.cw.parse: TestData/%.cw
 	cat $(BUILTINS) $< | ./cwast.py 
 
 $(DIR)/%.cw.meta: TestData/%.cw
-	@echo "[meta $@]"
-	cat $(BUILTINS) $< |./meta.py 
+	@echo "[typify $@]"
+	cat $(BUILTINS) $< |./typify.py 
 
 $(DIR)/%.cw.eval: TestData/%.cw
 	@echo "[eval $@]"
 	cat $(BUILTINS) $< |./eval.py 
 
 $(DIR)/%.cw.symtab: TestData/%.cw
-	@echo "[symtab $@]"
-	cat $(BUILTINS) $< |./symtab.py 
+	@echo "[symbolize $@]"
+	cat $(BUILTINS) $< |./symbolize.py 
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"

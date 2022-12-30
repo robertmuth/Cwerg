@@ -7,9 +7,9 @@
 import logging
 
 from FrontEnd import cwast
-from FrontEnd import symtab
+from FrontEnd import symbolize
 from FrontEnd import types
-from FrontEnd import meta
+from FrontEnd import typify
 
 from typing import List, Dict, Set, Optional, Union, Any
 
@@ -238,9 +238,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValNum):
         cstr = node.x_type
         if isinstance(cstr, cwast.TypeBase):
-            return _AssignValue(node, meta.ParseNum(node.number, cstr.base_type_kind))
+            return _AssignValue(node, typify.ParseNum(node.number, cstr.base_type_kind))
         elif isinstance(cstr, cwast.DefEnum):
-            return _AssignValue(node, meta.ParseNum(node.number, cstr.base_type_kind))
+            return _AssignValue(node, typify.ParseNum(node.number, cstr.base_type_kind))
         else:
             assert False, f"unepxected type for ValNum: {cstr}"
             return False
@@ -415,9 +415,9 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     asts = cwast.ReadModsFromStream(sys.stdin)
 
-    mod_topo_order, mod_map = symtab.ModulesInTopologicalOrder(asts)
-    symtab.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    meta.DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
+    typify.DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
     DecorateASTWithPartialEvaluation(mod_topo_order, mod_map)
