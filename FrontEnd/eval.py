@@ -264,7 +264,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _AssignValue(node, node.string)
     elif isinstance(node, cwast.ExprIndex):
         if node.container.x_value is not None and node.expr_index.x_value is not None:
-            assert type(node.container.x_value) is list
+            assert type(node.container.x_value) in (list, str), f"{node.container.x_value}"
             return _AssignValue(node, node.container.x_value[node.expr_index.x_value])
         return False
     elif isinstance(node, cwast.ExprField):

@@ -52,6 +52,18 @@ class SymTab:
 
         self._var_syms: Dict[str, cwast.DefVar] = {}
         self._mod_syms: Dict[str, cwast.DefMod] = {}
+        self._all_syms: Dict[str, Any] = {}
+
+    def AddSymWithDupCheck(self, name, node):
+        prev = self._all_syms.get(name)
+        if prev is not None:
+            cwast.CompilerError(node.x_srcloc,
+                                f"Duplicate symbol name for {node} previously defined by {prev}")
+        self._all_syms[name] = node
+
+    def DelSym(self, name):
+        assert name in self._all_syms
+        del self._all_syms[name]
 
     def resolve_sym_here(self, name, must_be_public):
         for syms in (self._type_syms, self._fun_syms,
@@ -111,30 +123,32 @@ class SymTab:
 
     def add_top_level_sym(self, node, mod_map):
         logger.info("recording global symbol: %s", node)
+        name = node.name
         if isinstance(node, cwast.DefFun):
-            assert node.name not in self._fun_syms, f"duplicate symbol {node.name}"
-            self._fun_syms[node.name] = node
+            assert name not in self._fun_syms, f"duplicate symbol {name}"
+            self._fun_syms[name] = node
         elif isinstance(node, cwast.DefMacro):
-            assert node.name not in self._macro_syms, f"duplicate symbol {node.name}"
-            self._macro_syms[node.name] = node
+            assert name not in self._macro_syms, f"duplicate symbol {name}"
+            self._macro_syms[name] = node
         elif isinstance(node, cwast.DefVar):
-            assert node.name not in self._var_syms
-            self._var_syms[node.name] = node
+            assert name not in self._var_syms
+            self._var_syms[name] = node
         elif isinstance(node, cwast.DefRec):
-            assert node.name not in self._rec_syms
-            self._rec_syms[node.name] = node
+            assert name not in self._rec_syms
+            self._rec_syms[name] = node
         elif isinstance(node, cwast.DefEnum):
-            assert node.name not in self._enum_syms
-            self._enum_syms[node.name] = node
+            assert name not in self._enum_syms
+            self._enum_syms[name] = node
         elif isinstance(node, cwast.DefType):
-            assert node.name not in self._type_syms
-            self._type_syms[node.name] = node
+            assert name not in self._type_syms
+            self._type_syms[name] = node
         elif isinstance(node, cwast.Import):
             name = node.alias if node.alias else node.name
             assert name not in self._mod_syms
             self._mod_syms[name] = mod_map[node.name]
         else:
             assert False, f"unexpected node: {node}"
+        self.AddSymWithDupCheck(name, node)
 
 
 def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
@@ -191,7 +205,8 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
     macro = sym_tab.resolve_macro(
         node.name.split("/"), symtab_map, False)
     if macro is None:
-        cwast.CompilerError(node.x_srcloc, f"invocation of unknown macro `{node.name}`")
+        cwast.CompilerError(
+            node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
     FindAndExpandMacrosRecursively(
@@ -245,14 +260,14 @@ def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_m
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab, symtab_map, scopes):
+        node, symtab: SymTab, symtab_map, scopes):
 
-    def record_local_sym(node, name=None):
-        if name == None:
-            name = node.name
+    def record_local_sym(node):
+        name = node.name
         logger.info("recording local symbol: %s", node)
         assert name not in scopes[-1], f"duplicate symbol: {name}"
         scopes[-1][name] = node
+        symtab.AddSymWithDupCheck(name, node)
 
     if isinstance(node, cwast.DefVar):
         record_local_sym(node)
@@ -288,9 +303,13 @@ def ResolveSymbolsInsideFunctionsRecursively(
                     cc, symtab, symtab_map, scopes)
             if c in ("body_t", "body_f"):
                 logger.info("pop scope for if block: %s" % c)
+                for name in scopes[-1].keys():
+                    symtab.DelSym(name)
                 scopes.pop(-1)
 
     if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
+        for name in scopes[-1].keys():
+            symtab.DelSym(name)
         scopes.pop(-1)
         logger.info("pop scope for %s", node)
 
@@ -345,10 +364,13 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
         mod = mod_map[m]
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
+            pp.PrettyPrint(node)
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
+                scopes = []
                 ResolveSymbolsInsideFunctionsRecursively(
-                    node, symtab, symtab_map, [])
+                    node, symtab, symtab_map, scopes)
+                assert not scopes
 
     for m in mod_topo_order:
         _VerifyASTSymbolsRecursively(mod_map[m], None)

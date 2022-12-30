@@ -74,8 +74,6 @@
 (fun pub extern IsLogActive [(param level u8) (param loc u32)] void [])
 
 
-(fun pub extern print [(param buffer (slice u8))] void [])
-
 
 (# "generic copy of data from slice/array to slice")
 (macro copy_slice [(macro_param $item_type TYPE) 
