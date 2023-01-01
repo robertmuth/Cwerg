@@ -1,5 +1,6 @@
 
 DIR=build
+QEMU=
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -51,6 +52,13 @@ $(DIR)/%.cw.pp: TestData/%.cw
 	./pp.py < $< >$@.tmp
 	./pp.py < $@.tmp >$@
 	diff $@.tmp $@
+
+STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
+
+$(DIR)/hello.x64.exe: TestData/hello_world.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ 
 
 clean:
 	@rm -f $(DIR)/* 

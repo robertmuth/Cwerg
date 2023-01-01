@@ -367,7 +367,6 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
-            pp.PrettyPrint(node)
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
                 scopes = []
