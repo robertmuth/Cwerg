@@ -2,7 +2,7 @@
 (# "Binary Tree Example")
 
 (type wrapped NoneType void)
-(let pub None auto (as void_val NoneType))
+(global pub None auto (as void_val NoneType))
 
 (defrec pub BinaryTreeNode [
    (field left (union [None (ptr mut BinaryTreeNode)]) None)

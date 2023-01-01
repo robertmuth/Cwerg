@@ -130,7 +130,7 @@ class SymTab:
         elif isinstance(node, cwast.DefMacro):
             assert name not in self._macro_syms, f"duplicate symbol {name}"
             self._macro_syms[name] = node
-        elif isinstance(node, cwast.DefVar):
+        elif isinstance(node, cwast.DefGlobal):
             assert name not in self._var_syms
             self._var_syms[name] = node
         elif isinstance(node, cwast.DefRec):
@@ -147,7 +147,7 @@ class SymTab:
             assert name not in self._mod_syms
             self._mod_syms[name] = mod_map[node.name]
         else:
-            assert False, f"unexpected node: {node}"
+            cwast.CompilerError(node.x_srcloc, f"Unexpected toplevel node {node}")
         self.AddSymWithDupCheck(name, node)
 
 

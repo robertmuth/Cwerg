@@ -10,6 +10,7 @@ from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import types
 from FrontEnd import typify
+from Util import parse
 
 from typing import List, Dict, Set, Optional, Union, Any
 
@@ -246,7 +247,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return False
     elif isinstance(node, cwast.ValAuto):
         return False
-    elif isinstance(node, cwast.DefVar):
+    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         if not node.mut and node.initial_or_undef.x_value is not None:
             return _AssignValue(node, node.initial_or_undef.x_value)
         return False
@@ -261,10 +262,15 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValRec):
         return _EvalValRec(node)
     elif isinstance(node, cwast.ValString):
-        return _AssignValue(node, node.string)
+        s = node.string
+        assert s[0] == '"' and s[-1] == '"', f"expected string [{s}]"
+        s = s[1:-1]
+        if node.raw:
+            return _AssignValue(node, bytes(s,encoding="ascii"))
+        return _AssignValue(node, parse.EscapedStringToBytes(s))
     elif isinstance(node, cwast.ExprIndex):
         if node.container.x_value is not None and node.expr_index.x_value is not None:
-            assert type(node.container.x_value) in (list, str), f"{node.container.x_value}"
+            assert type(node.container.x_value) in (list, bytes), f"{node.container.x_value}"
             return _AssignValue(node, node.container.x_value[node.expr_index.x_value])
         return False
     elif isinstance(node, cwast.ExprField):

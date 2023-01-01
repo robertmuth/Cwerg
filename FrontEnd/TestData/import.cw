@@ -14,9 +14,9 @@
 
     (type pub fileHandle s32)
     
-    (let pub stdin fileHandle 0)
-    (let pub stdout fileHandle 1)
-    (let pub stderr fileHandle 2)
+    (global pub stdin fileHandle 0)
+    (global pub stdout fileHandle 1)
+    (global pub stderr fileHandle 2)
 
 
     (fun pub extern open 

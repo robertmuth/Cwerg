@@ -60,7 +60,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert not new_name.name.startswith("$")
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial_or_undef = ExpandMacroRecursively(node.initial_or_undef, ctx)
-        return cwast.DefVar(False, node.mut, new_name.name, type_or_auto, initial_or_undef)
+        return cwast.DefVar(node.mut, new_name.name, type_or_auto, initial_or_undef)
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)

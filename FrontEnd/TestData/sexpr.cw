@@ -7,9 +7,9 @@
    (return (ValNum 7)) 
 ])
 
-(let pub mut v1 auto 7_u64)
+(global pub mut v1 auto 7_u64)
 
-(let pub v1a auto (& mut v1))
+(global pub v1a auto (& mut v1))
 
 (fun foo2 [(param a (TypeBase S32)) (param b s32) (param c s32)] s32 [
    (# "this is a comment with \" with quotes \t ")
@@ -24,7 +24,7 @@
 
 (type wrapped t1 s32)
 
-(let pub c1 auto 7_s64)
+(global pub c1 auto 7_s64)
 
 
 (defrec pub type_rec [
@@ -40,7 +40,7 @@
 ])
 
 
-(let c2 auto (offsetof type_rec s1))
+(global c2 auto (offsetof type_rec s1))
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")

@@ -771,6 +771,7 @@ class Expr1:
     def __str__(self):
         return f"{_NAME(self)} {self.unary_expr_kind} {self.expr}"
 
+
 @enum.unique
 class BINARY_EXPR_KIND(enum.Enum):
     INVALID = 0
@@ -1261,7 +1262,7 @@ class StmtExpr:
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.discard}"
+        return f"{_NAME(self)} {self.discard} {self.expr}"
 
 
 @dataclasses.dataclass()
@@ -1487,21 +1488,41 @@ CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
                    ValVoid, ValRec, ValArray, ValString]
 
 
-
-
 @dataclasses.dataclass()
 class DefVar:
     """Variable definition
 
-    Allocates space on stack or static memory (if at module level) and
-    initializes it with `initial_or_undef`.
+    Allocates space on stack and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
 
-    `pub`lic visibily only makes sense for module level definitions.
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.VALUE_ANNOTATED
+    #
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
+
+
+@dataclasses.dataclass()
+class DefGlobal:
+    """Variable definition
+
+    Allocates space in static memory and initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
+    """
+    ALIAS = "global"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     pub: bool
     mut: bool
@@ -2382,7 +2403,8 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
             pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)
     if token != ")":
-        CompilerError(stream.srcloc(), f"while parsing {cls.__name__} expected node-end but got {token}")
+        CompilerError(stream.srcloc(
+        ), f"while parsing {cls.__name__} expected node-end but got {token}")
     return cls(*pieces, x_srcloc=srcloc)
 
 
@@ -2408,7 +2430,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
         # This helps catching missing closing braces early
         if NF.TOP_LEVEL_ONLY in cls.FLAGS:
             if parent_cls is not DefMod:
-                CompilerError(stream.srcloc(), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}") 
+                CompilerError(stream.srcloc(
+                ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
 
         fields = [f for f, _ in cls.__annotations__.items()
                   if not f.startswith("x_")]
@@ -2440,8 +2463,9 @@ def ReadModsFromStream(fp) -> List[DefMod]:
 
 
 def CompilerError(srcloc, msg):
-    print (f"{srcloc} ERROR: {msg}", file=sys.stdout)
+    print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
     assert False
+
 
 if __name__ == "__main__":
     import sys

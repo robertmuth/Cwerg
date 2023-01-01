@@ -15,7 +15,7 @@ NO_TYPE = None
 def is_mutable_def(node):
     if isinstance(node, cwast.Id):
         s = node.x_symbol
-        if isinstance(s, cwast.DefVar):
+        if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
             return s.mut
     return False
 

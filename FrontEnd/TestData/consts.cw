@@ -22,52 +22,52 @@
 ])
 
 
-(let c0 void void_val)
+(global c0 void void_val)
 
-(let c1 auto (ValNum 7_u32)) 
+(global c1 auto (ValNum 7_u32)) 
 
-(let c2 u32 7) 
+(global c2 u32 7) 
 
-(let c3 auto (ValNum 7.0_r32)) 
+(global c3 auto (ValNum 7.0_r32)) 
 
-(let pub c4 auto "xxxxxx")
+(global pub c4 auto "xxxxxx")
 
 
-(let c10 auto c2)
+(global c10 auto c2)
 
-(let c20 auto type_enum/e3)
+(global c20 auto type_enum/e3)
 
 (static_assert (== (as c20 s32) 19))
 
 (# "array literal with explicit indices")
-(let c30 auto (ValArray uint 30 [
+(global c30 auto (ValArray uint 30 [
    (IndexVal 0 1) 
    (IndexVal 10 2) 
    (IndexVal 20 3)]))
 
 (# "array literal")
-(let c31 auto (ValArray uint 30 [
+(global c31 auto (ValArray uint 30 [
    (IndexVal 10) 
    (IndexVal 20) 
    (IndexVal 30)]))
 
 (# "rec literal with explicit field name")
-(let c32 auto (ValRec type_rec [
+(global c32 auto (ValRec type_rec [
    (FieldVal 7 s1) 
    (FieldVal 9 s2) 
    (FieldVal 7 s3)]))
 
 (# "rec literal")
-(let c33 auto (ValRec type_rec [
+(global c33 auto (ValRec type_rec [
    (FieldVal 7) 
    (FieldVal 9) 
    (FieldVal 7)]))
 
-(let c40 auto  (ExprIndex c30 1))
+(global c40 auto  (ExprIndex c30 1))
 
 (static_assert (== c40 0))
 
-(let c41 auto  (ExprField c32 s1))
+(global c41 auto  (ExprField c32 s1))
 
 (static_assert (== c41 7))
 

@@ -141,7 +141,7 @@ def _ComputeArrayLength(node) -> int:
     elif isinstance(node, cwast.Id):
         node = node.x_symbol
         return _ComputeArrayLength(node)
-    elif isinstance(node, cwast.DefVar) and not node.mut:
+    elif isinstance(node, (cwast.DefVar,cwast.DefGlobal)) and not node.mut:
         return _ComputeArrayLength(node.initial_or_undef)
     else:
         assert False, f"unexpected dim node: {node}"
@@ -332,7 +332,7 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
         field_node = corpus.lookup_rec_field(cstr, node.field)
         _AnnotateField(node, field_node)
         return _AnnotateType(corpus, node, field_node.x_type)
-    elif isinstance(node, cwast.DefVar):
+    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         cstr = (types.NO_TYPE if isinstance(node.type_or_auto, cwast.TypeAuto)
                 else _TypifyNodeRecursively(node.type_or_auto, corpus, ctx))
         initial_cstr = types.NO_TYPE
@@ -546,7 +546,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         cstr = node.x_type
         field_node = node.x_field
         assert cstr == field_node.x_type
-    elif isinstance(node, cwast.DefVar):
+    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         cstr = node.x_type
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
