@@ -314,7 +314,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         logger.info("pop scope for %s", node)
 
 
-def _VerifyASTSymbolsRecursively(node, parent):
+def _VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.DefMacro):
         return
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
@@ -323,17 +323,17 @@ def _VerifyASTSymbolsRecursively(node, parent):
         assert not node.name.startswith("$")
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {parent}"
+        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {node.x_parent}"
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
                 # polymorphic stuff can only be handled once we have types
                 continue
-            _VerifyASTSymbolsRecursively(getattr(node, c), node)
+            _VerifyASTSymbolsRecursively(getattr(node, c))
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                _VerifyASTSymbolsRecursively(cc, node)
+                _VerifyASTSymbolsRecursively(cc)
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
@@ -362,6 +362,9 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
     for m in mod_topo_order:
         mod = mod_map[m]
+        # we wait until macro expansion with this
+        cwast.SetParentFieldRecursively(mod, None)
+
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
             pp.PrettyPrint(node)
@@ -373,7 +376,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 assert not scopes
 
     for m in mod_topo_order:
-        _VerifyASTSymbolsRecursively(mod_map[m], None)
+        _VerifyASTSymbolsRecursively(mod_map[m])
 
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[

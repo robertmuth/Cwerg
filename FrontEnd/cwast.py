@@ -98,6 +98,7 @@ class Comment:
     comment: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.comment}"
@@ -132,6 +133,7 @@ class Id:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         joiner = "::" if self.path else ""
@@ -149,6 +151,7 @@ class TypeAuto:
     FLAGS = NF.NONE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     # TODO
     # FLAGS = NF.TYPE_ANNOTATED
@@ -178,6 +181,7 @@ class FunParam:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -261,6 +265,7 @@ class TypeBase:
     base_type_kind: BASE_TYPE_KIND
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -281,6 +286,7 @@ class TypePtr:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -305,6 +311,7 @@ class TypeSlice:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -327,6 +334,7 @@ class TypeArray:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -352,6 +360,7 @@ class TypeFun:
     result: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -378,6 +387,7 @@ class TypeSum:
     types: List[TYPES_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_size: int = -1
     x_alignment: int = -1
@@ -407,6 +417,7 @@ class ValAuto:
     FLAGS = NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -421,6 +432,7 @@ class ValTrue:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -438,6 +450,7 @@ class ValFalse:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -457,6 +470,7 @@ class ValNum:
     number: str   # maybe a (unicode) character as well
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -472,6 +486,7 @@ class ValUndef:
     FLAGS = NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_value: Optional[Any] = None    # this is always a ValUndef() object
 
     def __str__(self):
@@ -489,6 +504,7 @@ class ValVoid:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -511,6 +527,7 @@ class IndexVal:
     init_index: "EXPR_NODE"  # compile time constant
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -533,6 +550,7 @@ class FieldVal:
     init_field: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -559,6 +577,7 @@ class ValArray:
     inits_array: List[INITS_ARRAY_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -580,6 +599,7 @@ class ValSlice:
     expr_size: "EXPR_NODE"
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -603,6 +623,7 @@ class ValString:
     string: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -626,6 +647,7 @@ class ValRec:
     inits_rec: List[INITS_REC_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -653,6 +675,7 @@ class ExprDeref:
     expr: EXPR_NODE  # must be of type AddrOf
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -675,6 +698,7 @@ class ExprAddrOf:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -695,6 +719,7 @@ class ExprCall:
     args: List[EXPR_NODE]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -713,6 +738,7 @@ class ExprParen:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -729,6 +755,7 @@ class ExprField:
     field: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -765,6 +792,7 @@ class Expr1:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -850,6 +878,7 @@ class Expr2:
     expr2: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -870,6 +899,7 @@ class Expr3:
     expr_f: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -891,6 +921,7 @@ class ExprIndex:
     expr_index: EXPR_NODE  # must be of int type
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -908,6 +939,7 @@ class ExprLen:
     container: EXPR_NODE   # must be of type slice or array
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -929,6 +961,7 @@ class ExprIs:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -958,6 +991,7 @@ class ExprAs:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -978,6 +1012,7 @@ class ExprAsNot:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1002,6 +1037,7 @@ class ExprTryAs:
     default_or_undef: Union[EXPR_NODE, ValUndef]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1024,6 +1060,7 @@ class ExprUnsafeCast:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
 
 
@@ -1045,6 +1082,7 @@ class ExprBitCast:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1061,6 +1099,7 @@ class ExprSizeof:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1081,6 +1120,7 @@ class ExprOffsetof:
     field: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -1114,6 +1154,7 @@ class StmtBlock:
     body: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.label}"
@@ -1133,6 +1174,7 @@ class StmtDefer:
     body:  List[BODY_NODES]  # must NOT contain RETURN
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1150,6 +1192,7 @@ class StmtIf:
     body_f: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1166,6 +1209,7 @@ class Case:
     body: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1181,6 +1225,7 @@ class StmtCond:
     cases: List[Case]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1206,6 +1251,7 @@ class StmtBreak:
     target: str  # use "" for no value
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1223,6 +1269,7 @@ class StmtContinue:
     target: str  # use "" for no value
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1241,6 +1288,7 @@ class StmtReturn:
     expr_ret: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr_ret}"
@@ -1260,6 +1308,7 @@ class StmtExpr:
     expr: ExprCall
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.discard} {self.expr}"
@@ -1276,6 +1325,7 @@ class StmtStaticAssert:
     message: str     # should this be an expression?
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1289,7 +1339,10 @@ class StmtTrap:
     FLAGS = NF.NONE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
+    def __str__(self):
+        return f"{_NAME(self)}"
 
 @enum.unique
 class ASSIGNMENT_KIND(enum.Enum):
@@ -1346,6 +1399,7 @@ class StmtCompoundAssignment:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
@@ -1362,6 +1416,7 @@ class StmtAssignment:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.lhs} = {self.expr}"
@@ -1387,6 +1442,7 @@ class RecField:  #
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_offset: int = -1
@@ -1410,6 +1466,7 @@ class DefRec:
     fields: List[FIELDS_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1431,6 +1488,7 @@ class EnumVal:
     value_or_auto: Union["ValNum", ValAuto]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1454,6 +1512,7 @@ class DefEnum:
     items: List[ITEMS_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
     x_alignment: int = -1
@@ -1478,6 +1537,7 @@ class DefType:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1506,6 +1566,7 @@ class DefVar:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1531,8 +1592,10 @@ class DefGlobal:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
@@ -1556,6 +1619,7 @@ class DefFun:
     body: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1582,6 +1646,7 @@ class ModParam:
     mod_param_kind: MOD_PARAM_KIND
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
@@ -1607,6 +1672,7 @@ class DefMod:
     body_mod: List[BODY_MOD_NODES]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
@@ -1624,6 +1690,7 @@ class Import:
     alias: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1641,6 +1708,7 @@ class ExprSrcLoc:
     FLAGS = NF.TO_BE_EXPANDED
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -1656,7 +1724,7 @@ class ExprStringify:
     expr:  EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
+    x_parent: Optional[Any] = None
 ############################################################
 # Macro
 ############################################################
@@ -1686,6 +1754,7 @@ class MacroId:
     name: str
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1708,6 +1777,7 @@ class MacroVar:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
@@ -1728,6 +1798,7 @@ class MacroFor:
     body: List[Any]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -1742,6 +1813,7 @@ class MacroListArg:
     args: List[EXPR_NODE]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
 
 @dataclasses.dataclass()
@@ -1755,6 +1827,7 @@ class MacroParam:
     macro_param_kind: MACRO_PARAM_KIND
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
@@ -1771,6 +1844,7 @@ class MacroInvoke:
     args: List[EXPR_NODE]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1799,6 +1873,7 @@ class DefMacro:
     body_macro: List[Any]
     #
     x_srcloc: Optional[Any] = None
+    x_parent: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1947,14 +2022,15 @@ OPTIONAL_FIELDS = {
 
 
 X_FIELDS = {
-    "x_type",   #
-    "x_value",  #
-    "x_field",
-    "x_symbol",
-    "x_alignment",
-    "x_size",
-    "x_offset",
-    "x_srcloc",
+    "x_type",   # set by typify.py
+    "x_value",  # set by eval.py
+    "x_field",  # set by typify.py
+    "x_symbol",  # set by symbolize.py
+    "x_alignment",  # set by typify.py
+    "x_size",  # set by typify.py
+    "x_offset",  # set by typify.py
+    "x_srcloc",  # set by cwast.py
+    "x_parent",  # set by cwast.py
 
 }
 
@@ -2441,6 +2517,18 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
 VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
                ValString, ValRec)
+
+
+def SetParentFieldRecursively(node, parent):
+    node.x_parent = parent
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, c)
+            SetParentFieldRecursively(child, node)
+        elif nfd.kind is NFK.LIST:
+            for child in getattr(node, c):
+                SetParentFieldRecursively(child, node)
 
 
 def ReadModsFromStream(fp) -> List[DefMod]:

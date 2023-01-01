@@ -324,7 +324,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         assert False, f"unexpected node {node}"
 
 
-def EvalRecursively(node, parent) -> bool:
+def EvalRecursively(node) -> bool:
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS and node.x_value is not None:
         return False
     seen_change = False
@@ -332,10 +332,10 @@ def EvalRecursively(node, parent) -> bool:
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            seen_change = EvalRecursively(getattr(node, c), node)
+            seen_change = EvalRecursively(getattr(node, c))
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                seen_change |= EvalRecursively(cc, node)
+                seen_change |= EvalRecursively(cc)
     if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
         seen_change |= _EvalNode(node)
     if seen_change:
@@ -343,7 +343,7 @@ def EvalRecursively(node, parent) -> bool:
     return seen_change
 
 
-def _VerifyEvalRecursively(node, parent, is_const) -> bool:
+def _VerifyEvalRecursively(node, is_const) -> bool:
     if isinstance(node, (cwast.Comment, cwast.DefMacro)):
         return
     # logger.info(f"EVAL-VERIFY: {node}")
@@ -354,10 +354,10 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
             if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS:
 
                 if def_node.x_value is None:
-                    if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+                    if not isinstance(node.x_parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
                         cwast.CompilerError(def_node.x_srcloc,
-                                            f"expected const node: {node} inside: {parent}")
+                                            f"expected const node: {node} inside: {node.x_parent}")
         elif isinstance(node, cwast.ValUndef):
             pass
         else:
@@ -365,10 +365,10 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
                 if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                     # TODO: we do not track constant addresses yet
                     cwast.CompilerError(
-                        node.x_srcloc, f"expected const node: {node} inside {parent}")
+                        node.x_srcloc, f"expected const node: {node} inside {node.x_parent}")
 
     # top level definition
-    if isinstance(node, cwast.DefVar) and isinstance(parent, cwast.DefMod):
+    if isinstance(node, cwast.DefGlobal):
         is_const = True
     if isinstance(node, cwast.DefRec):
         is_const = True
@@ -386,10 +386,10 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            _VerifyEvalRecursively(getattr(node, c), node, is_const)
+            _VerifyEvalRecursively(getattr(node, c), is_const)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                _VerifyEvalRecursively(cc, node, is_const)
+                _VerifyEvalRecursively(cc, is_const)
 
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
@@ -406,12 +406,12 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
             mod = mod_map[m]
             for node in mod.body_mod:
                 if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                    seen_change |= EvalRecursively(node, mod)
+                    seen_change |= EvalRecursively(node)
 
     for m in mod_topo_order:
         mod = mod_map[m]
         for node in mod.body_mod:
-            _VerifyEvalRecursively(node, mod, False)
+            _VerifyEvalRecursively(node, False)
 
 
 if __name__ == "__main__":
