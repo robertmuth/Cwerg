@@ -147,7 +147,8 @@ class SymTab:
             assert name not in self._mod_syms
             self._mod_syms[name] = mod_map[node.name]
         else:
-            cwast.CompilerError(node.x_srcloc, f"Unexpected toplevel node {node}")
+            cwast.CompilerError(
+                node.x_srcloc, f"Unexpected toplevel node {node}")
         self.AddSymWithDupCheck(name, node)
 
 
@@ -324,6 +325,9 @@ def _VerifyASTSymbolsRecursively(node):
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
         assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {node.x_parent}"
+    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+        assert node.x_target is not None
+    #
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
@@ -334,6 +338,40 @@ def _VerifyASTSymbolsRecursively(node):
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
                 _VerifyASTSymbolsRecursively(cc)
+
+
+def _SetParentFieldRecursively(node, parent):
+    node.x_parent = parent
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            _SetParentFieldRecursively(child, node)
+        elif nfd.kind is cwast.NFK.LIST:
+            for child in getattr(node, c):
+                _SetParentFieldRecursively(child, node)
+
+
+def _SetTargetFieldRecursively(node):
+    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+        target = node.target
+        curr = node.x_parent
+        while not isinstance(curr, cwast.DefMod):
+            if isinstance(curr, cwast.StmtBlock):
+                if curr.label == target or target == "":
+                    node.x_target = curr
+                    break
+            curr = curr.x_parent
+
+
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            _SetTargetFieldRecursively(child)
+        elif nfd.kind is cwast.NFK.LIST:
+            for child in getattr(node, c):
+                _SetTargetFieldRecursively(child)
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
@@ -350,6 +388,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 logger.info("Resolving global object: %s", node)
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, symtab, symtab_map)
+
     for m in mod_topo_order:
         mod = mod_map[m]
         symtab = symtab_map[mod.name]
@@ -363,7 +402,8 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
     for m in mod_topo_order:
         mod = mod_map[m]
         # we wait until macro expansion with this
-        cwast.SetParentFieldRecursively(mod, None)
+        _SetParentFieldRecursively(mod, None)
+        _SetTargetFieldRecursively(mod)
 
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:

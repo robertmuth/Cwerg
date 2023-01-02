@@ -1230,14 +1230,6 @@ class StmtCond:
     def __str__(self):
         return f"{_NAME(self)}"
 
-# @dataclasses.dataclass()
-# class StmtWhen:
-#    "compile-time conditional"
-#    ALIAS = "when"
-#    cond: ExprNode        # must be of type bool
-#    body_t: List[StmtNode]
-#    body_f: List[StmtNode]
-
 
 @dataclasses.dataclass()
 class StmtBreak:
@@ -1252,6 +1244,7 @@ class StmtBreak:
     #
     x_srcloc: Optional[Any] = None
     x_parent: Optional[Any] = None
+    x_target: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1270,6 +1263,7 @@ class StmtContinue:
     #
     x_srcloc: Optional[Any] = None
     x_parent: Optional[Any] = None
+    x_target: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.target}"
@@ -1343,6 +1337,7 @@ class StmtTrap:
 
     def __str__(self):
         return f"{_NAME(self)}"
+
 
 @enum.unique
 class ASSIGNMENT_KIND(enum.Enum):
@@ -2022,16 +2017,19 @@ OPTIONAL_FIELDS = {
 
 
 X_FIELDS = {
-    "x_type",   # set by typify.py
-    "x_value",  # set by eval.py
-    "x_field",  # set by typify.py
+    "x_srcloc",  # set by cwast.py
+    #
     "x_symbol",  # set by symbolize.py
+    "x_parent",  # set by cwast.py
+    "x_target",  # set by symbolize.py
+    #
+    "x_type",   # set by typify.py
+    "x_field",  # set by typify.py
     "x_alignment",  # set by typify.py
     "x_size",  # set by typify.py
     "x_offset",  # set by typify.py
-    "x_srcloc",  # set by cwast.py
-    "x_parent",  # set by cwast.py
-
+    #
+    "x_value",  # set by eval.py
 }
 
 # Note: we rely on the matching being done greedily
@@ -2517,18 +2515,6 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
 VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
                ValUndef, ValVoid, FieldVal, ValArray,
                ValString, ValRec)
-
-
-def SetParentFieldRecursively(node, parent):
-    node.x_parent = parent
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
-            SetParentFieldRecursively(child, node)
-        elif nfd.kind is NFK.LIST:
-            for child in getattr(node, c):
-                SetParentFieldRecursively(child, node)
 
 
 def ReadModsFromStream(fp) -> List[DefMod]:
