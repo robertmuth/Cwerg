@@ -14,7 +14,6 @@
 ])
 
 
-
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void [])
 (fun pub extern SysPrint [(param buffer (slice u8))] void [])
 
@@ -39,7 +38,7 @@
     (block _ [
           (if (>= $it $end_eval) [(break)] [])
           (macro_let $index auto $it)
-          (+=  $it $step_eval)
+          (= $it (+ $it $step_eval))
           $body
           (continue)
     ])

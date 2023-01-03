@@ -377,11 +377,10 @@ def _SetTargetFieldRecursively(node):
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                            mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
-    for m in mod_topo_order:
-        symtab_map[m] = _ExtractSymTabPopulatedWithGlobals(mod_map[m], mod_map)
+    for mod in mod_topo_order:
+        symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod, mod_map)
 
-    for m in mod_topo_order:
-        mod = mod_map[m]
+    for mod in mod_topo_order:
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.Comment)):
@@ -389,8 +388,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, symtab, symtab_map)
 
-    for m in mod_topo_order:
-        mod = mod_map[m]
+    for mod in mod_topo_order:
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
@@ -399,8 +397,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 FindAndExpandMacrosRecursively(
                     node, symtab, symtab_map, 0, ctx)
 
-    for m in mod_topo_order:
-        mod = mod_map[m]
+    for mod in mod_topo_order:
         # we wait until macro expansion with this
         _SetParentFieldRecursively(mod, None)
         _SetTargetFieldRecursively(mod)
@@ -414,8 +411,8 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                     node, symtab, symtab_map, scopes)
                 assert not scopes
 
-    for m in mod_topo_order:
-        _VerifyASTSymbolsRecursively(mod_map[m])
+    for mod in mod_topo_order:
+        _VerifyASTSymbolsRecursively(mod)
 
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
@@ -454,7 +451,7 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         assert candidates
         x = heapq.heappop(candidates)
         logger.info("picking next mod: %s", x)
-        out.append(x)
+        out.append(mod_map[x])
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:

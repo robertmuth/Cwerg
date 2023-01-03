@@ -392,8 +392,7 @@ def _VerifyEvalRecursively(node, is_const) -> bool:
                 _VerifyEvalRecursively(cc, is_const)
 
 
-def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
-                                     mod_map: Dict[str, cwast.DefMod]):
+def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
     """
     """
     iteration = 0
@@ -402,14 +401,12 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod],
         iteration += 1
         logger.info("Eval Iteration %d", iteration)
         seen_change = False
-        for m in mod_topo_order:
-            mod = mod_map[m]
+        for mod in mod_topo_order:
             for node in mod.body_mod:
                 if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
                     seen_change |= EvalRecursively(node)
 
-    for m in mod_topo_order:
-        mod = mod_map[m]
+    for mod in mod_topo_order:
         for node in mod.body_mod:
             _VerifyEvalRecursively(node, False)
 
@@ -425,5 +422,5 @@ if __name__ == "__main__":
     symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    typify.DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
-    DecorateASTWithPartialEvaluation(mod_topo_order, mod_map)
+    typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+    DecorateASTWithPartialEvaluation(mod_topo_order)

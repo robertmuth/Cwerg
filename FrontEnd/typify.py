@@ -724,7 +724,7 @@ def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
 
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
-                         mod_map: Dict[str, cwast.DefMod], type_corpus: types.TypeCorpus):
+                        type_corpus: types.TypeCorpus):
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -736,9 +736,9 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * some x_value (only array dimention as they are related to types)
     """
     poly_map = _PolyMap(type_corpus)
-    for m in mod_topo_order:
-        ctx = _TypeContext(m, poly_map)
-        for node in mod_map[m].body_mod:
+    for mod in mod_topo_order:
+        ctx = _TypeContext(mod.name, poly_map)
+        for node in mod.body_mod:
             if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
                 # Note: we do not recurse into function bodies
                 cstr = _TypifyNodeRecursively(node, type_corpus, ctx)
@@ -746,9 +746,9 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                     assert isinstance(cstr, cwast.TypeFun)
                     poly_map.Register(node)
 
-    for m in mod_topo_order:
-        ctx = _TypeContext(m, poly_map)
-        for node in mod_map[m].body_mod:
+    for mod in mod_topo_order:
+        ctx = _TypeContext(mod.name, poly_map)
+        for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 save_fun = ctx.enclosing_fun
                 ctx.enclosing_fun = node
@@ -756,8 +756,8 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                     _TypifyNodeRecursively(c, type_corpus, ctx)
                 ctx.enclosing_fun = save_fun
 
-    for m in mod_topo_order:
-        _TypeVerifyNodeRecursively(mod_map[m], type_corpus, None)
+    for mod in mod_topo_order:
+        _TypeVerifyNodeRecursively(mod, type_corpus, None)
 
 
 if __name__ == "__main__":
@@ -769,7 +769,7 @@ if __name__ == "__main__":
     symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    DecorateASTWithTypes(mod_topo_order, mod_map, type_corpus)
+    DecorateASTWithTypes(mod_topo_order, type_corpus)
 
     for t in type_corpus.corpus:
         print(t)

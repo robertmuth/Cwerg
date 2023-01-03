@@ -2,13 +2,20 @@
    (# "main module with program entry point `main`")
 
    (# "library provided puts style function") 
-   (fun pub extern write_s [(param fd s32) (param s (ptr u8))] s32 [])
+   (fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
 
-   (# "main() function as in C -- assuming a 32 bit arch")
-   (fun main [(param argc u32) (param argv (ptr (ptr u8)))] s32 [
-         (for i u32 0 argc 1 [
+   (fun strlen [(param s (ptr u8))] uint [
+      (let mut i uint 0)
+      (while (!= (^ (incp s i)) 0) [
+         (= i (+ i 1))
+      ])
+      (return i)
+   ])
+
+   (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
+         (for i s32 0 argc 1 [
             (let s (ptr u8) (^ (incp argv i)))
-            (stmt discard (call write_s [1 s]))
+            (stmt discard (call write [1 s (call strlen [s])]))
          ])
          (return 0)
    ])
