@@ -16,6 +16,8 @@
 
 (type pub sum2_t (TypeSum [bool s32]))
 
+(type pub sum3_t (TypeSum [t2 t3 type_ptr]))
+
 
 (fun fun1 [(param a sum1_t) (param b bool) (param c s32)] sum2_t [
    (let mut x sum2_t true)
@@ -33,5 +35,14 @@
    (field s2 sum2_t true)
 ])
 
+(defrec pub rec2 [
+   (# "this is a comment with \" with quotes \t ")
+   (field s1 sum3_t undef)
+   (field s2 sum3_t undef)
+])
+
+(type pub sum10_t (TypeSum [bool s32 s64]))
+(type pub sum11_t (TypeSum [bool u16]))
+(type pub sum12_t (TypeSum [type_ptr u16]))
 
 ])

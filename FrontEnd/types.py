@@ -135,6 +135,37 @@ _BASE_TYPE_MAP = {
 }
 
 
+def _get_size_and_offset_for_sum_type(node: cwast.TypeSum, ptr_size):
+    num_void = 0
+    num_pointer = 0
+    num_other = 0
+    max_size = 0
+    max_alignment = 1
+    for t in node.types:
+        if isinstance(t, cwast.DefType):
+            assert t.wrapped
+            t = t.type
+        if is_void(t):
+            num_void += 1
+        elif isinstance(t, cwast.TypePtr):
+            num_pointer += 1
+            max_size = max(max_size, ptr_size)
+            max_alignment = max(max_alignment, ptr_size)
+        else:
+            num_other += 1
+            max_size = max(max_size, t.x_size)
+            max_alignment = max(max_alignment, t.x_alignment)
+    if num_other == 0 and num_pointer == 1:
+        # special hack for pointer + error-code
+        return ptr_size, ptr_size
+    max_alignment = max(max_alignment, 2)
+    size = align(2, max_alignment)
+    return size + max_size, max_alignment
+
+
+TYPE_ID_REG_TYPE = "U16"
+
+
 class TypeCorpus:
     """The type corpus uniquifies types
 
@@ -162,8 +193,36 @@ class TypeCorpus:
                 continue
             t = self.insert_base_type(kind)
 
+    def _get_register_type_for_sum_type(self, node: cwast.TypeSum):
+        num_void = 0
+        scalars = []
+        largest_by_kind = {}
+        largest = 0
+        for t in node.types:
+            if isinstance(t, cwast.DefType):
+                assert t.wrapped
+                t = t.type
+            if is_void(t):
+                num_void += 1
+                continue
+            regs = self.register_types[id(t)]
+            if regs is None or len(regs) > 1:
+                return None
+            scalars.append(t)
+            k = regs[0][0]
+            size = int(regs[0][1:])
+            largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
+            largest = max(largest, size)
+        # special hack for pointer + error-code
+        if len(scalars) == 1 and isinstance(t, cwast.TypePtr):
+            return self.register_types[id(t)]
+
+        k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
+        return [f"U{largest}", TYPE_ID_REG_TYPE]
+
     def get_register_type(self, ctype) -> Optional[List[str]]:
-        """As long as a type can fit into no more than two regs it will converted"""
+        """As long as a type can fit into no more than two regs it will converted
+        """
         if isinstance(ctype, cwast.Comment):
             return None
         elif isinstance(ctype, cwast.TypeBase):
@@ -175,7 +234,7 @@ class TypeCorpus:
         elif isinstance(ctype, cwast.DefRec):
             fields = [f for f in ctype.fields if isinstance(f, cwast.RecField)]
             if len(fields) == 1:
-                return self.get_register_type(fields[0].type)
+                return self.get_register_type(fields[0].type.x_type)
             elif len(fields) == 2:
                 a = self.get_register_type(fields[0].type.x_type)
                 b = self.get_register_type(fields[1].type.x_type)
@@ -188,11 +247,7 @@ class TypeCorpus:
         elif isinstance(ctype, cwast.DefEnum):
             return _BASE_TYPE_MAP[ctype.base_type_kind]
         elif isinstance(ctype, cwast.TypeSum):
-            count_void = 0
-            non_void = None
-            # for t in type.types:
-            #    if
-            return ["TBD"]
+            return self._get_register_type_for_sum_type(ctype)
         elif isinstance(ctype, cwast.DefType):
             assert ctype.wrapped
             return self.get_register_type(ctype.type)
@@ -200,33 +255,6 @@ class TypeCorpus:
             return [self._code_reg_type]
         else:
             assert False, f"unknown type {ctype}"
-
-    def get_size_and_offset_for_sum_type(self, node: cwast.TypeSum):
-        num_void = 0
-        num_pointer = 0
-        num_other = 0
-        ptr_size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
-        max_size = 0
-        max_alignment = 1
-        for t in node.types:
-            if isinstance(t, cwast.DefType):
-                t = t.type
-            if is_void(t):
-                num_void += 1
-            elif isinstance(t, cwast.TypePtr):
-                num_pointer += 1
-                max_size = max(max_size, ptr_size)
-                max_alignment = max(max_alignment, ptr_size)
-            else:
-                num_other += 1
-                max_size = max(max_size, t.x_size)
-                max_alignment = max(max_alignment, t.x_alignment)
-        if num_other == 0 and num_pointer == 1:
-            # special hack for pointer + error-code
-            return ptr_size, ptr_size
-        max_alignment = max(max_alignment, 2)
-        size = align(2, max_alignment)
-        return size + max_size, max_alignment
 
     def get_size_and_alignment_and_set_offsets_for_rec_type(self, node: cwast.DefRec):
         size = 0
@@ -265,7 +293,8 @@ class TypeCorpus:
             len = ctype.size.x_value
             return len * size, alignment
         elif isinstance(ctype, cwast.TypeSum):
-            return self.get_size_and_offset_for_sum_type(ctype)
+            return _get_size_and_offset_for_sum_type(
+                ctype, cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind])
         elif isinstance(ctype, cwast.DefEnum):
             size = cwast.BASE_TYPE_KIND_TO_SIZE[ctype.base_type_kind]
             return size, size

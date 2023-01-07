@@ -140,7 +140,8 @@ class SymTab:
             assert name not in self._enum_syms
             self._enum_syms[name] = node
         elif isinstance(node, cwast.DefType):
-            assert name not in self._type_syms
+            if name in self._type_syms:
+                cwast.CompilerError(node.x_srcloc, f"duplicate toplevel symbol {name}")
             self._type_syms[name] = node
         elif isinstance(node, cwast.Import):
             name = node.alias if node.alias else node.name
