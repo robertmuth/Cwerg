@@ -1534,7 +1534,9 @@ class DefType:
     x_srcloc: Optional[Any] = None
     x_parent: Optional[Any] = None
     x_type: Optional[Any] = None
-
+    x_alignment: int = -1
+    x_size: int = -1
+    
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
 
@@ -1661,7 +1663,6 @@ class DefMod:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
     #
-    pub: bool
     name: str
     params_mod: List[PARAMS_MOD_NODES]
     body_mod: List[BODY_MOD_NODES]

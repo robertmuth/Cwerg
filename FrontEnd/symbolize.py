@@ -284,7 +284,8 @@ def ResolveSymbolsInsideFunctionsRecursively(
         scopes.append({})
         if isinstance(node, cwast.DefFun):
             for p in node.params:
-                record_local_sym(p)
+                if isinstance(p, cwast.FunParam):
+                    record_local_sym(p)
 
     # recurse using a little bit of introspection
     for c in node.__class__.FIELDS:

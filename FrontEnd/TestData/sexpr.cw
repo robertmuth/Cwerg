@@ -39,6 +39,10 @@
    (field u2 u64 666_u64)
 ])
 
+(defrec pub one_field_rec [
+   (# "this is a comment with \" with quotes \t ")
+   (field the_field r32 undef)
+])
 
 (global c2 auto (offsetof type_rec s1))
 
@@ -73,7 +77,7 @@
 ])
 
 
-(fun foo [(param a s32) (param b s32) (param c s32)] (ptr u8) [
+(fun foo [(param a s32) (param b s32) (# "parameter comment") (param c s32)] (ptr u8) [
    (# "this is a comment with \" with quotes \t ")
    (let p1 (ptr u8) undef)
    (let p2 (ptr u8) undef)

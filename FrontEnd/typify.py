@@ -74,7 +74,7 @@ def ParseArrayIndex(pos: str) -> int:
 
 
 class _PolyMap:
-
+    """Polymorphism map"""
     def __init__(self, type_corpus: types.TypeCorpus):
         self._map = {}
         self._type_corpus = type_corpus
@@ -220,12 +220,13 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
     elif isinstance(node, cwast.DefRec):
         # allow recursive definitions referring back to rec inside
         # the fields
-        cstr = corpus.insert_rec_type(node.name, node)
+        cstr = corpus.insert_rec_type( f"{ctx.mod_name}/{node.name}", node)
         _AnnotateType(corpus, node, cstr)
         for f in node.fields:
             _TypifyNodeRecursively(f, corpus, ctx)
-        # we delay this until after fields have been typified
-        corpus.set_size_and_offset_for_rec_type(node)
+        # we delay this until after fields have been typified this is necessary 
+        # because of recursive types
+        corpus.finalize_rec_type(node)
         return cstr
     elif isinstance(node, cwast.EnumVal):
         cstr = ctx.get_target_type()
@@ -771,5 +772,5 @@ if __name__ == "__main__":
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     DecorateASTWithTypes(mod_topo_order, type_corpus)
 
-    for t in type_corpus.corpus:
-        print(t)
+    for t, n in type_corpus.corpus.items():
+        print(t, type_corpus.register_types[id(n)], n.x_size, n.x_alignment)
