@@ -221,7 +221,8 @@ class TypeCorpus:
         return [f"U{largest}", TYPE_ID_REG_TYPE]
 
     def get_register_type(self, ctype) -> Optional[List[str]]:
-        """As long as a type can fit into no more than two regs it will converted
+        """As long as a type can fit into no more than two regs it will have
+        register representation which is also how it will be past in function calls.
         """
         if isinstance(ctype, cwast.Comment):
             return None

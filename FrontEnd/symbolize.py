@@ -174,7 +174,8 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     if isinstance(node, cwast.Id):
         def_node = symtab.resolve_sym(
             node.name.split("/"), symtab_map, False)
-        assert def_node is not None, f"cannot resolve symbol {node}"
+        if def_node is None:
+            cwast.CompilerError(node.x_srcloc, f"cannot resolve symbol {node.name}")
         _add_symbol_link(node, def_node)
         return
 

@@ -43,6 +43,10 @@
    (# "this is a comment with \" with quotes \t ")
    (field the_field r32 undef)
 ])
+(defrec pub one_one_field_rec [
+   (# "this is a comment with \" with quotes \t ")
+   (field the_field one_field_rec undef)
+])
 
 (global c2 auto (offsetof type_rec s1))
 
