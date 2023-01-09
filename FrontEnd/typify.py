@@ -75,6 +75,7 @@ def ParseArrayIndex(pos: str) -> int:
 
 class _PolyMap:
     """Polymorphism map"""
+
     def __init__(self, type_corpus: types.TypeCorpus):
         self._map = {}
         self._type_corpus = type_corpus
@@ -107,7 +108,6 @@ class _PolyMap:
 class _TypeContext:
     def __init__(self, mod_name, poly_map: _PolyMap):
         self.mod_name: str = mod_name
-        self.enclosing_fun: Optional[cwast.DefFun] = None
         self._enclosing_rec_type: List[types.CanonType] = []
         self._target_type: List[types.CanonType] = [types.NO_TYPE]
         self._poly_map: _PolyMap = poly_map
@@ -141,7 +141,7 @@ def _ComputeArrayLength(node) -> int:
     elif isinstance(node, cwast.Id):
         node = node.x_symbol
         return _ComputeArrayLength(node)
-    elif isinstance(node, (cwast.DefVar,cwast.DefGlobal)) and not node.mut:
+    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and not node.mut:
         return _ComputeArrayLength(node.initial_or_undef)
     else:
         assert False, f"unexpected dim node: {node}"
@@ -220,11 +220,11 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
     elif isinstance(node, cwast.DefRec):
         # allow recursive definitions referring back to rec inside
         # the fields
-        cstr = corpus.insert_rec_type( f"{ctx.mod_name}/{node.name}", node)
+        cstr = corpus.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
         _AnnotateType(corpus, node, cstr)
         for f in node.fields:
             _TypifyNodeRecursively(f, corpus, ctx)
-        # we delay this until after fields have been typified this is necessary 
+        # we delay this until after fields have been typified this is necessary
         # because of recursive types
         corpus.finalize_rec_type(node)
         return cstr
@@ -383,6 +383,12 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
     elif isinstance(node, cwast.StmtExpr):
         _TypifyNodeRecursively(node.expr, corpus, ctx)
         return types.NO_TYPE
+    elif isinstance(node, cwast.ExprStmt):
+        cstr = ctx.get_target_type()
+        assert cstr != types.NO_TYPE
+        for c in node.body:
+            _TypifyNodeRecursively(c, corpus, ctx)
+        return _AnnotateType(corpus, node, cstr)
     elif isinstance(node, cwast.ExprCall):
         if node.polymorphic:
             assert len(node.args) > 0
@@ -404,18 +410,15 @@ def _TypifyNodeRecursively(node, corpus: types.TypeCorpus, ctx: _TypeContext) ->
             cstr = _TypifyNodeRecursively(node.callee, corpus, ctx)
             assert isinstance(cstr, cwast.TypeFun)
             if len(cstr.params) != len(node.args):
-                cwast.CompilerError(node.x_srcloc, 
-                f"number of args does not match for call to {node.callee}")
+                cwast.CompilerError(node.x_srcloc,
+                                    f"number of args does not match for call to {node.callee}")
             for p, a in zip(cstr.params, node.args):
                 ctx.push_target(p.type)
                 _TypifyNodeRecursively(a, corpus, ctx)
                 ctx.pop_target()
             return _AnnotateType(corpus, node, cstr.result)
     elif isinstance(node, cwast.StmtReturn):
-        cstr = ctx.enclosing_fun.result.x_type
-        ctx.push_target(cstr)
         _TypifyNodeRecursively(node.expr_ret, corpus, ctx)
-        ctx.pop_target()
         return types.NO_TYPE
     elif isinstance(node, cwast.StmtIf):
         ctx.push_target(corpus.insert_base_type(
@@ -517,8 +520,10 @@ def _TypeMismatch(corpus: types.TypeCorpus, msg: str, actual, expected):
 
 
 def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_fun):
-    assert (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or isinstance(
-        node, UNTYPED_NODES_TO_BE_TYPECHECKED))
+    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_type is not types.NO_TYPE
+    else:
+        assert isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)
 
     if isinstance(node, cwast.ValArray):
         cstr = node.type.x_type
@@ -559,6 +564,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
     elif isinstance(node, cwast.ExprDeref):
         cstr = node.x_type
         assert cstr == node.expr.x_type.type
+    elif isinstance(node, cwast.ExprStmt):
+        pass
     elif isinstance(node, cwast.Expr1):
         cstr = node.x_type
         assert cstr == node.expr.x_type
@@ -581,12 +588,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
                         cstr1.type == cstr2.type)
                 assert cstr == corpus.insert_base_type(
                     cwast.BASE_TYPE_KIND.SINT)
-            elif isinstance(cstr1, cwast.TypeSlice):    
+            elif isinstance(cstr1, cwast.TypeSlice):
                 assert (isinstance(cstr2, cwast.TypeSlice) and
                         cstr1.type == cstr2.type)
-                assert cstr == cstr1 
+                assert cstr == cstr1
             else:
-                    assert False  
+                assert False
         else:
             assert cstr1 == cstr2, _TypeMismatch(
                 corpus, f"binop mismatch in {node}:", cstr1, cstr2)
@@ -609,11 +616,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
             assert types.is_compatible(
                 arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(corpus, f"incompatible fun arg: {a}",  arg_cstr, p.type)
     elif isinstance(node, cwast.StmtReturn):
-        fun = enclosing_fun.x_type
-        assert isinstance(fun, cwast.TypeFun)
-        actual = node.expr_ret.x_type
-        assert types.is_compatible(
-            actual, fun.result),  _TypeMismatch(corpus, f"{node}", actual, fun.result)
+        pass
+        # fun = enclosing_fun.x_type
+        # assert isinstance(fun, cwast.TypeFun)
+        # actual = node.expr_ret.x_type
+        # assert types.is_compatible(
+        #    actual, fun.result),  _TypeMismatch(corpus, f"{node}", actual, fun.result)
     elif isinstance(node, cwast.StmtIf):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.Case):
@@ -725,7 +733,7 @@ def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
 
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
-                        type_corpus: types.TypeCorpus):
+                         type_corpus: types.TypeCorpus):
     """This checks types and maps them to a cananical node
 
     Since array type include a fixed bound this also also includes
@@ -741,7 +749,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
         ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                # Note: we do not recurse into function bodies
+                # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
                 cstr = _TypifyNodeRecursively(node, type_corpus, ctx)
                 if isinstance(node, cwast.DefFun) and node.polymorphic:
                     assert isinstance(cstr, cwast.TypeFun)
@@ -751,12 +759,11 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
         ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
-                save_fun = ctx.enclosing_fun
-                ctx.enclosing_fun = node
+                cstr = node.result.x_type
+                ctx.push_target(cstr)
                 for c in node.body:
                     _TypifyNodeRecursively(c, type_corpus, ctx)
-                ctx.enclosing_fun = save_fun
-
+                ctx.pop_target()
     for mod in mod_topo_order:
         _TypeVerifyNodeRecursively(mod, type_corpus, None)
 

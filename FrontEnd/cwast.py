@@ -1143,7 +1143,7 @@ class ExprStmt:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.label}"
+        return f"{_NAME(self)}"
 
 
 ############################################################
