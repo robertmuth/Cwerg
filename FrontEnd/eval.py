@@ -343,7 +343,7 @@ def EvalRecursively(node) -> bool:
     return seen_change
 
 
-def _VerifyEvalRecursively(node, is_const) -> bool:
+def _VerifyEvalRecursively(node, parent, is_const) -> bool:
     if isinstance(node, (cwast.Comment, cwast.DefMacro)):
         return
     # logger.info(f"EVAL-VERIFY: {node}")
@@ -354,10 +354,10 @@ def _VerifyEvalRecursively(node, is_const) -> bool:
             if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS:
 
                 if def_node.x_value is None:
-                    if not isinstance(node.x_parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+                    if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
                         cwast.CompilerError(def_node.x_srcloc,
-                                            f"expected const node: {node} inside: {node.x_parent}")
+                                            f"expected const node: {node} inside: {parent}")
         elif isinstance(node, cwast.ValUndef):
             pass
         else:
@@ -365,7 +365,7 @@ def _VerifyEvalRecursively(node, is_const) -> bool:
                 if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                     # TODO: we do not track constant addresses yet
                     cwast.CompilerError(
-                        node.x_srcloc, f"expected const node: {node} inside {node.x_parent}")
+                        node.x_srcloc, f"expected const node: {node} inside {parent}")
 
     # top level definition
     if isinstance(node, cwast.DefGlobal):
@@ -386,10 +386,10 @@ def _VerifyEvalRecursively(node, is_const) -> bool:
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            _VerifyEvalRecursively(getattr(node, c), is_const)
+            _VerifyEvalRecursively(getattr(node, c), node, is_const)
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                _VerifyEvalRecursively(cc, is_const)
+                _VerifyEvalRecursively(cc, node, is_const)
 
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
@@ -408,7 +408,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
-            _VerifyEvalRecursively(node, False)
+            _VerifyEvalRecursively(node, mod, False)
 
 
 if __name__ == "__main__":

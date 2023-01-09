@@ -141,7 +141,8 @@ class SymTab:
             self._enum_syms[name] = node
         elif isinstance(node, cwast.DefType):
             if name in self._type_syms:
-                cwast.CompilerError(node.x_srcloc, f"duplicate toplevel symbol {name}")
+                cwast.CompilerError(
+                    node.x_srcloc, f"duplicate toplevel symbol {name}")
             self._type_syms[name] = node
         elif isinstance(node, cwast.Import):
             name = node.alias if node.alias else node.name
@@ -175,7 +176,8 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
         def_node = symtab.resolve_sym(
             node.name.split("/"), symtab_map, False)
         if def_node is None:
-            cwast.CompilerError(node.x_srcloc, f"cannot resolve symbol {node.name}")
+            cwast.CompilerError(
+                node.x_srcloc, f"cannot resolve symbol {node.name}")
         _add_symbol_link(node, def_node)
         return
 
@@ -327,8 +329,8 @@ def _VerifyASTSymbolsRecursively(node):
         assert not node.name.startswith("$")
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}] in {node.x_parent}"
-    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}]"
+    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn)):
         assert node.x_target is not None
     #
     for c in node.__class__.FIELDS:
@@ -343,38 +345,35 @@ def _VerifyASTSymbolsRecursively(node):
                 _VerifyASTSymbolsRecursively(cc)
 
 
-def _SetParentFieldRecursively(node, parent):
-    node.x_parent = parent
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            _SetParentFieldRecursively(child, node)
-        elif nfd.kind is cwast.NFK.LIST:
-            for child in getattr(node, c):
-                _SetParentFieldRecursively(child, node)
-
-
-def _SetTargetFieldRecursively(node):
+def _SetTargetFieldRecursively(node, parents):
+    if isinstance(node, cwast.DefMacro):
+        return
     if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
         target = node.target
-        curr = node.x_parent
-        while not isinstance(curr, cwast.DefMod):
-            if isinstance(curr, cwast.StmtBlock):
-                if curr.label == target or target == "":
-                    node.x_target = curr
+        for p in reversed(parents):
+            if isinstance(p, cwast.StmtBlock):
+                if p.label == target or target == "":
+                    node.x_target = p
                     break
-            curr = curr.x_parent
-
-
+        else:
+            assert False
+    if isinstance(node, cwast.StmtReturn):
+        for p in reversed(parents):
+            if isinstance(p, (cwast.DefFun, cwast.ExprStmt)):
+                node.x_target = p
+                break
+        else:
+            assert False, f"{node} --- {[p.__class__.__name__ for p in parents]}"
+    parents.append(node)
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
-            _SetTargetFieldRecursively(child)
+            _SetTargetFieldRecursively(child, parents)
         elif nfd.kind is cwast.NFK.LIST:
             for child in getattr(node, c):
-                _SetTargetFieldRecursively(child)
+                _SetTargetFieldRecursively(child, parents)
+    parents.pop(-1)
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
@@ -402,8 +401,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
     for mod in mod_topo_order:
         # we wait until macro expansion with this
-        _SetParentFieldRecursively(mod, None)
-        _SetTargetFieldRecursively(mod)
+        _SetTargetFieldRecursively(mod, [])
 
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:
