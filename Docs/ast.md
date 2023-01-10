@@ -8,6 +8,7 @@ WIP
 [Comment&nbsp;(#)](#comment-) &ensp;
 [DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
+[DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [DefMod&nbsp;(module)](#defmod-module) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
@@ -31,6 +32,7 @@ WIP
 [ExprParen](#exprparen) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
+[ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
@@ -254,6 +256,22 @@ Fields:
 * result [NODE]: return type
 * body [LIST]: statement list and/or comments
 
+### DefGlobal (global)
+Variable definition
+
+    Allocates space in static memory and initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
+    
+
+Allowed at top level only
+
+Fields:
+* pub [FLAG]: has public visibility
+* mut [FLAG]: is mutable
+* name [STR]: name of the object
+* type_or_auto [NODE]: type expression
+* initial_or_undef [NODE] (default ValUndef): initializer
+
 ### DefMacro (macro)
 Define a macro
 
@@ -280,7 +298,6 @@ Module Definition
     The module is a template if `params` is non-empty
 
 Fields:
-* pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
@@ -301,17 +318,12 @@ Fields:
 ### DefVar (let)
 Variable definition
 
-    Allocates space on stack or static memory (if at module level) and
-    initializes it with `initial_or_undef`.
+    Allocates space on stack and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
 
-    `pub`lic visibily only makes sense for module level definitions.
     
 
-Allowed at top level
-
 Fields:
-* pub [FLAG]: has public visibility
 * mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
@@ -415,7 +427,8 @@ Fields:
 ### StmtReturn (return)
 Return statement
 
-    Uses void_val if the function's return type is void
+    Returns from the first enclosing ExprStmt node or the enclosing DefFun node.
+    Uses void_val if the DefFun's return type is void
     
 
 Fields:
@@ -424,7 +437,7 @@ Fields:
 ### StmtStaticAssert (static_assert)
 Static assert statement (must evaluate to true at compile-time
 
-Allowed at top level
+Allowed at top level only
 
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
@@ -694,6 +707,15 @@ Fields:
 Source Location encoded as u32
 
 Fields:
+
+### ExprStmt (expr)
+Expr with Statements
+
+    The body statements must be terminated by a StmtReturn
+    
+
+Fields:
+* body [LIST]: statement list and/or comments
 
 ### ExprStringify (stringify)
 Human readable representation of the expression

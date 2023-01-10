@@ -48,7 +48,6 @@ class NF(enum.Flag):
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
-    TOP_LEVEL_ONLY = enum.auto()
     TOP_LEVEL = enum.auto()
     MACRO_BODY_ONLY = enum.auto()
     TO_BE_EXPANDED = enum.auto()
@@ -178,7 +177,6 @@ class FunParam:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -262,7 +260,6 @@ class TypeBase:
     base_type_kind: BASE_TYPE_KIND
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -283,7 +280,6 @@ class TypePtr:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -308,7 +304,6 @@ class TypeSlice:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -331,7 +326,6 @@ class TypeArray:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -357,7 +351,6 @@ class TypeFun:
     result: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -384,7 +377,6 @@ class TypeSum:
     types: List[TYPES_NODES]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_size: int = -1
     x_alignment: int = -1
@@ -414,7 +406,6 @@ class ValAuto:
     FLAGS = NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
-
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -429,7 +420,6 @@ class ValTrue:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -466,7 +456,6 @@ class ValNum:
     number: str   # maybe a (unicode) character as well
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -482,7 +471,6 @@ class ValUndef:
     FLAGS = NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
-
     x_value: Optional[Any] = None    # this is always a ValUndef() object
 
     def __str__(self):
@@ -500,7 +488,6 @@ class ValVoid:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -523,7 +510,6 @@ class IndexVal:
     init_index: "EXPR_NODE"  # compile time constant
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -546,7 +532,6 @@ class FieldVal:
     init_field: str
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -573,7 +558,6 @@ class ValArray:
     inits_array: List[INITS_ARRAY_NODES]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -595,7 +579,6 @@ class ValSlice:
     expr_size: "EXPR_NODE"
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -619,7 +602,6 @@ class ValString:
     string: str
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -643,7 +625,6 @@ class ValRec:
     inits_rec: List[INITS_REC_NODES]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -671,7 +652,6 @@ class ExprDeref:
     expr: EXPR_NODE  # must be of type AddrOf
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -694,7 +674,6 @@ class ExprAddrOf:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -715,7 +694,6 @@ class ExprCall:
     args: List[EXPR_NODE]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -734,7 +712,6 @@ class ExprParen:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -751,7 +728,6 @@ class ExprField:
     field: str
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -788,7 +764,6 @@ class Expr1:
     expr: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -874,7 +849,6 @@ class Expr2:
     expr2: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -895,7 +869,6 @@ class Expr3:
     expr_f: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -917,7 +890,6 @@ class ExprIndex:
     expr_index: EXPR_NODE  # must be of int type
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -935,7 +907,6 @@ class ExprLen:
     container: EXPR_NODE   # must be of type slice or array
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -957,7 +928,6 @@ class ExprIs:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -987,7 +957,6 @@ class ExprAs:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1008,7 +977,6 @@ class ExprAsNot:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1033,7 +1001,6 @@ class ExprTryAs:
     default_or_undef: Union[EXPR_NODE, ValUndef]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1056,7 +1023,6 @@ class ExprUnsafeCast:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
 
 
@@ -1078,7 +1044,6 @@ class ExprBitCast:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1095,7 +1060,6 @@ class ExprSizeof:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1116,7 +1080,6 @@ class ExprOffsetof:
     field: str
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -1138,7 +1101,6 @@ class ExprStmt:
     body: List[Any]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1255,7 +1217,6 @@ class StmtBreak:
     target: str  # use "" for no value
     #
     x_srcloc: Optional[Any] = None
-
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -1274,7 +1235,6 @@ class StmtContinue:
     target: str  # use "" for no value
     #
     x_srcloc: Optional[Any] = None
-
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -1285,7 +1245,8 @@ class StmtContinue:
 class StmtReturn:
     """Return statement
 
-    Uses void_val if the function's return type is void
+    Returns from the first enclosing ExprStmt node or the enclosing DefFun node.
+    Uses void_val if the DefFun's return type is void
     """
     ALIAS = "return"
     GROUP = GROUP.Statement
@@ -1294,7 +1255,6 @@ class StmtReturn:
     expr_ret: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -1331,6 +1291,7 @@ class StmtStaticAssert:
     message: str     # should this be an expression?
     #
     x_srcloc: Optional[Any] = None
+    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1445,7 +1406,6 @@ class RecField:  #
     initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_offset: int = -1
@@ -1462,14 +1422,14 @@ class DefRec:
     """Record definition"""
     ALIAS = "defrec"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     pub:  bool
     name: str
     fields: List[FIELDS_NODES]
     #
     x_srcloc: Optional[Any] = None
-
+    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1491,7 +1451,6 @@ class EnumVal:
     value_or_auto: Union["ValNum", ValAuto]
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1507,7 +1466,7 @@ class DefEnum:
     """Enum definition"""
     ALIAS = "enum"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     pub:  bool
     name: str
@@ -1515,7 +1474,7 @@ class DefEnum:
     items: List[ITEMS_NODES]
     #
     x_srcloc: Optional[Any] = None
-
+    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
     x_alignment: int = -1
@@ -1532,7 +1491,7 @@ class DefType:
     """
     ALIAS = "type"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     pub:  bool
     wrapped: bool
@@ -1540,7 +1499,7 @@ class DefType:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-
+    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1571,7 +1530,6 @@ class DefVar:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1597,7 +1555,7 @@ class DefGlobal:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-
+    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1610,7 +1568,7 @@ class DefFun:
     """Function definition"""
     ALIAS = "fun"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL
     #
     init: bool
     fini: bool
@@ -1623,7 +1581,7 @@ class DefFun:
     body: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
-
+    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1857,7 +1815,7 @@ class DefMacro:
     """
     ALIAS = "macro"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL_ONLY
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL
     pub: bool
     #
     name: str
@@ -1866,6 +1824,7 @@ class DefMacro:
     body_macro: List[Any]
     #
     x_srcloc: Optional[Any] = None
+    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2015,6 +1974,7 @@ OPTIONAL_FIELDS = {
 
 X_FIELDS = {
     "x_srcloc",  # set by cwast.py
+    "x_module",  # set by cwast.py
     #
     "x_symbol",  # set by symbolize.py
     "x_target",  # set by symbolize.py
@@ -2103,10 +2063,11 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
                 _CheckMacroRecursively(cc, seen_names)
 
 
-def _CheckAST(node, ctx: _CheckASTContext):
+def _CheckAST(node, parent, ctx: _CheckASTContext):
     assert node.x_srcloc, f"Node without srcloc {node}"
-    if NF.TOP_LEVEL_ONLY in node.FLAGS:
+    if NF.TOP_LEVEL in node.FLAGS:
         assert ctx.toplevel, f"only allowed at toplevel: {node}"
+        assert node.x_module == parent
     if NF.MACRO_BODY_ONLY in node.FLAGS:
         assert ctx.in_macro, f"only allowed in macros: {node}"
     if isinstance(node, DefMacro):
@@ -2122,13 +2083,13 @@ def _CheckAST(node, ctx: _CheckASTContext):
             ctx.toplevel = isinstance(node, DefMod)
             ctx.in_fun |= isinstance(node, DefFun)
             ctx.in_macro |= isinstance(node, DefMacro)
-            _CheckAST(getattr(node, c), ctx)
+            _CheckAST(getattr(node, c), node, ctx)
         elif nfd.kind is NFK.LIST:
             for cc in getattr(node, c):
                 ctx.toplevel = isinstance(node, DefMod)
                 ctx.in_fun |= isinstance(node, DefFun)
                 ctx.in_macro |= isinstance(node, DefMacro)
-                _CheckAST(cc, ctx)
+                _CheckAST(cc, node, ctx)
 
 
 ##########################################################################################
@@ -2202,12 +2163,9 @@ def GenerateDocumentation(fout):
         if NF.NEW_SCOPE in cls.FLAGS:
             print(f"", file=fout)
             print(f"Creates a new scope", file=fout)
-        if NF.TOP_LEVEL_ONLY in cls.FLAGS:
-            print(f"", file=fout)
-            print(f"Allowed at top level only", file=fout)
         if NF.TOP_LEVEL in cls.FLAGS:
             print(f"", file=fout)
-            print(f"Allowed at top level", file=fout)
+            print(f"Allowed at top level only", file=fout)
         if len(cls.__annotations__):
             print(f"", file=fout)
             print("Fields:",  file=fout)
@@ -2498,7 +2456,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
 
         # This helps catching missing closing braces early
-        if NF.TOP_LEVEL_ONLY in cls.FLAGS:
+        if NF.TOP_LEVEL in cls.FLAGS:
             if parent_cls is not DefMod:
                 CompilerError(stream.srcloc(
                 ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
@@ -2524,7 +2482,10 @@ def ReadModsFromStream(fp) -> List[DefMod]:
             assert t == "("
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, DefMod)
-            _CheckAST(sexpr, _CheckASTContext())
+            for c in sexpr.body_mod:
+                if not isinstance(c, Comment):
+                    c.x_module = sexpr
+            _CheckAST(sexpr, None, _CheckASTContext())
             asts.append(sexpr)
             failure = False
     except StopIteration:

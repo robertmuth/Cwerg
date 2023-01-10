@@ -19,6 +19,8 @@ Comments wil be explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
  
 [List of S-Expression Nodes](../Docs/ast.md)
+[Macros](../Docs/macros.md)
+[Casting](../Docs/casting.md)
 
 
 ## Code Examples (using S-Expr Syntax)
