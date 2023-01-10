@@ -55,10 +55,17 @@ $(DIR)/%.cw.pp: TestData/%.cw
 
 STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 
-$(DIR)/hello.x64.exe: TestData/hello_world.cw
+
+$(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
+
+
+$(DIR)/print_argv.x64.exe: TestData/print_argv.cw
+	cat TestData/builtin.cw $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@  arg1 arg2 argc3
 
 clean:
 	@rm -f $(DIR)/* 

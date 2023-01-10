@@ -1,0 +1,89 @@
+#!/usr/bin/python3
+
+"""Canonicalizer
+
+"""
+
+import dataclasses
+import logging
+import pp
+from typing import List, Dict, Set, Optional, Union, Any
+
+from FrontEnd import identifier
+from FrontEnd import cwast
+from FrontEnd import types
+
+
+def _TransformStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
+    # TODO: add support for ValArray
+    if isinstance(node, cwast.ValString):
+        assert isinstance(
+            node.x_value, bytes), f"expected str got {node.x_value}"
+        def_node = str_map.get(node.x_value)
+        if not def_node:
+            def_node = cwast.DefGlobal(True, False, id_gen.NewName("global_str"),
+                                       node.x_type, node,
+                                       x_srcloc=node.x_srcloc,
+                                       x_type=node.x_type,
+                                       x_value=node.x_value)
+            str_map[node.x_value] = def_node
+
+        return cwast.Id(def_node.name, "blahblah",
+                        x_srcloc=node.x_srcloc,
+                        x_type=node.x_type,
+                        x_value=node.x_value,
+                        x_symbol=def_node)
+
+
+def CanonicalizeStringVal(node, str_map, id_gen):
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            new_child = _TransformStringVal(child, str_map,  id_gen)
+            if new_child:
+                setattr(node, c, new_child)
+            else:
+                CanonicalizeStringVal(child, str_map, id_gen)
+        elif nfd.kind is cwast.NFK.LIST:
+            children = getattr(node, c)
+            for n, child in enumerate(children):
+                new_child = _TransformStringVal(child, str_map,  id_gen)
+                if new_child:
+                    children[n] = new_child
+                else:
+                    CanonicalizeStringVal(child, str_map, id_gen)
+
+
+def _TransformLargeArgs(node, changed_params: Set[Any]):
+    if isinstance(node, cwast.Id) and node.x_symbol in changed_params:
+        deref = cwast.ExprDeref(node, x_srcloc=node.x_srcloc,
+                                x_type=node.x_type, x_value=node.x_value)
+        node.x_type = node.x_symbol.x_type
+        node.x_value = None
+        return deref
+
+def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus, id_gen):
+    if isinstance(node, cwast.DefFun):
+        for p in node.params:
+            if isinstance(p, cwast.FunParam):
+                if type_corpus.register_types[p.x_type] is None:
+                    changed_params.add(p)
+
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            new_child = _TransformLargeArgs(child, changed_params)
+            if new_child:
+                setattr(node, c, new_child)
+            else:
+                CanonicalizeStringVal(child, changed_params, id_gen)
+        elif nfd.kind is cwast.NFK.LIST:
+            children = getattr(node, c)
+            for n, child in enumerate(children):
+                new_child = _TransformLargeArgs(child, changed_params)
+                if new_child:
+                    children[n] = new_child
+                else:
+                    CanonicalizeStringVal(child, changed_params, id_gen)
