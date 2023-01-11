@@ -1096,7 +1096,7 @@ class ExprStmt:
     """
     ALIAS = "expr"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NEW_SCOPE
     #
     body: List[Any]
     #
@@ -1291,7 +1291,6 @@ class StmtStaticAssert:
     message: str     # should this be an expression?
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -1429,7 +1428,6 @@ class DefRec:
     fields: List[FIELDS_NODES]
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1474,7 +1472,6 @@ class DefEnum:
     items: List[ITEMS_NODES]
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
     x_alignment: int = -1
@@ -1499,7 +1496,6 @@ class DefType:
     type: TYPE_NODE
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_alignment: int = -1
     x_size: int = -1
@@ -1555,7 +1551,6 @@ class DefGlobal:
     initial_or_undef: EXPR_NODE
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1581,7 +1576,6 @@ class DefFun:
     body: List[BODY_NODES]
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1824,7 +1818,6 @@ class DefMacro:
     body_macro: List[Any]
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -1974,7 +1967,6 @@ OPTIONAL_FIELDS = {
 
 X_FIELDS = {
     "x_srcloc",  # set by cwast.py
-    "x_module",  # set by cwast.py
     #
     "x_symbol",  # set by symbolize.py
     "x_target",  # set by symbolize.py
@@ -2067,7 +2059,6 @@ def _CheckAST(node, parent, ctx: _CheckASTContext):
     assert node.x_srcloc, f"Node without srcloc {node}"
     if NF.TOP_LEVEL in node.FLAGS:
         assert ctx.toplevel, f"only allowed at toplevel: {node}"
-        assert node.x_module == parent
     if NF.MACRO_BODY_ONLY in node.FLAGS:
         assert ctx.in_macro, f"only allowed in macros: {node}"
     if isinstance(node, DefMacro):
@@ -2482,9 +2473,6 @@ def ReadModsFromStream(fp) -> List[DefMod]:
             assert t == "("
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, DefMod)
-            for c in sexpr.body_mod:
-                if not isinstance(c, Comment):
-                    c.x_module = sexpr
             _CheckAST(sexpr, None, _CheckASTContext())
             asts.append(sexpr)
             failure = False

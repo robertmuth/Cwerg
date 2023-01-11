@@ -28,19 +28,6 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def GetName(node):
-    if isinstance(node,  cwast.DefFun):
-        mod = node.x_module
-        mod_name = "" if mod.name == "main" else mod.name + "/"
-        return mod_name + node.name
-    elif isinstance(node,  cwast.DefGlobal):
-        mod = node.x_module
-        mod_name = "" if mod.name == "main" else mod.name + "/"
-        return mod_name + node.name
-    else:
-        assert False
-
-
 def StringifyOneType(node, type_corpus: types.TypeCorpus):
     t = type_corpus.register_types(node)
     assert len(t) == 1
@@ -53,7 +40,7 @@ def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
     for p in sig.params:
         ins += type_corpus.register_types(p.type)
     print(
-        f"\n\n.fun {GetName(fun)} NORMAL [{StringifyOneType(sig.result, type_corpus)}] = [{' '.join(ins)}]")
+        f"\n\n.fun {fun.name} NORMAL [{StringifyOneType(sig.result, type_corpus)}] = [{' '.join(ins)}]")
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
@@ -76,7 +63,8 @@ def _EmitMem(name, align, rw, data):
         print(f'.data 1 "{parse.BytesToEscapedString(data)}"')
 
 
-ZERO_INDEX = "0" 
+ZERO_INDEX = "0"
+
 
 def _GetLValueAddress(node, id_gen: identifier.IdGen) -> Any:
     if isinstance(node, cwast.ExprIndex):
@@ -90,7 +78,7 @@ def _GetLValueAddress(node, id_gen: identifier.IdGen) -> Any:
         return EmitIRExpr(node.expr, type_corpus, id_gen)
     elif isinstance(node, cwast.Id):
         assert isinstance(node.x_type, cwast.TypeArray)
-        name = GetName(node.x_symbol)
+        name = node.x_symbol.name
         res = id_gen.NewName("tmp")
         # TODO
         kind = "A64"
@@ -137,8 +125,12 @@ def EmitIRConditional(cond, label_t: str, label_f: str, id_gen: identifier.IdGen
             print(f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_t}")
             print(f"{TAB}br {label_f}")
 
+    elif isinstance(cond, cwast.Id):
+        assert types.is_bool(cond.x_type)
+        print(f"{TAB}bne {op1} 0 {label_t}")
+        print(f"{TAB}br {label_f}")
     else:
-        assert False
+        assert False, f"unexpected expression {cond}"
 
 
 _BIN_OP_MAP = {
@@ -180,12 +172,7 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
         else:
             assert False
     elif isinstance(node, cwast.Id):
-        def_node = node.x_symbol
-        assert isinstance(
-            def_node, (cwast.DefVar, cwast.FunParam)), f"{def_node}"
-        assert not isinstance(
-            def_node.x_type, (cwast.TypeArray, cwast.TypeSlice))
-        return node.name
+        return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.expr, id_gen)
     elif isinstance(node, cwast.Expr2):
@@ -204,10 +191,6 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
         else:
             assert False
         return res
-    elif isinstance(node, cwast.Expr3):
-        op1 = EmitIRExpr(node.expr_f, type_corpus, id_gen)
-        op2 = EmitIRExpr(node.expr_t, type_corpus, id_gen)
-        assert False
     elif isinstance(node, cwast.ExprAs):
         if (isinstance(node.expr.x_type, cwast.TypeArray) and
                 isinstance(node.type.x_type, cwast.TypeSlice)):
@@ -221,8 +204,88 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
         print(
             f"{TAB}ld {res}:{StringifyOneType(node.expr.x_type, type_corpus)} = {addr} 0")
         return res
+    elif isinstance(node, cwast.ExprStmt):
+        result = id_gen.NewName("expr")
+        for c in node.body:
+            EmitIRStmt(c, result, type_corpus, id_gen)
     else:
         assert False, f"unsupported expression {node}"
+
+
+def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
+    if isinstance(node, cwast.Comment):
+        return
+    elif isinstance(node, cwast.DefVar):
+        def_type = node.x_type
+        node.name = id_gen.NewName(node.name)
+        assert type_corpus.register_types(
+            def_type) is not None, f"unsupported type {def_type}"
+        out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
+        print(f"{TAB}mov {node.name} = {out}")
+    elif isinstance(node, cwast.StmtBlock):
+        continue_label = id_gen.NewLabel(node.label)
+        break_label = id_gen.NewLabel(node.label)
+        node.label = (continue_label, break_label)
+
+        print(f".bbl {continue_label}")
+        for c in node.body:
+            EmitIRStmt(c, result, type_corpus, id_gen)
+        print(f".bbl {break_label}")
+
+    elif isinstance(node, cwast.StmtReturn):
+        out = EmitIRExpr(node.expr_ret, type_corpus, id_gen)
+        if isinstance(node.x_target, cwast.ExprStmt):
+            print(f"{TAB}mov {result} {out}")
+        else:
+            if node.expr_ret:
+                print(f"{TAB}pusharg {out}")
+            print(f"{TAB}ret")
+    elif isinstance(node, cwast.StmtBreak):
+        block = node.x_target.label[1]
+        print(f"{TAB}br {block}")
+    elif isinstance(node, cwast.StmtContinue):
+        block = node.x_target.label[0]
+        print(f"{TAB}br {block}")
+    elif isinstance(node, cwast.StmtExpr):
+        EmitIRExpr(node.expr, type_corpus, id_gen)
+    elif isinstance(node, cwast.StmtIf):
+        label_t = id_gen.NewLabel("br_t")
+        label_f = id_gen.NewLabel("br_f")
+        EmitIRConditional(node.cond, label_t, label_f, id_gen)
+        if node.body_t and node.body_f:
+            label_n = id_gen.NewLabel("br_n")
+            print(f".bbl {label_t}")
+            for c in node.body_t:
+                EmitIRStmt(c, result, id_gen)
+            print(f"{TAB}br {label_n}")
+            print(f".bbl {label_f}")
+            for c in node.body_f:
+                EmitIRStmt(c, result, type_corpus, id_gen)
+            print(f".bbl {label_n}")
+        elif node.body_t:
+            print(f".bbl {label_t}")
+            for c in node.body_t:
+                EmitIRStmt(c, result, type_corpus, id_gen)
+            print(f".bbl {label_f}")
+        elif node.body_f:
+            print(f".bbl {label_f}")
+            for c in node.body_t:
+                EmitIRStmt(c, result, type_corpus, id_gen)
+            print(f".bbl {label_t}")
+        else:
+            print(f".bbl {label_t}")
+            print(f".bbl {label_f}")
+    elif isinstance(node, cwast.StmtAssignment):
+        out = EmitIRExpr(node.expr, type_corpus, id_gen)
+        if isinstance(node.lhs, cwast.Id):
+            # because of the canonicalization step only register promotable
+            # scalars will be naked like this
+            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}")
+        else:
+            lhs = _GetLValueAddress(node.lhs, id_gen)
+            print(f"{TAB}st {lhs} 0 = {out}")
+    else:
+        assert False, f"cannot generate code for {node}"
 
 
 def EmitIR(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -242,7 +305,7 @@ def EmitIR(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
             _EmitFunctionHeader(node, type_corpus)
             _EmitFunctionProlog(node, type_corpus, id_gen)
             for c in node.body:
-                EmitIR(c, type_corpus, id_gen)
+                EmitIRStmt(c, None, type_corpus, id_gen)
     elif isinstance(node, cwast.DefGlobal):
         def_type = node.x_type
         if isinstance(def_type, cwast.TypeBase):
@@ -251,7 +314,7 @@ def EmitIR(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
             init = node.initial_or_undef.x_value
             if isinstance(init, bytes):
                 assert isinstance(def_type.type, cwast.TypeBase)
-                _EmitMem(GetName(node), 1, node.mut, init)
+                _EmitMem(node.name, 1, node.mut, init)
             else:
                 out = []
                 size = def_type.size.x_value
@@ -260,72 +323,6 @@ def EmitIR(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
 
         else:
             assert False, f"top level defvar unsupported type {node.x_type}"
-    elif isinstance(node, cwast.DefVar):
-        def_type = node.x_type
-        node.name = id_gen.NewName(node.name)
-        assert type_corpus.register_types(
-            def_type) is not None, f"unsupported type {def_type}"
-        out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
-        print(f"{TAB}mov {node.name} = {out}")
-    elif isinstance(node, cwast.StmtBlock):
-        continue_label = id_gen.NewLabel(node.label)
-        break_label = id_gen.NewLabel(node.label)
-        node.label = (continue_label, break_label)
-
-        print(f".bbl {continue_label}")
-        for c in node.body:
-            EmitIR(c, type_corpus, id_gen)
-        print(f".bbl {break_label}")
-
-    elif isinstance(node, cwast.StmtReturn):
-        if node.expr_ret:
-            out = EmitIRExpr(node.expr_ret, type_corpus, id_gen)
-            print(f"{TAB}pusharg {out}")
-        print(f"{TAB}ret")
-    elif isinstance(node, cwast.StmtBreak):
-        block = node.x_target.label[1]
-        print(f"{TAB}br {block}")
-    elif isinstance(node, cwast.StmtContinue):
-        block = node.x_target.label[0]
-        print(f"{TAB}br {block}")
-    elif isinstance(node, cwast.StmtExpr):
-        EmitIRExpr(node.expr, type_corpus, id_gen)
-    elif isinstance(node, cwast.StmtIf):
-        label_t = id_gen.NewLabel("br_t")
-        label_f = id_gen.NewLabel("br_f")
-        EmitIRConditional(node.cond, label_t, label_f, id_gen)
-        if node.body_t and node.body_f:
-            label_n = id_gen.NewLabel("br_n")
-            print(f".bbl {label_t}")
-            for c in node.body_t:
-                EmitIR(c, id_gen)
-            print(f"{TAB}br {label_n}")
-            print(f".bbl {label_f}")
-            for c in node.body_f:
-                EmitIR(c, type_corpus, id_gen)
-            print(f".bbl {label_n}")
-        elif node.body_t:
-            print(f".bbl {label_t}")
-            for c in node.body_t:
-                EmitIR(c, type_corpus, id_gen)
-            print(f".bbl {label_f}")
-        elif node.body_f:
-            print(f".bbl {label_f}")
-            for c in node.body_t:
-                EmitIR(c, type_corpus, id_gen)
-            print(f".bbl {label_t}")
-        else:
-            print(f".bbl {label_t}")
-            print(f".bbl {label_f}")
-    elif isinstance(node, cwast.StmtAssignment):
-        out = EmitIRExpr(node.expr, type_corpus, id_gen)
-        if isinstance(node.lhs, cwast.Id):
-            # because of the canonicalization step only register promotable
-            # scalars will be naked like this
-            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}")
-        else:
-            lhs = _GetLValueAddress(node.lhs, id_gen)
-            print(f"{TAB}st {lhs} 0 = {out}")
     else:
         assert False, f"cannot generate code for {node}"
 
@@ -346,11 +343,18 @@ if __name__ == "__main__":
     str_map = {}
     for mod in mod_topo_order:
         canonicalize.CanonicalizeStringVal(mod, str_map, id_gen)
+        canonicalize.CanonicalizeTernaryOp(mod, id_gen)
     mod_gen.body_mod += list(str_map.values())
-    for n in mod_gen.body_mod:
-        n.x_module = mod_gen
 
     mod_topo_order = [mod_gen] + mod_topo_order
+    for mod in mod_topo_order:
+        mod_name = "" if mod.name == "main" else mod.name + "/"
+        for node in mod.body_mod:
+            if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
+                node.name = mod_name + node.name
+                if isinstance(node, cwast.DefFun):
+                    id_gen = identifier.IdGen()
+
 
     for mod in mod_topo_order:
         EmitIR(mod, type_corpus, id_gen)

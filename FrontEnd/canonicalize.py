@@ -33,6 +33,7 @@ def _TransformStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen)
                         x_type=node.x_type,
                         x_value=node.x_value,
                         x_symbol=def_node)
+    return None
 
 
 def CanonicalizeStringVal(node, str_map, id_gen):
@@ -62,6 +63,8 @@ def _TransformLargeArgs(node, changed_params: Set[Any]):
         node.x_type = node.x_symbol.x_type
         node.x_value = None
         return deref
+    return None
+
 
 def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus, id_gen):
     if isinstance(node, cwast.DefFun):
@@ -87,3 +90,55 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
                     children[n] = new_child
                 else:
                     CanonicalizeStringVal(child, changed_params, id_gen)
+
+# Note we could implement the ternary op as a macro but would lose some
+# of type inference, so instead we use this hardcoded rewrite
+
+
+def _TransformTernaryOp(node, id_gen: identifier.IdGen):
+    if isinstance(node, cwast.Expr3):
+        name_t = id_gen.NewName("op_t")
+        def_t = cwast.DefVar(False, name_t, cwast.TypeAuto, node.expr_t,
+                             x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
+        id_t = cwast.Id(name_t, "", x_srcloc=node.x_srcloc, x_type=node.expr_t.x_type,
+                        x_value=node.expr_t.x_value, x_symbol=def_t)
+        name_f = id_gen.NewName("op_f")
+        def_f = cwast.DefVar(False, name_f, cwast.TypeAuto, node.expr_f,
+                             x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
+        id_f = cwast.Id(name_f, "", x_srcloc=node.x_srcloc, x_type=node.expr_f.x_type,
+                        x_value=node.expr_f.x_value, x_symbol=def_f)
+
+        expr = cwast.ExprStmt([], x_srcloc=node.x_srcloc,
+                                x_type=node.x_type, x_value=node.x_value)
+        expr.body = [
+            def_t,
+            def_f,
+            cwast.StmtIf(node.cond, [
+                cwast.StmtReturn(id_t, x_srcloc=node.x_srcloc, x_target=expr)
+            ], [
+                cwast.StmtReturn(id_f, x_srcloc=node.x_srcloc, x_target=expr)
+            ],  x_srcloc=node.x_srcloc)
+
+        ]
+        return expr
+    return None
+
+
+def CanonicalizeTernaryOp(node, id_gen):
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, c)
+            new_child = _TransformTernaryOp(child, id_gen)
+            if new_child:
+                setattr(node, c, new_child)
+            else:
+                CanonicalizeTernaryOp(child, id_gen)
+        elif nfd.kind is cwast.NFK.LIST:
+            children = getattr(node, c)
+            for n, child in enumerate(children):
+                new_child = _TransformTernaryOp(child, id_gen)
+                if new_child:
+                    children[n] = new_child
+                else:
+                    CanonicalizeTernaryOp(child, id_gen)
