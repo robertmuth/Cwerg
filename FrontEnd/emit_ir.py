@@ -45,7 +45,7 @@ def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
 
 def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
                         id_gen: identifier.IdGen):
-    print(f".bbl {id_gen.NewLabel('entry')}")
+    print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
         p.name = id_gen.NewName(p.name)
         reg_types = type_corpus.register_types(p.type.x_type)
@@ -288,43 +288,28 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         assert False, f"cannot generate code for {node}"
 
 
-def EmitIR(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
-    if isinstance(node, cwast.Comment):
-        return
-    elif isinstance(node, cwast.DefEnum):
-        return
-    elif isinstance(node, cwast.DefRec):
-        return
-    elif isinstance(node, cwast.DefMacro):
-        return
-    elif isinstance(node, cwast.DefMod):
-        for c in node.body_mod:
-            EmitIR(c, type_corpus, id_gen)
-    elif isinstance(node, cwast.DefFun):
-        if not node.extern:
-            _EmitFunctionHeader(node, type_corpus)
-            _EmitFunctionProlog(node, type_corpus, id_gen)
-            for c in node.body:
-                EmitIRStmt(c, None, type_corpus, id_gen)
-    elif isinstance(node, cwast.DefGlobal):
-        def_type = node.x_type
-        if isinstance(def_type, cwast.TypeBase):
-            assert False, f"top level defvar base type"
-        elif isinstance(def_type, cwast.TypeArray):
-            init = node.initial_or_undef.x_value
-            if isinstance(init, bytes):
-                assert isinstance(def_type.type, cwast.TypeBase)
-                _EmitMem(node.name, 1, node.mut, init)
-            else:
-                out = []
-                size = def_type.size.x_value
-                init = node.initial_or_undef.x_value
-                print("@@@@", init, size)
-
+def EmitIRDefGlobal(node: cwast.DefGlobal):
+    def_type = node.x_type
+    if isinstance(def_type, cwast.TypeBase):
+        assert False, f"top level defvar base type"
+    elif isinstance(def_type, cwast.TypeArray):
+        init = node.initial_or_undef.x_value
+        if isinstance(init, bytes):
+            assert isinstance(def_type.type, cwast.TypeBase)
+            _EmitMem(node.name, 1, node.mut, init)
         else:
-            assert False, f"top level defvar unsupported type {node.x_type}"
-    else:
-        assert False, f"cannot generate code for {node}"
+            out = []
+            size = def_type.size.x_value
+            init = node.initial_or_undef.x_value
+            print("@@@@", init, size)
+
+
+def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
+    if not node.extern:
+        _EmitFunctionHeader(node, type_corpus)
+        _EmitFunctionProlog(node, type_corpus, id_gen)
+        for c in node.body:
+            EmitIRStmt(c, None, type_corpus, id_gen)
 
 
 if __name__ == "__main__":
@@ -355,6 +340,12 @@ if __name__ == "__main__":
                 if isinstance(node, cwast.DefFun):
                     id_gen = identifier.IdGen()
 
-
     for mod in mod_topo_order:
-        EmitIR(mod, type_corpus, id_gen)
+        id_gen.LoadGlobalNames(mod)
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefGlobal):
+                EmitIRDefGlobal(node)
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefFun):
+                id_gen.UniquifyLocalNames(node)
+                EmitIRDefFun(node, type_corpus, id_gen)
