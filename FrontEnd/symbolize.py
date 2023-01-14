@@ -274,7 +274,6 @@ def ResolveSymbolsInsideFunctionsRecursively(
         _add_symbol_link(node, def_node)
         return
 
-
     # recurse using a little bit of introspection
     for c in node.__class__.FIELDS:
         if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
@@ -302,8 +301,6 @@ def ResolveSymbolsInsideFunctionsRecursively(
                 scopes.pop(-1)
 
 
-
-
 def _VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.DefMacro):
         return
@@ -329,35 +326,27 @@ def _VerifyASTSymbolsRecursively(node):
                 _VerifyASTSymbolsRecursively(cc)
 
 
-def _SetTargetFieldRecursively(node, parents):
-    if isinstance(node, cwast.DefMacro):
-        return
-    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
-        target = node.target
-        for p in reversed(parents):
-            if isinstance(p, cwast.StmtBlock):
-                if p.label == target or target == "":
+def _SetTargetFieldRecursively(node):
+    def visitor(node, parents):
+        if isinstance(node, cwast.DefMacro):
+            return True
+        if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+            target = node.target
+            for p in reversed(parents):
+                if isinstance(p, cwast.StmtBlock):
+                    if p.label == target or target == "":
+                        node.x_target = p
+                        break
+            else:
+                assert False
+        if isinstance(node, cwast.StmtReturn):
+            for p in reversed(parents):
+                if isinstance(p, (cwast.DefFun, cwast.ExprStmt)):
                     node.x_target = p
                     break
-        else:
-            assert False
-    if isinstance(node, cwast.StmtReturn):
-        for p in reversed(parents):
-            if isinstance(p, (cwast.DefFun, cwast.ExprStmt)):
-                node.x_target = p
-                break
-        else:
-            assert False, f"{node} --- {[p.__class__.__name__ for p in parents]}"
-    parents.append(node)
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            _SetTargetFieldRecursively(child, parents)
-        elif nfd.kind is cwast.NFK.LIST:
-            for child in getattr(node, c):
-                _SetTargetFieldRecursively(child, parents)
-    parents.pop(-1)
+            else:
+                assert False, f"{node} --- {[p.__class__.__name__ for p in parents]}"
+    cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
 def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
@@ -385,7 +374,7 @@ def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
     for mod in mod_topo_order:
         # we wait until macro expansion with this
-        _SetTargetFieldRecursively(mod, [])
+        _SetTargetFieldRecursively(mod)
 
         symtab = symtab_map[mod.name]
         for node in mod.body_mod:

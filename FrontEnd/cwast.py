@@ -1164,8 +1164,8 @@ class StmtIf:
     FLAGS = NF(0)
     #
     cond: EXPR_NODE        # must be of type bool
-    body_t: List[BODY_NODES] # new scope
-    body_f: List[BODY_NODES] # new scope
+    body_t: List[BODY_NODES]  # new scope
+    body_f: List[BODY_NODES]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1899,10 +1899,13 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "body_mod",
         "toplevel module definitions and/or comments", BODY_MOD_NODES),
     NFD(NFK.LIST, "body", "new scope: statement list and/or comments", BODY_NODES),
-    NFD(NFK.LIST, "body_t", "new scope: statement list and/or comments for true branch", BODY_NODES),
-    NFD(NFK.LIST, "body_f", "new scope: statement list and/or comments for false branch", BODY_NODES),
+    NFD(NFK.LIST, "body_t",
+        "new scope: statement list and/or comments for true branch", BODY_NODES),
+    NFD(NFK.LIST, "body_f",
+        "new scope: statement list and/or comments for false branch", BODY_NODES),
     NFD(NFK.LIST, "body_for", "statement list for macro_loop", BODY_NODES),
-    NFD(NFK.LIST, "body_macro", "new scope: macro statments/expression", BODY_MOD_NODES),
+    NFD(NFK.LIST, "body_macro",
+        "new scope: macro statments/expression", BODY_MOD_NODES),
     NFD(NFK.LIST, "cases", "list of case statements"),
 
     #
@@ -2051,10 +2054,25 @@ def VisitAstRecursivelyWithParent(node, parent, visitor):
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
-            VisitAstRecursively(getattr(node, c), node, visitor)
+            VisitAstRecursivelyWithParent(getattr(node, c), node, visitor)
         elif nfd.kind is NFK.LIST:
             for cc in getattr(node, c):
-                VisitAstRecursively(cc, node, visitor)
+                VisitAstRecursivelyWithParent(cc, node, visitor)
+
+
+def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
+    if visitor(node, parents):
+        return
+    parents.append(node)
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            VisitAstRecursivelyWithAllParents(
+                getattr(node, c), parents, visitor)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, c):
+                VisitAstRecursivelyWithAllParents(cc, parents, visitor)
+    parents.pop(-1)
 
 
 def MaybeReplaceAstRecursively(node, replacer):
@@ -2076,6 +2094,17 @@ def MaybeReplaceAstRecursively(node, replacer):
                 else:
                     MaybeReplaceAstRecursively(child, replacer)
 
+
+def CloneNodeRecursively(node):
+    clone = dataclasses.replace(node)
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            setattr(clone, c, CloneNodeRecursively(getattr(node, c)))
+        elif nfd.kind is NFK.LIST:
+            out = [CloneNodeRecursively(cc) for cc in getattr(node, c)]
+            setattr(clone, c, out)
+    return clone
 ############################################################
 #
 ############################################################

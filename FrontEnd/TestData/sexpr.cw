@@ -104,4 +104,19 @@
   ])))
 ])
 
+
+(fun square [(param c s32)] s32 [
+  (return (* c c))
+])
+
+(fun double [(param c s32)] s32 [
+  (return (+ c c))
+])
+
+(fun square_or_double [(param use_square bool) (param c s32)] s32 [
+  (let foo auto (? use_square square double))
+  (return (call foo [c]))
+])
+
+
 ])

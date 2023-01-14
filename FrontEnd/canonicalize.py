@@ -110,7 +110,13 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
 
 
 def FindLargeArgs(node, large_args: Dict[Any, Any], type_corpus: types.TypeCorpus, id_gen):
-    pass
+    def visitor(node):
+        if isinstance(node, cwast.DefFun):
+            for p in node.params:
+                if isinstance(p, cwast.FunParam):
+                    if type_corpus.register_types[p.x_type] is None:
+                        large_args.add(p)
+    cwast.VisitAstRecursively(node, visitor)
 
 ############################################################
 # Convert ternary operator into  expr with if statements

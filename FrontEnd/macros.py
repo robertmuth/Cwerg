@@ -39,17 +39,6 @@ class MacroContext:
         self.macro_parameter.clear()
 
 
-def CloneNodeRecursively(node):
-    clone = dataclasses.replace(node)
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            setattr(clone, c, CloneNodeRecursively(getattr(node, c)))
-        elif nfd.kind is cwast.NFK.LIST:
-            out = [CloneNodeRecursively(cc) for cc in getattr(node, c)]
-            setattr(clone, c, out)
-    return clone
-
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     if isinstance(node, cwast.MacroVar):
@@ -68,7 +57,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.ID,
                         cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
-        return CloneNodeRecursively(arg)
+        return cwast.CloneNodeRecursively(arg)
     elif isinstance(node, cwast.MacroFor):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name_list)

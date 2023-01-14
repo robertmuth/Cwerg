@@ -1,8 +1,7 @@
 # Cwerg Language (Experimental Frontend)
 
 Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. 
-The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write system software like operating systems and compilers in 
-this language.
+The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write system software like operating systems and compilers in this language.
 
 Complexity budget: about 10kLOC for a compiler frontend with basic optimizations
 
@@ -105,6 +104,7 @@ Pro: Very common and useful.
 
 Con: Does not add a lot of expressiveness.
 
+(maybe implement as a macro)
 
 #### Symbol visbility control YES
 
@@ -151,7 +151,7 @@ Con: Closures have tricky semantics, even simple [gcc style nested functions](ht
 
 #### Bitfields NO
 
-Con: Not portable
+Con: Not portable, cannot be set atomically
 
 ### Typing
 
