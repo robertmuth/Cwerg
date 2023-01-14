@@ -17,169 +17,8 @@ from typing import List, Dict, Set, Optional, Union, Any
 logger = logging.getLogger(__name__)
 
 ############################################################
-# The AST Nodes and the fields they contain follow these rules
-#
-# All flields belong to one of these categories:
-# * FLAG_FIELDS: bools
-# * STR_FIELDS: strings
-# * INT_FIELDS: ints
-# * KIND_FIELDS: enums
-# * NODE_FIELD: a single AST Node
-# * LIST_FIELDS: zero or more AST Nodes
-#
-# The order of fields in the Node is:
-#
-# * fields from FLAG_FIELDS
-# * fields from other categories
-# If fields are in OPTIONAL_FIELDS they must come last
-
-
-@enum.unique
-class NF(enum.Flag):
-    """Node Flags"""
-    NONE = 0
-    TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
-    VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
-    MUST_HAVE_VALUE = enum.auto()
-    FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
-    SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
-    TYPE_CORPUS = enum.auto()
-    CONTROL_FLOW = enum.auto()
-    GLOBAL_SYM_DEF = enum.auto()
-    LOCAL_SYM_DEF = enum.auto()
-    TOP_LEVEL = enum.auto()
-    MACRO_BODY_ONLY = enum.auto()
-    TO_BE_EXPANDED = enum.auto()
-
-
-@enum.unique
-class GROUP(enum.IntEnum):
-    Misc = enum.auto()
-    Type = enum.auto()
-    Statement = enum.auto()
-    Value = enum.auto()
-    Expression = enum.auto()
-    Macro = enum.auto()
-
-
-def _NAME(node):
-    if node.ALIAS is not None:
-        return "[" + node.ALIAS + "]"
-    return "[" + node.__class__.__name__ + "]"
-
-
-def _FLAGS(node):
-    out = []
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
-        if nfd.kind is NFK.FLAG and getattr(node, c):
-            out.append(c)
-    outs = " ".join(out)
-    return " " + outs if outs else outs
-
+# Enums
 ############################################################
-# Comment
-############################################################
-
-
-@dataclasses.dataclass()
-class Comment:
-    """Comment
-
-    Comments are proper AST nodes and may only occur where explicitly allowed.
-    They refer to the next sibling in the tree.
-    """
-    ALIAS = "#"
-    GROUP = GROUP.Misc
-    FLAGS = NF.NONE
-    #
-    comment: str
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.comment}"
-
-############################################################
-# Identifier
-############################################################
-
-
-@enum.unique
-class ID_KIND(enum.Enum):
-    INVALID = 0
-    VAR = 1
-    CONST = 2
-    FUN = 3
-
-
-@dataclasses.dataclass()
-class Id:
-    """Refers to a type, variable, constant, function, module by name.
-
-    Ids may contain a path component indicating which modules they reference.
-    """
-    ALIAS = "id"
-    GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED
-    #
-    name: str          # last component of mod1::mod2:id: id
-    path: str          # first components of mod1::mod2:id: mod1::mod2
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_symbol: Optional[Any] = None
-
-    def __str__(self):
-        joiner = "/" if self.path else ""
-        return f"{_NAME(self)} {self.path}{joiner}{self.name}"
-
-
-@dataclasses.dataclass()
-class TypeAuto:
-    """Placeholder for an unspecified (auto derived) type
-
-    My only occur where explicitly allowed.
-    """
-    ALIAS = "auto"
-    GROUP = GROUP.Type
-    FLAGS = NF.NONE
-    #
-    x_srcloc: Optional[Any] = None
-
-    # TODO
-    # FLAGS = NF.TYPE_ANNOTATED
-    # x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-############################################################
-# TypeNodes
-############################################################
-TYPE_NODE = Union["Id", "TypeBase",
-                  "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
-
-
-@dataclasses.dataclass()
-class FunParam:
-    """Function parameter
-
-    """
-    ALIAS = "param"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
-    #
-    name: str      # empty str means no var specified (fun proto type)
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type}"
 
 
 @enum.unique
@@ -206,568 +45,33 @@ class BASE_TYPE_KIND(enum.Enum):
     BOOL = 42
 
 
-BASE_TYPE_KIND_UINT = set([
-    BASE_TYPE_KIND.U8,
-    BASE_TYPE_KIND.U16,
-    BASE_TYPE_KIND.U32,
-    BASE_TYPE_KIND.U64,
-])
-
-BASE_TYPE_KIND_SINT = set([
-    BASE_TYPE_KIND.S8,
-    BASE_TYPE_KIND.S16,
-    BASE_TYPE_KIND.S32,
-    BASE_TYPE_KIND.S64,
-])
-
-BASE_TYPE_KIND_INT = BASE_TYPE_KIND_UINT | BASE_TYPE_KIND_SINT
-
-BASE_TYPE_KIND_REAL = set([
-    BASE_TYPE_KIND.R32,
-    BASE_TYPE_KIND.R64,
-])
-
-
-BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
-    BASE_TYPE_KIND.U8: 1,
-    BASE_TYPE_KIND.U16: 2,
-    BASE_TYPE_KIND.U32: 4,
-    BASE_TYPE_KIND.U64: 8,
-
-    BASE_TYPE_KIND.S8: 1,
-    BASE_TYPE_KIND.S16: 2,
-    BASE_TYPE_KIND.S32: 4,
-    BASE_TYPE_KIND.S64: 8,
-    BASE_TYPE_KIND.R32: 4,
-    BASE_TYPE_KIND.R64: 8,
-    BASE_TYPE_KIND.VOID: 0,
-    BASE_TYPE_KIND.NORET: 0,
-    BASE_TYPE_KIND.BOOL: 1,
-}
-
-
-@dataclasses.dataclass()
-class TypeBase:
-    """Base type
-
-    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
-    """
-    ALIAS = None
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    base_type_kind: BASE_TYPE_KIND
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.base_type_kind.name}"
-
-
-@dataclasses.dataclass()
-class TypePtr:
-    """Pointer type
-    """
-    ALIAS = "ptr"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    mut: bool   # pointee is mutable
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        mod = "-MUT" if self.mut else ""
-        return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
-
-
-@dataclasses.dataclass()
-class TypeSlice:
-    """A view/slice of an array with compile-time unknown dimensions
-
-    Internally, this is tuple of `start` and `length`
-    (mutable/non-mutable)
-    """
-    ALIAS = "slice"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    mut: bool  # slice is mutable
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        mod = "-MUT" if self.mut else ""
-        return f"{_NAME(self)}{mod}({self.type})"
-
-
-@dataclasses.dataclass()
-class TypeArray:
-    """An array of the given type and `size`
-
-    """
-    ALIAS = "array"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    size: "EXPR_NODE"      # must be const and unsigned
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)} ({self.type}) {self.size}"
-
-
-PARAMS_NODES = Union[Comment, FunParam]
-
-
-@dataclasses.dataclass()
-class TypeFun:
-    """A function signature
-
-    The `FunParam.name` field is ignored and should be `_`
-    """
-    ALIAS = "sig"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    params: List[PARAMS_NODES]
-    result: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        t = [str(t) for t in self.params]
-        return f"{_NAME(self)} {' '.join(t)} -> {self.result}"
-
-
-TYPES_NODES = Union[Comment, TypeBase, TypeSlice, TypeArray, TypePtr, TypeFun]
-
-
-@dataclasses.dataclass()
-class TypeSum:
-    """Sum types (tagged unions)
-
-    Sums are "auto flattening", e.g.
-    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
-    """
-    ALIAS = "union"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    types: List[TYPES_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_size: int = -1
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        t = [str(t) for t in self.types]
-        return f"{_NAME(self)} {' '.join(t)}"
-
-
-############################################################
-# Val Nodes
-############################################################
-ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
-                "ValVoid", "ValArray", "ValString",
-                "ValRec"]
-
-
-@dataclasses.dataclass()
-class ValAuto:
-    """Placeholder for an unspecified (auto derived) value
-
-    Used for: array dimensions, enum values, chap and range
-    """
-    ALIAS = "auto_val"
-    GROUP = GROUP.Value
-    FLAGS = NF.VALUE_ANNOTATED
-    #
-    x_srcloc: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class ValTrue:
-    """Bool constant `true`"""
-    ALIAS = "true"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class ValFalse:
-    """Bool constant `false`"""
-    ALIAS = "false"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class ValNum:
-    """Numeric constant (signed int, unsigned int, real
-
-    Underscores in `number` are ignored. `number` can be explicitly typed via
-    suffices like `_u64`, `_s16`, `_r32`.
-    """
-    ALIAS = "num"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    number: str   # maybe a (unicode) character as well
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self): return f"{_NAME(self)} {self.number}"
-
-
-@dataclasses.dataclass()
-class ValUndef:
-    """Special constant to indiciate *no default value*
-    """
-    ALIAS = "undef"
-    GROUP = GROUP.Value
-    FLAGS = NF.VALUE_ANNOTATED
-    #
-    x_srcloc: Optional[Any] = None
-    x_value: Optional[Any] = None    # this is always a ValUndef() object
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class ValVoid:
-    """Only value inhabiting the `TypeVoid` type
-
-    It can be used to model *null* in nullable pointers via a sum type.
-     """
-    ALIAS = "void_val"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class IndexVal:
-    """Part of an array literal
-
-    e.g. `.1 = 5`
-    If index is empty use `0` or `previous index + 1`.
-    """
-    ALIAS = None
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    value_or_undef: "EXPR_NODE"
-    init_index: "EXPR_NODE"  # compile time constant
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
-
-
-@dataclasses.dataclass()
-class FieldVal:
-    """Part of rec literal
-
-    e.g. `.imag = 5`
-    If field is empty use `first field` or `next field`.
-    """
-    ALIAS = None
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-    #
-    value: "EXPR_NODE"
-    init_field: str
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} [{self.init_field}] = {self.value}"
-
-
-INITS_ARRAY_NODES = Union[Comment, IndexVal]
-
-
-@dataclasses.dataclass()
-class ValArray:
-    """An array literal
-
-    `[10]int{.1 = 5, .2 = 6, 77}`
-    """
-    ALIAS = "array_val"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    type: TYPE_NODE
-    expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
-    inits_array: List[INITS_ARRAY_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr_size}"
-
-
-@dataclasses.dataclass()
-class ValSlice:
-    """A slice value comprised of a pointer and length
-
-    type and mutability is defined by the pointer
-    """
-    ALIAS = "slice_val"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    pointer: "EXPR_NODE"
-    expr_size: "EXPR_NODE"
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self): return f"{_NAME(self)} {self.string}"
-
-
-INITS_REC_NODES = Union[Comment, FieldVal]
-
-
-@dataclasses.dataclass()
-class ValString:
-    """An array value encoded as a string
-
-    type is `[strlen(string)]u8`. `string` may be escaped/raw
-    """
-    ALIAS = None
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    raw: bool
-    string: str
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self): return f"{_NAME(self)} {self.string}"
-
-
-INITS_REC_NODES = Union[Comment, FieldVal]
-
-
-@dataclasses.dataclass()
-class ValRec:
-    """A record literal
-
-    `E.g.: complex{.imag = 5, .real = 1}`
-    """
-    ALIAS = "rec"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    type: TYPE_NODE
-    inits_rec: List[INITS_REC_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        t = [str(i) for i in self.inits_rec]
-        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
-
-
-############################################################
-# ExprNode
-############################################################
-EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
-                  "ExprField", "ExprCall", "ExprParen",
-                  "Expr1", "Expr2", "Expr3",
-                  "ExprLen", "ExprSizeof", "ExprStmt"]
-
-
-@dataclasses.dataclass()
-class ExprDeref:
-    """Dereference a pointer represented by `expr`"""
-    ALIAS = "^"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE  # must be of type AddrOf
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
-
-
-@dataclasses.dataclass()
-class ExprAddrOf:
-    """Create a pointer to object represented by `expr`
-
-    Pointer can optionally point to a mutable object if the
-    pointee is mutable.
-    """
-    ALIAS = "&"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    mut: bool
-    expr: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.expr}"
-
-
-@dataclasses.dataclass()
-class ExprCall:
-    """Function call expression.
-    """
-    ALIAS = "call"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    polymorphic: bool
-    callee: EXPR_NODE
-    args: List[EXPR_NODE]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.callee}"
-
-
-@dataclasses.dataclass()
-class ExprParen:
-    """Used for preserving parenthesis in the source
-    """
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class ExprField:
-    """Access field in expression representing a record.
-    """
-    ALIAS = "."
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-    #
-    container: EXPR_NODE  # must be of type rec
-    field: str
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.container} . {self.field}"
+@enum.unique
+class NF(enum.Flag):
+    """Node Flags"""
+    NONE = 0
+    TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
+    VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
+    MUST_HAVE_VALUE = enum.auto()
+    FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
+    SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
+    TYPE_CORPUS = enum.auto()
+    CONTROL_FLOW = enum.auto()
+    GLOBAL_SYM_DEF = enum.auto()
+    LOCAL_SYM_DEF = enum.auto()
+    TOP_LEVEL = enum.auto()
+    MACRO_BODY_ONLY = enum.auto()
+    TO_BE_EXPANDED = enum.auto()
 
 
 @enum.unique
-class UNARY_EXPR_KIND(enum.Enum):
-    INVALID = 0
-    NOT = 1
-    MINUS = 2
-    NEG = 3
-
-
-UNARY_EXPR_SHORTCUT = {
-    "!": UNARY_EXPR_KIND.NOT,     # boolean not
-    "neg": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
-    "~": UNARY_EXPR_KIND.MINUS,
-}
-
-UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
-
-
-@dataclasses.dataclass()
-class Expr1:
-    """Unary expression."""
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    unary_expr_kind: UNARY_EXPR_KIND
-    expr: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.unary_expr_kind} {self.expr}"
+class GROUP(enum.IntEnum):
+    """Node Family"""
+    Misc = enum.auto()
+    Type = enum.auto()
+    Statement = enum.auto()
+    Value = enum.auto()
+    Expression = enum.auto()
+    Macro = enum.auto()
 
 
 @enum.unique
@@ -836,478 +140,6 @@ BINARY_EXPR_SHORTCUT = {
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 
 
-@dataclasses.dataclass()
-class Expr2:
-    """Binary expression."""
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    binary_expr_kind: BINARY_EXPR_KIND
-    expr1: EXPR_NODE
-    expr2: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
-
-
-@dataclasses.dataclass()
-class Expr3:
-    """Tertiary expression (like C's `? :`)
-    """
-    ALIAS = "?"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    cond: EXPR_NODE  # must be of type  bool
-    expr_t: EXPR_NODE
-    expr_f: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"? {self.cond} {self.expr_t} {self.expr_f}"
-
-# Array/Slice Expressions
-
-
-@dataclasses.dataclass()
-class ExprIndex:
-    """Checked indexed access of array or slice
-    """
-    ALIAS = "at"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    container: EXPR_NODE  # must be of type slice or array
-    expr_index: EXPR_NODE  # must be of int type
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"AT {self.container} {self.expr_index}"
-
-
-@dataclasses.dataclass()
-class ExprLen:
-    """Length of array or slice"""
-    ALIAS = "len"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    container: EXPR_NODE   # must be of type slice or array
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return self.__class__.__name__
-# Cast Like Expressions
-
-
-@dataclasses.dataclass()
-class ExprIs:
-    """Test actual expression type within a Sum Type
-
-    """
-    ALIAS = "is"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr} {self.type}"
-
-
-@dataclasses.dataclass()
-class ExprAs:
-    """Safe Cast (Conversion)
-
-    Allowed:
-    enum <-> undelying enum type
-    wrapped type <-> undelying enum type
-    u8-u64, s8-s64 <-> u8-u64, s8-s64
-    u8-u64, s8-s64 -> r32-r64  (note: one way only)
-
-    Possibly
-    slice -> ptr
-    ptr to rec -> ptr to first element of rec
-    """
-    ALIAS = "as"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{self.expr} AS {self.type}"
-
-
-@dataclasses.dataclass()
-class ExprAsNot:
-    """Cast of Union to diff of the union and the given type
-
-    """
-    ALIAS = "asnot"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{self.expr} AS {self.type}"
-
-
-@dataclasses.dataclass()
-class ExprTryAs:
-    """Narrow a `expr` which is of Sum to `type`
-
-    If the is not possible return `default_or_undef` if that is not undef
-    or trap otherwise.
-
-    """
-    ALIAS = "tryas"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    default_or_undef: Union[EXPR_NODE, ValUndef]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr} {self.type} {self.default_or_undef}"
-
-
-@dataclasses.dataclass()
-class ExprUnsafeCast:
-    """Unsafe Cast
-
-    Allowed:
-    ptr a <-> ptr b
-
-    """
-    ALIAS = "cast"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class ExprBitCast:
-    """Bit cast.
-
-    Type must have same size as type of item
-
-    s32,u32,f32 <-> s32,u32,f32
-    s64,u64, f64 <-> s64,u64, f64
-    sint, uint <-> ptr
-    """
-    ALIAS = "bitcast"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class ExprSizeof:
-    """Byte size of type
-
-    Type is `uint`"""
-    ALIAS = "sizeof"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.type}"
-
-
-@dataclasses.dataclass()
-class ExprOffsetof:
-    """Byte offset of field in record types
-
-    Type is `uint`"""
-    ALIAS = "offsetof"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
-    #
-    type: TYPE_NODE  # must be rec
-    field: str
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.type} {self.field}"
-
-
-@dataclasses.dataclass()
-class ExprStmt:
-    """Expr with Statements
-
-    The body statements must be terminated by a StmtReturn
-    """
-    ALIAS = "expr"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    body: List[Any]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-############################################################
-# Stmt
-############################################################
-BODY_NODES = Union["Comment", "StmtDefer", "StmtIf", "StmtBreak",
-                   "StmtContinue", "StmtReturn", "StmtExpr",
-                   "StmtBlock", "StmtCond"]
-
-EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
-                 "ExprCall"]
-
-
-@dataclasses.dataclass()
-class StmtBlock:
-    """Block statement.
-
-    if `label` is non-empty, nested break/continue statements can target this `block`.
-    """
-    ALIAS = "block"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
-    #
-    label: str
-    body: List[BODY_NODES]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.label}"
-
-
-@dataclasses.dataclass()
-class StmtDefer:
-    """Defer statement
-
-    Note: defer body's containing return statments have
-    non-straightforward semantics.
-    """
-    ALIAS = "defer"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
-    #
-    body:  List[BODY_NODES]  # new scope, must NOT contain RETURN
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class StmtIf:
-    """If statement"""
-    ALIAS = "if"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
-    #
-    cond: EXPR_NODE        # must be of type bool
-    body_t: List[BODY_NODES]  # new scope
-    body_f: List[BODY_NODES]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
-
-
-@dataclasses.dataclass()
-class Case:
-    """Single case of a Cond statement"""
-    ALIAS = "case"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
-    #
-    cond: EXPR_NODE        # must be of type bool
-    body: List[BODY_NODES]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
-
-
-@dataclasses.dataclass()
-class StmtCond:
-    """Multicase if-elif-else statement"""
-    ALIAS = "cond"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-    #
-    cases: List[Case]
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
-@dataclasses.dataclass()
-class StmtBreak:
-    """Break statement
-
-    use "" if the target is the nearest for/while/block """
-    ALIAS = "break"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
-    #
-    target: str  # use "" for no value
-    #
-    x_srcloc: Optional[Any] = None
-    x_target: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.target}"
-
-
-@dataclasses.dataclass()
-class StmtContinue:
-    """Continue statement
-
-    use "" if the target is the nearest for/while/block """
-    ALIAS = "continue"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
-    #
-    target: str  # use "" for no value
-    #
-    x_srcloc: Optional[Any] = None
-    x_target: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.target}"
-
-
-@dataclasses.dataclass()
-class StmtReturn:
-    """Return statement
-
-    Returns from the first enclosing ExprStmt node or the enclosing DefFun node.
-    Uses void_val if the DefFun's return type is void
-    """
-    ALIAS = "return"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
-    #
-    expr_ret: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_target: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr_ret}"
-
-
-@dataclasses.dataclass()
-class StmtExpr:
-    """Expression statement
-
-    If expression does not have type void, `discard` must be `true`
-    """
-    ALIAS = "stmt"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-    #
-    discard: bool
-    expr: ExprCall
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.discard} {self.expr}"
-
-
-@dataclasses.dataclass()
-class StmtStaticAssert:
-    """Static assert statement (must evaluate to true at compile-time"""
-    ALIAS = "static_assert"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TOP_LEVEL
-    #
-    cond: EXPR_NODE  # must be of type bool
-    message: str     # should this be an expression?
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
-
-
-@dataclasses.dataclass()
-class StmtTrap:
-    """Trap statement"""
-    ALIAS = "trap"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}"
-
-
 @enum.unique
 class ASSIGNMENT_KIND(enum.Enum):
     """Compound Assignment Kinds"""
@@ -1351,235 +183,21 @@ ASSIGNMENT_SHORTCUT = {
 ASSIGMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 
 
-@dataclasses.dataclass()
-class StmtCompoundAssignment:
-    """Compound assignment statement"""
-    ALIAS = None
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-    #
-    assignment_kind: ASSIGNMENT_KIND
-    lhs: EXPR_LHS
-    expr: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
+@enum.unique
+class UNARY_EXPR_KIND(enum.Enum):
+    INVALID = 0
+    NOT = 1
+    MINUS = 2
+    NEG = 3
 
 
-@dataclasses.dataclass()
-class StmtAssignment:
-    """Assignment statement"""
-    ALIAS = "="
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
-    #
-    lhs: EXPR_LHS
-    expr: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
+UNARY_EXPR_SHORTCUT = {
+    "!": UNARY_EXPR_KIND.NOT,     # boolean not
+    "neg": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
+    "~": UNARY_EXPR_KIND.MINUS,
+}
 
-    def __str__(self):
-        return f"{_NAME(self)} {self.lhs} = {self.expr}"
-
-############################################################
-# Definitions
-############################################################
-
-
-@dataclasses.dataclass()
-class RecField:  #
-    """Record field
-
-    All fields must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
-    """
-    ALIAS = "field"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    name: str
-    type: TYPE_NODE
-    initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-    x_offset: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type} = {self.initial_or_undef}"
-
-
-FIELDS_NODES = Union[Comment, RecField]
-
-
-@dataclasses.dataclass()
-class DefRec:
-    """Record definition"""
-    ALIAS = "defrec"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    #
-    pub:  bool
-    name: str
-    fields: List[FIELDS_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        return f" {_NAME(self)}{_FLAGS(self)}"
-
-
-@dataclasses.dataclass()
-class EnumVal:
-    """ Enum element.
-
-     `value: ValAuto` means previous value + 1"""
-    ALIAS = "entry"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
-    #
-    name: str
-    value_or_auto: Union["ValNum", ValAuto]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.value_or_auto}"
-
-
-ITEMS_NODES = Union[Comment, EnumVal]
-
-
-@dataclasses.dataclass()
-class DefEnum:
-    """Enum definition"""
-    ALIAS = "enum"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
-    #
-    pub:  bool
-    name: str
-    base_type_kind: BASE_TYPE_KIND   # must be integer
-    items: List[ITEMS_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
-
-
-@dataclasses.dataclass()
-class DefType:
-    """Type definition
-
-    """
-    ALIAS = "type"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    #
-    pub:  bool
-    wrapped: bool
-    name: str
-    type: TYPE_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
-
-
-CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
-                   ValVoid, ValRec, ValArray, ValString]
-
-
-@dataclasses.dataclass()
-class DefVar:
-    """Variable definition
-
-    Allocates space on stack and initializes it with `initial_or_undef`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
-
-    """
-    ALIAS = "let"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.VALUE_ANNOTATED
-    #
-    mut: bool
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
-
-
-@dataclasses.dataclass()
-class DefGlobal:
-    """Variable definition
-
-    Allocates space in static memory and initializes it with `initial_or_undef`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
-    """
-    ALIAS = "global"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
-    #
-    pub: bool
-    mut: bool
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
-
-
-@dataclasses.dataclass()
-class DefFun:
-    """Function definition"""
-    ALIAS = "fun"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    #
-    init: bool
-    fini: bool
-    pub: bool
-    extern: bool
-    polymorphic: bool
-    name: str
-    params: List[PARAMS_NODES]
-    result: TYPE_NODE
-    body: List[BODY_NODES]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        params = ', '.join(str(p) for p in self.params)
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]->{self.result}"
+UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 
 
 @enum.unique
@@ -1588,96 +206,6 @@ class MOD_PARAM_KIND(enum.Enum):
     CONST = 1
     MOD = 2
     TYPE = 3
-
-
-@dataclasses.dataclass()
-class ModParam:
-    """Module Parameters"""
-    ALIAS = None
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
-    #
-    name: str
-    mod_param_kind: MOD_PARAM_KIND
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
-
-
-BODY_MOD_NODES = Union[Comment, DefFun, DefRec, DefEnum, DefVar]
-
-PARAMS_MOD_NODES = Union[Comment, ModParam]
-
-
-@dataclasses.dataclass()
-class DefMod:
-    """Module Definition
-
-    The module is a template if `params` is non-empty"""
-    ALIAS = "module"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
-    #
-    name: str
-    params_mod: List[PARAMS_MOD_NODES]
-    body_mod: List[BODY_MOD_NODES]
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        params = ', '.join(str(p) for p in self.params_mod)
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
-
-
-@dataclasses.dataclass()
-class Import:
-    """Import another Module"""
-    ALIAS = "import"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
-    #
-    name: str
-    alias: str
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
-############################################################
-# Macro Like
-############################################################
-
-@dataclasses.dataclass()
-class ExprSrcLoc:
-    """Source Location encoded as u32"""
-    ALIAS = "src_loc"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED
-    #
-    x_srcloc: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class ExprStringify:
-    """Human readable representation of the expression
-
-    This is useful to implement for assert like features
-    """
-    ALIAS = "stringify"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED
-    #
-    expr:  EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-
-############################################################
-# Macro
-############################################################
 
 
 @enum.unique
@@ -1690,140 +218,30 @@ class MACRO_PARAM_KIND(enum.Enum):
     FIELD = 4
     TYPE = 5
 
-
-@dataclasses.dataclass()
-class MacroId:
-    """Placeholder for a parameter
-
-    This node will be expanded with the actual argument
-    """
-    ALIAS = "macro_id"
-    GROUP = GROUP.Macro
-    FLAGS = NF(0)
-    #
-    name: str
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
-@dataclasses.dataclass()
-class MacroVar:
-    """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
-
-    `name` must start with a `$`.
-
-    """
-    ALIAS = "macro_let"
-    GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
-    #
-    mut: bool
-    name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
-
-
-@dataclasses.dataclass()
-class MacroFor:
-    """Macro for-loop like statement
-
-    NYI
-    """
-    ALIAS = "macro_for"
-    GROUP = GROUP.Macro
-    FLAGS = NF.MACRO_BODY_ONLY
-    #
-    name: str
-    name_list: str
-    body_for: List[Any]
-    #
-    x_srcloc: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class MacroListArg:
-    """Container for macro arguments that consists of multiple node (e.g. list of statements)
-
-    """
-    ALIAS = "macro_list_arg"
-    GROUP = GROUP.Macro
-    FLAGS = NF(0)
-    #
-    args: List[EXPR_NODE]
-    #
-    x_srcloc: Optional[Any] = None
-
-
-@dataclasses.dataclass()
-class MacroParam:
-    """Macro Parameter"""
-    ALIAS = "macro_param"
-    GROUP = GROUP.Macro
-    FLAGS = NF.LOCAL_SYM_DEF
-    #
-    name: str
-    macro_param_kind: MACRO_PARAM_KIND
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
-
-
-@dataclasses.dataclass()
-class MacroInvoke:
-    """Macro Invocation"""
-    ALIAS = "macro_invoke"
-    GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED
-    #
-    name: str
-    args: List[EXPR_NODE]
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
-PARAMS_MACRO_NODES = Union[Comment, MacroParam]
-
-
-@dataclasses.dataclass()
-class DefMacro:
-    """Define a macro
-
-
-    A macro consists of parameters whose name starts with a '$'
-    and a body. Macros that evaluate to expressions will typically
-    have a single node body
-    """
-    ALIAS = "macro"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    pub: bool
-    #
-    name: str
-    params_macro: List[PARAMS_MACRO_NODES]
-    gen_ids: List[str]
-    body_macro: List[Any]  # new scope
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
-
-
 ############################################################
-# S-Expression Serialization (Introspection driven)
+# Field attributes of Nodes
+#
+# the fields of nodes are subject to a lot of invariants which must be enforced
+#
+# There are two kinds of fields:
+# * regular fields - typically populated directly from source
+# * x-fields - typically populated by later analyses
+#
+# Regular fields follow these rules
+#
+# All fields belong to one of these categories:
+# * FLAG_FIELDS: bools
+# * STR_FIELDS: strings
+# * INT_FIELDS: ints
+# * KIND_FIELDS: enums
+# * NODE_FIELD: a single AST Node
+# * LIST_FIELDS: zero or more AST Nodes
+#
+# The order of fields in the Node is:
+#
+# * fields from FLAG_FIELDS
+# * fields from other categories
+# If fields are in OPTIONAL_FIELDS they must come last
 ############################################################
 
 
@@ -1846,6 +264,19 @@ class NFD:
     doc: str
     extra: Any = None
 
+
+PARAMS_NODES = Union["Comment", "FunParam"]
+BODY_MOD_NODES = Union["Comment", "DefFun", "DefRec", "DefEnum", "DefVar"]
+PARAMS_MOD_NODES = Union["Comment", "ModParam"]
+PARAMS_MACRO_NODES = Union["Comment", "MacroParam"]
+BODY_NODES = Union["Comment", "StmtDefer", "StmtIf", "StmtBreak",
+                   "StmtContinue", "StmtReturn", "StmtExpr",
+                   "StmtBlock", "StmtCond"]
+TYPES_NODES = Union["Comment", "TypeBase",
+                    "TypeSlice", "TypeArray", "TypePtr", "TypeFun"]
+ITEMS_NODES = Union["Comment", "EnumVal"]
+INITS_ARRAY_NODES = Union["Comment", "IndexVal"]
+INITS_REC_NODES = Union["Comment", "FieldVal"]
 
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
@@ -1948,7 +379,8 @@ NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
-# must come last in a dataclass
+
+# Optional fields must come last in a dataclass
 OPTIONAL_FIELDS = {
     "expr_ret": lambda srcloc: ValVoid(x_srcloc=srcloc),
     "width": lambda srcloc: ValAuto(x_srcloc=srcloc),
@@ -1966,7 +398,6 @@ OPTIONAL_FIELDS = {
     "inits_array": lambda srcloc: [],
 }
 
-
 X_FIELDS = {
     "x_srcloc",  # set by cwast.py
     #
@@ -1982,6 +413,1692 @@ X_FIELDS = {
     "x_value",  # set by eval.py
 }
 
+
+def _NAME(node):
+    if node.ALIAS is not None:
+        return "[" + node.ALIAS + "]"
+    return "[" + node.__class__.__name__ + "]"
+
+
+def _FLAGS(node):
+    out = []
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.FLAG and getattr(node, c):
+            out.append(c)
+    outs = " ".join(out)
+    return " " + outs if outs else outs
+
+
+# maps node class name and aliases to class
+_NODES_ALIASES = {}
+
+ALL_NODES = set()
+
+
+def _CheckNodeFieldOrder(obj):
+    seen_optional = False
+    seen_non_flag = False
+    for field, type in obj.__annotations__.items():
+        if field.startswith("x_"):
+            assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
+            continue
+        nfd = ALL_FIELDS_MAP[field]
+        if field in OPTIONAL_FIELDS:
+            seen_optional = True
+        else:
+            assert not seen_optional, f"in {obj.__name__} optional fields must come last: {field}"
+
+        if nfd.kind is NFK.FLAG:
+            assert not seen_non_flag, "flags must come first"
+        else:
+            seen_non_flag = True
+
+
+def NodeCommon(cls):
+    cls.__eq__ = lambda a, b: id(a) == id(b)
+    cls.__hash__ = lambda a: id(a)
+
+    assert hasattr(cls, "ALIAS")
+    assert hasattr(cls, "x_srcloc")
+    _CheckNodeFieldOrder(cls)
+
+    ALL_NODES.add(cls)
+    _NODES_ALIASES[cls.__name__] = cls
+    if cls.ALIAS is not None:
+        _NODES_ALIASES[cls.ALIAS] = cls
+    cls.FIELDS = [field for field, type in cls.__annotations__.items()
+                  if not field.startswith("x_")]
+    return cls
+############################################################
+# Comment
+############################################################
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Comment:
+    """Comment
+
+    Comments are proper AST nodes and may only occur where explicitly allowed.
+    They refer to the next sibling in the tree.
+    """
+    ALIAS = "#"
+    GROUP = GROUP.Misc
+    FLAGS = NF.NONE
+    #
+    comment: str
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.comment}"
+
+############################################################
+# Identifier
+############################################################
+
+
+@enum.unique
+class ID_KIND(enum.Enum):
+    INVALID = 0
+    VAR = 1
+    CONST = 2
+    FUN = 3
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Id:
+    """Refers to a type, variable, constant, function, module by name.
+
+    Ids may contain a path component indicating which modules they reference.
+    """
+    ALIAS = "id"
+    GROUP = GROUP.Misc
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED
+    #
+    name: str          # last component of mod1::mod2:id: id
+    path: str          # first components of mod1::mod2:id: mod1::mod2
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_symbol: Optional[Any] = None
+
+    def __str__(self):
+        joiner = "/" if self.path else ""
+        return f"{_NAME(self)} {self.path}{joiner}{self.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeAuto:
+    """Placeholder for an unspecified (auto derived) type
+
+    My only occur where explicitly allowed.
+    """
+    ALIAS = "auto"
+    GROUP = GROUP.Type
+    FLAGS = NF.NONE
+    #
+    x_srcloc: Optional[Any] = None
+
+    # TODO
+    # FLAGS = NF.TYPE_ANNOTATED
+    # x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+############################################################
+# TypeNodes
+############################################################
+TYPE_NODE = Union["Id", "TypeBase",
+                  "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class FunParam:
+    """Function parameter
+
+    """
+    ALIAS = "param"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    #
+    name: str      # empty str means no var specified (fun proto type)
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}: {self.type}"
+
+
+BASE_TYPE_KIND_UINT = set([
+    BASE_TYPE_KIND.U8,
+    BASE_TYPE_KIND.U16,
+    BASE_TYPE_KIND.U32,
+    BASE_TYPE_KIND.U64,
+])
+
+BASE_TYPE_KIND_SINT = set([
+    BASE_TYPE_KIND.S8,
+    BASE_TYPE_KIND.S16,
+    BASE_TYPE_KIND.S32,
+    BASE_TYPE_KIND.S64,
+])
+
+BASE_TYPE_KIND_INT = BASE_TYPE_KIND_UINT | BASE_TYPE_KIND_SINT
+
+BASE_TYPE_KIND_REAL = set([
+    BASE_TYPE_KIND.R32,
+    BASE_TYPE_KIND.R64,
+])
+
+
+BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
+    BASE_TYPE_KIND.U8: 1,
+    BASE_TYPE_KIND.U16: 2,
+    BASE_TYPE_KIND.U32: 4,
+    BASE_TYPE_KIND.U64: 8,
+
+    BASE_TYPE_KIND.S8: 1,
+    BASE_TYPE_KIND.S16: 2,
+    BASE_TYPE_KIND.S32: 4,
+    BASE_TYPE_KIND.S64: 8,
+    BASE_TYPE_KIND.R32: 4,
+    BASE_TYPE_KIND.R64: 8,
+    BASE_TYPE_KIND.VOID: 0,
+    BASE_TYPE_KIND.NORET: 0,
+    BASE_TYPE_KIND.BOOL: 1,
+}
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeBase:
+    """Base type
+
+    One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
+    """
+    ALIAS = None
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    base_type_kind: BASE_TYPE_KIND
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.base_type_kind.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypePtr:
+    """Pointer type
+    """
+    ALIAS = "ptr"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    mut: bool   # pointee is mutable
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        mod = "-MUT" if self.mut else ""
+        return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeSlice:
+    """A view/slice of an array with compile-time unknown dimensions
+
+    Internally, this is tuple of `start` and `length`
+    (mutable/non-mutable)
+    """
+    ALIAS = "slice"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    mut: bool  # slice is mutable
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        mod = "-MUT" if self.mut else ""
+        return f"{_NAME(self)}{mod}({self.type})"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeArray:
+    """An array of the given type and `size`
+
+    """
+    ALIAS = "array"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    size: "EXPR_NODE"      # must be const and unsigned
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)} ({self.type}) {self.size}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeFun:
+    """A function signature
+
+    The `FunParam.name` field is ignored and should be `_`
+    """
+    ALIAS = "sig"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    params: List[PARAMS_NODES]
+    result: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        t = [str(t) for t in self.params]
+        return f"{_NAME(self)} {' '.join(t)} -> {self.result}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeSum:
+    """Sum types (tagged unions)
+
+    Sums are "auto flattening", e.g.
+    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    """
+    ALIAS = "union"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    types: List[TYPES_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_size: int = -1
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        t = [str(t) for t in self.types]
+        return f"{_NAME(self)} {' '.join(t)}"
+
+
+############################################################
+# Val Nodes
+############################################################
+ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
+                "ValVoid", "ValArray", "ValString",
+                "ValRec"]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValAuto:
+    """Placeholder for an unspecified (auto derived) value
+
+    Used for: array dimensions, enum values, chap and range
+    """
+    ALIAS = "auto_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.VALUE_ANNOTATED
+    #
+    x_srcloc: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValTrue:
+    """Bool constant `true`"""
+    ALIAS = "true"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValFalse:
+    """Bool constant `false`"""
+    ALIAS = "false"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValNum:
+    """Numeric constant (signed int, unsigned int, real
+
+    Underscores in `number` are ignored. `number` can be explicitly typed via
+    suffices like `_u64`, `_s16`, `_r32`.
+    """
+    ALIAS = "num"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    number: str   # maybe a (unicode) character as well
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self): return f"{_NAME(self)} {self.number}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValUndef:
+    """Special constant to indiciate *no default value*
+    """
+    ALIAS = "undef"
+    GROUP = GROUP.Value
+    FLAGS = NF.VALUE_ANNOTATED
+    #
+    x_srcloc: Optional[Any] = None
+    x_value: Optional[Any] = None    # this is always a ValUndef() object
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValVoid:
+    """Only value inhabiting the `TypeVoid` type
+
+    It can be used to model *null* in nullable pointers via a sum type.
+     """
+    ALIAS = "void_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class IndexVal:
+    """Part of an array literal
+
+    e.g. `.1 = 5`
+    If index is empty use `0` or `previous index + 1`.
+    """
+    ALIAS = None
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    value_or_undef: "EXPR_NODE"
+    init_index: "EXPR_NODE"  # compile time constant
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class FieldVal:
+    """Part of rec literal
+
+    e.g. `.imag = 5`
+    If field is empty use `first field` or `next field`.
+    """
+    ALIAS = None
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    #
+    value: "EXPR_NODE"
+    init_field: str
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} [{self.init_field}] = {self.value}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValArray:
+    """An array literal
+
+    `[10]int{.1 = 5, .2 = 6, 77}`
+    """
+    ALIAS = "array_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    type: TYPE_NODE
+    expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
+    inits_array: List[INITS_ARRAY_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr_size}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValSlice:
+    """A slice value comprised of a pointer and length
+
+    type and mutability is defined by the pointer
+    """
+    ALIAS = "slice_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    pointer: "EXPR_NODE"
+    expr_size: "EXPR_NODE"
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self): return f"{_NAME(self)} {self.string}"
+
+
+INITS_REC_NODES = Union[Comment, FieldVal]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValString:
+    """An array value encoded as a string
+
+    type is `[strlen(string)]u8`. `string` may be escaped/raw
+    """
+    ALIAS = None
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    raw: bool
+    string: str
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self): return f"{_NAME(self)} {self.string}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ValRec:
+    """A record literal
+
+    `E.g.: complex{.imag = 5, .real = 1}`
+    """
+    ALIAS = "rec"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    type: TYPE_NODE
+    inits_rec: List[INITS_REC_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        t = [str(i) for i in self.inits_rec]
+        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
+
+
+############################################################
+# ExprNode
+############################################################
+EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
+                  "ExprField", "ExprCall", "ExprParen",
+                  "Expr1", "Expr2", "Expr3",
+                  "ExprLen", "ExprSizeof", "ExprStmt"]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprDeref:
+    """Dereference a pointer represented by `expr`"""
+    ALIAS = "^"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE  # must be of type AddrOf
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprAddrOf:
+    """Create a pointer to object represented by `expr`
+
+    Pointer can optionally point to a mutable object if the
+    pointee is mutable.
+    """
+    ALIAS = "&"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    mut: bool
+    expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprCall:
+    """Function call expression.
+    """
+    ALIAS = "call"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    polymorphic: bool
+    callee: EXPR_NODE
+    args: List[EXPR_NODE]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.callee}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprParen:
+    """Used for preserving parenthesis in the source
+    """
+    ALIAS = None
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprField:
+    """Access field in expression representing a record.
+    """
+    ALIAS = "."
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    #
+    container: EXPR_NODE  # must be of type rec
+    field: str
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.container} . {self.field}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Expr1:
+    """Unary expression."""
+    ALIAS = None
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    unary_expr_kind: UNARY_EXPR_KIND
+    expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.unary_expr_kind} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Expr2:
+    """Binary expression."""
+    ALIAS = None
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    binary_expr_kind: BINARY_EXPR_KIND
+    expr1: EXPR_NODE
+    expr2: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Expr3:
+    """Tertiary expression (like C's `? :`)
+    """
+    ALIAS = "?"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    cond: EXPR_NODE  # must be of type  bool
+    expr_t: EXPR_NODE
+    expr_f: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"? {self.cond} {self.expr_t} {self.expr_f}"
+
+# Array/Slice Expressions
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprIndex:
+    """Checked indexed access of array or slice
+    """
+    ALIAS = "at"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    container: EXPR_NODE  # must be of type slice or array
+    expr_index: EXPR_NODE  # must be of int type
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"AT {self.container} {self.expr_index}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprLen:
+    """Length of array or slice"""
+    ALIAS = "len"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    container: EXPR_NODE   # must be of type slice or array
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return self.__class__.__name__
+# Cast Like Expressions
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprIs:
+    """Test actual expression type within a Sum Type
+
+    """
+    ALIAS = "is"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr} {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprAs:
+    """Safe Cast (Conversion)
+
+    Allowed:
+    enum <-> undelying enum type
+    wrapped type <-> undelying enum type
+    u8-u64, s8-s64 <-> u8-u64, s8-s64
+    u8-u64, s8-s64 -> r32-r64  (note: one way only)
+
+    Possibly
+    slice -> ptr
+    ptr to rec -> ptr to first element of rec
+    """
+    ALIAS = "as"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} AS {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprAsNot:
+    """Cast of Union to diff of the union and the given type
+
+    """
+    ALIAS = "asnot"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} AS {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprTryAs:
+    """Narrow a `expr` which is of Sum to `type`
+
+    If the is not possible return `default_or_undef` if that is not undef
+    or trap otherwise.
+
+    """
+    ALIAS = "tryas"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    default_or_undef: Union[EXPR_NODE, ValUndef]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr} {self.type} {self.default_or_undef}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprUnsafeCast:
+    """Unsafe Cast
+
+    Allowed:
+    ptr a <-> ptr b
+
+    """
+    ALIAS = "cast"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprBitCast:
+    """Bit cast.
+
+    Type must have same size as type of item
+
+    s32,u32,f32 <-> s32,u32,f32
+    s64,u64, f64 <-> s64,u64, f64
+    sint, uint <-> ptr
+    """
+    ALIAS = "bitcast"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: EXPR_NODE
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprSizeof:
+    """Byte size of type
+
+    Type is `uint`"""
+    ALIAS = "sizeof"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprOffsetof:
+    """Byte offset of field in record types
+
+    Type is `uint`"""
+    ALIAS = "offsetof"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    #
+    type: TYPE_NODE  # must be rec
+    field: str
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_field: Optional["RecField"] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.type} {self.field}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprStmt:
+    """Expr with Statements
+
+    The body statements must be terminated by a StmtReturn
+    """
+    ALIAS = "expr"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    body: List[Any]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+############################################################
+# Stmt
+############################################################
+
+
+EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
+                 "ExprCall"]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtBlock:
+    """Block statement.
+
+    if `label` is non-empty, nested break/continue statements can target this `block`.
+    """
+    ALIAS = "block"
+    GROUP = GROUP.Statement
+    FLAGS = NF(0)
+    #
+    label: str
+    body: List[BODY_NODES]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.label}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtDefer:
+    """Defer statement
+
+    Note: defer body's containing return statments have
+    non-straightforward semantics.
+    """
+    ALIAS = "defer"
+    GROUP = GROUP.Statement
+    FLAGS = NF(0)
+    #
+    body:  List[BODY_NODES]  # new scope, must NOT contain RETURN
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtIf:
+    """If statement"""
+    ALIAS = "if"
+    GROUP = GROUP.Statement
+    FLAGS = NF(0)
+    #
+    cond: EXPR_NODE        # must be of type bool
+    body_t: List[BODY_NODES]  # new scope
+    body_f: List[BODY_NODES]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.cond}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Case:
+    """Single case of a Cond statement"""
+    ALIAS = "case"
+    GROUP = GROUP.Statement
+    FLAGS = NF(0)
+    #
+    cond: EXPR_NODE        # must be of type bool
+    body: List[BODY_NODES]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.cond}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtCond:
+    """Multicase if-elif-else statement"""
+    ALIAS = "cond"
+    GROUP = GROUP.Statement
+    FLAGS = NF.NONE
+    #
+    cases: List[Case]
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtBreak:
+    """Break statement
+
+    use "" if the target is the nearest for/while/block """
+    ALIAS = "break"
+    GROUP = GROUP.Statement
+    FLAGS = NF.CONTROL_FLOW
+    #
+    target: str  # use "" for no value
+    #
+    x_srcloc: Optional[Any] = None
+    x_target: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.target}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtContinue:
+    """Continue statement
+
+    use "" if the target is the nearest for/while/block """
+    ALIAS = "continue"
+    GROUP = GROUP.Statement
+    FLAGS = NF.CONTROL_FLOW
+    #
+    target: str  # use "" for no value
+    #
+    x_srcloc: Optional[Any] = None
+    x_target: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.target}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtReturn:
+    """Return statement
+
+    Returns from the first enclosing ExprStmt node or the enclosing DefFun node.
+    Uses void_val if the DefFun's return type is void
+    """
+    ALIAS = "return"
+    GROUP = GROUP.Statement
+    FLAGS = NF.CONTROL_FLOW
+    #
+    expr_ret: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_target: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr_ret}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtExpr:
+    """Expression statement
+
+    If expression does not have type void, `discard` must be `true`
+    """
+    ALIAS = "stmt"
+    GROUP = GROUP.Statement
+    FLAGS = NF.NONE
+    #
+    discard: bool
+    expr: ExprCall
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.discard} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtStaticAssert:
+    """Static assert statement (must evaluate to true at compile-time"""
+    ALIAS = "static_assert"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TOP_LEVEL
+    #
+    cond: EXPR_NODE  # must be of type bool
+    message: str     # should this be an expression?
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.cond}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtTrap:
+    """Trap statement"""
+    ALIAS = "trap"
+    GROUP = GROUP.Statement
+    FLAGS = NF.NONE
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtCompoundAssignment:
+    """Compound assignment statement"""
+    ALIAS = None
+    GROUP = GROUP.Statement
+    FLAGS = NF.NONE
+    #
+    assignment_kind: ASSIGNMENT_KIND
+    lhs: EXPR_LHS
+    expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class StmtAssignment:
+    """Assignment statement"""
+    ALIAS = "="
+    GROUP = GROUP.Statement
+    FLAGS = NF.NONE
+    #
+    lhs: EXPR_LHS
+    expr: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.lhs} = {self.expr}"
+
+############################################################
+# Definitions
+############################################################
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class RecField:  #
+    """Record field
+
+    All fields must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    """
+    ALIAS = "field"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    name: str
+    type: TYPE_NODE
+    initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+    x_offset: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}: {self.type} = {self.initial_or_undef}"
+
+
+FIELDS_NODES = Union[Comment, RecField]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefRec:
+    """Record definition"""
+    ALIAS = "defrec"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    #
+    pub:  bool
+    name: str
+    fields: List[FIELDS_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        return f" {_NAME(self)}{_FLAGS(self)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class EnumVal:
+    """ Enum element.
+
+     `value: ValAuto` means previous value + 1"""
+    ALIAS = "entry"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
+    #
+    name: str
+    value_or_auto: Union["ValNum", ValAuto]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}: {self.value_or_auto}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefEnum:
+    """Enum definition"""
+    ALIAS = "enum"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    #
+    pub:  bool
+    name: str
+    base_type_kind: BASE_TYPE_KIND   # must be integer
+    items: List[ITEMS_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefType:
+    """Type definition
+
+    """
+    ALIAS = "type"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    #
+    pub:  bool
+    wrapped: bool
+    name: str
+    type: TYPE_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
+
+
+CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
+                   ValVoid, ValRec, ValArray, ValString]
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefVar:
+    """Variable definition
+
+    Allocates space on stack and initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
+
+    """
+    ALIAS = "let"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.VALUE_ANNOTATED
+    #
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefGlobal:
+    """Variable definition
+
+    Allocates space in static memory and initializes it with `initial_or_undef`.
+    `mut` makes the allocated space read/write otherwise it is readonly.
+    """
+    ALIAS = "global"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    #
+    pub: bool
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefFun:
+    """Function definition"""
+    ALIAS = "fun"
+    GROUP = GROUP.Statement
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    #
+    init: bool
+    fini: bool
+    pub: bool
+    extern: bool
+    polymorphic: bool
+    name: str
+    params: List[PARAMS_NODES]
+    result: TYPE_NODE
+    body: List[BODY_NODES]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+    def __str__(self):
+        params = ', '.join(str(p) for p in self.params)
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]->{self.result}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ModParam:
+    """Module Parameters"""
+    ALIAS = None
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF
+    #
+    name: str
+    mod_param_kind: MOD_PARAM_KIND
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefMod:
+    """Module Definition
+
+    The module is a template if `params` is non-empty"""
+    ALIAS = "module"
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF
+    #
+    name: str
+    params_mod: List[PARAMS_MOD_NODES]
+    body_mod: List[BODY_MOD_NODES]
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        params = ', '.join(str(p) for p in self.params_mod)
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class Import:
+    """Import another Module"""
+    ALIAS = "import"
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF
+    #
+    name: str
+    alias: str
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+############################################################
+# Macro Like
+############################################################
+@NodeCommon
+@dataclasses.dataclass()
+class ExprSrcLoc:
+    """Source Location encoded as u32"""
+    ALIAS = "src_loc"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TO_BE_EXPANDED
+    #
+    x_srcloc: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprStringify:
+    """Human readable representation of the expression
+
+    This is useful to implement for assert like features
+    """
+    ALIAS = "stringify"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TO_BE_EXPANDED
+    #
+    expr:  EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+
+############################################################
+# Macro
+############################################################
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroId:
+    """Placeholder for a parameter
+
+    This node will be expanded with the actual argument
+    """
+    ALIAS = "macro_id"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+    #
+    name: str
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroVar:
+    """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
+
+    `name` must start with a `$`.
+
+    """
+    ALIAS = "macro_let"
+    GROUP = GROUP.Macro
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
+    #
+    mut: bool
+    name: str
+    type_or_auto: Union[TYPE_NODE, TypeAuto]
+    initial_or_undef: EXPR_NODE
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroFor:
+    """Macro for-loop like statement
+
+    NYI
+    """
+    ALIAS = "macro_for"
+    GROUP = GROUP.Macro
+    FLAGS = NF.MACRO_BODY_ONLY
+    #
+    name: str
+    name_list: str
+    body_for: List[Any]
+    #
+    x_srcloc: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroListArg:
+    """Container for macro arguments that consists of multiple node (e.g. list of statements)
+
+    """
+    ALIAS = "macro_list_arg"
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+    #
+    args: List[EXPR_NODE]
+    #
+    x_srcloc: Optional[Any] = None
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroParam:
+    """Macro Parameter"""
+    ALIAS = "macro_param"
+    GROUP = GROUP.Macro
+    FLAGS = NF.LOCAL_SYM_DEF
+    #
+    name: str
+    macro_param_kind: MACRO_PARAM_KIND
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class MacroInvoke:
+    """Macro Invocation"""
+    ALIAS = "macro_invoke"
+    GROUP = GROUP.Macro
+    FLAGS = NF.TO_BE_EXPANDED
+    #
+    name: str
+    args: List[EXPR_NODE]
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefMacro:
+    """Define a macro
+
+
+    A macro consists of parameters whose name starts with a '$'
+    and a body. Macros that evaluate to expressions will typically
+    have a single node body
+    """
+    ALIAS = "macro"
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    pub: bool
+    #
+    name: str
+    params_macro: List[PARAMS_MACRO_NODES]
+    gen_ids: List[str]
+    body_macro: List[Any]  # new scope
+    #
+    x_srcloc: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+############################################################
+# S-Expression Serialization (Introspection driven)
+############################################################
+
+
 # Note: we rely on the matching being done greedily
 _TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
 _TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
@@ -1992,37 +2109,6 @@ _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
 
 _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
 _TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
-
-# maps node class name and aliases to class
-_NODES_ALIASES = {}
-
-ALL_NODES = set()
-
-for name, obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isclass(obj) and obj.__base__ is object and hasattr(obj, "ALIAS"):
-        ALL_NODES.add(obj)
-        _NODES_ALIASES[obj.__name__] = obj
-        if obj.ALIAS is not None:
-            _NODES_ALIASES[obj.ALIAS] = obj
-
-        obj.FIELDS = []
-        seen_optional = False
-        seen_non_flag = False
-        for field, type in obj.__annotations__.items():
-            if field.startswith("x_"):
-                assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
-                continue
-            obj.FIELDS.append(field)
-            nfd = ALL_FIELDS_MAP[field]
-            if field in OPTIONAL_FIELDS:
-                seen_optional = True
-            else:
-                assert not seen_optional, f"in {obj.__name__} optional fields must come last: {field}"
-
-            if nfd.kind is NFK.FLAG:
-                assert not seen_non_flag, "flags must come first"
-            else:
-                seen_non_flag = True
 
 
 LOCAL_SYM_DEF_NODES = tuple(
