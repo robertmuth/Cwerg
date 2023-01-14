@@ -185,7 +185,7 @@ class TypeCorpus:
         self.wrapped_curr = 1
         # maps to ast
         self.corpus: Dict[int, Any] = {}
-        self._canon_name: Dict[int, CanonType] = {}
+        self._canon_name: Dict[Any, CanonType] = {}
         self._register_types: Dict[int, List[Any]] = {}
 
         for kind in cwast.BASE_TYPE_KIND:
@@ -194,7 +194,7 @@ class TypeCorpus:
             t = self.insert_base_type(kind)
 
     def canon_name(self, node):
-        return self._canon_name[id(node)]
+        return self._canon_name[node]
 
     def register_types(self, node):
         return self._register_types[id(node)]
@@ -320,8 +320,8 @@ class TypeCorpus:
             return self.corpus[name]
         assert cwast.NF.TYPE_CORPUS in node.__class__.FLAGS, f"not a corpus node: {node}"
         self.corpus[name] = node
-        assert id(node) not in self._canon_name
-        self._canon_name[id(node)] = name
+        assert node not in self._canon_name
+        self._canon_name[node] = name
         if finalize:
             node.x_size, node.x_alignment = self.get_size_and_alignment(node)
             self._register_types[id(node)] = self.get_register_type(node)
