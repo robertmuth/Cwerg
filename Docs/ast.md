@@ -232,16 +232,12 @@ Fields:
 ### Case (case)
 Single case of a Cond statement
 
-Creates a new scope
-
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* body [LIST]: statement list and/or comments
+* body [LIST]: new scope: statement list and/or comments
 
 ### DefFun (fun)
 Function definition
-
-Creates a new scope
 
 Allowed at top level only
 
@@ -254,7 +250,7 @@ Fields:
 * name [STR]: name of the object
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
-* body [LIST]: statement list and/or comments
+* body [LIST]: new scope: statement list and/or comments
 
 ### DefGlobal (global)
 Variable definition
@@ -281,8 +277,6 @@ Define a macro
     have a single node body
     
 
-Creates a new scope
-
 Allowed at top level only
 
 Fields:
@@ -290,7 +284,7 @@ Fields:
 * name [STR]: name of the object
 * params_macro [LIST]: macro parameters
 * gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
-* body_macro [LIST]: macro statments/expression
+* body_macro [LIST]: new scope: macro statments/expression
 
 ### DefMod (module)
 Module Definition
@@ -356,11 +350,9 @@ Block statement.
     if `label` is non-empty, nested break/continue statements can target this `block`.
     
 
-Creates a new scope
-
 Fields:
 * label [STR]: block  name (if not empty)
-* body [LIST]: statement list and/or comments
+* body [LIST]: new scope: statement list and/or comments
 
 ### StmtBreak (break)
 Break statement
@@ -399,10 +391,8 @@ Defer statement
     non-straightforward semantics.
     
 
-Creates a new scope
-
 Fields:
-* body [LIST]: statement list and/or comments
+* body [LIST]: new scope: statement list and/or comments
 
 ### StmtExpr (stmt)
 Expression statement
@@ -417,12 +407,10 @@ Fields:
 ### StmtIf (if)
 If statement
 
-Creates a new scope
-
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
-* body_t [LIST]: statement list and/or comments for true branch
-* body_f [LIST]: statement list and/or comments for false branch
+* body_t [LIST]: new scope: statement list and/or comments for true branch
+* body_f [LIST]: new scope: statement list and/or comments for false branch
 
 ### StmtReturn (return)
 Return statement
@@ -715,7 +703,7 @@ Expr with Statements
     
 
 Fields:
-* body [LIST]: statement list and/or comments
+* body [LIST]: new scope: statement list and/or comments
 
 ### ExprStringify (stringify)
 Human readable representation of the expression
@@ -762,7 +750,7 @@ Macro for-loop like statement
 Fields:
 * name [STR]: name of the object
 * name_list [STR]: name of the object list
-* body [LIST]: statement list and/or comments
+* body_for [LIST]: statement list for macro_loop
 
 ### MacroId (macro_id)
 Placeholder for a parameter

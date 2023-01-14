@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 class NF(enum.Flag):
     """Node Flags"""
     NONE = 0
-    NEW_SCOPE = enum.auto()
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     MUST_HAVE_VALUE = enum.auto()
@@ -1096,9 +1095,9 @@ class ExprStmt:
     """
     ALIAS = "expr"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NEW_SCOPE
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    body: List[Any]
+    body: List[Any]  # new scope
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1127,10 +1126,10 @@ class StmtBlock:
     """
     ALIAS = "block"
     GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE
+    FLAGS = NF(0)
     #
     label: str
-    body: List[BODY_NODES]
+    body: List[BODY_NODES]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1147,9 +1146,9 @@ class StmtDefer:
     """
     ALIAS = "defer"
     GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE
+    FLAGS = NF(0)
     #
-    body:  List[BODY_NODES]  # must NOT contain RETURN
+    body:  List[BODY_NODES]  # new scope, must NOT contain RETURN
     #
     x_srcloc: Optional[Any] = None
 
@@ -1162,11 +1161,11 @@ class StmtIf:
     """If statement"""
     ALIAS = "if"
     GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE
+    FLAGS = NF(0)
     #
     cond: EXPR_NODE        # must be of type bool
-    body_t: List[BODY_NODES]
-    body_f: List[BODY_NODES]
+    body_t: List[BODY_NODES] # new scope
+    body_f: List[BODY_NODES] # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1179,10 +1178,10 @@ class Case:
     """Single case of a Cond statement"""
     ALIAS = "case"
     GROUP = GROUP.Statement
-    FLAGS = NF.NEW_SCOPE
+    FLAGS = NF(0)
     #
     cond: EXPR_NODE        # must be of type bool
-    body: List[BODY_NODES]
+    body: List[BODY_NODES]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1563,7 +1562,7 @@ class DefFun:
     """Function definition"""
     ALIAS = "fun"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     init: bool
     fini: bool
@@ -1573,7 +1572,7 @@ class DefFun:
     name: str
     params: List[PARAMS_NODES]
     result: TYPE_NODE
-    body: List[BODY_NODES]
+    body: List[BODY_NODES]  # new scope
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1744,7 +1743,7 @@ class MacroFor:
     #
     name: str
     name_list: str
-    body: List[Any]
+    body_for: List[Any]
     #
     x_srcloc: Optional[Any] = None
 
@@ -1809,13 +1808,13 @@ class DefMacro:
     """
     ALIAS = "macro"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NEW_SCOPE | NF.TOP_LEVEL
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     pub: bool
     #
     name: str
     params_macro: List[PARAMS_MACRO_NODES]
     gen_ids: List[str]
-    body_macro: List[Any]
+    body_macro: List[Any]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1899,13 +1898,11 @@ ALL_FIELDS = [
     #
     NFD(NFK.LIST, "body_mod",
         "toplevel module definitions and/or comments", BODY_MOD_NODES),
-    NFD(NFK.LIST, "body", "statement list and/or comments", BODY_NODES),
-    NFD(NFK.LIST, "body_t", "statement list and/or comments for true branch", BODY_NODES),
-    NFD(NFK.LIST, "body_f", "statement list and/or comments for false branch", BODY_NODES),
-    NFD(NFK.LIST, "body_except",
-        "statement list and/or comments when type narrowing fails", BODY_NODES),
-    NFD(NFK.LIST, "body_macro",
-        "macro statments/expression", BODY_MOD_NODES),
+    NFD(NFK.LIST, "body", "new scope: statement list and/or comments", BODY_NODES),
+    NFD(NFK.LIST, "body_t", "new scope: statement list and/or comments for true branch", BODY_NODES),
+    NFD(NFK.LIST, "body_f", "new scope: statement list and/or comments for false branch", BODY_NODES),
+    NFD(NFK.LIST, "body_for", "statement list for macro_loop", BODY_NODES),
+    NFD(NFK.LIST, "body_macro", "new scope: macro statments/expression", BODY_MOD_NODES),
     NFD(NFK.LIST, "cases", "list of case statements"),
 
     #
@@ -1943,6 +1940,8 @@ ALL_FIELDS = [
         "handler for type mismatch (implictly terminated by trap)"),
 
 ]
+
+NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
 ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
@@ -2194,9 +2193,6 @@ def GenerateDocumentation(fout):
 
         print(cls.__doc__,  file=fout)
 
-        if NF.NEW_SCOPE in cls.FLAGS:
-            print(f"", file=fout)
-            print(f"Creates a new scope", file=fout)
         if NF.TOP_LEVEL in cls.FLAGS:
             print(f"", file=fout)
             print(f"Allowed at top level only", file=fout)

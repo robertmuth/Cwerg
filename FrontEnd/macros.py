@@ -76,7 +76,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         out = []
         for item in arg.args:
             ctx.RegisterSymbol(node.name, (cwast.MACRO_PARAM_KIND.EXPR, item))
-            for b in node.body:
+            for b in node.body_for:
                 exp = ExpandMacroRecursively(b, ctx)
                 if isinstance(exp, cwast.MacroListArg):
                     out += exp.args

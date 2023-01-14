@@ -274,13 +274,6 @@ def ResolveSymbolsInsideFunctionsRecursively(
         _add_symbol_link(node, def_node)
         return
 
-    if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
-        logger.info("push scope for %s", node)
-        scopes.append({})
-        if isinstance(node, cwast.DefFun):
-            for p in node.params:
-                if isinstance(p, cwast.FunParam):
-                    record_local_sym(p)
 
     # recurse using a little bit of introspection
     for c in node.__class__.FIELDS:
@@ -292,23 +285,23 @@ def ResolveSymbolsInsideFunctionsRecursively(
             ResolveSymbolsInsideFunctionsRecursively(
                 getattr(node, c), symtab, symtab_map, scopes)
         elif nfd.kind is cwast.NFK.LIST:
-            if c in ("body_t", "body_f"):
-                logger.info("push scope for if block: %s" % c)
+            if c in cwast.NEW_SCOPE_FIELDS:
+                logger.info("push scope for %s: %s" % (node, c))
                 scopes.append({})
+                if isinstance(node, cwast.DefFun):
+                    for p in node.params:
+                        if isinstance(p, cwast.FunParam):
+                            record_local_sym(p)
             for cc in getattr(node, c):
                 ResolveSymbolsInsideFunctionsRecursively(
                     cc, symtab, symtab_map, scopes)
-            if c in ("body_t", "body_f"):
+            if c in cwast.NEW_SCOPE_FIELDS:
                 logger.info("pop scope for if block: %s" % c)
                 for name in scopes[-1].keys():
                     symtab.DelSym(name)
                 scopes.pop(-1)
 
-    if cwast.NF.NEW_SCOPE in node.__class__.FLAGS:
-        for name in scopes[-1].keys():
-            symtab.DelSym(name)
-        scopes.pop(-1)
-        logger.info("pop scope for %s", node)
+
 
 
 def _VerifyASTSymbolsRecursively(node):
