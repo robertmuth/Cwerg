@@ -728,4 +728,4 @@ if __name__ == "__main__":
     DecorateASTWithTypes(mod_topo_order, tc)
 
     for t, n in tc.corpus.items():
-        print(t, tc._register_types[id(n)], n.x_size, n.x_alignment)
+        print(t, tc._register_types[n], n.x_size, n.x_alignment)

@@ -184,7 +184,7 @@ class TypeCorpus:
 
         self.wrapped_curr = 1
         # maps to ast
-        self.corpus: Dict[int, Any] = {}
+        self.corpus: Dict[Any, Any] = {}
         self._canon_name: Dict[Any, CanonType] = {}
         self._register_types: Dict[int, List[Any]] = {}
 
@@ -197,7 +197,7 @@ class TypeCorpus:
         return self._canon_name[node]
 
     def register_types(self, node):
-        return self._register_types[id(node)]
+        return self._register_types[node]
 
     def _get_register_type_for_sum_type(self, node: cwast.TypeSum):
         num_void = 0
@@ -211,7 +211,7 @@ class TypeCorpus:
             if is_void(t):
                 num_void += 1
                 continue
-            regs = self._register_types[id(t)]
+            regs = self._register_types[t]
             if regs is None or len(regs) > 1:
                 return None
             scalars.append(t)
@@ -221,7 +221,7 @@ class TypeCorpus:
             largest = max(largest, size)
         # special hack for pointer + error-code
         if len(scalars) == 1 and isinstance(t, cwast.TypePtr):
-            return self._register_types[id(t)]
+            return self._register_types[t]
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
         return [f"U{largest}", TYPE_ID_REG_TYPE]
@@ -280,7 +280,7 @@ class TypeCorpus:
     def finalize_rec_type(self, ctype: cwast.DefRec):
         ctype.x_size, ctype.x_alignment = self.get_size_and_alignment_and_set_offsets_for_rec_type(
             ctype)
-        self._register_types[id(ctype)] = self.get_register_type(ctype)
+        self._register_types[ctype] = self.get_register_type(ctype)
 
     def get_size_and_alignment(self, ctype):
         if isinstance(ctype, cwast.TypeBase):
@@ -324,7 +324,7 @@ class TypeCorpus:
         self._canon_name[node] = name
         if finalize:
             node.x_size, node.x_alignment = self.get_size_and_alignment(node)
-            self._register_types[id(node)] = self.get_register_type(node)
+            self._register_types[node] = self.get_register_type(node)
         return node
 
     def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> CanonType:
