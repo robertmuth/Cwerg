@@ -473,7 +473,7 @@ def _TypeMismatch(corpus: types.TypeCorpus, msg: str, actual, expected):
     return f"{msg}: actual: {corpus.canon_name(actual)} expected: {corpus.canon_name(expected)}"
 
 
-def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_fun):
+def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
     if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
         assert node.x_type is not types.NO_TYPE
     else:
@@ -662,28 +662,23 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus, enclosing_f
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def _TypeVerifyNodeRecursively(node, corpus, enclosing_fun):
-    if isinstance(node, (cwast.Comment, cwast.DefMacro)):
-        return
-    logger.info(f"VERIFYING {node}")
+def _TypeVerifyNodeRecursively(node, corpus):
+    def visitor(node):
+        if isinstance(node, (cwast.Comment, cwast.DefMacro)):
+            # do not recurse into macros/comments
+            return True
+        logger.info(f"VERIFYING {node}")
 
-    if isinstance(node, cwast.DefFun):
-        enclosing_fun = node
-    if (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or
-            isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
-        if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
-            assert node.x_type is not None, f"untyped node: {node}"
-        _TypeVerifyNode(node, corpus, enclosing_fun)
+        if (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or
+                isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
+            if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+                assert node.x_type is not None, f"untyped node: {node}"
+            _TypeVerifyNode(node, corpus)
 
-    if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_field is not None, f"node withou field annotation: {node}"
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            _TypeVerifyNodeRecursively(getattr(node, c), corpus, enclosing_fun)
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                _TypeVerifyNodeRecursively(cc, corpus, enclosing_fun)
+        if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
+            assert node.x_field is not None, f"node withou field annotation: {node}"
+
+    cwast.VisitAstRecursively(node, visitor)
 
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
@@ -718,7 +713,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                     _TypifyNodeRecursively(
                         c, tc, node.result.x_type, ctx)
     for mod in mod_topo_order:
-        _TypeVerifyNodeRecursively(mod, tc, None)
+        _TypeVerifyNodeRecursively(mod, tc)
 
 
 if __name__ == "__main__":

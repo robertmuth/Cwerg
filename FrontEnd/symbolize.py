@@ -172,25 +172,16 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
 
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
         node, symtab: SymTab, symtab_map):
-    if isinstance(node, cwast.Id):
-        def_node = symtab.resolve_sym(
-            node.name.split("/"), symtab_map, False)
-        if def_node is None:
-            cwast.CompilerError(
-                node.x_srcloc, f"cannot resolve symbol {node.name}")
-        _add_symbol_link(node, def_node)
-        return
+    def visitor(node):
+        if isinstance(node, cwast.Id):
+            def_node = symtab.resolve_sym(
+                node.name.split("/"), symtab_map, False)
+            if def_node is None:
+                cwast.CompilerError(
+                    node.x_srcloc, f"cannot resolve symbol {node.name}")
+            _add_symbol_link(node, def_node)
 
-    # recurse using a little bit of introspection
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                getattr(node, c), symtab, symtab_map)
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    cc, symtab, symtab_map)
+    cwast.VisitAstRecursively(node, visitor)
 
 
 MAX_MACRO_NESTING = 4

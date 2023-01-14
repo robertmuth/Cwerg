@@ -2034,6 +2034,54 @@ GLOBAL_SYM_DEF_NODES = tuple(
 ############################################################
 
 
+def VisitAstRecursively(node, visitor):
+    if visitor(node):
+        return
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            VisitAstRecursively(getattr(node, c), visitor)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, c):
+                VisitAstRecursively(cc, visitor)
+
+
+def VisitAstRecursivelyWithParent(node, parent, visitor):
+    if visitor(node, parent):
+        return
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            VisitAstRecursively(getattr(node, c), node, visitor)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, c):
+                VisitAstRecursively(cc, node, visitor)
+
+
+def MaybeReplaceAstRecursively(node, replacer):
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, c)
+            new_child = replacer(child)
+            if new_child:
+                setattr(node, c, new_child)
+            else:
+                MaybeReplaceAstRecursively(child, replacer)
+        elif nfd.kind is NFK.LIST:
+            children = getattr(node, c)
+            for n, child in enumerate(children):
+                new_child = replacer(child)
+                if new_child:
+                    children[n] = new_child
+                else:
+                    MaybeReplaceAstRecursively(child, replacer)
+
+############################################################
+#
+############################################################
+
+
 class _CheckASTContext:
     def __init__(self):
         self.toplevel = True
@@ -2042,17 +2090,12 @@ class _CheckASTContext:
 
 
 def _CheckMacroRecursively(node, seen_names: Set[str]):
-    if isinstance(node, (MacroParam, MacroFor)):
-        assert node.name.startswith("$")
-        assert node.name not in seen_names, f"duplicate name: {node.name}"
-        seen_names.add(node.name)
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
-        if nfd.kind is NFK.NODE:
-            _CheckMacroRecursively(getattr(node, c), seen_names)
-        elif nfd.kind is NFK.LIST:
-            for cc in getattr(node, c):
-                _CheckMacroRecursively(cc, seen_names)
+    def visitor(node):
+        if isinstance(node, (MacroParam, MacroFor)):
+            assert node.name.startswith("$")
+            assert node.name not in seen_names, f"duplicate name: {node.name}"
+            seen_names.add(node.name)
+    VisitAstRecursively(node, visitor)
 
 
 def _CheckAST(node, parent, ctx: _CheckASTContext):

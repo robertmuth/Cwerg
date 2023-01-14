@@ -127,7 +127,8 @@ def EmitIRConditional(cond, label_t: str, label_f: str, id_gen: identifier.IdGen
 
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
-        print(f"{TAB}bne {op1} 0 {label_t}")
+        assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
+        print(f"{TAB}bne {cond.name} 0 {label_t}")
         print(f"{TAB}br {label_f}")
     else:
         assert False, f"unexpected expression {cond}"
@@ -170,7 +171,7 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
         if node.container.x_value is not None:
             return f"{len(node.container.x_value)}:{StringifyOneType(node.x_type, type_corpus)}"
         else:
-            assert False
+            assert False, f"{node} {node.container}"
     elif isinstance(node, cwast.Id):
         return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
@@ -223,8 +224,8 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
         print(f"{TAB}mov {node.name} = {out}")
     elif isinstance(node, cwast.StmtBlock):
-        continue_label = id_gen.NewLabel(node.label)
-        break_label = id_gen.NewLabel(node.label)
+        continue_label = id_gen.NewName(node.label)
+        break_label = id_gen.NewName(node.label)
         node.label = (continue_label, break_label)
 
         print(f".bbl {continue_label}")
@@ -249,14 +250,14 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
     elif isinstance(node, cwast.StmtExpr):
         EmitIRExpr(node.expr, type_corpus, id_gen)
     elif isinstance(node, cwast.StmtIf):
-        label_t = id_gen.NewLabel("br_t")
-        label_f = id_gen.NewLabel("br_f")
+        label_t = id_gen.NewName("br_t")
+        label_f = id_gen.NewName("br_f")
         EmitIRConditional(node.cond, label_t, label_f, id_gen)
         if node.body_t and node.body_f:
-            label_n = id_gen.NewLabel("br_n")
+            label_n = id_gen.NewName("br_n")
             print(f".bbl {label_t}")
             for c in node.body_t:
-                EmitIRStmt(c, result, id_gen)
+                EmitIRStmt(c, result, type_corpus, id_gen)
             print(f"{TAB}br {label_n}")
             print(f".bbl {label_f}")
             for c in node.body_f:
@@ -341,11 +342,14 @@ if __name__ == "__main__":
                     id_gen = identifier.IdGen()
 
     for mod in mod_topo_order:
+        id_gen.ClearGlobalNames()
         id_gen.LoadGlobalNames(mod)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
                 EmitIRDefGlobal(node)
         for node in mod.body_mod:
+
             if isinstance(node, cwast.DefFun):
+                id_gen.ClearLocalNames()
                 id_gen.UniquifyLocalNames(node)
                 EmitIRDefFun(node, type_corpus, id_gen)
