@@ -96,12 +96,12 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
     if not isinstance(expected, cwast.TypeSum):
         return False
 
-    expected_children = set([id(c) for c in expected.types])
+    expected_children = set(expected.types)
 
     if isinstance(actual, cwast.TypeSum):
-        actual_children = set([id(c) for c in actual.types])
+        return set(actual.types).issubset(expected_children)
     else:
-        actual_children = set([id(actual)])
+        return actual in expected_children
 
     return actual_children.issubset(expected_children)
 
@@ -374,7 +374,7 @@ class TypeCorpus:
 
         See implementation of insert_rec_type
         """
-        node = self.corpus[id(rec_cstr)]
+        node = self.corpus[rec_cstr]
         assert isinstance(node, cwast.DefRec)
         return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
@@ -421,12 +421,12 @@ class TypeCorpus:
     def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
         assert isinstance(all, cwast.TypeSum)
         if isinstance(part, cwast.TypeSum):
-            part_children = [id(c) for c in part.types]
+            part_children = part.types
         else:
-            part_children = [id(part)]
+            part_children = [part]
         out = []
         for x in all.types:
-            if id(x) not in part_children:
+            if x not in part_children:
                 out.append(x)
         if len(out) == 1:
             return out[0]
