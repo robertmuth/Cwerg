@@ -7,11 +7,14 @@
 import sys
 import logging
 
+from typing import List, Dict, Set, Optional, Union, Any
+
+
 from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import types
+from FrontEnd import parse
 
-from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
@@ -719,7 +722,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = cwast.ReadModsFromStream(sys.stdin)
+    asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)

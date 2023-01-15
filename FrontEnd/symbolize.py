@@ -10,10 +10,12 @@ import logging
 import collections
 import heapq
 
+from typing import List, Dict, Set, Optional, Union, Any, Tuple
+
 from FrontEnd import pp
 from FrontEnd import macros
 from FrontEnd import cwast
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
+from FrontEnd import parse
 
 logger = logging.getLogger(__name__)
 
@@ -436,7 +438,7 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
-    asts = cwast.ReadModsFromStream(sys.stdin)
+    asts = parse.ReadModsFromStream(sys.stdin)
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     DecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:

@@ -448,18 +448,19 @@ OPTIONAL_FIELDS = {
 }
 
 X_FIELDS = {
-    "x_srcloc",  # set by cwast.py
+    "x_srcloc": None,  # set by cwast.py
     #
-    "x_symbol",  # set by symbolize.py
-    "x_target",  # set by symbolize.py
+    "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py
+    "x_target": NF.CONTROL_FLOW,  # set by symbolize.py
     #
-    "x_type",   # set by typify.py
-    "x_field",  # set by typify.py
-    "x_alignment",  # set by typify.py
-    "x_size",  # set by typify.py
-    "x_offset",  # set by typify.py
+    "x_field": NF.FIELD_ANNOTATED,  # set by typify.py
     #
-    "x_value",  # set by eval.py
+    "x_type": NF.TYPE_ANNOTATED,   # set by typify.py
+    "x_alignment": NF.TYPE_ANNOTATED,  # set by typify.py
+    "x_size": NF.TYPE_ANNOTATED,  # set by typify.py
+    "x_offset": NF.TYPE_ANNOTATED,  # set by typify.py
+    #
+    "x_value": NF.VALUE_ANNOTATED,  # set by eval.py
 }
 
 
@@ -480,7 +481,7 @@ def _FLAGS(node):
 
 
 # maps node class name and aliases to class
-_NODES_ALIASES = {}
+NODES_ALIASES = {}
 
 ALL_NODES = set()
 
@@ -491,6 +492,9 @@ def _CheckNodeFieldOrder(obj):
     for field, type in obj.__annotations__.items():
         if field.startswith("x_"):
             assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
+            x = X_FIELDS[field]
+            if x:
+                assert x in obj.FLAGS
             continue
         nfd = ALL_FIELDS_MAP[field]
         if field in OPTIONAL_FIELDS:
@@ -508,14 +512,15 @@ def NodeCommon(cls):
     cls.__eq__ = lambda a, b: id(a) == id(b)
     cls.__hash__ = lambda a: id(a)
 
-    assert hasattr(cls, "ALIAS")
+    assert hasattr(cls, "ALIAS") and hasattr(
+        cls, "FLAGS") and hasattr(cls, "GROUP")
     assert hasattr(cls, "x_srcloc")
     _CheckNodeFieldOrder(cls)
 
     ALL_NODES.add(cls)
-    _NODES_ALIASES[cls.__name__] = cls
+    NODES_ALIASES[cls.__name__] = cls
     if cls.ALIAS is not None:
-        _NODES_ALIASES[cls.ALIAS] = cls
+        NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = [field for field, type in cls.__annotations__.items()
                   if not field.startswith("x_")]
     return cls
@@ -1465,8 +1470,6 @@ class ExprStmt:
 ############################################################
 # Stmt
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class StmtBlock:
@@ -1821,10 +1824,6 @@ class DefType:
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
 
 
-CONST_NODE = Union[Id, ValFalse, ValTrue, ValNum,
-                   ValVoid, ValRec, ValArray, ValString]
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class DefVar:
@@ -2127,21 +2126,43 @@ class DefMacro:
         return f"{_NAME(self)} {self.name}"
 
 
-############################################################
-# S-Expression Serialization (Introspection driven)
-############################################################
+BINOP_BOOL = {
+    BINARY_EXPR_KIND.GE,
+    BINARY_EXPR_KIND.GT,
+    BINARY_EXPR_KIND.LE,
+    BINARY_EXPR_KIND.LT,
+    BINARY_EXPR_KIND.EQ,
+    BINARY_EXPR_KIND.NE,
+    BINARY_EXPR_KIND.ANDSC,
+    BINARY_EXPR_KIND.ORSC,
+}
 
-
-# Note: we rely on the matching being done greedily
-_TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
-_TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
-_TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
-_TOKEN_OP = r'[\[\]\(\)]'
-_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
-    _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
-
-_TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
-_TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
+BINOP_OPS_HAVE_SAME_TYPE = {
+    BINARY_EXPR_KIND.GE,
+    BINARY_EXPR_KIND.GT,
+    BINARY_EXPR_KIND.LE,
+    BINARY_EXPR_KIND.LT,
+    BINARY_EXPR_KIND.EQ,
+    BINARY_EXPR_KIND.NE,
+    #
+    BINARY_EXPR_KIND.ADD,
+    BINARY_EXPR_KIND.SUB,
+    BINARY_EXPR_KIND.MUL,
+    BINARY_EXPR_KIND.DIV,
+    BINARY_EXPR_KIND.REM,
+    BINARY_EXPR_KIND.MIN,
+    BINARY_EXPR_KIND.MAX,
+    #
+    BINARY_EXPR_KIND.ANDSC,
+    BINARY_EXPR_KIND.ORSC,
+    # ???
+    # BINARY_EXPR_KIND.SHL,
+    # BINARY_EXPR_KIND.SHR,
+    #
+    BINARY_EXPR_KIND.AND,
+    BINARY_EXPR_KIND.OR,
+    BINARY_EXPR_KIND.XOR,
+}
 
 
 LOCAL_SYM_DEF_NODES = tuple(
@@ -2229,7 +2250,7 @@ def CloneNodeRecursively(node):
 ############################################################
 
 
-class _CheckASTContext:
+class CheckASTContext:
     def __init__(self):
         self.toplevel = True
         self.in_fun = False
@@ -2245,7 +2266,7 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def _CheckAST(node, parent, ctx: _CheckASTContext):
+def CheckAST(node, parent, ctx: CheckASTContext):
     assert node.x_srcloc, f"Node without srcloc {node}"
     if NF.TOP_LEVEL in node.FLAGS:
         assert ctx.toplevel, f"only allowed at toplevel: {node}"
@@ -2268,7 +2289,7 @@ def _CheckAST(node, parent, ctx: _CheckASTContext):
             ctx.toplevel = isinstance(node, DefMod)
             ctx.in_fun |= isinstance(node, DefFun)
             ctx.in_macro |= isinstance(node, DefMacro)
-            _CheckAST(child, node, ctx)
+            CheckAST(child, node, ctx)
         elif nfd.kind is NFK.LIST:
             permitted = nfd.extra
             for cc in getattr(node, f):
@@ -2277,7 +2298,7 @@ def _CheckAST(node, parent, ctx: _CheckASTContext):
                 ctx.toplevel = isinstance(node, DefMod)
                 ctx.in_fun |= isinstance(node, DefFun)
                 ctx.in_macro |= isinstance(node, DefMacro)
-                _CheckAST(cc, node, ctx)
+                CheckAST(cc, node, ctx)
 
 
 ##########################################################################################
@@ -2389,302 +2410,8 @@ def GenerateDocumentation(fout):
 ##########################################################################################
 
 
-def DumpFields(node_class):
-    for tag, val in node_class.__annotations__.items():
-        print(f"    {tag}: {val}")
-
-
-class ReadTokens:
-    def __init__(self, fp):
-        self._fp = fp
-        self.line_no = 0
-        self._tokens = []
-
-    def __iter__(self):
-        return self
-
-    def srcloc(self):
-        # TODO: should also reflect the file once we support multiple input files
-        return self.line_no
-
-    def __next__(self):
-        while not self._tokens:
-            self._tokens = re.findall(_TOKENS_ALL, next(self._fp))
-            self.line_no += 1
-        return self._tokens.pop(0)
-
-
-_SCALAR_TYPES = [
-    #
-    BASE_TYPE_KIND.SINT,
-    BASE_TYPE_KIND.S8,
-    BASE_TYPE_KIND.S16,
-    BASE_TYPE_KIND.S32,
-    BASE_TYPE_KIND.S64,
-    #
-    BASE_TYPE_KIND.UINT,
-    BASE_TYPE_KIND.U8,
-    BASE_TYPE_KIND.U16,
-    BASE_TYPE_KIND.U32,
-    BASE_TYPE_KIND.U64,
-    #
-    BASE_TYPE_KIND.R32,
-    BASE_TYPE_KIND.R64,
-]
-
-
-def _MakeTypeBaseLambda(kind: BASE_TYPE_KIND):
-    return lambda srcloc: TypeBase(kind, x_srcloc=srcloc)
-
-
-# maps "atoms" to the nodes they will be expanded to
-_SHORT_HAND_NODES = {
-    "auto": lambda srcloc: TypeAuto(x_srcloc=srcloc),
-    #
-    "noret": _MakeTypeBaseLambda(BASE_TYPE_KIND.NORET),
-    "bool": _MakeTypeBaseLambda(BASE_TYPE_KIND.BOOL),
-    "void": _MakeTypeBaseLambda(BASE_TYPE_KIND.VOID),
-    #
-    "void_val": lambda srcloc: ValVoid(x_srcloc=srcloc),
-    "undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
-    "true": lambda srcloc: ValTrue(x_srcloc=srcloc),
-    "false": lambda srcloc: ValFalse(x_srcloc=srcloc),
-}
-
-
-for t in _SCALAR_TYPES:
-    name = t.name.lower()
-    _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(t)
-
-
-def ExpandShortHand(t, srcloc) -> Any:
-    """Expands atoms, ids, and numbers to proper nodes"""
-    x = _SHORT_HAND_NODES.get(t)
-    if x is not None:
-        return x(srcloc)
-
-    if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
-        # TODO: r"
-        return ValString(False, t, x_srcloc=srcloc)
-    elif _TOKEN_ID.match(t):
-        if t[0] == "$":
-            return MacroId(t, x_srcloc=srcloc)
-        parts = t.rsplit("::", 1)
-        return Id(parts[-1], "" if len(parts) == 1 else parts[0], x_srcloc=srcloc)
-    elif _TOKEN_NUM.match(t):
-        return ValNum(t, x_srcloc=srcloc)
-    elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
-        return ValNum(t, x_srcloc=srcloc)
-    else:
-        return None
-
-
-def ReadNodeList(stream: ReadTokens, parent_cls):
-    out = []
-    while True:
-        token = next(stream)
-        if token == "]":
-            break
-        if token == "(":
-            out.append(ReadSExpr(stream, parent_cls))
-        else:
-            out.append(ExpandShortHand(token, stream.srcloc()))
-    return out
-
-
-def ReadStrList(stream) -> List[str]:
-    out = []
-    while True:
-        token = next(stream)
-        if token == "]":
-            break
-        else:
-            out.append(token)
-    return out
-
-
-def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
-    """Read a single component of an SExpr including lists."""
-    nfd = ALL_FIELDS_MAP[field]
-    if nfd.kind is NFK.FLAG:
-        return bool(token)
-    elif nfd.kind is NFK.STR:
-        return token
-    elif nfd.kind is NFK.INT:
-        return token
-    elif nfd.kind is NFK.KIND:
-        assert nfd.extra is not None, f"{field} {token}"
-        return nfd.extra[token]
-    elif nfd.kind is NFK.NODE:
-        if token == "(":
-            return ReadSExpr(stream, parent_cls)
-        out = ExpandShortHand(token, stream.srcloc())
-        assert out is not None, f"Cannot expand {token} for {field}"
-        return out
-    elif nfd.kind is NFK.STR_LIST:
-        assert token == "[", f"expected list start for: {field} {token}"
-        return ReadStrList(stream)
-    elif nfd.kind is NFK.LIST:
-        assert token == "[", f"expected list start for: {field} {token}"
-        return ReadNodeList(stream, parent_cls)
-    else:
-        assert None
-
-
-BINOP_BOOL = {
-    BINARY_EXPR_KIND.GE,
-    BINARY_EXPR_KIND.GT,
-    BINARY_EXPR_KIND.LE,
-    BINARY_EXPR_KIND.LT,
-    BINARY_EXPR_KIND.EQ,
-    BINARY_EXPR_KIND.NE,
-    BINARY_EXPR_KIND.ANDSC,
-    BINARY_EXPR_KIND.ORSC,
-}
-
-BINOP_OPS_HAVE_SAME_TYPE = {
-    BINARY_EXPR_KIND.GE,
-    BINARY_EXPR_KIND.GT,
-    BINARY_EXPR_KIND.LE,
-    BINARY_EXPR_KIND.LT,
-    BINARY_EXPR_KIND.EQ,
-    BINARY_EXPR_KIND.NE,
-    #
-    BINARY_EXPR_KIND.ADD,
-    BINARY_EXPR_KIND.SUB,
-    BINARY_EXPR_KIND.MUL,
-    BINARY_EXPR_KIND.DIV,
-    BINARY_EXPR_KIND.REM,
-    BINARY_EXPR_KIND.MIN,
-    BINARY_EXPR_KIND.MAX,
-    #
-    BINARY_EXPR_KIND.ANDSC,
-    BINARY_EXPR_KIND.ORSC,
-    # ???
-    # BINARY_EXPR_KIND.SHL,
-    # BINARY_EXPR_KIND.SHR,
-    #
-    BINARY_EXPR_KIND.AND,
-    BINARY_EXPR_KIND.OR,
-    BINARY_EXPR_KIND.XOR,
-}
-
-
-def ReadMacroInvocation(tag, stream: ReadTokens):
-    parent_cls = MacroInvoke
-    srcloc = stream.srcloc()
-    logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
-    args = []
-    while True:
-        token = next(stream)
-        if token == ")":
-            return MacroInvoke(tag, args, x_srcloc=srcloc)
-        elif token == "(":
-            args.append(ReadSExpr(stream, parent_cls))
-        elif token == "[":
-            args.append(MacroListArg(ReadNodeList(
-                stream, parent_cls), x_srcloc=srcloc))
-        else:
-            out = ExpandShortHand(token, stream.srcloc())
-            assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
-            args.append(out)
-    return args
-
-
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadTokens):
-    """Read the remaining componts of an SExpr (after the tag).
-
-    Can handle optional bools at the beginning and an optional 'tail'
-    """
-    srcloc = stream.srcloc()
-    logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
-    token = next(stream)
-    for field in fields:
-        nfd = ALL_FIELDS_MAP[field]
-        if token == ")":
-            # we have reached the end before all the fields were processed
-            # fill in default values
-            assert field in OPTIONAL_FIELDS, f"in {cls.__name__} unknown optional (or missing) field: {field}"
-            pieces.append(OPTIONAL_FIELDS[field](srcloc))
-        elif nfd.kind is NFK.FLAG:
-            if token == field:
-                pieces.append(True)
-                token = next(stream)
-            else:
-                pieces.append(False)
-        else:
-            pieces.append(ReadPiece(field, token, stream, cls))
-            token = next(stream)
-    if token != ")":
-        CompilerError(stream.srcloc(
-        ), f"while parsing {cls.__name__} expected node-end but got {token}")
-    return cls(*pieces, x_srcloc=srcloc)
-
-
-def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
-    """The leading '(' has already been consumed"""
-    tag = next(stream)
-    if tag in UNARY_EXPR_SHORTCUT:
-        return ReadRestAndMakeNode(Expr1, [UNARY_EXPR_SHORTCUT[tag]],
-                                   ["expr"], stream)
-    elif tag in BINARY_EXPR_SHORTCUT:
-        return ReadRestAndMakeNode(Expr2, [BINARY_EXPR_SHORTCUT[tag]],
-                                   ["expr1", "expr2"], stream)
-    elif tag in ASSIGNMENT_SHORTCUT:
-        return ReadRestAndMakeNode(StmtCompoundAssignment, [ASSIGNMENT_SHORTCUT[tag]],
-                                   ["lhs", "expr"], stream)
-    else:
-        cls = _NODES_ALIASES.get(tag)
-        if not cls:
-            # unknown node name - assume it is a macro
-            return ReadMacroInvocation(tag, stream)
-        assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
-
-        # This helps catching missing closing braces early
-        if NF.TOP_LEVEL in cls.FLAGS:
-            if parent_cls is not DefMod:
-                CompilerError(stream.srcloc(
-                ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
-
-        fields = [f for f, _ in cls.__annotations__.items()
-                  if not f.startswith("x_")]
-        return ReadRestAndMakeNode(cls, [], fields, stream)
-
-
-VALUE_NODES = (ValTrue, ValFalse, ValNum, IndexVal,
-               ValUndef, ValVoid, FieldVal, ValArray,
-               ValString, ValRec)
-
-
-def ReadModsFromStream(fp) -> List[DefMod]:
-    asts = []
-    stream = ReadTokens(fp)
-    try:
-        failure = False
-        while True:
-            t = next(stream)
-            failure = True
-            assert t == "("
-            sexpr = ReadSExpr(stream, None)
-            assert isinstance(sexpr, DefMod)
-            _CheckAST(sexpr, None, _CheckASTContext())
-            asts.append(sexpr)
-            failure = False
-    except StopIteration:
-        assert not failure, f"truncated file"
-    return asts
-
-
-def CompilerError(srcloc, msg):
-    print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
-    assert False
-
-
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    if len(sys.argv) > 1 and sys.argv[1] == "gendoc":
-        GenerateDocumentation(sys.stdout)
-    else:
-        ReadModsFromStream(sys.stdin)
+    GenerateDocumentation(sys.stdout)

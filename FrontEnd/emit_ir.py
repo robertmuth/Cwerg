@@ -7,6 +7,9 @@
 import sys
 import logging
 
+from typing import List, Dict, Set, Optional, Union, Any, Tuple
+
+
 from FrontEnd import canonicalize
 from FrontEnd import symbolize
 from FrontEnd import types
@@ -14,10 +17,10 @@ from FrontEnd import cwast
 from FrontEnd import typify
 from FrontEnd import eval
 from FrontEnd import identifier
+from FrontEnd import parse
 
-from Util import parse
+from Util.parse import BytesToEscapedString
 
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +63,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
 def _EmitMem(name, align, rw, data):
     print(f"\n.mem {name} {align} {'RW' if rw else 'RO'}")
     if isinstance(data, bytes):
-        print(f'.data 1 "{parse.BytesToEscapedString(data)}"')
+        print(f'.data 1 "{BytesToEscapedString(data)}"')
 
 
 ZERO_INDEX = "0"
@@ -316,7 +319,7 @@ def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = cwast.ReadModsFromStream(sys.stdin)
+    asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)

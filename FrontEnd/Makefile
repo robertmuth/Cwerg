@@ -33,7 +33,7 @@ BUILTINS = TestData/builtin.cw
 
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
-	cat $(BUILTINS) $< | ./cwast.py 
+	cat $(BUILTINS) $< | ./parse.py 
 
 $(DIR)/%.cw.meta: TestData/%.cw
 	@echo "[typify $@]"

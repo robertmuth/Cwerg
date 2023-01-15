@@ -8,8 +8,10 @@ import dataclasses
 import sys
 import logging
 
-from FrontEnd import cwast
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
+
+from FrontEnd import cwast
+from FrontEnd import parse
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ def GetNodeTypeAndFields(node, condense=True):
     fields = cls.FIELDS[:]
     if not condense:
         return cls.__name__, fields
- 
+
     if isinstance(node, cwast.StmtCompoundAssignment):
         fields.pop(0)
         return cwast.ASSIGMENT_SHORTCUT_INV[node.assignment_kind], fields
@@ -120,11 +122,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     try:
-        stream = cwast.ReadTokens(sys.stdin)
+        stream = parse.ReadTokens(sys.stdin)
         while True:
             t = next(stream)
             assert t == "(", f"expect start of new node, got '{t}']"
-            sexpr = cwast.ReadSExpr(stream, None)
+            sexpr = parse.ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
             PrettyPrint(sexpr)
 
