@@ -26,9 +26,8 @@ POLYMORPHIC_MOD = "$polymorphic"
 def _add_symbol_link(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.__class__.FLAGS
-    assert isinstance(def_node,
-                      cwast.GLOBAL_SYM_DEF_NODES +
-                      cwast.LOCAL_SYM_DEF_NODES), f"unpexpected node: {def_node}"
+    assert (cwast.NF.GLOBAL_SYM_DEF in def_node.__class__.FLAGS or
+            cwast.NF.LOCAL_SYM_DEF in def_node.__class__.FLAGS), f"unpexpected node: {def_node}"
     id_node.x_symbol = def_node
 
 

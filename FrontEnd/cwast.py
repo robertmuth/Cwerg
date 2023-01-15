@@ -14,11 +14,10 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
+
 ############################################################
 # Enums
 ############################################################
-
-
 @enum.unique
 class BASE_TYPE_KIND(enum.Enum):
     INVALID = 0
@@ -524,11 +523,11 @@ def NodeCommon(cls):
     cls.FIELDS = [field for field, type in cls.__annotations__.items()
                   if not field.startswith("x_")]
     return cls
+
+
 ############################################################
 # Comment
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class Comment:
@@ -548,11 +547,10 @@ class Comment:
     def __str__(self):
         return f"{_NAME(self)} {self.comment}"
 
+
 ############################################################
 # Identifier
 ############################################################
-
-
 @enum.unique
 class ID_KIND(enum.Enum):
     INVALID = 0
@@ -609,8 +607,6 @@ class TypeAuto:
 ############################################################
 # TypeNodes
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class FunParam:
@@ -814,8 +810,6 @@ class TypeSum:
 ############################################################
 # Val Nodes
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class ValAuto:
@@ -1063,8 +1057,6 @@ class ValRec:
 ############################################################
 # ExprNode
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class ExprDeref:
@@ -1705,11 +1697,10 @@ class StmtAssignment:
     def __str__(self):
         return f"{_NAME(self)} {self.lhs} = {self.expr}"
 
+
 ############################################################
 # Definitions
 ############################################################
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class RecField:  #
@@ -2165,17 +2156,9 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 }
 
 
-LOCAL_SYM_DEF_NODES = tuple(
-    n for n in ALL_NODES if NF.LOCAL_SYM_DEF in n.FLAGS)
-
-GLOBAL_SYM_DEF_NODES = tuple(
-    n for n in ALL_NODES if NF.GLOBAL_SYM_DEF in n.FLAGS)
-
 ############################################################
 #
 ############################################################
-
-
 def VisitAstRecursively(node, visitor):
     if visitor(node):
         return
@@ -2245,11 +2228,11 @@ def CloneNodeRecursively(node):
             out = [CloneNodeRecursively(cc) for cc in getattr(node, c)]
             setattr(clone, c, out)
     return clone
-############################################################
-#
-############################################################
 
 
+############################################################
+# AST Checker
+############################################################
 class CheckASTContext:
     def __init__(self):
         self.toplevel = True
@@ -2301,6 +2284,8 @@ def CheckAST(node, parent, ctx: CheckASTContext):
                 CheckAST(cc, node, ctx)
 
 
+##########################################################################################
+# Doc Generation
 ##########################################################################################
 PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
 
@@ -2407,9 +2392,9 @@ def GenerateDocumentation(fout):
                       MOD_PARAM_KIND, fout)
     _RenderKindSimple("MacroParam Types",
                       MACRO_PARAM_KIND, fout)
+
+
 ##########################################################################################
-
-
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARN)
