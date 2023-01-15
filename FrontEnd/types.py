@@ -103,8 +103,6 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
     else:
         return actual in expected_children
 
-    return actual_children.issubset(expected_children)
-
 
 def is_compatible_for_defvar(actual: CanonType, expected: CanonType, is_mut) -> bool:
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeArray):

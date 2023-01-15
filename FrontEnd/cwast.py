@@ -7,11 +7,9 @@
 
 import sys
 import re
-import inspect
 import dataclasses
 import logging
 import enum
-import string
 from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
@@ -265,18 +263,74 @@ class NFD:
     extra: Any = None
 
 
-PARAMS_NODES = Union["Comment", "FunParam"]
-BODY_MOD_NODES = Union["Comment", "DefFun", "DefRec", "DefEnum", "DefVar"]
-PARAMS_MOD_NODES = Union["Comment", "ModParam"]
-PARAMS_MACRO_NODES = Union["Comment", "MacroParam"]
-BODY_NODES = Union["Comment", "StmtDefer", "StmtIf", "StmtBreak",
-                   "StmtContinue", "StmtReturn", "StmtExpr",
-                   "StmtBlock", "StmtCond"]
-TYPES_NODES = Union["Comment", "TypeBase",
-                    "TypeSlice", "TypeArray", "TypePtr", "TypeFun"]
-ITEMS_NODES = Union["Comment", "EnumVal"]
-INITS_ARRAY_NODES = Union["Comment", "IndexVal"]
-INITS_REC_NODES = Union["Comment", "FieldVal"]
+NODES_PARAMS = ("Comment", "FunParam")
+NODES_PARAMS_T = Union[NODES_PARAMS]
+
+NODES_BODY_MOD = ("Comment", "DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType", "DefGlobal",
+                  "StmtStaticAssert", "Import")
+NODES_BODY_MOD_T = Union[NODES_BODY_MOD]
+
+NODES_PARAMS_MOD = ("Comment", "ModParam")
+NODES_PARAMS_MOD_T = Union[NODES_PARAMS_MOD]
+
+NODES_PARAMS_MACRO = ("Comment", "MacroParam")
+NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
+
+NODES_BODY = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
+              "StmtContinue", "StmtReturn", "StmtExpr", "StmtCompoundAssignment",
+              "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", "StmtAssignment")
+NODES_BODY_T = Union[NODES_BODY]
+
+NODES_BODY_MACRO = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
+                    "StmtContinue", "StmtReturn", "StmtExpr",
+                    "StmtBlock", "StmtCond")
+NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
+
+NODES_TYPES = ("Comment", "TypeBase",
+               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum")
+NODES_TYPES_T = Union[NODES_TYPES]
+
+NODES_TYPES_OR_AUTO = ("Comment", "TypeBase",
+                       "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeAuto")
+NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
+
+NODES_ITEMS = ("Comment", "EnumVal")
+NODES_ITEMS_T = Union[NODES_ITEMS]
+
+NODES_INITS_ARRAY = ("Comment", "IndexVal")
+NODES_INITS_ARRAY_T = Union[NODES_INITS_ARRAY]
+
+NODES_INITS_REC = ("Comment", "FieldVal")
+NODES_INITS_REC_T = Union[NODES_INITS_REC]
+
+NODES_FIELDS = ("Comment", "RecField")
+NODES_FIELDS_T = Union[NODES_FIELDS]
+
+NODES_CASES = ("Comment", "Case")
+NODES_CASES_T = Union[NODES_CASES]
+
+NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
+              "ValVoid", "ValArray", "ValString", "ValRec",
+              #
+              "MacroInvoke",
+              #
+              "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
+              "ExprField", "ExprCall", "ExprParen",
+              "Expr1", "Expr2", "Expr3",
+              "ExprLen", "ExprSizeof", "ExprOffsetof", "ExprStmt",
+              "ExprIs", "ExprAs", "ExprAsNot")
+NODES_EXPR_T = Union[NODES_EXPR]
+
+NODES_COND = ("ValFalse", "ValTrue",
+              #
+              "Id", "ExprDeref", "ExprIndex",
+              "ExprField", "ExprCall", "ExprParen",
+              "Expr1", "Expr2", "Expr3",
+              "ExprStmt", "ExprIs")
+NODES_COND_T = Union[NODES_COND]
+
+NODES_LHS = ("Id", "ExprDeref", "ExprIndex", "ExprField", "ExprCall")
+NODES_LHS_T = Union[NODES_LHS]
 
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
@@ -316,63 +370,60 @@ ALL_FIELDS = [
     NFD(NFK.KIND,  "macro_param_kind",
         "see MacroParam Kind below",  MACRO_PARAM_KIND),
     #
-    NFD(NFK.LIST, "params", "function parameters and/or comments", PARAMS_NODES),
-    NFD(NFK.LIST, "params_mod", "module template parameters", PARAMS_MOD_NODES),
-    NFD(NFK.LIST, "params_macro", "macro parameters", PARAMS_MACRO_NODES),
-    NFD(NFK.LIST, "args", "function call arguments", "TBD"),
-    NFD(NFK.LIST, "items", "enum items and/or comments", ITEMS_NODES),
-    NFD(NFK.LIST, "fields", "record fields and/or comments", TYPES_NODES),
-    NFD(NFK.LIST, "types", "union types", TYPES_NODES),
+    # TODO: fix all the None below
+    NFD(NFK.LIST, "params", "function parameters and/or comments", NODES_PARAMS),
+    NFD(NFK.LIST, "params_mod", "module template parameters", NODES_PARAMS_MOD),
+    NFD(NFK.LIST, "params_macro", "macro parameters", NODES_PARAMS_MACRO),
+    NFD(NFK.LIST, "args", "function call arguments", None),
+    NFD(NFK.LIST, "items", "enum items and/or comments", NODES_ITEMS),
+    NFD(NFK.LIST, "fields", "record fields and/or comments", NODES_FIELDS),
+    NFD(NFK.LIST, "types", "union types", NODES_TYPES),
     NFD(NFK.LIST, "inits_array",
-        "array initializers and/or comments", INITS_ARRAY_NODES),
-    NFD(NFK.LIST, "inits_rec", "record initializers and/or comments", INITS_REC_NODES),
+        "array initializers and/or comments", NODES_INITS_ARRAY),
+    NFD(NFK.LIST, "inits_rec", "record initializers and/or comments", NODES_INITS_REC),
     #
     NFD(NFK.LIST, "body_mod",
-        "toplevel module definitions and/or comments", BODY_MOD_NODES),
-    NFD(NFK.LIST, "body", "new scope: statement list and/or comments", BODY_NODES),
+        "toplevel module definitions and/or comments", NODES_BODY_MOD),
+    NFD(NFK.LIST, "body", "new scope: statement list and/or comments", NODES_BODY),
     NFD(NFK.LIST, "body_t",
-        "new scope: statement list and/or comments for true branch", BODY_NODES),
+        "new scope: statement list and/or comments for true branch", NODES_BODY),
     NFD(NFK.LIST, "body_f",
-        "new scope: statement list and/or comments for false branch", BODY_NODES),
-    NFD(NFK.LIST, "body_for", "statement list for macro_loop", BODY_NODES),
+        "new scope: statement list and/or comments for false branch", NODES_BODY),
+    NFD(NFK.LIST, "body_for", "statement list for macro_loop", NODES_BODY),
     NFD(NFK.LIST, "body_macro",
-        "new scope: macro statments/expression", BODY_MOD_NODES),
-    NFD(NFK.LIST, "cases", "list of case statements"),
+        "new scope: macro statments/expression", None),
+    NFD(NFK.LIST, "cases", "list of case statements", NODES_CASES),
 
     #
-    NFD(NFK.NODE, "init_index", "initializer index or empty (empty mean next index)"),
-    NFD(NFK.NODE, "type", "type expression"),
-    NFD(NFK.NODE, "type_or_auto", "type expression"),
-    NFD(NFK.NODE, "result", "return type"),
-    NFD(NFK.NODE, "size", "compile-time constant size"),
-    NFD(NFK.NODE, "expr_size", "expression determining the size or auto"),
-    NFD(NFK.NODE, "expr_index", "expression determining the index to be accessed"),
-    NFD(NFK.NODE, "expr", "expression"),
-    NFD(NFK.NODE, "cond", "conditional expression must evaluate to a boolean"),
-    NFD(NFK.NODE, "expr_t", "expression (will only be evaluated if cond == true)"),
-    NFD(NFK.NODE, "expr_f", "expression (will only be evaluated if cond == false)"),
-    NFD(NFK.NODE, "expr1", "left operand expression"),
-    NFD(NFK.NODE, "expr2", "righ operand expression"),
-    NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)"),
-    NFD(NFK.NODE, "pointer", "pointer component of slice"),
-    NFD(NFK.NODE, "range", "range expression"),
-    NFD(NFK.NODE, "container", "array and slice"),
-    NFD(NFK.NODE, "callee", "expression evaluating to the function to be called"),
-    NFD(NFK.NODE, "start", "desired start of slice (default 0)"),
-    NFD(NFK.NODE, "begin_or_auto", "range begin"),
-    NFD(NFK.NODE, "end", "range end"),
-    NFD(NFK.NODE, "step_or_auto", "range step"),
-    NFD(NFK.NODE, "width", "desired width of slice (default: length of container)"),
-    NFD(NFK.NODE, "value", ""),
-    NFD(NFK.NODE, "value_or_auto", "enum constant or auto"),
-    NFD(NFK.NODE, "value_or_undef", ""),
-    NFD(NFK.NODE, "lhs", "l-value expression"),
-    NFD(NFK.NODE, "initial_or_undef", "initializer"),
+    NFD(NFK.NODE, "init_index",
+        "initializer index or empty (empty mean next index)", None),
+    NFD(NFK.NODE, "type", "type expression", NODES_TYPES),
+    NFD(NFK.NODE, "type_or_auto", "type expression", NODES_TYPES_OR_AUTO),
+    NFD(NFK.NODE, "result", "return type", None),
+    NFD(NFK.NODE, "size", "compile-time constant size", None),
+    NFD(NFK.NODE, "expr_size", "expression determining the size or auto", None),
+    NFD(NFK.NODE, "expr_index",
+        "expression determining the index to be accessed", None),
+    NFD(NFK.NODE, "expr", "expression", NODES_EXPR),
+    NFD(NFK.NODE, "cond", "conditional expression must evaluate to a boolean", NODES_COND),
+    NFD(NFK.NODE, "expr_t",
+        "expression (will only be evaluated if cond == true)", NODES_EXPR),
+    NFD(NFK.NODE, "expr_f",
+        "expression (will only be evaluated if cond == false)", NODES_EXPR),
+    NFD(NFK.NODE, "expr1", "left operand expression", NODES_EXPR),
+    NFD(NFK.NODE, "expr2", "righ operand expression", NODES_EXPR),
+    NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)", NODES_EXPR),
+    NFD(NFK.NODE, "pointer", "pointer component of slice", None),
+    NFD(NFK.NODE, "container", "array and slice", None),
+    NFD(NFK.NODE, "callee", "expression evaluating to the function to be called", None),
+    NFD(NFK.NODE, "width", "desired width of slice (default: length of container)", None),
+    NFD(NFK.NODE, "value", "", NODES_EXPR),
+    NFD(NFK.NODE, "value_or_auto", "enum constant or auto", None),
+    NFD(NFK.NODE, "value_or_undef", "", None),
+    NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
+    NFD(NFK.NODE, "initial_or_undef", "initializer", None),
     NFD(NFK.NODE, "default_or_undef",
-        "value if type narrowing fail or trap if undef"),
-    NFD(NFK.NODE, "catch",
-        "handler for type mismatch (implictly terminated by trap)"),
-
+        "value if type narrowing fail or trap if undef", None),
 ]
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
@@ -385,8 +436,6 @@ OPTIONAL_FIELDS = {
     "expr_ret": lambda srcloc: ValVoid(x_srcloc=srcloc),
     "width": lambda srcloc: ValAuto(x_srcloc=srcloc),
     "start": lambda srcloc:  ValAuto(x_srcloc=srcloc),
-    "begin_or_auto": lambda srcloc:  ValNum("0", x_srcloc=srcloc),
-    "step_or_auto": lambda srcloc:  ValNum("1", x_srcloc=srcloc),
     "value_or_auto": lambda srcloc: ValAuto(x_srcloc=srcloc),
     "target": lambda srcloc: "",
     "path": lambda srcloc: "",
@@ -555,8 +604,6 @@ class TypeAuto:
 ############################################################
 # TypeNodes
 ############################################################
-TYPE_NODE = Union["Id", "TypeBase",
-                  "TypeSum", "TypeSlice", "TypeArray", "TypeFun"]
 
 
 @NodeCommon
@@ -570,7 +617,7 @@ class FunParam:
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: str      # empty str means no var specified (fun proto type)
-    type: TYPE_NODE
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -651,7 +698,7 @@ class TypePtr:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     mut: bool   # pointee is mutable
-    type: TYPE_NODE
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -676,7 +723,7 @@ class TypeSlice:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     mut: bool  # slice is mutable
-    type: TYPE_NODE
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -698,8 +745,8 @@ class TypeArray:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    size: "EXPR_NODE"      # must be const and unsigned
-    type: TYPE_NODE
+    size: "NODES_EXPR_T"      # must be const and unsigned
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -721,8 +768,8 @@ class TypeFun:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    params: List[PARAMS_NODES]
-    result: TYPE_NODE
+    params: List[NODES_PARAMS_T]
+    result: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -746,7 +793,7 @@ class TypeSum:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    types: List[TYPES_NODES]
+    types: List[NODES_TYPES_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -762,9 +809,6 @@ class TypeSum:
 ############################################################
 # Val Nodes
 ############################################################
-ValNode = Union["ValFalse", "ValTrue", "ValNum", "ValUndef",
-                "ValVoid", "ValArray", "ValString",
-                "ValRec"]
 
 
 @NodeCommon
@@ -885,8 +929,8 @@ class IndexVal:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    value_or_undef: "EXPR_NODE"
-    init_index: "EXPR_NODE"  # compile time constant
+    value_or_undef: "NODES_EXPR_T"
+    init_index: "NODES_EXPR_T"  # compile time constant
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -908,7 +952,7 @@ class FieldVal:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
     #
-    value: "EXPR_NODE"
+    value: "NODES_EXPR_T"
     init_field: str
     #
     x_srcloc: Optional[Any] = None
@@ -931,9 +975,9 @@ class ValArray:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    type: TYPE_NODE
-    expr_size: Union["EXPR_NODE", ValAuto]  # must be constant
-    inits_array: List[INITS_ARRAY_NODES]
+    type: NODES_TYPES_T
+    expr_size: Union["NODES_EXPR_T", ValAuto]  # must be constant
+    inits_array: List[NODES_INITS_ARRAY_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -954,8 +998,8 @@ class ValSlice:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    pointer: "EXPR_NODE"
-    expr_size: "EXPR_NODE"
+    pointer: "NODES_EXPR_T"
+    expr_size: "NODES_EXPR_T"
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -964,7 +1008,7 @@ class ValSlice:
     def __str__(self): return f"{_NAME(self)} {self.string}"
 
 
-INITS_REC_NODES = Union[Comment, FieldVal]
+NODES_INITS_REC_T = Union[Comment, FieldVal]
 
 
 @NodeCommon
@@ -999,8 +1043,8 @@ class ValRec:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    type: TYPE_NODE
-    inits_rec: List[INITS_REC_NODES]
+    type: NODES_TYPES_T
+    inits_rec: List[NODES_INITS_REC_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1014,10 +1058,6 @@ class ValRec:
 ############################################################
 # ExprNode
 ############################################################
-EXPR_NODE = Union[ValNode, "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
-                  "ExprField", "ExprCall", "ExprParen",
-                  "Expr1", "Expr2", "Expr3",
-                  "ExprLen", "ExprSizeof", "ExprStmt"]
 
 
 @NodeCommon
@@ -1028,7 +1068,7 @@ class ExprDeref:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE  # must be of type AddrOf
+    expr: NODES_EXPR_T  # must be of type AddrOf
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1051,7 +1091,7 @@ class ExprAddrOf:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     mut: bool
-    expr: EXPR_NODE
+    expr: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1071,8 +1111,8 @@ class ExprCall:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     polymorphic: bool
-    callee: EXPR_NODE
-    args: List[EXPR_NODE]
+    callee: NODES_EXPR_T
+    args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1091,7 +1131,7 @@ class ExprParen:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE
+    expr: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1107,7 +1147,7 @@ class ExprField:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
     #
-    container: EXPR_NODE  # must be of type rec
+    container: NODES_EXPR_T  # must be of type rec
     field: str
     #
     x_srcloc: Optional[Any] = None
@@ -1128,7 +1168,7 @@ class Expr1:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     unary_expr_kind: UNARY_EXPR_KIND
-    expr: EXPR_NODE
+    expr: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1147,8 +1187,8 @@ class Expr2:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     binary_expr_kind: BINARY_EXPR_KIND
-    expr1: EXPR_NODE
-    expr2: EXPR_NODE
+    expr1: NODES_EXPR_T
+    expr2: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1167,9 +1207,9 @@ class Expr3:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    cond: EXPR_NODE  # must be of type  bool
-    expr_t: EXPR_NODE
-    expr_f: EXPR_NODE
+    cond: NODES_EXPR_T  # must be of type  bool
+    expr_t: NODES_EXPR_T
+    expr_f: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1190,8 +1230,8 @@ class ExprIndex:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    container: EXPR_NODE  # must be of type slice or array
-    expr_index: EXPR_NODE  # must be of int type
+    container: NODES_EXPR_T  # must be of type slice or array
+    expr_index: NODES_EXPR_T  # must be of int type
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1209,7 +1249,7 @@ class ExprLen:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    container: EXPR_NODE   # must be of type slice or array
+    container: NODES_EXPR_T   # must be of type slice or array
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1230,8 +1270,8 @@ class ExprIs:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1260,8 +1300,8 @@ class ExprAs:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1281,8 +1321,8 @@ class ExprAsNot:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1305,9 +1345,9 @@ class ExprTryAs:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
-    default_or_undef: Union[EXPR_NODE, ValUndef]
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
+    default_or_undef: Union[NODES_EXPR_T, ValUndef]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1329,8 +1369,8 @@ class ExprUnsafeCast:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1351,8 +1391,8 @@ class ExprBitCast:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr: EXPR_NODE
-    type: TYPE_NODE
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1369,7 +1409,7 @@ class ExprSizeof:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    type: TYPE_NODE
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1389,7 +1429,7 @@ class ExprOffsetof:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
     #
-    type: TYPE_NODE  # must be rec
+    type: NODES_TYPES_T  # must be rec
     field: str
     #
     x_srcloc: Optional[Any] = None
@@ -1412,7 +1452,7 @@ class ExprStmt:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    body: List[Any]  # new scope
+    body: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1427,10 +1467,6 @@ class ExprStmt:
 ############################################################
 
 
-EXPR_LHS = Union["Id", "ExprDeref", "ExprIndex", "ExprField",
-                 "ExprCall"]
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class StmtBlock:
@@ -1443,7 +1479,7 @@ class StmtBlock:
     FLAGS = NF(0)
     #
     label: str
-    body: List[BODY_NODES]  # new scope
+    body: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1463,7 +1499,7 @@ class StmtDefer:
     GROUP = GROUP.Statement
     FLAGS = NF(0)
     #
-    body:  List[BODY_NODES]  # new scope, must NOT contain RETURN
+    body:  List[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
     x_srcloc: Optional[Any] = None
 
@@ -1479,9 +1515,9 @@ class StmtIf:
     GROUP = GROUP.Statement
     FLAGS = NF(0)
     #
-    cond: EXPR_NODE        # must be of type bool
-    body_t: List[BODY_NODES]  # new scope
-    body_f: List[BODY_NODES]  # new scope
+    cond: NODES_EXPR_T        # must be of type bool
+    body_t: List[NODES_BODY_T]  # new scope
+    body_f: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1497,8 +1533,8 @@ class Case:
     GROUP = GROUP.Statement
     FLAGS = NF(0)
     #
-    cond: EXPR_NODE        # must be of type bool
-    body: List[BODY_NODES]  # new scope
+    cond: NODES_EXPR_T        # must be of type bool
+    body: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: Optional[Any] = None
 
@@ -1514,7 +1550,7 @@ class StmtCond:
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
     #
-    cases: List[Case]
+    cases: List[NODES_CASES_T]
     #
     x_srcloc: Optional[Any] = None
 
@@ -1572,7 +1608,7 @@ class StmtReturn:
     GROUP = GROUP.Statement
     FLAGS = NF.CONTROL_FLOW
     #
-    expr_ret: EXPR_NODE
+    expr_ret: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_target: Optional[Any] = None
@@ -1609,7 +1645,7 @@ class StmtStaticAssert:
     GROUP = GROUP.Statement
     FLAGS = NF.TOP_LEVEL
     #
-    cond: EXPR_NODE  # must be of type bool
+    cond: NODES_EXPR_T  # must be of type bool
     message: str     # should this be an expression?
     #
     x_srcloc: Optional[Any] = None
@@ -1641,8 +1677,8 @@ class StmtCompoundAssignment:
     FLAGS = NF.NONE
     #
     assignment_kind: ASSIGNMENT_KIND
-    lhs: EXPR_LHS
-    expr: EXPR_NODE
+    lhs: NODES_LHS_T
+    expr: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
@@ -1658,8 +1694,8 @@ class StmtAssignment:
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
     #
-    lhs: EXPR_LHS
-    expr: EXPR_NODE
+    lhs: NODES_LHS_T
+    expr: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
@@ -1684,8 +1720,8 @@ class RecField:  #
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     name: str
-    type: TYPE_NODE
-    initial_or_undef: Union["EXPR_NODE", ValUndef]    # must be const
+    type: NODES_TYPES_T
+    initial_or_undef: Union["NODES_EXPR_T", ValUndef]    # must be const
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1694,9 +1730,6 @@ class RecField:  #
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}: {self.type} = {self.initial_or_undef}"
-
-
-FIELDS_NODES = Union[Comment, RecField]
 
 
 @NodeCommon
@@ -1709,7 +1742,7 @@ class DefRec:
     #
     pub:  bool
     name: str
-    fields: List[FIELDS_NODES]
+    fields: List[NODES_FIELDS_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1752,7 +1785,7 @@ class DefEnum:
     pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
-    items: List[ITEMS_NODES]
+    items: List[NODES_ITEMS_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1777,7 +1810,7 @@ class DefType:
     pub:  bool
     wrapped: bool
     name: str
-    type: TYPE_NODE
+    type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1807,8 +1840,8 @@ class DefVar:
     #
     mut: bool
     name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
+    type_or_auto: NODES_TYPES_OR_AUTO_T
+    initial_or_undef: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1833,8 +1866,8 @@ class DefGlobal:
     pub: bool
     mut: bool
     name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
+    type_or_auto: NODES_TYPES_OR_AUTO_T
+    initial_or_undef: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1858,9 +1891,9 @@ class DefFun:
     extern: bool
     polymorphic: bool
     name: str
-    params: List[PARAMS_NODES]
-    result: TYPE_NODE
-    body: List[BODY_NODES]  # new scope
+    params: List[NODES_PARAMS_T]
+    result: NODES_TYPES_T
+    body: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1898,8 +1931,8 @@ class DefMod:
     FLAGS = NF.GLOBAL_SYM_DEF
     #
     name: str
-    params_mod: List[PARAMS_MOD_NODES]
-    body_mod: List[BODY_MOD_NODES]
+    params_mod: List[NODES_PARAMS_MOD_T]
+    body_mod: List[NODES_BODY_MOD_T]
     #
     x_srcloc: Optional[Any] = None
 
@@ -1950,7 +1983,7 @@ class ExprStringify:
     GROUP = GROUP.Expression
     FLAGS = NF.TO_BE_EXPANDED
     #
-    expr:  EXPR_NODE
+    expr:  NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
@@ -1992,8 +2025,8 @@ class MacroVar:
     #
     mut: bool
     name: str
-    type_or_auto: Union[TYPE_NODE, TypeAuto]
-    initial_or_undef: EXPR_NODE
+    type_or_auto: NODES_TYPES_OR_AUTO_T
+    initial_or_undef: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
@@ -2029,7 +2062,7 @@ class MacroListArg:
     GROUP = GROUP.Macro
     FLAGS = NF(0)
     #
-    args: List[EXPR_NODE]
+    args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None
 
@@ -2060,7 +2093,7 @@ class MacroInvoke:
     FLAGS = NF.TO_BE_EXPANDED
     #
     name: str
-    args: List[EXPR_NODE]
+    args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None
 
@@ -2084,7 +2117,7 @@ class DefMacro:
     pub: bool
     #
     name: str
-    params_macro: List[PARAMS_MACRO_NODES]
+    params_macro: List[NODES_PARAMS_MACRO_T]
     gen_ids: List[str]
     body_macro: List[Any]  # new scope
     #
@@ -2225,15 +2258,22 @@ def _CheckAST(node, parent, ctx: _CheckASTContext):
             assert i.startswith("$")
         _CheckMacroRecursively(node, set())
 
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            permitted = nfd.extra
+            if permitted and not ctx.in_macro:
+                assert child.__class__.__name__ in permitted, f"{_NAME(node)} [{f}]: bad child {child}"
             ctx.toplevel = isinstance(node, DefMod)
             ctx.in_fun |= isinstance(node, DefFun)
             ctx.in_macro |= isinstance(node, DefMacro)
-            _CheckAST(getattr(node, c), node, ctx)
+            _CheckAST(child, node, ctx)
         elif nfd.kind is NFK.LIST:
-            for cc in getattr(node, c):
+            permitted = nfd.extra
+            for cc in getattr(node, f):
+                if permitted and not ctx.in_macro:
+                    assert cc.__class__.__name__ in permitted, f"{_NAME(node)} [{f}]: bad child {_NAME(cc)}"
                 ctx.toplevel = isinstance(node, DefMod)
                 ctx.in_fun |= isinstance(node, DefFun)
                 ctx.in_macro |= isinstance(node, DefMacro)
