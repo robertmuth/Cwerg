@@ -58,7 +58,7 @@ class SymTab:
     def AddSymWithDupCheck(self, name, node):
         prev = self._all_syms.get(name)
         if prev is not None:
-            cwast.CompilerError(node.x_srcloc,
+            parse.CompilerError(node.x_srcloc,
                                 f"Duplicate symbol name for {node} previously defined by {prev}")
         self._all_syms[name] = node
 
@@ -142,7 +142,7 @@ class SymTab:
             self._enum_syms[name] = node
         elif isinstance(node, cwast.DefType):
             if name in self._type_syms:
-                cwast.CompilerError(
+                parse.CompilerError(
                     node.x_srcloc, f"duplicate toplevel symbol {name}")
             self._type_syms[name] = node
         elif isinstance(node, cwast.Import):
@@ -150,7 +150,7 @@ class SymTab:
             assert name not in self._mod_syms
             self._mod_syms[name] = mod_map[node.name]
         else:
-            cwast.CompilerError(
+            parse.CompilerError(
                 node.x_srcloc, f"Unexpected toplevel node {node}")
         self.AddSymWithDupCheck(name, node)
 
@@ -178,7 +178,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
             def_node = symtab.resolve_sym(
                 node.name.split("/"), symtab_map, False)
             if def_node is None:
-                cwast.CompilerError(
+                parse.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
             _add_symbol_link(node, def_node)
 
@@ -202,7 +202,7 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
     macro = sym_tab.resolve_macro(
         node.name.split("/"), symtab_map, False)
     if macro is None:
-        cwast.CompilerError(
+        parse.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)

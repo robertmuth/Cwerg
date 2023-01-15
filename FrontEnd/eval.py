@@ -362,7 +362,7 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
                 if def_node.x_value is None:
                     if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
-                        cwast.CompilerError(def_node.x_srcloc,
+                        parse.CompilerError(def_node.x_srcloc,
                                             f"expected const node: {node} inside: {parent}")
         elif isinstance(node, cwast.ValUndef):
             pass
@@ -370,7 +370,7 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
             if node.x_value is None:
                 if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                     # TODO: we do not track constant addresses yet
-                    cwast.CompilerError(
+                    parse.CompilerError(
                         node.x_srcloc, f"expected const node: {node} inside {parent}")
 
     # top level definition

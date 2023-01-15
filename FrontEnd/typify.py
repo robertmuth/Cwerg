@@ -378,7 +378,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
                 node.callee, tc, types.NO_TYPE, ctx)
             assert isinstance(cstr, cwast.TypeFun)
             if len(cstr.params) != len(node.args):
-                cwast.CompilerError(node.x_srcloc,
+                parse.CompilerError(node.x_srcloc,
                                     f"number of args does not match for call to {node.callee}")
             for p, a in zip(cstr.params, node.args):
                 _TypifyNodeRecursively(a, tc, p.type, ctx)
