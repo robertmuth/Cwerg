@@ -160,9 +160,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
     if cstr is not None:
         # has been typified already
         return cstr
-    if isinstance(node, cwast.Comment):
-        return types.NO_TYPE
-    elif isinstance(node, cwast.Id):
+    if isinstance(node, cwast.Id):
         # this case is why we need the sym_tab
         def_node = node.x_symbol
         # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
@@ -181,7 +179,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return _AnnotateType(tc, node, cstr)
     elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
         params = [_TypifyNodeRecursively(p, tc, types.NO_TYPE, ctx)
-                  for p in node.params if not isinstance(p, cwast.Comment)]
+                  for p in node.params]
         result = _TypifyNodeRecursively(
             node.result, tc, types.NO_TYPE, ctx)
         cstr = tc.insert_fun_type(params, result)
@@ -221,8 +219,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             f"{ctx.mod_name}/{node.name}", node)
         # base_type = corpus.insert_base_type(node.base_type_kind)
         for f in node.items:
-            if not isinstance(f, cwast.Comment):
-                _TypifyNodeRecursively(f, tc, cstr, ctx)
+            _TypifyNodeRecursively(f, tc, cstr, ctx)
         return _AnnotateType(tc, node, cstr)
     elif isinstance(node, cwast.DefType):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
@@ -667,9 +664,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
 
 def _TypeVerifyNodeRecursively(node, corpus):
     def visitor(node):
-        if isinstance(node, (cwast.Comment, cwast.DefMacro)):
-            # do not recurse into macros/comments
-            return True
         logger.info(f"VERIFYING {node}")
 
         if (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or
@@ -700,13 +694,12 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
-            if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
-                cstr = _TypifyNodeRecursively(
-                    node, tc, types.NO_TYPE, ctx)
-                if isinstance(node, cwast.DefFun) and node.polymorphic:
-                    assert isinstance(cstr, cwast.TypeFun)
-                    poly_map.Register(node)
+            # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
+            cstr = _TypifyNodeRecursively(
+                node, tc, types.NO_TYPE, ctx)
+            if isinstance(node, cwast.DefFun) and node.polymorphic:
+                assert isinstance(cstr, cwast.TypeFun)
+                poly_map.Register(node)
 
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.name, poly_map)

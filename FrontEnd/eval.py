@@ -14,7 +14,7 @@ from FrontEnd import types
 from FrontEnd import typify
 from FrontEnd import parse
 
-from Util.parse import EscapedStringToBytes 
+from Util.parse import EscapedStringToBytes
 
 
 logger = logging.getLogger(__name__)
@@ -353,8 +353,6 @@ def EvalRecursively(node) -> bool:
 
 
 def _VerifyEvalRecursively(node, parent, is_const) -> bool:
-    if isinstance(node, (cwast.Comment, cwast.DefMacro)):
-        return
     # logger.info(f"EVAL-VERIFY: {node}")
 
     if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
@@ -412,8 +410,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
         seen_change = False
         for mod in mod_topo_order:
             for node in mod.body_mod:
-                if not isinstance(node, (cwast.Comment, cwast.DefMacro)):
-                    seen_change |= EvalRecursively(node)
+                seen_change |= EvalRecursively(node)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
