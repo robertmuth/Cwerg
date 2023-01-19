@@ -263,7 +263,7 @@ def ReadModsFromStream(fp) -> List[cwast.DefMod]:
                 cwast.CompilerError(stream.srcloc(), f"expect start of new node, got '{t}']") 
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
-            cwast.CheckAST(sexpr, None, cwast.CheckASTContext())
+            cwast.CheckAST(sexpr, None, cwast.CheckASTContext(allow_macros=True, allow_comments=True))
             asts.append(sexpr)
             failure = False
     except StopIteration:

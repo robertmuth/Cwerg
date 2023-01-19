@@ -2281,6 +2281,7 @@ def StripNodes(node, cls):
         else:
             return None
     MaybeReplaceAstRecursively(node, replacer)
+    EliminateEphemeralsRecursively(node)
 
 ############################################################
 # AST Checker
@@ -2291,7 +2292,9 @@ def CompilerError(srcloc, msg):
 
 
 class CheckASTContext:
-    def __init__(self):
+    def __init__(self, allow_comments, allow_macros):
+        self.allow_comments = allow_comments
+        self.allow_macros = allow_macros
         self.toplevel = True
         self.in_fun = False
         self.in_macro = False
@@ -2314,7 +2317,10 @@ def CheckAST(node, parent, ctx: CheckASTContext):
         assert ctx.in_macro, f"only allowed in macros: {node}"
     if node.GROUP is GROUP.Ephemeral:
         assert ctx.in_macro, f"only allowed in macros: {node}"
+    if isinstance(node, Comment):
+        assert ctx.allow_comments
     if isinstance(node, DefMacro):
+        assert ctx.allow_macros
         for p in node.params_macro:
             assert p.name.startswith("$")
         for i in node.gen_ids:
