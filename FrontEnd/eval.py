@@ -299,6 +299,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, node.expr.x_value)
             return True
         return False
+    elif isinstance(node, cwast.ExprTryAs):
+        # TODO: we can do better here
+        return False
     elif isinstance(node, cwast.ExprAsNot):
         # TODO: we can do better here
         return False
@@ -362,7 +365,7 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
                 if def_node.x_value is None:
                     if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
-                        parse.CompilerError(def_node.x_srcloc,
+                        cwast.CompilerError(def_node.x_srcloc,
                                             f"expected const node: {node} inside: {parent}")
         elif isinstance(node, cwast.ValUndef):
             pass
@@ -370,7 +373,7 @@ def _VerifyEvalRecursively(node, parent, is_const) -> bool:
             if node.x_value is None:
                 if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                     # TODO: we do not track constant addresses yet
-                    parse.CompilerError(
+                    cwast.CompilerError(
                         node.x_srcloc, f"expected const node: {node} inside {parent}")
 
     # top level definition
@@ -425,7 +428,7 @@ if __name__ == "__main__":
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, type_corpus)

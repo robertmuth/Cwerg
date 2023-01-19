@@ -378,7 +378,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
                 node.callee, tc, types.NO_TYPE, ctx)
             assert isinstance(cstr, cwast.TypeFun)
             if len(cstr.params) != len(node.args):
-                parse.CompilerError(node.x_srcloc,
+                cwast.CompilerError(node.x_srcloc,
                                     f"number of args does not match for call to {node.callee}")
             for p, a in zip(cstr.params, node.args):
                 _TypifyNodeRecursively(a, tc, p.type, ctx)
@@ -725,7 +725,7 @@ if __name__ == "__main__":
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     tc = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     DecorateASTWithTypes(mod_topo_order, tc)

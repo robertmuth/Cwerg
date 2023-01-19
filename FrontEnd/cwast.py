@@ -277,7 +277,7 @@ NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
 
 NODES_BODY = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
               "StmtContinue", "StmtReturn", "StmtExpr", "StmtCompoundAssignment",
-              "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", "StmtAssignment")
+              "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", "StmtAssignment", "StmtTrap")
 NODES_BODY_T = Union[NODES_BODY]
 
 NODES_BODY_MACRO = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
@@ -1340,7 +1340,7 @@ class ExprTryAs:
     """
     ALIAS = "tryas"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -1348,6 +1348,7 @@ class ExprTryAs:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr} {self.type} {self.default_or_undef}"
@@ -2233,6 +2234,11 @@ def CloneNodeRecursively(node):
 ############################################################
 # AST Checker
 ############################################################
+def CompilerError(srcloc, msg):
+    print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
+    assert False
+
+
 class CheckASTContext:
     def __init__(self):
         self.toplevel = True
@@ -2268,7 +2274,9 @@ def CheckAST(node, parent, ctx: CheckASTContext):
             child = getattr(node, f)
             permitted = nfd.extra
             if permitted and not ctx.in_macro:
-                assert child.__class__.__name__ in permitted, f"{_NAME(node)} [{f}]: bad child {child}"
+                if child.__class__.__name__ not in permitted:
+                    CompilerError(
+                        node.x_srcloc, f"{_NAME(node)} [{f}]: bad child {child}")
             ctx.toplevel = isinstance(node, DefMod)
             ctx.in_fun |= isinstance(node, DefFun)
             ctx.in_macro |= isinstance(node, DefMacro)

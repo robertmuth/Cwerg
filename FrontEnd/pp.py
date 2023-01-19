@@ -128,12 +128,11 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     mods = parse.ReadModsFromStream(sys.stdin)
 
-    if 0:
-        mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
-        symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
-        type_corpus = types.TypeCorpus(
-            cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-        typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
-        eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
+    type_corpus = types.TypeCorpus(
+        cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+    typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+    eval.DecorateASTWithPartialEvaluation(mod_topo_order)
     for mod in mods:
         PrettyPrint(mod)

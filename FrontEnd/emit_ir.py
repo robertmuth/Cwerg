@@ -322,7 +322,7 @@ if __name__ == "__main__":
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     type_corpus: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, type_corpus)

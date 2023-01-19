@@ -58,7 +58,7 @@ class SymTab:
     def AddSymWithDupCheck(self, name, node):
         prev = self._all_syms.get(name)
         if prev is not None:
-            parse.CompilerError(node.x_srcloc,
+            cwast.CompilerError(node.x_srcloc,
                                 f"Duplicate symbol name for {node} previously defined by {prev}")
         self._all_syms[name] = node
 
@@ -142,7 +142,7 @@ class SymTab:
             self._enum_syms[name] = node
         elif isinstance(node, cwast.DefType):
             if name in self._type_syms:
-                parse.CompilerError(
+                cwast.CompilerError(
                     node.x_srcloc, f"duplicate toplevel symbol {name}")
             self._type_syms[name] = node
         elif isinstance(node, cwast.Import):
@@ -150,7 +150,7 @@ class SymTab:
             assert name not in self._mod_syms
             self._mod_syms[name] = mod_map[node.name]
         else:
-            parse.CompilerError(
+            cwast.CompilerError(
                 node.x_srcloc, f"Unexpected toplevel node {node}")
         self.AddSymWithDupCheck(name, node)
 
@@ -202,7 +202,7 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
     macro = sym_tab.resolve_macro(
         node.name.split("/"), symtab_map, False)
     if macro is None:
-        parse.CompilerError(
+        cwast.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
@@ -350,7 +350,7 @@ def _SetTargetFieldRecursively(node):
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
-def DecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
+def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                            mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for mod in mod_topo_order:
@@ -439,6 +439,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
-    DecorateASTWithSymbols(mod_topo_order, mod_map)
+    MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:
         pp.PrettyPrint(ast)

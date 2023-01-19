@@ -267,7 +267,6 @@ class TypeCorpus:
         for f in node.fields:
             if not isinstance(f, cwast.RecField):
                 continue
-            print(f, f.type)
             t = f.type.x_type
             size = align(size, t.x_alignment)
             f.x_offset = size

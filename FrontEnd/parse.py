@@ -216,7 +216,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
             pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)
     if token != ")":
-        CompilerError(stream.srcloc(
+        cwast.CompilerError(stream.srcloc(
         ), f"while parsing {cls.__name__} expected node-end but got {token}")
     return cls(*pieces, x_srcloc=srcloc)
 
@@ -243,7 +243,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
         # This helps catching missing closing braces early
         if cwast.NF.TOP_LEVEL in cls.FLAGS:
             if parent_cls is not cwast.DefMod:
-                CompilerError(stream.srcloc(
+                cwast.CompilerError(stream.srcloc(
                 ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
 
         fields = [f for f, _ in cls.__annotations__.items()
@@ -259,7 +259,8 @@ def ReadModsFromStream(fp) -> List[cwast.DefMod]:
         while True:
             t = next(stream)
             failure = True
-            assert t == "("
+            if t != "(":
+                cwast.CompilerError(stream.srcloc(), f"expect start of new node, got '{t}']") 
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
             cwast.CheckAST(sexpr, None, cwast.CheckASTContext())
@@ -270,9 +271,7 @@ def ReadModsFromStream(fp) -> List[cwast.DefMod]:
     return asts
 
 
-def CompilerError(srcloc, msg):
-    print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
-    assert False
+
 
 
 if __name__ == "__main__":
