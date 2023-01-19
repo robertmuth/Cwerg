@@ -60,13 +60,14 @@
                 (macro_param $type EXPR) 
                 (macro_param $expr EXPR) 
                 (macro_param $catch_name ID) 
-                (macro_param $catch_body STMT_LIST)] [] [
-    (if (is $expr $type) [] [
-        (macro_let $catch_name auto (asnot $expr $type))
+                (macro_param $catch_body STMT_LIST)] [$eval] [
+    (macro_let $eval auto $expr) 
+    (if (is $eval $type) [] [
+        (macro_let $catch_name auto (asnot $eval $type))
         (macro_id $catch_body)
         (trap)
     ]) 
-    (macro_let $name (tryas $expr $type undef))
+    (macro_let $name $type (tryas $eval $type undef))
 ])
 
 
