@@ -12,6 +12,11 @@ from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 from FrontEnd import cwast
 from FrontEnd import parse
+from FrontEnd import symbolize
+from FrontEnd import typify
+from FrontEnd import types
+from FrontEnd import eval
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +37,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValNum):
         return node.number
     elif isinstance(node, cwast.ValVoid):
-        return "void"
+        return "void_val"
     elif isinstance(node, cwast.ValString):
         return node.string
     else:
@@ -121,14 +126,14 @@ def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    try:
-        stream = parse.ReadTokens(sys.stdin)
-        while True:
-            t = next(stream)
-            assert t == "(", f"expect start of new node, got '{t}']"
-            sexpr = parse.ReadSExpr(stream, None)
-            assert isinstance(sexpr, cwast.DefMod)
-            PrettyPrint(sexpr)
+    mods = parse.ReadModsFromStream(sys.stdin)
 
-    except StopIteration:
-        pass
+    if 0:
+        mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
+        symbolize.DecorateASTWithSymbols(mod_topo_order, mod_map)
+        type_corpus = types.TypeCorpus(
+            cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+        typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+        eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+    for mod in mods:
+        PrettyPrint(mod)

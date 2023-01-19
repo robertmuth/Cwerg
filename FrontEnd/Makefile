@@ -29,6 +29,8 @@ TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 tests_py: $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
+tests_pp_py: $(TESTS_PP)
+
 BUILTINS = TestData/builtin.cw 
 
 $(DIR)/%.cw.parse: TestData/%.cw
