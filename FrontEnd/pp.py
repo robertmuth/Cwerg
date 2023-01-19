@@ -4,9 +4,9 @@
 
 """
 
-import dataclasses
 import sys
 import logging
+import argparse
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -70,7 +70,7 @@ def GetNodeTypeAndFields(node, condense=True):
         return cls.__name__, fields
 
 
-def RenderRecursively(node, out, indent: str):
+def RenderRecursivelyToIR(node, out, indent: str):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -97,7 +97,7 @@ def RenderRecursively(node, out, indent: str):
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:
             line.append(" ")
-            RenderRecursively(val, out, indent)
+            RenderRecursivelyToIR(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
             if not val:
                 line.append(" []")
@@ -105,7 +105,7 @@ def RenderRecursively(node, out, indent: str):
                 line.append(" [")
                 for cc in val:
                     out.append([" " * (indent + 1)])
-                    RenderRecursively(cc, out, indent + 1)
+                    RenderRecursivelyToIR(cc, out, indent + 1)
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
@@ -118,21 +118,33 @@ def RenderRecursively(node, out, indent: str):
 
 def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
     out = [[""]]
-    RenderRecursively(mod, out, 0)
+    RenderRecursivelyToIR(mod, out, 0)
     for a in out:
         print("".join(a))
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='pretty_printer')
+    parser.add_argument(
+        '-mode', type=str, help='mode. one of: reformat, annotate', default="reformat")
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
+
     mods = parse.ReadModsFromStream(sys.stdin)
 
-    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
-    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
-    type_corpus = types.TypeCorpus(
-        cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
-    eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-    for mod in mods:
-        PrettyPrint(mod)
+    if args.mode == 'reformat':
+        for mod in mods:
+            PrettyPrint(mod)
+    elif args.mode == 'annotate':
+        mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
+        symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
+        type_corpus = types.TypeCorpus(
+            cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+        typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+        eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+        for mod in mods:
+            PrettyPrint(mod)
+    else:
+        assert False, f"unknown mode {args.mode}"
