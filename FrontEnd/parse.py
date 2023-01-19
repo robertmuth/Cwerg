@@ -182,7 +182,7 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
         elif token == "(":
             args.append(ReadSExpr(stream, parent_cls))
         elif token == "[":
-            args.append(cwast.MacroListArg(ReadNodeList(
+            args.append(cwast.EphemeralList(ReadNodeList(
                 stream, parent_cls), x_srcloc=srcloc))
         else:
             out = ExpandShortHand(token, stream.srcloc())

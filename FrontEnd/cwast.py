@@ -69,6 +69,7 @@ class GROUP(enum.IntEnum):
     Value = enum.auto()
     Expression = enum.auto()
     Macro = enum.auto()
+    Ephemeral = enum.auto()  # should only exist during intermediate steps and in macros
 
 
 @enum.unique
@@ -526,7 +527,7 @@ def NodeCommon(cls):
 
 
 ############################################################
-# Comment
+# Comment and Emphemeral
 ############################################################
 @NodeCommon
 @dataclasses.dataclass()
@@ -548,9 +549,26 @@ class Comment:
         return f"{_NAME(self)} {self.comment}"
 
 
+@NodeCommon
+@dataclasses.dataclass()
+class EphemeralList:
+    """Only exist temporarily after a replacement strep
+
+    will removed (flattened) in the next cleanup step
+    """
+    ALIAS = None
+    GROUP = GROUP.Macro
+    FLAGS = NF(0)
+    #
+    args: List[NODES_EXPR_T]
+    #
+    x_srcloc: Optional[Any] = None
+
 ############################################################
 # Identifier
 ############################################################
+
+
 @enum.unique
 class ID_KIND(enum.Enum):
     INVALID = 0
@@ -2045,21 +2063,6 @@ class MacroFor:
 
 @NodeCommon
 @dataclasses.dataclass()
-class MacroListArg:
-    """Container for macro arguments that consists of multiple node (e.g. list of statements)
-
-    """
-    ALIAS = "macro_list_arg"
-    GROUP = GROUP.Macro
-    FLAGS = NF(0)
-    #
-    args: List[NODES_EXPR_T]
-    #
-    x_srcloc: Optional[Any] = None
-
-
-@NodeCommon
-@dataclasses.dataclass()
 class MacroParam:
     """Macro Parameter"""
     ALIAS = "macro_param"
@@ -2219,6 +2222,42 @@ def MaybeReplaceAstRecursively(node, replacer):
                     MaybeReplaceAstRecursively(child, replacer)
 
 
+def _MaybeFlattenEphemeralList(nodes: List[Any]):
+    has_ephemeral =  False
+    for n in nodes:
+        if isinstance(n, EphemeralList):
+            has_ephemeral = True
+            break
+    if not has_ephemeral:
+        return nodes
+    out = []
+    for c in nodes:
+        if isinstance(c, EphemeralList):
+            out += _MaybeFlattenEphemeralList(c.args)
+        else:
+            out.append(c)
+    return out
+
+
+def EliminateEphemeralsRecursively(node):
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, c)
+            if isinstance(child, EphemeralList):
+                new_child = _MaybeFlattenEphemeralList([child])
+                assert len(new_child) == 1
+                setattr(node, c, new_child[0])
+            EliminateEphemeralsRecursively(child)
+        elif nfd.kind is NFK.LIST:
+            children = getattr(node, c)
+            new_children = _MaybeFlattenEphemeralList(children)
+            if new_children is not children:
+                 setattr(node, c, new_children)
+            for child in children:
+                EliminateEphemeralsRecursively(child)
+
+
 def CloneNodeRecursively(node):
     clone = dataclasses.replace(node)
     for c in node.__class__.FIELDS:
@@ -2230,6 +2269,18 @@ def CloneNodeRecursively(node):
             setattr(clone, c, out)
     return clone
 
+
+############################################################
+# Helpers
+############################################################
+
+def StripNodes(node, cls):
+    def replacer(n):
+        if isinstance(n, cls):
+            return EphemeralList([])
+        else:
+            return None
+    MaybeReplaceAstRecursively(node, replacer)
 
 ############################################################
 # AST Checker
@@ -2260,6 +2311,8 @@ def CheckAST(node, parent, ctx: CheckASTContext):
     if NF.TOP_LEVEL in node.FLAGS:
         assert ctx.toplevel, f"only allowed at toplevel: {node}"
     if NF.MACRO_BODY_ONLY in node.FLAGS:
+        assert ctx.in_macro, f"only allowed in macros: {node}"
+    if node.GROUP is GROUP.Ephemeral:
         assert ctx.in_macro, f"only allowed in macros: {node}"
     if isinstance(node, DefMacro):
         for p in node.params_macro:

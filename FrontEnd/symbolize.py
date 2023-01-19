@@ -225,7 +225,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
             if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 new_child = ExpandMacroOrMacroLike(
                     child, sym_tab, symtab_map, nesting, ctx)
-                assert not isinstance(new_child, cwast.MacroListArg)
+                assert not isinstance(new_child, cwast.EphemeralList)
                 setattr(node, c, new_child)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
@@ -238,7 +238,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
                 else:
                     exp = ExpandMacroOrMacroLike(
                         child, sym_tab, symtab_map, nesting, ctx)
-                    if isinstance(exp, cwast.MacroListArg):
+                    if isinstance(exp, cwast.EphemeralList):
                         for a in exp.args:
                             new_children.append(a)
                     else:

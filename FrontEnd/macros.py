@@ -61,17 +61,17 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     elif isinstance(node, cwast.MacroFor):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name_list)
-        assert isinstance(arg, cwast.MacroListArg)
+        assert isinstance(arg, cwast.EphemeralList)
         out = []
         for item in arg.args:
             ctx.RegisterSymbol(node.name, (cwast.MACRO_PARAM_KIND.EXPR, item))
             for b in node.body_for:
                 exp = ExpandMacroRecursively(b, ctx)
-                if isinstance(exp, cwast.MacroListArg):
+                if isinstance(exp, cwast.EphemeralList):
                     out += exp.args
                 else:
                     out.append(exp)
-        return cwast.MacroListArg(out)
+        return cwast.EphemeralList(out)
 
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
@@ -93,7 +93,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
             for cc in getattr(node, c):
                 exp = ExpandMacroRecursively(cc, ctx)
                 # TODO: this tricky and needs a comment
-                if isinstance(exp, cwast.MacroListArg) and not isinstance(cc, cwast.MacroListArg):
+                if isinstance(exp, cwast.EphemeralList) and not isinstance(cc, cwast.EphemeralList):
                     out += exp.args
                 else:
                     out.append(exp)
@@ -116,7 +116,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
             pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
-            assert isinstance(a, cwast.MacroListArg)
+            assert isinstance(a, cwast.EphemeralList)
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
             pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:
@@ -137,10 +137,10 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         # pp.PrettyPrint(node)
         exp = ExpandMacroRecursively(node, ctx)
         # pp.PrettyPrint(exp)
-        if isinstance(exp, cwast.MacroListArg):
+        if isinstance(exp, cwast.EphemeralList):
             out += exp.args
         else:
             out.append(exp)
     if len(out) == 1:
         return out[0]
-    return cwast.MacroListArg(out)
+    return cwast.EphemeralList(out)
