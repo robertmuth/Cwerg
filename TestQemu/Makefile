@@ -9,10 +9,7 @@ tests_cross: test_qemu_env_a32 test_qemu_env_a64
 # A32
 ############################################################
 set_up_cross_env_a32:
-	sudo apt install gcc-multilib-arm-linux-gnueabihf  g++-multilib-arm-linux-gnueabihf qemu-user-static
-
-set_up_cross_env_a32_2:
-	sudo apt install gcc-11-arm-linux-gnueabi  g++-11-arm-linux-gnueabi  qemu-user-static
+	sudo apt install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf qemu-user-static
 
 # https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html
 CC_A32_FLAGS = -static  -Wl,-z,norelro  -O2 -marm -march=armv7ve+simd

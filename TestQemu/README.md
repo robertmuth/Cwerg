@@ -11,6 +11,14 @@ So instead of `qemu-aarch64-static hello.aarch64.exe` you can just run `./hello.
 
 ## A32 aka Arm32
 
+
+Install the cross toolchain:
+
+```
+sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
+```
+
+
 Set up cross compilers and QEMU via
 
 ```
@@ -38,6 +46,12 @@ qemu-arm-static  ./hello_barebones-a32
   
 ## A64 aka Aarch64
 
+
+Install the cross toolchain:
+
+```
+sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+```
 
 Set up cross compilers and QEMU via
 
