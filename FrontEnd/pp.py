@@ -69,6 +69,7 @@ def GetNodeTypeAndFields(node, condense=True):
     else:
         return cls.__name__, fields
 
+
 ############################################################
 # Pretty Print
 ############################################################
@@ -83,6 +84,11 @@ EXTRA_INDENT = {
     "body_for": 1,
     "body_macro": 1,
 }
+
+NEW_LINE = set([
+    "body_mod"
+])
+
 
 def RenderRecursivelyToIR(node, out, indent: str):
     line = out[-1]
@@ -141,10 +147,39 @@ def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
 ############################################################
 # Pretty Print HTML
 ############################################################
+def RenderIndent(n):
+    return ["<span class=indent>", "&emsp;" * 2 * n, "</span>"]
 
 
+def CircledLetterEntity(c):
+    offset = ord(c.upper()) - ord('A')
+    return f"&#{0x24b6 + offset};"
 
-def RenderRecursivelyHTML(node, out, indent: str):
+
+def DecorateNode(node_name, node, tc: types.TypeCorpus):
+    problems = []
+    if node.x_srcloc is None:
+        problems.append("missing srcloc")
+    if cwast.NF.TYPE_ANNOTATED in node.FLAGS and node.x_type is None:
+        problems.append("missing type")
+
+    out = ["<span class=name>", node_name, "</span>"]
+    if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
+        out += ["<span class=type title='",
+                tc.canon_name(node.x_type), "'>", CircledLetterEntity("T"), "</span>"]
+    if cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
+        out += ["<span class=value title='",
+                str(node.x_value), "'>", CircledLetterEntity("V"), "</span>"]
+    if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
+        out += [CircledLetterEntity("F")]
+    if cwast.NF.CONTROL_FLOW in node.FLAGS:
+        out += [CircledLetterEntity("C")]
+    if problems:
+        out += ["<span class=problems title='", "\n".join(problems), "'>", CircledLetterEntity("X"), "</span>"]
+    return out
+
+
+def RenderRecursivelyHTML(node, tc, out, indent: str):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append(["<p></p>"])
     line = out[-1]
@@ -153,11 +188,11 @@ def RenderRecursivelyHTML(node, out, indent: str):
         if isinstance(node, (cwast.ValNum, cwast.ValString, cwast.Id)):
             line.append(abbrev)
         else:
-            line.append(f"<b>{abbrev}</b>")
+            line += DecorateNode(abbrev, node, tc)
         return
 
     node_name, fields = GetNodeTypeAndFields(node)
-    line.append(f"(<span class=name>{node_name}</span>")
+    line += DecorateNode("(" + node_name, node, tc)
 
     for field in fields:
         line = out[-1]
@@ -176,7 +211,7 @@ def RenderRecursivelyHTML(node, out, indent: str):
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:
             line.append(" ")
-            RenderRecursivelyHTML(val, out, indent)
+            RenderRecursivelyHTML(val, tc, out, indent)
         elif field_kind is cwast.NFK.LIST:
             extra_indent = EXTRA_INDENT.get(field, 2)
             if not val:
@@ -184,8 +219,10 @@ def RenderRecursivelyHTML(node, out, indent: str):
             else:
                 line.append(" [")
                 for cc in val:
-                    out.append(["<span class=indent>", "&emsp;" * 2 * (indent + extra_indent), "</span>"])
-                    RenderRecursivelyHTML(cc, out, indent + extra_indent)
+                    out.append(RenderIndent(indent + extra_indent))
+                    RenderRecursivelyHTML(cc, tc, out, indent + extra_indent)
+                if field in NEW_LINE:
+                    out.append(RenderIndent(indent))
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
@@ -196,7 +233,7 @@ def RenderRecursivelyHTML(node, out, indent: str):
     line.append(")")
 
 
-def PrettyPrintHTML(mod: cwast.DefMod) -> List[Tuple[int, str]]:
+def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
     out = [[
         """<html>
            <style>
@@ -204,7 +241,7 @@ def PrettyPrintHTML(mod: cwast.DefMod) -> List[Tuple[int, str]]:
            span.name { font-weight: bold; }
            </style>"""]
     ]
-    RenderRecursivelyHTML(mod, out, 0)
+    RenderRecursivelyHTML(mod, tc, out, 0)
     out += [["</html>"]]
     for a in out:
         print("".join(a))
@@ -234,12 +271,12 @@ if __name__ == "__main__":
         for mod in mod_topo_order:
             cwast.StripNodes(mod, cwast.Comment)
             cwast.StripNodes(mod, cwast.DefMacro)
-        type_corpus = types.TypeCorpus(
+        tc = types.TypeCorpus(
             cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-        typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+        typify.DecorateASTWithTypes(mod_topo_order, tc)
         eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
         for mod in mods:
-            PrettyPrintHTML(mod)
+            PrettyPrintHTML(mod, tc)
     else:
         assert False, f"unknown mode {args.mode}"
