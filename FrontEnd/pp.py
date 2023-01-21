@@ -69,6 +69,20 @@ def GetNodeTypeAndFields(node, condense=True):
     else:
         return cls.__name__, fields
 
+############################################################
+# Pretty Print
+############################################################
+EXTRA_INDENT = {
+    "body": 1,
+    "fields": 1,
+    "body_t": 1,
+    "body_f": 1,
+    "body_mod": 0,
+    "body_for": 1,
+    "cases": 1,
+    "body_for": 1,
+    "body_macro": 1,
+}
 
 def RenderRecursivelyToIR(node, out, indent: str):
     line = out[-1]
@@ -102,10 +116,11 @@ def RenderRecursivelyToIR(node, out, indent: str):
             if not val:
                 line.append(" []")
             else:
+                extra_indent = EXTRA_INDENT.get(field, 2)
                 line.append(" [")
                 for cc in val:
-                    out.append([" " * (indent + 1)])
-                    RenderRecursivelyToIR(cc, out, indent + 1)
+                    out.append([" " * (indent + extra_indent)])
+                    RenderRecursivelyToIR(cc, out, indent + extra_indent)
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
@@ -123,6 +138,82 @@ def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
         print("".join(a))
 
 
+############################################################
+# Pretty Print HTML
+############################################################
+
+
+
+def RenderRecursivelyHTML(node, out, indent: str):
+    if cwast.NF.TOP_LEVEL in node.FLAGS:
+        out.append(["<p></p>"])
+    line = out[-1]
+    abbrev = MaybeSimplifyLeafNode(node)
+    if abbrev:
+        if isinstance(node, (cwast.ValNum, cwast.ValString, cwast.Id)):
+            line.append(abbrev)
+        else:
+            line.append(f"<b>{abbrev}</b>")
+        return
+
+    node_name, fields = GetNodeTypeAndFields(node)
+    line.append(f"(<span class=name>{node_name}</span>")
+
+    for field in fields:
+        line = out[-1]
+        field_kind = cwast.ALL_FIELDS_MAP[field].kind
+        val = getattr(node, field)
+        if field_kind is cwast.NFK.FLAG:
+            if val:
+                line.append(" " + field)
+        elif IsFieldWithDefaultValue(field, val):
+            continue
+        elif field_kind is cwast.NFK.STR:
+            line.append(" " + str(val))
+        elif field_kind is cwast.NFK.INT:
+            line.append(" " + str(val))
+        elif field_kind is cwast.NFK.KIND:
+            line.append(" " + val.name)
+        elif field_kind is cwast.NFK.NODE:
+            line.append(" ")
+            RenderRecursivelyHTML(val, out, indent)
+        elif field_kind is cwast.NFK.LIST:
+            extra_indent = EXTRA_INDENT.get(field, 2)
+            if not val:
+                line.append(" []")
+            else:
+                line.append(" [")
+                for cc in val:
+                    out.append(["<span class=indent>", "&emsp;" * 2 * (indent + extra_indent), "</span>"])
+                    RenderRecursivelyHTML(cc, out, indent + extra_indent)
+                out[-1].append("]")
+        elif field_kind is cwast.NFK.STR_LIST:
+            line.append(f" [{' '.join(val)}]")
+        else:
+            assert False
+
+    line = out[-1]
+    line.append(")")
+
+
+def PrettyPrintHTML(mod: cwast.DefMod) -> List[Tuple[int, str]]:
+    out = [[
+        """<html>
+           <style>
+           body { font-family: monospace; }
+           span.name { font-weight: bold; }
+           </style>"""]
+    ]
+    RenderRecursivelyHTML(mod, out, 0)
+    out += [["</html>"]]
+    for a in out:
+        print("".join(a))
+        print("<br>")
+
+
+############################################################
+#
+############################################################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
@@ -147,7 +238,8 @@ if __name__ == "__main__":
             cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
         typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
         eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+
         for mod in mods:
-            PrettyPrint(mod)
+            PrettyPrintHTML(mod)
     else:
         assert False, f"unknown mode {args.mode}"
