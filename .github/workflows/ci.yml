@@ -39,16 +39,18 @@ jobs:
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
-        # TODO: undo version pin when the latest version becomes available
+        # NOTE: the qemu-user-static causes a lot of pain because it occasionally is
+        #       unavailable in CI repos
+        #       So we alternate between using the stock version and a pinnen version
         # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
-        wget http://launchpadlibrarian.net/548257507/qemu-user-static_4.2-3ubuntu6.17_amd64.deb
-        chmod a+r qemu-user-static_4.2-3ubuntu6.17_amd64.deb
-        sudo dpkg -i qemu-user-static_4.2-3ubuntu6.17_amd64.deb
+        # wget http://launchpadlibrarian.net/548257507/qemu-user-static_4.2-3ubuntu6.17_amd64.deb
+        # chmod a+r qemu-user-static_4.2-3ubuntu6.17_amd64.deb
+        #sudo dpkg -i qemu-user-static_4.2-3ubuntu6.17_amd64.deb
+        sudo apt-get install qemu-user-static
         echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
         sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu 
-        # sudo apt-get install qemu-user-static
     - name: Show Version Summary
       run: |
         uname -a

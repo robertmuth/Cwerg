@@ -5,6 +5,9 @@
 For simplicity we assume you are running on an x86-64 system with a recent Debian 
 based Linux distributions.
 
+If the steps below do not work you can also check the continous integration setup
+in [../.github/workflows/ci.yml]. 
+
 To setup the python environment run this inside the
 top level repo directory.
 ```
