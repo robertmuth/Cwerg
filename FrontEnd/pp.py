@@ -127,6 +127,8 @@ def RenderRecursivelyToIR(node, out, indent: str):
                 for cc in val:
                     out.append([" " * (indent + extra_indent)])
                     RenderRecursivelyToIR(cc, out, indent + extra_indent)
+                if field in NEW_LINE:
+                    out.append([" " * indent])
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
@@ -135,6 +137,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
 
     line = out[-1]
     line.append(")")
+    # note: comments are not toplevel
+    if cwast.NF.TOP_LEVEL in node.FLAGS:
+        out.append([""])
 
 
 def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
@@ -175,13 +180,12 @@ def DecorateNode(node_name, node, tc: types.TypeCorpus):
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
         out += [CircledLetterEntity("C")]
     if problems:
-        out += ["<span class=problems title='", "\n".join(problems), "'>", CircledLetterEntity("X"), "</span>"]
+        out += ["<span class=problems title='",
+                "\n".join(problems), "'>", CircledLetterEntity("X"), "</span>"]
     return out
 
 
 def RenderRecursivelyHTML(node, tc, out, indent: str):
-    if cwast.NF.TOP_LEVEL in node.FLAGS:
-        out.append(["<p></p>"])
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -231,6 +235,8 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
 
     line = out[-1]
     line.append(")")
+    if cwast.NF.TOP_LEVEL in node.FLAGS:
+        out.append(["<p></p>"])
 
 
 def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:

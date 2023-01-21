@@ -20,7 +20,17 @@ class MacroContext:
 
     def __init__(self, no):
         self._no = no
+        # these need to become lists
         self.macro_parameter: Dict[str, Tuple[cwast.MacroParam, Any]] = {}
+        self.srcloc = None
+
+    def PushScope(self, srcloc):
+        self.macro_parameter.clear()
+        self.srcloc = srcloc
+
+    def PopScope(self):
+        # TBD
+        pass
 
     def GenUniqueName(self, name: str):
         assert name.startswith("$"), f"expected macro id {name}"
@@ -35,10 +45,6 @@ class MacroContext:
     def GetSymbol(self, name):
         return self.macro_parameter[name]
 
-    def Reset(self):
-        self.macro_parameter.clear()
-
-
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     if isinstance(node, cwast.MacroVar):
@@ -49,7 +55,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert not new_name.name.startswith("$")
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial_or_undef = ExpandMacroRecursively(node.initial_or_undef, ctx)
-        return cwast.DefVar(node.mut, new_name.name, type_or_auto, initial_or_undef)
+        return cwast.DefVar(node.mut, new_name.name, type_or_auto, initial_or_undef, x_srcloc=ctx.srcloc)
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
@@ -110,7 +116,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)
     # pp.PrettyPrint(macro)
-    ctx.Reset()
+    ctx.PushScope(invoke.x_srcloc)
     for p, a in zip(params, invoke.args):
         assert p.name.startswith("$")
         if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
@@ -141,6 +147,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             out += exp.args
         else:
             out.append(exp)
+    ctx.PopScope()
     if len(out) == 1:
         return out[0]
     return cwast.EphemeralList(out)
