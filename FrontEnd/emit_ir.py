@@ -78,7 +78,7 @@ def _GetLValueAddress(node, id_gen: identifier.IdGen) -> Any:
             assert False
             index = EmitIRExpr(node_stack + [node.expr_index, id_gen])
     elif isinstance(node, cwast.ExprDeref):
-        return EmitIRExpr(node.expr, type_corpus, id_gen)
+        return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.Id):
         assert isinstance(node.x_type, cwast.TypeArray)
         name = node.x_symbol.name
@@ -116,8 +116,8 @@ def EmitIRConditional(cond, label_t: str, label_f: str, id_gen: identifier.IdGen
             print(f".bbl {label_or}")
             EmitIRConditional(cond.expr2, label_t, label_f, id_gen)
         else:
-            op1 = EmitIRExpr(cond.expr1, type_corpus, id_gen)
-            op2 = EmitIRExpr(cond.expr2, type_corpus, id_gen)
+            op1 = EmitIRExpr(cond.expr1, tc, id_gen)
+            op2 = EmitIRExpr(cond.expr2, tc, id_gen)
 
             if kind is cwast.BINARY_EXPR_KIND.GT:
                 kind = cwast.BINARY_EXPR_KIND.LT
@@ -217,9 +217,7 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
 
 
 def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
-    if isinstance(node, cwast.Comment):
-        return
-    elif isinstance(node, cwast.DefVar):
+    if isinstance(node, cwast.DefVar):
         def_type = node.x_type
         node.name = id_gen.NewName(node.name)
         assert type_corpus.register_types(
@@ -305,7 +303,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
             out = []
             size = def_type.size.x_value
             init = node.initial_or_undef.x_value
-            print("@@@@", init, size)
+            #print("@@@@", init, size)
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -316,6 +314,28 @@ def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
             EmitIRStmt(c, None, type_corpus, id_gen)
 
 
+def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
+    out = {}
+    for fun_sig in list(tc.corpus.values()):
+        if not isinstance(fun_sig, cwast.TypeFun):
+            continue
+        reg_type = tc.register_types(fun_sig.result)
+        change = False
+        result = fun_sig.result
+        if reg_type is None or len(reg_type) > 1:
+            change = True
+            result = tc.insert_ptr_type(False, fun_sig.result)
+        params = [p.type for p in fun_sig.params]
+        for n, p in enumerate(params):
+            reg_type = tc.register_types(p)
+            if reg_type is None or len(reg_type) > 1:
+                params[n] = tc.insert_ptr_type(False, p)
+                change = True
+        if change:
+            out[fun_sig] = tc.insert_fun_type(params, result)
+    return out
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
@@ -323,18 +343,29 @@ if __name__ == "__main__":
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
-    type_corpus: types.TypeCorpus = types.TypeCorpus(
+    for mod in mod_topo_order:
+        cwast.StripNodes(mod, cwast.Comment)
+        cwast.StripNodes(mod, cwast.DefMacro)
+    tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+    typify.DecorateASTWithTypes(mod_topo_order, tc)
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+
+
+    # Legalize wrt to the code emitter
     mod_gen = cwast.DefMod("$generated", [], [])
     id_gen = identifier.IdGen()
-    str_map = {}
+    str_val_map = {}
+    fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
+    # for key, val in fun_sigs_with_large_args.items():
+    #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
-        canonicalize.CanonicalizeStringVal(mod, str_map, id_gen)
+        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
         canonicalize.CanonicalizeTernaryOp(mod, id_gen)
-    mod_gen.body_mod += list(str_map.values())
+    mod_gen.body_mod += list(str_val_map.values())
 
+
+    # Fully qualify names
     mod_topo_order = [mod_gen] + mod_topo_order
     for mod in mod_topo_order:
         mod_name = "" if mod.name == "main" else mod.name + "/"
@@ -344,6 +375,7 @@ if __name__ == "__main__":
                 if isinstance(node, cwast.DefFun):
                     id_gen = identifier.IdGen()
 
+    # Emit Cwert IR
     for mod in mod_topo_order:
         id_gen.ClearGlobalNames()
         id_gen.LoadGlobalNames(mod)
@@ -355,4 +387,4 @@ if __name__ == "__main__":
             if isinstance(node, cwast.DefFun):
                 id_gen.ClearLocalNames()
                 id_gen.UniquifyLocalNames(node)
-                EmitIRDefFun(node, type_corpus, id_gen)
+                EmitIRDefFun(node, tc, id_gen)

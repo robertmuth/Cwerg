@@ -16,8 +16,6 @@ from FrontEnd import types
 ############################################################
 # Move string/array values into global (un-mutable variables)
 ############################################################
-
-
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
     def replacer(node):
         # TODO: add support for ValArray
@@ -108,15 +106,6 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
                 else:
                     CanonicalizeLargeArgs(child, changed_params, id_gen)
 
-
-def FindLargeArgs(node, large_args: Dict[Any, Any], type_corpus: types.TypeCorpus, id_gen):
-    def visitor(node):
-        if isinstance(node, cwast.DefFun):
-            for p in node.params:
-                if isinstance(p, cwast.FunParam):
-                    if type_corpus.register_types[p.x_type] is None:
-                        large_args.add(p)
-    cwast.VisitAstRecursively(node, visitor)
 
 ############################################################
 # Convert ternary operator into  expr with if statements

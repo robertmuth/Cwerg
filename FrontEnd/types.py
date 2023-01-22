@@ -182,9 +182,9 @@ class TypeCorpus:
 
         self.wrapped_curr = 1
         # maps to ast
-        self.corpus: Dict[Any, Any] = {}
-        self._canon_name: Dict[Any, CanonType] = {}
-        self._register_types: Dict[int, List[Any]] = {}
+        self.corpus: Dict[str, Any] = {}  # name to canonical type
+        self._canon_name: Dict[Any, str] = {}   # canonical type to name
+        self._register_types: Dict[int, List[Any]] = {}  # canonical type to Cwerg IR registers
 
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT"):
@@ -228,9 +228,7 @@ class TypeCorpus:
         """As long as a type can fit into no more than two regs it will have
         register representation which is also how it will be past in function calls.
         """
-        if isinstance(ctype, cwast.Comment):
-            return None
-        elif isinstance(ctype, cwast.TypeBase):
+        if isinstance(ctype, cwast.TypeBase):
             return _BASE_TYPE_MAP.get(ctype.base_type_kind)
         elif isinstance(ctype, cwast.TypePtr):
             return [self._addr_reg_type]
