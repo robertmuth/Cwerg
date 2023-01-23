@@ -18,6 +18,7 @@ from FrontEnd import typify
 from FrontEnd import eval
 from FrontEnd import identifier
 from FrontEnd import parse
+from FrontEnd import pp
 
 from Util.parse import BytesToEscapedString
 
@@ -303,7 +304,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
             out = []
             size = def_type.size.x_value
             init = node.initial_or_undef.x_value
-            #print("@@@@", init, size)
+            # print("@@@@", init, size)
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -319,22 +320,96 @@ def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
     for fun_sig in list(tc.corpus.values()):
         if not isinstance(fun_sig, cwast.TypeFun):
             continue
-        reg_type = tc.register_types(fun_sig.result)
         change = False
-        result = fun_sig.result
-        if reg_type is None or len(reg_type) > 1:
-            change = True
-            result = tc.insert_ptr_type(False, fun_sig.result)
         params = [p.type for p in fun_sig.params]
         for n, p in enumerate(params):
             reg_type = tc.register_types(p)
             if reg_type is None or len(reg_type) > 1:
                 params[n] = tc.insert_ptr_type(False, p)
                 change = True
+        result = fun_sig.result
+        reg_type = tc.register_types(result)
+        if not types.is_void(result) and reg_type is None or len(reg_type) > 1:
+            change = True
+            params.append(tc.insert_ptr_type(True, result))
+            result = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
         if change:
             out[fun_sig] = tc.insert_fun_type(params, result)
     return out
 
+
+def RewriteLargeArgsCallerSide(mod: cwast.DefMod, sig_map: cwast.TypeFun, id_gen):
+    def replacer(call) -> Optional[Any]:
+        if isinstance(call, cwast.ExprCall) and call.callee.x_type in sig_map:
+            old_sig: cwast.TypeFun = call.callee.x_type
+            new_sig:  cwast.TypeFun = sig_map[old_sig]
+            expr = cwast.ExprStmt(
+                [], x_srcloc=call.x_srcloc, x_type=call.x_type)
+            # note: new_sig might be longer if the result type was changed
+            for n, (old, new) in enumerate(zip(old_sig.params, new_sig.params)):
+                if old != new:
+                    new_def = cwast.DefVar()
+                    expr.body.append(new_def)
+                    call.args[n] = cwast.ExprAddrOf(
+                        False, new_def, x_srcloc=call.x_srcloc, x_type=new)
+
+        return expr
+    cwast.MaybeReplaceAstRecursivelyPost(mod, replacer)
+
+
+def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun,
+                                       tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    old_sig: cwast.TypeFun = fun.x_type
+    fun.x_type = new_sig
+    result_changes = old_sig.result != new_sig.result
+    if result_changes:
+        assert types.is_void(new_sig.result)
+        assert len(new_sig.params) == 1 + len(old_sig.params)
+        result_type = cwast.TypePtr(
+            True, fun.result, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
+        result_param = cwast.FunParam(id_gen.NewName(
+            "result"), result_type, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
+        fun.params.append(result_param)
+        fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=fun.x_srcloc,
+                                    x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+    changing_params = {}
+
+    for p, old, new in zip(fun.params, old_sig.params, new_sig.params):
+        # print ("@@@", tc.canon_name(old.type), "=>", tc.canon_name(new.type))
+        if old.type != new.type:
+            changing_params[p] = new.type
+            p.type = cwast.TypePtr(
+                False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
+    assert result_changes or changing_params
+    return changing_params, result_changes
+
+
+def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
+                               tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
+        fun, new_sig, tc, id_gen)
+
+    # print([k.name for k, v in changing_params.items()], result_changes)
+
+    def replacer(node) -> Optional[Any]:
+        if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
+            new_node = cwast.ExprDeref(
+                node, x_srcloc=node.x_srcloc, x_type=node.x_type)
+            node.x_type = changing_params[node.x_symbol]
+            return new_node
+        elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
+            result_param: cwast.FunParam = fun.params[-1]
+            lhs = cwast.ExprDeref(
+                cwast.Id(result_param.name, "", x_srcloc=node.x_srcloc, x_type=result_param.type.x_type), 
+                x_srcloc=node.x_srcloc, x_type=node.expr_ret.x_type)
+            assign = cwast.StmtAssignment(lhs, node.expr_ret, x_srcloc=node.x_srcloc)
+            node.expr_ret = cwast.ValVoid(
+                x_srcloc=node.x_srcloc, x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+            return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.EliminateEphemeralsRecursively(fun)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
@@ -351,8 +426,7 @@ if __name__ == "__main__":
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
-
-    # Legalize wrt to the code emitter
+    # Legalize so that code emitter works
     mod_gen = cwast.DefMod("$generated", [], [])
     id_gen = identifier.IdGen()
     str_val_map = {}
@@ -360,13 +434,22 @@ if __name__ == "__main__":
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
-        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
-        canonicalize.CanonicalizeTernaryOp(mod, id_gen)
+        for fun in mod.body_mod:
+            canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
+            canonicalize.CanonicalizeTernaryOp(fun, id_gen)
+            if fun.x_type in fun_sigs_with_large_args:
+                RewriteLargeArgsCalleeSide(
+                    fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
+            typify.VerifyTypesRecursively(mod, tc)
+
     mod_gen.body_mod += list(str_val_map.values())
-
-
-    # Fully qualify names
     mod_topo_order = [mod_gen] + mod_topo_order
+
+    for mod in mod_topo_order:
+        pp.PrettyPrint(mod)
+
+    exit(0)
+    # Fully qualify names
     for mod in mod_topo_order:
         mod_name = "" if mod.name == "main" else mod.name + "/"
         for node in mod.body_mod:

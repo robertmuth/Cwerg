@@ -23,6 +23,7 @@ def is_proper_lhs(node):
     # TODO: this needs to be rethought and cleaned up
     return (types.is_mutable_def(node) or
             isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type) or
+            isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
             isinstance(node, cwast.ExprField) and is_proper_lhs(node.container) or
             isinstance(node, cwast.ExprIndex) and types.is_mutable_def(node.container) or
             isinstance(node, cwast.ExprIndex) and types.is_mutable(node.container.x_type))
@@ -469,13 +470,14 @@ UNTYPED_NODES_TO_BE_TYPECHECKED = (
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
-def _TypeMismatch(corpus: types.TypeCorpus, msg: str, actual, expected):
-    return f"{msg}: actual: {corpus.canon_name(actual)} expected: {corpus.canon_name(expected)}"
+def _TypeMismatch(tc: types.TypeCorpus, msg: str, actual, expected):
+    return f"{msg}: actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}"
 
 
-def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
+def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
         assert node.x_type is not types.NO_TYPE
+        assert node.x_type in tc._canon_name, f"bad type annotation for {node}: {node.x_type}"
     else:
         assert isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)
 
@@ -486,7 +488,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
                 if not isinstance(x.init_index, cwast.ValAuto):
                     assert types.is_int(x.init_index.x_type)
                 assert cstr == x.x_type, _TypeMismatch(
-                    corpus, "type mismatch {x}:", x.x_type, cstr)
+                    tc, "type mismatch {x}:", x.x_type, cstr)
     elif isinstance(node, cwast.ValRec):
         for x in node.inits_rec:
             if isinstance(x, cwast.FieldVal):
@@ -498,9 +500,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
             initial_cstr = node.initial_or_undef.x_type
             assert types.is_compatible(
                 initial_cstr, type_cstr),  _TypeMismatch(
-                    corpus, f"type mismatch {node}:", initial_cstr, type_cstr)
+                    tc, f"type mismatch {node}:", initial_cstr, type_cstr)
     elif isinstance(node, cwast.ExprIndex):
-        cstr = node.x_type
+        cstr = node.x_type 
         assert cstr == types.get_contained_type(node.container.x_type)
     elif isinstance(node, cwast.ExprField):
         cstr = node.x_type
@@ -511,7 +513,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
             assert types.is_compatible_for_defvar(initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef)), _TypeMismatch(
-                corpus, f"incompatible types", initial_cstr, cstr)
+                tc, f"incompatible types", initial_cstr, cstr)
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
             assert cstr == type_cstr, _TypeMismatch(f"{node}", cstr, type_cstr)
@@ -529,7 +531,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
         cstr2 = node.expr2.x_type
         if node.binary_expr_kind in cwast.BINOP_BOOL:
             assert cstr1 == cstr2, _TypeMismatch(
-                corpus, f"binop mismatch in {node}:", cstr1, cstr2)
+                tc, f"binop mismatch in {node}:", cstr1, cstr2)
             assert types.is_bool(cstr)
         elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.INCP,
                                        cwast.BINARY_EXPR_KIND.DECP):
@@ -540,7 +542,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
             if isinstance(cstr1, cwast.TypePtr):
                 assert (isinstance(cstr2, cwast.TypeSlice) and
                         cstr1.type == cstr2.type)
-                assert cstr == corpus.insert_base_type(
+                assert cstr == tc.insert_base_type(
                     cwast.BASE_TYPE_KIND.SINT)
             elif isinstance(cstr1, cwast.TypeSlice):
                 assert (isinstance(cstr2, cwast.TypeSlice) and
@@ -550,7 +552,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
                 assert False
         else:
             assert cstr1 == cstr2, _TypeMismatch(
-                corpus, f"binop mismatch in {node}:", cstr1, cstr2)
+                tc, f"binop mismatch in {node}:", cstr1, cstr2)
             assert cstr == cstr1, _TypeMismatch(f"in {node}", cstr, cstr1)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
@@ -568,7 +570,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
         for p, a in zip(fun.params, node.args):
             arg_cstr = a.x_type
             assert types.is_compatible(
-                arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(corpus, f"incompatible fun arg: {a}",  arg_cstr, p.type)
+                arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(tc, f"incompatible fun arg: {a}",  arg_cstr, p.type)
     elif isinstance(node, cwast.StmtReturn):
         pass
         # fun = enclosing_fun.x_type
@@ -584,8 +586,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr.x_type
         assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
-            corpus, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
-        assert is_proper_lhs(node.lhs)
+            tc, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
+        assert is_proper_lhs(node.lhs), f"cannot assign to readonly data: {node}"
     elif isinstance(node, cwast.StmtCompoundAssignment):
         assert is_proper_lhs(node.lhs)
         var_cstr = node.lhs.x_type
@@ -595,7 +597,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
             assert types.is_int(expr_cstr)
         else:
             assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
-                corpus, f"incompatible assignment arg: {node}",  expr_cstr, var_cstr)
+                tc, f"incompatible assignment arg: {node}",  expr_cstr, var_cstr)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard
@@ -619,11 +621,14 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
     elif isinstance(node, cwast.ExprIs):
         assert types.is_bool(node.x_type)
     elif isinstance(node, cwast.ExprLen):
-        assert node.x_type == corpus.insert_base_type(
+        assert node.x_type == tc.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT)
     elif isinstance(node, cwast.Id):
-        cstr = node.x_type
-        assert cstr != types.NO_TYPE
+        def_node = node.x_symbol
+        if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
+            assert def_node.x_type == node.x_type, (f"type mismatch for {def_node.name} "
+                                                    f"{tc.canon_name(def_node.x_type)} vs "
+                                                    f"{tc.canon_name(node.x_type)}")
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = node.expr.x_type
         cstr = node.x_type
@@ -631,17 +636,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
             assert is_proper_lhs(node.expr)
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
-        assert node.x_type == corpus.insert_base_type(
+        assert node.x_type == tc.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT)
     elif isinstance(node, cwast.ExprSizeof):
-        assert node.x_type == corpus.insert_base_type(
+        assert node.x_type == tc.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT)
     elif isinstance(node, cwast.ExprTryAs):
         cstr = node.x_type
-        assert cstr == node.type.x_type, _TypeMismatch(corpus,
+        assert cstr == node.type.x_type, _TypeMismatch(tc,
                                                        f"type mismatch", cstr, node.type.x_type)
         if not isinstance(node.default_or_undef, cwast.ValUndef):
-            assert cstr == node.default_or_undef.x_type, _TypeMismatch(corpus,
+            assert cstr == node.default_or_undef.x_type, _TypeMismatch(tc,
                                                                        f"type mismatch", cstr, node.type.x_type)
         assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
@@ -662,7 +667,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, corpus: types.TypeCorpus):
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def _TypeVerifyNodeRecursively(node, corpus):
+def VerifyTypesRecursively(node, corpus):
     def visitor(node):
         logger.info(f"VERIFYING {node}")
 
@@ -709,7 +714,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                     _TypifyNodeRecursively(
                         c, tc, node.result.x_type, ctx)
     for mod in mod_topo_order:
-        _TypeVerifyNodeRecursively(mod, tc)
+        VerifyTypesRecursively(mod, tc)
 
 
 if __name__ == "__main__":
