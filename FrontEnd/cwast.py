@@ -2223,6 +2223,7 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     for c in node.__class__.FIELDS:
+        # print ("replace: ", node.__class__.__name__, c)
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
             child = getattr(node, c)
@@ -2233,11 +2234,11 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
         elif nfd.kind is NFK.LIST:
             children = getattr(node, c)
             for n, child in enumerate(children):
+                MaybeReplaceAstRecursivelyPost(child, replacer)
                 new_child = replacer(child)
                 if new_child:
                     children[n] = new_child
-                else:
-                    MaybeReplaceAstRecursivelyPost(child, replacer)
+                    
 
 def _MaybeFlattenEphemeralList(nodes: List[Any]):
     has_ephemeral =  False

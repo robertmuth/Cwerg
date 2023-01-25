@@ -302,7 +302,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
                 scopes.pop(-1)
 
 
-def _VerifyASTSymbolsRecursively(node):
+def VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.DefMacro):
         return
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
@@ -311,7 +311,7 @@ def _VerifyASTSymbolsRecursively(node):
         assert not node.name.startswith("$")
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
     if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node} [{id(node)}]"
+        assert node.x_symbol is not None, f"unresolved symbol {node}"
     if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn)):
         assert node.x_target is not None
     #
@@ -321,10 +321,10 @@ def _VerifyASTSymbolsRecursively(node):
             if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
                 # polymorphic stuff can only be handled once we have types
                 continue
-            _VerifyASTSymbolsRecursively(getattr(node, c))
+            VerifyASTSymbolsRecursively(getattr(node, c))
         elif nfd.kind is cwast.NFK.LIST:
             for cc in getattr(node, c):
-                _VerifyASTSymbolsRecursively(cc)
+                VerifyASTSymbolsRecursively(cc)
 
 
 def _SetTargetFieldRecursively(node):
@@ -387,7 +387,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                 assert not scopes
 
     for mod in mod_topo_order:
-        _VerifyASTSymbolsRecursively(mod)
+        VerifyASTSymbolsRecursively(mod)
 
 
 def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[

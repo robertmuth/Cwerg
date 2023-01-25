@@ -564,10 +564,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert types.is_bool(cstr_cond)
     elif isinstance(node, cwast.ExprCall):
         result = node.x_type
-        fun = node.callee.x_type
-        assert isinstance(fun, cwast.TypeFun), f"{fun}"
-        assert fun.result == result
-        for p, a in zip(fun.params, node.args):
+        fun_sig = node.callee.x_type
+        assert isinstance(fun_sig, cwast.TypeFun), f"{fun_sig}"
+        assert fun_sig.result == result, f"{fun_sig.result} {result}"
+        for p, a in zip(fun_sig.params, node.args):
             arg_cstr = a.x_type
             assert types.is_compatible(
                 arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(tc, f"incompatible fun arg: {a}",  arg_cstr, p.type)
@@ -600,7 +600,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
                 tc, f"incompatible assignment arg: {node}",  expr_cstr, var_cstr)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
-        assert types.is_void(cstr) != node.discard
+        assert types.is_void(cstr) != node.discard, f"{cstr} vs {node.discard}"
     elif isinstance(node, cwast.ExprAsNot):
         pass
     elif isinstance(node, cwast.ExprAs):
@@ -633,7 +633,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr_expr = node.expr.x_type
         cstr = node.x_type
         if node.mut:
-            assert is_proper_lhs(node.expr)
+            assert is_proper_lhs(node.expr), f"bad lhs in: {node} {tc.canon_name(node.expr.x_type)}"
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
         assert node.x_type == tc.insert_base_type(
