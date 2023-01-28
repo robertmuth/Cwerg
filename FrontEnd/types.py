@@ -184,7 +184,8 @@ class TypeCorpus:
         # maps to ast
         self.corpus: Dict[str, Any] = {}  # name to canonical type
         self._canon_name: Dict[Any, str] = {}   # canonical type to name
-        self._register_types: Dict[int, List[Any]] = {}  # canonical type to Cwerg IR registers
+        # canonical type to Cwerg IR registers
+        self._register_types: Dict[int, List[Any]] = {}
 
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT"):
@@ -363,15 +364,6 @@ class TypeCorpus:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         assert False
-
-    def get_fields(self, rec_cstr) -> List[str]:
-        """Oddball since the node returned is NOT inside corpus
-
-        See implementation of insert_rec_type
-        """
-        node = self.corpus[rec_cstr]
-        assert isinstance(node, cwast.DefRec)
-        return [x for x in node.fields if isinstance(x, cwast.RecField)]
 
     def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
         """Note: we re-use the original ast node"""

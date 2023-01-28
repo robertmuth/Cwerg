@@ -274,8 +274,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         all_fields: List[cwast.RecField] = [
             f for f in cstr.fields if isinstance(f, cwast.RecField)]
         for val in node.inits_rec:
-            if not isinstance(val, cwast.FieldVal):
-                continue
+            assert isinstance(val, cwast.FieldVal)
             if val.init_field:
                 while True:
                     field_node = all_fields.pop(0)
