@@ -58,6 +58,7 @@ class NF(enum.Flag):
     TOP_LEVEL = enum.auto()
     MACRO_BODY_ONLY = enum.auto()
     TO_BE_EXPANDED = enum.auto()
+    NON_CORE = enum.auto() # all non-core nodes will be stripped or converted to core nodes before code-gen
 
 
 @enum.unique
@@ -539,7 +540,7 @@ class Comment:
     """
     ALIAS = "#"
     GROUP = GROUP.Misc
-    FLAGS = NF.NONE
+    FLAGS = NF.NON_CORE
     #
     comment: str
     #
@@ -558,7 +559,7 @@ class EphemeralList:
     """
     ALIAS = None
     GROUP = GROUP.Macro
-    FLAGS = NF(0)
+    FLAGS = NF.NON_CORE
     #
     args: List[NODES_EXPR_T]
     #
@@ -739,7 +740,7 @@ class TypeSlice:
     """
     ALIAS = "slice"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     mut: bool  # slice is mutable
     type: NODES_TYPES_T
@@ -1013,7 +1014,7 @@ class ValSlice:
     """
     ALIAS = "slice_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     pointer: "NODES_EXPR_T"
     expr_size: "NODES_EXPR_T"
@@ -1220,7 +1221,7 @@ class Expr3:
     """
     ALIAS = "?"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     cond: NODES_EXPR_T  # must be of type  bool
     expr_t: NODES_EXPR_T
@@ -1423,7 +1424,7 @@ class ExprSizeof:
     Type is `uint`"""
     ALIAS = "sizeof"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -1443,7 +1444,7 @@ class ExprOffsetof:
     Type is `uint`"""
     ALIAS = "offsetof"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED | NF.NON_CORE
     #
     type: NODES_TYPES_T  # must be rec
     field: str
@@ -1511,7 +1512,7 @@ class StmtDefer:
     """
     ALIAS = "defer"
     GROUP = GROUP.Statement
-    FLAGS = NF(0)
+    FLAGS = NF.NON_CORE
     #
     body:  List[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
@@ -1657,7 +1658,7 @@ class StmtStaticAssert:
     """Static assert statement (must evaluate to true at compile-time"""
     ALIAS = "static_assert"
     GROUP = GROUP.Statement
-    FLAGS = NF.TOP_LEVEL
+    FLAGS = NF.TOP_LEVEL | NF.NON_CORE
     #
     cond: NODES_EXPR_T  # must be of type bool
     message: str     # should this be an expression?
@@ -1774,7 +1775,7 @@ class EnumVal:
      `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     name: str
     value_or_auto: Union["ValNum", ValAuto]
@@ -1793,7 +1794,7 @@ class DefEnum:
     """Enum definition"""
     ALIAS = "enum"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     pub:  bool
     name: str
@@ -1918,7 +1919,7 @@ class ModParam:
     """Module Parameters"""
     ALIAS = None
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
     name: str
     mod_param_kind: MOD_PARAM_KIND
@@ -1976,7 +1977,7 @@ class ExprSrcLoc:
     """Source Location encoded as u32"""
     ALIAS = "src_loc"
     GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
     #
     x_srcloc: Optional[Any] = None
 
@@ -1990,7 +1991,7 @@ class ExprStringify:
     """
     ALIAS = "stringify"
     GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
     #
     expr:  NODES_EXPR_T
     #
@@ -2010,7 +2011,7 @@ class MacroId:
     """
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
-    FLAGS = NF(0)
+    FLAGS = NF.NON_CORE
     #
     name: str
     #
@@ -2030,7 +2031,7 @@ class MacroVar:
     """
     ALIAS = "macro_let"
     GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     mut: bool
     name: str
@@ -2052,7 +2053,7 @@ class MacroFor:
     """
     ALIAS = "macro_for"
     GROUP = GROUP.Macro
-    FLAGS = NF.MACRO_BODY_ONLY
+    FLAGS = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: str
     name_list: str
@@ -2067,7 +2068,7 @@ class MacroParam:
     """Macro Parameter"""
     ALIAS = "macro_param"
     GROUP = GROUP.Macro
-    FLAGS = NF.LOCAL_SYM_DEF
+    FLAGS = NF.LOCAL_SYM_DEF | NF.NON_CORE
     #
     name: str
     macro_param_kind: MACRO_PARAM_KIND
@@ -2084,7 +2085,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
     #
     name: str
     args: List[NODES_EXPR_T]
@@ -2106,8 +2107,8 @@ class DefMacro:
     have a single node body
     """
     ALIAS = "macro"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    GROUP = GROUP.Statement 
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     pub: bool
     #
     name: str
