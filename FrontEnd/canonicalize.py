@@ -16,8 +16,10 @@ from FrontEnd import types
 ############################################################
 # Move string/array values into global (un-mutable variables)
 ############################################################
+
+
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
-    def replacer(node):
+    def replacer(node, field):
         # TODO: add support for ValArray
         if isinstance(node, cwast.ValString):
             assert isinstance(
@@ -116,7 +118,7 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
 
 
 def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
-    def replacer(node):
+    def replacer(node, field):
         if isinstance(node, cwast.Expr3):
             name_t = id_gen.NewName("op_t")
             def_t = cwast.DefVar(False, name_t, cwast.TypeAuto(), node.expr_t,
@@ -147,3 +149,44 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
+
+
+############################################################
+# This should elminate all of ExprSizeOf and ExprOffsetOf
+#
+############################################################
+
+
+def ReplaceConstExpr(node):
+    def replacer(node, field):
+        if field != "lhs" and cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
+            if (isinstance(node.x_type, cwast.TypeBase) and 
+                types.is_int(node.x_type) and 
+                not isinstance(node, cwast.ValNum)):
+                return cwast.ValNum(str(node.x_value),
+                                    x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+        return None
+
+    cwast.MaybeReplaceAstRecursively(node, replacer)
+
+############################################################
+# Convert Slices to equvalent struct
+#
+# slice mut u8 -> struct {pointer ptr mut  u8, len uint}
+############################################################
+
+
+# def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
+#     size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.uint_kind]
+#     pointer = cwast.RecField("pointer", tc,, cwast.ValUndef(),
+#                              x_srcloc=None)
+#     length = cwast.RecField("length", tc.insert_base_type(tc.uint_kind), cwast.ValUndef(),
+#                             x_srcloc=None)
+#     rec = cwast.DefRec(True, name, [pointer, length],
+#                        x_srcloc=None, x_type=, x_alignment=size, x_size=2 * size)
+
+
+# def CreateSliceReplacementStructs(tc: types.TypeCorpus):
+#     out = {}
+#     for slice in tc.corpus.values:
+#         if isinstance(slice, cwast.TypeSlice):

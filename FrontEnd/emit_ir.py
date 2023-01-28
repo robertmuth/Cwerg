@@ -80,8 +80,10 @@ def _GetLValueAddress(node, id_gen: identifier.IdGen) -> Any:
             index = EmitIRExpr(node_stack + [node.expr_index, id_gen])
     elif isinstance(node, cwast.ExprDeref):
         return EmitIRExpr(node.expr, tc, id_gen)
+    elif isinstance(node, cwast.ExprField):
+        assert False
     elif isinstance(node, cwast.Id):
-        assert isinstance(node.x_type, cwast.TypeArray)
+        assert isinstance(node.x_type, cwast.TypeArray), f"{node}"
         name = node.x_symbol.name
         res = id_gen.NewName("tmp")
         # TODO
@@ -172,14 +174,14 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
     elif isinstance(node, cwast.ValNum):
         return f"{node.number}:{StringifyOneType(node.x_type, type_corpus)}"
     elif isinstance(node, cwast.ExprLen):
-        if node.container.x_value is not None:
-            return f"{len(node.container.x_value)}:{StringifyOneType(node.x_type, type_corpus)}"
+        if isinstance(node.container.x_type, cwast.TypeArray):
+            assert False, f"{node} {node.x_value}"
         else:
             assert False, f"{node} {node.container}"
     elif isinstance(node, cwast.Id):
         return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
-        return _GetLValueAddress(node.expr, id_gen)
+        return _GetLValueAddress(node.lhs, id_gen)
     elif isinstance(node, cwast.Expr2):
         op1 = EmitIRExpr(node.expr1, type_corpus, id_gen)
         op2 = EmitIRExpr(node.expr2, type_corpus, id_gen)
@@ -344,7 +346,7 @@ def MakeTypeVoid(tc, srcloc):
 
 def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args, id_gen: identifier.IdGen):
 
-    def replacer(call) -> Optional[Any]:
+    def replacer(call, field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.TypeFun = call.callee.x_type
             new_sig:  cwast.TypeFun = fun_sigs_with_large_args[old_sig]
@@ -419,7 +421,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
-    def replacer(node) -> Optional[Any]:
+    def replacer(node, field) -> Optional[Any]:
 
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
@@ -466,6 +468,8 @@ if __name__ == "__main__":
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
+        canonicalize.ReplaceConstExpr(mod)
+    for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
@@ -479,10 +483,10 @@ if __name__ == "__main__":
     mod_gen.body_mod += list(str_val_map.values())
     mod_topo_order = [mod_gen] + mod_topo_order
 
-    for mod in mod_topo_order:
-        pp.PrettyPrint(mod)
+    # for mod in mod_topo_order:
+    #    pp.PrettyPrint(mod)
+    # exit(0)
 
-    exit(0)
     # Fully qualify names
     for mod in mod_topo_order:
         mod_name = "" if mod.name == "main" else mod.name + "/"

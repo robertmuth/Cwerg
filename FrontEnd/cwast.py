@@ -46,9 +46,9 @@ class BASE_TYPE_KIND(enum.Enum):
 class NF(enum.Flag):
     """Node Flags"""
     NONE = 0
+    MAY_BE_LHS = enum.auto()
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
-    MUST_HAVE_VALUE = enum.auto()
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     TYPE_CORPUS = enum.auto()
@@ -58,7 +58,8 @@ class NF(enum.Flag):
     TOP_LEVEL = enum.auto()
     MACRO_BODY_ONLY = enum.auto()
     TO_BE_EXPANDED = enum.auto()
-    NON_CORE = enum.auto() # all non-core nodes will be stripped or converted to core nodes before code-gen
+    # all non-core nodes will be stripped or converted to core nodes before code-gen
+    NON_CORE = enum.auto()
 
 
 @enum.unique
@@ -330,7 +331,7 @@ NODES_COND = ("ValFalse", "ValTrue",
               "ExprStmt", "ExprIs")
 NODES_COND_T = Union[NODES_COND]
 
-NODES_LHS = ("Id", "ExprDeref", "ExprIndex", "ExprField", "ExprCall")
+NODES_LHS = ("Id", "ExprDeref", "ExprIndex", "ExprField")
 NODES_LHS_T = Union[NODES_LHS]
 
 ALL_FIELDS = [
@@ -587,7 +588,7 @@ class Id:
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS
     #
     name: str          # last component of mod1::mod2:id: id
     path: str          # first components of mod1::mod2:id: mod1::mod2
@@ -1082,7 +1083,7 @@ class ExprDeref:
     """Dereference a pointer represented by `expr`"""
     ALIAS = "^"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS
     #
     expr: NODES_EXPR_T  # must be of type AddrOf
     #
@@ -1107,14 +1108,14 @@ class ExprAddrOf:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     mut: bool
-    expr: NODES_EXPR_T
+    lhs: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.expr}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.lhs}"
 
 
 @NodeCommon
@@ -1161,7 +1162,7 @@ class ExprField:
     """
     ALIAS = "."
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED | NF.MAY_BE_LHS
     #
     container: NODES_EXPR_T  # must be of type rec
     field: str
@@ -1244,7 +1245,7 @@ class ExprIndex:
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS
     #
     container: NODES_EXPR_T  # must be of type slice or array
     expr_index: NODES_EXPR_T  # must be of int type
@@ -1689,7 +1690,7 @@ class StmtCompoundAssignment:
     """Compound assignment statement"""
     ALIAS = None
     GROUP = GROUP.Statement
-    FLAGS = NF.NONE
+    FLAGS = NF.NON_CORE
     #
     assignment_kind: ASSIGNMENT_KIND
     lhs: NODES_LHS_T
@@ -2107,7 +2108,7 @@ class DefMacro:
     have a single node body
     """
     ALIAS = "macro"
-    GROUP = GROUP.Statement 
+    GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     pub: bool
     #
@@ -2208,7 +2209,7 @@ def MaybeReplaceAstRecursively(node, replacer):
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
             child = getattr(node, c)
-            new_child = replacer(child)
+            new_child = replacer(child, c)
             if new_child:
                 setattr(node, c, new_child)
             else:
@@ -2216,11 +2217,12 @@ def MaybeReplaceAstRecursively(node, replacer):
         elif nfd.kind is NFK.LIST:
             children = getattr(node, c)
             for n, child in enumerate(children):
-                new_child = replacer(child)
+                new_child = replacer(child, c)
                 if new_child:
                     children[n] = new_child
                 else:
                     MaybeReplaceAstRecursively(child, replacer)
+
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     for c in node.__class__.FIELDS:
@@ -2229,20 +2231,20 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
         if nfd.kind is NFK.NODE:
             child = getattr(node, c)
             MaybeReplaceAstRecursivelyPost(child, replacer)
-            new_child = replacer(child)
+            new_child = replacer(child, c)
             if new_child:
                 setattr(node, c, new_child)
         elif nfd.kind is NFK.LIST:
             children = getattr(node, c)
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelyPost(child, replacer)
-                new_child = replacer(child)
+                new_child = replacer(child, c)
                 if new_child:
                     children[n] = new_child
-                    
+
 
 def _MaybeFlattenEphemeralList(nodes: List[Any]):
-    has_ephemeral =  False
+    has_ephemeral = False
     for n in nodes:
         if isinstance(n, EphemeralList):
             has_ephemeral = True
@@ -2272,7 +2274,7 @@ def EliminateEphemeralsRecursively(node):
             children = getattr(node, c)
             new_children = _MaybeFlattenEphemeralList(children)
             if new_children is not children:
-                 setattr(node, c, new_children)
+                setattr(node, c, new_children)
             for child in children:
                 EliminateEphemeralsRecursively(child)
 
@@ -2294,7 +2296,7 @@ def CloneNodeRecursively(node):
 ############################################################
 
 def StripNodes(node, cls):
-    def replacer(n):
+    def replacer(n, field):
         if isinstance(n, cls):
             return EphemeralList([])
         else:
@@ -2305,6 +2307,8 @@ def StripNodes(node, cls):
 ############################################################
 # AST Checker
 ############################################################
+
+
 def CompilerError(srcloc, msg):
     print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
     assert False

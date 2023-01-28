@@ -438,7 +438,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             cwast.BASE_TYPE_KIND.UINT))
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = _TypifyNodeRecursively(
-            node.expr, tc, types.NO_TYPE, ctx)
+            node.lhs, tc, types.NO_TYPE, ctx)
         return _AnnotateType(tc, node, tc.insert_ptr_type(node.mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
@@ -629,10 +629,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
                                                     f"{tc.canon_name(def_node.x_type)} vs "
                                                     f"{tc.canon_name(node.x_type)}")
     elif isinstance(node, cwast.ExprAddrOf):
-        cstr_expr = node.expr.x_type
+        cstr_expr = node.lhs.x_type
         cstr = node.x_type
         if node.mut:
-            assert is_proper_lhs(node.expr), f"bad lhs in: {node} {tc.canon_name(node.expr.x_type)}"
+            assert is_proper_lhs(node.lhs), f"bad lhs in: {node} {tc.canon_name(node.lhs.x_type)}"
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
         assert node.x_type == tc.insert_base_type(
