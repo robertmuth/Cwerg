@@ -151,18 +151,60 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
+_COMPOUND_KIND_TO_EXPR_KIND = {
+    cwast.ASSIGNMENT_KIND.ADD: cwast.BINARY_EXPR_KIND.ADD,
+    cwast.ASSIGNMENT_KIND.SUB: cwast.BINARY_EXPR_KIND.SUB,
+    cwast.ASSIGNMENT_KIND.DIV: cwast.BINARY_EXPR_KIND.DIV,
+    cwast.ASSIGNMENT_KIND.MUL: cwast.BINARY_EXPR_KIND.MUL,
+    cwast.ASSIGNMENT_KIND.REM: cwast.BINARY_EXPR_KIND.REM,
+    #
+    cwast.ASSIGNMENT_KIND.INCP: cwast.BINARY_EXPR_KIND.INCP,
+    cwast.ASSIGNMENT_KIND.DECP: cwast.BINARY_EXPR_KIND.DECP,
+    #
+    cwast.ASSIGNMENT_KIND.AND: cwast.BINARY_EXPR_KIND.AND,
+    cwast.ASSIGNMENT_KIND.OR: cwast.BINARY_EXPR_KIND.OR,
+    cwast.ASSIGNMENT_KIND.XOR: cwast.BINARY_EXPR_KIND.XOR,
+    #
+    cwast.ASSIGNMENT_KIND.SHR: cwast.BINARY_EXPR_KIND.SHR,
+    cwast.ASSIGNMENT_KIND.SHL: cwast.BINARY_EXPR_KIND.SHL,
+}
+
+############################################################
+#
+############################################################
+
+
+def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen):
+
+    def replacer(node, field):
+        if isinstance(node, cwast.StmtCompoundAssignment):
+            if isinstance(node.lhs, cwast.Id):
+                lhs = node.lhs
+            else:
+                addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
+                addr = cwast.ExprAddrOf(True, node.lhs,
+                                        x_srcloc=node.x_srcloc, x_type=addr_type)
+                lhs = cwast.ExprDeref(addr, x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
+            expr = cwast.Expr2(_COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind],
+                               cwast.CloneNodeRecursively(lhs),
+                               node.expr, x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
+            return cwast.StmtAssignment(lhs, expr, x_srcloc=node.x_srcloc)
+        return None
+
+    cwast.MaybeReplaceAstRecursively(node, replacer)
+
 ############################################################
 # This should elminate all of ExprSizeOf and ExprOffsetOf
-#
+# as a side-effect
 ############################################################
 
 
 def ReplaceConstExpr(node):
     def replacer(node, field):
         if field != "lhs" and cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
-            if (isinstance(node.x_type, cwast.TypeBase) and 
-                types.is_int(node.x_type) and 
-                not isinstance(node, cwast.ValNum)):
+            if (isinstance(node.x_type, cwast.TypeBase) and
+                types.is_int(node.x_type) and
+                    not isinstance(node, cwast.ValNum)):
                 return cwast.ValNum(str(node.x_value),
                                     x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
         return None

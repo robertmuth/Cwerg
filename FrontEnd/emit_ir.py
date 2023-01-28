@@ -477,6 +477,7 @@ if __name__ == "__main__":
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
+            canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
             symbolize.VerifyASTSymbolsRecursively(fun)
             typify.VerifyTypesRecursively(fun, tc)
 
