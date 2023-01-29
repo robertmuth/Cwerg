@@ -15,6 +15,7 @@ WIP
 [DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
 [EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
+[EphemeralList](#ephemerallist) &ensp;
 [Expr1](#expr1) &ensp;
 [Expr2](#expr2) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
@@ -44,7 +45,6 @@ WIP
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
-[MacroListArg&nbsp;(macro_list_arg)](#macrolistarg-macro_list_arg) &ensp;
 [MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
 [MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
 [ModParam](#modparam) &ensp;
@@ -578,7 +578,7 @@ Create a pointer to object represented by `expr`
 
 Fields:
 * mut [FLAG]: is mutable
-* expr [NODE]: expression
+* lhs [NODE]: l-value expression
 
 ### ExprAs (as)
 Safe Cast (Conversion)
@@ -741,6 +741,15 @@ Fields:
 
 ## Macro Node Details
 
+### EphemeralList
+Only exist temporarily after a replacement strep
+
+    will removed (flattened) in the next cleanup step
+    
+
+Fields:
+* args [LIST]: function call arguments
+
 ### MacroFor (macro_for)
 Macro for-loop like statement
 
@@ -766,14 +775,6 @@ Macro Invocation
 
 Fields:
 * name [STR]: name of the object
-* args [LIST]: function call arguments
-
-### MacroListArg (macro_list_arg)
-Container for macro arguments that consists of multiple node (e.g. list of statements)
-
-    
-
-Fields:
 * args [LIST]: function call arguments
 
 ### MacroParam (macro_param)

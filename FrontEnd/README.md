@@ -10,7 +10,7 @@ more insights about the design-space by bootstrapping the front- and backend.
 
 ## Syntax
   
-Source code will be stored as serialized S-Expressions with tooling to
+Source code will be stored as S-Expressions with tooling to
 convert back and forth to a yet to be defined concrete syntax.
 
 The tooling will do most of the syntax and semantic checking.
@@ -43,6 +43,7 @@ Removed:
 * comma operator 
   implicitly nullable pointers
 * goto
+* comma operator
 
 Added
 * modules (with templates) 
@@ -56,6 +57,7 @@ Added
 * named blocks/continue/break
 * checked array accesses
 * strict distinction between expressions and statements
+* expression blocks
 * simple macro system (optionally hygienic)
 
 
@@ -176,8 +178,7 @@ Decision: Supported for Variables, Pointees and Slices. `mut` Pointers/Slices ca
 Pro: Maps (and List) are almost all you need (see Lua)
 
 Con: They require built-in dynamic memory management.
-
-Decision: omitted. Can be implemented in libraries.
+     They can be implemented in libraries.
 
 
 #### Structural Type equivalence vs name equivalence BOTH
@@ -262,7 +263,10 @@ Likely only supported for a fixed feature set, e.g. iterators and stringificatio
 
 #### Goto PROBABLY NO
 
-Decision:  probably omitted
+The label blocks and defer seem to be adequate.
+
+Gotos in C are convenient when you transpile to C but Cwerg is not meant to be a 
+compilation target.
 
 #### Named Blocks and Continue/Break statements with labels YES
 
