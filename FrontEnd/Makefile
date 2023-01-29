@@ -51,7 +51,7 @@ $(DIR)/%.cw.symtab: TestData/%.cw
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"
-	./pp.py < $< >$@.tmp
+	cat $(BUILTINS) $< | ./pp.py >$@.tmp
 	./pp.py < $@.tmp >$@
 	diff $@.tmp $@
 
@@ -63,6 +63,10 @@ $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
+$(DIR)/sieve.exe: TestData/sieve.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ 
 
 $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
 	cat TestData/builtin.cw $< |  $(PYPY)  ./emit_ir.py > $@.asm

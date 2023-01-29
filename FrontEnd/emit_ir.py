@@ -28,6 +28,18 @@ logger = logging.getLogger(__name__)
 TAB = "  "
 
 
+def _InitDataForBaseType(initial_or_undef) -> bytes:
+    x_type = initial_or_undef.x_type
+    x_value =  initial_or_undef.x_value
+    assert isinstance(x_type, cwast.TypeBase)
+    byte_width = x_type.x_size
+    if x_value is None:
+        return b"\0" * byte_width
+    elif types.is_int(x_type):
+        return  x_value.to_bytes(byte_width, 'little')
+    assert False
+
+
 def RenderList(items):
     return "[" + " ".join(items) + "]"
 
@@ -129,13 +141,13 @@ def EmitIRConditional(cond, label_t: str, label_f: str, id_gen: identifier.IdGen
                 kind = cwast.BINARY_EXPR_KIND.LE
                 op1, op2 = op2, op1
             print(f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_t}")
-            print(f"{TAB}br {label_f}")
+            print(f"{TAB}bra {label_f}")
 
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         print(f"{TAB}bne {cond.name} 0 {label_t}")
-        print(f"{TAB}br {label_f}")
+        print(f"{TAB}bra {label_f}")
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -226,7 +238,7 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         assert type_corpus.register_types(
             def_type) is not None, f"unsupported type {def_type}"
         out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
-        print(f"{TAB}mov {node.name} = {out}")
+        print(f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, type_corpus)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -247,10 +259,10 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
         block = node.x_target.label[1]
-        print(f"{TAB}br {block}")
+        print(f"{TAB}bra {block}")
     elif isinstance(node, cwast.StmtContinue):
         block = node.x_target.label[0]
-        print(f"{TAB}br {block}")
+        print(f"{TAB}bra {block}")
     elif isinstance(node, cwast.StmtExpr):
         EmitIRExpr(node.expr, type_corpus, id_gen)
     elif isinstance(node, cwast.StmtIf):
@@ -262,7 +274,7 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
             print(f".bbl {label_t}")
             for c in node.body_t:
                 EmitIRStmt(c, result, type_corpus, id_gen)
-            print(f"{TAB}br {label_n}")
+            print(f"{TAB}bra {label_n}")
             print(f".bbl {label_f}")
             for c in node.body_f:
                 EmitIRStmt(c, result, type_corpus, id_gen)
@@ -289,6 +301,8 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         else:
             lhs = _GetLValueAddress(node.lhs, id_gen)
             print(f"{TAB}st {lhs} 0 = {out}")
+    elif isinstance(node, cwast.StmtTrap):
+        print(f"{TAB}trap")
     else:
         assert False, f"cannot generate code for {node}"
 
@@ -296,7 +310,8 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
 def EmitIRDefGlobal(node: cwast.DefGlobal):
     def_type = node.x_type
     if isinstance(def_type, cwast.TypeBase):
-        assert False, f"top level defvar base type"
+        _EmitMem(node.name, def_type.x_alignment, node.mut,
+                 _InitDataForBaseType(node.initial_or_undef))
     elif isinstance(def_type, cwast.TypeArray):
         init = node.initial_or_undef.x_value
         if isinstance(init, bytes):
@@ -477,7 +492,7 @@ if __name__ == "__main__":
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
-            canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
+            canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
             symbolize.VerifyASTSymbolsRecursively(fun)
             typify.VerifyTypesRecursively(fun, tc)
 

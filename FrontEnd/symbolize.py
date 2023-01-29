@@ -178,7 +178,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
             def_node = symtab.resolve_sym(
                 node.name.split("/"), symtab_map, False)
             if def_node is None:
-                parse.CompilerError(
+                cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
             _add_symbol_link(node, def_node)
 

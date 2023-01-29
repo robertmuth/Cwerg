@@ -12,6 +12,14 @@ from typing import List, Dict, Set, Optional, Union, Any
 from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import types
+############################################################
+#
+############################################################
+
+
+def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
+    return cwast.Id(def_node.name, "", x_srcloc=x_srcloc, x_type=def_node.x_type,
+                    x_value=def_node.x_value, x_symbol=def_node)
 
 ############################################################
 # Move string/array values into global (un-mutable variables)
@@ -33,11 +41,7 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
                                            x_value=node.x_value)
                 str_map[node.x_value] = def_node
 
-            return cwast.Id(def_node.name, "blahblah",
-                            x_srcloc=node.x_srcloc,
-                            x_type=node.x_type,
-                            x_value=node.x_value,
-                            x_symbol=def_node)
+            return _IdNodeFromDef(def_node, node.x_srcloc)
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -123,13 +127,9 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
             name_t = id_gen.NewName("op_t")
             def_t = cwast.DefVar(False, name_t, cwast.TypeAuto(), node.expr_t,
                                  x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
-            id_t = cwast.Id(name_t, "", x_srcloc=node.x_srcloc, x_type=node.expr_t.x_type,
-                            x_value=node.expr_t.x_value, x_symbol=def_t)
             name_f = id_gen.NewName("op_f")
             def_f = cwast.DefVar(False, name_f, cwast.TypeAuto(), node.expr_f,
                                  x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
-            id_f = cwast.Id(name_f, "", x_srcloc=node.x_srcloc, x_type=node.expr_f.x_type,
-                            x_value=node.expr_f.x_value, x_symbol=def_f)
 
             expr = cwast.ExprStmt([], x_srcloc=node.x_srcloc,
                                   x_type=node.x_type, x_value=node.x_value)
@@ -138,10 +138,10 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
                 def_f,
                 cwast.StmtIf(node.cond, [
                     cwast.StmtReturn(
-                        id_t, x_srcloc=node.x_srcloc, x_target=expr)
+                        _IdNodeFromDef(def_t, node.x_srcloc), x_srcloc=node.x_srcloc, x_target=expr)
                 ], [
                     cwast.StmtReturn(
-                        id_f, x_srcloc=node.x_srcloc, x_target=expr)
+                        _IdNodeFromDef(def_f, node.x_srcloc), x_srcloc=node.x_srcloc, x_target=expr)
                 ],  x_srcloc=node.x_srcloc)
 
             ]
@@ -174,21 +174,31 @@ _COMPOUND_KIND_TO_EXPR_KIND = {
 ############################################################
 
 
-def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen):
+def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
+    rhs = cwast.Expr2(_COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
+                      cwast.CloneNodeRecursively(lhs),
+                      expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
+    return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
+
+
+def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifier.IdGen):
 
     def replacer(node, field):
         if isinstance(node, cwast.StmtCompoundAssignment):
             if isinstance(node.lhs, cwast.Id):
-                lhs = node.lhs
+                return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr, node.x_srcloc)
             else:
                 addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
                 addr = cwast.ExprAddrOf(True, node.lhs,
                                         x_srcloc=node.x_srcloc, x_type=addr_type)
-                lhs = cwast.ExprDeref(addr, x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
-            expr = cwast.Expr2(_COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind],
-                               cwast.CloneNodeRecursively(lhs),
-                               node.expr, x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
-            return cwast.StmtAssignment(lhs, expr, x_srcloc=node.x_srcloc)
+                def_node = cwast.DefVar(False, id_gen.NewName("assign"),
+                                        cwast.TypeAuto(
+                    x_srcloc=node.x_srcloc), addr,
+                    x_srcloc=node.x_srcloc, x_type=addr_type)
+                lhs = cwast.ExprDeref(_IdNodeFromDef(
+                    def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
+                return cwast.EphemeralList([def_node,
+                                            _AssigmemtNode(node.assignment_kind, lhs, node.expr, node.x_srcloc)])
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -201,7 +211,9 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen):
 
 def ReplaceConstExpr(node):
     def replacer(node, field):
-        if field != "lhs" and cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
+        if (field != "lhs" and cwast.NF.VALUE_ANNOTATED in node.FLAGS and
+            not isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and
+                node.x_value is not None):
             if (isinstance(node.x_type, cwast.TypeBase) and
                 types.is_int(node.x_type) and
                     not isinstance(node, cwast.ValNum)):

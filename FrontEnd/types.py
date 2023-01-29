@@ -69,6 +69,9 @@ def is_uint(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_UINT
 
+def is_sint(cstr: CanonType) -> bool:
+    assert isinstance(cstr, cwast.TypeBase)
+    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_SINT
 
 def is_real(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
