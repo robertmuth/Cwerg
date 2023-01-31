@@ -209,7 +209,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         if types.is_void(sig.result):
             return None
         else:
-            res = id_gen.NewName("tmp")
+            res = id_gen.NewName("call")
             print(f"{TAB}poparg {res}:{StringifyOneType(sig.result, tc)}")
             return res
     elif isinstance(node, cwast.ValNum):
@@ -226,7 +226,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
     elif isinstance(node, cwast.Expr2):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
-        res = id_gen.NewName("tmp")
+        res = id_gen.NewName("expr2")
         op = _BIN_OP_MAP.get(node.binary_expr_kind)
         if op is not None:
             print(
@@ -248,7 +248,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         assert False, f"unsupported cast {node.expr} -> {node.type}"
     elif isinstance(node, cwast.ExprDeref):
         addr = EmitIRExpr(node.expr, tc, id_gen)
-        res = id_gen.NewName("tmp")
+        res = id_gen.NewName("deref")
         print(
             f"{TAB}ld {res}:{StringifyOneType(node.expr.x_type, tc)} = {addr} 0")
         return res
@@ -258,7 +258,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             EmitIRStmt(c, result, tc, id_gen)
     elif isinstance(node, cwast.ExprIndex):
         addr = _GetLValueAddress(node, tc, id_gen)
-        res = id_gen.NewName("tmp")
+        res = id_gen.NewName("at")
         print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     else:
