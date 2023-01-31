@@ -27,9 +27,13 @@
 (global mut is_prime (array SIZE u8) (array_val u8 SIZE [(IndexVal 0 0)]))
 
 (fun sieve [] uint [
+   (# "initialize tp ptime")
+   (for i uint 0 SIZE 1 [(= (at is_prime i) 1)])
    (let mut count uint 0)
    (for i uint 0 SIZE 1 [
+      (if (!= (at is_prime i) 0) [
 
+      ] [])
    ])
    (return count)
 ])

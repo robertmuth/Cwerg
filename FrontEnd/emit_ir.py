@@ -28,15 +28,13 @@ logger = logging.getLogger(__name__)
 TAB = "  "
 
 
-def _InitDataForBaseType(initial_or_undef) -> bytes:
-    x_type = initial_or_undef.x_type
-    x_value =  initial_or_undef.x_value
+def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
     byte_width = x_type.x_size
     if x_value is None:
         return b"\0" * byte_width
     elif types.is_int(x_type):
-        return  x_value.to_bytes(byte_width, 'little')
+        return x_value.to_bytes(byte_width, 'little')
     assert False
 
 
@@ -73,23 +71,54 @@ def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
             print(f"{TAB}poparg {p.name}.2:{reg_types[1]}")
 
 
+
+def RLE(data: bytes):
+    last = None
+    count = 0
+    for d in data:
+        if d != last:
+            if last is not None:
+                yield count, last
+            last = d
+            count = 1
+        else:
+            count += 1
+    else:
+        yield count, last
+
+
+    
 def _EmitMem(name, align, rw, data):
     print(f"\n.mem {name} {align} {'RW' if rw else 'RO'}")
     if isinstance(data, bytes):
-        print(f'.data 1 "{BytesToEscapedString(data)}"')
+        if len(data) < 100:
+            print(f'.data 1 "{BytesToEscapedString(data)}"')
+        else:
+            for count, value in RLE(data):
+                print(f".data {count} [{value}]")
+    else:
+        assert False
 
 
 ZERO_INDEX = "0"
 
 
-def _GetLValueAddress(node, id_gen: identifier.IdGen) -> Any:
+def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
     if isinstance(node, cwast.ExprIndex):
-        container = _GetLValueAddress(node.container, id_gen)
+        x_type = node.container.x_type
+        assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
+        container = _GetLValueAddress(node.container, tc, id_gen)
         if node.expr_index.x_value == 0:
             return container
         else:
-            assert False
-            index = EmitIRExpr(node_stack + [node.expr_index, id_gen])
+            index = EmitIRExpr(node.expr_index, tc, id_gen)
+            if x_type.type.x_size == 1:
+                res = id_gen.NewName("at")
+                kind = "A64"
+                print(f"{TAB}lea {res}:{kind} = {container} {index}")
+                return res
+            else:
+                assert False
     elif isinstance(node, cwast.ExprDeref):
         return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
@@ -166,11 +195,11 @@ _BIN_OP_MAP = {
 }
 
 
-def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
+def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
     if isinstance(node, cwast.ExprCall):
         sig = node.callee.x_type
         assert isinstance(sig, cwast.TypeFun)
-        args = [EmitIRExpr(a, type_corpus, id_gen) for a in node.args]
+        args = [EmitIRExpr(a, tc, id_gen) for a in node.args]
         for a in reversed(args):
             print(f"{TAB}pusharg {a}")
         if isinstance(node.callee, cwast.Id):
@@ -181,10 +210,10 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
             return None
         else:
             res = id_gen.NewName("tmp")
-            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result, type_corpus)}")
+            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result, tc)}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{node.number}:{StringifyOneType(node.x_type, type_corpus)}"
+        return f"{node.number}:{StringifyOneType(node.x_type, tc)}"
     elif isinstance(node, cwast.ExprLen):
         if isinstance(node.container.x_type, cwast.TypeArray):
             assert False, f"{node} {node.x_value}"
@@ -193,15 +222,15 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
     elif isinstance(node, cwast.Id):
         return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
-        return _GetLValueAddress(node.lhs, id_gen)
+        return _GetLValueAddress(node.lhs, tc, id_gen)
     elif isinstance(node, cwast.Expr2):
-        op1 = EmitIRExpr(node.expr1, type_corpus, id_gen)
-        op2 = EmitIRExpr(node.expr2, type_corpus, id_gen)
+        op1 = EmitIRExpr(node.expr1, tc, id_gen)
+        op2 = EmitIRExpr(node.expr2, tc, id_gen)
         res = id_gen.NewName("tmp")
         op = _BIN_OP_MAP.get(node.binary_expr_kind)
         if op is not None:
             print(
-                f"{TAB}{op} {res}:{StringifyOneType(node.x_type, type_corpus)} = {op1} {op2}")
+                f"{TAB}{op} {res}:{StringifyOneType(node.x_type, tc)} = {op1} {op2}")
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.INCP:
             assert isinstance(node.expr1.x_type, cwast.TypePtr)
             assert node.expr1.x_type.type.x_size == 1
@@ -213,20 +242,25 @@ def EmitIRExpr(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen) ->
     elif isinstance(node, cwast.ExprAs):
         if (isinstance(node.expr.x_type, cwast.TypeArray) and
                 isinstance(node.type.x_type, cwast.TypeSlice)):
-            addr = _GetLValueAddress(node.expr, id_gen)
+            addr = _GetLValueAddress(node.expr, tc, id_gen)
             size = node.expr.x_type.size.x_value
             return addr, f"{size}:U64"
         assert False, f"unsupported cast {node.expr} -> {node.type}"
     elif isinstance(node, cwast.ExprDeref):
-        addr = EmitIRExpr(node.expr, type_corpus, id_gen)
+        addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("tmp")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.expr.x_type, type_corpus)} = {addr} 0")
+            f"{TAB}ld {res}:{StringifyOneType(node.expr.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
         result = id_gen.NewName("expr")
         for c in node.body:
-            EmitIRStmt(c, result, type_corpus, id_gen)
+            EmitIRStmt(c, result, tc, id_gen)
+    elif isinstance(node, cwast.ExprIndex):
+        addr = _GetLValueAddress(node, tc, id_gen)
+        res = id_gen.NewName("tmp")
+        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
+        return res
     else:
         assert False, f"unsupported expression {node}"
 
@@ -238,7 +272,8 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         assert type_corpus.register_types(
             def_type) is not None, f"unsupported type {def_type}"
         out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
-        print(f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, type_corpus)} = {out}")
+        print(
+            f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, type_corpus)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -299,7 +334,7 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
             # scalars will be naked like this
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}")
         else:
-            lhs = _GetLValueAddress(node.lhs, id_gen)
+            lhs = _GetLValueAddress(node.lhs, tc, id_gen)
             print(f"{TAB}st {lhs} 0 = {out}")
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
@@ -311,16 +346,21 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
     def_type = node.x_type
     if isinstance(def_type, cwast.TypeBase):
         _EmitMem(node.name, def_type.x_alignment, node.mut,
-                 _InitDataForBaseType(node.initial_or_undef))
+                 _InitDataForBaseType(node.initial_or_undef.x_type, node.initial_or_undef.x_value))
     elif isinstance(def_type, cwast.TypeArray):
         init = node.initial_or_undef.x_value
         if isinstance(init, bytes):
             assert isinstance(def_type.type, cwast.TypeBase)
             _EmitMem(node.name, 1, node.mut, init)
         else:
-            out = []
             size = def_type.size.x_value
-            init = node.initial_or_undef.x_value
+            x_type = def_type.type
+            assert isinstance(x_type, cwast.TypeBase)
+            assert size == len(node.initial_or_undef.x_value)
+            out = b"".join(_InitDataForBaseType(x_type, v) for v in node.initial_or_undef.x_value)
+            _EmitMem(node.name, node.x_type.x_alignment, node.mut, out)
+    else:
+        assert False
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
