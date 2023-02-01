@@ -204,7 +204,9 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
-            assert field in cwast.OPTIONAL_FIELDS, f"in {cls.__name__} unknown optional (or missing) field: {field}"
+            if field not in cwast.OPTIONAL_FIELDS:
+                cwast.CompilerError(
+                    stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
             pieces.append(cwast.OPTIONAL_FIELDS[field](srcloc))
         elif nfd.kind is cwast.NFK.FLAG:
             if token == field:
@@ -260,18 +262,17 @@ def ReadModsFromStream(fp) -> List[cwast.DefMod]:
             t = next(stream)
             failure = True
             if t != "(":
-                cwast.CompilerError(stream.srcloc(), f"expect start of new node, got '{t}']") 
+                cwast.CompilerError(
+                    stream.srcloc(), f"expect start of new node, got '{t}']")
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
-            cwast.CheckAST(sexpr, None, cwast.CheckASTContext(allow_macros=True, allow_comments=True))
+            cwast.CheckAST(sexpr, None, cwast.CheckASTContext(
+                allow_macros=True, allow_comments=True))
             asts.append(sexpr)
             failure = False
     except StopIteration:
         assert not failure, f"truncated file"
     return asts
-
-
-
 
 
 if __name__ == "__main__":

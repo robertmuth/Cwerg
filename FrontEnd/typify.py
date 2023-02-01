@@ -501,7 +501,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
                 initial_cstr, type_cstr),  _TypeMismatch(
                     tc, f"type mismatch {node}:", initial_cstr, type_cstr)
     elif isinstance(node, cwast.ExprIndex):
-        cstr = node.x_type 
+        cstr = node.x_type
         assert cstr == types.get_contained_type(node.container.x_type)
     elif isinstance(node, cwast.ExprField):
         cstr = node.x_type
@@ -586,7 +586,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         expr_cstr = node.expr.x_type
         assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
             tc, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
-        assert is_proper_lhs(node.lhs), f"cannot assign to readonly data: {node}"
+        assert is_proper_lhs(
+            node.lhs), f"cannot assign to readonly data: {node}"
     elif isinstance(node, cwast.StmtCompoundAssignment):
         assert is_proper_lhs(node.lhs)
         var_cstr = node.lhs.x_type
@@ -632,7 +633,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr_expr = node.lhs.x_type
         cstr = node.x_type
         if node.mut:
-            assert is_proper_lhs(node.lhs), f"bad lhs in: {node} {tc.canon_name(node.lhs.x_type)}"
+            assert is_proper_lhs(
+                node.lhs), f"bad lhs in: {node} {tc.canon_name(node.lhs.x_type)}"
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
         assert node.x_type == tc.insert_base_type(

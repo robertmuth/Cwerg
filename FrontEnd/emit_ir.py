@@ -27,12 +27,13 @@ logger = logging.getLogger(__name__)
 
 TAB = "  "
 
+ZEROS =  b"\0" * 1024
 
 def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
     byte_width = x_type.x_size
-    if x_value is None:
-        return b"\0" * byte_width
+    if x_value is None or isinstance(x_value, cwast.ValUndef):
+        return ZEROS[0:byte_width]
     elif types.is_int(x_type):
         return x_value.to_bytes(byte_width, 'little')
     assert False
@@ -240,12 +241,19 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             assert False
         return res
     elif isinstance(node, cwast.ExprAs):
-        if (isinstance(node.expr.x_type, cwast.TypeArray) and
+        if (isinstance(node.expr.x_type, cwast.TypeBase) and  isinstance(node.type.x_type, cwast.TypeBase)):
+            # more compatibility checking needed
+            expr = EmitIRExpr(node.expr, tc, id_gen)
+            res = id_gen.NewName("as")
+            print(f"{TAB}conv {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
+            return res
+        elif (isinstance(node.expr.x_type, cwast.TypeArray) and
                 isinstance(node.type.x_type, cwast.TypeSlice)):
             addr = _GetLValueAddress(node.expr, tc, id_gen)
             size = node.expr.x_type.size.x_value
             return addr, f"{size}:U64"
-        assert False, f"unsupported cast {node.expr} -> {node.type}"
+        else:
+            assert False, f"unsupported cast {node.expr} -> {node.type}"
     elif isinstance(node, cwast.ExprDeref):
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
@@ -355,9 +363,10 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
         else:
             size = def_type.size.x_value
             x_type = def_type.type
+            x_value = node.initial_or_undef.x_value
             assert isinstance(x_type, cwast.TypeBase)
-            assert size == len(node.initial_or_undef.x_value)
-            out = b"".join(_InitDataForBaseType(x_type, v) for v in node.initial_or_undef.x_value)
+            assert size == len(x_value)
+            out = b"".join(_InitDataForBaseType(x_type, v) for v in x_value)
             _EmitMem(node.name, node.x_type.x_alignment, node.mut, out)
     else:
         assert False
