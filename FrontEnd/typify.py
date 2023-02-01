@@ -261,8 +261,8 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
     elif isinstance(node, cwast.ValArray):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
         for x in node.inits_array:
-            if isinstance(x, cwast.IndexVal):
-                _TypifyNodeRecursively(x, tc, cstr, ctx)
+            assert isinstance(x, cwast.IndexVal)
+            _TypifyNodeRecursively(x, tc, cstr, ctx)
         #
         _TypifyNodeRecursively(node.expr_size, tc, tc.insert_base_type(
             cwast.BASE_TYPE_KIND.UINT), ctx)
@@ -483,16 +483,16 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     if isinstance(node, cwast.ValArray):
         cstr = node.type.x_type
         for x in node.inits_array:
-            if isinstance(x, cwast.IndexVal):
-                if not isinstance(x.init_index, cwast.ValAuto):
-                    assert types.is_int(x.init_index.x_type)
-                assert cstr == x.x_type, _TypeMismatch(
-                    tc, "type mismatch {x}:", x.x_type, cstr)
+            assert isinstance(x, cwast.IndexVal)
+            if not isinstance(x.init_index, cwast.ValAuto):
+                assert types.is_int(x.init_index.x_type)
+            assert cstr == x.x_type, _TypeMismatch(
+                tc, "type mismatch {x}:", x.x_type, cstr)
     elif isinstance(node, cwast.ValRec):
         for x in node.inits_rec:
-            if isinstance(x, cwast.FieldVal):
-                field_node = x.x_field
-                assert field_node.x_type == x.x_type
+            assert isinstance(x, cwast.FieldVal)
+            field_node = x.x_field
+            assert field_node.x_type == x.x_type
     elif isinstance(node, cwast.RecField):
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             type_cstr = node.type.x_type

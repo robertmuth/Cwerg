@@ -75,8 +75,7 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
         if c.value.x_value is None:
             num_unknown += 1
     for c in node.x_type.fields:
-        if not isinstance(c, cwast.RecField):
-            continue
+        assert isinstance(c, cwast.RecField)
         if not isinstance(c.initial_or_undef, cwast.ValUndef):
             if c.initial_or_undef.x_value is None:
                 num_unknown += 1
