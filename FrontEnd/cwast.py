@@ -994,8 +994,8 @@ class ValArray:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    type: NODES_TYPES_T
     expr_size: Union["NODES_EXPR_T", ValAuto]  # must be constant
+    type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #
     x_srcloc: Optional[Any] = None
@@ -1003,7 +1003,7 @@ class ValArray:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr_size}"
+        return f"{_NAME(self)} type={self.type} size={self.expr_size}"
 
 
 @NodeCommon

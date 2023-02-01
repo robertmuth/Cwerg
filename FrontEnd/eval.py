@@ -24,7 +24,22 @@ _VOID = cwast.ValVoid()
 
 
 def _AssignValue(node, val):
-    logger.info(f"EVAL of {node}: {val}")
+    # TODO: check this recusively
+    # "None" is reserve for indicating that evaluation was not possible
+    # 
+    if isinstance(val, list):
+        for x in val:
+            assert x is not None
+    elif isinstance(val, dict):
+        for x in val.values():
+            assert x is not None
+    else:
+        assert val is not None
+
+    if isinstance(val, list):
+        logger.info(f"EVAL of {node}: {val[:8]}...")
+    else:
+        logger.info(f"EVAL of {node}: {val}")
     node.x_value = val
     return True
 
@@ -54,9 +69,9 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
 def _EvalValRec(node: cwast.ValRec) -> bool:
     out = False
     num_unknown = 0
+    # first pass if we cannot evaluate everyting, we must give up
     for c in node.inits_rec:
-        if not isinstance(c, cwast.FieldVal):
-            continue
+        assert isinstance(c, cwast.FieldVal)
         if c.value.x_value is None:
             num_unknown += 1
     for c in node.x_type.fields:
@@ -69,10 +84,8 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
     if num_unknown > 0:
         return out
 
-    fields: List[cwast.RecField] = [
-        f for f in node.x_type.fields if isinstance(f, cwast.RecField)]
-    values: List[cwast.FieldVal] = [
-        v for v in node.inits_rec if isinstance(v, cwast.FieldVal)]
+    fields = node.x_type.fields
+    values = node.inits_rec[:]
 
     rec = {}
     for f in fields:
@@ -88,9 +101,10 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
 def _EvalValArray(node: cwast.ValArray) -> bool:
     out = False
     num_unknown = 0
+    # first pass if we cannot evaluate everyting, we must give up
+    # This could be relaxed if we allow None values in "out"
     for c in node.inits_array:
-        if not isinstance(c, cwast.IndexVal):
-            continue
+        assert isinstance(c, cwast.IndexVal)
         if not isinstance(c.init_index, cwast.ValAuto):
             if c.init_index.x_value is None:
                 out |= _EvalNode(c.init_index)
@@ -106,8 +120,7 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
     curr_val = _UNDEF
     array = []
     for c in node.inits_array:
-        if not isinstance(c, cwast.IndexVal):
-            continue
+        assert isinstance(c, cwast.IndexVal)
         if isinstance(c.init_index, cwast.ValAuto):
             _AssignValue(c.init_index, len(array))
         else:

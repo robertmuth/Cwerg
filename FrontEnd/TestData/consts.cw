@@ -40,13 +40,13 @@
 (static_assert (== (as c20 s32) 19))
 
 (# "array literal with explicit indices")
-(global c30 auto (ValArray uint 30 [
+(global c30 auto (ValArray 30 uint [
    (IndexVal 0 1) 
    (IndexVal 10 2) 
    (IndexVal 20 3)]))
 
 (# "array literal")
-(global c31 auto (ValArray uint 30 [
+(global c31 auto (ValArray 30 uint [
    (IndexVal 10) 
    (IndexVal 20) 
    (IndexVal 30)]))

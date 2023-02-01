@@ -24,7 +24,7 @@
 (global SIZE uint 1000000)
 (global EXPECTED uint 148932)
 (# "index i reprents number 3 + 2 * i")
-(global mut is_prime (array SIZE u8) (array_val u8 SIZE [(IndexVal 0 0)]))
+(global mut is_prime (array SIZE u8) (array_val SIZE u8 [(IndexVal 0 0)]))
 
 (fun sieve [] uint [
    (# "initially every number is assumed prime")

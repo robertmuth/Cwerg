@@ -5,8 +5,8 @@
 
 (type type_slice (slice s32))
 
-(global c1 auto (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
-(global mut c2 auto (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global c1 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global mut c2 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
 (# "(let c20 auto (len c1)" )
@@ -23,8 +23,8 @@
    (return 66) 
 ])
 
-(global d1 (array 6 s32) (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
-(global mut d2 (array 8 s32) (ValArray s32 10 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global d1 (array 6 s32) (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global mut d2 (array 8 s32) (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
 (global e1 (slice s32) d1)
