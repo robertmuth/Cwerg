@@ -27,14 +27,14 @@ logger = logging.getLogger(__name__)
 
 TAB = "  "
 
-ZEROS = b"\0" * 1024
+ZEROS = [b"\0" * i for i in range(128)]
 
 
 def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
     byte_width = x_type.x_size
     if x_value is None or isinstance(x_value, cwast.ValUndef):
-        return ZEROS[0:byte_width]
+        return ZEROS[byte_width]
     elif types.is_int(x_type):
         return x_value.to_bytes(byte_width, 'little')
     assert False
@@ -90,7 +90,7 @@ def RLE(data: bytes):
 
 def _EmitMem(name, align, rw, data):
     print(f"\n.mem {name} {align} {'RW' if rw else 'RO'}")
-    if isinstance(data, bytes):
+    if isinstance(data, (bytes, bytearray)):
         if len(data) < 100:
             print(f'.data 1 "{BytesToEscapedString(data)}"')
         else:
@@ -142,22 +142,22 @@ _MAP_COMPARE = {
 }
 
 
-def EmitIRConditional(cond, label_t: str, label_f: str, id_gen: identifier.IdGen):
+def EmitIRConditional(cond, label_t: str, label_f: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        EmitIRConditional(cond.expr, label_f, label_t, id_gen)
+        EmitIRConditional(cond.expr, label_f, label_t, tc, id_gen)
     elif isinstance(cond, cwast.Expr2):
         kind = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
             label_and = id_gen.next("br_and")
-            EmitIRConditional(cond.expr1, label_and, label_f, id_gen)
+            EmitIRConditional(cond.expr1, label_and, label_f, tc, id_gen)
             print(f".bbl {label_and}")
-            EmitIRConditional(cond.expr2, label_t, label_f, id_gen)
+            EmitIRConditional(cond.expr2, label_t, label_f, tc, id_gen)
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
             label_or = id_gen.next("br_or")
-            EmitIRConditional(cond.expr1, label_t, label_or, id_gen)
+            EmitIRConditional(cond.expr1, label_t, label_or, tc, id_gen)
             print(f".bbl {label_or}")
-            EmitIRConditional(cond.expr2, label_t, label_f, id_gen)
+            EmitIRConditional(cond.expr2, label_t, label_f, tc, id_gen)
         else:
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
@@ -280,6 +280,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         result = id_gen.NewName("expr")
         for c in node.body:
             EmitIRStmt(c, result, tc, id_gen)
+        return result
     elif isinstance(node, cwast.ExprIndex):
         addr = _GetLValueAddress(node, tc, id_gen)
         res = id_gen.NewName("at")
@@ -289,6 +290,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         assert False, f"unsupported expression {node}"
 
 # TODO: support stack allocated objects
+
+
 def _AssignmentLhsIsInReg(lhs):
     if not isinstance(lhs, cwast.Id):
         return False
@@ -299,15 +302,16 @@ def _AssignmentLhsIsInReg(lhs):
     return True
 
 
-def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
+def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
         def_type = node.x_type
         node.name = id_gen.NewName(node.name)
-        assert type_corpus.register_types(
+        assert tc.register_types(
             def_type) is not None, f"unsupported type {def_type}"
-        out = EmitIRExpr(node.initial_or_undef, type_corpus, id_gen)
+        out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
+        assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
         print(
-            f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, type_corpus)} = {out}")
+            f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, tc)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -315,11 +319,11 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
 
         print(f".bbl {continue_label}")
         for c in node.body:
-            EmitIRStmt(c, result, type_corpus, id_gen)
+            EmitIRStmt(c, result, tc, id_gen)
         print(f".bbl {break_label}")
 
     elif isinstance(node, cwast.StmtReturn):
-        out = EmitIRExpr(node.expr_ret, type_corpus, id_gen)
+        out = EmitIRExpr(node.expr_ret, tc, id_gen)
         if isinstance(node.x_target, cwast.ExprStmt):
             print(f"{TAB}mov {result} {out}")
         else:
@@ -333,37 +337,37 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
         block = node.x_target.label[0]
         print(f"{TAB}bra {block}")
     elif isinstance(node, cwast.StmtExpr):
-        EmitIRExpr(node.expr, type_corpus, id_gen)
+        EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_t = id_gen.NewName("br_t")
         label_f = id_gen.NewName("br_f")
-        EmitIRConditional(node.cond, label_t, label_f, id_gen)
+        EmitIRConditional(node.cond, label_t, label_f, tc, id_gen)
         if node.body_t and node.body_f:
             label_n = id_gen.NewName("br_n")
             print(f".bbl {label_t}")
             for c in node.body_t:
-                EmitIRStmt(c, result, type_corpus, id_gen)
+                EmitIRStmt(c, result, tc, id_gen)
             print(f"{TAB}bra {label_n}")
             print(f".bbl {label_f}")
             for c in node.body_f:
-                EmitIRStmt(c, result, type_corpus, id_gen)
+                EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_n}")
         elif node.body_t:
             print(f".bbl {label_t}")
             for c in node.body_t:
-                EmitIRStmt(c, result, type_corpus, id_gen)
+                EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_f}")
         elif node.body_f:
             print(f".bbl {label_f}")
             for c in node.body_t:
-                EmitIRStmt(c, result, type_corpus, id_gen)
+                EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_t}")
         else:
             print(f".bbl {label_t}")
             print(f".bbl {label_f}")
     elif isinstance(node, cwast.StmtAssignment):
         assert isinstance(node.lhs.x_type, cwast.TypeBase)
-        out = EmitIRExpr(node.expr_rhs, type_corpus, id_gen)
+        out = EmitIRExpr(node.expr_rhs, tc, id_gen)
         if _AssignmentLhsIsInReg(node.lhs):
             # because of the canonicalization step only register promotable
             # scalars will be naked like this
@@ -393,7 +397,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
             x_value = node.initial_or_undef.x_value
             assert isinstance(x_type, cwast.TypeBase)
             assert size == len(x_value)
-            out = b"".join(_InitDataForBaseType(x_type, v) for v in x_value)
+            out = bytearray()
+            for v in x_value:
+                out += _InitDataForBaseType(x_type, v)
             _EmitMem(node.name, node.x_type.x_alignment, node.mut, out)
     else:
         assert False
@@ -536,7 +542,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
     cwast.EliminateEphemeralsRecursively(fun)
 
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
@@ -565,7 +571,8 @@ if __name__ == "__main__":
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
             typify.VerifyTypesRecursively(fun, tc)
 
-            canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(fun, tc)
+            canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
+                fun, tc)
             typify.VerifyTypesRecursively(fun, tc)
 
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
@@ -606,3 +613,9 @@ if __name__ == "__main__":
                 id_gen.ClearLocalNames()
                 id_gen.UniquifyLocalNames(node)
                 EmitIRDefFun(node, tc, id_gen)
+
+
+if __name__ == "__main__":
+    #import cProfile
+    #cProfile.run('main()')
+    exit(main())
