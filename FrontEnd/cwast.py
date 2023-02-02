@@ -414,6 +414,7 @@ ALL_FIELDS = [
         "expression (will only be evaluated if cond == false)", NODES_EXPR),
     NFD(NFK.NODE, "expr1", "left operand expression", NODES_EXPR),
     NFD(NFK.NODE, "expr2", "righ operand expression", NODES_EXPR),
+    NFD(NFK.NODE, "expr_rhs", "rhs of assignment", NODES_EXPR),
     NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)", NODES_EXPR),
     NFD(NFK.NODE, "pointer", "pointer component of slice", None),
     NFD(NFK.NODE, "container", "array and slice", None),
@@ -1694,12 +1695,12 @@ class StmtCompoundAssignment:
     #
     assignment_kind: ASSIGNMENT_KIND
     lhs: NODES_LHS_T
-    expr: NODES_EXPR_T
+    expr_rhs: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr}"
+        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr_rhs}"
 
 
 @NodeCommon
@@ -1711,12 +1712,12 @@ class StmtAssignment:
     FLAGS = NF.NONE
     #
     lhs: NODES_LHS_T
-    expr: NODES_EXPR_T
+    expr_rhs: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.lhs} = {self.expr}"
+        return f"{_NAME(self)} {self.lhs} = {self.expr_rhs}"
 
 
 ############################################################
@@ -2152,9 +2153,9 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     #
     BINARY_EXPR_KIND.ANDSC,
     BINARY_EXPR_KIND.ORSC,
-    # ???
-    # BINARY_EXPR_KIND.SHL,
-    # BINARY_EXPR_KIND.SHR,
+    # 
+    BINARY_EXPR_KIND.SHL,
+    BINARY_EXPR_KIND.SHR,
     #
     BINARY_EXPR_KIND.AND,
     BINARY_EXPR_KIND.OR,

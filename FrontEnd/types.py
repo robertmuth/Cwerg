@@ -422,7 +422,7 @@ class TypeCorpus:
             return out[0]
         return self.insert_sum_type(out)
 
-    def num_type(self, num: str) -> CanonType:
+    def num_type(self, num: str, cstr: Optional[CanonType]) -> CanonType:
         for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
             if num.endswith(x):
                 return self.corpus[x]
@@ -430,5 +430,7 @@ class TypeCorpus:
             return self.corpus[self.sint_kind.name.lower()]
         elif num.endswith("uint"):
             return self.corpus[self.uint_kind.name.lower()]
+        elif cstr:
+            return cstr
         else:
             return NO_TYPE

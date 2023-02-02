@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 TAB = "  "
 
-ZEROS =  b"\0" * 1024
+ZEROS = b"\0" * 1024
+
 
 def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
@@ -72,7 +73,6 @@ def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
             print(f"{TAB}poparg {p.name}.2:{reg_types[1]}")
 
 
-
 def RLE(data: bytes):
     last = None
     count = 0
@@ -88,7 +88,6 @@ def RLE(data: bytes):
         yield count, last
 
 
-    
 def _EmitMem(name, align, rw, data):
     print(f"\n.mem {name} {align} {'RW' if rw else 'RO'}")
     if isinstance(data, bytes):
@@ -125,9 +124,8 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> A
     elif isinstance(node, cwast.ExprField):
         assert False
     elif isinstance(node, cwast.Id):
-        assert isinstance(node.x_type, cwast.TypeArray), f"{node}"
         name = node.x_symbol.name
-        res = id_gen.NewName("tmp")
+        res = id_gen.NewName("lhsaddr")
         # TODO
         kind = "A64"
         print(f"{TAB}lea.mem {res}:{kind} = {name} 0")
@@ -221,7 +219,15 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         else:
             assert False, f"{node} {node.container}"
     elif isinstance(node, cwast.Id):
-        return node.x_symbol.name
+        assert isinstance(node.x_type, cwast.TypeBase)
+        def_node = node.x_symbol
+        if isinstance(def_node, cwast.DefGlobal):
+            res = id_gen.NewName("globread")
+            print(
+                f"{TAB}ld.mem {res}:{StringifyOneType(node.x_type, tc)} = {node.x_symbol.name} 0")
+            return res
+        else:
+            return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.lhs, tc, id_gen)
     elif isinstance(node, cwast.Expr2):
@@ -238,14 +244,20 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             # TODO assumed 64
             print(f"{TAB}lea {res}:A64 = {op1} {op2}")
         else:
-            assert False
+            assert False, f"unsupported expression {node}"
+        return res
+    elif isinstance(node, cwast.ExprBitCast):
+        res = id_gen.NewName("bitcast")
+        expr = EmitIRExpr(node.expr, tc, id_gen)
+        print(f"{TAB}bitcast {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
         return res
     elif isinstance(node, cwast.ExprAs):
-        if (isinstance(node.expr.x_type, cwast.TypeBase) and  isinstance(node.type.x_type, cwast.TypeBase)):
+        if (isinstance(node.expr.x_type, cwast.TypeBase) and isinstance(node.type.x_type, cwast.TypeBase)):
             # more compatibility checking needed
             expr = EmitIRExpr(node.expr, tc, id_gen)
             res = id_gen.NewName("as")
-            print(f"{TAB}conv {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
+            print(
+                f"{TAB}conv {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
             return res
         elif (isinstance(node.expr.x_type, cwast.TypeArray) and
                 isinstance(node.type.x_type, cwast.TypeSlice)):
@@ -271,6 +283,16 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         return res
     else:
         assert False, f"unsupported expression {node}"
+
+# TODO: support stack allocated objects
+def _AssignmentLhsIsInReg(lhs):
+    if not isinstance(lhs, cwast.Id):
+        return False
+    def_node = lhs.x_symbol
+    # TODO: support stack allocated objects
+    if isinstance(def_node, cwast.DefGlobal):
+        return False
+    return True
 
 
 def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -336,8 +358,9 @@ def EmitIRStmt(node, result, type_corpus: types.TypeCorpus, id_gen: identifier.I
             print(f".bbl {label_t}")
             print(f".bbl {label_f}")
     elif isinstance(node, cwast.StmtAssignment):
-        out = EmitIRExpr(node.expr, type_corpus, id_gen)
-        if isinstance(node.lhs, cwast.Id):
+        assert isinstance(node.lhs.x_type, cwast.TypeBase)
+        out = EmitIRExpr(node.expr_rhs, type_corpus, id_gen)
+        if _AssignmentLhsIsInReg(node.lhs):
             # because of the canonicalization step only register promotable
             # scalars will be naked like this
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}")

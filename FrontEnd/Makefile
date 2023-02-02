@@ -24,9 +24,12 @@ TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 TESTS_META = $(TESTS:%.cw=$(DIR)/%.cw.meta)
 TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
-TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
+TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
-tests_py: $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
+tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
+    $(DIR)/hello_world.x64.exe \
+	$(DIR)/sieve.exe 
+
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
 tests_pp_py: $(TESTS_PP)

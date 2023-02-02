@@ -70,7 +70,7 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> int:
         else:
             return ord(num[1])
     else:
-        return int(num)
+        return int(num, 0)
 
 
 def ParseArrayIndex(pos: str) -> int:
@@ -242,7 +242,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
     elif isinstance(node, cwast.ValUndef):
         assert False, "Must not try to typify UNDEF"
     elif isinstance(node, cwast.ValNum):
-        cstr = tc.num_type(node.number)
+        cstr = tc.num_type(node.number, target_type)
         if cstr != types.NO_TYPE:
             return _AnnotateType(tc, node, cstr)
         return _AnnotateType(tc, node, target_type)
@@ -413,11 +413,11 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return types.NO_TYPE
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = _TypifyNodeRecursively(node.lhs, tc, types.NO_TYPE, ctx)
-        _TypifyNodeRecursively(node.expr, tc, var_cstr, ctx)
+        _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return types.NO_TYPE
     elif isinstance(node, cwast.StmtCompoundAssignment):
         var_cstr = _TypifyNodeRecursively(node.lhs, tc, types.NO_TYPE, ctx)
-        _TypifyNodeRecursively(node.expr, tc, var_cstr, ctx)
+        _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return types.NO_TYPE
     elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
@@ -483,7 +483,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     if isinstance(node, cwast.ValArray):
         cstr = node.type.x_type
         for x in node.inits_array:
-            assert isinstance(x, cwast.IndexVal)
+            assert isinstance(x, cwast.IndexVal), f"{x}"
             if not isinstance(x.init_index, cwast.ValAuto):
                 assert types.is_int(x.init_index.x_type)
             assert cstr == x.x_type, _TypeMismatch(
@@ -583,7 +583,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = node.lhs.x_type
-        expr_cstr = node.expr.x_type
+        expr_cstr = node.expr_rhs.x_type
         assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
             tc, f"incompatible assignment: {node}",  expr_cstr, var_cstr)
         assert is_proper_lhs(
@@ -591,7 +591,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, cwast.StmtCompoundAssignment):
         assert is_proper_lhs(node.lhs)
         var_cstr = node.lhs.x_type
-        expr_cstr = node.expr.x_type
+        expr_cstr = node.expr_rhs.x_type
         if node.assignment_kind in (cwast.ASSIGNMENT_KIND.DECP, cwast.ASSIGNMENT_KIND.INCP):
             # TODO: check for pointer or slice
             assert types.is_int(expr_cstr)
