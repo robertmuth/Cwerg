@@ -52,7 +52,8 @@ def is_mutable(cstr: CanonType, actual_is_lvalue=False) -> bool:
 
 
 def is_bool(cstr: CanonType) -> bool:
-    assert isinstance(cstr, cwast.TypeBase)
+    if not isinstance(cstr, cwast.TypeBase):
+        return False
     return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
 
 
@@ -196,7 +197,7 @@ class TypeCorpus:
             t = self.insert_base_type(kind)
 
     def canon_name(self, node):
-        return self._canon_name[node]
+        return self._canon_name.get(node, "@@ BAD CANONICAL TYPE @@")
 
     def register_types(self, node):
         return self._register_types[node]

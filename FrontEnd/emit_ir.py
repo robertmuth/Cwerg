@@ -213,6 +213,10 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             return res
     elif isinstance(node, cwast.ValNum):
         return f"{node.number}:{StringifyOneType(node.x_type, tc)}"
+    elif isinstance(node, cwast.ValFalse):
+        return f"0:U8"
+    elif isinstance(node, cwast.ValTrue):
+        return f"1:U8"
     elif isinstance(node, cwast.ExprLen):
         if isinstance(node.container.x_type, cwast.TypeArray):
             assert False, f"{node} {node.x_value}"
@@ -559,6 +563,11 @@ if __name__ == "__main__":
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
+            typify.VerifyTypesRecursively(fun, tc)
+
+            canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(fun, tc)
+            typify.VerifyTypesRecursively(fun, tc)
+
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
             RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, id_gen)
             if fun.x_type in fun_sigs_with_large_args:

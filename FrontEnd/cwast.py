@@ -2177,6 +2177,17 @@ def VisitAstRecursively(node, visitor):
             for cc in getattr(node, c):
                 VisitAstRecursively(cc, visitor)
 
+def VisitAstRecursivelyPost(node, visitor):
+    for c in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[c]
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, c)
+            VisitAstRecursively(child, visitor)
+            visitor(child)
+        elif nfd.kind is NFK.LIST:
+            for child in getattr(node, c):
+                VisitAstRecursively(child, visitor)
+                visitor(child)
 
 def VisitAstRecursivelyWithParent(node, parent, visitor):
     if visitor(node, parent):

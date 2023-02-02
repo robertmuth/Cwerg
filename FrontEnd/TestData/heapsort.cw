@@ -26,6 +26,17 @@
 (global IC uint 29573)
 (global mut LAST uint 42)
 
+(# "r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)")
+(# "exponentiation bias is 1023")
+(# "https://en.wikipedia.org/wiki/Double-precision_floating-point_format")
+(fun real_to_hex_fmt [(param val r64) (param buf (ptr mut u8))] uint [
+   (let val_bits auto (bitcast val u64))
+   (let frac auto (and val_bits 0xf_ffff_ffff_ffff))
+   (let exp auto (and (>> val_bits 52) 0x7ff))
+   (let sign auto (!= (>> val_bits 63) 0))
+   (return 0)
+])
+
 (fun get_random [(param max r64)] r64 [
    (= LAST (% (+ (* LAST IA) IC) IM))
    (return (/ (* max (as LAST r64)) (as IM r64)))

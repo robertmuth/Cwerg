@@ -87,11 +87,11 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
                     CanonicalizeLargeArgs(child, changed_params, id_gen)
 
 
-def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus, id_gen):
+def CanonicalizeLargeArgs(node, changed_params: Set[Any], tc: types.TypeCorpus, id_gen):
     if isinstance(node, cwast.DefFun):
         for p in node.params:
             if isinstance(p, cwast.FunParam):
-                if type_corpus.register_types[p.x_type] is None:
+                if tc.register_types[p.x_type] is None:
                     changed_params.add(p)
 
     for c in node.__class__.FIELDS:
@@ -113,15 +113,32 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
                     CanonicalizeLargeArgs(child, changed_params, id_gen)
 
 
-############################################################
-# Convert ternary operator into  expr with if statements
-#
-# Note we could implement the ternary op as a macro but would lose some
-# of type inference, so instead we use this hardcoded rewrite
-############################################################
+def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus):
+    """transform a bool expression e into "e ? true : false"
+
+    This will make it eligible for CanonicalizeTernaryOp
+     """
+    def replacer(node, field):
+        if (field in ("args", "expr_rhs", "inits_array", "inits_rec", "initial_or_undef") and
+                types.is_bool(node.x_type) and
+                not isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef))):
+            cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+            return cwast.Expr3(node,
+                               cwast.ValTrue(x_srcloc=node.x_srcloc,
+                                             x_type=cstr_bool, x_value=True),
+                               cwast.ValFalse(
+                                   x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
+                               x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
 def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
+    """Convert ternary operator nodes into  expr with if statements
+
+    Note we could implement the ternary op as a macro but would lose some
+    of type inference, so instead we use this hardcoded rewrite"""
     def replacer(node, field):
         if isinstance(node, cwast.Expr3):
             name_t = id_gen.NewName("op_t")
@@ -148,7 +165,7 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursively(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
 _COMPOUND_KIND_TO_EXPR_KIND = {
@@ -211,7 +228,7 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
 
 def ReplaceConstExpr(node):
     def replacer(node, field):
-        if (field != "lhs" and cwast.NF.VALUE_ANNOTATED in node.FLAGS and
+        if (field not in ("lhs", "inits_array", "inits_rec") and cwast.NF.VALUE_ANNOTATED in node.FLAGS and
             not isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and
                 node.x_value is not None):
             if (isinstance(node.x_type, cwast.TypeBase) and

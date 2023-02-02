@@ -558,8 +558,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr_t = node.expr_t.x_type
         cstr_f = node.expr_f.x_type
         cstr_cond = node.cond.x_type
-        assert cstr == cstr_t
-        assert cstr == cstr_f
+        assert cstr_t == cstr, _TypeMismatch(tc, "ternary t", cstr_t, cstr)
+        assert cstr_f == cstr, _TypeMismatch(tc, "ternary f", cstr_f, cstr)
         assert types.is_bool(cstr_cond)
     elif isinstance(node, cwast.ExprCall):
         result = node.x_type
@@ -681,7 +681,7 @@ def VerifyTypesRecursively(node, corpus):
         if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
             assert node.x_field is not None, f"node withou field annotation: {node}"
 
-    cwast.VisitAstRecursively(node, visitor)
+    cwast.VisitAstRecursivelyPost(node, visitor)
 
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
