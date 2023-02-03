@@ -132,7 +132,7 @@ class SymTab:
             assert name not in self._macro_syms, f"duplicate symbol {name}"
             self._macro_syms[name] = node
         elif isinstance(node, cwast.DefGlobal):
-            assert name not in self._var_syms
+            assert name not in self._var_syms, f"duplicate name {name}"
             self._var_syms[name] = node
         elif isinstance(node, cwast.DefRec):
             assert name not in self._rec_syms
@@ -271,7 +271,8 @@ def ResolveSymbolsInsideFunctionsRecursively(
     elif isinstance(node, cwast.Id):
         def_node = _resolve_symbol_inside_function_or_macro(
             node.name, symtab, symtab_map, scopes)
-        assert def_node is not None, f"cannot resolve symbol for {node}"
+        if def_node is None:
+            cwast.CompilerError(node.x_srcloc, f"cannot resolve symbol for {node}")
         _add_symbol_link(node, def_node)
         return
 

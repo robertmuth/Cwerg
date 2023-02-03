@@ -223,7 +223,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         else:
             assert False, f"{node} {node.container}"
     elif isinstance(node, cwast.Id):
-        assert isinstance(node.x_type, cwast.TypeBase)
+        # What we really need to check here is if we need a memcpy
+        assert isinstance(node.x_type, (cwast.TypeBase, cwast.TypePtr)), f"{node.x_type}"
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")

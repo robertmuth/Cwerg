@@ -203,7 +203,7 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
     def replacer(node, field):
         if isinstance(node, cwast.StmtCompoundAssignment):
             if isinstance(node.lhs, cwast.Id):
-                return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr, node.x_srcloc)
+                return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr_rhs, node.x_srcloc)
             else:
                 addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
                 addr = cwast.ExprAddrOf(True, node.lhs,
