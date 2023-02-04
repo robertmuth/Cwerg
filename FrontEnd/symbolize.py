@@ -307,14 +307,15 @@ def VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.DefMacro):
         return
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
+    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
+        assert node.x_symbol is not None, f"unresolved symbol {node}"
     if isinstance(node, cwast.Id):
         # all macros should have been resolved
         assert not node.name.startswith("$")
-    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
-    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node}"
-    if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn)):
-        assert node.x_target is not None
+    elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+        assert isinstance(node.x_target, (cwast.StmtBlock))
+    elif isinstance(node, cwast.StmtReturn):
+        assert isinstance(node.x_target,(cwast.DefFun, cwast.ExprStmt))
     #
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]

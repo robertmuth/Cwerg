@@ -571,12 +571,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             assert types.is_compatible(
                 arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(tc, f"incompatible fun arg: {a}",  arg_cstr, p.type)
     elif isinstance(node, cwast.StmtReturn):
-        pass
-        # fun = enclosing_fun.x_type
-        # assert isinstance(fun, cwast.TypeFun)
-        # actual = node.expr_ret.x_type
-        # assert types.is_compatible(
-        #    actual, fun.result),  _TypeMismatch(corpus, f"{node}", actual, fun.result)
+        target = node.x_target
+        actual = node.expr_ret.x_type
+        if isinstance(target, cwast.DefFun):
+            expected = target.result.x_type
+            assert types.is_compatible(
+                actual, expected),  _TypeMismatch(tc, f"{node}", actual, expected)
+        else:
+            assert isinstance(target, cwast.ExprStmt)
+            expected = target.x_type
+            assert types.is_compatible(
+                actual, expected),  _TypeMismatch(tc, f"{node}", actual, expected)
     elif isinstance(node, cwast.StmtIf):
         assert types.is_bool(node.cond.x_type)
     elif isinstance(node, cwast.Case):
