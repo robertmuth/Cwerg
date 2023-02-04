@@ -1409,6 +1409,8 @@ def InitCONV():
                     [InsTmpl(f"cvts{suffix2}2si_64_r_mbis32", [P.reg0] + Spilled(P.spill1))])
             # TODO SP_REG <- SP_REG, SP_REG <- REG
 
+        # TODO: U64 case is messy 
+        # https://lucisqr.substack.com/p/unsigned-integer-to-double-considered
 
 def InitBITCAST():
     for k1, k2 in [(o.DK.U8, o.DK.S8), (o.DK.U16, o.DK.S16),
