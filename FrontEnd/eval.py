@@ -23,10 +23,10 @@ _UNDEF = cwast.ValUndef()
 _VOID = cwast.ValVoid()
 
 
-def _AssignValue(node, val):
+def _VerifyEvalValue(val):
     # TODO: check this recusively
     # "None" is reserve for indicating that evaluation was not possible
-    # 
+    #
     if isinstance(val, list):
         for x in val:
             assert x is not None
@@ -34,7 +34,13 @@ def _AssignValue(node, val):
         for x in val.values():
             assert x is not None
     else:
+        assert isinstance(val, (int, float, bytes, cwast.ValUndef,
+                          cwast.ValVoid)), f"unexpected value {val}"
         assert val is not None
+
+
+def _AssignValue(node, val):
+    _VerifyEvalValue(val)
 
     if isinstance(val, list):
         logger.info(f"EVAL of {node}: {val[:8]}...")

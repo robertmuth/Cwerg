@@ -42,7 +42,21 @@
 (global NAN_POS auto "nan")
 (global NAN_NEG auto "-nan")
 
-
+(fun u64_to_str [(param val u64) (param base u64) (param buf (ptr mut u8))] uint [
+    (let mut v auto val)
+    (let mut tmp (array 32 u8) undef)
+    (let mut pos uint 32)
+    (block _ [
+        (-= pos 1)
+        (let c auto (% v base))
+        (let mut c8 auto (as c u8))
+        (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
+        (= (at tmp pos) c8)
+        (/= v base)
+        (if (!= v 0) [(continue)] [])
+    ])
+    (return (call memcpy [buf (& (at tmp pos)) (- 32 pos)]))
+])
 
 
 (# "r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)")
@@ -90,7 +104,7 @@
       (= (^ (incp buf i)) '-')
       (= exp (- 0_s64 exp))
     ] [])
-   (# "(+= i (call s64_to_dec [exp (incp buf i)]))")
+   (+= i (call u64_to_str [(as exp u64) 10 (incp buf i)]))
    (return i)
 ])
 

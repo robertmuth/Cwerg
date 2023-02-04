@@ -224,7 +224,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             assert False, f"{node} {node.container}"
     elif isinstance(node, cwast.Id):
         # What we really need to check here is if we need a memcpy
-        assert isinstance(node.x_type, (cwast.TypeBase, cwast.TypePtr)), f"{node.x_type}"
+        assert isinstance(node.x_type, (cwast.TypeBase,
+                          cwast.TypePtr)), f"{node.x_type}"
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
@@ -307,12 +308,17 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
         def_type = node.x_type
         node.name = id_gen.NewName(node.name)
-        assert tc.register_types(
-            def_type) is not None, f"unsupported type {def_type}"
-        out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
-        assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
-        print(
-            f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, tc)} = {out}")
+        if tc.register_types(def_type) is None:
+            print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
+            assert isinstance(node.initial_or_undef, cwast.ValUndef)
+        else:
+            if isinstance(node.initial_or_undef, cwast.ValUndef):
+                print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{node.name}]")
+            else:
+                out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
+                assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
+                print(
+                    f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, tc)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -618,5 +624,5 @@ def main():
 
 if __name__ == "__main__":
     #import cProfile
-    #cProfile.run('main()')
+    # cProfile.run('main()')
     exit(main())

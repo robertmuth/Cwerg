@@ -110,8 +110,9 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
     args = invoke.args
-    assert len(params) == len(
-        invoke.args), f"parameter mismatch in: {invoke}: actual {invoke.args} expected: {len(params)}"
+    if len(params) != len(invoke.args):
+        cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
+                            f"actual {invoke.args} expected: {len(params)}")
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)
@@ -128,7 +129,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:
             assert isinstance(a, cwast.Id)
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
-            assert isinstance(a, cwast.Id)
+            assert isinstance(a, cwast.Id), f"while expanding macro {macro.name} expected parameter id but got: {a}"
         else:
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))

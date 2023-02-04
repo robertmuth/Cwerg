@@ -120,8 +120,8 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus
      """
     def replacer(node, field):
         if (field in ("args", "expr_rhs", "inits_array", "inits_rec", "initial_or_undef") and
-                types.is_bool(node.x_type) and
-                not isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef))):
+            not isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)) and
+                           types.is_bool(node.x_type)):
             cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             return cwast.Expr3(node,
                                cwast.ValTrue(x_srcloc=node.x_srcloc,
@@ -228,8 +228,9 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
 
 def ReplaceConstExpr(node):
     def replacer(node, field):
-        if (field not in ("lhs", "inits_array", "inits_rec") and cwast.NF.VALUE_ANNOTATED in node.FLAGS and
-            not isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and
+        if (field not in ("lhs", "inits_array", "inits_rec") and
+            cwast.NF.VALUE_ANNOTATED in node.FLAGS and
+            not isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef)) and
                 node.x_value is not None):
             if (isinstance(node.x_type, cwast.TypeBase) and
                 types.is_int(node.x_type) and
