@@ -124,11 +124,16 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> A
     elif isinstance(node, cwast.ExprField):
         assert False
     elif isinstance(node, cwast.Id):
-        name = node.x_symbol.name
+        def_node = node.x_symbol
+        name = def_node.name
         res = id_gen.NewName("lhsaddr")
         # TODO
         kind = "A64"
-        print(f"{TAB}lea.mem {res}:{kind} = {name} 0")
+        if isinstance(def_node, cwast.DefGlobal):
+            print(f"{TAB}lea.mem {res}:{kind} = {name} 0")
+        else:
+            assert isinstance(def_node, cwast.DefVar)
+            print(f"{TAB}lea.stk {res}:{kind} = {name} 0")
         return res
     else:
         assert False, f"unsupported node for lvalue {node}"
@@ -212,7 +217,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             print(f"{TAB}poparg {res}:{StringifyOneType(sig.result, tc)}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{node.number}:{StringifyOneType(node.x_type, tc)}"
+        return f"{node.x_value}:{StringifyOneType(node.x_type, tc)}"
     elif isinstance(node, cwast.ValFalse):
         return f"0:U8"
     elif isinstance(node, cwast.ValTrue):
@@ -280,6 +285,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         return res
     elif isinstance(node, cwast.ExprStmt):
         result = id_gen.NewName("expr")
+        print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{result}]")
         for c in node.body:
             EmitIRStmt(c, result, tc, id_gen)
         return result
@@ -313,7 +319,8 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             assert isinstance(node.initial_or_undef, cwast.ValUndef)
         else:
             if isinstance(node.initial_or_undef, cwast.ValUndef):
-                print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{node.name}]")
+                print(
+                    f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{node.name}]")
             else:
                 out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
                 assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
@@ -324,10 +331,10 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
         break_label = id_gen.NewName(node.label)
         node.label = (continue_label, break_label)
 
-        print(f".bbl {continue_label}")
+        print(f".bbl {continue_label}  # block start")
         for c in node.body:
             EmitIRStmt(c, result, tc, id_gen)
-        print(f".bbl {break_label}")
+        print(f".bbl {break_label}  # block end")
 
     elif isinstance(node, cwast.StmtReturn):
         out = EmitIRExpr(node.expr_ret, tc, id_gen)
@@ -339,10 +346,10 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
         block = node.x_target.label[1]
-        print(f"{TAB}bra {block}")
+        print(f"{TAB}bra {block}  # break")
     elif isinstance(node, cwast.StmtContinue):
         block = node.x_target.label[0]
-        print(f"{TAB}bra {block}")
+        print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
         EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
@@ -366,7 +373,7 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             print(f".bbl {label_f}")
         elif node.body_f:
             print(f".bbl {label_f}")
-            for c in node.body_t:
+            for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_t}")
         else:
@@ -595,7 +602,7 @@ def main():
     mod_topo_order = [mod_gen] + mod_topo_order
 
     # for mod in mod_topo_order:
-    #    pp.PrettyPrint(mod)
+    #   pp.PettyPrint(mod)
     # exit(0)
 
     # Fully qualify names

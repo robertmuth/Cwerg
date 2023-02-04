@@ -49,7 +49,7 @@ def ComputeStringSize(raw: bool, string: str) -> int:
     return 8
 
 
-def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> int:
+def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
     # TODO use kind argument
     num = num.replace("_", "")
     if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
