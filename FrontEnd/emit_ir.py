@@ -46,7 +46,7 @@ def RenderList(items):
 
 def StringifyOneType(node, type_corpus: types.TypeCorpus):
     t = type_corpus.register_types(node)
-    assert len(t) == 1
+    assert len(t) == 1, f"bad type: {node}"
     return t[0]
 
 
@@ -55,8 +55,11 @@ def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
     ins = []
     for p in sig.params:
         ins += type_corpus.register_types(p.type)
+    result = ""
+    if not types.is_void(sig.result):
+        result = StringifyOneType(sig.result, type_corpus)
     print(
-        f"\n\n.fun {fun.name} NORMAL [{StringifyOneType(sig.result, type_corpus)}] = [{' '.join(ins)}]")
+        f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,

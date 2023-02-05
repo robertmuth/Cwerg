@@ -130,9 +130,13 @@
 
 (global SIZE uint 20)
 
-(global mut data (array SIZE r64) (array_val SIZE r64 []))
+(global mut Data (array SIZE r64) (array_val SIZE r64 []))
 
 (global NEWLINE auto "\n")
+
+(fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
+
+])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 SIZE 1 [
@@ -142,6 +146,7 @@
      (stmt discard (call write [1 (& (at buf 0)) n]))
      (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
    ])
+   (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
    (return 0)
 ])
 
