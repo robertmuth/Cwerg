@@ -149,26 +149,41 @@ _MAP_COMPARE = {
     cwast.BINARY_EXPR_KIND.LE: "ble",
 }
 
+_MAP_COMPARE_INVERT = {
+    cwast.BINARY_EXPR_KIND.NE: cwast.BINARY_EXPR_KIND.EQ,
+    cwast.BINARY_EXPR_KIND.EQ:  cwast.BINARY_EXPR_KIND.NE,
+    cwast.BINARY_EXPR_KIND.LT: cwast.BINARY_EXPR_KIND.GE,
+    cwast.BINARY_EXPR_KIND.LE: cwast.BINARY_EXPR_KIND.GT,
+    cwast.BINARY_EXPR_KIND.GT:  cwast.BINARY_EXPR_KIND.LE,
+    cwast.BINARY_EXPR_KIND.GE:  cwast.BINARY_EXPR_KIND.LT,
+}
 
-def EmitIRConditional(cond, label_t: str, label_f: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+
+def EmitIRConditional(cond, invert: bool, label_t: str, label_f: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        EmitIRConditional(cond.expr, label_f, label_t, tc, id_gen)
+        EmitIRConditional(cond.expr, not invert, label_t, label_f, tc, id_gen)
     elif isinstance(cond, cwast.Expr2):
         kind = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
             label_and = id_gen.next("br_and")
-            EmitIRConditional(cond.expr1, label_and, label_f, tc, id_gen)
+            EmitIRConditional(cond.expr1, invert, label_and,
+                              label_f, tc, id_gen)
             print(f".bbl {label_and}")
-            EmitIRConditional(cond.expr2, label_t, label_f, tc, id_gen)
+            EmitIRConditional(cond.expr2, invert, label_t, label_f, tc, id_gen)
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
             label_or = id_gen.next("br_or")
-            EmitIRConditional(cond.expr1, label_t, label_or, tc, id_gen)
+            EmitIRConditional(cond.expr1, invert, label_t,
+                              label_or, tc, id_gen)
             print(f".bbl {label_or}")
-            EmitIRConditional(cond.expr2, label_t, label_f, tc, id_gen)
+            EmitIRConditional(cond.expr2, invert, label_t, label_f, tc, id_gen)
         else:
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
+
+            if invert:
+                kind = _MAP_COMPARE_INVERT[kind]
+            # reduce comparison to what can be easily tranalate IR
 
             if kind is cwast.BINARY_EXPR_KIND.GT:
                 kind = cwast.BINARY_EXPR_KIND.LT
@@ -182,7 +197,10 @@ def EmitIRConditional(cond, label_t: str, label_f: str, tc: types.TypeCorpus, id
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
-        print(f"{TAB}bne {cond.name} 0 {label_t}")
+        if invert:
+            print(f"{TAB}beq {cond.name} 0 {label_t}")
+        else:
+            print(f"{TAB}bne {cond.name} 0 {label_t}")
         print(f"{TAB}bra {label_f}")
     else:
         assert False, f"unexpected expression {cond}"
@@ -313,6 +331,10 @@ def _AssignmentLhsIsInReg(lhs):
     return True
 
 
+def IsUnconditionalBranch(node):
+    return cwast.NF.CONTROL_FLOW in node.FLAGS
+
+
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
         def_type = node.x_type
@@ -338,13 +360,14 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
         for c in node.body:
             EmitIRStmt(c, result, tc, id_gen)
         print(f".bbl {break_label}  # block end")
-
     elif isinstance(node, cwast.StmtReturn):
-        out = EmitIRExpr(node.expr_ret, tc, id_gen)
+
         if isinstance(node.x_target, cwast.ExprStmt):
+            out = EmitIRExpr(node.expr_ret, tc, id_gen)
             print(f"{TAB}mov {result} {out}")
         else:
-            if node.expr_ret:
+            if not types.is_void(node.expr_ret.x_type):
+                out = EmitIRExpr(node.expr_ret, tc, id_gen)
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -358,30 +381,34 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     elif isinstance(node, cwast.StmtIf):
         label_t = id_gen.NewName("br_t")
         label_f = id_gen.NewName("br_f")
-        EmitIRConditional(node.cond, label_t, label_f, tc, id_gen)
         if node.body_t and node.body_f:
-            label_n = id_gen.NewName("br_n")
-            print(f".bbl {label_t}")
-            for c in node.body_t:
-                EmitIRStmt(c, result, tc, id_gen)
-            print(f"{TAB}bra {label_n}")
+            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
+            label_join = id_gen.NewName("br_n")
             print(f".bbl {label_f}")
             for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
-            print(f".bbl {label_n}")
-        elif node.body_t:
+            if IsUnconditionalBranch(node.body_f[-1]):
+                print(f"{TAB}bra {label_join}")
             print(f".bbl {label_t}")
             for c in node.body_t:
                 EmitIRStmt(c, result, tc, id_gen)
+            print(f".bbl {label_join}")
+        elif node.body_t:
+            EmitIRConditional(node.cond, True, label_t, label_f, tc, id_gen)
             print(f".bbl {label_f}")
+            for c in node.body_t:
+                EmitIRStmt(c, result, tc, id_gen)
+            print(f".bbl {label_t}")
         elif node.body_f:
+            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
             print(f".bbl {label_f}")
             for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_t}")
         else:
-            print(f".bbl {label_t}")
+            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
             print(f".bbl {label_f}")
+            print(f".bbl {label_t}")
     elif isinstance(node, cwast.StmtAssignment):
         assert isinstance(node.lhs.x_type, cwast.TypeBase)
         out = EmitIRExpr(node.expr_rhs, tc, id_gen)
@@ -633,6 +660,6 @@ def main():
 
 
 if __name__ == "__main__":
-    #import cProfile
+    # import cProfile
     # cProfile.run('main()')
     exit(main())

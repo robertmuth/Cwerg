@@ -134,7 +134,7 @@ def FunInitCFG(fun: ir.Fun):
     # TODO: we should reject code that triggers this
     if fall_through is not ir.BBL_INVALID:
         last_bbl = fun.bbls[-1]
-        assert not last_bbl.inss, f"garbage bbl not empty in {fun.name}"
+        assert not last_bbl.inss, f"garbage bbl not empty in {fun.name}: {last_bbl}"
         del fun.bbl_syms[last_bbl.name]
         fun.bbls.pop(-1)
 

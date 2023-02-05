@@ -135,7 +135,7 @@
 (global NEWLINE auto "\n")
 
 (fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
-
+  (return)
 ])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
