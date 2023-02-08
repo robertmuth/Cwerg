@@ -170,6 +170,7 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 def EmitIRConditional(cond, invert: bool, label_t: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
         print(f"{TAB}bra {label_t}")
     elif cond.x_value is False:
@@ -180,13 +181,24 @@ def EmitIRConditional(cond, invert: bool, label_t: str, tc: types.TypeCorpus, id
     elif isinstance(cond, cwast.Expr2):
         kind = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
-            failed_and = id_gen.NewName("br_failed_and")
-            EmitIRConditional(cond.expr1, not invert, failed_and, tc, id_gen)
-            EmitIRConditional(cond.expr2, invert, label_t, tc, id_gen)
-            print(f".bbl {failed_and}")
+            if invert:
+                EmitIRConditional(cond.expr1, True, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr2, True, label_t, tc, id_gen)
+            else:
+                failed = id_gen.NewName("br_failed_and")
+                EmitIRConditional(cond.expr1, True, failed, tc, id_gen)
+                EmitIRConditional(cond.expr2, False, label_t, tc, id_gen)
+                print(f".bbl {failed}")
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
-            EmitIRConditional(cond.expr1, invert, label_t, tc, id_gen)
-            EmitIRConditional(cond.expr2, invert, label_t, tc, id_gen)
+            if invert:
+                assert False # this branch has not been tested
+                failed = id_gen.NewName("br_failed_or")
+                EmitIRConditional(cond.expr1, False, failed, tc, id_gen)
+                EmitIRConditional(cond.expr2, True, label_t, tc, id_gen)
+                print(f".bbl {failed}")
+            else:
+                EmitIRConditional(cond.expr1, False, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr2, False, label_t, tc, id_gen)
         else:
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
@@ -444,7 +456,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
             x_type = def_type.type
             x_value = node.initial_or_undef.x_value
             assert isinstance(x_type, cwast.TypeBase)
-            assert size == len(x_value)
+            assert size == len(x_value), f"{size} vs {len(x_value)}"
             out = bytearray()
             for v in x_value:
                 out += _InitDataForBaseType(x_type, v)

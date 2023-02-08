@@ -86,8 +86,11 @@
 
    (let mut exp auto (- exp_bits 1023))
    (let mut i uint 0)
-   (if (!= sign_bit 0) [(= (^ (incp buf i)) '-')] [])
-   (+= i 1)
+   (if (!= sign_bit 0) [
+      (= (^ (incp buf i)) '-')
+      (+= i 1)
+   ] [])
+  
    (= (^ (incp buf i)) '0')
    (+= i 1)
    (= (^ (incp buf i)) 'x')
@@ -130,11 +133,15 @@
 
 (global SIZE uint 20)
 
-(global mut Data (array SIZE r64) (array_val SIZE r64 []))
+(global mut Data auto (array_val (+ SIZE 1) r64 []))
 
 (global NEWLINE auto "\n")
+(global SPACE auto " ")
+(global ERROR auto "ERROR\n")
 
 (fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
+   (let mut buf (array 32 u8) undef)
+
   (let mut ir auto n)
   (let mut l auto (+ (>> n 1) 1))
   (let mut rdata r64 undef)
@@ -151,10 +158,13 @@
             (return)
          ] [])
       ])
+   
     (let mut i auto l)
     (let mut j auto (<< l 1))
     (while (<= j ir) [
+
        (if (&& (< j ir) (< (^(incp data j)) (^(incp data (+ j 1))))) [(+= j 1)][])
+
        (if (< rdata (^(incp data j))) [
          (= (^(incp data i)) (^(incp data j)))
          (= i j)
@@ -188,13 +198,24 @@
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 SIZE 1 [
      (let v auto (call get_random [1000]))
-     (= (at Data i) v)
+     (= (at Data (+ i 1)) v)
    ])
 
-   (stmt (call dump_array [SIZE  (& (at Data 0))]))
+   (stmt (call dump_array [SIZE  (& (at Data 1))]))
    (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+
    (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
-   (stmt (call dump_array [SIZE  (& (at Data 0))]))
+   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+
+   (stmt (call dump_array [SIZE  (& (at Data 1))]))
+   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+
+   (for i u64 1 SIZE 1 [
+     (if (> (at Data i) (at Data (+ i 1))) [
+      (stmt discard (call write [1 (& (at ERROR 0)) (len ERROR)]))
+      (trap)
+     ] [])
+   ])
 
    (return 0)
 ])

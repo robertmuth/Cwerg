@@ -28,6 +28,7 @@ TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
     $(DIR)/hello_world.x64.exe \
+	$(DIR)/heapsort.exe \
 	$(DIR)/sieve.exe 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)

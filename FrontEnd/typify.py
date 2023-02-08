@@ -131,6 +131,11 @@ def _ComputeArrayLength(node) -> int:
         return _ComputeArrayLength(node)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and not node.mut:
         return _ComputeArrayLength(node.initial_or_undef)
+    elif isinstance(node, cwast.Expr2):
+        if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
+            return _ComputeArrayLength(node.expr1) + _ComputeArrayLength(node.expr2)
+        else:
+            assert False
     else:
         assert False, f"unexpected dim node: {node}"
 
@@ -246,7 +251,8 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         cstr = tc.num_type(node.number, target_type)
         if cstr != types.NO_TYPE:
             return _AnnotateType(tc, node, cstr)
-        cwast.CompilerError(node.x_srcloc, f"cannot determine number type of: {node}")
+        cwast.CompilerError(
+            node.x_srcloc, f"cannot determine number type of: {node}")
     elif isinstance(node, cwast.TypeAuto):
         assert False, "Must not try to typify TypeAuto"
     elif isinstance(node, cwast.ValAuto):
