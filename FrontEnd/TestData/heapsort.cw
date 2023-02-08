@@ -135,18 +135,67 @@
 (global NEWLINE auto "\n")
 
 (fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
+  (let mut ir auto n)
+  (let mut l auto (+ (>> n 1) 1))
+  (let mut rdata r64 undef)
+  (while true [
+      (if (> l 1) [
+         (-= l 1)
+         (= rdata (^ (incp data l)))
+      ] [
+         (= rdata (^(incp data ir)))
+         (= (^(incp data ir)) (^(incp data 1_uint)))
+         (-= ir 1)
+         (if (== ir 1) [
+            (= (^(incp data ir)) rdata)
+            (return)
+         ] [])
+      ])
+    (let mut i auto l)
+    (let mut j auto (<< l 1))
+    (while (<= j ir) [
+       (if (&& (< j ir) (< (^(incp data j)) (^(incp data (+ j 1))))) [(+= j 1)][])
+       (if (< rdata (^(incp data j))) [
+         (= (^(incp data i)) (^(incp data j)))
+         (= i j)
+         (+= j i)
+       ][
+         (= j (+ ir 1))
+       ])
+    ])
+    (= (^(incp data i)) rdata)
+  ])
   (return)
+])
+
+(fun dump_array [(param size uint) (param data (ptr r64))] void [
+  (let mut buf (array 32 u8) undef)
+  (for i u64 0 size 1 [
+    (let v auto (^ (incp data i)))
+    (let n auto (call r64_to_hex_fmt [v (& mut (at buf 0))]))
+    (stmt discard (call write [1 (& (at buf 0)) n]))
+    (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+  ])
+  (return)
+])
+
+
+(fun test [(param a uint)(param b uint)(param c uint)(param d uint) ] uint [
+    (if (&& (< a b) (< c d)) [(return 666)][(return 777)])
+
 ])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 SIZE 1 [
      (let v auto (call get_random [1000]))
-     (let mut buf (array 32 u8) undef)
-     (let n auto (call r64_to_hex_fmt [v (& mut (at buf 0))]))
-     (stmt discard (call write [1 (& (at buf 0)) n]))
-     (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+     (= (at Data i) v)
    ])
+
+   (stmt (call dump_array [SIZE  (& (at Data 0))]))
+   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
    (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
+   (stmt (call dump_array [SIZE  (& (at Data 0))]))
+
    (return 0)
 ])
 

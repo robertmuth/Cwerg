@@ -115,13 +115,18 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> A
             return container
         else:
             index = EmitIRExpr(node.expr_index, tc, id_gen)
-            if x_type.type.x_size == 1:
-                res = id_gen.NewName("at")
-                kind = "A64"
-                print(f"{TAB}lea {res}:{kind} = {container} {index}")
-                return res
-            else:
-                assert False
+            scale = x_type.type.x_size
+            if scale != 1:
+                scaled = id_gen.NewName("scaled")
+                # TODO: widen index
+                print(f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {index} {scale}")
+                index = scaled
+            res = id_gen.NewName("at")
+            # TODO A64
+            kind = "A64"
+            print(f"{TAB}lea {res}:{kind} = {container} {index}")
+            return res
+
     elif isinstance(node, cwast.ExprDeref):
         return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
@@ -159,24 +164,29 @@ _MAP_COMPARE_INVERT = {
 }
 
 
-def EmitIRConditional(cond, invert: bool, label_t: str, label_f: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
-    if isinstance(cond, cwast.Expr1):
+def IsUnconditionalBranch(node):
+    if cwast.NF.CONTROL_FLOW not in node.FLAGS:
+        return False
+    return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
+
+def EmitIRConditional(cond, invert: bool, label_t: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    if cond.x_value is True:
+        print(f"{TAB}bra {label_t}")
+    elif cond.x_value is False:
+        pass
+    elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        EmitIRConditional(cond.expr, not invert, label_t, label_f, tc, id_gen)
+        EmitIRConditional(cond.expr, not invert, label_t, tc, id_gen)
     elif isinstance(cond, cwast.Expr2):
         kind = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
-            label_and = id_gen.next("br_and")
-            EmitIRConditional(cond.expr1, invert, label_and,
-                              label_f, tc, id_gen)
-            print(f".bbl {label_and}")
-            EmitIRConditional(cond.expr2, invert, label_t, label_f, tc, id_gen)
+            failed_and = id_gen.NewName("br_failed_and")
+            EmitIRConditional(cond.expr1, not invert, failed_and, tc, id_gen)
+            EmitIRConditional(cond.expr2, invert, label_t, tc, id_gen)
+            print(f".bbl {failed_and}")
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
-            label_or = id_gen.next("br_or")
-            EmitIRConditional(cond.expr1, invert, label_t,
-                              label_or, tc, id_gen)
-            print(f".bbl {label_or}")
-            EmitIRConditional(cond.expr2, invert, label_t, label_f, tc, id_gen)
+            EmitIRConditional(cond.expr1, invert, label_t, tc, id_gen)
+            EmitIRConditional(cond.expr2, invert, label_t, tc, id_gen)
         else:
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
@@ -191,8 +201,7 @@ def EmitIRConditional(cond, invert: bool, label_t: str, label_f: str, tc: types.
             elif kind is cwast.BINARY_EXPR_KIND.GE:
                 kind = cwast.BINARY_EXPR_KIND.LE
                 op1, op2 = op2, op1
-            print(f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_t}")
-            print(f"{TAB}bra {label_f}")
+            print(f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_t}  # {cond}")
 
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
@@ -201,7 +210,6 @@ def EmitIRConditional(cond, invert: bool, label_t: str, label_f: str, tc: types.
             print(f"{TAB}beq {cond.name} 0 {label_t}")
         else:
             print(f"{TAB}bne {cond.name} 0 {label_t}")
-        print(f"{TAB}bra {label_f}")
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -272,8 +280,13 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
                 f"{TAB}{op} {res}:{StringifyOneType(node.x_type, tc)} = {op1} {op2}")
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.INCP:
             assert isinstance(node.expr1.x_type, cwast.TypePtr)
-            assert node.expr1.x_type.type.x_size == 1
+            scale = node.expr1.x_type.type.x_size
             # TODO assumed 64
+            if scale != 1:
+                scaled = id_gen.NewName("scaled")
+                # TODO: widen index
+                print(f"{TAB}mul {scaled}:{StringifyOneType(node.expr2.x_type, tc)} = {op2} {scale}")
+                op2 = scaled
             print(f"{TAB}lea {res}:A64 = {op1} {op2}")
         else:
             assert False, f"unsupported expression {node}"
@@ -302,7 +315,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.expr.x_type, tc)} = {addr} 0")
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
         result = id_gen.NewName("expr")
@@ -329,10 +342,6 @@ def _AssignmentLhsIsInReg(lhs):
     if isinstance(def_node, cwast.DefGlobal):
         return False
     return True
-
-
-def IsUnconditionalBranch(node):
-    return cwast.NF.CONTROL_FLOW in node.FLAGS
 
 
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -380,42 +389,37 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
         EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_t = id_gen.NewName("br_t")
-        label_f = id_gen.NewName("br_f")
+        label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
-            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
-            label_join = id_gen.NewName("br_n")
-            print(f".bbl {label_f}")
+            EmitIRConditional(node.cond, False, label_t, tc, id_gen)
             for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
-            if IsUnconditionalBranch(node.body_f[-1]):
+            if not IsUnconditionalBranch(node.body_f[-1]):
                 print(f"{TAB}bra {label_join}")
             print(f".bbl {label_t}")
             for c in node.body_t:
                 EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_join}")
         elif node.body_t:
-            EmitIRConditional(node.cond, True, label_t, label_f, tc, id_gen)
-            print(f".bbl {label_f}")
+            EmitIRConditional(node.cond, True, label_join, tc, id_gen)
             for c in node.body_t:
                 EmitIRStmt(c, result, tc, id_gen)
-            print(f".bbl {label_t}")
+            print(f".bbl {label_join}")
         elif node.body_f:
-            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
-            print(f".bbl {label_f}")
+            EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
-            print(f".bbl {label_t}")
+            print(f".bbl {label_join}")
         else:
-            EmitIRConditional(node.cond, False, label_t, label_f, tc, id_gen)
-            print(f".bbl {label_f}")
-            print(f".bbl {label_t}")
+            EmitIRConditional(node.cond, False, label_join, tc, id_gen)
+            print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         assert isinstance(node.lhs.x_type, cwast.TypeBase)
         out = EmitIRExpr(node.expr_rhs, tc, id_gen)
         if _AssignmentLhsIsInReg(node.lhs):
             # because of the canonicalization step only register promotable
             # scalars will be naked like this
-            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}")
+            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
             lhs = _GetLValueAddress(node.lhs, tc, id_gen)
             print(f"{TAB}st {lhs} 0 = {out}")
@@ -612,6 +616,7 @@ def main():
         canonicalize.ReplaceConstExpr(mod)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
+            canonicalize.OptimizeKnownConditionals(fun)
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
             typify.VerifyTypesRecursively(fun, tc)
 

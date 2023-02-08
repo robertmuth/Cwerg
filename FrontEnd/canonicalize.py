@@ -241,6 +241,18 @@ def ReplaceConstExpr(node):
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
+
+def OptimizeKnownConditionals(node):
+    def replacer(node):
+        if isinstance(node, cwast.StmtIf):
+            if isinstance(node.cond, cwast.ValTrue):
+                node.body_f.clear()
+            elif isinstance(node.cond, cwast.ValFalse):
+                node.body_t.clear()
+        return None
+
+    cwast.VisitAstRecursivelyPost(node, replacer)
+
 ############################################################
 # Convert Slices to equvalent struct
 #

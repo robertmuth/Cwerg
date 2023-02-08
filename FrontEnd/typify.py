@@ -60,6 +60,7 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
         return int(num[: -4])
     elif num[-3:] in ("r32", "r64"):
         return float(num[: -3])
+    #
     if num[0] == "'":
         assert num[-1] == "'"
         if num[1] == "\\":
@@ -245,7 +246,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         cstr = tc.num_type(node.number, target_type)
         if cstr != types.NO_TYPE:
             return _AnnotateType(tc, node, cstr)
-        return _AnnotateType(tc, node, target_type)
+        cwast.CompilerError(node.x_srcloc, f"cannot determine number type of: {node}")
     elif isinstance(node, cwast.TypeAuto):
         assert False, "Must not try to typify TypeAuto"
     elif isinstance(node, cwast.ValAuto):
