@@ -1,6 +1,6 @@
 ## Problem: generate code for an if-statement with short circuit operators
 
-The if-statement looks like this
+The general if-statement looks like this
 
 ```
 if <cond>:
@@ -40,7 +40,7 @@ e.g. `!=` -> `ne`, `<` -> `lt`, etc.
 
 ## First solution
 
-This is a straught forward solution that is easy to implement and reason about
+This is a straight forward solution that is easy to implement and reason about
 
 The if-statement will be emitted as
 
@@ -122,8 +122,8 @@ def EmitIRConditional(cond, invert, label_false):
     if cond is-a ExprUnaryNot:
         EmitConditional(cond.expr, not invert, label_false)
     elif cond is-a ExprBinary:
-            op1 = EmitIRExpr(cond.expr1, tc, id_gen)
-            op2 = EmitIRExpr(cond.expr2, tc, id_gen)
+            op1 = EmitIRExpr(cond.expr1)
+            op2 = EmitIRExpr(cond.expr2)
             Emit("   b{AstCmpToAsmCmp(cond.kind, invert)} {op1} {op2} {label_true}")
     elif cond is-a Expr&&:
         if invert:
@@ -139,7 +139,7 @@ def EmitIRConditional(cond, invert, label_false):
             label_or = NewLabel()
             EmitConditional(cond.expr1, False, or)
             EmitConditional(cond.expr2, True, label_false)
-            Emit(f".{label_or}:")
+            Emit(f"{label_or}:")
         else:
             EmitConditional(cond.expr1, False, label_false)
             EmitConditional(cond.expr2, False, label_false)

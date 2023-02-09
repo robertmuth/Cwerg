@@ -119,7 +119,8 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> A
             if scale != 1:
                 scaled = id_gen.NewName("scaled")
                 # TODO: widen index
-                print(f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {index} {scale}")
+                print(
+                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {index} {scale}")
                 index = scaled
             res = id_gen.NewName("at")
             # TODO A64
@@ -169,36 +170,39 @@ def IsUnconditionalBranch(node):
         return False
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
-def EmitIRConditional(cond, invert: bool, label_t: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+
+def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
-        print(f"{TAB}bra {label_t}")
+        if not invert:
+            print(f"{TAB}bra {label_false}")
     elif cond.x_value is False:
-        pass
+        if invert:
+            print(f"{TAB}bra {label_false}")
     elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        EmitIRConditional(cond.expr, not invert, label_t, tc, id_gen)
+        EmitIRConditional(cond.expr, not invert, label_false, tc, id_gen)
     elif isinstance(cond, cwast.Expr2):
         kind = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
             if invert:
-                EmitIRConditional(cond.expr1, True, label_t, tc, id_gen)
-                EmitIRConditional(cond.expr2, True, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr1, True, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr2, True, label_false, tc, id_gen)
             else:
                 failed = id_gen.NewName("br_failed_and")
                 EmitIRConditional(cond.expr1, True, failed, tc, id_gen)
-                EmitIRConditional(cond.expr2, False, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
                 print(f".bbl {failed}")
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
             if invert:
-                assert False # this branch has not been tested
+                assert False  # this branch has not been tested
                 failed = id_gen.NewName("br_failed_or")
                 EmitIRConditional(cond.expr1, False, failed, tc, id_gen)
-                EmitIRConditional(cond.expr2, True, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr2, True, label_false, tc, id_gen)
                 print(f".bbl {failed}")
             else:
-                EmitIRConditional(cond.expr1, False, label_t, tc, id_gen)
-                EmitIRConditional(cond.expr2, False, label_t, tc, id_gen)
+                EmitIRConditional(cond.expr1, False, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
         else:
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
@@ -213,15 +217,16 @@ def EmitIRConditional(cond, invert: bool, label_t: str, tc: types.TypeCorpus, id
             elif kind is cwast.BINARY_EXPR_KIND.GE:
                 kind = cwast.BINARY_EXPR_KIND.LE
                 op1, op2 = op2, op1
-            print(f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_t}  # {cond}")
+            print(
+                f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
 
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         if invert:
-            print(f"{TAB}beq {cond.name} 0 {label_t}")
+            print(f"{TAB}beq {cond.name} 0 {label_false}")
         else:
-            print(f"{TAB}bne {cond.name} 0 {label_t}")
+            print(f"{TAB}bne {cond.name} 0 {label_false}")
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -297,7 +302,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             if scale != 1:
                 scaled = id_gen.NewName("scaled")
                 # TODO: widen index
-                print(f"{TAB}mul {scaled}:{StringifyOneType(node.expr2.x_type, tc)} = {op2} {scale}")
+                print(
+                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr2.x_type, tc)} = {op2} {scale}")
                 op2 = scaled
             print(f"{TAB}lea {res}:A64 = {op1} {op2}")
         else:
@@ -400,16 +406,16 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     elif isinstance(node, cwast.StmtExpr):
         EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
-        label_t = id_gen.NewName("br_t")
+        label_f = id_gen.NewName("br_f")
         label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
-            EmitIRConditional(node.cond, False, label_t, tc, id_gen)
-            for c in node.body_f:
-                EmitIRStmt(c, result, tc, id_gen)
-            if not IsUnconditionalBranch(node.body_f[-1]):
-                print(f"{TAB}bra {label_join}")
-            print(f".bbl {label_t}")
+            EmitIRConditional(node.cond, True, label_f, tc, id_gen)
             for c in node.body_t:
+                EmitIRStmt(c, result, tc, id_gen)
+            if not IsUnconditionalBranch(node.body_t[-1]):
+                print(f"{TAB}bra {label_join}")
+            print(f".bbl {label_f}")
+            for c in node.body_f:
                 EmitIRStmt(c, result, tc, id_gen)
             print(f".bbl {label_join}")
         elif node.body_t:
