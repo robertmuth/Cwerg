@@ -618,6 +618,7 @@ def main():
     for mod in mod_topo_order:
         cwast.StripNodes(mod, cwast.Comment)
         cwast.StripNodes(mod, cwast.DefMacro)
+        cwast.StripNodes(mod, cwast.ExprParen)
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)

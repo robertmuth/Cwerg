@@ -1147,7 +1147,7 @@ class ExprParen:
     """
     ALIAS = None
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -2153,7 +2153,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     #
     BINARY_EXPR_KIND.ANDSC,
     BINARY_EXPR_KIND.ORSC,
-    # 
+    #
     BINARY_EXPR_KIND.SHL,
     BINARY_EXPR_KIND.SHR,
     #
@@ -2172,33 +2172,25 @@ def VisitAstRecursively(node, visitor):
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
-            VisitAstRecursively(getattr(node, c), visitor)
+            child = getattr(node, c)
+            VisitAstRecursively(child, visitor)
         elif nfd.kind is NFK.LIST:
-            for cc in getattr(node, c):
-                VisitAstRecursively(cc, visitor)
+            for child in getattr(node, c):
+                VisitAstRecursively(child, visitor)
+
 
 def VisitAstRecursivelyPost(node, visitor):
+    """Note: the root node will not be visited"""
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
             child = getattr(node, c)
-            VisitAstRecursively(child, visitor)
-            visitor(child)
+            VisitAstRecursivelyPost(child, visitor)
+            visitor(child, c)
         elif nfd.kind is NFK.LIST:
             for child in getattr(node, c):
-                VisitAstRecursively(child, visitor)
-                visitor(child)
-
-def VisitAstRecursivelyWithParent(node, parent, visitor):
-    if visitor(node, parent):
-        return
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
-        if nfd.kind is NFK.NODE:
-            VisitAstRecursivelyWithParent(getattr(node, c), node, visitor)
-        elif nfd.kind is NFK.LIST:
-            for cc in getattr(node, c):
-                VisitAstRecursivelyWithParent(cc, node, visitor)
+                VisitAstRecursivelyPost(child, visitor)
+                visitor(child, c)
 
 
 def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
@@ -2217,6 +2209,7 @@ def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
 
 
 def MaybeReplaceAstRecursively(node, replacer):
+    """Note: the root node will not be replaced"""
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
@@ -2237,6 +2230,7 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
+    """Note: the root node will not be replaced"""
     for c in node.__class__.FIELDS:
         # print ("replace: ", node.__class__.__name__, c)
         nfd = ALL_FIELDS_MAP[c]
@@ -2436,7 +2430,7 @@ def GenerateDocumentation(fout):
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
-    
+
     print("\n## Node Overview (Non-Core)",  file=fout)
     for name, cls in nodes:
         if NF.NON_CORE not in cls.FLAGS:

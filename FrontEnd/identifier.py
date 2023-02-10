@@ -4,6 +4,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 
 def _GetAllLocalNames(node, seen_names: Set[str]):
+    assert False
     def visitor(node, seen_names):
         if isinstance(node, (cwast.DefVar, cwast.FunParam)):
             seen_names.add(node.name)
