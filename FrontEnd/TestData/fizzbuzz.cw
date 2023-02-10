@@ -55,19 +55,19 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 31 1 [
-      (if (== (% i 15) 0) [
-        (stmt discard (call write [1 (& (at FIZZBUZZ 0)) (len FIZZBUZZ)]))
-        ] [
-          (if (== (% i 3) 0) [
-            (stmt discard (call write [1 (& (at FIZZ 0)) (len FIZZ)]))] [
-               (if (== (% i 5) 0) [
-                  (stmt discard (call write [1 (& (at BUZZ 0)) (len BUZZ)]))] [
-                        (let mut buf (array 32 u8) undef)
-                        (let n auto (call u64_to_str [i 10 (& mut (at buf 0))]))
-                        (stmt discard (call write [1 (& (at buf 0)) n]))
-                  ])
-            ])
-        ])
+      (cond [
+         (case (== (% i 15) 0) [
+            (stmt discard (call write [1 (& (at FIZZBUZZ 0)) (len FIZZBUZZ)]))]) 
+         (case (== (% i 3) 0) [
+            (stmt discard (call write [1 (& (at FIZZ 0)) (len FIZZ)]))])
+         (case (== (% i 5) 0) [
+            (stmt discard (call write [1 (& (at BUZZ 0)) (len BUZZ)]))])
+         (case true [
+            (let mut buf (array 32 u8) undef)
+            (let n auto (call u64_to_str [i 10 (& mut (at buf 0))]))
+            (stmt discard (call write [1 (& (at buf 0)) n]))
+         ]) 
+      ])
       (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
 
    ])

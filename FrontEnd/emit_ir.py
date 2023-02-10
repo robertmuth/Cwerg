@@ -649,6 +649,7 @@ def main():
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
             canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
+            canonicalize.CanonicalizeRemoveStmtCond(fun)
             symbolize.VerifyASTSymbolsRecursively(fun)
             typify.VerifyTypesRecursively(fun, tc)
 

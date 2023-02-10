@@ -21,12 +21,9 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     return cwast.Id(def_node.name, "", x_srcloc=x_srcloc, x_type=def_node.x_type,
                     x_value=def_node.x_value, x_symbol=def_node)
 
-############################################################
-# Move string/array values into global (un-mutable variables)
-############################################################
-
 
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
+    """Move string/array values into global (un-mutable variables)"""
     def replacer(node, field):
         # TODO: add support for ValArray
         if isinstance(node, cwast.ValString):
@@ -121,7 +118,7 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus
     def replacer(node, field):
         if (field in ("args", "expr_rhs", "inits_array", "inits_rec", "initial_or_undef") and
             not isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)) and
-                           types.is_bool(node.x_type)):
+                types.is_bool(node.x_type)):
             cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             return cwast.Expr3(node,
                                cwast.ValTrue(x_srcloc=node.x_srcloc,
@@ -220,13 +217,11 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
-############################################################
-# This should elminate all of ExprSizeOf and ExprOffsetOf
-# as a side-effect
-############################################################
-
 
 def ReplaceConstExpr(node):
+    """
+     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
+    """
     def replacer(node, field):
         if (field not in ("lhs", "inits_array", "inits_rec") and
             cwast.NF.VALUE_ANNOTATED in node.FLAGS and
@@ -240,6 +235,22 @@ def ReplaceConstExpr(node):
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
+
+
+def CanonicalizeRemoveStmtCond(node):
+    def replacer(node, _):
+        if not isinstance(node, cwast.StmtCond):
+            return None
+        if not node.cases:
+            return cwast.EphemeralList([])
+        
+        out = None
+        for case in reversed(node.cases):
+            assert isinstance(case, cwast.Case)
+            out = cwast.StmtIf(case.cond, case.body, [] if out is None else [out], x_srcloc=case.x_srcloc)
+        return out
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
 def OptimizeKnownConditionals(node):
