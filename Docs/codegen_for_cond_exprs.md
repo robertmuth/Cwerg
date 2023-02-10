@@ -137,7 +137,7 @@ def EmitIRConditional(cond, invert, label_false):
     elif cond is-a Expr||:
         if invert:
             label_or = NewLabel()
-            EmitConditional(cond.expr1, False, or)
+            EmitConditional(cond.expr1, False, label_or)
             EmitConditional(cond.expr2, True, label_false)
             Emit(f"{label_or}:")
         else:

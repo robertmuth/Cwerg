@@ -3,22 +3,15 @@
 WIP
 
 
-## Node Overview
-[Case&nbsp;(case)](#case-case) &ensp;
-[Comment&nbsp;(#)](#comment-) &ensp;
-[DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
+## Node Overview (Core)
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
-[DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [DefMod&nbsp;(module)](#defmod-module) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
 [DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
-[EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
-[EphemeralList](#ephemerallist) &ensp;
 [Expr1](#expr1) &ensp;
 [Expr2](#expr2) &ensp;
-[Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
 [ExprAs&nbsp;(as)](#expras-as) &ensp;
 [ExprAsNot&nbsp;(asnot)](#exprasnot-asnot) &ensp;
@@ -29,55 +22,64 @@ WIP
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
-[ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
 [ExprParen](#exprparen) &ensp;
-[ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
-[ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
-[ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [FieldVal](#fieldval) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
-[Import&nbsp;(import)](#import-import) &ensp;
 [IndexVal](#indexval) &ensp;
-[MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
-[MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
-[MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
-[MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
-[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
-[ModParam](#modparam) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
 [StmtBreak&nbsp;(break)](#stmtbreak-break) &ensp;
-[StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
-[StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtContinue&nbsp;(continue)](#stmtcontinue-continue) &ensp;
-[StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtExpr&nbsp;(stmt)](#stmtexpr-stmt) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
-[StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
 [TypeArray&nbsp;(array)](#typearray-array) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
-[TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
 [ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
 [ValNum&nbsp;(num)](#valnum-num) &ensp;
 [ValRec&nbsp;(rec)](#valrec-rec) &ensp;
-[ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
 [ValString](#valstring) &ensp;
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
+
+## Node Overview (Non-Core)
+[Case&nbsp;(case)](#case-case) &ensp;
+[Comment&nbsp;(#)](#comment-) &ensp;
+[DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
+[DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
+[EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
+[EphemeralList](#ephemerallist) &ensp;
+[Expr3&nbsp;(?)](#expr3-) &ensp;
+[ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
+[ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
+[ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
+[ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
+[Import&nbsp;(import)](#import-import) &ensp;
+[MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
+[MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
+[MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
+[MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
+[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
+[ModParam](#modparam) &ensp;
+[StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
+[StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
+[StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
+[StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
+[TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
+[ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
 
 ## Enum Overview
 [Expr1 Kind](#expr1-kind) &ensp;
@@ -342,7 +344,7 @@ Assignment statement
 
 Fields:
 * lhs [NODE]: l-value expression
-* expr [NODE]: expression
+* expr_rhs [NODE]: rhs of assignment
 
 ### StmtBlock (block)
 Block statement.
@@ -368,7 +370,7 @@ Compound assignment statement
 Fields:
 * assignment_kind [KIND]: see StmtCompoundAssignment Kind below
 * lhs [NODE]: l-value expression
-* expr [NODE]: expression
+* expr_rhs [NODE]: rhs of assignment
 
 ### StmtCond (cond)
 Multicase if-elif-else statement
@@ -467,8 +469,8 @@ An array literal
     
 
 Fields:
-* type [NODE]: type expression
 * expr_size [NODE]: expression determining the size or auto
+* type [NODE]: type expression
 * inits_array [LIST] (default list): array initializers and/or comments
 
 ### ValAuto (auto_val)

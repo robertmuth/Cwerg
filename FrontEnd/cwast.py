@@ -1548,7 +1548,7 @@ class Case:
     """Single case of a Cond statement"""
     ALIAS = "case"
     GROUP = GROUP.Statement
-    FLAGS = NF(0)
+    FLAGS = NF.NON_CORE
     #
     cond: NODES_EXPR_T        # must be of type bool
     body: List[NODES_BODY_T]  # new scope
@@ -1565,7 +1565,7 @@ class StmtCond:
     """Multicase if-elif-else statement"""
     ALIAS = "cond"
     GROUP = GROUP.Statement
-    FLAGS = NF.NONE
+    FLAGS = NF.NON_CORE
     #
     cases: List[NODES_CASES_T]
     #
@@ -1959,7 +1959,7 @@ class Import:
     """Import another Module"""
     ALIAS = "import"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
     name: str
     alias: str
@@ -2427,8 +2427,20 @@ def MakeAnchor(name, alias):
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
-    print("\n## Node Overview",  file=fout)
+    print("\n## Node Overview (Core)",  file=fout)
     for name, cls in nodes:
+        if NF.NON_CORE in cls.FLAGS:
+            continue
+        alias = ""
+        if cls.ALIAS:
+            alias = f"&nbsp;({cls.ALIAS})"
+        anchor = MakeAnchor(name, cls.ALIAS)
+        print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
+    
+    print("\n## Node Overview (Non-Core)",  file=fout)
+    for name, cls in nodes:
+        if NF.NON_CORE not in cls.FLAGS:
+            continue
         alias = ""
         if cls.ALIAS:
             alias = f"&nbsp;({cls.ALIAS})"
