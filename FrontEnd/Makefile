@@ -82,5 +82,10 @@ $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  arg1 arg2 argc3
 
+$(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@  arg1 arg2 argc3
+
 clean:
 	@rm -f $(DIR)/* 
