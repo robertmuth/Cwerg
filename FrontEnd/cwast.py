@@ -320,6 +320,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               "ExprField", "ExprCall", "ExprParen",
               "Expr1", "Expr2", "Expr3",
               "ExprLen", "ExprSizeof", "ExprOffsetof", "ExprStmt",
+              "ExprStringify",
               "ExprIs", "ExprAs", "ExprAsNot")
 NODES_EXPR_T = Union[NODES_EXPR]
 
@@ -509,7 +510,6 @@ def _CheckNodeFieldOrder(obj):
             assert not seen_non_flag, "flags must come first"
         else:
             seen_non_flag = True
-
 
 def NodeCommon(cls):
     cls.__eq__ = lambda a, b: id(a) == id(b)
@@ -2188,7 +2188,7 @@ def VisitAstRecursivelyPost(node, visitor, field=None):
         elif nfd.kind is NFK.LIST:
             for child in getattr(node, f):
                 VisitAstRecursivelyPost(child, visitor, f)
-                
+
     visitor(node, field)
 
 
@@ -2337,47 +2337,37 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def CheckAST(node, parent, ctx: CheckASTContext):
-    assert node.x_srcloc, f"Node without srcloc {node}"
-    if NF.TOP_LEVEL in node.FLAGS:
-        assert ctx.toplevel, f"only allowed at toplevel: {node}"
-    if NF.MACRO_BODY_ONLY in node.FLAGS:
-        assert ctx.in_macro, f"only allowed in macros: {node}"
-    if node.GROUP is GROUP.Ephemeral:
-        assert ctx.in_macro, f"only allowed in macros: {node}"
-    if isinstance(node, Comment):
-        assert ctx.allow_comments
-    if isinstance(node, DefMacro):
-        assert ctx.allow_macros
-        for p in node.params_macro:
-            assert p.name.startswith("$")
-        for i in node.gen_ids:
-            assert i.startswith("$")
-        _CheckMacroRecursively(node, set())
+def CheckAST(node, disallowed_nodes):
 
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            permitted = nfd.extra
-            if permitted and not ctx.in_macro:
-                if child.__class__.__name__ not in permitted:
-                    CompilerError(
-                        node.x_srcloc, f"{_NAME(node)} [{f}]: bad child {child}")
-            ctx.toplevel = isinstance(node, DefMod)
-            ctx.in_fun |= isinstance(node, DefFun)
-            ctx.in_macro |= isinstance(node, DefMacro)
-            CheckAST(child, node, ctx)
-        elif nfd.kind is NFK.LIST:
-            permitted = nfd.extra
-            for cc in getattr(node, f):
-                if permitted and not ctx.in_macro:
-                    assert cc.__class__.__name__ in permitted, f"{_NAME(node)} [{f}]: bad child {_NAME(cc)}"
-                ctx.toplevel = isinstance(node, DefMod)
-                ctx.in_fun |= isinstance(node, DefFun)
-                ctx.in_macro |= isinstance(node, DefMacro)
-                CheckAST(cc, node, ctx)
+    toplevel_node = None
 
+    def visitor(node, field):
+        nonlocal disallowed_nodes
+        nonlocal toplevel_node
+
+        assert node.x_srcloc, f"Node without srcloc {node}"
+        assert type(node) not in disallowed_nodes
+        if NF.TOP_LEVEL in node.FLAGS:
+            assert field == "body_mod", f"only allowed at toplevel: {node}"
+            toplevel_node = node
+        if NF.MACRO_BODY_ONLY in node.FLAGS:
+            assert isinstance(toplevel_node, DefMacro), f"only allowed in macros: {node}"
+        if node.GROUP is GROUP.Ephemeral:
+            assert isinstance(toplevel_node, DefMacro), f"only allowed in macros: {node}"
+        if isinstance(node, DefMacro):
+            for p in node.params_macro:
+                assert p.name.startswith("$")
+            for i in node.gen_ids:
+                assert i.startswith("$")
+            _CheckMacroRecursively(node, set())
+        if field is not None:
+            nfd = ALL_FIELDS_MAP[field]
+            permitted = nfd.extra
+            if permitted and not isinstance(toplevel_node, DefMacro):
+                    if node.__class__.__name__ not in permitted:
+                        CompilerError(node.x_srcloc, f"unexpected node for {field}: {node}")
+
+    VisitAstRecursively(node, visitor)
 
 ##########################################################################################
 # Doc Generation

@@ -88,10 +88,10 @@
 ])
 
 
-(fun pub memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param len uint)] uint [
-    (for i uint 0 len 1 [
+(fun pub memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] uint [
+    (for i uint 0 size 1 [
         (= (^(incp dst i)) (^ (incp src i)))])
-    (return len)
+    (return size)
 ])
 
 

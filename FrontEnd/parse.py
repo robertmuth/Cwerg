@@ -103,16 +103,22 @@ def ExpandShortHand(t, srcloc) -> Any:
 
     if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
         # TODO: r"
+        logger.info("STRING %s at %s", t, srcloc)
         return cwast.ValString(False, t, x_srcloc=srcloc)
     elif _TOKEN_ID.match(t):
+        if t in cwast.NODES_ALIASES:
+            cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
         parts = t.rsplit("::", 1)
+        logger.info("ID %s at %s", t, srcloc)
         return cwast.Id(parts[-1], "" if len(parts) ==
                         1 else parts[0], x_srcloc=srcloc)
     elif _TOKEN_NUM.match(t):
+        logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
     elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
+        logger.info("CHAR %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
     else:
         return None
@@ -266,8 +272,7 @@ def ReadModsFromStream(fp) -> List[cwast.DefMod]:
                     stream.srcloc(), f"expect start of new node, got '{t}']")
             sexpr = ReadSExpr(stream, None)
             assert isinstance(sexpr, cwast.DefMod)
-            cwast.CheckAST(sexpr, None, cwast.CheckASTContext(
-                allow_macros=True, allow_comments=True))
+            cwast.CheckAST(sexpr, set())
             asts.append(sexpr)
             failure = False
     except StopIteration:
