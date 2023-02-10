@@ -243,7 +243,7 @@ def ReplaceConstExpr(node):
 
 
 def OptimizeKnownConditionals(node):
-    def replacer(node, _):
+    def replacer(node):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValTrue):
                 node.body_f.clear()

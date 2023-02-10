@@ -2186,11 +2186,10 @@ def VisitAstRecursivelyPost(node, visitor):
         if nfd.kind is NFK.NODE:
             child = getattr(node, c)
             VisitAstRecursivelyPost(child, visitor)
-            visitor(child, c)
         elif nfd.kind is NFK.LIST:
             for child in getattr(node, c):
                 VisitAstRecursivelyPost(child, visitor)
-                visitor(child, c)
+    visitor(node)
 
 
 def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):

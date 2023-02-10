@@ -353,19 +353,18 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
 
 
 def EvalRecursively(node) -> bool:
-    if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS and node.x_value is not None:
-        return False
     seen_change = False
-    # post order traversal works best
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            seen_change = EvalRecursively(getattr(node, c))
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                seen_change |= EvalRecursively(cc)
-    if cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
+
+    def visitor(node):
+        nonlocal seen_change
+        if cwast.NF.VALUE_ANNOTATED not in node.__class__.FLAGS:
+            return
+        if node.x_value is not None:
+            return
         seen_change |= _EvalNode(node)
+
+    cwast.VisitAstRecursivelyPost(node, visitor)
+
     if seen_change:
         logger.info(f"SEEN CHANGE {node}")
     return seen_change

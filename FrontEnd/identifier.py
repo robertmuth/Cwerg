@@ -5,6 +5,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 def _GetAllLocalNames(node, seen_names: Set[str]):
     assert False
+
     def visitor(node, seen_names):
         if isinstance(node, (cwast.DefVar, cwast.FunParam)):
             seen_names.add(node.name)
@@ -35,19 +36,14 @@ class IdGen:
         _GetAllLocalNames(fun, self._local_names)
 
     def UniquifyLocalNames(self, node):
-        # assumes LoadGlobalNames has already occurred
-        if isinstance(node, (cwast.DefVar, cwast.FunParam)):
-            node.name = self.NewName(node.name)
-        if isinstance(node, cwast.StmtBlock):
-            node.label = self.NewName(node.label)
-        #
-        for c in node.__class__.FIELDS:
-            nfd = cwast.ALL_FIELDS_MAP[c]
-            if nfd.kind is cwast.NFK.NODE:
-                self.UniquifyLocalNames(getattr(node, c))
-            elif nfd.kind is cwast.NFK.LIST:
-                for cc in getattr(node, c):
-                    self.UniquifyLocalNames(cc)
+        def visitor(node):
+            # assumes LoadGlobalNames has already occurred
+            if isinstance(node, (cwast.DefVar, cwast.FunParam)):
+                node.name = self.NewName(node.name)
+            if isinstance(node, cwast.StmtBlock):
+                node.label = self.NewName(node.label)
+
+        cwast.VisitAstRecursively(node, visitor)
 
     def NewName(self, prefix) -> str:
         token = prefix.split("$")
