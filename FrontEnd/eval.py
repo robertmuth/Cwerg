@@ -355,7 +355,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
 def EvalRecursively(node) -> bool:
     seen_change = False
 
-    def visitor(node):
+    def visitor(node, _):
         nonlocal seen_change
         if cwast.NF.VALUE_ANNOTATED not in node.__class__.FLAGS:
             return

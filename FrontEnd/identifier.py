@@ -36,7 +36,7 @@ class IdGen:
         _GetAllLocalNames(fun, self._local_names)
 
     def UniquifyLocalNames(self, node):
-        def visitor(node):
+        def visitor(node, _):
             # assumes LoadGlobalNames has already occurred
             if isinstance(node, (cwast.DefVar, cwast.FunParam)):
                 node.name = self.NewName(node.name)

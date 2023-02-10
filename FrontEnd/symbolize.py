@@ -173,7 +173,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
 
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
         node, symtab: SymTab, symtab_map):
-    def visitor(node):
+    def visitor(node, _):
         if isinstance(node, cwast.Id):
             def_node = symtab.resolve_sym(
                 node.name.split("/"), symtab_map, False)

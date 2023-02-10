@@ -2166,30 +2166,30 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 ############################################################
 #
 ############################################################
-def VisitAstRecursively(node, visitor):
-    if visitor(node):
-        return
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+def VisitAstRecursively(node, visitor, field=None):
+    visitor(node, field)
+
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
-            VisitAstRecursively(child, visitor)
+            child = getattr(node, f)
+            VisitAstRecursively(child, visitor, f)
         elif nfd.kind is NFK.LIST:
-            for child in getattr(node, c):
-                VisitAstRecursively(child, visitor)
+            for child in getattr(node, f):
+                VisitAstRecursively(child, visitor, f)
 
 
-def VisitAstRecursivelyPost(node, visitor):
-    """Note: the root node will not be visited"""
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+def VisitAstRecursivelyPost(node, visitor, field=None):
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
-            VisitAstRecursivelyPost(child, visitor)
+            child = getattr(node, f)
+            VisitAstRecursivelyPost(child, visitor, f)
         elif nfd.kind is NFK.LIST:
-            for child in getattr(node, c):
-                VisitAstRecursivelyPost(child, visitor)
-    visitor(node)
+            for child in getattr(node, f):
+                VisitAstRecursivelyPost(child, visitor, f)
+                
+    visitor(node, field)
 
 
 def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
@@ -2329,7 +2329,7 @@ class CheckASTContext:
 
 
 def _CheckMacroRecursively(node, seen_names: Set[str]):
-    def visitor(node):
+    def visitor(node, _):
         if isinstance(node, (MacroParam, MacroFor)):
             assert node.name.startswith("$")
             assert node.name not in seen_names, f"duplicate name: {node.name}"
