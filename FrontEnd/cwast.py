@@ -2202,8 +2202,8 @@ def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
             VisitAstRecursivelyWithAllParents(
                 getattr(node, c), parents, visitor)
         elif nfd.kind is NFK.LIST:
-            for cc in getattr(node, c):
-                VisitAstRecursivelyWithAllParents(cc, parents, visitor)
+            for child in getattr(node, c):
+                VisitAstRecursivelyWithAllParents(child, parents, visitor)
     parents.pop(-1)
 
 
@@ -2374,7 +2374,6 @@ def CheckAST(node, disallowed_nodes):
 ##########################################################################################
 PROLOG = """## Abstract Syntax Tree (AST) Nodes used by Cwerg
 
-WIP
 """
 
 

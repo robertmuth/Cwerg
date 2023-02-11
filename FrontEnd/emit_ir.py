@@ -568,11 +568,13 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         fun.result = MakeTypeVoid(tc, fun.x_srcloc)
     changing_params = {}
 
+    assert len(fun.params) == len(old_sig.params) == len(new_sig.params)
     for p, old, new in zip(fun.params, old_sig.params, new_sig.params):
         if old.type != new.type:
             changing_params[p] = new.type
             p.type = cwast.TypePtr(
                 False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
+            p.x_type = new.type
     assert result_changes or changing_params
     return changing_params, result_changes
 
@@ -628,6 +630,7 @@ def main():
     mod_gen = cwast.DefMod("$generated", [], [])
     id_gen = identifier.IdGen()
     str_val_map = {}
+    slice_to_struct_map = {}
     fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
@@ -637,6 +640,8 @@ def main():
         for fun in mod.body_mod:
             canonicalize.OptimizeKnownConditionals(fun)
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
+            #canonicalize.CreateSliceReplacementStructs(fun, tc, slice_to_struct_map)
+
             typify.VerifyTypesRecursively(fun, tc)
 
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
@@ -644,20 +649,22 @@ def main():
             typify.VerifyTypesRecursively(fun, tc)
 
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
+            
             RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
             canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
             canonicalize.CanonicalizeRemoveStmtCond(fun)
+
             symbolize.VerifyASTSymbolsRecursively(fun)
             typify.VerifyTypesRecursively(fun, tc)
 
-    mod_gen.body_mod += list(str_val_map.values())
+    mod_gen.body_mod += list(str_val_map.values()) + list(slice_to_struct_map.values())
     mod_topo_order = [mod_gen] + mod_topo_order
 
     # for mod in mod_topo_order:
-    #   pp.PettyPrint(mod)
+    #    pp.PrettyPrint(mod)
     # exit(0)
 
     # Fully qualify names

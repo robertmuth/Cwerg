@@ -7,11 +7,14 @@
 import dataclasses
 import logging
 import pp
+
 from typing import List, Dict, Set, Optional, Union, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import types
+from FrontEnd import typify
+
 ############################################################
 #
 ############################################################
@@ -63,32 +66,6 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.Typ
         for p in node.params:
             if isinstance(p, cwast.FunParam):
                 if type_corpus.register_types[p.x_type] is None:
-                    changed_params.add(p)
-
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            new_child = _TransformLargeArgs(child, changed_params)
-            if new_child:
-                setattr(node, c, new_child)
-            else:
-                CanonicalizeLargeArgs(child, changed_params, id_gen)
-        elif nfd.kind is cwast.NFK.LIST:
-            children = getattr(node, c)
-            for n, child in enumerate(children):
-                new_child = _TransformLargeArgs(child, changed_params)
-                if new_child:
-                    children[n] = new_child
-                else:
-                    CanonicalizeLargeArgs(child, changed_params, id_gen)
-
-
-def CanonicalizeLargeArgs(node, changed_params: Set[Any], tc: types.TypeCorpus, id_gen):
-    if isinstance(node, cwast.DefFun):
-        for p in node.params:
-            if isinstance(p, cwast.FunParam):
-                if tc.register_types[p.x_type] is None:
                     changed_params.add(p)
 
     for c in node.__class__.FIELDS:
@@ -196,7 +173,7 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 
 
 def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifier.IdGen):
-
+    """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node, field):
         if isinstance(node, cwast.StmtCompoundAssignment):
             if isinstance(node.lhs, cwast.Id):
@@ -238,16 +215,18 @@ def ReplaceConstExpr(node):
 
 
 def CanonicalizeRemoveStmtCond(node):
+    """Convert StmtCond to nested StmtIf"""
     def replacer(node, _):
         if not isinstance(node, cwast.StmtCond):
             return None
         if not node.cases:
             return cwast.EphemeralList([])
-        
+
         out = None
         for case in reversed(node.cases):
             assert isinstance(case, cwast.Case)
-            out = cwast.StmtIf(case.cond, case.body, [] if out is None else [out], x_srcloc=case.x_srcloc)
+            out = cwast.StmtIf(case.cond, case.body, [] if out is None else [
+                               out], x_srcloc=case.x_srcloc)
         return out
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
@@ -271,17 +250,34 @@ def OptimizeKnownConditionals(node):
 ############################################################
 
 
-# def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
-#     size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.uint_kind]
-#     pointer = cwast.RecField("pointer", tc,, cwast.ValUndef(),
-#                              x_srcloc=None)
-#     length = cwast.RecField("length", tc.insert_base_type(tc.uint_kind), cwast.ValUndef(),
-#                             x_srcloc=None)
-#     rec = cwast.DefRec(True, name, [pointer, length],
-#                        x_srcloc=None, x_type=, x_alignment=size, x_size=2 * size)
+def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
+    srcloc = slice.x_srcloc
+    pointer_type = cwast.TypePtr(slice.mut, cwast.CloneNodeRecursively(
+        slice.type), x_srcloc=srcloc)
+    typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
+        pointer_type.mut, pointer_type.type.x_type))
+    pointer_field = cwast.RecField("pointer",
+                                   pointer_type, cwast.ValUndef(
+                                       x_srcloc=srcloc),
+                                   x_srcloc=srcloc)
+    typify.AnnotateNodeType(tc, pointer_field, pointer_type.x_type)
+    length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
+    typify.AnnotateNodeType(
+        tc, length_type, tc.insert_base_type(length_type.base_type_kind))
+    length_field = cwast.RecField("length", length_type, cwast.ValUndef(x_srcloc=srcloc),
+                                  x_srcloc=srcloc)
+    typify.AnnotateNodeType(tc, length_field, length_type.x_type)
+    name = f"$rec_{tc.canon_name(slice.x_type)}"
+    rec = cwast.DefRec(True, name, [pointer_field, length_field],
+                       x_srcloc=srcloc)
+    return rec
 
 
-# def CreateSliceReplacementStructs(tc: types.TypeCorpus):
-#     out = {}
-#     for slice in tc.corpus.values:
-#         if isinstance(slice, cwast.TypeSlice):
+def CreateSliceReplacementStructs(node, tc: types.TypeCorpus, slice_to_struct_map):
+    def visitor(node, _):
+        if isinstance(node, cwast.TypeSlice):
+            if node.x_type not in slice_to_struct_map:
+                slice_to_struct_map[node.x_type] = _MakeSliceReplacementStruct(
+                    node, tc)
+
+    cwast.VisitAstRecursively(node, visitor)

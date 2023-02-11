@@ -1,5 +1,6 @@
 
 import logging
+import re
 
 from FrontEnd import cwast
 
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 CanonType = str
 NO_TYPE = None
+STRINGIFIEDTYPE_RE = re.compile(r"^[a-zA-Z][_A-Za-z_0-9$,<>/]+$")
 
 
 def is_mutable_def(node):
@@ -70,9 +72,11 @@ def is_uint(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_UINT
 
+
 def is_sint(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_SINT
+
 
 def is_real(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
@@ -172,7 +176,7 @@ class TypeCorpus:
     """The type corpus uniquifies types
 
     It does so by representing each type with a string (basically a serialized
-    version of type like "array(ptr(u32),128)").
+    version of type like "array<ptr<u32>,128>").
     That serialized version is mapped back to a structural version expressed
     using AST nodes.
     """
@@ -315,12 +319,13 @@ class TypeCorpus:
             # Note, DefRec is not handled here
             assert False, f"unknown type {ctype}"
 
-    def _insert(self, name, node, finalize=True) -> CanonType:
+    def _insert(self, name: str, node, finalize=True) -> CanonType:
         if name in self.corpus:
             return self.corpus[name]
         assert cwast.NF.TYPE_CORPUS in node.__class__.FLAGS, f"not a corpus node: {node}"
         self.corpus[name] = node
         assert node not in self._canon_name
+        assert STRINGIFIEDTYPE_RE.match(name), f"bad type name [{name}]"
         self._canon_name[node] = name
         if finalize:
             node.x_size, node.x_alignment = self.get_size_and_alignment(node)
@@ -338,23 +343,23 @@ class TypeCorpus:
     def insert_ptr_type(self, mut: bool, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
         if mut:
-            name = f"ptr-mut({s})"
+            name = f"ptr_mut<{s}>"
         else:
-            name = f"ptr({s})"
+            name = f"ptr<{s}>"
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypePtr(mut, cstr))
 
     def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
         if mut:
-            name = f"slice-mut({s})"
+            name = f"slice_mut<{s}>"
         else:
-            name = f"slice({s})"
+            name = f"slice<{s}>"
         return self._insert(name, cwast.TypeSlice(mut, cstr))
 
     def insert_array_type(self, len: int, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
-        name = f"array({s},{len})"
+        name = f"array<{s},{len}>"
         dim = cwast.ValNum(str(len))
         dim.x_value = len
         return self._insert(name, cwast.TypeArray(dim, cstr))
@@ -371,13 +376,13 @@ class TypeCorpus:
 
     def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
         """Note: we re-use the original ast node"""
-        name = f"rec({name})"
+        name = f"rec<{name}>"
         return self._insert(name, node, finalize=False)
 
     def insert_enum_type(self, name: str, node: cwast.DefEnum) -> CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(node, cwast.DefEnum)
-        name = f"enum({name})"
+        name = f"enum<{name}>"
         return self._insert(name, node)
 
     def insert_sum_type(self, components: List[CanonType]) -> CanonType:
@@ -390,14 +395,14 @@ class TypeCorpus:
             else:
                 pieces.append(c)
         pp = sorted(self.canon_name(p) for p in pieces)
-        name = f"sum({','.join(pp)})"
+        name = f"sum<{','.join(pp)}>"
         node = cwast.TypeSum(pieces)
         return self._insert(name, node)
 
     def insert_fun_type(self, params: List[CanonType], result: CanonType) -> CanonType:
         x = [self.canon_name(p) for p in params]
         x.append(self.canon_name(result))
-        name = f"fun({','.join(x)})"
+        name = f"fun<{','.join(x)}>"
         p = [cwast.FunParam("_", x) for x in params]
         return self._insert(name, cwast.TypeFun(p, result))
 
@@ -405,7 +410,7 @@ class TypeCorpus:
         """Note: we re-use the original ast node"""
         uid = self.wrapped_curr
         self.wrapped_curr += 1
-        name = f"wrapped({uid},{self.canon_name(cstr)})"
+        name = f"wrapped<{uid},{self.canon_name(cstr)}>"
         assert name not in self.corpus
         return self._insert(name, cwast.DefType(False, True, "_", cstr))
 
