@@ -14,6 +14,7 @@ from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import types
 from FrontEnd import parse
+from FrontEnd import pp
 
 
 logger = logging.getLogger(__name__)
@@ -578,7 +579,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             arg_cstr = a.x_type
             assert types.is_compatible(
                 arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(
-                    tc, f"incompatible fun ({node.callee}) arg: {a}",  arg_cstr, p.type)
+                    tc, f"incompatible callee=({node.callee.name}) arg={a}",  arg_cstr, p.type)
     elif isinstance(node, cwast.StmtReturn):
         target = node.x_target
         actual = node.expr_ret.x_type

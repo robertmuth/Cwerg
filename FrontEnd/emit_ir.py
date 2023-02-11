@@ -513,6 +513,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args, id_g
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.TypeFun = call.callee.x_type
             new_sig:  cwast.TypeFun = fun_sigs_with_large_args[old_sig]
+            call.callee.x_type = new_sig
             expr_body = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
@@ -529,6 +530,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args, id_g
                     call.args[n] = cwast.ExprAddrOf(
                         False, name, x_srcloc=call.x_srcloc, x_type=new.type)
             if len(old_sig.params) != len(new_sig.params):
+                # the result is not a argument
                 new_def = cwast.DefVar(True, id_gen.NewName("result"),
                                        cwast.TypeAuto(x_srcloc=call.x_srcloc),
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
@@ -538,7 +540,6 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args, id_g
                 call.args.append(cwast.ExprAddrOf(
                     True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
                 call.x_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
-                call.callee.x_type = new_sig
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
                     False, call, x_srcloc=call.x_srcloc))
@@ -568,7 +569,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         fun.result = MakeTypeVoid(tc, fun.x_srcloc)
     changing_params = {}
 
-    assert len(fun.params) == len(old_sig.params) == len(new_sig.params)
+    # note: new_sig may contain an extra param at the end 
     for p, old, new in zip(fun.params, old_sig.params, new_sig.params):
         if old.type != new.type:
             changing_params[p] = new.type
@@ -640,7 +641,7 @@ def main():
         for fun in mod.body_mod:
             canonicalize.OptimizeKnownConditionals(fun)
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
-            #canonicalize.CreateSliceReplacementStructs(fun, tc, slice_to_struct_map)
+            canonicalize.CreateSliceReplacementStructs(fun, tc, slice_to_struct_map)
 
             typify.VerifyTypesRecursively(fun, tc)
 
