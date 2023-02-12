@@ -482,6 +482,27 @@ def _TypeMismatch(tc: types.TypeCorpus, msg: str, actual, expected):
     return f"{msg}: actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}"
 
 
+def _VerifyExpr2(result_type, op1_type, op2_type, kind: cwast.BINARY_EXPR_KIND, tc) -> bool:
+    if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
+        return op1_type == op2_type and types.is_bool(result_type)
+    elif kind in cwast.BINOP_BOOL:
+        return op1_type == op2_type and isinstance(op1_type, cwast.TypeBase) and types.is_bool(result_type)
+    elif kind in (cwast.BINARY_EXPR_KIND.INCP, cwast.BINARY_EXPR_KIND.DECP):
+        return (op1_type == result_type and types.is_int(op2_type) and
+                isinstance(op1_type, (cwast.TypePtr, cwast.TypeSlice)))
+    elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
+        if isinstance(op1_type, cwast.TypePtr):
+            return (isinstance(op2_type, cwast.TypeSlice) and op1_type.type == op2_type.type and
+                    result_type == tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT))
+        elif isinstance(op1_type, cwast.TypeSlice):
+            return (isinstance(op2_type, cwast.TypeSlice) and op1_type.type == op2_type.type and
+                    result_type == op1_type)
+        else:
+            assert False
+    else:
+        return (op1_type == op2_type == result_type and isinstance(op1_type, cwast.TypeBase))
+
+
 def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
         assert node.x_type is not types.NO_TYPE
@@ -527,43 +548,20 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             assert cstr == type_cstr, _TypeMismatch(f"{node}", cstr, type_cstr)
     elif isinstance(node, cwast.ExprDeref):
         node_type = node.x_type
-        expr_type =  node.expr.x_type
+        expr_type = node.expr.x_type
         assert isinstance(expr_type, cwast.TypePtr)
-        assert  expr_type.type == node_type,  _TypeMismatch(tc, f"deref issue at {node}", node_type, expr_type.type)
+        assert expr_type.type == node_type,  _TypeMismatch(
+            tc, f"deref issue at {node}", node_type, expr_type.type)
     elif isinstance(node, cwast.ExprStmt):
         pass
     elif isinstance(node, cwast.Expr1):
         cstr = node.x_type
         assert cstr == node.expr.x_type
     elif isinstance(node, cwast.Expr2):
-        cstr = node.x_type
-        cstr1 = node.expr1.x_type
-        cstr2 = node.expr2.x_type
-        if node.binary_expr_kind in cwast.BINOP_BOOL:
-            assert cstr1 == cstr2, _TypeMismatch(
-                tc, f"binop mismatch in {node}:", cstr1, cstr2)
-            assert types.is_bool(cstr)
-        elif node.binary_expr_kind in (cwast.BINARY_EXPR_KIND.INCP,
-                                       cwast.BINARY_EXPR_KIND.DECP):
-            # TODO: check for pointer or slice
-            assert cstr == cstr1
-            assert types.is_int(cstr2)
-        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-            if isinstance(cstr1, cwast.TypePtr):
-                assert (isinstance(cstr2, cwast.TypeSlice) and
-                        cstr1.type == cstr2.type)
-                assert cstr == tc.insert_base_type(
-                    cwast.BASE_TYPE_KIND.SINT)
-            elif isinstance(cstr1, cwast.TypeSlice):
-                assert (isinstance(cstr2, cwast.TypeSlice) and
-                        cstr1.type == cstr2.type)
-                assert cstr == cstr1
-            else:
-                assert False
-        else:
-            assert cstr1 == cstr2, _TypeMismatch(
-                tc, f"binop mismatch in {node}:", cstr1, cstr2)
-            assert cstr == cstr1, _TypeMismatch(f"in {node}", cstr, cstr1)
+        op1_type = node.expr1.x_type
+        op2_type = node.expr2.x_type
+        assert _VerifyExpr2(node.x_type,  op1_type, op2_type, node.binary_expr_kind, tc),  _TypeMismatch(
+            tc, f"in {node} {node.x_type}", op1_type, op2_type)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
         cstr_t = node.expr_t.x_type
@@ -607,14 +605,11 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             node.lhs), f"cannot assign to readonly data: {node}"
     elif isinstance(node, cwast.StmtCompoundAssignment):
         assert is_proper_lhs(node.lhs)
+        kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type
-        if node.assignment_kind in (cwast.ASSIGNMENT_KIND.DECP, cwast.ASSIGNMENT_KIND.INCP):
-            # TODO: check for pointer or slice
-            assert types.is_int(expr_cstr)
-        else:
-            assert types.is_compatible(expr_cstr, var_cstr), _TypeMismatch(
-                tc, f"incompatible assignment arg: {node}",  expr_cstr, var_cstr)
+        assert _VerifyExpr2(var_cstr, var_cstr, expr_cstr, kind, tc), _TypeMismatch(
+            tc, f"in {node}", var_cstr, expr_cstr)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard, f"{cstr} vs {node.discard}"
@@ -695,13 +690,13 @@ def VerifyTypesRecursively(node, corpus):
     def visitor(node, _):
         logger.info(f"VERIFYING {node}")
 
-        if (cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS or
+        if (cwast.NF.TYPE_ANNOTATED in node.FLAGS or
                 isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
-            if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+            if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
                 assert node.x_type is not None, f"untyped node: {node}"
             _TypeVerifyNode(node, corpus)
 
-        if cwast.NF.FIELD_ANNOTATED in node.__class__.FLAGS:
+        if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
             assert node.x_field is not None, f"node withou field annotation: {node}"
 
     cwast.VisitAstRecursivelyPost(node, visitor)

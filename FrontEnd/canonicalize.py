@@ -143,23 +143,7 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-_COMPOUND_KIND_TO_EXPR_KIND = {
-    cwast.ASSIGNMENT_KIND.ADD: cwast.BINARY_EXPR_KIND.ADD,
-    cwast.ASSIGNMENT_KIND.SUB: cwast.BINARY_EXPR_KIND.SUB,
-    cwast.ASSIGNMENT_KIND.DIV: cwast.BINARY_EXPR_KIND.DIV,
-    cwast.ASSIGNMENT_KIND.MUL: cwast.BINARY_EXPR_KIND.MUL,
-    cwast.ASSIGNMENT_KIND.REM: cwast.BINARY_EXPR_KIND.REM,
-    #
-    cwast.ASSIGNMENT_KIND.INCP: cwast.BINARY_EXPR_KIND.INCP,
-    cwast.ASSIGNMENT_KIND.DECP: cwast.BINARY_EXPR_KIND.DECP,
-    #
-    cwast.ASSIGNMENT_KIND.AND: cwast.BINARY_EXPR_KIND.AND,
-    cwast.ASSIGNMENT_KIND.OR: cwast.BINARY_EXPR_KIND.OR,
-    cwast.ASSIGNMENT_KIND.XOR: cwast.BINARY_EXPR_KIND.XOR,
-    #
-    cwast.ASSIGNMENT_KIND.SHR: cwast.BINARY_EXPR_KIND.SHR,
-    cwast.ASSIGNMENT_KIND.SHL: cwast.BINARY_EXPR_KIND.SHL,
-}
+
 
 ############################################################
 #
@@ -167,7 +151,7 @@ _COMPOUND_KIND_TO_EXPR_KIND = {
 
 
 def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
-    rhs = cwast.Expr2(_COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
+    rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
                       cwast.CloneNodeRecursively(lhs),
                       expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
     return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)

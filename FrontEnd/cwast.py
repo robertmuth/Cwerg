@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 SRCLOC_GENERATED = -1
 
+
 ############################################################
 # Enums
 ############################################################
@@ -183,6 +184,24 @@ ASSIGNMENT_SHORTCUT = {
 
 ASSIGMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 
+COMPOUND_KIND_TO_EXPR_KIND = {
+    ASSIGNMENT_KIND.ADD: BINARY_EXPR_KIND.ADD,
+    ASSIGNMENT_KIND.SUB: BINARY_EXPR_KIND.SUB,
+    ASSIGNMENT_KIND.DIV: BINARY_EXPR_KIND.DIV,
+    ASSIGNMENT_KIND.MUL: BINARY_EXPR_KIND.MUL,
+    ASSIGNMENT_KIND.REM: BINARY_EXPR_KIND.REM,
+    #
+    ASSIGNMENT_KIND.INCP: BINARY_EXPR_KIND.INCP,
+    ASSIGNMENT_KIND.DECP: BINARY_EXPR_KIND.DECP,
+    #
+    ASSIGNMENT_KIND.AND: BINARY_EXPR_KIND.AND,
+    ASSIGNMENT_KIND.OR: BINARY_EXPR_KIND.OR,
+    ASSIGNMENT_KIND.XOR: BINARY_EXPR_KIND.XOR,
+    #
+    ASSIGNMENT_KIND.SHR: BINARY_EXPR_KIND.SHR,
+    ASSIGNMENT_KIND.SHL: BINARY_EXPR_KIND.SHL,
+}
+
 
 @enum.unique
 class UNARY_EXPR_KIND(enum.Enum):
@@ -322,7 +341,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               "Expr1", "Expr2", "Expr3",
               "ExprLen", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
-              "ExprIs", "ExprAs", "ExprAsNot")
+              "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs")
 NODES_EXPR_T = Union[NODES_EXPR]
 
 NODES_COND = ("ValFalse", "ValTrue",
@@ -511,6 +530,7 @@ def _CheckNodeFieldOrder(obj):
             assert not seen_non_flag, "flags must come first"
         else:
             seen_non_flag = True
+
 
 def NodeCommon(cls):
     cls.__eq__ = lambda a, b: id(a) == id(b)
@@ -2346,15 +2366,17 @@ def CheckAST(node, disallowed_nodes):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
 
-        assert node.x_srcloc, f"Node without srcloc {node}"
+        assert node.x_srcloc is not None, f"Node without srcloc {node}"
         assert type(node) not in disallowed_nodes
         if NF.TOP_LEVEL in node.FLAGS:
             assert field == "body_mod", f"only allowed at toplevel: {node}"
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
-            assert isinstance(toplevel_node, DefMacro), f"only allowed in macros: {node}"
+            assert isinstance(
+                toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if node.GROUP is GROUP.Ephemeral:
-            assert isinstance(toplevel_node, DefMacro), f"only allowed in macros: {node}"
+            assert isinstance(
+                toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
             for p in node.params_macro:
                 assert p.name.startswith("$")
@@ -2365,10 +2387,12 @@ def CheckAST(node, disallowed_nodes):
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra
             if permitted and not isinstance(toplevel_node, DefMacro):
-                    if node.__class__.__name__ not in permitted:
-                        CompilerError(node.x_srcloc, f"unexpected node for {field}: {node}")
+                if node.__class__.__name__ not in permitted:
+                    CompilerError(
+                        node.x_srcloc, f"unexpected node for field={field}: {node}")
 
     VisitAstRecursively(node, visitor)
+
 
 ##########################################################################################
 # Doc Generation

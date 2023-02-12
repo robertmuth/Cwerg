@@ -507,7 +507,8 @@ def MakeTypeVoid(tc, srcloc):
                           x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
 
 
-def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args, id_gen: identifier.IdGen):
+def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
+                               tc: types.TypeCorpus, id_gen: identifier.IdGen):
 
     def replacer(call, field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
@@ -655,7 +656,7 @@ def main(dump_ir):
 
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
 
-            RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, id_gen)
+            RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, tc, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
