@@ -35,7 +35,7 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
             def_node = str_map.get(node.x_value)
             if not def_node:
                 def_node = cwast.DefGlobal(True, False, id_gen.NewName("global_str"),
-                                           node.x_type, node,
+                                           cwast.TypeAuto(node.x_srcloc), node,
                                            x_srcloc=node.x_srcloc,
                                            x_type=node.x_type,
                                            x_value=node.x_value)
@@ -115,25 +115,26 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     of type inference, so instead we use this hardcoded rewrite"""
     def replacer(node, field):
         if isinstance(node, cwast.Expr3):
+            srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
-            def_t = cwast.DefVar(False, name_t, cwast.TypeAuto(), node.expr_t,
-                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
+            def_t = cwast.DefVar(False, name_t, cwast.TypeAuto(x_srcloc=srcloc), node.expr_t,
+                                 x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(False, name_f, cwast.TypeAuto(), node.expr_f,
-                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
+            def_f = cwast.DefVar(False, name_f, cwast.TypeAuto(x_srcloc=srcloc), node.expr_f,
+                                 x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
 
-            expr = cwast.ExprStmt([], x_srcloc=node.x_srcloc,
+            expr = cwast.ExprStmt([], x_srcloc=srcloc,
                                   x_type=node.x_type, x_value=node.x_value)
             expr.body = [
                 def_t,
                 def_f,
                 cwast.StmtIf(node.cond, [
-                    cwast.StmtReturn(
-                        _IdNodeFromDef(def_t, node.x_srcloc), x_srcloc=node.x_srcloc, x_target=expr)
+                    cwast.StmtReturn(_IdNodeFromDef(
+                        def_t, srcloc), x_srcloc=srcloc, x_target=expr)
                 ], [
-                    cwast.StmtReturn(
-                        _IdNodeFromDef(def_f, node.x_srcloc), x_srcloc=node.x_srcloc, x_target=expr)
-                ],  x_srcloc=node.x_srcloc)
+                    cwast.StmtReturn(_IdNodeFromDef(
+                        def_f, srcloc), x_srcloc=srcloc, x_target=expr)
+                ],  x_srcloc=srcloc)
 
             ]
             return expr
@@ -270,6 +271,9 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
     name = f"$rec_{tc.canon_name(slice.x_type)}"
     rec = cwast.DefRec(True, name, [pointer_field, length_field],
                        x_srcloc=srcloc)
+    cstr = tc.insert_rec_type(f"{name}", rec)
+    typify.AnnotateNodeType(tc, rec, cstr)
+    tc.finalize_rec_type(rec)
     return rec
 
 

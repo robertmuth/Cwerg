@@ -569,7 +569,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         fun.result = MakeTypeVoid(tc, fun.x_srcloc)
     changing_params = {}
 
-    # note: new_sig may contain an extra param at the end 
+    # note: new_sig may contain an extra param at the end
     for p, old, new in zip(fun.params, old_sig.params, new_sig.params):
         if old.type != new.type:
             changing_params[p] = new.type
@@ -596,10 +596,12 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
             return new_node
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
             result_param: cwast.FunParam = fun.params[-1]
+            result_type = result_param.type.x_type
+            assert isinstance(result_type, cwast.TypePtr)
             lhs = cwast.ExprDeref(
                 cwast.Id(result_param.name, "", x_srcloc=node.x_srcloc,
-                         x_type=result_param.type.x_type, x_symbol=result_param),
-                x_srcloc=node.x_srcloc, x_type=node.expr_ret.x_type)
+                         x_type=result_type, x_symbol=result_param),
+                x_srcloc=node.x_srcloc, x_type=result_type.type)
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
             node.expr_ret = cwast.ValVoid(
@@ -611,7 +613,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
     cwast.EliminateEphemeralsRecursively(fun)
 
 
-def main():
+def main(dump_ir):
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
@@ -628,7 +630,8 @@ def main():
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
     # Legalize so that code emitter works
-    mod_gen = cwast.DefMod("$generated", [], [])
+    mod_gen = cwast.DefMod("$generated", [], [],
+                           x_srcloc=cwast.SRCLOC_GENERATED)
     id_gen = identifier.IdGen()
     str_val_map = {}
     slice_to_struct_map = {}
@@ -641,7 +644,8 @@ def main():
         for fun in mod.body_mod:
             canonicalize.OptimizeKnownConditionals(fun)
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
-            canonicalize.CreateSliceReplacementStructs(fun, tc, slice_to_struct_map)
+            canonicalize.CreateSliceReplacementStructs(
+                fun, tc, slice_to_struct_map)
 
             typify.VerifyTypesRecursively(fun, tc)
 
@@ -650,7 +654,7 @@ def main():
             typify.VerifyTypesRecursively(fun, tc)
 
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
-            
+
             RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
@@ -661,12 +665,14 @@ def main():
             symbolize.VerifyASTSymbolsRecursively(fun)
             typify.VerifyTypesRecursively(fun, tc)
 
-    mod_gen.body_mod += list(str_val_map.values()) + list(slice_to_struct_map.values())
+    mod_gen.body_mod += list(str_val_map.values()) + \
+        list(slice_to_struct_map.values())
     mod_topo_order = [mod_gen] + mod_topo_order
 
-    # for mod in mod_topo_order:
-    #    pp.PrettyPrint(mod)
-    # exit(0)
+    if dump_ir:
+        for mod in mod_topo_order:
+            pp.PrettyPrintHTML(mod, tc)
+        exit(0)
 
     # Fully qualify names
     for mod in mod_topo_order:
@@ -695,4 +701,4 @@ def main():
 if __name__ == "__main__":
     # import cProfile
     # cProfile.run('main()')
-    exit(main())
+    exit(main(False))

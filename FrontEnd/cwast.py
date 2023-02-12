@@ -14,6 +14,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
+SRCLOC_GENERATED = -1
 
 ############################################################
 # Enums

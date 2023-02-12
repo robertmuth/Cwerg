@@ -189,6 +189,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
+        abbrev = abbrev.replace("<", "&lt;").replace(">", "&gt;")
         if isinstance(node, (cwast.ValNum, cwast.ValString, cwast.Id)):
             line.append(abbrev)
         else:
@@ -208,7 +209,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
-            line.append(" " + str(val))
+            line.append(" " + str(val.replace("<", "&lt;").replace(">", "&gt;")))
         elif field_kind is cwast.NFK.INT:
             line.append(" " + str(val))
         elif field_kind is cwast.NFK.KIND:

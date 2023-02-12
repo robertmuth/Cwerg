@@ -526,8 +526,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             type_cstr = node.type_or_auto.x_type
             assert cstr == type_cstr, _TypeMismatch(f"{node}", cstr, type_cstr)
     elif isinstance(node, cwast.ExprDeref):
-        cstr = node.x_type
-        assert cstr == node.expr.x_type.type
+        node_type = node.x_type
+        expr_type =  node.expr.x_type
+        assert isinstance(expr_type, cwast.TypePtr)
+        assert  expr_type.type == node_type,  _TypeMismatch(tc, f"deref issue at {node}", node_type, expr_type.type)
     elif isinstance(node, cwast.ExprStmt):
         pass
     elif isinstance(node, cwast.Expr1):
