@@ -219,7 +219,9 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         tc.finalize_rec_type(node)
         return cstr
     elif isinstance(node, cwast.EnumVal):
-        if not isinstance(node.value_or_auto, cwast.ValAuto):
+        if isinstance(node.value_or_auto, cwast.ValAuto):
+            AnnotateNodeType(tc, node.value_or_auto, target_type)
+        else:
             cstr = _TypifyNodeRecursively(
                 node.value_or_auto, tc, target_type, ctx)
         return AnnotateNodeType(tc, node, target_type)
@@ -263,9 +265,12 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         if not isinstance(node.value_or_undef, cwast.ValUndef):
             _TypifyNodeRecursively(node.value_or_undef,
                                    tc, target_type, ctx)
-        if not isinstance(node.init_index, cwast.ValAuto):
-            _TypifyNodeRecursively(node.init_index, tc, tc.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT), ctx)
+        index_target = tc.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT)
+        if isinstance(node.init_index, cwast.ValAuto):
+            AnnotateNodeType(tc, node.init_index, index_target)
+        else:
+            _TypifyNodeRecursively(node.init_index, tc, index_target, ctx)
         return AnnotateNodeType(tc, node, target_type)
     elif isinstance(node, cwast.ValArray):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
@@ -504,7 +509,7 @@ def _VerifyExpr2(result_type, op1_type, op2_type, kind: cwast.BINARY_EXPR_KIND, 
 
 
 def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
-    if cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS:
+    if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         assert node.x_type is not types.NO_TYPE
         assert node.x_type in tc._canon_name, f"bad type annotation for {node}: {node.x_type}"
     else:
@@ -680,7 +685,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
                            cwast.TypeArray, cwast.DefFun,
                            cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
-                           cwast.EnumVal, cwast.ValString, cwast.FieldVal)):
+                           cwast.EnumVal, cwast.ValAuto, cwast.ValString, cwast.FieldVal)):
         pass
     else:
         assert False, f"unsupported  node type: {node.__class__} {node}"
@@ -693,11 +698,11 @@ def VerifyTypesRecursively(node, corpus):
         if (cwast.NF.TYPE_ANNOTATED in node.FLAGS or
                 isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
             if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
-                assert node.x_type is not None, f"untyped node: {node}"
+                assert node.x_type is not None, f"untyped node: {node.x_srcloc}  {node}"
             _TypeVerifyNode(node, corpus)
 
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
-            assert node.x_field is not None, f"node withou field annotation: {node}"
+            assert node.x_field is not None, f"node withou field annotation: {node.x_srcloc} {node}"
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 

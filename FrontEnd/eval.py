@@ -51,24 +51,19 @@ def _AssignValue(node, val):
 
 
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
+    """TBD"""
     out = False
     val = 0
     for c in node.items:
-        if not isinstance(c, cwast.EnumVal):
-            continue
-        v = c.x_value
-        if v is not None:
-            val = v + 1
-            continue
-        init = c.value_or_auto
-        if not isinstance(init, cwast.ValAuto):
-            _EvalNode(init)
-            val = init.x_value
-
-        if val is not None:
-            _AssignValue(init, val)
+        assert isinstance(c, cwast.EnumVal)
+        if not isinstance(c.value_or_auto, cwast.ValAuto):
+            assert c.value_or_auto.x_value is not None
+            val = c.value_or_auto.x_value
+        if c.x_value is None:
+            _AssignValue(c.value_or_auto, val)
             _AssignValue(c, val)
-            val += 1
+            out = True
+        val += 1
     return out
 
 

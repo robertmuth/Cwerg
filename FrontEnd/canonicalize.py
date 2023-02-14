@@ -185,6 +185,8 @@ def ReplaceConstExpr(node):
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
     def replacer(node, field):
+        if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
+            assert  node.x_value is not None            
         if (field not in ("lhs", "inits_array", "inits_rec") and
             cwast.NF.VALUE_ANNOTATED in node.FLAGS and
             not isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef)) and

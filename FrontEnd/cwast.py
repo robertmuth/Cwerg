@@ -440,7 +440,6 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "pointer", "pointer component of slice", None),
     NFD(NFK.NODE, "container", "array and slice", None),
     NFD(NFK.NODE, "callee", "expression evaluating to the function to be called", None),
-    NFD(NFK.NODE, "width", "desired width of slice (default: length of container)", None),
     NFD(NFK.NODE, "value", "", NODES_EXPR),
     NFD(NFK.NODE, "value_or_auto", "enum constant or auto", None),
     NFD(NFK.NODE, "value_or_undef", "", None),
@@ -458,8 +457,6 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 # Optional fields must come last in a dataclass
 OPTIONAL_FIELDS = {
     "expr_ret": lambda srcloc: ValVoid(x_srcloc=srcloc),
-    "width": lambda srcloc: ValAuto(x_srcloc=srcloc),
-    "start": lambda srcloc:  ValAuto(x_srcloc=srcloc),
     "value_or_auto": lambda srcloc: ValAuto(x_srcloc=srcloc),
     "target": lambda srcloc: "",
     "path": lambda srcloc: "",
@@ -861,9 +858,10 @@ class ValAuto:
     """
     ALIAS = "auto_val"
     GROUP = GROUP.Value
-    FLAGS = NF.VALUE_ANNOTATED
+    FLAGS = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
