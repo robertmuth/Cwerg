@@ -376,6 +376,8 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "pub", "has public visibility"),
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
     NFD(NFK.FLAG, "mut", "is mutable"),
+    NFD(NFK.FLAG, "ref", "address may be taken"),
+
     NFD(NFK.FLAG, "wrapped", "is wrapped type (forces type equivalence by name)"),
     NFD(NFK.FLAG, "discard", "ignore non-void expression"),
     NFD(NFK.FLAG, "init", "run function at startup"),
@@ -1870,6 +1872,7 @@ class DefVar:
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.VALUE_ANNOTATED
     #
     mut: bool
+    ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef: NODES_EXPR_T
@@ -2055,6 +2058,7 @@ class MacroVar:
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     mut: bool
+    ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef: NODES_EXPR_T
@@ -2336,15 +2340,6 @@ def StripNodes(node, cls):
 def CompilerError(srcloc, msg):
     print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
     assert False
-
-
-class CheckASTContext:
-    def __init__(self, allow_comments, allow_macros):
-        self.allow_comments = allow_comments
-        self.allow_macros = allow_macros
-        self.toplevel = True
-        self.in_fun = False
-        self.in_macro = False
 
 
 def _CheckMacroRecursively(node, seen_names: Set[str]):

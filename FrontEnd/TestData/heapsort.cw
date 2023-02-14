@@ -48,7 +48,7 @@
 
 (fun u64_to_str [(param val u64) (param base u64) (param buf (ptr mut u8))] uint [
     (let mut v auto val)
-    (let mut tmp (array 32 u8) undef)
+    (let mut ref tmp (array 32 u8) undef)
     (let mut pos uint 32)
     (block _ [
         (-= pos 1)
@@ -140,7 +140,7 @@
 (global ERROR auto "ERROR\n")
 
 (fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
-   (let mut buf (array 32 u8) undef)
+   (let mut ref buf (array 32 u8) undef)
 
   (let mut ir auto n)
   (let mut l auto (+ (>> n 1) 1))
@@ -179,7 +179,7 @@
 ])
 
 (fun dump_array [(param size uint) (param data (ptr r64))] void [
-  (let mut buf (array 32 u8) undef)
+  (let mut ref buf (array 32 u8) undef)
   (for i u64 0 size 1 [
     (let v auto (^ (incp data i)))
     (let n auto (call r64_to_hex_fmt [v (& mut (at buf 0))]))

@@ -272,7 +272,8 @@ def ResolveSymbolsInsideFunctionsRecursively(
         def_node = _resolve_symbol_inside_function_or_macro(
             node.name, symtab, symtab_map, scopes)
         if def_node is None:
-            cwast.CompilerError(node.x_srcloc, f"cannot resolve symbol for {node}")
+            cwast.CompilerError(
+                node.x_srcloc, f"cannot resolve symbol for {node}")
         _add_symbol_link(node, def_node)
         return
 
@@ -303,6 +304,21 @@ def ResolveSymbolsInsideFunctionsRecursively(
                 scopes.pop(-1)
 
 
+def _CheckAddressCanBeTaken(lhs):
+    if isinstance(lhs, cwast.Id):
+        node_def = lhs.x_symbol
+        if isinstance(node_def, cwast.DefGlobal):
+            pass
+        elif isinstance(node_def, cwast.DefVar):
+            assert node_def.ref, f"expect reg {node_def}"
+        else:
+            assert False, f"unexpected {node_def}"
+    elif isinstance(lhs, cwast.ExprIndex):
+        _CheckAddressCanBeTaken(lhs.container)
+    else:
+        assert False, f"{lhs}"
+
+
 def VerifyASTSymbolsRecursively(node):
     if isinstance(node, cwast.DefMacro):
         return
@@ -315,7 +331,10 @@ def VerifyASTSymbolsRecursively(node):
     elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
         assert isinstance(node.x_target, (cwast.StmtBlock))
     elif isinstance(node, cwast.StmtReturn):
-        assert isinstance(node.x_target,(cwast.DefFun, cwast.ExprStmt))
+        assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
+
+    if isinstance(node, cwast.ExprAddrOf):
+        _CheckAddressCanBeTaken(node.lhs)
     #
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
@@ -353,7 +372,7 @@ def _SetTargetFieldRecursively(node):
 
 
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
-                           mod_map: Dict[str, cwast.DefMod]):
+                                         mod_map: Dict[str, cwast.DefMod]):
     symtab_map: Dict[str, SymTab] = {}
     for mod in mod_topo_order:
         symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod, mod_map)

@@ -171,7 +171,7 @@
                     [$buffer $options $buffer_orig] [
     (macro_let mut $buffer auto (ValArray 1024 u8))
     (macro_let mut $curr (slice mut u8) $buffer)
-    (macro_let mut $options auto (rec SysFormatOptions []))
+    (macro_let mut ref $options auto (rec SysFormatOptions []))
     (macro_for $i $parts [
         (incp= $curr (call polymorphic SysRender [$i $curr (& mut $options)]))
     ])

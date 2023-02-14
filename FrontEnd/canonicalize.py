@@ -117,10 +117,10 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
-            def_t = cwast.DefVar(False, name_t, cwast.TypeAuto(x_srcloc=srcloc), node.expr_t,
+            def_t = cwast.DefVar(False, False, name_t, cwast.TypeAuto(x_srcloc=srcloc), node.expr_t,
                                  x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(False, name_f, cwast.TypeAuto(x_srcloc=srcloc), node.expr_f,
+            def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_srcloc=srcloc), node.expr_f,
                                  x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
 
             expr = cwast.ExprStmt([], x_srcloc=srcloc,
