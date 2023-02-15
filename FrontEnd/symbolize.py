@@ -25,9 +25,9 @@ POLYMORPHIC_MOD = "$polymorphic"
 
 def _add_symbol_link(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
-    assert cwast.NF.SYMBOL_ANNOTATED in id_node.__class__.FLAGS
-    assert (cwast.NF.GLOBAL_SYM_DEF in def_node.__class__.FLAGS or
-            cwast.NF.LOCAL_SYM_DEF in def_node.__class__.FLAGS), f"unpexpected node: {def_node}"
+    assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
+    assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
+            cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
     id_node.x_symbol = def_node
 
 
@@ -320,32 +320,35 @@ def _CheckAddressCanBeTaken(lhs):
 
 
 def VerifyASTSymbolsRecursively(node):
-    if isinstance(node, cwast.DefMacro):
-        return
-    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
-    if cwast.NF.SYMBOL_ANNOTATED in node.__class__.FLAGS:
-        assert node.x_symbol is not None, f"unresolved symbol {node}"
-    if isinstance(node, cwast.Id):
-        # all macros should have been resolved
-        assert not node.name.startswith("$")
-    elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
-        assert isinstance(node.x_target, (cwast.StmtBlock))
-    elif isinstance(node, cwast.StmtReturn):
-        assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
+    in_def_macro = False
 
-    if isinstance(node, cwast.ExprAddrOf):
-        _CheckAddressCanBeTaken(node.lhs)
-    #
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
-                # polymorphic stuff can only be handled once we have types
-                continue
-            VerifyASTSymbolsRecursively(getattr(node, c))
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                VerifyASTSymbolsRecursively(cc)
+    def visitor(node, parent, field):
+        nonlocal in_def_macro
+
+        if cwast.NF.TOP_LEVEL in node.FLAGS:
+            in_def_macro = isinstance(node, cwast.DefMacro)
+
+        if in_def_macro:
+            return
+        
+        if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.polymorphic:
+            return
+        assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
+        if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
+            assert node.x_symbol is not None, f"unresolved symbol {node}"
+        if isinstance(node, cwast.Id):
+            # all macros should have been resolved
+            assert not node.name.startswith("$")
+        elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
+            assert isinstance(
+                node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
+        elif isinstance(node, cwast.StmtReturn):
+            assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
+
+        if isinstance(node, cwast.ExprAddrOf):
+            _CheckAddressCanBeTaken(node.lhs)
+
+    cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 
 
 def _SetTargetFieldRecursively(node):

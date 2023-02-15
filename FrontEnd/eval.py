@@ -233,7 +233,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # this case is why we need the sym_tab
         def_node = node.x_symbol
         assert def_node is not None
-        if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS and def_node.x_value is not None:
+        if cwast.NF.VALUE_ANNOTATED in def_node.FLAGS and def_node.x_value is not None:
             return _AssignValue(node, def_node.x_value)
         return False
     elif isinstance(node, cwast.RecField):
@@ -352,7 +352,7 @@ def EvalRecursively(node) -> bool:
 
     def visitor(node, _):
         nonlocal seen_change
-        if cwast.NF.VALUE_ANNOTATED not in node.__class__.FLAGS:
+        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return
         if node.x_value is not None:
             return
@@ -365,51 +365,52 @@ def EvalRecursively(node) -> bool:
     return seen_change
 
 
-def _VerifyEvalRecursively(node, parent, is_const) -> bool:
-    # logger.info(f"EVAL-VERIFY: {node}")
+def _VerifyEvalRecursively(node, parent):
+    is_const = False
 
-    if is_const and cwast.NF.VALUE_ANNOTATED in node.__class__.FLAGS:
-        if isinstance(node, cwast.Id):
-            def_node = node.x_symbol
-            if cwast.NF.VALUE_ANNOTATED in def_node.__class__.FLAGS:
+    def visitor(node, parent, field):
+        nonlocal is_const
+        # logger.info(f"EVAL-VERIFY: {node}")
+        if isinstance(node, cwast.ValUndef):
+            return
+        if cwast.NF.TOP_LEVEL in node.FLAGS:
+            is_const = isinstance(node, (cwast.DefRec, cwast.DefGlobal))
+            return
 
-                if def_node.x_value is None:
-                    if not isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+        if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
+            if isinstance(node, cwast.Id):
+                def_node = node.x_symbol
+                if cwast.NF.VALUE_ANNOTATED in def_node.FLAGS:
+
+                    if def_node.x_value is None:
+                        if isinstance(parent.x_type, (cwast.TypePtr, cwast.TypeSlice)):
+                            # TODO: we do not track constant addresses yet
+                            # for now assume they are constant
+                            pass
+                        else:
+                            cwast.CompilerError(def_node.x_srcloc,
+                                                f"expected const node: {node} inside: {parent}")
+            else:
+                if node.x_value is None:
+                    if isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
-                        cwast.CompilerError(def_node.x_srcloc,
-                                            f"expected const node: {node} inside: {parent}")
-        elif isinstance(node, cwast.ValUndef):
-            pass
-        else:
-            if node.x_value is None:
-                if not isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
-                    # TODO: we do not track constant addresses yet
-                    cwast.CompilerError(
-                        node.x_srcloc, f"expected const node: {node} inside {parent}")
+                        # for now assume they are constant
+                        pass
+                    else:
+                        cwast.CompilerError(
+                            node.x_srcloc, f"expected const node: {node} inside {parent}")
 
-    # top level definition
-    if isinstance(node, cwast.DefGlobal):
-        is_const = True
-    if isinstance(node, cwast.DefRec):
-        is_const = True
+        if isinstance(node, cwast.ValAuto):
+            assert node.x_value is not None, f"unevaluated auto node: {node}"
 
-    if isinstance(node, cwast.ValAuto):
-        assert node.x_value is not None, f"unevaluated auto node: {node}"
+        if isinstance(node, cwast.StmtStaticAssert):
+            assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
 
-    if isinstance(node, cwast.StmtStaticAssert):
-        assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
+        # Note: this info is currently filled in by the Type Decorator
+        if isinstance(node, cwast.TypeArray):
+            assert node.size.x_value is not None, f"unevaluated type dimension: {node}"
 
-    # Note: this info is currently filled in by the Type Decorator
-    if isinstance(node, cwast.TypeArray):
-        assert node.size.x_value is not None, f"unevaluated type dimension: {node}"
-
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            _VerifyEvalRecursively(getattr(node, c), node, is_const)
-        elif nfd.kind is cwast.NFK.LIST:
-            for cc in getattr(node, c):
-                _VerifyEvalRecursively(cc, node, is_const)
+    cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
@@ -426,8 +427,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
                 seen_change |= EvalRecursively(node)
 
     for mod in mod_topo_order:
-        for node in mod.body_mod:
-            _VerifyEvalRecursively(node, mod, False)
+        _VerifyEvalRecursively(mod, None)
 
 
 if __name__ == "__main__":

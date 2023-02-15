@@ -322,7 +322,7 @@ class TypeCorpus:
     def _insert(self, name: str, node, finalize=True) -> CanonType:
         if name in self.corpus:
             return self.corpus[name]
-        assert cwast.NF.TYPE_CORPUS in node.__class__.FLAGS, f"not a corpus node: {node}"
+        assert cwast.NF.TYPE_CORPUS in node.FLAGS, f"not a corpus node: {node}"
         self.corpus[name] = node
         assert node not in self._canon_name
         assert STRINGIFIEDTYPE_RE.match(name), f"bad type name [{name}]"

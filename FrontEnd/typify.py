@@ -144,8 +144,8 @@ def _ComputeArrayLength(node) -> int:
 
 def AnnotateNodeType(corpus, node, cstr: types.CanonType):
     logger.info(f"TYPE of {node}: {corpus.canon_name(cstr)}")
-    assert cwast.NF.TYPE_CORPUS in cstr.__class__.FLAGS, f"bad type corpus node {repr(cstr)}"
-    assert cwast.NF.TYPE_ANNOTATED in node.__class__.FLAGS, f"node not meant for type annotation: {node}"
+    assert cwast.NF.TYPE_CORPUS in cstr.FLAGS, f"bad type corpus node {repr(cstr)}"
+    assert cwast.NF.TYPE_ANNOTATED in node.FLAGS, f"node not meant for type annotation: {node}"
     assert cstr, f"No valid type for {node}"
     assert node.x_type is None, f"duplicate annotation for {node}"
     node.x_type = cstr
