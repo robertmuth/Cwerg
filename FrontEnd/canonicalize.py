@@ -51,40 +51,25 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
 # Convert large parameter into pointer to object allocated
 # in the caller
 ############################################################
-def _TransformLargeArgs(node, changed_params: Set[Any]):
-    if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) in changed_params:
-        deref = cwast.ExprDeref(node, x_srcloc=node.x_srcloc,
-                                x_type=node.x_type, x_value=node.x_value)
-        node.x_type = node.x_symbol.x_type
-        node.x_value = None
-        return deref
-    return None
+def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus):
+    def replacer(node, field):
+        nonlocal changed_params, type_corpus
 
+        if isinstance(node, cwast.DefFun):
+            for p in node.params:
+                if isinstance(p, cwast.FunParam):
+                    if type_corpus.register_types[p.x_type] is None:
+                        changed_params.add(p)
+            return None
+        if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) in changed_params:
+            deref = cwast.ExprDeref(node, x_srcloc=node.x_srcloc,
+                                    x_type=node.x_type, x_value=node.x_value)
+            node.x_type = node.x_symbol.x_type
+            node.x_value = None
+            return deref
+        return None
 
-def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus, id_gen):
-    if isinstance(node, cwast.DefFun):
-        for p in node.params:
-            if isinstance(p, cwast.FunParam):
-                if type_corpus.register_types[p.x_type] is None:
-                    changed_params.add(p)
-
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            new_child = _TransformLargeArgs(child, changed_params)
-            if new_child:
-                setattr(node, c, new_child)
-            else:
-                CanonicalizeLargeArgs(child, changed_params, id_gen)
-        elif nfd.kind is cwast.NFK.LIST:
-            children = getattr(node, c)
-            for n, child in enumerate(children):
-                new_child = _TransformLargeArgs(child, changed_params)
-                if new_child:
-                    children[n] = new_child
-                else:
-                    CanonicalizeLargeArgs(child, changed_params, id_gen)
+    cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
 def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus):
@@ -143,8 +128,6 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-
-
 ############################################################
 #
 ############################################################
@@ -186,7 +169,7 @@ def ReplaceConstExpr(node):
     """
     def replacer(node, field):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
-            assert  node.x_value is not None            
+            assert node.x_value is not None
         if (field not in ("lhs", "inits_array", "inits_rec") and
             cwast.NF.VALUE_ANNOTATED in node.FLAGS and
             not isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef)) and
