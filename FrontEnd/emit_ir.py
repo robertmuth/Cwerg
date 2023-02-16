@@ -643,12 +643,14 @@ def main(dump_ir):
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
         canonicalize.ReplaceConstExpr(mod)
+        canonicalize.CreateSliceReplacementStructs(mod, tc, slice_to_struct_map)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.OptimizeKnownConditionals(fun)
             canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
-            canonicalize.CreateSliceReplacementStructs(
-                fun, tc, slice_to_struct_map)
+            #canonicalize.ReplaceSlice(fun, slice_to_struct_map)
+            #continue
+
 
             typify.VerifyTypesRecursively(fun, tc)
 
@@ -658,7 +660,8 @@ def main(dump_ir):
 
             canonicalize.CanonicalizeTernaryOp(fun, id_gen)
 
-            RewriteLargeArgsCallerSide(fun, fun_sigs_with_large_args, tc, id_gen)
+            RewriteLargeArgsCallerSide(
+                fun, fun_sigs_with_large_args, tc, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
                 RewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
@@ -674,7 +677,9 @@ def main(dump_ir):
 
     if dump_ir:
         for mod in mod_topo_order:
-            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrintHTML(mod, tc)
+            pp.PrettyPrint(mod)
+
         exit(0)
 
     # Fully qualify names

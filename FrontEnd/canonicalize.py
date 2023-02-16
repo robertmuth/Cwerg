@@ -51,14 +51,14 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
 # Convert large parameter into pointer to object allocated
 # in the caller
 ############################################################
-def CanonicalizeLargeArgs(node, changed_params: Set[Any], type_corpus: types.TypeCorpus):
+def CanonicalizeLargeArgs(node, changed_params: Set[Any], tc: types.TypeCorpus):
     def replacer(node, field):
-        nonlocal changed_params, type_corpus
+        nonlocal changed_params, tc
 
         if isinstance(node, cwast.DefFun):
             for p in node.params:
                 if isinstance(p, cwast.FunParam):
-                    if type_corpus.register_types[p.x_type] is None:
+                    if tc.register_types[p.x_type] is None:
                         changed_params.add(p)
             return None
         if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) in changed_params:
@@ -247,6 +247,7 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
 
 
 def CreateSliceReplacementStructs(node, tc: types.TypeCorpus, slice_to_struct_map):
+    """Populates slice_to_struct_map with {x_type, DefRec}"""
     def visitor(node, _):
         if isinstance(node, cwast.TypeSlice):
             if node.x_type not in slice_to_struct_map:
@@ -254,3 +255,49 @@ def CreateSliceReplacementStructs(node, tc: types.TypeCorpus, slice_to_struct_ma
                     node, tc)
 
     cwast.VisitAstRecursively(node, visitor)
+
+
+def _MakeIdForDefRec(def_rec, srcloc):
+    return cwast.Id(def_rec.name, "", x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
+
+
+def ReplaceSlice(node, slice_to_struct_map):
+    """
+     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
+    """
+    def replacer(node, field):
+        if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
+            def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
+            if def_rec is not None:
+                if isinstance(node, cwast.FunParam):
+                    node.x_type = def_rec.x_type
+                elif isinstance(node, cwast.TypeSlice):
+                    return _MakeIdForDefRec(def_rec, node.x_srcloc)
+                elif isinstance(node, cwast.Id):
+                    sym = node.x_symbol
+                    if isinstance(sym, cwast.TypeSlice):
+                        node.x_symbol = def_rec
+                        node.x_type = def_rec.x_type
+                    elif isinstance(sym, (cwast.DefVar, cwast.FunParam, cwast.DefGlobal)):
+                        node.x_type = def_rec.x_type
+                    else:
+                        assert False
+                elif isinstance(node, cwast.ExprAs):
+                    assert node.type.x_type in slice_to_struct_map
+                    assert isinstance(node.expr.x_type, cwast.TypeArray)
+                    srcloc = node.x_srcloc
+                    pointer_field, length_field = def_rec.fields
+                    width = node.expr.x_type.size
+                    inits = [cwast.FieldVal(node.expr, "",
+                                            x_field=pointer_field, x_type=pointer_field.x_type,
+                                            x_srcloc=srcloc),
+                             cwast.FieldVal(cwast.ValNum(f"{width}", x_srcloc=srcloc, x_type=length_field.x_type), "",
+                                            x_field=length_field, x_type=length_field.x_type,
+                                            x_srcloc=srcloc)]
+                    return cwast.ValRec(_MakeIdForDefRec(def_rec, srcloc), inits, x_srcloc=srcloc, x_type=def_rec.x_type)
+
+                else:
+                    print(f"@@@@@@@ {node}")
+        return None
+
+    cwast.MaybeReplaceAstRecursively(node, replacer)
