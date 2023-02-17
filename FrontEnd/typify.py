@@ -668,8 +668,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr = node.x_type
         _CheckTypeSame(node, tc, cstr, node.type.x_type)
         if not isinstance(node.default_or_undef, cwast.ValUndef):
-            assert cstr == node.default_or_undef.x_type, _TypeMismatch(tc,
-                                                                       f"type mismatch", cstr, node.type.x_type)
+            _CheckTypeSame(node, tc, cstr, node.default_or_undef.x_type) 
         assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
         assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)
