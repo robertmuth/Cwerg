@@ -254,21 +254,30 @@ def CreateSliceReplacementStructs(node, tc: types.TypeCorpus, slice_to_struct_ma
                 slice_to_struct_map[node.x_type] = _MakeSliceReplacementStruct(
                     node, tc)
 
-    cwast.VisitAstRecursively(node, visitor)
+    cwast.VisitAstRecursivelyPost(node, visitor)
 
 
 def _MakeIdForDefRec(def_rec, srcloc):
     return cwast.Id(def_rec.name, "", x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
 
 
-def _ConvertValArrayToSliceValRec(node, slice_rec, srcloc):
+def _ConvertValArrayToPointer(node, pointer_type, index_type):
+    zero_offset = cwast.ValNum(
+        f"0", x_srcloc=node.x_srcloc, x_type=index_type, x_value=0)
+    return cwast.ExprAddrOf(pointer_type.mut,
+                            cwast.ExprIndex(node, zero_offset,
+                                            x_type=pointer_type.type, x_srcloc=node.x_srcloc), x_type=pointer_type,
+                            x_srcloc=node.x_srcloc)
+
+
+def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
     assert isinstance(node.x_type, cwast.TypeArray)
     pointer_field, length_field = slice_rec.fields
     width = node.x_type.size
-    inits = [cwast.FieldVal(node, "",
+    inits = [cwast.FieldVal(_ConvertValArrayToPointer(node, pointer_field.x_type, length_field.x_type), "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
                             x_srcloc=srcloc),
-             cwast.FieldVal(cwast.ValNum(f"{width}", x_srcloc=srcloc, x_type=length_field.x_type), "",
+             cwast.FieldVal(cwast.ValNum(f"{width}", x_value=width, x_srcloc=srcloc, x_type=length_field.x_type), "",
                             x_field=length_field, x_type=length_field.x_type,
                             x_srcloc=srcloc)]
     return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec.x_type)
@@ -311,7 +320,8 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                         if isinstance(node.initial_or_undef.x_type, cwast.TypeSlice):
                             assert node.x_type.type == node.initial_or_undef.x_type.type
                             assert not node.x_type.mut and node.initial_or_undef.x_type.mut
-                            node.initial_or_undef = _ConvertMutSliceValRecToSliceValRec(node.initial_or_undef, def_rec)
+                            node.initial_or_undef = _ConvertMutSliceValRecToSliceValRec(
+                                node.initial_or_undef, def_rec)
                         elif isinstance(node.initial_or_undef.x_type, cwast.TypeArray):
                             node.initial_or_undef = _ConvertValArrayToSliceValRec(
                                 node.initial_or_undef, def_rec, node.x_srcloc)
@@ -319,7 +329,6 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                             assert False
 
                     node.x_type = def_rec.x_type
-
 
                 elif isinstance(node, (cwast.FunParam, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
                     node.x_type = def_rec.x_type

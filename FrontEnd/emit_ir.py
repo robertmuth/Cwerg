@@ -347,7 +347,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     else:
-        assert False, f"unsupported expression {node}"
+        assert False, f"unsupported expression {node.x_srcloc} {node}"
 
 # TODO: support stack allocated objects
 
@@ -362,26 +362,56 @@ def _AssignmentLhsIsInReg(lhs):
     return True
 
 
+def _EmitInitialization(base, offset, init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    if isinstance(init, cwast.ValUndef):
+        pass
+    elif isinstance(init, cwast.Id):
+        if tc.register_types(init.x_type) is None or len(tc.register_types(init.x_type)) != 1:
+            if isinstance(init.x_type, cwast.DefRec):
+                pass     
+            assert False, f"{init.x_srcloc} {init.x_type} {init}"
+    elif isinstance(init, cwast.ValRec):
+        explicitly_initialized = {}
+        for f in init.inits_rec:
+            assert isinstance(f, cwast.FieldVal)
+            explicitly_initialized[f.x_field.name] = f
+        for f in init.x_type.fields:
+            assert isinstance(f, cwast.RecField)
+            f2:  cwast.FieldVal = explicitly_initialized.get(f.name)
+            if f2:
+                _EmitInitialization(base, offset + f.x_offset, f2.value, tc, id_gen)
+            else:
+                 _EmitInitialization(base, offset + f.x_offset, f.initial_or_undef, tc, id_gen)
+    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum)):
+        res = EmitIRExpr(init, tc, id_gen)
+        assert res is not None 
+        print(f"{TAB}st {base} {offset} = {res}")
+    else:
+        assert False, f"{init.x_srcloc} {init}"
+
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
-        def_type = node.x_type
-        node.name = id_gen.NewName(node.name)
-        if tc.register_types(def_type) is None:
+        def_type=node.x_type
+        node.name=id_gen.NewName(node.name)
+        if tc.register_types(def_type) is None or len(tc.register_types(def_type)) != 1:
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
-            assert isinstance(node.initial_or_undef, cwast.ValUndef)
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                init_base=id_gen.NewName("init_base")
+                print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
+                _EmitInitialization(init_base, 0, node.initial_or_undef, tc, id_gen)
         else:
             if isinstance(node.initial_or_undef, cwast.ValUndef):
                 print(
                     f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{node.name}]")
             else:
-                out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
+                out=EmitIRExpr(node.initial_or_undef, tc, id_gen)
                 assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
                 print(
                     f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, tc)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
-        continue_label = id_gen.NewName(node.label)
-        break_label = id_gen.NewName(node.label)
-        node.label = (continue_label, break_label)
+        continue_label=id_gen.NewName(node.label)
+        break_label=id_gen.NewName(node.label)
+        node.label=(continue_label, break_label)
 
         print(f".bbl {continue_label}  # block start")
         for c in node.body:
@@ -390,24 +420,24 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     elif isinstance(node, cwast.StmtReturn):
 
         if isinstance(node.x_target, cwast.ExprStmt):
-            out = EmitIRExpr(node.expr_ret, tc, id_gen)
+            out=EmitIRExpr(node.expr_ret, tc, id_gen)
             print(f"{TAB}mov {result} {out}")
         else:
             if not types.is_void(node.expr_ret.x_type):
-                out = EmitIRExpr(node.expr_ret, tc, id_gen)
+                out=EmitIRExpr(node.expr_ret, tc, id_gen)
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
-        block = node.x_target.label[1]
+        block=node.x_target.label[1]
         print(f"{TAB}bra {block}  # break")
     elif isinstance(node, cwast.StmtContinue):
-        block = node.x_target.label[0]
+        block=node.x_target.label[0]
         print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
         EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
-        label_f = id_gen.NewName("br_f")
-        label_join = id_gen.NewName("br_join")
+        label_f=id_gen.NewName("br_f")
+        label_join=id_gen.NewName("br_join")
         if node.body_t and node.body_f:
             EmitIRConditional(node.cond, True, label_f, tc, id_gen)
             for c in node.body_t:
@@ -433,13 +463,13 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         assert isinstance(node.lhs.x_type, cwast.TypeBase)
-        out = EmitIRExpr(node.expr_rhs, tc, id_gen)
+        out=EmitIRExpr(node.expr_rhs, tc, id_gen)
         if _AssignmentLhsIsInReg(node.lhs):
             # because of the canonicalization step only register promotable
             # scalars will be naked like this
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
-            lhs = _GetLValueAddress(node.lhs, tc, id_gen)
+            lhs=_GetLValueAddress(node.lhs, tc, id_gen)
             print(f"{TAB}st {lhs} 0 = {out}")
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
@@ -448,22 +478,22 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
 
 
 def EmitIRDefGlobal(node: cwast.DefGlobal):
-    def_type = node.x_type
+    def_type=node.x_type
     if isinstance(def_type, cwast.TypeBase):
         _EmitMem(node.name, def_type.x_alignment, node.mut,
                  _InitDataForBaseType(node.initial_or_undef.x_type, node.initial_or_undef.x_value))
     elif isinstance(def_type, cwast.TypeArray):
-        init = node.initial_or_undef.x_value
+        init=node.initial_or_undef.x_value
         if isinstance(init, bytes):
             assert isinstance(def_type.type, cwast.TypeBase)
             _EmitMem(node.name, 1, node.mut, init)
         else:
-            size = def_type.size.x_value
-            x_type = def_type.type
-            x_value = node.initial_or_undef.x_value
+            size=def_type.size.x_value
+            x_type=def_type.type
+            x_value=node.initial_or_undef.x_value
             assert isinstance(x_type, cwast.TypeBase)
             assert size == len(x_value), f"{size} vs {len(x_value)}"
-            out = bytearray()
+            out=bytearray()
             for v in x_value:
                 out += _InitDataForBaseType(x_type, v)
             _EmitMem(node.name, node.x_type.x_alignment, node.mut, out)
@@ -480,25 +510,25 @@ def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
 
 
 def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
-    out = {}
+    out={}
     for fun_sig in list(tc.corpus.values()):
         if not isinstance(fun_sig, cwast.TypeFun):
             continue
-        change = False
-        params = [p.type for p in fun_sig.params]
+        change=False
+        params=[p.type for p in fun_sig.params]
         for n, p in enumerate(params):
-            reg_type = tc.register_types(p)
+            reg_type=tc.register_types(p)
             if reg_type is None or len(reg_type) > 1:
-                params[n] = tc.insert_ptr_type(False, p)
-                change = True
-        result = fun_sig.result
-        reg_type = tc.register_types(result)
+                params[n]=tc.insert_ptr_type(False, p)
+                change=True
+        result=fun_sig.result
+        reg_type=tc.register_types(result)
         if not types.is_void(result) and reg_type is None or len(reg_type) > 1:
-            change = True
+            change=True
             params.append(tc.insert_ptr_type(True, result))
-            result = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+            result=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
         if change:
-            out[fun_sig] = tc.insert_fun_type(params, result)
+            out[fun_sig]=tc.insert_fun_type(params, result)
     return out
 
 
@@ -512,35 +542,35 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
 
     def replacer(call, field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
-            old_sig: cwast.TypeFun = call.callee.x_type
-            new_sig:  cwast.TypeFun = fun_sigs_with_large_args[old_sig]
-            call.callee.x_type = new_sig
-            expr_body = []
-            expr = cwast.ExprStmt(
+            old_sig: cwast.TypeFun=call.callee.x_type
+            new_sig:  cwast.TypeFun=fun_sigs_with_large_args[old_sig]
+            call.callee.x_type=new_sig
+            expr_body=[]
+            expr=cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
             # note: new_sig might be longer if the result type was changed
             for n, (old, new) in enumerate(zip(old_sig.params, new_sig.params)):
                 if old.type != new.type:
-                    new_def = cwast.DefVar(False, id_gen.NewName("param"),
+                    new_def=cwast.DefVar(False, id_gen.NewName("param"),
                                            cwast.TypeAuto(
                                                x_srcloc=call.x_srcloc), call.args[n],
                                            x_srcloc=call.x_srcloc, x_type=old.type)
                     expr_body.append(new_def)
-                    name = cwast.Id(new_def.name, "",
+                    name=cwast.Id(new_def.name, "",
                                     x_srcloc=call.x_srcloc, x_type=old.type, x_symbol=new_def)
-                    call.args[n] = cwast.ExprAddrOf(
+                    call.args[n]=cwast.ExprAddrOf(
                         False, name, x_srcloc=call.x_srcloc, x_type=new.type)
             if len(old_sig.params) != len(new_sig.params):
                 # the result is not a argument
-                new_def = cwast.DefVar(True, id_gen.NewName("result"),
+                new_def=cwast.DefVar(True, id_gen.NewName("result"),
                                        cwast.TypeAuto(x_srcloc=call.x_srcloc),
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
                                        x_srcloc=call.x_srcloc, x_type=old_sig.result)
-                name = cwast.Id(new_def.name, "",
+                name=cwast.Id(new_def.name, "",
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
-                call.x_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+                call.x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
                     False, call, x_srcloc=call.x_srcloc))
@@ -556,34 +586,34 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
 
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun,
                                        tc: types.TypeCorpus, id_gen: identifier.IdGen):
-    old_sig: cwast.TypeFun = fun.x_type
-    fun.x_type = new_sig
-    result_changes = old_sig.result != new_sig.result
+    old_sig: cwast.TypeFun=fun.x_type
+    fun.x_type=new_sig
+    result_changes=old_sig.result != new_sig.result
     if result_changes:
         assert types.is_void(new_sig.result)
         assert len(new_sig.params) == 1 + len(old_sig.params)
-        result_type = cwast.TypePtr(
+        result_type=cwast.TypePtr(
             True, fun.result, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
-        result_param = cwast.FunParam(id_gen.NewName(
+        result_param=cwast.FunParam(id_gen.NewName(
             "result"), result_type, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
         fun.params.append(result_param)
-        fun.result = MakeTypeVoid(tc, fun.x_srcloc)
-    changing_params = {}
+        fun.result=MakeTypeVoid(tc, fun.x_srcloc)
+    changing_params={}
 
     # note: new_sig may contain an extra param at the end
     for p, old, new in zip(fun.params, old_sig.params, new_sig.params):
         if old.type != new.type:
-            changing_params[p] = new.type
-            p.type = cwast.TypePtr(
+            changing_params[p]=new.type
+            p.type=cwast.TypePtr(
                 False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
-            p.x_type = new.type
+            p.x_type=new.type
     assert result_changes or changing_params
     return changing_params, result_changes
 
 
 def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
                                tc: types.TypeCorpus, id_gen: identifier.IdGen):
-    changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
+    changing_params, result_changes=_FixupFunctionPrototypeForLargArgs(
         fun, new_sig, tc, id_gen)
 
     # print([k.name for k, v in changing_params.items()], result_changes)
@@ -591,21 +621,21 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
     def replacer(node, field) -> Optional[Any]:
 
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
-            new_node = cwast.ExprDeref(
+            new_node=cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            node.x_type = changing_params[node.x_symbol]
+            node.x_type=changing_params[node.x_symbol]
             return new_node
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
-            result_param: cwast.FunParam = fun.params[-1]
-            result_type = result_param.type.x_type
+            result_param: cwast.FunParam=fun.params[-1]
+            result_type=result_param.type.x_type
             assert isinstance(result_type, cwast.TypePtr)
-            lhs = cwast.ExprDeref(
+            lhs=cwast.ExprDeref(
                 cwast.Id(result_param.name, "", x_srcloc=node.x_srcloc,
                          x_type=result_type, x_symbol=result_param),
                 x_srcloc=node.x_srcloc, x_type=result_type.type)
-            assign = cwast.StmtAssignment(
+            assign=cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
-            node.expr_ret = cwast.ValVoid(
+            node.expr_ret=cwast.ValVoid(
                 x_srcloc=node.x_srcloc, x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
             return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
         return None
@@ -617,9 +647,9 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
 def main(dump_ir):
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = parse.ReadModsFromStream(sys.stdin)
+    asts=parse.ReadModsFromStream(sys.stdin)
 
-    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    mod_topo_order, mod_map=symbolize.ModulesInTopologicalOrder(asts)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripNodes(mod, cwast.Comment)
@@ -627,18 +657,18 @@ def main(dump_ir):
         cwast.StripNodes(mod, cwast.ExprParen)
         cwast.StripNodes(mod, cwast.StmtStaticAssert)
 
-    tc: types.TypeCorpus = types.TypeCorpus(
+    tc: types.TypeCorpus=types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
     # Legalize so that code emitter works
-    mod_gen = cwast.DefMod("$generated", [], [],
+    mod_gen=cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
-    id_gen = identifier.IdGen()
-    str_val_map = {}
-    slice_to_struct_map = {}
-    fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
+    id_gen=identifier.IdGen()
+    str_val_map={}
+    slice_to_struct_map={}
+    fun_sigs_with_large_args=FindFunSigsWithLargeArgs(tc)
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
@@ -654,6 +684,7 @@ def main(dump_ir):
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
+        eval.VerifyASTEvalsRecursively(mod)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             # continue
@@ -673,10 +704,11 @@ def main(dump_ir):
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
+        eval.VerifyASTEvalsRecursively(mod)
 
     mod_gen.body_mod += list(str_val_map.values()) + \
         list(slice_to_struct_map.values())
-    mod_topo_order = [mod_gen] + mod_topo_order
+    mod_topo_order=[mod_gen] + mod_topo_order
 
     if dump_ir:
         for mod in mod_topo_order:
@@ -687,12 +719,12 @@ def main(dump_ir):
 
     # Fully qualify names
     for mod in mod_topo_order:
-        mod_name = "" if mod.name == "main" else mod.name + "/"
+        mod_name="" if mod.name == "main" else mod.name + "/"
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                node.name = mod_name + node.name
+                node.name=mod_name + node.name
                 if isinstance(node, cwast.DefFun):
-                    id_gen = identifier.IdGen()
+                    id_gen=identifier.IdGen()
 
     # Emit Cwert IR
     for mod in mod_topo_order:

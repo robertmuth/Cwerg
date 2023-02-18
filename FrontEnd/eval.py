@@ -145,7 +145,7 @@ def _eval_not(node) -> bool:
 
 def _eval_neg(node) -> int:
     assert types.is_uint(node.x_type)
-    return ~node.x_value
+    return ~node.x_value & ((1 << (node.x_type.x_size * 8)) - 1)
 
 
 def _eval_minus(node) -> Any:
@@ -365,7 +365,7 @@ def EvalRecursively(node) -> bool:
     return seen_change
 
 
-def _VerifyEvalRecursively(node, parent):
+def VerifyASTEvalsRecursively(node):
     is_const = False
 
     def visitor(node, parent, field):
@@ -377,6 +377,9 @@ def _VerifyEvalRecursively(node, parent):
             is_const = isinstance(node, (cwast.DefRec, cwast.DefGlobal))
             return
 
+        if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
+            assert node.x_value is not None, f"{node}"
+            
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
                 def_node = node.x_symbol
@@ -427,7 +430,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
                 seen_change |= EvalRecursively(node)
 
     for mod in mod_topo_order:
-        _VerifyEvalRecursively(mod, None)
+        VerifyASTEvalsRecursively(mod)
 
 
 if __name__ == "__main__":

@@ -213,7 +213,7 @@ class UNARY_EXPR_KIND(enum.Enum):
 
 UNARY_EXPR_SHORTCUT = {
     "!": UNARY_EXPR_KIND.NOT,     # boolean not
-    "neg": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
+    "not": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
     "~": UNARY_EXPR_KIND.MINUS,
 }
 
@@ -2367,6 +2367,7 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
 
 def CheckAST(node, disallowed_nodes):
 
+    # this forces a pre-order traversal
     toplevel_node = None
 
     def visitor(node, field):

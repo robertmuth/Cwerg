@@ -554,7 +554,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         for x in node.inits_rec:
             assert isinstance(x, cwast.FieldVal)
             field_node = x.x_field
-            assert field_node.x_type == x.x_type
+            _CheckTypeSame(node, tc, field_node.x_type, x.x_type)
+            _CheckTypeCompatible(node, tc, x.value.x_type, x.x_type)
     elif isinstance(node, cwast.RecField):
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             type_cstr = node.type.x_type
