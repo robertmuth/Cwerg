@@ -483,10 +483,6 @@ UNTYPED_NODES_TO_BE_TYPECHECKED = (
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
-def _TypeMismatch(tc: types.TypeCorpus, msg: str, actual, expected):
-    return f"{msg}: actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}"
-
-
 def _CheckTypeSame(node, tc: types.TypeCorpus, actual, expected):
     if actual is not expected:
         cwast.CompilerError(node.x_srcloc,
@@ -499,25 +495,45 @@ def _CheckTypeCompatible(node, tc: types.TypeCorpus, actual, expected):
                             f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
 
 
-def _VerifyExpr2(result_type, op1_type, op2_type, kind: cwast.BINARY_EXPR_KIND, tc) -> bool:
+def _CheckTypeCompatibleForDefVar(node, tc: types.TypeCorpus, actual, expected, mutable):
+    if not types.is_compatible_for_defvar(actual, expected, mutable):
+        cwast.CompilerError(node.x_srcloc,
+                            f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
+
+
+def _CheckTypeCompatibleForArg(node, tc: types.TypeCorpus, actual, expected, mutable):
+    if not types.is_compatible(actual, expected, mutable):
+        cwast.CompilerError(node.x_srcloc,
+                            f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
+
+
+def _CheckExpr2Types(node, result_type, op1_type, op2_type, kind: cwast.BINARY_EXPR_KIND, tc) -> bool:
     if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
-        return op1_type == op2_type and types.is_bool(result_type)
+        assert types.is_bool(result_type)
+        _CheckTypeSame(node, tc, op1_type, op2_type)
     elif kind in cwast.BINOP_BOOL:
-        return op1_type == op2_type and isinstance(op1_type, cwast.TypeBase) and types.is_bool(result_type)
+        assert isinstance(
+            op1_type, cwast.TypeBase) and types.is_bool(result_type)
+        _CheckTypeSame(node, tc, op1_type, op2_type)
     elif kind in (cwast.BINARY_EXPR_KIND.INCP, cwast.BINARY_EXPR_KIND.DECP):
-        return (op1_type == result_type and types.is_int(op2_type) and
-                isinstance(op1_type, (cwast.TypePtr, cwast.TypeSlice)))
+        assert isinstance(op1_type, (cwast.TypePtr, cwast.TypeSlice))
+        assert types.is_int(op2_type) and isinstance(
+            op1_type, (cwast.TypePtr, cwast.TypeSlice))
+        _CheckTypeSame(node, tc, op1_type, result_type)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
+        _CheckTypeSame(node, tc, op1_type.type, op2_type.type)
         if isinstance(op1_type, cwast.TypePtr):
-            return (isinstance(op2_type, cwast.TypeSlice) and op1_type.type == op2_type.type and
+            assert (isinstance(op2_type, cwast.TypeSlice) and
                     result_type == tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT))
         elif isinstance(op1_type, cwast.TypeSlice):
-            return (isinstance(op2_type, cwast.TypeSlice) and op1_type.type == op2_type.type and
+            assert (isinstance(op2_type, cwast.TypeSlice) and
                     result_type == op1_type)
         else:
             assert False
     else:
-        return (op1_type == op2_type == result_type and isinstance(op1_type, cwast.TypeBase))
+        assert isinstance(op1_type, cwast.TypeBase)
+        _CheckTypeSame(node, tc, op1_type, result_type)
+        _CheckTypeSame(node, tc, op2_type, result_type)
 
 
 def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
@@ -555,8 +571,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr = node.x_type
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
-            assert types.is_compatible_for_defvar(initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef)), _TypeMismatch(
-                tc, f"incompatible types", initial_cstr, cstr)
+            _CheckTypeCompatibleForDefVar(
+                node, tc, initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef))
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
             _CheckTypeSame(node, tc, cstr, type_cstr)
@@ -571,10 +587,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr = node.x_type
         assert cstr == node.expr.x_type
     elif isinstance(node, cwast.Expr2):
-        op1_type = node.expr1.x_type
-        op2_type = node.expr2.x_type
-        assert _VerifyExpr2(node.x_type,  op1_type, op2_type, node.binary_expr_kind, tc),  _TypeMismatch(
-            tc, f"in {node} {node.x_type}", op1_type, op2_type)
+        _CheckExpr2Types(node, node.x_type,  node.expr1.x_type,
+                         node.expr2.x_type, node.binary_expr_kind, tc)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
         cstr_t = node.expr_t.x_type
@@ -590,9 +604,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert fun_sig.result == result, f"{fun_sig.result} {result}"
         for p, a in zip(fun_sig.params, node.args):
             arg_cstr = a.x_type
-            assert types.is_compatible(
-                arg_cstr, p.type, types.is_mutable_def(a)), _TypeMismatch(
-                    tc, f"incompatible callee=({node.callee.name}) arg={a}",  arg_cstr, p.type)
+            _CheckTypeCompatibleForArg(
+                p, tc, arg_cstr, p.type, types.is_mutable_def(a))
     elif isinstance(node, cwast.StmtReturn):
         target = node.x_target
         actual = node.expr_ret.x_type
@@ -618,8 +631,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type
-        assert _VerifyExpr2(var_cstr, var_cstr, expr_cstr, kind, tc), _TypeMismatch(
-            tc, f"in {node}", var_cstr, expr_cstr)
+        _CheckExpr2Types(node, var_cstr, var_cstr, expr_cstr, kind, tc)
     elif isinstance(node, cwast.StmtExpr):
         cstr = node.expr.x_type
         assert types.is_void(cstr) != node.discard, f"{cstr} vs {node.discard}"
@@ -668,7 +680,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr = node.x_type
         _CheckTypeSame(node, tc, cstr, node.type.x_type)
         if not isinstance(node.default_or_undef, cwast.ValUndef):
-            _CheckTypeSame(node, tc, cstr, node.default_or_undef.x_type) 
+            _CheckTypeSame(node, tc, cstr, node.default_or_undef.x_type)
         assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
         assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)
