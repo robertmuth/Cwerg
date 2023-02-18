@@ -1,6 +1,5 @@
 ## Abstract Syntax Tree (AST) Nodes used by Cwerg
 
-WIP
 
 
 ## Node Overview (Core)
@@ -22,7 +21,6 @@ WIP
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
-[ExprParen](#exprparen) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
@@ -64,6 +62,7 @@ WIP
 [EphemeralList](#ephemerallist) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
+[ExprParen](#exprparen) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
@@ -162,7 +161,7 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
+* initial_or_undef [NODE]: initializer
 
 ### TypeArray (array)
 An array of the given type and `size`
@@ -268,7 +267,7 @@ Fields:
 * mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
+* initial_or_undef [NODE]: initializer
 
 ### DefMacro (macro)
 Define a macro
@@ -321,9 +320,10 @@ Variable definition
 
 Fields:
 * mut [FLAG]: is mutable
+* ref [FLAG]: address may be taken
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
+* initial_or_undef [NODE]: initializer
 
 ### Import (import)
 Import another Module
@@ -612,11 +612,13 @@ Fields:
 ### ExprBitCast (bitcast)
 Bit cast.
 
-    Type must have same size as type of item
+    Type must have same size and alignment as type of item
 
     s32,u32,f32 <-> s32,u32,f32
     s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr
+
+    It is also ok to bitcase complex objects like recs
     
 
 Fields:
@@ -795,9 +797,10 @@ Macro Variable definition whose name stems from a macro parameter or macro_gen_i
 
 Fields:
 * mut [FLAG]: is mutable
+* ref [FLAG]: address may be taken
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE] (default ValUndef): initializer
+* initial_or_undef [NODE]: initializer
 ## Enum Details
 
 ### Expr1 Kind
@@ -806,7 +809,7 @@ Fields:
 |----|------|
 |NOT       |!|
 |MINUS     |~|
-|NEG       |neg|
+|NEG       |not|
 
 ### Expr2 Kind
 
