@@ -338,7 +338,7 @@ def VerifyASTSymbolsRecursively(node):
             assert node.x_symbol is not None, f"unresolved symbol {node}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
-            assert not node.name.startswith("$")
+            assert not node.name.startswith("$"), f"{node.name}"
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
@@ -465,4 +465,6 @@ if __name__ == "__main__":
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:
+        cwast.CheckAST(ast, set())
+        VerifyASTSymbolsRecursively(ast)
         pp.PrettyPrint(ast)

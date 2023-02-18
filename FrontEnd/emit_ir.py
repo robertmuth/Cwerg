@@ -643,22 +643,23 @@ def main(dump_ir):
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
         canonicalize.ReplaceConstExpr(mod)
-        canonicalize.CreateSliceReplacementStructs(mod, tc, slice_to_struct_map)
+        canonicalize.CreateSliceReplacementStructs(
+            mod, tc, slice_to_struct_map)
+    for mod in mod_topo_order:
+        canonicalize.OptimizeKnownConditionals(mod)
+        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
+        canonicalize.CanonicalizeTernaryOp(mod, id_gen)
+        canonicalize.ReplaceSlice(mod, tc, slice_to_struct_map)
+    for mod in mod_topo_order:
+        cwast.CheckAST(mod, set())
+        symbolize.VerifyASTSymbolsRecursively(mod)
+        typify.VerifyTypesRecursively(mod, tc)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
-            canonicalize.OptimizeKnownConditionals(fun)
-            canonicalize.CanonicalizeStringVal(fun, str_val_map, id_gen)
-            #canonicalize.ReplaceSlice(fun, slice_to_struct_map)
-            #continue
-
-
-            typify.VerifyTypesRecursively(fun, tc)
-
+            # continue
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
             typify.VerifyTypesRecursively(fun, tc)
-
-            canonicalize.CanonicalizeTernaryOp(fun, id_gen)
 
             RewriteLargeArgsCallerSide(
                 fun, fun_sigs_with_large_args, tc, id_gen)
@@ -668,8 +669,10 @@ def main(dump_ir):
             canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
             canonicalize.CanonicalizeRemoveStmtCond(fun)
 
-            symbolize.VerifyASTSymbolsRecursively(fun)
-            typify.VerifyTypesRecursively(fun, tc)
+    for mod in mod_topo_order:
+        cwast.CheckAST(mod, set())
+        symbolize.VerifyASTSymbolsRecursively(mod)
+        typify.VerifyTypesRecursively(mod, tc)
 
     mod_gen.body_mod += list(str_val_map.values()) + \
         list(slice_to_struct_map.values())
@@ -677,8 +680,8 @@ def main(dump_ir):
 
     if dump_ir:
         for mod in mod_topo_order:
-            # pp.PrettyPrintHTML(mod, tc)
-            pp.PrettyPrint(mod)
+            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrint(mod)
 
         exit(0)
 

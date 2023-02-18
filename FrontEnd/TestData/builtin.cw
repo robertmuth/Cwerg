@@ -114,8 +114,8 @@
     (macro_let mut $pos uint $max_width)
     (block _ [
         (-= $pos 1)
-        (let c (% $v $base))
-        (let mut c8 (as c u8))
+        (let c auto (% $v $base))
+        (let mut c8 auto (as c u8))
         (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
         (= (at $tmp $pos) c8)
         (/= $v $base)

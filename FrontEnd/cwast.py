@@ -1421,11 +1421,13 @@ class ExprUnsafeCast:
 class ExprBitCast:
     """Bit cast.
 
-    Type must have same size as type of item
+    Type must have same size and alignment as type of item
 
     s32,u32,f32 <-> s32,u32,f32
     s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr
+
+    It is also ok to bitcase complex objects like recs
     """
     ALIAS = "bitcast"
     GROUP = GROUP.Expression
@@ -1787,7 +1789,7 @@ class DefRec:
     x_size: int = -1
 
     def __str__(self):
-        return f" {_NAME(self)}{_FLAGS(self)}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
 
 
 @NodeCommon
@@ -2371,11 +2373,12 @@ def CheckAST(node, disallowed_nodes):
     def visitor(node, field):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
-
+        # print ("#", node)
         assert node.x_srcloc is not None, f"Node without srcloc {node}"
         assert type(node) not in disallowed_nodes
         if NF.TOP_LEVEL in node.FLAGS:
-            assert field == "body_mod", f"only allowed at toplevel: {node}"
+            if field != "body_mod":
+                CompilerError(node.x_srcloc, f"only allowed at toplevel [{field}]: {node}")
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(

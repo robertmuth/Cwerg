@@ -707,7 +707,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
 
 def VerifyTypesRecursively(node, corpus):
     def visitor(node, _):
-        logger.info(f"VERIFYING {node}")
+        if cwast.NF.TOP_LEVEL in node.FLAGS:
+            logger.info(f"TYPE-VERIFYING {node}")
 
         if (cwast.NF.TYPE_ANNOTATED in node.FLAGS or
                 isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
