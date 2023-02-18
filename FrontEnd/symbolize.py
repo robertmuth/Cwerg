@@ -182,7 +182,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
             _add_symbol_link(node, def_node)
 
-    cwast.VisitAstRecursively(node, visitor)
+    cwast.VisitAstRecursivelyPost(node, visitor)
 
 
 MAX_MACRO_NESTING = 4
@@ -333,7 +333,7 @@ def VerifyASTSymbolsRecursively(node):
         
         if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.polymorphic:
             return
-        assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS
+        assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
             assert node.x_symbol is not None, f"unresolved symbol {node}"
         if isinstance(node, cwast.Id):

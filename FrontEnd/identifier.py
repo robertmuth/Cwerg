@@ -12,7 +12,7 @@ def _GetAllLocalNames(node, seen_names: Set[str]):
         if isinstance(node, cwast.StmtBlock):
             seen_names.add(node.label)
 
-    cwast.VisitAstRecursively(node, visitor, seen_names)
+    cwast.VisitAstRecursivelyPost(node, visitor, seen_names)
 
 
 class IdGen:
@@ -43,7 +43,7 @@ class IdGen:
             if isinstance(node, cwast.StmtBlock):
                 node.label = self.NewName(node.label)
 
-        cwast.VisitAstRecursively(node, visitor)
+        cwast.VisitAstRecursivelyPost(node, visitor)
 
     def NewName(self, prefix) -> str:
         token = prefix.split("$")
