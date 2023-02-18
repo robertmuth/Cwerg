@@ -466,7 +466,6 @@ OPTIONAL_FIELDS = {
     "message": lambda srcloc: "",
     "init_index": lambda srcloc: ValAuto(x_srcloc=srcloc),
     "init_field": lambda srcloc: "",
-    "initial_or_undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
     "inits_array": lambda srcloc: [],
 }
 

@@ -9,7 +9,7 @@
 
     (defrec pub File [
         (# "This is an incomplete dummy")
-        (field handle s32)
+        (field handle s32 undef)
     ])
 
     (type pub FP (ptr mut File))
