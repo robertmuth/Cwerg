@@ -273,7 +273,8 @@ def _ConvertValArrayToPointer(node, pointer_type, index_type):
 def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
     assert isinstance(node.x_type, cwast.TypeArray)
     pointer_field, length_field = slice_rec.fields
-    width = node.x_type.size
+    width = node.x_type.size.x_value
+    assert width is not None
     inits = [cwast.FieldVal(_ConvertValArrayToPointer(node, pointer_field.x_type, length_field.x_type), "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
                             x_srcloc=srcloc),

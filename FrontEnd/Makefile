@@ -30,7 +30,8 @@ tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
     $(DIR)/hello_world.x64.exe \
     $(DIR)/fizzbuzz.x64.exe \
 	$(DIR)/heapsort.exe \
-	$(DIR)/sieve.exe 
+	$(DIR)/sieve.exe \
+    $(DIR)/slice.x64.exe
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
@@ -86,7 +87,13 @@ $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
 $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@  arg1 arg2 argc3
+	${QEMU} $@  
+
+$(DIR)/slice.x64.exe: TestData/slice.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ 
+
 
 clean:
 	@rm -f $(DIR)/* 
