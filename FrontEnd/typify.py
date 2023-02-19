@@ -495,13 +495,7 @@ def _CheckTypeCompatible(node, tc: types.TypeCorpus, actual, expected):
                             f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
 
 
-def _CheckTypeCompatibleForDefVar(node, tc: types.TypeCorpus, actual, expected, mutable):
-    if not types.is_compatible_for_defvar(actual, expected, mutable):
-        cwast.CompilerError(node.x_srcloc,
-                            f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
-
-
-def _CheckTypeCompatibleForArg(node, tc: types.TypeCorpus, actual, expected, mutable):
+def _CheckTypeCompatibleForAssignment(node, tc: types.TypeCorpus, actual, expected, mutable):
     if not types.is_compatible(actual, expected, mutable):
         cwast.CompilerError(node.x_srcloc,
                             f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
@@ -572,7 +566,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr = node.x_type
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             initial_cstr = node.initial_or_undef.x_type
-            _CheckTypeCompatibleForDefVar(
+            _CheckTypeCompatibleForAssignment(
                 node, tc, initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef))
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             type_cstr = node.type_or_auto.x_type
@@ -605,7 +599,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert fun_sig.result == result, f"{fun_sig.result} {result}"
         for p, a in zip(fun_sig.params, node.args):
             arg_cstr = a.x_type
-            _CheckTypeCompatibleForArg(
+            _CheckTypeCompatibleForAssignment(
                 p, tc, arg_cstr, p.type, types.is_mutable_def(a))
     elif isinstance(node, cwast.StmtReturn):
         target = node.x_target
@@ -624,7 +618,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, cwast.StmtAssignment):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type
-        _CheckTypeCompatible(node, tc, expr_cstr, var_cstr)
+        _CheckTypeCompatibleForAssignment(
+            node, tc, expr_cstr, var_cstr, types.is_mutable_def(node.expr_rhs))
         assert is_proper_lhs(
             node.lhs), f"cannot assign to readonly data: {node}"
     elif isinstance(node, cwast.StmtCompoundAssignment):

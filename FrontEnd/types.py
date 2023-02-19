@@ -112,13 +112,6 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
         return actual in expected_children
 
 
-def is_compatible_for_defvar(actual: CanonType, expected: CanonType, is_mut) -> bool:
-    if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeArray):
-        if actual.type == expected.type:
-            return True
-    return is_compatible(actual, expected, is_mut)
-
-
 _BASE_TYPE_MAP = {
     cwast.BASE_TYPE_KIND.SINT: ["S64"],
     cwast.BASE_TYPE_KIND.S8: ["S8"],
