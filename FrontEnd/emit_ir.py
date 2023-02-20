@@ -359,7 +359,12 @@ def _AssignmentLhsIsInReg(lhs):
     # TODO: support stack allocated objects
     if isinstance(def_node, cwast.DefGlobal):
         return False
-    return True
+    elif isinstance(def_node, cwast.FunParam):
+        return True
+    elif isinstance(def_node, cwast.DefVar):
+        return not def_node.ref
+    else:
+        assert False, f"unpected lhs {lhs}"
 
 
 def _EmitCopy(src_base, src_offset, dst_base, dst_offset, length, alignment, id_gen: identifier.IdGen):
@@ -374,6 +379,7 @@ def _EmitCopy(src_base, src_offset, dst_base, dst_offset, length, alignment, id_
             print(f"{TAB}ld {tmp} = {src_base} {src_offset + curr}")
             print(f"{TAB}st {dst_base} {dst_offset + curr} = {tmp}")
             curr += width
+
 
 def _EmitInitialization(base, offset, init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(init, cwast.ValUndef):
@@ -482,15 +488,18 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
-        assert isinstance(node.lhs.x_type, cwast.TypeBase)
-        out = EmitIRExpr(node.expr_rhs, tc, id_gen)
-        if _AssignmentLhsIsInReg(node.lhs):
-            # because of the canonicalization step only register promotable
-            # scalars will be naked like this
-            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
+        if tc.register_types(node.lhs.x_type) and len(tc.register_types(node.lhs.x_type)) == 1:
+            out = EmitIRExpr(node.expr_rhs, tc, id_gen)
+            if _AssignmentLhsIsInReg(node.lhs):
+                # because of the canonicalization step only register promotable
+                # scalars will be naked like this
+                print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
+            else:
+                lhs = _GetLValueAddress(node.lhs, tc, id_gen)
+                print(f"{TAB}st {lhs} 0 = {out}")
         else:
             lhs = _GetLValueAddress(node.lhs, tc, id_gen)
-            print(f"{TAB}st {lhs} 0 = {out}")
+            _EmitInitialization(lhs, 0, node.expr_rhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:

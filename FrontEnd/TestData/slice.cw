@@ -9,6 +9,7 @@
    (let mut ref storage (array 1024 u8) undef)
    (let buffer (slice mut u8) storage)
    (let mut curr auto buffer)
+   (= curr storage)
    (return 0)
 ])
 

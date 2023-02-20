@@ -291,6 +291,22 @@ def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
     return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
 
 
+def ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
+    """Convert:
+    slice-mut -> slice 
+    array -> slice
+    array-mut -> slice-mut
+    """
+    if isinstance(rhs.x_type, cwast.TypeSlice):
+        assert lhs_type.type == rhs.x_type.type
+        assert not lhs_type.mut and rhs.x_type.mut
+        return _ConvertMutSliceValRecToSliceValRec(rhs, def_rec)
+    elif isinstance(rhs.x_type, cwast.TypeArray):
+        return _ConvertValArrayToSliceValRec(rhs, def_rec, srcloc)
+    else:
+        assert False
+
+
 def ReplaceSlice(node, tc, slice_to_struct_map):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
@@ -300,6 +316,16 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
     """
     def replacer(node, field):
         nonlocal tc
+        if isinstance(node, cwast.StmtAssignment):
+            print("########", node)
+            def_rec: cwast.DefRec = slice_to_struct_map.get(node.lhs.x_type)
+            if def_rec is not None and node.lhs.x_type != node.expr_rhs.x_type:
+                node.expr_rhs = ImplicitSliceConversion(node.expr_rhs,
+                                                        node.lhs.x_type,
+                                                        def_rec,
+                                                        node.x_srcloc)
+                node.x_type = def_rec.x_type
+            return
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.DefFun):
@@ -314,21 +340,15 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                     params = [slice_to_struct_map.get(
                         p.type, p.type) for p in fun_sig.params]
                     node.x_type = tc.insert_fun_type(params, result)
+
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
                 if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
                     if node.x_type != node.initial_or_undef.x_type:
-                        if isinstance(node.initial_or_undef.x_type, cwast.TypeSlice):
-                            assert node.x_type.type == node.initial_or_undef.x_type.type
-                            assert not node.x_type.mut and node.initial_or_undef.x_type.mut
-                            node.initial_or_undef = _ConvertMutSliceValRecToSliceValRec(
-                                node.initial_or_undef, def_rec)
-                        elif isinstance(node.initial_or_undef.x_type, cwast.TypeArray):
-                            node.initial_or_undef = _ConvertValArrayToSliceValRec(
-                                node.initial_or_undef, def_rec, node.x_srcloc)
-                        else:
-                            assert False
-
+                        node.initial_or_undef = ImplicitSliceConversion(node.initial_or_undef,
+                                                                        node.x_type,
+                                                                        def_rec,
+                                                                        node.x_srcloc)
                     node.x_type = def_rec.x_type
 
                 elif isinstance(node, (cwast.FunParam, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
