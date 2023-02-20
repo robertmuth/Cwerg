@@ -4,7 +4,23 @@ Both the Arm32 and Arm64 backend use the same approach to instruction selection
 described below.
 
 
-### Patterns
+### Cwerg IR Recap
+
+Cwerg IR instructions have the form
+
+```
+opcode operand1 operand2 ...
+```
+
+An operand can be either a
+1. a **typed** register or immediate or
+2. something else, e.g. a label
+
+The opcode determines which of the two must hold.
+For instruction selection we only care about operands of the first kind.
+
+
+### Patterns and Curbs
 
 Given a concrete Cwerg IR instruction:
 ```
@@ -20,10 +36,7 @@ The Pattern specifies two constraints called **curbs** for each register/immedia
 * an immediate curb, e.g. "must fit in 16bit", "must be zero", "no immediate"
    (must be a register), ...
 
-If the operand cannot be a register/immediate the constraint is ignored.
-Note, that:
-* the IR opcode dictates which operands are registers/immediates
-* both registers and immediates are typed
+The expanded CPU Instructions contain placeholders which will be backfilled from the IR Instruction.
 
 ### Matching
 
@@ -38,18 +51,19 @@ immediate must satifies the actual kind of curb.
 
 Note, all patterns can be listed using `./isel_tab.py`. Here is a commented subset for a32.
 
-We show three patterns for expanding the *blt* opcode  (`blt [BBL REG_OR_CONST REG_OR_CONST]`)
+We show three patterns for expanding the *blt* opcode  (`blt [BBL REG_OR_CONST REG_OR_CONST]`).
+The zeroth operand is label, i.e. neither a register nor an immediate and hence ignored.
 
 ```
-type:[* U32 U32] imm:[* * *]                 #  Pattern 1: op0 is bbl, op1 is U32 reg, op2 is U32 reg 
-  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #    1. A32 instruction of the expansion
-  b [PRED.cc ARG.bbl0]                       #    2. A32 instriction of the expansion
-type:[* U32 U32 imm:[* * pos_8_bits_shifted] #  Pattern 2: op0 is bbl, op1 is U32 reg, op2 is immediate
-  cmp [ARG.reg1 ARG.num2]                    #    1. A32 instruction of the expansion
-  b [PRED.cc ARG.bbl0]                       #    2. A32 instruction of the expansion
-type:[* S32 S32] imm:[* * *]                 #  Pattern 3: op0 is bbl, op1 is S32 reg, op2 is S32 reg 
-  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]        #    1. A32 instruction of the expansion
-  b [PRED.lt ARG.bbl0]                       #    2. A32 instruction of the expansion
+type:[* U32 U32] imm:[* * *]                  #  Pattern 1: op1 is U32 reg, op2 is U32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]         #    1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                        #    2. A32 instriction of the expansion
+type:[* U32 U32] imm:[* * pos_8_bits_shifted] #  Pattern 2: op1 is U32 reg, op2 is U32 immediate
+  cmp [ARG.reg1 ARG.num2]                     #    1. A32 instruction of the expansion
+  b [PRED.cc ARG.bbl0]                        #    2. A32 instruction of the expansion
+type:[* S32 S32] imm:[* * *]                  #  Pattern 3: op1 is S32 reg, op2 is S32 reg 
+  cmp [ARG.reg1 SHIFT.lsl ARG.reg2 0]         #    1. A32 instruction of the expansion
+  b [PRED.lt ARG.bbl0]                        #    2. A32 instruction of the expansion
 ```
 
 | Cwerg Instruction | Matching Pattern |
