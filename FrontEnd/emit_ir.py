@@ -573,7 +573,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.TypeFun = call.callee.x_type
             new_sig:  cwast.TypeFun = fun_sigs_with_large_args[old_sig]
-            call.callee.x_type = new_sig
+            typify.UpdateNodeType(tc, call.callee, new_sig)
             expr_body = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
@@ -599,7 +599,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
-                call.x_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+                typify.UpdateNodeType(tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
                     False, call, x_srcloc=call.x_srcloc))
@@ -616,7 +616,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun,
                                        tc: types.TypeCorpus, id_gen: identifier.IdGen):
     old_sig: cwast.TypeFun = fun.x_type
-    fun.x_type = new_sig
+    typify.UpdateNodeType(tc, fun, new_sig)
     result_changes = old_sig.result != new_sig.result
     if result_changes:
         assert types.is_void(new_sig.result)
@@ -635,7 +635,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
             changing_params[p] = new.type
             p.type = cwast.TypePtr(
                 False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
-            p.x_type = new.type
+            typify.UpdateNodeType(tc,p, new.type)
     assert result_changes or changing_params
     return changing_params, result_changes
 
@@ -652,7 +652,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            node.x_type = changing_params[node.x_symbol]
+            typify.AnnotateNodeType(tc, node, changing_params[node.x_symbol])
             return new_node
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
             result_param: cwast.FunParam = fun.params[-1]

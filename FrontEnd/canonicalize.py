@@ -14,6 +14,7 @@ from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import types
 from FrontEnd import typify
+from FrontEnd import symbolize
 
 ############################################################
 #
@@ -64,7 +65,7 @@ def CanonicalizeLargeArgs(node, changed_params: Set[Any], tc: types.TypeCorpus):
         if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) in changed_params:
             deref = cwast.ExprDeref(node, x_srcloc=node.x_srcloc,
                                     x_type=node.x_type, x_value=node.x_value)
-            node.x_type = node.x_symbol.x_type
+            typify.UpdateNodeType(tc, node, node.x_symbol.x_type)
             node.x_value = None
             return deref
         return None
@@ -347,12 +348,12 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                         fun_sig.result, fun_sig.result)
                     params = [slice_to_struct_map.get(
                         p.type, p.type) for p in fun_sig.params]
-                    node.x_type = tc.insert_fun_type(params, result)
+                    typify.UpdateNodeType(tc, node, tc.insert_fun_type(params, result))
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
                 if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
-                    node.x_type = def_rec.x_type
+                    typify.UpdateNodeType(tc, node, def_rec.x_type)
                 elif isinstance(node, cwast.FunParam):
                     typify.UpdateNodeType(tc, node, def_rec.x_type)
                 elif isinstance(node, cwast.TypeSlice):
@@ -360,10 +361,10 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                 elif isinstance(node, cwast.Id):
                     sym = node.x_symbol
                     if isinstance(sym, cwast.TypeSlice):
-                        node.x_symbol = def_rec
+                        symbolize.AnnotateNodeSymbol(node, def_rec)
                         typify.UpdateNodeType(tc, node, def_rec.x_type)
                     elif isinstance(sym, (cwast.DefVar, cwast.FunParam, cwast.DefGlobal)):
-                        node.x_type = def_rec.x_type
+                         typify.UpdateNodeType(tc, node, def_rec.x_type)
                     else:
                         assert False
                 elif isinstance(node, cwast.ExprAs):

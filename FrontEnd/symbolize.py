@@ -23,11 +23,12 @@ BUILTIN_MOD = "$builtin"
 POLYMORPHIC_MOD = "$polymorphic"
 
 
-def _add_symbol_link(id_node, def_node):
+def AnnotateNodeSymbol(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
     assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
             cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
+    assert id_node.x_symbol is None
     id_node.x_symbol = def_node
 
 
@@ -180,7 +181,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
             if def_node is None:
                 cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
-            _add_symbol_link(node, def_node)
+            AnnotateNodeSymbol(node, def_node)
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 
@@ -274,7 +275,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         if def_node is None:
             cwast.CompilerError(
                 node.x_srcloc, f"cannot resolve symbol for {node}")
-        _add_symbol_link(node, def_node)
+        AnnotateNodeSymbol(node, def_node)
         return
 
     # recurse using a little bit of introspection
