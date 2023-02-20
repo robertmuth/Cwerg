@@ -21,8 +21,9 @@ from FrontEnd import typify
 
 
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
-    return cwast.Id(def_node.name, "", x_srcloc=x_srcloc, x_type=def_node.x_type,
-                    x_value=def_node.x_value, x_symbol=def_node)
+    assert def_node.type_or_auto.x_type is not None
+    return cwast.Id(def_node.name, "", x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+                    x_value=def_node.initial_or_undef.x_value, x_symbol=def_node)
 
 
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
@@ -35,10 +36,9 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
             def_node = str_map.get(node.x_value)
             if not def_node:
                 def_node = cwast.DefGlobal(True, False, id_gen.NewName("global_str"),
-                                           cwast.TypeAuto(node.x_srcloc), node,
-                                           x_srcloc=node.x_srcloc,
-                                           x_type=node.x_type,
-                                           x_value=node.x_value)
+                                           cwast.TypeAuto(
+                                               node.x_srcloc, x_type=node.x_type), node,
+                                           x_srcloc=node.x_srcloc)
                 str_map[node.x_value] = def_node
 
             return _IdNodeFromDef(def_node, node.x_srcloc)
@@ -102,11 +102,12 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
-            def_t = cwast.DefVar(False, False, name_t, cwast.TypeAuto(x_srcloc=srcloc), node.expr_t,
-                                 x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_t.x_value)
+            def_t = cwast.DefVar(False, False, name_t, 
+                                 cwast.TypeAuto(x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
+                                 x_srcloc=srcloc)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_srcloc=srcloc), node.expr_f,
-                                 x_srcloc=srcloc, x_type=node.x_type, x_value=node.expr_f.x_value)
+            def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
+                                 x_srcloc=srcloc)
 
             expr = cwast.ExprStmt([], x_srcloc=srcloc,
                                   x_type=node.x_type, x_value=node.x_value)
@@ -317,16 +318,23 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
     def replacer(node, field):
         nonlocal tc
         if isinstance(node, cwast.StmtAssignment):
-            print("########", node)
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.lhs.x_type)
             if def_rec is not None and node.lhs.x_type != node.expr_rhs.x_type:
                 node.expr_rhs = ImplicitSliceConversion(node.expr_rhs,
                                                         node.lhs.x_type,
                                                         def_rec,
                                                         node.x_srcloc)
-                node.x_type = def_rec.x_type
             return
-
+        elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+            def_rec: cwast.DefRec = slice_to_struct_map.get(node.type_or_auto.x_type)
+            if def_rec is not None:
+                if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+                    if node.type_or_auto.x_type != node.initial_or_undef.x_type:
+                        node.initial_or_undef = ImplicitSliceConversion(node.initial_or_undef,
+                                                                        node.type_or_auto.x_type,
+                                                                        def_rec,
+                                                                        node.x_srcloc)
+    
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.DefFun):
                 fun_sig = node.x_type
@@ -343,23 +351,17 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-                    if node.x_type != node.initial_or_undef.x_type:
-                        node.initial_or_undef = ImplicitSliceConversion(node.initial_or_undef,
-                                                                        node.x_type,
-                                                                        def_rec,
-                                                                        node.x_srcloc)
+                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
                     node.x_type = def_rec.x_type
-
-                elif isinstance(node, (cwast.FunParam, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
-                    node.x_type = def_rec.x_type
+                elif isinstance(node, cwast.FunParam):
+                    typify.UpdateNodeType(tc, node, def_rec.x_type)
                 elif isinstance(node, cwast.TypeSlice):
                     return _MakeIdForDefRec(def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.Id):
                     sym = node.x_symbol
                     if isinstance(sym, cwast.TypeSlice):
                         node.x_symbol = def_rec
-                        node.x_type = def_rec.x_type
+                        typify.UpdateNodeType(tc, node, def_rec.x_type)
                     elif isinstance(sym, (cwast.DefVar, cwast.FunParam, cwast.DefGlobal)):
                         node.x_type = def_rec.x_type
                     else:

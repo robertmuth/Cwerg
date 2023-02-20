@@ -416,7 +416,7 @@ def _EmitInitialization(base, offset, init,  tc: types.TypeCorpus, id_gen: ident
 
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
-        def_type = node.x_type
+        def_type = node.type_or_auto.x_type
         node.name = id_gen.NewName(node.name)
         if tc.register_types(def_type) is None or len(tc.register_types(def_type)) != 1:
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
@@ -428,12 +428,12 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
         else:
             if isinstance(node.initial_or_undef, cwast.ValUndef):
                 print(
-                    f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{node.name}]")
+                    f"{TAB}.reg {StringifyOneType(def_type, tc)} [{node.name}]")
             else:
                 out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
                 assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
                 print(
-                    f"{TAB}mov {node.name}:{StringifyOneType(node.x_type, tc)} = {out}")
+                    f"{TAB}mov {node.name}:{StringifyOneType(def_type, tc)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -507,7 +507,7 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
 
 
 def EmitIRDefGlobal(node: cwast.DefGlobal):
-    def_type = node.x_type
+    def_type = node.type_or_auto.x_type
     if isinstance(def_type, cwast.TypeBase):
         _EmitMem(node.name, def_type.x_alignment, node.mut,
                  _InitDataForBaseType(node.initial_or_undef.x_type, node.initial_or_undef.x_value))
@@ -525,7 +525,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal):
             out = bytearray()
             for v in x_value:
                 out += _InitDataForBaseType(x_type, v)
-            _EmitMem(node.name, node.x_type.x_alignment, node.mut, out)
+            _EmitMem(node.name, def_type.x_alignment, node.mut, out)
     else:
         assert False
 
@@ -720,14 +720,14 @@ def main(dump_ir):
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
             typify.VerifyTypesRecursively(fun, tc)
-
-            RewriteLargeArgsCallerSide(
-                fun, fun_sigs_with_large_args, tc, id_gen)
-            if fun.x_type in fun_sigs_with_large_args:
-                RewriteLargeArgsCalleeSide(
-                    fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
-            canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
-            canonicalize.CanonicalizeRemoveStmtCond(fun)
+            if isinstance(fun, cwast.DefFun):
+                RewriteLargeArgsCallerSide(
+                    fun, fun_sigs_with_large_args, tc, id_gen)
+                if fun.x_type in fun_sigs_with_large_args:
+                    RewriteLargeArgsCalleeSide(
+                        fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
+                canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
+                canonicalize.CanonicalizeRemoveStmtCond(fun)
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())

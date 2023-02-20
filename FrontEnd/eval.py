@@ -233,8 +233,11 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # this case is why we need the sym_tab
         def_node = node.x_symbol
         assert def_node is not None
-        if cwast.NF.VALUE_ANNOTATED in def_node.FLAGS and def_node.x_value is not None:
-            return _AssignValue(node, def_node.x_value)
+        if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
+            if not def_node.mut and def_node.initial_or_undef.x_value is not None:
+                return _AssignValue(node, def_node.initial_or_undef.x_value)
+        elif isinstance(def_node, cwast.EnumVal):
+            return _AssignValue(node, def_node.value_or_auto.x_value)
         return False
     elif isinstance(node, cwast.RecField):
         if node.initial_or_undef.x_value is not None:
@@ -263,10 +266,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return False
     elif isinstance(node, cwast.ValAuto):
         return False
-    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-        if not node.mut and node.initial_or_undef.x_value is not None:
-            return _AssignValue(node, node.initial_or_undef.x_value)
-        return False
     elif isinstance(node, cwast.IndexVal):
         return False  # handled by ValArray
     elif isinstance(node, cwast.ValArray):
@@ -285,10 +284,12 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, bytes(s, encoding="ascii"))
         return _AssignValue(node, EscapedStringToBytes(s))
     elif isinstance(node, cwast.ExprIndex):
-        if node.container.x_value is not None and node.expr_index.x_value is not None:
-            assert type(node.container.x_value) in (
-                list, bytes), f"{node.container.x_value}"
-            return _AssignValue(node, node.container.x_value[node.expr_index.x_value])
+        index_val = node.expr_index.x_value
+        container_val =  node.container.x_value
+        if container_val is not None and index_val is not None:
+            assert isinstance(container_val, (list, bytes)), f"{node.container.x_value}"
+            assert index_val < len(container_val), f"{index_val} {container_val}"
+            return _AssignValue(node, container_val[index_val])
         return False
     elif isinstance(node, cwast.ExprField):
         if node.container.x_value is not None:

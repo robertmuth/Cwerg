@@ -632,13 +632,10 @@ class TypeAuto:
     """
     ALIAS = "auto"
     GROUP = GROUP.Type
-    FLAGS = NF.NONE
+    FLAGS = NF.TYPE_ANNOTATED
     #
     x_srcloc: Optional[Any] = None
-
-    # TODO
-    # FLAGS = NF.TYPE_ANNOTATED
-    # x_type: Optional[Any] = None
+    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1870,7 +1867,7 @@ class DefVar:
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.VALUE_ANNOTATED
+    FLAGS = NF.LOCAL_SYM_DEF 
     #
     mut: bool
     ref: bool
@@ -1879,8 +1876,6 @@ class DefVar:
     initial_or_undef: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
@@ -1896,7 +1891,7 @@ class DefGlobal:
     """
     ALIAS = "global"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL 
     #
     pub: bool
     mut: bool
@@ -1905,8 +1900,6 @@ class DefGlobal:
     initial_or_undef: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
