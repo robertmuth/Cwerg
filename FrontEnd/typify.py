@@ -201,11 +201,13 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         t = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
         return AnnotateNodeType(tc, node, tc.insert_slice_type(node.mut, t))
     elif isinstance(node, cwast.FunParam):
-        cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
-        return AnnotateNodeType(tc, node, cstr)
+        _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
+        return types.NO_TYPE
     elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
-        params = [_TypifyNodeRecursively(p, tc, types.NO_TYPE, ctx)
-                  for p in node.params]
+        params = []
+        for p in node.params:
+            _TypifyNodeRecursively(p, tc, types.NO_TYPE, ctx)
+            params.append(p.type.x_type)
         result = _TypifyNodeRecursively(
             node.result, tc, types.NO_TYPE, ctx)
         cstr = tc.insert_fun_type(params, result)
@@ -708,7 +710,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         fun_type = node.x_type
         assert fun_type.result == node.result.x_type
         for a, b in zip(fun_type.params, node.params):
-            _CheckTypeSame(b, tc, a.type, b.x_type)
+            _CheckTypeSame(b, tc, a.type, b.type.x_type)
 
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
                            cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,

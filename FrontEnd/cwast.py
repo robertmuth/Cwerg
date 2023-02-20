@@ -652,13 +652,12 @@ class FunParam:
     """
     ALIAS = "param"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    FLAGS = NF.LOCAL_SYM_DEF
     #
     name: str      # empty str means no var specified (fun proto type)
     type: NODES_TYPES_T
     #
     x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}: {self.type}"
