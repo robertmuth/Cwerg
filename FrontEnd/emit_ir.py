@@ -381,17 +381,18 @@ def _EmitCopy(src_base, src_offset, dst_base, dst_offset, length, alignment, id_
             curr += width
 
 
-def _EmitInitialization(base, offset, init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
+def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
+    src_type = init.x_type
     if isinstance(init, cwast.ValUndef):
         pass
     elif isinstance(init, cwast.Id):
-        if tc.register_types(init.x_type) is None or len(tc.register_types(init.x_type)) != 1:
+        if tc.register_types(src_type) is None or len(tc.register_types(src_type)) != 1:
             if isinstance(init.x_type, cwast.DefRec):
                 dst = _GetLValueAddress(init, tc, id_gen)
-                _EmitCopy(base, offset, dst,
-                          0, init.x_type.x_size, init.x_type.x_alignment, id_gen)
+                _EmitCopy(dst_base, dst_offset, dst,
+                          0, src_type.x_size, src_type.x_alignment, id_gen)
             else:
-                assert False, f"{init.x_srcloc} {init.x_type} {init}"
+                assert False, f"{init.x_srcloc} {src_type} {init}"
     elif isinstance(init, cwast.ValRec):
         explicitly_initialized = {}
         for f in init.inits_rec:
@@ -402,14 +403,17 @@ def _EmitInitialization(base, offset, init,  tc: types.TypeCorpus, id_gen: ident
             f2:  cwast.FieldVal = explicitly_initialized.get(f.name)
             if f2:
                 _EmitInitialization(
-                    base, offset + f.x_offset, f2.value, tc, id_gen)
+                    dst_base, dst_offset + f.x_offset, f2.value, tc, id_gen)
             else:
-                _EmitInitialization(base, offset + f.x_offset,
+                _EmitInitialization(dst_base, dst_offset + f.x_offset,
                                     f.initial_or_undef, tc, id_gen)
     elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum)):
         res = EmitIRExpr(init, tc, id_gen)
         assert res is not None
-        print(f"{TAB}st {base} {offset} = {res}")
+        print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+    elif isinstance(init, cwast.ExprDeref):
+        src = _GetLValueAddress(init, tc, id_gen)
+        _EmitCopy(src, 0, dst_base, dst_offset, src_type.x_size, src_type.x_alignment, id_gen)
     else:
         assert False, f"{init.x_srcloc} {init}"
 
@@ -599,7 +603,8 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
-                typify.UpdateNodeType(tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+                typify.UpdateNodeType(
+                    tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
                     False, call, x_srcloc=call.x_srcloc))
@@ -624,7 +629,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         result_type = cwast.TypePtr(
             True, fun.result, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
         result_param = cwast.FunParam(id_gen.NewName(
-            "result"), result_type, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
+            "result"), result_type, x_srcloc=fun.x_srcloc)
         fun.params.append(result_param)
         fun.result = MakeTypeVoid(tc, fun.x_srcloc)
     changing_params = {}
@@ -635,7 +640,6 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
             changing_params[p] = new.type
             p.type = cwast.TypePtr(
                 False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
-            typify.UpdateNodeType(tc,p, new.type)
     assert result_changes or changing_params
     return changing_params, result_changes
 
@@ -652,7 +656,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            typify.AnnotateNodeType(tc, node, changing_params[node.x_symbol])
+            typify.UpdateNodeType(tc, node, changing_params[node.x_symbol])
             return new_node
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
             result_param: cwast.FunParam = fun.params[-1]
@@ -697,7 +701,6 @@ def main(dump_ir):
     id_gen = identifier.IdGen()
     str_val_map = {}
     slice_to_struct_map = {}
-    fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
@@ -709,6 +712,9 @@ def main(dump_ir):
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
         canonicalize.CanonicalizeTernaryOp(mod, id_gen)
         canonicalize.ReplaceSlice(mod, tc, slice_to_struct_map)
+
+    fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
+
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
