@@ -374,6 +374,14 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             else:
                 assert False
         return AnnotateNodeType(tc, node, cstr)
+    elif isinstance(node, cwast.ExprPointer):
+        cstr = _TypifyNodeRecursively(node.expr1, tc, target_type, ctx)
+        _TypifyNodeRecursively(node.expr2, tc, tc.insert_base_type(
+            cwast.BASE_TYPE_KIND.UINT), ctx)
+        if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
+            _TypifyNodeRecursively(node.expr_bound_or_undef, tc,  tc.insert_base_type(
+                cwast.BASE_TYPE_KIND.UINT), ctx)
+        return AnnotateNodeType(tc, node, cstr)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.insert_base_type(
             cwast.BASE_TYPE_KIND.BOOL), ctx)
@@ -503,6 +511,12 @@ UNTYPED_NODES_TO_BE_TYPECHECKED = (
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
+def _CheckTypeUint(node, tc: types.TypeCorpus, actual):
+    if not types.is_uint(actual):
+        cwast.CompilerError(node.x_srcloc,
+                            f"{node}: not uint: {tc.canon_name(actual)}")
+
+
 def _CheckTypeSame(node, tc: types.TypeCorpus, actual, expected):
     if actual is not expected:
         cwast.CompilerError(node.x_srcloc,
@@ -529,11 +543,6 @@ def _CheckExpr2Types(node, result_type, op1_type, op2_type, kind: cwast.BINARY_E
         assert isinstance(
             op1_type, cwast.TypeBase) and types.is_bool(result_type)
         _CheckTypeSame(node, tc, op1_type, op2_type)
-    elif kind in (cwast.BINARY_EXPR_KIND.INCP, cwast.BINARY_EXPR_KIND.DECP):
-        assert isinstance(op1_type, (cwast.TypePtr, cwast.TypeSlice))
-        assert types.is_int(op2_type) and isinstance(
-            op1_type, (cwast.TypePtr, cwast.TypeSlice))
-        _CheckTypeSame(node, tc, op1_type, result_type)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
         _CheckTypeSame(node, tc, op1_type.type, op2_type.type)
         if isinstance(op1_type, cwast.TypePtr):
@@ -602,6 +611,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, cwast.Expr2):
         _CheckExpr2Types(node, node.x_type,  node.expr1.x_type,
                          node.expr2.x_type, node.binary_expr_kind, tc)
+    elif isinstance(node, cwast.ExprPointer):
+        if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
+            _CheckTypeUint(node, tc, node.expr_bound_or_undef)
+        assert isinstance(node.expr1.x_type, (cwast.TypePtr, cwast.TypeSlice))
+        _CheckTypeUint(node, tc, node.expr2.x_type)
+        _CheckTypeSame(node, tc, node.expr1.x_type, node.x_type)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
         cstr_t = node.expr_t.x_type

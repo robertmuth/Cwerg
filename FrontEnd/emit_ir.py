@@ -295,7 +295,15 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         if op is not None:
             print(
                 f"{TAB}{op} {res}:{StringifyOneType(node.x_type, tc)} = {op1} {op2}")
-        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.INCP:
+        else:
+            assert False, f"unsupported expression {node}"
+        return res
+    elif isinstance(node, cwast.ExprPointer):
+        op1 = EmitIRExpr(node.expr1, tc, id_gen)
+        op2 = EmitIRExpr(node.expr2, tc, id_gen)
+        assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
+        res = id_gen.NewName("expr2")
+        if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert isinstance(node.expr1.x_type, cwast.TypePtr)
             scale = node.expr1.x_type.type.x_size
             # TODO assumed 64
@@ -413,7 +421,8 @@ def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_ge
         print(f"{TAB}st {dst_base} {dst_offset} = {res}")
     elif isinstance(init, cwast.ExprDeref):
         src = _GetLValueAddress(init, tc, id_gen)
-        _EmitCopy(src, 0, dst_base, dst_offset, src_type.x_size, src_type.x_alignment, id_gen)
+        _EmitCopy(src, 0, dst_base, dst_offset,
+                  src_type.x_size, src_type.x_alignment, id_gen)
     else:
         assert False, f"{init.x_srcloc} {init}"
 

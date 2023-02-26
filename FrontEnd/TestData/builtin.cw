@@ -173,7 +173,7 @@
     (macro_let mut $curr (slice mut u8) $buffer)
     (macro_let mut ref $options auto (rec SysFormatOptions []))
     (macro_for $i $parts [
-        (incp= $curr (call polymorphic SysRender [$i $curr (& mut $options)]))
+        (= $curr (incp $curr (call polymorphic SysRender [$i $curr (& mut $options)])))
     ])
     (macro_let $buffer_orig (slice u8) $buffer)
     (stmt (call SysPrint [(pdelta $buffer_orig $curr)])) 

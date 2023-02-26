@@ -103,8 +103,7 @@ class BINARY_EXPR_KIND(enum.Enum):
 
     SHR = 40    # >>
     SHL = 41    # <<
-    INCP = 50   # pointer add int
-    DECP = 51   # pointer sub int
+
     PDELTA = 52  # pointer delta result is sint
 
 
@@ -134,12 +133,26 @@ BINARY_EXPR_SHORTCUT = {
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
-    "incp": BINARY_EXPR_KIND.INCP,
-    "decp": BINARY_EXPR_KIND.DECP,
     "pdelta": BINARY_EXPR_KIND.PDELTA,
 }
 
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
+
+
+@enum.unique
+class POINTER_EXPR_KIND(enum.Enum):
+    INVALID = 0
+    INCP = 1   # pointer add int
+    DECP = 2   # pointer sub int
+
+
+POINTER_EXPR_SHORTCUT = {
+    #
+    "incp": POINTER_EXPR_KIND.INCP,
+    "decp": POINTER_EXPR_KIND.DECP,
+}
+
+POINTER_EXPR_SHORTCUT_INV = {v: k for k, v in POINTER_EXPR_SHORTCUT.items()}
 
 
 @enum.unique
@@ -151,9 +164,6 @@ class ASSIGNMENT_KIND(enum.Enum):
     DIV = 3
     MUL = 4
     REM = 5
-    #
-    INCP = 6
-    DECP = 7
     #
     AND = 10
     OR = 11
@@ -171,9 +181,6 @@ ASSIGNMENT_SHORTCUT = {
     "/=": ASSIGNMENT_KIND.DIV,
     "%=": ASSIGNMENT_KIND.REM,
     #
-    "incp=": ASSIGNMENT_KIND.INCP,
-    "decp=": ASSIGNMENT_KIND.DECP,
-    #
     "and=": ASSIGNMENT_KIND.AND,
     "or=": ASSIGNMENT_KIND.OR,
     "xor=": ASSIGNMENT_KIND.XOR,
@@ -190,9 +197,6 @@ COMPOUND_KIND_TO_EXPR_KIND = {
     ASSIGNMENT_KIND.DIV: BINARY_EXPR_KIND.DIV,
     ASSIGNMENT_KIND.MUL: BINARY_EXPR_KIND.MUL,
     ASSIGNMENT_KIND.REM: BINARY_EXPR_KIND.REM,
-    #
-    ASSIGNMENT_KIND.INCP: BINARY_EXPR_KIND.INCP,
-    ASSIGNMENT_KIND.DECP: BINARY_EXPR_KIND.DECP,
     #
     ASSIGNMENT_KIND.AND: BINARY_EXPR_KIND.AND,
     ASSIGNMENT_KIND.OR: BINARY_EXPR_KIND.OR,
@@ -338,7 +342,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               #
               "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
               "ExprField", "ExprCall", "ExprParen",
-              "Expr1", "Expr2", "Expr3",
+              "Expr1", "Expr2", "Expr3", "ExprPointer",
               "ExprLen", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs")
@@ -394,6 +398,8 @@ ALL_FIELDS = [
         "see StmtCompoundAssignment Kind below", ASSIGNMENT_KIND),
     NFD(NFK.KIND,  "macro_param_kind",
         "see MacroParam Kind below",  MACRO_PARAM_KIND),
+    NFD(NFK.KIND, "pointer_expr_kind",
+        "see PointerOp Kind below", POINTER_EXPR_KIND),
     #
     # TODO: fix all the None below
     NFD(NFK.LIST, "params", "function parameters and/or comments", NODES_PARAMS),
@@ -437,6 +443,7 @@ ALL_FIELDS = [
         "expression (will only be evaluated if cond == false)", NODES_EXPR),
     NFD(NFK.NODE, "expr1", "left operand expression", NODES_EXPR),
     NFD(NFK.NODE, "expr2", "righ operand expression", NODES_EXPR),
+    NFD(NFK.NODE, "expr_bound_or_undef", "", NODES_EXPR),
     NFD(NFK.NODE, "expr_rhs", "rhs of assignment", NODES_EXPR),
     NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)", NODES_EXPR),
     NFD(NFK.NODE, "pointer", "pointer component of slice", None),
@@ -467,6 +474,7 @@ OPTIONAL_FIELDS = {
     "init_index": lambda srcloc: ValAuto(x_srcloc=srcloc),
     "init_field": lambda srcloc: "",
     "inits_array": lambda srcloc: [],
+    "expr_bound_or_undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
 }
 
 X_FIELDS = {
@@ -1214,6 +1222,28 @@ class Expr1:
 
 @NodeCommon
 @dataclasses.dataclass()
+class ExprPointer:
+    """Pointer arithmetic expression - optionally bound checked.."""
+    ALIAS = None
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    pointer_expr_kind: POINTER_EXPR_KIND
+    expr1: NODES_EXPR_T
+    expr2: NODES_EXPR_T
+    expr_bound_or_undef: NODES_EXPR_T
+
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.pointer_expr_kind.name}({self.expr1}, {self.expr2}, {self.expr_bound_or_undef})"
+
+
+@NodeCommon
+@dataclasses.dataclass()
 class Expr2:
     """Binary expression."""
     ALIAS = None
@@ -1866,7 +1896,7 @@ class DefVar:
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS = NF.LOCAL_SYM_DEF 
+    FLAGS = NF.LOCAL_SYM_DEF
     #
     mut: bool
     ref: bool
@@ -1890,7 +1920,7 @@ class DefGlobal:
     """
     ALIAS = "global"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL 
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     pub: bool
     mut: bool
@@ -2370,7 +2400,8 @@ def CheckAST(node, disallowed_nodes):
         assert type(node) not in disallowed_nodes
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":
-                CompilerError(node.x_srcloc, f"only allowed at toplevel [{field}]: {node}")
+                CompilerError(
+                    node.x_srcloc, f"only allowed at toplevel [{field}]: {node}")
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(
@@ -2506,6 +2537,8 @@ def GenerateDocumentation(fout):
                 UNARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
                 BINARY_EXPR_SHORTCUT_INV, fout)
+    _RenderKind(ExprPointer.__name__,  POINTER_EXPR_KIND,
+                POINTER_EXPR_SHORTCUT_INV, fout)
     _RenderKind(StmtCompoundAssignment.__name__,
                 ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
     _RenderKindSimple("Base Types",

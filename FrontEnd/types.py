@@ -99,6 +99,7 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
             return True
 
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
+        # TODO: check "ref"
         return actual.type == expected.type and (not expected.mut or actual_is_lvalue)
 
     if not isinstance(expected, cwast.TypeSum):

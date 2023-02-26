@@ -238,6 +238,9 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
     elif tag in cwast.BINARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr2, [cwast.BINARY_EXPR_SHORTCUT[tag]],
                                    ["expr1", "expr2"], stream)
+    elif tag in cwast.POINTER_EXPR_SHORTCUT:
+        return ReadRestAndMakeNode(cwast.ExprPointer, [cwast.POINTER_EXPR_SHORTCUT[tag]],
+                                   ["expr1", "expr2", "expr_bound_or_undef"], stream)
     elif tag in cwast.ASSIGNMENT_SHORTCUT:
         return ReadRestAndMakeNode(cwast.StmtCompoundAssignment, [cwast.ASSIGNMENT_SHORTCUT[tag]],
                                    ["lhs", "expr"], stream)
