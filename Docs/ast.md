@@ -18,9 +18,8 @@
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
-[ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
-[ExprLen&nbsp;(len)](#exprlen-len) &ensp;
+[ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
@@ -61,6 +60,8 @@
 [EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
 [EphemeralList](#ephemerallist) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
+[ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
+[ExprLen&nbsp;(len)](#exprlen-len) &ensp;
 [ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
 [ExprParen](#exprparen) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
@@ -687,6 +688,15 @@ Used for preserving parenthesis in the source
 Fields:
 * expr [NODE]: expression
 
+### ExprPointer
+Pointer arithmetic expression - optionally bound checked..
+
+Fields:
+* pointer_expr_kind [KIND]: see PointerOp Kind below
+* expr1 [NODE]: left operand expression
+* expr2 [NODE]: righ operand expression
+* expr_bound_or_undef [NODE] (default ValUndef): 
+
 ### ExprSizeof (sizeof)
 Byte size of type
 
@@ -835,9 +845,14 @@ Fields:
 |ORSC      ||||
 |SHR       |>>|
 |SHL       |<<|
+|PDELTA    |pdelta|
+
+### ExprPointer Kind
+
+|Kind|Abbrev|
+|----|------|
 |INCP      |incp|
 |DECP      |decp|
-|PDELTA    |pdelta|
 
 ### StmtCompoundAssignment Kind
 
@@ -848,8 +863,6 @@ Fields:
 |DIV       |/=|
 |MUL       |*=|
 |REM       |%=|
-|INCP      |incp=|
-|DECP      |decp=|
 |AND       |and=|
 |OR        |or=|
 |XOR       |xor=|

@@ -1292,7 +1292,7 @@ class ExprIndex:
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS | NF.NON_CORE
     #
     container: NODES_EXPR_T  # must be of type slice or array
     expr_index: NODES_EXPR_T  # must be of int type
@@ -1311,7 +1311,7 @@ class ExprLen:
     """Length of array or slice"""
     ALIAS = "len"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     container: NODES_EXPR_T   # must be of type slice or array
     #
