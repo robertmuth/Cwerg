@@ -486,9 +486,9 @@ X_FIELDS = {
     "x_field": NF.FIELD_ANNOTATED,  # set by typify.py
     #
     "x_type": NF.TYPE_ANNOTATED,   # set by typify.py
-    "x_alignment": NF.TYPE_ANNOTATED,  # set by typify.py
-    "x_size": NF.TYPE_ANNOTATED,  # set by typify.py
-    "x_offset": NF.TYPE_ANNOTATED,  # set by typify.py
+    "x_alignment": NF.TYPE_CORPUS,  # set by typify.py
+    "x_size": NF.TYPE_CORPUS,  # set by typify.py
+    "x_offset": NF.TYPE_CORPUS,  # set by typify.py
     #
     "x_value": NF.VALUE_ANNOTATED,  # set by eval.py
 }
@@ -524,7 +524,7 @@ def _CheckNodeFieldOrder(obj):
             assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
             x = X_FIELDS[field]
             if x:
-                assert x in obj.FLAGS
+                assert x in obj.FLAGS, f"{obj} {field} {x}"
             continue
         nfd = ALL_FIELDS_MAP[field]
         if field in OPTIONAL_FIELDS:
@@ -1781,7 +1781,7 @@ class RecField:  #
     """
     ALIAS = "field"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.TYPE_CORPUS
     #
     name: str
     type: NODES_TYPES_T

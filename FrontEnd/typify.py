@@ -653,8 +653,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         expr_cstr = node.expr_rhs.x_type
         _CheckTypeCompatibleForAssignment(
             node, tc, expr_cstr, var_cstr, types.is_mutable_def(node.expr_rhs))
-        assert is_proper_lhs(
-            node.lhs), f"cannot assign to readonly data: {node}"
+        if not is_proper_lhs(node.lhs):
+            cwast.CompilerError(
+                node.x_srcloc, f"cannot assign to readonly data: {node}")
     elif isinstance(node, cwast.StmtCompoundAssignment):
         assert is_proper_lhs(node.lhs)
         kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
