@@ -703,7 +703,7 @@ def main(dump_ir):
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-
+        
     # Legalize so that code emitter works
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
@@ -713,6 +713,7 @@ def main(dump_ir):
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
+        # canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
         canonicalize.CreateSliceReplacementStructs(
             mod, tc, slice_to_struct_map)
@@ -723,7 +724,6 @@ def main(dump_ir):
         canonicalize.ReplaceSlice(mod, tc, slice_to_struct_map)
 
     fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
-
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)

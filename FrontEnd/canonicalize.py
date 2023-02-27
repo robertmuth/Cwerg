@@ -103,8 +103,9 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
-            def_t = cwast.DefVar(False, False, name_t, 
-                                 cwast.TypeAuto(x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
+            def_t = cwast.DefVar(False, False, name_t,
+                                 cwast.TypeAuto(
+                                     x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
                                  x_srcloc=srcloc)
             name_f = id_gen.NewName("op_f")
             def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
@@ -289,13 +290,13 @@ def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
 def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
     assert isinstance(node.x_type, cwast.TypeSlice)
     assert node.x_type.mut
-    #assert node.x_type.type == slice_rec.fields[0].x_type
+    # assert node.x_type.type == slice_rec.fields[0].x_type
     return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
 
 
 def ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
     """Convert:
-    slice-mut -> slice 
+    slice-mut -> slice
     array -> slice
     array-mut -> slice-mut
     """
@@ -307,6 +308,49 @@ def ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
         return _ConvertValArrayToSliceValRec(rhs, def_rec, srcloc)
     else:
         assert False
+
+
+def _ConvertSliceIndex(node, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
+    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
+    bound = cwast.ExprLen(cwast.CloneNodeRecursively(
+        node.container), x_srcloc=srcloc, x_type=uint_type)
+    start_addr = cwast.ExprAs(
+        node.container, types.MakeAstTypeNodeFromCanonical(cstr_ptr, srcloc), x_srcloc=srcloc, x_type=cstr_ptr)
+    elem_addr = cwast.ExprPointer(
+        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
+    return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
+                           x_type=node.x_type, x_value=node.x_value)
+
+
+def _ConvertArrayIndex(node, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
+    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
+    cstr_addr = tc.insert_ptr_type(is_lhs, node.container.x_type)
+
+    container_addr = cwast.ExprAddrOf(is_lhs, cwast.CloneNodeRecursively(node.container), x_srcloc=srcloc,
+                                      x_type=cstr_addr)
+    bound = cwast.ExprLen(node.container, x_srcloc=srcloc, x_type=uint_type)
+    start_addr = cwast.ExprAs(
+        container_addr, types.MakeAstTypeNodeFromCanonical(cstr_ptr, srcloc), x_srcloc=srcloc, x_type=cstr_ptr)
+    elem_addr = cwast.ExprPointer(
+        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
+    return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
+                           x_type=node.x_type, x_value=node.x_value)
+
+
+def ReplaceExprIndex(node, tc):
+    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+
+    def replacer(node, field):
+        nonlocal tc, uint_type
+        if not isinstance(node, cwast.ExprIndex):
+            return None
+        if isinstance(node.container.x_type, cwast.TypeSlice):
+            return _ConvertSliceIndex(node, field == "lhs", uint_type, tc,
+                                      node.x_srcloc)
+        else:
+            return _ConvertArrayIndex(node, field == "lhs", uint_type, tc,
+                                      node.x_srcloc)
+    cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
 def ReplaceSlice(node, tc, slice_to_struct_map):
@@ -327,7 +371,8 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                                                         node.x_srcloc)
             return
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(node.type_or_auto.x_type)
+            def_rec: cwast.DefRec = slice_to_struct_map.get(
+                node.type_or_auto.x_type)
             if def_rec is not None:
                 if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
                     if node.type_or_auto.x_type != node.initial_or_undef.x_type:
@@ -335,7 +380,7 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                                                                         node.type_or_auto.x_type,
                                                                         def_rec,
                                                                         node.x_srcloc)
-    
+
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.DefFun):
                 fun_sig = node.x_type
@@ -348,7 +393,8 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                         fun_sig.result, fun_sig.result)
                     params = [slice_to_struct_map.get(
                         p.type, p.type) for p in fun_sig.params]
-                    typify.UpdateNodeType(tc, node, tc.insert_fun_type(params, result))
+                    typify.UpdateNodeType(
+                        tc, node, tc.insert_fun_type(params, result))
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
@@ -364,7 +410,7 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
                         typify.UpdateNodeType(tc, node, def_rec.x_type)
                     elif isinstance(sym, (cwast.DefVar, cwast.FunParam, cwast.DefGlobal)):
-                         typify.UpdateNodeType(tc, node, def_rec.x_type)
+                        typify.UpdateNodeType(tc, node, def_rec.x_type)
                     else:
                         assert False
                 elif isinstance(node, cwast.ExprAs):

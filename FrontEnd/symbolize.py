@@ -316,6 +316,8 @@ def _CheckAddressCanBeTaken(lhs):
             assert False, f"unexpected {node_def}"
     elif isinstance(lhs, cwast.ExprIndex):
         _CheckAddressCanBeTaken(lhs.container)
+    elif isinstance(lhs, cwast.ExprDeref):
+        pass
     else:
         assert False, f"{lhs}"
 

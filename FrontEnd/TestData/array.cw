@@ -19,7 +19,7 @@
    (let v2 auto (at c1 0))
    (let v3 auto (& (at c1 0)))
    (let v4 auto (& mut (at c2 0)))
-
+   (= (at c2 0 ) 666)
    (return 66) 
 ])
 

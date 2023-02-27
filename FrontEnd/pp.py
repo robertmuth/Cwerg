@@ -64,6 +64,9 @@ def GetNodeTypeAndFields(node, condense=True):
     elif isinstance(node, cwast.Expr2):
         fields.pop(0)
         return cwast.BINARY_EXPR_SHORTCUT_INV[node.binary_expr_kind], fields
+    elif isinstance(node, cwast.ExprPointer):
+        fields.pop(0)
+        return cwast.POINTER_EXPR_SHORTCUT_INV[node.pointer_expr_kind], fields
     elif cls.ALIAS:
         return cls.ALIAS, fields
     else:

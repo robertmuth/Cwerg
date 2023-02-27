@@ -1,6 +1,7 @@
 
 import logging
 import re
+import dataclasses
 
 from FrontEnd import cwast
 
@@ -164,6 +165,26 @@ def _get_size_and_offset_for_sum_type(node: cwast.TypeSum, ptr_size):
 
 
 TYPE_ID_REG_TYPE = "U16"
+
+
+def MakeAstTypeNodeFromCanonical(node, srcloc):
+    clone = dataclasses.replace(node)
+    #
+    clone.x_srcloc = srcloc
+    clone.x_type = node
+    clone.x_size = None
+    clone.x_alignement = None
+    clone.x_offset = None
+
+    for c in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[c]
+        if nfd.kind is cwast.NFK.NODE:
+            setattr(clone, c, MakeAstTypeNodeFromCanonical(getattr(node, c), srcloc))
+        elif nfd.kind is cwast.NFK.LIST:
+            out = [MakeAstTypeNodeFromCanonical(cc, srcloc)
+                   for cc in getattr(node, c)]
+            setattr(clone, c, out)
+    return clone
 
 
 class TypeCorpus:
