@@ -453,6 +453,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "value_or_auto", "enum constant or auto", None),
     NFD(NFK.NODE, "value_or_undef", "", None),
     NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
+    NFD(NFK.NODE, "expr_lhs", "l-value expression", NODES_LHS),
     NFD(NFK.NODE, "initial_or_undef", "initializer", None),
     NFD(NFK.NODE, "default_or_undef",
         "value if type narrowing fail or trap if undef", None),
@@ -1133,14 +1134,14 @@ class ExprAddrOf:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     mut: bool
-    lhs: NODES_EXPR_T
+    expr_lhs: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.lhs}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.expr_lhs}"
 
 
 @NodeCommon

@@ -173,7 +173,7 @@ def ReplaceConstExpr(node):
     def replacer(node, field):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
-        if (field not in ("lhs", "inits_array", "inits_rec") and
+        if (field not in ("expr_lhs", "inits_array", "inits_rec") and
             cwast.NF.VALUE_ANNOTATED in node.FLAGS and
             not isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)) and
                 node.x_value is not None):

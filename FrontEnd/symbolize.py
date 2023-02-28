@@ -349,7 +349,7 @@ def VerifyASTSymbolsRecursively(node):
             assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
 
         if isinstance(node, cwast.ExprAddrOf):
-            _CheckAddressCanBeTaken(node.lhs)
+            _CheckAddressCanBeTaken(node.expr_lhs)
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 

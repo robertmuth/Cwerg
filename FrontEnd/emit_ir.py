@@ -286,7 +286,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         else:
             return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
-        return _GetLValueAddress(node.lhs, tc, id_gen)
+        return _GetLValueAddress(node.expr_lhs, tc, id_gen)
     elif isinstance(node, cwast.Expr2):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)

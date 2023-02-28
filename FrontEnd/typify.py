@@ -504,7 +504,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             cwast.BASE_TYPE_KIND.UINT))
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = _TypifyNodeRecursively(
-            node.lhs, tc, types.NO_TYPE, ctx)
+            node.expr_lhs, tc, types.NO_TYPE, ctx)
         return AnnotateNodeType(tc, node, tc.insert_ptr_type(node.mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
@@ -645,7 +645,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert isinstance(node.container.x_type,
                           (cwast.TypeSlice, cwast.TypeArray)), f"unpected front expr {node.container.x_type}"
         if node.mut:
-            # assert is_mutable_container(node.container), f"container not mutable: {node} {node.container}"
+            assert is_mutable_container(node.container), f"container not mutable: {node} {node.container}"
             pass
         
         if isinstance(node.container.x_type, cwast.TypeArray):
@@ -733,12 +733,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         # else:
         #    _CheckTypeSame(node, tc, node.x_type, def_node.x_type)
     elif isinstance(node, cwast.ExprAddrOf):
-        cstr_expr = node.lhs.x_type
+        cstr_expr = node.expr_lhs.x_type
         cstr = node.x_type
         if node.mut:
-            if not address_can_be_taken(node.lhs):
+            if not address_can_be_taken(node.expr_lhs):
                 cwast.CompilerError(node.x_srcloc,
-                                    f"address cannot be take: {node} {tc.canon_name(node.lhs.x_type)}")
+                                    f"address cannot be take: {node} {tc.canon_name(node.expr_lhs.x_type)}")
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
         assert node.x_type == tc.insert_base_type(
