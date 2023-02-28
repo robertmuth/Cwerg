@@ -15,7 +15,7 @@
 
 (global dim auto 5_u16)
 
-(fun fun1 [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
+(fun foo [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
    (let v2 auto (at c1 0))
    (let v3 auto (& (at c1 0)))
    (let v4 auto (& mut (at c2 0)))
@@ -35,5 +35,11 @@
 (global f2 (slice mut s32) e2)
 (global f3 (slice s32) e2)
 (# "ERROR: (let f4 (slice mut s32) e1)")
+
+(fun baz [] void [
+   (# "ERRPOR: (= (at c1 5) 0)")
+   (let pc1 (ptr s32) (front c1))
+   (= (at c2 5) 0)
+])
 
 ])

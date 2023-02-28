@@ -57,18 +57,18 @@
    (for i u64 0 31 1 [
       (cond [
          (case (== (% i 15) 0) [
-            (stmt discard (call write [1 (& (at FIZZBUZZ 0)) (len FIZZBUZZ)]))]) 
+            (stmt discard (call write [1 (front FIZZBUZZ) (len FIZZBUZZ)]))]) 
          (case (== (% i 3) 0) [
-            (stmt discard (call write [1 (& (at FIZZ 0)) (len FIZZ)]))])
+            (stmt discard (call write [1 (front FIZZ) (len FIZZ)]))])
          (case (== (% i 5) 0) [
-            (stmt discard (call write [1 (& (at BUZZ 0)) (len BUZZ)]))])
+            (stmt discard (call write [1 (front BUZZ) (len BUZZ)]))])
          (case true [
             (let mut ref buf (array 32 u8) undef)
             (let n auto (call u64_to_str [i 10 (& mut (at buf 0))]))
             (stmt discard (call write [1 (& (at buf 0)) n]))
          ]) 
       ])
-      (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+      (stmt discard (call write [1 (front NEWLINE) (len NEWLINE)]))
 
    ])
 

@@ -22,12 +22,30 @@ logger = logging.getLogger(__name__)
 
 def is_proper_lhs(node):
     # TODO: this needs to be rethought and cleaned up
+    # x =  (x must be mutable definition)
+    # ^x = (x must have type mutable pointer)
+    #
     return (types.is_mutable_def(node) or
             isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type) or
-            isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
+            # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
             isinstance(node, cwast.ExprField) and is_proper_lhs(node.container) or
             isinstance(node, cwast.ExprIndex) and types.is_mutable_def(node.container) or
             isinstance(node, cwast.ExprIndex) and types.is_mutable(node.container.x_type))
+
+
+def address_can_be_taken(node):
+      return (types.is_ref_def(node) or
+              isinstance(node, cwast.ExprDeref) or
+              isinstance(node, cwast.ExprIndex) and isinstance(node.container.x_type, cwast.TypeSlice) or
+              isinstance(node, cwast.ExprIndex) and address_can_be_taken(node.container))
+    
+def is_mutable_container(node):
+    if isinstance(node.x_type, cwast.TypeSlice):
+        return node.x_type.mut
+    elif isinstance(node.x_type, cwast.TypeArray):
+        return is_proper_lhs(node)
+    else:
+        assert False
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:
@@ -382,6 +400,12 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             _TypifyNodeRecursively(node.expr_bound_or_undef, tc,  tc.insert_base_type(
                 cwast.BASE_TYPE_KIND.UINT), ctx)
         return AnnotateNodeType(tc, node, cstr)
+    elif isinstance(node, cwast.ExprFront):
+        cstr = _TypifyNodeRecursively(node.container, tc, types.NO_TYPE, ctx)
+        if not isinstance(cstr, (cwast.TypeSlice, cwast.TypeArray)):
+            cwast.CompilerError(
+                node.x_srcloc, "expected container in front expression")
+        return AnnotateNodeType(tc, node, tc.insert_ptr_type(node.mut, cstr.type))
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.insert_base_type(
             cwast.BASE_TYPE_KIND.BOOL), ctx)
@@ -617,6 +641,19 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert isinstance(node.expr1.x_type, (cwast.TypePtr, cwast.TypeSlice))
         _CheckTypeUint(node, tc, node.expr2.x_type)
         _CheckTypeSame(node, tc, node.expr1.x_type, node.x_type)
+    elif isinstance(node, cwast.ExprFront):
+        assert isinstance(node.container.x_type,
+                          (cwast.TypeSlice, cwast.TypeArray)), f"unpected front expr {node.container.x_type}"
+        if node.mut:
+            # assert is_mutable_container(node.container), f"container not mutable: {node} {node.container}"
+            pass
+        
+        if isinstance(node.container.x_type, cwast.TypeArray):
+            # TODO: check if address can be taken
+            pass
+
+        assert isinstance(node.x_type, cwast.TypePtr)
+        _CheckTypeSame(node, tc, node.x_type.type, node.container.x_type.type)
     elif isinstance(node, cwast.Expr3):
         cstr = node.x_type
         cstr_t = node.expr_t.x_type
@@ -699,8 +736,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         cstr_expr = node.lhs.x_type
         cstr = node.x_type
         if node.mut:
-            assert is_proper_lhs(
-                node.lhs), f"bad lhs in: {node} {tc.canon_name(node.lhs.x_type)}"
+            if not address_can_be_taken(node.lhs):
+                cwast.CompilerError(node.x_srcloc,
+                                    f"address cannot be take: {node} {tc.canon_name(node.lhs.x_type)}")
         assert isinstance(cstr, cwast.TypePtr) and cstr.type == cstr_expr
     elif isinstance(node, cwast.ExprOffsetof):
         assert node.x_type == tc.insert_base_type(

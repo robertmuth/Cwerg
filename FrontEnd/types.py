@@ -23,6 +23,13 @@ def is_mutable_def(node):
     return False
 
 
+def is_ref_def(node):
+    if isinstance(node, cwast.Id):
+        s = node.x_symbol
+        return  isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar) and s.ref
+    return False
+
+
 def align(x, a):
     return (x + a - 1) // a * a
 
@@ -179,9 +186,10 @@ def MakeAstTypeNodeFromCanonical(node, srcloc):
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
-            setattr(clone, c, MakeAstTypeNodeFromCanonical(getattr(node, c), srcloc))
+            setattr(clone, c, MakeAstTypeNodeFromCanonical(
+                getattr(node, c), srcloc))
         elif nfd.kind is cwast.NFK.LIST:
-            out = [MakeAstTypeNodeFromCanonical(cc, srcloc)
+            out = [cwast.MakeAstTypeNodeFromCanonical(cc, srcloc)
                    for cc in getattr(node, c)]
             setattr(clone, c, out)
     return clone

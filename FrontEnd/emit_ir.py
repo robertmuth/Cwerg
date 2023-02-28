@@ -272,7 +272,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         if isinstance(node.container.x_type, cwast.TypeArray):
             assert False, f"{node} {node.x_value}"
         else:
-            assert False, f"{node} {node.container}"
+            assert False, f"{node} container={node.container} type={node.container.x_type}"
     elif isinstance(node, cwast.Id):
         # What we really need to check here is if we need a memcpy
         assert isinstance(node.x_type, (cwast.TypeBase,
@@ -301,7 +301,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
     elif isinstance(node, cwast.ExprPointer):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
-        assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
+        # TODO: add range check
+        # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         res = id_gen.NewName("expr2")
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert isinstance(node.expr1.x_type, cwast.TypePtr)
@@ -336,7 +337,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             size = node.expr.x_type.size.x_value
             return addr, f"{size}:U64"
         else:
-            assert False, f"unsupported cast {node.expr} -> {node.type}"
+            assert False, f"unsupported cast {node.expr} ({node.expr.x_type}) -> {node.type}"
     elif isinstance(node, cwast.ExprDeref):
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
@@ -353,6 +354,14 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         addr = _GetLValueAddress(node, tc, id_gen)
         res = id_gen.NewName("at")
         print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
+        return res
+    elif isinstance(node, cwast.ExprFront):
+        assert isinstance(node.container.x_type, cwast.TypeArray), f"unexpected {node}"
+        return _GetLValueAddress(node.container, tc, id_gen)
+    elif isinstance(node, cwast.ExprField):
+        res = id_gen.NewName("field")
+        addr = _GetLValueAddress(node.container, tc, id_gen)
+        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
         return res
     else:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
@@ -703,7 +712,7 @@ def main(dump_ir):
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-        
+
     # Legalize so that code emitter works
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
@@ -713,7 +722,7 @@ def main(dump_ir):
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
-        # canonicalize.ReplaceExprIndex(mod, tc)
+        canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
         canonicalize.CreateSliceReplacementStructs(
             mod, tc, slice_to_struct_map)
@@ -723,12 +732,15 @@ def main(dump_ir):
         canonicalize.CanonicalizeTernaryOp(mod, id_gen)
         canonicalize.ReplaceSlice(mod, tc, slice_to_struct_map)
 
+
+
     fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
+
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             # continue
@@ -760,7 +772,7 @@ def main(dump_ir):
             # pp.PrettyPrint(mod)
 
         exit(0)
-
+        
     # Fully qualify names
     for mod in mod_topo_order:
         mod_name = "" if mod.name == "main" else mod.name + "/"

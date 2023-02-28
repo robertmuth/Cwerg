@@ -343,7 +343,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
               "ExprField", "ExprCall", "ExprParen",
               "Expr1", "Expr2", "Expr3", "ExprPointer",
-              "ExprLen", "ExprSizeof", "ExprOffsetof", "ExprStmt",
+              "ExprLen", "ExprFront", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs")
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1324,6 +1324,27 @@ class ExprLen:
 # Cast Like Expressions
 
 
+@NodeCommon
+@dataclasses.dataclass()
+class ExprFront:
+    """Address of the first element of an array or slice"""
+    ALIAS = "front"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    mut: bool
+    #
+    container: NODES_EXPR_T   # must be of type slice or array
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return self.__class__.__name__
+
+
+# Cast Like Expressions
 @NodeCommon
 @dataclasses.dataclass()
 class ExprIs:

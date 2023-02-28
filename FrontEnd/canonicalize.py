@@ -216,11 +216,14 @@ def OptimizeKnownConditionals(node):
 
     cwast.VisitAstRecursivelyPost(node, replacer)
 
+
 ############################################################
 # Convert Slices to equvalent struct
 #
 # slice mut u8 -> struct {pointer ptr mut  u8, len uint}
 ############################################################
+SLICE_FIELD_POINTER = "pointer"
+SLICE_FIELD_LENGTH = "length"
 
 
 def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
@@ -229,7 +232,7 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
         slice.type), x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
-    pointer_field = cwast.RecField("pointer",
+    pointer_field = cwast.RecField(SLICE_FIELD_POINTER,
                                    pointer_type, cwast.ValUndef(
                                        x_srcloc=srcloc),
                                    x_srcloc=srcloc)
@@ -237,7 +240,7 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
     length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
     typify.AnnotateNodeType(
         tc, length_type, tc.insert_base_type(length_type.base_type_kind))
-    length_field = cwast.RecField("length", length_type, cwast.ValUndef(x_srcloc=srcloc),
+    length_field = cwast.RecField(SLICE_FIELD_LENGTH, length_type, cwast.ValUndef(x_srcloc=srcloc),
                                   x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, length_field, length_type.x_type)
     name = f"rec_{tc.canon_name(slice.x_type)}"
@@ -310,27 +313,12 @@ def ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
         assert False
 
 
-def _ConvertSliceIndex(node, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
+def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
     cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container), x_srcloc=srcloc, x_type=uint_type)
-    start_addr = cwast.ExprAs(
-        node.container, types.MakeAstTypeNodeFromCanonical(cstr_ptr, srcloc), x_srcloc=srcloc, x_type=cstr_ptr)
-    elem_addr = cwast.ExprPointer(
-        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
-    return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
-                           x_type=node.x_type, x_value=node.x_value)
-
-
-def _ConvertArrayIndex(node, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
-    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
-    cstr_addr = tc.insert_ptr_type(is_lhs, node.container.x_type)
-
-    container_addr = cwast.ExprAddrOf(is_lhs, cwast.CloneNodeRecursively(node.container), x_srcloc=srcloc,
-                                      x_type=cstr_addr)
-    bound = cwast.ExprLen(node.container, x_srcloc=srcloc, x_type=uint_type)
-    start_addr = cwast.ExprAs(
-        container_addr, types.MakeAstTypeNodeFromCanonical(cstr_ptr, srcloc), x_srcloc=srcloc, x_type=cstr_ptr)
+    start_addr = cwast.ExprFront(
+        is_lhs, node.container, x_srcloc=srcloc, x_type=cstr_ptr)
     elem_addr = cwast.ExprPointer(
         cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
     return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
@@ -342,14 +330,11 @@ def ReplaceExprIndex(node, tc):
 
     def replacer(node, field):
         nonlocal tc, uint_type
-        if not isinstance(node, cwast.ExprIndex):
-            return None
-        if isinstance(node.container.x_type, cwast.TypeSlice):
-            return _ConvertSliceIndex(node, field == "lhs", uint_type, tc,
-                                      node.x_srcloc)
+        if isinstance(node, cwast.ExprIndex):
+            return _ConvertIndex(node, field == "lhs", uint_type, tc, node.x_srcloc)
         else:
-            return _ConvertArrayIndex(node, field == "lhs", uint_type, tc,
-                                      node.x_srcloc)
+            return None
+
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
@@ -380,7 +365,23 @@ def ReplaceSlice(node, tc, slice_to_struct_map):
                                                                         node.type_or_auto.x_type,
                                                                         def_rec,
                                                                         node.x_srcloc)
-
+        elif isinstance(node, cwast.ExprLen):
+            def_rec: cwast.DefRec = slice_to_struct_map.get(
+                node.container.x_type)
+            if def_rec is not None:
+                cwast.MaybeReplaceAstRecursively(node, replacer)
+                return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
+                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
+                                       x_field=def_rec.fields[1])
+        elif isinstance(node, cwast.ExprFront):
+            def_rec: cwast.DefRec = slice_to_struct_map.get(
+                node.container.x_type)
+            if def_rec is not None:
+                cwast.MaybeReplaceAstRecursively(node, replacer)
+                return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
+                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
+                                       x_field=def_rec.fields[0])
+                
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.DefFun):
                 fun_sig = node.x_type
