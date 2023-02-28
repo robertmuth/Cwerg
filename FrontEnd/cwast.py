@@ -1709,19 +1709,18 @@ class StmtReturn:
 class StmtExpr:
     """Expression statement
 
-    If expression does not have type void, `discard` must be `true`
+    Turns an expression (typically a call) into a statement
     """
     ALIAS = "stmt"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
     #
-    discard: bool
     expr: ExprCall
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.discard} {self.expr}"
+        return f"{_NAME(self)} {self.expr}"
 
 
 @NodeCommon

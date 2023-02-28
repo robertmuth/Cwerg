@@ -5,7 +5,7 @@
 (fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
 
 (fun mymemcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] uint [
-   (stmt discard (call memcpy [dst src size]))
+   (stmt (call memcpy [dst src size]))
    (return size)
 ])
 
@@ -183,8 +183,8 @@
   (for i u64 0 size 1 [
     (let v auto (^ (incp data i)))
     (let n auto (call r64_to_hex_fmt [v (& mut (at buf 0))]))
-    (stmt discard (call write [1 (& (at buf 0)) n]))
-    (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+    (stmt (call write [1 (& (at buf 0)) n]))
+    (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
   ])
   (return)
 ])
@@ -202,17 +202,17 @@
    ])
 
    (stmt (call dump_array [SIZE  (& (at Data 1))]))
-   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
 
    (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
-   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
 
    (stmt (call dump_array [SIZE  (& (at Data 1))]))
-   (stmt discard (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
 
    (for i u64 1 SIZE 1 [
      (if (> (at Data i) (at Data (+ i 1))) [
-      (stmt discard (call write [1 (& (at ERROR 0)) (len ERROR)]))
+      (stmt (call write [1 (& (at ERROR 0)) (len ERROR)]))
       (trap)
      ] [])
    ])

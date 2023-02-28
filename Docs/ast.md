@@ -18,6 +18,7 @@
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
+[ExprFront&nbsp;(front)](#exprfront-front) &ensp;
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
@@ -400,11 +401,10 @@ Fields:
 ### StmtExpr (stmt)
 Expression statement
 
-    If expression does not have type void, `discard` must be `true`
+    Turns an expression (typically a call) into a statement
     
 
 Fields:
-* discard [FLAG]: ignore non-void expression
 * expr [NODE]: expression
 
 ### StmtIf (if)
@@ -581,7 +581,7 @@ Create a pointer to object represented by `expr`
 
 Fields:
 * mut [FLAG]: is mutable
-* lhs [NODE]: l-value expression
+* expr_lhs [NODE]: l-value expression
 
 ### ExprAs (as)
 Safe Cast (Conversion)
@@ -648,6 +648,13 @@ Access field in expression representing a record.
 Fields:
 * container [NODE]: array and slice
 * field [STR]: record field
+
+### ExprFront (front)
+Address of the first element of an array or slice
+
+Fields:
+* mut [FLAG]: is mutable
+* container [NODE]: array and slice
 
 ### ExprIndex (at)
 Checked indexed access of array or slice

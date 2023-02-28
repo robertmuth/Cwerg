@@ -6,7 +6,7 @@
    (global msg auto "hello world\n")
 
    (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-            (stmt discard (call write [1 (front msg) (len msg)]))
+            (stmt (call write [1 (front msg) (len msg)]))
          (return 0)
    ])
 ])

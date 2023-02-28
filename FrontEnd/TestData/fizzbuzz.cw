@@ -5,7 +5,7 @@
 (fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
 
 (fun mymemcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] uint [
-   (stmt discard (call memcpy [dst src size]))
+   (stmt (call memcpy [dst src size]))
    (return size)
 ])
 
@@ -57,18 +57,18 @@
    (for i u64 0 31 1 [
       (cond [
          (case (== (% i 15) 0) [
-            (stmt discard (call write [1 (front FIZZBUZZ) (len FIZZBUZZ)]))]) 
+            (stmt (call write [1 (front FIZZBUZZ) (len FIZZBUZZ)]))]) 
          (case (== (% i 3) 0) [
-            (stmt discard (call write [1 (front FIZZ) (len FIZZ)]))])
+            (stmt (call write [1 (front FIZZ) (len FIZZ)]))])
          (case (== (% i 5) 0) [
-            (stmt discard (call write [1 (front BUZZ) (len BUZZ)]))])
+            (stmt (call write [1 (front BUZZ) (len BUZZ)]))])
          (case true [
             (let mut ref buf (array 32 u8) undef)
             (let n auto (call u64_to_str [i 10 (& mut (at buf 0))]))
-            (stmt discard (call write [1 (& (at buf 0)) n]))
+            (stmt (call write [1 (& (at buf 0)) n]))
          ]) 
       ])
-      (stmt discard (call write [1 (front NEWLINE) (len NEWLINE)]))
+      (stmt (call write [1 (front NEWLINE) (len NEWLINE)]))
 
    ])
 

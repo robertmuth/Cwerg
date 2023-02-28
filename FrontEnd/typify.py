@@ -700,8 +700,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         expr_cstr = node.expr_rhs.x_type
         _CheckExpr2Types(node, var_cstr, var_cstr, expr_cstr, kind, tc)
     elif isinstance(node, cwast.StmtExpr):
-        cstr = node.expr.x_type
-        assert types.is_void(cstr) != node.discard, f"{cstr} vs {node.discard}"
+        pass
     elif isinstance(node, cwast.ExprAsNot):
         pass
     elif isinstance(node, cwast.ExprAs):

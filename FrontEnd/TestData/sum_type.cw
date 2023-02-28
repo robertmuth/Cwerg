@@ -25,7 +25,7 @@
    (= x false)
    (if (is x sum2_t) [(return false)] [])
    (= x (or (tryas x bool undef) false))
-   (stmt discard (call fun1 [true false 1]))
+   (stmt (call fun1 [true false 1]))
    (return true) 
 ])
 

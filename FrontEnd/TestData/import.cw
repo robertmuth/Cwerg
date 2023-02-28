@@ -33,7 +33,7 @@
 (module main [] [
     (import std)
     (fun main [(param argc u32) (param argv (ptr (ptr u8)))] s32 [
-        (stmt discard (call std/write [std/stdout "hello world\n"]))
+        (stmt (call std/write [std/stdout "hello world\n"]))
         (return 0)
     ])
 ])
