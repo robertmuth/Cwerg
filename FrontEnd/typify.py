@@ -34,11 +34,12 @@ def is_proper_lhs(node):
 
 
 def address_can_be_taken(node):
-      return (types.is_ref_def(node) or
-              isinstance(node, cwast.ExprDeref) or
-              isinstance(node, cwast.ExprIndex) and isinstance(node.container.x_type, cwast.TypeSlice) or
-              isinstance(node, cwast.ExprIndex) and address_can_be_taken(node.container))
-    
+    return (types.is_ref_def(node) or
+            isinstance(node, cwast.ExprDeref) or
+            isinstance(node, cwast.ExprIndex) and isinstance(node.container.x_type, cwast.TypeSlice) or
+            isinstance(node, cwast.ExprIndex) and address_can_be_taken(node.container))
+
+
 def is_mutable_container(node):
     if isinstance(node.x_type, cwast.TypeSlice):
         return node.x_type.mut
@@ -526,6 +527,17 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return types.NO_TYPE
     elif isinstance(node, cwast.Import):
         return types.NO_TYPE
+    elif isinstance(node, cwast.ValSlice):
+        len_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.expr_size, tc, len_type, ctx)
+        if isinstance(target_type, cwast.TypeSlice):
+            ptr_type = tc.insert_ptr_type(target_type.mut, target_type.type)
+            _TypifyNodeRecursively(node.pointer, tc, ptr_type, ctx)
+            return AnnotateNodeType(tc, node, target_type)
+        else:
+            ptr_type = _TypifyNodeRecursively(
+                node.pointer, tc, types.NO_TYPE, ctx)
+            return AnnotateNodeType(tc, node, tc.insert_slice_type(ptr_type.mut, ptr_type.type))
     else:
         assert False, f"unexpected node {node}"
 
@@ -645,9 +657,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert isinstance(node.container.x_type,
                           (cwast.TypeSlice, cwast.TypeArray)), f"unpected front expr {node.container.x_type}"
         if node.mut:
-            assert is_mutable_container(node.container), f"container not mutable: {node} {node.container}"
+            assert is_mutable_container(
+                node.container), f"container not mutable: {node} {node.container}"
             pass
-        
+
         if isinstance(node.container.x_type, cwast.TypeArray):
             # TODO: check if address can be taken
             pass
@@ -764,7 +777,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert fun_type.result == node.result.x_type
         for a, b in zip(fun_type.params, node.params):
             _CheckTypeSame(b, tc, a.type, b.type.x_type)
-
+    elif isinstance(node, cwast.ValSlice):
+        assert node.x_type.mut == node.pointer.x_type.mut
+        _CheckTypeSame(node, tc, node.x_type.type, node.pointer.x_type.type)
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
                            cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,
                            cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,

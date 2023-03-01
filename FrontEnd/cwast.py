@@ -1050,7 +1050,7 @@ class ValSlice:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return f"{_NAME(self)} {self.string}"
+    def __str__(self): return f"{_NAME(self)} {self.pointer} {self.expr_size}"
 
 
 NODES_INITS_REC_T = Union[Comment, FieldVal]
@@ -1328,7 +1328,11 @@ class ExprLen:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprFront:
-    """Address of the first element of an array or slice"""
+    """Address of the first element of an array or slice
+    
+    Similar to `(& (at container 0))` but will not fail if container has zero size
+    
+    """
     ALIAS = "front"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
