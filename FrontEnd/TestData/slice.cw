@@ -9,6 +9,9 @@
    (return size)
 ])
 
+(fun pub write_slice [(param fd s32) (param s (slice u8))] sint [
+    (return (call write [fd (front s) (len s)]))
+])
 
 (global NEWLINE auto "\n")
 (global SPACE auto " ")
@@ -35,19 +38,17 @@
 (fun strlen [(param s (ptr u8))] uint [
       (let mut i uint 0)
       (while (!= (^ (incp s i)) 0) [
-         (= i (+ i 1))
+        (+= i 1)
       ])
       (return i)
 ])
 
 (fun find [(param haystack (slice u8)) (param needle (slice u8))] uint [
-    (stmt (call write [1 (front haystack) (len haystack)]))
-    (stmt (call write [1 (front NEWLINE) (len NEWLINE)]))
     (if (== (len needle) 0) [(return 0)] [])
     (if (< (len haystack) (len needle)) [(return NOT_FOUND)] [])
     (# "at this point we know that both slices have len > 0")
-    (let last_j auto (len needle))
-    (let last_i auto (- (len haystack) last_j))
+    (let len_needle auto (len needle))
+    (let last_i auto (- (len haystack) len_needle))
     (let mut curr_i uint 0)
     (block _ [
         (let mut curr_j uint 0)
@@ -55,10 +56,10 @@
             (if (!= (at haystack (+ curr_i curr_j)) 
                     (at needle curr_j)) [(break)] [])
             (+= curr_j 1)
-            (if (< curr_j last_j) [(continue)] [(return curr_i)])
+            (if (< curr_j len_needle) [(continue)] [(return curr_i)])
         ])
         (+= curr_i 1)
-        (if (< curr_i last_i) [(continue)] [(return NOT_FOUND)])
+        (if (<= curr_i last_i) [(continue)] [(return NOT_FOUND)])
     ])
 ])
 
@@ -79,20 +80,29 @@
 ])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-   (let mut ref storage (array 1024 u8) undef)
-   (let buffer (slice mut u8) storage)
-   (let mut curr auto buffer)
-   (= curr storage)
-   (let arg1 auto (^(incp argv 1)))
-   (let haystack auto (slice_val arg1 (call strlen [arg1])))
-   (let arg2 auto (^(incp argv 2)))
-   (let needle auto (slice_val arg2 (call strlen [arg2])))
-   (let match uint (call find [haystack needle]))
-   (let mut ref buf (array 32 u8) undef)
-   (let n auto (call u64_to_str [match 10 (front mut buf)]))
-   (stmt (call write [1 (front buf) n]))
-   (stmt (call write [1 (front NEWLINE) (len NEWLINE)]))
-   (return 0)
+    (let mut ref storage (array 1024 u8) undef)
+    (let buffer (slice mut u8) storage)
+    (let mut curr auto buffer)
+    (= curr storage)
+    (stmt (call write_slice [1 "haystack: "]))
+    (let arg1 auto (^(incp argv 1)))
+    (let haystack auto (slice_val arg1 (call strlen [arg1])))
+    (stmt (call write_slice [1 haystack]))
+    (stmt (call write_slice [1 NEWLINE]))
+
+    (stmt (call write_slice [1 "needle: "]))
+    (let arg2 auto (^(incp argv 2)))
+    (let needle auto (slice_val arg2 (call strlen [arg2])))
+    (stmt (call write_slice [1 needle]))
+    (stmt (call write_slice [1 NEWLINE]))
+   
+    (stmt (call write_slice [1 "match at: "]))
+    (let match uint (call find [haystack needle]))
+    (let mut ref buf (array 32 u8) undef)
+    (let n auto (call u64_to_str [match 10 (front mut buf)]))
+    (stmt (call write [1 (front buf) n]))
+    (stmt (call write_slice [1 NEWLINE]))
+    (return 0)
 ])
 
 ])
