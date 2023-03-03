@@ -213,6 +213,7 @@ class TypeCorpus:
 
         self.wrapped_curr = 1
         # maps to ast
+        self.topo_order = []
         self.corpus: Dict[str, Any] = {}  # name to canonical type
         self._canon_name: Dict[Any, str] = {}   # canonical type to name
         # canonical type to Cwerg IR registers
@@ -347,6 +348,7 @@ class TypeCorpus:
             return self.corpus[name]
         assert cwast.NF.TYPE_CORPUS in node.FLAGS, f"not a corpus node: {node}"
         self.corpus[name] = node
+        self.topo_order.append(node)
         assert node not in self._canon_name
         assert STRINGIFIEDTYPE_RE.match(name), f"bad type name [{name}]"
         self._canon_name[node] = name

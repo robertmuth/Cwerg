@@ -599,6 +599,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         assert node.x_type is not types.NO_TYPE
         assert node.x_type in tc._canon_name, f"bad type annotation for {node}: {node.x_type}"
+        if isinstance(node, (cwast.DefRec, cwast.DefEnum)):
+            assert node.x_type ==  node
+        else:
+            assert node.x_type !=  node, f"bad node: {node}"
     else:
         assert isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)
 

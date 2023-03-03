@@ -92,7 +92,7 @@ $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 $(DIR)/slice.x64.exe: TestData/slice.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ 
+	${QEMU} $@ foobar bar
 
 
 clean:

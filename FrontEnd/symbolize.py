@@ -311,7 +311,7 @@ def _CheckAddressCanBeTaken(lhs):
         if isinstance(node_def, cwast.DefGlobal):
             pass
         elif isinstance(node_def, cwast.DefVar):
-            assert node_def.ref, f"expect reg {node_def}"
+            assert node_def.ref, f"in {lhs.x_srcloc} expect ref flag for {node_def}"
         else:
             assert False, f"unexpected {node_def}"
     elif isinstance(lhs, cwast.ExprIndex):

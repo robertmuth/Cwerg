@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """Canonicalizer
 
 """
@@ -217,116 +215,20 @@ def OptimizeKnownConditionals(node):
     cwast.VisitAstRecursivelyPost(node, replacer)
 
 
-############################################################
-# Convert Slices to equvalent struct
-#
-# slice mut u8 -> struct {pointer ptr mut  u8, len uint}
-############################################################
-SLICE_FIELD_POINTER = "pointer"
-SLICE_FIELD_LENGTH = "length"
-
-
-def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
-    srcloc = slice.x_srcloc
-    pointer_type = cwast.TypePtr(slice.mut, cwast.CloneNodeRecursively(
-        slice.type), x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
-        pointer_type.mut, pointer_type.type.x_type))
-    pointer_field = cwast.RecField(SLICE_FIELD_POINTER,
-                                   pointer_type, cwast.ValUndef(
-                                       x_srcloc=srcloc),
-                                   x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, pointer_field, pointer_type.x_type)
-    length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
-    typify.AnnotateNodeType(
-        tc, length_type, tc.insert_base_type(length_type.base_type_kind))
-    length_field = cwast.RecField(SLICE_FIELD_LENGTH, length_type, cwast.ValUndef(x_srcloc=srcloc),
-                                  x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, length_field, length_type.x_type)
-    name = f"rec_{tc.canon_name(slice.x_type)}"
-    rec = cwast.DefRec(True, name, [pointer_field, length_field],
-                       x_srcloc=srcloc)
-    cstr = tc.insert_rec_type(f"{name}", rec)
-    typify.AnnotateNodeType(tc, rec, cstr)
-    tc.finalize_rec_type(rec)
-    return rec
-
-
-def CreateSliceReplacementStructs(node, tc: types.TypeCorpus, slice_to_struct_map):
-    """Populates slice_to_struct_map with {x_type, DefRec}"""
-    def visitor(node, _):
-        if isinstance(node, cwast.TypeSlice):
-            if node.x_type not in slice_to_struct_map:
-                slice_to_struct_map[node.x_type] = _MakeSliceReplacementStruct(
-                    node, tc)
-
-    cwast.VisitAstRecursivelyPost(node, visitor)
-
-
-def _MakeIdForDefRec(def_rec, srcloc):
-    return cwast.Id(def_rec.name, "", x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
-
-
-def _ConvertValArrayToPointer(node, pointer_type, index_type):
-    zero_offset = cwast.ValNum(
-        f"0", x_srcloc=node.x_srcloc, x_type=index_type, x_value=0)
-    return cwast.ExprAddrOf(pointer_type.mut,
-                            cwast.ExprIndex(node, zero_offset,
-                                            x_type=pointer_type.type, x_srcloc=node.x_srcloc), x_type=pointer_type,
-                            x_srcloc=node.x_srcloc)
-
-
-def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
-    assert isinstance(node.x_type, cwast.TypeArray)
-    pointer_field, length_field = slice_rec.fields
-    width = node.x_type.size.x_value
-    assert width is not None
-    inits = [cwast.FieldVal(_ConvertValArrayToPointer(node, pointer_field.x_type, length_field.x_type), "",
-                            x_field=pointer_field, x_type=pointer_field.x_type,
-                            x_srcloc=srcloc),
-             cwast.FieldVal(cwast.ValNum(f"{width}", x_value=width, x_srcloc=srcloc, x_type=length_field.x_type), "",
-                            x_field=length_field, x_type=length_field.x_type,
-                            x_srcloc=srcloc)]
-    return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec.x_type)
-
-
-def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
-    assert isinstance(node.x_type, cwast.TypeSlice)
-    assert node.x_type.mut
-    # assert node.x_type.type == slice_rec.fields[0].x_type
-    return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
-
-
-def ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
-    """Convert:
-    slice-mut -> slice
-    array -> slice
-    array-mut -> slice-mut
-    """
-    if isinstance(rhs.x_type, cwast.TypeSlice):
-        assert lhs_type.type == rhs.x_type.type
-        assert not lhs_type.mut and rhs.x_type.mut
-        return _ConvertMutSliceValRecToSliceValRec(rhs, def_rec)
-    elif isinstance(rhs.x_type, cwast.TypeArray):
-        return _ConvertValArrayToSliceValRec(rhs, def_rec, srcloc)
-    else:
-        assert False
-
-
 def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
-    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
-    bound = cwast.ExprLen(cwast.CloneNodeRecursively(
+    cstr_ptr=tc.insert_ptr_type(is_lhs, node.container.x_type.type)
+    bound=cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container), x_srcloc=srcloc, x_type=uint_type)
-    start_addr = cwast.ExprFront(
+    start_addr=cwast.ExprFront(
         is_lhs, node.container, x_srcloc=srcloc, x_type=cstr_ptr)
-    elem_addr = cwast.ExprPointer(
+    elem_addr=cwast.ExprPointer(
         cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
     return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
                            x_type=node.x_type, x_value=node.x_value)
 
 
 def ReplaceExprIndex(node, tc):
-    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+    uint_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
     def replacer(node, field):
         nonlocal tc, uint_type
@@ -334,93 +236,5 @@ def ReplaceExprIndex(node, tc):
             return _ConvertIndex(node, field == "lhs", uint_type, tc, node.x_srcloc)
         else:
             return None
-
-    cwast.MaybeReplaceAstRecursively(node, replacer)
-
-
-def ReplaceSlice(node, tc, slice_to_struct_map):
-    """
-     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
-
-     Complications:
-     `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
-    """
-    def replacer(node, field):
-        nonlocal tc
-        if isinstance(node, cwast.StmtAssignment):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(node.lhs.x_type)
-            if def_rec is not None and node.lhs.x_type != node.expr_rhs.x_type:
-                node.expr_rhs = ImplicitSliceConversion(node.expr_rhs,
-                                                        node.lhs.x_type,
-                                                        def_rec,
-                                                        node.x_srcloc)
-            return
-        elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.type_or_auto.x_type)
-            if def_rec is not None:
-                if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-                    if node.type_or_auto.x_type != node.initial_or_undef.x_type:
-                        node.initial_or_undef = ImplicitSliceConversion(node.initial_or_undef,
-                                                                        node.type_or_auto.x_type,
-                                                                        def_rec,
-                                                                        node.x_srcloc)
-        elif isinstance(node, cwast.ExprLen):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.container.x_type)
-            if def_rec is not None:
-                cwast.MaybeReplaceAstRecursively(node, replacer)
-                return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
-                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
-                                       x_field=def_rec.fields[1])
-        elif isinstance(node, cwast.ExprFront):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.container.x_type)
-            if def_rec is not None:
-                cwast.MaybeReplaceAstRecursively(node, replacer)
-                return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
-                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
-                                       x_field=def_rec.fields[0])
-                
-        if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
-            if isinstance(node, cwast.DefFun):
-                fun_sig = node.x_type
-                needs_rewrite = fun_sig.result.x_type in slice_to_struct_map
-                for p in fun_sig.params:
-                    if p.type in slice_to_struct_map:
-                        needs_rewrite = True
-                if needs_rewrite:
-                    result = slice_to_struct_map.get(
-                        fun_sig.result, fun_sig.result)
-                    params = [slice_to_struct_map.get(
-                        p.type, p.type) for p in fun_sig.params]
-                    typify.UpdateNodeType(
-                        tc, node, tc.insert_fun_type(params, result))
-
-            def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
-            if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt)):
-                    typify.UpdateNodeType(tc, node, def_rec.x_type)
-                elif isinstance(node, cwast.FunParam):
-                    typify.UpdateNodeType(tc, node, def_rec.x_type)
-                elif isinstance(node, cwast.TypeSlice):
-                    return _MakeIdForDefRec(def_rec, node.x_srcloc)
-                elif isinstance(node, cwast.Id):
-                    sym = node.x_symbol
-                    if isinstance(sym, cwast.TypeSlice):
-                        symbolize.AnnotateNodeSymbol(node, def_rec)
-                        typify.UpdateNodeType(tc, node, def_rec.x_type)
-                    elif isinstance(sym, (cwast.DefVar, cwast.FunParam, cwast.DefGlobal)):
-                        typify.UpdateNodeType(tc, node, def_rec.x_type)
-                    else:
-                        assert False
-                elif isinstance(node, cwast.ExprAs):
-                    assert node.type.x_type in slice_to_struct_map
-                    assert isinstance(node.expr.x_type, cwast.TypeArray)
-                    return _ConvertValArrayToSliceValRec(node.expr, def_rec, node.x_srcloc)
-
-                else:
-                    assert False, f"do not know how to convert slice node [{field}]: {node}"
-        return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)

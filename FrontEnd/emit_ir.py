@@ -9,7 +9,7 @@ import logging
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
-
+from FrontEnd import canonicalize_slice
 from FrontEnd import canonicalize
 from FrontEnd import symbolize
 from FrontEnd import types
@@ -356,12 +356,14 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprFront):
-        assert isinstance(node.container.x_type, cwast.TypeArray), f"unexpected {node}"
+        assert isinstance(node.container.x_type,
+                          cwast.TypeArray), f"unexpected {node}"
         return _GetLValueAddress(node.container, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
         res = id_gen.NewName("field")
         addr = _GetLValueAddress(node.container, tc, id_gen)
-        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
+        print(
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
         return res
     else:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
@@ -424,7 +426,7 @@ def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_ge
             else:
                 _EmitInitialization(dst_base, dst_offset + f.x_offset,
                                     f.initial_or_undef, tc, id_gen)
-    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum)):
+    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall)):
         res = EmitIRExpr(init, tc, id_gen)
         assert res is not None
         print(f"{TAB}st {dst_base} {dst_offset} = {res}")
@@ -602,10 +604,11 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             # note: new_sig might be longer if the result type was changed
             for n, (old, new) in enumerate(zip(old_sig.params, new_sig.params)):
                 if old.type != new.type:
-                    new_def = cwast.DefVar(False, id_gen.NewName("param"),
+                    new_def = cwast.DefVar(False, True, id_gen.NewName("param"),
                                            cwast.TypeAuto(
-                        x_srcloc=call.x_srcloc), call.args[n],
-                        x_srcloc=call.x_srcloc, x_type=old.type)
+                                               x_srcloc=call.x_srcloc, x_type=old.type),
+                                           call.args[n],
+                                           x_srcloc=call.x_srcloc)
                     expr_body.append(new_def)
                     name = cwast.Id(new_def.name, "",
                                     x_srcloc=call.x_srcloc, x_type=old.type, x_symbol=new_def)
@@ -718,21 +721,20 @@ def main(dump_ir):
                            x_srcloc=cwast.SRCLOC_GENERATED)
     id_gen = identifier.IdGen()
     str_val_map = {}
-    slice_to_struct_map = {}
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
     for mod in mod_topo_order:
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
-        canonicalize.CreateSliceReplacementStructs(
-            mod, tc, slice_to_struct_map)
+
+    slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
+        mod_topo_order, tc)
+
     for mod in mod_topo_order:
         canonicalize.OptimizeKnownConditionals(mod)
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
         canonicalize.CanonicalizeTernaryOp(mod, id_gen)
-        canonicalize.ReplaceSlice(mod, tc, slice_to_struct_map)
-
-
+        canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
 
     fun_sigs_with_large_args = FindFunSigsWithLargeArgs(tc)
     for mod in mod_topo_order:
@@ -772,7 +774,7 @@ def main(dump_ir):
             # pp.PrettyPrint(mod)
 
         exit(0)
-        
+
     # Fully qualify names
     for mod in mod_topo_order:
         mod_name = "" if mod.name == "main" else mod.name + "/"
