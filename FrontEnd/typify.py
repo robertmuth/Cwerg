@@ -66,7 +66,7 @@ def ComputeStringSize(raw: bool, string: str) -> int:
                 n -= 1
         elif c == "\\":
             esc = True
-    return 8
+    return n
 
 
 def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:

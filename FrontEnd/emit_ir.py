@@ -426,9 +426,12 @@ def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_ge
             else:
                 _EmitInitialization(dst_base, dst_offset + f.x_offset,
                                     f.initial_or_undef, tc, id_gen)
-    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall)):
+    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
         res = EmitIRExpr(init, tc, id_gen)
         assert res is not None
+        print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+    elif isinstance(init, cwast.ExprFront):
+        res = _GetLValueAddress(init.container, tc, id_gen)
         print(f"{TAB}st {dst_base} {dst_offset} = {res}")
     elif isinstance(init, cwast.ExprDeref):
         src = _GetLValueAddress(init, tc, id_gen)
@@ -726,7 +729,7 @@ def main(dump_ir):
     for mod in mod_topo_order:
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
-
+ 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
 
