@@ -69,7 +69,7 @@ def _SliceRewriteFunSig(fun_sig: cwast.TypeFun, tc: types.TypeCorpus, slice_to_s
 def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
 
     slice_type_to_slice = {}
-    
+
     def visitor(node, _):
         nonlocal slice_type_to_slice
         if isinstance(node, cwast.TypeSlice):
@@ -78,12 +78,13 @@ def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
 
     for mod in mods:
         cwast.VisitAstRecursivelyPost(mod, visitor)
-        
+
     out = {}
     for cstr in tc.topo_order[:]:
         if isinstance(cstr, cwast.TypeSlice):
             assert cstr in slice_type_to_slice
-            out[cstr] = _MakeSliceReplacementStruct(slice_type_to_slice[cstr], tc)
+            out[cstr] = _MakeSliceReplacementStruct(
+                slice_type_to_slice[cstr], tc)
         elif isinstance(cstr, cwast.TypeFun) and _DoesFunSigContainSlices(cstr, out):
             out[cstr] = _SliceRewriteFunSig(cstr, tc, out)
         elif isinstance(cstr, cwast.TypePtr) and cstr.type in out:
@@ -153,6 +154,47 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
         assert False
 
 
+def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus, uint_type):
+    pointer = cwast.ExprFront(dst_type.mut, node, x_srcloc=node.x_type,
+                              x_type=tc.insert_ptr_type(dst_type.mut, dst_type.type))
+    width = node.x_type.size.x_value
+    length = cwast.ValNum(f"{width}", x_value=width,
+                          x_srcloc=node.x_srcloc, x_type=uint_type)
+    return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
+
+
+def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
+    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+
+    def visitor(node, field):
+        nonlocal tc, uint_type
+        if isinstance(node, cwast.StmtAssignment):
+            if (node.lhs.x_type != node.expr_rhs.x_type and
+                isinstance(node.lhs.x_type, cwast.TypeSlice) and
+                    isinstance(node.expr_rhs.x_type, cwast.TypeArray)):
+                node.expr_rhs = _MakeValSliceFromArray(
+                    node.expr_rhs, node.lhs.x_type, tc, uint_type)
+        elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+                if (node.type_or_auto.x_type != node.initial_or_undef.x_type and
+                    isinstance(node.type_or_auto.x_type, cwast.TypeSlice) and
+                        isinstance(node.initial_or_undef.x_type, cwast.TypeArray)):
+                    node.expr_rhs = _MakeValSliceFromArray(
+                        node.initial_or_undef, node.type_or_auto.x_type, tc, uint_type)
+        elif isinstance(node, cwast.ExprCall):
+            # TODO: do we need to deal with result conversion
+            # it may not be possible to return a TypeArray
+            fun_sig: cwast.TypeFun = node.callee.x_type
+            for n, (p, a) in enumerate(zip(fun_sig.params, node.args)):
+                if (p.type != a.x_type and
+                    isinstance(p.type, cwast.TypeSlice) and
+                        isinstance(a.x_type, cwast.TypeArray)):
+                    node.args[n] = _MakeValSliceFromArray(
+                        a, p.type, tc, uint_type)
+
+    cwast.VisitAstRecursivelyPost(node, visitor)
+
+
 def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
@@ -164,22 +206,23 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
         nonlocal tc
         if isinstance(node, cwast.StmtAssignment):
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.lhs.x_type)
-            if def_rec is not None and node.lhs.x_type != node.expr_rhs.x_type:
-                node.expr_rhs = _ImplicitSliceConversion(node.expr_rhs,
-                                                        node.lhs.x_type,
-                                                        def_rec,
-                                                        node.x_srcloc)
+            if def_rec is not None:
+                if node.lhs.x_type != node.expr_rhs.x_type:
+                    node.expr_rhs = _ImplicitSliceConversion(node.expr_rhs,
+                                                             node.lhs.x_type,
+                                                             def_rec,
+                                                             node.x_srcloc)
             return
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             def_rec: cwast.DefRec = slice_to_struct_map.get(
                 node.type_or_auto.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-                    if node.type_or_auto.x_type != node.initial_or_undef.x_type:
-                        node.initial_or_undef = _ImplicitSliceConversion(node.initial_or_undef,
-                                                                        node.type_or_auto.x_type,
-                                                                        def_rec,
-                                                                        node.x_srcloc)
+                if node.type_or_auto.x_type != node.initial_or_undef.x_type:
+                    node.initial_or_undef = _ImplicitSliceConversion(node.initial_or_undef,
+                                                                     node.type_or_auto.x_type,
+                                                                     def_rec,
+                                                                     node.x_srcloc)
+
         elif isinstance(node, cwast.ExprLen):
             def_rec: cwast.DefRec = slice_to_struct_map.get(
                 node.container.x_type)
@@ -201,7 +244,7 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt, 
+                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt,
                                      cwast.DefFun, cwast.TypeFun, cwast.FunParam)):
                     typify.UpdateNodeType(tc, node, def_rec)
                 elif isinstance(node, cwast.TypeSlice):

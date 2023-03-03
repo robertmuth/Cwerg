@@ -386,7 +386,7 @@ def _AssignmentLhsIsInReg(lhs):
         assert False, f"unpected lhs {lhs}"
 
 
-def _EmitCopy(src_base, src_offset, dst_base, dst_offset, length, alignment, id_gen: identifier.IdGen):
+def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_gen: identifier.IdGen):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
@@ -405,10 +405,14 @@ def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_ge
     if isinstance(init, cwast.ValUndef):
         pass
     elif isinstance(init, cwast.Id):
-        if tc.register_types(src_type) is None or len(tc.register_types(src_type)) != 1:
+        if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
+            res = EmitIRExpr(init, tc, id_gen)
+            assert res is not None
+            print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+        else:
             if isinstance(init.x_type, cwast.DefRec):
-                dst = _GetLValueAddress(init, tc, id_gen)
-                _EmitCopy(dst_base, dst_offset, dst,
+                src = _GetLValueAddress(init, tc, id_gen)
+                _EmitCopy(dst_base, dst_offset, src,
                           0, src_type.x_size, src_type.x_alignment, id_gen)
             else:
                 assert False, f"{init.x_srcloc} {src_type} {init}"
@@ -431,6 +435,7 @@ def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_ge
         assert res is not None
         print(f"{TAB}st {dst_base} {dst_offset} = {res}")
     elif isinstance(init, cwast.ExprFront):
+        assert isinstance(init.container.x_type, cwast.TypeArray)
         res = _GetLValueAddress(init.container, tc, id_gen)
         print(f"{TAB}st {dst_base} {dst_offset} = {res}")
     elif isinstance(init, cwast.ExprDeref):
@@ -729,7 +734,9 @@ def main(dump_ir):
     for mod in mod_topo_order:
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
- 
+        canonicalize_slice.InsertExplicitValSlice(mod, tc)
+        # typify.VerifyTypesRecursively(mod, tc)
+
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
 
