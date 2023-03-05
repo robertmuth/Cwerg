@@ -168,6 +168,7 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
 
     def visitor(node, field):
         nonlocal tc, uint_type
+        # Also look into the initialization of structs
         if isinstance(node, cwast.StmtAssignment):
             if (node.lhs.x_type != node.expr_rhs.x_type and
                 isinstance(node.lhs.x_type, cwast.TypeSlice) and
@@ -179,11 +180,10 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                 if (node.type_or_auto.x_type != node.initial_or_undef.x_type and
                     isinstance(node.type_or_auto.x_type, cwast.TypeSlice) and
                         isinstance(node.initial_or_undef.x_type, cwast.TypeArray)):
-                    node.expr_rhs = _MakeValSliceFromArray(
+                    node.initial_or_undef = _MakeValSliceFromArray(
                         node.initial_or_undef, node.type_or_auto.x_type, tc, uint_type)
         elif isinstance(node, cwast.ExprCall):
-            # TODO: do we need to deal with result conversion
-            # it may not be possible to return a TypeArray
+            # Note: result conversion is dealt with as a lhs recursively
             fun_sig: cwast.TypeFun = node.callee.x_type
             for n, (p, a) in enumerate(zip(fun_sig.params, node.args)):
                 if (p.type != a.x_type and
@@ -200,30 +200,14 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
 
      Complications:
+     TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
      `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
     """
     def replacer(node, field):
         nonlocal tc
-        if isinstance(node, cwast.StmtAssignment):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(node.lhs.x_type)
-            if def_rec is not None:
-                if node.lhs.x_type != node.expr_rhs.x_type:
-                    node.expr_rhs = _ImplicitSliceConversion(node.expr_rhs,
-                                                             node.lhs.x_type,
-                                                             def_rec,
-                                                             node.x_srcloc)
-            return
-        elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.type_or_auto.x_type)
-            if def_rec is not None:
-                if node.type_or_auto.x_type != node.initial_or_undef.x_type:
-                    node.initial_or_undef = _ImplicitSliceConversion(node.initial_or_undef,
-                                                                     node.type_or_auto.x_type,
-                                                                     def_rec,
-                                                                     node.x_srcloc)
 
-        elif isinstance(node, cwast.ExprLen):
+        
+        if isinstance(node, cwast.ExprLen):
             def_rec: cwast.DefRec = slice_to_struct_map.get(
                 node.container.x_type)
             if def_rec is not None:
