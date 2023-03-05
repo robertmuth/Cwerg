@@ -6,6 +6,7 @@
 
 import sys
 import logging
+import argparse
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -706,7 +707,12 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
     cwast.EliminateEphemeralsRecursively(fun)
 
 
-def main(dump_ir):
+def main():
+    parser = argparse.ArgumentParser(description='pretty_printer')
+    parser.add_argument(
+        '-emit_ir', help='stop before emitting asm', action='store_true')
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
@@ -778,7 +784,7 @@ def main(dump_ir):
         list(slice_to_struct_map.values())
     mod_topo_order = [mod_gen] + mod_topo_order
 
-    if dump_ir:
+    if args.emit_ir:
         for mod in mod_topo_order:
             pp.PrettyPrintHTML(mod, tc)
             # pp.PrettyPrint(mod)
@@ -812,4 +818,4 @@ def main(dump_ir):
 if __name__ == "__main__":
     # import cProfile
     # cProfile.run('main()')
-    exit(main(False))
+    exit(main())
