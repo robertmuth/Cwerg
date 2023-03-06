@@ -481,8 +481,9 @@ OPTIONAL_FIELDS = {
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     #
-    "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py
-    "x_target": NF.CONTROL_FLOW,  # set by symbolize.py
+    "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py, contains node from
+                                      # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
+    "x_target": NF.CONTROL_FLOW,  # set by symbolize.py,
     #
     "x_field": NF.FIELD_ANNOTATED,  # set by typify.py
     #
@@ -1329,9 +1330,9 @@ class ExprLen:
 @dataclasses.dataclass()
 class ExprFront:
     """Address of the first element of an array or slice
-    
+
     Similar to `(& (at container 0))` but will not fail if container has zero size
-    
+
     """
     ALIAS = "front"
     GROUP = GROUP.Expression
@@ -2368,14 +2369,25 @@ def EliminateEphemeralsRecursively(node):
                 EliminateEphemeralsRecursively(child)
 
 
-def CloneNodeRecursively(node):
+def CloneNodeRecursively(node, var_map, block_map):
     clone = dataclasses.replace(node)
+    if isinstance(clone, DefVar):
+        var_map[node] = clone
+    elif isinstance(clone, (StmtBlock, ExprStmt)):
+        block_map[node] = clone
+
+    if NF.SYMBOL_ANNOTATED in clone.FLAGS:
+        clone.x_symbol = var_map.get(clone.x_symbol, clone.x_symbol)
+    if NF.CONTROL_FLOW in clone.FLAGS:
+        clone.x_taget = var_map.get(clone.x_target, clone.x_target)
     for c in node.__class__.FIELDS:
         nfd = ALL_FIELDS_MAP[c]
         if nfd.kind is NFK.NODE:
-            setattr(clone, c, CloneNodeRecursively(getattr(node, c)))
+            setattr(clone, c, CloneNodeRecursively(
+                getattr(node, c), var_map, block_map))
         elif nfd.kind is NFK.LIST:
-            out = [CloneNodeRecursively(cc) for cc in getattr(node, c)]
+            out = [CloneNodeRecursively(cc, var_map, block_map)
+                   for cc in getattr(node, c)]
             setattr(clone, c, out)
     return clone
 

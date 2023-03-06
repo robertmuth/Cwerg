@@ -26,7 +26,7 @@ SLICE_FIELD_LENGTH = "length"
 def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
     srcloc = slice.x_srcloc
     pointer_type = cwast.TypePtr(slice.mut, cwast.CloneNodeRecursively(
-        slice.type), x_srcloc=srcloc)
+        slice.type, {}, {}), x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
     pointer_field = cwast.RecField(SLICE_FIELD_POINTER,
@@ -206,7 +206,6 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
     def replacer(node, field):
         nonlocal tc
 
-        
         if isinstance(node, cwast.ExprLen):
             def_rec: cwast.DefRec = slice_to_struct_map.get(
                 node.container.x_type)

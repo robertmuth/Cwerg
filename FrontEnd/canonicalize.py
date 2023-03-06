@@ -1,4 +1,4 @@
-"""Canonicalizer
+"""Canonicalize Misc
 
 """
 
@@ -41,31 +41,6 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
                 str_map[node.x_value] = def_node
 
             return _IdNodeFromDef(def_node, node.x_srcloc)
-        return None
-
-    cwast.MaybeReplaceAstRecursively(node, replacer)
-
-
-############################################################
-# Convert large parameter into pointer to object allocated
-# in the caller
-############################################################
-def CanonicalizeLargeArgs(node, changed_params: Set[Any], tc: types.TypeCorpus):
-    def replacer(node, field):
-        nonlocal changed_params, tc
-
-        if isinstance(node, cwast.DefFun):
-            for p in node.params:
-                if isinstance(p, cwast.FunParam):
-                    if tc.register_types[p.x_type] is None:
-                        changed_params.add(p)
-            return None
-        if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) in changed_params:
-            deref = cwast.ExprDeref(node, x_srcloc=node.x_srcloc,
-                                    x_type=node.x_type, x_value=node.x_value)
-            typify.UpdateNodeType(tc, node, node.x_symbol.x_type)
-            node.x_value = None
-            return deref
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -136,7 +111,7 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
 
 def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
     rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
-                      cwast.CloneNodeRecursively(lhs),
+                      cwast.CloneNodeRecursively(lhs, {}, {}),
                       expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
     return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
 
@@ -216,19 +191,19 @@ def OptimizeKnownConditionals(node):
 
 
 def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
-    cstr_ptr=tc.insert_ptr_type(is_lhs, node.container.x_type.type)
-    bound=cwast.ExprLen(cwast.CloneNodeRecursively(
-        node.container), x_srcloc=srcloc, x_type=uint_type)
-    start_addr=cwast.ExprFront(
+    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
+    bound = cwast.ExprLen(cwast.CloneNodeRecursively(
+        node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type)
+    start_addr = cwast.ExprFront(
         is_lhs, node.container, x_srcloc=srcloc, x_type=cstr_ptr)
-    elem_addr=cwast.ExprPointer(
+    elem_addr = cwast.ExprPointer(
         cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
     return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
                            x_type=node.x_type, x_value=node.x_value)
 
 
 def ReplaceExprIndex(node, tc):
-    uint_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
     def replacer(node, field):
         nonlocal tc, uint_type
