@@ -606,8 +606,9 @@ def main():
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
         canonicalize_slice.InsertExplicitValSlice(mod, tc)
-        # typify.VerifyTypesRecursively(mod, tc)
-
+        canonicalize.CanonicalizeDefer(mod, [])
+        cwast.EliminateEphemeralsRecursively(mod)
+     
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
 

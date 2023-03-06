@@ -527,6 +527,10 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return types.NO_TYPE
     elif isinstance(node, cwast.Import):
         return types.NO_TYPE
+    elif isinstance(node, cwast.StmtDefer):
+        for c in node.body:
+            _TypifyNodeRecursively(c, tc, target_type, ctx)
+        return types.NO_TYPE
     elif isinstance(node, cwast.ValSlice):
         len_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
         _TypifyNodeRecursively(node.expr_size, tc, len_type, ctx)
@@ -806,7 +810,7 @@ def VerifyTypesRecursively(node, corpus):
 
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
             field = node.x_field
-            assert field is not None, f"node withou field annotation: {node.x_srcloc} {node}"
+            assert field is not None, f"node without field annotation: {node.x_srcloc} {node}"
             assert isinstance(field, cwast.RecField)
 
     cwast.VisitAstRecursivelyPost(node, visitor)

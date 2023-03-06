@@ -213,3 +213,52 @@ def ReplaceExprIndex(node, tc):
             return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
+
+
+def CanonicalizeDefer(node, scopes):
+    if isinstance(node, cwast.DefFun):
+        scopes.append((node, []))
+
+    if isinstance(node, cwast.StmtDefer):
+        scopes[-1][1].append(node)
+
+    def handle_cfg(target):
+        out = []
+        for scope, defers in reversed(scopes):
+            for defer in reversed(defers):
+                clone = cwast.CloneNodeRecursively(defer, {}, {})
+                out += clone.body
+            if scope is target:
+                break
+        return out
+
+    if cwast.NF.CONTROL_FLOW in node.FLAGS:
+        return  cwast.EphemeralList(handle_cfg(node.x_target) + [node])
+
+    for field in node.__class__.FIELDS:
+        nfd = cwast.ALL_FIELDS_MAP[field]
+        if nfd.kind is cwast.NFK.NODE:
+            child = getattr(node, field)
+            new_child = CanonicalizeDefer(child, scopes)
+            if new_child:
+                setattr(node, child, new_child)
+        elif nfd.kind is cwast.NFK.LIST:
+            if field in cwast.NEW_SCOPE_FIELDS:
+                scopes.append((node, []))
+            children = getattr(node, field)
+            for n, child in enumerate(children):
+                new_child = CanonicalizeDefer(child, scopes)
+                if new_child:
+                    children[n] = new_child
+            if field in cwast.NEW_SCOPE_FIELDS:
+                if children and not isinstance(children[-1], cwast.EphemeralList):
+                    if cwast.NF.CONTROL_FLOW not in children[-1].FLAGS:
+                        out = handle_cfg(scopes[-1][0])
+                        children += out
+                scopes.pop(-1)
+
+    if isinstance(node, cwast.StmtDefer):
+        return cwast.EphemeralList([], x_srcloc=node.x_srcloc)
+    if isinstance(node, cwast.DefFun):
+        scopes.pop(-1)
+    return None

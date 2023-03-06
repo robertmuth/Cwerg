@@ -170,7 +170,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         assert token == "[", f"expected list start for: {field} {token}"
         return ReadStrList(stream)
     elif nfd.kind is cwast.NFK.LIST:
-        assert token == "[", f"expected list start for: {field} {token}"
+        assert token == "[", f"expected list start for: {field} {token} at {stream.srcloc()}"
         return ReadNodeList(stream, parent_cls)
     else:
         assert None

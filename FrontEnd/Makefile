@@ -32,7 +32,8 @@ tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
 	$(DIR)/heapsort.exe \
 	$(DIR)/print_argv.x64.exe \
 	$(DIR)/sieve.exe \
-    $(DIR)/slice.x64.exe
+    $(DIR)/slice.x64.exe \
+	$(DIR)/defer.x64.exe
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
@@ -95,6 +96,10 @@ $(DIR)/slice.x64.exe: TestData/slice.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ foobar bar
 
+$(DIR)/defer.x64.exe: TestData/defer.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
 
 clean:
 	@rm -f $(DIR)/* 
