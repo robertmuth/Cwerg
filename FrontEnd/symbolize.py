@@ -333,7 +333,7 @@ def VerifyASTSymbolsRecursively(node):
 
         if in_def_macro:
             return
-        
+
         if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.polymorphic:
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
@@ -347,6 +347,14 @@ def VerifyASTSymbolsRecursively(node):
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
         elif isinstance(node, cwast.StmtReturn):
             assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
+        elif isinstance(node, cwast.DefRec):
+            seen = set()
+            for field in node.fields:
+                if isinstance(field, cwast.RecField):
+                    if field.name in seen:
+                        cwast.CompilerError(
+                            field.x_srcloc, f"duplicate record field: {field.name}")
+                    seen.add(field.name)
 
         if isinstance(node, cwast.ExprAddrOf):
             _CheckAddressCanBeTaken(node.expr_lhs)
