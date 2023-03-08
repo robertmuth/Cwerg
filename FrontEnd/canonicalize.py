@@ -46,15 +46,20 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
+def _ShouldBeBoolExpanded(node, field):
+    if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)):
+        return False
+    return field in ("args", "expr_rhs", "initial_or_undef", "value", "value_or_undef") and types.is_bool(node.x_type)
+
+
 def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus):
     """transform a bool expression e into "e ? true : false"
 
-    This will make it eligible for CanonicalizeTernaryOp
+    This will make it eligible for CanonicalizeTernaryOp which is the only way currently
+    to materialize boolean values
      """
     def replacer(node, field):
-        if (field in ("args", "expr_rhs", "inits_array", "inits_rec", "initial_or_undef") and
-            not isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)) and
-                types.is_bool(node.x_type)):
+        if _ShouldBeBoolExpanded(node, field):
             cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
             return cwast.Expr3(node,
                                cwast.ValTrue(x_srcloc=node.x_srcloc,
@@ -233,7 +238,7 @@ def CanonicalizeDefer(node, scopes):
         return out
 
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        return  cwast.EphemeralList(handle_cfg(node.x_target) + [node])
+        return cwast.EphemeralList(handle_cfg(node.x_target) + [node])
 
     for field in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[field]
