@@ -39,6 +39,8 @@ def _InitDataForBaseType(x_type, x_value) -> bytes:
         return ZEROS[byte_width]
     elif types.is_int(x_type):
         return x_value.to_bytes(byte_width, 'little')
+    elif types.is_bool(x_type):
+        return b"\1" if x_value else b"\0"
     assert False
 
 
@@ -93,16 +95,12 @@ def RLE(data: bytes):
         yield count, last
 
 
-def _EmitMem(name, align, rw, data):
-    print(f"\n.mem {name} {align} {'RW' if rw else 'RO'}")
-    if isinstance(data, (bytes, bytearray)):
-        if len(data) < 100:
-            print(f'.data 1 "{BytesToEscapedString(data)}"')
-        else:
-            for count, value in RLE(data):
-                print(f".data {count} [{value}]")
-    else:
-        assert False
+def is_repeated_single_char(data: bytes):
+    c = data[0]
+    for x in data:
+        if x != c:
+            return False
+    return True
 
 
 ZERO_INDEX = "0"
@@ -540,28 +538,82 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
         assert False, f"cannot generate code for {node}"
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal):
-    def_type = node.type_or_auto.x_type
-    if isinstance(def_type, cwast.TypeBase):
-        _EmitMem(node.name, def_type.x_alignment, node.mut,
-                 _InitDataForBaseType(node.initial_or_undef.x_type, node.initial_or_undef.x_value))
-    elif isinstance(def_type, cwast.TypeArray):
-        init = node.initial_or_undef.x_value
-        if isinstance(init, bytes):
-            assert isinstance(def_type.type, cwast.TypeBase)
-            _EmitMem(node.name, 1, node.mut, init)
+def _EmitMem(data, comment) -> int:
+    if is_repeated_single_char(data):
+        print(f'.data {len(data)} [{data[0]}]  # {comment}')
+    elif isinstance(data, (bytes, bytearray)):
+        if len(data) < 100:
+            print(f'.data 1 "{BytesToEscapedString(data)}"  # {comment}')
         else:
-            size = def_type.size.x_value
-            x_type = def_type.type
-            x_value = node.initial_or_undef.x_value
-            assert isinstance(x_type, cwast.TypeBase)
-            assert size == len(x_value), f"{size} vs {len(x_value)}"
-            out = bytearray()
-            for v in x_value:
-                out += _InitDataForBaseType(x_type, v)
-            _EmitMem(node.name, def_type.x_alignment, node.mut, out)
+            for count, value in RLE(data):
+                print(f".data {count} [{value}]  # {comment}")
     else:
         assert False
+    return len(data)
+
+
+_BYTE_UNDEF = b"\0"
+_BYTE_PADDING = b"\x6f"
+
+
+def _MakeRecInitializerMap(value) -> Dict[cwast.RecField, cwast.FieldVal]:
+    if isinstance(value, cwast.ValUndef):
+        return {}
+    assert isinstance(value, cwast.ValRec)
+    return {i.x_field: i for i in value.inits_rec}
+
+
+def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
+    def_type = node.type_or_auto.x_type
+    print(
+        f"\n.mem {node.name} {def_type.x_alignment} {'RW' if node.mut else 'RO'}")
+
+    def _emit_recursively(node, cstr, offset: int) -> int:
+        nonlocal tc
+        assert offset == types.align(offset, cstr.x_alignment)
+        if isinstance(cstr, cwast.TypeBase):
+            return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
+        elif isinstance(cstr, cwast.TypeArray):
+            print(f"# array: {tc.canon_name(cstr)}")
+            width = cstr.size.x_value
+            if isinstance(cstr.type, cwast.TypeBase):
+                if isinstance(node, cwast.ValUndef):
+                    return _EmitMem(_BYTE_UNDEF * (width * cstr.type.x_size), f"{offset} {tc.canon_name(cstr.type)} * {width}")
+                elif isinstance(node.x_value, bytes):
+                    assert isinstance(cstr.type, cwast.TypeBase)
+                    return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
+                else:
+                    size = cstr.size.x_value
+                    x_type = cstr.type
+                    x_value = node.x_value
+                    assert isinstance(x_type, cwast.TypeBase)
+                    assert size == len(x_value), f"{size} vs {len(x_value)}"
+                    out = bytearray()
+                    for v in x_value:
+                        out += _InitDataForBaseType(x_type, v)
+                    return _EmitMem(out, tc.canon_name(cstr))
+        elif isinstance(cstr, cwast.DefRec):
+            print(f"# record: {tc.canon_name(cstr)}")
+            rel_off = 0
+            inits: Dict[cwast.RecField,
+                        cwast.FieldVal] = _MakeRecInitializerMap(node)
+            for f in cstr.fields:
+                assert isinstance(f, cwast.RecField)
+                if f.x_offset > rel_off:
+                    rel_off += _EmitMem(_BYTE_PADDING *
+                                        (f.x_offset - rel_off), f"{offset+rel_off} padding")
+                i = inits.get(f)
+                if i is not None:
+                    init = i.value
+                else:
+                    init = f.initial_or_undef
+                rel_off += _emit_recursively(init,
+                                             f.type.x_type, offset + rel_off)
+            return rel_off
+        else:
+            assert False, f"unhandled node: {cstr}"
+
+    _emit_recursively(node.initial_or_undef, node.type_or_auto.x_type, 0)
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -608,7 +660,7 @@ def main():
         canonicalize_slice.InsertExplicitValSlice(mod, tc)
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
-     
+
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
 
@@ -673,7 +725,7 @@ def main():
         id_gen.LoadGlobalNames(mod)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                EmitIRDefGlobal(node)
+                EmitIRDefGlobal(node, tc)
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
