@@ -8,8 +8,8 @@
 (defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
    (field s1 s32 (ValNum 7))
-   (field s2 s32 (ValUndef))
-   (field s3 s32 (ValUndef))
+   (field s2 s32 undef)
+   (field s3 s32 undef)
    (field s4 s32 undef)
 
    (field b1 bool false)
@@ -31,7 +31,7 @@
    (entry s4)
 ])
 
-(type type_array (TypeArray (ValNum 3) bool))
+(type type_array (array (ValNum 3) bool))
 
 (type type_slice (TypeSlice type_rec))
 

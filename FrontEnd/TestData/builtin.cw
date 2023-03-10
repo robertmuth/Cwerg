@@ -110,7 +110,7 @@
                         (macro_param $out ID)]  [$v $tmp $pos] [
     (# "unsigned to str with give base")
     (macro_let mut $v auto $val)
-    (macro_let mut $tmp auto (ValArray $max_width u8 []))
+    (macro_let mut $tmp auto (array_val $max_width u8 []))
     (macro_let mut $pos uint $max_width)
     (block _ [
         (-= $pos 1)
@@ -169,9 +169,9 @@
 
 (macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] 
                     [$buffer $options $buffer_orig] [
-    (macro_let mut $buffer auto (ValArray 1024 u8))
+    (macro_let mut $buffer auto (array_val 1024 u8))
     (macro_let mut $curr (slice mut u8) $buffer)
-    (macro_let mut ref $options auto (rec SysFormatOptions []))
+    (macro_let mut ref $options auto (rec_val SysFormatOptions []))
     (macro_for $i $parts [
         (= $curr (incp $curr (call polymorphic SysRender [$i $curr (& mut $options)])))
     ])

@@ -4,8 +4,8 @@
 (defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
    (field s1 s32 (ValNum 7))
-   (field s2 s32 (ValUndef))
-   (field s3 s32 (ValUndef))
+   (field s2 s32 undef)
+   (field s3 s32 undef)
    (field s4 s32 undef)
 
    (field b1 bool false)
@@ -35,30 +35,30 @@
 
 (global c10 auto c2)
 
-(global c20 auto type_enum/e3)
+(global c20 auto type_enum/e3)   
 
 (static_assert (== (as c20 s32) 19))
 
 (# "array literal with explicit indices")
-(global c30 auto (ValArray 30 uint [
+(global c30 auto (array_val 30 uint [
    (IndexVal 0 1) 
    (IndexVal 10 2) 
    (IndexVal 20 3)]))
 
 (# "array literal")
-(global c31 auto (ValArray 30 uint [
+(global c31 auto (array_val 30 uint [
    (IndexVal 10) 
    (IndexVal 20) 
    (IndexVal 30)]))
 
 (# "rec literal with explicit field name")
-(global c32 auto (ValRec type_rec [
+(global c32 auto (rec_val type_rec [
    (FieldVal 7 s1) 
    (FieldVal 9 s2) 
    (FieldVal 7 s3)]))
 
 (# "rec literal")
-(global c33 auto (ValRec type_rec [
+(global c33 auto (rec_val type_rec [
    (FieldVal 7) 
    (FieldVal 9) 
    (FieldVal 7)]))

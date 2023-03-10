@@ -1,12 +1,12 @@
 (module m1 [] [
 
 
-(type type_array (TypeArray (ValNum 3) bool))
+(type type_array (array 3 bool))
 
 (type type_slice (slice s32))
 
-(global c1 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
-(global mut c2 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global c1 auto (array_val 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global mut c2 auto (array_val 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
 (# "(let c20 auto (len c1)" )
@@ -15,7 +15,7 @@
 
 (global dim auto 5_u16)
 
-(fun foo [(param a (TypeArray 10 u8)) (param b (TypeArray dim u64))] u8 [
+(fun foo [(param a (array 10 u8)) (param b (array dim u64))] u8 [
    (let v2 auto (at c1 0))
    (let v3 auto (& (at c1 0)))
    (let v4 auto (& mut (at c2 0)))
@@ -23,8 +23,8 @@
    (return 66) 
 ])
 
-(global d1 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
-(global mut d2 auto (ValArray 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global d1 auto (array_val 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
+(global mut d2 auto (array_val 10 s32 [(IndexVal 1) (IndexVal 2) (IndexVal 3)]))
 
 
 (global e1 (slice s32) d1)

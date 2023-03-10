@@ -1085,7 +1085,7 @@ class ValRec:
 
     `E.g.: complex{.imag = 5, .real = 1}`
     """
-    ALIAS = "rec"
+    ALIAS = "rec_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
