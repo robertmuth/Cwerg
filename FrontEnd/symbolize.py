@@ -504,6 +504,10 @@ def IterateValArray(val_array, width):
                  curr_val += 1
             yield curr_val, init
             curr_val += 1
+        assert curr_val <= width
+        while curr_val < width:
+            yield curr_val, None
+            curr_val += 1 
             
                 
     

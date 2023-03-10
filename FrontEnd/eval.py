@@ -90,24 +90,21 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
 
 
 def _EvalValArray(node: cwast.ValArray) -> bool:
-    out = False
-    num_unknown = 0
+    has_unknown = False
     # first pass if we cannot evaluate everyting, we must give up
     # This could be relaxed if we allow None values in "out"
     for c in node.inits_array:
         assert isinstance(c, cwast.IndexVal)
         if not isinstance(c.init_index, cwast.ValAuto):
             if c.init_index.x_value is None:
-                out |= _EvalNode(c.init_index)
-                if c.init_index.x_value is None:
-                    num_unknown += 1
+                has_unknown = True
+                break
         if not isinstance(c.value_or_undef, cwast.ValUndef):
             if c.value_or_undef.x_value is None:
-                out |= _EvalNode(c.value_or_undef)
-                if c.value_or_undef.x_value is None:
-                    num_unknown += 1
-    if num_unknown > 0:
-        return out
+                has_unknown = True
+                break
+    if has_unknown:
+        return False
     curr_val = _UNDEF
     array = []
     for c in node.inits_array:
@@ -258,7 +255,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValAuto):
         return False
     elif isinstance(node, cwast.IndexVal):
-        return False  # handled by ValArray
+        return False
     elif isinstance(node, cwast.ValArray):
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
