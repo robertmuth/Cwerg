@@ -6,8 +6,8 @@
 
 (defrec pub LinkedListNode [
    (# "this is a comment with \" with quotes \t ")
-   (field next (union [None (ptr mut LinkedListNode)]) None)
-   (field payload u32 0)
+   (field next (union [None (ptr mut LinkedListNode)]))
+   (field payload u32)
 ])
 
 (type MaybeNode (union [None (ptr mut LinkedListNode)]))

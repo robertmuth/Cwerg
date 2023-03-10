@@ -400,50 +400,45 @@ def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_
             curr += width
 
 
-def _EmitInitialization(dst_base, dst_offset, init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
-    src_type = init.x_type
-    if isinstance(init, cwast.ValUndef):
-        pass
-    elif isinstance(init, cwast.Id):
-        if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
+def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
+
+    def emit_recursively(offset, init):
+        nonlocal dst_base, tc, id_gen
+        src_type = init.x_type
+        assert not  isinstance(init, cwast.ValUndef)
+
+        if isinstance(init, cwast.Id):
+            if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
+                res = EmitIRExpr(init, tc, id_gen)
+                assert res is not None
+                print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+            else:
+                if isinstance(init.x_type, cwast.DefRec):
+                    src = _GetLValueAddress(init, tc, id_gen)
+                    _EmitCopy(dst_base, dst_offset, src,
+                              0, src_type.x_size, src_type.x_alignment, id_gen)
+                else:
+                    assert False, f"{init.x_srcloc} {src_type} {init}"
+        elif isinstance(init, cwast.ValRec):
+            for field, init in symbolize.IterateValRec(init, src_type):
+                if init is not None and not  isinstance(init, cwast.ValUndef):
+                    emit_recursively(dst_offset + field.x_offset, init.value)
+        elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
             res = EmitIRExpr(init, tc, id_gen)
             assert res is not None
             print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+        elif isinstance(init, cwast.ExprFront):
+            assert isinstance(init.container.x_type, cwast.TypeArray)
+            res = _GetLValueAddress(init.container, tc, id_gen)
+            print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+        elif isinstance(init, cwast.ExprDeref):
+            src = _GetLValueAddress(init, tc, id_gen)
+            _EmitCopy(src, 0, dst_base, dst_offset,
+                      src_type.x_size, src_type.x_alignment, id_gen)
         else:
-            if isinstance(init.x_type, cwast.DefRec):
-                src = _GetLValueAddress(init, tc, id_gen)
-                _EmitCopy(dst_base, dst_offset, src,
-                          0, src_type.x_size, src_type.x_alignment, id_gen)
-            else:
-                assert False, f"{init.x_srcloc} {src_type} {init}"
-    elif isinstance(init, cwast.ValRec):
-        explicitly_initialized = {}
-        for f in init.inits_rec:
-            assert isinstance(f, cwast.FieldVal)
-            explicitly_initialized[f.x_field.name] = f
-        for f in init.x_type.fields:
-            assert isinstance(f, cwast.RecField)
-            f2:  cwast.FieldVal = explicitly_initialized.get(f.name)
-            if f2:
-                _EmitInitialization(
-                    dst_base, dst_offset + f.x_offset, f2.value, tc, id_gen)
-            else:
-                _EmitInitialization(dst_base, dst_offset + f.x_offset,
-                                    f.initial_or_undef, tc, id_gen)
-    elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
-        res = EmitIRExpr(init, tc, id_gen)
-        assert res is not None
-        print(f"{TAB}st {dst_base} {dst_offset} = {res}")
-    elif isinstance(init, cwast.ExprFront):
-        assert isinstance(init.container.x_type, cwast.TypeArray)
-        res = _GetLValueAddress(init.container, tc, id_gen)
-        print(f"{TAB}st {dst_base} {dst_offset} = {res}")
-    elif isinstance(init, cwast.ExprDeref):
-        src = _GetLValueAddress(init, tc, id_gen)
-        _EmitCopy(src, 0, dst_base, dst_offset,
-                  src_type.x_size, src_type.x_alignment, id_gen)
-    else:
-        assert False, f"{init.x_srcloc} {init}"
+            assert False, f"{init.x_srcloc} {init} {src_type}"
+
+    emit_recursively(dst_offset, src_init)
 
 
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):

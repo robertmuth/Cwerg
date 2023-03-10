@@ -29,23 +29,23 @@
 
 (defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 s32 (ValNum 7))
-   (field s2 s32 undef)
-   (field s3 s32 undef)
-   (field s4 s32 undef)
+   (field s1 s32)
+   (field s2 s32)
+   (field s3 s32)
+   (field s4 s32)
 
-   (field b1 bool false)
-   (field u1 u64 666)
-   (field u2 u64 666_u64)
+   (field b1 bool)
+   (field u1 u64)
+   (field u2 u64)
 ])
 
 (defrec pub one_field_rec [
    (# "this is a comment with \" with quotes \t ")
-   (field the_field r32 undef)
+   (field the_field r32)
 ])
 (defrec pub one_one_field_rec [
    (# "this is a comment with \" with quotes \t ")
-   (field the_field one_field_rec undef)
+   (field the_field one_field_rec)
 ])
 
 (global c2 auto (offsetof type_rec s1))

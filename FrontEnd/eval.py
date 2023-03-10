@@ -69,23 +69,15 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
 
 def _EvalValRec(node: cwast.ValRec) -> bool:
     # first pass if we cannot evaluate everyting, we must give up
-    has_unknown = False
     rec = {}
     for field, init in symbolize.IterateValRec(node, node.x_type):
         if init is None:
-            if not isinstance(field.initial_or_undef, cwast.ValUndef):
-                if field.initial_or_undef.x_value is None:
-                    has_unknown = True
-                    break
-            rec[field.name] = field.x_value
+            rec[field.name] = _UNDEF
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
-                has_unknown = True
-                break
+                return False
             rec[field.name] = init.value.x_value
-    if has_unknown:
-        return False
     return _AssignValue(node, rec)
 
 

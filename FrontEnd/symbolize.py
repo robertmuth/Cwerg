@@ -472,7 +472,7 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
 def _MakeRecInitializerMap(value) -> Dict[cwast.RecField, cwast.FieldVal]:
     if isinstance(value, cwast.ValUndef):
         return {}
-    assert isinstance(value, cwast.ValRec)
+    assert isinstance(value, cwast.ValRec), f"{value}"
     return {i.x_field: i for i in value.inits_rec}
 
 

@@ -5,12 +5,12 @@
 (# "This gets passed to the actual formatters which decide how to interpret the options.")
 (defrec pub SysFormatOptions [
     (# "min width")
-    (field witdh u8 0)
-    (field precission u8 0)
-    (field padding u8 0)
-    (field style u8 0)
-    (field show_sign bool false)
-    (field left_justify bool false)
+    (field witdh u8)
+    (field precission u8)
+    (field padding u8)
+    (field style u8)
+    (field show_sign bool)
+    (field left_justify bool)
 ])
 
 

@@ -7,27 +7,27 @@
 
 (defrec pub type_rec [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 s32 (ValNum 7))
-   (field s2 s32 undef)
-   (field s3 s32 undef)
-   (field s4 s32 undef)
+   (field s1 s32)
+   (field s2 s32)
+   (field s3 s32)
+   (field s4 s32)
 
-   (field b1 bool false)
-   (field u1 u64 666)
-   (field u2 u64 666_u64)
+   (field b1 bool)
+   (field u1 u64)
+   (field u2 u64)
 ])
 
 
 (defrec pub linked_list [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 (TypeSum [void (ptr linked_list)]) void_val)
+   (field s1 (TypeSum [void (ptr linked_list)]))
 ])
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
-   (entry s1 (ValNum 7))
+   (entry s1)
    (entry s2)
-   (entry s3 19)
+   (entry s3)
    (entry s4)
 ])
 

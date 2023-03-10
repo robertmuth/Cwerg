@@ -29,16 +29,12 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
         slice.type, {}, {}), x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
-    pointer_field = cwast.RecField(SLICE_FIELD_POINTER,
-                                   pointer_type, cwast.ValUndef(
-                                       x_srcloc=srcloc),
-                                   x_srcloc=srcloc)
+    pointer_field = cwast.RecField(SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_field, pointer_type.x_type)
     length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
     typify.AnnotateNodeType(
         tc, length_type, tc.insert_base_type(length_type.base_type_kind))
-    length_field = cwast.RecField(SLICE_FIELD_LENGTH, length_type, cwast.ValUndef(x_srcloc=srcloc),
-                                  x_srcloc=srcloc)
+    length_field = cwast.RecField(SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, length_field, length_type.x_type)
     name = f"rec_{tc.canon_name(slice.x_type)}"
     rec = cwast.DefRec(True, name, [pointer_field, length_field],

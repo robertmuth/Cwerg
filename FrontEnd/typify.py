@@ -242,8 +242,6 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return AnnotateNodeType(tc, node, tc.insert_array_type(dim, t))
     elif isinstance(node, cwast.RecField):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
-        if not isinstance(node.initial_or_undef, cwast.ValUndef):
-            _TypifyNodeRecursively(node.initial_or_undef, tc, cstr, ctx)
         return AnnotateNodeType(tc, node, cstr)
     elif isinstance(node, cwast.DefRec):
         # allow recursive definitions referring back to rec inside
@@ -624,10 +622,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             _CheckTypeSame(node, tc, field_node.x_type, x.x_type)
             _CheckTypeCompatible(node, tc, x.value.x_type, x.x_type)
     elif isinstance(node, cwast.RecField):
-        if not isinstance(node.initial_or_undef, cwast.ValUndef):
-            type_cstr = node.type.x_type
-            initial_cstr = node.initial_or_undef.x_type
-            _CheckTypeCompatible(node, tc, initial_cstr, type_cstr)
+        pass
     elif isinstance(node, cwast.ExprIndex):
         cstr = node.x_type
         assert cstr == types.get_contained_type(node.container.x_type)

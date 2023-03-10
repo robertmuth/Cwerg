@@ -994,7 +994,7 @@ class FieldVal:
     e.g. `.imag = 5`
     If field is empty use `first field` or `next field`.
     """
-    ALIAS = None
+    ALIAS = "field_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
     #
@@ -1007,7 +1007,7 @@ class FieldVal:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} [{self.init_field}] = {self.value}"
+        return f"{_NAME(self)} {self.init_field}={self.value}"
 
 
 @NodeCommon
@@ -1807,19 +1807,17 @@ class RecField:  #
     """
     ALIAS = "field"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     name: str
     type: NODES_TYPES_T
-    initial_or_undef: Union["NODES_EXPR_T", ValUndef]    # must be const
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
     x_offset: int = -1
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type} = {self.initial_or_undef}"
+        return f"{_NAME(self)} {self.name}: {self.type}"
 
 
 @NodeCommon
