@@ -619,7 +619,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             _CheckTypeSame(node, tc, x.x_type, cstr)
     elif isinstance(node, cwast.ValRec):
         for x in node.inits_rec:
-            assert isinstance(x, cwast.FieldVal)
+            assert isinstance(x, cwast.FieldVal), f"unexpected field: {x}"
             field_node = x.x_field
             _CheckTypeSame(node, tc, field_node.x_type, x.x_type)
             _CheckTypeCompatible(node, tc, x.value.x_type, x.x_type)

@@ -68,33 +68,24 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
 
 
 def _EvalValRec(node: cwast.ValRec) -> bool:
-    out = False
-    num_unknown = 0
     # first pass if we cannot evaluate everyting, we must give up
-    for c in node.inits_rec:
-        assert isinstance(c, cwast.FieldVal)
-        if c.value.x_value is None:
-            num_unknown += 1
-    for c in node.x_type.fields:
-        assert isinstance(c, cwast.RecField)
-        if not isinstance(c.initial_or_undef, cwast.ValUndef):
-            if c.initial_or_undef.x_value is None:
-                num_unknown += 1
-
-    if num_unknown > 0:
-        return out
-
-    fields = node.x_type.fields
-    values = node.inits_rec[:]
-
+    has_unknown = False
     rec = {}
-    for f in fields:
-        if values and (f.name == values[0].init_field or values[0].init_field == ""):
-            rec[f.name] = values[0].x_value
-            values.pop(0)
+    for field, init in symbolize.IterateValRec(node, node.x_type):
+        if init is None:
+            if not isinstance(field.initial_or_undef, cwast.ValUndef):
+                if field.initial_or_undef.x_value is None:
+                    has_unknown = True
+                    break
+            rec[field.name] = field.x_value
         else:
-            rec[f.name] = f.x_value
-
+            assert isinstance(init, cwast.FieldVal), f"{init}"
+            if init.value.x_value is None:
+                has_unknown = True
+                break
+            rec[field.name] = init.value.x_value
+    if has_unknown:
+        return False
     return _AssignValue(node, rec)
 
 
@@ -285,10 +276,12 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _AssignValue(node, EscapedStringToBytes(s))
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
-        container_val =  node.container.x_value
+        container_val = node.container.x_value
         if container_val is not None and index_val is not None:
-            assert isinstance(container_val, (list, bytes)), f"{node.container.x_value}"
-            assert index_val < len(container_val), f"{index_val} {container_val}"
+            assert isinstance(container_val, (list, bytes)
+                              ), f"{node.container.x_value}"
+            assert index_val < len(
+                container_val), f"{index_val} {container_val}"
             return _AssignValue(node, container_val[index_val])
         return False
     elif isinstance(node, cwast.ExprField):
@@ -389,7 +382,7 @@ def VerifyASTEvalsRecursively(node):
 
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
             assert node.x_value is not None, f"{node}"
-            
+
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
                 def_node = node.x_symbol

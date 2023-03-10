@@ -556,13 +556,6 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"
 
 
-def _MakeRecInitializerMap(value) -> Dict[cwast.RecField, cwast.FieldVal]:
-    if isinstance(value, cwast.ValUndef):
-        return {}
-    assert isinstance(value, cwast.ValRec)
-    return {i.x_field: i for i in value.inits_rec}
-
-
 def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
     def_type = node.type_or_auto.x_type
     print(
@@ -576,33 +569,32 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
         elif isinstance(cstr, cwast.TypeArray):
             print(f"# array: {tc.canon_name(cstr)}")
             width = cstr.size.x_value
-            if isinstance(cstr.type, cwast.TypeBase):
+            x_type = cstr.type
+            if isinstance(x_type, cwast.TypeBase):
                 if isinstance(node, cwast.ValUndef):
-                    return _EmitMem(_BYTE_UNDEF * (width * cstr.type.x_size), f"{offset} {tc.canon_name(cstr.type)} * {width}")
+                    return _EmitMem(_BYTE_UNDEF * (width * x_type.x_size), f"{offset} {tc.canon_name(cstr.type)} * {width}")
                 elif isinstance(node.x_value, bytes):
-                    assert isinstance(cstr.type, cwast.TypeBase)
+                    assert isinstance(x_type, cwast.TypeBase)
                     return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
                 else:
-                    size = cstr.size.x_value
-                    x_type = cstr.type
+
                     x_value = node.x_value
                     assert isinstance(x_type, cwast.TypeBase)
-                    assert size == len(x_value), f"{size} vs {len(x_value)}"
+                    assert width == len(x_value), f"{width} vs {len(x_value)}"
                     out = bytearray()
                     for v in x_value:
                         out += _InitDataForBaseType(x_type, v)
                     return _EmitMem(out, tc.canon_name(cstr))
+            else:
+                assert False
         elif isinstance(cstr, cwast.DefRec):
             print(f"# record: {tc.canon_name(cstr)}")
             rel_off = 0
-            inits: Dict[cwast.RecField,
-                        cwast.FieldVal] = _MakeRecInitializerMap(node)
-            for f in cstr.fields:
+            for f, i in symbolize. IterateValRec(node, cstr):
                 assert isinstance(f, cwast.RecField)
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
                                         (f.x_offset - rel_off), f"{offset+rel_off} padding")
-                i = inits.get(f)
                 if i is not None:
                     init = i.value
                 else:

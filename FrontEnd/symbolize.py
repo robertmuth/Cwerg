@@ -469,6 +469,44 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
     return out, mod_map
 
 
+def _MakeRecInitializerMap(value) -> Dict[cwast.RecField, cwast.FieldVal]:
+    if isinstance(value, cwast.ValUndef):
+        return {}
+    assert isinstance(value, cwast.ValRec)
+    return {i.x_field: i for i in value.inits_rec}
+
+
+def IterateValRec(val_rec, def_rec: cwast.DefRec):
+    inits: Dict[cwast.RecField,
+                cwast.FieldVal] = _MakeRecInitializerMap(val_rec)
+    for f in def_rec.fields:
+        assert isinstance(f, cwast.RecField)
+        yield f, inits.get(f)
+
+_UNDEF = cwast.ValUndef()
+
+def IterateValArray(val_array, width):
+    if isinstance(val_array, cwast.ValUndef):
+        for _ in range(width):
+            yield _UNDEF 
+    else:
+        curr_val = 0
+        for init in val_array.inits_array:
+            assert isinstance(init, cwast.IndexVal)
+            if isinstance(init.init_index, cwast.ValAuto):
+                yield curr_val, init
+                curr_val += 1
+                continue
+            index = init.init_index.x_value
+            assert isinstance(index, int)
+            while curr_val < index:
+                 yield curr_val, None
+                 curr_val += 1
+            yield curr_val, init
+            curr_val += 1
+            
+                
+    
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
