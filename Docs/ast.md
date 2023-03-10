@@ -24,7 +24,7 @@
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
-[FieldVal](#fieldval) &ensp;
+[FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
 [IndexVal](#indexval) &ensp;
@@ -47,7 +47,7 @@
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
 [ValNum&nbsp;(num)](#valnum-num) &ensp;
-[ValRec&nbsp;(rec)](#valrec-rec) &ensp;
+[ValRec&nbsp;(rec_val)](#valrec-rec_val) &ensp;
 [ValString](#valstring) &ensp;
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
@@ -86,9 +86,9 @@
 [Expr1 Kind](#expr1-kind) &ensp;
 [Expr2 Kind](#expr2-kind) &ensp;
 [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) &ensp;
-[Base Types Kind](#base-types-kind) &ensp;
-[ModParam Types Kind](#modparam-types-kind) &ensp;
-[MacroParam Types Kind](#macroparam-types-kind) &ensp;
+[Base Type Kind](#base-type-kind) &ensp;
+[ModParam Kind](#modparam-kind) &ensp;
+[MacroParam Kind](#macroparam-kind) &ensp;
 
 ## Misc Node Details
 
@@ -122,7 +122,7 @@ Allowed at top level only
 Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
-* base_type_kind [KIND]: see Base Types below
+* base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
 * items [LIST]: enum items and/or comments
 
 ### DefRec (defrec)
@@ -163,7 +163,6 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
-* initial_or_undef [NODE]: initializer
 
 ### TypeArray (array)
 An array of the given type and `size`
@@ -189,7 +188,7 @@ Base type
     
 
 Fields:
-* base_type_kind [KIND]: see Base Types below
+* base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
 
 ### TypeFun (sig)
 A function signature
@@ -339,7 +338,7 @@ Module Parameters
 
 Fields:
 * name [STR]: name of the object
-* mod_param_kind [KIND]: see ModParam Kind below
+* mod_param_kind [KIND]: see [ModParam Kind](#modparam-kind) below
 
 ### StmtAssignment (=)
 Assignment statement
@@ -370,7 +369,7 @@ Fields:
 Compound assignment statement
 
 Fields:
-* assignment_kind [KIND]: see StmtCompoundAssignment Kind below
+* assignment_kind [KIND]: see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
@@ -441,7 +440,7 @@ Fields:
 
 ## Value Node Details
 
-### FieldVal
+### FieldVal (field_val)
 Part of rec literal
 
     e.g. `.imag = 5`
@@ -497,7 +496,7 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
-### ValRec (rec)
+### ValRec (rec_val)
 A record literal
 
     `E.g.: complex{.imag = 5, .real = 1}`
@@ -552,14 +551,14 @@ Fields:
 Unary expression.
 
 Fields:
-* unary_expr_kind [KIND]: see Expr1 Kind below
+* unary_expr_kind [KIND]: see [Expr1 Kind](#expr1-kind) below
 * expr [NODE]: expression
 
 ### Expr2
 Binary expression.
 
 Fields:
-* binary_expr_kind [KIND]: see Expr2 Kind below
+* binary_expr_kind [KIND]: see [Expr2 Kind](#expr2-kind) below
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: righ operand expression
 
@@ -652,6 +651,10 @@ Fields:
 ### ExprFront (front)
 Address of the first element of an array or slice
 
+    Similar to `(& (at container 0))` but will not fail if container has zero size
+
+    
+
 Fields:
 * mut [FLAG]: is mutable
 * container [NODE]: array and slice
@@ -699,7 +702,7 @@ Fields:
 Pointer arithmetic expression - optionally bound checked..
 
 Fields:
-* pointer_expr_kind [KIND]: see PointerOp Kind below
+* pointer_expr_kind [KIND]: see [PointerOp Kind](#pointerop-kind) below
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: righ operand expression
 * expr_bound_or_undef [NODE] (default ValUndef): 
@@ -803,7 +806,7 @@ Macro Parameter
 
 Fields:
 * name [STR]: name of the object
-* macro_param_kind [KIND]: see MacroParam Kind below
+* macro_param_kind [KIND]: see [MacroParam Kind](#macroparam-kind) below
 
 ### MacroVar (macro_let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
@@ -876,7 +879,7 @@ Fields:
 |SHR       |>>=|
 |SHL       |<<=|
 
-### Base Types Kind
+### Base Type Kind
 
 |Kind|
 |----|
@@ -896,7 +899,7 @@ Fields:
 |NORET     |
 |BOOL      |
 
-### ModParam Types Kind
+### ModParam Kind
 
 |Kind|
 |----|
@@ -904,7 +907,7 @@ Fields:
 |MOD       |
 |TYPE      |
 
-### MacroParam Types Kind
+### MacroParam Kind
 
 |Kind|
 |----|

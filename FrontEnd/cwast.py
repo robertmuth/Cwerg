@@ -390,16 +390,16 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "polymorphic", "function definition or call is polymorphic"),
 
     #
-    NFD(NFK.KIND, "unary_expr_kind", "see Expr1 Kind below", UNARY_EXPR_KIND),
-    NFD(NFK.KIND, "binary_expr_kind", "see Expr2 Kind below", BINARY_EXPR_KIND),
-    NFD(NFK.KIND, "base_type_kind", "see Base Types below", BASE_TYPE_KIND),
-    NFD(NFK.KIND, "mod_param_kind", "see ModParam Kind below",  MOD_PARAM_KIND),
+    NFD(NFK.KIND, "unary_expr_kind", "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
+    NFD(NFK.KIND, "binary_expr_kind", "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
+    NFD(NFK.KIND, "base_type_kind", "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
+    NFD(NFK.KIND, "mod_param_kind", "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind",
-        "see StmtCompoundAssignment Kind below", ASSIGNMENT_KIND),
+        "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
     NFD(NFK.KIND,  "macro_param_kind",
-        "see MacroParam Kind below",  MACRO_PARAM_KIND),
+        "see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
     NFD(NFK.KIND, "pointer_expr_kind",
-        "see PointerOp Kind below", POINTER_EXPR_KIND),
+        "see [PointerOp Kind](#pointerop-kind) below", POINTER_EXPR_KIND),
     #
     # TODO: fix all the None below
     NFD(NFK.LIST, "params", "function parameters and/or comments", NODES_PARAMS),
@@ -2522,8 +2522,8 @@ def GenerateDocumentation(fout):
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
 
     print("\n## Enum Overview",  file=fout)
-    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Types",
-                "ModParam Types", "MacroParam Types"]:
+    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Type",
+                "ModParam", "MacroParam"]:
         name = cls + " Kind"
         anchor = MakeAnchor(name, None)
         print(f"[{name}](#{anchor}) &ensp;", file=fout)
@@ -2576,11 +2576,11 @@ def GenerateDocumentation(fout):
                 POINTER_EXPR_SHORTCUT_INV, fout)
     _RenderKind(StmtCompoundAssignment.__name__,
                 ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
-    _RenderKindSimple("Base Types",
+    _RenderKindSimple("Base Type",
                       BASE_TYPE_KIND, fout)
-    _RenderKindSimple("ModParam Types",
+    _RenderKindSimple("ModParam",
                       MOD_PARAM_KIND, fout)
-    _RenderKindSimple("MacroParam Types",
+    _RenderKindSimple("MacroParam",
                       MACRO_PARAM_KIND, fout)
 
 
