@@ -107,21 +107,13 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
         return False
     curr_val = _UNDEF
     array = []
-    for c in node.inits_array:
-        assert isinstance(c, cwast.IndexVal)
-        if isinstance(c.init_index, cwast.ValAuto):
-            _AssignValue(c.init_index, len(array))
-        else:
-            index = c.init_index.x_value
-            while len(array) < index:
-                array.append(curr_val)
-        curr_val = _UNDEF
-        if not isinstance(c.value_or_undef, cwast.ValUndef):
-            curr_val = c.value_or_undef.x_value
-        array.append(curr_val)
-        _AssignValue(c, curr_val)
-
-    while len(array) < node.x_type.size.x_value:
+    for n, c in symbolize.IterateValArray(node, node.x_type.size.x_value):
+        if c is None:
+            array.append(curr_val)
+            continue
+        curr_val = c.value_or_undef.x_value
+        if curr_val is None:
+            return False
         array.append(curr_val)
     return _AssignValue(node, array)
 
@@ -255,6 +247,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValAuto):
         return False
     elif isinstance(node, cwast.IndexVal):
+        if node.value_or_undef.x_value is not None:
+            return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValArray):
         return _EvalValArray(node)
@@ -374,7 +368,8 @@ def VerifyASTEvalsRecursively(node):
         if isinstance(node, cwast.ValUndef):
             return
         if cwast.NF.TOP_LEVEL in node.FLAGS:
-            is_const = isinstance(node, (cwast.DefRec, cwast.DefGlobal))
+            is_const = isinstance(
+                node, (cwast.DefRec, cwast.DefGlobal, cwast.DefEnum))
             return
 
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
@@ -399,12 +394,15 @@ def VerifyASTEvalsRecursively(node):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
                         pass
+                    elif isinstance(node, cwast.ValAuto) and field == "init_index":
+                        pass
                     else:
                         cwast.CompilerError(
                             node.x_srcloc, f"expected const node: {node} inside {parent}")
 
-        if isinstance(node, cwast.ValAuto):
-            assert node.x_value is not None, f"unevaluated auto node: {node}"
+        if field == "init_index":
+            assert node.x_value is not None or isinstance(node,
+                                                          cwast.ValAuto), f"unevaluated ValArray init index: {node}"
 
         if isinstance(node, cwast.StmtStaticAssert):
             assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
