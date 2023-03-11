@@ -29,11 +29,12 @@ TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
     $(DIR)/hello_world.x64.exe \
     $(DIR)/fizzbuzz.x64.exe \
-	$(DIR)/heapsort.exe \
+	$(DIR)/heapsort.x64.exe \
 	$(DIR)/print_argv.x64.exe \
-	$(DIR)/sieve.exe \
+	$(DIR)/sieve.x64.exe \
     $(DIR)/slice.x64.exe \
-	$(DIR)/defer.x64.exe
+	$(DIR)/defer.x64.exe \
+	$(DIR)/rec.x64.exe
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
@@ -71,12 +72,12 @@ $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
-$(DIR)/sieve.exe: TestData/sieve.cw
+$(DIR)/sieve.x64.exe: TestData/sieve.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
-$(DIR)/heapsort.exe: TestData/heapsort.cw
+$(DIR)/heapsort.x64.exe: TestData/heapsort.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
@@ -97,6 +98,11 @@ $(DIR)/slice.x64.exe: TestData/slice.cw
 	${QEMU} $@ foobar bar
 
 $(DIR)/defer.x64.exe: TestData/defer.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/rec.x64.exe: TestData/rec.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
