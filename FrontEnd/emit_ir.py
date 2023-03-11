@@ -405,7 +405,7 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
     def emit_recursively(offset, init):
         nonlocal dst_base, tc, id_gen
         src_type = init.x_type
-        assert not  isinstance(init, cwast.ValUndef)
+        assert not isinstance(init, cwast.ValUndef)
 
         if isinstance(init, cwast.Id):
             if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
@@ -421,7 +421,7 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
                     assert False, f"{init.x_srcloc} {src_type} {init}"
         elif isinstance(init, cwast.ValRec):
             for field, init in symbolize.IterateValRec(init, src_type):
-                if init is not None and not  isinstance(init, cwast.ValUndef):
+                if init is not None and not isinstance(init, cwast.ValUndef):
                     emit_recursively(dst_offset + field.x_offset, init.value)
         elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
             res = EmitIRExpr(init, tc, id_gen)
@@ -559,6 +559,13 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
     def _emit_recursively(node, cstr, offset: int) -> int:
         nonlocal tc
         assert offset == types.align(offset, cstr.x_alignment)
+        if isinstance(node, cwast.ValUndef):
+            return _EmitMem(_BYTE_UNDEF * cstr.x_size, f"{offset} undef={tc.canon_name(cstr)}")
+
+        if isinstance(node, cwast.Id):
+            node_def = node.x_symbol
+            assert isinstance(node_def, cwast.DefGlobal)
+            return _emit_recursively(node_def.initial_or_undef, cstr, offset)
         if isinstance(cstr, cwast.TypeBase):
             return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
         elif isinstance(cstr, cwast.TypeArray):
@@ -566,9 +573,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
             width = cstr.size.x_value
             x_type = cstr.type
             if isinstance(x_type, cwast.TypeBase):
-                if isinstance(node, cwast.ValUndef):
-                    return _EmitMem(_BYTE_UNDEF * (width * x_type.x_size), f"{offset} {tc.canon_name(cstr.type)} * {width}")
-                elif isinstance(node.x_value, bytes):
+                if isinstance(node.x_value, bytes):
                     assert isinstance(x_type, cwast.TypeBase)
                     return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
                 else:
@@ -581,21 +586,37 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
                         out += _InitDataForBaseType(x_type, v)
                     return _EmitMem(out, tc.canon_name(cstr))
             else:
-                assert False
+                assert isinstance(node, cwast.ValArray)
+                last = cwast.ValUndef()
+                stride = cstr.x_size // width
+                assert stride * width == cstr.x_size, f"{cstr.x_size} {width}"
+                for n, init in symbolize.IterateValArray(node, width):
+                    if init is None:
+                        count = _emit_recursively(
+                            last, x_type, offset + n * stride)
+                    else:
+                        assert isinstance(init, cwast.IndexVal)
+                        last = init.value_or_undef
+                        count = _emit_recursively(
+                            last, x_type, offset + n * stride)
+                    if count != stride:
+                        _EmitMem(_BYTE_PADDING * (stride - count),
+                                 f"{stride - count} padding")
+                return cstr.x_size
         elif isinstance(cstr, cwast.DefRec):
             print(f"# record: {tc.canon_name(cstr)}")
             rel_off = 0
             for f, i in symbolize. IterateValRec(node, cstr):
-                assert isinstance(f, cwast.RecField)
+
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
                                         (f.x_offset - rel_off), f"{offset+rel_off} padding")
-                if i is not None:
-                    init = i.value
+                if i is not None and not isinstance(i.value, cwast.ValUndef):
+                    rel_off += _emit_recursively(i.value,
+                                                 f.type.x_type, offset + rel_off)
                 else:
-                    init = f.initial_or_undef
-                rel_off += _emit_recursively(init,
-                                             f.type.x_type, offset + rel_off)
+                    rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.x_size,
+                                        tc.canon_name(f.type.x_type))
             return rel_off
         else:
             assert False, f"unhandled node: {cstr}"

@@ -971,7 +971,7 @@ class IndexVal:
     e.g. `.1 = 5`
     If index is empty use `0` or `previous index + 1`.
     """
-    ALIAS = None
+    ALIAS = "index_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #

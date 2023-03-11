@@ -164,7 +164,9 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         if token == "(":
             return ReadSExpr(stream, parent_cls)
         out = ExpandShortHand(token, stream.srcloc())
-        assert out is not None, f"Cannot expand {token} for {field}"
+        if out is None:
+            cwast.CompilerError(
+                stream.srcloc(), f"Cannot expand {token} for {field}")
         return out
     elif nfd.kind is cwast.NFK.STR_LIST:
         assert token == "[", f"expected list start for: {field} {token}"
