@@ -20,7 +20,7 @@
 
 (defrec pub linked_list [
    (# "this is a comment with \" with quotes \t ")
-   (field s1 (TypeSum [void (ptr linked_list)]))
+   (field s1 (union [void (ptr linked_list)]))
 ])
 
 (enum pub type_enum S32 [
@@ -31,20 +31,20 @@
    (entry s4)
 ])
 
-(type type_array (array (ValNum 3) bool))
+(type type_array (array 3 bool))
 
-(type type_slice (TypeSlice type_rec))
+(type type_slice (slice type_rec))
 
 (type type_ptr (ptr mut s32))
 
-(type pub type_union (TypeSum [s32 void type_ptr]))
+(type pub type_union (union [s32 void type_ptr]))
 
-(type pub type_union2 (TypeSum [s32 void (TypeSum [type_union u8])]))
+(type pub type_union2 (union [s32 void (union [type_union u8])]))
 
 (type type_fun (sig [(param a bool) (param b bool) (param c s32)] s32))
 
 (fun funx [(param a type_union)] s32 [
-   (return (asnot a (TypeSum [void type_ptr]))) 
+   (return (asnot a (union [void type_ptr]))) 
 ])
 
 ])

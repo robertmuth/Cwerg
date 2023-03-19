@@ -15,7 +15,7 @@
 
 (enum pub type_enum S32 [
    (# "this is a comment with \" with quotes \t ")
-   (entry e1 (ValNum 7))
+   (entry e1 7)
    (entry e2)
    (entry e3 19)
    (entry e4)
@@ -24,11 +24,11 @@
 
 (global c0 void void_val)
 
-(global c1 auto (ValNum 7_u32)) 
+(global c1 auto 7_u32) 
 
 (global c2 u32 7) 
 
-(global c3 auto (ValNum 7.0_r32)) 
+(global c3 auto 7.0_r32) 
 
 (global pub c4 auto "xxxxxx")
 
@@ -41,37 +41,37 @@
 
 (# "array literal with explicit indices")
 (global c30 auto (array_val 30 uint [
-   (IndexVal 0 1) 
-   (IndexVal 10 2) 
-   (IndexVal 20 3)]))
+   (index_val 0 1) 
+   (index_val 10 2) 
+   (index_val 20 3)]))
 
 (# "array literal")
 (global c31 auto (array_val 30 uint [
-   (IndexVal 10) 
-   (IndexVal 20) 
-   (IndexVal 30)]))
+   (index_val 10) 
+   (index_val 20) 
+   (index_val 30)]))
 
 (# "rec literal with explicit field name")
 (global c32 auto (rec_val type_rec [
-   (FieldVal 7 s1) 
-   (FieldVal 9 s2) 
-   (FieldVal 7 s3)]))
+   (field_val 7 s1) 
+   (field_val 9 s2) 
+   (field_val 7 s3)]))
 
 (# "rec literal")
 (global c33 auto (rec_val type_rec [
-   (FieldVal 7) 
-   (FieldVal 9) 
-   (FieldVal 7)]))
+   (field_val 7) 
+   (field_val 9) 
+   (field_val 7)]))
 
-(global c40 auto  (ExprIndex c30 1))
+(global c40 auto  (at c30 1))
 
 (static_assert (== c40 0))
 
-(global c41 auto  (ExprField c32 s1))
+(global c41 auto  (. c32 s1))
 
 (static_assert (== c41 7))
 
-(static_assert (== (ExprField c33 s1) 7))
+(static_assert (== (. c33 s1) 7))
 
 (static_assert (== (+ 3_s32 4) 7))
 

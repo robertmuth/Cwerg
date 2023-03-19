@@ -49,8 +49,8 @@
 (global g1 (array 5 type_rec1) undef)
 
 (global g2 auto (rec_val type_rec2 [
-      (FieldVal true t1) 
-      (FieldVal u0 t2)
+      (field_val true t1) 
+      (field_val u0 t2)
 ]))
 
 (global g3 auto (rec_val type_rec3 [

@@ -36,7 +36,7 @@
     (let mut stats auto (rec_val TextStats [(field_val 0) (field_val 0) (field_val 0)]))
     (let mut in_word auto false)
     (try fp FP (call fopen [fname Mode/r]) err [(return err)])
-    (let mut buf auto (array_val 128 u8 [(IndexVal undef)]))
+    (let mut buf (array 128 u8) undef)
     (while true [
         (try n u64 (call fread [fp buf]) err [
             (stmt (call fclose [fp]))
