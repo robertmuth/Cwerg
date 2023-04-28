@@ -29,7 +29,7 @@ _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 _TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
-_TOKEN_NUM = re.compile(r'[.0-9][_.a-z0-9]*')
+_TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
 
 
 class ReadTokens:

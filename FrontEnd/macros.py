@@ -129,7 +129,8 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:
             assert isinstance(a, cwast.Id)
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
-            assert isinstance(a, cwast.Id), f"while expanding macro {macro.name} expected parameter id but got: {a}"
+            assert isinstance(
+                a, cwast.Id), f"while expanding macro {macro.name} expected parameter id but got: {a}"
         else:
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))

@@ -602,9 +602,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         assert node.x_type is not types.NO_TYPE
         assert node.x_type in tc._canon_name, f"bad type annotation for {node}: {node.x_type}"
         if isinstance(node, (cwast.DefRec, cwast.DefEnum)):
-            assert node.x_type ==  node
+            assert node.x_type == node
         else:
-            assert node.x_type !=  node, f"bad node: {node}"
+            assert node.x_type != node, f"bad node: {node}"
     else:
         assert isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)
 
@@ -710,7 +710,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             cwast.CompilerError(
                 node.x_srcloc, f"cannot assign to readonly data: {node}")
     elif isinstance(node, cwast.StmtCompoundAssignment):
-        assert is_proper_lhs(node.lhs)
+        if not is_proper_lhs(node.lhs):
+            cwast.CompilerError(
+                node.x_srcloc, f"cannot assign to readonly data: {node}")
         kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type

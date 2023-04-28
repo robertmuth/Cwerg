@@ -219,7 +219,9 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus
                 op1, op2 = op2, op1
             print(
                 f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
-
+    elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt)):
+        op = EmitIRExpr(cond, tc, id_gen)
+        print(f"{TAB}beq {op} 0 {label_false}")
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
@@ -243,6 +245,21 @@ _BIN_OP_MAP = {
     cwast.BINARY_EXPR_KIND.OR: "or",
     cwast.BINARY_EXPR_KIND.AND: "and",
 }
+
+
+def _EmitExpr2(binary_expr_kind, res, res_type, op1, op2):
+    op = _BIN_OP_MAP.get(binary_expr_kind)
+    if op is not None:
+        print(
+            f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
+    elif binary_expr_kind is cwast.BINARY_EXPR_KIND.MAX:
+        print(
+            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
+    elif binary_expr_kind is cwast.BINARY_EXPR_KIND.MIN:
+        print(
+            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op1} {op2}")
+    else:
+        assert False, f"unsupported expression {binary_expr_kind}"
 
 
 def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
@@ -291,12 +308,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
         res = id_gen.NewName("expr2")
-        op = _BIN_OP_MAP.get(node.binary_expr_kind)
-        if op is not None:
-            print(
-                f"{TAB}{op} {res}:{StringifyOneType(node.x_type, tc)} = {op1} {op2}")
-        else:
-            assert False, f"unsupported expression {node}"
+        res_type = StringifyOneType(node.x_type, tc)
+        _EmitExpr2(node.binary_expr_kind, res, res_type, op1, op2)
         return res
     elif isinstance(node, cwast.ExprPointer):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)

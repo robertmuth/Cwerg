@@ -263,7 +263,9 @@ def ResolveSymbolsInsideFunctionsRecursively(
     def record_local_sym(node):
         name = node.name
         logger.info("recording local symbol: %s", node)
-        assert name not in scopes[-1], f"duplicate symbol: {name}"
+        if name in scopes[-1]:
+            cwast.CompilerError(node.x_srcloc,
+                                f"redefinition of symbol: {name}")
         scopes[-1][name] = node
         symtab.AddSymWithDupCheck(name, node)
 
