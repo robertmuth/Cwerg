@@ -32,6 +32,9 @@ TAB = "  "
 ZEROS = [b"\0" * i for i in range(128)]
 
 
+_DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
+
+
 def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
     byte_width = x_type.x_size
@@ -46,6 +49,10 @@ def _InitDataForBaseType(x_type, x_value) -> bytes:
 
 def RenderList(items):
     return "[" + " ".join(items) + "]"
+
+
+def IsTypeVoid(node, type_corpus: types.TypeCorpus):
+    return not type_corpus.register_types(node)
 
 
 def StringifyOneType(node, type_corpus: types.TypeCorpus):
@@ -358,8 +365,11 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
-        result = id_gen.NewName("expr")
-        print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{result}]")
+        if types.is_void_or_wrapped_void(node.x_type):
+            result = _DUMMY_VOID_REG
+        else:
+            result = id_gen.NewName("expr")
+            print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{result}]")
         for c in node.body:
             EmitIRStmt(c, result, tc, id_gen)
         return result
@@ -378,6 +388,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
         print(
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
         return res
+    elif isinstance(node, cwast.ValVoid):
+        pass
     else:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
 
@@ -424,29 +436,29 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
             if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
                 res = EmitIRExpr(init, tc, id_gen)
                 assert res is not None
-                print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+                print(f"{TAB}st {dst_base} {offset} = {res}")
             else:
                 if isinstance(init.x_type, cwast.DefRec):
                     src = _GetLValueAddress(init, tc, id_gen)
-                    _EmitCopy(dst_base, dst_offset, src,
+                    _EmitCopy(dst_base, offset, src,
                               0, src_type.x_size, src_type.x_alignment, id_gen)
                 else:
                     assert False, f"{init.x_srcloc} {src_type} {init}"
         elif isinstance(init, cwast.ValRec):
             for field, init in symbolize.IterateValRec(init, src_type):
                 if init is not None and not isinstance(init, cwast.ValUndef):
-                    emit_recursively(dst_offset + field.x_offset, init.value)
+                    emit_recursively(offset + field.x_offset, init.value)
         elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
             res = EmitIRExpr(init, tc, id_gen)
             assert res is not None
-            print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+            print(f"{TAB}st {dst_base} {offset} = {res}")
         elif isinstance(init, cwast.ExprFront):
             assert isinstance(init.container.x_type, cwast.TypeArray)
             res = _GetLValueAddress(init.container, tc, id_gen)
-            print(f"{TAB}st {dst_base} {dst_offset} = {res}")
+            print(f"{TAB}st {dst_base} {offset} = {res}")
         elif isinstance(init, cwast.ExprDeref):
             src = _GetLValueAddress(init, tc, id_gen)
-            _EmitCopy(src, 0, dst_base, dst_offset,
+            _EmitCopy(src, 0, dst_base, offset,
                       src_type.x_size, src_type.x_alignment, id_gen)
         else:
             assert False, f"{init.x_srcloc} {init} {src_type}"
@@ -484,13 +496,12 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
             EmitIRStmt(c, result, tc, id_gen)
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
-
+        out = EmitIRExpr(node.expr_ret, tc, id_gen)
         if isinstance(node.x_target, cwast.ExprStmt):
-            out = EmitIRExpr(node.expr_ret, tc, id_gen)
-            print(f"{TAB}mov {result} {out}")
+            if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
+                print(f"{TAB}mov {result} {out}")
         else:
-            if not types.is_void(node.expr_ret.x_type):
-                out = EmitIRExpr(node.expr_ret, tc, id_gen)
+            if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -713,6 +724,17 @@ def main():
                         fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
                 canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
+            if isinstance(fun, cwast.DefFun) and types.is_void_or_wrapped_void(fun.x_type.result):
+                if fun.body:
+                    last = fun.body[-1]
+                    if isinstance(last, cwast.StmtReturn):
+                        continue
+                else:
+                    last = fun
+                void_expr = cwast.ValVoid(
+                    x_srcloc=last.x_srcloc, x_type=fun.x_type.result)
+                fun.body.append(cwast.StmtReturn(
+                    void_expr, x_srcloc=last.x_srcloc, x_target=fun))
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
@@ -731,14 +753,12 @@ def main():
 
         exit(0)
 
-    # Fully qualify names
+    # Set fully qualified names for all symbols
     for mod in mod_topo_order:
-        mod_name = "" if mod.name == "main" else mod.name + "/"
+        mod_name = "" if mod.name in ("main", "$builtin") else mod.name + "/"
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = mod_name + node.name
-                if isinstance(node, cwast.DefFun):
-                    id_gen = identifier.IdGen()
 
     # Emit Cwert IR
     for mod in mod_topo_order:

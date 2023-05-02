@@ -70,6 +70,10 @@ def is_bool(cstr: CanonType) -> bool:
 def is_void(cstr: CanonType) -> bool:
     return isinstance(cstr, cwast.TypeBase) and cstr.base_type_kind is cwast.BASE_TYPE_KIND.VOID
 
+def is_void_or_wrapped_void(cstr: CanonType) -> bool:
+    if isinstance(cstr, cwast.DefType):
+        return is_void(cstr.type)
+    return is_void(cstr)
 
 def is_int(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)

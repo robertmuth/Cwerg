@@ -17,7 +17,8 @@ TESTS = macros.cw \
         binary_tree.cw \
         import.cw \
         import2.cw \
-        sizeof.cw
+        sizeof.cw \
+        string.cw
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
@@ -34,7 +35,8 @@ tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
 	$(DIR)/sieve.x64.exe \
     $(DIR)/slice.x64.exe \
 	$(DIR)/defer.x64.exe \
-	$(DIR)/rec.x64.exe
+	$(DIR)/rec.x64.exe \
+	$(DIR)/string.x64.exe
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
@@ -103,6 +105,11 @@ $(DIR)/defer.x64.exe: TestData/defer.cw
 	${QEMU} $@
 
 $(DIR)/rec.x64.exe: TestData/rec.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/string.x64.exe: TestData/string.cw
 	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@

@@ -103,8 +103,9 @@ class SymTab:
                 out = s.resolve_sym_here(components[0], must_be_public)
         return out
 
-    def resolve_macro(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
+    def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
+        components: List[str] = macro_invoke.name.split("/")
         if len(components) > 1:
             assert len(components) == 2
             # TODO: pub check?
@@ -113,7 +114,8 @@ class SymTab:
                 assert isinstance(s, cwast.DefMod), f"{s}"
                 mod_symtab = symtab_map[s.name]
                 return mod_symtab._macro_syms.get(components[1])
-            assert False, f"could not resolve name {components}"
+            cwast.CompilerError(macro_invoke.x_srcloc,
+                                f"could not resolve name {components}")
 
         out = self._macro_syms.get(components[0])
         if not out:
@@ -200,8 +202,7 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
         return cwast.ValString(True, f'"{node.expr.name}"', x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
-    macro = sym_tab.resolve_macro(
-        node.name.split("/"), symtab_map, False)
+    macro = sym_tab.resolve_macro(node,  symtab_map, False)
     if macro is None:
         cwast.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
