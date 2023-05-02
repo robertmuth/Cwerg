@@ -53,9 +53,9 @@ class IdGen:
         if name not in self._local_names and name not in self._global_names:
             self._local_names.add(name)
             return name
-        for i in range(1, 100):
+        for i in range(1, 110):
             name = f"{prefix}${i}"
             if name not in self._local_names and name not in self._global_names:
                 self._local_names.add(name)
                 return name
-        assert False
+        assert False, f"could not find new name for {prefix}"

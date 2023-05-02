@@ -58,10 +58,11 @@
     (let nptr (ptr u8) (front needle))
     (let mut i uint (- hlen nlen))
     (block _ [
-        (-= i 1)
         (if (call are_two_non_empty_strings_the_same [
           (incp hptr i) nptr nlen]) [(return i)] [])
-        (if (== i 0) [(return NOT_FOUND)] [(continue)])
+        (if (== i 0) [(return NOT_FOUND)] [])
+        (-= i 1)
+        (continue)
     ])
 ])
 
@@ -170,9 +171,10 @@
     (let hptr (ptr u8) (front haystack))
     (let mut i uint hlen)
     (block _ [
-        (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) [(return i)] []) 
-        (if (== i 0) [(return NOT_FOUND)] [(continue)])
+        (if (== i 0) [(return NOT_FOUND)] [])
+        (-= i 1)
+        (continue)
     ])
 ])
 
@@ -186,9 +188,10 @@
     (let hptr (ptr u8) (front haystack))
     (let mut i uint hlen)
     (block _ [
-        (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) [] [(return i)]) 
-        (if (== i 0) [(return NOT_FOUND)] [(continue)])
+        (if (== i 0) [(return NOT_FOUND)] [])
+        (continue)
+        (-= i 1)
     ])
 ])
 
@@ -205,7 +208,9 @@
     (macro_let $e_val auto $e_expr) 
     (macro_let $a_val auto $a_expr) 
     (if (!= $e_val $a_val) [
-        (stmt (call SysPrint ["CheckEq\n"]))
+        (stmt (call SysPrint ["CheckEq failed: "]))
+        (stmt (call SysPrint [(stringify $a_expr)]))
+        (stmt (call SysPrint ["\n"]))
         (trap)
     ] []) 
 ])
@@ -214,16 +219,29 @@
 
 (module main [] [
 (import test)
+(import string)
 
 (global STR_ABC auto "ABC")
 (global STR_ABCD auto "ABCD")
+(global STR_CD auto "CD")
 (global STR_XYZ auto "XYZ")
 (global STR_VXYZ auto "VXYZ")
 
 (global STR_TEST auto "TEST\n")
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-    (test/AssertEq 1_u32 1_u32)
+    (test/AssertEq string/NOT_FOUND (call string/find [STR_ABC STR_ABCD]))
+    (test/AssertEq 0_uint (call string/find [STR_ABCD STR_ABC]))
+    (test/AssertEq 1_uint (call string/find [STR_VXYZ STR_XYZ]))
+    (test/AssertEq 2_uint (call string/find [STR_ABCD STR_CD]))
+    (test/AssertEq string/NOT_FOUND (call string/find [STR_XYZ STR_VXYZ]))
+    
+    (test/AssertEq string/NOT_FOUND (call string/rfind [STR_ABC STR_ABCD]))
+    (test/AssertEq 0_uint (call string/rfind [STR_ABCD STR_ABC]))
+    (test/AssertEq 1_uint (call string/rfind [STR_VXYZ STR_XYZ]))
+    (test/AssertEq 2_uint (call string/rfind [STR_ABCD STR_CD]))
+    (test/AssertEq string/NOT_FOUND (call string/find [STR_ABC STR_ABCD]))
+
     (stmt (call SysPrint ["OK\n"]))
     (return 0)
 ])

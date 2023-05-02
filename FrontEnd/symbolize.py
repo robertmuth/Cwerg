@@ -198,8 +198,8 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
         # TODO: encode file and line properly
         return cwast.ValNum(f"{12345}_u32")
     elif isinstance(node, cwast.ExprStringify):
-        assert isinstance(node.expr, cwast.Id)
-        return cwast.ValString(True, f'"{node.expr.name}"', x_srcloc=node)
+        #assert isinstance(node.expr, cwast.Id)
+        return cwast.ValString(True, f'"{node.expr}"', x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
     macro = sym_tab.resolve_macro(node,  symtab_map, False)

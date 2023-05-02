@@ -51,10 +51,6 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def IsTypeVoid(node, type_corpus: types.TypeCorpus):
-    return not type_corpus.register_types(node)
-
-
 def StringifyOneType(node, type_corpus: types.TypeCorpus):
     t = type_corpus.register_types(node)
     assert len(t) == 1, f"bad type: {node}"
