@@ -119,7 +119,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
     def replacer(call, field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.TypeFun = call.callee.x_type
-            new_sig:  cwast.TypeFun = fun_sigs_with_large_args[old_sig]
+            new_sig: cwast.TypeFun = fun_sigs_with_large_args[old_sig]
             typify.UpdateNodeType(tc, call.callee, new_sig)
             expr_body = []
             expr = cwast.ExprStmt(
@@ -127,7 +127,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             # note: new_sig might be longer if the result type was changed
             for n, (old, new) in enumerate(zip(old_sig.params, new_sig.params)):
                 if old.type != new.type:
-                    new_def = cwast.DefVar(False, True, id_gen.NewName("param"),
+                    new_def = cwast.DefVar(False, True, id_gen.NewName(f"arg{n}"),
                                            cwast.TypeAuto(
                                                x_srcloc=call.x_srcloc, x_type=old.type),
                                            call.args[n],

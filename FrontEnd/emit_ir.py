@@ -138,7 +138,7 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> A
     elif isinstance(node, cwast.Id):
         def_node = node.x_symbol
         name = def_node.name
-        res = id_gen.NewName("lhsaddr")
+        res = id_gen.NewName(f"lhsaddr_{node.name}")
         # TODO
         kind = "A64"
         if isinstance(def_node, cwast.DefGlobal):

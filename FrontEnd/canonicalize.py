@@ -47,27 +47,33 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
 
 
 def _ShouldBeBoolExpanded(node, field):
-    if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)):
+    # these nodes do not represent a complex boolean expression
+    if isinstance(node, (cwast.Id, cwast.ExprCall, cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)):
         return False
-    return field in ("args", "expr_rhs", "initial_or_undef", "value", "value_or_undef") and types.is_bool(node.x_type)
+    # the field condition ensures that the node 
+    # * is not part of a conditional
+    # * has a x_type
+    return field in (
+        "args", "expr_rhs", "initial_or_undef", "value",
+        "value_or_undef") and types.is_bool(node.x_type)
 
 
 def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus):
-    """transform a bool expression e into "e ? true : false"
+    """transform a complex bool expression e into "e ? true : false"
 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
     to materialize boolean values
      """
     def replacer(node, field):
-        if _ShouldBeBoolExpanded(node, field):
-            cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
-            return cwast.Expr3(node,
-                               cwast.ValTrue(x_srcloc=node.x_srcloc,
-                                             x_type=cstr_bool, x_value=True),
-                               cwast.ValFalse(
-                                   x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
-                               x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
-        return None
+        if not _ShouldBeBoolExpanded(node, field):
+            return None
+        cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+        return cwast.Expr3(node,
+                           cwast.ValTrue(x_srcloc=node.x_srcloc,
+                                         x_type=cstr_bool, x_value=True),
+                           cwast.ValFalse(
+                               x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
+                           x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 

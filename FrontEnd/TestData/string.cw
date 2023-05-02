@@ -230,18 +230,25 @@
 (global STR_TEST auto "TEST\n")
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
+    (# "find")
     (test/AssertEq string/NOT_FOUND (call string/find [STR_ABC STR_ABCD]))
     (test/AssertEq 0_uint (call string/find [STR_ABCD STR_ABC]))
     (test/AssertEq 1_uint (call string/find [STR_VXYZ STR_XYZ]))
     (test/AssertEq 2_uint (call string/find [STR_ABCD STR_CD]))
     (test/AssertEq string/NOT_FOUND (call string/find [STR_XYZ STR_VXYZ]))
-    
+    (# "rfind")
     (test/AssertEq string/NOT_FOUND (call string/rfind [STR_ABC STR_ABCD]))
     (test/AssertEq 0_uint (call string/rfind [STR_ABCD STR_ABC]))
     (test/AssertEq 1_uint (call string/rfind [STR_VXYZ STR_XYZ]))
     (test/AssertEq 2_uint (call string/rfind [STR_ABCD STR_CD]))
     (test/AssertEq string/NOT_FOUND (call string/find [STR_ABC STR_ABCD]))
-
+    (# "starts_with")
+    (test/AssertEq false (call string/starts_with [STR_ABC STR_ABCD]))
+    (test/AssertEq true (call string/starts_with [STR_ABCD STR_ABC]))
+    (test/AssertEq false (call string/starts_with [STR_VXYZ STR_XYZ]))
+    (test/AssertEq false (call string/starts_with [STR_ABCD STR_CD]))
+    (test/AssertEq false (call string/starts_with [STR_XYZ STR_VXYZ]))
+    (# "")
     (stmt (call SysPrint ["OK\n"]))
     (return 0)
 ])
