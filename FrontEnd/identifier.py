@@ -53,7 +53,7 @@ class IdGen:
         if name not in self._local_names and name not in self._global_names:
             self._local_names.add(name)
             return name
-        for i in range(1, 200):
+        for i in range(1, 300):
             name = f"{prefix}${i}"
             if name not in self._local_names and name not in self._global_names:
                 self._local_names.add(name)
