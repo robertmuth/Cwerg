@@ -225,7 +225,10 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus
                 f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
     elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt)):
         op = EmitIRExpr(cond, tc, id_gen)
-        print(f"{TAB}beq {op} 0 {label_false}")
+        if invert:
+            print(f"{TAB}beq {op} 0 {label_false}")
+        else:
+            print(f"{TAB}bne {op} 0 {label_false}")
     elif isinstance(cond, cwast.Id):
         assert types.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
@@ -380,7 +383,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
                           cwast.TypeArray), f"unexpected {node}"
         return _GetLValueAddress(node.container, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
-        res = id_gen.NewName("field")
+        res = id_gen.NewName(f"field_{node.x_field.name}")
         addr = _GetLValueAddress(node.container, tc, id_gen)
         print(
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
@@ -455,7 +458,7 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
             print(f"{TAB}st {dst_base} {offset} = {res}")
         elif isinstance(init, cwast.ExprDeref):
             src = _GetLValueAddress(init, tc, id_gen)
-            _EmitCopy(src, 0, dst_base, offset,
+            _EmitCopy(dst_base, offset, src, 0,
                       src_type.x_size, src_type.x_alignment, id_gen)
         else:
             assert False, f"{init.x_srcloc} {init} {src_type}"
@@ -556,7 +559,9 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
 
 
 def _EmitMem(data, comment) -> int:
-    if is_repeated_single_char(data):
+    if len(data) == 0:
+        print(f'.data 0 []  # {comment}')
+    elif is_repeated_single_char(data):
         print(f'.data {len(data)} [{data[0]}]  # {comment}')
     elif isinstance(data, (bytes, bytearray)):
         if len(data) < 100:

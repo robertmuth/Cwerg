@@ -171,9 +171,9 @@
     (let hptr (ptr u8) (front haystack))
     (let mut i uint hlen)
     (block _ [
+        (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) [(return i)] []) 
         (if (== i 0) [(return NOT_FOUND)] [])
-        (-= i 1)
         (continue)
     ])
 ])
@@ -183,21 +183,19 @@
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) [(return NOT_FOUND)] [])
-    (if (== nlen 0) [(return NOT_FOUND)] [])
+    (if (== nlen 0) [(return (- hlen 1))] [])
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
     (let mut i uint hlen)
     (block _ [
+        (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) [] [(return i)]) 
         (if (== i 0) [(return NOT_FOUND)] [])
         (continue)
-        (-= i 1)
     ])
 ])
 
 ])
-
-
 
 
 (module test [] [
@@ -226,6 +224,7 @@
 (global STR_CD auto "CD")
 (global STR_XYZ auto "XYZ")
 (global STR_VXYZ auto "VXYZ")
+(global STR_EMPTY auto "")
 
 (global STR_TEST auto "TEST\n")
 
@@ -260,6 +259,30 @@
     (test::AssertEq true (call string::ends_with [STR_VXYZ STR_XYZ]))
     (test::AssertEq true (call string::ends_with [STR_ABCD STR_CD]))
     (test::AssertEq false (call string::ends_with [STR_XYZ STR_VXYZ]))
+    (# "find_first_of")
+    (test::AssertEq 0_uint (call string::find_first_of [STR_ABC STR_ABCD]))
+    (test::AssertEq 2_uint (call string::find_first_of [STR_ABC STR_CD]))
+    (test::AssertEq string::NOT_FOUND (call string::find_first_of [STR_ABC STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_first_of [STR_EMPTY STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_first_of [STR_ABC STR_EMPTY]))
+    (# "find_first_not_of")
+    (test::AssertEq 3_uint (call string::find_first_not_of [STR_ABCD STR_ABC]))
+    (test::AssertEq 0_uint (call string::find_first_not_of [STR_ABC STR_CD]))
+    (test::AssertEq 0_uint (call string::find_first_not_of [STR_ABC STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_first_not_of [STR_EMPTY STR_XYZ]))
+    (test::AssertEq 0_uint (call string::find_first_not_of [STR_ABC STR_EMPTY]))
+    (# "find_last_of")
+    (test::AssertEq 2_uint (call string::find_last_of [STR_ABCD STR_ABC]))
+    (test::AssertEq 2_uint (call string::find_last_of [STR_ABC STR_CD]))
+    (test::AssertEq string::NOT_FOUND (call string::find_last_of [STR_ABC STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_last_of [STR_EMPTY STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_last_of [STR_ABC STR_EMPTY]))
+    (# "find_last_not_of")
+    (test::AssertEq 3_uint (call string::find_last_not_of [STR_ABCD STR_ABC]))
+    (test::AssertEq 1_uint (call string::find_last_not_of [STR_ABC STR_CD]))
+    (test::AssertEq 2_uint (call string::find_last_not_of [STR_ABC STR_XYZ]))
+    (test::AssertEq string::NOT_FOUND (call string::find_last_not_of [STR_EMPTY STR_XYZ]))
+    (test::AssertEq 2_uint (call string::find_last_not_of [STR_ABC STR_EMPTY]))
     (# "")
     (stmt (call SysPrint ["OK\n"]))
     (return 0)
