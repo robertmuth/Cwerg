@@ -109,7 +109,7 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
+def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     if isinstance(node, cwast.ExprIndex):
         x_type = node.container.x_type
         assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
@@ -174,7 +174,7 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 
-def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
         if not invert:
@@ -265,7 +265,7 @@ def _EmitExpr2(binary_expr_kind, res, res_type, op1, op2):
         assert False, f"unsupported expression {binary_expr_kind}"
 
 
-def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGen) -> Any:
+def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     if isinstance(node, cwast.ExprCall):
         sig = node.callee.x_type
         assert isinstance(sig, cwast.TypeFun)
@@ -407,7 +407,7 @@ def _AssignmentLhsIsInReg(lhs):
         assert False, f"unpected lhs {lhs}"
 
 
-def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_gen: identifier.IdGen):
+def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_gen: identifier.IdGenIR):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
@@ -421,7 +421,7 @@ def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_
             curr += width
 
 
-def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGen):
+def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
 
     def emit_recursively(offset, init):
         nonlocal dst_base, tc, id_gen
@@ -462,7 +462,7 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
     emit_recursively(dst_offset, src_init)
 
 
-def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type = node.type_or_auto.x_type
         # node.name = id_gen.NewName(node.name)
@@ -644,7 +644,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
     _emit_recursively(node.initial_or_undef, node.type_or_auto.x_type, 0)
 
 
-def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGen):
+def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGenIR):
     if not node.extern:
         _EmitFunctionHeader(node, type_corpus)
         _EmitFunctionProlog(node, type_corpus, id_gen)
@@ -678,7 +678,7 @@ def main():
     # Legalize so that code emitter works
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
-    id_gen = identifier.IdGen()
+    id_gen_global = identifier.IdGen(is_global=True)
     str_val_map = {}
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
@@ -694,8 +694,9 @@ def main():
 
     for mod in mod_topo_order:
         canonicalize.OptimizeKnownConditionals(mod)
-        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen)
-        canonicalize.CanonicalizeTernaryOp(mod, id_gen)
+        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
+        for node in mod.body_mod:
+            canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
         canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
 
     for mod in mod_topo_order:
@@ -708,6 +709,7 @@ def main():
         tc)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
+            id_gen = identifier.IdGen()
             # continue
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
@@ -742,14 +744,12 @@ def main():
         list(slice_to_struct_map.values())
     mod_topo_order = [mod_gen] + mod_topo_order
 
-    if args.emit_ir:
-        for mod in mod_topo_order:
-            pp.PrettyPrintHTML(mod, tc)
-            # pp.PrettyPrint(mod)
-
-        exit(0)
-
-    # Set fully qualified names for all symbols
+    # Naming cleanup:
+    # * Set fully qualified names for all module level symbols
+    # * uniquify local names. Local names can occur multiple times
+    #   in different scopes - even with different types.
+    #   we just create a new unique name for each of them which will
+    #   map to a new virtual register or stack location
     for mod in mod_topo_order:
         # when we emit Cwerg IR we use the "/" sepearator not "::" because
         # : is used for type annotations
@@ -757,20 +757,24 @@ def main():
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = mod_name + node.name
+                if isinstance(node, cwast.DefFun):
+                    identifier.IdGen().UniquifyLocalNames(node)
+
+    if args.emit_ir:
+        for mod in mod_topo_order:
+            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrint(mod)
+
+        exit(0)
 
     # Emit Cwert IR
     for mod in mod_topo_order:
-        id_gen.ClearGlobalNames()
-        id_gen.LoadGlobalNames(mod)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
                 EmitIRDefGlobal(node, tc)
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                id_gen.ClearLocalNames()
-                id_gen.UniquifyLocalNames(node)
-                
                 EmitIRDefFun(node, tc, identifier.IdGenIR())
 
 

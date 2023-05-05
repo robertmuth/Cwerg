@@ -25,7 +25,7 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
                     x_value=def_node.initial_or_undef.x_value, x_symbol=def_node)
 
 
-def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGen):
+def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifier.IdGen):
     """Move string/array values into global (un-mutable variables)"""
     def replacer(node, field):
         # TODO: add support for ValArray
@@ -34,7 +34,7 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
                 node.x_value, bytes), f"expected str got {node.x_value}"
             def_node = str_map.get(node.x_value)
             if not def_node:
-                def_node = cwast.DefGlobal(True, False, id_gen.NewGlobalName("global_str"),
+                def_node = cwast.DefGlobal(True, False, id_gen_global.NewName("global_str"),
                                            cwast.TypeAuto(
                                                node.x_srcloc, x_type=node.x_type), node,
                                            x_srcloc=node.x_srcloc)
@@ -86,12 +86,12 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     def replacer(node, field):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
-            name_t = id_gen.NewLocalName("op_t")
+            name_t = id_gen.NewName("op_t")
             def_t = cwast.DefVar(False, False, name_t,
                                  cwast.TypeAuto(
                                      x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
                                  x_srcloc=srcloc)
-            name_f = id_gen.NewLocalName("op_f")
+            name_f = id_gen.NewName("op_f")
             def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
                                  x_srcloc=srcloc)
 
@@ -137,7 +137,7 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
                 addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
                 addr = cwast.ExprAddrOf(True, node.lhs,
                                         x_srcloc=node.x_srcloc, x_type=addr_type)
-                def_node = cwast.DefVar(False, id_gen.NewLocalName("assign"),
+                def_node = cwast.DefVar(False, id_gen.NewName("assign"),
                                         cwast.TypeAuto(
                     x_srcloc=node.x_srcloc), addr,
                     x_srcloc=node.x_srcloc, x_type=addr_type)
