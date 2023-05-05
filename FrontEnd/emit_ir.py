@@ -73,7 +73,8 @@ def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
                         id_gen: identifier.IdGen):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
-        #p.name = id_gen.NewName(p.name)
+        # this uniquifies names
+        p.name = id_gen.NewName(p.name)
         reg_types = type_corpus.register_types(p.type.x_type)
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
@@ -465,7 +466,8 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type = node.type_or_auto.x_type
-        # node.name = id_gen.NewName(node.name)
+        # This uniquifies names
+        node.name = id_gen.NewName(node.name)
         if tc.register_types(def_type) is None or len(tc.register_types(def_type)) != 1:
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -678,7 +680,7 @@ def main():
     # Legalize so that code emitter works
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
-    id_gen_global = identifier.IdGen(is_global=True)
+    id_gen_global = identifier.IdGen()
     str_val_map = {}
     # for key, val in fun_sigs_with_large_args.items():
     #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
@@ -746,10 +748,6 @@ def main():
 
     # Naming cleanup:
     # * Set fully qualified names for all module level symbols
-    # * uniquify local names. Local names can occur multiple times
-    #   in different scopes - even with different types.
-    #   we just create a new unique name for each of them which will
-    #   map to a new virtual register or stack location
     for mod in mod_topo_order:
         # when we emit Cwerg IR we use the "/" sepearator not "::" because
         # : is used for type annotations
@@ -757,8 +755,6 @@ def main():
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = mod_name + node.name
-                if isinstance(node, cwast.DefFun):
-                    identifier.IdGen().UniquifyLocalNames(node)
 
     if args.emit_ir:
         for mod in mod_topo_order:
