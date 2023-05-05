@@ -751,6 +751,8 @@ def main():
 
     # Set fully qualified names for all symbols
     for mod in mod_topo_order:
+        # when we emit Cwerg IR we use the "/" sepearator not "::" because
+        # : is used for type annotations
         mod_name = "" if mod.name in ("main", "$builtin") else mod.name + "/"
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 CanonType = str
 NO_TYPE = None
-STRINGIFIEDTYPE_RE = re.compile(r"^[a-zA-Z][_A-Za-z_0-9$,<>/]+$")
+STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 
 def is_mutable_def(node):
@@ -354,7 +354,7 @@ class TypeCorpus:
         self.corpus[name] = node
         self.topo_order.append(node)
         assert node not in self._canon_name
-        assert STRINGIFIEDTYPE_RE.match(name), f"bad type name [{name}]"
+        assert STRINGIFIEDTYPE_RE.fullmatch(name), f"bad type name [{name}]"
         self._canon_name[node] = name
         if finalize:
             node.x_size, node.x_alignment = self.get_size_and_alignment(node)

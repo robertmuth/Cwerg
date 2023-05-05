@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 SRCLOC_GENERATED = -1
 
+ID_PATH_SEPARATOR = "::"
 
 ############################################################
 # Enums
@@ -620,8 +621,7 @@ class Id:
     GROUP = GROUP.Misc
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS
     #
-    name: str          # last component of mod1::mod2:id: id
-    path: str          # first components of mod1::mod2:id: mod1::mod2
+    name: str          # id or mod::id or enum::id or mod::enum::id
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -629,8 +629,7 @@ class Id:
     x_symbol: Optional[Any] = None
 
     def __str__(self):
-        joiner = "/" if self.path else ""
-        return f"{_NAME(self)} {self.path}{joiner}{self.name}"
+        return f"{_NAME(self)} {self.name}"
 
 
 @NodeCommon

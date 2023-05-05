@@ -21,7 +21,7 @@ from FrontEnd import symbolize
 
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(def_node.name, "", x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_value=def_node.initial_or_undef.x_value, x_symbol=def_node)
 
 

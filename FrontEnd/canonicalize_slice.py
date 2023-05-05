@@ -92,7 +92,7 @@ def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
 
 
 def _MakeIdForDefRec(def_rec, srcloc):
-    return cwast.Id(def_rec.name, "", x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
+    return cwast.Id(def_rec.name, x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
 
 
 def _ConvertValArrayToPointer(node, pointer_type, index_type):

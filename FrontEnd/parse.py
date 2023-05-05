@@ -28,7 +28,7 @@ _TOKEN_OP = r'[\[\]\(\)]'
 _TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
-_TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9])*')
+_TOKEN_ID = re.compile(r'[_A-Za-z$][_A-Za-z$0-9]*(::[_A-Za-z$][_A-Za-z$0-9]*)*')
 _TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
 
 
@@ -105,23 +105,21 @@ def ExpandShortHand(t, srcloc) -> Any:
         # TODO: r"
         logger.info("STRING %s at %s", t, srcloc)
         return cwast.ValString(False, t, x_srcloc=srcloc)
-    elif _TOKEN_ID.match(t):
+    elif _TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
-        parts = t.rsplit("::", 1)
         logger.info("ID %s at %s", t, srcloc)
-        return cwast.Id(parts[-1], "" if len(parts) ==
-                        1 else parts[0], x_srcloc=srcloc)
-    elif _TOKEN_NUM.match(t):
+        return cwast.Id(t, x_srcloc=srcloc)
+    elif _TOKEN_NUM.fullmatch(t):
         logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
     elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
         logger.info("CHAR %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
     else:
-        return None
+        cwast.CompilerError(srcloc, f"unexpected token {t}")
 
 
 def ReadNodeList(stream: ReadTokens, parent_cls):

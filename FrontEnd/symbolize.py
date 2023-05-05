@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 BUILTIN_MOD = "$builtin"
 POLYMORPHIC_MOD = "$polymorphic"
 
-
 def AnnotateNodeSymbol(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
@@ -105,7 +104,7 @@ class SymTab:
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        components: List[str] = macro_invoke.name.split("/")
+        components: List[str] = macro_invoke.name.split(cwast.ID_PATH_SEPARATOR)
         if len(components) > 1:
             assert len(components) == 2
             # TODO: pub check?
@@ -179,7 +178,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     def visitor(node, _):
         if isinstance(node, cwast.Id):
             def_node = symtab.resolve_sym(
-                node.name.split("/"), symtab_map, False)
+                node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False)
             if def_node is None:
                 cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
@@ -249,7 +248,7 @@ def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macr
 
 
 def _resolve_symbol_inside_function_or_macro(name: str, symtab: SymTab, symtab_map, scopes):
-    components = name.split("/")
+    components = name.split(cwast.ID_PATH_SEPARATOR)
     if len(components) == 1:
         for s in reversed(scopes):
             def_node = s.get(components[0])

@@ -138,7 +138,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         assert gen_id.startswith("$")
         new_name = ctx.GenUniqueName(gen_id)
         ctx.RegisterSymbol(
-            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, "", x_srcloc=macro.x_srcloc)))
+            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, x_srcloc=macro.x_srcloc)))
     out = []
     for node in macro.body_macro:
         logger.info("Expand macro body node: %s", node)

@@ -99,7 +99,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
             result_type = result_param.type.x_type
             assert isinstance(result_type, cwast.TypePtr)
             lhs = cwast.ExprDeref(
-                cwast.Id(result_param.name, "", x_srcloc=node.x_srcloc,
+                cwast.Id(result_param.name, x_srcloc=node.x_srcloc,
                          x_type=result_type, x_symbol=result_param),
                 x_srcloc=node.x_srcloc, x_type=result_type.type)
             assign = cwast.StmtAssignment(
@@ -133,7 +133,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                            call.args[n],
                                            x_srcloc=call.x_srcloc)
                     expr_body.append(new_def)
-                    name = cwast.Id(new_def.name, "",
+                    name = cwast.Id(new_def.name,
                                     x_srcloc=call.x_srcloc, x_type=old.type, x_symbol=new_def)
                     call.args[n] = cwast.ExprAddrOf(
                         False, name, x_srcloc=call.x_srcloc, x_type=new.type)
@@ -143,7 +143,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                        cwast.TypeAuto(x_srcloc=call.x_srcloc),
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
                                        x_srcloc=call.x_srcloc, x_type=old_sig.result)
-                name = cwast.Id(new_def.name, "",
+                name = cwast.Id(new_def.name,
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
