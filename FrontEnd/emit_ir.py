@@ -73,14 +73,14 @@ def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
                         id_gen: identifier.IdGen):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
-        p.name = id_gen.NewName(p.name)
+        #p.name = id_gen.NewName(p.name)
         reg_types = type_corpus.register_types(p.type.x_type)
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
         else:
             assert len(reg_types) == 2
-            print(f"{TAB}poparg {p.name}.1:{reg_types[0]}")
-            print(f"{TAB}poparg {p.name}.2:{reg_types[1]}")
+            print(f"{TAB}poparg {p.name}..1:{reg_types[0]}")
+            print(f"{TAB}poparg {p.name}..2:{reg_types[1]}")
 
 
 def RLE(data: bytes):
@@ -465,7 +465,7 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGen):
     if isinstance(node, cwast.DefVar):
         def_type = node.type_or_auto.x_type
-        node.name = id_gen.NewName(node.name)
+        # node.name = id_gen.NewName(node.name)
         if tc.register_types(def_type) is None or len(tc.register_types(def_type)) != 1:
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
@@ -770,7 +770,8 @@ def main():
             if isinstance(node, cwast.DefFun):
                 id_gen.ClearLocalNames()
                 id_gen.UniquifyLocalNames(node)
-                EmitIRDefFun(node, tc, id_gen)
+                
+                EmitIRDefFun(node, tc, identifier.IdGenIR())
 
 
 if __name__ == "__main__":

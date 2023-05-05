@@ -34,7 +34,7 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen: identifier.IdGe
                 node.x_value, bytes), f"expected str got {node.x_value}"
             def_node = str_map.get(node.x_value)
             if not def_node:
-                def_node = cwast.DefGlobal(True, False, id_gen.NewName("global_str"),
+                def_node = cwast.DefGlobal(True, False, id_gen.NewGlobalName("global_str"),
                                            cwast.TypeAuto(
                                                node.x_srcloc, x_type=node.x_type), node,
                                            x_srcloc=node.x_srcloc)
@@ -50,7 +50,7 @@ def _ShouldBeBoolExpanded(node, field):
     # these nodes do not represent a complex boolean expression
     if isinstance(node, (cwast.Id, cwast.ExprCall, cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)):
         return False
-    # the field condition ensures that the node 
+    # the field condition ensures that the node
     # * is not part of a conditional
     # * has a x_type
     return field in (
@@ -86,12 +86,12 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     def replacer(node, field):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
-            name_t = id_gen.NewName("op_t")
+            name_t = id_gen.NewLocalName("op_t")
             def_t = cwast.DefVar(False, False, name_t,
                                  cwast.TypeAuto(
                                      x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
                                  x_srcloc=srcloc)
-            name_f = id_gen.NewName("op_f")
+            name_f = id_gen.NewLocalName("op_f")
             def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
                                  x_srcloc=srcloc)
 
@@ -137,7 +137,7 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
                 addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
                 addr = cwast.ExprAddrOf(True, node.lhs,
                                         x_srcloc=node.x_srcloc, x_type=addr_type)
-                def_node = cwast.DefVar(False, id_gen.NewName("assign"),
+                def_node = cwast.DefVar(False, id_gen.NewLocalName("assign"),
                                         cwast.TypeAuto(
                     x_srcloc=node.x_srcloc), addr,
                     x_srcloc=node.x_srcloc, x_type=addr_type)

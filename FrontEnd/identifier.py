@@ -15,6 +15,27 @@ def _GetAllLocalNames(node, seen_names: Set[str]):
     cwast.VisitAstRecursivelyPost(node, visitor, seen_names)
 
 
+class IdGenIR:
+    """This is used to generate new local names (labels, registers, stack locations, etc.) 
+       for Cwerg IR. Clashes with names in AST nodes are avoided by having each
+       generated name contain a "." (dot) which is not valid for AST names.
+
+       We assume that all global of local names in the AST nodes
+       are also valid IR names and use them verbatim.
+       """
+
+    def __init__(self):
+        self._names: Dict[str, int] = {}
+
+    def NewName(self, prefix) -> str:
+        no = self._names.get(prefix, 0)
+        self._names[prefix] = no + 1
+        if no == 0:
+            return prefix
+        else:
+            return f"{prefix}.{no}"
+
+
 class IdGen:
     def __init__(self):
         self._global_names: Set[str] = set()
@@ -59,3 +80,9 @@ class IdGen:
                 self._local_names.add(name)
                 return name
         assert False, f"could not find new name for {prefix}"
+
+    def NewGlobalName(self, prefix) -> str:
+        return self.NewName(prefix)
+
+    def NewLocalName(self, prefix) -> str:
+        return self.NewName(prefix)
