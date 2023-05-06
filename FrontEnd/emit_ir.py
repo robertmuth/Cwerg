@@ -705,7 +705,14 @@ def main():
         for node in mod.body_mod:
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
         canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
+    
+    if args.emit_ir and False:
+        for mod in mod_topo_order:
+            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrint(mod)
 
+        exit(0)
+        
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
@@ -747,8 +754,10 @@ def main():
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
-    mod_gen.body_mod += list(str_val_map.values()) + \
-        list(slice_to_struct_map.values())
+    mod_gen.body_mod += list(str_val_map.values()) + [
+        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)] 
+    cwast.CheckAST(mod_gen, set())
+
     mod_topo_order = [mod_gen] + mod_topo_order
 
     # Naming cleanup:

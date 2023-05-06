@@ -779,7 +779,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, (cwast.DefFun, cwast.TypeFun)):
         assert isinstance(node.x_type, cwast.TypeFun)
         fun_type = node.x_type
-        assert fun_type.result == node.result.x_type
+        _CheckTypeSame(node.result, tc, fun_type.result, node.result.x_type)
         for a, b in zip(fun_type.params, node.params):
             _CheckTypeSame(b, tc, a.type, b.type.x_type)
     elif isinstance(node, cwast.ValSlice):

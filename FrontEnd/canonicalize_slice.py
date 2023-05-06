@@ -29,12 +29,14 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
         slice.type, {}, {}), x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
-    pointer_field = cwast.RecField(SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
+    pointer_field = cwast.RecField(
+        SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_field, pointer_type.x_type)
     length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
     typify.AnnotateNodeType(
         tc, length_type, tc.insert_base_type(length_type.base_type_kind))
-    length_field = cwast.RecField(SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
+    length_field = cwast.RecField(
+        SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, length_field, length_type.x_type)
     name = f"tuple_{tc.canon_name(slice.x_type)}"
     rec = cwast.DefRec(True, name, [pointer_field, length_field],
@@ -48,7 +50,7 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
 
 
 def _DoesFunSigContainSlices(fun_sig: cwast.TypeFun, slice_to_struct_map) -> bool:
-    if fun_sig.result.x_type in slice_to_struct_map:
+    if fun_sig.result in slice_to_struct_map:
         return True
     for p in fun_sig.params:
         if p.type in slice_to_struct_map:
@@ -63,7 +65,15 @@ def _SliceRewriteFunSig(fun_sig: cwast.TypeFun, tc: types.TypeCorpus, slice_to_s
 
 
 def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
-
+    """For all types directly involving slices, produce a replacement type
+    and return the map from one the other
+    
+    Note: recs containing slice member are not thought of as directly involving slices
+    TODO: what about sum types?
+    """
+    
+    # first collect all the slice types occuring in the program.
+    # we collect one node witness for each to be used in the next step.
     slice_type_to_slice = {}
 
     def visitor(node, _):
@@ -75,6 +85,8 @@ def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
     for mod in mods:
         cwast.VisitAstRecursivelyPost(mod, visitor)
 
+    # now go through the type table in topological order and generate the map.
+    # Note; we add new types to the map while iterating over it
     out = {}
     for cstr in tc.topo_order[:]:
         if isinstance(cstr, cwast.TypeSlice):
@@ -95,15 +107,6 @@ def _MakeIdForDefRec(def_rec, srcloc):
     return cwast.Id(def_rec.name, x_symbol=def_rec, x_type=def_rec.x_type, x_srcloc=srcloc)
 
 
-def _ConvertValArrayToPointer(node, pointer_type, index_type):
-    zero_offset = cwast.ValNum(
-        f"0", x_srcloc=node.x_srcloc, x_type=index_type, x_value=0)
-    return cwast.ExprAddrOf(pointer_type.mut,
-                            cwast.ExprIndex(node, zero_offset,
-                                            x_type=pointer_type.type, x_srcloc=node.x_srcloc), x_type=pointer_type,
-                            x_srcloc=node.x_srcloc)
-
-
 def _MakeValRecForSlice(pointer, length, slice_rec: cwast.DefRec, srcloc):
     pointer_field, length_field = slice_rec.fields
     inits = [cwast.FieldVal(pointer, "",
@@ -120,8 +123,9 @@ def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
     pointer_field, length_field = slice_rec.fields
     width = node.x_type.size.x_value
     assert width is not None
-    pointer = _ConvertValArrayToPointer(
-        node, pointer_field.x_type, length_field.x_type)
+    pointer_type = pointer_field.x_type
+    pointer = cwast.ExprFront(pointer_type.mut, node,
+                              x_type=pointer_type, x_srcloc=srcloc)
     length = cwast.ValNum(f"{width}", x_value=width,
                           x_srcloc=srcloc, x_type=length_field.x_type)
     return _MakeValRecForSlice(pointer, length, slice_rec, srcloc)
@@ -193,9 +197,11 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
 
 def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
     """
-     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
+    Replaces all slice<X> expressions with rec named tuple_slice<X>
 
-     Complications:
+    This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
+
+    Complications:
      TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
      `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
     """
