@@ -7,6 +7,7 @@
 import sys
 import logging
 import argparse
+import dataclasses
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -33,6 +34,12 @@ ZEROS = [b"\0" * i for i in range(128)]
 
 
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
+
+
+@dataclasses.dataclass()
+class BaseOffset:
+    base: str
+    offset: int
 
 
 def _InitDataForBaseType(x_type, x_value) -> bytes:
@@ -411,7 +418,7 @@ def _AssignmentLhsIsInReg(lhs):
         assert False, f"unpected lhs {lhs}"
 
 
-def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_gen: identifier.IdGenIR):
+def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, id_gen: identifier.IdGenIR):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
@@ -420,15 +427,15 @@ def _EmitCopy(dst_base, dst_offset, src_base, src_offset, length, alignment, id_
         tmp = id_gen.NewName(f"copy{width}")
         print(f"{TAB}.reg U{width*8} [{tmp}]")
         while curr + width <= length:
-            print(f"{TAB}ld {tmp} = {src_base} {src_offset + curr}")
-            print(f"{TAB}st {dst_base} {dst_offset + curr} = {tmp}")
+            print(f"{TAB}ld {tmp} = {src.base} {src.offset + curr}")
+            print(f"{TAB}st {dst.base} {dst.offset + curr} = {tmp}")
             curr += width
 
 
-def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
 
     def emit_recursively(offset, init):
-        nonlocal dst_base, tc, id_gen
+        nonlocal dst, tc, id_gen
         src_type = init.x_type
         assert not isinstance(init, cwast.ValUndef)
 
@@ -436,12 +443,12 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
             if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
                 res = EmitIRExpr(init, tc, id_gen)
                 assert res is not None
-                print(f"{TAB}st {dst_base} {offset} = {res}")
+                print(f"{TAB}st {dst.base} {offset} = {res}")
             else:
                 if isinstance(init.x_type, cwast.DefRec):
                     src = _GetLValueAddress(init, tc, id_gen)
-                    _EmitCopy(dst_base, offset, src,
-                              0, src_type.x_size, src_type.x_alignment, id_gen)
+                    _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(
+                        src, 0), src_type.x_size, src_type.x_alignment, id_gen)
                 else:
                     assert False, f"{init.x_srcloc} {src_type} {init}"
         elif isinstance(init, cwast.ValRec):
@@ -451,19 +458,19 @@ def _EmitInitialization(dst_base, dst_offset, src_init,  tc: types.TypeCorpus, i
         elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
             res = EmitIRExpr(init, tc, id_gen)
             assert res is not None
-            print(f"{TAB}st {dst_base} {offset} = {res}")
+            print(f"{TAB}st {dst.base} {offset} = {res}")
         elif isinstance(init, cwast.ExprFront):
             assert isinstance(init.container.x_type, cwast.TypeArray)
             res = _GetLValueAddress(init.container, tc, id_gen)
-            print(f"{TAB}st {dst_base} {offset} = {res}")
+            print(f"{TAB}st {dst.base} {offset} = {res}")
         elif isinstance(init, cwast.ExprDeref):
             src = _GetLValueAddress(init, tc, id_gen)
-            _EmitCopy(dst_base, offset, src, 0,
+            _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(src, 0),
                       src_type.x_size, src_type.x_alignment, id_gen)
         else:
             assert False, f"{init.x_srcloc} {init} {src_type}"
 
-    emit_recursively(dst_offset, src_init)
+    emit_recursively(dst.offset, src_init)
 
 
 def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
@@ -477,7 +484,7 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
                 init_base = id_gen.NewName("init_base")
                 print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
                 _EmitInitialization(
-                    init_base, 0, node.initial_or_undef, tc, id_gen)
+                    BaseOffset(init_base, 0), node.initial_or_undef, tc, id_gen)
         else:
             if isinstance(node.initial_or_undef, cwast.ValUndef):
                 print(
@@ -551,7 +558,7 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
                 print(f"{TAB}st {lhs} 0 = {out}")
         else:
             lhs = _GetLValueAddress(node.lhs, tc, id_gen)
-            _EmitInitialization(lhs, 0, node.expr_rhs, tc, id_gen)
+            _EmitInitialization(BaseOffset(lhs, 0), node.expr_rhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:
@@ -705,14 +712,14 @@ def main():
         for node in mod.body_mod:
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
         canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
-    
+
     if args.emit_ir and False:
         for mod in mod_topo_order:
             pp.PrettyPrintHTML(mod, tc)
             # pp.PrettyPrint(mod)
 
         exit(0)
-        
+
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
@@ -755,7 +762,7 @@ def main():
         eval.VerifyASTEvalsRecursively(mod)
 
     mod_gen.body_mod += list(str_val_map.values()) + [
-        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)] 
+        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
     cwast.CheckAST(mod_gen, set())
 
     mod_topo_order = [mod_gen] + mod_topo_order

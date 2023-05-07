@@ -1,10 +1,20 @@
 """Canonicalize Large Args (and Results)
 
-Rewrite arguments and results which cannot be passed in registers
-as pointers.
+The goal of this step is to simplify code generation.
+We want to avoid having to deal with values that do not fit into registers.
+Those values are primarily rec and sum-types. Slices would also fall into this
+category but we convert them to rec in the prior step.
 
-Large results will become an extra pointer parameter appended to the end
-of the parameter list
+The only place where we allow values  that do not fit into register
+are let statements. 
+
+Effects of this step:
+* Rewrite arguments and results which cannot be passed in registers
+  as pointers.
+* Large results will become an extra pointer parameter appended to the end
+  of the parameter list.
+
+
 
 """
 
