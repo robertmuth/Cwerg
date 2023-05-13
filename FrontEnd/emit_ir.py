@@ -8,6 +8,7 @@ import sys
 import logging
 import argparse
 import dataclasses
+import enum
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -34,6 +35,32 @@ ZEROS = [b"\0" * i for i in range(128)]
 
 
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
+
+
+@enum.unique
+class STORAGE_KIND(enum.Enum):
+    """Macro Parameter Kinds"""
+    INVALID = enum.auto()
+    REGISTER = enum.auto()
+    STACK = enum.auto()
+    DATA = enum.auto()
+
+
+def _IsDefVarOnStack(node: cwast.DefVar, tc: types.TypeCorpus) -> bool:
+    if node.ref:
+        return True
+    rtype = tc.register_types(node.type_or_auto.x_type)
+    return rtype is None or len(rtype) != 1
+
+
+def _StorageForId(node: cwast.Id, tc: types.TypeCorpus) -> STORAGE_KIND:
+    def_node = node.x_symbol
+    if isinstance(def_node, cwast.DefGlobal):
+        return STORAGE_KIND.DATA
+    elif isinstance(def_node, cwast.DefVar):
+        return STORAGE_KIND.STACK if _IsDefVarOnStack(def_node, tc) else STORAGE_KIND.REGISTER
+    else:
+        assert False
 
 
 @dataclasses.dataclass()
@@ -144,16 +171,17 @@ def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) ->
     elif isinstance(node, cwast.ExprField):
         assert False
     elif isinstance(node, cwast.Id):
-        def_node = node.x_symbol
-        name = def_node.name
+        name = node.x_symbol.name
         res = id_gen.NewName(f"lhsaddr_{node.name}")
         # TODO
         kind = "A64"
-        if isinstance(def_node, cwast.DefGlobal):
+        storage = _StorageForId(node, tc)
+        if storage is STORAGE_KIND.DATA:
             print(f"{TAB}lea.mem {res}:{kind} = {name} 0")
-        else:
-            assert isinstance(def_node, cwast.DefVar)
+        elif storage is STORAGE_KIND.STACK:
             print(f"{TAB}lea.stk {res}:{kind} = {name} 0")
+        else:
+            assert False
         return res
     else:
         assert False, f"unsupported node for lvalue {node}"
@@ -440,17 +468,16 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
         assert not isinstance(init, cwast.ValUndef)
 
         if isinstance(init, cwast.Id):
-            if tc.register_types(src_type) is not None and len(tc.register_types(src_type)) == 1:
+            storage = _StorageForId(init, tc)
+            if storage is STORAGE_KIND.REGISTER:
                 res = EmitIRExpr(init, tc, id_gen)
                 assert res is not None
                 print(f"{TAB}st {dst.base} {offset} = {res}")
             else:
-                if isinstance(init.x_type, cwast.DefRec):
-                    src = _GetLValueAddress(init, tc, id_gen)
-                    _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(
-                        src, 0), src_type.x_size, src_type.x_alignment, id_gen)
-                else:
-                    assert False, f"{init.x_srcloc} {src_type} {init}"
+                src = _GetLValueAddress(init, tc, id_gen)
+                _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(
+                    src, 0), src_type.x_size, src_type.x_alignment, id_gen)
+
         elif isinstance(init, cwast.ValRec):
             for field, init in symbolize.IterateValRec(init, src_type):
                 if init is not None and not isinstance(init, cwast.ValUndef):
@@ -478,7 +505,7 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
         def_type = node.type_or_auto.x_type
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
-        if tc.register_types(def_type) is None or len(tc.register_types(def_type)) != 1:
+        if _IsDefVarOnStack(node, tc):
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
