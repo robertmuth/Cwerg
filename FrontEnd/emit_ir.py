@@ -46,21 +46,27 @@ class STORAGE_KIND(enum.Enum):
     DATA = enum.auto()
 
 
+def IsSingleRegType(ctype: str, tc: types.TypeCorpus):
+    rtype = tc.register_types(ctype)
+    return rtype is not None and len(rtype) == 1
+
+
 def _IsDefVarOnStack(node: cwast.DefVar, tc: types.TypeCorpus) -> bool:
     if node.ref:
         return True
-    rtype = tc.register_types(node.type_or_auto.x_type)
-    return rtype is None or len(rtype) != 1
+    return not IsSingleRegType(node.type_or_auto.x_type, tc)
 
 
 def _StorageForId(node: cwast.Id, tc: types.TypeCorpus) -> STORAGE_KIND:
     def_node = node.x_symbol
     if isinstance(def_node, cwast.DefGlobal):
         return STORAGE_KIND.DATA
+    if isinstance(def_node, cwast.FunParam):
+        return STORAGE_KIND.REGISTER
     elif isinstance(def_node, cwast.DefVar):
         return STORAGE_KIND.STACK if _IsDefVarOnStack(def_node, tc) else STORAGE_KIND.REGISTER
     else:
-        assert False
+        assert False, f"Unexpected ID {def_node}"
 
 
 @dataclasses.dataclass()
@@ -105,13 +111,13 @@ def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
     sig: cwast.TypeFun = fun.x_type
     ins = []
     for p in sig.params:
+        # 
         ins += type_corpus.register_types(p.type)
     result = ""
     if not types.is_void(sig.result):
         result = StringifyOneType(sig.result, type_corpus)
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
-
 
 def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
                         id_gen: identifier.IdGen):
@@ -614,19 +620,13 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
         else:
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
-    elif isinstance(node, cwast.StmtAssignment):
-        if tc.register_types(node.lhs.x_type) and len(tc.register_types(node.lhs.x_type)) == 1:
+    elif isinstance(node, cwast.StmtAssignment):        
+        if IsSingleRegType(node.lhs.x_type, tc) and _AssignmentLhsIsInReg(node.lhs):
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
-            if _AssignmentLhsIsInReg(node.lhs):
-                # because of the canonicalization step only register promotable
-                # scalars will be naked like this
-                print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
-            else:
-                lhs = _GetLValueAddress(node.lhs, tc, id_gen)
-                print(f"{TAB}st {lhs} 0 = {out}")
+            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
             lhs = _GetLValueAddress(node.lhs, tc, id_gen)
-            _EmitInitialization(BaseOffset(lhs, 0), node.expr_rhs, tc, id_gen)
+            EmitIRExprToMemory(node.expr_rhs, BaseOffset(lhs, 0), tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:
