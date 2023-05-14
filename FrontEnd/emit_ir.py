@@ -69,6 +69,16 @@ class BaseOffset:
     offset: int
 
 
+@dataclasses.dataclass()
+class ReturnResultLocation:
+    """Where to store a return expression
+
+    if type is str, the result must fit into a register whose name is provide.
+    Otherwise the result is to be copied into the memory location provided.
+    """
+    dst: Union[str, BaseOffset]
+
+
 def _InitDataForBaseType(x_type, x_value) -> bytes:
     assert isinstance(x_type, cwast.TypeBase)
     byte_width = x_type.x_size
@@ -406,7 +416,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
             result = id_gen.NewName("expr")
             print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{result}]")
         for c in node.body:
-            EmitIRStmt(c, result, tc, id_gen)
+            EmitIRStmt(c, ReturnResultLocation(result), tc, id_gen)
         return result
     elif isinstance(node, cwast.ExprIndex):
         addr = _GetLValueAddress(node, tc, id_gen)
@@ -428,7 +438,34 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     else:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
 
-# TODO: support stack allocated objects
+
+def EmitIRExprToMemory(node, dst: BaseOffset, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+    if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
+                         cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
+                         cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
+                         cwast.ExprFront, cwast.ExprBitCast, cwast.ExprAs)):
+        reg = EmitIRExpr(node, tc, id_gen)
+        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+    elif isinstance(node, cwast.Id) and _StorageForId(node, tc) is STORAGE_KIND.REGISTER:
+        reg = EmitIRExpr(node, tc, id_gen)
+        assert reg is not None
+        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+    elif isinstance(node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
+        src_base = _GetLValueAddress(node, tc, id_gen)
+        src_type = node.x_type
+        _EmitCopy(dst, BaseOffset(
+            src_base, 0), src_type.x_size, src_type.x_alignment, id_gen)
+    elif isinstance(node, cwast.ExprStmt):
+        for c in node.body:
+            EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
+    elif isinstance(node, cwast.ValRec):
+        src_type = node.x_type
+        for field, init in symbolize.IterateValRec(node, src_type):
+            if init is not None and not isinstance(init, cwast.ValUndef):
+                EmitIRExprToMemory(init.value, BaseOffset(
+                    dst.base, dst.offset+field.x_offset), tc, id_gen)
+    else:
+        assert False, f"NYI: {node}"
 
 
 def _AssignmentLhsIsInReg(lhs):
@@ -500,7 +537,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
     emit_recursively(dst.offset, src_init)
 
 
-def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type = node.type_or_auto.x_type
         # This uniquifies names
@@ -510,8 +547,8 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
-                _EmitInitialization(
-                    BaseOffset(init_base, 0), node.initial_or_undef, tc, id_gen)
+                EmitIRExprToMemory(
+                    node.initial_or_undef,  BaseOffset(init_base, 0), tc, id_gen)
         else:
             if isinstance(node.initial_or_undef, cwast.ValUndef):
                 print(
@@ -531,11 +568,15 @@ def EmitIRStmt(node, result, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
             EmitIRStmt(c, result, tc, id_gen)
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
-        out = EmitIRExpr(node.expr_ret, tc, id_gen)
         if isinstance(node.x_target, cwast.ExprStmt):
             if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
-                print(f"{TAB}mov {result} {out}")
+                if isinstance(result.dst, str):
+                    out = EmitIRExpr(node.expr_ret, tc, id_gen)
+                    print(f"{TAB}mov {result.dst} {out}")
+                else:
+                    EmitIRExprToMemory(node.expr_ret, result.dst, tc, id_gen)
         else:
+            out = EmitIRExpr(node.expr_ret, tc, id_gen)
             if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
