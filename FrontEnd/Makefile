@@ -114,5 +114,10 @@ $(DIR)/string.x64.exe: TestData/string.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
+$(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
+	cat $< |  $(PYPY)  ./emit_ir.py > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
 clean:
 	@rm -f $(DIR)/* 

@@ -111,13 +111,14 @@ def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
     sig: cwast.TypeFun = fun.x_type
     ins = []
     for p in sig.params:
-        # 
+        #
         ins += type_corpus.register_types(p.type)
     result = ""
     if not types.is_void(sig.result):
         result = StringifyOneType(sig.result, type_corpus)
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
+
 
 def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
                         id_gen: identifier.IdGen):
@@ -470,6 +471,13 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: types.TypeCorpus, id_gen: iden
             if init is not None and not isinstance(init, cwast.ValUndef):
                 EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
+    elif isinstance(node, cwast.ValArray):
+        for n, c in symbolize.IterateValArray(node, node.x_type.size.x_value):
+            if c is None:
+                continue
+            if isinstance(c.value_or_undef, cwast.ValUndef):
+                continue
+            assert False
     else:
         assert False, f"NYI: {node}"
 
@@ -620,7 +628,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
         else:
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
-    elif isinstance(node, cwast.StmtAssignment):        
+    elif isinstance(node, cwast.StmtAssignment):
         if IsSingleRegType(node.lhs.x_type, tc) and _AssignmentLhsIsInReg(node.lhs):
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
@@ -745,6 +753,8 @@ def main():
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    # for mod in mod_topo_order:
+    #    cwast.StripNodes(mod, cwast.Comment)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripNodes(mod, cwast.Comment)
@@ -843,7 +853,10 @@ def main():
         mod_name = "" if mod.name in ("main", "$builtin") else mod.name + "/"
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                node.name = mod_name + node.name
+                suffix = ""
+                if isinstance(node, (cwast.DefFun)) and node.polymorphic:
+                    suffix = f"<{tc.canon_name(node.x_type.params[0].type)}>"
+                node.name = mod_name + node.name + suffix
 
     if args.emit_ir:
         for mod in mod_topo_order:
