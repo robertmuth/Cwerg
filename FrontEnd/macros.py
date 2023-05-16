@@ -123,7 +123,9 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
             pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
-            assert isinstance(a, cwast.EphemeralList)
+            if not isinstance(a, cwast.EphemeralList):
+                cwast.CompilerError(invoke.x_srcloc, 
+                                    f"expected EphemeralList for macro param {p} got {a}")
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
             pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:

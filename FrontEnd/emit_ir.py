@@ -753,14 +753,13 @@ def main():
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    # for mod in mod_topo_order:
-    #    cwast.StripNodes(mod, cwast.Comment)
+    for mod in mod_topo_order:
+        cwast.StripFromListRecursively(mod, cwast.Comment)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
-        cwast.StripNodes(mod, cwast.Comment)
-        cwast.StripNodes(mod, cwast.DefMacro)
-        cwast.StripNodes(mod, cwast.ExprParen)
-        cwast.StripNodes(mod, cwast.StmtStaticAssert)
+        cwast.StripFromListRecursively(mod, cwast.DefMacro)
+        #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
+        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)

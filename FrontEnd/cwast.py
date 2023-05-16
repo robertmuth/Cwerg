@@ -21,6 +21,8 @@ ID_PATH_SEPARATOR = "::"
 ############################################################
 # Enums
 ############################################################
+
+
 @enum.unique
 class BASE_TYPE_KIND(enum.Enum):
     INVALID = 0
@@ -391,10 +393,14 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "polymorphic", "function definition or call is polymorphic"),
 
     #
-    NFD(NFK.KIND, "unary_expr_kind", "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
-    NFD(NFK.KIND, "binary_expr_kind", "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
-    NFD(NFK.KIND, "base_type_kind", "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
-    NFD(NFK.KIND, "mod_param_kind", "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
+    NFD(NFK.KIND, "unary_expr_kind",
+        "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
+    NFD(NFK.KIND, "binary_expr_kind",
+        "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
+    NFD(NFK.KIND, "base_type_kind",
+        "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
+    NFD(NFK.KIND, "mod_param_kind",
+        "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
     NFD(NFK.KIND, "assignment_kind",
         "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
     NFD(NFK.KIND,  "macro_param_kind",
@@ -2291,19 +2297,19 @@ def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
 
 def MaybeReplaceAstRecursively(node, replacer):
     """Note: the root node will not be replaced"""
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
-            new_child = replacer(child, c)
+            child = getattr(node, f)
+            new_child = replacer(child, f)
             if new_child:
-                setattr(node, c, new_child)
+                setattr(node, f, new_child)
             else:
                 MaybeReplaceAstRecursively(child, replacer)
         elif nfd.kind is NFK.LIST:
-            children = getattr(node, c)
+            children = getattr(node, f)
             for n, child in enumerate(children):
-                new_child = replacer(child, c)
+                new_child = replacer(child, f)
                 if new_child:
                     children[n] = new_child
                 else:
@@ -2312,20 +2318,20 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     """Note: the root node will not be replaced"""
-    for c in node.__class__.FIELDS:
+    for f in node.__class__.FIELDS:
         # print ("replace: ", node.__class__.__name__, c)
-        nfd = ALL_FIELDS_MAP[c]
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
+            child = getattr(node, f)
             MaybeReplaceAstRecursivelyPost(child, replacer)
-            new_child = replacer(child, c)
+            new_child = replacer(child, f)
             if new_child:
-                setattr(node, c, new_child)
+                setattr(node, f, new_child)
         elif nfd.kind is NFK.LIST:
-            children = getattr(node, c)
+            children = getattr(node, f)
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelyPost(child, replacer)
-                new_child = replacer(child, c)
+                new_child = replacer(child, f)
                 if new_child:
                     children[n] = new_child
 
@@ -2348,20 +2354,20 @@ def _MaybeFlattenEphemeralList(nodes: List[Any]):
 
 
 def EliminateEphemeralsRecursively(node):
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            child = getattr(node, c)
+            child = getattr(node, f)
             if isinstance(child, EphemeralList):
                 new_child = _MaybeFlattenEphemeralList([child])
                 assert len(new_child) == 1
-                setattr(node, c, new_child[0])
+                setattr(node, f, new_child[0])
             EliminateEphemeralsRecursively(child)
         elif nfd.kind is NFK.LIST:
-            children = getattr(node, c)
+            children = getattr(node, f)
             new_children = _MaybeFlattenEphemeralList(children)
             if new_children is not children:
-                setattr(node, c, new_children)
+                setattr(node, f, new_children)
             for child in children:
                 EliminateEphemeralsRecursively(child)
 
@@ -2377,15 +2383,15 @@ def CloneNodeRecursively(node, var_map, block_map):
         clone.x_symbol = var_map.get(clone.x_symbol, clone.x_symbol)
     if NF.CONTROL_FLOW in clone.FLAGS:
         clone.x_taget = var_map.get(clone.x_target, clone.x_target)
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
-            setattr(clone, c, CloneNodeRecursively(
-                getattr(node, c), var_map, block_map))
+            setattr(clone, f, CloneNodeRecursively(
+                getattr(node, f), var_map, block_map))
         elif nfd.kind is NFK.LIST:
             out = [CloneNodeRecursively(cc, var_map, block_map)
-                   for cc in getattr(node, c)]
-            setattr(clone, c, out)
+                   for cc in getattr(node, f)]
+            setattr(clone, f, out)
     return clone
 
 
@@ -2393,14 +2399,21 @@ def CloneNodeRecursively(node, var_map, block_map):
 # Helpers
 ############################################################
 
-def StripNodes(node, cls):
-    def replacer(n, field):
-        if isinstance(n, cls):
-            return EphemeralList([])
-        else:
-            return None
-    MaybeReplaceAstRecursively(node, replacer)
-    EliminateEphemeralsRecursively(node)
+
+def StripFromListRecursively(node, cls):
+    for f in node.__class__.FIELDS:
+        nfd = ALL_FIELDS_MAP[f]
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            StripFromListRecursively(child, cls)
+        elif nfd.kind is NFK.LIST:
+            children = getattr(node, f)
+            for child in children:
+                StripFromListRecursively(child, cls)
+            new_children = [c for c in children if not isinstance(c, cls)]
+            if len(new_children) != len(children):
+                setattr(node, f, new_children)
+
 
 ############################################################
 # AST Checker
@@ -2445,7 +2458,8 @@ def CheckAST(node, disallowed_nodes):
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
             for p in node.params_macro:
-                assert p.name.startswith("$")
+                if isinstance(p, MacroParam):
+                    assert p.name.startswith("$")
             for i in node.gen_ids:
                 assert i.startswith("$")
             _CheckMacroRecursively(node, set())

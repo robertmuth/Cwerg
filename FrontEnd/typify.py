@@ -855,8 +855,8 @@ if __name__ == "__main__":
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
-        cwast.StripNodes(mod, cwast.Comment)
-        cwast.StripNodes(mod, cwast.DefMacro)
+        cwast.StripFromListRecursively(mod, cwast.Comment)
+        cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     DecorateASTWithTypes(mod_topo_order, tc)
