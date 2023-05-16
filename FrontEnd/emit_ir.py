@@ -589,6 +589,8 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
                     print(f"{TAB}mov {result.dst} {out}")
                 else:
                     EmitIRExprToMemory(node.expr_ret, result.dst, tc, id_gen)
+            else:
+                EmitIRExpr(node.expr_ret, tc, id_gen)
         else:
             out = EmitIRExpr(node.expr_ret, tc, id_gen)
             if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
