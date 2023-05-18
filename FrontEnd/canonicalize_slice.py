@@ -67,11 +67,11 @@ def _SliceRewriteFunSig(fun_sig: cwast.TypeFun, tc: types.TypeCorpus, slice_to_s
 def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
     """For all types directly involving slices, produce a replacement type
     and return the map from one the other
-    
+
     Note: recs containing slice member are not thought of as directly involving slices
     TODO: what about sum types?
     """
-    
+
     # first collect all the slice types occuring in the program.
     # we collect one node witness for each to be used in the next step.
     slice_type_to_slice = {}
@@ -209,21 +209,23 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
         nonlocal tc
 
         if isinstance(node, cwast.ExprLen):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.container.x_type)
-            if def_rec is not None:
-                cwast.MaybeReplaceAstRecursively(node, replacer)
+            def_rec = node.container.x_type
+            if isinstance(def_rec, cwast.DefRec):
+                assert len(def_rec.fields) == 2
+                field = def_rec.fields[1]
+                #cwast.MaybeReplaceAstRecursively(node, replacer)
                 return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
-                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
-                                       x_field=def_rec.fields[1])
+                                       x_srcloc=node.x_srcloc, x_type=field.x_type,
+                                       x_field=field)
         elif isinstance(node, cwast.ExprFront):
-            def_rec: cwast.DefRec = slice_to_struct_map.get(
-                node.container.x_type)
-            if def_rec is not None:
-                cwast.MaybeReplaceAstRecursively(node, replacer)
+            def_rec = node.container.x_type
+            if isinstance(def_rec, cwast.DefRec):
+                assert len(def_rec.fields) == 2
+                field = def_rec.fields[0]
+                #cwast.MaybeReplaceAstRecursively(node, replacer)
                 return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
-                                       x_srcloc=node.x_srcloc, x_type=node.x_type,
-                                       x_field=def_rec.fields[0])
+                                       x_srcloc=node.x_srcloc, x_type=field.x_type,
+                                       x_field=field)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 
@@ -246,7 +248,7 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
                     typify.UpdateNodeType(tc, node, def_rec)
                     return None
                 elif isinstance(node, cwast.ExprAs):
-                    assert node.type.x_type in slice_to_struct_map
+                    #assert node.type.x_type in slice_to_struct_map
                     assert isinstance(node.expr.x_type, cwast.TypeArray)
                     return _ConvertValArrayToSliceValRec(node.expr, def_rec, node.x_srcloc)
 
@@ -254,4 +256,4 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
                     assert False, f"do not know how to convert slice node [{field}]: {node}"
         return None
 
-    cwast.MaybeReplaceAstRecursively(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

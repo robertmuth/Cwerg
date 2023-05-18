@@ -36,7 +36,8 @@ tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
     $(DIR)/slice.x64.exe \
 	$(DIR)/defer.x64.exe \
 	$(DIR)/rec.x64.exe \
-	$(DIR)/string.x64.exe
+	$(DIR)/string.x64.exe \
+    $(DIR)/polymorphic.x64.exe
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 

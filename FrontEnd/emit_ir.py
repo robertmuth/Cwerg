@@ -72,7 +72,7 @@ def _StorageForId(node: cwast.Id, tc: types.TypeCorpus) -> STORAGE_KIND:
 @dataclasses.dataclass()
 class BaseOffset:
     base: str
-    offset: int
+    offset: Any
 
 
 @dataclasses.dataclass()
@@ -161,47 +161,58 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
+def _GetLValueAddressAaBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type = node.container.x_type
         assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
-        container = _GetLValueAddress(node.container, tc, id_gen)
-        if node.expr_index.x_value == 0:
-            return container
-        else:
-            index = EmitIRExpr(node.expr_index, tc, id_gen)
+        base = _GetLValueAddress(node.container, tc, id_gen)
+        scale = x_type.type.x_size
+        if node.expr_index.x_value is not None:
             scale = x_type.type.x_size
+            offset = node.expr_index.x_value * scale
+        else:
+            offset = EmitIRExpr(node.expr_index, tc, id_gen)
             if scale != 1:
                 scaled = id_gen.NewName("scaled")
-                # TODO: widen index
+                # TODO: widen index if overflow is likely
                 print(
-                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {index} {scale}")
-                index = scaled
-            res = id_gen.NewName("at")
-            # TODO A64
-            kind = "A64"
-            print(f"{TAB}lea {res}:{kind} = {container} {index}")
-            return res
+                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {offset} {scale}")
+                offset = scaled
+        return BaseOffset(base, offset)
 
     elif isinstance(node, cwast.ExprDeref):
-        return EmitIRExpr(node.expr, tc, id_gen)
+        return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
     elif isinstance(node, cwast.ExprField):
-        assert False
+        base = _GetLValueAddress(node.container, tc, id_gen)
+        offset = node.x_field.x_offset
+        return BaseOffset(base, offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
-        res = id_gen.NewName(f"lhsaddr_{node.name}")
+        base = id_gen.NewName(f"lhsaddr_{node.name}")
         # TODO
         kind = "A64"
         storage = _StorageForId(node, tc)
         if storage is STORAGE_KIND.DATA:
-            print(f"{TAB}lea.mem {res}:{kind} = {name} 0")
+            print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
         elif storage is STORAGE_KIND.STACK:
-            print(f"{TAB}lea.stk {res}:{kind} = {name} 0")
+            print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
         else:
             assert False
-        return res
+        return BaseOffset(base, 0)
     else:
         assert False, f"unsupported node for lvalue {node}"
+
+
+def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
+    bo = _GetLValueAddressAaBaseOffset(node, tc, id_gen)
+    if bo.offset == 0:
+        return bo.base
+    else:
+        res = id_gen.NewName("at")
+        # TODO A64
+        kind = "A64"
+        print(f"{TAB}lea {res}:{kind} = {bo.base} {bo.offset}")
+        return res
 
 
 _MAP_COMPARE = {
@@ -755,14 +766,19 @@ def main():
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    # get rid of the comment nodes so we can make simplifying assumptions
+    # like DefRec.fields only has nodes of type RecField
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.Comment)
+
+    # Expand macros and link most IDs to their definition
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
+    # Now that we can map IDs to defititions we can typify the nodes
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
@@ -792,7 +808,10 @@ def main():
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
         canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
 
-    if args.emit_ir and False:
+    if args.emit_ir:
+        mod_gen.body_mod += list(str_val_map.values()) + [
+            v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
+        mod_topo_order = [mod_gen] + mod_topo_order
         for mod in mod_topo_order:
             pp.PrettyPrintHTML(mod, tc)
             # pp.PrettyPrint(mod)

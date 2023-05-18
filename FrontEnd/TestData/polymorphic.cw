@@ -56,6 +56,7 @@
 (macro unsigned_to_str [(macro_param $val EXPR) 
                         (macro_param $base EXPR)
                         (macro_param $max_width EXPR)
+                        (# "a slice for the output string")
                         (macro_param $out ID)]  [$v $tmp $pos] [
     (# "unsigned to str with give base")
     (macro_let mut $v auto $val)
@@ -135,8 +136,16 @@
 
 
 (module main [] [
-    (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [    (stmt (call SysPrint ["OK\n"]))
-    (return 0)
+    (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [   
+        (let mut ref opt auto (rec_val SysFormatOptions []))
+        (let mut buffer auto (array_val 1024 u8))
+        (let mut ref s (slice mut u8) buffer)
+        (let mut n uint 0)
+        (= n (call polymorphic SysRender [666_uint s (& mut opt)]))
+        (let s2 auto (slice_val (front s) n))
+        (stmt (call SysPrint [s2]))
+        (stmt (call SysPrint ["OK\n"]))
+        (return 0)
 ])
 
 
