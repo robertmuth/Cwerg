@@ -20,7 +20,7 @@ from FrontEnd import parse
 logger = logging.getLogger(__name__)
 
 BUILTIN_MOD = "$builtin"
-POLYMORPHIC_MOD = "$polymorphic"
+
 
 def AnnotateNodeSymbol(id_node, def_node):
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
@@ -104,7 +104,8 @@ class SymTab:
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        components: List[str] = macro_invoke.name.split(cwast.ID_PATH_SEPARATOR)
+        components: List[str] = macro_invoke.name.split(
+            cwast.ID_PATH_SEPARATOR)
         if len(components) > 1:
             assert len(components) == 2
             # TODO: pub check?
@@ -166,7 +167,8 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
         if isinstance(node, (cwast.StmtStaticAssert, cwast.Comment)):
             continue
         elif isinstance(node, cwast.DefFun) and node.polymorphic:
-            # these can only be handled when we have types
+            # symbol resolution for these can only be handled when we have 
+            # types so we skip them here
             continue
         else:
             symtab.add_top_level_sym(node, mod_map)
@@ -389,6 +391,8 @@ def _SetTargetFieldRecursively(node):
 
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                                          mod_map: Dict[str, cwast.DefMod]):
+    """First extract global symbols 
+    """
     symtab_map: Dict[str, SymTab] = {}
     for mod in mod_topo_order:
         symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod, mod_map)
