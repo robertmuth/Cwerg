@@ -17,8 +17,7 @@ TESTS = macros.cw \
         binary_tree.cw \
         import.cw \
         import2.cw \
-        sizeof.cw \
-        string.cw
+        sizeof.cw 
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
@@ -40,7 +39,6 @@ test_emit: \
 	$(DIR)/heapsort.x64.exe \
 	$(DIR)/print_argv.x64.exe \
 	$(DIR)/sieve.x64.exe \
-    $(DIR)/slice.x64.exe \
 	$(DIR)/defer.x64.exe \
 	$(DIR)/rec.x64.exe \
 	$(DIR)/string.x64.exe \
@@ -98,10 +96,6 @@ $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  
 
-$(DIR)/slice.x64.exe: TestData/slice.cw
-	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ foobar bar
 
 $(DIR)/defer.x64.exe: TestData/defer.cw
 	./emit_ir.py $< > $@.asm
@@ -114,12 +108,12 @@ $(DIR)/rec.x64.exe: TestData/rec.cw
 	${QEMU} $@
 
 $(DIR)/string.x64.exe: TestData/string.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw TestData/mod_string.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
-	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
