@@ -1,13 +1,6 @@
+
 (module main [] [
 (# "slice")
-
-(fun pub extern memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] (ptr mut u8) [])
-(fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
-
-(fun mymemcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] uint [
-   (stmt (call memcpy [dst src size]))
-   (return size)
-])
 
 (fun pub write_slice [(param fd s32) (param s (slice u8))] sint [
     (return (call write [fd (front s) (len s)]))
@@ -25,16 +18,6 @@
     (return a) 
 ])
 
-
-(# "macro for while-loop")
-(macro pub while [(macro_param $cond EXPR) 
-                  (macro_param $body STMT_LIST)] [] [
-    (block _ [
-          (if $cond [] [(break)])
-          $body
-          (continue)
-    ])
-])   
 
 (fun strlen [(param s (ptr u8))] uint [
       (let mut i uint 0)

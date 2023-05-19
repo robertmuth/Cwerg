@@ -33,17 +33,17 @@ _TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
 
 
 class ReadTokens:
-    def __init__(self, fp):
+    def __init__(self, fp, filename):
         self._fp = fp
         self.line_no = 0
+        self._filename = filename
         self._tokens = []
 
     def __iter__(self):
         return self
 
     def srcloc(self):
-        # TODO: should also reflect the file once we support multiple input files
-        return self.line_no
+        return f"{self._filename}:{self.line_no}"
 
     def __next__(self):
         while not self._tokens:
@@ -262,9 +262,9 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
         return ReadRestAndMakeNode(cls, [], fields, stream)
 
 
-def ReadModsFromStream(fp) -> List[cwast.DefMod]:
+def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
     asts = []
-    stream = ReadTokens(fp)
+    stream = ReadTokens(fp, fn)
     try:
         failure = False
         while True:

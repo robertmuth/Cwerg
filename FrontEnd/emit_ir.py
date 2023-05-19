@@ -759,11 +759,15 @@ def main():
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
         '-emit_ir', help='stop before emitting asm', action='store_true')
+    parser.add_argument('files', metavar='F', type=str, nargs='+',
+                    help='an input source file')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    asts = parse.ReadModsFromStream(sys.stdin)
+    asts = []
+    for f in args.files:
+        asts += parse.ReadModsFromStream(open(f), f)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     # get rid of the comment nodes so we can make simplifying assumptions
