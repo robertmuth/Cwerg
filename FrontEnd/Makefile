@@ -77,7 +77,7 @@ $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	${QEMU} $@ 
 
 $(DIR)/sieve.x64.exe: TestData/sieve.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
@@ -87,7 +87,7 @@ $(DIR)/heapsort.x64.exe: TestData/heapsort.cw
 	${QEMU} $@ 
 
 $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  arg1 arg2 argc3
 
