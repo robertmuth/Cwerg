@@ -161,7 +161,7 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def _GetLValueAddressAaBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
+def _GetLValueAddressAsBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type = node.container.x_type
         assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
@@ -204,7 +204,7 @@ def _GetLValueAddressAaBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier
 
 
 def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
-    bo = _GetLValueAddressAaBaseOffset(node, tc, id_gen)
+    bo = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
     if bo.offset == 0:
         return bo.base
     else:
@@ -437,9 +437,9 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
             EmitIRStmt(c, ReturnResultLocation(result), tc, id_gen)
         return result
     elif isinstance(node, cwast.ExprIndex):
-        addr = _GetLValueAddress(node, tc, id_gen)
+        src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
         res = id_gen.NewName("at")
-        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
+        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
         assert isinstance(node.container.x_type,
@@ -536,9 +536,9 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
                 assert res is not None
                 print(f"{TAB}st {dst.base} {offset} = {res}")
             else:
-                src = _GetLValueAddress(init, tc, id_gen)
-                _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(
-                    src, 0), src_type.x_size, src_type.x_alignment, id_gen)
+                src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
+                _EmitCopy(BaseOffset(dst.base, offset), src,
+                          src_type.x_size, src_type.x_alignment, id_gen)
 
         elif isinstance(init, cwast.ValRec):
             for field, init in symbolize.IterateValRec(init, src_type):
@@ -553,8 +553,8 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
             res = _GetLValueAddress(init.container, tc, id_gen)
             print(f"{TAB}st {dst.base} {offset} = {res}")
         elif isinstance(init, cwast.ExprDeref):
-            src = _GetLValueAddress(init, tc, id_gen)
-            _EmitCopy(BaseOffset(dst.base, offset), BaseOffset(src, 0),
+            src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
+            _EmitCopy(BaseOffset(dst.base, offset), src,
                       src_type.x_size, src_type.x_alignment, id_gen)
         else:
             assert False, f"{init.x_srcloc} {init} {src_type}"
@@ -646,8 +646,8 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
-            lhs = _GetLValueAddress(node.lhs, tc, id_gen)
-            EmitIRExprToMemory(node.expr_rhs, BaseOffset(lhs, 0), tc, id_gen)
+            lhs = _GetLValueAddressAsBaseOffset(node.lhs, tc, id_gen)
+            EmitIRExprToMemory(node.expr_rhs, lhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:
@@ -760,7 +760,7 @@ def main():
     parser.add_argument(
         '-emit_ir', help='stop before emitting asm', action='store_true')
     parser.add_argument('files', metavar='F', type=str, nargs='+',
-                    help='an input source file')
+                        help='an input source file')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
