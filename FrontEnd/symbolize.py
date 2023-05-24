@@ -167,7 +167,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
         if isinstance(node, (cwast.StmtStaticAssert, cwast.Comment)):
             continue
         elif isinstance(node, cwast.DefFun) and node.polymorphic:
-            # symbol resolution for these can only be handled when we have 
+            # symbol resolution for these can only be handled when we have
             # types so we skip them here
             continue
         else:
@@ -192,7 +192,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
 MAX_MACRO_NESTING = 4
 
 
-def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
+def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
     assert nesting < MAX_MACRO_NESTING
     assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
     if isinstance(node, cwast.ExprSrcLoc):
@@ -203,44 +203,40 @@ def ExpandMacroOrMacroLike(node, sym_tab, symtab_map, nesting, ctx: macros.Macro
         return cwast.ValString(True, f'"{node.expr}"', x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
-    macro = sym_tab.resolve_macro(node,  symtab_map, False)
+    symtab = symtab_map[node.x_module.name]
+    macro = symtab.resolve_macro(node,  symtab_map, False)
     if macro is None:
         cwast.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
-    FindAndExpandMacrosRecursively(
-        exp, sym_tab, symtab_map, nesting + 1, ctx)
+    FindAndExpandMacrosRecursively(exp, symtab_map, nesting + 1, ctx)
     if cwast.NF.TO_BE_EXPANDED in exp.FLAGS:
-        return ExpandMacroOrMacroLike(exp, sym_tab, symtab_map, nesting + 1, ctx)
+        return ExpandMacroOrMacroLike(exp, symtab_map, nesting + 1, ctx)
     # pp.PrettyPrint(exp)
     return exp
 
 
-def FindAndExpandMacrosRecursively(node, sym_tab, symtab_map, nesting, ctx: macros.MacroContext):
+def FindAndExpandMacrosRecursively(node, symtab_map, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
-            FindAndExpandMacrosRecursively(
-                child, sym_tab, symtab_map, nesting, ctx)
+            FindAndExpandMacrosRecursively(child, symtab_map, nesting, ctx)
             if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
-                new_child = ExpandMacroOrMacroLike(
-                    child, sym_tab, symtab_map, nesting, ctx)
+                new_child = ExpandMacroOrMacroLike(child, symtab_map, nesting, ctx)
                 assert not isinstance(new_child, cwast.EphemeralList)
                 setattr(node, c, new_child)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
             new_children = []
             for child in children:
-                FindAndExpandMacrosRecursively(
-                    child, sym_tab, symtab_map, nesting, ctx)
+                FindAndExpandMacrosRecursively(child, symtab_map, nesting, ctx)
                 if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
                     new_children.append(child)
                 else:
-                    exp = ExpandMacroOrMacroLike(
-                        child, sym_tab, symtab_map, nesting, ctx)
+                    exp = ExpandMacroOrMacroLike(child, symtab_map, nesting, ctx)
                     if isinstance(exp, cwast.EphemeralList):
                         for a in exp.args:
                             new_children.append(a)
@@ -391,7 +387,12 @@ def _SetTargetFieldRecursively(node):
 
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                                          mod_map: Dict[str, cwast.DefMod]):
-    """First extract global symbols 
+    """
+    * extract global symbols
+    * resolve global symbols
+    * expand macros recursively (macros are global symbols)
+    * reolve symbols within functions
+
     """
     symtab_map: Dict[str, SymTab] = {}
     for mod in mod_topo_order:
@@ -406,13 +407,11 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
                     node, symtab, symtab_map)
 
     for mod in mod_topo_order:
-        symtab = symtab_map[mod.name]
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node)
                 ctx = macros.MacroContext(1)
-                FindAndExpandMacrosRecursively(
-                    node, symtab, symtab_map, 0, ctx)
+                FindAndExpandMacrosRecursively(node, symtab_map, 0, ctx)
 
     for mod in mod_topo_order:
         # we wait until macro expansion with this
