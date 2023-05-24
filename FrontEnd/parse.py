@@ -273,10 +273,11 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
             if t != "(":
                 cwast.CompilerError(
                     stream.srcloc(), f"expect start of new node, got '{t}']")
-            sexpr = ReadSExpr(stream, None)
-            assert isinstance(sexpr, cwast.DefMod)
-            cwast.CheckAST(sexpr, set())
-            asts.append(sexpr)
+            mod = ReadSExpr(stream, None)
+            assert isinstance(mod, cwast.DefMod)
+            cwast.DecorateIdsWithModule(mod)
+            cwast.CheckAST(mod, set())
+            asts.append(mod)
             failure = False
     except StopIteration:
         assert not failure, f"truncated file"

@@ -56,6 +56,7 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
+    MODULE_ANNOTATED = enum.auto()  # node reference a the enclosing module  (x_module)
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
@@ -488,6 +489,9 @@ OPTIONAL_FIELDS = {
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     #
+    "x_module": NF.MODULE_ANNOTATED,  # set during parsing, contains up point to
+                                      # containing module for symbol resolution
+                                      # important for symbol resolutions in macros
     "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py, contains node from
                                       # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
     "x_target": NF.CONTROL_FLOW,  # set by symbolize.py,
@@ -625,7 +629,7 @@ class Id:
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.MODULE_ANNOTATED
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
@@ -633,6 +637,7 @@ class Id:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
+    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2030,7 +2035,7 @@ class DefMod:
 @NodeCommon
 @dataclasses.dataclass()
 class Import:
-    """Import another Module"""
+    """Import another Module from `path` as `name`"""
     ALIAS = "import"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
@@ -2087,7 +2092,7 @@ class MacroId:
     """
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
-    FLAGS = NF.NON_CORE
+    FLAGS = NF.NON_CORE 
     #
     name: str
     #
@@ -2162,12 +2167,13 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.MODULE_ANNOTATED
     #
     name: str
     args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None
+    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2415,6 +2421,13 @@ def StripFromListRecursively(node, cls):
                 setattr(node, f, new_children)
 
 
+def DecorateIdsWithModule(mod: DefMod):
+    def visitor(node, _):
+        nonlocal mod
+        if isinstance(node, (Id, MacroInvoke)):
+            node.x_module = mod
+
+    VisitAstRecursivelyPost(mod, visitor)
 ############################################################
 # AST Checker
 ############################################################
@@ -2463,6 +2476,10 @@ def CheckAST(node, disallowed_nodes):
             for i in node.gen_ids:
                 assert i.startswith("$")
             _CheckMacroRecursively(node, set())
+        elif isinstance(node, Id):
+            assert node.x_module is not None or node.x_symbol is not None
+        elif isinstance(node, MacroInvoke):
+            assert node.x_module is not None
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra
