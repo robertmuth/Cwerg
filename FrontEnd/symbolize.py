@@ -460,7 +460,7 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
         mod_map[mod.name] = mod
         for node in mod.body_mod:
             if isinstance(node, cwast.Import):
-                assert node.name in mod_map
+                assert node.name in mod_map, f"unknown module `{node.name}`"
                 logger.info(
                     "found mod deps [%s] imported by [%s]", node.name, mod.name)
                 deps_in[mod.name].append(node.name)

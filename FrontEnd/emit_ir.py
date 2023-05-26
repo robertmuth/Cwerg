@@ -812,7 +812,7 @@ def main():
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
         canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
 
-    if args.emit_ir:
+    if args.emit_ir and False:
         mod_gen.body_mod += list(str_val_map.values()) + [
             v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
         mod_topo_order = [mod_gen] + mod_topo_order
