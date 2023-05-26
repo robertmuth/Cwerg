@@ -520,6 +520,10 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
+    # get rid of the comment nodes so we can make simplifying assumptions
+    # like DefRec.fields only has nodes of type RecField
+    for mod in mod_topo_order:
+        cwast.StripFromListRecursively(mod, cwast.Comment)
     MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:
         cwast.CheckAST(ast, set())

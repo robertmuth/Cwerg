@@ -861,6 +861,10 @@ if __name__ == "__main__":
     asts = parse.ReadModsFromStream(sys.stdin)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    # get rid of the comment nodes so we can make simplifying assumptions
+    # like DefRec.fields only has nodes of type RecField
+    for mod in mod_topo_order:
+        cwast.StripFromListRecursively(mod, cwast.Comment)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.Comment)

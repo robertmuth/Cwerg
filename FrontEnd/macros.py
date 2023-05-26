@@ -112,7 +112,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     args = invoke.args
     if len(params) != len(invoke.args):
         cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
-                            f"actual {invoke.args} expected: {len(params)}")
+                            f"actual {len(invoke.args)} expected: {len(params)}")
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)
