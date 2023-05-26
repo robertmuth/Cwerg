@@ -366,7 +366,9 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         return types.NO_TYPE
     elif isinstance(node, cwast.ExprDeref):
         cstr = _TypifyNodeRecursively(node.expr, tc, types.NO_TYPE, ctx)
-        assert isinstance(cstr, cwast.TypePtr)
+        if not isinstance(cstr, cwast.TypePtr):
+            cwast.CompilerError(
+                node.x_srcloc, f"dereferenced expr must be pointer {node} but got {cstr}")
         # TODO: how is mutability propagated?
         return AnnotateNodeType(tc, node, cstr.type)
     elif isinstance(node, cwast.Expr1):
@@ -567,9 +569,10 @@ def _CheckTypeCompatible(node, tc: types.TypeCorpus, actual, expected):
                             f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
 
 
-def _CheckTypeCompatibleForAssignment(node, tc: types.TypeCorpus, actual, expected, mutable):
+def _CheckTypeCompatibleForAssignment(node, tc: types.TypeCorpus, actual, expected,
+                                      mutable, srcloc=None):
     if not types.is_compatible(actual, expected, mutable):
-        cwast.CompilerError(node.x_srcloc,
+        cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}: incompatible actual: {tc.canon_name(actual)} expected: {tc.canon_name(expected)}")
 
 
@@ -629,14 +632,16 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, cwast.ExprField):
         cstr = node.x_type
         field_node = node.x_field
-        assert cstr == field_node.x_type
+        assert cstr == field_node.x_type, f"field node {node.container.x_type} type mismatch: {cstr} {field_node.x_type}"
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             cstr = node.type_or_auto.x_type
 
             initial_cstr = node.initial_or_undef.x_type
             _CheckTypeCompatibleForAssignment(
-                node, tc, initial_cstr, cstr, types.is_mutable_def(node.initial_or_undef))
+                node, tc, initial_cstr, cstr, types.is_mutable_def(
+                    node.initial_or_undef),
+                node.initial_or_undef.x_srcloc)
     elif isinstance(node, cwast.ExprDeref):
         node_type = node.x_type
         expr_type = node.expr.x_type
@@ -686,7 +691,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         for p, a in zip(fun_sig.params, node.args):
             arg_cstr = a.x_type
             _CheckTypeCompatibleForAssignment(
-                p, tc, arg_cstr, p.type, types.is_mutable_def(a))
+                p, tc, arg_cstr, p.type, types.is_mutable_def(a), a.x_srcloc)
     elif isinstance(node, cwast.StmtReturn):
         target = node.x_target
         actual = node.expr_ret.x_type
@@ -705,7 +710,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type
         _CheckTypeCompatibleForAssignment(
-            node, tc, expr_cstr, var_cstr, types.is_mutable_def(node.expr_rhs))
+            node,   tc, expr_cstr, var_cstr, types.is_mutable_def(
+                node.expr_rhs),
+            node.expr_rhs.x_srcloc)
         if not is_proper_lhs(node.lhs):
             cwast.CompilerError(
                 node.x_srcloc, f"cannot assign to readonly data: {node}")
@@ -815,7 +822,7 @@ def VerifyTypesRecursively(node, corpus):
 
 def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                          tc: types.TypeCorpus):
-    """This checks types and maps them to a cananical node
+    """This checks types and maps them to a canonical node
 
     Since array type include a fixed bound this also also includes
     the evaluation of constant expressions.
@@ -824,6 +831,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * x_type
     * x_field
     * some x_value (only array dimention as they are related to types)
+    * some x_symbol for polymorphic invocations
     """
     poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
