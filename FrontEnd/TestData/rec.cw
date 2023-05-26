@@ -1,11 +1,6 @@
 (module main [] [
 
-(# "library provided puts style function") 
-(fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
-
-(fun pub write_slice [(param fd s32) (param s (slice u8))] sint [
-    (return (call write [fd (front s) (len s)]))
-])
+(import test)
 
 (defrec pub type_rec1 [
    (# "this is a comment with \" with quotes \t ")
@@ -67,7 +62,24 @@
 (global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-    (let v1 auto (rec_val type_rec3 []))
+    (let mut v1 auto (rec_val type_rec3 []))
+    (= (. v1 u2) 102)
+    (= (. v1 u3) 103)
+    (= (. v1 u6) 106)
+
+    (test::AssertEq (. v1 u2) 102_u16)
+    (test::AssertEq (. v1 u3) 103_u64)
+    (test::AssertEq (. v1 u6) 106_u64)
+
+    (= (. (. v1 u4) t1) false)
+    (= (. (. v1 u4) t2) 402)
+    (test::AssertEq (. (. v1 u4) t2) 402_u32)
+    (test::AssertEq (. (. v1 u4) t1) false)
+
+    (# "(= (at (. v1 u5) 2) 502)")
+    (# "(= (at (. v1 u5) 10) 510)")
+
+
     (return 0)
 ])
 

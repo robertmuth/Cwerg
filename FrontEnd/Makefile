@@ -103,7 +103,7 @@ $(DIR)/defer.x64.exe: TestData/defer.cw
 	${QEMU} $@
 
 $(DIR)/rec.x64.exe: TestData/rec.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 

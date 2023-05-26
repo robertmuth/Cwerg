@@ -48,7 +48,7 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifi
 
 def _ShouldBeBoolExpanded(node, field):
     # these nodes do not represent a complex boolean expression
-    if isinstance(node, (cwast.Id, cwast.ExprCall, cwast.ValTrue, cwast.ValFalse, cwast.ValUndef)):
+    if not isinstance(node, (cwast.Expr1, cwast.Expr2)):
         return False
     # the field condition ensures that the node
     # * is not part of a conditional
