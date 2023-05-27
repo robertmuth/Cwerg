@@ -41,12 +41,11 @@ Removed:
 * unions
 * ++/--
 * comma operator 
-  implicitly nullable pointers
+* implicitly nullable pointers
 * goto
-* comma operator
 
 Added
-* modules (with templates) 
+* modules (with templates, not nestable) 
 * enum namespaces 
 * sum types (supports nullable types and result types (error code + payload))
 * visibility control (default private)
