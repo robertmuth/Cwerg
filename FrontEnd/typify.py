@@ -25,12 +25,17 @@ def is_proper_lhs(node):
     # x =  (x must be mutable definition)
     # ^x = (x must have type mutable pointer)
     #
-    return (types.is_mutable_def(node) or
-            isinstance(node, cwast.ExprDeref) and types.is_mutable(node.expr.x_type) or
-            # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
-            isinstance(node, cwast.ExprField) and is_proper_lhs(node.container) or
-            isinstance(node, cwast.ExprIndex) and types.is_mutable_def(node.container) or
-            isinstance(node, cwast.ExprIndex) and types.is_mutable(node.container.x_type))
+    if types.is_mutable_def(node):
+        return True
+    elif isinstance(node, cwast.ExprDeref):
+        return types.is_mutable(node.expr.x_type)
+        # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
+    elif isinstance(node, cwast.ExprField):
+        return is_proper_lhs(node.container)
+    elif isinstance(node, cwast.ExprIndex):
+        return is_proper_lhs(node.container) or types.is_mutable(node.container.x_type)
+    else:
+        return False
 
 
 def address_can_be_taken(node):
@@ -73,11 +78,11 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
     # TODO use kind argument
     num = num.replace("_", "")
     if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
-        return int(num[: -3])
+        return int(num[: -3], 0)
     elif num[-2:] in ("u8", "s8"):
-        return int(num[: -2])
+        return int(num[: -2], 0)
     elif num[-4:] in ("uint", "sint"):
-        return int(num[: -4])
+        return int(num[: -4], 0)
     elif num[-3:] in ("r32", "r64"):
         return float(num[: -3])
     #
@@ -710,7 +715,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         var_cstr = node.lhs.x_type
         expr_cstr = node.expr_rhs.x_type
         _CheckTypeCompatibleForAssignment(
-            node,   tc, expr_cstr, var_cstr, types.is_mutable_def(
+            node, tc, expr_cstr, var_cstr, types.is_mutable_def(
                 node.expr_rhs),
             node.expr_rhs.x_srcloc)
         if not is_proper_lhs(node.lhs):
