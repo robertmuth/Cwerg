@@ -92,7 +92,7 @@ $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
 	${QEMU} $@  arg1 arg2 argc3
 
 $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  
 

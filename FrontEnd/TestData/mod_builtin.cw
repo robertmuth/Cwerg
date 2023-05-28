@@ -132,21 +132,20 @@
 (global pub FORMATED_STRING_MAX_LEN uint 4096)
 
 
-(macro print_common [
+(macro pub print [
     (# "list of items to be printed")
     (macro_param $parts STMT_LIST)] 
     [$buffer $curr $options] [
     (macro_let mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
-    (macro_let mut $curr (slice mut u8) $buffer)
+    (macro_let mut $curr uint 0)
     (macro_let mut ref $options auto (rec_val SysFormatOptions []))
     (macro_for $i $parts [
-        (= $curr (incp $curr (call polymorphic SysRender [$i $curr (& mut $options)])))
+        (+= $curr (call polymorphic SysRender [
+                     $i 
+                     (slice_val (incp (front mut $buffer) $curr) (- (len $buffer) $curr)) 
+                     (& mut $options)]))
     ])
-    (macro_let $buffer_orig (slice u8) $buffer)
-    (stmt (call SysPrint [
-        (slice_val 
-            (front $buffer)
-            (pdelta (front $curr) (front $buffer)))])) 
+    (stmt (call SysPrint [(slice_val (front $buffer) $curr)])) 
 ])
 
 ])

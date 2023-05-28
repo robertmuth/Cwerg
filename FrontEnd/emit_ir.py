@@ -357,7 +357,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         return f"1:U8"
     elif isinstance(node, cwast.ExprLen):
         if isinstance(node.container.x_type, cwast.TypeArray):
-            assert False, f"{node} {node.x_value}"
+            dim = node.container.x_type.size.x_value
+            return str(dim)
         else:
             assert False, f"{node} container={node.container} type={node.container.x_type}"
     elif isinstance(node, cwast.Id):
@@ -782,7 +783,7 @@ def main():
         #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
-    # Now that we can map IDs to defititions we can typify the nodes
+    # Now that we can map IDs to definitions we can typify the nodes
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
