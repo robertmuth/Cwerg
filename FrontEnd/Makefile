@@ -72,12 +72,12 @@ STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLi
 
 
 $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
 $(DIR)/sieve.x64.exe: TestData/sieve.cw
-	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
@@ -96,9 +96,8 @@ $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  
 
-
 $(DIR)/defer.x64.exe: TestData/defer.cw
-	./emit_ir.py $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 

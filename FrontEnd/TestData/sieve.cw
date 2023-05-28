@@ -1,5 +1,7 @@
 (module main [] [
 (# "sieve")
+(import test)
+
 
 (global SIZE uint 1000000)
 (global EXPECTED uint 148932)
@@ -22,7 +24,7 @@
 ])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-      (if (!= (call sieve []) EXPECTED) [(trap)] [])
+      (test::AssertEq (call sieve []) EXPECTED)
       (return 0)
 ])
 

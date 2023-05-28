@@ -1,13 +1,6 @@
 (module main [] [
    (# "main module with program entry point `main`")
 
-   (# "library provided puts style function") 
-   (fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
-
-   (fun pub write_slice [(param fd s32) (param s (slice u8))] sint [
-      (return (call write [fd (front s) (len s)]))
-   ])
-
    (fun strlen [(param s (ptr u8))] uint [
       (let mut i uint 0)
       (while (!= (^ (incp s i)) 0) [
@@ -16,14 +9,11 @@
       (return i)
    ])
 
-   (global NEWLINE auto "\n")
-
    (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
          (for i u32 0 (as argc u32) 1 [
             (let s (ptr u8) (^ (incp argv i)))
             (let t auto (slice_val s (call strlen [s])))
-            (stmt (call write_slice [1 t]))
-            (stmt (call write_slice [1 NEWLINE]))
+            (print [t "\n"])
          ])
          (return 0)
    ])
