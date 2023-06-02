@@ -117,13 +117,13 @@ def BytesToEscapedString(data: bytes) -> str:
 
 
 RE_NUMBER = re.compile(r"^([-+0-9.][-+0-9.a-fA-FpPxX]*|nan|NAN|inf|INF)$")
-RE_IDENTIFIER = re.compile(r"^[_a-zA-Z$%][_a-zA-Z$%@0-9.:/]*$")
+RE_IDENTIFIER = re.compile(r"^[_a-zA-Z$%][_a-zA-Z$%@0-9.:/<>,]*$")
 RE_INTEGER = re.compile(r"[-+]?([0-9]+|0[xX][0-9a-fA-F]+)$")
 RE_CONSTANT = re.compile(r"^[-+0-9.].*")
 
 # Note: we rely on the matching being done greedily
 TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
-TOKEN_NAMENUM = r'[^=\[\],;"#\' \r\n\t]+'
+TOKEN_NAMENUM = r'[^=\[\];"#\' \r\n\t,][^=\[\];"#\' \r\n\t]*'
 TOKEN_COMMENT = r'[#].*$'
 TOKEN_OP = r'[=\[\],;]'
 RE_COMBINED = re.compile("|".join(["(?:" + x + ")" for x in [TOKEN_STR, TOKEN_COMMENT,
@@ -190,7 +190,7 @@ def ParseLine(line: str) -> List[str]:
         if t == "=":
             continue
         if t == "," or t == ";":
-            raise ValueError(f"commas and semicolons are not allowed {line}")
+            raise ValueError(f"commas and semicolons are not allowed {line}: {tokens}")
         elif t == "[":
             assert not in_list
             in_list = True
@@ -213,7 +213,8 @@ def ToHexString(key, n):
         else:
             out.append(chr(ord('a') + nibble - 10))
         n >>= 4
-        if n == 0: break
+        if n == 0:
+            break
     return "#" + key + "".join(reversed(out))
 
 

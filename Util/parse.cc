@@ -35,7 +35,7 @@ const constexpr unsigned char IdFirstChars[] =
 
 const constexpr unsigned char IdRestChars[] =
     ":0123456789"
-    "_%$@/"
+    "_%$w/<>,"
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
