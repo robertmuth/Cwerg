@@ -82,7 +82,7 @@ $(DIR)/sieve.x64.exe: TestData/sieve.cw
 	${QEMU} $@ 
 
 $(DIR)/heapsort.x64.exe: TestData/heapsort.cw
-	./emit_ir.py TestData/mod_builtin.cw $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw TestData/mod_random.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 

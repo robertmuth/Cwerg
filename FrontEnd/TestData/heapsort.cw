@@ -9,7 +9,6 @@
 (global mut Data auto (array_val (+ SIZE 1) r64 []))
 
 (global NEWLINE auto "\n")
-(global SPACE auto " ")
 (global ERROR auto "ERROR\n")
 
 (fun heap_sort [(param n uint) (param data (ptr mut r64))] void [
