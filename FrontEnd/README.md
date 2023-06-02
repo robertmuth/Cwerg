@@ -1,11 +1,12 @@
-# Cwerg Language (Experimental Frontend)
+# Cwerg Language
 
 Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. 
-The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write system software like operating systems and compilers in this language.
+The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write
+system software like operating systems and compilers in this language.
 
 Complexity budget: about 10kLOC for a compiler frontend with basic optimizations
 
-Warning: This is completely unfinished and experimental. We expexct to gain some
+Warning: This is still quite experimental. We expexct to gain some
 more insights about the design-space by bootstrapping the front- and backend.
 
 ## Syntax
@@ -25,12 +26,28 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 ## Code Examples (using S-Expr Syntax)
 
 * [Print Argv](TestData/print_argv.cw)
-* [Linked List](TestData/linked_list.cw)
-* [Binary Tree](TestData/binary_tree.cw)
-* [Dealing With Error Codes](TestData/wordcount.cw)
+* [Heap Sort](TestData/heapsort.cw)
+* [Fizzbuzz](TestData/fizzbuzz.cw)
+* [Sieve](TestData/sieve.cw)
 
 ## Features Relative to C
 
+Added
+* modules (with templates, not nestable) 
+* enum namespaces 
+* sum types (supports nullable types and result types (error code + payload))
+* visibility control (default private)
+* mutability control (default not mutable)
+* referencability control (default address cannot be taken)
+* slices (fat pointers)
+* structural and by-name type equality
+* defer
+* named blocks/continue/break
+* (optionally) checked array accesses
+* strict distinction between expressions and statements
+* expression blocks
+* simple macro system (optionally hygienic, operating on syntax tree)
+* 
 Removed:
 * arrays decay to pointers
 * bitfields
@@ -44,20 +61,7 @@ Removed:
 * implicitly nullable pointers
 * goto
 
-Added
-* modules (with templates, not nestable) 
-* enum namespaces 
-* sum types (supports nullable types and result types (error code + payload))
-* visibility control (default private)
-* mutability control (default not mutable)
-* slices (fat pointers)
-* structural and by-name type equality
-* defer
-* named blocks/continue/break
-* checked array accesses
-* strict distinction between expressions and statements
-* expression blocks
-* simple macro system (optionally hygienic)
+
 
 
 ## Discussion of Features
