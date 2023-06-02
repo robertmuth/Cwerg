@@ -47,7 +47,8 @@ Added
 * strict distinction between expressions and statements
 * expression blocks
 * simple macro system (optionally hygienic, operating on syntax tree)
-* 
+* limited polymorphism (good enough to have generic and extensible print/log)
+
 Removed:
 * arrays decay to pointers
 * bitfields
@@ -55,7 +56,7 @@ Removed:
 * pre-processor
 * varargs
 * implcit type conversions
-* unions
+* untagged unions
 * ++/--
 * comma operator 
 * implicitly nullable pointers
