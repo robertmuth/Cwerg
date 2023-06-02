@@ -444,7 +444,8 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     elif isinstance(node, cwast.ExprIndex):
         src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
         res = id_gen.NewName("at")
-        print(f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {src.base} {src.offset}")
+        print(
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
         assert isinstance(node.container.x_type,
@@ -760,6 +761,9 @@ def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGenIR
             EmitIRStmt(c, None, type_corpus, id_gen)
 
 
+ELIMIMATED_NODES = set()
+
+
 def main():
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
@@ -769,7 +773,7 @@ def main():
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
-    #logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
     asts = []
     for f in args.files:
@@ -782,6 +786,11 @@ def main():
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.Comment)
 
+    ELIMIMATED_NODES.add(cwast.ExprParen)
+    ELIMIMATED_NODES.add(cwast.Comment)
+    for mod in mod_topo_order:
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
+
     logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
@@ -789,11 +798,19 @@ def main():
         #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
+    ELIMIMATED_NODES.add(cwast.DefMacro)
+    ELIMIMATED_NODES.add(cwast.MacroInvoke)
+    ELIMIMATED_NODES.add(cwast.ExprSrcLoc)
+    ELIMIMATED_NODES.add(cwast.ExprStringify)
+    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
+    for mod in mod_topo_order:
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
+
     logger.info("Typify the nodes")
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
-    
+
     logger.info("partial eval")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
@@ -810,6 +827,12 @@ def main():
         canonicalize_slice.InsertExplicitValSlice(mod, tc)
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
+
+    ELIMIMATED_NODES.add(cwast.ExprOffsetof)
+    ELIMIMATED_NODES.add(cwast.ExprIndex)
+    ELIMIMATED_NODES.add(cwast.StmtDefer)
+    for mod in mod_topo_order:
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
 
     logger.info("Legalize 2")
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
@@ -832,12 +855,18 @@ def main():
 
         exit(0)
     logger.info("Sanity Check 1")
+
+    ELIMIMATED_NODES.add(cwast.Expr3)
+    ELIMIMATED_NODES.add(cwast.ValSlice)
+    ELIMIMATED_NODES.add(cwast.TypeSlice)
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, set([cwast.ValSlice, cwast.Expr3]))
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
+
+    for mod in mod_topo_order:
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
-    
+
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -869,17 +898,19 @@ def main():
                     x_srcloc=last.x_srcloc, x_type=fun.x_type.result)
                 fun.body.append(cwast.StmtReturn(
                     void_expr, x_srcloc=last.x_srcloc, x_target=fun))
-    
+
+    ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
+    ELIMIMATED_NODES.add(cwast.StmtCond)
     logger.info("Sanity Check 2")
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, set([cwast.Expr3]))
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
     mod_gen.body_mod += list(str_val_map.values()) + [
         v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
-    cwast.CheckAST(mod_gen, set([cwast.Expr3]))
+    cwast.CheckAST(mod_gen, ELIMIMATED_NODES)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -916,5 +947,5 @@ def main():
 
 if __name__ == "__main__":
     #import cProfile
-    #cProfile.run('main()')
+    # cProfile.run('main()')
     exit(main())
