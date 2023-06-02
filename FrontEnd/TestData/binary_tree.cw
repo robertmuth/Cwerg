@@ -5,12 +5,12 @@
 (global pub None auto (as void_val NoneType))
 
 (defrec pub BinaryTreeNode [
-   (field left (union [None (ptr mut BinaryTreeNode)]))
-   (field right (union [None (ptr mut BinaryTreeNode)]))
+   (field left (union [NoneType (ptr mut BinaryTreeNode)]))
+   (field right (union [NoneType (ptr mut BinaryTreeNode)]))
    (field payload u32)
 ])
 
-(type MaybeNode (union [None (ptr mut BinaryTreeNode)]))
+(type MaybeNode (union [NoneType (ptr mut BinaryTreeNode)]))
 
 (type Visitor (sig [(param node (ptr mut BinaryTreeNode))] void))
 

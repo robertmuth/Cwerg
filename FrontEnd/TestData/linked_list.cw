@@ -6,11 +6,11 @@
 
 (defrec pub LinkedListNode [
    (# "this is a comment with \" with quotes \t ")
-   (field next (union [None (ptr mut LinkedListNode)]))
+   (field next (union [NoneType (ptr mut LinkedListNode)]))
    (field payload u32)
 ])
 
-(type MaybeNode (union [None (ptr mut LinkedListNode)]))
+(type MaybeNode (union [NoneType (ptr mut LinkedListNode)]))
 
 (fun SumPayload [(param root MaybeNode)] u32 [
     (let mut sum u32 0)
