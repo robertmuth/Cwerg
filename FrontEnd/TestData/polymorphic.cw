@@ -12,6 +12,7 @@
         (test::AssertSliceEq (slice_val (front s) n) "true")
         (= n (call polymorphic SysRender [69_u16 s (& mut opt)]))
         (test::AssertSliceEq (slice_val (front s) n) "69")
+        (print ["OK\n"])
         (return 0)
 ])
 

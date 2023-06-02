@@ -25,6 +25,7 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
       (test::AssertEq (call sieve []) EXPECTED)
+      (print ["OK\n"]) 
       (return 0)
 ])
 

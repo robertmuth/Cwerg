@@ -12,5 +12,4 @@
    (return (/ (* max (as LAST r64)) (as IM r64)))
 ])
 
-
 ])
