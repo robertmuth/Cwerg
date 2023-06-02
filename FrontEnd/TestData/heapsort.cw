@@ -1,16 +1,8 @@
 (module main [] [
 (# "heapsort")
 
+(import random)
 
-(global IM u32 139968)
-(global IA u32 3877)
-(global IC u32 29573)
-(global mut LAST u32 42)
-
-(fun get_random [(param max r64)] r64 [
-   (= LAST (% (+ (* LAST IA) IC) IM))
-   (return (/ (* max (as LAST r64)) (as IM r64)))
-])
 
 (global SIZE uint 20)
 
@@ -70,7 +62,7 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 SIZE 1 [
-     (let v auto (call get_random [1000]))
+     (let v auto (call random::get_random [1000]))
      (= (at Data (+ i 1)) v)
    ])
 
