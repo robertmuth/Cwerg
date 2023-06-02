@@ -1,46 +1,7 @@
 (module main [] [
 (# "heapsort")
 
-(fun pub extern memcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] (ptr mut u8) [])
-(fun pub extern write [(param fd s32) (param s (ptr u8)) (param size uint)] sint [])
-
-(fun mymemcpy [(param dst (ptr mut u8)) (param src (ptr u8)) (param size uint)] uint [
-   (stmt (call memcpy [dst src size]))
-   (return size)
-])
-
-(# "macro for number range for-loop")
-(macro pub for [(macro_param $index ID) 
-                (macro_param $type TYPE) 
-                (macro_param $start EXPR) 
-                (macro_param $end EXPR) 
-                (macro_param $step EXPR) 
-                (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] [
-    
-    (macro_let $end_eval $type $end)
-    (macro_let $step_eval $type $step)
-    (macro_let mut $it $type $start)
-    (block _ [
-          (if (>= $it $end_eval) [(break)] [])
-          (macro_let $index auto $it)
-          (= $it (+ $it $step_eval))
-          $body
-          (continue)
-    ])
-])
-
-(# "macro for while-loop")
-(macro pub while [(macro_param $cond EXPR) 
-                  (macro_param $body STMT_LIST)] [] [
-    (block _ [
-          (if $cond [] [(break)])
-          $body
-          (continue)
-    ])
-])      
-
-
-
+  
 (global INF_POS auto "inf")
 (global INF_NEG auto "-inf")
 (global NAN_POS auto "nan")
@@ -221,3 +182,4 @@
 ])
 
 ])
+
