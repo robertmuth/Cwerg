@@ -1477,7 +1477,9 @@ class ExprUnsafeCast:
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
 
-
+    def __str__(self):
+        return f"{_NAME(self)} {self.type}"
+    
 @NodeCommon
 @dataclasses.dataclass()
 class ExprBitCast:
@@ -1502,7 +1504,9 @@ class ExprBitCast:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-
+    def __str__(self):
+        return f"{_NAME(self)} {self.type}"
+    
 @NodeCommon
 @dataclasses.dataclass()
 class ExprSizeof:

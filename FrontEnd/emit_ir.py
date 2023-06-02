@@ -765,31 +765,35 @@ def main():
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
+    #logger.setLevel(logging.INFO)
+    logger.info("Start Parsing")
     asts = []
     for f in args.files:
         asts += parse.ReadModsFromStream(open(f), f)
 
+    logger.info("Strip Comments")
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     # get rid of the comment nodes so we can make simplifying assumptions
     # like DefRec.fields only has nodes of type RecField
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.Comment)
 
-    # Expand macros and link most IDs to their definition
+    logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
-    # Now that we can map IDs to definitions we can typify the nodes
+    logger.info("Typify the nodes")
     tc: types.TypeCorpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
+    
+    logger.info("partial eval")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
-    # Legalize so that code emitter works
+    logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
     id_gen_global = identifier.IdGen()
@@ -803,6 +807,7 @@ def main():
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
 
+    logger.info("Legalize 2")
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
 
@@ -822,13 +827,14 @@ def main():
             # pp.PrettyPrint(mod)
 
         exit(0)
-
+    logger.info("Sanity Check 1")
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
-
+    
+    logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
     for mod in mod_topo_order:
@@ -857,7 +863,8 @@ def main():
                     x_srcloc=last.x_srcloc, x_type=fun.x_type.result)
                 fun.body.append(cwast.StmtReturn(
                     void_expr, x_srcloc=last.x_srcloc, x_target=fun))
-
+    
+    logger.info("Sanity Check 2")
     for mod in mod_topo_order:
         cwast.CheckAST(mod, set())
         symbolize.VerifyASTSymbolsRecursively(mod)
@@ -902,6 +909,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # import cProfile
-    # cProfile.run('main()')
+    #import cProfile
+    #cProfile.run('main()')
     exit(main())
