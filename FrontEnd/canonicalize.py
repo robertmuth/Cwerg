@@ -81,8 +81,8 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus
 def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
     """Convert ternary operator nodes into  expr with if statements
 
-    Note we could implement the ternary op as a macro but would lose some
-    of type inference, so instead we use this hardcoded rewrite"""
+    Note we could implement the ternary op as a macro but would lose the ability to do
+    type inference, so instead we use this hardcoded rewrite"""
     def replacer(node, field):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc

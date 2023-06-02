@@ -592,8 +592,10 @@ def _CheckExpr2Types(node, result_type, op1_type, op2_type, kind: cwast.BINARY_E
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
         _CheckTypeSame(node, tc, op1_type.type, op2_type.type)
         if isinstance(op1_type, cwast.TypePtr):
-            assert (isinstance(op2_type, cwast.TypeSlice) and
-                    result_type == tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT))
+            if result_type != tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT):
+               cwast.CompilerError(node.x_srcloc, f"result of pointer delta must SINT")
+            if  not isinstance(op2_type, cwast.TypePtr):
+                cwast.CompilerError(node.x_srcloc, f"rhs of pointer delta must be pointer")
         elif isinstance(op1_type, cwast.TypeSlice):
             assert (isinstance(op2_type, cwast.TypeSlice) and
                     result_type == op1_type)

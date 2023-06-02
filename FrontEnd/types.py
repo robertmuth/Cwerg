@@ -1,4 +1,3 @@
-
 import logging
 import re
 import dataclasses
@@ -26,7 +25,7 @@ def is_mutable_def(node):
 def is_ref_def(node):
     if isinstance(node, cwast.Id):
         s = node.x_symbol
-        return  isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar) and s.ref
+        return isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar) and s.ref
     return False
 
 
@@ -70,10 +69,12 @@ def is_bool(cstr: CanonType) -> bool:
 def is_void(cstr: CanonType) -> bool:
     return isinstance(cstr, cwast.TypeBase) and cstr.base_type_kind is cwast.BASE_TYPE_KIND.VOID
 
+
 def is_void_or_wrapped_void(cstr: CanonType) -> bool:
     if isinstance(cstr, cwast.DefType):
         return is_void(cstr.type)
     return is_void(cstr)
+
 
 def is_int(cstr: CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
@@ -113,11 +114,10 @@ def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False
     if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
         # TODO: check "ref"
         return actual.type == expected.type and (not expected.mut or actual_is_lvalue)
-    
+
     if isinstance(actual, cwast.TypePtr) and isinstance(expected, cwast.TypePtr):
         # TODO: check "ref"
         return actual.type == expected.type and (not expected.mut)
-
 
     if not isinstance(expected, cwast.TypeSum):
         return False
