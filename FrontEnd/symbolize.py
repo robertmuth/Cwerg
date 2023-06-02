@@ -175,7 +175,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map, scopes):
     return symtab.resolve_sym(components, symtab_map, False)
 
 
-def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map):
+def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map: Dict[str, SymTab]):
     symtab = symtab_map[node.x_module.name]
     return symtab.resolve_macro(node,  symtab_map, False)
 
@@ -352,6 +352,10 @@ def VerifyASTSymbolsRecursively(node):
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.name.startswith("$"), f"{node.name}"
+            def_node = node.x_symbol
+            is_type_node = field in ("type", "types", "result", "type_or_auto")
+            assert is_type_node == isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)), f"{field}: {def_node}"
+                
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
