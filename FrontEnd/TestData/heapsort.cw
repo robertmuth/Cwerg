@@ -1,86 +1,6 @@
 (module main [] [
 (# "heapsort")
 
-  
-(global INF_POS auto "inf")
-(global INF_NEG auto "-inf")
-(global NAN_POS auto "nan")
-(global NAN_NEG auto "-nan")
-
-(fun u64_to_str [(param val u64) (param base u64) (param buf (ptr mut u8))] uint [
-    (let mut v auto val)
-    (let mut ref tmp (array 32 u8) undef)
-    (let mut pos uint 32)
-    (block _ [
-        (-= pos 1)
-        (let c auto (% v base))
-        (let mut c8 auto (as c u8))
-        (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
-        (= (at tmp pos) c8)
-        (/= v base)
-        (if (!= v 0) [(continue)] [])
-    ])
-    (return (call mymemcpy [buf (& (at tmp pos)) (- 32 pos)]))
-])
-
-(# "r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)")
-(# "exponentiation bias is 1023")
-(# "https://en.wikipedia.org/wiki/Double-precision_floating-point_format")
-(# "https://observablehq.com/@jrus/hexfloat")
-(fun r64_to_hex_fmt [(param val r64) (param buf (ptr mut u8))] uint [
-   (let val_bits auto (bitcast val s64))
-   (let mut frac_bits auto (and val_bits 0xf_ffff_ffff_ffff))
-   (let exp_bits auto (and (>> val_bits 52) 0x7ff))
-   (let sign_bit auto (and (>> val_bits 63) 1))
-
-
-   (if (== exp_bits 0x7ff) [
-      (if (== frac_bits 0) [
-         (if (== sign_bit 0) [(return (call mymemcpy [buf (& (at INF_POS 0)) (len INF_POS)]))] 
-         [(return (call mymemcpy [buf (& (at INF_NEG 0)) (len INF_NEG)]))])       
-      ] [
-         (if (== sign_bit 0) [(return (call mymemcpy [buf (& (at NAN_POS 0)) (len NAN_POS)]))] 
-         [(return (call mymemcpy [buf (& (at NAN_NEG 0)) (len NAN_NEG)]))])       
-      ])
-   ] [])
-
-
-   (let mut exp auto (- exp_bits 1023))
-   (let mut i uint 0)
-   (if (!= sign_bit 0) [
-      (= (^ (incp buf i)) '-')
-      (+= i 1)
-   ] [])
-  
-   (= (^ (incp buf i)) '0')
-   (+= i 1)
-   (= (^ (incp buf i)) 'x')
-   (+= i 1)
-   (= (^ (incp buf i)) (? (== exp_bits 0) '0' '1'))
-   (+= i 1)
-   (= (^ (incp buf i)) '.')
-   (+= i 1)
-
-   (while (!= frac_bits 0) [
-      (let c auto (as (>> frac_bits 48) u8))
-      (= (^ (incp buf i)) 
-         (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
-      (+= i 1)
-      (and= frac_bits 0xffff_ffff_ffff)
-      (<<= frac_bits 4)
-   ])
-      
-   (= (^ (incp buf i)) 'p')
-   (+= i 1)
-   (if (< exp 0) [
-      (= (^ (incp buf i)) '-')
-      (+= i 1)
-      (= exp (- 0_s64 exp))
-    ] [])
-   (+= i (call u64_to_str [(as exp u64) 10 (incp buf i)]))
-   (return i)
-])
-
 
 (global IM u32 139968)
 (global IA u32 3877)
@@ -143,17 +63,9 @@
   (let mut ref buf (array 32 u8) undef)
   (for i u64 0 size 1 [
     (let v auto (^ (incp data i)))
-    (let n auto (call r64_to_hex_fmt [v (& mut (at buf 0))]))
-    (stmt (call write [1 (& (at buf 0)) n]))
-    (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+    (print [(as v r64_hex) NEWLINE])
   ])
   (return)
-])
-
-
-(fun test [(param a uint)(param b uint)(param c uint)(param d uint) ] uint [
-    (if (&& (< a b) (< c d)) [(return 666)][(return 777)])
-
 ])
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
@@ -163,17 +75,18 @@
    ])
 
    (stmt (call dump_array [SIZE  (& (at Data 1))]))
-   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (print [NEWLINE])
+   (print [SIZE NEWLINE])
 
    (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
-   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (print [NEWLINE])
 
    (stmt (call dump_array [SIZE  (& (at Data 1))]))
-   (stmt (call write [1 (& (at NEWLINE 0)) (len NEWLINE)]))
+   (print [NEWLINE])
 
    (for i u64 1 SIZE 1 [
      (if (> (at Data i) (at Data (+ i 1))) [
-      (stmt (call write [1 (& (at ERROR 0)) (len ERROR)]))
+      (print [ERROR])
       (trap)
      ] [])
    ])

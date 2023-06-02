@@ -362,9 +362,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         else:
             assert False, f"{node} container={node.container} type={node.container.x_type}"
     elif isinstance(node, cwast.Id):
-        # What we really need to check here is if we need a memcpy
-        assert isinstance(node.x_type, (cwast.TypeBase,
-                          cwast.TypePtr)), f"{node.x_type}"
+        assert IsSingleRegType(node.x_type, tc)
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
@@ -420,6 +418,12 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
             addr = _GetLValueAddress(node.expr, tc, id_gen)
             size = node.expr.x_type.size.x_value
             return addr, f"{size}:U64"
+        elif (isinstance(node.expr.x_type, cwast.DefType) and node.x_type is node.expr.x_type.type):
+            # just ignore the wrapped type
+            return EmitIRExpr(node.expr, tc, id_gen)
+        elif (isinstance(node.x_type, cwast.DefType) and node.x_type.type is node.expr.x_type):
+            # just ignore the wrapped type
+            return EmitIRExpr(node.expr, tc, id_gen)
         else:
             assert False, f"unsupported cast {node.expr} ({node.expr.x_type}) -> {node.type}"
     elif isinstance(node, cwast.ExprDeref):
@@ -829,7 +833,7 @@ def main():
         exit(0)
     logger.info("Sanity Check 1")
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, set())
+        cwast.CheckAST(mod, set([cwast.ValSlice, cwast.Expr3]))
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
@@ -841,8 +845,10 @@ def main():
         for fun in mod.body_mod:
             id_gen = identifier.IdGen()
             # continue
+            # why doing this so late?
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
+            canonicalize.CanonicalizeTernaryOp(fun, identifier.IdGen())
             typify.VerifyTypesRecursively(fun, tc)
             if isinstance(fun, cwast.DefFun):
                 canonicalize_large_args.RewriteLargeArgsCallerSide(
@@ -866,14 +872,14 @@ def main():
     
     logger.info("Sanity Check 2")
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, set())
+        cwast.CheckAST(mod, set([cwast.Expr3]))
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
     mod_gen.body_mod += list(str_val_map.values()) + [
         v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
-    cwast.CheckAST(mod_gen, set())
+    cwast.CheckAST(mod_gen, set([cwast.Expr3]))
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
