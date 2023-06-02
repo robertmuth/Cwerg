@@ -308,7 +308,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprLen):
-        if node.container.x_value is not None:
+        if isinstance(node.container.x_type, cwast.TypeArray):
+            return _AssignValue(node, node.container.x_type.size.x_value)
+        elif node.container.x_value is not None:
             return _AssignValue(node, len(node.container.x_value))
         return False
     elif isinstance(node, cwast.ExprAddrOf):

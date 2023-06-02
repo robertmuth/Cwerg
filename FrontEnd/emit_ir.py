@@ -355,12 +355,6 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         return f"0:U8"
     elif isinstance(node, cwast.ValTrue):
         return f"1:U8"
-    elif isinstance(node, cwast.ExprLen):
-        if isinstance(node.container.x_type, cwast.TypeArray):
-            dim = node.container.x_type.size.x_value
-            return str(dim)
-        else:
-            assert False, f"{node} container={node.container} type={node.container.x_type}"
     elif isinstance(node, cwast.Id):
         assert IsSingleRegType(node.x_type, tc)
         def_node = node.x_symbol
@@ -809,7 +803,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprSrcLoc)
     ELIMIMATED_NODES.add(cwast.ExprStringify)
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
-    ELIMIMATED_NODES.add(cwast.EphemeralList) #
+    ELIMIMATED_NODES.add(cwast.EphemeralList)
     ELIMIMATED_NODES.add(cwast.ModParam)
 
     for mod in mod_topo_order:
@@ -864,14 +858,14 @@ def main():
             # pp.PrettyPrint(mod)
 
         exit(0)
-    logger.info("Sanity Check 1")
 
+    logger.info("Sanity Check 1")
+    ELIMIMATED_NODES.add(cwast.ExprLen)
     ELIMIMATED_NODES.add(cwast.Expr3)
     ELIMIMATED_NODES.add(cwast.ValSlice)
     ELIMIMATED_NODES.add(cwast.TypeSlice)
     ELIMIMATED_NODES.add(cwast.EnumVal)
     ELIMIMATED_NODES.add(cwast.DefEnum)
-    #ELIMIMATED_NODES.add(cwast.ExprLen)
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
@@ -917,9 +911,10 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtCond)
     ELIMIMATED_NODES.add(cwast.Case)
 
-#    for node in cwast.ALL_NODES:
-#        if cwast.NF.NON_CORE in node.FLAGS:
-#            assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
+    for node in cwast.ALL_NODES:
+        if cwast.NF.NON_CORE in node.FLAGS:
+            assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
+
     logger.info("Sanity Check 2")
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)

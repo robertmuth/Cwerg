@@ -157,15 +157,17 @@ def ReplaceConstExpr(node):
     def replacer(node, field):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
-        if (field not in ("expr_lhs", "inits_array", "inits_rec") and
-            cwast.NF.VALUE_ANNOTATED in node.FLAGS and
-            not isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)) and
-                node.x_value is not None):
-            if (isinstance(node.x_type, cwast.TypeBase) and
-                types.is_int(node.x_type) and
-                    not isinstance(node, cwast.ValNum)):
-                return cwast.ValNum(str(node.x_value),
-                                    x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
+            return None
+        if field in ("expr_lhs", "inits_array", "inits_rec"):
+            return
+        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)):
+            return
+
+        if (isinstance(node.x_type, cwast.TypeBase) and
+                types.is_int(node.x_type) and not isinstance(node, cwast.ValNum)):
+            return cwast.ValNum(str(node.x_value),
+                                x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -183,7 +185,7 @@ def CanonicalizeRemoveStmtCond(node):
         for case in reversed(node.cases):
             assert isinstance(case, cwast.Case)
             out = cwast.StmtIf(case.cond, case.body, [] if out is None else [
-                               out], x_srcloc=case.x_srcloc)
+                out], x_srcloc=case.x_srcloc)
         return out
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
@@ -202,9 +204,13 @@ def OptimizeKnownConditionals(node):
 
 
 def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
-    cstr_ptr = tc.insert_ptr_type(is_lhs, node.container.x_type.type)
+    container_type = node.container.x_type
+    bound = None
+    if isinstance(container_type, cwast.TypeArray):
+        bound = container_type.size.x_value
+    cstr_ptr = tc.insert_ptr_type(is_lhs, container_type.type)
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
-        node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type)
+        node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(
         is_lhs, node.container, x_srcloc=srcloc, x_type=cstr_ptr)
     elem_addr = cwast.ExprPointer(
