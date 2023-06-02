@@ -2461,7 +2461,7 @@ def CheckAST(node, disallowed_nodes):
         nonlocal toplevel_node
         # print ("#", node)
         assert node.x_srcloc is not None, f"Node without srcloc {node}"
-        assert type(node) not in disallowed_nodes
+        assert type(node) not in disallowed_nodes, f"Disallowed node: {node}"
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":
                 CompilerError(

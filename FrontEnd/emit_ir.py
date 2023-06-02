@@ -786,8 +786,9 @@ def main():
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.Comment)
 
-    ELIMIMATED_NODES.add(cwast.ExprParen)
+    ELIMIMATED_NODES.add(cwast.ExprParen)  # this needs more work
     ELIMIMATED_NODES.add(cwast.Comment)
+
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
@@ -795,14 +796,22 @@ def main():
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        #cwast.StripFromListRecursivelyPost(mod, cwast.ExprParen)
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+        cwast.StripFromListRecursively(mod, cwast.Import)
 
+    ELIMIMATED_NODES.add(cwast.Import)
     ELIMIMATED_NODES.add(cwast.DefMacro)
     ELIMIMATED_NODES.add(cwast.MacroInvoke)
+    ELIMIMATED_NODES.add(cwast.MacroId)
+    ELIMIMATED_NODES.add(cwast.MacroVar)
+    ELIMIMATED_NODES.add(cwast.MacroFor)
+    ELIMIMATED_NODES.add(cwast.MacroParam)
     ELIMIMATED_NODES.add(cwast.ExprSrcLoc)
     ELIMIMATED_NODES.add(cwast.ExprStringify)
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
+    ELIMIMATED_NODES.add(cwast.EphemeralList) #
+    ELIMIMATED_NODES.add(cwast.ModParam)
+
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
@@ -828,6 +837,7 @@ def main():
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
 
+    ELIMIMATED_NODES.add(cwast.ExprSizeof)
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
@@ -859,6 +869,10 @@ def main():
     ELIMIMATED_NODES.add(cwast.Expr3)
     ELIMIMATED_NODES.add(cwast.ValSlice)
     ELIMIMATED_NODES.add(cwast.TypeSlice)
+    ELIMIMATED_NODES.add(cwast.EnumVal)
+    ELIMIMATED_NODES.add(cwast.DefEnum)
+    #ELIMIMATED_NODES.add(cwast.ExprLen)
+
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
@@ -901,6 +915,11 @@ def main():
 
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
+    ELIMIMATED_NODES.add(cwast.Case)
+
+#    for node in cwast.ALL_NODES:
+#        if cwast.NF.NON_CORE in node.FLAGS:
+#            assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
     logger.info("Sanity Check 2")
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
