@@ -2,13 +2,9 @@
 
 """
 
-import dataclasses
-import logging
-import pp
 
 from typing import List, Dict, Set, Optional, Union, Any
 
-from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import types
 from FrontEnd import typify
@@ -213,7 +209,7 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
             if isinstance(def_rec, cwast.DefRec):
                 assert len(def_rec.fields) == 2
                 field = def_rec.fields[1]
-                #cwast.MaybeReplaceAstRecursively(node, replacer)
+                # this is only reached if this used to be a slice
                 return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
                                        x_srcloc=node.x_srcloc, x_type=field.x_type,
                                        x_field=field)
@@ -222,7 +218,7 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
             if isinstance(def_rec, cwast.DefRec):
                 assert len(def_rec.fields) == 2
                 field = def_rec.fields[0]
-                #cwast.MaybeReplaceAstRecursively(node, replacer)
+                # this is only reached if this used to be a slice
                 return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
                                        x_srcloc=node.x_srcloc, x_type=field.x_type,
                                        x_field=field)
@@ -251,7 +247,9 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
                     #assert node.type.x_type in slice_to_struct_map
                     assert isinstance(node.expr.x_type, cwast.TypeArray)
                     return _ConvertValArrayToSliceValRec(node.expr, def_rec, node.x_srcloc)
-
+                elif isinstance(node, cwast.ExprPointer):
+                    assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
+                    assert False
                 else:
                     assert False, f"do not know how to convert slice node [{field}]: {node}"
         return None
