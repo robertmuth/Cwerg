@@ -6,12 +6,11 @@
 
 import dataclasses
 import logging
-import pp
+
+from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 from FrontEnd import cwast
 
-
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +123,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             pass
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
             if not isinstance(a, cwast.EphemeralList):
-                cwast.CompilerError(invoke.x_srcloc, 
+                cwast.CompilerError(invoke.x_srcloc,
                                     f"expected EphemeralList for macro param {p} got {a}")
         elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
             pass

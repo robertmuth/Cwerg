@@ -6,10 +6,10 @@
 """
 
 import sys
-import re
 import dataclasses
 import logging
 import enum
+
 from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)

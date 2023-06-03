@@ -4,7 +4,6 @@
 
 """
 
-import dataclasses
 import sys
 import logging
 import collections

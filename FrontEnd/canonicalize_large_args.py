@@ -14,13 +14,7 @@ Effects of this step:
 * Large results will become an extra pointer parameter appended to the end
   of the parameter list.
 
-
-
 """
-
-import dataclasses
-import logging
-import pp
 
 from typing import List, Dict, Set, Optional, Union, Any
 
@@ -28,7 +22,6 @@ from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import types
 from FrontEnd import typify
-from FrontEnd import symbolize
 
 ############################################################
 # Convert large parameter into pointer to object allocated
