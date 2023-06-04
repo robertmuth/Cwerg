@@ -5,6 +5,7 @@
  Part of the problem is that we are trying to avoid pulling a regex lib.
 */
 #include "Util/parse.h"
+
 #include "Util/assert.h"
 
 namespace cwerg {
@@ -35,7 +36,7 @@ const constexpr unsigned char IdFirstChars[] =
 
 const constexpr unsigned char IdRestChars[] =
     ":0123456789"
-    "_%$w/<>,"
+    "_%$w/<>,@"
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -77,11 +78,12 @@ struct CharTable {
   }
 
   bool is(uint8_t c, uint16_t mask) const { return (array[c] & mask) != 0; }
-  bool isspace(uint8_t c) const { return is(c, CTYPE_SPACE); }
-  bool isidornumstart(uint8_t c) const {
+  bool is_space(uint8_t c) const { return is(c, CTYPE_SPACE); }
+  bool is_id_or_num_start(uint8_t c) const {
     return is(c, CTYPE_ID_FIRST | CTYPE_NUM_FIRST);
   }
-  bool isnumfirst(uint8_t c) const { return is(c, CTYPE_NUM_FIRST); }
+  bool is_id_or_num_cont(uint8_t c) const { return is(c, CTYPE_ID_REST); }
+  bool is_num_first(uint8_t c) const { return is(c, CTYPE_NUM_FIRST); }
   bool ishex(uint8_t c) const { return is(c, CTYPE_HEX); }
   bool isother(uint8_t c) const { return is(c, CTYPE_OTHER); }
   bool islegit(uint8_t c) const { return is(c, CTYPE_LEGIT); }
@@ -111,6 +113,7 @@ size_t AddHex(std::string_view s, size_t i, char* out) {
 }
 
 enum Mode {
+  ERROR,
   BETWEEN_TOKENS,
   IN_TOKEN,
   IN_STRING,
@@ -180,11 +183,11 @@ size_t BytesToEscapedString(std::string_view s, char* out) {
 
 void string_view_inc(std::string_view& s) { s = {s.data(), s.size() + 1}; }
 
-Mode HandleOneChar(Mode mode,
-                   const char* cp,
+Mode HandleOneChar(Mode mode, const char* cp,
                    std::vector<std::string_view>* out) {
   char c = *cp;
   switch (mode) {
+    case ERROR:
     case EXIT_LIST:
     case ENTER_LIST:
       ASSERT(false, "unreachable");
@@ -193,14 +196,16 @@ Mode HandleOneChar(Mode mode,
       string_view_inc(out->back());
       return COMMENT;
     case BETWEEN_TOKENS:
-      if (Ctype.isspace(c))
+      if (Ctype.is_space(c))
         return BETWEEN_TOKENS;
-      else if (Ctype.isidornumstart(c)) {
+      else if (Ctype.is_id_or_num_start(c)) {
         out->emplace_back(std::string_view{cp, 0});
+      } else if (Ctype.is_id_or_num_cont(c)) {
+        return ERROR;
       }
       // fallthrough
     case IN_TOKEN:
-      if (Ctype.isspace(c)) {
+      if (Ctype.is_space(c)) {
         return BETWEEN_TOKENS;
       } else if (c == '#') {
         out->emplace_back(std::string_view{cp, 1});
@@ -230,8 +235,7 @@ Mode HandleOneChar(Mode mode,
   return IN_STRING;
 }
 
-bool ParseLineWithStrings(std::string_view s,
-                          bool allow_lists,
+bool ParseLineWithStrings(std::string_view s, bool allow_lists,
                           std::vector<std::string_view>* out) {
   const char* cp = s.data();
   const char* end = cp + s.size();
@@ -252,6 +256,8 @@ bool ParseLineWithStrings(std::string_view s,
       if (!in_list) return false;
       in_list = false;
       mode = BETWEEN_TOKENS;
+    } else if (mode == ERROR) {
+      return false;
     }
   }
   if (in_list) return false;
@@ -262,7 +268,7 @@ bool ParseLineWithStrings(std::string_view s,
 
 bool IsLikelyNum(std::string_view s) {
   ASSERT(s.size() > 0, "");
-  return Ctype.isnumfirst(s[0]);
+  return Ctype.is_num_first(s[0]);
 }
 
 static bool IsHex(std::string_view s) {
@@ -355,10 +361,8 @@ std::string_view ToFltHexString(double v, char buf[32]) {
   return ToHexString(u.val_u, buf);
 }
 
-std::string_view ToHexDataStringWithSep(std::string_view data,
-                                        char sep,
-                                        char* buf,
-                                        size_t max_len) {
+std::string_view ToHexDataStringWithSep(std::string_view data, char sep,
+                                        char* buf, size_t max_len) {
   ASSERT(data.size() * 3 <= max_len, "");
   const char* kHexChars = "0123456789abcdef";
   char* cp = buf;
@@ -384,22 +388,16 @@ char* append(char* buf, T first, Args... args) {
 
 }  // namespace
 
-std::string_view StrCat(char* buf,
-                        size_t max_len,
-                        std::string_view s0,
-                        std::string_view s1,
-                        std::string_view s2) {
+std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                        std::string_view s1, std::string_view s2) {
   size_t len = s0.size() + s1.size() + s2.size();
   ASSERT(len < max_len, "");
   *append(buf, s0, s1, s2) = '\0';
   return {buf, len};
 }
 
-std::string_view StrCat(char* buf,
-                        size_t max_len,
-                        std::string_view s0,
-                        std::string_view s1,
-                        std::string_view s2,
+std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                        std::string_view s1, std::string_view s2,
                         std::string_view s3) {
   size_t len = s0.size() + s1.size() + s2.size() + s3.size();
   ASSERT(len < max_len, "");
@@ -407,26 +405,18 @@ std::string_view StrCat(char* buf,
   return {buf, len};
 }
 
-std::string_view StrCat(char* buf,
-                        size_t max_len,
-                        std::string_view s0,
-                        std::string_view s1,
-                        std::string_view s2,
-                        std::string_view s3,
-                        std::string_view s4) {
+std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                        std::string_view s1, std::string_view s2,
+                        std::string_view s3, std::string_view s4) {
   size_t len = s0.size() + s1.size() + s2.size() + s3.size() + s4.size();
   ASSERT(len < max_len, "");
   *append(buf, s0, s1, s2, s3, s4) = '\0';
   return {buf, len};
 }
 
-std::string_view StrCat(char* buf,
-                        size_t max_len,
-                        std::string_view s0,
-                        std::string_view s1,
-                        std::string_view s2,
-                        std::string_view s3,
-                        std::string_view s4,
+std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                        std::string_view s1, std::string_view s2,
+                        std::string_view s3, std::string_view s4,
                         std::string_view s5) {
   size_t len =
       s0.size() + s1.size() + s2.size() + s3.size() + s4.size() + s5.size();
@@ -467,7 +457,7 @@ uint64_t Flt64ToBits(double d) {
   return u.i;
 }
 
-bool IsWhiteSpace(char c) { return Ctype.isspace(c); }
+bool IsWhiteSpace(char c) { return Ctype.is_space(c); }
 
 int HexDigit(char c) {
   if ('0' <= c && c <= '9') return c - '0';
