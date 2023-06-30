@@ -12,7 +12,7 @@
 
 
 (# "macro for while-loop")
-(macro pub while [(macro_param $cond EXPR) 
+(macro pub while STMT [(macro_param $cond EXPR) 
                   (macro_param $body STMT_LIST)] [] [
     (block _ [
           (if $cond [] [(break)])
@@ -22,7 +22,7 @@
 ])  
 
 (# "macro for number range for-loop")
-(macro pub for [(macro_param $index ID) 
+(macro pub for STMT_LIST [(macro_param $index ID) 
                 (macro_param $type TYPE) 
                 (macro_param $start EXPR) 
                 (macro_param $end EXPR) 
@@ -67,7 +67,7 @@
     (return (call mymemcpy [(front mut buffer) (front s) n]))
 ])
 
-(macro unsigned_to_str [(macro_param $val EXPR) 
+(macro unsigned_to_str EXPR [(macro_param $val EXPR) 
                         (macro_param $base EXPR)
                         (macro_param $max_width EXPR)
                         (# "a slice for the output string")
@@ -231,9 +231,9 @@
 
 
 
-(macro pub print [
+(macro pub print STMT_LIST [
     (# "list of items to be printed")
-    (macro_param $parts STMT_LIST)] 
+    (macro_param $parts EXPR_LIST)] 
     [$buffer $curr $options] [
     (macro_let mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     (macro_let mut $curr uint 0)

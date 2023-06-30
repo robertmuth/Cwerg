@@ -19,13 +19,13 @@
 
 
 (# "macro for c-style -> operator")
-(macro pub -> [(macro_param $pointer EXPR) (macro_param $field FIELD)] [] [
+(macro pub -> EXPR [(macro_param $pointer EXPR) (macro_param $field FIELD)] [] [
        (. (^ $pointer) $field)
 ])
 
 
 (# "macro for number range for-loop")
-(macro pub for [(macro_param $index ID) 
+(macro pub for STMT_LIST [(macro_param $index ID) 
                 (macro_param $type TYPE) 
                 (macro_param $start EXPR) 
                 (macro_param $end EXPR) 
@@ -46,7 +46,7 @@
 
 
 (# "macro for while-loop")
-(macro pub while [(macro_param $cond EXPR) 
+(macro pub while STMT [(macro_param $cond EXPR) 
                   (macro_param $body STMT_LIST)] [] [
     (block _ [
           (if $cond [] [(break)])
@@ -56,7 +56,7 @@
 ])        
 
 
-(macro pub try [(macro_param $name ID) 
+(macro pub try STMT_LIST [(macro_param $name ID) 
                 (macro_param $type EXPR) 
                 (macro_param $expr EXPR) 
                 (macro_param $catch_name ID) 
@@ -76,7 +76,7 @@
 
 
 (# "generic copy of data from slice/array to slice")
-(macro copy_slice [(macro_param $item_type TYPE) 
+(macro copy_slice STMT_LIST [(macro_param $item_type TYPE) 
                    (macro_param $src EXPR)
                    (macro_param $dst EXPR)
                    (macro_param $len EXPR)] [$psrc $pdst $n $i] [
@@ -104,7 +104,7 @@
 ])
 
 
-(macro unsigned_to_str [(macro_param $val EXPR) 
+(macro unsigned_to_str STMT_LIST [(macro_param $val EXPR) 
                         (macro_param $base EXPR)
                         (macro_param $max_width EXPR) 
                         (macro_param $out ID)]  [$v $tmp $pos] [
@@ -167,7 +167,7 @@
 
 
 
-(macro print_common [(macro_param $curr ID) (macro_param $parts STMT_LIST)] 
+(macro print_common STMT_LIST [(macro_param $curr ID) (macro_param $parts STMT_LIST)] 
                     [$buffer $options $buffer_orig] [
     (macro_let mut $buffer auto (array_val 1024 u8))
     (macro_let mut $curr (slice mut u8) $buffer)
@@ -180,19 +180,19 @@
 ])
 
 
-(macro pub print [(macro_param $parts STMT_LIST)] [$curr] [
+(macro pub print STMT_LIST [(macro_param $parts STMT_LIST)] [$curr] [
     (print_common $curr [$parts])
     (stmt (call SysPrint [$curr])) 
 ])
 
 
-(macro swap [(macro_param $a EXPR) (macro_param $b EXPR)] [$t] [
+(macro swap STMT_LIST [(macro_param $a EXPR) (macro_param $b EXPR)] [$t] [
     (macro_let $t auto $a)
     (= $a $b)
     (= $b $t)
 ])
 
-(macro pub log [(macro_param $level EXPR) 
+(macro pub log STMT [(macro_param $level EXPR) 
                 (macro_param $parts STMT_LIST)] [$curr] [
     (if (call IsLogActive [$level (src_loc)]) [
         (print_common $curr [$parts])
@@ -200,7 +200,7 @@
     ] [])
 ])
 
-(macro pub assert [(macro_param $cond EXPR) (macro_param $parts STMT_LIST)] [$curr] [
+(macro pub assert STMT [(macro_param $cond EXPR) (macro_param $parts STMT_LIST)] [$curr] [
       (if $cond [] [
         (print_common $curr [$parts])
         (stmt (call SysErrorPrint [$curr]))

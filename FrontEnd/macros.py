@@ -58,9 +58,11 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
+        # We dont support `FIELD``
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
                         cwast.MACRO_PARAM_KIND.ID,
                         cwast.MACRO_PARAM_KIND.TYPE,
+                        cwast.MACRO_PARAM_KIND.EXPR_LIST,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
@@ -119,17 +121,18 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     ctx.PushScope(invoke.x_srcloc)
     for p, a in zip(params, invoke.args):
         assert p.name.startswith("$")
-        if p.macro_param_kind == cwast.MACRO_PARAM_KIND.EXPR:
+        kind = p.macro_param_kind
+        if kind is cwast.MACRO_PARAM_KIND.EXPR:
             pass
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.STMT_LIST:
+        elif kind is cwast.MACRO_PARAM_KIND.STMT_LIST or kind is cwast.MACRO_PARAM_KIND.EXPR_LIST:
             if not isinstance(a, cwast.EphemeralList):
                 cwast.CompilerError(invoke.x_srcloc,
                                     f"expected EphemeralList for macro param {p} got {a}")
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.TYPE:
+        elif kind is cwast.MACRO_PARAM_KIND.TYPE:
             pass
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.FIELD:
+        elif kind is cwast.MACRO_PARAM_KIND.FIELD:
             assert isinstance(a, cwast.Id)
-        elif p.macro_param_kind == cwast.MACRO_PARAM_KIND.ID:
+        elif kind is cwast.MACRO_PARAM_KIND.ID:
             assert isinstance(
                 a, cwast.Id), f"while expanding macro {macro.name} expected parameter id but got: {a}"
         else:

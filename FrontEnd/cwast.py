@@ -242,9 +242,11 @@ class MACRO_PARAM_KIND(enum.Enum):
     INVALID = 0
     ID = 1
     STMT_LIST = 2
-    EXPR = 3
-    FIELD = 4
-    TYPE = 5
+    EXPR_LIST = 3
+    EXPR = 4
+    STMT = 5
+    FIELD = 6
+    TYPE = 7
 
 ############################################################
 # Field attributes of Nodes
@@ -405,7 +407,9 @@ ALL_FIELDS = [
     NFD(NFK.KIND, "assignment_kind",
         "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
     NFD(NFK.KIND,  "macro_param_kind",
-        "see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+        "type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+    NFD(NFK.KIND,  "macro_result_kind",
+        "type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
     NFD(NFK.KIND, "pointer_expr_kind",
         "see [PointerOp Kind](#pointerop-kind) below", POINTER_EXPR_KIND),
     #
@@ -1479,7 +1483,8 @@ class ExprUnsafeCast:
 
     def __str__(self):
         return f"{_NAME(self)} {self.type}"
-    
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class ExprBitCast:
@@ -1506,7 +1511,8 @@ class ExprBitCast:
 
     def __str__(self):
         return f"{_NAME(self)} {self.type}"
-    
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class ExprSizeof:
@@ -2096,7 +2102,7 @@ class MacroId:
     """
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
-    FLAGS = NF.NON_CORE 
+    FLAGS = NF.NON_CORE
     #
     name: str
     #
@@ -2199,6 +2205,8 @@ class DefMacro:
     pub: bool
     #
     name: str
+    macro_result_kind: MACRO_PARAM_KIND
+
     params_macro: List[NODES_PARAMS_MACRO_T]
     gen_ids: List[str]
     body_macro: List[Any]  # new scope

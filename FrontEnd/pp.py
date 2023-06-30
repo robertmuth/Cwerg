@@ -212,7 +212,8 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
-            line.append(" " + str(val.replace("<", "&lt;").replace(">", "&gt;")))
+            line.append(
+                " " + str(val.replace("<", "&lt;").replace(">", "&gt;")))
         elif field_kind is cwast.NFK.INT:
             line.append(" " + str(val))
         elif field_kind is cwast.NFK.KIND:
@@ -256,6 +257,99 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
     for a in out:
         print("".join(a))
         print("<br>")
+############################################################
+#
+############################################################
+
+
+def ConcreteSyntaxExpr(node):
+    if isinstance(node, cwast.Id):
+        return node.name
+    elif isinstance(node, cwast.ValString):
+        return node.string
+    elif isinstance(node, cwast.ValNum):
+        return node.number
+    elif isinstance(node, cwast.ValTrue):
+        return "true"
+    elif isinstance(node, cwast.ValFalse):
+        return "false"
+    elif isinstance(node, cwast.Expr2):
+        return f"{ConcreteSyntaxExpr(node.expr1)} {node.binary_expr_kind.name} {ConcreteSyntaxExpr(node.expr2)}"
+    else:
+        assert False, f"unknown expr node: {type(node)}"
+
+
+def ConcreteSyntaxType(node) -> str:
+    if isinstance(node, cwast.TypeAuto):
+        return "auto"
+    elif isinstance(node, cwast.TypeBase):
+        return node.base_type_kind.name
+    elif isinstance(node, cwast.TypePtr):
+        return f"*{ConcreteSyntaxType(node.type)}"
+    else:
+        assert False, f"unknown type node: {type(node)}"
+
+
+def ConcreteSyntaxFunParams(params: List[cwast.FunParam]) -> str:
+    out = [f"{p.name} {ConcreteSyntaxType(p.type)}" for p in params]
+    return ", ".join(out)
+
+        
+def ConcreteSyntaxStmt(node, indent):
+    prefix = " " * indent
+    if isinstance(node, cwast.Id):
+        print(f"{prefix}{node.name}")
+    elif isinstance(node, cwast.Comment):
+        print(f"{prefix}# {node.comment[1:-1]}")
+    elif isinstance(node, cwast.Case):
+        print(f"{prefix}case {ConcreteSyntaxExpr(node.cond)}:")
+        for c in node.body:
+            ConcreteSyntaxStmt(c, indent+4)
+    elif isinstance(node, cwast.StmtCond):
+        print(f"{prefix}cond:")
+        for c in node.cases:
+            ConcreteSyntaxStmt(c, indent+4)
+
+    elif isinstance(node, cwast.MacroInvoke):
+        print(f"{prefix}{node.name}!", end="")
+        for a in node.args:
+            if isinstance(a, cwast.Id):
+                print(f" {a.name}", end="")
+            elif isinstance(a, (cwast.TypeBase,
+                                cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr, cwast.TypeFun, cwast.TypeSum)):
+                print(f" {ConcreteSyntaxType(a)}", end="")
+            elif isinstance(a, (cwast.ValNum)):
+                print(f" {ConcreteSyntaxExpr(a)}", end="")
+            elif isinstance(a, (cwast.EphemeralList)):
+                print(":")
+                for aa in a.args:
+                    ConcreteSyntaxStmt(aa, indent+4)
+            else:
+                assert False, f"unknown macro arg node: {type(a)}"
+    elif isinstance(node, cwast.StmtReturn):
+        print(f"{prefix}return {ConcreteSyntaxExpr(node.expr_ret)}")
+    else:
+        assert False, f"unknown stmt node: {type(node)}"
+
+
+def ConcreteSyntaxTop(node, indent):
+    prefix = " " * indent
+    if isinstance(node, cwast.DefMod):
+        print(f"{prefix}module {node.name}:")
+        for child in node.body_mod:
+            ConcreteSyntaxTop(child, indent+4)
+    elif isinstance(node, cwast.Comment):
+        print(f"{prefix}# {node.comment[1:-1]}")
+    elif isinstance(node, cwast.DefGlobal):
+        print(f"{prefix}global {node.name} {ConcreteSyntaxType(node.type_or_auto)} = {ConcreteSyntaxExpr(node.initial_or_undef)}")
+    elif isinstance(node, cwast.DefFun):
+        params = ConcreteSyntaxFunParams(node.params)
+        print(f"{prefix}fun {node.name}({params}) -> {ConcreteSyntaxType(node.result)}:")
+        for child in node.body:
+            ConcreteSyntaxStmt(child, indent+4)
+
+    else:
+        assert False, f"unknown node: {type(node)}"
 
 
 ############################################################
@@ -288,5 +382,8 @@ if __name__ == "__main__":
 
         for mod in mods:
             PrettyPrintHTML(mod, tc)
+    elif args.mode == 'concrete':
+        for mod in mods:
+            ConcreteSyntaxTop(mod, 0)
     else:
         assert False, f"unknown mode {args.mode}"
