@@ -238,7 +238,7 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
             args.append(cwast.EphemeralList(False, ReadNodeList(
                 stream, parent_cls), x_srcloc=srcloc))
         elif token == ":":
-            args.append(cwast.EphemeralList(True, ReadNodeList(
+            args.append(cwast.EphemeralList(True, ReadNodeColonList(
                 stream, parent_cls), x_srcloc=srcloc))
         else:
             out = ExpandShortHand(token, stream.srcloc())

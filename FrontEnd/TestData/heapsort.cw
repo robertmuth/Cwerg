@@ -17,7 +17,7 @@
   (let mut ir auto n)
   (let mut l auto (+ (>> n 1) 1))
   (let mut rdata r64 undef)
-  (while true [
+  (while true :
       (if (> l 1) [
          (-= l 1)
          (= rdata (^ (incp data l)))
@@ -33,7 +33,7 @@
    
     (let mut i auto l)
     (let mut j auto (<< l 1))
-    (while (<= j ir) [
+    (while (<= j ir) :
 
        (if (&& (< j ir) (< (^(incp data j)) (^(incp data (+ j 1))))) [(+= j 1)][])
 
@@ -44,9 +44,9 @@
        ][
          (= j (+ ir 1))
        ])
-    ])
+    )
     (= (^(incp data i)) rdata)
-  ])
+  )
   (return)
 ])
 
@@ -75,12 +75,12 @@
    (stmt (call dump_array [SIZE  (& (at Data 1))]))
    (print [NEWLINE])
 
-   (for i u64 1 SIZE 1 [
+   (for i u64 1 SIZE 1 :
      (if (> (at Data i) (at Data (+ i 1))) [
       (print [ERROR])
       (trap)
      ] [])
-   ])
+   )
 
    (return 0)
 ])
