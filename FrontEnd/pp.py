@@ -126,7 +126,22 @@ def RenderRecursivelyToIR(node, out, indent: str):
             line.append(" ")
             RenderRecursivelyToIR(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
-            if not val:
+            if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for", "cases", "body_macro"):
+                    if field == "body_f":
+                        out.append([" " * (indent + extra_indent) + ":"])
+                        for cc in val:
+                            out.append([" " * (indent + extra_indent)])
+                            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+                    else:
+                        extra_indent = EXTRA_INDENT.get(field, 2)
+                        line.append(" :")
+                        for cc in val:
+                            out.append([" " * (indent + extra_indent)])
+                            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+                            # extra line between top level nodes
+                            if field in NEW_LINE:
+                                out.append([" " * indent])
+            elif not val:
                 line.append(" []")
             else:
                 extra_indent = EXTRA_INDENT.get(field, 2)
