@@ -97,6 +97,36 @@ NEW_LINE = set([
 ])
 
 
+def RenderColonList(val: List, field: str, out, indent: str):
+
+    extra_indent = EXTRA_INDENT.get(field, 4)
+    line = out[-1]
+    if field == "body_f":
+        out.append([" " * (indent + extra_indent) + ":"])
+        for cc in val:
+            out.append([" " * (indent + extra_indent)])
+            RenderRecursivelyToIR(
+                cc, out, indent + extra_indent)
+    else:
+        for cc in val:
+            out.append([" " * (indent + extra_indent)])
+            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+            # extra line between top level nodes
+            if field in NEW_LINE:
+                out.append([" " * indent])
+
+
+def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
+    line = out[-1]
+    line.append("(" + node.name)
+    for a in node.args:
+        line = out[-1]
+        line.append(" ") 
+        RenderRecursivelyToIR(a, out, indent)
+    line = out[-1]
+    line.append(")")
+
+
 def RenderRecursivelyToIR(node, out, indent: str):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
@@ -104,6 +134,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
         line.append(abbrev)
         return
 
+    if isinstance(node, cwast.MacroInvoke):
+        RenderMacroInvoke(node, out, indent)
+        return
     node_name, fields = GetNodeTypeAndFields(node)
     line.append("(" + node_name)
 
@@ -127,17 +160,22 @@ def RenderRecursivelyToIR(node, out, indent: str):
             RenderRecursivelyToIR(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for", "cases", "body_macro"):
+                if 0:
+                    RenderColonList(val, field, out, indent)
+                if 1:
                     if field == "body_f":
                         out.append([" " * (indent + extra_indent) + ":"])
                         for cc in val:
                             out.append([" " * (indent + extra_indent)])
-                            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+                            RenderRecursivelyToIR(
+                                cc, out, indent + extra_indent)
                     else:
                         extra_indent = EXTRA_INDENT.get(field, 2)
                         line.append(" :")
                         for cc in val:
                             out.append([" " * (indent + extra_indent)])
-                            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+                            RenderRecursivelyToIR(
+                                cc, out, indent + extra_indent)
                             # extra line between top level nodes
                             if field in NEW_LINE:
                                 out.append([" " * indent])
@@ -313,7 +351,7 @@ def ConcreteSyntaxFunParams(params: List[cwast.FunParam]) -> str:
     out = [f"{p.name} {ConcreteSyntaxType(p.type)}" for p in params]
     return ", ".join(out)
 
-        
+
 def ConcreteSyntaxStmt(node, indent):
     prefix = " " * indent
     if isinstance(node, cwast.Id):
@@ -363,7 +401,8 @@ def ConcreteSyntaxTop(node, indent):
         print(f"{prefix}global {node.name} {ConcreteSyntaxType(node.type_or_auto)} = {ConcreteSyntaxExpr(node.initial_or_undef)}")
     elif isinstance(node, cwast.DefFun):
         params = ConcreteSyntaxFunParams(node.params)
-        print(f"{prefix}fun {node.name}({params}) -> {ConcreteSyntaxType(node.result)}:")
+        print(
+            f"{prefix}fun {node.name}({params}) -> {ConcreteSyntaxType(node.result)}:")
         for child in node.body:
             ConcreteSyntaxStmt(child, indent+4)
 
