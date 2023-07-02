@@ -2158,7 +2158,7 @@ class MacroFor:
 @dataclasses.dataclass()
 class MacroParam:
     """Macro Parameter"""
-    ALIAS = "macro_param"
+    ALIAS = "mparam"
     GROUP = GROUP.Macro
     FLAGS = NF.LOCAL_SYM_DEF | NF.NON_CORE
     #

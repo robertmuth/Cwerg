@@ -46,7 +46,7 @@
     (return 0)
 ])
 
-(macro product STMT_LIST [(macro_param $result ID) (macro_param $factors STMT_LIST)] [] [
+(macro product STMT_LIST [(mparam $result ID) (mparam $factors STMT_LIST)] [] [
     (macro_for $x $factors [
         (= $result (* $result $x))
     ])

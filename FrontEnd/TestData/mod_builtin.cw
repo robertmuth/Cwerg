@@ -12,8 +12,8 @@
 
 
 (# "macro for while-loop")
-(macro pub while STMT [(macro_param $cond EXPR) 
-                  (macro_param $body STMT_LIST)] [] :
+(macro pub while STMT [(mparam $cond EXPR) 
+                  (mparam $body STMT_LIST)] [] :
     (block _ :
           (if $cond : : break)
           $body
@@ -22,12 +22,12 @@
 )  
 
 (# "macro for number range for-loop")
-(macro pub for STMT_LIST [(macro_param $index ID) 
-                (macro_param $type TYPE) 
-                (macro_param $start EXPR) 
-                (macro_param $end EXPR) 
-                (macro_param $step EXPR) 
-                (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] :    
+(macro pub for STMT_LIST [(mparam $index ID) 
+                (mparam $type TYPE) 
+                (mparam $start EXPR) 
+                (mparam $end EXPR) 
+                (mparam $step EXPR) 
+                (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :    
     (macro_let $end_eval $type $end)
     (macro_let $step_eval $type $step)
     (macro_let mut $it $type $start)
@@ -66,11 +66,11 @@
     (return (call mymemcpy [(front mut buffer) (front s) n]))
 )
 
-(macro unsigned_to_str EXPR [(macro_param $val EXPR) 
-                        (macro_param $base EXPR)
-                        (macro_param $max_width EXPR)
+(macro unsigned_to_str EXPR [(mparam $val EXPR) 
+                        (mparam $base EXPR)
+                        (mparam $max_width EXPR)
                         (# "a slice for the output string")
-                        (macro_param $out ID)]  [$v $tmp $pos] :
+                        (mparam $out ID)]  [$v $tmp $pos] :
     (expr :        
         (# "unsigned to str with given base")           
         (macro_let mut $v auto $val)
@@ -235,7 +235,7 @@
 
 (macro pub print STMT_LIST [
     (# "list of items to be printed")
-    (macro_param $parts EXPR_LIST)] 
+    (mparam $parts EXPR_LIST)] 
     [$buffer $curr $options] :
     (macro_let mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     (macro_let mut $curr uint 0)

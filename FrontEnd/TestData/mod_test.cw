@@ -1,8 +1,8 @@
 (module test [] [
 
 (# "The two arguments must derivable types as we use `auto`")
-(macro pub AssertEq STMT_LIST [(macro_param $e_expr EXPR) 
-                     (macro_param $a_expr EXPR)] [$e_val $a_val] [
+(macro pub AssertEq STMT_LIST [(mparam $e_expr EXPR) 
+                     (mparam $a_expr EXPR)] [$e_val $a_val] [
     (macro_let $e_val auto $e_expr) 
     (macro_let $a_val auto $a_expr) 
     (if (!= $e_val $a_val) :
@@ -14,8 +14,8 @@
 ])
 
 (# "The two arguments must type derivable")
-(macro pub AssertSliceEq STMT_LIST [(macro_param $e_expr EXPR) 
-                          (macro_param $a_expr EXPR)] [$e_val $a_val] [
+(macro pub AssertSliceEq STMT_LIST [(mparam $e_expr EXPR) 
+                          (mparam $a_expr EXPR)] [$e_val $a_val] [
     (macro_let $e_val auto $e_expr) 
     (macro_let $a_val auto $a_expr) 
     (AssertEq (len $e_val) (len $a_val))                       
