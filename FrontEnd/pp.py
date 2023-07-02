@@ -92,10 +92,6 @@ EXTRA_INDENT = {
     "body_macro": 1,
 }
 
-NEW_LINE = set([
-    "body_mod"
-])
-
 
 def RenderColonList(val: List, field: str, out, indent: str):
 
@@ -108,12 +104,28 @@ def RenderColonList(val: List, field: str, out, indent: str):
             RenderRecursivelyToIR(
                 cc, out, indent + extra_indent)
     else:
+        line.append(" :")
         for cc in val:
             out.append([" " * (indent + extra_indent)])
             RenderRecursivelyToIR(cc, out, indent + extra_indent)
             # extra line between top level nodes
-            if field in NEW_LINE:
+            if field == "body_mod" and not isinstance(cc, cwast.Comment):
                 out.append([" " * indent])
+
+
+def RenderList(val: List, field: str, out, indent: str):
+    line = out[-1]
+    if not val:
+        line.append(" []")
+    else:
+        extra_indent = EXTRA_INDENT.get(field, 2)
+        line.append(" [")
+        for cc in val:
+            out.append([" " * (indent + extra_indent)])
+            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+        if field == "body_mod" and not isinstance(cc, cwast.Comment):
+            out.append([" " * indent])
+        out[-1].append("]")
 
 
 def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
@@ -121,7 +133,11 @@ def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
     line.append("(" + node.name)
     for a in node.args:
         line = out[-1]
-        line.append(" ") 
+        line.append(" ")
+        # if isinstance(a, cwast.EphemeralList):
+        #    if a.colon:
+        #        Render
+        # else:
         RenderRecursivelyToIR(a, out, indent)
     line = out[-1]
     line.append(")")
@@ -160,36 +176,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
             RenderRecursivelyToIR(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for", "cases", "body_macro"):
-                if 0:
-                    RenderColonList(val, field, out, indent)
-                if 1:
-                    if field == "body_f":
-                        out.append([" " * (indent + extra_indent) + ":"])
-                        for cc in val:
-                            out.append([" " * (indent + extra_indent)])
-                            RenderRecursivelyToIR(
-                                cc, out, indent + extra_indent)
-                    else:
-                        extra_indent = EXTRA_INDENT.get(field, 2)
-                        line.append(" :")
-                        for cc in val:
-                            out.append([" " * (indent + extra_indent)])
-                            RenderRecursivelyToIR(
-                                cc, out, indent + extra_indent)
-                            # extra line between top level nodes
-                            if field in NEW_LINE:
-                                out.append([" " * indent])
-            elif not val:
-                line.append(" []")
+                RenderColonList(val, field, out, indent)
             else:
-                extra_indent = EXTRA_INDENT.get(field, 2)
-                line.append(" [")
-                for cc in val:
-                    out.append([" " * (indent + extra_indent)])
-                    RenderRecursivelyToIR(cc, out, indent + extra_indent)
-                if field in NEW_LINE:
-                    out.append([" " * indent])
-                out[-1].append("]")
+                RenderList(val, field, out, indent)
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
@@ -287,7 +276,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
                 for cc in val:
                     out.append(RenderIndent(indent + extra_indent))
                     RenderRecursivelyHTML(cc, tc, out, indent + extra_indent)
-                if field in NEW_LINE:
+                if field == "body_mod" and not isinstance(cc, cwast.Comment):
                     out.append(RenderIndent(indent))
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
