@@ -387,6 +387,7 @@ ALL_FIELDS = [
     NFD(NFK.FLAG, "extern", "is external function (empty body)"),
     NFD(NFK.FLAG, "mut", "is mutable"),
     NFD(NFK.FLAG, "ref", "address may be taken"),
+    NFD(NFK.FLAG, "colon", "colon style list"),
 
     NFD(NFK.FLAG, "wrapped", "is wrapped type (forces type equivalence by name)"),
     NFD(NFK.FLAG, "discard", "ignore non-void expression"),
@@ -607,6 +608,7 @@ class EphemeralList:
     GROUP = GROUP.Macro
     FLAGS = NF.NON_CORE
     #
+    colon: bool   # colon style list
     args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None

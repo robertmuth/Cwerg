@@ -141,6 +141,7 @@ def ReadNodeList(stream: ReadTokens, parent_cls):
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 
+
 def ReadNodeColonList(stream: ReadTokens, parent_cls):
     out = []
     while True:
@@ -153,6 +154,7 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
         else:
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
+
 
 def ReadStrList(stream: ReadTokens) -> List[str]:
     out = []
@@ -233,7 +235,10 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
         elif token == "(":
             args.append(ReadSExpr(stream, parent_cls))
         elif token == "[":
-            args.append(cwast.EphemeralList(ReadNodeList(
+            args.append(cwast.EphemeralList(False, ReadNodeList(
+                stream, parent_cls), x_srcloc=srcloc))
+        elif token == ":":
+            args.append(cwast.EphemeralList(True, ReadNodeList(
                 stream, parent_cls), x_srcloc=srcloc))
         else:
             out = ExpandShortHand(token, stream.srcloc())

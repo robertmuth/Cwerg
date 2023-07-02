@@ -244,7 +244,7 @@ def CanonicalizeDefer(node, scopes):
         return out
 
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        return cwast.EphemeralList(handle_cfg(node.x_target) + [node])
+        return cwast.EphemeralList(False, handle_cfg(node.x_target) + [node])
 
     for field in node.__class__.FIELDS:
         nfd = cwast.ALL_FIELDS_MAP[field]
@@ -269,7 +269,7 @@ def CanonicalizeDefer(node, scopes):
                 scopes.pop(-1)
 
     if isinstance(node, cwast.StmtDefer):
-        return cwast.EphemeralList([], x_srcloc=node.x_srcloc)
+        return cwast.EphemeralList(False, [], x_srcloc=node.x_srcloc)
     if isinstance(node, cwast.DefFun):
         scopes.pop(-1)
     return None

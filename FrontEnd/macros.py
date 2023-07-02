@@ -78,7 +78,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                     out += exp.args
                 else:
                     out.append(exp)
-        return cwast.EphemeralList(out)
+        return cwast.EphemeralList(False, out)
 
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
@@ -156,4 +156,4 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     ctx.PopScope()
     if len(out) == 1:
         return out[0]
-    return cwast.EphemeralList(out)
+    return cwast.EphemeralList(False, out)
