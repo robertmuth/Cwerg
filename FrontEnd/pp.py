@@ -40,6 +40,10 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return "void_val"
     elif isinstance(node, cwast.ValString):
         return node.string
+    elif isinstance(node, cwast.StmtBreak) and node.target == "":
+        return "break"
+    elif isinstance(node, cwast.StmtContinue) and node.target == "":
+        return "continue"
     else:
         return None
 
