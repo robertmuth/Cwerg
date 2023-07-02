@@ -80,22 +80,21 @@ def GetNodeTypeAndFields(node, condense=True):
 ############################################################
 # Pretty Print
 ############################################################
-EXTRA_INDENT = {
-    "body": 1,
-    "fields": 1,
-    "body_t": 1,
-    "body_f": 1,
-    "body_mod": 0,
-    "body_for": 1,
-    "cases": 1,
-    "body_for": 1,
-    "body_macro": 1,
-}
+STMT_LIST_INDENT = 4
+EXPR_LIST_INDENT = 8
+
+
+def GetColonIndent(field: str):
+    return 0 if field == "body_mod" else STMT_LIST_INDENT
+
+
+def GetExprIndent(field: str):
+    return EXPR_LIST_INDENT
 
 
 def RenderColonList(val: List, field: str, out, indent: str):
 
-    extra_indent = EXTRA_INDENT.get(field, 4)
+    extra_indent = GetColonIndent(field)
     line = out[-1]
     if field == "body_f":
         out.append([" " * (indent + extra_indent) + ":"])
@@ -118,7 +117,7 @@ def RenderList(val: List, field: str, out, indent: str):
     if not val:
         line.append(" []")
     else:
-        extra_indent = EXTRA_INDENT.get(field, 2)
+        extra_indent = GetExprIndent(field)
         line.append(" [")
         for cc in val:
             out.append([" " * (indent + extra_indent)])
@@ -133,12 +132,14 @@ def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
     line.append("(" + node.name)
     for a in node.args:
         line = out[-1]
-        line.append(" ")
-        # if isinstance(a, cwast.EphemeralList):
-        #    if a.colon:
-        #        Render
-        # else:
-        RenderRecursivelyToIR(a, out, indent)
+        if isinstance(a, cwast.EphemeralList):
+            if a.colon:
+                RenderColonList(a.args, "dummy", out, indent)
+            else:
+                RenderList(a.args, "dummy", out, indent)
+        else:
+            line.append(" ")
+            RenderRecursivelyToIR(a, out, indent)
     line = out[-1]
     line.append(")")
 
@@ -175,7 +176,8 @@ def RenderRecursivelyToIR(node, out, indent: str):
             line.append(" ")
             RenderRecursivelyToIR(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
-            if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for", "cases", "body_macro"):
+            if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for",
+                         "cases", "body_macro"):
                 RenderColonList(val, field, out, indent)
             else:
                 RenderList(val, field, out, indent)
