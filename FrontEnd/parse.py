@@ -45,6 +45,10 @@ class ReadTokens:
     def srcloc(self):
         return f"{self._filename}:{self.line_no}"
 
+    def pushback(self, token):
+        # TODO: line number fix up in rare cases
+        self._tokens.insert(0, token)
+
     def __next__(self):
         while not self._tokens:
             self._tokens = re.findall(_TOKENS_ALL, next(self._fp))
@@ -87,6 +91,9 @@ _SHORT_HAND_NODES = {
     "undef": lambda srcloc: cwast.ValUndef(x_srcloc=srcloc),
     "true": lambda srcloc: cwast.ValTrue(x_srcloc=srcloc),
     "false": lambda srcloc: cwast.ValFalse(x_srcloc=srcloc),
+    # see cwast.OPTIONAL_FIELDS
+    "break": lambda srcloc: cwast.StmtBreak(target="", x_srcloc=srcloc),
+    "continue": lambda srcloc: cwast.StmtContinue(target="", x_srcloc=srcloc),
 }
 
 
@@ -134,12 +141,36 @@ def ReadNodeList(stream: ReadTokens, parent_cls):
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 
+def ReadNodeColonList(stream: ReadTokens, parent_cls):
+    out = []
+    while True:
+        token = next(stream)
+        if token == ")" or token == ":" or token == "[":
+            stream.pushback(token)
+            break
+        if token == "(":
+            out.append(ReadSExpr(stream, parent_cls))
+        else:
+            out.append(ExpandShortHand(token, stream.srcloc()))
+    return out
 
-def ReadStrList(stream) -> List[str]:
+def ReadStrList(stream: ReadTokens) -> List[str]:
     out = []
     while True:
         token = next(stream)
         if token == "]":
+            break
+        else:
+            out.append(token)
+    return out
+
+
+def ReadStrColonList(stream: ReadTokens) -> List[str]:
+    out = []
+    while True:
+        token = next(stream)
+        if token == ")" or token == ":" or token == "[":
+            stream.pushback(token)
             break
         else:
             out.append(token)
@@ -171,11 +202,21 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
                 stream.srcloc(), f"Cannot expand {token} for {field}")
         return out
     elif nfd.kind is cwast.NFK.STR_LIST:
-        assert token == "[", f"expected list start for: {field} {token}"
-        return ReadStrList(stream)
+        if token == "[":
+            return ReadStrList(stream)
+        elif token == ":":
+            return ReadStrColonList(stream)
+        else:
+            assert False, f"expected list start for: {field} {token}"
+
     elif nfd.kind is cwast.NFK.LIST:
-        assert token == "[", f"expected list start in {parent_cls.__name__} for: {field} {token} at {stream.srcloc()}"
-        return ReadNodeList(stream, parent_cls)
+        if token == "[":
+            return ReadNodeList(stream, parent_cls)
+        elif token == ":":
+            return ReadNodeColonList(stream, parent_cls)
+        else:
+            assert False, f"expected list start in {parent_cls.__name__} for: {field} {token} at {stream.srcloc()}"
+
     else:
         assert None
 

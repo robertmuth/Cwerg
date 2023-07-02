@@ -10,16 +10,16 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
    (for i u64 0 31 1 [
-      (cond [
-         (case (== (% i 15) 0) [
-            (print [FIZZBUZZ])])
-         (case (== (% i 3) 0) [
-            (print [FIZZ])])
-         (case (== (% i 5) 0) [
-            (print [BUZZ])])
-         (case true [
-            (print [i])])
-     ]) 
+      (cond :
+         (case (== (% i 15) 0):
+            (print [FIZZBUZZ]))
+         (case (== (% i 3) 0) :
+            (print [FIZZ]))
+         (case (== (% i 5) 0) :
+            (print [BUZZ]))
+         (case true :
+            (print [i]))
+     ) 
      (print [NEWLINE])
    ])
 
