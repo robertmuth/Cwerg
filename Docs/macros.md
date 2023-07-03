@@ -18,11 +18,12 @@ As a compromise a fairly restricted macro system with the following properties w
 * macros expansion occurs before types resolution and partial evaluation so these and later phases
   of the compiler do not need to change
 * since partial evaluation follow macro expansion #if style conditional compilation is NOT available
-* macro definitions can only occur at the module level
+* macro definitions can only occur at the top (aka module) level
 * macro invocations can only occur inside function bodies
 * hygenic macros are supported by per macro invocation unique symbols
-* macro invocations can be nested, children nodes are expanded before parents.
-* macros can invoke other macros, exapansion happens "outside-in".
+* macro invocations can be nested, macros invcotion inside macro argument are expanded before parents, 
+* macros can invoke other macros, exapansion happens "outside-in", meaning the macro is expanded
+  first, then any macros in the expanded macro body are themselves expanded.
 
 ### Macro Definition
 
@@ -31,8 +32,10 @@ Macro definitions have the form:
 ```
 (macro <name> 
     [<parameter1> <parameter2> ...] 
-    [<unique-id1> <unique-id2> ...]
-    [<body-node1> <body-node2> ...])
+    [<unique-id1> <unique-id2> ...] :
+        <body-node1> 
+        <body-node2>
+        ...)
 ```
 `ParameterX` have the form: `(macro_parameter <name> <kind>)`
 
@@ -65,7 +68,7 @@ However, a invocation can be abbreviated like so:
 which looks like a regular AST node and hence can be used
 to create syntactic sugar.
 
-`argX` is an AST node. A special node `MacroListArg` 
+`argX` is an AST node. A special node `EphemeralList` 
 can be used when the argument is logically a list of nodes.
 
 ### Simple example: c-style -> operator
@@ -107,29 +110,35 @@ Given the macro:
 
 ```
 (macro while [(macro_param $cond EXPR) 
-              (macro_param $body STMT_LIST)] [] [
-    (block [
+              (macro_param $body STMT_LIST)] [] :
+    (block :
           (if $cond [] [(break)])
           $body
-          (continue)
-    ])
-])   
+          continue
+    )
+)   
 ```
 
 This code:
 ```
-(while (!= i 1) [
+(while (!= i 1) :
    (stmt call print [i])
-   (if (== (% i 2) 0) [(= i (/ i 2))] [(= i (+ (* i 3) 1))])
-])
+   (if (== (% i 2) 0) :
+        (= i (/ i 2)) 
+   :
+        (= i (+ (* i 3) 1)))
+)
 ```
 
 which is short for
 ```
-(macro_invoke while [(!= i 1) (MacroListArg [
+(macro_invoke while [(!= i 1) (EphemeralList colon [
     (stmt call print [i])
-    (if (== (% i 2) 0)  [(= i (/ i 2))]  [(= i (+ (* i 3) 1))])
-]]))
+    (if (== (% i 2) 0) :
+        (= i (/ i 2))
+    :  
+         (= i (+ (* i 3) 1)))
+]))
 ```
 
 After expansion:
@@ -138,7 +147,7 @@ After expansion:
     (if (!= i 1) [] [(break)])
     (stmt call print [i])
     (if (== (% i 2) 0)  [(= i (/ i 2))]  [(= i (+ (* i 3) 1))])
-    (continue)
+    continue
 ])
 
 ```
@@ -167,18 +176,20 @@ macro in expanded.
             (macro_param $start EXPR) 
             (macro_param $end EXPR) 
             (macro_param $step EXPR) 
-            (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] [
+            (macro_param $body STMT_LIST)] [$end_eval $step_eval $it] :
     (macro_let $end_eval $type $end)
     (macro_let $step_eval $type $step)
     (macro_let mut $it $type $start)
-    (block [
-          (if (>= $it $end_eval) [(break)] [])
+    (block :
+          (if (>= $it $end_eval) : 
+            break 
+          :)
           (macro_let $index auto $it)
           (+=  $it $step_eval)
           $body
-          (continue)
-    ])
-])
+          continue
+    )
+)
 ```
 
 Sample invocation:
@@ -201,28 +212,28 @@ After expansion:
 (let end_eval_$312 uint32 (* 10 10))
 (let step_eval_$312 uint32 1)
 (let mut it_$312 uint32 0)
-(block [
+(block :
       (if (>= it_$312 end_eval_$312) [(break)] [])
       (let_indirect i auto it_$312)
       (+=  it_$312 step_eval_$312)
       (stmt call print [i])
-      (continue)
-])
+      continue
+)
 ```
 
 
 ### Codegen loops in macros
 
 The macro system features a simple looping mechanism to iterate over
-`STMT_LIST` parameters
+`EXPR_LIST` parameters
 
 Example:
 ```
-(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [] [
-    (macro_for $x $factors [
+(macro product [(macro_param $result ID) (macro_param $factors STMT_LIST)] [] :
+    (macro_for $x $factors :
         (= $result (* $result $x))
-    ])
-])
+    )
+)
 
 ```
 
