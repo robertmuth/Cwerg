@@ -112,18 +112,35 @@ def RenderColonList(val: List, field: str, out, indent: str):
                 out.append([" " * indent])
 
 
+def ListIsCompact(val: List):
+    if len(val) > 2:
+        return False
+    for x in val:
+        if isinstance(x, cwast.Comment):
+            return False
+    return True
+
+
 def RenderList(val: List, field: str, out, indent: str):
+    extra_indent = GetExprIndent(field)
     line = out[-1]
     if not val:
         line.append(" []")
+    elif ListIsCompact(val):
+        line.append(" [")
+        sep = ""
+        for cc in val:
+            line = out[-1]
+            line.append(sep)
+            sep = " "
+            RenderRecursivelyToIR(cc, out, indent + extra_indent)
+        out[-1].append("]")
+
     else:
-        extra_indent = GetExprIndent(field)
         line.append(" [")
         for cc in val:
             out.append([" " * (indent + extra_indent)])
             RenderRecursivelyToIR(cc, out, indent + extra_indent)
-        if field == "body_mod" and not isinstance(cc, cwast.Comment):
-            out.append([" " * indent])
         out[-1].append("]")
 
 
@@ -190,6 +207,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
     line.append(")")
     # note: comments are not toplevel
     if cwast.NF.TOP_LEVEL in node.FLAGS:
+        out.append([""])
+    if isinstance(node, cwast.DefMod):
+        out.append([""])
         out.append([""])
 
 

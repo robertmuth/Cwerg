@@ -1,17 +1,30 @@
-(module main [] [
-(import test)
-(import string)
+(module main [] :
+(import test )
+
+(import string )
 
 (global STR_ABC auto "ABC")
+
+
 (global STR_ABCD auto "ABCD")
+
+
 (global STR_CD auto "CD")
+
+
 (global STR_XYZ auto "XYZ")
+
+
 (global STR_VXYZ auto "VXYZ")
+
+
 (global STR_EMPTY auto "")
+
 
 (global STR_TEST auto "TEST\n")
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
+
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (# "find")
     (test::AssertEq string::NOT_FOUND (call string::find [STR_ABC STR_ABCD]))
     (test::AssertEq 0_uint (call string::find [STR_ABCD STR_ABC]))
@@ -68,8 +81,8 @@
     (test::AssertEq 2_uint (call string::find_last_not_of [STR_ABC STR_EMPTY]))
     (# "")
     (stmt (call SysPrint ["OK\n"]))
-    (return 0)
-])
+    (return 0))
+
+)
 
 
-])

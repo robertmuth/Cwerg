@@ -118,3 +118,9 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 
 clean:
 	@rm -f $(DIR)/* 
+
+
+reformat:
+	for f in TestData/*.cw ; do \
+		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+	done

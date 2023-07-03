@@ -1,29 +1,31 @@
-(module main [] [
+(module main [] :
 (# "fizzbuzz")
-
-
 (global NEWLINE auto "\n")
+
+
 (global FIZZ auto "FIZZ")
+
+
 (global BUZZ auto "BUZZ")
+
+
 (global FIZZBUZZ auto "FIBU")
 
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 [
-   (for i u64 0 31 1 :
-      (cond :
-         (case (== (% i 15) 0):
-            (print [FIZZBUZZ]))
-         (case (== (% i 3) 0) :
-            (print [FIZZ]))
-         (case (== (% i 5) 0) :
-            (print [BUZZ]))
-         (case true :
-            (print [i]))
-     ) 
-     (print [NEWLINE])
-   )
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    (for i u64 0 31 1 :
+        (cond :
+            (case (== (% i 15) 0) :
+                (print [FIZZBUZZ]))
+            (case (== (% i 3) 0) :
+                (print [FIZZ]))
+            (case (== (% i 5) 0) :
+                (print [BUZZ]))
+            (case true :
+                (print [i])))
+        (print [NEWLINE]))
+    (return 0))
 
-   (return 0)
-])
+)
 
-])
+

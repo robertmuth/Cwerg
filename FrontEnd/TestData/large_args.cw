@@ -1,9 +1,9 @@
 (module large_args [] [
 
 (defrec pub MyRec [
-    (field s1 s32 undef)
-    (field s2 u32 undef)
-    (field s3 u32 undef)
+    (field s1 s32)
+    (field s2 u32)
+    (field s3 u32)
 ])
 
 
