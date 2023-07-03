@@ -341,19 +341,40 @@ def ConcreteSyntaxExpr(node):
         return "true"
     elif isinstance(node, cwast.ValFalse):
         return "false"
+    elif isinstance(node, cwast.ValUndef):
+        return "undef"
+    elif isinstance(node, cwast.ValVoid):
+        return "void"
     elif isinstance(node, cwast.Expr2):
         return f"{ConcreteSyntaxExpr(node.expr1)} {node.binary_expr_kind.name} {ConcreteSyntaxExpr(node.expr2)}"
+    elif isinstance(node, cwast.ExprPointer):
+        return f"{ConcreteSyntaxExpr(node.expr1)} {node.pointer_expr_kind.name} {ConcreteSyntaxExpr(node.expr2)}"
+    elif isinstance(node, cwast.ValArray):
+        return f"[{ConcreteSyntaxExpr(node.expr_size)}]{ConcreteSyntaxType(node.type)} ..."
+    elif isinstance(node, cwast.ExprDeref):
+        return f"^{ConcreteSyntaxExpr(node.expr)}"
+    elif isinstance(node, cwast.ExprAs):
+        return f"{ConcreteSyntaxExpr(node.expr)} as {ConcreteSyntaxType(node.expr)}"
+    elif isinstance(node, cwast.ExprCall):
+        args = ["..."]
+        return f"{ConcreteSyntaxExpr(node.callee)}({', '.join(args)})"
+    elif isinstance(node, cwast.ExprIndex):
+        return f"[{ConcreteSyntaxExpr(node.expr_index)}]{ConcreteSyntaxExpr(node.container)}"
     else:
         assert False, f"unknown expr node: {type(node)}"
 
 
 def ConcreteSyntaxType(node) -> str:
-    if isinstance(node, cwast.TypeAuto):
+    if isinstance(node, cwast.Id):
+        return node.name
+    elif isinstance(node, cwast.TypeAuto):
         return "auto"
     elif isinstance(node, cwast.TypeBase):
         return node.base_type_kind.name
     elif isinstance(node, cwast.TypePtr):
         return f"*{ConcreteSyntaxType(node.type)}"
+    elif isinstance(node, cwast.TypeArray):
+        return f"[]{ConcreteSyntaxType(node.type)}"
     else:
         assert False, f"unknown type node: {type(node)}"
 
@@ -362,7 +383,13 @@ def ConcreteSyntaxFunParams(params: List[cwast.FunParam]) -> str:
     out = [f"{p.name} {ConcreteSyntaxType(p.type)}" for p in params]
     return ", ".join(out)
 
-
+def ConcreteSyntaxColonList(lst, indent):
+    if not lst:
+        print(" " * (indent + 4) + "pass")
+    else:
+        for a in lst:
+            ConcreteSyntaxStmt(a, indent+4)   
+            
 def ConcreteSyntaxStmt(node, indent):
     prefix = " " * indent
     if isinstance(node, cwast.Id):
@@ -377,23 +404,42 @@ def ConcreteSyntaxStmt(node, indent):
         print(f"{prefix}cond:")
         for c in node.cases:
             ConcreteSyntaxStmt(c, indent+4)
-
+    elif isinstance(node, cwast.DefVar):
+        print(f"{prefix}let {node.name} {ConcreteSyntaxType(node.type_or_auto)} = {ConcreteSyntaxExpr(node.initial_or_undef)}")
+    elif isinstance(node, cwast.StmtCompoundAssignment):
+        print(f"{prefix} {ConcreteSyntaxExpr(node.lhs)} {node.assignment_kind} {ConcreteSyntaxExpr(node.expr_rhs)}")
+    elif isinstance(node, cwast.StmtAssignment):
+        print(f"{prefix} {ConcreteSyntaxExpr(node.lhs)} = {ConcreteSyntaxExpr(node.expr_rhs)}")
+    elif isinstance(node, cwast.StmtIf):
+        print(f"{prefix}if {ConcreteSyntaxExpr(node.cond)}:")
+        ConcreteSyntaxColonList(node.body_t, indent + 4)
+        if node.body_f:
+            print(f"{prefix}else:")
+            ConcreteSyntaxColonList(node.body_f, indent + 4)
     elif isinstance(node, cwast.MacroInvoke):
         print(f"{prefix}{node.name}!", end="")
+        sep = " "
         for a in node.args:
             if isinstance(a, cwast.Id):
-                print(f" {a.name}", end="")
-            elif isinstance(a, (cwast.TypeBase,
-                                cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr, cwast.TypeFun, cwast.TypeSum)):
-                print(f" {ConcreteSyntaxType(a)}", end="")
-            elif isinstance(a, (cwast.ValNum)):
-                print(f" {ConcreteSyntaxExpr(a)}", end="")
+                print(f"{sep}{a.name}", end="")
             elif isinstance(a, (cwast.EphemeralList)):
-                print(":")
-                for aa in a.args:
-                    ConcreteSyntaxStmt(aa, indent+4)
+                if a.colon:
+                    print(":")
+                    ConcreteSyntaxColonList(a.args, indent + 4)
+
+                else:
+                    print(f"{sep}(", end="")
+                    sep2 = ""
+                    for a2 in a.args:
+                        print(f"{sep2}{ConcreteSyntaxExpr(a2)}", end="")
+                    sep2 = ", "
+                    print(")", end="")
+            elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeArray)):
+                print(f"{sep}{ConcreteSyntaxType(a)}", end="")
             else:
-                assert False, f"unknown macro arg node: {type(a)}"
+                print(f"{sep}{ConcreteSyntaxExpr(a)}", end="")
+            sep = ", "
+        print()
     elif isinstance(node, cwast.StmtReturn):
         print(f"{prefix}return {ConcreteSyntaxExpr(node.expr_ret)}")
     else:
@@ -403,9 +449,10 @@ def ConcreteSyntaxStmt(node, indent):
 def ConcreteSyntaxTop(node, indent):
     prefix = " " * indent
     if isinstance(node, cwast.DefMod):
-        print(f"{prefix}module {node.name}:")
+        print(f"{prefix}module {node.name}")
+        print("")
         for child in node.body_mod:
-            ConcreteSyntaxTop(child, indent+4)
+            ConcreteSyntaxTop(child, indent)
     elif isinstance(node, cwast.Comment):
         print(f"{prefix}# {node.comment[1:-1]}")
     elif isinstance(node, cwast.DefGlobal):
@@ -416,7 +463,11 @@ def ConcreteSyntaxTop(node, indent):
             f"{prefix}fun {node.name}({params}) -> {ConcreteSyntaxType(node.result)}:")
         for child in node.body:
             ConcreteSyntaxStmt(child, indent+4)
-
+    elif isinstance(node, cwast.Import):
+        extra = ""
+        if node.alias:
+            extra = f"as {node.alias}"
+        print(f"{prefix}import {node.name}{extra}")
     else:
         assert False, f"unknown node: {type(node)}"
 
