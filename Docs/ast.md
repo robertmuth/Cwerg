@@ -27,7 +27,7 @@
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
-[IndexVal](#indexval) &ensp;
+[IndexVal&nbsp;(index_val)](#indexval-index_val) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
@@ -72,7 +72,7 @@
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
-[MacroParam&nbsp;(macro_param)](#macroparam-macro_param) &ensp;
+[MacroParam&nbsp;(mparam)](#macroparam-mparam) &ensp;
 [MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
 [ModParam](#modparam) &ensp;
 [StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
@@ -110,7 +110,6 @@ Refers to a type, variable, constant, function, module by name.
 
 Fields:
 * name [STR]: name of the object
-* path [STR] (default ""): TBD
 
 ## Type Node Details
 
@@ -240,6 +239,12 @@ Fields:
 
 ### DefFun (fun)
 Function definition
+    
+    
+    `init` and `fini` indicate module initializer/finalizers
+    
+    `extern` indicates a prototype and hence the function body must be empty.
+    
 
 Allowed at top level only
 
@@ -255,7 +260,7 @@ Fields:
 * body [LIST]: new scope: statement list and/or comments
 
 ### DefGlobal (global)
-Variable definition
+Variable definition at global scope (DefVar is used for local scope)
 
     Allocates space in static memory and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
@@ -273,10 +278,12 @@ Fields:
 ### DefMacro (macro)
 Define a macro
 
-
-    A macro consists of parameters whose name starts with a '$'
-    and a body. Macros that evaluate to expressions will typically
-    have a single node body
+    A macro consists of
+    * a name 
+    * the type of AST node (list) it create
+    * a parameter list. A parameter name must start with a '$'
+    * a list of additional identifiers used by the macro (also starimg with '$') 
+    * a body containing both regular and macro specific AST node serving as a template
     
 
 Allowed at top level only
@@ -284,6 +291,7 @@ Allowed at top level only
 Fields:
 * pub [FLAG]: has public visibility
 * name [STR]: name of the object
+* macro_result_kind [KIND]: type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below
 * params_macro [LIST]: macro parameters
 * gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
 * body_macro [LIST]: new scope: macro statments/expression
@@ -301,6 +309,8 @@ Fields:
 ### DefType (type)
 Type definition
 
+    A `wrapped` gives the underlying type a new name that is not type compatible.
+    To convert between the two use an `as` cast expression.
     
 
 Allowed at top level only
@@ -312,10 +322,11 @@ Fields:
 * type [NODE]: type expression
 
 ### DefVar (let)
-Variable definition
+Variable definition at local scope (DefGlobal is used for global scope)
 
-    Allocates space on stack and initializes it with `initial_or_undef`.
+    Allocates space on stack (or in a register) and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
+    `ref` allows the address of the  variable to be taken and prevents register allocation.
 
     
 
@@ -327,7 +338,7 @@ Fields:
 * initial_or_undef [NODE]: initializer
 
 ### Import (import)
-Import another Module
+Import another Module from `path` as `name`
 
 Fields:
 * name [STR]: name of the object
@@ -451,7 +462,7 @@ Fields:
 * value [NODE]: 
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
-### IndexVal
+### IndexVal (index_val)
 Part of an array literal
 
     e.g. `.1 = 5`
@@ -772,12 +783,14 @@ Only exist temporarily after a replacement strep
     
 
 Fields:
+* colon [FLAG]: colon style list
 * args [LIST]: function call arguments
 
 ### MacroFor (macro_for)
 Macro for-loop like statement
 
-    NYI
+    loops over the macro parameter `name_list` which must be a list and 
+    binds each list element to `name` while expanding the AST nodes in `body_for`. 
     
 
 Fields:
@@ -801,12 +814,12 @@ Fields:
 * name [STR]: name of the object
 * args [LIST]: function call arguments
 
-### MacroParam (macro_param)
+### MacroParam (mparam)
 Macro Parameter
 
 Fields:
 * name [STR]: name of the object
-* macro_param_kind [KIND]: see [MacroParam Kind](#macroparam-kind) below
+* macro_param_kind [KIND]: type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below
 
 ### MacroVar (macro_let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
@@ -913,6 +926,8 @@ Fields:
 |----|
 |ID        |
 |STMT_LIST |
+|EXPR_LIST |
 |EXPR      |
+|STMT      |
 |FIELD     |
 |TYPE      |
