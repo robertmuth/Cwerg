@@ -20,16 +20,28 @@ logger = logging.getLogger(__name__)
 
 
 # Note: we rely on the matching being done greedily
-_TOKEN_CHAR = r"['][^\\']*(?:[\\].[^\\']*)*(?:[']|$)"
-_TOKEN_STR = r'["][^\\"]*(?:[\\].[^\\"]*)*(?:["]|$)'
+# we also allow for non-terminated string for better error handling
+_TOKEN_CHAR = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
+_TOKEN_STR = r'["](?:[^"\\]|[\\].)*(?:["]|$)'
 _TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
 _TOKEN_OP = r'[\[\]\(\)]'
-_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
+
+_TOKEN_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
+
+_RE_MULTI_LINE_STR_END = re.compile(
+    r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
+
+_RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
+    # order is important: multi-line before regular
+    _TOKEN_MULTI_LINE_STR_START,
     _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
-_TOKEN_ID = re.compile(
+
+_RE_TOKEN_ID = re.compile(
     r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?')
-_TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
+
+
+_RE_TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
 
 
 class ReadTokens:
@@ -47,13 +59,32 @@ class ReadTokens:
 
     def pushback(self, token):
         # TODO: line number fix up in rare cases
-        self._tokens.insert(0, token)
+        self._tokens.append(token)
 
     def __next__(self):
         while not self._tokens:
-            self._tokens = re.findall(_TOKENS_ALL, next(self._fp))
+            self._tokens = re.findall(_RE_TOKENS_ALL, next(self._fp))
+            self._tokens.reverse()
             self.line_no += 1
-        return self._tokens.pop(0)
+        out = self._tokens.pop(-1)
+        if not self._tokens:
+            if out.startswith('"""') and not out.endswith('"""'):
+                # hack for multi-line strings
+                while True:
+                    line = next(self._fp)
+                    self.line_no += 1
+                    m: re.Match = _RE_MULTI_LINE_STR_END.match(line)
+                    if not m:
+                        cwast.CompilerError(
+                            self.srcloc(), "cannot parse multiline string constant")
+                    g = m.group()
+                    out += g
+                    if len(g) != len(line):
+                        rest = line[len(g):]
+                        self._tokens = re.findall(_RE_TOKENS_ALL, rest)
+                        self._tokens.reverse()
+                        break
+        return out
 
 
 _SCALAR_TYPES = [
@@ -102,31 +133,36 @@ for t in _SCALAR_TYPES:
     _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(t)
 
 
+def IsWellFormedStringLiteral(t: str):
+    return (len(t) >= 2 and t.startswith('"') and t.endswith('"') or
+            len(t) >= 6 and t.startswith('"""') and t.endswith('"""'))
+
+
 def ExpandShortHand(t, srcloc) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         return x(srcloc)
 
-    if len(t) >= 2 and t[0] == '"' and t[-1] == '"':
+    if IsWellFormedStringLiteral(t):
         # TODO: r"
         logger.info("STRING %s at %s", t, srcloc)
         return cwast.ValString(False, t, x_srcloc=srcloc)
-    elif _TOKEN_ID.fullmatch(t):
+    elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
         return cwast.Id(t, x_srcloc=srcloc)
-    elif _TOKEN_NUM.fullmatch(t):
+    elif _RE_TOKEN_NUM.fullmatch(t):
         logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
-    elif len(t) >= 3 and t[0] == "'" and t[-1] == "'":
+    elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
         logger.info("CHAR %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc)
     else:
-        cwast.CompilerError(srcloc, f"unexpected token {t}")
+        cwast.CompilerError(srcloc, f"unexpected token {repr(t)}")
 
 
 def ReadNodeList(stream: ReadTokens, parent_cls):

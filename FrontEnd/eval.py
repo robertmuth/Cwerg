@@ -253,7 +253,11 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValString):
         s = node.string
         assert s[0] == '"' and s[-1] == '"', f"expected string [{s}]"
-        s = s[1:-1]
+        if s.startswith('"""'):
+            assert s.endswith('"""')
+            s = s[3:-3]
+        else:
+            s = s[1:-1]
         if node.raw:
             return _AssignValue(node, bytes(s, encoding="ascii"))
         return _AssignValue(node, EscapedStringToBytes(s))
