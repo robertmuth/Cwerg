@@ -59,7 +59,9 @@
         (param dst (ptr mut u8))
         (param src (ptr u8))
         (param size uint)] uint :
-    (for i uint 0 size 1 [(= (^ (incp dst i undef)) (^ (incp src i undef)))])
+    (for i uint 0 size 1 :
+        (= (^ (incp dst i undef)) 
+        (^ (incp src i undef))))
     (return size))
 
 
@@ -235,12 +237,12 @@
     (+= i 1)
     (= (^ (incp buf i undef)) '.')
     (+= i 1)
-    (while (!= frac_bits 0) [
+    (while (!= frac_bits 0) :
             (let c auto (as (>> frac_bits 48) u8))
             (= (^ (incp buf i undef)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
             (+= i 1)
             (and= frac_bits 0xffff_ffff_ffff)
-            (<<= frac_bits 4)])
+            (<<= frac_bits 4))
     (= (^ (incp buf i undef)) 'p')
     (+= i 1)
     (if (< exp 0) :

@@ -18,10 +18,10 @@
 (fun SumPayload [(param root MaybeNode)] u32 :
     (let mut sum u32 0)
     (let mut node auto root)
-    (while true [
+    (while true :
             (try x (ptr mut LinkedListNode) node _ [break])
             (+= sum (. (^ x) payload))
-            (= node (. (^ x) next))])
+            (= node (. (^ x) next)))
     (return sum))
 
 )

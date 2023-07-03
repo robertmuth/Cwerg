@@ -49,12 +49,16 @@
 
 (fun dump_array [(param size uint) (param data (ptr r64))] void :
     (let mut ref buf (array 32 u8) undef)
-    (for i u64 0 size 1 [(let v auto (^ (incp data i undef))) (print [(as v r64_hex) NEWLINE])])
+    (for i u64 0 size 1 :
+        (let v auto (^ (incp data i undef))) 
+        (print [(as v r64_hex) NEWLINE]))
     (return void_val))
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (for i u64 0 SIZE 1 [(let v auto (call random::get_random [1000])) (= (at Data (+ i 1)) v)])
+    (for i u64 0 SIZE 1 : 
+        (let v auto (call random::get_random [1000])) 
+        (= (at Data (+ i 1)) v))
     (stmt (call dump_array [SIZE (& (at Data 1))]))
     (print [NEWLINE])
     (print [SIZE NEWLINE])

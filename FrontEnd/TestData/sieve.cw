@@ -22,7 +22,8 @@
         (if (!= (at is_prime i) 0) :
             (= count (+ count 1))
             (let p uint (+ 3 (+ i i)))
-            (for k uint (+ i p) SIZE p [(= (at is_prime k) 0)])
+            (for k uint (+ i p) SIZE p :
+                (= (at is_prime k) 0))
             :))
     (return count))
 

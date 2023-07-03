@@ -55,12 +55,14 @@
             (field_val 0 )
             (field_val 0 )]))
     (let mut in_word auto false)
-    (try fp FP (call fopen [fname Mode::r]) err [(return err)])
+    (try fp FP (call fopen [fname Mode::r]) err : (return err))
     (let mut buf (array 128 u8) undef)
-    (while true [
-            (try n u64 (call fread [fp buf]) err [(stmt (call fclose [fp])) (return err)])
+    (while true :
+            (try n u64 (call fread [fp buf]) err : 
+                (stmt (call fclose [fp])) 
+                (return err))
             (+= (. stats num_chars) n)
-            (for i u64 0 n 1 [
+            (for i u64 0 n 1 :
                     (let c auto (at buf i))
                     (cond :
                         (case (== c '\n') :
@@ -72,8 +74,9 @@
                             (+= (. stats num_words) 1)))
                     (if (!= n (len buf)) :
                         break
-                        :)])])
-    (try _ void (call fclose [fp]) err [(return err)])
+                        :)))
+    (try _ void (call fclose [fp]) err :
+        (return err))
     (return stats))
 
 )

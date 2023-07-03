@@ -87,7 +87,9 @@
         (param dst (ptr mut u8))
         (param src (ptr u8))
         (param size uint)] uint :
-    (for i uint 0 size 1 [(= (^ (incp dst i undef)) (^ (incp src i undef)))])
+    (for i uint 0 size 1 :
+        (= (^ (incp dst i undef)) 
+        (^ (incp src i undef))))
     (return size))
 
 

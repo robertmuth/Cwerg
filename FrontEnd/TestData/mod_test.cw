@@ -16,7 +16,9 @@
     (macro_let $e_val auto (macro_id $e_expr))
     (macro_let $a_val auto (macro_id $a_expr))
     (AssertEq (len (macro_id $e_val)) (len (macro_id $a_val)))
-    (for i u64 0 (len (macro_id $a_val)) 1 [(AssertEq (^ (incp (front (macro_id $e_val)) i undef)) (^ (incp (front (macro_id $a_val)) i undef)))]))
+    (for i u64 0 (len (macro_id $a_val)) 1 :
+        (AssertEq (^ (incp (front (macro_id $e_val)) i undef))
+        (^ (incp (front (macro_id $a_val)) i undef)))))
 
 )
 
