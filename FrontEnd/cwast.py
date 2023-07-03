@@ -1912,6 +1912,8 @@ class DefEnum:
 class DefType:
     """Type definition
 
+    A `wrapped` gives the underlying type a new name that is not type compatible.
+    To convert between the two use an `as` cast expression.
     """
     ALIAS = "type"
     GROUP = GROUP.Statement
@@ -1934,10 +1936,11 @@ class DefType:
 @NodeCommon
 @dataclasses.dataclass()
 class DefVar:
-    """Variable definition
+    """Variable definition at local scope (DefGlobal is used for global scope)
 
-    Allocates space on stack and initializes it with `initial_or_undef`.
+    Allocates space on stack (or in a register) and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
+    `ref` allows the address of the  variable to be taken and prevents register allocation.
 
     """
     ALIAS = "let"
@@ -1959,7 +1962,7 @@ class DefVar:
 @NodeCommon
 @dataclasses.dataclass()
 class DefGlobal:
-    """Variable definition
+    """Variable definition at global scope (DefVar is used for local scope)
 
     Allocates space in static memory and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
@@ -1983,7 +1986,13 @@ class DefGlobal:
 @NodeCommon
 @dataclasses.dataclass()
 class DefFun:
-    """Function definition"""
+    """Function definition
+    
+    
+    `init` and `fini` indicate module initializer/finalizers
+    
+    `extern` indicates a prototype and hence the function body must be empty.
+    """
     ALIAS = "fun"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
@@ -2143,7 +2152,8 @@ class MacroVar:
 class MacroFor:
     """Macro for-loop like statement
 
-    NYI
+    loops over the macro parameter `name_list` which must be a list and 
+    binds each list element to `name` while expanding the AST nodes in `body_for`. 
     """
     ALIAS = "macro_for"
     GROUP = GROUP.Macro
@@ -2196,10 +2206,12 @@ class MacroInvoke:
 class DefMacro:
     """Define a macro
 
-
-    A macro consists of parameters whose name starts with a '$'
-    and a body. Macros that evaluate to expressions will typically
-    have a single node body
+    A macro consists of
+    * a name 
+    * the type of AST node (list) it create
+    * a parameter list. A parameter name must start with a '$'
+    * a list of additional identifiers used by the macro (also starimg with '$') 
+    * a body containing both regular and macro specific AST node serving as a template
     """
     ALIAS = "macro"
     GROUP = GROUP.Statement
