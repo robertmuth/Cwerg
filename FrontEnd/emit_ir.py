@@ -188,7 +188,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier
         return BaseOffset(base, offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
-        base = id_gen.NewName(f"lhsaddr_{node.name}")
+        base = id_gen.NewName(f"lhsaddr_{name}")
         # TODO
         kind = "A64"
         storage = _StorageForId(node, tc)
