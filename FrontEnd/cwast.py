@@ -342,7 +342,7 @@ NODES_CASES = ("Comment", "Case")
 NODES_CASES_T = Union[NODES_CASES]
 
 NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
-              "ValVoid", "ValArray", "ValString", "ValRec",
+              "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
               #
               "MacroInvoke",
               #
