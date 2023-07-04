@@ -132,6 +132,18 @@
     (return (unsigned_to_str v 10 32_uint out)))
 
 
+(fun str_to_u32 [(param s (slice u8))] u32 :
+    (let mut x auto 0_u32)
+    (for i uint 0 (len s) 1 :
+        (*= x 10)
+        (let c auto (at s i))
+
+        (+= x (as (- c '0') u32))
+    )
+    (return x)
+)
+
+
 (fun polymorphic SysRender [
         (param v u8)
         (param out (slice mut u8))
@@ -277,6 +289,13 @@
                 (slice_val (incp (front mut (macro_id $buffer)) (macro_id $curr) undef) (- (len (macro_id $buffer)) (macro_id $curr)))
                 (& mut (macro_id $options))])))
     (stmt (call SysPrint [(slice_val (front (macro_id $buffer)) (macro_id $curr))])))
+
+
+(fun strz_to_slice [(param s (ptr u8))] (slice u8) :
+    (let mut i uint 0)
+    (while (!= (^ (incp s i undef)) 0) : 
+        (+= i 1))
+    (return (slice_val s i)))
 
 )
 
