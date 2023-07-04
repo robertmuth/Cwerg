@@ -22,19 +22,24 @@ logger = logging.getLogger(__name__)
 # Note: we rely on the matching being done greedily
 # we also allow for non-terminated string for better error handling
 _TOKEN_CHAR = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
-_TOKEN_STR = r'["](?:[^"\\]|[\\].)*(?:["]|$)'
+_TOKEN_STR = r'"(?:[^"\\]|[\\].)*(?:"|$)'
+_TOKEN_R_STR = r'r"(?:[^"])*(?:"|$)'
 _TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
 _TOKEN_OP = r'[\[\]\(\)]'
 
 _TOKEN_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
+_TOKEN_R_MULTI_LINE_STR_START = r'r"""(?:["]{0,2}[^"])*(?:["]{3,5}|$)'
 
 _RE_MULTI_LINE_STR_END = re.compile(
     r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
 
+_RE_R_MULTI_LINE_STR_END = re.compile(
+    r'^(?:["]{0,2}[^"])*(?:["]{3,5}|$)')
+
 _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     # order is important: multi-line before regular
-    _TOKEN_MULTI_LINE_STR_START,
-    _TOKEN_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
+    _TOKEN_MULTI_LINE_STR_START, _TOKEN_R_MULTI_LINE_STR_START,
+    _TOKEN_STR, _TOKEN_R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 
 _RE_TOKEN_ID = re.compile(
@@ -49,7 +54,7 @@ class ReadTokens:
         self._fp = fp
         self.line_no = 0
         self._filename = filename
-        self._tokens = []
+        self._tokens: List[str] = []
 
     def __iter__(self):
         return self
@@ -68,16 +73,20 @@ class ReadTokens:
             self.line_no += 1
         out = self._tokens.pop(-1)
         if not self._tokens:
-            if out.startswith('"""') and not out.endswith('"""'):
+            if not out.endswith('"""') and (out.startswith('"""') or out.startswith('r"""')):
                 # hack for multi-line strings
+                # print("@@ multiline string partial start", self.srcloc(), out)
+                regex = _RE_R_MULTI_LINE_STR_END if out.startswith(
+                    "r") else _RE_MULTI_LINE_STR_END
                 while True:
                     line = next(self._fp)
                     self.line_no += 1
-                    m: re.Match = _RE_MULTI_LINE_STR_END.match(line)
+                    m: re.Match = regex.match(line)
                     if not m:
                         cwast.CompilerError(
                             self.srcloc(), "cannot parse multiline string constant")
                     g = m.group()
+                    # print("@@ multiline string cont", g)
                     out += g
                     if len(g) != len(line):
                         rest = line[len(g):]
@@ -134,20 +143,26 @@ for t in _SCALAR_TYPES:
 
 
 def IsWellFormedStringLiteral(t: str):
-    return (len(t) >= 2 and t.startswith('"') and t.endswith('"') or
-            len(t) >= 6 and t.startswith('"""') and t.endswith('"""'))
+    if t.endswith('"""'):
+        return len(t) >= 6 and t.startswith('"""') or len(t) >= 7 and t.startswith('r"""')
+    elif t.endswith('"'):
+        return len(t) >= 2 and t.startswith('"') or len(t) >= 3 and t.startswith('r"')
+    else:
+        return False
 
 
-def ExpandShortHand(t, srcloc) -> Any:
+def ExpandShortHand(t: str, srcloc) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
         return x(srcloc)
 
     if IsWellFormedStringLiteral(t):
-        # TODO: r"
         logger.info("STRING %s at %s", t, srcloc)
-        return cwast.ValString(False, t, x_srcloc=srcloc)
+        if t.startswith("r"):
+            return cwast.ValString(True, t[1:], x_srcloc=srcloc)
+        else:
+            return cwast.ValString(False, t, x_srcloc=srcloc)
     elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
