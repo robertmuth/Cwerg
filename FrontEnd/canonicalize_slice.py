@@ -110,7 +110,7 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.DefRec, srcloc):
                             x_srcloc=srcloc),
              cwast.FieldVal(length, "",
                             x_field=length_field, x_type=length_field.x_type,
-                            x_srcloc=srcloc)]
+                            x_srcloc=srcloc, x_value=length.x_value)]
     return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec.x_type)
 
 
@@ -159,7 +159,9 @@ def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus
     return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
 
 
+
 def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
+    """Eliminate all the implcit Array to Slice conversions. """
     uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
     def visitor(node, field):
@@ -171,6 +173,12 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                     isinstance(node.expr_rhs.x_type, cwast.TypeArray)):
                 node.expr_rhs = _MakeValSliceFromArray(
                     node.expr_rhs, node.lhs.x_type, tc, uint_type)
+        elif isinstance(node, cwast.FieldVal):
+            if (node.x_type != node.value.x_type and
+                isinstance(node.x_type, cwast.TypeSlice) and
+                    isinstance(node.value.x_type, cwast.TypeArray)):
+                node.value = _MakeValSliceFromArray(
+                    node.value, node.x_type, tc, uint_type)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             if not isinstance(node.initial_or_undef, cwast.ValUndef):
                 if (node.type_or_auto.x_type != node.initial_or_undef.x_type and
@@ -189,6 +197,22 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                         a, p.type, tc, uint_type)
 
     cwast.VisitAstRecursivelyPost(node, visitor)
+
+def ReplaceExplicitSliceCast(node, tc: types.TypeCorpus):
+    """Eliminate Array to Slice casts. """
+    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+
+    def replacer(node, field):
+        nonlocal tc, uint_type
+        if isinstance(node, cwast.ExprAs):
+            if (node.x_type != node.expr.x_type and
+                isinstance(node.x_type, cwast.TypeSlice) and
+                    isinstance(node.expr.x_type, cwast.TypeArray)):
+                return _MakeValSliceFromArray(
+                    node.expr, node.x_type, tc, uint_type)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
 def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
@@ -227,8 +251,12 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, cwast.ExprStmt,
-                                     cwast.DefFun, cwast.TypeFun, cwast.FunParam, cwast.ExprCall)):
+                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, 
+                                     cwast.ExprStmt, cwast.DefFun, cwast.TypeFun, 
+                                     cwast.FunParam, cwast.ExprCall, cwast.RecField)):
+                    typify.UpdateNodeType(tc, node, def_rec)
+                elif isinstance(node, cwast.FieldVal):
+                    # assert False
                     typify.UpdateNodeType(tc, node, def_rec)
                 elif isinstance(node, cwast.TypeSlice):
                     return _MakeIdForDefRec(def_rec, node.x_srcloc)
@@ -243,10 +271,6 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
                     typify.UpdateNodeType(tc, node, def_rec)
                     return None
-                elif isinstance(node, cwast.ExprAs):
-                    #assert node.type.x_type in slice_to_struct_map
-                    assert isinstance(node.expr.x_type, cwast.TypeArray)
-                    return _ConvertValArrayToSliceValRec(node.expr, def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.ExprPointer):
                     assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
                     assert False

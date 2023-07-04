@@ -358,6 +358,7 @@ def EvalRecursively(node) -> bool:
 
 
 def VerifyASTEvalsRecursively(node):
+    """Make sure that everything that is supposed to be const was evaluated"""
     is_const = False
 
     def visitor(node, parent, field):
@@ -366,6 +367,7 @@ def VerifyASTEvalsRecursively(node):
         if isinstance(node, cwast.ValUndef):
             return
         if cwast.NF.TOP_LEVEL in node.FLAGS:
+            # we must be able to initialize data these at compile time
             is_const = isinstance(
                 node, (cwast.DefRec, cwast.DefGlobal, cwast.DefEnum))
             return
@@ -391,6 +393,9 @@ def VerifyASTEvalsRecursively(node):
                     if isinstance(node.x_type, (cwast.TypePtr, cwast.TypeSlice)):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
+                        pass
+                    elif isinstance(node, cwast.ValRec):
+                        # we still check that each field is const
                         pass
                     elif isinstance(node, cwast.ValAuto) and field == "init_index":
                         pass

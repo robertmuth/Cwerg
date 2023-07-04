@@ -87,6 +87,17 @@
 
 (static_assert (== (+ 3_s32 4) 7) )
 
+(defrec pub type_rec2 :
+    (field s1 (slice u8))
+    (field s2 s32)
+    (field s3 s32))
+
+
+(# "rec literal")
+(global r01 auto (rec_val type_rec2 [
+        (field_val "aaa")
+        (field_val 9)
+        (field_val 7)]))
 
 (# "TODO add examples with Functions"))
 

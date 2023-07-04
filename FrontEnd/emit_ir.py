@@ -90,8 +90,10 @@ def _InitDataForBaseType(x_type, x_value) -> bytes:
     byte_width = x_type.x_size
     if x_value is None or isinstance(x_value, cwast.ValUndef):
         return ZEROS[byte_width]
-    elif types.is_int(x_type):
+    elif types.is_uint(x_type):
         return x_value.to_bytes(byte_width, 'little')
+    elif types.is_sint(x_type):
+        return x_value.to_bytes(byte_width, 'little', signed=True)
     elif types.is_bool(x_type):
         return b"\1" if x_value else b"\0"
     assert False
@@ -674,7 +676,7 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
+def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
     def_type = node.type_or_auto.x_type
     print(
         f"\n.mem {node.name} {def_type.x_alignment} {'RW' if node.mut else 'RO'}")
@@ -689,6 +691,15 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
             node_def = node.x_symbol
             assert isinstance(node_def, cwast.DefGlobal)
             return _emit_recursively(node_def.initial_or_undef, cstr, offset)
+        elif isinstance(node, cwast.ExprFront):
+            # we need to emit an address
+            assert isinstance(node.container, cwast.Id)
+            name = node.container.x_symbol.name
+            # ASUMES 64 biy
+            print(f".addr.mem 8 {name} 0")
+            # assert False, f"{name} {node.container}"
+            return 8
+            
         if isinstance(cstr, cwast.TypeBase):
             return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
         elif isinstance(cstr, cwast.TypeArray):
@@ -741,8 +752,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus):
                     rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.x_size,
                                         tc.canon_name(f.type.x_type))
             return rel_off
+
         else:
-            assert False, f"unhandled node: {cstr}"
+            assert False, f"unhandled node for DefGlobal: {node} {cstr}"
 
     _emit_recursively(node.initial_or_undef, node.type_or_auto.x_type, 0)
 
@@ -828,6 +840,7 @@ def main():
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
         canonicalize_slice.InsertExplicitValSlice(mod, tc)
+        canonicalize_slice.ReplaceExplicitSliceCast(mod, tc)
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
 
