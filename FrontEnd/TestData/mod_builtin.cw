@@ -11,6 +11,14 @@
         (param size uint)] sint :)
 
 
+(defrec pub TimeSpec :
+    (field sec uint)
+    (field nano_sec uint)
+)
+
+(fun pub extern nanosleep [(param req (ptr TimeSpec)) 
+                           (param rem (ptr mut TimeSpec))] s32 :)
+
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void :)
 
 

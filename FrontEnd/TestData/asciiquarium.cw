@@ -1,17 +1,21 @@
 (module artwork [] :
 
-
+(# """
+* https://github.com/cmatsuoka/asciiquarium
+* https://robobunny.com/projects/asciiquarium/
+* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
+""")
 
 )
 
 (module ansi [] :
-(# "https://www.xfree86.org/current/ctlseqs.html")
-(# "https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797")
+(# """Ansi Escape Sequences for Terminal Emulation 
 
-(global pub MAX_ESC_SEQ_LEN uint 64)
+* https://www.xfree86.org/current/ctlseqs.html")
+* https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+""")
 
 (global pub CLEAR_ALL auto "\x1b[2J")
-
 
 (global pub SET_MODE_BOLD auto "\x1b[1m")
 (global pub SET_MODE_DIM auto "\x1b[2m")
@@ -22,6 +26,7 @@
 (global pub SET_MODE_HIDDEN auto "\x1b[7m")
 (global pub SET_MODE_STRIKE_THROUGH auto "\x1b[8m")
 
+(# "also clears color settings")
 (global pub RESET_MODE_ALL auto "\x1b[0m")
 (global pub RESET_MODE_BOLD_OR_DIM auto "\x1b[22m")
 (global pub RESET_MODE_ITALIC auto "\x1b[23m")
@@ -31,10 +36,8 @@
 (global pub RESET_MODE_HIDDEN auto "\x1b[27m")
 (global pub RESET_MODE_STRIKE_THROUGH auto "\x1b[28m")
 
-(global pub CUSROR_HOME auto "\x1b[H")
 (global pub CURSOR_SHOW auto "\x1b[?25l")
 (global pub CURSOR_HIDE auto "\x1b[?25h")
-
 
 
 (macro POS EXPR_LIST [(mparam $x EXPR)  (mparam $y EXPR)] [] :
@@ -70,14 +73,20 @@
     (let w u32 (call str_to_u32 [arg_w]))
     (let h u32 (call str_to_u32 [arg_h]))
 
-    (print [ansi::CLEAR_ALL 
-            (ansi::POS 10_uint 10_uint) 
-            (ansi::FG_COLOR 0_uint 0_uint 255_uint) 
-            "asciiquarium aa" 
-            (ansi::POS 20_uint 10_uint) 
-            (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
-            w "x" h "\n" 
-            ])
+    (let ref req TimeSpec (rec_val TimeSpec [(field_val 1) (field_val 0)]))
+    (let mut ref rem TimeSpec undef)
+
+    (for i uint 1 6 1 :
+        (print [ansi::CLEAR_ALL 
+                (ansi::POS i i) 
+                (ansi::FG_COLOR 0_uint 0_uint 255_uint) 
+                "asciiquarium aa" 
+                (ansi::POS 20_uint 10_uint) 
+                (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
+                w "x" h "\n" 
+                ])
+        (stmt (call nanosleep [(& req) (& mut rem)]))
+    )
     (return 0))
 
 )
