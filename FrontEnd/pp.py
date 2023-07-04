@@ -290,7 +290,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
             line.append(" ")
             RenderRecursivelyHTML(val, tc, out, indent)
         elif field_kind is cwast.NFK.LIST:
-            extra_indent = EXTRA_INDENT.get(field, 2)
+            extra_indent = GetColonIndent(field)
             if not val:
                 line.append(" []")
             else:

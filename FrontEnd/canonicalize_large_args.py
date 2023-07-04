@@ -109,7 +109,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
             node.expr_ret = cwast.ValVoid(
                 x_srcloc=node.x_srcloc, x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
-            return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
+            return cwast.EphemeralList(False, [assign, node], x_srcloc=node.x_srcloc)
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
@@ -142,10 +142,11 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                         False, name, x_srcloc=call.x_srcloc, x_type=new.type)
             if len(old_sig.params) != len(new_sig.params):
                 # the result is not a argument
-                new_def = cwast.DefVar(True, id_gen.NewName("result"),
-                                       cwast.TypeAuto(x_srcloc=call.x_srcloc),
+                new_def = cwast.DefVar(True, True, id_gen.NewName("result"),
+                                       cwast.TypeAuto(x_srcloc=call.x_srcloc,
+                                                      x_type=old_sig.result),
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
-                                       x_srcloc=call.x_srcloc, x_type=old_sig.result)
+                                       x_srcloc=call.x_srcloc)
                 name = cwast.Id(new_def.name,
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
@@ -154,7 +155,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                     tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
-                    False, call, x_srcloc=call.x_srcloc))
+                    call, x_srcloc=call.x_srcloc))
                 expr_body.append(cwast.StmtReturn(
                     expr_ret=name, x_srcloc=call.x_srcloc, x_target=expr))
             else:

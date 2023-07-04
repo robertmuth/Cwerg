@@ -895,6 +895,7 @@ def main():
                         fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
                 canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
+            # add missing return statement
             if isinstance(fun, cwast.DefFun) and types.is_void_or_wrapped_void(fun.x_type.result):
                 if fun.body:
                     last = fun.body[-1]
