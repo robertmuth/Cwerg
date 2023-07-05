@@ -1,13 +1,3 @@
-(module artwork [] :
-
-(# """
-* https://github.com/cmatsuoka/asciiquarium
-* https://robobunny.com/projects/asciiquarium/
-* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
-""")
-
-)
-
 (module ansi [] :
 (# """Ansi Escape Sequences for Terminal Emulation 
 
@@ -41,12 +31,7 @@
 
 
 (macro POS EXPR_LIST [(mparam $x EXPR)  (mparam $y EXPR)] [] :
-   "\x1b[" 
-   $x 
-   ";" 
-   $y 
-   "f" 
-)
+   "\x1b[" $x  ";"  $y  "f" )
 
 (macro FG_COLOR EXPR_LIST [(mparam $r EXPR) (mparam $g EXPR) (mparam $b EXPR)] [] :
    "\x1b[38;2;"  $r ";"  $g ";" $b  "m" 
@@ -58,8 +43,113 @@
 
 )
 
+(module artwork [] :
+(import ansi)
+
+
+
+(# """
+* https://github.com/cmatsuoka/asciiquarium
+* https://robobunny.com/projects/asciiquarium/
+* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
+""")
+
+
+(# """
+Color codes and xterm rgb values:
+k  black    0,0,0
+r  red      205,0, 0
+g  green    0,205,0
+y  yellow   205,205,0
+b  blue     0,0,238
+m  magenta  205,0,205
+c  cyan     0,205,205
+w  white    229,229,229
+t  translucent
+""")
+
+
+(global MAX_DIM u32 1000)
+
+(defrec pub Object :
+    (field name (slice u8))
+    (field image_map (slice u8))
+    (field color_map (slice u8))
+    (field def_color u8)
+    (field def_x s32)
+    (field def_y s32)
+    (field def_z s32)
+
+)
+
+(global pub Castle auto (rec_val Object [
+    (field_val "castle")
+    (field_val r"""
+                 T~~
+                 |
+                /^\
+               /   \
+   _   _   _  /     \  _   _   _
+  [ ]_[ ]_[ ]/ _   _ \[ ]_[ ]_[ ]
+  |_=__-_ =_|_[ ]_[ ]_|_=-___-__|
+   | _- =  | =_ = _    |= _=   |
+   |= -[]  |- = _ =    |_-=_[] |
+   | =_    |= - ___    | =_ =  |
+   |=  []- |-  /| |\   |=_ =[] |
+   |- =_   | =| | | |  |- = -  |
+   |_______|__|_|_|_|__|_______|
+""")
+    (field_val r"""
+                  RR
+  
+                yyy
+               y   y
+              y     y
+             y       y
+  
+  
+  
+                yyy
+               yy yy
+              y y y y
+              yyyyyyy
+""")
+    (field_val 'B')
+    (field_val -32)
+    (field_val -13)
+    (field_val 22)
+]))
+
+(fun pub draw [(param obj (ptr Object)) 
+               (param xx u32) 
+               (param yy u32) 
+               (param bg_col u8)] void :
+    (let image_map auto (. (^ obj) image_map))
+    (let color_map auto (. (^ obj) color_map))
+    (let mut x u32 xx)
+    (let mut y u32 yy)
+    (let are_inside_obj auto false)
+    (let have_color auto true)
+
+
+    (for ipos uint 0 (len image_map) 1 :
+        (let i u8 (at image_map ipos))
+        (if (== i '\n') :
+            (+= y 1)
+            (= x xx)
+            continue
+        :)
+        (print [(ansi::POS y x) (as i rune)])
+        (+= x 1)
+    )
+)
+
+)
+
+
 (module main [] :
 (import ansi)
+(import artwork)
 
 (# "main module with program entry point `main`")
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -85,6 +175,7 @@
                 (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
                 w "x" h "\n" 
                 ])
+        (stmt (call artwork::draw [(& artwork::Castle) 1 1 'k']))
         (stmt (call nanosleep [(& req) (& mut rem)]))
     )
     (return 0))

@@ -191,6 +191,21 @@
             n])))
 
 
+(type pub wrapped rune u8)
+
+(fun polymorphic SysRender [
+        (param v rune)
+        (param buffer (slice mut u8))
+        (param options (ptr mut SysFormatOptions))] uint :
+    (if (== (len buffer) 0) :
+        (return 0)
+    :
+        (= (^ (front mut buffer)) (as v u8))
+        (return 1)
+    )
+)
+
+
 (global INF_POS auto "inf")
 
 
