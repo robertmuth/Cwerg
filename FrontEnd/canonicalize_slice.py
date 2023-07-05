@@ -253,7 +253,8 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
             if def_rec is not None:
                 if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, 
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun, 
-                                     cwast.FunParam, cwast.ExprCall, cwast.RecField)):
+                                     cwast.FunParam, cwast.ExprCall, cwast.RecField,
+                                     cwast.ExprField)):
                     typify.UpdateNodeType(tc, node, def_rec)
                 elif isinstance(node, cwast.FieldVal):
                     # assert False

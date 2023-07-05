@@ -850,7 +850,16 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtDefer)
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
+        typify.VerifyTypesRecursively(mod, tc)
+    
+    if args.emit_ir and False:
+        mod_topo_order = [mod_gen] + mod_topo_order
+        for mod in mod_topo_order:
+            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrint(mod)
 
+        exit(0)
+        
     logger.info("Legalize 2")
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)

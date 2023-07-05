@@ -552,7 +552,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
 
 
 UNTYPED_NODES_TO_BE_TYPECHECKED = (
-    cwast.StmtReturn, cwast.StmtIf,
+    cwast.StmtReturn, cwast.StmtIf, cwast.DefVar, cwast.DefGlobal,
     cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
 
 
@@ -643,7 +643,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         if not isinstance(node.initial_or_undef, cwast.ValUndef):
             cstr = node.type_or_auto.x_type
-
             initial_cstr = node.initial_or_undef.x_type
             _CheckTypeCompatibleForAssignment(
                 node, tc, initial_cstr, cstr, types.is_mutable_def(
