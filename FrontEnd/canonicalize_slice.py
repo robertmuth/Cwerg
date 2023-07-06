@@ -159,7 +159,6 @@ def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus
     return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
 
 
-
 def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
     """Eliminate all the implcit Array to Slice conversions. """
     uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
@@ -186,6 +185,20 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                         isinstance(node.initial_or_undef.x_type, cwast.TypeArray)):
                     node.initial_or_undef = _MakeValSliceFromArray(
                         node.initial_or_undef, node.type_or_auto.x_type, tc, uint_type)
+        elif isinstance(node, cwast.StmtReturn):
+            target = node.x_target
+            expected = None
+            if isinstance(target, cwast.DefFun):
+                expected = target.result.x_type
+            else:
+                assert isinstance(target, cwast.ExprStmt)
+                expected = target.x_type
+
+            if (expected != node.expr_ret.x_type and
+                isinstance(expected, cwast.TypeSlice) and
+                    isinstance(node.expr_ret.x_type, cwast.TypeArray)):
+                node.expr_ret = _MakeValSliceFromArray(
+                    node.expr_ret, expected, tc, uint_type)
         elif isinstance(node, cwast.ExprCall):
             # Note: result conversion is dealt with as a lhs recursively
             fun_sig: cwast.TypeFun = node.callee.x_type
@@ -197,6 +210,7 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                         a, p.type, tc, uint_type)
 
     cwast.VisitAstRecursivelyPost(node, visitor)
+
 
 def ReplaceExplicitSliceCast(node, tc: types.TypeCorpus):
     """Eliminate Array to Slice casts. """
@@ -251,8 +265,8 @@ def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
 
             def_rec: cwast.DefRec = slice_to_struct_map.get(node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType, 
-                                     cwast.ExprStmt, cwast.DefFun, cwast.TypeFun, 
+                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
+                                     cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                                      cwast.FunParam, cwast.ExprCall, cwast.RecField,
                                      cwast.ExprField)):
                     typify.UpdateNodeType(tc, node, def_rec)
