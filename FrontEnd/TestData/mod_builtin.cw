@@ -320,6 +320,17 @@
         (+= i 1))
     (return (slice_val s i)))
 
+
+
+(macro pub assert STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST)] [] :
+    (if $cond :
+        :
+        (print [(stringify $cond) $parts])
+        (trap)))
+
+
+
+
+
+
 )
-
-
