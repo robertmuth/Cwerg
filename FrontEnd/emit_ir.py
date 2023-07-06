@@ -699,7 +699,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
             print(f".addr.mem 8 {name} 0")
             # assert False, f"{name} {node.container}"
             return 8
-            
+
         if isinstance(cstr, cwast.TypeBase):
             return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
         elif isinstance(cstr, cwast.TypeArray):
@@ -851,7 +851,7 @@ def main():
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
         typify.VerifyTypesRecursively(mod, tc)
-    
+
     if args.emit_ir and False:
         mod_topo_order = [mod_gen] + mod_topo_order
         for mod in mod_topo_order:
@@ -859,7 +859,7 @@ def main():
             # pp.PrettyPrint(mod)
 
         exit(0)
-        
+
     logger.info("Legalize 2")
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
@@ -918,7 +918,9 @@ def main():
                 canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
             # add missing return statement
-            if isinstance(fun, cwast.DefFun) and types.is_void_or_wrapped_void(fun.x_type.result):
+            if (isinstance(fun, cwast.DefFun) and
+                not fun.extern and
+                    types.is_void_or_wrapped_void(fun.x_type.result)):
                 if fun.body:
                     last = fun.body[-1]
                     if isinstance(last, cwast.StmtReturn):
