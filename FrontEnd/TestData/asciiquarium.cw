@@ -33,19 +33,37 @@
 (macro POS EXPR_LIST [(mparam $x EXPR)  (mparam $y EXPR)] [] :
    "\x1b[" $x  ";"  $y  "f" )
 
+(# "FG")
+(global pub FG_COLOR_BLACK auto "\x1b[38;2;0;0;0m")
+(global pub FG_COLOR_RED auto "\x1b[38;2;205;0;0m")
+(global pub FG_COLOR_GREEN auto "\x1b[38;2;0;205;0m")
+(global pub FG_COLOR_YELLOW auto "\x1b[38;2;205;205;0m")
+(global pub FG_COLOR_BLUE auto "\x1b[38;2;0;0;238m")
+(global pub FG_COLOR_MAGENTA auto "\x1b[38;2;205;0;205m")
+(global pub FG_COLOR_CYAN auto "\x1b[38;2;0;205;205m")
+(global pub FG_COLOR_WHITE auto "\x1b[38;2;229;229;229m")
+
 (macro FG_COLOR EXPR_LIST [(mparam $r EXPR) (mparam $g EXPR) (mparam $b EXPR)] [] :
    "\x1b[38;2;"  $r ";"  $g ";" $b  "m" 
 )
 
+(# "BG")
+(global pub BG_COLOR_BLACK auto "\x1b[48;2;0;0;0m")
+(global pub BG_COLOR_RED auto "\x1b[48;2;205;0;0m")
+(global pub BG_COLOR_GREEN auto "\x1b[48;2;0;205;0m")
+(global pub BG_COLOR_YELLOW auto "\x1b[48;2;205;205;0m")
+(global pub BG_COLOR_BLUE auto "\x1b[48;2;0;0;238m")
+(global pub BG_COLOR_MAGENTA auto "\x1b[48;2;205;0;205m")
+(global pub BG_COLOR_CYAN auto "\x1b[48;2;0;205;205m")
+(global pub BG_COLOR_WHITE auto "\x1b[48;2;229;229;229m")
+
 (macro BG_COLOR EXPR_LIST [(mparam $r EXPR) (mparam $g EXPR) (mparam $b EXPR)] [] :
    "\x1b[48;2;" $r ";" $g ";" $b  "m" 
 )
-
 )
 
 (module artwork [] :
 (import ansi)
-
 
 
 (# """
@@ -120,26 +138,70 @@ t  translucent
     (field_val 22)
 ]))
 
+(fun tolower [(param c u8)] u8 :
+    (return (or c 0x20))
+)
+
+(fun get_style [(param color u8)] (slice u8) :
+    (return (? (< color 'a') 
+        (as ansi::SET_MODE_BOLD (slice u8)) 
+        (as ansi::RESET_MODE_BOLD_OR_DIM (slice u8)))))
+
+(fun get_color [(param color u8)] (slice u8) :
+   (let col u8 (call tolower [color]))
+   (cond :
+    (case (== col 'k') : (return ansi::FG_COLOR_BLACK))
+    (case (== col 'r') : (return ansi::FG_COLOR_RED))
+    (case (== col 'g') : (return ansi::FG_COLOR_GREEN))
+    (case (== col 'y') : (return ansi::FG_COLOR_YELLOW))
+    (case (== col 'b') : (return ansi::FG_COLOR_BLUE))
+    (case (== col 'm') : (return ansi::FG_COLOR_MAGENTA))
+    (case (== col 'c') : (return ansi::FG_COLOR_CYAN))
+    (case (== col 'w') : (return ansi::FG_COLOR_WHITE))
+    (case true : (return ""))
+   )
+)
+
 (fun pub draw [(param obj (ptr Object)) 
                (param xx u32) 
                (param yy u32) 
-               (param bg_col u8)] void :
+               (param def_col u8)] void :
     (let image_map auto (. (^ obj) image_map))
     (let color_map auto (. (^ obj) color_map))
     (let mut x u32 xx)
     (let mut y u32 yy)
-    (let are_inside_obj auto false)
-    (let have_color auto true)
+    (let mut left_side auto true)
+    (let mut have_color auto true)
 
-
+    (let mut cpos uint 0)
     (for ipos uint 0 (len image_map) 1 :
         (let i u8 (at image_map ipos))
+        (let mut c u8 def_col)
+        (if have_color :
+            (let cc u8 (at color_map cpos))
+            (+= cpos 1)
+            (if (== cc '\n') :
+              (= have_color false)
+            :
+              (= c cc)
+            )
+        :)
+          
         (if (== i '\n') :
             (+= y 1)
             (= x xx)
+            (= left_side true)
+            (= have_color true)
             continue
         :)
-        (print [(ansi::POS y x) (as i rune)])
+
+        (if (!= i ' ') :
+            (= left_side false) 
+        :)
+        (if (! left_side) :
+            (print [(call get_color [c]) (ansi::POS y x) (as i rune)])
+        :)
+
         (+= x 1)
     )
 )
@@ -166,16 +228,16 @@ t  translucent
     (let ref req TimeSpec (rec_val TimeSpec [(field_val 1) (field_val 0)]))
     (let mut ref rem TimeSpec undef)
 
-    (for i uint 1 6 1 :
+    (for i uint 3 10 1 :
         (print [ansi::CLEAR_ALL 
                 (ansi::POS i i) 
                 (ansi::FG_COLOR 0_uint 0_uint 255_uint) 
-                "asciiquarium aa" 
+                "################################asciiquarium#######" 
                 (ansi::POS 20_uint 10_uint) 
                 (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
                 w "x" h "\n" 
                 ])
-        (stmt (call artwork::draw [(& artwork::Castle) 1 1 'k']))
+        (stmt (call artwork::draw [(& artwork::Castle) 1 1 'b']))
         (stmt (call nanosleep [(& req) (& mut rem)]))
     )
     (return 0))
