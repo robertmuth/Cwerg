@@ -68,12 +68,12 @@
 (# "Ascii Art Animation Module")
 (import ansi)
 
-
+(# "arbitrary bound so we can statically allocate maps")
 (global MAX_DIM u32 1024)
 
 (defrec pub Window :
-    (field w u32)
-    (field h u32)
+    (field width u32)
+    (field height u32)
     (field char_map (array (* MAX_DIM MAX_DIM) u8))
     (field attr_map (array (* MAX_DIM MAX_DIM) u8)))
 
@@ -86,6 +86,15 @@
     (field def_z s32)
     (field transparent_char u8)
 )
+
+(defrec pub ObjectState :
+    (field x u32)
+    (field w u32)
+    (field attr_lookup (slice u8))
+    (field def_attr u8)
+    (field start_cycle u32)
+    (# "updated by draw")
+    (field out_of_bounds bool))
 
 (fun tolower [(param c u8)] u8 :
     (return (or c 0x20))
@@ -132,7 +141,9 @@
                (param yy u32) 
                (param def_attr u8)
                (param colors (slice u8))] void :
-    (let width auto (. (^ window) w))
+    (let width auto (. (^ window) width))
+    (let height auto (. (^ window) height))
+
     (let image_map auto (. (^ obj) image_map))
     (let color_map auto (. (^ obj) color_map))
     (let mut x u32 xx)
@@ -174,9 +185,11 @@
         :)
         
         (if (&& (! left_side) (!= c (. (^ obj) transparent_char))) :
-            (let i auto (+ (* y width) x))            
-            (= (at  (. (^ window) char_map) i) c)
-            (= (at  (. (^ window) attr_map) i) a)
+            (if (&& (< x width) (< y height)) :
+                (let i auto (+ (* y width) x))            
+                (= (at  (. (^ window) char_map) i) c)
+                (= (at  (. (^ window) attr_map) i) a)
+            :)
         :)
 
         (+= x 1)
@@ -186,8 +199,8 @@
 
 (fun pub window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
     (print [(call get_bg_color [bg_col]) ansi::CLEAR_ALL])
-    (let w auto (. (^ obj) w))
-    (let h auto (. (^ obj) h))
+    (let w auto (. (^ obj) width))
+    (let h auto (. (^ obj) height))
 
     (# "@ is an invalid attrib")
     (let mut last_attr u8 '@')
@@ -214,7 +227,7 @@
 )
 
 (fun pub window_fill [(param obj (ptr mut Window)) (param c u8) (param a u8)] void :
-    (let size u32 (* (. (^ obj) w) (. (^ obj) h)))
+    (let size u32 (* (. (^ obj) width) (. (^ obj) height)))
     (for i u32 0 size 1 :
         (= (at  (. (^ obj) char_map) i) c)
         (= (at  (. (^ obj) attr_map) i) a)
@@ -504,6 +517,84 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
     (field_val 2)
 ]))
 
+
+(global pub MonsterR1 auto (rec_val aanim::Object [
+    (field_val "monster_r1")
+    (field_val r"""
+                                                          ____
+            __??????????????????????????????????????????/   o  \
+          /    \????????_?????????????????????_???????/     ____ >
+  _??????|  __  |?????/   \????????_????????/   \????|     |
+ | \?????|  ||  |????|     |?????/   \?????|     |???|     |
+""")
+    (field_val r"""
+
+                                                            W
+
+
+
+""")
+    (field_val 'G')
+    (field_val 5)
+    (field_val '?')
+]))
+
+
+(global pub ShipR auto (rec_val aanim::Object [
+    (field_val "ship_r")
+    (field_val r"""
+     |    |    |
+    )_)  )_)  )_)
+   )___))___))___)\
+  )____)____)_____)\\\
+_____|____|____|____\\\\\__
+\                   /
+""")
+    (field_val r"""
+     y    y    y
+
+                  w
+                   ww
+yyyyyyyyyyyyyyyyyyyywwwyy
+y                   y
+""")
+    (field_val 'W')
+    (field_val 7)
+]))
+
+
+
+(global pub SharkR auto (rec_val aanim::Object [
+    (field_val "ship_r")
+    (field_val r"""
+                              __
+                             ( `\
+  ,??????????????????????????)   `\
+;' `.????????????????????????(     `\__
+ ;   `.?????????????__..---''          `~~~~-._
+  `.   `.____...--''                       (b  `--._
+    >                     _.-'      .((      ._     )
+  .`.-`--...__         .-'     -.___.....-(|/|/|/|/'
+ ;.'?????????`. ...----`.___.',,,_______......---'
+ '???????????'-'
+""")
+    (field_val r"""
+
+
+
+
+
+                                           cR
+ 
+                                          cWWWWWWWW
+
+
+""")
+    (field_val 'C')
+    (field_val 2)
+    (field_val '?')
+]))
+
 (# "eom")
 )
 
@@ -544,6 +635,26 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
                              (& artwork::DuckR3) 
                              1 20 (. artwork::DuckR3 def_attr) 
                              artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::BigFishR) 
+                             40 20 (. artwork::BigFishR def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::SwanL) 
+                             40 0 (. artwork::SwanL def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::DophinL1) 
+                             60 0 (. artwork::DophinL1 def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::MonsterR1) 
+                             0 30 (. artwork::MonsterR1 def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::SharkR) 
+                             40 10 (. artwork::SharkR def_attr) 
+                             artwork::RandomColor]))               
     (stmt (call aanim::window_draw [(& window) 'k' ]))
     
     (return 0)
