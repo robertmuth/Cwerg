@@ -163,6 +163,8 @@ def _ComputeArrayLength(node) -> int:
     elif isinstance(node, cwast.Expr2):
         if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
             return _ComputeArrayLength(node.expr1) + _ComputeArrayLength(node.expr2)
+        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.MUL:
+            return _ComputeArrayLength(node.expr1) * _ComputeArrayLength(node.expr2)
         else:
             assert False
     else:

@@ -60,47 +60,21 @@
 (macro BG_COLOR EXPR_LIST [(mparam $r EXPR) (mparam $g EXPR) (mparam $b EXPR)] [] :
    "\x1b[48;2;" $r ";" $g ";" $b  "m" 
 )
+
 )
 
-(module artwork [] :
+(module aanim [] :
 (import ansi)
 
 
-(# """
-* https://github.com/cmatsuoka/asciiquarium
-* https://robobunny.com/projects/asciiquarium/
-* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
-""")
+(global MAX_DIM u32 1024)
 
+(defrec pub Window :
+    (field w u32)
+    (field h u32)
+    (field image_map (array (* MAX_DIM MAX_DIM) u8))
+    (field attrib_map (array (* MAX_DIM MAX_DIM) u8)))
 
-(# """
-Color codes and xterm rgb values:
-k  black    0,0,0
-r  red      205,0, 0
-g  green    0,205,0
-y  yellow   205,205,0
-b  blue     0,0,238
-m  magenta  205,0,205
-c  cyan     0,205,205
-w  white    229,229,229
-t  translucent
-
-
-Fish body parts:
-1: body
-2: dorsal fin
-3: flippers
-4: eye
-5: mouth
-6: tailfin
-7: gills
-""")
-
-
-(global MAX_DIM u32 1000)
-
-
-(global pub RandomColor auto "RcRyBgM")
 
 (defrec pub Object :
     (field name (slice u8))
@@ -108,244 +82,7 @@ Fish body parts:
     (field color_map (slice u8))
     (field def_color u8)
     (field def_z s32)
-
 )
-
-(global pub Castle auto (rec_val Object [
-    (field_val "castle")
-    (field_val r"""
-                 T~~
-                 |
-                /^\
-               /   \
-   _   _   _  /     \  _   _   _
-  [ ]_[ ]_[ ]/ _   _ \[ ]_[ ]_[ ]
-  |_=__-_ =_|_[ ]_[ ]_|_=-___-__|
-   | _- =  | =_ = _    |= _=   |
-   |= -[]  |- = _ =    |_-=_[] |
-   | =_    |= - ___    | =_ =  |
-   |=  []- |-  /| |\   |=_ =[] |
-   |- =_   | =| | | |  |- = -  |
-   |_______|__|_|_|_|__|_______|
-""")
-    (field_val r"""
-                  RR
-  
-                yyy
-               y   y
-              y     y
-             y       y
-  
-  
-  
-                yyy
-               yy yy
-              y y y y
-              yyyyyyy
-""")
-    (field_val 'B')
-    (field_val 22)
-]))
-
-
-(global pub SwanL auto (rec_val Object [
-    (field_val "swan_l")
-    (field_val r"""
- ___
-/,_ \    _,
-|/ )/   / |
-  //  _/  |
- / ( /   _)
-/   `   _/)
-\  ~=-   /
-""")
-    (field_val r"""
-
- g
-yy
-""")
-    (field_val 'W')
-    (field_val 3)
-]))
-
-
-(global pub SwanR auto (rec_val Object [
-    (field_val "swan_r")
-    (field_val r"""
-        ___
- ,_    / _,\
- | \   \( \|
- |  \_  \\\
- (_   \_) \
- (\_   `   \
-  \   -=~  /
-""")
-    (field_val r"""
-
-          g
-          yy
-""")
-    (field_val 'W')
-    (field_val 3)
-]))
-
-
-(global pub DuckR1 auto (rec_val Object [
-    (field_val "duck_r1")
-    (field_val r"""
-      _??????????_??????????_  
-,____(')=??,____(')=??,____(')<
- \~~= ')????\~~= ')????\~~= ') 
-""")
-    (field_val r"""
-      g          g          g
-wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
- wwww Ww    wwww Ww    wwww Ww
-""")
-    (field_val 'W')
-    (field_val 3)
-]))
-
-(global pub DuckR2 auto (rec_val Object [
-    (field_val "duck_r2")
-    (field_val r"""
-      _??????????_??????????_  
-,____(')=??,____(')<??,____(')=
- \~~= ')????\~~= ')????\~~= ') 
-""")
-    (field_val r"""
-      g          g          g
-wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
- wwww Ww    wwww Ww    wwww Ww
-""")
-    (field_val 'W')
-    (field_val 3)
-]))
-
-(global pub DuckR3 auto (rec_val Object [
-    (field_val "duck_r3")
-    (field_val r"""
-      _??????????_??????????_  
-,____(')<??,____(')=??,____(')=
- \~~= ')????\~~= ')????\~~= ') 
-""")
-    (field_val r"""
-      g          g          g
-wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
- wwww Ww    wwww Ww    wwww Ww
-""")
-    (field_val 'W')
-    (field_val 3)
-]))
-
-(global pub DophinR1 auto (rec_val Object [
-    (field_val "dolphin_r1")
-    (field_val r"""
-        ,
-      __)\_
-(\_.-'    a`-.
-(/~~````(/~^^`
-""")
-    (field_val r"""
-
-
-          W
-""")
-    (field_val 'b')
-    (field_val 3)
-]))
-
-(global pub DophinR2 auto (rec_val Object [
-    (field_val "dolphin_r2")
-    (field_val r"""
-        ,
-(\__  __)\_
-(/~.''    a`-.
-    ````\)~^^`
-""")
-    (field_val r"""
-
-
-          W
-""")
-    (field_val 'b')
-    (field_val 3)
-]))
-
-(global pub DophinL1 auto (rec_val Object [
-    (field_val "dolphin_l1")
-    (field_val r"""
-     ,
-   _/(__
-.-'a    `-._/)
-'^^~\)''''~~\)
-""")
-    (field_val r"""
-
-
-   W
-""")
-    (field_val 'b')
-    (field_val 3)
-]))
-
-(global pub DophinL2 auto (rec_val Object [
-    (field_val "dolphin_l2")
-    (field_val r"""
-     ,
-   _/(__  __/)
-.-'a    ``.~\)
-'^^~(/''''
-""")
-    (field_val r"""
-
-
-   W
-""")
-    (field_val 'b')
-    (field_val 3)
-]))
-
-
-
-(global pub BigFishR auto (rec_val Object [
-    (field_val "dolphin_l2")
-    (field_val r"""
- ______
-`""-.  `````-----.....__
-     `.  .      .       `-.
-       :     .     .       `.
- ,     :   .    .          _ :
-: `.   :                  (@) `._
- `. `..'     .     =`-.       .__)
-   ;     .        =  ~  :     .-"
- .' .'`.   .    .  =.-'  `._ .'
-: .'   :               .   .'
- '   .'  .    .     .   .-'
-   .'____....----''.'=.'
-   ""             .'.'
-               ''"'`
-""")
-    (field_val r"""
- 111111
-11111  11111111111111111
-     11  2      2       111
-       1     2     2       11
- 1     1   2    2          1 1
-1 11   1                  1W1 111
- 11 1111     2     1111       1111
-   1     2        1  1  1     111
- 11 1111   2    2  1111  111 11
-1 11   1               2   11
- 1   11  2    2     2   111
-   111111111111111111111
-   11             1111
-               11111
-""")
-    (field_val 'Y')
-    (field_val 2)
-]))
-
 
 (fun tolower [(param c u8)] u8 :
     (return (or c 0x20))
@@ -423,12 +160,300 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
     )
 )
 
+
+(fun pub window_draw [(param obj (ptr Object)) 
+               (param xx u32) 
+               (param yy u32) 
+               (param def_col u8)
+               (param colors (slice u8))] void :)
+)
+
+
+
+(module artwork [] :
+(import aanim)
+
+
+(# """
+* https://github.com/cmatsuoka/asciiquarium
+* https://robobunny.com/projects/asciiquarium/
+* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
+""")
+
+
+(# """
+Color codes and xterm rgb values:
+k  black    0,0,0
+r  red      205,0, 0
+g  green    0,205,0
+y  yellow   205,205,0
+b  blue     0,0,238
+m  magenta  205,0,205
+c  cyan     0,205,205
+w  white    229,229,229
+t  translucent
+
+
+Fish body parts:
+1: body
+2: dorsal fin
+3: flippers
+4: eye
+5: mouth
+6: tailfin
+7: gills
+""")
+
+
+
+
+(global pub RandomColor auto "RcRyBgM")
+
+
+(global pub Castle auto (rec_val aanim::Object [
+    (field_val "castle")
+    (field_val r"""
+                 T~~
+                 |
+                /^\
+               /   \
+   _   _   _  /     \  _   _   _
+  [ ]_[ ]_[ ]/ _   _ \[ ]_[ ]_[ ]
+  |_=__-_ =_|_[ ]_[ ]_|_=-___-__|
+   | _- =  | =_ = _    |= _=   |
+   |= -[]  |- = _ =    |_-=_[] |
+   | =_    |= - ___    | =_ =  |
+   |=  []- |-  /| |\   |=_ =[] |
+   |- =_   | =| | | |  |- = -  |
+   |_______|__|_|_|_|__|_______|
+""")
+    (field_val r"""
+                  RR
+  
+                yyy
+               y   y
+              y     y
+             y       y
+  
+  
+  
+                yyy
+               yy yy
+              y y y y
+              yyyyyyy
+""")
+    (field_val 'B')
+    (field_val 22)
+]))
+
+
+(global pub SwanL auto (rec_val aanim::Object [
+    (field_val "swan_l")
+    (field_val r"""
+ ___
+/,_ \    _,
+|/ )/   / |
+  //  _/  |
+ / ( /   _)
+/   `   _/)
+\  ~=-   /
+""")
+    (field_val r"""
+
+ g
+yy
+""")
+    (field_val 'W')
+    (field_val 3)
+]))
+
+
+(global pub SwanR auto (rec_val aanim::Object [
+    (field_val "swan_r")
+    (field_val r"""
+        ___
+ ,_    / _,\
+ | \   \( \|
+ |  \_  \\\
+ (_   \_) \
+ (\_   `   \
+  \   -=~  /
+""")
+    (field_val r"""
+
+          g
+          yy
+""")
+    (field_val 'W')
+    (field_val 3)
+]))
+
+
+(global pub DuckR1 auto (rec_val aanim::Object [
+    (field_val "duck_r1")
+    (field_val r"""
+      _??????????_??????????_  
+,____(')=??,____(')=??,____(')<
+ \~~= ')????\~~= ')????\~~= ') 
+""")
+    (field_val r"""
+      g          g          g
+wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
+ wwww Ww    wwww Ww    wwww Ww
+""")
+    (field_val 'W')
+    (field_val 3)
+]))
+
+(global pub DuckR2 auto (rec_val aanim::Object [
+    (field_val "duck_r2")
+    (field_val r"""
+      _??????????_??????????_  
+,____(')=??,____(')<??,____(')=
+ \~~= ')????\~~= ')????\~~= ') 
+""")
+    (field_val r"""
+      g          g          g
+wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
+ wwww Ww    wwww Ww    wwww Ww
+""")
+    (field_val 'W')
+    (field_val 3)
+]))
+
+(global pub DuckR3 auto (rec_val aanim::Object [
+    (field_val "duck_r3")
+    (field_val r"""
+      _??????????_??????????_  
+,____(')<??,____(')=??,____(')=
+ \~~= ')????\~~= ')????\~~= ') 
+""")
+    (field_val r"""
+      g          g          g
+wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
+ wwww Ww    wwww Ww    wwww Ww
+""")
+    (field_val 'W')
+    (field_val 3)
+]))
+
+(global pub DophinR1 auto (rec_val aanim::Object [
+    (field_val "dolphin_r1")
+    (field_val r"""
+        ,
+      __)\_
+(\_.-'    a`-.
+(/~~````(/~^^`
+""")
+    (field_val r"""
+
+
+          W
+""")
+    (field_val 'b')
+    (field_val 3)
+]))
+
+(global pub DophinR2 auto (rec_val aanim::Object [
+    (field_val "dolphin_r2")
+    (field_val r"""
+        ,
+(\__  __)\_
+(/~.''    a`-.
+    ````\)~^^`
+""")
+    (field_val r"""
+
+
+          W
+""")
+    (field_val 'b')
+    (field_val 3)
+]))
+
+(global pub DophinL1 auto (rec_val aanim::Object [
+    (field_val "dolphin_l1")
+    (field_val r"""
+     ,
+   _/(__
+.-'a    `-._/)
+'^^~\)''''~~\)
+""")
+    (field_val r"""
+
+
+   W
+""")
+    (field_val 'b')
+    (field_val 3)
+]))
+
+(global pub DophinL2 auto (rec_val aanim::Object [
+    (field_val "dolphin_l2")
+    (field_val r"""
+     ,
+   _/(__  __/)
+.-'a    ``.~\)
+'^^~(/''''
+""")
+    (field_val r"""
+
+
+   W
+""")
+    (field_val 'b')
+    (field_val 3)
+]))
+
+
+
+(global pub BigFishR auto (rec_val aanim::Object [
+    (field_val "dolphin_l2")
+    (field_val r"""
+ ______
+`""-.  `````-----.....__
+     `.  .      .       `-.
+       :     .     .       `.
+ ,     :   .    .          _ :
+: `.   :                  (@) `._
+ `. `..'     .     =`-.       .__)
+   ;     .        =  ~  :     .-"
+ .' .'`.   .    .  =.-'  `._ .'
+: .'   :               .   .'
+ '   .'  .    .     .   .-'
+   .'____....----''.'=.'
+   ""             .'.'
+               ''"'`
+""")
+    (field_val r"""
+ 111111
+11111  11111111111111111
+     11  2      2       111
+       1     2     2       11
+ 1     1   2    2          1 1
+1 11   1                  1W1 111
+ 11 1111     2     1111       1111
+   1     2        1  1  1     111
+ 11 1111   2    2  1111  111 11
+1 11   1               2   11
+ 1   11  2    2     2   111
+   111111111111111111111
+   11             1111
+               11111
+""")
+    (field_val 'Y')
+    (field_val 2)
+]))
+
+
+
 )
 
 
 (module main [] :
-(import ansi)
 (import artwork)
+(import aanim)
+(import ansi)
 
 (# "main module with program entry point `main`")
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -446,7 +471,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
     (let mut ref rem TimeSpec undef)
     (print [ansi::CLEAR_ALL])
-    (stmt (call artwork::draw [(& artwork::BigFishR) 1 1 'b' artwork::RandomColor]))
+    (stmt (call aanim::draw [(& artwork::BigFishR) 1 1 'b' artwork::RandomColor]))
     (return 0)
 
     (for i uint 3 10 1 :
@@ -461,7 +486,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
                 w "x" h "\n" 
                 ])
                 """)
-        (stmt (call artwork::draw [(& artwork::Castle) 1 1 'b' artwork::RandomColor]))
+        (stmt (call aanim::draw [(& artwork::Castle) 1 1 'b' artwork::RandomColor]))
         (stmt (call nanosleep [(& req) (& mut rem)]))
     )
     (return 0))
