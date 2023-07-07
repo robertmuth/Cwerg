@@ -175,23 +175,29 @@ t  translucent
 
     (let mut cpos uint 0)
     (for ipos uint 0 (len image_map) 1 :
-        (let i u8 (at image_map ipos))
+        (# "determine color and style")
         (let mut c u8 def_col)
         (if have_color :
             (let cc u8 (at color_map cpos))
             (+= cpos 1)
-            (if (== cc '\n') :
-              (= have_color false)
-            :
-              (= c cc)
+            (cond :
+               (case (== cc '\n') : (= have_color false))
+               (case (== cc ' ') :)
+               (case true : (= c cc))
             )
         :)
-          
+
+        (# "determine shape")
+        (let i u8 (at image_map ipos))
         (if (== i '\n') :
             (+= y 1)
             (= x xx)
             (= left_side true)
-            (= have_color true)
+            (# "the end of the color row should have been reached already")
+            (assert (! have_color) ["color failure\n"])
+            (if (< cpos (len color_map)) : 
+                (= have_color true)
+            :)
             continue
         :)
 
@@ -226,10 +232,16 @@ t  translucent
     (let h u32 (call str_to_u32 [arg_h]))
 
     (let ref req TimeSpec (rec_val TimeSpec [(field_val 1) (field_val 0)]))
+
     (let mut ref rem TimeSpec undef)
+    (print [ansi::CLEAR_ALL])
+    (stmt (call artwork::draw [(& artwork::Castle) 1 1 'b']))
+    (return 0)
 
     (for i uint 3 10 1 :
-        (print [ansi::CLEAR_ALL 
+      (print [ansi::CLEAR_ALL])
+        (# """
+        (print [
                 (ansi::POS i i) 
                 (ansi::FG_COLOR 0_uint 0_uint 255_uint) 
                 "################################asciiquarium#######" 
@@ -237,6 +249,7 @@ t  translucent
                 (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
                 w "x" h "\n" 
                 ])
+                """)
         (stmt (call artwork::draw [(& artwork::Castle) 1 1 'b']))
         (stmt (call nanosleep [(& req) (& mut rem)]))
     )
