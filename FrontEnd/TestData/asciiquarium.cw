@@ -61,6 +61,7 @@
    "\x1b[48;2;" $r ";" $g ";" $b  "m" 
 )
 
+(# "eom")
 )
 
 (module aanim [] :
@@ -81,8 +82,9 @@
     (field name (slice u8))
     (field image_map (slice u8))
     (field color_map (slice u8))
-    (field def_color u8)
+    (field def_attr u8)
     (field def_z s32)
+    (field transparent_char u8)
 )
 
 (fun tolower [(param c u8)] u8 :
@@ -124,11 +126,13 @@
    )
 )
 
-(fun pub draw [(param obj (ptr Object)) 
+(fun pub draw [(param window (ptr mut Window))
+               (param obj (ptr Object)) 
                (param xx u32) 
                (param yy u32) 
-               (param def_col u8)
+               (param def_attr u8)
                (param colors (slice u8))] void :
+    (let width auto (. (^ window) w))
     (let image_map auto (. (^ obj) image_map))
     (let color_map auto (. (^ obj) color_map))
     (let mut x u32 xx)
@@ -138,22 +142,22 @@
 
     (let mut cpos uint 0)
     (for ipos uint 0 (len image_map) 1 :
-        (# "determine color and style")
-        (let mut c u8 def_col)
+        (# "determine attribute")
+        (let mut a u8 def_attr)
         (if have_color :
             (let cc u8 (at color_map cpos))
             (+= cpos 1)
             (cond :
                (case (== cc '\n') : (= have_color false))
                (case (== cc ' ') :)
-               (case (&& (>= cc '1') (<= cc '9')) : (= c (at colors (- cc '1'))))
-               (case true : (= c cc))
+               (case (&& (>= cc '1') (<= cc '9')) : (= a (at colors (- cc '1'))))
+               (case true : (= a cc))
             )
         :)
 
-        (# "determine shape")
-        (let i u8 (at image_map ipos))
-        (if (== i '\n') :
+        (# "determine character")
+        (let c u8 (at image_map ipos))
+        (if (== c '\n') :
             (+= y 1)
             (= x xx)
             (= left_side true)
@@ -165,11 +169,14 @@
             continue
         :)
 
-        (if (!= i ' ') :
+        (if (!= c ' ') :
             (= left_side false) 
         :)
-        (if (! left_side) :
-            (print [(call get_fg_color [c]) (ansi::POS y x) (as i rune)])
+        
+        (if (&& (! left_side) (!= c (. (^ obj) transparent_char))) :
+            (let i auto (+ (* y width) x))            
+            (= (at  (. (^ window) char_map) i) c)
+            (= (at  (. (^ window) attr_map) i) a)
         :)
 
         (+= x 1)
@@ -214,6 +221,7 @@
     )
 )
 
+(# "eom")
 )
 
 
@@ -350,6 +358,8 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)
     (field_val 'W')
     (field_val 3)
+    (field_val '?')
+
 ]))
 
 (global pub DuckR2 auto (rec_val aanim::Object [
@@ -366,6 +376,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)
     (field_val 'W')
     (field_val 3)
+    (field_val '?')
 ]))
 
 (global pub DuckR3 auto (rec_val aanim::Object [
@@ -382,6 +393,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)
     (field_val 'W')
     (field_val 3)
+    (field_val '?')
 ]))
 
 (global pub DophinR1 auto (rec_val aanim::Object [
@@ -492,8 +504,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
     (field_val 2)
 ]))
 
-
-
+(# "eom")
 )
 
 
@@ -524,13 +535,19 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
     ])
     )
 
-    (stmt (call aanim::window_fill [(& mut window) '#' 'y']))
-    (stmt (call aanim::window_draw [(& window) 'b' ]))
+    (# """(stmt (call aanim::window_fill [(& mut window) '#' 'y']))""")
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::Castle) 
+                             1 1 (. artwork::Castle def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::DuckR3) 
+                             1 20 (. artwork::DuckR3 def_attr) 
+                             artwork::RandomColor]))
+    (stmt (call aanim::window_draw [(& window) 'k' ]))
     
     (return 0)
 
-    (print [ansi::BG_COLOR_GREEN ansi::CLEAR_ALL])
-    (stmt (call aanim::draw [(& artwork::BigFishR) 1 1 'b' artwork::RandomColor]))
 
     (for i uint 3 10 1 :
       (print [ansi::CLEAR_ALL])
@@ -544,9 +561,9 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
                 w "x" h "\n" 
                 ])
                 """)
-        (stmt (call aanim::draw [(& artwork::Castle) 1 1 'b' artwork::RandomColor]))
         (stmt (call nanosleep [(& req) (& mut rem)]))
     )
     (return 0))
 
+(# "eom")
 )
