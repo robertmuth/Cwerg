@@ -406,7 +406,7 @@ class TypeCorpus:
         for x in rec.fields:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
-        assert False
+        return None
 
     def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
         """Note: we re-use the original ast node"""
