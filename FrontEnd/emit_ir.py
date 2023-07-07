@@ -708,6 +708,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
             x_type = cstr.type
             if isinstance(x_type, cwast.TypeBase):
                 if isinstance(node.x_value, bytes):
+                    assert len(node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
                     assert isinstance(x_type, cwast.TypeBase)
                     return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
                 else:

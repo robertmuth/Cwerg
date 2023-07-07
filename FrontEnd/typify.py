@@ -55,9 +55,12 @@ def is_mutable_container(node):
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:
-    assert string[0] == '"'
-    assert string[-1] == '"'
-    string = string[1:-1]
+    if string.startswith('"""') and string.endswith('"""'):
+        string = string[3:-3]
+    elif string.startswith('"') and string.endswith('"'):
+        string = string[1:-1]
+    else:
+        assert False
     n = len(string)
     if raw:
         return n
@@ -593,9 +596,11 @@ def _CheckExpr2Types(node, result_type, op1_type, op2_type, kind: cwast.BINARY_E
         _CheckTypeSame(node, tc, op1_type.type, op2_type.type)
         if isinstance(op1_type, cwast.TypePtr):
             if result_type != tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT):
-               cwast.CompilerError(node.x_srcloc, f"result of pointer delta must SINT")
-            if  not isinstance(op2_type, cwast.TypePtr):
-                cwast.CompilerError(node.x_srcloc, f"rhs of pointer delta must be pointer")
+                cwast.CompilerError(
+                    node.x_srcloc, f"result of pointer delta must SINT")
+            if not isinstance(op2_type, cwast.TypePtr):
+                cwast.CompilerError(
+                    node.x_srcloc, f"rhs of pointer delta must be pointer")
         elif isinstance(op1_type, cwast.TypeSlice):
             assert (isinstance(op2_type, cwast.TypeSlice) and
                     result_type == op1_type)
@@ -795,6 +800,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         _CheckTypeSame(node.result, tc, fun_type.result, node.result.x_type)
         for a, b in zip(fun_type.params, node.params):
             _CheckTypeSame(b, tc, a.type, b.type.x_type)
+        # We should also ensure three is a proper return but that requires dataflow
+
     elif isinstance(node, cwast.ValSlice):
         assert node.x_type.mut == node.pointer.x_type.mut
         _CheckTypeSame(node, tc, node.x_type.type, node.pointer.x_type.type)
