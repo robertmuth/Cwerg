@@ -100,12 +100,14 @@
         (mparam $base EXPR)
         (mparam $max_width EXPR)
         (# "a slice for the output string")
-        (mparam $out ID)] [$v $tmp $pos] :
+        (mparam $out EXPR)] [$v $out_eval $tmp $pos] :
     (expr :
         (# "unsigned to str with given base")
         (macro_let mut $v auto $val)
         (macro_let mut $tmp auto (array_val $max_width u8))
         (macro_let mut $pos uint $max_width)
+        (macro_let $out_eval auto $out)
+
         (block _ :
             (-= $pos 1)
             (let c auto (% $v $base))
@@ -116,12 +118,16 @@
             (if (!= $v 0) :
                 (continue)
                 :))
-        (let n uint (min (- $max_width $pos) (len $out)))
+        (let n uint (min (- $max_width $pos) (len $out_eval)))
         (return (call mymemcpy [
-                (front mut $out)
+                (front mut $out_eval)
                 (incp (front $tmp) $pos)
                 n]))))
 
+
+(fun slice_incp [(param s (slice mut u8)) (param inc uint)] (slice mut u8) :
+    (let n uint (min inc (len s)))
+    (return (slice_val (incp (front mut s) n) (- (len s) n))))
 
 (fun u8_to_str [(param v u8) (param out (slice mut u8))] uint :
     (return (unsigned_to_str v 10 32_uint out)))
@@ -137,6 +143,18 @@
 
 (fun u64_to_str [(param v u64) (param out (slice mut u8))] uint :
     (return (unsigned_to_str v 10 32_uint out)))
+
+(fun s32_to_str [(param v s32) (param out (slice mut u8))] uint :
+    (if (== (len out) 0) :
+        (return 0)
+    :)
+    (if (< v 0) :
+        (let v_unsigned auto (- 0_s32 v))
+        (= (at out 0) '-')
+        (return (+ 1 (unsigned_to_str v_unsigned 10 32_uint (call slice_incp [out 1]))))
+    :
+        (return (unsigned_to_str (as v u32) 10 32_uint out))
+    ))
 
 
 (fun str_to_u32 [(param s (slice u8))] u32 :
@@ -175,6 +193,11 @@
         (param options (ptr mut SysFormatOptions))] uint :
     (return (call u64_to_str [v out])))
 
+(fun polymorphic SysRender [
+        (param v s32)
+        (param out (slice mut u8))
+        (param options (ptr mut SysFormatOptions))] uint :
+    (return (call s32_to_str [v out])))
 
 (fun polymorphic SysRender [
         (param v (slice u8))
