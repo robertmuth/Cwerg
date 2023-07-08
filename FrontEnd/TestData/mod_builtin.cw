@@ -13,11 +13,11 @@
 
 (defrec pub TimeSpec :
     (field sec uint)
-    (field nano_sec uint)
-)
+    (field nano_sec uint))
 
-(fun pub extern nanosleep [(param req (ptr TimeSpec)) 
-                           (param rem (ptr mut TimeSpec))] s32 :)
+
+(fun pub extern nanosleep [(param req (ptr TimeSpec)) (param rem (ptr mut TimeSpec))] s32 :)
+
 
 (fun pub extern SysErrorPrint [(param buffer (slice u8))] void :)
 
@@ -35,11 +35,11 @@
 (# "macro for while-loop")
 (macro pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
-        (if (macro_id $cond) :
+        (if $cond :
             :
-            break)
-        (macro_id $body)
-        continue))
+            (break))
+        $body
+        (continue)))
 
 
 (# "macro for number range for-loop")
@@ -50,17 +50,17 @@
         (mparam $end EXPR)
         (mparam $step EXPR)
         (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    (macro_let $end_eval (macro_id $type) (macro_id $end))
-    (macro_let $step_eval (macro_id $type) (macro_id $step))
-    (macro_let mut $it (macro_id $type) (macro_id $start))
+    (macro_let $end_eval $type $end)
+    (macro_let $step_eval $type $step)
+    (macro_let mut $it $type $start)
     (block _ :
-        (if (>= (macro_id $it) (macro_id $end_eval)) :
-            break
+        (if (>= $it $end_eval) :
+            (break)
             :)
-        (macro_let $index auto (macro_id $it))
-        (= (macro_id $it) (+ (macro_id $it) (macro_id $step_eval)))
-        (macro_id $body)
-        continue))
+        (macro_let $index auto $it)
+        (= $it (+ $it $step_eval))
+        $body
+        (continue)))
 
 
 (fun pub mymemcpy [
@@ -68,8 +68,7 @@
         (param src (ptr u8))
         (param size uint)] uint :
     (for i uint 0 size 1 :
-        (= (^ (incp dst i undef)) 
-        (^ (incp src i undef))))
+        (= (^ (incp dst i undef)) (^ (incp src i undef))))
     (return size))
 
 
@@ -104,23 +103,23 @@
         (mparam $out ID)] [$v $tmp $pos] :
     (expr :
         (# "unsigned to str with given base")
-        (macro_let mut $v auto (macro_id $val))
-        (macro_let mut $tmp auto (array_val (macro_id $max_width) u8 []))
-        (macro_let mut $pos uint (macro_id $max_width))
+        (macro_let mut $v auto $val)
+        (macro_let mut $tmp auto (array_val $max_width u8 []))
+        (macro_let mut $pos uint $max_width)
         (block _ :
-            (-= (macro_id $pos) 1)
-            (let c auto (% (macro_id $v) (macro_id $base)))
+            (-= $pos 1)
+            (let c auto (% $v $base))
             (let mut c8 auto (as c u8))
             (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
-            (= (at (macro_id $tmp) (macro_id $pos)) c8)
-            (/= (macro_id $v) (macro_id $base))
-            (if (!= (macro_id $v) 0) :
-                continue
+            (= (at $tmp $pos) c8)
+            (/= $v $base)
+            (if (!= $v 0) :
+                (continue)
                 :))
-        (let n uint (min (- (macro_id $max_width) (macro_id $pos)) (len (macro_id $out))))
+        (let n uint (min (- $max_width $pos) (len $out)))
         (return (call mymemcpy [
-                (front mut (macro_id $out))
-                (incp (front (macro_id $tmp)) (macro_id $pos) undef)
+                (front mut $out)
+                (incp (front $tmp) $pos undef)
                 n]))))
 
 
@@ -145,11 +144,8 @@
     (for i uint 0 (len s) 1 :
         (*= x 10)
         (let c auto (at s i))
-
-        (+= x (as (- c '0') u32))
-    )
-    (return x)
-)
+        (+= x (as (- c '0') u32)))
+    (return x))
 
 
 (fun polymorphic SysRender [
@@ -193,17 +189,16 @@
 
 (type pub wrapped rune u8)
 
+
 (fun polymorphic SysRender [
         (param v rune)
         (param buffer (slice mut u8))
         (param options (ptr mut SysFormatOptions))] uint :
     (if (== (len buffer) 0) :
         (return 0)
-    :
+        :
         (= (^ (front mut buffer)) (as v u8))
-        (return 1)
-    )
-)
+        (return 1)))
 
 
 (global INF_POS auto "inf")
@@ -273,11 +268,11 @@
     (= (^ (incp buf i undef)) '.')
     (+= i 1)
     (while (!= frac_bits 0) :
-            (let c auto (as (>> frac_bits 48) u8))
-            (= (^ (incp buf i undef)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
-            (+= i 1)
-            (and= frac_bits 0xffff_ffff_ffff)
-            (<<= frac_bits 4))
+        (let c auto (as (>> frac_bits 48) u8))
+        (= (^ (incp buf i undef)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
+        (+= i 1)
+        (and= frac_bits 0xffff_ffff_ffff)
+        (<<= frac_bits 4))
     (= (^ (incp buf i undef)) 'p')
     (+= i 1)
     (if (< exp 0) :
@@ -307,19 +302,18 @@
     (macro_let mut $curr uint 0)
     (macro_let mut ref $options auto (rec_val SysFormatOptions []))
     (macro_for $i $parts :
-        (+= (macro_id $curr) (call polymorphic SysRender [
-                (macro_id $i)
-                (slice_val (incp (front mut (macro_id $buffer)) (macro_id $curr) undef) (- (len (macro_id $buffer)) (macro_id $curr)))
-                (& mut (macro_id $options))])))
-    (stmt (call SysPrint [(slice_val (front (macro_id $buffer)) (macro_id $curr))])))
+        (+= $curr (call polymorphic SysRender [
+                $i
+                (slice_val (incp (front mut $buffer) $curr undef) (- (len $buffer) $curr))
+                (& mut $options)])))
+    (stmt (call SysPrint [(slice_val (front $buffer) $curr)])))
 
 
 (fun strz_to_slice [(param s (ptr u8))] (slice u8) :
     (let mut i uint 0)
-    (while (!= (^ (incp s i undef)) 0) : 
+    (while (!= (^ (incp s i undef)) 0) :
         (+= i 1))
     (return (slice_val s i)))
-
 
 
 (macro pub assert STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST)] [] :
@@ -329,8 +323,6 @@
         (trap)))
 
 
+(# "eom"))
 
 
-
-
-)

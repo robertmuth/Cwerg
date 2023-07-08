@@ -16,7 +16,7 @@
             :)
         (+= i 1)
         (if (< i n) :
-            continue
+            (continue)
             :
             (return true))))
 
@@ -44,7 +44,7 @@
             :)
         (+= i 1)
         (if (<= i n) :
-            continue
+            (continue)
             :
             (return NOT_FOUND))))
 
@@ -73,7 +73,7 @@
             (return NOT_FOUND)
             :)
         (-= i 1)
-        continue))
+        (continue)))
 
 
 (fun pub starts_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
@@ -118,7 +118,7 @@
     (block _ :
         (if (< i n) :
             :
-            break)
+            (break))
         (let a u8 (^ (incp aptr i undef)))
         (let b u8 (^ (incp bptr i undef)))
         (cond :
@@ -128,7 +128,7 @@
             (case true :
                 (return 1)))
         (+= i 1)
-        continue)
+        (continue))
     (# "the common prefix is the same")
     (cond :
         (case (== alen blen) :
@@ -150,7 +150,7 @@
             :)
         (+= i 1)
         (if (< i n) :
-            continue
+            (continue)
             :
             (return false))))
 
@@ -173,7 +173,7 @@
             :)
         (+= i 1)
         (if (< i hlen) :
-            continue
+            (continue)
             :
             (return NOT_FOUND))))
 
@@ -196,7 +196,7 @@
             (return i))
         (+= i 1)
         (if (< i hlen) :
-            continue
+            (continue)
             :
             (return NOT_FOUND))))
 
@@ -221,7 +221,7 @@
         (if (== i 0) :
             (return NOT_FOUND)
             :)
-        continue))
+        (continue)))
 
 
 (fun pub find_last_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
@@ -244,8 +244,7 @@
         (if (== i 0) :
             (return NOT_FOUND)
             :)
-        continue))
-
-)
+        (continue)))
 
 
+(# "eom"))

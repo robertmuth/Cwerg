@@ -30,6 +30,8 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return "auto"
     elif isinstance(node, cwast.Id):
         return node.name
+    elif isinstance(node, cwast.MacroId):
+        return node.name
     elif isinstance(node, cwast.ValTrue):
         return "true"
     elif isinstance(node, cwast.ValFalse):
@@ -41,9 +43,9 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValString):
         return node.string
     elif isinstance(node, cwast.StmtBreak) and node.target == "":
-        return "break"
+        return "(break)"
     elif isinstance(node, cwast.StmtContinue) and node.target == "":
-        return "continue"
+        return "(continue)"
     else:
         return None
 
