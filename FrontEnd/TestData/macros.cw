@@ -54,7 +54,7 @@
 
 (macro product STMT_LIST [(mparam $result ID) (mparam $factors STMT_LIST)] [] :
     (macro_for $x $factors :
-        (= (macro_id $result) (* (macro_id $result) (macro_id $x)))))
+        (= $result (* $result $x))))
 
 
 (fun TestProductMacro [] u32 :

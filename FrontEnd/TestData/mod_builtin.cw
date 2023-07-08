@@ -68,7 +68,7 @@
         (param src (ptr u8))
         (param size uint)] uint :
     (for i uint 0 size 1 :
-        (= (^ (incp dst i undef)) (^ (incp src i undef))))
+        (= (^ (incp dst i)) (^ (incp src i))))
     (return size))
 
 
@@ -104,7 +104,7 @@
     (expr :
         (# "unsigned to str with given base")
         (macro_let mut $v auto $val)
-        (macro_let mut $tmp auto (array_val $max_width u8 []))
+        (macro_let mut $tmp auto (array_val $max_width u8))
         (macro_let mut $pos uint $max_width)
         (block _ :
             (-= $pos 1)
@@ -119,7 +119,7 @@
         (let n uint (min (- $max_width $pos) (len $out)))
         (return (call mymemcpy [
                 (front mut $out)
-                (incp (front $tmp) $pos undef)
+                (incp (front $tmp) $pos)
                 n]))))
 
 
@@ -256,31 +256,31 @@
     (let mut exp auto (- exp_bits 1023))
     (let mut i uint 0)
     (if (!= sign_bit 0) :
-        (= (^ (incp buf i undef)) '-')
+        (= (^ (incp buf i)) '-')
         (+= i 1)
         :)
-    (= (^ (incp buf i undef)) '0')
+    (= (^ (incp buf i)) '0')
     (+= i 1)
-    (= (^ (incp buf i undef)) 'x')
+    (= (^ (incp buf i)) 'x')
     (+= i 1)
-    (= (^ (incp buf i undef)) (? (== exp_bits 0) '0' '1'))
+    (= (^ (incp buf i)) (? (== exp_bits 0) '0' '1'))
     (+= i 1)
-    (= (^ (incp buf i undef)) '.')
+    (= (^ (incp buf i)) '.')
     (+= i 1)
     (while (!= frac_bits 0) :
         (let c auto (as (>> frac_bits 48) u8))
-        (= (^ (incp buf i undef)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
+        (= (^ (incp buf i)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
         (+= i 1)
         (and= frac_bits 0xffff_ffff_ffff)
         (<<= frac_bits 4))
-    (= (^ (incp buf i undef)) 'p')
+    (= (^ (incp buf i)) 'p')
     (+= i 1)
     (if (< exp 0) :
-        (= (^ (incp buf i undef)) '-')
+        (= (^ (incp buf i)) '-')
         (+= i 1)
         (= exp (- 0_s64 exp))
         :)
-    (let rest auto (slice_val (incp buf i undef) (- (len out) i)))
+    (let rest auto (slice_val (incp buf i) (- (len out) i)))
     (+= i (call u64_to_str [(as exp u64) rest]))
     (return i))
 
@@ -298,20 +298,20 @@
 (macro pub print STMT_LIST [
         (# "list of items to be printed")
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
-    (macro_let mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8 []))
+    (macro_let mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     (macro_let mut $curr uint 0)
     (macro_let mut ref $options auto (rec_val SysFormatOptions []))
     (macro_for $i $parts :
         (+= $curr (call polymorphic SysRender [
                 $i
-                (slice_val (incp (front mut $buffer) $curr undef) (- (len $buffer) $curr))
+                (slice_val (incp (front mut $buffer) $curr) (- (len $buffer) $curr))
                 (& mut $options)])))
     (stmt (call SysPrint [(slice_val (front $buffer) $curr)])))
 
 
 (fun strz_to_slice [(param s (ptr u8))] (slice u8) :
     (let mut i uint 0)
-    (while (!= (^ (incp s i undef)) 0) :
+    (while (!= (^ (incp s i)) 0) :
         (+= i 1))
     (return (slice_val s i)))
 

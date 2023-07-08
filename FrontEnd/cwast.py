@@ -478,19 +478,60 @@ ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 
 # Optional fields must come last in a dataclass
-OPTIONAL_FIELDS = {
-    "expr_ret": lambda srcloc: ValVoid(x_srcloc=srcloc),
-    "value_or_auto": lambda srcloc: ValAuto(x_srcloc=srcloc),
-    "target": lambda srcloc: "",
-    "path": lambda srcloc: "",
-    "alias": lambda srcloc: "",
-    "message": lambda srcloc: "",
-    "init_index": lambda srcloc: ValAuto(x_srcloc=srcloc),
-    "init_field": lambda srcloc: "",
-    "inits_array": lambda srcloc: [],
-    "expr_bound_or_undef": lambda srcloc: ValUndef(x_srcloc=srcloc),
+_OPTIONAL_FIELDS = {
+    "expr_ret": "@ValVoid",
+    "value_or_auto": "@ValAuto",
+    "target": "",
+    "path": "",
+    "alias": "",
+    "message": "",
+    "init_index": "@ValAuto",
+    "init_field": "",
+    "inits_array": "@EmptyList",
+    "expr_bound_or_undef": "@ValUndef",
 }
 
+
+def GetOptional(field: str, srcloc):
+    e = _OPTIONAL_FIELDS.get(field)
+    if e is None:
+        return e
+
+    assert isinstance(e, str)
+    if e == "@EmptyList":
+        return []
+    elif e == "":
+        return ""
+    elif e == "@ValVoid":
+        return ValVoid(x_srcloc=srcloc)
+    elif e == "@ValAuto":
+        return ValAuto(x_srcloc=srcloc)
+    elif e == "@ValUndef":
+        return ValUndef(x_srcloc=srcloc)
+    else:
+        assert False
+
+def IsFieldWithDefaultValue(field, val):
+    e = _OPTIONAL_FIELDS.get(field)
+    if e is None:
+        return False
+
+    assert isinstance(e, str)
+    if e == "@EmptyList":
+        return len(val) == 0
+    elif e == "":
+        return val == ""
+    elif e == "@ValVoid":
+        return isinstance(val, ValVoid)
+    elif e == "@ValAuto":
+        return isinstance(val, ValAuto)
+    elif e == "@ValUndef":
+        return isinstance(val, ValUndef)
+    else:
+        assert False
+
+    
+    
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     #
@@ -545,7 +586,7 @@ def _CheckNodeFieldOrder(obj):
                 assert x in obj.FLAGS, f"{obj} {field} {x}"
             continue
         nfd = ALL_FIELDS_MAP[field]
-        if field in OPTIONAL_FIELDS:
+        if field in _OPTIONAL_FIELDS:
             seen_optional = True
         else:
             assert not seen_optional, f"in {obj.__name__} optional fields must come last: {field}"
@@ -1987,10 +2028,10 @@ class DefGlobal:
 @dataclasses.dataclass()
 class DefFun:
     """Function definition
-    
-    
+
+
     `init` and `fini` indicate module initializer/finalizers
-    
+
     `extern` indicates a prototype and hence the function body must be empty.
     """
     ALIAS = "fun"
@@ -2611,14 +2652,13 @@ def GenerateDocumentation(fout):
                 nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 extra = ""
-                optional_fun = OPTIONAL_FIELDS.get(field)
-                if optional_fun is not None:
-                    optional_val = optional_fun(0)
+                optional_val = GetOptional(field, 0)
+                if optional_val is not None:
                     if optional_val == "":
                         extra = f' (default "")'
                     elif isinstance(optional_val, ValNum):
                         extra = f' (default {optional_val.number})'
-                    elif optional_val is not None:
+                    else:
                         extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
 

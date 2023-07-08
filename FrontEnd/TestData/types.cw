@@ -26,10 +26,10 @@
 
 (enum pub type_enum S32 :
     (# "this is a comment with \" with quotes \t ")
-    (entry s1 (auto_val))
-    (entry s2 (auto_val))
-    (entry s3 (auto_val))
-    (entry s4 (auto_val)))
+    (entry s1)
+    (entry s2)
+    (entry s3)
+    (entry s4))
 
 
 (type type_array (array 3 bool))

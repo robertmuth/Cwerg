@@ -68,9 +68,9 @@
 (enum pub type_enum S32 :
     (# "this is a comment with \" with quotes \t ")
     (entry s1 7)
-    (entry s2 (auto_val))
+    (entry s2)
     (entry s3 19)
-    (entry s4 (auto_val)))
+    (entry s4))
 
 )
 
@@ -112,10 +112,10 @@
     (let p3 auto (? false p1 p2))
     (block my_block :
         (# "this is a comment with \" with quotes \t ")
-        break
-        continue
-        (break my_block)
-        (continue my_block))
+        (break)
+        (continue)
+        (break)
+        (continue))
     (return p1))
 
 

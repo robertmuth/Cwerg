@@ -311,10 +311,11 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
-            if field not in cwast.OPTIONAL_FIELDS:
+            optional_val = cwast.GetOptional(field, srcloc)
+            if optional_val is None:
                 cwast.CompilerError(
                     stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
-            pieces.append(cwast.OPTIONAL_FIELDS[field](srcloc))
+            pieces.append(optional_val)
         elif nfd.kind is cwast.NFK.FLAG:
             if token == field:
                 pieces.append(True)

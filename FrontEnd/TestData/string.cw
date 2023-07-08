@@ -1,7 +1,7 @@
 (module main [] :
-(import test )
+(import test)
 
-(import string )
+(import string)
 
 (global STR_ABC auto "ABC")
 

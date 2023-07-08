@@ -239,10 +239,10 @@ Fields:
 
 ### DefFun (fun)
 Function definition
-    
-    
+
+
     `init` and `fini` indicate module initializer/finalizers
-    
+
     `extern` indicates a prototype and hence the function body must be empty.
     
 

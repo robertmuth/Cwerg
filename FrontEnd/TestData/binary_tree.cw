@@ -19,7 +19,7 @@
 
 
 (fun InorderTraversal [(param root MaybeNode) (param visitor Visitor)] void :
-    (try node (ptr mut BinaryTreeNode) root _ [(return void_val)])
+    (try node (ptr mut BinaryTreeNode) root _ [(return)])
     (stmt (call InorderTraversal [(. (^ node) left) visitor]))
     (stmt (call visitor [node]))
     (stmt (call InorderTraversal [(. (^ node) right) visitor])))

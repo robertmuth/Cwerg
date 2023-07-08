@@ -42,17 +42,8 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return "void_val"
     elif isinstance(node, cwast.ValString):
         return node.string
-    elif isinstance(node, cwast.StmtBreak) and node.target == "":
-        return "(break)"
-    elif isinstance(node, cwast.StmtContinue) and node.target == "":
-        return "(continue)"
     else:
         return None
-
-
-def IsFieldWithDefaultValue(field, val):
-    expected = cwast.OPTIONAL_FIELDS.get(field)
-    return val == expected
 
 
 def GetNodeTypeAndFields(node, condense=True):
@@ -183,7 +174,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
         if field_kind is cwast.NFK.FLAG:
             if val:
                 line.append(" " + field)
-        elif IsFieldWithDefaultValue(field, val):
+        elif cwast.IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
             line.append(" " + str(val))
@@ -385,13 +376,15 @@ def ConcreteSyntaxFunParams(params: List[cwast.FunParam]) -> str:
     out = [f"{p.name} {ConcreteSyntaxType(p.type)}" for p in params]
     return ", ".join(out)
 
+
 def ConcreteSyntaxColonList(lst, indent):
     if not lst:
         print(" " * (indent + 4) + "pass")
     else:
         for a in lst:
-            ConcreteSyntaxStmt(a, indent+4)   
-            
+            ConcreteSyntaxStmt(a, indent+4)
+
+
 def ConcreteSyntaxStmt(node, indent):
     prefix = " " * indent
     if isinstance(node, cwast.Id):
@@ -411,7 +404,8 @@ def ConcreteSyntaxStmt(node, indent):
     elif isinstance(node, cwast.StmtCompoundAssignment):
         print(f"{prefix} {ConcreteSyntaxExpr(node.lhs)} {node.assignment_kind} {ConcreteSyntaxExpr(node.expr_rhs)}")
     elif isinstance(node, cwast.StmtAssignment):
-        print(f"{prefix} {ConcreteSyntaxExpr(node.lhs)} = {ConcreteSyntaxExpr(node.expr_rhs)}")
+        print(
+            f"{prefix} {ConcreteSyntaxExpr(node.lhs)} = {ConcreteSyntaxExpr(node.expr_rhs)}")
     elif isinstance(node, cwast.StmtIf):
         print(f"{prefix}if {ConcreteSyntaxExpr(node.cond)}:")
         ConcreteSyntaxColonList(node.body_t, indent + 4)

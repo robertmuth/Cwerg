@@ -6,15 +6,15 @@
 
 
 (global c1 auto (array_val 10 s32 [
-        (index_val 1 (auto_val))
-        (index_val 2 (auto_val))
-        (index_val 3 (auto_val))]))
+        (index_val 1)
+        (index_val 2)
+        (index_val 3)]))
 
 
 (global mut c2 auto (array_val 10 s32 [
-        (index_val 1 (auto_val))
-        (index_val 2 (auto_val))
-        (index_val 3 (auto_val))]))
+        (index_val 1)
+        (index_val 2)
+        (index_val 3)]))
 
 
 (# "(let c20 auto (len c1)")
@@ -31,15 +31,15 @@
 
 
 (global d1 auto (array_val 10 s32 [
-        (index_val 1 (auto_val))
-        (index_val 2 (auto_val))
-        (index_val 3 (auto_val))]))
+        (index_val 1)
+        (index_val 2)
+        (index_val 3)]))
 
 
 (global mut d2 auto (array_val 10 s32 [
-        (index_val 1 (auto_val))
-        (index_val 2 (auto_val))
-        (index_val 3 (auto_val))]))
+        (index_val 1)
+        (index_val 2)
+        (index_val 3)]))
 
 
 (global e1 (slice s32) d1)

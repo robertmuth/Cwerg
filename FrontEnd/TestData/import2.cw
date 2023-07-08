@@ -29,7 +29,7 @@
 
 
 (module mod11 [] :
-(import mod1 )
+(import mod1)
 
 (global var auto (+ mod1::var 11))
 
@@ -37,9 +37,9 @@
 
 
 (module mod12 [] :
-(import mod1 )
+(import mod1)
 
-(import mod2 )
+(import mod2)
 
 (global var auto (+ mod1::var mod2::var))
 
@@ -49,7 +49,7 @@
 (module mod13 [] :
 (import mod2 mod102)
 
-(import mod1 )
+(import mod1)
 
 (global var auto (+ mod1::var mod102::var))
 
@@ -57,7 +57,7 @@
 
 
 (module mod14 [] :
-(import mod1 )
+(import mod1)
 
 (global var auto (+ mod1::var 14))
 
@@ -65,7 +65,7 @@
 
 
 (module mod15 [] :
-(import mod1 )
+(import mod1)
 
 (global var auto (+ mod1::var 15))
 
@@ -73,7 +73,7 @@
 
 
 (module mod16 [] :
-(import mod2 )
+(import mod2)
 
 (import mod1 mod101)
 

@@ -1,6 +1,6 @@
 (module main [] :
 (# "sieve")
-(import test )
+(import test)
 
 (global SIZE uint 1000000)
 

@@ -1,5 +1,5 @@
 (module main [] :
-(import test )
+(import test)
 
 (defrec pub type_rec1 :
     (# "this is a comment with \" with quotes \t ")
@@ -43,20 +43,20 @@
 (global g1 (array 5 type_rec1) undef)
 
 
-(global g2 auto (rec_val type_rec2 [(field_val true t1) (field_val u0 t2)]))
+(global g2 auto (rec_val type_rec2 [(field_val true) (field_val u0)]))
 
 
 (global mut g3 auto (rec_val type_rec3 [
-        (field_val 0x1234 )
-        (field_val 0x4321 )
-        (field_val g2 )
+        (field_val 0x1234)
+        (field_val 0x4321)
+        (field_val g2)
         (field_val (array_val 13 u16 [
-                (index_val 0x11 (auto_val))
-                (index_val undef (auto_val))
-                (index_val 0x12 (auto_val))]) )]))
+                (index_val 0x11)
+                (index_val undef)
+                (index_val 0x12)]))]))
 
 
-(global g4 auto (array_val 4 type_rec2 [(index_val undef (auto_val)) (index_val g2 (auto_val))]))
+(global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
