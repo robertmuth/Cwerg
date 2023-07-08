@@ -75,8 +75,8 @@
     (field width u32)
     (field height u32)
     (field char_map (array (* MAX_DIM MAX_DIM) u8))
-    (field attr_map (array (* MAX_DIM MAX_DIM) u8)))
-
+    (field attr_map (array (* MAX_DIM MAX_DIM) u8))
+    (field depth_map (array (* MAX_DIM MAX_DIM) u8)))
 
 (defrec pub Object :
     (field name (slice u8))
@@ -88,11 +88,13 @@
 )
 
 (defrec pub ObjectState :
-    (field x u32)
-    (field w u32)
+    (field start_cycle u32)
+    (field x_pos u32)
+    (field y_pos u32)
+    (field x_speed r32)
+    (field y_speed r32)
     (field attr_lookup (slice u8))
     (field def_attr u8)
-    (field start_cycle u32)
     (# "updated by draw")
     (field out_of_bounds bool))
 
@@ -165,7 +167,7 @@
                (case true : (= a cc))
             )
         :)
-
+  
         (# "determine character")
         (let c u8 (at image_map ipos))
         (if (== c '\n') :
@@ -184,11 +186,14 @@
             (= left_side false) 
         :)
         
-        (if (&& (! left_side) (!= c (. (^ obj) transparent_char))) :
-            (if (&& (< x width) (< y height)) :
-                (let i auto (+ (* y width) x))            
-                (= (at  (. (^ window) char_map) i) c)
-                (= (at  (. (^ window) attr_map) i) a)
+        (let index auto (+ (* y width) x))
+        (if (!= 0_u8 (at  (. (^ window) depth_map) index)) :       
+            (if (&& (! left_side) (!= c (. (^ obj) transparent_char))) :
+                (if (&& (< x width) (< y height)) :
+                    (let i auto (+ (* y width) x))            
+                    (= (at  (. (^ window) char_map) index) c)
+                    (= (at  (. (^ window) attr_map) index) a)
+                :)
             :)
         :)
 
@@ -231,6 +236,7 @@
     (for i u32 0 size 1 :
         (= (at  (. (^ obj) char_map) i) c)
         (= (at  (. (^ obj) attr_map) i) a)
+        (= (at  (. (^ obj) depth_map) i) 255)
     )
 )
 
@@ -604,6 +610,10 @@ y                   y
 (import aanim)
 (import ansi)
 
+
+(global mut all_objects auto (array_val 100 aanim::Object []))
+
+
 (# "main module with program entry point `main`")
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
@@ -620,13 +630,14 @@ y                   y
 
     (let mut ref rem TimeSpec undef)
 
+
     (let ref window auto (rec_val aanim::Window [
         (field_val w)
         (field_val h)
     ])
     )
 
-    (# """(stmt (call aanim::window_fill [(& mut window) '#' 'y']))""")
+    (stmt (call aanim::window_fill [(& mut window) ' ' ' ']))
     (stmt (call aanim::draw [(& mut window) 
                              (& artwork::Castle) 
                              1 1 (. artwork::Castle def_attr) 
@@ -654,6 +665,10 @@ y                   y
     (stmt (call aanim::draw [(& mut window) 
                              (& artwork::SharkR) 
                              40 10 (. artwork::SharkR def_attr) 
+                             artwork::RandomColor]))       
+    (stmt (call aanim::draw [(& mut window) 
+                             (& artwork::ShipR) 
+                             40 10 (. artwork::ShipR def_attr) 
                              artwork::RandomColor]))               
     (stmt (call aanim::window_draw [(& window) 'k' ]))
     
