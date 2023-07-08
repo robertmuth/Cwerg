@@ -41,7 +41,8 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValVoid):
         return "void_val"
     elif isinstance(node, cwast.ValString):
-        return node.string
+        prefix = "r" if node.raw else ""
+        return prefix + node.string
     else:
         return None
 
