@@ -128,15 +128,17 @@ class _PolyMap:
         out = self._map.get((fun_name, type_name))
         if out:
             return out
-        # TODO: why do we need this - seem unsafe:
+        # TODO: why do we need this - seems unsafe:
         if isinstance(first_param_type, cwast.TypeArray):
             slice_type = self._type_corpus. insert_slice_type(
                 False, first_param_type.type)
-        type_name = self._type_corpus.canon_name(slice_type)
+            type_name = self._type_corpus.canon_name(slice_type)
+        else:
+            type_name = self._type_corpus.canon_name(first_param_type)
         out = self._map.get((fun_name, type_name))
         if out:
             return out
-        assert False, f"cannot resolve polymorphic {fun_name}"
+        cwast.CompilerError(0, f"cannot resolve polymorphic {fun_name} {type_name}")
 
 
 class _TypeContext:
