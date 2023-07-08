@@ -351,7 +351,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               "Expr1", "Expr2", "Expr3", "ExprPointer",
               "ExprLen", "ExprFront", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
-              "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs")
+              "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs", "ExprBitCast")
 NODES_EXPR_T = Union[NODES_EXPR]
 
 NODES_COND = ("ValFalse", "ValTrue",
@@ -467,7 +467,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "value_or_undef", "", None),
     NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
     NFD(NFK.NODE, "expr_lhs", "l-value expression", NODES_LHS),
-    NFD(NFK.NODE, "initial_or_undef", "initializer", None),
+    NFD(NFK.NODE, "initial_or_undef", "initializer", NODES_EXPR),
     NFD(NFK.NODE, "default_or_undef",
         "value if type narrowing fail or trap if undef", None),
 ]

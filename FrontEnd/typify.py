@@ -522,7 +522,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
     elif isinstance(node, cwast.ExprOffsetof):
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
         field_node = tc.lookup_rec_field(cstr, node.field)
-        if not field_cstr:
+        if not field_node:
             cwast.CompilerError(node.x_srcloc, f"unknown record field {node.field}")
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(tc, node, tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT))

@@ -703,6 +703,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
         if isinstance(cstr, cwast.TypeBase):
             return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
         elif isinstance(cstr, cwast.TypeArray):
+            assert isinstance(node, (cwast.ValArray, cwast.ValString)), f"{node}"
             print(f"# array: {tc.canon_name(cstr)}")
             width = cstr.size.x_value
             x_type = cstr.type
@@ -721,7 +722,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
                         out += _InitDataForBaseType(x_type, v)
                     return _EmitMem(out, tc.canon_name(cstr))
             else:
-                assert isinstance(node, cwast.ValArray)
+                assert isinstance(node, cwast.ValArray), f"{node}"
                 last = cwast.ValUndef()
                 stride = cstr.x_size // width
                 assert stride * width == cstr.x_size, f"{cstr.x_size} {width}"
