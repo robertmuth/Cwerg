@@ -678,7 +678,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
             _CheckTypeUint(node, tc, node.expr_bound_or_undef.x_type)
         assert isinstance(node.expr1.x_type, (cwast.TypePtr, cwast.TypeSlice))
-        _CheckTypeUint(node, tc, node.expr2.x_type)
+        # _CheckTypeUint(node, tc, node.expr2.x_type)
         _CheckTypeSame(node, tc, node.expr1.x_type, node.x_type)
     elif isinstance(node, cwast.ExprFront):
         assert isinstance(node.container.x_type,

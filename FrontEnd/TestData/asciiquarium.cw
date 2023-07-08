@@ -69,11 +69,11 @@
 (import ansi)
 
 (# "arbitrary bound so we can statically allocate maps")
-(global MAX_DIM u32 1024)
+(global MAX_DIM s32 1024)
 
 (defrec pub Window :
-    (field width u32)
-    (field height u32)
+    (field width s32)
+    (field height s32)
     (field char_map (array (* MAX_DIM MAX_DIM) u8))
     (field attr_map (array (* MAX_DIM MAX_DIM) u8))
     (field depth_map (array (* MAX_DIM MAX_DIM) u8)))
@@ -83,14 +83,14 @@
     (field image_map (slice u8))
     (field color_map (slice u8))
     (field def_attr u8)
-    (field def_z s32)
+    (field def_z s8)
     (field transparent_char u8)
 )
 
 (defrec pub ObjectState :
     (field start_cycle u32)
-    (field x_pos u32)
-    (field y_pos u32)
+    (field x_pos s32)
+    (field y_pos s32)
     (field x_speed r32)
     (field y_speed r32)
     (field attr_lookup (slice u8))
@@ -139,8 +139,8 @@
 
 (fun pub draw [(param window (ptr mut Window))
                (param obj (ptr Object)) 
-               (param xx u32) 
-               (param yy u32) 
+               (param xx s32) 
+               (param yy s32) 
                (param def_attr u8)
                (param colors (slice u8))] void :
     (let width auto (. (^ window) width))
@@ -148,8 +148,8 @@
 
     (let image_map auto (. (^ obj) image_map))
     (let color_map auto (. (^ obj) color_map))
-    (let mut x u32 xx)
-    (let mut y u32 yy)
+    (let mut x s32 xx)
+    (let mut y s32 yy)
     (let mut left_side auto true)
     (let mut have_color auto true)
 
@@ -209,9 +209,9 @@
 
     (# "@ is an invalid attrib")
     (let mut last_attr u8 '@')
-    (for x u32 0 w 1 :
+    (for x s32 0 w 1 :
         (let mut last_x auto MAX_DIM)
-        (for y u32 0 h 1 :
+        (for y s32 0 h 1 :
           (let index auto (+ (* y w) x))
           (let c auto (at (. (^ obj) char_map) index))
           (let a auto (at (. (^ obj) attr_map) index))
@@ -232,16 +232,15 @@
 )
 
 (fun pub window_fill [(param obj (ptr mut Window)) (param c u8) (param a u8)] void :
-    (let size u32 (* (. (^ obj) width) (. (^ obj) height)))
-    (for i u32 0 size 1 :
+    (let size auto (* (. (^ obj) width) (. (^ obj) height)))
+    (for i s32 0 size 1 :
         (= (at  (. (^ obj) char_map) i) c)
         (= (at  (. (^ obj) attr_map) i) a)
         (= (at  (. (^ obj) depth_map) i) 255)
     )
 )
 
-(# "eom")
-)
+(# "eom"))
 
 
 (module artwork [] :
@@ -632,8 +631,8 @@ y                   y
 
 
     (let ref window auto (rec_val aanim::Window [
-        (field_val w)
-        (field_val h)
+        (field_val (as w s32))
+        (field_val (as h s32))
     ])
     )
 
