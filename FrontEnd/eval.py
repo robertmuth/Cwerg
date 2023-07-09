@@ -39,7 +39,7 @@ def _VerifyEvalValue(val):
         assert val is not None
 
 
-def _AssignValue(node, val):
+def _AssignValue(node, val) -> bool:
     _VerifyEvalValue(val)
 
     if isinstance(val, list):
@@ -199,18 +199,18 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _EvalAuto(node: cwast.ValAuto):
+def _EvalAuto(node: cwast.ValAuto) -> bool:
     if isinstance(node.x_type, cwast.TypeBase):
         if types.is_bool(node.x_type):
-            _AssignValue(node, False)
+            return _AssignValue(node, False)
         elif types.is_int(node.x_type):
-            _AssignValue(node, 0)
+            return _AssignValue(node, 0)
         elif types.is_real(node.x_type):
-            _AssignValue(node, 0.0)
+            return _AssignValue(node, 0.0)
     elif isinstance(node, cwast.TypePtr):
         assert False
     else:
-        pass
+        return False
 
 
 def _EvalNode(node: cwast.ALL_NODES) -> bool:
@@ -221,8 +221,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         assert def_node is not None
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
             initial = def_node.initial_or_undef_or_auto
-            if isinstance(initial, cwast.ValAuto):
-                _EvalAuto(initial)
             if not def_node.mut and initial.x_value is not None:
                 return _AssignValue(node, initial.x_value)
         elif isinstance(def_node, cwast.EnumVal):
@@ -361,6 +359,12 @@ def EvalRecursively(node) -> bool:
 
     def visitor(node, _):
         nonlocal seen_change
+        if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
+            initial = node.initial_or_undef_or_auto
+            if initial.x_value is not None:
+                return
+            if isinstance(initial, cwast.ValAuto): 
+                seen_change |= _EvalAuto(initial)
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return
         if node.x_value is not None:
@@ -383,6 +387,10 @@ def VerifyASTEvalsRecursively(node):
         # logger.info(f"EVAL-VERIFY: {node}")
         if isinstance(node, cwast.ValUndef):
             return
+
+        if isinstance(node, cwast.StmtStaticAssert):
+            assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
+
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             # we must be able to initialize data these at compile time
             is_const = isinstance(
@@ -423,9 +431,6 @@ def VerifyASTEvalsRecursively(node):
         if field == "init_index":
             assert node.x_value is not None or isinstance(node,
                                                           cwast.ValAuto), f"unevaluated ValArray init index: {node}"
-
-        if isinstance(node, cwast.StmtStaticAssert):
-            assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeArray):

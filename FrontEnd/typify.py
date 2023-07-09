@@ -307,7 +307,8 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         cwast.CompilerError(
             node.x_srcloc, f"cannot determine number type of: {node}")
     elif isinstance(node, cwast.ValAuto):
-        assert False, "Must not try to typify ValAuto"
+        assert target_type is not None
+        return AnnotateNodeType(tc, node, target_type)
     elif isinstance(node, cwast.IndexVal):
         if not isinstance(node.value_or_undef, cwast.ValUndef):
             _TypifyNodeRecursively(node.value_or_undef,

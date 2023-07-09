@@ -1,4 +1,30 @@
 (module m1 [] :
+
+
+(global a1 u32 7)
+(static_assert (== a1 7))
+
+(global a2 u32)
+(static_assert (== a2 0))
+
+(global a3 s32 -1)
+(static_assert (== a3 -1))
+
+(global a4 s32)
+(static_assert (== a4 0))
+
+(global a5 r32 1.0_r32)
+(static_assert (== a5 1.0_r32))
+
+(global a6 r32)
+(static_assert (== a6 0.0_r32))
+
+(global a7 bool true)
+(static_assert (== a7 true))
+
+(global a8 bool)
+(static_assert (== a8 false))
+
 (defrec pub type_rec :
     (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
