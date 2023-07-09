@@ -341,7 +341,7 @@ NODES_FIELDS_T = Union[NODES_FIELDS]
 NODES_CASES = ("Comment", "Case")
 NODES_CASES_T = Union[NODES_CASES]
 
-NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
+NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", 
               "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
               #
               "MacroInvoke",
@@ -352,7 +352,13 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", "ValUndef",
               "ExprLen", "ExprFront", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs", "ExprBitCast")
+
+
 NODES_EXPR_T = Union[NODES_EXPR]
+
+NODES_EXPR_OR_UNDEF = NODES_EXPR + ("ValUndef",)
+
+NODES_EXPR_INIT = NODES_EXPR + ("ValAuto", "ValUndef")
 
 NODES_COND = ("ValFalse", "ValTrue",
               #
@@ -444,10 +450,10 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "type", "type expression", NODES_TYPES),
     NFD(NFK.NODE, "type_or_auto", "type expression", NODES_TYPES_OR_AUTO),
     NFD(NFK.NODE, "result", "return type", None),
-    NFD(NFK.NODE, "size", "compile-time constant size", None),
+    NFD(NFK.NODE, "size", "compile-time constant size", NODES_EXPR),
     NFD(NFK.NODE, "expr_size", "expression determining the size or auto", None),
     NFD(NFK.NODE, "expr_index",
-        "expression determining the index to be accessed", None),
+        "expression determining the index to be accessed", NODES_EXPR),
     NFD(NFK.NODE, "expr", "expression", NODES_EXPR),
     NFD(NFK.NODE, "cond", "conditional expression must evaluate to a boolean", NODES_COND),
     NFD(NFK.NODE, "expr_t",
@@ -456,7 +462,7 @@ ALL_FIELDS = [
         "expression (will only be evaluated if cond == false)", NODES_EXPR),
     NFD(NFK.NODE, "expr1", "left operand expression", NODES_EXPR),
     NFD(NFK.NODE, "expr2", "righ operand expression", NODES_EXPR),
-    NFD(NFK.NODE, "expr_bound_or_undef", "", NODES_EXPR),
+    NFD(NFK.NODE, "expr_bound_or_undef", "", NODES_EXPR_OR_UNDEF),
     NFD(NFK.NODE, "expr_rhs", "rhs of assignment", NODES_EXPR),
     NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)", NODES_EXPR),
     NFD(NFK.NODE, "pointer", "pointer component of slice", None),
@@ -464,10 +470,10 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "callee", "expression evaluating to the function to be called", None),
     NFD(NFK.NODE, "value", "", NODES_EXPR),
     NFD(NFK.NODE, "value_or_auto", "enum constant or auto", None),
-    NFD(NFK.NODE, "value_or_undef", "", None),
+    NFD(NFK.NODE, "value_or_undef", "", NODES_EXPR_OR_UNDEF),
     NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
     NFD(NFK.NODE, "expr_lhs", "l-value expression", NODES_LHS),
-    NFD(NFK.NODE, "initial_or_undef", "initializer", NODES_EXPR),
+    NFD(NFK.NODE, "initial_or_undef_or_auto", "initializer", NODES_EXPR_INIT),
     NFD(NFK.NODE, "default_or_undef",
         "value if type narrowing fail or trap if undef", None),
 ]
@@ -485,6 +491,7 @@ _OPTIONAL_FIELDS = {
     "path": "",
     "alias": "",
     "message": "",
+    "initial_or_undef_or_auto": "@ValAuto",
     "init_index": "@ValAuto",
     "init_field": "",
     "inits_array": "@EmptyList",
@@ -1979,7 +1986,7 @@ class DefType:
 class DefVar:
     """Variable definition at local scope (DefGlobal is used for global scope)
 
-    Allocates space on stack (or in a register) and initializes it with `initial_or_undef`.
+    Allocates space on stack (or in a register) and initializes it with `initial_or_undef_or_auto`.
     `mut` makes the allocated space read/write otherwise it is readonly.
     `ref` allows the address of the  variable to be taken and prevents register allocation.
 
@@ -1992,12 +1999,12 @@ class DefVar:
     ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
-    initial_or_undef: NODES_EXPR_T
+    initial_or_undef_or_auto: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon
@@ -2016,12 +2023,12 @@ class DefGlobal:
     mut: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
-    initial_or_undef: NODES_EXPR_T
+    initial_or_undef_or_auto: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon
@@ -2180,12 +2187,12 @@ class MacroVar:
     ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
-    initial_or_undef: NODES_EXPR_T
+    initial_or_undef_or_auto: NODES_EXPR_T
     #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef}"
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon

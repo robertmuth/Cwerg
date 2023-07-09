@@ -199,6 +199,20 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
+def _EvalAuto(node: cwast.ValAuto):
+    if isinstance(node.x_type, cwast.TypeBase):
+        if types.is_bool(node.x_type):
+            _AssignValue(node, False)
+        elif types.is_int(node.x_type):
+            _AssignValue(node, 0)
+        elif types.is_real(node.x_type):
+            _AssignValue(node, 0.0)
+    elif isinstance(node, cwast.TypePtr):
+        assert False
+    else:
+        pass
+
+
 def _EvalNode(node: cwast.ALL_NODES) -> bool:
 
     if isinstance(node, cwast.Id):
@@ -206,14 +220,13 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         def_node = node.x_symbol
         assert def_node is not None
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
-            if not def_node.mut and def_node.initial_or_undef.x_value is not None:
-                return _AssignValue(node, def_node.initial_or_undef.x_value)
+            initial = def_node.initial_or_undef_or_auto
+            if isinstance(initial, cwast.ValAuto):
+                _EvalAuto(initial)
+            if not def_node.mut and initial.x_value is not None:
+                return _AssignValue(node, initial.x_value)
         elif isinstance(def_node, cwast.EnumVal):
             return _AssignValue(node, def_node.value_or_auto.x_value)
-        return False
-    elif isinstance(node, cwast.RecField):
-        if node.initial_or_undef.x_value is not None:
-            return _AssignValue(node, node.initial_or_undef.x_value)
         return False
     elif isinstance(node, cwast.EnumVal):
         return False  # handles as part of DefEnum
@@ -237,6 +250,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             assert False, f"unepxected type for ValNum: {cstr}"
             return False
     elif isinstance(node, cwast.ValAuto):
+        # we do not evaluate this during the recursion
+        # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
     elif isinstance(node, cwast.IndexVal):
         if node.value_or_undef.x_value is not None:
@@ -273,7 +288,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return False
     elif isinstance(node, cwast.ExprField):
         if node.container.x_value is not None:
-            field_val =  node.container.x_value.get(node.field)
+            field_val = node.container.x_value.get(node.field)
             assert field_val is not None
             assert not isinstance(field_val, cwast.ValUndef)
             return _AssignValue(node, field_val)

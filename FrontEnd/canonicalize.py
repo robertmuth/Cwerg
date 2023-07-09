@@ -16,7 +16,7 @@ from FrontEnd import types
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
-                    x_value=def_node.initial_or_undef.x_value, x_symbol=def_node)
+                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifier.IdGen):
@@ -48,7 +48,7 @@ def _ShouldBeBoolExpanded(node, field):
     # * is not part of a conditional
     # * has a x_type
     return field in (
-        "args", "expr_rhs", "initial_or_undef", "value",
+        "args", "expr_rhs", "initial_or_undef_or_auto", "value",
         "value_or_undef") and types.is_bool(node.x_type)
 
 

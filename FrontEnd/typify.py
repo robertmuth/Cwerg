@@ -138,7 +138,8 @@ class _PolyMap:
         out = self._map.get((fun_name, type_name))
         if out:
             return out
-        cwast.CompilerError(0, f"cannot resolve polymorphic {fun_name} {type_name}")
+        cwast.CompilerError(
+            0, f"cannot resolve polymorphic {fun_name} {type_name}")
 
 
 class _TypeContext:
@@ -161,7 +162,7 @@ def _ComputeArrayLength(node) -> int:
         node = node.x_symbol
         return _ComputeArrayLength(node)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and not node.mut:
-        return _ComputeArrayLength(node.initial_or_undef)
+        return _ComputeArrayLength(node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Expr2):
         if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
             return _ComputeArrayLength(node.expr1) + _ComputeArrayLength(node.expr2)
@@ -362,21 +363,22 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         cstr = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
         field_node = tc.lookup_rec_field(cstr, node.field)
         if not field_node:
-            cwast.CompilerError(node.x_srcloc, f"unknown record field {node.field}")
+            cwast.CompilerError(
+                node.x_srcloc, f"unknown record field {node.field}")
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(tc, node, field_node.x_type)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+        initial = node.initial_or_undef_or_auto
         if isinstance(node.type_or_auto, cwast.TypeAuto):
-            assert not isinstance(node.initial_or_undef, cwast.ValUndef)
+            assert not isinstance(initial, cwast.ValUndef)
             cstr = _TypifyNodeRecursively(
-                node.initial_or_undef, tc, types.NO_TYPE, ctx)
+                node.initial_or_undef_or_auto, tc, types.NO_TYPE, ctx)
             _TypifyNodeRecursively(node.type_or_auto, tc, cstr, ctx)
         else:
             cstr = _TypifyNodeRecursively(
                 node.type_or_auto, tc, types.NO_TYPE, ctx)
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                cstr = _TypifyNodeRecursively(
-                    node.initial_or_undef, tc, cstr, ctx)
+            if not isinstance(initial, cwast.ValUndef):
+                cstr = _TypifyNodeRecursively(initial, tc, cstr, ctx)
         return types.NO_TYPE
     elif isinstance(node, cwast.ExprDeref):
         cstr = _TypifyNodeRecursively(node.expr, tc, types.NO_TYPE, ctx)
@@ -525,7 +527,8 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         cstr = _TypifyNodeRecursively(node.type, tc, types.NO_TYPE, ctx)
         field_node = tc.lookup_rec_field(cstr, node.field)
         if not field_node:
-            cwast.CompilerError(node.x_srcloc, f"unknown record field {node.field}")
+            cwast.CompilerError(
+                node.x_srcloc, f"unknown record field {node.field}")
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(tc, node, tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT))
     elif isinstance(node, cwast.ExprSizeof):
@@ -654,13 +657,13 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
         field_node = node.x_field
         assert cstr == field_node.x_type, f"field node {node.container.x_type} type mismatch: {cstr} {field_node.x_type}"
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-        if not isinstance(node.initial_or_undef, cwast.ValUndef):
+        initial = node.initial_or_undef_or_auto
+        if not isinstance(initial, cwast.ValUndef):
             cstr = node.type_or_auto.x_type
-            initial_cstr = node.initial_or_undef.x_type
+            initial_cstr = initial.x_type
             _CheckTypeCompatibleForAssignment(
-                node, tc, initial_cstr, cstr, types.is_mutable_def(
-                    node.initial_or_undef),
-                node.initial_or_undef.x_srcloc)
+                node, tc, initial_cstr, cstr, types.is_mutable_def(initial),
+                initial.x_srcloc)
     elif isinstance(node, cwast.ExprDeref):
         node_type = node.x_type
         expr_type = node.expr.x_type

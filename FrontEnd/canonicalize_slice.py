@@ -179,12 +179,13 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
                 node.value = _MakeValSliceFromArray(
                     node.value, node.x_type, tc, uint_type)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
-                if (node.type_or_auto.x_type != node.initial_or_undef.x_type and
+            initial = node.initial_or_undef_or_auto
+            if not isinstance(initial, cwast.ValUndef):
+                if (node.type_or_auto.x_type != initial.x_type and
                     isinstance(node.type_or_auto.x_type, cwast.TypeSlice) and
-                        isinstance(node.initial_or_undef.x_type, cwast.TypeArray)):
-                    node.initial_or_undef = _MakeValSliceFromArray(
-                        node.initial_or_undef, node.type_or_auto.x_type, tc, uint_type)
+                        isinstance(initial.x_type, cwast.TypeArray)):
+                    node.initial_or_undef_or_auto = _MakeValSliceFromArray(
+                        initial, node.type_or_auto.x_type, tc, uint_type)
         elif isinstance(node, cwast.StmtReturn):
             target = node.x_target
             expected = None

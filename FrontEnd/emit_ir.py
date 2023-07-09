@@ -575,20 +575,20 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
         def_type = node.type_or_auto.x_type
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
+        initial  = node.initial_or_undef_or_auto
         if _IsDefVarOnStack(node, tc):
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
-            if not isinstance(node.initial_or_undef, cwast.ValUndef):
+            if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
-                EmitIRExprToMemory(
-                    node.initial_or_undef,  BaseOffset(init_base, 0), tc, id_gen)
+                EmitIRExprToMemory(initial,  BaseOffset(init_base, 0), tc, id_gen)
         else:
-            if isinstance(node.initial_or_undef, cwast.ValUndef):
+            if isinstance(initial, cwast.ValUndef):
                 print(
                     f"{TAB}.reg {StringifyOneType(def_type, tc)} [{node.name}]")
             else:
-                out = EmitIRExpr(node.initial_or_undef, tc, id_gen)
-                assert out is not None, f"Failure to gen code for {node.initial_or_undef}"
+                out = EmitIRExpr(initial, tc, id_gen)
+                assert out is not None, f"Failure to gen code for {initial}"
                 print(
                     f"{TAB}mov {node.name}:{StringifyOneType(def_type, tc)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
@@ -696,7 +696,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
         if isinstance(node, cwast.Id):
             node_def = node.x_symbol
             assert isinstance(node_def, cwast.DefGlobal)
-            return _emit_recursively(node_def.initial_or_undef, cstr, offset)
+            return _emit_recursively(node_def.initial_or_undef_or_auto, cstr, offset)
         elif isinstance(node, cwast.ExprFront):
             # we need to emit an address
             assert isinstance(node.container, cwast.Id)
@@ -766,7 +766,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
         else:
             assert False, f"unhandled node for DefGlobal: {node} {cstr}"
 
-    _emit_recursively(node.initial_or_undef, node.type_or_auto.x_type, 0)
+    _emit_recursively(node.initial_or_undef_or_auto, node.type_or_auto.x_type, 0)
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGenIR):
