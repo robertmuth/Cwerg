@@ -56,10 +56,10 @@
 (global pub RESET_MODE_STRIKE_THROUGH auto "\x1b[28m")
 
 
-(global pub CURSOR_SHOW auto "\x1b[?25l")
+(global pub CURSOR_HIDE auto "\x1b[?25l")
 
 
-(global pub CURSOR_HIDE auto "\x1b[?25h")
+(global pub CURSOR_SHOW auto "\x1b[?25h")
 
 
 (macro POS EXPR_LIST [(mparam $x EXPR) (mparam $y EXPR)] [] :
@@ -188,7 +188,7 @@
     (field attr_lookup (slice u8))
     (field def_attr u8)
     (# "updated by draw")
-    (field out_of_bounds bool))
+    (field visible bool))
 
 
 (fun pub InitObjectState [
@@ -744,7 +744,9 @@ y                   y
         (field_val 2 def_depth)]))      
         
         
+(fun pub UpdateState [(param s (ptr mut aanim::ObjectState))] void :
 
+)
 
 (# "eom"))
 
@@ -769,7 +771,8 @@ y                   y
     (let arg_h (slice u8) (call strz_to_slice [(^ (incp argv 2))]))
     (let width s32 (as (call str_to_u32 [arg_w]) s32))
     (let height s32 (as (call str_to_u32 [arg_h]) s32))
-    (let ref req TimeSpec (rec_val TimeSpec [(field_val 1) (field_val 0)]))
+    (# "100ms per frame" )
+    (let ref req TimeSpec (rec_val TimeSpec [(field_val 0) (field_val 100000000)]))
     (let mut ref rem TimeSpec undef)
 
 
@@ -813,33 +816,32 @@ y                   y
     (= curr (incp curr 1))
     (# "")
 
-    (stmt (call aanim::window_fill [
-            (& mut window)
-            ' '
-            ' ']))
- 
-    (= curr (front mut all_objects))
-    (for i uint 0 9 1 :
-          (stmt (call aanim::draw [(& mut window) (incp curr i)]))
-    )
-    (# "")
-    (stmt (call aanim::window_draw [(& window) 'k']))
-    (return 0)
+     (print [ansi::CURSOR_HIDE])
+     (for t uint 0 50 1 :
 
-    (for i uint 3 100 1 :
-        (print [ansi::CLEAR_ALL])
-        (# """
-        (print [
-                (ansi::POS i i) 
-                (ansi::FG_COLOR 0_uint 0_uint 255_uint) 
-                "################################asciiquarium#######" 
-                (ansi::POS 20_uint 10_uint) 
-                (ansi::FG_COLOR 255_uint 0_uint 0_uint) 
-                w "x" h "\n" 
-                ])
-                """)
-        (stmt (call nanosleep [(& req) (& mut rem)])))
+        (stmt (call aanim::window_fill [
+                (& mut window)
+                ' '
+                ' ']))
+    
+        (= curr (front mut all_objects))
+        (for i uint 0 9 1 :
+            (stmt (call aanim::draw [(& mut window) (incp curr i)]))
+        )
+        (# "")
+        (stmt (call aanim::window_draw [(& window) 'k']))
+
+        (for i uint 0 9 1 :
+            (stmt (call artwork::UpdateState [ (incp curr i)]))
+        )
+        
+        (stmt (call nanosleep [(& req) (& mut rem)]))
+    )
+    (print [ansi::CURSOR_SHOW])
+
     (return 0))
+
+
 
 
 (# "eom"))
