@@ -347,7 +347,10 @@
         (print [(stringify $cond) $parts])
         (trap)))
 
-
+(# "macro for c-style -> operator")
+(macro pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
+    (. (^ $pointer) $field))
+    
 (# "eom"))
 
 
