@@ -9,6 +9,7 @@ import logging
 import argparse
 import dataclasses
 import enum
+import struct
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -96,7 +97,11 @@ def _InitDataForBaseType(x_type, x_value) -> bytes:
         return x_value.to_bytes(byte_width, 'little', signed=True)
     elif types.is_bool(x_type):
         return b"\1" if x_value else b"\0"
-    assert False
+    elif types.is_real(x_type):
+        fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
+        return struct.pack(fmt, x_value)
+    else:
+        assert False, f"unsupported type {x_type}"
 
 
 def RenderList(items):
@@ -340,6 +345,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         assert isinstance(sig, cwast.TypeFun)
         args = [EmitIRExpr(a, tc, id_gen) for a in node.args]
         for a in reversed(args):
+            assert not a.startswith("["), f"{a} {node.args[4]}"
             print(f"{TAB}pusharg {a}")
         if isinstance(node.callee, cwast.Id):
             print(f"{TAB}bsr {node.callee.x_symbol.name}")
@@ -703,13 +709,15 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
         if isinstance(cstr, cwast.TypeBase):
             return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
         elif isinstance(cstr, cwast.TypeArray):
-            assert isinstance(node, (cwast.ValArray, cwast.ValString)), f"{node}"
+            assert isinstance(
+                node, (cwast.ValArray, cwast.ValString)), f"{node}"
             print(f"# array: {tc.canon_name(cstr)}")
             width = cstr.size.x_value
             x_type = cstr.type
             if isinstance(x_type, cwast.TypeBase):
                 if isinstance(node.x_value, bytes):
-                    assert len(node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
+                    assert len(
+                        node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
                     assert isinstance(x_type, cwast.TypeBase)
                     return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
                 else:
