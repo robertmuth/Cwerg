@@ -486,9 +486,9 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
     return out, mod_map
 
 
-def IterateValRec(val_rec: cwast.ValRec, def_rec: cwast.DefRec):
+def IterateValRec(inits_rec: List[cwast.RecField], def_rec: cwast.DefRec):
     inits: Dict[cwast.RecField,
-                cwast.FieldVal] = {i.x_field: i for i in val_rec.inits_rec}
+                cwast.FieldVal] = {i.x_field: i for i in inits_rec}
     for f in def_rec.fields:
         assert isinstance(f, cwast.RecField)
         yield f, inits.get(f)

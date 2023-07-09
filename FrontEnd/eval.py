@@ -70,7 +70,7 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
 def _EvalValRec(node: cwast.ValRec) -> bool:
     # first pass if we cannot evaluate everyting, we must give up
     rec = {}
-    for field, init in symbolize.IterateValRec(node, node.x_type):
+    for field, init in symbolize.IterateValRec(node.inits_rec, node.x_type):
         if init is None:
             rec[field.name] = _UNDEF
         else:

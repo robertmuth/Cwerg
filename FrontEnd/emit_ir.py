@@ -486,7 +486,7 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: types.TypeCorpus, id_gen: iden
             EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
     elif isinstance(node, cwast.ValRec):
         src_type = node.x_type
-        for field, init in symbolize.IterateValRec(node, src_type):
+        for field, init in symbolize.IterateValRec(node.inits_rec, src_type):
             if init is not None and not isinstance(init, cwast.ValUndef):
                 EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
@@ -549,7 +549,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
                           src_type.x_size, src_type.x_alignment, id_gen)
 
         elif isinstance(init, cwast.ValRec):
-            for field, init in symbolize.IterateValRec(init, src_type):
+            for field, init in symbolize.IterateValRec(init.inits_rec, src_type):
                 if init is not None and not isinstance(init, cwast.ValUndef):
                     emit_recursively(offset + field.x_offset, init.value)
         elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
@@ -748,9 +748,10 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
                                  f"{stride - count} padding")
                 return cstr.x_size
         elif isinstance(cstr, cwast.DefRec):
+            assert isinstance(node, cwast.ValRec)
             print(f"# record: {tc.canon_name(cstr)}")
             rel_off = 0
-            for f, i in symbolize. IterateValRec(node, cstr):
+            for f, i in symbolize. IterateValRec(node.inits_rec, cstr):
 
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
