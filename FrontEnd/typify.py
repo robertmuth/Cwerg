@@ -78,17 +78,6 @@ def ComputeStringSize(raw: bool, string: str) -> int:
 
 
 def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
-    # TODO use kind argument
-    num = num.replace("_", "")
-    if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
-        return int(num[: -3], 0)
-    elif num[-2:] in ("u8", "s8"):
-        return int(num[: -2], 0)
-    elif num[-4:] in ("uint", "sint"):
-        return int(num[: -4], 0)
-    elif num[-3:] in ("r32", "r64"):
-        return float(num[: -3])
-    #
     if num[0] == "'":
         assert num[-1] == "'"
         if num[1] == "\\":
@@ -98,8 +87,26 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
 
         else:
             return ord(num[1])
-    else:
+
+    num = num.replace("_", "")
+    if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
+        return int(num[: -3], 0)
+    elif num[-2:] in ("u8", "s8"):
+        return int(num[: -2], 0)
+    elif num[-4:] in ("uint", "sint"):
+        return int(num[: -4], 0)
+    elif num[-3:] in ("r32", "r64"):
+        return float(num[: -3])
+    elif kind in cwast.BASE_TYPE_KIND_INT:
         return int(num, 0)
+    elif kind in cwast.BASE_TYPE_KIND_REAL:
+        return float(num)
+    else:
+        assert kind is cwast.BASE_TYPE_KIND.INVALID
+        if "." in num:
+            return float(num)
+        else:
+            return int(num, 0)
 
 
 def ParseArrayIndex(pos: str) -> int:

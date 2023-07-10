@@ -179,9 +179,9 @@
 
 (defrec pub ObjectState :
     (field obj (ptr Object))
-    (field start_frame u32)
-    (field x_pos s32)
-    (field y_pos s32)
+    (field start_time r32)
+    (field x_pos r32)
+    (field y_pos r32)
     (field depth u8)
     (field x_speed r32)
     (field y_speed r32)
@@ -203,8 +203,8 @@
 
 (fun pub SetBasics [
         (param s (ptr mut ObjectState)) 
-        (param start_frame u32) (param x_pos s32) (param y_pos s32)] void :
-        (= (-> s start_frame) start_frame)
+        (param start_time r32) (param x_pos r32) (param y_pos r32)] void :
+        (= (-> s start_time) start_time)
         (= (-> s x_pos) x_pos)
         (= (-> s y_pos) y_pos))
 
@@ -275,8 +275,8 @@
     (let def_attr auto (-> s def_attr))
     (let depth auto (-> s depth))
 
-    (let mut x s32 (-> s x_pos))
-    (let mut y s32 (-> s y_pos))
+    (let mut x s32 (as (-> s x_pos) s32))
+    (let mut y s32 (as (-> s y_pos) s32))
     (let mut left_side auto true)
     (let mut have_color auto true)
     (let mut cpos uint 0)
@@ -299,7 +299,7 @@
         (let c u8 (at image_map ipos))
         (if (== c '\n') :
             (+= y 1)
-            (= x  (-> s x_pos))
+            (= x  (as (-> s x_pos) s32))
             (= left_side true)
             (# "the end of the color row should have been reached already")
             (assert (! have_color) ["color failure\n"])
@@ -744,8 +744,9 @@ y                   y
         (field_val 2 def_depth)]))      
         
         
-(fun pub UpdateState [(param s (ptr mut aanim::ObjectState))] void :
-
+(fun pub UpdateState [(param s (ptr mut aanim::ObjectState)) (param t r32) (param dt r32)] void :
+    (= (-> s x_pos) (+ (-> s x_pos) (* (-> s x_speed) dt)))
+    (= (-> s y_pos) (+ (-> s y_pos) (* (-> s y_speed) dt)))
 )
 
 (# "eom"))
@@ -780,44 +781,45 @@ y                   y
     (let mut curr auto (front mut all_objects))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::DuckR3)]))
-    (stmt (call aanim::SetBasics [curr 0  0 5]))
+    (stmt (call aanim::SetBasics [curr 0.0  0 5]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::Castle)]))
-    (stmt (call aanim::SetBasics [curr 0 (- width 32) (- height 13)]))
+    (stmt (call aanim::SetBasics [curr 0.0 (- (as width r32) 32) (- (as height r32) 13)]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::BigFishR)]))
-    (stmt (call aanim::SetBasics [curr 0 10 10]))
+    (stmt (call aanim::SetBasics [curr 0.0 10 10]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::SwanL)]))
-    (stmt (call aanim::SetBasics [curr 0 50 1]))
+    (stmt (call aanim::SetBasics [curr 0.0 50 1]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::DophinL1)]))
-    (stmt (call aanim::SetBasics [curr 0 30 8]))
+    (stmt (call aanim::SetBasics [curr 0.0 30 8]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::MonsterR1)]))
-    (stmt (call aanim::SetBasics [curr 0 30 2]))
+    (stmt (call aanim::SetBasics [curr 0.0 30 2]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::SharkR)]))
-    (stmt (call aanim::SetBasics [curr 0 30 30]))
+    (stmt (call aanim::SetBasics [curr 0.0 30 30]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::ShipR)]))
-    (stmt (call aanim::SetBasics [curr 0 50 0]))
+    (stmt (call aanim::SetBasics [curr 0.0 50 0]))
     (= curr (incp curr 1))
     (# "")
     (stmt (call aanim::InitObjectState [curr (& artwork::Fish1)]))
-    (stmt (call aanim::SetBasics [curr 0 40 40]))
+    (stmt (call aanim::SetBasics [curr 0.0 40 40]))
     (= curr (incp curr 1))
     (# "")
 
      (print [ansi::CURSOR_HIDE])
-     (for t uint 0 50 1 :
+     (let mut last_t r32 0.0)
+     (for t r32 0.0 5.0 0.1 :
 
         (stmt (call aanim::window_fill [
                 (& mut window)
@@ -832,10 +834,11 @@ y                   y
         (stmt (call aanim::window_draw [(& window) 'k']))
 
         (for i uint 0 9 1 :
-            (stmt (call artwork::UpdateState [ (incp curr i)]))
+            (stmt (call artwork::UpdateState [(incp curr i) t (- t last_t)]))
         )
         
         (stmt (call nanosleep [(& req) (& mut rem)]))
+        (= last_t t)
     )
     (print [ansi::CURSOR_SHOW])
 

@@ -128,17 +128,19 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
             if isinstance(node.lhs, cwast.Id):
                 return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr_rhs, node.x_srcloc)
             else:
+                assert False, "NYI"
                 addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
                 addr = cwast.ExprAddrOf(True, node.lhs,
                                         x_srcloc=node.x_srcloc, x_type=addr_type)
-                def_node = cwast.DefVar(False, id_gen.NewName("assign"),
+                def_node = cwast.DefVar(False, False, id_gen.NewName("assign"),
                                         cwast.TypeAuto(
-                    x_srcloc=node.x_srcloc), addr,
-                    x_srcloc=node.x_srcloc, x_type=addr_type)
+                                            x_srcloc=node.x_srcloc, x_type=addr_type),
+                                        addr,
+                                        x_srcloc=node.x_srcloc)
                 lhs = cwast.ExprDeref(_IdNodeFromDef(
                     def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
-                return cwast.EphemeralList([def_node,
-                                            _AssigmemtNode(node.assignment_kind, lhs, node.expr, node.x_srcloc)])
+                return cwast.EphemeralList(True, [def_node,
+                                            _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)])
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
