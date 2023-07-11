@@ -117,7 +117,7 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	${QEMU} $@
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
-	./emit_ir.py TestData/mod_builtin.cw TestData/mod_test.cw $< > $@.asm
+	./emit_ir.py TestData/mod_builtin.cw  TestData/mod_random.cw TestData/mod_ansi.cw TestData/mod_test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
