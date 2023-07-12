@@ -16,11 +16,13 @@
     (field attr_map (array (* MAX_DIM MAX_DIM) u8))
     (field depth_map (array (* MAX_DIM MAX_DIM) u8)))
 
+(defrec pub Sprite :
+    (field image_map (slice u8))
+    (field color_map (slice u8)))
 
 (defrec pub Object :
     (field name (slice u8))
-    (field image_map (slice u8))
-    (field color_map (slice u8))
+    (field sprites (slice Sprite))
     (field def_attr u8)
     (field def_depth u8)
     (field transparent_char u8)
@@ -34,6 +36,7 @@
     (field x_pos r32)
     (field y_pos r32)
     (field depth u8)
+    (field frame u8)
     (field x_speed r32)
     (field y_speed r32)
     (field attr_lookup (slice u8))
@@ -121,8 +124,9 @@
     (let width auto (-> window width))
     (let height auto (-> window height))
     (let obj auto (-> s obj))
-    (let image_map auto (-> obj image_map))
-    (let color_map auto (-> obj color_map))
+    (let sprite auto (at (-> obj sprites) (-> s frame)))
+    (let image_map auto (. sprite image_map))
+    (let color_map auto (. sprite color_map))
     (let def_attr auto (-> s def_attr))
     (let depth auto (-> s depth))
 
@@ -247,9 +251,11 @@ Fish body parts:
 (global pub RandomColor auto "RcRyBgM")
 
 
-(global pub Castle auto (rec_val aanim::Object [
-        (field_val "castle")
-        (field_val r"""
+
+(global CastleSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
                 T~~
                 |
                /^\
@@ -264,7 +270,7 @@ Fish body parts:
   |- =_   | =| | | |  |- = -  |
   |_______|__|_|_|_|__|_______|
 """)
-        (field_val r"""
+            (field_val r"""
                  RR
  
                yyy
@@ -278,15 +284,20 @@ Fish body parts:
               yy yy
              y y y y
              yyyyyyy
-""")
+""")]))
+]))
+
+(global pub Castle auto (rec_val aanim::Object [
+        (field_val "castle")
+        (field_val CastleSprites)
         (field_val 'B')
         (field_val 22 def_depth)
         ]))
 
-
-(global pub SwanL auto (rec_val aanim::Object [
-        (field_val "swan_l")
-        (field_val r"""
+(global SwanLSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
  ___
 /,_ \    _,
 |/ )/   / |
@@ -299,15 +310,23 @@ Fish body parts:
 
  g
 yy
-""")
+""")]))
+]))     
+
+
+
+
+(global pub SwanL auto (rec_val aanim::Object [
+        (field_val "swan_l")
+        (field_val SwanLSprites)
         (field_val 'W')
         (field_val 3 def_depth)
         (field_val -1.0_r32 def_x_speed)]))
 
-
-(global pub SwanR auto (rec_val aanim::Object [
-        (field_val "swan_r")
-        (field_val r"""
+(global SwanRSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
         ___
  ,_    / _,\
  | \   \( \|
@@ -320,31 +339,32 @@ yy
 
           g
           yy
-""")
+""")]))
+]))     
+
+(global pub SwanR auto (rec_val aanim::Object [
+        (field_val "swan_r")
+        (field_val SwanRSprites)
         (field_val 'W')
         (field_val 3 def_depth)
         (field_val -1.0_r32 def_x_speed)]))
 
-(global pub DuckR1 auto (rec_val aanim::Object [
-        (field_val "duck_r1")
-        (field_val r"""
+(global DucksRSprites auto (array_val 3 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
       _??????????_??????????_  
 ,____(')=??,____(')=??,____(')<
  \~~= ')????\~~= ')????\~~= ') 
 """)
-        (field_val r"""
+            (field_val r"""
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
-""")
-        (field_val 'W')
-        (field_val 3 def_depth)
-        (field_val '?' transparent_char)
-        (field_val 1.0_r32 def_x_speed)]))
-
-(global pub DuckR2 auto (rec_val aanim::Object [
-        (field_val "duck_r2")
-        (field_val r"""
+""")]))
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
       _??????????_??????????_  
 ,____(')=??,____(')<??,____(')=
  \~~= ')????\~~= ')????\~~= ') 
@@ -353,17 +373,10 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
-""")
-        (field_val 'W')
-        (field_val 3 def_depth)
-        (field_val '?' transparent_char)
-        (field_val 1.0_r32 def_x_speed)]))
-
-
-
-(global pub DuckR3 auto (rec_val aanim::Object [
-        (field_val "duck_r3")
-        (field_val r"""
+""")]))
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
       _??????????_??????????_  
 ,____(')<??,____(')=??,____(')=
  \~~= ')????\~~= ')????\~~= ') 
@@ -372,7 +385,12 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
-""")
+""")]))
+]))    
+
+(global pub DuckR auto (rec_val aanim::Object [
+        (field_val "duck_r1")
+        (field_val DucksRSprites)
         (field_val 'W')
         (field_val 3 def_depth)
         (field_val '?' transparent_char)
@@ -380,9 +398,10 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
 
 
-(global pub DophinR1 auto (rec_val aanim::Object [
-        (field_val "dolphin_r1")
-        (field_val r"""
+(global DolphinRSprites auto (array_val 2 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
         ,
       __)\_
 (\_.-'    a`-.
@@ -392,16 +411,10 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
 
           W
-""")
-        (field_val 'b')
-        (field_val 3 def_depth)
-        (field_val 1.0_r32 def_x_speed)]))
-        
-
-
-(global pub DophinR2 auto (rec_val aanim::Object [
-        (field_val "dolphin_r2")
-        (field_val r"""
+""")]))
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
         ,
 (\__  __)\_
 (/~.''    a`-.
@@ -411,16 +424,21 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
 
           W
-""")
+""")]))
+]))   
+
+(global pub DolphinR auto (rec_val aanim::Object [
+        (field_val "dolphin_r")
+        (field_val DolphinRSprites)
         (field_val 'b')
         (field_val 3 def_depth)
         (field_val 1.0_r32 def_x_speed)]))
 
 
-
-(global pub DophinL1 auto (rec_val aanim::Object [
-        (field_val "dolphin_l1")
-        (field_val r"""
+(global DolphinLSprites auto (array_val 2 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
      ,
    _/(__
 .-'a    `-._/)
@@ -430,16 +448,10 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
 
    W
-""")
-        (field_val 'b')
-        (field_val 3 def_depth)
-        (field_val -1.0_r32 def_x_speed)]))
-
-
-
-(global pub DophinL2 auto (rec_val aanim::Object [
-        (field_val "dolphin_l2")
-        (field_val r"""
+""")]))
+    (index_val
+        (rec_val aanim::Sprite [
+             (field_val r"""
      ,
    _/(__  __/)
 .-'a    ``.~\)
@@ -449,15 +461,22 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 
 
    W
-""")
+""")]))
+]))  
+
+
+(global pub DolphinL auto (rec_val aanim::Object [
+        (field_val "dolphin_r")
+        (field_val DolphinLSprites)
         (field_val 'b')
         (field_val 3 def_depth)
         (field_val -1.0_r32 def_x_speed)]))
 
 
-(global pub BigFishR auto (rec_val aanim::Object [
-        (field_val "dolphin_l2")
-        (field_val r"""
+(global BigFishRSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
  ______
 `""-.  `````-----.....__
      `.  .      .       `-.
@@ -473,7 +492,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
    ""             .'.'
                ''"'`
 """)
-        (field_val r"""
+            (field_val r"""
  111111
 11111  11111111111111111
      11  2      2       111
@@ -488,37 +507,97 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
    111111111111111111111
    11             1111
                11111
-""")
+""")]))
+]))  
+
+(global pub BigFishR auto (rec_val aanim::Object [
+        (field_val "bigfish_r")
+        (field_val BigFishRSprites)
         (field_val 'Y')
         (field_val 2 def_depth)
         (field_val 3.0_r32 def_x_speed)]))
 
-
-(global pub MonsterR1 auto (rec_val aanim::Object [
-        (field_val "monster_r1")
-        (field_val r"""
+(global MonsterRSprites auto (array_val 4 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
                                                           ____
             __??????????????????????????????????????????/   o  \
           /    \????????_?????????????????????_???????/     ____ >
   _??????|  __  |?????/   \????????_????????/   \????|     |
  | \?????|  ||  |????|     |?????/   \?????|     |???|     |
 """)
-        (field_val r"""
+            (field_val r"""
 
                                                             W
 
 
 
+""")]))
+   (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
+                                                          ____
+                                             __?????????/   o  \
+             _?????????????????????_???????/    \?????/     ____ >
+   _???????/   \????????_????????/   \????|  __  |???|     |
+  | \?????|     |?????/   \?????|     |???|  ||  |???|     |
 """)
+            (field_val r"""
+
+                                                            W
+
+
+
+""")]))
+   (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
+                                                          ____     
+                                  __????????????????????/   o  \
+ _??????????????????????_???????/    \????????_???????/     ____ >
+| \??????????_????????/   \????|  __  |?????/   \????|     |
+ \ \???????/   \?????|     |???|  ||  |????|     |???|     |
+""")
+            (field_val r"""
+
+                                                            W
+
+
+
+""")]))
+   (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
+                                                          ____
+                       __???????????????????????????????/   o  \
+  _??????????_???????/    \????????_??????????????????/     ____ >
+ | \???????/   \????|  __  |?????/   \????????_??????|     |
+  \ \?????|     |???|  ||  |????|     |?????/   \????|     |
+""")
+            (field_val r"""
+
+                                                            W
+
+
+
+""")]))
+]))  
+
+
+(global pub MonsterR auto (rec_val aanim::Object [
+        (field_val "monster_r")
+        (field_val MonsterRSprites)
         (field_val 'G')
         (field_val 5 def_depth)
         (field_val '?' transparent_char)
         (field_val 2.0_r32 def_x_speed)]))
 
 
-(global pub ShipR auto (rec_val aanim::Object [
-        (field_val "ship_r")
-        (field_val r"""
+(global ShipRSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
      |    |    |
     )_)  )_)  )_)
    )___))___))___)\
@@ -526,23 +605,29 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 _____|____|____|____\\\\\__
 \                   /
 """)
-        (field_val r"""
+            (field_val r"""
      y    y    y
 
                   w
                    ww
 yyyyyyyyyyyyyyyyyyyywwwyy
 y                   y
-""")
+""")]))
+]))  
+
+
+(global pub ShipR auto (rec_val aanim::Object [
+        (field_val "ship_r")
+        (field_val ShipRSprites)
         (field_val 'W')
         (field_val 7 def_depth)
         (field_val 1.0_r32 def_x_speed)]))
 
 
-
-(global pub SharkR auto (rec_val aanim::Object [
-        (field_val "ship_r")
-        (field_val r"""
+(global SharkRSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
                               __
                              ( `\
   ,??????????????????????????)   `\
@@ -554,7 +639,7 @@ y                   y
  ;.'?????????`. ...----`.___.',,,_______......---'
  '???????????'-'
 """)
-        (field_val r"""
+            (field_val r"""
 
 
 
@@ -565,17 +650,23 @@ y                   y
                                           cWWWWWWWW
 
 
-""")
+""")]))
+]))  
+
+
+(global pub SharkR auto (rec_val aanim::Object [
+        (field_val "ship_r")
+        (field_val SharkRSprites)
         (field_val 'C')
         (field_val 2 def_depth)
         (field_val '?' transparent_char)
         (field_val 2.0_r32 def_x_speed)]))
 
 
-
-(global pub Fish1 auto (rec_val aanim::Object [
-        (field_val "fish1")
-        (field_val r"""
+(global Fish1RSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
        \
      ...\..,
 \  /'       \
@@ -583,14 +674,20 @@ y                   y
 /  \      / /
     `"'"'/''
 """)
-        (field_val r"""
+            (field_val r"""
        2
      1112111
 6  11       1
  66     7  4 5
 6  1      3 1
     11111311
-""")
+""")]))
+]))  
+
+
+(global pub Fish1R auto (rec_val aanim::Object [
+        (field_val "fish1_r")
+        (field_val Fish1RSprites)
         (field_val 'C')
         (field_val 2 def_depth)]))      
         
@@ -631,7 +728,7 @@ y                   y
     (let ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
     (let mut curr auto (front mut all_objects))
     (# "")
-    (stmt (call aanim::InitObjectState [curr (& artwork::DuckR3)]))
+    (stmt (call aanim::InitObjectState [curr (& artwork::DuckR)]))
     (stmt (call aanim::SetBasics [curr 0.0  0 5]))
     (= curr (incp curr 1))
     (# "")
@@ -647,11 +744,11 @@ y                   y
     (stmt (call aanim::SetBasics [curr 0.0 50 1]))
     (= curr (incp curr 1))
     (# "")
-    (stmt (call aanim::InitObjectState [curr (& artwork::DophinL1)]))
+    (stmt (call aanim::InitObjectState [curr (& artwork::DolphinL)]))
     (stmt (call aanim::SetBasics [curr 0.0 30 8]))
     (= curr (incp curr 1))
     (# "")
-    (stmt (call aanim::InitObjectState [curr (& artwork::MonsterR1)]))
+    (stmt (call aanim::InitObjectState [curr (& artwork::MonsterR)]))
     (stmt (call aanim::SetBasics [curr 0.0 30 2]))
     (= curr (incp curr 1))
     (# "")
@@ -663,7 +760,7 @@ y                   y
     (stmt (call aanim::SetBasics [curr 0.0 50 0]))
     (= curr (incp curr 1))
     (# "")
-    (stmt (call aanim::InitObjectState [curr (& artwork::Fish1)]))
+    (stmt (call aanim::InitObjectState [curr (& artwork::Fish1R)]))
     (stmt (call aanim::SetBasics [curr 0.0 40 40]))
     (= curr (incp curr 1))
     (# "")

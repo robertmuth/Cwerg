@@ -346,6 +346,8 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
             assert isinstance(val, cwast.FieldVal)
             if val.init_field:
                 while True:
+                    if not all_fields:
+                        cwast.CompilerError(node.x_srcloc, f"too many fields for record literal")
                     field_node = all_fields.pop(0)
                     if val.init_field == field_node.name:
                         break
