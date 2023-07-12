@@ -51,6 +51,7 @@
     (= (-> s obj) o)
     (= (-> s attr_lookup) DEF_ATTR_LOOKUP)
     (= (-> s depth) (-> o def_depth))
+    (= (-> s frame) 0)
     (= (-> s def_attr) (-> o def_attr))
     (= (-> s x_speed) (-> o def_x_speed))
     (= (-> s y_speed) (-> o def_y_speed)))
@@ -124,9 +125,9 @@
     (let width auto (-> window width))
     (let height auto (-> window height))
     (let obj auto (-> s obj))
-    (let sprite auto (at (-> obj sprites) (-> s frame)))
-    (let image_map auto (. sprite image_map))
-    (let color_map auto (. sprite color_map))
+    (let sprite auto (& (at (-> obj sprites) (-> s frame))))
+    (let image_map auto (-> sprite image_map))
+    (let color_map auto (-> sprite color_map))
     (let def_attr auto (-> s def_attr))
     (let depth auto (-> s depth))
 
@@ -516,6 +517,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
         (field_val 'Y')
         (field_val 2 def_depth)
         (field_val 3.0_r32 def_x_speed)]))
+
 
 (global MonsterRSprites auto (array_val 4 aanim::Sprite [
     (index_val
