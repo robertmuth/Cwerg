@@ -167,11 +167,11 @@
         (if (!= c ' ') :
             (= left_side false)
             :)
-        (let index auto (+ (* y width) x))
-        (if (!= 0_u8 (at (-> window depth_map) index)) :
-            (if (&& (! left_side) (!= c (-> obj transparent_char))) :
-                (if (&& (< x width) (< y height)) :
-                    (let i auto (+ (* y width) x))
+        (if (&& (&& (< x width) (< y height)) (&& (>= x 0) (>= y 0))):
+            (= (-> s visible) true)
+            (let index auto (+ (* y width) x))
+            (if (!= 0_u8 (at (-> window depth_map) index)) :
+                (if (&& (! left_side) (!= c (-> obj transparent_char))) :
                     (= (at (-> window char_map) index) c)
                     (= (at (-> window attr_map) index) a)
                     :)
@@ -518,6 +518,50 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
         (field_val 2 def_depth)
         (field_val 3.0_r32 def_x_speed)]))
 
+
+(global BigFishLSprites auto (array_val 1 aanim::Sprite [
+    (index_val
+        (rec_val aanim::Sprite [
+            (field_val r"""
+                           ______
+          __.....-----'''''  .-""'
+       .-'       .      .  .'
+     .'       .     .     :
+    : _          .    .   :     ,
+ _.' (@)                  :   .' :
+(__.       .-'=     .     `..' .'
+ "-.     :  ~  =        .     ;
+   `. _.'  `-.=  .    .   .'`. `.
+     `.   .               :   `. :
+       `-.   .     .    .  `.   `
+          `.=`.``----....____`.
+            `.`.             ""
+              '`"``
+""")
+            (field_val r"""
+                           111111
+          11111111111111111  11111
+       111       2      2  11
+     11       2     2     1
+    1 1          2    2   1     1
+ 111 1W1                  1   11 1
+1111       1111     2     1111 11
+ 111     1  1  1        2     1
+   11 111  1111  2    2   1111 11
+     11   2               1   11 1
+       111   2     2    2  11   1
+          111111111111111111111
+            1111             11
+              11111
+""")]))
+]))  
+
+(global pub BigFishL auto (rec_val aanim::Object [
+        (field_val "bigfish_l")
+        (field_val BigFishLSprites)
+        (field_val 'Y')
+        (field_val 2 def_depth)
+        (field_val 3.0_r32 def_x_speed)]))
 
 (global MonsterRSprites auto (array_val 4 aanim::Sprite [
     (index_val
