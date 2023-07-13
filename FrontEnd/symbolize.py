@@ -327,6 +327,8 @@ def _CheckAddressCanBeTaken(lhs):
         _CheckAddressCanBeTaken(lhs.container)
     elif isinstance(lhs, cwast.ExprDeref):
         pass
+    elif isinstance(lhs, cwast.ExprField):
+        _CheckAddressCanBeTaken(lhs.container)
     else:
         assert False, f"{lhs}"
 

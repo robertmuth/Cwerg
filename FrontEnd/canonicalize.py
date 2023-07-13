@@ -115,10 +115,48 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
 
 
 def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
+
     rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
                       cwast.CloneNodeRecursively(lhs, {}, {}),
                       expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
     return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
+
+
+# Note, the desugaring of CompoundAssignment is made more complicated because we do not want
+# just take the address of an object.
+# Otherwise, we could just do:
+#    addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
+#    addr = cwast.ExprAddrOf(True, node.lhs,
+#                            x_srcloc=node.x_srcloc, x_type=addr_type)
+#    def_node = cwast.DefVar(False, False, id_gen.NewName("assign"),
+#                            cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=addr_type),
+#                             addr, x_srcloc=node.x_srcloc)
+#    lhs = cwast.ExprDeref(_IdNodeFromDef(
+#                def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
+#    new_assignment = _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
+#    return cwast.EphemeralList(True, [def_node, new_assignment])
+#
+def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: cwast.ExprField, id_gen):
+    if isinstance(lhs.container, cwast.Id):
+        return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
+    elif isinstance(lhs.container, cwast.ExprDeref):
+        pointer_expr = lhs.container.expr
+        if isinstance(pointer_expr, cwast.Id):
+            return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
+        def_node = cwast.DefVar(False, False, id_gen.NewName("assign"),
+                                cwast.TypeAuto(x_srcloc=node.x_srcloc,
+                                               x_type=pointer_expr.x_type),
+                                pointer_expr, x_srcloc=node.x_srcloc)
+        deref = cwast.ExprDeref(_IdNodeFromDef(
+            def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.container.x_type)
+        field_access = cwast.ExprField(
+            deref, lhs.field, x_field=lhs.field, x_type=lhs.x_type, x_srcloc=lhs.x_srcloc)
+        new_assignment = _AssigmemtNode(
+            node.assignment_kind, field_access, node.expr_rhs, node.x_srcloc)
+        return cwast.EphemeralList(True, [def_node, new_assignment])
+
+    else:
+        assert False, "NYI"
 
 
 def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifier.IdGen):
@@ -127,23 +165,13 @@ def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifi
         if isinstance(node, cwast.StmtCompoundAssignment):
             if isinstance(node.lhs, cwast.Id):
                 return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr_rhs, node.x_srcloc)
+            elif isinstance(node.lhs, cwast.ExprField):
+                return _HandleCompoundAssignmentExprField(node, node.lhs, id_gen)
             else:
                 assert False, "NYI"
-                addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
-                addr = cwast.ExprAddrOf(True, node.lhs,
-                                        x_srcloc=node.x_srcloc, x_type=addr_type)
-                def_node = cwast.DefVar(False, False, id_gen.NewName("assign"),
-                                        cwast.TypeAuto(
-                                            x_srcloc=node.x_srcloc, x_type=addr_type),
-                                        addr,
-                                        x_srcloc=node.x_srcloc)
-                lhs = cwast.ExprDeref(_IdNodeFromDef(
-                    def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
-                return cwast.EphemeralList(True, [def_node,
-                                            _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)])
-        return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
+    cwast.EliminateEphemeralsRecursively(node)
 
 
 def ReplaceConstExpr(node):

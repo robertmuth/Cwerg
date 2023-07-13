@@ -36,7 +36,7 @@
     (field x_pos r32)
     (field y_pos r32)
     (field depth u8)
-    (field frame u8)
+    (field frame uint)
     (field x_speed r32)
     (field y_speed r32)
     (field attr_lookup (slice u8))
@@ -697,6 +697,11 @@ y                   y
 (fun pub UpdateState [(param s (ptr mut aanim::ObjectState)) (param t r32) (param dt r32)] void :
     (= (-> s x_pos) (+ (-> s x_pos) (* (-> s x_speed) dt)))
     (= (-> s y_pos) (+ (-> s y_pos) (* (-> s y_speed) dt)))
+    (+= (-> s frame) 1)
+    (if (>= (-> s frame) (len (-> (-> s obj) sprites))) :
+     (= (-> s frame) 0) 
+    :)
+
 )
 
 (# "eom"))
