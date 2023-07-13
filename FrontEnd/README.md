@@ -4,10 +4,19 @@ Cwerg tries to find the right balance between language expressiveness and compil
 The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write
 system software like operating systems and compilers in this language.
 
-Complexity budget: about 10kLOC for a compiler frontend with basic optimizations
 
 Warning: This is still quite experimental. We expexct to gain some
 more insights about the design-space by bootstrapping the front- and backend.
+
+### Philosophy
+
+Above all Cwerg is meant to be a **small** language. Since small is subjective we have
+set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
+
+All control flow and all memory allocation is explicit.
+
+Discouraged practices are possible but require explicit overrides, e.g.:
+uninitialized variables, global visibility, mutability, ...
 
 ## Syntax
   
@@ -48,6 +57,7 @@ Added
 * expression blocks
 * simple macro system (optionally hygienic, operating on syntax tree)
 * limited polymorphism (good enough to have generic and extensible print/log)
+* default iniitialization of all variable/datastructure (can manually overriden)
 
 Removed:
 * arrays decay to pointers
