@@ -132,6 +132,17 @@
 
 (static_assert (== (len (. r02 s1)) 0))
 
+(global auto1 s32)
+(static_assert (== auto1 0))
+
+(global auto2 bool)
+(static_assert (== auto2 false))
+
+(global auto3 r64)
+(static_assert (== auto3 0.0))
+
+(global auto4 type_rec2)
+
 (# "TODO add examples with Functions"))
 
 

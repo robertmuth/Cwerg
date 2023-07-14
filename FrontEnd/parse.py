@@ -127,6 +127,7 @@ _SHORT_HAND_NODES = {
     "bool": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.BOOL),
     "void": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.VOID),
     #
+    "auto_val": lambda srcloc: cwast.ValAuto(x_srcloc=srcloc),
     "void_val": lambda srcloc: cwast.ValVoid(x_srcloc=srcloc),
     "undef": lambda srcloc: cwast.ValUndef(x_srcloc=srcloc),
     "true": lambda srcloc: cwast.ValTrue(x_srcloc=srcloc),

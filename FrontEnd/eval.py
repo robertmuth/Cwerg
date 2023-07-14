@@ -67,7 +67,6 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     return out
 
 
-   
 _BASE_TYPE_TO_DEFAULT = {
     cwast.BASE_TYPE_KIND.SINT: 0,
     cwast.BASE_TYPE_KIND.S8: 0,
@@ -88,10 +87,10 @@ _BASE_TYPE_TO_DEFAULT = {
 }
 
 
-def _EvalValRec(node: cwast.ValRec) -> bool:
+def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Dict:
     # first pass if we cannot evaluate everyting, we must give up
     rec = {}
-    for field, init in symbolize.IterateValRec(node.inits_rec, node.x_type):
+    for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
         if init is None:
             if isinstance(field.x_type, cwast.TypeBase):
@@ -99,15 +98,21 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
             elif isinstance(field.x_type, cwast.TypeSlice):
                 rec[field.name] = []
             elif isinstance(field.x_type, cwast.TypePtr):
-                cwast.CompilerError(node.x_srcloc, f"ptr field {field.name} must be initialized")
+                cwast.CompilerError(
+                    srcloc, f"ptr field {field.name} must be initialized")
+            elif isinstance(field.x_type, cwast.DefRec):
+                rec[field.name] = _EvalValRec(field.x_type, [], srcloc)
+            elif isinstance(field.x_type, cwast.TypeArray):
+                # TODO:
+                pass
             else:
                 assert False, f"{field.x_type}"
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
-                return False
+                assert False
             rec[field.name] = init.value.x_value
-    return _AssignValue(node, rec)
+    return rec
 
 
 def _EvalValArray(node: cwast.ValArray) -> bool:
@@ -236,6 +241,8 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
             return _AssignValue(node, 0)
         elif types.is_real(node.x_type):
             return _AssignValue(node, 0.0)
+    elif isinstance(node.x_type, cwast.DefRec):
+        return _AssignValue(node, _EvalValRec(node.x_type, [], node.x_srcloc))
     elif isinstance(node, cwast.TypePtr):
         assert False
     else:
@@ -291,7 +298,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, node.value.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
-        return _EvalValRec(node)
+        return _AssignValue(node, _EvalValRec(node.x_type, node.inits_rec, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
         assert s[0] == '"' and s[-1] == '"', f"expected string [{s}]"
@@ -317,7 +324,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         if node.container.x_value is not None:
             field_val = node.container.x_value.get(node.field)
             assert field_val is not None
-            assert not isinstance(field_val, cwast.ValUndef), f"unevaluated field {node.field}: {node.container.x_value}"
+            assert not isinstance(
+                field_val, cwast.ValUndef), f"unevaluated field {node.field}: {node.container.x_value}"
             return _AssignValue(node, field_val)
         return False
     elif isinstance(node, cwast.Expr1):
@@ -392,7 +400,7 @@ def EvalRecursively(node) -> bool:
             initial = node.initial_or_undef_or_auto
             if initial.x_value is not None:
                 return
-            if isinstance(initial, cwast.ValAuto): 
+            if isinstance(initial, cwast.ValAuto):
                 seen_change |= _EvalAuto(initial)
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return
