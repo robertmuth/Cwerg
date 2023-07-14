@@ -809,8 +809,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
             _CheckTypeSame(node, tc, cstr, node.default_or_undef.x_type)
         assert types.is_compatible(cstr, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
-        assert isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)
-                          ), f"bad type for {node}: {node.x_type}"
+        if not isinstance(node.x_type, (cwast.TypeBase, cwast.DefEnum)):
+            cwast.CompilerError(node.x_srcloc, f"type mismatch {node} vs {node.x_type}")
     elif isinstance(node, cwast.TypeSum):
         assert isinstance(node.x_type, cwast.TypeSum)
     elif isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValVoid)):

@@ -1,5 +1,7 @@
 (module m1 [] :
 
+(static_assert (== (+ 3_s32 4) 7))
+
 
 (global a1 u32 7)
 (static_assert (== a1 7))
@@ -76,12 +78,19 @@
 (global c20 auto type_enum::e3)
 (static_assert (== (as c20 s32) 19))
 
+(global c41 auto (. c32 s1))
+(static_assert (== c41 7))
+
 
 (# "array literal with explicit indices")
 (global c30 auto (array_val 30 uint [
         (index_val 0 1)
         (index_val 10 2)
         (index_val 20 3)]))
+
+
+(global c40 auto (at c30 1))
+(static_assert (== c40 0))
 
 
 (# "array literal")
@@ -100,22 +109,7 @@
         (field_val 7)]))
 
 
-(global c40 auto (at c30 1))
-
-
-(static_assert (== c40 0))
-
-
-(global c41 auto (. c32 s1))
-
-
-(static_assert (== c41 7))
-
-
 (static_assert (== (. c33 s1) 7))
-
-
-(static_assert (== (+ 3_s32 4) 7))
 
 
 (defrec pub type_rec2 :
@@ -131,6 +125,12 @@
         (field_val 7)]))
 
 
+(# "rec literal")
+(global r02 auto (rec_val type_rec2 [
+        (field_val 9 s2)
+        (field_val 7)]))
+
+(static_assert (== (len (. r02 s1)) 0))
 
 (# "TODO add examples with Functions"))
 

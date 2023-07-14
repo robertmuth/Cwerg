@@ -94,8 +94,14 @@ def _EvalValRec(node: cwast.ValRec) -> bool:
     for field, init in symbolize.IterateValRec(node.inits_rec, node.x_type):
         assert isinstance(field, cwast.RecField)
         if init is None:
-            assert isinstance(field.x_type, cwast.TypeBase)
-            rec[field.name] = _BASE_TYPE_TO_DEFAULT[field.x_type.base_type_kind]
+            if isinstance(field.x_type, cwast.TypeBase):
+                rec[field.name] = _BASE_TYPE_TO_DEFAULT[field.x_type.base_type_kind]
+            elif isinstance(field.x_type, cwast.TypeSlice):
+                rec[field.name] = []
+            elif isinstance(field.x_type, cwast.TypePtr):
+                cwast.CompilerError(node.x_srcloc, f"ptr field {field.name} must be initialized")
+            else:
+                assert False, f"{field.x_type}"
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
