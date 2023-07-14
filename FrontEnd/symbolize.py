@@ -355,8 +355,8 @@ def VerifyASTSymbolsRecursively(node):
             assert not node.name.startswith("$"), f"{node.name}"
             def_node = node.x_symbol
             is_type_node = field in ("type", "types", "result", "type_or_auto")
-            assert is_type_node == isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)), f"{field}: {def_node}"
-                
+            if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)):
+                cwast.CompilerError(node.x_srcloc, f"unexpected id {node.name}")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"

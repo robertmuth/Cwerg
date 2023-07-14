@@ -100,6 +100,8 @@ def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
     elif kind in cwast.BASE_TYPE_KIND_INT:
         return int(num, 0)
     elif kind in cwast.BASE_TYPE_KIND_REAL:
+        if "p" in num:
+            return float.fromhex(num)
         return float(num)
     else:
         assert kind is cwast.BASE_TYPE_KIND.INVALID

@@ -46,7 +46,7 @@ _RE_TOKEN_ID = re.compile(
     r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?')
 
 
-_RE_TOKEN_NUM = re.compile(r'-?[.0-9][_.a-z0-9]*')
+_RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
 class ReadTokens:
