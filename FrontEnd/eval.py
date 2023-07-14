@@ -40,6 +40,8 @@ def _VerifyEvalValue(val):
 
 
 def _AssignValue(node, val) -> bool:
+    if val is None:
+        return False
     _VerifyEvalValue(val)
 
     if isinstance(val, list):
@@ -110,7 +112,7 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Dict:
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
-                assert False
+               return None
             rec[field.name] = init.value.x_value
     return rec
 

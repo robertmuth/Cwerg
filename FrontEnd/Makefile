@@ -37,12 +37,13 @@ test_emit: \
     $(DIR)/hello_world.x64.exe \
     $(DIR)/fizzbuzz.x64.exe \
 	$(DIR)/heapsort.x64.exe \
-	$(DIR)/print_argv.x64.exe \
-	$(DIR)/sieve.x64.exe \
-	$(DIR)/defer.x64.exe \
-	$(DIR)/rec.x64.exe \
-	$(DIR)/string.x64.exe \
-    $(DIR)/polymorphic.x64.exe
+    $(DIR)/print_argv.x64.exe \
+    $(DIR)/sieve.x64.exe \
+    $(DIR)/defer.x64.exe \
+    $(DIR)/rec.x64.exe \
+    $(DIR)/string.x64.exe \
+    $(DIR)/polymorphic.x64.exe \
+    $(DIR)/trig_test.x64.exe
 
 BUILTINS = TestData/builtin.cw 
 
@@ -116,10 +117,17 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
+$(DIR)/trig_test.x64.exe: TestData/trig_test.cw
+	./emit_ir.py  TestData/mod_builtin.cw  TestData/mod_test.cw  TestData/mod_trig.cw  $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	./emit_ir.py TestData/mod_builtin.cw  TestData/mod_random.cw TestData/mod_ansi.cw TestData/mod_test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
+
+
 
 clean:
 	@rm -f $(DIR)/* 

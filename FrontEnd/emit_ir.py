@@ -269,7 +269,6 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus
                 print(f".bbl {failed}")
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
             if invert:
-                assert False  # this branch has not been tested
                 failed = id_gen.NewName("br_failed_or")
                 EmitIRConditional(cond.expr1, False, failed, tc, id_gen)
                 EmitIRConditional(cond.expr2, True, label_false, tc, id_gen)
