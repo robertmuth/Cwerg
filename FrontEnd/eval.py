@@ -67,12 +67,35 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     return out
 
 
+   
+_BASE_TYPE_TO_DEFAULT = {
+    cwast.BASE_TYPE_KIND.SINT: 0,
+    cwast.BASE_TYPE_KIND.S8: 0,
+    cwast.BASE_TYPE_KIND.S16: 0,
+    cwast.BASE_TYPE_KIND.S32: 0,
+    cwast.BASE_TYPE_KIND.S64:  0,
+    #
+    cwast.BASE_TYPE_KIND.UINT: 0,
+    cwast.BASE_TYPE_KIND.U8: 0,
+    cwast.BASE_TYPE_KIND.U16: 0,
+    cwast.BASE_TYPE_KIND.U32: 0,
+    cwast.BASE_TYPE_KIND.U64: 0,
+    #
+    cwast.BASE_TYPE_KIND.R32: 0.0,
+    cwast.BASE_TYPE_KIND.R64: 0.0,
+    #
+    cwast.BASE_TYPE_KIND.BOOL: False,
+}
+
+
 def _EvalValRec(node: cwast.ValRec) -> bool:
     # first pass if we cannot evaluate everyting, we must give up
     rec = {}
     for field, init in symbolize.IterateValRec(node.inits_rec, node.x_type):
+        assert isinstance(field, cwast.RecField)
         if init is None:
-            rec[field.name] = _UNDEF
+            assert isinstance(field.x_type, cwast.TypeBase)
+            rec[field.name] = _BASE_TYPE_TO_DEFAULT[field.x_type.base_type_kind]
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
@@ -288,7 +311,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         if node.container.x_value is not None:
             field_val = node.container.x_value.get(node.field)
             assert field_val is not None
-            assert not isinstance(field_val, cwast.ValUndef)
+            assert not isinstance(field_val, cwast.ValUndef), f"unevaluated field {node.field}: {node.container.x_value}"
             return _AssignValue(node, field_val)
         return False
     elif isinstance(node, cwast.Expr1):

@@ -25,25 +25,6 @@
 (global a8 bool)
 (static_assert (== a8 false))
 
-(defrec pub type_rec :
-    (# "this is a comment with \" with quotes \t ")
-    (field s1 s32)
-    (field s2 s32)
-    (field s3 s32)
-    (field s4 s32)
-    (field b1 bool)
-    (field u1 u64)
-    (field u2 u64))
-
-
-(enum pub type_enum S32 :
-    (# "this is a comment with \" with quotes \t ")
-    (entry e1 7)
-    (entry e2)
-    (entry e3 19)
-    (entry e4))
-
-
 (global c0 void void_val)
 
 
@@ -62,9 +43,37 @@
 (global c10 auto c2)
 
 
+(defrec pub type_rec :
+    (# "this is a comment with \" with quotes \t ")
+    (field s1 s32)
+    (field s2 s32)
+    (field s3 s32)
+    (field s4 s32)
+    (field b1 bool)
+    (field u1 u64)
+    (field u2 u64))
+
+(# "rec literal with explicit field name")
+(global c32 auto (rec_val type_rec [
+        (field_val 7)
+        (field_val 9)
+        (field_val 7)]))
+
+(static_assert (== (. c32 s1) 7))
+(static_assert (== (. c32 s2) 9))
+(static_assert (== (. c32 s3) 7))
+(static_assert (== (. c32 s4) 0))
+(static_assert (== (. c32 b1) false))
+
+(enum pub type_enum S32 :
+    (# "this is a comment with \" with quotes \t ")
+    (entry e1 7)
+    (entry e2)
+    (entry e3 19)
+    (entry e4))
+
+
 (global c20 auto type_enum::e3)
-
-
 (static_assert (== (as c20 s32) 19))
 
 
@@ -82,11 +91,6 @@
         (index_val 30)]))
 
 
-(# "rec literal with explicit field name")
-(global c32 auto (rec_val type_rec [
-        (field_val 7)
-        (field_val 9)
-        (field_val 7)]))
 
 
 (# "rec literal")
@@ -125,6 +129,7 @@
         (field_val "aaa")
         (field_val 9)
         (field_val 7)]))
+
 
 
 (# "TODO add examples with Functions"))
