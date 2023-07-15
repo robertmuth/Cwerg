@@ -21,7 +21,7 @@ https://git.musl-libc.org/cgit/musl/tree/src/math/__sin.c
 
 
 (# " |x + y | <= pi / 4")
-(fun sin_restricted [(param x r64) 
+(fun pub sin_restricted [(param x r64) 
                    (param y r64) 
                    (param y_is_zero bool)] r64 : 
     (let x2 auto (* x x))
@@ -39,7 +39,7 @@ https://git.musl-libc.org/cgit/musl/tree/src/math/__sin.c
     :
         (let t auto (- (* y 0.5) (* x3 s2_6)))
         (let t2 auto (- (* x2 t) y))
-
+        (return (- x (- t2 (* x3 S1))))
     )
 
 )
