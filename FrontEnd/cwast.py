@@ -568,8 +568,8 @@ def _NAME(node):
 
 def _FLAGS(node):
     out = []
-    for c, nfd in node.__class__.FIELDS:
-        if nfd.kind is NFK.FLAG and getattr(node, c):
+    for c, nfd in node.__class__.ATTRS:
+        if getattr(node, c):
             out.append(c)
     outs = " ".join(out)
     return " " + outs if outs else outs
@@ -617,9 +617,15 @@ def NodeCommon(cls):
     if cls.ALIAS is not None:
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
+    cls.ATTRS = []
+
     for field, type in cls.__annotations__.items():
         if not field.startswith("x_"):
-            cls.FIELDS.append((field, ALL_FIELDS_MAP[field]))
+            nfd = ALL_FIELDS_MAP[field]
+            if nfd.kind is NFK.FLAG:
+                cls.ATTRS.append((field, nfd))
+            else:
+                cls.FIELDS.append((field, nfd))
     return cls
 
 
@@ -2647,10 +2653,7 @@ def GenerateDocumentation(fout):
             print(f"", file=fout)
             print("Fields:",  file=fout)
 
-            for field, type in cls.__annotations__.items():
-                if field in X_FIELDS:
-                    continue
-                nfd = ALL_FIELDS_MAP[field]
+            for field, nfd in cls.FIELDS:
                 kind = nfd.kind
                 extra = ""
                 optional_val = GetOptional(field, 0)
@@ -2662,6 +2665,14 @@ def GenerateDocumentation(fout):
                     else:
                         extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
+
+            if cls.ATTRS:
+                print()
+                print("Flags:",  file=fout)
+
+                for field, nfd in cls.ATTRS:
+                    kind = nfd.kind
+                    print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
 
     print("## Enum Details",  file=fout)
 

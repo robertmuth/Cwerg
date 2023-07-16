@@ -312,6 +312,12 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
         flags[token[1:]] = True
         token = next(stream)
 
+    for field, nfd in cls.ATTRS:
+        if field in flags:
+            pieces.append(True)
+        else:
+            pieces.append(False)
+
     for field, nfd in fields:
         if token == ")":
             # we have reached the end before all the fields were processed
@@ -321,11 +327,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
                 cwast.CompilerError(
                     stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
             pieces.append(optional_val)
-        elif nfd.kind is cwast.NFK.FLAG:
-            if field in flags:
-                pieces.append(True)
-            else:
-                pieces.append(False)
+
         else:
             pieces.append(ReadPiece(field, token, stream, cls))
             token = next(stream)

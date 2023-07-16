@@ -169,14 +169,17 @@ def RenderRecursivelyToIR(node, out, indent: str):
     node_name, fields = GetNodeTypeAndFields(node)
     line.append("(" + node_name)
 
+    for field, nfd in node.ATTRS:
+        val = getattr(node, field)
+        if val:
+                line.append(" @" + field)
+
     for field, nfd in fields:
         field_kind = nfd.kind
         line = out[-1]
         val = getattr(node, field)
-        if field_kind is cwast.NFK.FLAG:
-            if val:
-                line.append(" @" + field)
-        elif cwast.IsFieldWithDefaultValue(field, val):
+
+        if cwast.IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
             line.append(" " + str(val))
