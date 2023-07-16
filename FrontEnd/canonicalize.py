@@ -28,9 +28,10 @@ def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifi
                 node.x_value, bytes), f"expected str got {node.x_value}"
             def_node = str_map.get(node.x_value)
             if not def_node:
-                def_node = cwast.DefGlobal(True, False, id_gen_global.NewName("global_str"),
+                def_node = cwast.DefGlobal(id_gen_global.NewName("global_str"),
                                            cwast.TypeAuto(
                                                node.x_srcloc, x_type=node.x_type), node,
+                                           pub=True,
                                            x_srcloc=node.x_srcloc)
                 str_map[node.x_value] = def_node
 
@@ -81,12 +82,12 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
-            def_t = cwast.DefVar(False, False, name_t,
+            def_t = cwast.DefVar(name_t,
                                  cwast.TypeAuto(
                                      x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
                                  x_srcloc=srcloc)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(False, False, name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
+            def_f = cwast.DefVar(name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
                                  x_srcloc=srcloc)
 
             expr = cwast.ExprStmt([], x_srcloc=srcloc,
@@ -143,7 +144,7 @@ def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: 
         pointer_expr = lhs.container.expr
         if isinstance(pointer_expr, cwast.Id):
             return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
-        def_node = cwast.DefVar(False, False, id_gen.NewName("assign"),
+        def_node = cwast.DefVar(id_gen.NewName("assign"),
                                 cwast.TypeAuto(x_srcloc=node.x_srcloc,
                                                x_type=pointer_expr.x_type),
                                 pointer_expr, x_srcloc=node.x_srcloc)
@@ -153,7 +154,7 @@ def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: 
             deref, lhs.field, x_field=lhs.field, x_type=lhs.x_type, x_srcloc=lhs.x_srcloc)
         new_assignment = _AssigmemtNode(
             node.assignment_kind, field_access, node.expr_rhs, node.x_srcloc)
-        return cwast.EphemeralList(True, [def_node, new_assignment])
+        return cwast.EphemeralList([def_node, new_assignment], colon=True)
 
     else:
         assert False, "NYI"
@@ -236,7 +237,7 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(
-        is_lhs, node.container, x_srcloc=srcloc, x_type=cstr_ptr)
+        node.container, x_srcloc=srcloc, x_type=cstr_ptr, mut=is_lhs)
     elem_addr = cwast.ExprPointer(
         cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
     return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
@@ -274,7 +275,7 @@ def CanonicalizeDefer(node, scopes):
         return out
 
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        return cwast.EphemeralList(False, handle_cfg(node.x_target) + [node])
+        return cwast.EphemeralList(handle_cfg(node.x_target) + [node], colon=False)
 
     for field, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
@@ -298,7 +299,7 @@ def CanonicalizeDefer(node, scopes):
                 scopes.pop(-1)
 
     if isinstance(node, cwast.StmtDefer):
-        return cwast.EphemeralList(False, [], x_srcloc=node.x_srcloc)
+        return cwast.EphemeralList([], colon=False, x_srcloc=node.x_srcloc)
     if isinstance(node, cwast.DefFun):
         scopes.pop(-1)
     return None

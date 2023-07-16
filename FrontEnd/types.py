@@ -380,7 +380,7 @@ class TypeCorpus:
         else:
             name = f"ptr<{s}>"
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
-        return self._insert(name, cwast.TypePtr(mut, cstr))
+        return self._insert(name, cwast.TypePtr(cstr, mut=mut))
 
     def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
@@ -388,7 +388,7 @@ class TypeCorpus:
             name = f"slice_mut<{s}>"
         else:
             name = f"slice<{s}>"
-        return self._insert(name, cwast.TypeSlice(mut, cstr))
+        return self._insert(name, cwast.TypeSlice(cstr, mut=mut))
 
     def insert_array_type(self, len: int, cstr: CanonType) -> CanonType:
         s = self.canon_name(cstr)
@@ -445,7 +445,7 @@ class TypeCorpus:
         self.wrapped_curr += 1
         name = f"wrapped<{uid},{self.canon_name(cstr)}>"
         assert name not in self.corpus
-        return self._insert(name, cwast.DefType(False, True, "_", cstr))
+        return self._insert(name, cwast.DefType("_", cstr, wrapped=True))
 
     def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
         assert isinstance(all, cwast.TypeSum)

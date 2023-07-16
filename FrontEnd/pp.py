@@ -172,7 +172,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
     for field, nfd in node.ATTRS:
         val = getattr(node, field)
         if val:
-                line.append(" @" + field)
+            line.append(" @" + field)
 
     for field, nfd in fields:
         field_kind = nfd.kind
@@ -302,7 +302,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
-            assert False, f"{name} {nfd}" 
+            assert False, f"{name} {nfd}"
 
     line = out[-1]
     line.append(")")

@@ -66,7 +66,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         assert types.is_void(new_sig.result)
         assert len(new_sig.params) == 1 + len(old_sig.params)
         result_type = cwast.TypePtr(
-            True, fun.result, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
+            fun.result, mut=True, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
         result_param = cwast.FunParam(id_gen.NewName(
             "result"), result_type, x_srcloc=fun.x_srcloc)
         fun.params.append(result_param)
@@ -78,7 +78,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
         if old.type != new.type:
             changing_params[p] = new.type
             p.type = cwast.TypePtr(
-                False, p.type, x_srcloc=p.x_srcloc, x_type=new.type)
+                p.type, x_srcloc=p.x_srcloc, x_type=new.type)
     assert result_changes or changing_params
     return changing_params, result_changes
 
@@ -109,7 +109,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
             node.expr_ret = cwast.ValVoid(
                 x_srcloc=node.x_srcloc, x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
-            return cwast.EphemeralList(False, [assign, node], x_srcloc=node.x_srcloc)
+            return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
@@ -130,27 +130,28 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             # note: new_sig might be longer if the result type was changed
             for n, (old, new) in enumerate(zip(old_sig.params, new_sig.params)):
                 if old.type != new.type:
-                    new_def = cwast.DefVar(False, True, id_gen.NewName(f"arg{n}"),
+                    new_def = cwast.DefVar(id_gen.NewName(f"arg{n}"),
                                            cwast.TypeAuto(
                                                x_srcloc=call.x_srcloc, x_type=old.type),
-                                           call.args[n],
+                                           call.args[n], ref=True,
                                            x_srcloc=call.x_srcloc)
                     expr_body.append(new_def)
                     name = cwast.Id(new_def.name,
                                     x_srcloc=call.x_srcloc, x_type=old.type, x_symbol=new_def)
                     call.args[n] = cwast.ExprAddrOf(
-                        False, name, x_srcloc=call.x_srcloc, x_type=new.type)
+                        name, x_srcloc=call.x_srcloc, x_type=new.type)
             if len(old_sig.params) != len(new_sig.params):
                 # the result is not a argument
-                new_def = cwast.DefVar(True, True, id_gen.NewName("result"),
+                new_def = cwast.DefVar(id_gen.NewName("result"),
                                        cwast.TypeAuto(x_srcloc=call.x_srcloc,
                                                       x_type=old_sig.result),
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
+                                       mut=True, ref=True,
                                        x_srcloc=call.x_srcloc)
                 name = cwast.Id(new_def.name,
                                 x_srcloc=call.x_srcloc, x_type=old_sig.result, x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
-                    True, name, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
+                    name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.params[-1].type))
                 typify.UpdateNodeType(
                     tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
                 expr_body.append(new_def)

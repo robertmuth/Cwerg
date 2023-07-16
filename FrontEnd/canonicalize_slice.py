@@ -21,8 +21,8 @@ SLICE_FIELD_LENGTH = "length"
 
 def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
     srcloc = slice.x_srcloc
-    pointer_type = cwast.TypePtr(slice.mut, cwast.CloneNodeRecursively(
-        slice.type, {}, {}), x_srcloc=srcloc)
+    pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
+        slice.type, {}, {}), mut=slice.mut, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
     pointer_field = cwast.RecField(
@@ -35,7 +35,7 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) ->
         SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(tc, length_field, length_type.x_type)
     name = f"tuple_{tc.canon_name(slice.x_type)}"
-    rec = cwast.DefRec(True, name, [pointer_field, length_field],
+    rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
     cstr = tc.insert_rec_type(f"{name}", rec)
     assert cstr == rec
@@ -120,7 +120,7 @@ def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
     width = node.x_type.size.x_value
     assert width is not None
     pointer_type = pointer_field.x_type
-    pointer = cwast.ExprFront(pointer_type.mut, node,
+    pointer = cwast.ExprFront(node, mut=pointer_type.mut,
                               x_type=pointer_type, x_srcloc=srcloc)
     length = cwast.ValNum(f"{width}", x_value=width,
                           x_srcloc=srcloc, x_type=length_field.x_type)
@@ -151,7 +151,7 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
 
 
 def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus, uint_type):
-    pointer = cwast.ExprFront(dst_type.mut, node, x_srcloc=node.x_type,
+    pointer = cwast.ExprFront(node, x_srcloc=node.x_type, mut=dst_type.mut,
                               x_type=tc.insert_ptr_type(dst_type.mut, dst_type.type))
     width = node.x_type.size.x_value
     length = cwast.ValNum(f"{width}", x_value=width,

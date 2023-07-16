@@ -219,7 +219,7 @@ def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
         return cwast.ValNum(f"{12345}_u32")
     elif isinstance(node, cwast.ExprStringify):
         # assert isinstance(node.expr, cwast.Id)
-        return cwast.ValString(True, f'"{node.expr}"', x_srcloc=node)
+        return cwast.ValString(f'"{node.expr}"', raw=True, x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
     macro = _ResolveMacroInvoke(node,  symtab_map)

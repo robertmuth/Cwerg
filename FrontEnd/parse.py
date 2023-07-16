@@ -161,9 +161,9 @@ def ExpandShortHand(t: str, srcloc) -> Any:
     if IsWellFormedStringLiteral(t):
         logger.info("STRING %s at %s", t, srcloc)
         if t.startswith("r"):
-            return cwast.ValString(True, t[1:], x_srcloc=srcloc)
+            return cwast.ValString(t[1:], x_srcloc=srcloc, raw=True)
         else:
-            return cwast.ValString(False, t, x_srcloc=srcloc)
+            return cwast.ValString(t, x_srcloc=srcloc, raw=False)
     elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
@@ -287,11 +287,11 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
         elif token == "(":
             args.append(ReadSExpr(stream, parent_cls))
         elif token == "[":
-            args.append(cwast.EphemeralList(False, ReadNodeList(
-                stream, parent_cls), x_srcloc=srcloc))
+            args.append(cwast.EphemeralList(ReadNodeList(
+                stream, parent_cls), colon=False, x_srcloc=srcloc))
         elif token == ":":
-            args.append(cwast.EphemeralList(True, ReadNodeColonList(
-                stream, parent_cls), x_srcloc=srcloc))
+            args.append(cwast.EphemeralList(ReadNodeColonList(
+                stream, parent_cls), colon=True, x_srcloc=srcloc))
         else:
             out = ExpandShortHand(token, stream.srcloc())
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
@@ -312,12 +312,6 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
         flags[token[1:]] = True
         token = next(stream)
 
-    for field, nfd in cls.ATTRS:
-        if field in flags:
-            pieces.append(True)
-        else:
-            pieces.append(False)
-
     for field, nfd in fields:
         if token == ")":
             # we have reached the end before all the fields were processed
@@ -334,7 +328,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
     if token != ")":
         cwast.CompilerError(stream.srcloc(
         ), f"while parsing {cls.__name__} expected node-end but got {token}")
-    return cls(*pieces, x_srcloc=srcloc)
+    return cls(*pieces, x_srcloc=srcloc, **flags)
 
 
 def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:

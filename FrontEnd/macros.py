@@ -54,7 +54,8 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert not new_name.name.startswith("$")
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial = ExpandMacroRecursively(node.initial_or_undef_or_auto, ctx)
-        return cwast.DefVar(node.mut, node.ref, new_name.name, type_or_auto, initial, x_srcloc=ctx.srcloc)
+        return cwast.DefVar(new_name.name, type_or_auto, initial,
+                            x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
@@ -78,7 +79,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                     out += exp.args
                 else:
                     out.append(exp)
-        return cwast.EphemeralList(False, out)
+        return cwast.EphemeralList(out, colon=False)
 
     clone = dataclasses.replace(node)
     if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
@@ -155,4 +156,4 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     ctx.PopScope()
     if len(out) == 1:
         return out[0]
-    return cwast.EphemeralList(False, out)
+    return cwast.EphemeralList(out, colon=False)

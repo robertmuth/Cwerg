@@ -570,7 +570,7 @@ def _FLAGS(node):
     out = []
     for c, nfd in node.__class__.ATTRS:
         if getattr(node, c):
-            out.append(c)
+            out.append("@" + c)
     outs = " ".join(out)
     return " " + outs if outs else outs
 
@@ -581,26 +581,36 @@ NODES_ALIASES = {}
 ALL_NODES = set()
 
 
-def _CheckNodeFieldOrder(obj):
-    seen_optional = False
-    seen_non_flag = False
-    for field, type in obj.__annotations__.items():
+def _CheckNodeFieldOrder(cls):
+    """
+    order is 
+    * regular
+    * optional
+    * flags
+    * x_
+    """
+    optionals = 0
+    regulars = 0
+    flags = 0
+    xs = 0
+    for field, type in cls.__annotations__.items():
         if field.startswith("x_"):
             assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
-            x = X_FIELDS[field]
-            if x:
-                assert x in obj.FLAGS, f"{obj} {field} {x}"
+            if field != "x_srcloc":
+                flag_kind = X_FIELDS[field]
+                assert flag_kind in cls.FLAGS, f"{cls}: {field} {flag_kind}"
+            xs += 1
             continue
         nfd = ALL_FIELDS_MAP[field]
         if field in _OPTIONAL_FIELDS:
-            seen_optional = True
+            optionals += 1
+            assert flags + xs == 0, f"{cls}: {field}"
+        elif nfd.kind is NFK.FLAG:
+            flags += 0
+            assert xs == 0
         else:
-            assert not seen_optional, f"in {obj.__name__} optional fields must come last: {field}"
-
-        if nfd.kind is NFK.FLAG:
-            assert not seen_non_flag, "flags must come first"
-        else:
-            seen_non_flag = True
+            regulars += 1
+            assert optionals + flags + xs == 0
 
 
 def NodeCommon(cls):
@@ -614,16 +624,16 @@ def NodeCommon(cls):
 
     ALL_NODES.add(cls)
     NODES_ALIASES[cls.__name__] = cls
+
     if cls.ALIAS is not None:
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
     cls.ATTRS = []
-
     for field, type in cls.__annotations__.items():
         if not field.startswith("x_"):
             nfd = ALL_FIELDS_MAP[field]
             if nfd.kind is NFK.FLAG:
-                cls.ATTRS.append((field, nfd))
+                 cls.ATTRS.append((field, nfd))
             else:
                 cls.FIELDS.append((field, nfd))
     return cls
@@ -663,8 +673,9 @@ class EphemeralList:
     GROUP = GROUP.Macro
     FLAGS = NF.NON_CORE
     #
-    colon: bool   # colon style list
     args: List[NODES_EXPR_T]
+    #
+    colon: bool = False  # colon style list
     #
     x_srcloc: Optional[Any] = None
 
@@ -815,8 +826,9 @@ class TypePtr:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    mut: bool   # pointee is mutable
     type: NODES_TYPES_T
+    #
+    mut: bool = False  # pointee is mutable
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -840,8 +852,9 @@ class TypeSlice:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
-    mut: bool  # slice is mutable
     type: NODES_TYPES_T
+    #
+    mut: bool = False  # slice is mutable
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1087,12 +1100,14 @@ class ValArray:
     """An array literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
+
+    `expr_size` must be constant or auto
     """
     ALIAS = "array_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr_size: Union["NODES_EXPR_T", ValAuto]  # must be constant
+    expr_size: Union["NODES_EXPR_T", ValAuto]
     type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #
@@ -1139,8 +1154,9 @@ class ValString:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    raw: bool
     string: str
+    #
+    raw: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1205,8 +1221,9 @@ class ExprAddrOf:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    mut: bool
     expr_lhs: NODES_EXPR_T
+    #
+    mut: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1225,9 +1242,10 @@ class ExprCall:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    polymorphic: bool
     callee: NODES_EXPR_T
     args: List[NODES_EXPR_T]
+    #
+    polymorphic: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1409,9 +1427,9 @@ class ExprFront:
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    mut: bool
-    #
     container: NODES_EXPR_T   # must be of type slice or array
+    #
+    mut: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1905,9 +1923,10 @@ class DefRec:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    pub:  bool
     name: str
     fields: List[NODES_FIELDS_T]
+    #
+    pub:  bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1947,10 +1966,11 @@ class DefEnum:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
-    pub:  bool
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: List[NODES_ITEMS_T]
+    #
+    pub:  bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1974,10 +1994,11 @@ class DefType:
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    pub:  bool
-    wrapped: bool
     name: str
     type: NODES_TYPES_T
+    #
+    pub:  bool = False
+    wrapped: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -2002,11 +2023,12 @@ class DefVar:
     GROUP = GROUP.Statement
     FLAGS = NF.LOCAL_SYM_DEF
     #
-    mut: bool
-    ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
+    #
+    mut: bool = False
+    ref: bool = False
     #
     x_srcloc: Optional[Any] = None
 
@@ -2026,11 +2048,12 @@ class DefGlobal:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    pub: bool
-    mut: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
+    #
+    pub: bool = False
+    mut: bool = False
     #
     x_srcloc: Optional[Any] = None
 
@@ -2052,15 +2075,16 @@ class DefFun:
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    init: bool
-    fini: bool
-    pub: bool
-    extern: bool
-    polymorphic: bool
     name: str
     params: List[NODES_PARAMS_T]
     result: NODES_TYPES_T
     body: List[NODES_BODY_T]  # new scope
+    #
+    polymorphic: bool = False
+    init: bool = False
+    fini: bool = False
+    pub: bool = False
+    extern: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -2190,11 +2214,12 @@ class MacroVar:
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
-    mut: bool
-    ref: bool
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
+    #
+    mut: bool = False
+    ref: bool = False
     #
     x_srcloc: Optional[Any] = None
 
@@ -2271,14 +2296,14 @@ class DefMacro:
     ALIAS = "macro"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
-    pub: bool
     #
     name: str
     macro_result_kind: MACRO_PARAM_KIND
-
     params_macro: List[NODES_PARAMS_MACRO_T]
     gen_ids: List[str]
     body_macro: List[Any]  # new scope
+    #
+    pub: bool = False
     #
     x_srcloc: Optional[Any] = None
 
@@ -2554,6 +2579,7 @@ def CheckAST(node, disallowed_nodes):
             assert node.x_module is not None or node.x_symbol is not None
         elif isinstance(node, MacroInvoke):
             assert node.x_module is not None
+
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra
@@ -2653,7 +2679,10 @@ def GenerateDocumentation(fout):
             print(f"", file=fout)
             print("Fields:",  file=fout)
 
-            for field, nfd in cls.FIELDS:
+            for field, type in cls.__annotations__.items():
+                if field in X_FIELDS:
+                    continue
+                nfd = ALL_FIELDS_MAP[field]
                 kind = nfd.kind
                 extra = ""
                 optional_val = GetOptional(field, 0)
@@ -2665,14 +2694,6 @@ def GenerateDocumentation(fout):
                     else:
                         extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
-
-            if cls.ATTRS:
-                print()
-                print("Flags:",  file=fout)
-
-                for field, nfd in cls.ATTRS:
-                    kind = nfd.kind
-                    print(f"* {field} [{kind.name}]: {nfd.doc}", file=fout)
 
     print("## Enum Details",  file=fout)
 
