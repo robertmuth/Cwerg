@@ -90,8 +90,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
         clone.field = arg.name
 
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
+    for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             replacement = ExpandMacroRecursively(getattr(node, c), ctx)
             setattr(clone, c, replacement)

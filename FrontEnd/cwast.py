@@ -341,7 +341,7 @@ NODES_FIELDS_T = Union[NODES_FIELDS]
 NODES_CASES = ("Comment", "Case")
 NODES_CASES_T = Union[NODES_CASES]
 
-NODES_EXPR = ("ValFalse", "ValTrue", "ValNum", 
+NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
               #
               "MacroInvoke",
@@ -518,6 +518,7 @@ def GetOptional(field: str, srcloc):
     else:
         assert False
 
+
 def IsFieldWithDefaultValue(field, val):
     e = _OPTIONAL_FIELDS.get(field)
     if e is None:
@@ -537,8 +538,7 @@ def IsFieldWithDefaultValue(field, val):
     else:
         assert False
 
-    
-    
+
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     #
@@ -568,8 +568,7 @@ def _NAME(node):
 
 def _FLAGS(node):
     out = []
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for c, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.FLAG and getattr(node, c):
             out.append(c)
     outs = " ".join(out)
@@ -617,8 +616,10 @@ def NodeCommon(cls):
     NODES_ALIASES[cls.__name__] = cls
     if cls.ALIAS is not None:
         NODES_ALIASES[cls.ALIAS] = cls
-    cls.FIELDS = [field for field, type in cls.__annotations__.items()
-                  if not field.startswith("x_")]
+    cls.FIELDS = []
+    for field, type in cls.__annotations__.items():
+        if not field.startswith("x_"):
+            cls.FIELDS.append((field, ALL_FIELDS_MAP[field]))
     return cls
 
 
@@ -2324,8 +2325,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 def VisitAstRecursively(node, visitor, field=None):
     visitor(node, field)
 
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursively(child, visitor, f)
@@ -2337,8 +2337,7 @@ def VisitAstRecursively(node, visitor, field=None):
 def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
     visitor(node, parent, field)
 
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithParent(child, visitor, node, f)
@@ -2348,8 +2347,7 @@ def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
 
 
 def VisitAstRecursivelyPost(node, visitor, field=None):
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyPost(child, visitor, f)
@@ -2364,8 +2362,7 @@ def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
     if visitor(node, parents):
         return
     parents.append(node)
-    for c in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[c]
+    for c, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             VisitAstRecursivelyWithAllParents(
                 getattr(node, c), parents, visitor)
@@ -2377,8 +2374,7 @@ def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
 
 def MaybeReplaceAstRecursively(node, replacer):
     """Note: the root node will not be replaced"""
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             new_child = replacer(child, f)
@@ -2398,9 +2394,8 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     """Note: the root node will not be replaced"""
-    for f in node.__class__.FIELDS:
+    for f, nfd in node.__class__.FIELDS:
         # print ("replace: ", node.__class__.__name__, c)
-        nfd = ALL_FIELDS_MAP[f]
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             MaybeReplaceAstRecursivelyPost(child, replacer)
@@ -2434,8 +2429,7 @@ def _MaybeFlattenEphemeralList(nodes: List[Any]):
 
 
 def EliminateEphemeralsRecursively(node):
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             if isinstance(child, EphemeralList):
@@ -2463,8 +2457,7 @@ def CloneNodeRecursively(node, var_map, block_map):
         clone.x_symbol = var_map.get(clone.x_symbol, clone.x_symbol)
     if NF.CONTROL_FLOW in clone.FLAGS:
         clone.x_taget = var_map.get(clone.x_target, clone.x_target)
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             setattr(clone, f, CloneNodeRecursively(
                 getattr(node, f), var_map, block_map))
@@ -2481,8 +2474,7 @@ def CloneNodeRecursively(node, var_map, block_map):
 
 
 def StripFromListRecursively(node, cls):
-    for f in node.__class__.FIELDS:
-        nfd = ALL_FIELDS_MAP[f]
+    for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             StripFromListRecursively(child, cls)
@@ -2530,7 +2522,8 @@ def CheckAST(node, disallowed_nodes):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         # print ("#", node)
-        assert type(node) not in disallowed_nodes, f"Disallowed node: {type(node)}"
+        assert type(
+            node) not in disallowed_nodes, f"Disallowed node: {type(node)}"
         assert node.x_srcloc is not None, f"Node without srcloc node {node}"
 
         if NF.TOP_LEVEL in node.FLAGS:

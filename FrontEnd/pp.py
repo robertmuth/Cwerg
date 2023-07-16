@@ -7,6 +7,7 @@
 import sys
 import logging
 import argparse
+import enum
 
 from typing import List, Dict, Set, Optional, Union, Any, Tuple
 
@@ -168,13 +169,13 @@ def RenderRecursivelyToIR(node, out, indent: str):
     node_name, fields = GetNodeTypeAndFields(node)
     line.append("(" + node_name)
 
-    for field in fields:
+    for field, nfd in fields:
+        field_kind = nfd.kind
         line = out[-1]
-        field_kind = cwast.ALL_FIELDS_MAP[field].kind
         val = getattr(node, field)
         if field_kind is cwast.NFK.FLAG:
             if val:
-                line.append(" " + field)
+                line.append(" @" + field)
         elif cwast.IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
@@ -264,9 +265,9 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
     node_name, fields = GetNodeTypeAndFields(node)
     line += DecorateNode("(" + node_name, node, tc)
 
-    for field in fields:
+    for field, nfd in fields:
         line = out[-1]
-        field_kind = cwast.ALL_FIELDS_MAP[field].kind
+        field_kind = nfd.kind
         val = getattr(node, field)
         if field_kind is cwast.NFK.FLAG:
             if val:
@@ -298,7 +299,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
-            assert False
+            assert False, f"{name} {nfd}" 
 
     line = out[-1]
     line.append(")")
@@ -324,149 +325,299 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
 ############################################################
 
 
+@enum.unique
+class TK(enum.Enum):
+    INVALID = 0
+
+    ATTR = 1  # attribute
+    SEP = 2  # sequence seperator
+    SEQ = 3  # sequence element
+    COM = 4  # comment
+    MCOM = 5  # multi line comment
+    BINOP = 6  # binary operator
+    UNOP = 7  # unary operator
+    BEG = 8
+    BEG_WITH_SEP = 9
+    END = 10
+
+
 def ConcreteSyntaxExpr(node):
     if isinstance(node, cwast.Id):
-        return node.name
+        yield node.name, TK.ATTR
     elif isinstance(node, cwast.ValString):
-        return node.string
+        yield node.string, TK.ATTR
     elif isinstance(node, cwast.ValNum):
-        return node.number
+        yield node.number, TK.ATTR
     elif isinstance(node, cwast.ValTrue):
-        return "true"
+        yield "true", TK.ATTR
     elif isinstance(node, cwast.ValFalse):
-        return "false"
+        yield "false", TK.ATTR
     elif isinstance(node, cwast.ValUndef):
-        return "undef"
+        yield "undef", TK.ATTR
     elif isinstance(node, cwast.ValVoid):
-        return "void"
+        yield "void", TK.ATTR
     elif isinstance(node, cwast.Expr2):
-        return f"{ConcreteSyntaxExpr(node.expr1)} {node.binary_expr_kind.name} {ConcreteSyntaxExpr(node.expr2)}"
+        yield from ConcreteSyntaxExpr(node.expr1)
+        yield "{node.binary_expr_kind.name}", cwast.BINOP
+        yield from ConcreteSyntaxExpr(node.expr2)
     elif isinstance(node, cwast.ExprPointer):
-        return f"{ConcreteSyntaxExpr(node.expr1)} {node.pointer_expr_kind.name} {ConcreteSyntaxExpr(node.expr2)}"
+        yield from ConcreteSyntaxExpr(node.expr1)
+        yield "{node.pointer_expr_kind.name}", cwast.BINOP
+        yield from ConcreteSyntaxExpr(node.expr2)
     elif isinstance(node, cwast.ValArray):
-        return f"[{ConcreteSyntaxExpr(node.expr_size)}]{ConcreteSyntaxType(node.type)} ..."
+        yield "[", TK.BEG
+        yield from ConcreteSyntaxExpr(node.expr_size)
+        yield "]", TK.END
+        yield from ConcreteSyntaxType(node.type)
+        # TODO
     elif isinstance(node, cwast.ExprDeref):
-        return f"^{ConcreteSyntaxExpr(node.expr)}"
+        yield "^", cwast.UNOP
+        yield from ConcreteSyntaxExpr(node.expr)
     elif isinstance(node, cwast.ExprAs):
-        return f"{ConcreteSyntaxExpr(node.expr)} as {ConcreteSyntaxType(node.expr)}"
+        yield from ConcreteSyntaxExpr(node.expr)
+        yield "as", TK.BINOP
+        yield from ConcreteSyntaxType(node.expr)
     elif isinstance(node, cwast.ExprCall):
-        args = ["..."]
-        return f"{ConcreteSyntaxExpr(node.callee)}({', '.join(args)})"
+        yield from ConcreteSyntaxExpr(node.calleee)
+        yield "(", cwast.BEG_WITH_SEP
+        sep = False
+        for e in node.args:
+            if sep:
+                yield ",", TK.SEP
+            sep = True
+            yield from ConcreteSyntaxExpr(e)
+        yield ")", cwast.END
     elif isinstance(node, cwast.ExprIndex):
-        return f"[{ConcreteSyntaxExpr(node.expr_index)}]{ConcreteSyntaxExpr(node.container)}"
+        yield "[", cwast.BEG
+        yield from ConcreteSyntaxExpr(node.expr_index)
+        yield "]", cwast.END
+        yield from ConcreteSyntaxExpr(node.container)
     else:
         assert False, f"unknown expr node: {type(node)}"
 
 
-def ConcreteSyntaxType(node) -> str:
+def ConcreteSyntaxType(node):
     if isinstance(node, cwast.Id):
-        return node.name
+        yield node.name, TK.ATTR
     elif isinstance(node, cwast.TypeAuto):
-        return "auto"
+        yield "auto", TK.ATTR
     elif isinstance(node, cwast.TypeBase):
-        return node.base_type_kind.name
+        yield node.base_type_kind.name, TK.ATTR
     elif isinstance(node, cwast.TypePtr):
-        return f"*{ConcreteSyntaxType(node.type)}"
+        yield "*", TK.UNOP
+        yield from ConcreteSyntaxType(node.type)
     elif isinstance(node, cwast.TypeArray):
-        return f"[]{ConcreteSyntaxType(node.type)}"
+        yield "[", TK.BEG
+        yield from ConcreteSyntaxExpr(node.expr_size)
+        yield "]", TK.END
+        yield from ConcreteSyntaxType(node.type)
     else:
         assert False, f"unknown type node: {type(node)}"
 
 
-def ConcreteSyntaxFunParams(params: List[cwast.FunParam]) -> str:
-    out = [f"{p.name} {ConcreteSyntaxType(p.type)}" for p in params]
-    return ", ".join(out)
-
-
-def ConcreteSyntaxColonList(lst, indent):
-    if not lst:
-        print(" " * (indent + 4) + "pass")
+def ConcreteSyntaxComment(node: cwast.Comment):
+    if node.comment.startswith('"""'):
+        yield (node.comment[3:-3], TK.MCOM)
     else:
-        for a in lst:
-            ConcreteSyntaxStmt(a, indent+4)
+        yield (node.comment[1:-1], TK.COM)
 
 
-def ConcreteSyntaxStmt(node, indent):
-    prefix = " " * indent
+def ConcreteSyntaxStmt(node):
     if isinstance(node, cwast.Id):
-        print(f"{prefix}{node.name}")
+        yield (node.name, TK.ATTR)
     elif isinstance(node, cwast.Comment):
-        print(f"{prefix}# {node.comment[1:-1]}")
+        yield from ConcreteSyntaxComment(node)
     elif isinstance(node, cwast.Case):
-        print(f"{prefix}case {ConcreteSyntaxExpr(node.cond)}:")
+        yield ("case", TK.BEG)
+
+        ConcreteSyntaxExpr(node.cond)
+        yield (":", TK.BEG)
         for c in node.body:
-            ConcreteSyntaxStmt(c, indent+4)
+            yield from ConcreteSyntaxStmt(c)
+        yield ("", TK.END)
+        yield ("", TK.END)
+
     elif isinstance(node, cwast.StmtCond):
-        print(f"{prefix}cond:")
+        yield ("cond", TK.BEG)
+        yield (":", TK.BEG)
         for c in node.cases:
-            ConcreteSyntaxStmt(c, indent+4)
+            yield from ConcreteSyntaxStmt(c)
+        yield ("", TK.END)
+        yield ("", TK.END)
     elif isinstance(node, cwast.DefVar):
-        print(f"{prefix}let {node.name} {ConcreteSyntaxType(node.type_or_auto)} = {ConcreteSyntaxExpr(node.initial_or_undef)}")
+        yield ("let", TK.BEG)
+        yield (node.name, TK.ATTR)
+        yield from ConcreteSyntaxType(node.type_or_auto)
+        if not isinstance(node.initial_or_undef_or_auto, cwast.VaLAuto):
+            yield ("=", TK.BINOP)
+            yield from ConcreteSyntaxExpr(node.initial_or_undef_or_auto)
+        yield ("", TK.END)
     elif isinstance(node, cwast.StmtCompoundAssignment):
-        print(f"{prefix} {ConcreteSyntaxExpr(node.lhs)} {node.assignment_kind} {ConcreteSyntaxExpr(node.expr_rhs)}")
+        yield ("set", TK.BEG)
+        yield from ConcreteSyntaxExpr(node.lhs)
+        yield f"={node.assignment_kind}", TK.BINOP
+        yield from ConcreteSyntaxExpr(node.expr_rhs)
     elif isinstance(node, cwast.StmtAssignment):
-        print(
-            f"{prefix} {ConcreteSyntaxExpr(node.lhs)} = {ConcreteSyntaxExpr(node.expr_rhs)}")
+        yield ("set", TK.BEG)
+        yield from ConcreteSyntaxExpr(node.lhs)
+        yield f"=", TK.BINOP
+        yield ConcreteSyntaxExpr(node.expr_rhs)
     elif isinstance(node, cwast.StmtIf):
-        print(f"{prefix}if {ConcreteSyntaxExpr(node.cond)}:")
-        ConcreteSyntaxColonList(node.body_t, indent + 4)
+        yield ("if", TK.BEG)
+        yield from ConcreteSyntaxExpr(node.cond)
+        yield (":", TK.BEG)
+        for c in node.body_t:
+            yield from ConcreteSyntaxStmt(c)
+        yield (":", TK.BEG)
         if node.body_f:
-            print(f"{prefix}else:")
-            ConcreteSyntaxColonList(node.body_f, indent + 4)
+            yield ("else", TK.ATTR)
+            yield (":", TK.BEG)
+            for c in node.body_f:
+                yield ConcreteSyntaxStmt(c)
+            yield ("", TK.END)
+        yield ("", TK.END)
     elif isinstance(node, cwast.MacroInvoke):
-        print(f"{prefix}{node.name}!", end="")
-        sep = " "
+        yield f"{node.name}!", TK.BEG_WITH_SEP
+        sep = False
         for a in node.args:
+            if sep:
+                yield ",", TK.SEP
+            sep = True
             if isinstance(a, cwast.Id):
-                print(f"{sep}{a.name}", end="")
+                yield a.name, TK.ATTR
             elif isinstance(a, (cwast.EphemeralList)):
                 if a.colon:
-                    print(":")
-                    ConcreteSyntaxColonList(a.args, indent + 4)
-
+                    yield ":", TK.BEG
+                    for s in a.args:
+                        yield from ConcreteSyntaxStmt(s)
+                    yield "", TK.END
                 else:
-                    print(f"{sep}(", end="")
-                    sep2 = ""
-                    for a2 in a.args:
-                        print(f"{sep2}{ConcreteSyntaxExpr(a2)}", end="")
-                    sep2 = ", "
-                    print(")", end="")
+                    sep2 = False
+                    yield "[", TK.BEG_WITH_SEP
+                    for e in a.args:
+                        if sep2:
+                            yield ",", TK.SEP
+                        sep2 = True
+                        yield from ConcreteSyntaxExpr(e)
+                    yield "]", TK.END
             elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeArray)):
-                print(f"{sep}{ConcreteSyntaxType(a)}", end="")
+                yield from ConcreteSyntaxType(a)
             else:
-                print(f"{sep}{ConcreteSyntaxExpr(a)}", end="")
-            sep = ", "
-        print()
+                yield from ConcreteSyntaxExpr(a)
+        yield "", TK.END
     elif isinstance(node, cwast.StmtReturn):
-        print(f"{prefix}return {ConcreteSyntaxExpr(node.expr_ret)}")
+        yield "return", TK.BEG
+        yield from ConcreteSyntaxExpr(node.expr_ret)
+        yield ("", TK.END)
+
     else:
         assert False, f"unknown stmt node: {type(node)}"
 
 
-def ConcreteSyntaxTop(node, indent):
-    prefix = " " * indent
+def ConcreteSyntaxTop(node):
     if isinstance(node, cwast.DefMod):
-        print(f"{prefix}module {node.name}")
-        print("")
+        yield ("module", TK.BEG)
+        yield (node.name, TK.ATTR)
         for child in node.body_mod:
-            ConcreteSyntaxTop(child, indent)
+            yield from ConcreteSyntaxTop(child)
+        yield ("", TK.END)
+
     elif isinstance(node, cwast.Comment):
-        print(f"{prefix}# {node.comment[1:-1]}")
+        yield from ConcreteSyntaxComment(node)
+
     elif isinstance(node, cwast.DefGlobal):
-        print(f"{prefix}global {node.name} {ConcreteSyntaxType(node.type_or_auto)} = {ConcreteSyntaxExpr(node.initial_or_undef)}")
+        yield ("global", TK.BEG)
+        yield (node.name, TK.ATTR)
+        yield from ConcreteSyntaxType(node.type_or_auto)
+        if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
+            yield ("=", TK.BINOP)
+            yield from ConcreteSyntaxExpr(node.initial_or_undef_or_auto)
+        yield ("", TK.END)
     elif isinstance(node, cwast.DefFun):
-        params = ConcreteSyntaxFunParams(node.params)
-        print(
-            f"{prefix}fun {node.name}({params}) -> {ConcreteSyntaxType(node.result)}:")
+        yield ("fun", TK.BEG)
+        yield (node.name, TK.ATTR)
+
+        yield ("(", TK.BEG_WITH_SEP)
+        sep = False
+        for p in node.params:
+            if sep:
+                yield ",", TK.SEP
+            sep = True
+            yield (p.name, TK.ATTR)
+            yield from ConcreteSyntaxType(p.type)
+        yield (")", TK.END)
+
+        yield from ConcreteSyntaxType(node.result)
+        yield (":", TK.BEG)
+
         for child in node.body:
-            ConcreteSyntaxStmt(child, indent+4)
+            yield from ConcreteSyntaxStmt(child)
+        yield ("", TK.END)
+        yield ("", TK.END)
+
     elif isinstance(node, cwast.Import):
-        extra = ""
+        yield ("import", TK.BEG)
+        yield (node.name, TK.ATTR)
         if node.alias:
-            extra = f"as {node.alias}"
-        print(f"{prefix}import {node.name}{extra}")
+            yield ("as", TK.BINOP)
+            yield (node.alias, TK.ATTR)
+        yield ("", TK.END)
+
+    elif isinstance(node, cwast.DefRec):
+        pass
     else:
         assert False, f"unknown node: {type(node)}"
+
+
+BEG_TOKENS = set(["module", "global", "fun", "cond", "if",
+                 "case", "let", "set", "return", ":"])
+BEG_WITH_SEP_TOKENS = set(["(", "["])
+END_TOKENS = set(["", ")", "]"])
+
+
+def GetCurrentIndent(stack) -> int:
+    for t, kind, i in reversed(stack):
+        if kind is TK.BEG:
+            return i * 4
+    assert False
+
+
+def FormatTokenStream(tokens, stack, col):
+    t, kind = tokens.pop(-1)
+    if kind is TK.BEG:
+        assert t in BEG_TOKENS, f"bad BEG token {t}"
+        if t == "module":
+            assert not stack
+            print(t, end="")
+            stack.append((t, kind, 0))
+        elif t == ":":
+            print(" ", t, end="")
+        else:
+            print()
+
+            ci = GetCurrentIndent(stack)
+            print(" " * ci, t, end="")
+            stack.append((t, kind, ci + 1))
+    elif kind is TK.BEG_WITH_SEP:
+        assert t in BEG_WITH_SEP_TOKENS or t.endswith(
+            "!"), f"bad BEG token {t}"
+        ci = GetCurrentIndent(stack)
+        stack.append((t, kind, ci + 1))
+        print(" ", t, end="")
+    elif kind is TK.ATTR:
+        print(" ", t, end="")
+        col += 1 + len(t)
+    elif kind is TK.SEP:
+        print(" ", t, end="")
+        col += 1 + len(t)
+    elif kind is TK.END:
+        assert t in END_TOKENS, f"bad END token {t}"
+        beg = stack.pop(-1)
+        if beg[0] == "module":
+            assert not stack
+            return
+        print(" ", t)
+    FormatTokenStream(tokens, stack, col)
 
 
 ############################################################
@@ -475,7 +626,7 @@ def ConcreteSyntaxTop(node, indent):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
-        '-mode', type=str, help='mode. one of: reformat, annotate', default="reformat")
+        '-mode', type=str, help='mode. one of: reformat, annotate, concrete', default="reformat")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
@@ -501,6 +652,9 @@ if __name__ == "__main__":
             PrettyPrintHTML(mod, tc)
     elif args.mode == 'concrete':
         for mod in mods:
-            ConcreteSyntaxTop(mod, 0)
+            tokens = ConcreteSyntaxTop(mod)
+            tokens = list(tokens)
+            tokens.reverse()
+            FormatTokenStream(tokens, [], 0)
     else:
         assert False, f"unknown mode {args.mode}"

@@ -237,8 +237,7 @@ def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
 
 def FindAndExpandMacrosRecursively(node, symtab_map, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
+    for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             FindAndExpandMacrosRecursively(child, symtab_map, nesting, ctx)
@@ -288,11 +287,10 @@ def ResolveSymbolsInsideFunctionsRecursively(
         return
 
     # recurse using a little bit of introspection
-    for c in node.__class__.FIELDS:
+    for c, nfd in node.__class__.FIELDS:
         if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
             # polymorphic stuff can only be handled once we have types
             continue
-        nfd = cwast.ALL_FIELDS_MAP[c]
         if nfd.kind is cwast.NFK.NODE:
             ResolveSymbolsInsideFunctionsRecursively(
                 getattr(node, c), symtab, symtab_map, scopes)

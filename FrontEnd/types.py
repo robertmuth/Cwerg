@@ -192,8 +192,7 @@ def MakeAstTypeNodeFromCanonical(node, srcloc):
     clone.x_alignement = None
     clone.x_offset = None
 
-    for c in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[c]
+    for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             setattr(clone, c, MakeAstTypeNodeFromCanonical(
                 getattr(node, c), srcloc))

@@ -309,11 +309,10 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
     token = next(stream)
     flags = {}
     while token.startswith("@"):
-         flags[token[1:]]= True            
-         token = next(stream)
-         
-    for field in fields:
-        nfd = cwast.ALL_FIELDS_MAP[field]
+        flags[token[1:]] = True
+        token = next(stream)
+
+    for field, nfd in fields:
         if token == ")":
             # we have reached the end before all the fields were processed
             # fill in default values
@@ -341,16 +340,16 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
     tag = next(stream)
     if tag in cwast.UNARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr1, [cwast.UNARY_EXPR_SHORTCUT[tag]],
-                                   ["expr"], stream)
+                                   cwast.Expr1.FIELDS[1:], stream)
     elif tag in cwast.BINARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr2, [cwast.BINARY_EXPR_SHORTCUT[tag]],
-                                   ["expr1", "expr2"], stream)
+                                   cwast.Expr2.FIELDS[1:], stream)
     elif tag in cwast.POINTER_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.ExprPointer, [cwast.POINTER_EXPR_SHORTCUT[tag]],
-                                   ["expr1", "expr2", "expr_bound_or_undef"], stream)
+                                   cwast.ExprPointer.FIELDS[1:], stream)
     elif tag in cwast.ASSIGNMENT_SHORTCUT:
         return ReadRestAndMakeNode(cwast.StmtCompoundAssignment, [cwast.ASSIGNMENT_SHORTCUT[tag]],
-                                   ["lhs", "expr"], stream)
+                                   cwast.StmtCompoundAssignment.FIELDS[1:], stream)
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
@@ -364,9 +363,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
                 cwast.CompilerError(stream.srcloc(
                 ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
 
-        fields = [f for f, _ in cls.__annotations__.items()
-                  if not f.startswith("x_")]
-        return ReadRestAndMakeNode(cls, [], fields, stream)
+        return ReadRestAndMakeNode(cls, [], cls.FIELDS, stream)
 
 
 def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:

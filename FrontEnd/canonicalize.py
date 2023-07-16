@@ -276,8 +276,7 @@ def CanonicalizeDefer(node, scopes):
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
         return cwast.EphemeralList(False, handle_cfg(node.x_target) + [node])
 
-    for field in node.__class__.FIELDS:
-        nfd = cwast.ALL_FIELDS_MAP[field]
+    for field, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, field)
             new_child = CanonicalizeDefer(child, scopes)
