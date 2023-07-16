@@ -102,6 +102,7 @@ Comment
 Fields:
 * comment [STR]: comment
 
+
 ### Id (id)
 Refers to a type, variable, constant, function, module by name.
 
@@ -111,6 +112,7 @@ Refers to a type, variable, constant, function, module by name.
 Fields:
 * name [STR]: name of the object
 
+
 ## Type Node Details
 
 ### DefEnum (enum)
@@ -119,10 +121,13 @@ Enum definition
 Allowed at top level only
 
 Fields:
-* pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
 * items [LIST]: enum items and/or comments
+
+Flags:
+* pub: has public visibility
+
 
 ### DefRec (defrec)
 Record definition
@@ -130,9 +135,12 @@ Record definition
 Allowed at top level only
 
 Fields:
-* pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * fields [LIST]: record fields and/or comments
+
+Flags:
+* pub: has public visibility
+
 
 ### EnumVal (entry)
  Enum element.
@@ -143,6 +151,7 @@ Fields:
 * name [STR]: name of the object
 * value_or_auto [NODE] (default ValAuto): enum constant or auto
 
+
 ### FunParam (param)
 Function parameter
 
@@ -151,6 +160,7 @@ Function parameter
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
+
 
 ### RecField (field)
 Record field
@@ -163,6 +173,7 @@ Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
 
+
 ### TypeArray (array)
 An array of the given type and `size`
 
@@ -172,6 +183,7 @@ Fields:
 * size [NODE]: compile-time constant size
 * type [NODE]: type expression
 
+
 ### TypeAuto (auto)
 Placeholder for an unspecified (auto derived) type
 
@@ -179,6 +191,7 @@ Placeholder for an unspecified (auto derived) type
     
 
 Fields:
+
 
 ### TypeBase
 Base type
@@ -188,6 +201,7 @@ Base type
 
 Fields:
 * base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
+
 
 ### TypeFun (sig)
 A function signature
@@ -199,13 +213,17 @@ Fields:
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
 
+
 ### TypePtr (ptr)
 Pointer type
     
 
 Fields:
-* mut [FLAG]: is mutable
 * type [NODE]: type expression
+
+Flags:
+* mut: is mutable
+
 
 ### TypeSlice (slice)
 A view/slice of an array with compile-time unknown dimensions
@@ -215,8 +233,11 @@ A view/slice of an array with compile-time unknown dimensions
     
 
 Fields:
-* mut [FLAG]: is mutable
 * type [NODE]: type expression
+
+Flags:
+* mut: is mutable
+
 
 ### TypeSum (union)
 Sum types (tagged unions)
@@ -228,6 +249,7 @@ Sum types (tagged unions)
 Fields:
 * types [LIST]: union types
 
+
 ## Statement Node Details
 
 ### Case (case)
@@ -236,6 +258,7 @@ Single case of a Cond statement
 Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: new scope: statement list and/or comments
+
 
 ### DefFun (fun)
 Function definition
@@ -249,15 +272,18 @@ Function definition
 Allowed at top level only
 
 Fields:
-* init [FLAG]: run function at startup
-* fini [FLAG]: run function at shutdown
-* pub [FLAG]: has public visibility
-* extern [FLAG]: is external function (empty body)
-* polymorphic [FLAG]: function definition or call is polymorphic
 * name [STR]: name of the object
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
 * body [LIST]: new scope: statement list and/or comments
+
+Flags:
+* polymorphic: function definition or call is polymorphic
+* init: run function at startup
+* fini: run function at shutdown
+* pub: has public visibility
+* extern: is external function (empty body)
+
 
 ### DefGlobal (global)
 Variable definition at global scope (DefVar is used for local scope)
@@ -269,11 +295,14 @@ Variable definition at global scope (DefVar is used for local scope)
 Allowed at top level only
 
 Fields:
-* pub [FLAG]: has public visibility
-* mut [FLAG]: is mutable
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE]: initializer
+* initial_or_undef_or_auto [NODE] (default ValAuto): initializer
+
+Flags:
+* pub: has public visibility
+* mut: is mutable
+
 
 ### DefMacro (macro)
 Define a macro
@@ -289,12 +318,15 @@ Define a macro
 Allowed at top level only
 
 Fields:
-* pub [FLAG]: has public visibility
 * name [STR]: name of the object
 * macro_result_kind [KIND]: type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below
 * params_macro [LIST]: macro parameters
 * gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
 * body_macro [LIST]: new scope: macro statments/expression
+
+Flags:
+* pub: has public visibility
+
 
 ### DefMod (module)
 Module Definition
@@ -306,6 +338,7 @@ Fields:
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
+
 ### DefType (type)
 Type definition
 
@@ -316,26 +349,32 @@ Type definition
 Allowed at top level only
 
 Fields:
-* pub [FLAG]: has public visibility
-* wrapped [FLAG]: is wrapped type (forces type equivalence by name)
 * name [STR]: name of the object
 * type [NODE]: type expression
+
+Flags:
+* pub: has public visibility
+* wrapped: is wrapped type (forces type equivalence by name)
+
 
 ### DefVar (let)
 Variable definition at local scope (DefGlobal is used for global scope)
 
-    Allocates space on stack (or in a register) and initializes it with `initial_or_undef`.
+    Allocates space on stack (or in a register) and initializes it with `initial_or_undef_or_auto`.
     `mut` makes the allocated space read/write otherwise it is readonly.
     `ref` allows the address of the  variable to be taken and prevents register allocation.
 
     
 
 Fields:
-* mut [FLAG]: is mutable
-* ref [FLAG]: address may be taken
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE]: initializer
+* initial_or_undef_or_auto [NODE] (default ValAuto): initializer
+
+Flags:
+* mut: is mutable
+* ref: address may be taken
+
 
 ### Import (import)
 Import another Module from `path` as `name`
@@ -344,6 +383,7 @@ Fields:
 * name [STR]: name of the object
 * alias [STR] (default ""): name of imported module to be used instead of given name
 
+
 ### ModParam
 Module Parameters
 
@@ -351,12 +391,14 @@ Fields:
 * name [STR]: name of the object
 * mod_param_kind [KIND]: see [ModParam Kind](#modparam-kind) below
 
+
 ### StmtAssignment (=)
 Assignment statement
 
 Fields:
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
+
 
 ### StmtBlock (block)
 Block statement.
@@ -368,6 +410,7 @@ Fields:
 * label [STR]: block  name (if not empty)
 * body [LIST]: new scope: statement list and/or comments
 
+
 ### StmtBreak (break)
 Break statement
 
@@ -375,6 +418,7 @@ Break statement
 
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
 
 ### StmtCompoundAssignment
 Compound assignment statement
@@ -384,11 +428,13 @@ Fields:
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
+
 ### StmtCond (cond)
 Multicase if-elif-else statement
 
 Fields:
 * cases [LIST]: list of case statements
+
 
 ### StmtContinue (continue)
 Continue statement
@@ -397,6 +443,7 @@ Continue statement
 
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
 
 ### StmtDefer (defer)
 Defer statement
@@ -408,6 +455,7 @@ Defer statement
 Fields:
 * body [LIST]: new scope: statement list and/or comments
 
+
 ### StmtExpr (stmt)
 Expression statement
 
@@ -417,6 +465,7 @@ Expression statement
 Fields:
 * expr [NODE]: expression
 
+
 ### StmtIf (if)
 If statement
 
@@ -424,6 +473,7 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body_t [LIST]: new scope: statement list and/or comments for true branch
 * body_f [LIST]: new scope: statement list and/or comments for false branch
+
 
 ### StmtReturn (return)
 Return statement
@@ -435,6 +485,7 @@ Return statement
 Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
+
 ### StmtStaticAssert (static_assert)
 Static assert statement (must evaluate to true at compile-time
 
@@ -444,10 +495,12 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * message [STR] (default ""): message for assert failures
 
+
 ### StmtTrap (trap)
 Trap statement
 
 Fields:
+
 
 ## Value Node Details
 
@@ -462,6 +515,7 @@ Fields:
 * value [NODE]: 
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
+
 ### IndexVal (index_val)
 Part of an array literal
 
@@ -473,16 +527,20 @@ Fields:
 * value_or_undef [NODE]: 
 * init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
 
+
 ### ValArray (array_val)
 An array literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
+
+    `expr_size` must be constant or auto
     
 
 Fields:
 * expr_size [NODE]: expression determining the size or auto
 * type [NODE]: type expression
 * inits_array [LIST] (default list): array initializers and/or comments
+
 
 ### ValAuto (auto_val)
 Placeholder for an unspecified (auto derived) value
@@ -492,10 +550,12 @@ Placeholder for an unspecified (auto derived) value
 
 Fields:
 
+
 ### ValFalse (false)
 Bool constant `false`
 
 Fields:
+
 
 ### ValNum (num)
 Numeric constant (signed int, unsigned int, real
@@ -507,6 +567,7 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
+
 ### ValRec (rec_val)
 A record literal
 
@@ -516,6 +577,7 @@ A record literal
 Fields:
 * type [NODE]: type expression
 * inits_rec [LIST]: record initializers and/or comments
+
 
 ### ValSlice (slice_val)
 A slice value comprised of a pointer and length
@@ -527,6 +589,7 @@ Fields:
 * pointer [NODE]: pointer component of slice
 * expr_size [NODE]: expression determining the size or auto
 
+
 ### ValString
 An array value encoded as a string
 
@@ -534,19 +597,24 @@ An array value encoded as a string
     
 
 Fields:
-* raw [FLAG]: ignore escape sequences in string
 * string [STR]: string literal
+
+Flags:
+* raw: ignore escape sequences in string
+
 
 ### ValTrue (true)
 Bool constant `true`
 
 Fields:
 
+
 ### ValUndef (undef)
 Special constant to indiciate *no default value*
     
 
 Fields:
+
 
 ### ValVoid (void_val)
 Only value inhabiting the `TypeVoid` type
@@ -555,6 +623,7 @@ Only value inhabiting the `TypeVoid` type
      
 
 Fields:
+
 
 ## Expression Node Details
 
@@ -565,6 +634,7 @@ Fields:
 * unary_expr_kind [KIND]: see [Expr1 Kind](#expr1-kind) below
 * expr [NODE]: expression
 
+
 ### Expr2
 Binary expression.
 
@@ -572,6 +642,7 @@ Fields:
 * binary_expr_kind [KIND]: see [Expr2 Kind](#expr2-kind) below
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: righ operand expression
+
 
 ### Expr3 (?)
 Tertiary expression (like C's `? :`)
@@ -582,6 +653,7 @@ Fields:
 * expr_t [NODE]: expression (will only be evaluated if cond == true)
 * expr_f [NODE]: expression (will only be evaluated if cond == false)
 
+
 ### ExprAddrOf (&)
 Create a pointer to object represented by `expr`
 
@@ -590,8 +662,11 @@ Create a pointer to object represented by `expr`
     
 
 Fields:
-* mut [FLAG]: is mutable
 * expr_lhs [NODE]: l-value expression
+
+Flags:
+* mut: is mutable
+
 
 ### ExprAs (as)
 Safe Cast (Conversion)
@@ -611,6 +686,7 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
+
 ### ExprAsNot (asnot)
 Cast of Union to diff of the union and the given type
 
@@ -619,6 +695,7 @@ Cast of Union to diff of the union and the given type
 Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
+
 
 ### ExprBitCast (bitcast)
 Bit cast.
@@ -636,20 +713,25 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
+
 ### ExprCall (call)
 Function call expression.
     
 
 Fields:
-* polymorphic [FLAG]: function definition or call is polymorphic
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
+
+Flags:
+* polymorphic: function definition or call is polymorphic
+
 
 ### ExprDeref (^)
 Dereference a pointer represented by `expr`
 
 Fields:
 * expr [NODE]: expression
+
 
 ### ExprField (.)
 Access field in expression representing a record.
@@ -659,6 +741,7 @@ Fields:
 * container [NODE]: array and slice
 * field [STR]: record field
 
+
 ### ExprFront (front)
 Address of the first element of an array or slice
 
@@ -667,8 +750,11 @@ Address of the first element of an array or slice
     
 
 Fields:
-* mut [FLAG]: is mutable
 * container [NODE]: array and slice
+
+Flags:
+* mut: is mutable
+
 
 ### ExprIndex (at)
 Checked indexed access of array or slice
@@ -677,6 +763,7 @@ Checked indexed access of array or slice
 Fields:
 * container [NODE]: array and slice
 * expr_index [NODE]: expression determining the index to be accessed
+
 
 ### ExprIs (is)
 Test actual expression type within a Sum Type
@@ -687,11 +774,13 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
+
 ### ExprLen (len)
 Length of array or slice
 
 Fields:
 * container [NODE]: array and slice
+
 
 ### ExprOffsetof (offsetof)
 Byte offset of field in record types
@@ -702,12 +791,14 @@ Fields:
 * type [NODE]: type expression
 * field [STR]: record field
 
+
 ### ExprParen
 Used for preserving parenthesis in the source
     
 
 Fields:
 * expr [NODE]: expression
+
 
 ### ExprPointer
 Pointer arithmetic expression - optionally bound checked..
@@ -718,6 +809,7 @@ Fields:
 * expr2 [NODE]: righ operand expression
 * expr_bound_or_undef [NODE] (default ValUndef): 
 
+
 ### ExprSizeof (sizeof)
 Byte size of type
 
@@ -726,10 +818,12 @@ Byte size of type
 Fields:
 * type [NODE]: type expression
 
+
 ### ExprSrcLoc (src_loc)
 Source Location encoded as u32
 
 Fields:
+
 
 ### ExprStmt (expr)
 Expr with Statements
@@ -740,6 +834,7 @@ Expr with Statements
 Fields:
 * body [LIST]: new scope: statement list and/or comments
 
+
 ### ExprStringify (stringify)
 Human readable representation of the expression
 
@@ -748,6 +843,7 @@ Human readable representation of the expression
 
 Fields:
 * expr [NODE]: expression
+
 
 ### ExprTryAs (tryas)
 Narrow a `expr` which is of Sum to `type`
@@ -762,6 +858,7 @@ Fields:
 * type [NODE]: type expression
 * default_or_undef [NODE]: value if type narrowing fail or trap if undef
 
+
 ### ExprUnsafeCast (cast)
 Unsafe Cast
 
@@ -774,6 +871,7 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 
+
 ## Macro Node Details
 
 ### EphemeralList
@@ -783,8 +881,11 @@ Only exist temporarily after a replacement strep
     
 
 Fields:
-* colon [FLAG]: colon style list
 * args [LIST]: function call arguments
+
+Flags:
+* colon: colon style list
+
 
 ### MacroFor (macro_for)
 Macro for-loop like statement
@@ -798,6 +899,7 @@ Fields:
 * name_list [STR]: name of the object list
 * body_for [LIST]: statement list for macro_loop
 
+
 ### MacroId (macro_id)
 Placeholder for a parameter
 
@@ -807,6 +909,7 @@ Placeholder for a parameter
 Fields:
 * name [STR]: name of the object
 
+
 ### MacroInvoke (macro_invoke)
 Macro Invocation
 
@@ -814,12 +917,14 @@ Fields:
 * name [STR]: name of the object
 * args [LIST]: function call arguments
 
+
 ### MacroParam (mparam)
 Macro Parameter
 
 Fields:
 * name [STR]: name of the object
 * macro_param_kind [KIND]: type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below
+
 
 ### MacroVar (macro_let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
@@ -829,11 +934,14 @@ Macro Variable definition whose name stems from a macro parameter or macro_gen_i
     
 
 Fields:
-* mut [FLAG]: is mutable
-* ref [FLAG]: address may be taken
 * name [STR]: name of the object
 * type_or_auto [NODE]: type expression
-* initial_or_undef [NODE]: initializer
+* initial_or_undef_or_auto [NODE] (default ValAuto): initializer
+
+Flags:
+* mut: is mutable
+* ref: address may be taken
+
 ## Enum Details
 
 ### Expr1 Kind
