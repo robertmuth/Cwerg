@@ -1,7 +1,7 @@
 (module main [] :
 (# "main module with program entry point `main`")
 (fun strlen [(param s (ptr u8))] uint :
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (while (!= (^ (incp s i)) 0) :
         (+= i 1))
     (return i))

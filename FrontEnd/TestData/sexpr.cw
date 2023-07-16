@@ -1,5 +1,5 @@
 (module m1 [] :
-(fun pub foo1 [
+(fun @pub foo1 [
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
@@ -15,10 +15,10 @@
     (return 7))
 
 
-(global pub mut v1 auto 7_u64)
+(global @pub @mut v1 auto 7_u64)
 
 
-(global pub v1a auto (& mut v1))
+(global @pub v1a auto (& @mut v1))
 
 
 (fun foo2 [
@@ -35,13 +35,13 @@
     (return 7))
 
 
-(type wrapped t1 s32)
+(type @wrapped t1 s32)
 
 
-(global pub c1 auto 7_s64)
+(global @pub c1 auto 7_s64)
 
 
-(defrec pub type_rec :
+(defrec @pub type_rec :
     (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
@@ -52,12 +52,12 @@
     (field u2 u64))
 
 
-(defrec pub one_field_rec :
+(defrec @pub one_field_rec :
     (# "this is a comment with \" with quotes \t ")
     (field the_field r32))
 
 
-(defrec pub one_one_field_rec :
+(defrec @pub one_one_field_rec :
     (# "this is a comment with \" with quotes \t ")
     (field the_field one_field_rec))
 
@@ -65,7 +65,7 @@
 (global c2 auto (offsetof type_rec s1))
 
 
-(enum pub type_enum S32 :
+(enum @pub type_enum S32 :
     (# "this is a comment with \" with quotes \t ")
     (entry s1 7)
     (entry s2)
@@ -76,10 +76,10 @@
 
 
 (module m2 [] :
-(type type_ptr (ptr mut s32))
+(type type_ptr (ptr @mut s32))
 
 
-(type pub type_union (union [
+(type @pub type_union (union [
         s32
         void
         type_ptr]))

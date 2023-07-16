@@ -27,7 +27,7 @@
 (static_assert (== (sizeof (slice r64)) 16))
 
 
-(defrec pub type_rec :
+(defrec @pub type_rec :
     (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
@@ -50,7 +50,7 @@
 (static_assert (== (offsetof type_rec u1) 24))
 
 
-(enum pub type_enum S32 :
+(enum @pub type_enum S32 :
     (# "this is a comment with \" with quotes \t ")
     (entry e1 7)
     (entry e2)
@@ -61,25 +61,25 @@
 (static_assert (== (sizeof type_enum) 4))
 
 
-(type wrapped w1 s32)
+(type @wrapped w1 s32)
 
 
-(type wrapped w2 void)
+(type @wrapped w2 void)
 
 
-(type wrapped w3 void)
+(type @wrapped w3 void)
 
 
-(type ptr1 (ptr mut s32))
+(type ptr1 (ptr @mut s32))
 
 
-(type pub sum1 (union [bool u8]))
+(type @pub sum1 (union [bool u8]))
 
 
 (static_assert (== (sizeof sum1) 3))
 
 
-(type pub sum2 (union [
+(type @pub sum2 (union [
         bool
         s32
         s64]))
@@ -88,19 +88,19 @@
 (static_assert (== (sizeof sum2) 16))
 
 
-(type pub sum3 (union [bool w3]))
+(type @pub sum3 (union [bool w3]))
 
 
 (static_assert (== (sizeof sum3) 3))
 
 
-(type pub sum4 (union [ptr1 w3]))
+(type @pub sum4 (union [ptr1 w3]))
 
 
 (static_assert (== (sizeof sum4) 8))
 
 
-(type pub sum5 (union [
+(type @pub sum5 (union [
         ptr1
         w2
         w3]))
@@ -109,7 +109,7 @@
 (static_assert (== (sizeof sum5) 8))
 
 
-(type pub sum6 (union [
+(type @pub sum6 (union [
         ptr1
         w1
         w2

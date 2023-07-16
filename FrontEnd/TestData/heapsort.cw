@@ -5,7 +5,7 @@
 (global SIZE uint 20)
 
 
-(global mut Data auto (array_val (+ SIZE 1) r64))
+(global @mut Data auto (array_val (+ SIZE 1) r64))
 
 
 (global NEWLINE auto "\n")
@@ -14,11 +14,11 @@
 (global ERROR auto "ERROR\n")
 
 
-(fun heap_sort [(param n uint) (param data (ptr mut r64))] void :
-    (let mut ref buf (array 32 u8) undef)
-    (let mut ir auto n)
-    (let mut l auto (+ (>> n 1) 1))
-    (let mut rdata r64 undef)
+(fun heap_sort [(param n uint) (param data (ptr @mut r64))] void :
+    (let @mut @ref buf (array 32 u8) undef)
+    (let @mut ir auto n)
+    (let @mut l auto (+ (>> n 1) 1))
+    (let @mut rdata r64 undef)
     (while true :
         (if (> l 1) :
             (-= l 1)
@@ -31,8 +31,8 @@
                 (= (^ (incp data ir)) rdata)
                 (return)
                 :))
-        (let mut i auto l)
-        (let mut j auto (<< l 1))
+        (let @mut i auto l)
+        (let @mut j auto (<< l 1))
         (while (<= j ir) :
             (if (&& (< j ir) (< (^ (incp data j)) (^ (incp data (+ j 1))))) :
                 (+= j 1)
@@ -48,7 +48,7 @@
 
 
 (fun dump_array [(param size uint) (param data (ptr r64))] void :
-    (let mut ref buf (array 32 u8) undef)
+    (let @mut @ref buf (array 32 u8) undef)
     (for i u64 0 size 1 :
         (let v auto (^ (incp data i)))
         (print [(as v r64_hex) NEWLINE]))
@@ -62,7 +62,7 @@
     (stmt (call dump_array [SIZE (& (at Data 1))]))
     (print [NEWLINE])
     (print [SIZE NEWLINE])
-    (stmt (call heap_sort [SIZE (& mut (at Data 0))]))
+    (stmt (call heap_sort [SIZE (& @mut (at Data 0))]))
     (print [NEWLINE])
     (stmt (call dump_array [SIZE (& (at Data 1))]))
     (print [NEWLINE])

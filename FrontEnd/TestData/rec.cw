@@ -1,7 +1,7 @@
 (module main [] :
 (import test)
 
-(defrec pub type_rec1 :
+(defrec @pub type_rec1 :
     (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
@@ -11,14 +11,14 @@
     (field s6 u64))
 
 
-(defrec pub type_rec2 :
+(defrec @pub type_rec2 :
     (field t1 bool)
     (field t2 u32)
     (field t3 type_rec1)
     (field t4 bool))
 
 
-(defrec pub type_rec3 :
+(defrec @pub type_rec3 :
     (field u2 u16)
     (field u3 u64)
     (field u4 type_rec2)
@@ -26,7 +26,7 @@
     (field u6 u64))
 
 
-(defrec pub type_rec4 :
+(defrec @pub type_rec4 :
     (field t1 u64)
     (field t2 u8)
     (field t3 u16)
@@ -46,7 +46,7 @@
 (global g2 auto (rec_val type_rec2 [(field_val true) (field_val u0)]))
 
 
-(global mut g3 auto (rec_val type_rec3 [
+(global @mut g3 auto (rec_val type_rec3 [
         (field_val 0x1234)
         (field_val 0x4321)
         (field_val g2)
@@ -61,7 +61,7 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (# "LOCAL")
-    (let mut v1 auto (rec_val type_rec3 []))
+    (let @mut v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)
     (= (. v1 u3) 103)
     (= (. v1 u6) 106)

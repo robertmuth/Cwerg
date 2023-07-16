@@ -1,13 +1,13 @@
 (module string [] :
 (# "String Library")
-(global pub NOT_FOUND uint (not 0))
+(global @pub NOT_FOUND uint (not 0))
 
 
 (fun are_two_non_empty_strings_the_same [
         (param s1 (ptr u8))
         (param s2 (ptr u8))
         (param n uint)] bool :
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (let c1 u8 (^ (incp s1 i)))
         (let c2 u8 (^ (incp s2 i)))
@@ -21,7 +21,7 @@
             (return true))))
 
 
-(fun pub find [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub find [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== nlen 0) :
@@ -34,7 +34,7 @@
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
     (let n uint (- hlen nlen))
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (if (call are_two_non_empty_strings_the_same [
                 (incp hptr i)
@@ -49,7 +49,7 @@
             (return NOT_FOUND))))
 
 
-(fun pub rfind [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub rfind [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== nlen 0) :
@@ -61,7 +61,7 @@
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
-    (let mut i uint (- hlen nlen))
+    (let @mut i uint (- hlen nlen))
     (block _ :
         (if (call are_two_non_empty_strings_the_same [
                 (incp hptr i)
@@ -76,7 +76,7 @@
         (continue)))
 
 
-(fun pub starts_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
+(fun @pub starts_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
     (let hlen uint (len haystack))
     (let nlen uint (len needle))
     (if (== nlen 0) :
@@ -92,7 +92,7 @@
             nlen])))
 
 
-(fun pub ends_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
+(fun @pub ends_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
     (let hlen uint (len haystack))
     (let nlen uint (len needle))
     (if (== nlen 0) :
@@ -108,13 +108,13 @@
             nlen])))
 
 
-(fun pub cmp [(param aslice (slice u8)) (param bslice (slice u8))] sint :
+(fun @pub cmp [(param aslice (slice u8)) (param bslice (slice u8))] sint :
     (let alen uint (len aslice))
     (let blen uint (len bslice))
     (let n uint (min alen blen))
     (let aptr (ptr u8) (front aslice))
     (let bptr (ptr u8) (front bslice))
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (if (< i n) :
             :
@@ -143,7 +143,7 @@
     (# "assumes that haystack is not empty")
     (let n uint (len haystack))
     (let hptr (ptr u8) (front haystack))
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (if (== needle (^ (incp hptr i))) :
             (return true)
@@ -155,7 +155,7 @@
             (return false))))
 
 
-(fun pub find_first_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub find_first_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -166,7 +166,7 @@
         :)
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (if (call contains_char [needle (^ (incp hptr i))]) :
             (return i)
@@ -178,7 +178,7 @@
             (return NOT_FOUND))))
 
 
-(fun pub find_first_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub find_first_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -189,7 +189,7 @@
         :)
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
-    (let mut i uint 0)
+    (let @mut i uint 0)
     (block _ :
         (if (call contains_char [needle (^ (incp hptr i))]) :
             :
@@ -201,7 +201,7 @@
             (return NOT_FOUND))))
 
 
-(fun pub find_last_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub find_last_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -212,7 +212,7 @@
         :)
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
-    (let mut i uint hlen)
+    (let @mut i uint hlen)
     (block _ :
         (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) :
@@ -224,7 +224,7 @@
         (continue)))
 
 
-(fun pub find_last_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+(fun @pub find_last_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -235,7 +235,7 @@
         :)
     (# "at this point we know that both slices have len > 0")
     (let hptr (ptr u8) (front haystack))
-    (let mut i uint hlen)
+    (let @mut i uint hlen)
     (block _ :
         (-= i 1)
         (if (call contains_char [needle (^ (incp hptr i))]) :

@@ -1,14 +1,14 @@
 (module m1 [] :
-(type wrapped t1 s32)
+(type @wrapped t1 s32)
 
 
-(type wrapped t2 void)
+(type @wrapped t2 void)
 
 
-(type wrapped t3 void)
+(type @wrapped t3 void)
 
 
-(defrec pub type_rec :
+(defrec @pub type_rec :
     (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
@@ -19,12 +19,12 @@
     (field u2 u64))
 
 
-(defrec pub linked_list :
+(defrec @pub linked_list :
     (# "this is a comment with \" with quotes \t ")
     (field s1 (union [void (ptr linked_list)])))
 
 
-(enum pub type_enum S32 :
+(enum @pub type_enum S32 :
     (# "this is a comment with \" with quotes \t ")
     (entry s1)
     (entry s2)
@@ -38,16 +38,16 @@
 (type type_slice (slice type_rec))
 
 
-(type type_ptr (ptr mut s32))
+(type type_ptr (ptr @mut s32))
 
 
-(type pub type_union (union [
+(type @pub type_union (union [
         s32
         void
         type_ptr]))
 
 
-(type pub type_union2 (union [
+(type @pub type_union2 (union [
         s32
         void
         (union [type_union u8])]))

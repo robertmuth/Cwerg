@@ -307,6 +307,11 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
     srcloc = stream.srcloc()
     logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
     token = next(stream)
+    flags = {}
+    while token.startswith("@"):
+         flags[token[1:]]= True            
+         token = next(stream)
+         
     for field in fields:
         nfd = cwast.ALL_FIELDS_MAP[field]
         if token == ")":
@@ -318,9 +323,8 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
                     stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
             pieces.append(optional_val)
         elif nfd.kind is cwast.NFK.FLAG:
-            if token == field:
+            if field in flags:
                 pieces.append(True)
-                token = next(stream)
             else:
                 pieces.append(False)
         else:

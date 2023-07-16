@@ -1,5 +1,5 @@
 (module large_args [] :
-(defrec pub MyRec :
+(defrec @pub MyRec :
     (field s1 s32)
     (field s2 u32)
     (field s3 u32))

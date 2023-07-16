@@ -1,29 +1,29 @@
 (module mod1 [] :
-(global pub var u32 1)
+(global @pub var u32 1)
 
 )
 
 
 (module mod2 [] :
-(global pub var u32 2)
+(global @pub var u32 2)
 
 )
 
 
 (module mod3 [] :
-(global pub var u32 3)
+(global @pub var u32 3)
 
 )
 
 
 (module mod4 [] :
-(global pub var u32 4)
+(global @pub var u32 4)
 
 )
 
 
 (module mod5 [] :
-(global pub var u32 5)
+(global @pub var u32 5)
 
 )
 
