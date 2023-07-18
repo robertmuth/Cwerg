@@ -611,77 +611,87 @@ class Stack:
         assert False
 
 
-
 class Sink:
-    
+
     def __init__(self):
         self._col = 0
-    
+
     def maybe_newline(self):
         if self._col != 0:
-            print ()
+            print()
             self._col = 0
-    
-    def emit_token(self):
-        p[ass]
 
-def FormatTokenStream(tokens, stack, col):
+    def newline(self):
+        print()
+        self._col = 0
+
+    def emit_token(self, token):
+        print(" ", end="")
+        print(token, end="")
+        self._col += 1 + len(token)
+
+    def indent(self, ci):
+        print(" " * ci, end="")
+
+
+def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     t, kind = tokens.pop(-1)
     if kind is TK.BEG:
         assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
         if t == "module":
             assert stack.empty()
-            print(t, end="")
+            sink.emit_token(t)
             stack.push(t, kind, 0)
         elif t == ":":
-            print(" ", t)  # NEWLINE
-            col = 0
             ci = stack.CurrentIndent()
+            sink.emit_token(t)
+            sink.newline()
             stack.push(t, kind, ci + 1)
         elif t.endswith("!"):
             ci = stack.CurrentIndent()
+            sink.indent(ci)
+            sink.emit_token(t)
             stack.push(t, kind, ci + 1)
-            print(" " * ci, t, end="")
         elif t in BEG_WITH_SEP_TOKENS:
             ci = stack.CurrentIndent()
+            sink.emit_token(t)
             stack.push(t, kind, ci)
-            print(" ", t, end="")
         else:
             ci = stack.CurrentIndent()
-            print(" " * ci, t, end="")
+            sink.indent(ci)
+            sink.emit_token(t)
             stack.push(t, kind, ci + 1)
     elif kind is TK.ATTR:
-        print(" ", t, end="")
-        col += 1 + len(t)
+        sink.emit_token(t)
     elif kind is TK.SEP:
-        print(" ", t, end="")
-        col += 1 + len(t)
+        sink.emit_token(t)
     elif kind is TK.END:
         assert t in END_TOKENS, f"bad END token {t}"
         beg = stack.pop()
         if beg[0] == "module":
-            print()
-            col = 0
+            sink.newline()
             assert not tokens
             assert stack.empty()
-
             return
         print(" ", t, end="")   # NEWLINE
-        if beg[0] != ":" and beg[0] not in BEG_WITH_SEP_TOKENS and col != 0:
-            #print ("####", beg, t, kind)
-            print()
-            col = 0
+        if beg[0] != ":" and beg[0] not in BEG_WITH_SEP_TOKENS:
+            # print ("####", beg, t, kind)
+            sink.maybe_newline()
 
     elif kind is TK.BINOP:
-        print(" ", t, end="")
+        sink.emit_token(t)
     elif kind is TK.UNOP:
-        print(" ", t, end="")
+        sink.emit_token(t)
     elif kind is TK.COM:
         ci = stack.CurrentIndent()
-        print(" " * ci, "#", t)
+        sink.maybe_newline()
+        sink.indent(ci)
+        sink.emit_token("# ")
+        sink.emit_token(t)
+        sink.newline()
     else:
         assert False, f"{kind}"
-    FormatTokenStream(tokens, stack, col)
+    FormatTokenStream(tokens, stack, sink)
 
 
 ############################################################
@@ -720,6 +730,6 @@ if __name__ == "__main__":
             tokens = list(tokens)
             print(tokens)
             tokens.reverse()
-            FormatTokenStream(tokens, Stack(), 0)
+            FormatTokenStream(tokens, Stack(), Sink())
     else:
         assert False, f"unknown mode {args.mode}"
