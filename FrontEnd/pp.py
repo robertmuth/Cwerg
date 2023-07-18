@@ -340,7 +340,6 @@ class TK(enum.Enum):
     BINOP = 6  # binary operator
     UNOP = 7  # unary operator
     BEG = 8
-    BEG_WITH_SEP = 9
     END = 10
 
 
@@ -382,7 +381,7 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxType(node.expr)
     elif isinstance(node, cwast.ExprCall):
         yield from ConcreteSyntaxExpr(node.calleee)
-        yield "(", cwast.BEG_WITH_SEP
+        yield "(", cwast.BEG
         sep = False
         for e in node.args:
             if sep:
@@ -480,13 +479,13 @@ def ConcreteSyntaxStmt(node):
             yield ("", TK.END)
         yield ("", TK.END)
     elif isinstance(node, cwast.MacroInvoke):
-        yield f"{node.name}!", TK.BEG_WITH_SEP
+        yield f"{node.name}!", TK.BEG
         sep = False
         for a in node.args:
-            if sep:
-                yield ",", TK.SEP
-            sep = True
+
             if isinstance(a, cwast.Id):
+                if sep:
+                    yield ",", TK.SEP
                 yield a.name, TK.ATTR
             elif isinstance(a, (cwast.EphemeralList)):
                 if a.colon:
@@ -495,8 +494,10 @@ def ConcreteSyntaxStmt(node):
                         yield from ConcreteSyntaxStmt(s)
                     yield "", TK.END
                 else:
+                    if sep:
+                        yield ",", TK.SEP
                     sep2 = False
-                    yield "[", TK.BEG_WITH_SEP
+                    yield "[", TK.BEG
                     for e in a.args:
                         if sep2:
                             yield ",", TK.SEP
@@ -504,9 +505,14 @@ def ConcreteSyntaxStmt(node):
                         yield from ConcreteSyntaxExpr(e)
                     yield "]", TK.END
             elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeArray)):
+                if sep:
+                    yield ",", TK.SEP
                 yield from ConcreteSyntaxType(a)
             else:
+                if sep:
+                    yield ",", TK.SEP
                 yield from ConcreteSyntaxExpr(a)
+            sep = True
         yield "", TK.END
     elif isinstance(node, cwast.StmtReturn):
         yield "return", TK.BEG
@@ -540,7 +546,7 @@ def ConcreteSyntaxTop(node):
         yield ("fun", TK.BEG)
         yield (node.name, TK.ATTR)
 
-        yield ("(", TK.BEG_WITH_SEP)
+        yield ("(", TK.BEG)
         sep = False
         for p in node.params:
             if sep:
@@ -573,7 +579,7 @@ def ConcreteSyntaxTop(node):
 
 
 BEG_TOKENS = set(["module", "global", "fun", "cond", "if",
-                 "case", "let", "set", "return", ":"])
+                 "case", "let", "set", "return", ":", "(", "["])
 BEG_WITH_SEP_TOKENS = set(["(", "["])
 END_TOKENS = set(["", ")", "]"])
 
@@ -585,28 +591,65 @@ def GetCurrentIndent(stack) -> int:
     assert False
 
 
+class Stack:
+    def __init__(self):
+        self._stack = []
+
+    def empty(self):
+        return 0 == len(self._stack)
+
+    def push(self, t, kind, indent):
+        self._stack.append((t, kind, indent))
+
+    def pop(self):
+        return self._stack.pop(-1)
+
+    def CurrentIndent(self) -> int:
+        for t, kind, i in reversed(self._stack):
+            if kind is TK.BEG:
+                return i
+        assert False
+
+
+
+class Sink:
+    
+    def __init__(self):
+        self._col = 0
+    
+    def maybe_newline(self):
+        if self._col != 0:
+            print ()
+            self._col = 0
+    
+    def emit_token(self):
+        p[ass]
+
 def FormatTokenStream(tokens, stack, col):
     t, kind = tokens.pop(-1)
     if kind is TK.BEG:
-        assert t in BEG_TOKENS, f"bad BEG token {t}"
+        assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
         if t == "module":
-            assert not stack
+            assert stack.empty()
             print(t, end="")
-            stack.append((t, kind, 0))
+            stack.push(t, kind, 0)
         elif t == ":":
+            print(" ", t)  # NEWLINE
+            col = 0
+            ci = stack.CurrentIndent()
+            stack.push(t, kind, ci + 1)
+        elif t.endswith("!"):
+            ci = stack.CurrentIndent()
+            stack.push(t, kind, ci + 1)
+            print(" " * ci, t, end="")
+        elif t in BEG_WITH_SEP_TOKENS:
+            ci = stack.CurrentIndent()
+            stack.push(t, kind, ci)
             print(" ", t, end="")
         else:
-            print()
-
-            ci = GetCurrentIndent(stack)
+            ci = stack.CurrentIndent()
             print(" " * ci, t, end="")
-            stack.append((t, kind, ci + 1))
-    elif kind is TK.BEG_WITH_SEP:
-        assert t in BEG_WITH_SEP_TOKENS or t.endswith(
-            "!"), f"bad BEG token {t}"
-        ci = GetCurrentIndent(stack)
-        stack.append((t, kind, ci + 1))
-        print(" ", t, end="")
+            stack.push(t, kind, ci + 1)
     elif kind is TK.ATTR:
         print(" ", t, end="")
         col += 1 + len(t)
@@ -615,11 +658,29 @@ def FormatTokenStream(tokens, stack, col):
         col += 1 + len(t)
     elif kind is TK.END:
         assert t in END_TOKENS, f"bad END token {t}"
-        beg = stack.pop(-1)
+        beg = stack.pop()
         if beg[0] == "module":
-            assert not stack
+            print()
+            col = 0
+            assert not tokens
+            assert stack.empty()
+
             return
-        print(" ", t)
+        print(" ", t, end="")   # NEWLINE
+        if beg[0] != ":" and beg[0] not in BEG_WITH_SEP_TOKENS and col != 0:
+            #print ("####", beg, t, kind)
+            print()
+            col = 0
+
+    elif kind is TK.BINOP:
+        print(" ", t, end="")
+    elif kind is TK.UNOP:
+        print(" ", t, end="")
+    elif kind is TK.COM:
+        ci = stack.CurrentIndent()
+        print(" " * ci, "#", t)
+    else:
+        assert False, f"{kind}"
     FormatTokenStream(tokens, stack, col)
 
 
@@ -657,7 +718,8 @@ if __name__ == "__main__":
         for mod in mods:
             tokens = ConcreteSyntaxTop(mod)
             tokens = list(tokens)
+            print(tokens)
             tokens.reverse()
-            FormatTokenStream(tokens, [], 0)
+            FormatTokenStream(tokens, Stack(), 0)
     else:
         assert False, f"unknown mode {args.mode}"
