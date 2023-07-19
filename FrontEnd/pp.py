@@ -360,11 +360,11 @@ def ConcreteSyntaxExpr(node):
         yield "void", TK.ATTR
     elif isinstance(node, cwast.Expr2):
         yield from ConcreteSyntaxExpr(node.expr1)
-        yield "{node.binary_expr_kind.name}", cwast.BINOP
+        yield f"{node.binary_expr_kind.name}", TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr2)
     elif isinstance(node, cwast.ExprPointer):
         yield from ConcreteSyntaxExpr(node.expr1)
-        yield "{node.pointer_expr_kind.name}", cwast.BINOP
+        yield f"{node.pointer_expr_kind.name}", TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr2)
     elif isinstance(node, cwast.ValArray):
         yield "[", TK.BEG
@@ -373,27 +373,32 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxType(node.type)
         # TODO
     elif isinstance(node, cwast.ExprDeref):
-        yield "^", cwast.UNOP
+        yield "^", TK.UNOP
         yield from ConcreteSyntaxExpr(node.expr)
     elif isinstance(node, cwast.ExprAs):
         yield from ConcreteSyntaxExpr(node.expr)
         yield "as", TK.BINOP
         yield from ConcreteSyntaxType(node.expr)
     elif isinstance(node, cwast.ExprCall):
-        yield from ConcreteSyntaxExpr(node.calleee)
-        yield "(", cwast.BEG
+        yield from ConcreteSyntaxExpr(node.callee)
+        yield "(", TK.BEG
         sep = False
         for e in node.args:
             if sep:
                 yield ",", TK.SEP
             sep = True
             yield from ConcreteSyntaxExpr(e)
-        yield ")", cwast.END
+        yield ")", TK.END
     elif isinstance(node, cwast.ExprIndex):
-        yield "[", cwast.BEG
+        yield "[", TK.BEG
         yield from ConcreteSyntaxExpr(node.expr_index)
-        yield "]", cwast.END
+        yield "]", TK.END
         yield from ConcreteSyntaxExpr(node.container)
+    elif isinstance(node, cwast.ValSlice):
+        yield "[", TK.BEG
+        yield from ConcreteSyntaxExpr(node.expr_size)
+        yield "]", TK.END
+        yield from ConcreteSyntaxExpr(node.pointer)
     else:
         assert False, f"unknown expr node: {type(node)}"
 
@@ -410,7 +415,7 @@ def ConcreteSyntaxType(node):
         yield from ConcreteSyntaxType(node.type)
     elif isinstance(node, cwast.TypeArray):
         yield "[", TK.BEG
-        yield from ConcreteSyntaxExpr(node.expr_size)
+        yield from ConcreteSyntaxExpr(node.size)
         yield "]", TK.END
         yield from ConcreteSyntaxType(node.type)
     else:
@@ -436,48 +441,50 @@ def ConcreteSyntaxStmt(node):
         yield (":", TK.BEG)
         for c in node.body:
             yield from ConcreteSyntaxStmt(c)
-        yield ("", TK.END)
-        yield ("", TK.END)
+        yield ("@:", TK.END)
+        yield ("@case", TK.END)
 
     elif isinstance(node, cwast.StmtCond):
         yield ("cond", TK.BEG)
         yield (":", TK.BEG)
         for c in node.cases:
             yield from ConcreteSyntaxStmt(c)
-        yield ("", TK.END)
-        yield ("", TK.END)
+        yield ("@:", TK.END)
+        yield ("@cond", TK.END)
     elif isinstance(node, cwast.DefVar):
         yield ("let", TK.BEG)
         yield (node.name, TK.ATTR)
         yield from ConcreteSyntaxType(node.type_or_auto)
-        if not isinstance(node.initial_or_undef_or_auto, cwast.VaLAuto):
+        if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
             yield ("=", TK.BINOP)
             yield from ConcreteSyntaxExpr(node.initial_or_undef_or_auto)
-        yield ("", TK.END)
+        yield ("@let", TK.END)
     elif isinstance(node, cwast.StmtCompoundAssignment):
         yield ("set", TK.BEG)
         yield from ConcreteSyntaxExpr(node.lhs)
         yield f"={node.assignment_kind}", TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr_rhs)
+        yield ("@set", TK.END)
     elif isinstance(node, cwast.StmtAssignment):
         yield ("set", TK.BEG)
         yield from ConcreteSyntaxExpr(node.lhs)
         yield f"=", TK.BINOP
         yield ConcreteSyntaxExpr(node.expr_rhs)
+        yield ("@set", TK.END)
     elif isinstance(node, cwast.StmtIf):
         yield ("if", TK.BEG)
         yield from ConcreteSyntaxExpr(node.cond)
         yield (":", TK.BEG)
         for c in node.body_t:
             yield from ConcreteSyntaxStmt(c)
-        yield (":", TK.BEG)
+        yield ("@:", TK.END)
         if node.body_f:
             yield ("else", TK.ATTR)
             yield (":", TK.BEG)
             for c in node.body_f:
                 yield ConcreteSyntaxStmt(c)
-            yield ("", TK.END)
-        yield ("", TK.END)
+            yield ("@:", TK.END)
+        yield ("@if", TK.END)
     elif isinstance(node, cwast.MacroInvoke):
         yield f"{node.name}!", TK.BEG
         sep = False
@@ -492,7 +499,7 @@ def ConcreteSyntaxStmt(node):
                     yield ":", TK.BEG
                     for s in a.args:
                         yield from ConcreteSyntaxStmt(s)
-                    yield "", TK.END
+                    yield "@:", TK.END
                 else:
                     if sep:
                         yield ",", TK.SEP
@@ -513,11 +520,11 @@ def ConcreteSyntaxStmt(node):
                     yield ",", TK.SEP
                 yield from ConcreteSyntaxExpr(a)
             sep = True
-        yield "", TK.END
+        yield f"@{node.name}!", TK.END
     elif isinstance(node, cwast.StmtReturn):
         yield "return", TK.BEG
         yield from ConcreteSyntaxExpr(node.expr_ret)
-        yield ("", TK.END)
+        yield ("@return", TK.END)
 
     else:
         assert False, f"unknown stmt node: {type(node)}"
@@ -529,7 +536,7 @@ def ConcreteSyntaxTop(node):
         yield (node.name, TK.ATTR)
         for child in node.body_mod:
             yield from ConcreteSyntaxTop(child)
-        yield ("", TK.END)
+        yield ("@module", TK.END)
 
     elif isinstance(node, cwast.Comment):
         yield from ConcreteSyntaxComment(node)
@@ -541,7 +548,7 @@ def ConcreteSyntaxTop(node):
         if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
             yield ("=", TK.BINOP)
             yield from ConcreteSyntaxExpr(node.initial_or_undef_or_auto)
-        yield ("", TK.END)
+        yield ("@global", TK.END)
     elif isinstance(node, cwast.DefFun):
         yield ("fun", TK.BEG)
         yield (node.name, TK.ATTR)
@@ -561,8 +568,8 @@ def ConcreteSyntaxTop(node):
 
         for child in node.body:
             yield from ConcreteSyntaxStmt(child)
-        yield ("", TK.END)
-        yield ("", TK.END)
+        yield ("@:", TK.END)  
+        yield ("@fun", TK.END)
 
     elif isinstance(node, cwast.Import):
         yield ("import", TK.BEG)
@@ -626,72 +633,80 @@ class Sink:
         self._col = 0
 
     def emit_token(self, token):
-        print(" ", end="")
         print(token, end="")
-        self._col += 1 + len(token)
+        self._col += len(token)
 
     def indent(self, ci):
-        print(" " * ci, end="")
+        print(" " * (4 *ci), end="")
 
 
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
-    t, kind = tokens.pop(-1)
-    if kind is TK.BEG:
-        assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
-        if t == "module":
-            assert stack.empty()
+    while True:
+        t, kind = tokens.pop(-1)
+        print 
+        if kind is TK.BEG:
+            assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
+            if t == "module":
+                assert stack.empty()
+                sink.emit_token(t)
+                stack.push(t, kind, 0)
+            elif t == ":":
+                ci = stack.CurrentIndent()
+                sink.emit_token(t)
+                sink.newline()
+                stack.push(t, kind, ci + 1)
+            elif t.endswith("!"):
+                ci = stack.CurrentIndent()
+                sink.indent(ci)
+                sink.emit_token(t)
+                stack.push(t, kind, ci)
+            elif t in BEG_WITH_SEP_TOKENS:
+                ci = stack.CurrentIndent()
+                sink.emit_token(" " + t)
+                stack.push(t, kind, ci)
+            else:
+                ci = stack.CurrentIndent()
+                sink.indent(ci)
+                sink.emit_token(t)
+                stack.push(t, kind, ci)
+        elif kind is TK.ATTR:
+            sink.emit_token(" "+t)
+        elif kind is TK.SEP:
             sink.emit_token(t)
-            stack.push(t, kind, 0)
-        elif t == ":":
-            ci = stack.CurrentIndent()
-            sink.emit_token(t)
-            sink.newline()
-            stack.push(t, kind, ci + 1)
-        elif t.endswith("!"):
-            ci = stack.CurrentIndent()
-            sink.indent(ci)
-            sink.emit_token(t)
-            stack.push(t, kind, ci + 1)
-        elif t in BEG_WITH_SEP_TOKENS:
-            ci = stack.CurrentIndent()
-            sink.emit_token(t)
-            stack.push(t, kind, ci)
-        else:
-            ci = stack.CurrentIndent()
-            sink.indent(ci)
-            sink.emit_token(t)
-            stack.push(t, kind, ci + 1)
-    elif kind is TK.ATTR:
-        sink.emit_token(t)
-    elif kind is TK.SEP:
-        sink.emit_token(t)
-    elif kind is TK.END:
-        assert t in END_TOKENS, f"bad END token {t}"
-        beg = stack.pop()
-        if beg[0] == "module":
-            sink.newline()
-            assert not tokens
-            assert stack.empty()
-            return
-        print(" ", t, end="")   # NEWLINE
-        if beg[0] != ":" and beg[0] not in BEG_WITH_SEP_TOKENS:
-            # print ("####", beg, t, kind)
-            sink.maybe_newline()
+        elif kind is TK.END:
+            t_beg, kind_beg, _ = stack.pop()
+            assert kind_beg is TK.BEG
+            if t.startswith("@"):
+                assert t[1:] == t_beg, f"{t_beg} vs {t}"
+            elif t == ")":
+                assert t_beg == "(", f"{t_beg} vs {t}"
+            else:
+                 assert t_beg == "[" and t == "]", f"{t_beg} vs {t}"
+            if t_beg == "module":
+                sink.newline()
+                assert not tokens
+                assert stack.empty()
+                return
+            if not t.startswith("@"):
+                sink.emit_token(t)
+            if t.startswith("@"):
+                sink.maybe_newline()
 
-    elif kind is TK.BINOP:
-        sink.emit_token(t)
-    elif kind is TK.UNOP:
-        sink.emit_token(t)
-    elif kind is TK.COM:
-        ci = stack.CurrentIndent()
-        sink.maybe_newline()
-        sink.indent(ci)
-        sink.emit_token("# ")
-        sink.emit_token(t)
-        sink.newline()
-    else:
-        assert False, f"{kind}"
-    FormatTokenStream(tokens, stack, sink)
+        elif kind is TK.BINOP:
+            sink.emit_token(" "+ t)
+        elif kind is TK.UNOP:
+            sink.emit_token(" " + t)
+        elif kind is TK.COM:
+            ci = stack.CurrentIndent()
+            sink.maybe_newline()
+            sink.indent(ci)
+            sink.emit_token("# ")
+            sink.emit_token(t)
+            sink.newline()
+        else:
+            assert False, f"{kind}"
+        assert tokens, f"{t} {kind}"
+        assert stack._stack[0][0] == "module", stack._stack[0][1] == TK.BEG 
 
 
 ############################################################
