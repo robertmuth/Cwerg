@@ -12,6 +12,7 @@ TESTS = macros.cw \
         sexpr.cw \
         sum_type.cw \
         cast.cw \
+		comment.cw \
         wordcount.cw \
         linked_list.cw \
         binary_tree.cw \
@@ -135,5 +136,10 @@ clean:
 
 reformat:
 	for f in TestData/*.cw ; do \
+		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+	done
+
+reformat_lib:
+	for f in Lib/*.cw ; do \
 		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
