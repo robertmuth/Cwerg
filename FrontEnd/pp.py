@@ -358,6 +358,8 @@ def ConcreteSyntaxExpr(node):
         yield "undef", TK.ATTR
     elif isinstance(node, cwast.ValVoid):
         yield "void", TK.ATTR
+    elif isinstance(node, cwast.ValAuto):
+        yield "auto", TK.ATTR
     elif isinstance(node, cwast.ValRec):
         yield "rec", TK.ATTR
         yield from ConcreteSyntaxType(node.type)
@@ -378,7 +380,15 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxExpr(node.expr1)
         yield f"{node.binary_expr_kind.name}", TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr2)
-
+    elif isinstance(node, cwast.MacroInvoke):
+        if node.name == "->":
+            assert len(node.args) == 2
+            yield from ConcreteSyntaxExpr(node.args[0])
+            yield "->", TK.BINOP
+            yield from ConcreteSyntaxExpr(node.args[1])
+        else:
+            assert False
+            yield from ConcreteSyntaxMacroInvoke(node)
     elif isinstance(node, cwast.ExprPointer):
         yield from ConcreteSyntaxExpr(node.expr1)
         yield f"{node.pointer_expr_kind.name}", TK.BINOP
@@ -420,6 +430,9 @@ def ConcreteSyntaxExpr(node):
         yield "offset", TK.ATTR
         yield from ConcreteSyntaxExpr(node.type)
         yield node.field, TK.ATTR
+    elif isinstance(node, cwast.ExprLen):
+        yield "len", TK.ATTR
+        yield from ConcreteSyntaxExpr(node.container)
     elif isinstance(node, cwast.ExprCall):
         yield from ConcreteSyntaxExpr(node.callee)
         yield "(", TK.BEG
@@ -487,6 +500,44 @@ def ConcreteSyntaxComment(node: cwast.Comment):
         yield (node.comment[1:-1], TK.COM)
 
 
+def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
+    yield f"{node.name}!", TK.BEG
+    sep = False
+    for a in node.args:
+
+        if isinstance(a, cwast.Id):
+            if sep:
+                yield ",", TK.SEP
+            yield a.name, TK.ATTR
+        elif isinstance(a, (cwast.EphemeralList)):
+            if a.colon:
+                yield ":", TK.BEG
+                for s in a.args:
+                    yield from ConcreteSyntaxStmt(s)
+                yield "@:", TK.END
+            else:
+                if sep:
+                    yield ",", TK.SEP
+                sep2 = False
+                yield "[", TK.BEG
+                for e in a.args:
+                    if sep2:
+                        yield ",", TK.SEP
+                    sep2 = True
+                    yield from ConcreteSyntaxExpr(e)
+                yield "]", TK.END
+        elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeArray, cwast.TypePtr)):
+            if sep:
+                yield ",", TK.SEP
+            yield from ConcreteSyntaxType(a)
+        else:
+            if sep:
+                yield ",", TK.SEP
+            yield from ConcreteSyntaxExpr(a)
+        sep = True
+    yield f"@{node.name}!", TK.END
+
+
 def ConcreteSyntaxStmt(node):
     if isinstance(node, cwast.Id):
         yield (node.name, TK.ATTR)
@@ -540,45 +591,11 @@ def ConcreteSyntaxStmt(node):
             yield ("else", TK.ATTR)
             yield (":", TK.BEG)
             for c in node.body_f:
-                yield ConcreteSyntaxStmt(c)
+                yield from ConcreteSyntaxStmt(c)
             yield ("@:", TK.END)
         yield ("@if", TK.END)
     elif isinstance(node, cwast.MacroInvoke):
-        yield f"{node.name}!", TK.BEG
-        sep = False
-        for a in node.args:
-
-            if isinstance(a, cwast.Id):
-                if sep:
-                    yield ",", TK.SEP
-                yield a.name, TK.ATTR
-            elif isinstance(a, (cwast.EphemeralList)):
-                if a.colon:
-                    yield ":", TK.BEG
-                    for s in a.args:
-                        yield from ConcreteSyntaxStmt(s)
-                    yield "@:", TK.END
-                else:
-                    if sep:
-                        yield ",", TK.SEP
-                    sep2 = False
-                    yield "[", TK.BEG
-                    for e in a.args:
-                        if sep2:
-                            yield ",", TK.SEP
-                        sep2 = True
-                        yield from ConcreteSyntaxExpr(e)
-                    yield "]", TK.END
-            elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeArray, cwast.TypePtr)):
-                if sep:
-                    yield ",", TK.SEP
-                yield from ConcreteSyntaxType(a)
-            else:
-                if sep:
-                    yield ",", TK.SEP
-                yield from ConcreteSyntaxExpr(a)
-            sep = True
-        yield f"@{node.name}!", TK.END
+        yield from ConcreteSyntaxMacroInvoke(node)
     elif isinstance(node, cwast.StmtDefer):
         yield ("defer", TK.BEG)
         yield ":", TK.BEG
@@ -618,7 +635,9 @@ def ConcreteSyntaxStmt(node):
 
 
 def ConcreteSyntaxTop(node):
-    if isinstance(node, cwast.DefMod):
+    if isinstance(node, cwast.Comment):
+        yield from ConcreteSyntaxComment(node)
+    elif isinstance(node, cwast.DefMod):
         yield ("module", TK.BEG)
         yield (node.name, TK.ATTR)
         for child in node.body_mod:
@@ -643,11 +662,14 @@ def ConcreteSyntaxTop(node):
         yield ("(", TK.BEG)
         sep = False
         for p in node.params:
-            if sep:
-                yield ",", TK.SEP
-            sep = True
-            yield (p.name, TK.ATTR)
-            yield from ConcreteSyntaxType(p.type)
+            if isinstance(p, cwast.Comment):
+                yield from ConcreteSyntaxComment(p)
+            else:
+                if sep:
+                    yield ",", TK.SEP
+                sep = True
+                yield (p.name, TK.ATTR)
+                yield from ConcreteSyntaxType(p.type)
         yield (")", TK.END)
 
         yield from ConcreteSyntaxType(node.result)
@@ -685,11 +707,26 @@ def ConcreteSyntaxTop(node):
                 yield "@NONE", TK.END
         yield "@:", TK.END
         yield "@defrec", TK.END
+    elif isinstance(node, cwast.DefEnum):
+        yield "defenum", TK.BEG
+        yield node.name, TK.ATTR
+        yield node.base_type_kind.name, TK.ATTR
+        yield ":", TK.BEG
+        for f in node.items:
+            if isinstance(f, cwast.Comment):
+                yield from ConcreteSyntaxComment(f)
+            else:
+                yield "NONE", TK.BEG
+                yield f.name, TK.ATTR
+                yield from ConcreteSyntaxExpr(f.value_or_auto)
+                yield "@NONE", TK.END
+        yield "@:", TK.END
+        yield "@defenum", TK.END
     else:
         assert False, f"unknown node: {type(node)}"
 
 
-BEG_TOKENS = set(["module", "global", "import", "defer", "block", "break", "continue", "fun", "cond", "type", "if", "",
+BEG_TOKENS = set(["module", "global", "defenum", "import", "defer", "block", "break", "continue", "fun", "cond", "type", "if", "",
                  "deftype", "discard", "defrec", "case", "let", "set", "return", "NONE", ":", "(", "["])
 BEG_WITH_SEP_TOKENS = set(["(", "["])
 END_TOKENS = set(["", ")", "]"])
