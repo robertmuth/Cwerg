@@ -55,7 +55,6 @@
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
-[Comment&nbsp;(#)](#comment-) &ensp;
 [DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
@@ -92,17 +91,6 @@
 
 ## Misc Node Details
 
-### Comment (#)
-Comment
-
-    Comments are proper AST nodes and may only occur where explicitly allowed.
-    They refer to the next sibling in the tree.
-    
-
-Fields:
-* comment [STR]: comment
-
-
 ### Id (id)
 Refers to a type, variable, constant, function, module by name.
 
@@ -127,6 +115,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
+* doc: comment
 
 
 ### DefRec (defrec)
@@ -140,6 +129,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
+* doc: comment
 
 
 ### EnumVal (entry)
@@ -151,6 +141,9 @@ Fields:
 * name [STR]: name of the object
 * value_or_auto [NODE] (default ValAuto): enum constant or auto
 
+Flags:
+* doc: comment
+
 
 ### FunParam (param)
 Function parameter
@@ -160,6 +153,9 @@ Function parameter
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
+
+Flags:
+* doc: comment
 
 
 ### RecField (field)
@@ -172,6 +168,9 @@ Record field
 Fields:
 * name [STR]: name of the object
 * type [NODE]: type expression
+
+Flags:
+* doc: comment
 
 
 ### TypeArray (array)
@@ -259,6 +258,9 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body [LIST]: new scope: statement list and/or comments
 
+Flags:
+* doc: comment
+
 
 ### DefFun (fun)
 Function definition
@@ -283,6 +285,7 @@ Flags:
 * fini: run function at shutdown
 * pub: has public visibility
 * extern: is external function (empty body)
+* doc: comment
 
 
 ### DefGlobal (global)
@@ -302,6 +305,7 @@ Fields:
 Flags:
 * pub: has public visibility
 * mut: is mutable
+* doc: comment
 
 
 ### DefMacro (macro)
@@ -326,6 +330,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
+* doc: comment
 
 
 ### DefMod (module)
@@ -337,6 +342,9 @@ Fields:
 * name [STR]: name of the object
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
+
+Flags:
+* doc: comment
 
 
 ### DefType (type)
@@ -355,6 +363,7 @@ Fields:
 Flags:
 * pub: has public visibility
 * wrapped: is wrapped type (forces type equivalence by name)
+* doc: comment
 
 
 ### DefVar (let)
@@ -374,6 +383,7 @@ Fields:
 Flags:
 * mut: is mutable
 * ref: address may be taken
+* doc: comment
 
 
 ### Import (import)
@@ -383,6 +393,9 @@ Fields:
 * name [STR]: name of the object
 * alias [STR] (default ""): name of imported module to be used instead of given name
 
+Flags:
+* doc: comment
+
 
 ### ModParam
 Module Parameters
@@ -391,6 +404,9 @@ Fields:
 * name [STR]: name of the object
 * mod_param_kind [KIND]: see [ModParam Kind](#modparam-kind) below
 
+Flags:
+* doc: comment
+
 
 ### StmtAssignment (=)
 Assignment statement
@@ -398,6 +414,9 @@ Assignment statement
 Fields:
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
+
+Flags:
+* doc: comment
 
 
 ### StmtBlock (block)
@@ -410,6 +429,9 @@ Fields:
 * label [STR]: block  name (if not empty)
 * body [LIST]: new scope: statement list and/or comments
 
+Flags:
+* doc: comment
+
 
 ### StmtBreak (break)
 Break statement
@@ -418,6 +440,9 @@ Break statement
 
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
+Flags:
+* doc: comment
 
 
 ### StmtCompoundAssignment
@@ -428,12 +453,18 @@ Fields:
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
+Flags:
+* doc: comment
+
 
 ### StmtCond (cond)
 Multicase if-elif-else statement
 
 Fields:
 * cases [LIST]: list of case statements
+
+Flags:
+* doc: comment
 
 
 ### StmtContinue (continue)
@@ -443,6 +474,9 @@ Continue statement
 
 Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+
+Flags:
+* doc: comment
 
 
 ### StmtDefer (defer)
@@ -455,6 +489,9 @@ Defer statement
 Fields:
 * body [LIST]: new scope: statement list and/or comments
 
+Flags:
+* doc: comment
+
 
 ### StmtExpr (stmt)
 Expression statement
@@ -465,6 +502,9 @@ Expression statement
 Fields:
 * expr [NODE]: expression
 
+Flags:
+* doc: comment
+
 
 ### StmtIf (if)
 If statement
@@ -473,6 +513,9 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * body_t [LIST]: new scope: statement list and/or comments for true branch
 * body_f [LIST]: new scope: statement list and/or comments for false branch
+
+Flags:
+* doc: comment
 
 
 ### StmtReturn (return)
@@ -485,6 +528,9 @@ Return statement
 Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
+Flags:
+* doc: comment
+
 
 ### StmtStaticAssert (static_assert)
 Static assert statement (must evaluate to true at compile-time
@@ -495,11 +541,17 @@ Fields:
 * cond [NODE]: conditional expression must evaluate to a boolean
 * message [STR] (default ""): message for assert failures
 
+Flags:
+* doc: comment
+
 
 ### StmtTrap (trap)
 Trap statement
 
 Fields:
+
+Flags:
+* doc: comment
 
 
 ## Value Node Details
@@ -515,6 +567,9 @@ Fields:
 * value [NODE]: 
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
+Flags:
+* doc: comment
+
 
 ### IndexVal (index_val)
 Part of an array literal
@@ -526,6 +581,9 @@ Part of an array literal
 Fields:
 * value_or_undef [NODE]: 
 * init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
+
+Flags:
+* doc: comment
 
 
 ### ValArray (array_val)
@@ -764,6 +822,9 @@ Fields:
 * container [NODE]: array and slice
 * expr_index [NODE]: expression determining the index to be accessed
 
+Flags:
+* unchecked: array acces is not checked
+
 
 ### ExprIs (is)
 Test actual expression type within a Sum Type
@@ -925,6 +986,9 @@ Fields:
 * name [STR]: name of the object
 * macro_param_kind [KIND]: type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below
 
+Flags:
+* doc: comment
+
 
 ### MacroVar (macro_let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
@@ -941,6 +1005,7 @@ Fields:
 Flags:
 * mut: is mutable
 * ref: address may be taken
+* doc: comment
 
 ## Enum Details
 

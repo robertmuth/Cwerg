@@ -402,6 +402,7 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "fini", "run function at shutdown"),
     NFD(NFK.ATTR_BOOL, "raw", "ignore escape sequences in string"),
     NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
+    NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
     NFD(NFK.ATTR_STR, "doc", "comment"),
 
     #
@@ -1364,7 +1365,7 @@ class Expr3:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprIndex:
-    """Checked indexed access of array or slice
+    """Optionally unchecked indexed access of array or slice
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
@@ -1372,6 +1373,8 @@ class ExprIndex:
     #
     container: NODES_EXPR_T  # must be of type slice or array
     expr_index: NODES_EXPR_T  # must be of int type
+    #
+    unchecked: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
