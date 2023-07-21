@@ -1,5 +1,6 @@
 @doc "random"
 (module random [] :
+
 (global IM u32 139968)
 
 
@@ -33,7 +34,5 @@
     (let xorshifted u32 (as (>> (xor (>> oldstate 18) oldstate) 27) u32))
     (let rot u32 (as (>> oldstate 59) u32))
     (return (or (>> xorshifted rot) (<< xorshifted (and (- 0 rot) 31)))))
-
 )
-
 

@@ -52,8 +52,5 @@
     (for i u64 0 (len $a_val) 1 :
         (AssertApproxEq (^ (incp (front $e_val) i)) (^ (incp (front $a_val) i))))
     $epsilon)
-
-
 )
-
 

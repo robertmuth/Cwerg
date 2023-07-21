@@ -74,7 +74,5 @@
     (let w2 auto (- (- 1.0_r64 w) hz))
     (let r2 auto (- (* x2 r) (* x y)))
     (return (+ w (+ w2 r2))))
-
 )
-
 

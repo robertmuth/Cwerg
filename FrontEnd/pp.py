@@ -87,6 +87,14 @@ def GetExprIndent(field: str):
     return EXPR_LIST_INDENT
 
 
+def GetDoc(node):
+    for field, nfd in node.ATTRS:
+        if field == "doc":
+            val = getattr(node, "doc")
+            return val
+    return None
+
+
 def RenderColonList(val: List, field: str, out, indent: str):
 
     extra_indent = GetColonIndent(field)
@@ -108,9 +116,12 @@ def RenderColonList(val: List, field: str, out, indent: str):
 
 
 def ListIsCompact(val: List):
+    for v in val:
+        if GetDoc(v):
+            return False
     if len(val) > 2:
         return False
-    #for x in val:
+    # for x in val:
     #    if isinstance(x, cwast.Comment):
     #        return False
     return True
@@ -157,6 +168,8 @@ def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
 
 
 def RenderRecursivelyToIR(node, out, indent: str):
+    if cwast.NF.TOP_LEVEL in node.FLAGS:
+        out.append([""])
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -167,15 +180,24 @@ def RenderRecursivelyToIR(node, out, indent: str):
         RenderMacroInvoke(node, out, indent)
         return
     node_name, fields = GetNodeTypeAndFields(node)
+    doc = GetDoc(node)
+
+    if doc:
+        line.append("@doc ")
+        line.append(doc)
+        out.append([" " * indent])
+        line = out[-1]
+
     line.append("(" + node_name)
 
     for field, nfd in node.ATTRS:
+        if field == "doc":
+            # handled above
+            continue
         val = getattr(node, field)
         if val:
             line.append(" @" + field)
-            if field == "doc":
-                line.append(" ")
-                line.append(val)
+
     for field, nfd in fields:
         field_kind = nfd.kind
         line = out[-1]
@@ -205,11 +227,8 @@ def RenderRecursivelyToIR(node, out, indent: str):
 
     line = out[-1]
     line.append(")")
-    # note: comments are not toplevel
-    if cwast.NF.TOP_LEVEL in node.FLAGS:
-        out.append([""])
+
     if isinstance(node, cwast.DefMod):
-        out.append([""])
         out.append([""])
 
 

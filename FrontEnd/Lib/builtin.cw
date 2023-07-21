@@ -1,4 +1,5 @@
 (module $builtin [] :
+
 (fun @pub @extern memcpy [
         (param dst (ptr @mut u8))
         (param src (ptr u8))
@@ -351,8 +352,5 @@
 @doc "macro for c-style -> operator"
 (macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
-
-
 )
-
 

@@ -1,5 +1,6 @@
 @doc "String Library"
 (module string [] :
+
 (global @pub NOT_FOUND uint (not 0))
 
 
@@ -30,7 +31,7 @@
     (if (< hlen nlen) :
         (return NOT_FOUND)
         :)
-    @doc  "at this point we know that both slices have len > 0"
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
     (let n uint (- hlen nlen))
@@ -245,8 +246,5 @@
             (return NOT_FOUND)
             :)
         (continue)))
-
-
 )
-
 
