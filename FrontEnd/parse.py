@@ -49,6 +49,17 @@ _RE_TOKEN_ID = re.compile(
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
+def ReadAttrs(t, attr, stream):
+    while t.startswith("@"):
+        tag = t[1:]
+        val = True
+        if tag == "doc":
+            val = next(stream)
+        attr[tag] = val
+        t = next(stream)
+    return t
+
+
 class ReadTokens:
     def __init__(self, fp, filename):
         self._fp = fp
@@ -183,27 +194,36 @@ def ExpandShortHand(t: str, srcloc) -> Any:
 
 def ReadNodeList(stream: ReadTokens, parent_cls):
     out = []
+    attr = {}
     while True:
-        token = next(stream)
+        token = ReadAttrs(next(stream), attr, stream)
         if token == "]":
+            assert not attr
             break
         if token == "(":
-            out.append(ReadSExpr(stream, parent_cls))
+            out.append(ReadSExpr(stream, parent_cls, attr))
+            attr.clear()
         else:
+            assert not attr
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 
 
 def ReadNodeColonList(stream: ReadTokens, parent_cls):
     out = []
+    attr = {}
     while True:
-        token = next(stream)
+        token = ReadAttrs(next(stream), attr, stream)
         if token == ")" or token == ":" or token == "[":
+            assert not attr
             stream.pushback(token)
             break
+
         if token == "(":
-            out.append(ReadSExpr(stream, parent_cls))
+            out.append(ReadSExpr(stream, parent_cls, attr))
+            attr.clear()
         else:
+            assert not attr
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 
@@ -234,7 +254,7 @@ def ReadStrColonList(stream: ReadTokens) -> List[str]:
 def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
     """Read a single component of an SExpr including lists."""
     nfd = cwast. ALL_FIELDS_MAP[field]
-    if nfd.kind is cwast.NFK.FLAG:
+    if nfd.kind is cwast.NFK.ATTR_BOOL:
         return bool(token)
     elif nfd.kind is cwast.NFK.STR:
         return token
@@ -248,8 +268,9 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot convert {token} for {field}")
     elif nfd.kind is cwast.NFK.NODE:
+        attr = {}
         if token == "(":
-            return ReadSExpr(stream, parent_cls)
+            return ReadSExpr(stream, parent_cls, attr)
         out = ExpandShortHand(token, stream.srcloc())
         if out is None:
             cwast.CompilerError(
@@ -280,12 +301,13 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     srcloc = stream.srcloc()
     logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
     args = []
+    attr = {}
     while True:
         token = next(stream)
         if token == ")":
             return cwast.MacroInvoke(tag, args, x_srcloc=srcloc)
         elif token == "(":
-            args.append(ReadSExpr(stream, parent_cls))
+            args.append(ReadSExpr(stream, parent_cls, {}))
         elif token == "[":
             args.append(cwast.EphemeralList(ReadNodeList(
                 stream, parent_cls), colon=False, x_srcloc=srcloc))
@@ -299,18 +321,14 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadTokens):
+def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], attr, stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag).
 
     Can handle optional bools at the beginning and an optional 'tail'
     """
     srcloc = stream.srcloc()
     logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
-    token = next(stream)
-    flags = {}
-    while token.startswith("@"):
-        flags[token[1:]] = True
-        token = next(stream)
+    token = ReadAttrs(next(stream), attr, stream)
 
     for field, nfd in fields:
         if token == ")":
@@ -328,24 +346,24 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], stream: ReadT
     if token != ")":
         cwast.CompilerError(stream.srcloc(
         ), f"while parsing {cls.__name__} expected node-end but got {token}")
-    return cls(*pieces, x_srcloc=srcloc, **flags)
+    return cls(*pieces, x_srcloc=srcloc, **attr)
 
 
-def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
+def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
     """The leading '(' has already been consumed"""
-    tag = next(stream)
+    tag = ReadAttrs(next(stream), attr, stream)
     if tag in cwast.UNARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr1, [cwast.UNARY_EXPR_SHORTCUT[tag]],
-                                   cwast.Expr1.FIELDS[1:], stream)
+                                   cwast.Expr1.FIELDS[1:], attr, stream)
     elif tag in cwast.BINARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr2, [cwast.BINARY_EXPR_SHORTCUT[tag]],
-                                   cwast.Expr2.FIELDS[1:], stream)
+                                   cwast.Expr2.FIELDS[1:], attr, stream)
     elif tag in cwast.POINTER_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.ExprPointer, [cwast.POINTER_EXPR_SHORTCUT[tag]],
-                                   cwast.ExprPointer.FIELDS[1:], stream)
+                                   cwast.ExprPointer.FIELDS[1:], attr, stream)
     elif tag in cwast.ASSIGNMENT_SHORTCUT:
         return ReadRestAndMakeNode(cwast.StmtCompoundAssignment, [cwast.ASSIGNMENT_SHORTCUT[tag]],
-                                   cwast.StmtCompoundAssignment.FIELDS[1:], stream)
+                                   cwast.StmtCompoundAssignment.FIELDS[1:], attr, stream)
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
@@ -359,7 +377,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls) -> Any:
                 cwast.CompilerError(stream.srcloc(
                 ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
 
-        return ReadRestAndMakeNode(cls, [], cls.FIELDS, stream)
+        return ReadRestAndMakeNode(cls, [], cls.FIELDS, attr, stream)
 
 
 def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
@@ -368,12 +386,13 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
     try:
         failure = False
         while True:
-            t = next(stream)
+            attr = {}
+            t = ReadAttrs(next(stream), attr, stream)
             failure = True
             if t != "(":
                 cwast.CompilerError(
                     stream.srcloc(), f"expect start of new node, got '{t}']")
-            mod = ReadSExpr(stream, None)
+            mod = ReadSExpr(stream, None, attr)
             assert isinstance(mod, cwast.DefMod)
             cwast.DecorateIdsWithModule(mod)
             cwast.CheckAST(mod, set())

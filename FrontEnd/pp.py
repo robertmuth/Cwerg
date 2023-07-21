@@ -173,7 +173,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
         val = getattr(node, field)
         if val:
             line.append(" @" + field)
-
+            if field == "doc":
+                line.append(" ")
+                line.append(val)
     for field, nfd in fields:
         field_kind = nfd.kind
         line = out[-1]
@@ -272,7 +274,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         line = out[-1]
         field_kind = nfd.kind
         val = getattr(node, field)
-        if field_kind is cwast.NFK.FLAG:
+        if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
                 line.append(" " + field)
         elif IsFieldWithDefaultValue(field, val):
@@ -366,6 +368,9 @@ def ConcreteSyntaxExpr(node):
         yield "[", TK.BEG
         sep = False
         for e in node.inits_rec:
+            if isinstance(e, cwast.Comment):
+                yield from ConcreteSyntaxComment(e)
+                continue
             if sep:
                 yield ",", TK.SEP
             sep = True

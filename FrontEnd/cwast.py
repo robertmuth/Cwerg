@@ -279,11 +279,12 @@ class MACRO_PARAM_KIND(enum.Enum):
 class NFK(enum.Enum):
     INT = 1
     STR = 2
-    FLAG = 3
-    KIND = 4
-    NODE = 5
-    LIST = 6
-    STR_LIST = 7
+    ATTR_BOOL = 3
+    ATTR_STR = 4
+    KIND = 5
+    NODE = 6
+    LIST = 7
+    STR_LIST = 8
 
 
 @dataclasses.dataclass()
@@ -389,18 +390,19 @@ ALL_FIELDS = [
     NFD(NFK.STR_LIST, "gen_ids",
         "name placeholder ids to be generated at macro instantiation time"),
     #
-    NFD(NFK.FLAG, "pub", "has public visibility"),
-    NFD(NFK.FLAG, "extern", "is external function (empty body)"),
-    NFD(NFK.FLAG, "mut", "is mutable"),
-    NFD(NFK.FLAG, "ref", "address may be taken"),
-    NFD(NFK.FLAG, "colon", "colon style list"),
+    NFD(NFK.ATTR_BOOL, "pub", "has public visibility"),
+    NFD(NFK.ATTR_BOOL, "extern", "is external function (empty body)"),
+    NFD(NFK.ATTR_BOOL, "mut", "is mutable"),
+    NFD(NFK.ATTR_BOOL, "ref", "address may be taken"),
+    NFD(NFK.ATTR_BOOL, "colon", "colon style list"),
 
-    NFD(NFK.FLAG, "wrapped", "is wrapped type (forces type equivalence by name)"),
-    NFD(NFK.FLAG, "discard", "ignore non-void expression"),
-    NFD(NFK.FLAG, "init", "run function at startup"),
-    NFD(NFK.FLAG, "fini", "run function at shutdown"),
-    NFD(NFK.FLAG, "raw", "ignore escape sequences in string"),
-    NFD(NFK.FLAG, "polymorphic", "function definition or call is polymorphic"),
+    NFD(NFK.ATTR_BOOL, "wrapped", "is wrapped type (forces type equivalence by name)"),
+    NFD(NFK.ATTR_BOOL, "discard", "ignore non-void expression"),
+    NFD(NFK.ATTR_BOOL, "init", "run function at startup"),
+    NFD(NFK.ATTR_BOOL, "fini", "run function at shutdown"),
+    NFD(NFK.ATTR_BOOL, "raw", "ignore escape sequences in string"),
+    NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
+    NFD(NFK.ATTR_STR, "doc", "comment"),
 
     #
     NFD(NFK.KIND, "unary_expr_kind",
@@ -605,7 +607,7 @@ def _CheckNodeFieldOrder(cls):
         if field in _OPTIONAL_FIELDS:
             optionals += 1
             assert flags + xs == 0, f"{cls}: {field}"
-        elif nfd.kind is NFK.FLAG:
+        elif nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
             flags += 0
             assert xs == 0
         else:
@@ -632,7 +634,7 @@ def NodeCommon(cls):
     for field, type in cls.__annotations__.items():
         if not field.startswith("x_"):
             nfd = ALL_FIELDS_MAP[field]
-            if nfd.kind is NFK.FLAG:
+            if nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
                 cls.ATTRS.append((field, nfd))
             else:
                 cls.FIELDS.append((field, nfd))
@@ -748,6 +750,8 @@ class FunParam:
     #
     name: str      # empty str means no var specified (fun proto type)
     type: NODES_TYPES_T
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -1062,6 +1066,8 @@ class IndexVal:
     value_or_undef: "NODES_EXPR_T"
     init_index: "NODES_EXPR_T"  # compile time constant
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
@@ -1084,6 +1090,8 @@ class FieldVal:
     #
     value: "NODES_EXPR_T"
     init_field: str
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1668,6 +1676,8 @@ class StmtBlock:
     label: str
     body: List[NODES_BODY_T]  # new scope
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1688,6 +1698,8 @@ class StmtDefer:
     #
     body:  List[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
+    doc: str = ""   
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1706,6 +1718,8 @@ class StmtIf:
     body_t: List[NODES_BODY_T]  # new scope
     body_f: List[NODES_BODY_T]  # new scope
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1723,6 +1737,8 @@ class Case:
     cond: NODES_EXPR_T        # must be of type bool
     body: List[NODES_BODY_T]  # new scope
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1738,6 +1754,8 @@ class StmtCond:
     FLAGS = NF.NON_CORE
     #
     cases: List[NODES_CASES_T]
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -1757,6 +1775,8 @@ class StmtBreak:
     #
     target: str  # use "" for no value
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
     x_target: Optional[Any] = None
 
@@ -1775,6 +1795,8 @@ class StmtContinue:
     FLAGS = NF.CONTROL_FLOW
     #
     target: str  # use "" for no value
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_target: Optional[Any] = None
@@ -1797,6 +1819,8 @@ class StmtReturn:
     #
     expr_ret: NODES_EXPR_T
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
     x_target: Optional[Any] = None
 
@@ -1817,6 +1841,8 @@ class StmtExpr:
     #
     expr: ExprCall
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1834,6 +1860,8 @@ class StmtStaticAssert:
     cond: NODES_EXPR_T  # must be of type bool
     message: str     # should this be an expression?
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1847,6 +1875,8 @@ class StmtTrap:
     ALIAS = "trap"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -1866,6 +1896,8 @@ class StmtCompoundAssignment:
     lhs: NODES_LHS_T
     expr_rhs: NODES_EXPR_T
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -1882,6 +1914,8 @@ class StmtAssignment:
     #
     lhs: NODES_LHS_T
     expr_rhs: NODES_EXPR_T
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -1907,6 +1941,8 @@ class RecField:  #
     name: str
     type: NODES_TYPES_T
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_offset: int = -1
@@ -1927,6 +1963,7 @@ class DefRec:
     fields: List[NODES_FIELDS_T]
     #
     pub:  bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1950,6 +1987,8 @@ class EnumVal:
     name: str
     value_or_auto: Union["ValNum", ValAuto]
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
@@ -1971,6 +2010,7 @@ class DefEnum:
     items: List[NODES_ITEMS_T]
     #
     pub:  bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1999,6 +2039,7 @@ class DefType:
     #
     pub:  bool = False
     wrapped: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -2029,6 +2070,7 @@ class DefVar:
     #
     mut: bool = False
     ref: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2054,6 +2096,7 @@ class DefGlobal:
     #
     pub: bool = False
     mut: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2085,6 +2128,7 @@ class DefFun:
     fini: bool = False
     pub: bool = False
     extern: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -2104,6 +2148,8 @@ class ModParam:
     #
     name: str
     mod_param_kind: MOD_PARAM_KIND
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2125,6 +2171,8 @@ class DefMod:
     params_mod: List[NODES_PARAMS_MOD_T]
     body_mod: List[NODES_BODY_MOD_T]
     #
+    doc: str = ""
+    #
     x_srcloc: Optional[Any] = None
 
     def __str__(self):
@@ -2142,6 +2190,8 @@ class Import:
     #
     name: str
     alias: str
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2220,6 +2270,7 @@ class MacroVar:
     #
     mut: bool = False
     ref: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2256,6 +2307,8 @@ class MacroParam:
     #
     name: str
     macro_param_kind: MACRO_PARAM_KIND
+    #
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
@@ -2304,6 +2357,7 @@ class DefMacro:
     body_macro: List[Any]  # new scope
     #
     pub: bool = False
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 
