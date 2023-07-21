@@ -1,5 +1,7 @@
+@doc "test helpers"
 (module test [] :
-(# "The two arguments must derivable types as we use `auto`")
+
+@doc "The two arguments must derivable types as we use `auto`"
 (macro @pub AssertEq STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
@@ -13,7 +15,7 @@
         :))
 
 
-(# "The two arguments must type derivable")
+@doc "The two arguments must type derivable"
 (macro @pub AssertSliceEq STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
@@ -22,7 +24,7 @@
         (AssertEq (^ (incp (front $e_val) i)) (^ (incp (front $a_val) i)))))
 
 
-(# "The first two arguments must derivable types as we use `auto`")
+@doc "The first two arguments must derivable types as we use `auto`"
 (macro @pub AssertApproxEq STMT_LIST [
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
@@ -39,7 +41,7 @@
         :))
 
 
-(# "The first two arguments must type derivable")
+@doc "The first two arguments must type derivable"
 (macro @pub AssertSliceApproxEq STMT_LIST [
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
@@ -52,6 +54,6 @@
     $epsilon)
 
 
-(# "eom"))
+)
 
 

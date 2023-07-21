@@ -1,5 +1,6 @@
+@doc "Linked List Example"
 (module main [] :
-(# "Linked List Example")
+
 (type @wrapped NoneType void)
 
 
@@ -7,7 +8,6 @@
 
 
 (defrec @pub LinkedListNode :
-    (# "this is a comment with \" with quotes \t ")
     (field next (union [NoneType (ptr @mut LinkedListNode)]))
     (field payload u32))
 

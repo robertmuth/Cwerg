@@ -5,11 +5,11 @@
 
 (import test)
 
-(# """
+@doc """
       0    30=pi/6     45=pi/4    60=pi/3    90=pi/2 
 sin   0    1/2         sqrt(2)/2  sqrt(3)/2  1
 cos   1    sqrt(3)/2   sqrt(2)/2  1/2        0
-""")
+"""
 (global EPSILON r64 0.0000001)
 
 
@@ -42,6 +42,6 @@ cos   1    sqrt(3)/2   sqrt(2)/2  1/2        0
     (return 0))
 
 
-(# "eom"))
+)
 
 

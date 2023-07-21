@@ -9,7 +9,7 @@
 
 
 (defrec @pub type_rec :
-    (# "this is a comment with \" with quotes \t ")
+    @doc "this is a comment with \" with quotes \t"
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -20,12 +20,12 @@
 
 
 (defrec @pub linked_list :
-    (# "this is a comment with \" with quotes \t ")
+    @doc "this is a comment with \" with quotes \t "
     (field s1 (union [void (ptr linked_list)])))
 
 
 (enum @pub type_enum S32 :
-    (# "this is a comment with \" with quotes \t ")
+    @doc "this is a comment with \" with quotes \t "
     (entry s1)
     (entry s2)
     (entry s3)

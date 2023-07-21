@@ -1,14 +1,14 @@
+@doc "Word Count Example"
 (module main [] :
-(# "Word Count Example")
-(# "File StdLib bindings")
+
 (enum @pub Mode U32 :
     (entry r 1)
     (entry w 2)
     (entry rw 3))
 
 
+@doc "This is an incomplete dummy"
 (defrec @pub File :
-    (# "This is an incomplete dummy")
     (field handle s32))
 
 
@@ -43,7 +43,6 @@
 
 
 (defrec TextStats :
-    (# "This is an incomplete dummy")
     (field num_lines u64)
     (field num_words u64)
     (field num_chars u64))

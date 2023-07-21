@@ -1,5 +1,5 @@
+@doc "random"
 (module random [] :
-(# "random")
 (global IM u32 139968)
 
 
@@ -17,7 +17,7 @@
     (return (/ (* max (as LAST r64)) (as IM r64))))
 
 
-(# "see https://www.pcg-random.org/download.html")
+@doc "see https://www.pcg-random.org/download.html"
 (defrec Pcg32State :
     (field state u64)
     (field inc u64))
@@ -26,7 +26,7 @@
 (global @pub Pcg32StateDefault auto (rec_val Pcg32State [(field_val 0x853c49e6748fea9b_u64) (field_val 0xda3e39cb94b95bdb_u64)]))
 
 
-(# "Generate a uniformly distributed 32-bit random number")
+@doc "Generate a uniformly distributed 32-bit random number"
 (fun Pcg32GetRandom [(param state (ptr @mut Pcg32State))] u32 :
     (let oldstate u64 (-> state state))
     (= (-> state state) (+ (* oldstate 6364136223846793005_u64) (-> state inc)))
@@ -34,7 +34,6 @@
     (let rot u32 (as (>> oldstate 59) u32))
     (return (or (>> xorshifted rot) (<< xorshifted (and (- 0 rot) 31)))))
 
-
-(# "eom"))
+)
 
 

@@ -103,16 +103,16 @@ def RenderColonList(val: List, field: str, out, indent: str):
             out.append([" " * (indent + extra_indent)])
             RenderRecursivelyToIR(cc, out, indent + extra_indent)
             # extra line between top level nodes
-            if field == "body_mod" and not isinstance(cc, cwast.Comment):
+            if field == "body_mod":
                 out.append([" " * indent])
 
 
 def ListIsCompact(val: List):
     if len(val) > 2:
         return False
-    for x in val:
-        if isinstance(x, cwast.Comment):
-            return False
+    #for x in val:
+    #    if isinstance(x, cwast.Comment):
+    #        return False
     return True
 
 
@@ -298,7 +298,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
                 for cc in val:
                     out.append(RenderIndent(indent + extra_indent))
                     RenderRecursivelyHTML(cc, tc, out, indent + extra_indent)
-                if field == "body_mod" and not isinstance(cc, cwast.Comment):
+                if field == "body_mod":
                     out.append(RenderIndent(indent))
                 out[-1].append("]")
         elif field_kind is cwast.NFK.STR_LIST:
@@ -368,9 +368,6 @@ def ConcreteSyntaxExpr(node):
         yield "[", TK.BEG
         sep = False
         for e in node.inits_rec:
-            if isinstance(e, cwast.Comment):
-                yield from ConcreteSyntaxComment(e)
-                continue
             if sep:
                 yield ",", TK.SEP
             sep = True
@@ -498,13 +495,6 @@ def ConcreteSyntaxType(node):
         assert False, f"unknown type node: {type(node)}"
 
 
-def ConcreteSyntaxComment(node: cwast.Comment):
-    if node.comment.startswith('"""'):
-        yield (node.comment[3:-3], TK.MCOM)
-    else:
-        yield (node.comment[1:-1], TK.COM)
-
-
 def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
     yield f"{node.name}!", TK.BEG
     sep = False
@@ -546,8 +536,6 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
 def ConcreteSyntaxStmt(node):
     if isinstance(node, cwast.Id):
         yield (node.name, TK.ATTR)
-    elif isinstance(node, cwast.Comment):
-        yield from ConcreteSyntaxComment(node)
     elif isinstance(node, cwast.Case):
         yield ("case", TK.BEG)
 
@@ -640,17 +628,12 @@ def ConcreteSyntaxStmt(node):
 
 
 def ConcreteSyntaxTop(node):
-    if isinstance(node, cwast.Comment):
-        yield from ConcreteSyntaxComment(node)
-    elif isinstance(node, cwast.DefMod):
+    if isinstance(node, cwast.DefMod):
         yield ("module", TK.BEG)
         yield (node.name, TK.ATTR)
         for child in node.body_mod:
             yield from ConcreteSyntaxTop(child)
         yield ("@module", TK.END)
-
-    elif isinstance(node, cwast.Comment):
-        yield from ConcreteSyntaxComment(node)
 
     elif isinstance(node, cwast.DefGlobal):
         yield ("global", TK.BEG)
@@ -667,14 +650,11 @@ def ConcreteSyntaxTop(node):
         yield ("(", TK.BEG)
         sep = False
         for p in node.params:
-            if isinstance(p, cwast.Comment):
-                yield from ConcreteSyntaxComment(p)
-            else:
-                if sep:
-                    yield ",", TK.SEP
-                sep = True
-                yield (p.name, TK.ATTR)
-                yield from ConcreteSyntaxType(p.type)
+            if sep:
+                yield ",", TK.SEP
+            sep = True
+            yield (p.name, TK.ATTR)
+            yield from ConcreteSyntaxType(p.type)
         yield (")", TK.END)
 
         yield from ConcreteSyntaxType(node.result)
@@ -703,13 +683,10 @@ def ConcreteSyntaxTop(node):
         yield node.name, TK.ATTR
         yield ":", TK.BEG
         for f in node.fields:
-            if isinstance(f, cwast.Comment):
-                yield from ConcreteSyntaxComment(f)
-            else:
-                yield "NONE", TK.BEG
-                yield f.name, TK.ATTR
-                yield from ConcreteSyntaxType(f.type)
-                yield "@NONE", TK.END
+            yield "NONE", TK.BEG
+            yield f.name, TK.ATTR
+            yield from ConcreteSyntaxType(f.type)
+            yield "@NONE", TK.END
         yield "@:", TK.END
         yield "@defrec", TK.END
     elif isinstance(node, cwast.DefEnum):
@@ -718,13 +695,10 @@ def ConcreteSyntaxTop(node):
         yield node.base_type_kind.name, TK.ATTR
         yield ":", TK.BEG
         for f in node.items:
-            if isinstance(f, cwast.Comment):
-                yield from ConcreteSyntaxComment(f)
-            else:
-                yield "NONE", TK.BEG
-                yield f.name, TK.ATTR
-                yield from ConcreteSyntaxExpr(f.value_or_auto)
-                yield "@NONE", TK.END
+            yield "NONE", TK.BEG
+            yield f.name, TK.ATTR
+            yield from ConcreteSyntaxExpr(f.value_or_auto)
+            yield "@NONE", TK.END
         yield "@:", TK.END
         yield "@defenum", TK.END
     else:
@@ -877,7 +851,6 @@ if __name__ == "__main__":
         mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
         symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
         for mod in mod_topo_order:
-            cwast.StripFromListRecursively(mod, cwast.Comment)
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
         tc = types.TypeCorpus(
             cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)

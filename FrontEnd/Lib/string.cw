@@ -1,5 +1,5 @@
+@doc "String Library"
 (module string [] :
-(# "String Library")
 (global @pub NOT_FOUND uint (not 0))
 
 
@@ -30,7 +30,7 @@
     (if (< hlen nlen) :
         (return NOT_FOUND)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc  "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
     (let n uint (- hlen nlen))
@@ -58,7 +58,7 @@
     (if (< hlen nlen) :
         (return NOT_FOUND)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
     (let @mut i uint (- hlen nlen))
@@ -85,7 +85,7 @@
     (if (< hlen nlen) :
         (return false)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (return (call are_two_non_empty_strings_the_same [
             (front haystack)
             (front needle)
@@ -101,7 +101,7 @@
     (if (< hlen nlen) :
         (return false)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (return (call are_two_non_empty_strings_the_same [
             (incp (front haystack) (- hlen nlen))
             (front needle)
@@ -129,7 +129,7 @@
                 (return 1)))
         (+= i 1)
         (continue))
-    (# "the common prefix is the same")
+    @doc "the common prefix is the same"
     (cond :
         (case (== alen blen) :
             (return 0))
@@ -140,7 +140,7 @@
 
 
 (fun contains_char [(param haystack (slice u8)) (param needle u8)] bool :
-    (# "assumes that haystack is not empty")
+    @doc "assumes that haystack is not empty"
     (let n uint (len haystack))
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
@@ -164,7 +164,7 @@
     (if (== nlen 0) :
         (return NOT_FOUND)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
     (block _ :
@@ -187,7 +187,7 @@
     (if (== nlen 0) :
         (return 0)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
     (block _ :
@@ -210,7 +210,7 @@
     (if (== nlen 0) :
         (return NOT_FOUND)
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint hlen)
     (block _ :
@@ -233,7 +233,7 @@
     (if (== nlen 0) :
         (return (- hlen 1))
         :)
-    (# "at this point we know that both slices have len > 0")
+    @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint hlen)
     (block _ :
@@ -247,6 +247,6 @@
         (continue)))
 
 
-(# "eom"))
+)
 
 

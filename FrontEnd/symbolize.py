@@ -185,9 +185,9 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
     logger.info("Processing %s", mod.name)
     # pass 1: get all the top level symbols
     for node in mod.body_mod:
-        if isinstance(node, (cwast.StmtStaticAssert, cwast.Comment)):
+        if isinstance(node, cwast.StmtStaticAssert):
             continue
-        elif isinstance(node, cwast.DefFun) and node.polymorphic:
+        if isinstance(node, cwast.DefFun) and node.polymorphic:
             # symbol resolution for these can only be handled when we have
             # types so we skip them here
             continue
@@ -413,7 +413,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
-            if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.Comment)):
+            if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, symtab_map)
@@ -523,10 +523,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     asts = parse.ReadModsFromStream(sys.stdin)
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
-    # get rid of the comment nodes so we can make simplifying assumptions
-    # like DefRec.fields only has nodes of type RecField
-    for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.Comment)
     MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:
         cwast.CheckAST(ast, set())

@@ -3,7 +3,6 @@
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (# "this is a comment with \" with quotes \t ")
     (stmt (call foo1 [
             0
             0
@@ -25,7 +24,6 @@
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (# "this is a comment with \" with quotes \t ")
     (if (<= a b) :
         (= (^ v1a) 666)
         :)
@@ -42,7 +40,6 @@
 
 
 (defrec @pub type_rec :
-    (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -53,12 +50,10 @@
 
 
 (defrec @pub one_field_rec :
-    (# "this is a comment with \" with quotes \t ")
     (field the_field r32))
 
 
 (defrec @pub one_one_field_rec :
-    (# "this is a comment with \" with quotes \t ")
     (field the_field one_field_rec))
 
 
@@ -66,7 +61,6 @@
 
 
 (enum @pub type_enum S32 :
-    (# "this is a comment with \" with quotes \t ")
     (entry s1 7)
     (entry s2)
     (entry s3 19)
@@ -89,7 +83,6 @@
         (param a bool)
         (param b bool)
         (param c s32)] bool :
-    (# "this is a comment with \" with quotes \t ")
     (if (and a b) :
         (return a)
         :
@@ -102,16 +95,13 @@
 (fun foo4 [
         (param a s32)
         (param b s32)
-        (# "parameter comment")
         (param c s32)] (ptr u8) :
-    (# "this is a comment with \" with quotes \t ")
     (let p1 (ptr u8) undef)
     (let p2 (ptr u8) undef)
     (if (== p1 p2) :
         :)
     (let p3 auto (? false p1 p2))
     (block my_block :
-        (# "this is a comment with \" with quotes \t ")
         (break)
         (continue)
         (break)

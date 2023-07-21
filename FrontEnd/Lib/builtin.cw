@@ -32,7 +32,7 @@
 (global @pub FORMATED_STRING_MAX_LEN uint 4096)
 
 
-(# "macro for while-loop")
+@doc "macro for while-loop"
 (macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
         (if $cond :
@@ -42,7 +42,7 @@
         (continue)))
 
 
-(# "macro for number range for-loop")
+@doc "macro for number range for-loop"
 (macro @pub for STMT_LIST [
         (mparam $index ID)
         (mparam $type TYPE)
@@ -72,9 +72,9 @@
     (return size))
 
 
-(# "This gets passed to the actual formatters which decide how to interpret the options.")
+@doc "This gets passed to the actual formatters which decide how to interpret the options."
 (defrec @pub SysFormatOptions :
-    (# "min width")
+    @doc "min width"
     (field witdh u8)
     (field precission u8)
     (field padding u8)
@@ -99,10 +99,10 @@
         (mparam $val EXPR)
         (mparam $base EXPR)
         (mparam $max_width EXPR)
-        (# "a slice for the output string")
+        @doc "a slice for the output string"
         (mparam $out EXPR)] [$v $out_eval $tmp $pos] :
     (expr :
-        (# "unsigned to str with given base")
+        @doc "unsigned to str with given base"
         (macro_let @mut $v auto $val)
         (macro_let @mut $tmp auto (array_val $max_width u8))
         (macro_let @mut $pos uint $max_width)
@@ -262,10 +262,10 @@
             (return (call slice_copy [NAN_NEG out])))))
 
 
-(# "r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)")
-(# "exponentiation bias is 1023")
-(# "https://en.wikipedia.org/wiki/Double-precision_floating-point_format")
-(# "https://observablehq.com/@jrus/hexfloat")
+@doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
+        exponentiation bias is 1023
+        https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+        https://observablehq.com/@jrus/hexfloat"""
 (fun r64_to_hex_str [(param val r64) (param out (slice @mut u8))] uint :
     (let val_bits auto (bitcast val s64))
     (let @mut frac_bits auto (and val_bits 0xf_ffff_ffff_ffff))
@@ -321,7 +321,7 @@
 
 
 (macro @pub print STMT_LIST [
-        (# "list of items to be printed")
+        @doc "list of items to be printed"
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     (macro_let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     (macro_let @mut $curr uint 0)
@@ -348,11 +348,11 @@
         (trap)))
 
 
-(# "macro for c-style -> operator")
+@doc "macro for c-style -> operator"
 (macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 
 
-(# "eom"))
+)
 
 

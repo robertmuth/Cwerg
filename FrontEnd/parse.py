@@ -215,7 +215,9 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
     while True:
         token = ReadAttrs(next(stream), attr, stream)
         if token == ")" or token == ":" or token == "[":
-            assert not attr
+            if attr:
+                cwast.CompilerError(
+                    stream.srcloc(), f"unexpected attribs: {attr}")
             stream.pushback(token)
             break
 
@@ -223,7 +225,9 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
             out.append(ReadSExpr(stream, parent_cls, attr))
             attr.clear()
         else:
-            assert not attr
+            if attr:
+                cwast.CompilerError(
+                    stream.srcloc(), f"unexpected attribs: {attr}")
             out.append(ExpandShortHand(token, stream.srcloc()))
     return out
 

@@ -1,5 +1,5 @@
+@doc  "defer"
 (module main [] :
-(# "defer")
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (defer :
         (print ["defer fun 1\n"]))

@@ -11,7 +11,7 @@
 (static_assert (== (sizeof r64) 8))
 
 
-(# "assuming 64 bit pointers")
+@doc "assuming 64 bit pointers"
 (static_assert (== (sizeof (ptr u8)) 8))
 
 
@@ -28,7 +28,6 @@
 
 
 (defrec @pub type_rec :
-    (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -51,7 +50,6 @@
 
 
 (enum @pub type_enum S32 :
-    (# "this is a comment with \" with quotes \t ")
     (entry e1 7)
     (entry e2)
     (entry e3 19)

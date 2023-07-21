@@ -17,8 +17,8 @@
         (index_val 3)]))
 
 
-(# "(let c20 auto (len c1)")
-(# "(let c21 auto (at c1 2))")
+@doc """ (let c20 auto (len c1)")
+         "(let c21 auto (at c1 2))") """
 (global dim auto 5_u16)
 
 
@@ -48,7 +48,7 @@
 (global e2 (slice @mut s32) d2)
 
 
-(# "ERROR: (let e3 (slice mut s32) d2)")
+@doc "ERROR: (let e3 (slice mut s32) d2)"
 (global f1 (slice s32) e1)
 
 
@@ -58,9 +58,9 @@
 (global f3 (slice s32) e2)
 
 
-(# "ERROR: (let f4 (slice mut s32) e1)")
+@doc "ERROR: (let f4 (slice mut s32) e1)"
 (fun baz [] void :
-    (# "ERRPOR: (= (at c1 5) 0)")
+    @doc "ERRPOR: (= (at c1 5) 0)"
     (let pc1 (ptr s32) (front c1))
     (= (at c2 5) 0))
 

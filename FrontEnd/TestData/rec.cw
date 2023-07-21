@@ -2,7 +2,7 @@
 (import test)
 
 (defrec @pub type_rec1 :
-    (# "this is a comment with \" with quotes \t ")
+    @doc "this is a comment with \" with quotes \t "
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -60,7 +60,7 @@
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (# "LOCAL")
+    @doc "LOCAL"
     (let @mut v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)
     (= (. v1 u3) 103)
@@ -78,7 +78,7 @@
     (test::AssertEq (at (. v1 u5) 2) 502_u16)
     (test::AssertEq (at (. v1 u5) 3) 503_u16)
     (test::AssertEq (at (. v1 u5) 10) 510_u16)
-    (# "GLOBAL")
+    @doc "GLOBAL"
     (test::AssertEq (. g3 u2) 0x1234_u16)
     (test::AssertEq (. g3 u3) 0x4321_u64)
     (test::AssertEq (. (. g3 u4) t1) true)

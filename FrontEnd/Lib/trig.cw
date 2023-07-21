@@ -1,6 +1,7 @@
+@doc "trigonometric functions"
 (module trig [] :
-(# "trigonometric functions")
-(# "see https://git.musl-libc.org/cgit/musl/tree/src/math/__sin.c")
+
+@doc "see https://git.musl-libc.org/cgit/musl/tree/src/math/__sin.c"
 (global SIN1 r64 -0x1.5555555555549p-3)
 
 
@@ -19,7 +20,7 @@
 (global SIN6 r64 0x1.5d93a5acfd57cp-33)
 
 
-(# "|x + y | <= pi / 4")
+@doc "|x + y | <= pi / 4"
 (fun @pub sin_restricted [
         (param x r64)
         (param y r64)
@@ -41,7 +42,7 @@
         (return (- x (- t2 (* x3 SIN1))))))
 
 
-(# "see https://git.musl-libc.org/cgit/musl/tree/src/math/__cos.c")
+@doc "see https://git.musl-libc.org/cgit/musl/tree/src/math/__cos.c"
 (global COS1 r64 0x1.555555555554cp-5)
 
 
@@ -60,7 +61,7 @@
 (global COS6 r64 0x1.8fae9be8838d4p-37)
 
 
-(# "|x + y | <= pi / 4")
+@doc "|x + y | <= pi / 4"
 (fun @pub cos_restricted [(param x r64) (param y r64)] r64 :
     (let x2 auto (* x x))
     (let x4 auto (* x2 x2))
@@ -74,7 +75,6 @@
     (let r2 auto (- (* x2 r) (* x y)))
     (return (+ w (+ w2 r2))))
 
-
-(# "eom"))
+)
 
 

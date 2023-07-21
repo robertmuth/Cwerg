@@ -1,5 +1,5 @@
+@doc "fizzbuzz"
 (module main [] :
-(# "fizzbuzz")
 (global NEWLINE auto "\n")
 
 

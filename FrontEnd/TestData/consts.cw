@@ -69,7 +69,6 @@
 
 
 (defrec @pub type_rec :
-    (# "this is a comment with \" with quotes \t ")
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -79,7 +78,7 @@
     (field u2 u64))
 
 
-(# "rec literal with explicit field name")
+@doc "rec literal with explicit field name"
 (global c32 auto (rec_val type_rec [
         (field_val 7)
         (field_val 9)
@@ -102,7 +101,6 @@
 
 
 (enum @pub type_enum S32 :
-    (# "this is a comment with \" with quotes \t ")
     (entry e1 7)
     (entry e2)
     (entry e3 19)
@@ -121,7 +119,7 @@
 (static_assert (== c41 7))
 
 
-(# "array literal with explicit indices")
+@doc "array literal with explicit indices"
 (global c30 auto (array_val 30 uint [
         (index_val 0 1)
         (index_val 10 2)
@@ -134,14 +132,14 @@
 (static_assert (== c40 0))
 
 
-(# "array literal")
+@doc "array literal"
 (global c31 auto (array_val 30 uint [
         (index_val 10)
         (index_val 20)
         (index_val 30)]))
 
 
-(# "rec literal")
+@doc "rec literal"
 (global c33 auto (rec_val type_rec [
         (field_val 7)
         (field_val 9)
@@ -157,14 +155,14 @@
     (field s3 s32))
 
 
-(# "rec literal")
+@doc "rec literal"
 (global r01 auto (rec_val type_rec2 [
         (field_val "aaa")
         (field_val 9)
         (field_val 7)]))
 
 
-(# "rec literal")
+@doc "rec literal"
 (global r02 auto (rec_val type_rec2 [(field_val 9 s2) (field_val 7)]))
 
 
@@ -192,6 +190,6 @@
 (global auto4 type_rec2)
 
 
-(# "TODO add examples with Functions"))
+)
 
 

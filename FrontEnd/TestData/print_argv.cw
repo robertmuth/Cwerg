@@ -1,5 +1,7 @@
+@doc "main module with program entry point `main`"
+
 (module main [] :
-(# "main module with program entry point `main`")
+
 (fun strlen [(param s (ptr u8))] uint :
     (let @mut i uint 0)
     (while (!= (^ (incp s i)) 0) :

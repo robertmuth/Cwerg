@@ -57,13 +57,11 @@
 
 
 (defrec @pub rec1 :
-    (# "this is a comment with \" with quotes \t ")
     (field s1 sum2_t)
     (field s2 sum2_t))
 
 
 (defrec @pub rec2 :
-    (# "this is a comment with \" with quotes \t ")
     (field s1 sum3_t)
     (field s2 sum3_t))
 

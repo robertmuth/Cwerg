@@ -574,13 +574,14 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
         def_type = node.type_or_auto.x_type
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
-        initial  = node.initial_or_undef_or_auto
+        initial = node.initial_or_undef_or_auto
         if _IsDefVarOnStack(node, tc):
             print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
-                EmitIRExprToMemory(initial,  BaseOffset(init_base, 0), tc, id_gen)
+                EmitIRExprToMemory(initial,  BaseOffset(
+                    init_base, 0), tc, id_gen)
         else:
             if isinstance(initial, cwast.ValUndef):
                 print(
@@ -766,7 +767,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
         else:
             assert False, f"unhandled node for DefGlobal: {node} {cstr}"
 
-    _emit_recursively(node.initial_or_undef_or_auto, node.type_or_auto.x_type, 0)
+    _emit_recursively(node.initial_or_undef_or_auto,
+                      node.type_or_auto.x_type, 0)
 
 
 def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGenIR):
@@ -795,15 +797,9 @@ def main():
     for f in args.files:
         asts += parse.ReadModsFromStream(open(f), f)
 
-    logger.info("Strip Comments")
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    # get rid of the comment nodes so we can make simplifying assumptions
-    # like DefRec.fields only has nodes of type RecField
-    for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.Comment)
 
     ELIMIMATED_NODES.add(cwast.ExprParen)  # this needs more work
-    ELIMIMATED_NODES.add(cwast.Comment)
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)

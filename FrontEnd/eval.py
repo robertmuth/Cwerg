@@ -505,7 +505,6 @@ if __name__ == "__main__":
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.Comment)
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     type_corpus = types.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)

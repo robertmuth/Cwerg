@@ -1,5 +1,5 @@
 (module std [] :
-(# "File StdLib bindings")
+
 (type @pub @wrapped errorOpen void)
 
 

@@ -296,50 +296,50 @@ class NFD:
     extra: Any = None
 
 
-NODES_PARAMS = ("Comment", "FunParam")
+NODES_PARAMS = ("FunParam")
 NODES_PARAMS_T = Union[NODES_PARAMS]
 
-NODES_BODY_MOD = ("Comment", "DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType", "DefGlobal",
+NODES_BODY_MOD = ("DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType", "DefGlobal",
                   "StmtStaticAssert", "Import")
 NODES_BODY_MOD_T = Union[NODES_BODY_MOD]
 
-NODES_PARAMS_MOD = ("Comment", "ModParam")
+NODES_PARAMS_MOD = ("ModParam")
 NODES_PARAMS_MOD_T = Union[NODES_PARAMS_MOD]
 
-NODES_PARAMS_MACRO = ("Comment", "MacroParam")
+NODES_PARAMS_MACRO = ("MacroParam")
 NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
 
-NODES_BODY = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
+NODES_BODY = ("StmtDefer", "StmtIf", "StmtBreak",
               "StmtContinue", "StmtReturn", "StmtExpr", "StmtCompoundAssignment",
               "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", "StmtAssignment", "StmtTrap")
 NODES_BODY_T = Union[NODES_BODY]
 
-NODES_BODY_MACRO = ("Comment", "StmtDefer", "StmtIf", "StmtBreak",
+NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
                     "StmtContinue", "StmtReturn", "StmtExpr",
                     "StmtBlock", "StmtCond")
 NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
 
-NODES_TYPES = ("Comment", "TypeBase",
+NODES_TYPES = ("TypeBase",
                "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum")
 NODES_TYPES_T = Union[NODES_TYPES]
 
-NODES_TYPES_OR_AUTO = ("Comment", "TypeBase",
+NODES_TYPES_OR_AUTO = ("TypeBase",
                        "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeAuto")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
-NODES_ITEMS = ("Comment", "EnumVal")
+NODES_ITEMS = ("EnumVal")
 NODES_ITEMS_T = Union[NODES_ITEMS]
 
-NODES_INITS_ARRAY = ("Comment", "IndexVal")
+NODES_INITS_ARRAY = ("IndexVal")
 NODES_INITS_ARRAY_T = Union[NODES_INITS_ARRAY]
 
-NODES_INITS_REC = ("Comment", "FieldVal")
+NODES_INITS_REC = ("FieldVal")
 NODES_INITS_REC_T = Union[NODES_INITS_REC]
 
-NODES_FIELDS = ("Comment", "RecField")
+NODES_FIELDS = ("RecField")
 NODES_FIELDS_T = Union[NODES_FIELDS]
 
-NODES_CASES = ("Comment", "Case")
+NODES_CASES = ("Case")
 NODES_CASES_T = Union[NODES_CASES]
 
 NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
@@ -642,28 +642,8 @@ def NodeCommon(cls):
 
 
 ############################################################
-# Comment and Emphemeral
+# Emphemeral
 ############################################################
-@NodeCommon
-@dataclasses.dataclass()
-class Comment:
-    """Comment
-
-    Comments are proper AST nodes and may only occur where explicitly allowed.
-    They refer to the next sibling in the tree.
-    """
-    ALIAS = "#"
-    GROUP = GROUP.Misc
-    FLAGS = NF.NON_CORE
-    #
-    comment: str
-    #
-    x_srcloc: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.comment}"
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class EphemeralList:
@@ -1146,9 +1126,6 @@ class ValSlice:
     x_value: Optional[Any] = None
 
     def __str__(self): return f"{_NAME(self)} {self.pointer} {self.expr_size}"
-
-
-NODES_INITS_REC_T = Union[Comment, FieldVal]
 
 
 @NodeCommon
@@ -1698,7 +1675,7 @@ class StmtDefer:
     #
     body:  List[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
-    doc: str = ""   
+    doc: str = ""
     #
     x_srcloc: Optional[Any] = None
 

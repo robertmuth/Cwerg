@@ -1,5 +1,5 @@
+@doc "heapsort"
 (module main [] :
-(# "heapsort")
 (import random)
 
 (global SIZE uint 20)

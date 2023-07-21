@@ -1,9 +1,10 @@
-(module ansi [] :
-(# """Ansi Escape Sequences for Terminal Emulation 
+@doc """Ansi Escape Sequences for Terminal Emulation 
 
 * https://www.xfree86.org/current/ctlseqs.html")
 * https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-""")
+"""
+(module ansi [] :
+
 (global @pub CLEAR_ALL auto "\x1b[2J")
 
 
@@ -31,7 +32,7 @@
 (global @pub SET_MODE_STRIKE_THROUGH auto "\x1b[8m")
 
 
-(# "also clears color settings")
+@doc "also clears color settings"
 (global @pub RESET_MODE_ALL auto "\x1b[0m")
 
 
@@ -70,7 +71,7 @@
     "f")
 
 
-(# "FG")
+@doc "FG"
 (global @pub FG_COLOR_BLACK auto "\x1b[38;2;0;0;0m")
 
 
@@ -108,7 +109,7 @@
     "m")
 
 
-(# "BG")
+@doc "BG"
 (global @pub BG_COLOR_BLACK auto "\x1b[48;2;0;0;0m")
 
 
@@ -146,6 +147,6 @@
     "m")
 
 
-(# "eom"))
+)
 
 

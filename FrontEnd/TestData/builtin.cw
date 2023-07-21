@@ -1,8 +1,9 @@
+@doc """Macro Examples
+This gets passed to the actual formatters which decide how to interpret the options."""
 (module $builtin [] :
-(# "Macro Examples")
-(# "This gets passed to the actual formatters which decide how to interpret the options.")
+
 (defrec @pub SysFormatOptions :
-    (# "min width")
+    @doc "min width"
     (field witdh u8)
     (field precission u8)
     (field padding u8)
@@ -16,13 +17,12 @@
 
 (fun @pub @extern SysPrint [(param buffer (slice u8))] void :)
 
-
-(# "macro for c-style -> operator")
+@doc "macro for c-style -> operator"
 (macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 
 
-(# "macro for number range for-loop")
+@doc "macro for number range for-loop"
 (macro @pub for STMT_LIST [
         (mparam $index ID)
         (mparam $type TYPE)
@@ -43,7 +43,7 @@
         (continue)))
 
 
-(# "macro for while-loop")
+@doc "macro for while-loop"
 (macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
         (if $cond :
@@ -71,7 +71,7 @@
 (fun @pub @extern IsLogActive [(param level u8) (param loc u32)] void :)
 
 
-(# "generic copy of data from slice/array to slice")
+@doc "generic copy of data from slice/array to slice"
 (macro copy_slice STMT_LIST [
         (mparam $item_type TYPE)
         (mparam $src EXPR)
@@ -109,7 +109,7 @@
         (mparam $base EXPR)
         (mparam $max_width EXPR)
         (mparam $out ID)] [$v $tmp $pos] :
-    (# "unsigned to str with give base")
+    @doc "unsigned to str with give base"
     (macro_let @mut $v auto $val)
     (macro_let @mut $tmp auto (array_val $max_width u8))
     (macro_let @mut $pos uint $max_width)

@@ -1,5 +1,5 @@
+@doc "Binary Tree Example"
 (module main [] :
-(# "Binary Tree Example")
 (type @wrapped NoneType void)
 
 
