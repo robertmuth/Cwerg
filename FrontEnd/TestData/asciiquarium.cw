@@ -1,8 +1,8 @@
+@doc "Ascii Art Animation Module"
 (module aanim [] :
-(# "Ascii Art Animation Module")
 (import ansi)
 
-(# "arbitrary bound so we can statically allocate maps")
+@doc "arbitrary bounds so we can statically allocate maps"
 (global MAX_DIM s32 1024)
 
 
@@ -43,7 +43,7 @@
     (field y_speed r32)
     (field attr_lookup (slice u8))
     (field def_attr u8)
-    (# "updated by draw")
+    @doc "updated by draw"
     (field visible bool))
 
 
@@ -136,7 +136,7 @@
     (let @mut have_color auto true)
     (let @mut cpos uint 0)
     (for ipos uint 0 (len image_map) 1 :
-        (# "determine attribute")
+        @doc "determine attribute"
         (let @mut a u8 def_attr)
         (if have_color :
             (let cc u8 (at color_map cpos))
@@ -150,13 +150,13 @@
                 (case true :
                     (= a cc)))
             :)
-        (# "determine character")
+        @doc "determine character"
         (let c u8 (at image_map ipos))
         (if (== c '\n') :
             (+= y 1)
             (= x (as (-> s x_pos) s32))
             (= left_side true)
-            (# "the end of the color row should have been reached already")
+            @doc "the end of the color row should have been reached already"
             (assert (! have_color) ["color failure\n"])
             (if (< cpos (len color_map)) :
                 (= have_color true)
@@ -183,7 +183,7 @@
     (print [(call get_bg_color [bg_col]) ansi::CLEAR_ALL])
     (let w auto (-> obj width))
     (let h auto (-> obj height))
-    (# "@ is an invalid attrib")
+    @doc "@ is an invalid attrib"
     (let @mut last_attr u8 '@')
     (for x s32 0 w 1 :
         (let @mut last_x auto MAX_DIM)
@@ -216,19 +216,19 @@
         (= (at (-> obj depth_map) i) 255)))
 
 
-(# "eom"))
+)
 
 
+@doc """
+* https://github.com/cmatsuoka/asciiquarium
+* https://robobunny.com/projects/asciiquarium/
+* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)"""
 (module artwork [] :
 (import aanim)
 
-(# """
-* https://github.com/cmatsuoka/asciiquarium
-* https://robobunny.com/projects/asciiquarium/
-* Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
-""")
-(# """
-Color codes and xterm rgb values:
+
+
+@doc """Color codes and xterm rgb values:
 k  black    0,0,0
 r  red      205,0, 0
 g  green    0,205,0
@@ -248,7 +248,7 @@ Fish body parts:
 5: mouth
 6: tailfin
 7: gills
-""")
+"""
 (global @pub RandomColor auto "RcRyBgM")
 
 
@@ -674,9 +674,9 @@ y                   y
         :))
 
 
-(# "eom"))
+)
 
-
+@doc "main module with program entry point `main`"
 (module main [] :
 (import artwork)
 
@@ -687,7 +687,6 @@ y                   y
 (global @mut all_objects auto (array_val 100 aanim::ObjectState))
 
 
-(# "main module with program entry point `main`")
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
         (print ["Not enough arguments, need width and height\n"])
@@ -697,12 +696,12 @@ y                   y
     (let arg_h (slice u8) (call strz_to_slice [(^ (incp argv 2))]))
     (let width s32 (as (call str_to_u32 [arg_w]) s32))
     (let height s32 (as (call str_to_u32 [arg_h]) s32))
-    (# "100ms per frame")
+    @doc "100ms per frame"
     (let @ref req TimeSpec (rec_val TimeSpec [(field_val 0) (field_val 100000000)]))
     (let @mut @ref rem TimeSpec undef)
     (let @ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
     (let @mut curr auto (front @mut all_objects))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::DuckR)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -710,7 +709,8 @@ y                   y
             0
             5]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
+
     (stmt (call aanim::InitObjectState [curr (& artwork::Castle)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -718,7 +718,7 @@ y                   y
             (- (as width r32) 32)
             (- (as height r32) 13)]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::BigFishR)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -726,7 +726,7 @@ y                   y
             10
             10]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::SwanL)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -734,7 +734,7 @@ y                   y
             50
             1]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::DolphinL)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -742,7 +742,7 @@ y                   y
             30
             8]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::MonsterR)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -750,7 +750,7 @@ y                   y
             30
             2]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::SharkR)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -758,7 +758,7 @@ y                   y
             30
             30]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::ShipR)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -766,7 +766,7 @@ y                   y
             50
             0]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::Fish1R)]))
     (stmt (call aanim::SetBasics [
             curr
@@ -774,7 +774,7 @@ y                   y
             40
             40]))
     (= curr (incp curr 1))
-    (# "")
+    @doc "add obj"
     (print [ansi::CURSOR_HIDE])
     (let @mut last_t r32 0.0)
     (for t r32 0.0 5.0 0.1 :
@@ -785,7 +785,6 @@ y                   y
         (= curr (front @mut all_objects))
         (for i uint 0 9 1 :
             (stmt (call aanim::draw [(& @mut window) (incp curr i)])))
-        (# "")
         (stmt (call aanim::window_draw [(& window) 'k']))
         (for i uint 0 9 1 :
             (stmt (call artwork::UpdateState [
@@ -798,6 +797,6 @@ y                   y
     (return 0))
 
 
-(# "eom"))
+)
 
 
