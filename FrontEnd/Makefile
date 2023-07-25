@@ -42,9 +42,10 @@ test_emit: \
     $(DIR)/sieve.x64.exe \
     $(DIR)/defer.x64.exe \
     $(DIR)/rec.x64.exe \
-    $(DIR)/string.x64.exe \
     $(DIR)/polymorphic.x64.exe \
-    $(DIR)/trig_test.x64.exe
+    $(DIR)/string.x64.exe \
+    $(DIR)/trig_test.x64.exe \
+    $(DIR)/checksum_test.x64.exe
 
 BUILTINS = TestData/builtin.cw 
 
@@ -108,18 +109,25 @@ $(DIR)/rec.x64.exe: TestData/rec.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/string.x64.exe: TestData/string.cw
-	./emit_ir.py Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
+
 
 $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/trig_test.x64.exe: TestData/trig_test.cw
+$(DIR)/string.x64.exe: Lib/string_test.cw
+	./emit_ir.py Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/trig_test.x64.exe: Lib/trig_test.cw
 	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/math.cw Lib/trig.cw  $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
+	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/checksum.cw  $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
