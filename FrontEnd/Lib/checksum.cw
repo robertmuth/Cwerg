@@ -29,7 +29,7 @@
     (let @mut crc u32 (xor start_crc 0xffffffff))
     (for i uint 0 (len buf) 1 :
         (let index u8 (xor (as (and crc 0xff) u8) (at buf i)))
-        (= crc (xor (at (^ tab) (as index u32)) (>> crc 8)))
+        (= crc (xor (at (^ tab) index) (>> crc 8)))
     )
     (return (xor crc 0xffffffff)))
 )

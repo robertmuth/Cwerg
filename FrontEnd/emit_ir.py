@@ -108,7 +108,7 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def StringifyOneType(node, type_corpus: types.TypeCorpus):
+def StringifyOneType(node: str, type_corpus: types.TypeCorpus):
     t = type_corpus.register_types(node)
     assert len(t) == 1, f"bad type: {node}"
     return t[0]
@@ -177,9 +177,11 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: types.TypeCorpus,
         if scale == 1:
             return offset
         scaled = id_gen.NewName("scaled")
-        # TODO: widen index if overflow is likely
+        sint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
         print(
-            f"{TAB}mul {scaled}:{StringifyOneType(offset_expr.x_type, tc)} = {offset} {scale}")
+            f"{TAB}conv {scaled}:{StringifyOneType(sint_type, tc)} = {offset}")
+        print(
+            f"{TAB}mul {scaled} = {scaled} {scale}")
         return scaled
 
 
