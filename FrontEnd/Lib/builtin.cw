@@ -213,6 +213,38 @@
             n])))
 
 
+(type @pub @wrapped u32_hex u32)
+(type @pub @wrapped u16_hex u16)
+(type @pub @wrapped u8_hex u8)
+
+(fun u32_to_hex_str [(param v u32) (param out (slice @mut u8))] uint :
+    (return (unsigned_to_str v 16 32_uint out)))
+
+(fun u16_to_hex_str [(param v u16) (param out (slice @mut u8))] uint :
+    (return (unsigned_to_str v 16 32_uint out)))
+
+(fun u8_to_hex_str [(param v u8) (param out (slice @mut u8))] uint :
+    (return (unsigned_to_str v 16 32_uint out)))
+
+(fun @polymorphic SysRender [
+        (param v u32_hex)
+        (param out (slice @mut u8))
+        (param options (ptr @mut SysFormatOptions))] uint :
+    (return (call u32_to_hex_str [(as v u32) out])))
+
+(fun @polymorphic SysRender [
+        (param v u16_hex)
+        (param out (slice @mut u8))
+        (param options (ptr @mut SysFormatOptions))] uint :
+    (return (call u16_to_hex_str [(as v u16) out])))
+
+(fun @polymorphic SysRender [
+        (param v u8_hex)
+        (param out (slice @mut u8))
+        (param options (ptr @mut SysFormatOptions))] uint :
+    (return (call u8_to_hex_str [(as v u8) out])))
+
+
 (type @pub @wrapped rune u8)
 
 

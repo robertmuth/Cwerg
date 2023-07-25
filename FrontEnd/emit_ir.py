@@ -168,24 +168,27 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
+def OffsetScaleToOffset(offset_expr, scale: int, tc: types.TypeCorpus,
+                        id_gen: identifier.IdGenIR) -> BaseOffset:
+    if offset_expr.x_value is not None:
+        return offset_expr.x_value * scale
+    else:
+        offset = EmitIRExpr(offset_expr, tc, id_gen)
+        if scale == 1:
+            return offset
+        scaled = id_gen.NewName("scaled")
+        # TODO: widen index if overflow is likely
+        print(
+            f"{TAB}mul {scaled}:{StringifyOneType(offset_expr.x_type, tc)} = {offset} {scale}")
+        return scaled
+
+
 def _GetLValueAddressAsBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type = node.container.x_type
         assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
         base = _GetLValueAddress(node.container, tc, id_gen)
-        scale = x_type.type.x_size
-        if node.expr_index.x_value is not None:
-            scale = x_type.type.x_size
-            offset = node.expr_index.x_value * scale
-        else:
-            offset = EmitIRExpr(node.expr_index, tc, id_gen)
-            if scale != 1:
-                scaled = id_gen.NewName("scaled")
-                # TODO: widen index if overflow is likely
-                print(
-                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr_index.x_type, tc)} = {offset} {scale}")
-                offset = scaled
-        return BaseOffset(base, offset)
+        return base, OffsetScaleToOffset(node.expr_index, x_type.type.x_size, node.expr_index, tc, id_gen)
 
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
@@ -382,22 +385,15 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         _EmitExpr2(node.binary_expr_kind, res, res_type, op1, op2)
         return res
     elif isinstance(node, cwast.ExprPointer):
-        op1 = EmitIRExpr(node.expr1, tc, id_gen)
-        op2 = EmitIRExpr(node.expr2, tc, id_gen)
+        base = EmitIRExpr(node.expr1, tc, id_gen)
         # TODO: add range check
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         res = id_gen.NewName("expr2")
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert isinstance(node.expr1.x_type, cwast.TypePtr)
-            scale = node.expr1.x_type.type.x_size
-            # TODO assumed 64
-            if scale != 1:
-                scaled = id_gen.NewName("scaled")
-                # TODO: widen index
-                print(
-                    f"{TAB}mul {scaled}:{StringifyOneType(node.expr2.x_type, tc)} = {op2} {scale}")
-                op2 = scaled
-            print(f"{TAB}lea {res}:A64 = {op1} {op2}")
+            offset = OffsetScaleToOffset(
+                node.expr2, node.expr1.x_type.type.x_size, tc, id_gen)
+            print(f"{TAB}lea {res}:A64 = {base} {offset}")
         else:
             assert False, f"unsupported expression {node}"
         return res
