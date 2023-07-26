@@ -386,7 +386,7 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxType(node.type)
         yield "[", TK.BEG
         sep = False
-        for e in node.inits_rec:
+        for e in node.inits_field:
             if sep:
                 yield ",", TK.SEP
             sep = True

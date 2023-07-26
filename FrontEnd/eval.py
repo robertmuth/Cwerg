@@ -300,7 +300,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, node.value.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
-        return _AssignValue(node, _EvalValRec(node.x_type, node.inits_rec, node.x_srcloc))
+        return _AssignValue(node, _EvalValRec(node.x_type, node.inits_field, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
         assert s[0] == '"' and s[-1] == '"', f"expected string [{s}]"

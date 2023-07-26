@@ -344,7 +344,7 @@ def _TypifyNodeRecursively(node, tc: types.TypeCorpus, target_type, ctx: _TypeCo
         assert isinstance(cstr, cwast.DefRec)
         all_fields: List[cwast.RecField] = [
             f for f in cstr.fields if isinstance(f, cwast.RecField)]
-        for val in node.inits_rec:
+        for val in node.inits_field:
             assert isinstance(val, cwast.FieldVal)
             if val.init_field:
                 while True:
@@ -654,7 +654,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: types.TypeCorpus):
                 assert types.is_int(x.init_index.x_type)
             _CheckTypeSame(node, tc, x.x_type, cstr)
     elif isinstance(node, cwast.ValRec):
-        for x in node.inits_rec:
+        for x in node.inits_field:
             assert isinstance(x, cwast.FieldVal), f"unexpected field: {x}"
             field_node = x.x_field
             _CheckTypeSame(node, tc, field_node.x_type, x.x_type)

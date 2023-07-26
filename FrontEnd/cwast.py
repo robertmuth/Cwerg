@@ -299,8 +299,8 @@ class NFD:
 NODES_PARAMS = ("FunParam")
 NODES_PARAMS_T = Union[NODES_PARAMS]
 
-NODES_BODY_MOD = ("DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType", "DefGlobal",
-                  "StmtStaticAssert", "Import")
+NODES_BODY_MOD = ("DefFun", "DefRec", "DefUnion", "DefEnum", "DefVar", "DefMacro", "DefType",
+                  "DefGlobal", "StmtStaticAssert", "Import")
 NODES_BODY_MOD_T = Union[NODES_BODY_MOD]
 
 NODES_PARAMS_MOD = ("ModParam")
@@ -309,9 +309,9 @@ NODES_PARAMS_MOD_T = Union[NODES_PARAMS_MOD]
 NODES_PARAMS_MACRO = ("MacroParam")
 NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
 
-NODES_BODY = ("StmtDefer", "StmtIf", "StmtBreak",
-              "StmtContinue", "StmtReturn", "StmtExpr", "StmtCompoundAssignment",
-              "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", "StmtAssignment", "StmtTrap")
+NODES_BODY = ("StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
+              "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", 
+              "StmtAssignment", "StmtTrap")
 NODES_BODY_T = Union[NODES_BODY]
 
 NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
@@ -323,8 +323,8 @@ NODES_TYPES = ("TypeBase",
                "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum")
 NODES_TYPES_T = Union[NODES_TYPES]
 
-NODES_TYPES_OR_AUTO = ("TypeBase",
-                       "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeAuto")
+NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
+                       "TypeSum", "TypeAuto")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
 NODES_ITEMS = ("EnumVal")
@@ -433,7 +433,7 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "types", "union types", NODES_TYPES),
     NFD(NFK.LIST, "inits_array",
         "array initializers and/or comments", NODES_INITS_ARRAY),
-    NFD(NFK.LIST, "inits_rec", "record initializers and/or comments", NODES_INITS_REC),
+    NFD(NFK.LIST, "inits_field", "record initializers and/or comments", NODES_INITS_REC),
     #
     NFD(NFK.LIST, "body_mod",
         "toplevel module definitions and/or comments", NODES_BODY_MOD),
@@ -1163,17 +1163,38 @@ class ValRec:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     type: NODES_TYPES_T
-    inits_rec: List[NODES_INITS_REC_T]
+    inits_field: List[NODES_INITS_REC_T]
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
-        t = [str(i) for i in self.inits_rec]
+        t = [str(i) for i in self.inits_field]
         return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
 
 
+@NodeCommon
+@dataclasses.dataclass()
+class ValUnion:
+    """A union literal
+
+    `E.g.: complex{.imag = 5, .real = 1}`
+    """
+    ALIAS = "union_val"
+    GROUP = GROUP.Value
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    type: NODES_TYPES_T
+    inits_field: List[NODES_INITS_REC_T]
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        t = [str(i) for i in self.inits_field]
+        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
 ############################################################
 # ExprNode
 ############################################################
@@ -1953,7 +1974,28 @@ class DefRec:
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
 
+@NodeCommon
+@dataclasses.dataclass()
+class DefUnion:
+    """Union definition"""
+    ALIAS = "defunion"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    #
+    name: str
+    fields: List[NODES_FIELDS_T]
+    #
+    pub:  bool = False
+    doc: str = ""
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_alignment: int = -1
+    x_size: int = -1
 
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+    
 @NodeCommon
 @dataclasses.dataclass()
 class EnumVal:

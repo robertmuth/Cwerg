@@ -184,7 +184,7 @@ def ReplaceConstExpr(node):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
             return None
-        if field in ("expr_lhs", "inits_array", "inits_rec"):
+        if field in ("expr_lhs", "inits_array", "inits_field"):
             return
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)):
             return
