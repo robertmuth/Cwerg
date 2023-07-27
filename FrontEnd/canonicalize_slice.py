@@ -6,7 +6,7 @@
 from typing import List, Dict, Set, Optional, Union, Any
 
 from FrontEnd import cwast
-from FrontEnd import types
+from FrontEnd import type_corpus
 from FrontEnd import typify
 from FrontEnd import symbolize
 
@@ -19,7 +19,7 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: types.TypeCorpus) -> cwast.DefRec:
+def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     srcloc = slice.x_srcloc
     pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
         slice.type, {}, {}), mut=slice.mut, x_srcloc=srcloc)
@@ -54,13 +54,13 @@ def _DoesFunSigContainSlices(fun_sig: cwast.TypeFun, slice_to_struct_map) -> boo
     return False
 
 
-def _SliceRewriteFunSig(fun_sig: cwast.TypeFun, tc: types.TypeCorpus, slice_to_struct_map) -> cwast.TypeFun:
+def _SliceRewriteFunSig(fun_sig: cwast.TypeFun, tc: type_corpus.TypeCorpus, slice_to_struct_map) -> cwast.TypeFun:
     result = slice_to_struct_map.get(fun_sig.result, fun_sig.result)
     params = [slice_to_struct_map.get(p.type, p.type) for p in fun_sig.params]
     return tc.insert_fun_type(params, result)
 
 
-def MakeSliceTypeReplacementMap(mods, tc: types.TypeCorpus):
+def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus):
     """For all types directly involving slices, produce a replacement type
     and return the map from one the other
 
@@ -150,7 +150,7 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
         assert False
 
 
-def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus, uint_type):
+def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: type_corpus.TypeCorpus, uint_type):
     pointer = cwast.ExprFront(node, x_srcloc=node.x_type, mut=dst_type.mut,
                               x_type=tc.insert_ptr_type(dst_type.mut, dst_type.type))
     width = node.x_type.size.x_value
@@ -159,7 +159,7 @@ def _MakeValSliceFromArray(node, dst_type: cwast.TypeSlice, tc: types.TypeCorpus
     return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
 
 
-def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
+def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
     """Eliminate all the implcit Array to Slice conversions. """
     uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
@@ -213,7 +213,7 @@ def InsertExplicitValSlice(node, tc:  types.TypeCorpus):
     cwast.VisitAstRecursivelyPost(node, visitor)
 
 
-def ReplaceExplicitSliceCast(node, tc: types.TypeCorpus):
+def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Slice casts. """
     uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
@@ -230,7 +230,7 @@ def ReplaceExplicitSliceCast(node, tc: types.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ReplaceSlice(node, tc: types.TypeCorpus, slice_to_struct_map):
+def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
     """
     Replaces all slice<X> expressions with rec named tuple_slice<X>
 

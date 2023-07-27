@@ -6,7 +6,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
-from FrontEnd import types
+from FrontEnd import type_corpus
 
 ############################################################
 #
@@ -50,10 +50,10 @@ def _ShouldBeBoolExpanded(node, field):
     # * has a x_type
     return field in (
         "args", "expr_rhs", "initial_or_undef_or_auto", "value",
-        "value_or_undef") and types.is_bool(node.x_type)
+        "value_or_undef") and type_corpus.is_bool(node.x_type)
 
 
-def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: types.TypeCorpus):
+def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.TypeCorpus):
     """transform a complex bool expression e into "e ? true : false"
 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
@@ -160,7 +160,7 @@ def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: 
         assert False, "NYI"
 
 
-def CanonicalizeCompoundAssignments(node, tc: types.TypeCorpus, id_gen: identifier.IdGen):
+def CanonicalizeCompoundAssignments(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node, field):
         if isinstance(node, cwast.StmtCompoundAssignment):
@@ -190,7 +190,7 @@ def ReplaceConstExpr(node):
             return
 
         if (isinstance(node.x_type, cwast.TypeBase) and
-                types.is_int(node.x_type) and not isinstance(node, cwast.ValNum)):
+                type_corpus.is_int(node.x_type) and not isinstance(node, cwast.ValNum)):
             return cwast.ValNum(str(node.x_value),
                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
         return None
@@ -228,7 +228,7 @@ def OptimizeKnownConditionals(node):
     cwast.VisitAstRecursivelyPost(node, replacer)
 
 
-def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: types.TypeCorpus, srcloc):
+def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: type_corpus.TypeCorpus, srcloc):
     container_type = node.container.x_type
     bound = None
     if isinstance(container_type, cwast.TypeArray):

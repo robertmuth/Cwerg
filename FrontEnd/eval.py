@@ -10,7 +10,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 from FrontEnd import cwast
 from FrontEnd import symbolize
-from FrontEnd import types
+from FrontEnd import type_corpus
 from FrontEnd import typify
 from FrontEnd import parse
 
@@ -112,7 +112,7 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Dict:
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.value.x_value is None:
-               return None
+                return None
             rec[field.name] = init.value.x_value
     return rec
 
@@ -147,12 +147,12 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
 
 
 def _eval_not(node) -> bool:
-    assert types.is_bool(node.x_type)
+    assert type_corpus.is_bool(node.x_type)
     return not node.x_value
 
 
 def _eval_neg(node) -> int:
-    assert types.is_uint(node.x_type)
+    assert type_corpus.is_uint(node.x_type)
     return ~node.x_value & ((1 << (node.x_type.x_size * 8)) - 1)
 
 
@@ -211,13 +211,13 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
     op = node.binary_expr_kind
     if op in _EVAL2_ANY:
         return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
-    elif types.is_real(node.x_type):
+    elif type_corpus.is_real(node.x_type):
         if op in _EVAL2_REAL:
             return _AssignValue(node, _EVAL2_REAL[op](node.expr1, node.expr2))
-    elif types.is_int(node.x_type):
+    elif type_corpus.is_int(node.x_type):
         if op in _EVAL2_INT:
             return _AssignValue(node, _EVAL2_INT[op](node.expr1, node.expr2))
-    elif types.is_real(node.x_type):
+    elif type_corpus.is_real(node.x_type):
         if op in _EVAL2_UINT:
             return _AssignValue(node, _EVAL2_UINT[op](node.expr1, node.expr2))
     return False
@@ -237,11 +237,11 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
 
 def _EvalAuto(node: cwast.ValAuto) -> bool:
     if isinstance(node.x_type, cwast.TypeBase):
-        if types.is_bool(node.x_type):
+        if type_corpus.is_bool(node.x_type):
             return _AssignValue(node, False)
-        elif types.is_int(node.x_type):
+        elif type_corpus.is_int(node.x_type):
             return _AssignValue(node, 0)
-        elif types.is_real(node.x_type):
+        elif type_corpus.is_real(node.x_type):
             return _AssignValue(node, 0.0)
     elif isinstance(node.x_type, cwast.DefRec):
         return _AssignValue(node, _EvalValRec(node.x_type, [], node.x_srcloc))
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
-    type_corpus = types.TypeCorpus(
+    tc = type_corpus.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
-    typify.DecorateASTWithTypes(mod_topo_order, type_corpus)
+    typify.DecorateASTWithTypes(mod_topo_order, tc)
     DecorateASTWithPartialEvaluation(mod_topo_order)

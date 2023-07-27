@@ -9,7 +9,6 @@ from typing import List, Dict, Tuple, Set, Optional, Union, Any
 logger = logging.getLogger(__name__)
 
 
-CanonType = str
 NO_TYPE = None
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
@@ -33,7 +32,7 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
-def get_contained_type(cstr) -> CanonType:
+def get_contained_type(cstr) -> cwast.CanonType:
     if isinstance(cstr, (cwast.TypeArray, cwast.TypeSlice)):
         return cstr.type
     else:
@@ -44,12 +43,12 @@ def get_array_dim(cstr: cwast.TypeArray) -> int:
     return cstr.size.x_value
 
 
-def get_pointee(cstr: CanonType) -> CanonType:
+def get_pointee(cstr: cwast.CanonType) -> cwast.CanonType:
     assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
     return cstr.split("(", 1)[1][:-1]
 
 
-def is_mutable(cstr: CanonType, actual_is_lvalue=False) -> bool:
+def is_mutable(cstr:  cwast.CanonType, actual_is_lvalue=False) -> bool:
     if isinstance(cstr, cwast.TypePtr):
         return cstr.mut
     elif isinstance(cstr, cwast.TypeSlice):
@@ -60,50 +59,50 @@ def is_mutable(cstr: CanonType, actual_is_lvalue=False) -> bool:
         assert False, f"unexpected node for mutable test: {cstr}"
 
 
-def is_bool(cstr: CanonType) -> bool:
+def is_bool(cstr:  cwast.CanonType) -> bool:
     if not isinstance(cstr, cwast.TypeBase):
         return False
     return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
 
 
-def is_void(cstr: CanonType) -> bool:
+def is_void(cstr: cwast.CanonType) -> bool:
     return isinstance(cstr, cwast.TypeBase) and cstr.base_type_kind is cwast.BASE_TYPE_KIND.VOID
 
 
-def is_void_or_wrapped_void(cstr: CanonType) -> bool:
+def is_void_or_wrapped_void(cstr: cwast.CanonType) -> bool:
     if isinstance(cstr, cwast.DefType):
         return is_void(cstr.type)
     return is_void(cstr)
 
 
-def is_int(cstr: CanonType) -> bool:
+def is_int(cstr: cwast.CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_INT
 
 
-def is_uint(cstr: CanonType) -> bool:
+def is_uint(cstr: cwast.CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_UINT
 
 
-def is_sint(cstr: CanonType) -> bool:
+def is_sint(cstr: cwast.CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_SINT
 
 
-def is_real(cstr: CanonType) -> bool:
+def is_real(cstr: cwast.CanonType) -> bool:
     assert isinstance(cstr, cwast.TypeBase)
     return cstr.base_type_kind in cwast.BASE_TYPE_KIND_REAL
 
 
-def is_number(cstr: CanonType) -> bool:
+def is_number(cstr: cwast. CanonType) -> bool:
     if not isinstance(cstr, cwast.TypeBase):
         return False
     kind = cstr.base_type_kind
     return kind in cwast.BASE_TYPE_KIND_REAL or kind in cwast.BASE_TYPE_KIND_INT
 
 
-def is_compatible(actual: CanonType, expected: CanonType, actual_is_lvalue=False) -> bool:
+def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType, actual_is_lvalue=False) -> bool:
     if actual == expected:
         return True
 
@@ -351,7 +350,7 @@ class TypeCorpus:
             # Note, DefRec is not handled here
             assert False, f"unknown type {ctype}"
 
-    def _insert(self, name: str, node, finalize=True) -> CanonType:
+    def _insert(self, name: str, node, finalize=True) -> cwast.CanonType:
         if name in self.corpus:
             return self.corpus[name]
         assert cwast.NF.TYPE_CORPUS in node.FLAGS, f"not a corpus node: {node}"
@@ -365,7 +364,7 @@ class TypeCorpus:
             self._register_types[node] = self.get_register_type(node)
         return node
 
-    def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> CanonType:
+    def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
         if kind == cwast.BASE_TYPE_KIND.UINT:
             kind = self.uint_kind
         elif kind == cwast.BASE_TYPE_KIND.SINT:
@@ -373,7 +372,7 @@ class TypeCorpus:
         name = kind.name.lower()
         return self._insert(name, cwast.TypeBase(kind))
 
-    def insert_ptr_type(self, mut: bool, cstr: CanonType) -> CanonType:
+    def insert_ptr_type(self, mut: bool, cstr: cwast.CanonType) -> cwast.CanonType:
         s = self.canon_name(cstr)
         if mut:
             name = f"ptr_mut<{s}>"
@@ -382,7 +381,7 @@ class TypeCorpus:
         size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
         return self._insert(name, cwast.TypePtr(cstr, mut=mut))
 
-    def insert_slice_type(self, mut: bool, cstr: CanonType) -> CanonType:
+    def insert_slice_type(self, mut: bool, cstr: cwast.CanonType) -> cwast.CanonType:
         s = self.canon_name(cstr)
         if mut:
             name = f"slice_mut<{s}>"
@@ -390,7 +389,7 @@ class TypeCorpus:
             name = f"slice<{s}>"
         return self._insert(name, cwast.TypeSlice(cstr, mut=mut))
 
-    def insert_array_type(self, len: int, cstr: CanonType) -> CanonType:
+    def insert_array_type(self, len: int, cstr: cwast.CanonType) -> cwast.CanonType:
         s = self.canon_name(cstr)
         name = f"array<{s},{len}>"
         dim = cwast.ValNum(str(len))
@@ -407,18 +406,18 @@ class TypeCorpus:
                 return x
         return None
 
-    def insert_rec_type(self, name: str, node: cwast.DefRec) -> CanonType:
+    def insert_rec_type(self, name: str, node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         name = f"rec<{name}>"
         return self._insert(name, node, finalize=False)
 
-    def insert_enum_type(self, name: str, node: cwast.DefEnum) -> CanonType:
+    def insert_enum_type(self, name: str, node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(node, cwast.DefEnum)
         name = f"enum<{name}>"
         return self._insert(name, node)
 
-    def insert_sum_type(self, components: List[CanonType]) -> CanonType:
+    def insert_sum_type(self, components: List[cwast.CanonType]) -> cwast.CanonType:
         assert len(components) > 1
         pieces = []
         for c in components:
@@ -432,14 +431,14 @@ class TypeCorpus:
         node = cwast.TypeSum(pieces)
         return self._insert(name, node)
 
-    def insert_fun_type(self, params: List[CanonType], result: CanonType) -> CanonType:
+    def insert_fun_type(self, params: List[cwast.CanonType], result: cwast.CanonType) -> cwast.CanonType:
         x = [self.canon_name(p) for p in params]
         x.append(self.canon_name(result))
         name = f"fun<{','.join(x)}>"
         p = [cwast.FunParam("_", x) for x in params]
         return self._insert(name, cwast.TypeFun(p, result))
 
-    def insert_wrapped_type(self, cstr: CanonType) -> CanonType:
+    def insert_wrapped_type(self, cstr: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         uid = self.wrapped_curr
         self.wrapped_curr += 1
@@ -447,7 +446,7 @@ class TypeCorpus:
         assert name not in self.corpus
         return self._insert(name, cwast.DefType("_", cstr, wrapped=True))
 
-    def insert_sum_complement(self, all: CanonType, part: CanonType) -> CanonType:
+    def insert_sum_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert isinstance(all, cwast.TypeSum)
         if isinstance(part, cwast.TypeSum):
             part_children = part.types
@@ -461,7 +460,7 @@ class TypeCorpus:
             return out[0]
         return self.insert_sum_type(out)
 
-    def num_type(self, num: str, cstr: Optional[CanonType]) -> CanonType:
+    def num_type(self, num: str, cstr: Optional[cwast.CanonType]) -> cwast.CanonType:
         for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
             if num.endswith(x):
                 return self.corpus[x]

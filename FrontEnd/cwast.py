@@ -641,6 +641,15 @@ def NodeCommon(cls):
                 cls.FIELDS.append((field, nfd))
     return cls
 
+############################################################
+# Typing
+############################################################
+
+@dataclasses.dataclass()
+class CanonType:
+    
+    node: Any
+    name: str
 
 ############################################################
 # Emphemeral

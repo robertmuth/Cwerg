@@ -17,7 +17,7 @@ from FrontEnd import canonicalize_large_args
 from FrontEnd import canonicalize_slice
 from FrontEnd import canonicalize
 from FrontEnd import symbolize
-from FrontEnd import types
+from FrontEnd import type_corpus
 from FrontEnd import cwast
 from FrontEnd import typify
 from FrontEnd import eval
@@ -47,18 +47,18 @@ class STORAGE_KIND(enum.Enum):
     DATA = enum.auto()
 
 
-def IsSingleRegType(ctype: str, tc: types.TypeCorpus):
+def IsSingleRegType(ctype: str, tc: type_corpus.TypeCorpus):
     rtype = tc.register_types(ctype)
     return rtype is not None and len(rtype) == 1
 
 
-def _IsDefVarOnStack(node: cwast.DefVar, tc: types.TypeCorpus) -> bool:
+def _IsDefVarOnStack(node: cwast.DefVar, tc: type_corpus.TypeCorpus) -> bool:
     if node.ref:
         return True
     return not IsSingleRegType(node.type_or_auto.x_type, tc)
 
 
-def _StorageForId(node: cwast.Id, tc: types.TypeCorpus) -> STORAGE_KIND:
+def _StorageForId(node: cwast.Id, tc: type_corpus.TypeCorpus) -> STORAGE_KIND:
     def_node = node.x_symbol
     if isinstance(def_node, cwast.DefGlobal):
         return STORAGE_KIND.DATA
@@ -91,13 +91,13 @@ def _InitDataForBaseType(x_type, x_value) -> bytes:
     byte_width = x_type.x_size
     if x_value is None or isinstance(x_value, cwast.ValUndef):
         return ZEROS[byte_width]
-    elif types.is_uint(x_type):
+    elif type_corpus.is_uint(x_type):
         return x_value.to_bytes(byte_width, 'little')
-    elif types.is_sint(x_type):
+    elif type_corpus.is_sint(x_type):
         return x_value.to_bytes(byte_width, 'little', signed=True)
-    elif types.is_bool(x_type):
+    elif type_corpus.is_bool(x_type):
         return b"\1" if x_value else b"\0"
-    elif types.is_real(x_type):
+    elif type_corpus.is_real(x_type):
         fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
         return struct.pack(fmt, x_value)
     else:
@@ -108,32 +108,32 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def StringifyOneType(node: str, type_corpus: types.TypeCorpus):
-    t = type_corpus.register_types(node)
+def StringifyOneType(node: str, tc: type_corpus.TypeCorpus):
+    t = tc.register_types(node)
     assert len(t) == 1, f"bad type: {node}"
     return t[0]
 
 
-def _EmitFunctionHeader(fun: cwast.DefFun, type_corpus: types.TypeCorpus):
+def _EmitFunctionHeader(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     sig: cwast.TypeFun = fun.x_type
     ins = []
     for p in sig.params:
         #
-        ins += type_corpus.register_types(p.type)
+        ins += tc.register_types(p.type)
     result = ""
-    if not types.is_void(sig.result):
-        result = StringifyOneType(sig.result, type_corpus)
+    if not type_corpus.is_void(sig.result):
+        result = StringifyOneType(sig.result, tc)
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
 
-def _EmitFunctionProlog(fun: cwast.DefFun, type_corpus: types.TypeCorpus,
+def _EmitFunctionProlog(fun: cwast.DefFun, tc: type_corpus.TypeCorpus,
                         id_gen: identifier.IdGen):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
         # this uniquifies names
         p.name = id_gen.NewName(p.name)
-        reg_types = type_corpus.register_types(p.type.x_type)
+        reg_types = tc.register_types(p.type.x_type)
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
         else:
@@ -168,7 +168,7 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def OffsetScaleToOffset(offset_expr, scale: int, tc: types.TypeCorpus,
+def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
                         id_gen: identifier.IdGenIR) -> BaseOffset:
     if offset_expr.x_value is not None:
         return offset_expr.x_value * scale
@@ -185,7 +185,7 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: types.TypeCorpus,
         return scaled
 
 
-def _GetLValueAddressAsBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
+def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type = node.container.x_type
         assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
@@ -215,7 +215,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: types.TypeCorpus, id_gen: identifier
         assert False, f"unsupported node for lvalue {node}"
 
 
-def _GetLValueAddress(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
+def _GetLValueAddress(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
     bo = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
     if bo.offset == 0:
         return bo.base
@@ -250,7 +250,7 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 
-def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
         if not invert:
@@ -304,7 +304,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: types.TypeCorpus
         else:
             print(f"{TAB}bne {op} 0 {label_false}")
     elif isinstance(cond, cwast.Id):
-        assert types.is_bool(cond.x_type)
+        assert type_corpus.is_bool(cond.x_type)
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         if invert:
             print(f"{TAB}beq {cond.name} 0 {label_false}")
@@ -343,7 +343,7 @@ def _EmitExpr2(binary_expr_kind, res, res_type, op1, op2):
         assert False, f"unsupported expression {binary_expr_kind}"
 
 
-def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
+def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     if isinstance(node, cwast.ExprCall):
         sig = node.callee.x_type
         assert isinstance(sig, cwast.TypeFun)
@@ -355,7 +355,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
             print(f"{TAB}bsr {node.callee.x_symbol.name}")
         else:
             assert False
-        if types.is_void(sig.result):
+        if type_corpus.is_void(sig.result):
             return None
         else:
             res = id_gen.NewName("call")
@@ -432,7 +432,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
-        if types.is_void_or_wrapped_void(node.x_type):
+        if type_corpus.is_void_or_wrapped_void(node.x_type):
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
@@ -462,7 +462,7 @@ def EmitIRExpr(node, tc: types.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
 
 
-def EmitIRExprToMemory(node, dst: BaseOffset, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                          cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                          cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
@@ -527,7 +527,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, id_gen: ident
             curr += width
 
 
-def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
 
     def emit_recursively(offset, init):
         nonlocal dst, tc, id_gen
@@ -567,7 +567,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: types.TypeCorpus, id_gen
     emit_recursively(dst.offset, src_init)
 
 
-def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type = node.type_or_auto.x_type
         # This uniquifies names
@@ -600,7 +600,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
-            if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
+            if not type_corpus.is_void_or_wrapped_void(node.expr_ret.x_type):
                 if isinstance(result.dst, str):
                     out = EmitIRExpr(node.expr_ret, tc, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
@@ -610,7 +610,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: types.TypeCorpus, id_gen:
                 EmitIRExpr(node.expr_ret, tc, id_gen)
         else:
             out = EmitIRExpr(node.expr_ret, tc, id_gen)
-            if not types.is_void_or_wrapped_void(node.expr_ret.x_type):
+            if not type_corpus.is_void_or_wrapped_void(node.expr_ret.x_type):
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -680,14 +680,14 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
+def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
     def_type = node.type_or_auto.x_type
     print(
         f"\n.mem {node.name} {def_type.x_alignment} {'RW' if node.mut else 'RO'}")
 
     def _emit_recursively(node, cstr, offset: int) -> int:
         nonlocal tc
-        assert offset == types.align(offset, cstr.x_alignment)
+        assert offset == type_corpus.align(offset, cstr.x_alignment)
         if isinstance(node, cwast.ValUndef):
             return _EmitMem(_BYTE_UNDEF * cstr.x_size, f"{offset} undef={tc.canon_name(cstr)}")
 
@@ -769,12 +769,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: types.TypeCorpus) -> int:
                       node.type_or_auto.x_type, 0)
 
 
-def EmitIRDefFun(node, type_corpus: types.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if not node.extern:
-        _EmitFunctionHeader(node, type_corpus)
-        _EmitFunctionProlog(node, type_corpus, id_gen)
+        _EmitFunctionHeader(node, tc)
+        _EmitFunctionProlog(node, tc, id_gen)
         for c in node.body:
-            EmitIRStmt(c, None, type_corpus, id_gen)
+            EmitIRStmt(c, None, tc, id_gen)
 
 
 ELIMIMATED_NODES = set()
@@ -826,7 +826,7 @@ def main():
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
     logger.info("Typify the nodes")
-    tc: types.TypeCorpus = types.TypeCorpus(
+    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
 
@@ -924,7 +924,7 @@ def main():
             # add missing return statement
             if (isinstance(fun, cwast.DefFun) and
                 not fun.extern and
-                    types.is_void_or_wrapped_void(fun.x_type.result)):
+                    type_corpus.is_void_or_wrapped_void(fun.x_type.result)):
                 if fun.body:
                     last = fun.body[-1]
                     if isinstance(last, cwast.StmtReturn):

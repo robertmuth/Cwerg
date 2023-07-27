@@ -15,7 +15,7 @@ from FrontEnd import cwast
 from FrontEnd import parse
 from FrontEnd import symbolize
 from FrontEnd import typify
-from FrontEnd import types
+from FrontEnd import type_corpus
 from FrontEnd import eval
 
 
@@ -251,7 +251,7 @@ def CircledLetterEntity(c):
     return f"&#{0x24b6 + offset};"
 
 
-def DecorateNode(node_name, node, tc: types.TypeCorpus):
+def DecorateNode(node_name, node, tc: type_corpus.TypeCorpus):
     problems = []
     if node.x_srcloc is None:
         problems.append("missing srcloc")
@@ -871,7 +871,7 @@ if __name__ == "__main__":
         symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
         for mod in mod_topo_order:
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        tc = types.TypeCorpus(
+        tc = type_corpus.TypeCorpus(
             cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
         typify.DecorateASTWithTypes(mod_topo_order, tc)
         eval.DecorateASTWithPartialEvaluation(mod_topo_order)

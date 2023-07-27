@@ -20,7 +20,7 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
-from FrontEnd import types
+from FrontEnd import type_corpus
 from FrontEnd import typify
 
 ############################################################
@@ -34,7 +34,7 @@ def MakeTypeVoid(tc, srcloc):
                           x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
 
 
-def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
+def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
     out = {}
     for fun_sig in list(tc.corpus.values()):
         if not isinstance(fun_sig, cwast.TypeFun):
@@ -48,7 +48,7 @@ def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
                 change = True
         result = fun_sig.result
         reg_type = tc.register_types(result)
-        if not types.is_void(result) and reg_type is None or len(reg_type) > 1:
+        if not type_corpus.is_void(result) and reg_type is None or len(reg_type) > 1:
             change = True
             params.append(tc.insert_ptr_type(True, result))
             result = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
@@ -58,12 +58,12 @@ def FindFunSigsWithLargeArgs(tc: types.TypeCorpus) -> Dict[Any, Any]:
 
 
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun,
-                                       tc: types.TypeCorpus, id_gen: identifier.IdGen):
+                                       tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     old_sig: cwast.TypeFun = fun.x_type
     typify.UpdateNodeType(tc, fun, new_sig)
     result_changes = old_sig.result != new_sig.result
     if result_changes:
-        assert types.is_void(new_sig.result)
+        assert type_corpus.is_void(new_sig.result)
         assert len(new_sig.params) == 1 + len(old_sig.params)
         result_type = cwast.TypePtr(
             fun.result, mut=True, x_srcloc=fun.x_srcloc, x_type=new_sig.params[-1].type)
@@ -84,7 +84,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.TypeFun
 
 
 def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
-                               tc: types.TypeCorpus, id_gen: identifier.IdGen):
+                               tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
         fun, new_sig, tc, id_gen)
 
@@ -117,7 +117,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.TypeFun,
 
 
 def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
-                               tc: types.TypeCorpus, id_gen: identifier.IdGen):
+                               tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
 
     def replacer(call, field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
