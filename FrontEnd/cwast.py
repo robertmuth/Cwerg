@@ -310,7 +310,7 @@ NODES_PARAMS_MACRO = ("MacroParam")
 NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
 
 NODES_BODY = ("StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
-              "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke", 
+              "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke",
               "StmtAssignment", "StmtTrap")
 NODES_BODY_T = Union[NODES_BODY]
 
@@ -433,7 +433,8 @@ ALL_FIELDS = [
     NFD(NFK.LIST, "types", "union types", NODES_TYPES),
     NFD(NFK.LIST, "inits_array",
         "array initializers and/or comments", NODES_INITS_ARRAY),
-    NFD(NFK.LIST, "inits_field", "record initializers and/or comments", NODES_INITS_REC),
+    NFD(NFK.LIST, "inits_field",
+        "record initializers and/or comments", NODES_INITS_REC),
     #
     NFD(NFK.LIST, "body_mod",
         "toplevel module definitions and/or comments", NODES_BODY_MOD),
@@ -555,9 +556,7 @@ X_FIELDS = {
     "x_field": NF.FIELD_ANNOTATED,  # set by typify.py
     #
     "x_type": NF.TYPE_ANNOTATED,   # set by typify.py
-    "x_alignment": NF.TYPE_CORPUS,  # set by typify.py
-    "x_size": NF.TYPE_CORPUS,  # set by typify.py
-    "x_offset": NF.TYPE_CORPUS,  # set by typify.py
+    "x_offset": NF.TYPE_CORPUS,  # set by typify.py - oddball, should be moved into types
     #
     "x_value": NF.VALUE_ANNOTATED,  # set by eval.py
 }
@@ -645,15 +644,135 @@ def NodeCommon(cls):
 # Typing
 ############################################################
 
+
 @dataclasses.dataclass()
 class CanonType:
-    
     node: Any
     name: str
+    #
+    mut: bool = False
+    dim: int = -1
+    base_type_kind: BASE_TYPE_KIND = BASE_TYPE_KIND.INVALID
+    children: List["CanonType"] = dataclasses.field(default_factory=list)
+    #
+    ast_node: Optional[Any] = None
+    #
+    alignment: int = -1
+    size: int = -1
+    register_types: List[Any] = dataclasses.field(default_factory=list)
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def is_bool(self) -> bool:
+        return self.base_type_kind is BASE_TYPE_KIND.BOOL
+
+    def is_void(self) -> bool:
+        return self.base_type_kind is BASE_TYPE_KIND.VOID
+
+    def is_int(self) -> bool:
+        return self.base_type_kind in BASE_TYPE_KIND_INT
+
+    def is_uint(self) -> bool:
+        return self.base_type_kind in BASE_TYPE_KIND_UINT
+
+    def is_sint(self) -> bool:
+        return self.base_type_kind in BASE_TYPE_KIND_SINT
+
+    def is_real(self) -> bool:
+        return self.base_type_kind in BASE_TYPE_KIND_REAL
+
+    def is_number(self) -> bool:
+        return self.base_type_kind in BASE_TYPE_KIND_REAL or self.base_type_kind in BASE_TYPE_KIND_INT
+
+    def is_wrapped(self) -> bool:
+        return self.node is DefType
+    
+    def underlying_wrapped_type(self) -> "CanonType":
+        assert self.is_wrapped()
+        return self.children[0]
+    
+    def is_fun(self) -> bool:
+        return self.node is TypeFun
+
+    def is_rec(self) -> bool:
+        return self.node is DefRec
+
+    def is_union(self) -> bool:
+        return self.node is DefUnion
+
+    def parameter_types(self) -> List["CanonType"]:
+        assert self.is_fun()
+        return self.children[:-1]
+
+    def result_type(self) -> "CanonType":
+        assert self.is_fun()
+        return self.children[-1]
+
+    def is_pointer(self) -> bool:
+        return self.node is TypePtr
+
+    def is_slice(self) -> bool:
+        return self.node is TypeSlice
+
+    def is_enum(self) -> bool:
+        return self.node is DefEnum
+
+    def is_base_type(self) -> bool:
+        return self.node is TypeBase
+
+    def is_sum(self) -> bool:
+        return self.node is TypeSum
+
+    def sum_types(self) -> List["CanonType"]:
+        assert self.is_sum()
+        return self.children
+
+    def is_array(self) -> bool:
+        return self.node is TypeArray
+
+    def is_void_or_wrapped_void(self) -> bool:
+        if self.node is DefType:
+            return self.children[0].is_void()
+        return self.is_void()
+
+    def underlying_pointer_type(self) -> "CanonType":
+        assert self.is_pointer()
+        return self.children[0]
+
+    def underlying_slice_type(self) -> "CanonType":
+        assert self.is_slice()
+        return self.children[0]
+
+    def underlying_array_type(self) -> "CanonType":
+        assert self.is_array()
+        return self.children[0]
+
+    def is_array_or_slice(self) -> bool:
+        return self.node is TypeArray or self.node is TypeSlice
+
+    def underlying_array_or_slice_type(self) -> "CanonType":
+        assert self.is_array() or self.is_slice()
+        return self.children[0]
+
+    def contained_type(self) -> "CanonType":
+        if self.node is TypeArray or self.node is TypeSlice:
+            return self.children[0]
+        else:
+            assert False, f"unexpected type: {self.name}"
+
+    def array_dim(self):
+        assert self.is_array()
+        return self.dim
+
+    def is_mutable(self) -> bool:
+        return self.mut
 
 ############################################################
 # Emphemeral
 ############################################################
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class EphemeralList:
@@ -804,8 +923,6 @@ class TypeBase:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)} {self.base_type_kind.name}"
@@ -826,8 +943,6 @@ class TypePtr:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -852,8 +967,6 @@ class TypeSlice:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -875,8 +988,6 @@ class TypeArray:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)} ({self.type}) {self.size}"
@@ -898,8 +1009,6 @@ class TypeFun:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         t = [str(t) for t in self.params]
@@ -922,9 +1031,6 @@ class TypeSum:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_size: int = -1
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         t = [str(t) for t in self.types]
@@ -1207,6 +1313,8 @@ class ValUnion:
 ############################################################
 # ExprNode
 ############################################################
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class ExprDeref:
@@ -1977,11 +2085,10 @@ class DefRec:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+
 
 @NodeCommon
 @dataclasses.dataclass()
@@ -1999,12 +2106,11 @@ class DefUnion:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
-    
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class EnumVal:
@@ -2046,8 +2152,6 @@ class DefEnum:
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
@@ -2074,8 +2178,6 @@ class DefType:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
-    x_alignment: int = -1
-    x_size: int = -1
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"

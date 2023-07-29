@@ -50,7 +50,7 @@ def _ShouldBeBoolExpanded(node, field):
     # * has a x_type
     return field in (
         "args", "expr_rhs", "initial_or_undef_or_auto", "value",
-        "value_or_undef") and type_corpus.is_bool(node.x_type)
+        "value_or_undef") and node.x_type.is_bool()
 
 
 def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.TypeCorpus):
@@ -189,10 +189,13 @@ def ReplaceConstExpr(node):
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)):
             return
 
-        if (isinstance(node.x_type, cwast.TypeBase) and
-                type_corpus.is_int(node.x_type) and not isinstance(node, cwast.ValNum)):
+        if node.x_type.is_int() and not isinstance(node, cwast.ValNum):
             return cwast.ValNum(str(node.x_value),
                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+        if node.x_type.is_bool() and not isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
+            # assert False, f"unimplemented opt {node}"
+            # TODO
+            pass
         return None
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -228,12 +231,13 @@ def OptimizeKnownConditionals(node):
     cwast.VisitAstRecursivelyPost(node, replacer)
 
 
-def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type, tc: type_corpus.TypeCorpus, srcloc):
-    container_type = node.container.x_type
+def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus, srcloc):
+    container_type: cwast.CanonType = node.container.x_type
     bound = None
-    if isinstance(container_type, cwast.TypeArray):
-        bound = container_type.size.x_value
-    cstr_ptr = tc.insert_ptr_type(is_lhs, container_type.type)
+    if container_type.is_array():
+        bound = container_type.dim
+    cstr_ptr = tc.insert_ptr_type(
+        is_lhs, container_type.underlying_array_or_slice_type())
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(

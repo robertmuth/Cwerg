@@ -21,112 +21,72 @@ def is_mutable_def(node):
     return False
 
 
-def is_ref_def(node):
-    if isinstance(node, cwast.Id):
-        s = node.x_symbol
-        return isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar) and s.ref
-    return False
-
-
 def align(x, a):
     return (x + a - 1) // a * a
 
 
-def get_contained_type(cstr) -> cwast.CanonType:
-    if isinstance(cstr, (cwast.TypeArray, cwast.TypeSlice)):
-        return cstr.type
-    else:
-        assert False, f"unexpected type: {cstr}"
-
-
-def get_array_dim(cstr: cwast.TypeArray) -> int:
-    return cstr.size.x_value
-
-
-def get_pointee(cstr: cwast.CanonType) -> cwast.CanonType:
-    assert cstr.startswith("ptr"), f"expected pointer got {cstr}"
-    return cstr.split("(", 1)[1][:-1]
-
-
 def is_mutable(cstr:  cwast.CanonType, actual_is_lvalue=False) -> bool:
-    if isinstance(cstr, cwast.TypePtr):
-        return cstr.mut
-    elif isinstance(cstr, cwast.TypeSlice):
-        return cstr.mut
-    elif isinstance(cstr, cwast.TypeArray):
+    if cstr.is_pointer() or cstr.is_slice():
+        return cstr.is_mutable()
+    elif cstr.is_array():
         return actual_is_lvalue
     else:
         assert False, f"unexpected node for mutable test: {cstr}"
-
-
-def is_bool(cstr:  cwast.CanonType) -> bool:
-    if not isinstance(cstr, cwast.TypeBase):
-        return False
-    return cstr.base_type_kind is cwast.BASE_TYPE_KIND.BOOL
-
-
-def is_void(cstr: cwast.CanonType) -> bool:
-    return isinstance(cstr, cwast.TypeBase) and cstr.base_type_kind is cwast.BASE_TYPE_KIND.VOID
-
-
-def is_void_or_wrapped_void(cstr: cwast.CanonType) -> bool:
-    if isinstance(cstr, cwast.DefType):
-        return is_void(cstr.type)
-    return is_void(cstr)
-
-
-def is_int(cstr: cwast.CanonType) -> bool:
-    assert isinstance(cstr, cwast.TypeBase)
-    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_INT
-
-
-def is_uint(cstr: cwast.CanonType) -> bool:
-    assert isinstance(cstr, cwast.TypeBase)
-    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_UINT
-
-
-def is_sint(cstr: cwast.CanonType) -> bool:
-    assert isinstance(cstr, cwast.TypeBase)
-    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_SINT
-
-
-def is_real(cstr: cwast.CanonType) -> bool:
-    assert isinstance(cstr, cwast.TypeBase)
-    return cstr.base_type_kind in cwast.BASE_TYPE_KIND_REAL
-
-
-def is_number(cstr: cwast. CanonType) -> bool:
-    if not isinstance(cstr, cwast.TypeBase):
-        return False
-    kind = cstr.base_type_kind
-    return kind in cwast.BASE_TYPE_KIND_REAL or kind in cwast.BASE_TYPE_KIND_INT
 
 
 def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType, actual_is_lvalue=False) -> bool:
     if actual == expected:
         return True
 
-    if isinstance(actual, cwast.TypeSlice) and isinstance(expected, cwast.TypeSlice):
-        if actual.type == expected.type and actual.mut or not expected.mut:
+    if actual.is_slice() and expected.is_slice():
+        if (actual.underlying_slice_type() == expected.underlying_slice_type() and
+                actual.is_mutable() or not expected.is_mutable()):
             return True
 
-    if isinstance(actual, cwast.TypeArray) and isinstance(expected, cwast.TypeSlice):
+    if actual.is_array() and expected.is_slice():
         # TODO: check "ref"
-        return actual.type == expected.type and (not expected.mut or actual_is_lvalue)
+        return actual.underlying_array_type() == expected.underlying_slice_type() and (not expected.is_mutable() or actual_is_lvalue)
 
-    if isinstance(actual, cwast.TypePtr) and isinstance(expected, cwast.TypePtr):
+    if actual.is_pointer() and expected.is_pointer():
         # TODO: check "ref"
-        return actual.type == expected.type and (not expected.mut)
+        return actual.underlying_pointer_type() == expected.underlying_pointer_type() and (not expected.is_mutable())
 
-    if not isinstance(expected, cwast.TypeSum):
+    if not expected.is_sum():
         return False
 
-    expected_children = set(expected.types)
-
-    if isinstance(actual, cwast.TypeSum):
-        return set(actual.types).issubset(expected_children)
+    expected_children = set([x.name for x in expected.sum_types()])
+    if actual.is_sum():
+        return set([x.name for x in actual.sum_types()]).issubset(expected_children)
     else:
-        return actual in expected_children
+        return actual.name in expected_children
+
+
+def is_proper_lhs(node) -> bool:
+    # TODO: this needs to be rethought and cleaned up
+    # x =  (x must be mutable definition)
+    # ^x = (x must have type mutable pointer)
+    #
+    if is_mutable_def(node):
+        return True
+    elif isinstance(node, cwast.ExprDeref):
+        return node.expr.x_type.is_mutable()
+        # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
+    elif isinstance(node, cwast.ExprField):
+        return is_proper_lhs(node.container)
+    elif isinstance(node, cwast.ExprIndex):
+        return is_proper_lhs(node.container) or is_mutable(node.container.x_type)
+    else:
+        return False
+
+
+def is_mutable_container(node) -> bool:
+    ct: cwast.CanonType = node.x_type
+    if ct.is_slice():
+        return ct.mut
+    elif ct.is_array():
+        return is_proper_lhs(node)
+    else:
+        assert False
 
 
 _BASE_TYPE_MAP = {
@@ -151,26 +111,26 @@ _BASE_TYPE_MAP = {
 }
 
 
-def _get_size_and_offset_for_sum_type(node: cwast.TypeSum, ptr_size):
+def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, ptr_size):
+    assert tc.node is cwast.TypeSum
     num_void = 0
     num_pointer = 0
     num_other = 0
     max_size = 0
     max_alignment = 1
-    for t in node.types:
-        if isinstance(t, cwast.DefType):
-            assert t.wrapped
-            t = t.type
-        if is_void(t):
+    for t in tc.sum_types():
+        if t.is_wrapped():
+            t = t.children[0]
+        if t.is_void():
             num_void += 1
-        elif isinstance(t, cwast.TypePtr):
+        elif t.is_pointer():
             num_pointer += 1
             max_size = max(max_size, ptr_size)
             max_alignment = max(max_alignment, ptr_size)
         else:
             num_other += 1
-            max_size = max(max_size, t.x_size)
-            max_alignment = max(max_alignment, t.x_alignment)
+            max_size = max(max_size, t.size)
+            max_alignment = max(max_alignment, t.alignment)
     if num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
@@ -222,34 +182,25 @@ class TypeCorpus:
         # maps to ast
         self.topo_order = []
         self.corpus: Dict[str, Any] = {}  # name to canonical type
-        self._canon_name: Dict[Any, str] = {}   # canonical type to name
-        # canonical type to Cwerg IR registers
-        self._register_types: Dict[int, List[Any]] = {}
 
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT"):
                 continue
-            t = self.insert_base_type(kind)
+            self.insert_base_type(kind)
 
-    def canon_name(self, node):
-        return self._canon_name.get(node, "@@ BAD CANONICAL TYPE @@")
-
-    def register_types(self, node):
-        return self._register_types[node]
-
-    def _get_register_type_for_sum_type(self, node: cwast.TypeSum):
+    def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
+        assert tc.node is cwast.TypeSum
         num_void = 0
         scalars = []
         largest_by_kind = {}
         largest = 0
-        for t in node.types:
-            if isinstance(t, cwast.DefType):
-                assert t.wrapped
-                t = t.type
-            if is_void(t):
+        for t in tc.sum_types():
+            if t.is_wrapped():
+                t = t.children[0]
+            if t.is_void():
                 num_void += 1
                 continue
-            regs = self._register_types[t]
+            regs = t.register_types
             if regs is None or len(regs) > 1:
                 return None
             scalars.append(t)
@@ -258,24 +209,24 @@ class TypeCorpus:
             largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
             largest = max(largest, size)
         # special hack for pointer + error-code
-        if len(scalars) == 1 and isinstance(t, cwast.TypePtr):
-            return self._register_types[t]
+        if len(scalars) == 1 and t.is_pointer():
+            return t.register_types
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
         return [f"U{largest}", TYPE_ID_REG_TYPE]
 
-    def get_register_type(self, ctype) -> Optional[List[str]]:
+    def get_register_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
         """As long as a type can fit into no more than two regs it will have
         register representation which is also how it will be past in function calls.
         """
-        if isinstance(ctype, cwast.TypeBase):
-            return _BASE_TYPE_MAP.get(ctype.base_type_kind)
-        elif isinstance(ctype, cwast.TypePtr):
+        if tc.node is cwast.TypeBase:
+            return _BASE_TYPE_MAP.get(tc.base_type_kind)
+        elif tc.node is cwast.TypePtr:
             return [self._addr_reg_type]
-        elif isinstance(ctype, cwast.TypeSlice):
+        elif tc.node is cwast.TypeSlice:
             return [self._addr_reg_type] + _BASE_TYPE_MAP[self.uint_kind]
-        elif isinstance(ctype, cwast.DefRec):
-            fields = [f for f in ctype.fields if isinstance(f, cwast.RecField)]
+        elif tc.node is cwast.DefRec:
+            fields = [f for f in tc.ast_node.fields]
             if len(fields) == 1:
                 return self.get_register_type(fields[0].type.x_type)
             elif len(fields) == 2:
@@ -285,182 +236,172 @@ class TypeCorpus:
                     return a + b
             else:
                 return None
-        elif isinstance(ctype, cwast.TypeArray):
+        elif tc.node is cwast.TypeArray:
             return None
-        elif isinstance(ctype, cwast.DefEnum):
-            return _BASE_TYPE_MAP[ctype.base_type_kind]
-        elif isinstance(ctype, cwast.TypeSum):
-            return self._get_register_type_for_sum_type(ctype)
-        elif isinstance(ctype, cwast.DefType):
-            assert ctype.wrapped
-            return self.get_register_type(ctype.type)
-        elif isinstance(ctype, cwast.TypeFun):
+        elif tc.node is cwast.DefEnum:
+            return _BASE_TYPE_MAP[tc.base_type_kind]
+        elif tc.node is cwast.TypeSum:
+            return self._get_register_type_for_sum_type(tc)
+        elif tc.node is cwast.DefType:
+            return self.get_register_type(tc.children[0])
+        elif tc.node is cwast.TypeFun:
             return [self._code_reg_type]
         else:
-            assert False, f"unknown type {ctype}"
+            assert False, f"unknown type {tc.name}"
 
-    def get_size_and_alignment_and_set_offsets_for_rec_type(self, node: cwast.DefRec):
+    def _get_size_and_alignment_and_set_offsets_for_rec_type(self, tc: cwast.CanonType):
         size = 0
         alignment = 1
-        for f in node.fields:
-            if not isinstance(f, cwast.RecField):
-                continue
-            t = f.type.x_type
-            size = align(size, t.x_alignment)
-            f.x_offset = size
-            size += t.x_size
-            alignment = max(alignment, t.x_alignment)
+        assert isinstance(tc.ast_node, cwast.DefRec)
+        def_rec: cwast.DefRec = tc.ast_node
+        for rf in def_rec.fields:
+            assert isinstance(rf, cwast.RecField)
+            field_ct: cwast.CanonType = rf.type.x_type
+            size = align(size, field_ct.alignment)
+            rf.x_offset = size
+            size += field_ct.size
+            alignment = max(alignment, field_ct.alignment)
         return size, alignment
 
-    def finalize_rec_type(self, ctype: cwast.DefRec):
-        ctype.x_size, ctype.x_alignment = self.get_size_and_alignment_and_set_offsets_for_rec_type(
-            ctype)
-        self._register_types[ctype] = self.get_register_type(ctype)
+    def finalize_rec_type(self, tc: cwast.CanonType):
+        tc.size, tc.alignment = self._get_size_and_alignment_and_set_offsets_for_rec_type(
+            tc)
+        tc.register_types = self.get_register_type(tc)
 
-    def get_size_and_alignment(self, ctype):
-        if isinstance(ctype, cwast.TypeBase):
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[ctype.base_type_kind]
+    def get_size_and_alignment(self, tc: cwast.CanonType):
+        if tc.node is cwast.TypeBase:
+            size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
             return size, size
-        elif isinstance(ctype, cwast.TypePtr):
+        elif tc.node is cwast.TypePtr:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
             return size, size
-        elif isinstance(ctype, cwast.TypeSlice):
+        elif tc.node is cwast.TypeSlice:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
             return size * 2, size
-        elif isinstance(ctype, cwast.TypeArray):
-            alignment = ctype.type.x_alignment
-            size = ctype.type.x_size
+        elif tc.node is cwast.TypeArray:
+            alignment = tc.children[0].alignment
+            size = tc.children[0].size
             # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
             size = align(size, alignment)
-            len = ctype.size.x_value
-            return len * size, alignment
-        elif isinstance(ctype, cwast.TypeSum):
+            return size * tc.dim, alignment
+        elif tc.node is cwast.TypeSum:
             return _get_size_and_offset_for_sum_type(
-                ctype, cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind])
-        elif isinstance(ctype, cwast.DefEnum):
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[ctype.base_type_kind]
+                tc, cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind])
+        elif tc.node is cwast.DefEnum:
+            size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
             return size, size
-        elif isinstance(ctype, cwast.TypeFun):
+        elif tc.node is cwast.TypeFun:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
             return size, size
-        elif isinstance(ctype, cwast.DefType):
-            assert ctype.wrapped
-            return self.get_size_and_alignment(ctype.type)
+        elif tc.node is cwast.DefType:
+            return self.get_size_and_alignment(tc.children[0])
         else:
             # Note, DefRec is not handled here
-            assert False, f"unknown type {ctype}"
+            assert False, f"unknown type {tc}"
 
-    def _insert(self, name: str, node, finalize=True) -> cwast.CanonType:
-        if name in self.corpus:
-            return self.corpus[name]
-        assert cwast.NF.TYPE_CORPUS in node.FLAGS, f"not a corpus node: {node}"
-        self.corpus[name] = node
-        self.topo_order.append(node)
-        assert node not in self._canon_name
-        assert STRINGIFIEDTYPE_RE.fullmatch(name), f"bad type name [{name}]"
-        self._canon_name[node] = name
+    def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
+        if ct.name in self.corpus:
+            return self.corpus[ct.name]
+        self.corpus[ct.name] = ct
+        self.topo_order.append(ct)
+        assert STRINGIFIEDTYPE_RE.fullmatch(
+            ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            node.x_size, node.x_alignment = self.get_size_and_alignment(node)
-            self._register_types[node] = self.get_register_type(node)
-        return node
+            ct.size, ct.alignment = self.get_size_and_alignment(ct)
+            ct.register_types = self.get_register_type(ct)
+        return ct
 
     def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
         if kind == cwast.BASE_TYPE_KIND.UINT:
             kind = self.uint_kind
         elif kind == cwast.BASE_TYPE_KIND.SINT:
             kind = self.sint_kind
-        name = kind.name.lower()
-        return self._insert(name, cwast.TypeBase(kind))
+        return self._insert(cwast.CanonType(cwast.TypeBase, kind.name.lower(), base_type_kind=kind))
 
-    def insert_ptr_type(self, mut: bool, cstr: cwast.CanonType) -> cwast.CanonType:
-        s = self.canon_name(cstr)
+    def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         if mut:
-            name = f"ptr_mut<{s}>"
+            name = f"ptr_mut<{ct.name}>"
         else:
-            name = f"ptr<{s}>"
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
-        return self._insert(name, cwast.TypePtr(cstr, mut=mut))
+            name = f"ptr<{ct.name}>"
+        return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct]))
 
-    def insert_slice_type(self, mut: bool, cstr: cwast.CanonType) -> cwast.CanonType:
-        s = self.canon_name(cstr)
+    def insert_slice_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         if mut:
-            name = f"slice_mut<{s}>"
+            name = f"slice_mut<{ct.name}>"
         else:
-            name = f"slice<{s}>"
-        return self._insert(name, cwast.TypeSlice(cstr, mut=mut))
+            name = f"slice<{ct.name}>"
+        return self._insert(cwast.CanonType(cwast.TypeSlice, name, mut=mut, children=[ct]))
 
-    def insert_array_type(self, len: int, cstr: cwast.CanonType) -> cwast.CanonType:
-        s = self.canon_name(cstr)
-        name = f"array<{s},{len}>"
-        dim = cwast.ValNum(str(len))
-        dim.x_value = len
-        return self._insert(name, cwast.TypeArray(dim, cstr))
+    def insert_array_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
+        name = f"array<{ct.name},{dim}>"
+        return self._insert(cwast.CanonType(cwast.TypeArray, name, dim=dim, children=[ct]))
 
-    def lookup_rec_field(self, rec: cwast.DefRec, field_name) -> cwast.RecField:
+    def lookup_rec_field(self, tc: cwast.CanonType, field_name) -> cwast.RecField:
         """Oddball since the node returned is NOT inside corpus
 
         See implementation of insert_rec_type
         """
-        for x in rec.fields:
+        assert tc.node is cwast.DefRec
+        assert isinstance(tc.ast_node, cwast.DefRec)
+        for x in tc.ast_node.fields:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         return None
 
-    def insert_rec_type(self, name: str, node: cwast.DefRec) -> cwast.CanonType:
+    def insert_rec_type(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
+        assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
-        return self._insert(name, node, finalize=False)
+        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
-    def insert_enum_type(self, name: str, node: cwast.DefEnum) -> cwast.CanonType:
+    def insert_enum_type(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
-        assert isinstance(node, cwast.DefEnum)
+        assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
-        return self._insert(name, node)
+        return self._insert(cwast.CanonType(cwast.DefEnum, name, base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
     def insert_sum_type(self, components: List[cwast.CanonType]) -> cwast.CanonType:
         assert len(components) > 1
         pieces = []
         for c in components:
-            if isinstance(c, cwast.TypeSum):
-                for cc in c.types:
+            if c.node is cwast.TypeSum:
+                for cc in c.children:
                     pieces.append(cc)
             else:
                 pieces.append(c)
-        pp = sorted(self.canon_name(p) for p in pieces)
+        pp = sorted(p.name for p in pieces)
         name = f"sum<{','.join(pp)}>"
-        node = cwast.TypeSum(pieces)
-        return self._insert(name, node)
+        return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces))
 
     def insert_fun_type(self, params: List[cwast.CanonType], result: cwast.CanonType) -> cwast.CanonType:
-        x = [self.canon_name(p) for p in params]
-        x.append(self.canon_name(result))
+        x = [p.name for p in params]
+        x.append(result.name)
         name = f"fun<{','.join(x)}>"
-        p = [cwast.FunParam("_", x) for x in params]
-        return self._insert(name, cwast.TypeFun(p, result))
+        return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
 
-    def insert_wrapped_type(self, cstr: cwast.CanonType) -> cwast.CanonType:
+    def insert_wrapped_type(self, tc: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         uid = self.wrapped_curr
         self.wrapped_curr += 1
-        name = f"wrapped<{uid},{self.canon_name(cstr)}>"
+        name = f"wrapped<{uid},{tc.name}>"
         assert name not in self.corpus
-        return self._insert(name, cwast.DefType("_", cstr, wrapped=True))
+        return self._insert(cwast.CanonType(cwast.DefType, name, children=[tc]))
 
     def insert_sum_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
-        assert isinstance(all, cwast.TypeSum)
-        if isinstance(part, cwast.TypeSum):
-            part_children = part.types
+        assert all.node is cwast.TypeSum, f"expect sum type: {all.name}"
+        if part.node is cwast.TypeSum:
+            part_children = part.children
         else:
             part_children = [part]
         out = []
-        for x in all.types:
+        for x in all.children:
             if x not in part_children:
                 out.append(x)
         if len(out) == 1:
             return out[0]
         return self.insert_sum_type(out)
 
-    def num_type(self, num: str, cstr: Optional[cwast.CanonType]) -> cwast.CanonType:
+    def get_type_for_num_literal(self, num: str, default: Optional[cwast.CanonType]) -> cwast.CanonType:
         for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
             if num.endswith(x):
                 return self.corpus[x]
@@ -468,7 +409,7 @@ class TypeCorpus:
             return self.corpus[self.sint_kind.name.lower()]
         elif num.endswith("uint"):
             return self.corpus[self.uint_kind.name.lower()]
-        elif cstr:
-            return cstr
+        elif default is not None:
+            return default
         else:
             return NO_TYPE

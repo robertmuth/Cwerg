@@ -261,7 +261,7 @@ def DecorateNode(node_name, node, tc: type_corpus.TypeCorpus):
     out = ["<span class=name>", node_name, "</span>"]
     if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         out += ["<span class=type title='",
-                tc.canon_name(node.x_type), "'>", CircledLetterEntity("T"), "</span>"]
+                node.x_type.name, "'>", CircledLetterEntity("T"), "</span>"]
     if cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
         out += ["<span class=value title='",
                 str(node.x_value), "'>", CircledLetterEntity("V"), "</span>"]
@@ -296,7 +296,11 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
                 line.append(" " + field)
-        elif IsFieldWithDefaultValue(field, val):
+        elif field_kind is cwast.NFK.ATTR_STR:
+            if val:
+                pass
+                # line.append(" " + field)
+        elif cwast.IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
             line.append(

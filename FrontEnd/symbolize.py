@@ -354,7 +354,7 @@ def VerifyASTSymbolsRecursively(node):
             def_node = node.x_symbol
             is_type_node = field in ("type", "types", "result", "type_or_auto")
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)):
-                cwast.CompilerError(node.x_srcloc, f"unexpected id {node.name}")
+                cwast.CompilerError(node.x_srcloc, f"unexpected id {node.name}: {type(def_node)} ")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
@@ -486,10 +486,10 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
     return out, mod_map
 
 
-def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.DefRec):
+def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.CanonType):
     inits: Dict[cwast.RecField,
                 cwast.FieldVal] = {i.x_field: i for i in inits_field}
-    for f in def_rec.fields:
+    for f in def_rec.ast_node.fields:
         assert isinstance(f, cwast.RecField)
         yield f, inits.get(f)
 

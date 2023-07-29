@@ -47,8 +47,8 @@ class STORAGE_KIND(enum.Enum):
     DATA = enum.auto()
 
 
-def IsSingleRegType(ctype: str, tc: type_corpus.TypeCorpus):
-    rtype = tc.register_types(ctype)
+def IsSingleRegType(ct: cwast.CanonType, tc: type_corpus.TypeCorpus):
+    rtype = ct.register_types
     return rtype is not None and len(rtype) == 1
 
 
@@ -86,18 +86,18 @@ class ReturnResultLocation:
     dst: Union[str, BaseOffset]
 
 
-def _InitDataForBaseType(x_type, x_value) -> bytes:
-    assert isinstance(x_type, cwast.TypeBase)
-    byte_width = x_type.x_size
+def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
+    assert x_type.is_base_type()
+    byte_width = x_type.size
     if x_value is None or isinstance(x_value, cwast.ValUndef):
         return ZEROS[byte_width]
-    elif type_corpus.is_uint(x_type):
+    elif x_type.is_uint():
         return x_value.to_bytes(byte_width, 'little')
-    elif type_corpus.is_sint(x_type):
+    elif x_type.is_sint():
         return x_value.to_bytes(byte_width, 'little', signed=True)
-    elif type_corpus.is_bool(x_type):
+    elif x_type.is_bool():
         return b"\1" if x_value else b"\0"
-    elif type_corpus.is_real(x_type):
+    elif x_type.is_real():
         fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
         return struct.pack(fmt, x_value)
     else:
@@ -108,21 +108,21 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def StringifyOneType(node: str, tc: type_corpus.TypeCorpus):
-    t = tc.register_types(node)
-    assert len(t) == 1, f"bad type: {node}"
+def StringifyOneType(ct: cwast.CanonType, tc: type_corpus.TypeCorpus):
+    t = ct.register_types
+    assert len(t) == 1, f"bad type: {ct.name}"
     return t[0]
 
 
 def _EmitFunctionHeader(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     sig: cwast.TypeFun = fun.x_type
     ins = []
-    for p in sig.params:
+    for p in sig.parameter_types():
         #
-        ins += tc.register_types(p.type)
+        ins += p.register_types
     result = ""
-    if not type_corpus.is_void(sig.result):
-        result = StringifyOneType(sig.result, tc)
+    if not sig.result_type().is_void():
+        result = StringifyOneType(sig.result_type(), tc)
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
@@ -133,7 +133,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun, tc: type_corpus.TypeCorpus,
     for p in fun.params:
         # this uniquifies names
         p.name = id_gen.NewName(p.name)
-        reg_types = tc.register_types(p.type.x_type)
+        reg_types = p.type.x_type.register_types
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
         else:
@@ -187,10 +187,10 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
 
 def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
-        x_type = node.container.x_type
-        assert isinstance(x_type, cwast.TypeArray), f"{x_type}"
+        x_type: cwast.CanonType = node.container.x_type
+        assert x_type.is_array(), f"{x_type}"
         base = _GetLValueAddress(node.container, tc, id_gen)
-        return base, OffsetScaleToOffset(node.expr_index, x_type.type.x_size, node.expr_index, tc, id_gen)
+        return base, OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size, node.expr_index, tc, id_gen)
 
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
@@ -209,7 +209,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: iden
         elif storage is STORAGE_KIND.STACK:
             print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
         else:
-            assert False
+            assert False, f"unsupported storage class {storage}"
         return BaseOffset(base, 0)
     else:
         assert False, f"unsupported node for lvalue {node}"
@@ -304,7 +304,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
         else:
             print(f"{TAB}bne {op} 0 {label_false}")
     elif isinstance(cond, cwast.Id):
-        assert type_corpus.is_bool(cond.x_type)
+        assert cond.x_type.is_bool()
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         if invert:
             print(f"{TAB}beq {cond.name} 0 {label_false}")
@@ -345,8 +345,8 @@ def _EmitExpr2(binary_expr_kind, res, res_type, op1, op2):
 
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     if isinstance(node, cwast.ExprCall):
-        sig = node.callee.x_type
-        assert isinstance(sig, cwast.TypeFun)
+        sig: cwast.CanonType = node.callee.x_type
+        assert sig.is_fun()
         args = [EmitIRExpr(a, tc, id_gen) for a in node.args]
         for a in reversed(args):
             assert not a.startswith("["), f"{a} {node.args[4]}"
@@ -355,11 +355,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(f"{TAB}bsr {node.callee.x_symbol.name}")
         else:
             assert False
-        if type_corpus.is_void(sig.result):
+        if sig.result_type().is_void():
             return None
         else:
             res = id_gen.NewName("call")
-            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result, tc)}")
+            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result_type(), tc)}")
             return res
     elif isinstance(node, cwast.ValNum):
         return f"{node.x_value}:{StringifyOneType(node.x_type, tc)}"
@@ -391,10 +391,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         # TODO: add range check
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         res = id_gen.NewName("expr2")
+        ct: cwast.CanonType = node.expr1.x_type
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
-            assert isinstance(node.expr1.x_type, cwast.TypePtr)
+            assert ct.is_pointer()
             offset = OffsetScaleToOffset(
-                node.expr2, node.expr1.x_type.type.x_size, tc, id_gen)
+                node.expr2, ct.underlying_pointer_type().size, tc, id_gen)
             print(f"{TAB}lea {res}:A64 = {base} {offset}")
         else:
             assert False, f"unsupported expression {node}"
@@ -405,22 +406,23 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         print(f"{TAB}bitcast {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
         return res
     elif isinstance(node, cwast.ExprAs):
-        if (isinstance(node.expr.x_type, cwast.TypeBase) and isinstance(node.type.x_type, cwast.TypeBase)):
+        ct_src: cwast.CanonType = node.expr.x_type
+        ct_dst: cwast.CanonType = node.type.x_type
+        if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
             expr = EmitIRExpr(node.expr, tc, id_gen)
             res = id_gen.NewName("as")
             print(
-                f"{TAB}conv {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
+                f"{TAB}conv {res}:{StringifyOneType(ct_dst, tc)} = {expr}")
             return res
-        elif (isinstance(node.expr.x_type, cwast.TypeArray) and
-                isinstance(node.type.x_type, cwast.TypeSlice)):
+        elif ct_src.is_array() and ct_dst.is_slice():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
-            size = node.expr.x_type.size.x_value
+            size = node.expr.x_type.array_dim()
             return addr, f"{size}:U64"
-        elif (isinstance(node.expr.x_type, cwast.DefType) and node.x_type is node.expr.x_type.type):
+        elif ct_src.is_wrapped() and ct_dst is ct_src.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
-        elif (isinstance(node.x_type, cwast.DefType) and node.x_type.type is node.expr.x_type):
+        elif ct_dst.is_wrapped() and ct_src is ct_dst.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
         else:
@@ -432,7 +434,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
-        if type_corpus.is_void_or_wrapped_void(node.x_type):
+        if node.x_type.is_void_or_wrapped_void():
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
@@ -447,8 +449,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
-        assert isinstance(node.container.x_type,
-                          cwast.TypeArray), f"unexpected {node}"
+        assert node.container.x_type.is_array(), f"unexpected {node}"
         return _GetLValueAddress(node.container, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
         res = id_gen.NewName(f"field_{node.x_field.name}")
@@ -477,7 +478,7 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen
         src_base = _GetLValueAddress(node, tc, id_gen)
         src_type = node.x_type
         _EmitCopy(dst, BaseOffset(
-            src_base, 0), src_type.x_size, src_type.x_alignment, id_gen)
+            src_base, 0), src_type.size, src_type.alignment, id_gen)
     elif isinstance(node, cwast.ExprStmt):
         for c in node.body:
             EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
@@ -488,7 +489,7 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen
                 EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
     elif isinstance(node, cwast.ValArray):
-        for n, c in symbolize.IterateValArray(node, node.x_type.size.x_value):
+        for n, c in symbolize.IterateValArray(node, node.x_type.array_dim()):
             if c is None:
                 continue
             if isinstance(c.value_or_undef, cwast.ValUndef):
@@ -531,7 +532,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
 
     def emit_recursively(offset, init):
         nonlocal dst, tc, id_gen
-        src_type = init.x_type
+        src_type: cwast.CanonType = init.x_type
         assert not isinstance(init, cwast.ValUndef)
 
         if isinstance(init, cwast.Id):
@@ -543,7 +544,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
             else:
                 src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
                 _EmitCopy(BaseOffset(dst.base, offset), src,
-                          src_type.x_size, src_type.x_alignment, id_gen)
+                          src_type.size, src_type.alignment, id_gen)
 
         elif isinstance(init, cwast.ValRec):
             for field, init in symbolize.IterateValRec(init.inits_field, src_type):
@@ -560,7 +561,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
         elif isinstance(init, cwast.ExprDeref):
             src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
             _EmitCopy(BaseOffset(dst.base, offset), src,
-                      src_type.x_size, src_type.x_alignment, id_gen)
+                      src_type.size, src_type.alignment, id_gen)
         else:
             assert False, f"{init.x_srcloc} {init} {src_type}"
 
@@ -569,12 +570,12 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
 
 def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
-        def_type = node.type_or_auto.x_type
+        def_type: cwast.CanonType = node.type_or_auto.x_type
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
         initial = node.initial_or_undef_or_auto
         if _IsDefVarOnStack(node, tc):
-            print(f"{TAB}.stk {node.name} {def_type.x_alignment} {def_type.x_size}")
+            print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
@@ -600,7 +601,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, i
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
-            if not type_corpus.is_void_or_wrapped_void(node.expr_ret.x_type):
+            if not node.expr_ret.x_type.is_void_or_wrapped_void():
                 if isinstance(result.dst, str):
                     out = EmitIRExpr(node.expr_ret, tc, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
@@ -610,7 +611,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, i
                 EmitIRExpr(node.expr_ret, tc, id_gen)
         else:
             out = EmitIRExpr(node.expr_ret, tc, id_gen)
-            if not type_corpus.is_void_or_wrapped_void(node.expr_ret.x_type):
+            if not node.expr_ret.x_type.is_void_or_wrapped_void():
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -681,15 +682,15 @@ _BYTE_PADDING = b"\x6f"
 
 
 def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
-    def_type = node.type_or_auto.x_type
+    def_type: cwast.CanonType = node.type_or_auto.x_type
     print(
-        f"\n.mem {node.name} {def_type.x_alignment} {'RW' if node.mut else 'RO'}")
+        f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 
-    def _emit_recursively(node, cstr, offset: int) -> int:
+    def _emit_recursively(node, cstr: cwast.CanonType, offset: int) -> int:
         nonlocal tc
-        assert offset == type_corpus.align(offset, cstr.x_alignment)
+        assert offset == type_corpus.align(offset, cstr.alignment)
         if isinstance(node, cwast.ValUndef):
-            return _EmitMem(_BYTE_UNDEF * cstr.x_size, f"{offset} undef={tc.canon_name(cstr)}")
+            return _EmitMem(_BYTE_UNDEF * cstr.size, f"{offset} undef={cstr.name}")
 
         if isinstance(node, cwast.Id):
             node_def = node.x_symbol
@@ -704,34 +705,33 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             # assert False, f"{name} {node.container}"
             return 8
 
-        if isinstance(cstr, cwast.TypeBase):
-            return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {tc.canon_name(cstr)}")
-        elif isinstance(cstr, cwast.TypeArray):
+        if cstr.is_base_type():
+            return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {cstr.name}")
+        elif cstr.is_array():
             assert isinstance(
                 node, (cwast.ValArray, cwast.ValString)), f"{node}"
-            print(f"# array: {tc.canon_name(cstr)}")
-            width = cstr.size.x_value
-            x_type = cstr.type
-            if isinstance(x_type, cwast.TypeBase):
+            print(f"# array: {cstr.name}")
+            width = cstr.array_dim()
+            x_type = cstr.underlying_array_type()
+            if x_type.is_base_type():
                 if isinstance(node.x_value, bytes):
                     assert len(
                         node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
-                    assert isinstance(x_type, cwast.TypeBase)
-                    return _EmitMem(node.x_value, f"{offset} {tc.canon_name(cstr)}")
+                    return _EmitMem(node.x_value, f"{offset} {cstr.name}")
                 else:
 
                     x_value = node.x_value
-                    assert isinstance(x_type, cwast.TypeBase)
+                    assert x_type.is_base_type()
                     assert width == len(x_value), f"{width} vs {len(x_value)}"
                     out = bytearray()
                     for v in x_value:
                         out += _InitDataForBaseType(x_type, v)
-                    return _EmitMem(out, tc.canon_name(cstr))
+                    return _EmitMem(out, cstr.name)
             else:
                 assert isinstance(node, cwast.ValArray), f"{node}"
                 last = cwast.ValUndef()
-                stride = cstr.x_size // width
-                assert stride * width == cstr.x_size, f"{cstr.x_size} {width}"
+                stride = cstr.size // width
+                assert stride * width == cstr.size, f"{cstr.size} {width}"
                 for n, init in symbolize.IterateValArray(node, width):
                     if init is None:
                         count = _emit_recursively(
@@ -744,10 +744,10 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                     if count != stride:
                         _EmitMem(_BYTE_PADDING * (stride - count),
                                  f"{stride - count} padding")
-                return cstr.x_size
-        elif isinstance(cstr, cwast.DefRec):
+                return cstr.size
+        elif cstr.is_rec():
             assert isinstance(node, cwast.ValRec)
-            print(f"# record: {tc.canon_name(cstr)}")
+            print(f"# record: {cstr.name}")
             rel_off = 0
             for f, i in symbolize. IterateValRec(node.inits_field, cstr):
 
@@ -758,12 +758,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                     rel_off += _emit_recursively(i.value,
                                                  f.type.x_type, offset + rel_off)
                 else:
-                    rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.x_size,
-                                        tc.canon_name(f.type.x_type))
+                    rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
+                                        f.type.x_type.name)
             return rel_off
 
         else:
-            assert False, f"unhandled node for DefGlobal: {node} {cstr}"
+            assert False, f"unhandled node for DefGlobal: {node} {cstr.name}"
 
     _emit_recursively(node.initial_or_undef_or_auto,
                       node.type_or_auto.x_type, 0)
@@ -839,7 +839,7 @@ def main():
     id_gen_global = identifier.IdGen()
     str_val_map = {}
     # for key, val in fun_sigs_with_large_args.items():
-    #    print (tc.canon_name(key), " -> ", tc.canon_name(val))
+    #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
@@ -922,19 +922,17 @@ def main():
                 canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
             # add missing return statement
-            if (isinstance(fun, cwast.DefFun) and
-                not fun.extern and
-                    type_corpus.is_void_or_wrapped_void(fun.x_type.result)):
-                if fun.body:
-                    last = fun.body[-1]
-                    if isinstance(last, cwast.StmtReturn):
-                        continue
-                else:
-                    last = fun
-                void_expr = cwast.ValVoid(
-                    x_srcloc=last.x_srcloc, x_type=fun.x_type.result)
-                fun.body.append(cwast.StmtReturn(
-                    void_expr, x_srcloc=last.x_srcloc, x_target=fun))
+            if isinstance(fun, cwast.DefFun) and not fun.extern:
+                result: cwast.CanonType = fun.x_type.result_type()
+                if result.is_void_or_wrapped_void():
+                    if fun.body:
+                        last = fun.body[-1]
+                        if isinstance(last, cwast.StmtReturn):
+                            continue
+                    void_expr = cwast.ValVoid(
+                        x_srcloc=last.x_srcloc, x_type=result)
+                    fun.body.append(cwast.StmtReturn(
+                        void_expr, x_srcloc=last.x_srcloc, x_target=fun))
 
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
@@ -967,7 +965,7 @@ def main():
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 suffix = ""
                 if isinstance(node, (cwast.DefFun)) and node.polymorphic:
-                    suffix = f"<{tc.canon_name(node.x_type.params[0].type)}>"
+                    suffix = f"<{node.x_type.parameter_types()[0].name}>"
                 node.name = mod_name + node.name + suffix
 
     if args.emit_ir:
