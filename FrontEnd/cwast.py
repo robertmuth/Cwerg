@@ -25,6 +25,7 @@ ID_PATH_SEPARATOR = "::"
 
 @enum.unique
 class BASE_TYPE_KIND(enum.Enum):
+    """basic scalar types"""
     INVALID = 0
 
     SINT = 10
@@ -82,6 +83,7 @@ class GROUP(enum.IntEnum):
 
 @enum.unique
 class BINARY_EXPR_KIND(enum.Enum):
+    """same type two operand expressions"""
     INVALID = 0
     ADD = 1
     SUB = 2
@@ -145,6 +147,7 @@ BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 
 @enum.unique
 class POINTER_EXPR_KIND(enum.Enum):
+    """pointer and int two operand expressions"""
     INVALID = 0
     INCP = 1   # pointer add int
     DECP = 2   # pointer sub int
@@ -213,6 +216,7 @@ COMPOUND_KIND_TO_EXPR_KIND = {
 
 @enum.unique
 class UNARY_EXPR_KIND(enum.Enum):
+    """Unary Expression Kind for basic types"""
     INVALID = 0
     NOT = 1
     MINUS = 2
@@ -230,6 +234,7 @@ UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 
 @enum.unique
 class MOD_PARAM_KIND(enum.Enum):
+    """Module Parameter Kind"""
     INVALID = 0
     CONST = 1
     MOD = 2
@@ -277,6 +282,7 @@ class MACRO_PARAM_KIND(enum.Enum):
 
 @enum.unique
 class NFK(enum.Enum):
+    """Node Field Descriptor Kind"""
     INT = 1
     STR = 2
     ATTR_BOOL = 3
@@ -299,7 +305,7 @@ class NFD:
 NODES_PARAMS = ("FunParam")
 NODES_PARAMS_T = Union[NODES_PARAMS]
 
-NODES_BODY_MOD = ("DefFun", "DefRec", "DefUnion", "DefEnum", "DefVar", "DefMacro", "DefType",
+NODES_BODY_MOD = ("DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType",
                   "DefGlobal", "StmtStaticAssert", "Import")
 NODES_BODY_MOD_T = Union[NODES_BODY_MOD]
 
@@ -570,7 +576,7 @@ def _NAME(node):
 
 def _FLAGS(node):
     out = []
-    for c, nfd in node.__class__.ATTRS:
+    for c, _ in node.__class__.ATTRS:
         if getattr(node, c):
             out.append("@" + c)
     outs = " ".join(out)
@@ -585,7 +591,7 @@ ALL_NODES = set()
 
 def _CheckNodeFieldOrder(cls):
     """
-    order is 
+    order is
     * regular
     * optional
     * flags
@@ -631,7 +637,7 @@ def NodeCommon(cls):
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
     cls.ATTRS = []
-    for field, type in cls.__annotations__.items():
+    for field, _ in cls.__annotations__.items():
         if not field.startswith("x_"):
             nfd = ALL_FIELDS_MAP[field]
             if nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
@@ -647,6 +653,7 @@ def NodeCommon(cls):
 
 @dataclasses.dataclass()
 class CanonType:
+    """Canonical Type"""
     node: Any
     name: str
     #
@@ -687,19 +694,16 @@ class CanonType:
 
     def is_wrapped(self) -> bool:
         return self.node is DefType
-    
+
     def underlying_wrapped_type(self) -> "CanonType":
         assert self.is_wrapped()
         return self.children[0]
-    
+
     def is_fun(self) -> bool:
         return self.node is TypeFun
 
     def is_rec(self) -> bool:
         return self.node is DefRec
-
-    def is_union(self) -> bool:
-        return self.node is DefUnion
 
     def parameter_types(self) -> List["CanonType"]:
         assert self.is_fun()
@@ -793,14 +797,6 @@ class EphemeralList:
 ############################################################
 # Identifier
 ############################################################
-
-
-@enum.unique
-class ID_KIND(enum.Enum):
-    INVALID = 0
-    VAR = 1
-    CONST = 2
-    FUN = 3
 
 
 @NodeCommon
@@ -945,7 +941,6 @@ class TypePtr:
     x_type: Optional[Any] = None
 
     def __str__(self):
-        mod = "-MUT" if self.mut else ""
         return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
 
 
@@ -1109,7 +1104,8 @@ class ValNum:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return f"{_NAME(self)} {self.number}"
+    def __str__(self):
+        return f"{_NAME(self)} {self.number}"
 
 
 @NodeCommon
@@ -1241,7 +1237,8 @@ class ValSlice:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return f"{_NAME(self)} {self.pointer} {self.expr_size}"
+    def __str__(self):
+        return f"{_NAME(self)} {self.pointer} {self.expr_size}"
 
 
 @NodeCommon
@@ -1263,7 +1260,8 @@ class ValString:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
-    def __str__(self): return f"{_NAME(self)} {self.string}"
+    def __str__(self):
+        return f"{_NAME(self)} {self.string}"
 
 
 @NodeCommon
@@ -1289,27 +1287,6 @@ class ValRec:
         return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
 
 
-@NodeCommon
-@dataclasses.dataclass()
-class ValUnion:
-    """A union literal
-
-    `E.g.: complex{.imag = 5, .real = 1}`
-    """
-    ALIAS = "union_val"
-    GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    type: NODES_TYPES_T
-    inits_field: List[NODES_INITS_REC_T]
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        t = [str(i) for i in self.inits_field]
-        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
 ############################################################
 # ExprNode
 ############################################################
@@ -2092,27 +2069,6 @@ class DefRec:
 
 @NodeCommon
 @dataclasses.dataclass()
-class DefUnion:
-    """Union definition"""
-    ALIAS = "defunion"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    #
-    name: str
-    fields: List[NODES_FIELDS_T]
-    #
-    pub:  bool = False
-    doc: str = ""
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
 class EnumVal:
     """ Enum element.
 
@@ -2416,8 +2372,8 @@ class MacroVar:
 class MacroFor:
     """Macro for-loop like statement
 
-    loops over the macro parameter `name_list` which must be a list and 
-    binds each list element to `name` while expanding the AST nodes in `body_for`. 
+    loops over the macro parameter `name_list` which must be a list and
+    binds each list element to `name` while expanding the AST nodes in `body_for`.
     """
     ALIAS = "macro_for"
     GROUP = GROUP.Macro
@@ -2473,10 +2429,10 @@ class DefMacro:
     """Define a macro
 
     A macro consists of
-    * a name 
+    * a name
     * the type of AST node (list) it create
     * a parameter list. A parameter name must start with a '$'
-    * a list of additional identifiers used by the macro (also starimg with '$') 
+    * a list of additional identifiers used by the macro (also starimg with '$')
     * a body containing both regular and macro specific AST node serving as a template
     """
     ALIAS = "macro"
@@ -2851,7 +2807,7 @@ def GenerateDocumentation(fout):
         if last_group != group:
             print(f"\n## {group.name} Node Details",  file=fout)
             last_group = group
-        print(f"", file=fout)
+        print("", file=fout)
         alias = ""
         if cls.ALIAS:
             alias = f" ({cls.ALIAS})"
@@ -2860,10 +2816,10 @@ def GenerateDocumentation(fout):
         print(cls.__doc__,  file=fout)
 
         if NF.TOP_LEVEL in cls.FLAGS:
-            print(f"", file=fout)
-            print(f"Allowed at top level only", file=fout)
+            print("", file=fout)
+            print("Allowed at top level only", file=fout)
         if len(cls.__annotations__):
-            print(f"", file=fout)
+            print("", file=fout)
             print("Fields:",  file=fout)
 
             for field, nfd in cls.FIELDS:
@@ -2872,18 +2828,18 @@ def GenerateDocumentation(fout):
                 optional_val = GetOptional(field, 0)
                 if optional_val is not None:
                     if optional_val == "":
-                        extra = f' (default "")'
+                        extra = ' (default "")'
                     elif isinstance(optional_val, ValNum):
                         extra = f' (default {optional_val.number})'
                     else:
                         extra = f' (default {optional_val.__class__.__name__})'
                 print(f"* {field} [{kind.name}]{extra}: {nfd.doc}", file=fout)
             if cls.ATTRS:
-                print(f"", file=fout)
+                print("", file=fout)
                 print("Flags:",  file=fout)
                 for field, nfd in cls.ATTRS:
                     print(f"* {field}: {nfd.doc}", file=fout)
-            print(f"", file=fout)
+            print("", file=fout)
 
     print("## Enum Details",  file=fout)
 
@@ -2905,7 +2861,6 @@ def GenerateDocumentation(fout):
 
 ##########################################################################################
 if __name__ == "__main__":
-    import sys
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     GenerateDocumentation(sys.stdout)

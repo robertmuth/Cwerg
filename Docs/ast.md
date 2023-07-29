@@ -312,10 +312,10 @@ Flags:
 Define a macro
 
     A macro consists of
-    * a name 
+    * a name
     * the type of AST node (list) it create
     * a parameter list. A parameter name must start with a '$'
-    * a list of additional identifiers used by the macro (also starimg with '$') 
+    * a list of additional identifiers used by the macro (also starimg with '$')
     * a body containing both regular and macro specific AST node serving as a template
     
 
@@ -634,7 +634,7 @@ A record literal
 
 Fields:
 * type [NODE]: type expression
-* inits_rec [LIST]: record initializers and/or comments
+* inits_field [LIST]: record initializers and/or comments
 
 
 ### ValSlice (slice_val)
@@ -815,7 +815,7 @@ Flags:
 
 
 ### ExprIndex (at)
-Checked indexed access of array or slice
+Optionally unchecked indexed access of array or slice
     
 
 Fields:
@@ -951,8 +951,8 @@ Flags:
 ### MacroFor (macro_for)
 Macro for-loop like statement
 
-    loops over the macro parameter `name_list` which must be a list and 
-    binds each list element to `name` while expanding the AST nodes in `body_for`. 
+    loops over the macro parameter `name_list` which must be a list and
+    binds each list element to `name` while expanding the AST nodes in `body_for`.
     
 
 Fields:
