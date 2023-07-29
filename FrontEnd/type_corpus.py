@@ -1,10 +1,11 @@
+"""All types have a canonical representation in the TypeCorpus"""
 import logging
 import re
-import dataclasses
+
+from typing import List, Dict, Optional, Any
 
 from FrontEnd import cwast
 
-from typing import List, Dict, Tuple, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
@@ -142,26 +143,6 @@ def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, ptr_size):
 TYPE_ID_REG_TYPE = "U16"
 
 
-def MakeAstTypeNodeFromCanonical(node, srcloc):
-    clone = dataclasses.replace(node)
-    #
-    clone.x_srcloc = srcloc
-    clone.x_type = node
-    clone.x_size = None
-    clone.x_alignement = None
-    clone.x_offset = None
-
-    for c, nfd in node.__class__.FIELDS:
-        if nfd.kind is cwast.NFK.NODE:
-            setattr(clone, c, MakeAstTypeNodeFromCanonical(
-                getattr(node, c), srcloc))
-        elif nfd.kind is cwast.NFK.LIST:
-            out = [cwast.MakeAstTypeNodeFromCanonical(cc, srcloc)
-                   for cc in getattr(node, c)]
-            setattr(clone, c, out)
-    return clone
-
-
 class TypeCorpus:
     """The type corpus uniquifies types
 
@@ -191,7 +172,7 @@ class TypeCorpus:
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
         num_void = 0
-        scalars = []
+        scalars: List[cwast.CanonType] = []
         largest_by_kind = {}
         largest = 0
         for t in tc.sum_types():
@@ -209,8 +190,8 @@ class TypeCorpus:
             largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
             largest = max(largest, size)
         # special hack for pointer + error-code
-        if len(scalars) == 1 and t.is_pointer():
-            return t.register_types
+        if len(scalars) == 1 and scalars[0].is_pointer():
+            return scalars[0].register_types
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
         return [f"U{largest}", TYPE_ID_REG_TYPE]
