@@ -9,7 +9,7 @@ import logging
 import argparse
 import enum
 
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
+from typing import List, Optional, Tuple
 
 from FrontEnd import cwast
 from FrontEnd import parse
@@ -88,7 +88,7 @@ def GetExprIndent(field: str):
 
 
 def GetDoc(node):
-    for field, nfd in node.ATTRS:
+    for field, _ in node.ATTRS:
         if field == "doc":
             val = getattr(node, "doc")
             return val
@@ -251,7 +251,7 @@ def CircledLetterEntity(c):
     return f"&#{0x24b6 + offset};"
 
 
-def DecorateNode(node_name, node, tc: type_corpus.TypeCorpus):
+def DecorateNode(node_name, node):
     problems = []
     if node.x_srcloc is None:
         problems.append("missing srcloc")
@@ -283,11 +283,11 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         if isinstance(node, (cwast.ValNum, cwast.ValString, cwast.Id)):
             line.append(abbrev)
         else:
-            line += DecorateNode(abbrev, node, tc)
+            line += DecorateNode(abbrev, node)
         return
 
     node_name, fields = GetNodeTypeAndFields(node)
-    line += DecorateNode("(" + node_name, node, tc)
+    line += DecorateNode("(" + node_name, node)
 
     for field, nfd in fields:
         line = out[-1]
@@ -327,7 +327,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
-            assert False, f"{name} {nfd}"
+            assert False, f"{node_name} {nfd}"
 
     line = out[-1]
     line.append(")")
@@ -355,6 +355,7 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
 
 @enum.unique
 class TK(enum.Enum):
+    """TBD"""
     INVALID = 0
 
     ATTR = 1  # attribute
@@ -593,7 +594,7 @@ def ConcreteSyntaxStmt(node):
     elif isinstance(node, cwast.StmtAssignment):
         yield ("set", TK.BEG)
         yield from ConcreteSyntaxExpr(node.lhs)
-        yield f"=", TK.BINOP
+        yield "=", TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr_rhs)
         yield ("@set", TK.END)
     elif isinstance(node, cwast.StmtIf):
@@ -735,13 +736,15 @@ END_TOKENS = set(["", ")", "]"])
 
 
 def GetCurrentIndent(stack) -> int:
-    for t, kind, i in reversed(stack):
+    for _, kind, i in reversed(stack):
         if kind is TK.BEG:
             return i * 4
     assert False
 
 
 class Stack:
+    """TBD"""
+
     def __init__(self):
         self._stack = []
 
@@ -755,13 +758,14 @@ class Stack:
         return self._stack.pop(-1)
 
     def CurrentIndent(self) -> int:
-        for t, kind, i in reversed(self._stack):
+        for _, kind, i in reversed(self._stack):
             if kind is TK.BEG:
                 return i
         assert False
 
 
 class Sink:
+    """TBD"""
 
     def __init__(self):
         self._col = 0
@@ -786,7 +790,6 @@ class Sink:
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     while True:
         t, kind = tokens.pop(-1)
-        print
         if kind is TK.BEG:
             assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
             if t == "module":
@@ -856,7 +859,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
 ############################################################
 #
 ############################################################
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
         '-mode', type=str, help='mode. one of: reformat, annotate, concrete', default="reformat")
@@ -891,3 +894,7 @@ if __name__ == "__main__":
             FormatTokenStream(tokens, Stack(), Sink())
     else:
         assert False, f"unknown mode {args.mode}"
+
+
+if __name__ == "__main__":
+    main()
