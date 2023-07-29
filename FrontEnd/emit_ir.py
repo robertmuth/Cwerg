@@ -4,14 +4,15 @@
 
 """
 
-import sys
 import logging
 import argparse
 import dataclasses
 import enum
 import struct
 
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
+from typing import Union, Any, Optional
+
+from Util.parse import BytesToEscapedString
 
 from FrontEnd import canonicalize_large_args
 from FrontEnd import canonicalize_slice
@@ -24,8 +25,6 @@ from FrontEnd import eval
 from FrontEnd import identifier
 from FrontEnd import parse
 from FrontEnd import pp
-
-from Util.parse import BytesToEscapedString
 
 
 logger = logging.getLogger(__name__)
@@ -47,31 +46,32 @@ class STORAGE_KIND(enum.Enum):
     DATA = enum.auto()
 
 
-def IsSingleRegType(ct: cwast.CanonType, tc: type_corpus.TypeCorpus):
+def IsSingleRegType(ct: cwast.CanonType) -> bool:
     rtype = ct.register_types
     return rtype is not None and len(rtype) == 1
 
 
-def _IsDefVarOnStack(node: cwast.DefVar, tc: type_corpus.TypeCorpus) -> bool:
+def _IsDefVarOnStack(node: cwast.DefVar) -> bool:
     if node.ref:
         return True
-    return not IsSingleRegType(node.type_or_auto.x_type, tc)
+    return not IsSingleRegType(node.type_or_auto.x_type)
 
 
-def _StorageForId(node: cwast.Id, tc: type_corpus.TypeCorpus) -> STORAGE_KIND:
+def _StorageForId(node: cwast.Id) -> STORAGE_KIND:
     def_node = node.x_symbol
     if isinstance(def_node, cwast.DefGlobal):
         return STORAGE_KIND.DATA
     if isinstance(def_node, cwast.FunParam):
         return STORAGE_KIND.REGISTER
     elif isinstance(def_node, cwast.DefVar):
-        return STORAGE_KIND.STACK if _IsDefVarOnStack(def_node, tc) else STORAGE_KIND.REGISTER
+        return STORAGE_KIND.STACK if _IsDefVarOnStack(def_node) else STORAGE_KIND.REGISTER
     else:
         assert False, f"Unexpected ID {def_node}"
 
 
 @dataclasses.dataclass()
 class BaseOffset:
+    """Represents and address as pair of base and offset"""
     base: str
     offset: Any
 
@@ -108,13 +108,13 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def StringifyOneType(ct: cwast.CanonType, tc: type_corpus.TypeCorpus):
+def StringifyOneType(ct: cwast.CanonType):
     t = ct.register_types
     assert len(t) == 1, f"bad type: {ct.name}"
     return t[0]
 
 
-def _EmitFunctionHeader(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def _EmitFunctionHeader(fun: cwast.DefFun):
     sig: cwast.TypeFun = fun.x_type
     ins = []
     for p in sig.parameter_types():
@@ -122,12 +122,12 @@ def _EmitFunctionHeader(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
         ins += p.register_types
     result = ""
     if not sig.result_type().is_void():
-        result = StringifyOneType(sig.result_type(), tc)
+        result = StringifyOneType(sig.result_type())
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
 
-def _EmitFunctionProlog(fun: cwast.DefFun, tc: type_corpus.TypeCorpus,
+def _EmitFunctionProlog(fun: cwast.DefFun,
                         id_gen: identifier.IdGen):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
@@ -179,7 +179,7 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
         scaled = id_gen.NewName("scaled")
         sint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
         print(
-            f"{TAB}conv {scaled}:{StringifyOneType(sint_type, tc)} = {offset}")
+            f"{TAB}conv {scaled}:{StringifyOneType(sint_type)} = {offset}")
         print(
             f"{TAB}mul {scaled} = {scaled} {scale}")
         return scaled
@@ -190,7 +190,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: iden
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_array(), f"{x_type}"
         base = _GetLValueAddress(node.container, tc, id_gen)
-        return base, OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size, node.expr_index, tc, id_gen)
+        return BaseOffset(base, OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size, tc, id_gen))
 
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
@@ -203,7 +203,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: iden
         base = id_gen.NewName(f"lhsaddr_{name}")
         # TODO
         kind = "A64"
-        storage = _StorageForId(node, tc)
+        storage = _StorageForId(node)
         if storage is STORAGE_KIND.DATA:
             print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
         elif storage is STORAGE_KIND.STACK:
@@ -359,21 +359,21 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return None
         else:
             res = id_gen.NewName("call")
-            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result_type(), tc)}")
+            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result_type())}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{node.x_value}:{StringifyOneType(node.x_type, tc)}"
+        return f"{node.x_value}:{StringifyOneType(node.x_type)}"
     elif isinstance(node, cwast.ValFalse):
-        return f"0:U8"
+        return "0:U8"
     elif isinstance(node, cwast.ValTrue):
-        return f"1:U8"
+        return "1:U8"
     elif isinstance(node, cwast.Id):
-        assert IsSingleRegType(node.x_type, tc)
+        assert IsSingleRegType(node.x_type)
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
             print(
-                f"{TAB}ld.mem {res}:{StringifyOneType(node.x_type, tc)} = {node.x_symbol.name} 0")
+                f"{TAB}ld.mem {res}:{StringifyOneType(node.x_type)} = {node.x_symbol.name} 0")
             return res
         else:
             return node.x_symbol.name
@@ -383,7 +383,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
         res = id_gen.NewName("expr2")
-        res_type = StringifyOneType(node.x_type, tc)
+        res_type = StringifyOneType(node.x_type)
         _EmitExpr2(node.binary_expr_kind, res, res_type, op1, op2)
         return res
     elif isinstance(node, cwast.ExprPointer):
@@ -403,7 +403,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ExprBitCast):
         res = id_gen.NewName("bitcast")
         expr = EmitIRExpr(node.expr, tc, id_gen)
-        print(f"{TAB}bitcast {res}:{StringifyOneType(node.type.x_type, tc)} = {expr}")
+        print(f"{TAB}bitcast {res}:{StringifyOneType(node.type.x_type)} = {expr}")
         return res
     elif isinstance(node, cwast.ExprAs):
         ct_src: cwast.CanonType = node.expr.x_type
@@ -413,7 +413,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             expr = EmitIRExpr(node.expr, tc, id_gen)
             res = id_gen.NewName("as")
             print(
-                f"{TAB}conv {res}:{StringifyOneType(ct_dst, tc)} = {expr}")
+                f"{TAB}conv {res}:{StringifyOneType(ct_dst)} = {expr}")
             return res
         elif ct_src.is_array() and ct_dst.is_slice():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
@@ -431,14 +431,14 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} 0")
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
         if node.x_type.is_void_or_wrapped_void():
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
-            print(f"{TAB}.reg {StringifyOneType(node.x_type, tc)} [{result}]")
+            print(f"{TAB}.reg {StringifyOneType(node.x_type)} [{result}]")
         for c in node.body:
             EmitIRStmt(c, ReturnResultLocation(result), tc, id_gen)
         return result
@@ -446,7 +446,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
         res = id_gen.NewName("at")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {src.base} {src.offset}")
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_array(), f"unexpected {node}"
@@ -455,7 +455,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         res = id_gen.NewName(f"field_{node.x_field.name}")
         addr = _GetLValueAddress(node.container, tc, id_gen)
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type, tc)} = {addr} {node.x_field.x_offset}")
+            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {addr} {node.x_field.x_offset}")
         return res
     elif isinstance(node, cwast.ValVoid):
         pass
@@ -470,7 +470,7 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen
                          cwast.ExprFront, cwast.ExprBitCast, cwast.ExprAs)):
         reg = EmitIRExpr(node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(node, cwast.Id) and _StorageForId(node, tc) is STORAGE_KIND.REGISTER:
+    elif isinstance(node, cwast.Id) and _StorageForId(node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(node, tc, id_gen)
         assert reg is not None
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
@@ -489,7 +489,7 @@ def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen
                 EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
     elif isinstance(node, cwast.ValArray):
-        for n, c in symbolize.IterateValArray(node, node.x_type.array_dim()):
+        for _, c in symbolize.IterateValArray(node, node.x_type.array_dim()):
             if c is None:
                 continue
             if isinstance(c.value_or_undef, cwast.ValUndef):
@@ -536,7 +536,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
         assert not isinstance(init, cwast.ValUndef)
 
         if isinstance(init, cwast.Id):
-            storage = _StorageForId(init, tc)
+            storage = _StorageForId(init)
             if storage is STORAGE_KIND.REGISTER:
                 res = EmitIRExpr(init, tc, id_gen)
                 assert res is not None
@@ -568,13 +568,13 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
     emit_recursively(dst.offset, src_init)
 
 
-def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type: cwast.CanonType = node.type_or_auto.x_type
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
         initial = node.initial_or_undef_or_auto
-        if _IsDefVarOnStack(node, tc):
+        if _IsDefVarOnStack(node):
             print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
@@ -584,12 +584,12 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, i
         else:
             if isinstance(initial, cwast.ValUndef):
                 print(
-                    f"{TAB}.reg {StringifyOneType(def_type, tc)} [{node.name}]")
+                    f"{TAB}.reg {StringifyOneType(def_type)} [{node.name}]")
             else:
                 out = EmitIRExpr(initial, tc, id_gen)
                 assert out is not None, f"Failure to gen code for {initial}"
                 print(
-                    f"{TAB}mov {node.name}:{StringifyOneType(def_type, tc)} = {out}")
+                    f"{TAB}mov {node.name}:{StringifyOneType(def_type)} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
@@ -602,6 +602,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, i
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
             if not node.expr_ret.x_type.is_void_or_wrapped_void():
+                assert result is not None
                 if isinstance(result.dst, str):
                     out = EmitIRExpr(node.expr_ret, tc, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
@@ -649,7 +650,7 @@ def EmitIRStmt(node, result: ReturnResultLocation, tc: type_corpus.TypeCorpus, i
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
-        if IsSingleRegType(node.lhs.x_type, tc) and _AssignmentLhsIsInReg(node.lhs):
+        if IsSingleRegType(node.lhs.x_type) and _AssignmentLhsIsInReg(node.lhs):
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
@@ -681,13 +682,12 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
+def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
     def_type: cwast.CanonType = node.type_or_auto.x_type
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 
     def _emit_recursively(node, cstr: cwast.CanonType, offset: int) -> int:
-        nonlocal tc
         assert offset == type_corpus.align(offset, cstr.alignment)
         if isinstance(node, cwast.ValUndef):
             return _EmitMem(_BYTE_UNDEF * cstr.size, f"{offset} undef={cstr.name}")
@@ -765,14 +765,14 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
         else:
             assert False, f"unhandled node for DefGlobal: {node} {cstr.name}"
 
-    _emit_recursively(node.initial_or_undef_or_auto,
-                      node.type_or_auto.x_type, 0)
+    return _emit_recursively(node.initial_or_undef_or_auto,
+                             node.type_or_auto.x_type, 0)
 
 
 def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if not node.extern:
-        _EmitFunctionHeader(node, tc)
-        _EmitFunctionProlog(node, tc, id_gen)
+        _EmitFunctionHeader(node)
+        _EmitFunctionProlog(node, id_gen)
         for c in node.body:
             EmitIRStmt(c, None, tc, id_gen)
 
@@ -793,7 +793,7 @@ def main():
     logger.info("Start Parsing")
     asts = []
     for f in args.files:
-        asts += parse.ReadModsFromStream(open(f), f)
+        asts += parse.ReadModsFromStream(open(f, encoding="utf8"), f)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
 
@@ -919,7 +919,7 @@ def main():
                 if fun.x_type in fun_sigs_with_large_args:
                     canonicalize_large_args.RewriteLargeArgsCalleeSide(
                         fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
-                canonicalize.CanonicalizeCompoundAssignments(fun, tc, id_gen)
+                canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
             # add missing return statement
             if isinstance(fun, cwast.DefFun) and not fun.extern:
@@ -979,7 +979,7 @@ def main():
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                EmitIRDefGlobal(node, tc)
+                EmitIRDefGlobal(node)
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
@@ -987,6 +987,6 @@ def main():
 
 
 if __name__ == "__main__":
-    #import cProfile
+    # import cProfile
     # cProfile.run('main()')
     exit(main())
