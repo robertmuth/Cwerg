@@ -5,11 +5,10 @@
 
 """
 
-import sys
 import re
 import logging
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import List, Any
 
 from FrontEnd import cwast
 
@@ -45,11 +44,11 @@ _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
 _RE_TOKEN_ID = re.compile(
     r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?')
 
-
+# hex is lower case
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
-def ReadAttrs(t, attr, stream):
+def ReadAttrs(t: str, attr, stream):
     while t.startswith("@"):
         tag = t[1:]
         val = True
@@ -61,6 +60,7 @@ def ReadAttrs(t, attr, stream):
 
 
 class ReadTokens:
+    """Reader for Lexical tokens implemented as a generator"""
     def __init__(self, fp, filename):
         self._fp = fp
         self.line_no = 0
@@ -148,10 +148,10 @@ _SHORT_HAND_NODES = {
     "continue": lambda srcloc: cwast.StmtContinue(target="", x_srcloc=srcloc),
 }
 
-
-for t in _SCALAR_TYPES:
-    name = t.name.lower()
-    _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(t)
+# add basic type names
+for basic_type in _SCALAR_TYPES:
+    name = basic_type.name.lower()
+    _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(basic_type)
 
 
 def IsWellFormedStringLiteral(t: str):
@@ -305,7 +305,6 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     srcloc = stream.srcloc()
     logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
     args = []
-    attr = {}
     while True:
         token = next(stream)
         if token == ")":
@@ -334,19 +333,23 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], attr, stream:
     logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
     token = ReadAttrs(next(stream), attr, stream)
 
-    for field, nfd in fields:
-        if token == ")":
-            # we have reached the end before all the fields were processed
-            # fill in default values
-            optional_val = cwast.GetOptional(field, srcloc)
-            if optional_val is None:
-                cwast.CompilerError(
-                    stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
-            pieces.append(optional_val)
+    try:
+        for field, _ in fields:
+            if token == ")":
+                # we have reached the end before all the fields were processed
+                # fill in default values
+                optional_val = cwast.GetOptional(field, srcloc)
+                if optional_val is None:
+                    cwast.CompilerError(
+                        stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
+                pieces.append(optional_val)
 
-        else:
-            pieces.append(ReadPiece(field, token, stream, cls))
-            token = next(stream)
+            else:
+                pieces.append(ReadPiece(field, token, stream, cls))
+                token = next(stream)
+    except StopIteration:
+        cwast.CompilerError(stream.srcloc(
+        ), f"while parsing {cls.__name__} file truncated")
     if token != ")":
         cwast.CompilerError(stream.srcloc(
         ), f"while parsing {cls.__name__} expected node-end but got {token}")
@@ -403,7 +406,7 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
             asts.append(mod)
             failure = False
     except StopIteration:
-        assert not failure, f"truncated file"
+        assert not failure, "truncated file"
     return asts
 
 
