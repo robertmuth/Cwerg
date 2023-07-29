@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import List, Dict, Optional, Any
 
 from FrontEnd import cwast
 from FrontEnd import symbolize
@@ -45,9 +45,9 @@ def _AssignValue(node, val) -> bool:
     _VerifyEvalValue(val)
 
     if isinstance(val, list):
-        logger.info(f"EVAL of {node}: {val[:8]}...")
+        logger.info("EVAL of %s: %s...", node, val[:8])
     else:
-        logger.info(f"EVAL of {node}: {val}")
+        logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
     return True
 
@@ -89,9 +89,9 @@ _BASE_TYPE_TO_DEFAULT = {
 }
 
 
-def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Dict:
+def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
     # first pass if we cannot evaluate everyting, we must give up
-    rec = {}
+    rec: Dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
         ct: cwast.CanonType = field.x_type
@@ -136,7 +136,7 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
         return False
     curr_val = _UNDEF
     array = []
-    for n, c in symbolize.IterateValArray(node, node.x_type.dim):
+    for _, c in symbolize.IterateValArray(node, node.x_type.dim):
         if c is None:
             array.append(curr_val)
             continue
@@ -245,6 +245,8 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
             return _AssignValue(node, 0)
         elif ct.is_real():
             return _AssignValue(node, 0.0)
+        else:
+            assert False
     elif ct.is_rec():
         return _AssignValue(node, _EvalValRec(ct, [], node.x_srcloc))
     elif isinstance(node, cwast.TypePtr):
@@ -347,7 +349,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO: some transforms may need to be applied
         if node.expr.x_value is not None:
             return _AssignValue(node, node.expr.x_value)
-            return True
         return False
     elif isinstance(node, cwast.ExprTryAs):
         # TODO: we can do better here
@@ -379,7 +380,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
         return _AssignValue(node, node.x_field.x_offset)
-        return True
     elif isinstance(node, cwast.ExprSizeof):
         return _AssignValue(node, node.type.x_type.size)
     elif isinstance(node, cwast.ExprDeref):
@@ -415,7 +415,7 @@ def EvalRecursively(node) -> bool:
     cwast.VisitAstRecursivelyPost(node, visitor)
 
     if seen_change:
-        logger.info(f"SEEN CHANGE {node}")
+        logger.info("SEEN CHANGE %s", node)
     return seen_change
 
 
@@ -489,8 +489,7 @@ def VerifyASTEvalsRecursively(node):
 
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
-    """
-    """
+    """Fills in the x_value field"""
     iteration = 0
     seen_change = True
     while seen_change:
@@ -505,12 +504,8 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
         VerifyASTEvalsRecursively(mod)
 
 
-if __name__ == "__main__":
-    import sys
-
-    logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
-    asts = parse.ReadModsFromStream(sys.stdin)
+def main(inp):
+    asts = parse.ReadModsFromStream(inp)
 
     mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
@@ -520,3 +515,11 @@ if __name__ == "__main__":
         cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     DecorateASTWithPartialEvaluation(mod_topo_order)
+
+
+if __name__ == "__main__":
+    import sys
+
+    logging.basicConfig(level=logging.WARN)
+    logger.setLevel(logging.INFO)
+    main(sys.stdin)
