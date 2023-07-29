@@ -190,8 +190,10 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: iden
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_array(), f"{x_type}"
         base = _GetLValueAddress(node.container, tc, id_gen)
-        return BaseOffset(base, OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size, tc, id_gen))
-
+        offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size,
+                                     tc, id_gen)
+        return BaseOffset(base, offset)
+            
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
     elif isinstance(node, cwast.ExprField):

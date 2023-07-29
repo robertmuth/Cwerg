@@ -19,7 +19,8 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: type_corpus.TypeCorpus) -> cwast.CanonType:
+def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, 
+                                tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     srcloc = slice.x_srcloc
     pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
         slice.type, {}, {}), mut=slice.mut, x_srcloc=srcloc)
@@ -156,8 +157,8 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
 
 def _MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                            uint_type: cwast.CanonType):
-    pointer = cwast.ExprFront(node, x_srcloc=node.x_type, mut=dst_type.mut,
-                              x_type=tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type()))
+    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type())
+    pointer = cwast.ExprFront(node, x_srcloc=node.x_type, mut=dst_type.mut, x_type=p_type)
     width = node.x_type.array_dim()
     length = cwast.ValNum(f"{width}", x_value=width,
                           x_srcloc=node.x_srcloc, x_type=uint_type)
