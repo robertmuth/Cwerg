@@ -873,7 +873,7 @@ def main():
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
         for node in mod.body_mod:
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
-        canonicalize_slice.ReplaceSlice(mod, tc, slice_to_struct_map)
+        canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
 
     if args.emit_ir and False:
         mod_gen.body_mod += list(str_val_map.values()) + [

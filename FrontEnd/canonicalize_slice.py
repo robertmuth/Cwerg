@@ -23,22 +23,22 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, tc: type_corpus.TypeCorp
     srcloc = slice.x_srcloc
     pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
         slice.type, {}, {}), mut=slice.mut, x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, pointer_type, tc.insert_ptr_type(
+    typify.AnnotateNodeType(pointer_type, tc.insert_ptr_type(
         pointer_type.mut, pointer_type.type.x_type))
     pointer_field = cwast.RecField(
         SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, pointer_field, pointer_type.x_type)
+    typify.AnnotateNodeType(pointer_field, pointer_type.x_type)
     length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
     typify.AnnotateNodeType(
-        tc, length_type, tc.insert_base_type(length_type.base_type_kind))
+        length_type, tc.insert_base_type(length_type.base_type_kind))
     length_field = cwast.RecField(
         SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
-    typify.AnnotateNodeType(tc, length_field, length_type.x_type)
+    typify.AnnotateNodeType(length_field, length_type.x_type)
     name = f"tuple_{slice.x_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
     cstr: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
-    typify.AnnotateNodeType(tc, rec, cstr)
+    typify.AnnotateNodeType(rec, cstr)
     tc.finalize_rec_type(cstr)
     return cstr
 
@@ -233,7 +233,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
+def ReplaceSlice(node, slice_to_struct_map):
     """
     Replaces all slice<X> expressions with rec named tuple_slice<X>
     (cast to slices are eliminated by ReplaceExplicitSliceCast)
@@ -244,7 +244,6 @@ def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
      `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
     """
     def replacer(node, field):
-        nonlocal tc
 
         # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):
@@ -275,10 +274,10 @@ def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                                      cwast.FunParam, cwast.ExprCall, cwast.RecField,
                                      cwast.ExprField)):
-                    typify.UpdateNodeType(tc, node, def_rec)
+                    typify.UpdateNodeType(node, def_rec)
                 elif isinstance(node, cwast.FieldVal):
                     # assert False
-                    typify.UpdateNodeType(tc, node, def_rec)
+                    typify.UpdateNodeType(node, def_rec)
                 elif isinstance(node, cwast.TypeSlice):
                     return _MakeIdForDefRec(def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.ValSlice):
@@ -290,7 +289,7 @@ def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
                     # rewritten fields
                     if isinstance(sym, cwast.TypeSlice):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
-                    typify.UpdateNodeType(tc, node, def_rec)
+                    typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.ExprPointer):
                     assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP

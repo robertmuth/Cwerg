@@ -60,7 +60,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonType,
                                        tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     old_sig: cwast.CanonType = fun.x_type
-    typify.UpdateNodeType(tc, fun, new_sig)
+    typify.UpdateNodeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
     if result_changes:
         assert new_sig.result_type().is_void()
@@ -95,7 +95,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            typify.UpdateNodeType(tc, node, changing_params[node.x_symbol])
+            typify.UpdateNodeType(node, changing_params[node.x_symbol])
             return new_node
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
             result_param: cwast.FunParam = fun.params[-1]
@@ -123,7 +123,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]
-            typify.UpdateNodeType(tc, call.callee, new_sig)
+            typify.UpdateNodeType(call.callee, new_sig)
             expr_body = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
@@ -153,7 +153,7 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
                 typify.UpdateNodeType(
-                    tc, call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+                    call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(
                     call, x_srcloc=call.x_srcloc))
