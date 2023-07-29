@@ -4,12 +4,11 @@
 
 """
 
-import sys
 import logging
 import collections
 import heapq
 
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple
 
 from FrontEnd import pp
 from FrontEnd import macros
@@ -296,7 +295,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
                 getattr(node, c), symtab, symtab_map, scopes)
         elif nfd.kind is cwast.NFK.LIST:
             if c in cwast.NEW_SCOPE_FIELDS:
-                logger.info("push scope for %s: %s" % (node, c))
+                logger.info("push scope for %s: %s", node, c)
                 scopes.append({})
                 if isinstance(node, cwast.DefFun):
                     for p in node.params:
@@ -306,7 +305,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
                 ResolveSymbolsInsideFunctionsRecursively(
                     cc, symtab, symtab_map, scopes)
             if c in cwast.NEW_SCOPE_FIELDS:
-                logger.info("pop scope for if block: %s" % c)
+                logger.info("pop scope for if block: %s", c)
                 for name in scopes[-1].keys():
                     symtab.DelSym(name)
                 scopes.pop(-1)
@@ -354,7 +353,8 @@ def VerifyASTSymbolsRecursively(node):
             def_node = node.x_symbol
             is_type_node = field in ("type", "types", "result", "type_or_auto")
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)):
-                cwast.CompilerError(node.x_srcloc, f"unexpected id {node.name}: {type(def_node)} ")
+                cwast.CompilerError(
+                    node.x_srcloc, f"unexpected id {node.name}: {type(def_node)} ")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
@@ -517,14 +517,23 @@ def IterateValArray(val_array: cwast.ValArray, width):
         yield curr_val, None
         curr_val += 1
 
+############################################################
+#
+############################################################
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logger.setLevel(logging.INFO)
-    asts = parse.ReadModsFromStream(sys.stdin)
+
+def main(inp):
+    asts = parse.ReadModsFromStream(inp)
     mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
     MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for ast in asts:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
         pp.PrettyPrint(ast)
+
+
+if __name__ == "__main__":
+    import sys
+    logging.basicConfig(level=logging.INFO)
+    logger.setLevel(logging.INFO)
+    main(sys.stdin)
