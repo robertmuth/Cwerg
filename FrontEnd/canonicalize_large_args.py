@@ -6,7 +6,7 @@ Those values are primarily rec and sum-types. Slices would also fall into this
 category but we convert them to rec in the prior step.
 
 The only place where we allow values  that do not fit into register
-are let statements. 
+are let statements.
 
 Effects of this step:
 * Rewrite arguments and results which cannot be passed in registers
@@ -16,7 +16,7 @@ Effects of this step:
 
 """
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import Dict, Optional, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
@@ -90,7 +90,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
-    def replacer(node, field) -> Optional[Any]:
+    def replacer(node, _) -> Optional[Any]:
 
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
@@ -119,7 +119,7 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
 
-    def replacer(call, field) -> Optional[Any]:
+    def replacer(call, _) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]

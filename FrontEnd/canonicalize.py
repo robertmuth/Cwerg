@@ -2,7 +2,7 @@
 
 """
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import Dict, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
@@ -21,7 +21,7 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
 
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifier.IdGen):
     """Move string/array values into global (un-mutable variables)"""
-    def replacer(node, field):
+    def replacer(node, _):
         # TODO: add support for ValArray
         if isinstance(node, cwast.ValString):
             assert isinstance(
@@ -78,7 +78,7 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
 
     Note we could implement the ternary op as a macro but would lose the ability to do
     type inference, so instead we use this hardcoded rewrite"""
-    def replacer(node, field):
+    def replacer(node, _):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
@@ -160,9 +160,9 @@ def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: 
         assert False, "NYI"
 
 
-def CanonicalizeCompoundAssignments(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+def CanonicalizeCompoundAssignments(node, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
-    def replacer(node, field):
+    def replacer(node, _):
         if isinstance(node, cwast.StmtCompoundAssignment):
             if isinstance(node.lhs, cwast.Id):
                 return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr_rhs, node.x_srcloc)

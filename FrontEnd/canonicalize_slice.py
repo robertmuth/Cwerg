@@ -3,7 +3,7 @@
 """
 
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import Optional
 
 from FrontEnd import cwast
 from FrontEnd import type_corpus
@@ -168,7 +168,7 @@ def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
     """Eliminate all the implcit Array to Slice conversions. """
     uint_type: cwast.CanonType = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
-    def visitor(node, field):
+    def visitor(node, _):
         nonlocal tc, uint_type
         # Also look into the initialization of structs
         if isinstance(node, cwast.StmtAssignment):
@@ -220,7 +220,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Slice casts. """
     uint_type: cwast.CanonType = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
-    def replacer(node, field):
+    def replacer(node, _):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprAs):
             if (node.x_type != node.expr.x_type and
@@ -246,7 +246,7 @@ def ReplaceSlice(node, tc: type_corpus.TypeCorpus, slice_to_struct_map):
     def replacer(node, field):
         nonlocal tc
 
-        # len of array is constant and should have already been eliminated 
+        # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):
             def_rec = node.container.x_type
             if def_rec.is_rec():
