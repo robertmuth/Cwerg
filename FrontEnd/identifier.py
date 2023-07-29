@@ -1,6 +1,5 @@
-
-from FrontEnd import cwast
-from typing import List, Dict, Set, Optional, Union, Any
+"""Id Generator"""
+from typing import Dict
 
 
 class IdGenIR:
@@ -25,9 +24,8 @@ class IdGenIR:
 
 
 class IdGen:
-    """This is used to generate new names for the AST. Note the 
-       """
-       
+    """This is used to generate new names for the AST."""
+
     def __init__(self):
         self._names: Dict[str, int] = {}
 
@@ -35,7 +33,3 @@ class IdGen:
         no = self._names.get(prefix, 0)
         self._names[prefix] = no + 1
         return f"{prefix}%{no}"
-        
-        
-        
-
