@@ -184,7 +184,7 @@ def AnnotateNodeField(node, field_node: cwast.RecField):
 
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.CanonType, ctx: _TypeContext) -> cwast.CanonType:
     """Do not call this outside of functions"""
-    extra = "" if target_type == type_corpus.NO_TYPE else f"[{target_type}]"
+    extra = "" if target_type == type_corpus.NO_TYPE else f"[{target_type.name}]"
     logger.debug("TYPIFYING%s %s", extra, node)
     cstr = None
     if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
