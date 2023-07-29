@@ -7,7 +7,7 @@
 import dataclasses
 import logging
 
-from typing import List, Dict, Set, Optional, Union, Any, Tuple
+from typing import Dict, Any, Tuple
 
 from FrontEnd import cwast
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class MacroContext:
-
+    """TBD"""
     def __init__(self, no):
         self._no = no
         # these need to become lists
@@ -110,7 +110,6 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
     params = macro.params_macro
-    args = invoke.args
     if len(params) != len(invoke.args):
         cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
                             f"actual {len(invoke.args)} expected: {len(params)}")
