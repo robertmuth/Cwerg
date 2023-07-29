@@ -120,7 +120,7 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc):
 
 
 def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
-    assert isinstance(node.x_type, cwast.TypeArray)
+    assert node.x_type.is_array()
     pointer_field, length_field = slice_rec.fields
     width = node.x_type.size.x_value
     assert width is not None
@@ -133,7 +133,7 @@ def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
 
 
 def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
-    assert isinstance(node.x_type, cwast.TypeSlice)
+    node.x_type.is_slice()
     assert node.x_type.mut
     # assert node.x_type.type == slice_rec.fields[0].x_type
     return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
@@ -145,11 +145,11 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
     array -> slice
     array-mut -> slice-mut
     """
-    if isinstance(rhs.x_type, cwast.TypeSlice):
+    if rhs.x_type.is_slice():
         assert lhs_type.type == rhs.x_type.type
         assert not lhs_type.mut and rhs.x_type.mut
         return _ConvertMutSliceValRecToSliceValRec(rhs, def_rec)
-    elif isinstance(rhs.x_type, cwast.TypeArray):
+    elif rhs.x_type.is_array():
         return _ConvertValArrayToSliceValRec(rhs, def_rec, srcloc)
     else:
         assert False
@@ -174,22 +174,22 @@ def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
         # Also look into the initialization of structs
         if isinstance(node, cwast.StmtAssignment):
             if (node.lhs.x_type != node.expr_rhs.x_type and
-                isinstance(node.lhs.x_type, cwast.TypeSlice) and
-                    isinstance(node.expr_rhs.x_type, cwast.TypeArray)):
+                node.lhs.x_type.is_slice() and
+                    node.expr_rhs.x_type.is_array()):
                 node.expr_rhs = _MakeValSliceFromArray(
                     node.expr_rhs, node.lhs.x_type, tc, uint_type)
         elif isinstance(node, cwast.FieldVal):
             if (node.x_type != node.value.x_type and
-                isinstance(node.x_type, cwast.TypeSlice) and
-                    isinstance(node.value.x_type, cwast.TypeArray)):
+                node.x_type.is_slice() and
+                    node.value.x_type.is_array()):
                 node.value = _MakeValSliceFromArray(
                     node.value, node.x_type, tc, uint_type)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             initial = node.initial_or_undef_or_auto
             if not isinstance(initial, cwast.ValUndef):
                 if (node.type_or_auto.x_type != initial.x_type and
-                    isinstance(node.type_or_auto.x_type, cwast.TypeSlice) and
-                        isinstance(initial.x_type, cwast.TypeArray)):
+                    node.type_or_auto.x_type.is_slice() and
+                        initial.x_type.is_array()):
                     node.initial_or_undef_or_auto = _MakeValSliceFromArray(
                         initial, node.type_or_auto.x_type, tc, uint_type)
         elif isinstance(node, cwast.StmtReturn):

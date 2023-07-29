@@ -30,8 +30,10 @@ def is_ref_def(node) -> bool:
 def address_can_be_taken(node) -> bool:
     return (is_ref_def(node) or
             isinstance(node, cwast.ExprDeref) or
-            isinstance(node, cwast.ExprIndex) and isinstance(node.container.x_type, cwast.TypeSlice) or
-            isinstance(node, cwast.ExprIndex) and address_can_be_taken(node.container))
+            isinstance(node, cwast.ExprIndex) and
+            node.container.x_type.is_slice() or
+            isinstance(node, cwast.ExprIndex) and
+            address_can_be_taken(node.container))
 
 
 def ComputeStringSize(raw: bool, string: str) -> int:
@@ -182,7 +184,8 @@ def AnnotateNodeField(node, field_node: cwast.RecField):
     node.x_field = field_node
 
 
-def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.CanonType, ctx: _TypeContext) -> cwast.CanonType:
+def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.CanonType, 
+                           ctx: _TypeContext) -> cwast.CanonType:
     """Do not call this outside of functions"""
     extra = "" if target_type == type_corpus.NO_TYPE else f"[{target_type.name}]"
     logger.debug("TYPIFYING%s %s", extra, node)
@@ -202,7 +205,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.
         assert cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS or cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS
         # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
         _TypifyNodeRecursively(def_node, tc, target_type, ctx)
-        if isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefRec, cwast.EnumVal, cwast.DefEnum)):
+        if isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefRec, cwast.EnumVal,
+                                 cwast.DefEnum)):
             cstr = def_node.x_type
         elif isinstance(def_node, cwast.FunParam):
             cstr = def_node.type.x_type
@@ -414,7 +418,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.
         if not ct.is_slice() and not ct.is_array():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
-        return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, ct.underlying_array_or_slice_type()))
+        p_type = tc.insert_ptr_type(node.mut, ct.underlying_array_or_slice_type())
+        return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.insert_base_type(
             cwast.BASE_TYPE_KIND.BOOL), ctx)
@@ -555,7 +560,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus, target_type: cwast.
         else:
             ptr_type = _TypifyNodeRecursively(
                 node.pointer, tc, type_corpus.NO_TYPE, ctx)
-            return AnnotateNodeType(node, tc.insert_slice_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
+            return AnnotateNodeType(
+                node, tc.insert_slice_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
     else:
         assert False, f"unexpected node {node}"
 
@@ -688,7 +694,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
             assert type_corpus.is_mutable_container(
                 node.container), f"container not mutable: {node} {node.container}"
 
-        if isinstance(node.container.x_type, cwast.TypeArray):
+        if node.container.x_type.is_array():
             # TODO: check if address can be taken
             pass
 
