@@ -557,7 +557,7 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
             assert res is not None
             print(f"{TAB}st {dst.base} {offset} = {res}")
         elif isinstance(init, cwast.ExprFront):
-            assert isinstance(init.container.x_type, cwast.TypeArray)
+            assert init.container.x_type.is_array()
             res = _GetLValueAddress(init.container, tc, id_gen)
             print(f"{TAB}st {dst.base} {offset} = {res}")
         elif isinstance(init, cwast.ExprDeref):

@@ -19,7 +19,7 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-def _MakeSliceReplacementStruct(slice: cwast.TypeSlice, 
+def _MakeSliceReplacementStruct(slice: cwast.TypeSlice,
                                 tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     srcloc = slice.x_srcloc
     pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
@@ -165,6 +165,9 @@ def _MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.Type
     return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
 
 
+
+
+
 def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
     """Eliminate all the implcit Array to Slice conversions. """
     uint_type: cwast.CanonType = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
@@ -173,23 +176,17 @@ def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
         nonlocal tc, uint_type
         # Also look into the initialization of structs
         if isinstance(node, cwast.StmtAssignment):
-            if (node.lhs.x_type != node.expr_rhs.x_type and
-                node.lhs.x_type.is_slice() and
-                    node.expr_rhs.x_type.is_array()):
+            if node.lhs.x_type.is_slice() and node.expr_rhs.x_type.is_array():
                 node.expr_rhs = _MakeValSliceFromArray(
                     node.expr_rhs, node.lhs.x_type, tc, uint_type)
         elif isinstance(node, cwast.FieldVal):
-            if (node.x_type != node.value.x_type and
-                node.x_type.is_slice() and
-                    node.value.x_type.is_array()):
+            if node.x_type.is_slice() and node.value.x_type.is_array():
                 node.value = _MakeValSliceFromArray(
                     node.value, node.x_type, tc, uint_type)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             initial = node.initial_or_undef_or_auto
             if not isinstance(initial, cwast.ValUndef):
-                if (node.type_or_auto.x_type != initial.x_type and
-                    node.type_or_auto.x_type.is_slice() and
-                        initial.x_type.is_array()):
+                if node.type_or_auto.x_type.is_slice() and initial.x_type.is_array():
                     node.initial_or_undef_or_auto = _MakeValSliceFromArray(
                         initial, node.type_or_auto.x_type, tc, uint_type)
         elif isinstance(node, cwast.StmtReturn):
@@ -201,9 +198,7 @@ def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
                 assert isinstance(target, cwast.ExprStmt)
                 expected = target.x_type
 
-            if (expected != node.expr_ret.x_type and
-                isinstance(expected, cwast.TypeSlice) and
-                    isinstance(node.expr_ret.x_type, cwast.TypeArray)):
+            if expected.is_slice() and node.expr_ret.x_type.is_array():
                 node.expr_ret = _MakeValSliceFromArray(
                     node.expr_ret, expected, tc, uint_type)
         elif isinstance(node, cwast.ExprCall):
