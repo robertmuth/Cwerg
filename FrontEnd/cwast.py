@@ -43,6 +43,7 @@ class BASE_TYPE_KIND(enum.Enum):
     VOID = 40
     NORET = 41
     BOOL = 42
+    TYPEID = 43
 
 
 @enum.unique
@@ -353,7 +354,8 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
               "ExprField", "ExprCall", "ExprParen",
               "Expr1", "Expr2", "Expr3", "ExprPointer",
-              "ExprLen", "ExprFront", "ExprSizeof", "ExprOffsetof", "ExprStmt",
+              "ExprLen", "ExprFront",
+              "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs", "ExprBitCast")
 
@@ -406,6 +408,7 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "raw", "ignore escape sequences in string"),
     NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
     NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
+    NFD(NFK.ATTR_BOOL, "untagged", "sum type is untagged"),
     NFD(NFK.ATTR_STR, "doc", "comment"),
 
     #
@@ -895,9 +898,12 @@ BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
     BASE_TYPE_KIND.S64: 8,
     BASE_TYPE_KIND.R32: 4,
     BASE_TYPE_KIND.R64: 8,
+    BASE_TYPE_KIND.TYPEID: 2,
+    BASE_TYPE_KIND.BOOL: 1,
+    #
     BASE_TYPE_KIND.VOID: 0,
     BASE_TYPE_KIND.NORET: 0,
-    BASE_TYPE_KIND.BOOL: 1,
+
 }
 
 
@@ -1020,6 +1026,8 @@ class TypeSum:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     types: List[NODES_TYPES_T]
+    #
+    untagged: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
@@ -1690,10 +1698,30 @@ class ExprBitCast:
 
 @NodeCommon
 @dataclasses.dataclass()
+class ExprTypeId:
+    """TypeId of type
+
+    result has type is `typeid`"""
+    ALIAS = "typeid"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    #
+    type: NODES_TYPES_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
 class ExprSizeof:
     """Byte size of type
 
-    Type is `uint`"""
+    result has type is `uint`"""
     ALIAS = "sizeof"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE

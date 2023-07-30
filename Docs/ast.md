@@ -67,6 +67,7 @@
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
+[ExprTypeId&nbsp;(typeid)](#exprtypeid-typeid) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
@@ -247,6 +248,9 @@ Sum types (tagged unions)
 
 Fields:
 * types [LIST]: union types
+
+Flags:
+* untagged: sum type is untagged
 
 
 ## Statement Node Details
@@ -874,7 +878,7 @@ Fields:
 ### ExprSizeof (sizeof)
 Byte size of type
 
-    Type is `uint`
+    result has type is `uint`
 
 Fields:
 * type [NODE]: type expression
@@ -918,6 +922,15 @@ Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
 * default_or_undef [NODE]: value if type narrowing fail or trap if undef
+
+
+### ExprTypeId (typeid)
+TypeId of type
+
+    result has type is `typeid`
+
+Fields:
+* type [NODE]: type expression
 
 
 ### ExprUnsafeCast (cast)
@@ -1084,6 +1097,7 @@ Flags:
 |VOID      |
 |NORET     |
 |BOOL      |
+|TYPEID    |
 
 ### ModParam Kind
 

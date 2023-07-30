@@ -107,6 +107,8 @@ _BASE_TYPE_MAP = {
     cwast.BASE_TYPE_KIND.R64: ["F64"],
     #
     cwast.BASE_TYPE_KIND.BOOL: ["U8"],
+    cwast.BASE_TYPE_KIND.TYPEID: ["U16"],
+    #
     cwast.BASE_TYPE_KIND.VOID: [],
     cwast.BASE_TYPE_KIND.NORET: [],
 }

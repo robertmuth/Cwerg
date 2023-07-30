@@ -939,6 +939,9 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
     ELIMIMATED_NODES.add(cwast.Case)
+    # TODO
+    ELIMIMATED_NODES.add(cwast.ExprTypeId)
+
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
