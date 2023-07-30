@@ -308,11 +308,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValUndef):
         assert False, "Must not try to typify UNDEF"
     elif isinstance(node, cwast.ValNum):
-        ct = tc.get_type_for_num_literal(node.number, target_type)
-        if ct != type_corpus.NO_TYPE:
-            return AnnotateNodeType(node, ct)
-        cwast.CompilerError(
-            node.x_srcloc, f"cannot determine number type of: {node}")
+        target_kind = target_type.base_type_kind if target_type else cwast.BASE_TYPE_KIND.INVALID
+        actual_kind = ParseNumRaw(node.number, target_kind)[1]
+        ct = tc.insert_base_type(actual_kind)
+        return AnnotateNodeType(node, ct)
+
     elif isinstance(node, cwast.ValAuto):
         assert target_type is not None
         return AnnotateNodeType(node, target_type)

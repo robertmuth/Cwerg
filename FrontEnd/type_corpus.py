@@ -178,7 +178,7 @@ class TypeCorpus:
             return self.sint_kind
         else:
             return kind
-        
+
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
         num_void = 0
@@ -388,16 +388,3 @@ class TypeCorpus:
         if len(out) == 1:
             return out[0]
         return self.insert_sum_type(out)
-
-    def get_type_for_num_literal(self, num: str, default: Optional[cwast.CanonType]) -> cwast.CanonType:
-        for x in ("s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "r32", "r64"):
-            if num.endswith(x):
-                return self.corpus[x]
-        if num.endswith("sint"):
-            return self.corpus[self.sint_kind.name.lower()]
-        elif num.endswith("uint"):
-            return self.corpus[self.uint_kind.name.lower()]
-        elif default is not None:
-            return default
-        else:
-            return NO_TYPE
