@@ -171,6 +171,14 @@ class TypeCorpus:
                 continue
             self.insert_base_type(kind)
 
+    def convert_int(self, kind):
+        if kind is cwast.BASE_TYPE_KIND.UINT:
+            return self.uint_kind
+        elif kind is cwast.BASE_TYPE_KIND.SINT:
+            return self.sint_kind
+        else:
+            return kind
+        
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
         num_void = 0
@@ -295,10 +303,7 @@ class TypeCorpus:
         return ct
 
     def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
-        if kind == cwast.BASE_TYPE_KIND.UINT:
-            kind = self.uint_kind
-        elif kind == cwast.BASE_TYPE_KIND.SINT:
-            kind = self.sint_kind
+        kind = self.convert_int(kind)
         return self._insert(cwast.CanonType(cwast.TypeBase, kind.name.lower(), base_type_kind=kind))
 
     def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:

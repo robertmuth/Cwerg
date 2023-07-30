@@ -59,38 +59,53 @@ def ComputeStringSize(raw: bool, string: str) -> int:
     return n
 
 
-def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
+def ParseNumRaw(num: str, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
+    def get_kind(length):
+        return cwast.BASE_TYPE_KIND[num[-length:].upper()]
+
     if num[0] == "'":
+        assert kind is not cwast.BASE_TYPE_KIND.INVALID
         assert num[-1] == "'"
         if num[1] == "\\":
             if num[2] == "n":
-                return 10
+                return 10, kind
             assert False, f"unsupported escape sequence: [{num}]"
 
         else:
-            return ord(num[1])
+            return ord(num[1]), kind
 
     num = num.replace("_", "")
     if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
-        return int(num[: -3], 0)
+        return int(num[: -3], 0), get_kind(3)
     elif num[-2:] in ("u8", "s8"):
-        return int(num[: -2], 0)
+        return int(num[: -2], 0), get_kind(2)
     elif num[-4:] in ("uint", "sint"):
-        return int(num[: -4], 0)
+        return int(num[: -4], 0), get_kind(4)
     elif num[-3:] in ("r32", "r64"):
-        return float(num[: -3])
+        return float(num[: -3]), get_kind(3)
     elif kind in cwast.BASE_TYPE_KIND_INT:
-        return int(num, 0)
+        return int(num, 0), kind
     elif kind in cwast.BASE_TYPE_KIND_REAL:
         if "p" in num:
-            return float.fromhex(num)
-        return float(num)
+            return float.fromhex(num), kind
+        return float(num), kind
     else:
-        assert kind is cwast.BASE_TYPE_KIND.INVALID
-        if "." in num:
-            return float(num)
-        else:
-            return int(num, 0)
+        assert False, f"{num} {kind}"
+
+
+def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
+    val, _ = ParseNumRaw(num, kind)
+    bitsize = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
+    if kind in cwast.BASE_TYPE_KIND_UINT:
+        assert 0 <= val < (1 << bitsize), f"val {num} ouy of bounds for {kind}"
+    elif kind in cwast.BASE_TYPE_KIND_SINT:
+        t = 1 << (bitsize - 1)
+        if val >= t:
+            if num.startswith("0x"):
+                val -= t * 2
+        assert -t <= val < t
+
+    return val
 
 
 def ParseArrayIndex(pos: str) -> int:
@@ -145,19 +160,19 @@ def is_compatible_for_as(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
     return False
 
 
-def _ComputeArrayLength(node) -> int:
+def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
     if isinstance(node, cwast.ValNum):
-        return ParseNum(node.number, cwast.BASE_TYPE_KIND.INVALID)
+        return ParseNumRaw(node.number, kind)[0]
     elif isinstance(node, cwast.Id):
         node = node.x_symbol
-        return _ComputeArrayLength(node)
+        return _ComputeArrayLength(node, kind)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and not node.mut:
-        return _ComputeArrayLength(node.initial_or_undef_or_auto)
+        return _ComputeArrayLength(node.initial_or_undef_or_auto, kind)
     elif isinstance(node, cwast.Expr2):
         if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
-            return _ComputeArrayLength(node.expr1) + _ComputeArrayLength(node.expr2)
+            return _ComputeArrayLength(node.expr1, kind) + _ComputeArrayLength(node.expr2, kind)
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.MUL:
-            return _ComputeArrayLength(node.expr1) * _ComputeArrayLength(node.expr2)
+            return _ComputeArrayLength(node.expr1, kind) * _ComputeArrayLength(node.expr2, kind)
         else:
             assert False
     else:
@@ -241,9 +256,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypeArray):
         # note this is the only place where we need a comptime eval for types
         t = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
-        _TypifyNodeRecursively(node.size, tc, tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT), ctx)
-        dim = _ComputeArrayLength(node.size)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.size, tc, uint_type, ctx)
+        dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
         return AnnotateNodeType(node, tc.insert_array_type(dim, t))
     elif isinstance(node, cwast.RecField):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
@@ -305,12 +320,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if not isinstance(node.value_or_undef, cwast.ValUndef):
             _TypifyNodeRecursively(node.value_or_undef,
                                    tc, target_type, ctx)
-        index_target = tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
         if isinstance(node.init_index, cwast.ValAuto):
-            AnnotateNodeType(node.init_index, index_target)
+            AnnotateNodeType(node.init_index, uint_type)
         else:
-            _TypifyNodeRecursively(node.init_index, tc, index_target, ctx)
+            _TypifyNodeRecursively(node.init_index, tc, uint_type, ctx)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ValArray):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
@@ -318,9 +332,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             assert isinstance(x, cwast.IndexVal)
             _TypifyNodeRecursively(x, tc, ct, ctx)
         #
-        _TypifyNodeRecursively(node.expr_size, tc, tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT), ctx)
-        dim = _ComputeArrayLength(node.expr_size)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
+        dim = _ComputeArrayLength(node.expr_size, uint_type.base_type_kind)
         return AnnotateNodeType(node, tc.insert_array_type(dim, ct))
     elif isinstance(node, cwast.ValRec):
         ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
@@ -350,8 +364,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             dim, tc.insert_base_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, cstr)
     elif isinstance(node, cwast.ExprIndex):
-        _TypifyNodeRecursively(node.expr_index, tc, tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT), ctx)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.expr_index, tc, uint_type, ctx)
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
         return AnnotateNodeType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
@@ -407,11 +421,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprPointer):
         cstr = _TypifyNodeRecursively(node.expr1, tc, target_type, ctx)
-        _TypifyNodeRecursively(node.expr2, tc, tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT), ctx)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.expr2, tc, uint_type, ctx)
         if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
-            _TypifyNodeRecursively(node.expr_bound_or_undef, tc,  tc.insert_base_type(
-                cwast.BASE_TYPE_KIND.UINT), ctx)
+            _TypifyNodeRecursively(node.expr_bound_or_undef, tc, uint_type, ctx)
         return AnnotateNodeType(node, cstr)
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
@@ -518,8 +531,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             cwast.BASE_TYPE_KIND.BOOL))
     elif isinstance(node, cwast.ExprLen):
         _TypifyNodeRecursively(node.container, tc, type_corpus.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_base_type(
-            cwast.BASE_TYPE_KIND.UINT))
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        return AnnotateNodeType(node, uint_type)
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = _TypifyNodeRecursively(
             node.expr_lhs, tc, type_corpus.NO_TYPE, ctx)
@@ -552,8 +565,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             _TypifyNodeRecursively(c, tc, target_type, ctx)
         return type_corpus.NO_TYPE
     elif isinstance(node, cwast.ValSlice):
-        len_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
-        _TypifyNodeRecursively(node.expr_size, tc, len_type, ctx)
+        uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+        _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
         if isinstance(target_type, cwast.TypeSlice):
             ptr_type = tc.insert_ptr_type(target_type.mut, target_type.type)
             _TypifyNodeRecursively(node.pointer, tc, ptr_type, ctx)

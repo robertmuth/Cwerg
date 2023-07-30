@@ -193,7 +193,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: iden
         offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size,
                                      tc, id_gen)
         return BaseOffset(base, offset)
-            
+
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
     elif isinstance(node, cwast.ExprField):
@@ -941,7 +941,6 @@ def main():
     ELIMIMATED_NODES.add(cwast.Case)
     # TODO
     ELIMIMATED_NODES.add(cwast.ExprTypeId)
-
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
