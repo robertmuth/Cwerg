@@ -16,7 +16,9 @@ set a complexity budget for about 10kLOC for a compiler frontend with basic opti
 All control flow and all memory allocation is explicit.
 
 Discouraged practices are possible but require explicit overrides, e.g.:
-uninitialized variables, global visibility, mutability, ...
+uninitialized variables, global visibility, mutability, unchecked array accesses,
+untagged unions, ...
+...
 
 ## Syntax
   
