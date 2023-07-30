@@ -382,6 +382,9 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
 
         # This helps catching missing closing braces early
         if cwast.NF.TOP_LEVEL in cls.FLAGS:
+            if parent_cls is None:
+                cwast.CompilerError(
+                    stream.srcloc(), f"toplevel node {cls.__name__} outside of module")
             if parent_cls is not cwast.DefMod:
                 cwast.CompilerError(stream.srcloc(
                 ), f"toplevel node {cls.__name__} not allowed in {parent_cls.__name__}")
