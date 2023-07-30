@@ -87,8 +87,8 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
                                      x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
                                  x_srcloc=srcloc)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc), node.expr_f,
-                                 x_srcloc=srcloc)
+            def_f = cwast.DefVar(name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc),
+                                 node.expr_f, x_srcloc=srcloc)
 
             expr = cwast.ExprStmt([], x_srcloc=srcloc,
                                   x_type=node.x_type, x_value=node.x_value)
@@ -137,7 +137,8 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 #    new_assignment = _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
 #    return cwast.EphemeralList(True, [def_node, new_assignment])
 #
-def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment, lhs: cwast.ExprField, id_gen):
+def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment,
+                                       lhs: cwast.ExprField, id_gen):
     if isinstance(lhs.container, cwast.Id):
         return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
     elif isinstance(lhs.container, cwast.ExprDeref):
@@ -231,7 +232,8 @@ def OptimizeKnownConditionals(node):
     cwast.VisitAstRecursivelyPost(node, replacer)
 
 
-def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus, srcloc):
+def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
+                  tc: type_corpus.TypeCorpus, srcloc):
     container_type: cwast.CanonType = node.container.x_type
     bound = None
     if container_type.is_array():

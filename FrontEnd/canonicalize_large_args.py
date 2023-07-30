@@ -97,7 +97,8 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
             typify.UpdateNodeType(node, changing_params[node.x_symbol])
             return new_node
-        elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
+
+        if isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
             result_param: cwast.FunParam = fun.params[-1]
             result_type: cwast.CanonType = result_param.type.x_type
             assert result_type.is_pointer()
@@ -128,7 +129,8 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
             # note: new_sig might be longer if the result type was changed
-            for n, (old, new) in enumerate(zip(old_sig.parameter_types(), new_sig.parameter_types())):
+            for n, (old, new) in enumerate(zip(old_sig.parameter_types(),
+                                               new_sig.parameter_types())):
                 if old != new:
                     new_def = cwast.DefVar(id_gen.NewName(f"arg{n}"),
                                            cwast.TypeAuto(
@@ -148,8 +150,8 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
                                        mut=True, ref=True,
                                        x_srcloc=call.x_srcloc)
-                name = cwast.Id(new_def.name,
-                                x_srcloc=call.x_srcloc, x_type=old_sig.result_type(), x_symbol=new_def)
+                name = cwast.Id(new_def.name, x_srcloc=call.x_srcloc,
+                                x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
                 typify.UpdateNodeType(

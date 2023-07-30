@@ -53,7 +53,8 @@ def _DoesFunSigContainSlices(fun_sig: cwast.CanonType, slice_to_struct_map) -> b
     return False
 
 
-def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus, slice_to_struct_map) -> cwast.TypeFun:
+def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus, 
+                        slice_to_struct_map) -> cwast.TypeFun:
     assert fun_sig.is_fun()
     result = slice_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
@@ -136,7 +137,8 @@ def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
     node.x_type.is_slice()
     assert node.x_type.mut
     # assert node.x_type.type == slice_rec.fields[0].x_type
-    return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
+    return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc),
+                    x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
 
 
 def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
@@ -163,9 +165,6 @@ def _MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.Type
     length = cwast.ValNum(f"{width}", x_value=width,
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
-
-
-
 
 
 def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):

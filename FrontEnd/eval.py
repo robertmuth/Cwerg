@@ -478,8 +478,8 @@ def VerifyASTEvalsRecursively(node):
                             node.x_srcloc, f"expected const node: {node} inside {parent}")
 
         if field == "init_index":
-            assert node.x_value is not None or isinstance(node,
-                                                          cwast.ValAuto), f"unevaluated ValArray init index: {node}"
+            assert (node.x_value is not None or
+                    isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeArray):

@@ -61,6 +61,7 @@ def ReadAttrs(t: str, attr, stream):
 
 class ReadTokens:
     """Reader for Lexical tokens implemented as a generator"""
+
     def __init__(self, fp, filename):
         self._fp = fp
         self.line_no = 0
@@ -341,7 +342,8 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], attr, stream:
                 optional_val = cwast.GetOptional(field, srcloc)
                 if optional_val is None:
                     cwast.CompilerError(
-                        stream.srcloc(), f"in {cls.__name__} unknown optional (or missing) field: {field}")
+                        stream.srcloc(),
+                        f"in {cls.__name__} unknown optional (or missing) field: {field}")
                 pieces.append(optional_val)
 
             else:
@@ -410,6 +412,9 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
     return asts
 
 
+############################################################
+#
+############################################################
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARN)

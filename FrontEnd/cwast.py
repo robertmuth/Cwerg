@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 
-"""AST Nodes and SExpr reader/writer for the Cwerg frontend
-
-
-"""
+"""AST Nodes and SExpr reader/writer for the Cwerg frontend"""
 
 import sys
 import dataclasses
