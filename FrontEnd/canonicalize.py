@@ -253,14 +253,14 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
 def ReplaceExprIndex(node, tc):
     uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
 
-    def replacer(node, field):
+    def replacer(node, _, is_lhs):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprIndex):
-            return _ConvertIndex(node, field == "lhs", uint_type, tc, node.x_srcloc)
-        else:
-            return None
+            return _ConvertIndex(node, is_lhs, uint_type, tc, node.x_srcloc)
 
-    cwast.MaybeReplaceAstRecursively(node, replacer)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyWithLhs(node, replacer)
 
 
 def CanonicalizeDefer(node, scopes):

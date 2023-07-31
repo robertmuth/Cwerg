@@ -46,13 +46,29 @@
 (global @mut gar2 (array 5 type_rec2) undef)
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    @doc "LOCAL"
+    @doc "gr1 s64"
     (= (. gr1 i1) 0x8765432187654321)
     (test::AssertEq (. gr1 i1) 0x8765432187654321_s64)
     (+= (. gr1 i1) 0x1)
     (test::AssertEq (. gr1 i1) 0x8765432187654322_s64)
-     (= (. gr1 i2) 0x1234567812345678)
+     @doc "gr1 u64"
+    (= (. gr1 i2) 0x1234567812345678)
     (test::AssertEq (. gr1 i2) 0x1234567812345678_u64)
+    (-= (. gr1 i2) 0x1)
+    (test::AssertEq (. gr1 i2) 0x1234567812345677_u64)
+    @doc "gar1 s64"
+    (= (. (at gar1 3) i1) 0x8765432187654321)
+    (test::AssertEq (. (at gar1 3) i1) 0x8765432187654321_s64)
+    @doc """
+    @doc "gr2 s64"
+    (= (. (. gr2 t3) i1) 0x8765432187654321)
+    (test::AssertEq (. (. gr2 t3) i1) 0x8765432187654321_s64)
+    (+= (. (. gr2 t3) i1) 0x1)
+    (test::AssertEq (. (. gr2 t3) i1) 0x8765432187654322_s64)
+     @doc "gr2 u64"
+    (= (. (. gr2 t3) i2) 0x1234567812345678)
+    (test::AssertEq (. (. gr2 t3) i2) 0x1234567812345678_u64)
+    """
     (stmt (call SysPrint ["OK\n"]))
     (return 0))
 
