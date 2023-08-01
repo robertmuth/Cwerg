@@ -27,22 +27,24 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
-tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) test_emit
+tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) test_lang test_emit
 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
 tests_pp_py: $(TESTS_PP)
 
-test_emit: \
+test_lang: \
     $(DIR)/assign_test.x64.exe \
     $(DIR)/rec_test.x64.exe \
+    $(DIR)/defer_test.x64.exe 
+
+test_emit: \
     $(DIR)/hello_world.x64.exe \
     $(DIR)/fizzbuzz.x64.exe \
 	$(DIR)/heapsort.x64.exe \
     $(DIR)/print_argv.x64.exe \
     $(DIR)/sieve.x64.exe \
-    $(DIR)/defer.x64.exe \
     $(DIR)/polymorphic.x64.exe \
     $(DIR)/string.x64.exe \
     $(DIR)/trig_test.x64.exe \
@@ -100,20 +102,6 @@ $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  
 
-$(DIR)/defer.x64.exe: TestData/defer.cw
-	./emit_ir.py Lib/builtin.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/rec_test.x64.exe: TestData/rec_test.cw
-	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/assign_test.x64.exe: TestData/assign_test.cw
-	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
 
 $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
@@ -125,6 +113,26 @@ $(DIR)/string.x64.exe: Lib/string_test.cw
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
+
+## Lang Tests
+
+$(DIR)/rec_test.x64.exe: LangTest/rec_test.cw
+	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/assign_test.x64.exe: LangTest/assign_test.cw
+	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/defer_test.x64.exe: LangTest/defer_test.cw
+	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+## Lib Tests
+
 $(DIR)/trig_test.x64.exe: Lib/trig_test.cw
 	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/math.cw Lib/trig.cw  $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
@@ -134,6 +142,8 @@ $(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
 	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/checksum.cw  $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
+
+##
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	./emit_ir.py Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
