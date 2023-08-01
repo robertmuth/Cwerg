@@ -59,7 +59,6 @@
     @doc "gar1 s64"
     (= (. (at gar1 3) i1) 0x8765432187654321)
     (test::AssertEq (. (at gar1 3) i1) 0x8765432187654321_s64)
-    @doc """
     @doc "gr2 s64"
     (= (. (. gr2 t3) i1) 0x8765432187654321)
     (test::AssertEq (. (. gr2 t3) i1) 0x8765432187654321_s64)
@@ -68,7 +67,7 @@
      @doc "gr2 u64"
     (= (. (. gr2 t3) i2) 0x1234567812345678)
     (test::AssertEq (. (. gr2 t3) i2) 0x1234567812345678_u64)
-    """
+    @doc "test end"
     (stmt (call SysPrint ["OK\n"]))
     (return 0))
 

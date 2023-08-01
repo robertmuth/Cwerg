@@ -123,6 +123,25 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
     return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
 
 
+def _FixUpLhs(lhs, stmts, id_gen):
+    if isinstance(lhs, cwast.Id):
+        return lhs
+    elif isinstance(lhs, cwast.ExprDeref):
+        def_node = cwast.DefVar(id_gen.NewName("assign"),
+                                cwast.TypeAuto(x_srcloc=lhs.x_srcloc,
+                                               x_type=lhs.pointer_expr.x_type),
+                                lhs.pointer_expr, x_srcloc=lhs.x_srcloc)
+        stmts.append(def_node)
+        return _IdNodeFromDef(def_node, lhs.x_srcloc)
+    elif isinstance(lhs, cwast.ExprField):
+        lhs.container = _FixUpLhs(lhs.container, stmts, id_gen)
+        return lhs
+    elif isinstance(lhs, cwast.ExprIndex):
+        assert False
+    else:
+        assert False
+
+
 # Note, the desugaring of CompoundAssignment is made more complicated because we do not want
 # just take the address of an object.
 # Otherwise, we could just do:
@@ -137,40 +156,20 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 #    new_assignment = _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
 #    return cwast.EphemeralList(True, [def_node, new_assignment])
 #
-def _HandleCompoundAssignmentExprField(node: cwast.StmtCompoundAssignment,
-                                       lhs: cwast.ExprField, id_gen):
-    if isinstance(lhs.container, cwast.Id):
-        return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
-    elif isinstance(lhs.container, cwast.ExprDeref):
-        pointer_expr = lhs.container.expr
-        if isinstance(pointer_expr, cwast.Id):
-            return _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
-        def_node = cwast.DefVar(id_gen.NewName("assign"),
-                                cwast.TypeAuto(x_srcloc=node.x_srcloc,
-                                               x_type=pointer_expr.x_type),
-                                pointer_expr, x_srcloc=node.x_srcloc)
-        deref = cwast.ExprDeref(_IdNodeFromDef(
-            def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.container.x_type)
-        field_access = cwast.ExprField(
-            deref, lhs.field, x_field=lhs.field, x_type=lhs.x_type, x_srcloc=lhs.x_srcloc)
-        new_assignment = _AssigmemtNode(
-            node.assignment_kind, field_access, node.expr_rhs, node.x_srcloc)
-        return cwast.EphemeralList([def_node, new_assignment], colon=True)
-
-    else:
-        assert False, "NYI"
 
 
 def CanonicalizeCompoundAssignments(node, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node, _):
         if isinstance(node, cwast.StmtCompoundAssignment):
-            if isinstance(node.lhs, cwast.Id):
-                return _AssigmemtNode(node.assignment_kind, node.lhs, node.expr_rhs, node.x_srcloc)
-            elif isinstance(node.lhs, cwast.ExprField):
-                return _HandleCompoundAssignmentExprField(node, node.lhs, id_gen)
-            else:
-                assert False, "NYI"
+            stmts = []
+            new_lhs = _FixUpLhs(node.lhs, stmts, id_gen)
+            assignment = _AssigmemtNode(node.assignment_kind, new_lhs,
+                                        node.expr_rhs, node.x_srcloc)
+            if not stmts:
+                return assignment
+            stmts.append(new_lhs)
+            return cwast.EphemeralList(stmts, colon=True)
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
     cwast.EliminateEphemeralsRecursively(node)
