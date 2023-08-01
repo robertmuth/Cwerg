@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 
-"""Translator from AST to Cwerg IR
-
-"""
+"""Translator from AST to Cwerg IR"""
 
 import logging
 import argparse
@@ -185,7 +183,8 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
         return scaled
 
 
-def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> BaseOffset:
+def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
+                                  id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_array(), f"{x_type}"
@@ -252,7 +251,8 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 
-def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TypeCorpus,
+                      id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
         if not invert:
@@ -465,7 +465,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         assert False, f"unsupported expression {node.x_srcloc} {node}"
 
 
-def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRExprToMemory(node, dst: BaseOffset, tc: type_corpus.TypeCorpus,
+                       id_gen: identifier.IdGenIR):
     if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                          cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                          cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
@@ -516,7 +517,8 @@ def _AssignmentLhsIsInReg(lhs):
         assert False, f"unpected lhs {lhs}"
 
 
-def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, id_gen: identifier.IdGenIR):
+def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, 
+              id_gen: identifier.IdGenIR):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
@@ -530,7 +532,8 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, id_gen: ident
             curr += width
 
 
-def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus,
+                        id_gen: identifier.IdGenIR):
 
     def emit_recursively(offset, init):
         nonlocal dst, tc, id_gen
@@ -570,7 +573,8 @@ def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus, 
     emit_recursively(dst.offset, src_init)
 
 
-def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus,
+               id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type: cwast.CanonType = node.type_or_auto.x_type
         # This uniquifies names

@@ -35,7 +35,8 @@ def is_mutable(cstr:  cwast.CanonType, actual_is_lvalue=False) -> bool:
         assert False, f"unexpected node for mutable test: {cstr}"
 
 
-def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType, actual_is_lvalue=False) -> bool:
+def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
+                  actual_is_lvalue=False) -> bool:
     if actual == expected:
         return True
 
@@ -346,7 +347,8 @@ class TypeCorpus:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
-        return self._insert(cwast.CanonType(cwast.DefEnum, name, base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
+        return self._insert(cwast.CanonType(cwast.DefEnum, name,
+                                            base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
     def insert_sum_type(self, components: List[cwast.CanonType]) -> cwast.CanonType:
         assert len(components) > 1
@@ -361,7 +363,8 @@ class TypeCorpus:
         name = f"sum<{','.join(pp)}>"
         return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces))
 
-    def insert_fun_type(self, params: List[cwast.CanonType], result: cwast.CanonType) -> cwast.CanonType:
+    def insert_fun_type(self, params: List[cwast.CanonType],
+                        result: cwast.CanonType) -> cwast.CanonType:
         x = [p.name for p in params]
         x.append(result.name)
         name = f"fun<{','.join(x)}>"
