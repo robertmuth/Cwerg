@@ -38,6 +38,7 @@
     (field u6 u64))
 
 
+(global @mut ga1  (array 5 s64) undef)
 
 (global @mut gr1 type_rec1 undef)
 (global @mut gar1 (array 5 type_rec1) undef)
@@ -46,6 +47,11 @@
 (global @mut gar2 (array 5 type_rec2) undef)
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    @doc "a1 u32"
+    (= (at ga1 3) 0x8765432187654321)
+    (test::AssertEq (at ga1 3) 0x8765432187654321_s64)
+    (+= (at ga1 3) 0x1)
+    (test::AssertEq (at ga1 3) 0x8765432187654322_s64)
     @doc "gr1 s64"
     (= (. gr1 i1) 0x8765432187654321)
     (test::AssertEq (. gr1 i1) 0x8765432187654321_s64)

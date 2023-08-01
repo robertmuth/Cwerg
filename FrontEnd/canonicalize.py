@@ -127,23 +127,25 @@ def _FixUpLhs(lhs, stmts, id_gen):
     if isinstance(lhs, cwast.Id):
         return lhs
     elif isinstance(lhs, cwast.ExprDeref):
+        if isinstance(lhs.expr, cwast.Id):
+            return lhs
         def_node = cwast.DefVar(id_gen.NewName("assign"),
                                 cwast.TypeAuto(x_srcloc=lhs.x_srcloc,
-                                               x_type=lhs.pointer_expr.x_type),
-                                lhs.pointer_expr, x_srcloc=lhs.x_srcloc)
+                                               x_type=lhs.expr.x_type),
+                                lhs.expr, x_srcloc=lhs.x_srcloc)
         stmts.append(def_node)
-        return _IdNodeFromDef(def_node, lhs.x_srcloc)
+        lhs.expr = _IdNodeFromDef(def_node, lhs.x_srcloc)
+        return lhs
     elif isinstance(lhs, cwast.ExprField):
         lhs.container = _FixUpLhs(lhs.container, stmts, id_gen)
         return lhs
-    elif isinstance(lhs, cwast.ExprIndex):
-        assert False
     else:
+        # note we do not need to deal with  cwast.ExprIndex because that has been lowered
         assert False
 
 
 # Note, the desugaring of CompoundAssignment is made more complicated because we do not want
-# just take the address of an object.
+# just take the address of an object which would mess with the ref attribute.
 # Otherwise, we could just do:
 #    addr_type = tc.insert_ptr_type(True, node.lhs.x_type)
 #    addr = cwast.ExprAddrOf(True, node.lhs,
@@ -168,7 +170,7 @@ def CanonicalizeCompoundAssignments(node, id_gen: identifier.IdGen):
                                         node.expr_rhs, node.x_srcloc)
             if not stmts:
                 return assignment
-            stmts.append(new_lhs)
+            stmts.append(assignment)
             return cwast.EphemeralList(stmts, colon=True)
 
     cwast.MaybeReplaceAstRecursively(node, replacer)
