@@ -46,6 +46,10 @@
 (global @mut gr2 type_rec2 undef)
 (global @mut gar2 (array 5 type_rec2) undef)
 
+(fun get_addr [] (ptr @mut type_rec1) :
+    (return (& @mut gr1))
+)
+
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "a1 u32"
     (= (at ga1 3) 0x8765432187654321)
@@ -62,6 +66,11 @@
     (test::AssertEq (. gr1 i2) 0x1234567812345678_u64)
     (-= (. gr1 i2) 0x1)
     (test::AssertEq (. gr1 i2) 0x1234567812345677_u64)
+     @doc "gr1 u64 via pointer"
+    (= (. (^ (call get_addr [])) i2) 0x1234567812345678)
+    (test::AssertEq (. (^ (call get_addr [])) i2) 0x1234567812345678_u64)
+    (-= (.  (^ (call get_addr [])) i2) 0x1)
+    (test::AssertEq (.  (^ (call get_addr [])) i2) 0x1234567812345677_u64)
     @doc "gar1 s64"
     (= (. (at gar1 3) i1) 0x8765432187654321)
     (test::AssertEq (. (at gar1 3) i1) 0x8765432187654321_s64)
