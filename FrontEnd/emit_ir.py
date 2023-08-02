@@ -330,19 +330,31 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2(binary_expr_kind, res, res_type, op1, op2):
-    op = _BIN_OP_MAP.get(binary_expr_kind)
+def _EmitExpr2(kind: cwast.BINARY_EXPR_KIND, res, ct, op1, op2):
+    res_type = StringifyOneType(ct)
+    op = _BIN_OP_MAP.get(kind)
     if op is not None:
         print(
             f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
-    elif binary_expr_kind is cwast.BINARY_EXPR_KIND.MAX:
+    elif kind is cwast.BINARY_EXPR_KIND.MAX:
         print(
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
-    elif binary_expr_kind is cwast.BINARY_EXPR_KIND.MIN:
+    elif kind is cwast.BINARY_EXPR_KIND.MIN:
         print(
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op1} {op2}")
     else:
-        assert False, f"unsupported expression {binary_expr_kind}"
+        assert False, f"unsupported expression {kind}"
+
+
+def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
+    res_type = StringifyOneType(ct)
+    ff = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind])) - 1
+    if kind is cwast.UNARY_EXPR_KIND.MINUS:
+        print(f"{TAB}sub {res}:{res_type} = 0 {op}")
+    elif kind is cwast.UNARY_EXPR_KIND.NEG:
+        print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")
+    else:
+        assert False, f"unsupported expression {kind}"
 
 
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
@@ -381,12 +393,17 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.expr_lhs, tc, id_gen)
+    elif isinstance(node, cwast.Expr1):
+        op = EmitIRExpr(node.expr, tc, id_gen)
+        res = id_gen.NewName("expr1")
+        _EmitExpr1(node.unary_expr_kind, res, node.x_type, op)
+        return res
+        assert False
     elif isinstance(node, cwast.Expr2):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
         res = id_gen.NewName("expr2")
-        res_type = StringifyOneType(node.x_type)
-        _EmitExpr2(node.binary_expr_kind, res, res_type, op1, op2)
+        _EmitExpr2(node.binary_expr_kind, res, node.x_type, op1, op2)
         return res
     elif isinstance(node, cwast.ExprPointer):
         base = EmitIRExpr(node.expr1, tc, id_gen)
@@ -517,7 +534,7 @@ def _AssignmentLhsIsInReg(lhs):
         assert False, f"unpected lhs {lhs}"
 
 
-def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment, 
+def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
               id_gen: identifier.IdGenIR):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0

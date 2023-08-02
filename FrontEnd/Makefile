@@ -38,6 +38,7 @@ tests_pp_py: $(TESTS_PP)
 tests_lang: \
     $(DIR)/assign_test.lang.x64.exe \
     $(DIR)/rec_test.lang.x64.exe \
+    $(DIR)/expr_test.lang.x64.exe \
     $(DIR)/defer_test.lang.x64.exe 
 
 tests_emit: \
