@@ -222,8 +222,7 @@ class UNARY_EXPR_KIND(enum.Enum):
 
 
 UNARY_EXPR_SHORTCUT = {
-    "!": UNARY_EXPR_KIND.NOT,     # boolean not
-    "not": UNARY_EXPR_KIND.NEG,   # bitwise not for unsigned
+    "!": UNARY_EXPR_KIND.NOT,
     "~": UNARY_EXPR_KIND.MINUS,
 }
 

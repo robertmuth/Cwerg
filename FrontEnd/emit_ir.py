@@ -351,7 +351,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
     ff = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind])) - 1
     if kind is cwast.UNARY_EXPR_KIND.MINUS:
         print(f"{TAB}sub {res}:{res_type} = 0 {op}")
-    elif kind is cwast.UNARY_EXPR_KIND.NEG:
+    elif kind is cwast.UNARY_EXPR_KIND.NOT:
         print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")
     else:
         assert False, f"unsupported expression {kind}"

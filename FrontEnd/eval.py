@@ -148,13 +148,11 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
 
 
 def _eval_not(node) -> bool:
-    assert node.x_type.is_bool()
-    return not node.x_value
-
-
-def _eval_neg(node) -> int:
-    assert node.x_type.is_uint()
-    return ~node.x_value & ((1 << (node.x_type.size * 8)) - 1)
+    if node.x_type.is_bool():
+        return not node.x_value
+    else:
+        assert node.x_type.is_uint()
+        return ~node.x_value & ((1 << (node.x_type.size * 8)) - 1)
 
 
 def _eval_minus(node) -> Any:
@@ -163,7 +161,6 @@ def _eval_minus(node) -> Any:
 
 _EVAL1 = {
     cwast.UNARY_EXPR_KIND.NOT: _eval_not,
-    cwast.UNARY_EXPR_KIND.NEG: _eval_neg,
     cwast.UNARY_EXPR_KIND.MINUS: _eval_minus,
 }
 

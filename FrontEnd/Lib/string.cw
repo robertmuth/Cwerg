@@ -1,7 +1,7 @@
 @doc "String Library"
 (module string [] :
 
-(global @pub NOT_FOUND uint (not 0))
+(global @pub NOT_FOUND uint (! 0))
 
 
 (fun are_two_non_empty_strings_the_same [
