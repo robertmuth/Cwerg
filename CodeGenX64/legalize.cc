@@ -164,22 +164,35 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
               continue;
             }
             case OPC::SHL:
-            case OPC::SHR:
+            case OPC::SHR: {
+              const unsigned bw = DKBitWidth(dk);
+              const unsigned mask = bw - 1;
+
               if (InsOperand(ins, 2).kind() == RefKind::REG) {
+                Const const_mask = DKFlavor(dk) == DK_FLAVOR_U
+                                       ? ConstNewU(dk, mask)
+                                       : ConstNewACS(dk, mask);
                 Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
                 inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
-                const unsigned bw = DKBitWidth(dk);
-                if (bw < 64) {
-                  Const mask = DKFlavor(dk) == DK_FLAVOR_U
-                                   ? ConstNewU(dk, bw - 1)
-                                   : ConstNewACS(dk, bw - 1);
-                  inss->push_back(InsNew(OPC::AND, rcx, rcx, mask));
-                }
+
+                inss->push_back(InsNew(OPC::AND, rcx, rcx, const_mask));
                 inss->push_back(ins);
                 InsOperand(ins, 2) = rcx;
-                dirty = true;
-                continue;
+              } else {
+                Const op_shift = Const(InsOperand(ins, 2));
+                ASSERT(op_shift.kind() == RefKind::CONST, "");
+                if (DKFlavor(dk) == DK_FLAVOR_U) {
+                  InsOperand(ins, 2) =
+                      ConstNewU(dk, ConstValueU(op_shift) & mask);
+                } else {
+                  InsOperand(ins, 2) =
+                      ConstNewACS(dk, ConstValueACS(op_shift) & mask);
+                }
+                inss->push_back(ins);
               }
+              dirty = true;
+              continue;
+            }
             default:
               break;
           }
