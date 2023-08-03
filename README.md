@@ -2,11 +2,6 @@
 
 ![Status](../../workflows/cwerg-tests/badge.svg)
 
-> **_NOTE:_**  The author is looking for projects that want to try out the Cwerg
-> backend. If you are interested in using Cwerg as backend for your own compiler
-> project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md)
-> and/or reach out to the author.
-
 Cwerg aims to be a complete "from-scratch" compiler for a C-like language. 
 The [frontend](FrontEnd) is still in its infancy but the multi-target backend 
 is fairly far along and can be used independently from the frontend.
@@ -25,6 +20,23 @@ code is table driven to facilitate that.
 Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
 of state of the art  compilers) in favor of a small code base that can be
 understood by a single developer and very fast translation times.
+
+### Frontend
+
+Cwerg aims to be a much better C, avoiding some of its problems (pre-processor, 
+array decay to pointer, etc.) while preserving its low level feel (no unexpected 
+memory allocations or control flow changes).
+
+Among the features added are:
+* defer (scheduling code to run code at scope exit)
+* tagged unions (sum types)
+* optionally wrapped types (by-name type equivalence)
+* modules
+* simple hygienic macro system
+* limited polymorphism
+* slices (array views)
+
+More details at [Cwerg Frontend](FrontEnd) 
 
 ### Backend
 
@@ -49,10 +61,12 @@ It currently consists of:
 * [Standard Library](StdLib/) (rudimentary library of mostly syscall wrappers)
 * [C Bindings](BindingsC/) (C bindings: wrappers around the C++ code)
 
-### Frontends
+If you are interested in using Cwerg as backend for your own compiler
+project, please check out [Interfacing with Cwerg](Docs/interfacing_with_cwerg.md)
+and/or reach out to the author.
+ 
+### Other Frontends (predating the Cwerg Frontend)
 
-The following frontends are available:
-* [Cwerg Frontend](FrontEnd) The primary frontend - work in progress
 * [C Frontend](FrontEndC/)  (subset of C to IR compiler)
 * [WASM Frontend](FrontEndWASM/) (WASM/WASI to IR transpiler)
   
