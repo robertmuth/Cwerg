@@ -77,6 +77,8 @@ def is_proper_lhs(node) -> bool:
         return is_proper_lhs(node.container)
     elif isinstance(node, cwast.ExprIndex):
         return is_proper_lhs(node.container) or is_mutable(node.container.x_type)
+    elif isinstance(node, cwast.ExprAs) and node.expr.x_type.is_untagged_sum():
+        return is_proper_lhs(node.expr)
     else:
         return False
 

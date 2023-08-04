@@ -21,6 +21,11 @@
     (test::AssertEq (at (as u3 (array 32 u8)) 2) 0_u8)
     (test::AssertEq (at (as u3 (array 32 u8)) 3) 0x40_u8)
 
+    (= (at (as u3 (array 32 u8)) 2) 0x28_u8)
+    (= (at (as u3 (array 32 u8)) 3) 0x42_u8)
+    (test::AssertEq (as u3 u32) 0x42280000_u32)
+    (test::AssertEq (as u3 r32) 42_r32)
+
     (= u3 2.0_r64)
     (test::AssertEq (as u3 u64) 0x4000000000000000_u64)
     (test::AssertEq (at (as u3 (array 32 u8)) 3) 0_u8)
