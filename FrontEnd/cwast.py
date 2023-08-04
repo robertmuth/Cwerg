@@ -2610,29 +2610,30 @@ def _IsLhs(node, field: str, parent_is_lhs) -> bool:
         return True
     if isinstance(node, ExprPointer) and field == "expr1":
         return True
+    if isinstance(node, ExprAs):
+        return True
     return False
 
 
-def MaybeReplaceAstRecursivelyWithLhs(node, replacer, is_lhs=False):
+def MaybeReplaceAstRecursivelyWithLhsPost(node, replacer, is_lhs=False):
     """Note: the root node will not be replaced"""
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             is_lhs = _IsLhs(node, f, is_lhs)
+            MaybeReplaceAstRecursivelyWithLhsPost(child, replacer, is_lhs)
             new_child = replacer(child, f, is_lhs)
             if new_child:
                 setattr(node, f, new_child)
-            else:
-                MaybeReplaceAstRecursivelyWithLhs(child, replacer, is_lhs)
         elif nfd.kind is NFK.LIST:
             is_lhs = False
             children = getattr(node, f)
             for n, child in enumerate(children):
+                MaybeReplaceAstRecursivelyWithLhsPost(child, replacer, is_lhs)
                 new_child = replacer(child, f, is_lhs)
                 if new_child:
                     children[n] = new_child
-                else:
-                    MaybeReplaceAstRecursivelyWithLhs(child, replacer, is_lhs)
+                
 
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):

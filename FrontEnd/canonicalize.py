@@ -261,7 +261,7 @@ def ReplaceExprIndex(node, tc):
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithLhs(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithLhsPost(node, replacer)
 
 
 def CanonicalizeDefer(node, scopes):
