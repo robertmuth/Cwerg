@@ -73,7 +73,7 @@ class Const:
 
     def IsIntPowerOfTwo(self):
         return isinstance(self.value, int) and (
-                (self.value & (self.value - 1)) == 0)
+            (self.value & (self.value - 1)) == 0)
 
     def IntBinaryLog(self):
         n = self.value
@@ -105,8 +105,14 @@ def ParseConst(value_str: str, kind: o.DK) -> Const:
     if flavor is o.DK_FLAVOR_U:
         assert x >= 0
         assert x < (1 << bit_width)
-    elif x >= 0:
-        assert x < (1 << (bit_width - 1))
+        return Const(kind, x)
+
+    # unsigned hex numbers may represent signed values
+    if value_str.startswith("0x") and x >= (1 << (bit_width - 1)):
+        x = x - (1 << bit_width)
+
+    if x >= 0:
+        assert x < (1 << (bit_width - 1)), f"{x} value out of bounds for {kind}"
     else:
         assert -x <= (1 << (bit_width - 1))
 
@@ -180,10 +186,12 @@ class CpuReg:
 
 @enum.unique
 class REG_FLAG(enum.Flag):
+    """Register Attributes"""
     GLOBAL = 1 << 1  # occurs in multiple bbls (ideally it also live across a bbl boundary)
     MULTI_DEF = 1 << 2  # has multiple definitions
     LAC = 1 << 3  # live across call
-    IS_READ = 1 << 4  # is use at least once  (IS_WRITTEN is synthesized by reg.def_ins != INS_INVALID
+    # is use at least once  (IS_WRITTEN is synthesized by reg.def_ins != INS_INVALID
+    IS_READ = 1 << 4
     MULTI_READ = 1 << 5  # has multiple reads
     TWO_ADDRESS = 1 << 6  # used by x64 backend
     MARKED = 1 << 7
@@ -247,7 +255,8 @@ class Ins:
         self.Init(opcode, operands)
 
     def Init(self, opcode: o.Opcode, operands: List[Any]):
-        assert len(operands) == len(opcode.operand_kinds), f"operand num mismatch for {opcode} {operands}"
+        assert len(operands) == len(
+            opcode.operand_kinds), f"operand num mismatch for {opcode} {operands}"
         self.opcode = opcode
         self.operands = operands
         self.operand_defs = [INS_INVALID] * len(operands)
@@ -280,7 +289,8 @@ class Bbl:
     inss: List[Ins] = dataclasses.field(default_factory=list)
     edge_out: List["Bbl"] = dataclasses.field(default_factory=list)
     edge_in: List["Bbl"] = dataclasses.field(default_factory=list)
-    live_out: Set[Reg] = dataclasses.field(default_factory=set)  # set of reg live at the end of the Bbl
+    # set of reg live at the end of the Bbl
+    live_out: Set[Reg] = dataclasses.field(default_factory=set)
     defs_in: Dict[Reg, Ins] = dataclasses.field(default_factory=dict)
 
     def AddIns(self, ins: Ins):
@@ -309,7 +319,7 @@ class Bbl:
     def index(self, ins: Ins):
         for n, i in enumerate(self.inss):
             if i is ins:
-                return  n
+                return n
         assert False
 
     def __repr__(self):
@@ -336,10 +346,12 @@ class Jtb:
 
 @enum.unique
 class FUN_FLAG(enum.Flag):
+    """Fun Attributes"""
     CFG_NOT_LINEAR = 1 << 1  # bra instructions have been removed
     LIVENESS_VALID = 1 << 2  # liveness info is valid
     STACK_FINALIZED = 1 << 3  # stack size must not change anymore (no more scratch regs!)
-    REACHACHABLE = 1 << 4 
+    REACHACHABLE = 1 << 4
+
 
 class Fun:
     """Function"""
@@ -390,7 +402,7 @@ class Fun:
         slot = 0
         # we only have spilled_regs for x64
         spilled_regs = sorted([reg for reg in self.regs if isinstance(reg.cpu_reg, StackSlot)],
-                              key= lambda reg : (reg.kind.bitwidth(), reg.name))
+                              key=lambda reg: (reg.kind.bitwidth(), reg.name))
         for reg in spilled_regs:
             width = reg.kind.bitwidth() // 8
             slot += width - 1
@@ -528,6 +540,7 @@ class Mem:
 
 @dataclasses.dataclass()
 class DataBytes:
+    """data bytes to be stored"""
     count: int
     data: bytes
     size: int
@@ -541,18 +554,21 @@ class DataBytes:
 
 @dataclasses.dataclass()
 class DataAddrFun:
+    """A function address to be stored as data"""
     size: int
     fun: Fun
 
 
 @dataclasses.dataclass()
 class DataAddrMem:
+    """Memory address to be stored as data"""
     size: int
     mem: Mem  # address being referenced
     offset: int
 
 
 class Unit:
+    """Represents and entire program or a module"""
 
     def __init__(self, name: str):
         self.name = name
@@ -722,23 +738,6 @@ def FunGenericRewriteBbl(fun: Fun, bbl_transformer, **extra) -> int:
     for bbl in fun.bbls:
         count += bbl_transformer(bbl, fun, **extra)
     return count
-
-
-class FunInsKindHistogram:
-
-    def __init__(self, fun: Fun):
-        self.h: Dict[o.OPC_KIND, int] = collections.defaultdict(int)
-        for bbl in fun.bbls:
-            for ins in bbl.inss:
-                self.h[ins.opcode.kind] += 1
-
-    def is_leaf_fun(self):
-        # we intentionally exclude IK_SYSCALL but maybe this should be
-        # rethought
-        return self.h[o.OPC_KIND.BSR] == 0 and self.h[o.OPC_KIND.JSR] == 0
-
-    def has_stk_aliases(self):
-        return self.h[o.OPC_KIND.LEA_IMM] == 0
 
 
 def FunIsLeaf(fun) -> bool:
