@@ -12,8 +12,13 @@
     @doc """(let @mut u4 TaggedUnion 777_u32)"""
     (let @mut u1 UntaggedUnion auto_val)
     (let @mut u2 UntaggedUnion undef)
-    (let @mut u3 UntaggedUnion 666_u32)
+    (let @mut u3 UntaggedUnion 2.0_r32)
 
+    (let s1 u32 (as u3 u32))
+    (test::AssertEq s1 0x40000000_u32)
+
+    (= u3 2.0_r64)
+    (test::AssertEq (as u3 u64) 0x4000000000000000_u64)
 )
 
 

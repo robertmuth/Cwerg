@@ -444,8 +444,17 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         elif ct_dst.is_wrapped() and ct_src is ct_dst.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
+        elif ct_src.is_untagged_sum():
+            if ct_dst.is_base_type():
+                addr = _GetLValueAddress(node.expr, tc, id_gen)
+                res = id_gen.NewName("union_access")
+                print(f"{TAB}ld {res}:{StringifyOneType(ct_dst)} = {addr} 0")
+                return res
+
+            else:
+                assert False
         else:
-            assert False, f"unsupported cast {node.expr} ({node.expr.x_type}) -> {node.type}"
+            assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, cwast.ExprDeref):
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
