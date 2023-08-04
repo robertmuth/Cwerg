@@ -609,6 +609,52 @@ _KIND_TO_IMM_WITH_64 = {
     o.DK.C64: C.SIMM64,
 }
 
+# (dst-width, source-kind)
+_EXTEND_OPCODE = {
+    (64, o.DK.U8): "movzx_64_8_",
+    (64, o.DK.S8): "movsx_64_8_",
+    (64, o.DK.U16): "movzx_64_16_",
+    (64, o.DK.S16): "movsx_64_16_",
+    (64, o.DK.U32): "mov_32_",
+    (64, o.DK.S32): "movsxd_64_",
+    #
+    (32, o.DK.U8): "movzx_32_8_",
+    (32, o.DK.S8): "movsx_32_8_",
+    (32, o.DK.U16): "movzx_32_16_",
+    (32, o.DK.S16): "movsx_32_16_",
+    #
+    (16, o.DK.U8): "movzx_16_8_",
+    (16, o.DK.S8): "movsx_16_8_",
+}
+
+
+def ExtendRegInPlace(reg, src_dk: o.DK, dst_bits) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((dst_bits, src_dk))
+    if not x64_opc:
+        return []
+    return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
+
+
+def ExtendRegTo64Bit(reg_dst, reg_src, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((64, dk))
+    if not x64_opc:
+        return []
+    return [InsTmpl(x64_opc + "r_mr", [reg_dst, reg_src])]
+
+
+def ExtendRegTo64BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((64, dk))
+    if not x64_opc:
+        x64_opc = "mov_64_"
+    return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
+
+
+def ExtendRegTo32BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
+    x64_opc = _EXTEND_OPCODE.get((32, dk))
+    if not x64_opc:
+        x64_opc = "mov_32_"
+    return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
+
 
 def InitAluInt():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
@@ -641,7 +687,8 @@ def InitAluInt():
                     [C.SP_REG, C.SP_REG, _KIND_TO_IMM[kind1]],
                     [InsTmpl(f"{x64_opc}_{bw}_mbis32_imm{iw}", Spilled(P.spill01) + [P.num2])])
 
-    # TODO: handle 8 bit multiply, maybe support some immediate variants
+    # there is not 8 bit mul - it is handled by lowering
+    # TODO: support some immediate variants
     for kind1 in [o.DK.U16, o.DK.S16, o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         bw = kind1.bitwidth()
         Pattern(o.MUL, [kind1] * 3,
@@ -662,16 +709,24 @@ def InitAluInt():
                          P.tmp_gpr] + Spilled(P.spill2)),
                  InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill01) + [P.tmp_gpr])])
 
-    # TODO: handle 8 bit divide
     # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
-    for rdx, rax, kind1 in [("dx", "ax", o.DK.U16), ("edx", "eax", o.DK.U32), ("rdx", "rax", o.DK.U64)]:
+    for rdx, rax, kind1 in [("dx", "ax", o.DK.U16),
+                            ("edx", "eax", o.DK.U32),
+                            ("rdx", "rax", o.DK.U64)]:
         bw = kind1.bitwidth()
         Pattern(o.DIV, [kind1] * 3,
                 [C.REG_RDX, C.REG_RAX, C.REG],
                 [InsTmpl(f"xor_{bw}_r_mr", [F.RDX, F.RDX]),
                  InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
-    # TODO: handle 8 bit divide
+    # there is no 8 bit div - emulate via 16 bit version 
+    Pattern(o.DIV, [o.DK.U8] * 3,
+            [C.REG_RDX, C.REG_RAX, C.REG],
+            [InsTmpl("xor_16_r_mr", [F.RDX, F.RDX])] +
+            ExtendRegInPlace(P.reg1, o.DK.U8, 16) +
+            ExtendRegInPlace(P.reg2, o.DK.U8, 16) +
+            [InsTmpl("div_16_dx_ax_mr", [F.RDX, F.RAX, P.reg2])])
+
     # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
     for rdx, rax, kind1, prep in [("dx", "ax", o.DK.S16, "cwd_16_dx_ax"),
                                   ("edx", "eax", o.DK.S32, "cdq_32_edx_eax"),
@@ -681,6 +736,14 @@ def InitAluInt():
                 [C.REG_RDX, C.REG_RAX, C.REG],
                 [InsTmpl(prep, [F.RDX, F.RAX]),
                  InsTmpl(f"idiv_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
+    
+    # there is no 8 bit div- emulate via 16 bit version 
+    Pattern(o.DIV, [o.DK.S8] * 3,
+            [C.REG_RDX, C.REG_RAX, C.REG],
+            ExtendRegInPlace(P.reg1, o.DK.S8, 16) +
+            ExtendRegInPlace(P.reg2, o.DK.S8, 16) +
+            [InsTmpl("xor_16_r_mr", [F.RDX, F.RDX]),
+            InsTmpl("idiv_16_dx_ax_mr", [F.RDX, F.RAX, P.reg2])])
 
 
 def InitBitFiddle():
@@ -954,60 +1017,6 @@ def InitCondBraFlt():
                      InsTmpl(f"{x64_jmp}_32", [P.bbl2])])
 
 
-# (dst-width, source-kind)
-_EXTEND_OPCODE = {
-    (64, o.DK.U8): "movzx_64_8_",
-    (64, o.DK.S8): "movsx_64_8_",
-    (64, o.DK.U16): "movzx_64_16_",
-    (64, o.DK.S16): "movsx_64_16_",
-    (64, o.DK.U32): "mov_32_",
-    (64, o.DK.S32): "movsxd_64_",
-    #
-    (32, o.DK.U8): "movzx_32_8_",
-    (32, o.DK.S8): "movsx_32_8_",
-    (32, o.DK.U16): "movzx_32_16_",
-    (32, o.DK.S16): "movsx_32_16_",
-    #
-    (16, o.DK.U8): "movzx_16_8_",
-    (16, o.DK.S8): "movsx_16_8_",
-}
-
-
-def ExtendRegTo64BitInPlace(reg, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_OPCODE.get((64, dk))
-    if not x64_opc:
-        return []
-    return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
-
-
-def ExtendRegTo64Bit(reg_dst, reg_src, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_OPCODE.get((64, dk))
-    if not x64_opc:
-        return []
-    return [InsTmpl(x64_opc + "r_mr", [reg_dst, reg_src])]
-
-
-def ExtendRegTo64BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_OPCODE.get((64, dk))
-    if not x64_opc:
-        x64_opc = "mov_64_"
-    return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
-
-
-def ExtendRegTo32BitInPlace(reg, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_OPCODE.get((32, dk))
-    if not x64_opc:
-        return []
-    return [InsTmpl(x64_opc + "r_mr", [reg, reg])]
-
-
-def ExtendRegTo32BitFromSP(reg_dst, spill, dk: o.DK) -> List[InsTmpl]:
-    x64_opc = _EXTEND_OPCODE.get((32, dk))
-    if not x64_opc:
-        x64_opc = "mov_32_"
-    return [InsTmpl(x64_opc + "r_mbis32", [reg_dst] + Spilled(spill))]
-
-
 def InitLea():
     # LEA_FUN dst_reg fun
     Pattern(o.LEA_FUN, [o.DK.C64, o.DK.INVALID],
@@ -1040,11 +1049,11 @@ def InitLea():
         # LEA dstsrc_reg dstsrc_reg offset_reg
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.REG],
-                ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                ExtendRegInPlace(P.reg2, kind1, 64) +
                 [InsTmpl("lea_64_r_mbis8", [P.reg01, P.reg01, P.reg2, F.SCALE1, 0])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.SP_REG, C.SP_REG, C.REG],
-                ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                ExtendRegInPlace(P.reg2, kind1, 64) +
                 [InsTmpl(f"add_64_mbis32_r", Spilled(P.spill01) + [P.reg2])])
         Pattern(o.LEA, [o.DK.A64, o.DK.A64, kind1],
                 [C.REG, C.REG, C.SP_REG],
@@ -1065,11 +1074,11 @@ def InitLea():
         # LEA_STK dst_reg stk offset_reg
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.REG, C.INVALID, C.REG],
-                ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                ExtendRegInPlace(P.reg2, kind1, 64) +
                 [InsTmpl("lea_64_r_mbis32", [P.reg0, F.RSP, P.reg2, F.SCALE1, P.stk1])])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
                 [C.SP_REG, C.INVALID, C.REG],
-                ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                ExtendRegInPlace(P.reg2, kind1, 64) +
                 [InsTmpl("lea_64_r_mbis32", [P.tmp_gpr, F.RSP, P.reg2, F.SCALE1, P.stk1]),
                  InsTmplStkSt(o.DK.A64, P.spill0, P.tmp_gpr)])
         Pattern(o.LEA_STK, [o.DK.A64, o.DK.INVALID, kind1],
@@ -1139,16 +1148,16 @@ def InitLoad():
             # LD dst_reg base_reg offset_reg
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                    ExtendRegInPlace(P.reg2, kind1, 64) +
                     [InsTmpl(x64_ld("mbis8"), [P.reg0, P.reg1, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                    ExtendRegInPlace(P.reg2, kind1, 64) +
                     [InsTmpl(x64_ld("mbis8"), [tmp_reg, P.reg1, P.reg2, F.SCALE1, 0]),
                      InsTmplStkSt(kind2, P.spill0, tmp_reg)])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.REG, C.SP_REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                    ExtendRegInPlace(P.reg2, kind1, 64) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
                      InsTmpl(x64_ld("mbis8"), [P.reg0, P.tmp_gpr, P.reg2, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
@@ -1157,7 +1166,7 @@ def InitLoad():
                     [InsTmpl(x64_ld("mbis8"), [P.reg0, P.reg1, P.tmp_gpr, F.SCALE1, 0])])
             Pattern(o.LD, [kind2, o.DK.A64, kind1],
                     [C.SP_REG, C.SP_REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg2, kind1) +
+                    ExtendRegInPlace(P.reg2, kind1, 64) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill1),
                      InsTmpl(x64_ld("mbis8"), [
                              tmp_reg, P.tmp_gpr, P.reg2, F.SCALE1, 0]),
@@ -1234,11 +1243,11 @@ def InitStore():
             # ST base_reg offset_reg src_reg
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.REG, C.REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 64) +
                     [InsTmpl(x64_st("mbis8"), [P.reg0, P.reg1, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 64) +
                     [InsTmplStkLd(o.DK.A64, P.tmp_gpr, P.spill0),
                      InsTmpl(x64_st("mbis8"), [P.tmp_gpr, P.reg1, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
@@ -1256,7 +1265,7 @@ def InitStore():
                      InsTmpl(x64_st("mbis8"), [P.tmp_gpr, F.NO_INDEX, F.SCALE1, 0, P.reg2])])
             Pattern(o.ST, [o.DK.A64, kind1, kind2],
                     [C.SP_REG, C.REG, C.SP_REG],
-                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 64) +
                     [InsTmplStkLd(o.DK.A64, P.scratch_gpr, P.spill0),
                      InsTmplStkLd(kind2, tmp_reg, P.spill2),
                      InsTmpl(x64_st("mbis8"), [P.scratch_gpr, P.reg1, F.SCALE1, 0, tmp_reg])])
@@ -1357,7 +1366,7 @@ def InitCONV():
                     [InsTmpl(conv_opc + "r_mbis32", [P.reg0] + Spilled(P.spill1))])
             Pattern(o.CONV, [kind2, kind1],
                     [C.SP_REG, C.REG],
-                    ExtendRegTo32BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 32) +
                     [InsTmpl(f"mov_{bw_dst}_mbis32_r", Spilled(P.spill0) + [P.reg1])])
             Pattern(o.CONV, [kind2, kind1],
                     [C.SP_REG, C.SP_REG],
@@ -1368,7 +1377,7 @@ def InitCONV():
         for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16, o.DK.S32]:
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.REG],
-                    ExtendRegTo32BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 32) +
                     [InsTmpl(f"cvtsi2s{suffix2}_32_x_mr", [P.reg0, P.reg1])])
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.SP_REG],
@@ -1394,7 +1403,7 @@ def InitCONV():
         for kind1 in [o.DK.U32, o.DK.S64]:
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.REG],
-                    ExtendRegTo64BitInPlace(P.reg1, kind1) +
+                    ExtendRegInPlace(P.reg1, kind1, 64) +
                     [InsTmpl(f"cvtsi2s{suffix2}_64_x_mr", [P.reg0, P.reg1])])
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.SP_REG],
@@ -1409,8 +1418,9 @@ def InitCONV():
                     [InsTmpl(f"cvts{suffix2}2si_64_r_mbis32", [P.reg0] + Spilled(P.spill1))])
             # TODO SP_REG <- SP_REG, SP_REG <- REG
 
-        # TODO: U64 case is messy 
+        # TODO: U64 case is messy
         # https://lucisqr.substack.com/p/unsigned-integer-to-double-considered
+
 
 def InitBITCAST():
     for k1, k2 in [(o.DK.U8, o.DK.S8), (o.DK.U16, o.DK.S16),

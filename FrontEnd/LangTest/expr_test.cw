@@ -2,6 +2,30 @@
 (module main [] :
 (import test)
 
+(fun test_u64 [(param a u64) (param b u64)] void :
+    @doc ""
+    (test::AssertEq (<< a 0) 0x8765432187654321_u64)
+    (test::AssertEq (<< a 32) 0x8765432100000000_u64)
+    (test::AssertEq (<< a 64) 0x8765432187654321_u64)
+    @doc ""
+    (test::AssertEq (>> a 0) 0x8765432187654321_u64)
+    (test::AssertEq (>> a 32) 0x87654321_u64)
+    (test::AssertEq (>> a 64) 0x8765432187654321_u64)
+    @doc ""
+    (test::AssertEq (< a b) false)
+    (test::AssertEq (<= a b) false)
+    (test::AssertEq (> a b) true)
+    (test::AssertEq (>= a b) true)
+    (test::AssertEq (== a b) false)
+    (test::AssertEq (!= a b) true)
+    @doc ""
+    (test::AssertEq (< a a) false)
+    (test::AssertEq (<= a a) true)
+    (test::AssertEq (> a a) false)
+    (test::AssertEq (>= a a) true)
+    (test::AssertEq (== a a) true)
+    (test::AssertEq (!= a a) false)
+)
 
 (fun test_u32 [(param a u32) (param b u32)] void :
     (test::AssertEq (+ a b) 0x99999999_u32)
@@ -79,9 +103,50 @@
     (test::AssertEq (!= a a) false)
 )
 
+(fun test_u8 [(param a u8) (param b u8)] void :
+    (test::AssertEq (+ a b) 0xff_u8)
+    (test::AssertEq (- a b) 0xf_u8)
+    (test::AssertEq (max a b) 0x87_u8)
+    (test::AssertEq (min a b) 0x78_u8)
+    (test::AssertEq (or a b) 0xff_u8)
+    (test::AssertEq (and a b) 0x0_u8)
+    (test::AssertEq (xor a b) 0xff_u8)
+    @doc """ (test::AssertEq (* a b) 0x48_u8) """
+    (test::AssertEq (/ a b) 0x1_u8)
+    (test::AssertEq (% a b) 0xf_u8)
+    @doc ""
+    (test::AssertEq (! a) 0x78_u8)
+    (test::AssertEq (~ a) 0x79_u8)
+    @doc ""
+    (test::AssertEq (<< a 0) 0x87_u8)
+    (test::AssertEq (<< a 32) 0x87_u8)
+    (test::AssertEq (<< a 64) 0x87_u8)
+    @doc ""
+    (test::AssertEq (>> a 0) 0x87_u8)
+    (test::AssertEq (>> a 32) 0x87_u8)
+    (test::AssertEq (>> a 64) 0x87_u8)
+    @doc ""
+    (test::AssertEq (< a b) false)
+    (test::AssertEq (<= a b) false)
+    (test::AssertEq (> a b) true)
+    (test::AssertEq (>= a b) true)
+    (test::AssertEq (== a b) false)
+    (test::AssertEq (!= a b) true)
+    @doc ""
+    (test::AssertEq (< a a) false)
+    (test::AssertEq (<= a a) true)
+    (test::AssertEq (> a a) false)
+    (test::AssertEq (>= a a) true)
+    (test::AssertEq (== a a) true)
+    (test::AssertEq (!= a a) false)
+)
+
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    (stmt (call test_u64 [0x8765432187654321 0x1234567812345678]))
     (stmt (call test_u32 [0x87654321 0x12345678]))
     (stmt (call test_u16 [0x4321 0x1234]))
+    (stmt (call test_u8 [0x87 0x78]))
+
     @doc "test end"
     (stmt (call SysPrint ["OK\n"]))
     (return 0))
