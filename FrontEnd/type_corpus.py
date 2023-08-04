@@ -362,7 +362,8 @@ class TypeCorpus:
             else:
                 pieces.append(c)
         pp = sorted(p.name for p in pieces)
-        name = f"sum<{','.join(pp)}>"
+        extra = "_untagged" if untagged else ""
+        name = f"sum{extra}<{','.join(pp)}>"
         return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces, untagged=untagged))
 
     def insert_fun_type(self, params: List[cwast.CanonType],

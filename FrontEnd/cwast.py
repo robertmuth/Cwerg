@@ -727,7 +727,13 @@ class CanonType:
 
     def is_sum(self) -> bool:
         return self.node is TypeSum
-
+    
+    def is_untagged_sum(self) -> bool:
+        return self.node is TypeSum and self.untagged
+    
+    def is_tagged_sum(self) -> bool:
+        return self.node is TypeSum and not self.untagged
+    
     def sum_types(self) -> List["CanonType"]:
         assert self.is_sum()
         return self.children
