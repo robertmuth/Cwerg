@@ -1,4 +1,4 @@
-@doc  "expr"
+@doc  "union"
 (module main [] :
 (import test)
 
@@ -16,9 +16,15 @@
 
     (let s1 u32 (as u3 u32))
     (test::AssertEq s1 0x40000000_u32)
+    (test::AssertEq (at (as u3 (array 32 u8)) 0) 0_u8)
+    (test::AssertEq (at (as u3 (array 32 u8)) 1) 0_u8)
+    (test::AssertEq (at (as u3 (array 32 u8)) 2) 0_u8)
+    (test::AssertEq (at (as u3 (array 32 u8)) 3) 0x40_u8)
 
     (= u3 2.0_r64)
     (test::AssertEq (as u3 u64) 0x4000000000000000_u64)
+    (test::AssertEq (at (as u3 (array 32 u8)) 3) 0_u8)
+    (test::AssertEq (at (as u3 (array 32 u8)) 7) 0x40_u8)
 )
 
 
@@ -28,6 +34,5 @@
     @doc "test end"
     (stmt (call SysPrint ["OK\n"]))
     (return 0))
-
 
 )

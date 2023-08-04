@@ -212,6 +212,10 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         else:
             assert False, f"unsupported storage class {storage}"
         return BaseOffset(base, 0)
+    elif isinstance(node, cwast.ExprAs):
+        assert node.expr.x_type.is_untagged_sum()
+        base = _GetLValueAddress(node.expr, tc, id_gen)
+        return BaseOffset(base, 0)
     else:
         assert False, f"unsupported node for lvalue {node}"
 
