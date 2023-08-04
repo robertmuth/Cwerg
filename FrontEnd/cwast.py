@@ -658,6 +658,7 @@ class CanonType:
     #
     mut: bool = False
     dim: int = -1
+    untagged: bool = False
     base_type_kind: BASE_TYPE_KIND = BASE_TYPE_KIND.INVALID
     children: List["CanonType"] = dataclasses.field(default_factory=list)
     #

@@ -829,7 +829,6 @@ def main():
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
         cwast.StripFromListRecursively(mod, cwast.Import)
 
     ELIMIMATED_NODES.add(cwast.Import)
@@ -841,7 +840,6 @@ def main():
     ELIMIMATED_NODES.add(cwast.MacroParam)
     ELIMIMATED_NODES.add(cwast.ExprSrcLoc)
     ELIMIMATED_NODES.add(cwast.ExprStringify)
-    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
     ELIMIMATED_NODES.add(cwast.EphemeralList)
     ELIMIMATED_NODES.add(cwast.ModParam)
 
@@ -924,6 +922,9 @@ def main():
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
+    cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
+
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -960,6 +961,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
     ELIMIMATED_NODES.add(cwast.Case)
+    
     # TODO
     ELIMIMATED_NODES.add(cwast.ExprTypeId)
 

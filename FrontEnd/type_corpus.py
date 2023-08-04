@@ -135,6 +135,8 @@ def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, ptr_size):
             num_other += 1
             max_size = max(max_size, t.size)
             max_alignment = max(max_alignment, t.alignment)
+    if tc.untagged:
+        return max_size, max_alignment
     if num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
@@ -260,7 +262,7 @@ class TypeCorpus:
             tc)
         tc.register_types = self.get_register_type(tc)
 
-    def get_size_and_alignment(self, tc: cwast.CanonType):
+    def _get_size_and_alignment(self, tc: cwast.CanonType):
         if tc.node is cwast.TypeBase:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
             return size, size
@@ -286,7 +288,7 @@ class TypeCorpus:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
             return size, size
         elif tc.node is cwast.DefType:
-            return self.get_size_and_alignment(tc.children[0])
+            return self._get_size_and_alignment(tc.children[0])
         else:
             # Note, DefRec is not handled here
             assert False, f"unknown type {tc}"
@@ -299,7 +301,7 @@ class TypeCorpus:
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            ct.size, ct.alignment = self.get_size_and_alignment(ct)
+            ct.size, ct.alignment = self._get_size_and_alignment(ct)
             ct.register_types = self.get_register_type(ct)
         return ct
 
@@ -350,7 +352,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefEnum, name,
                                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
-    def insert_sum_type(self, components: List[cwast.CanonType]) -> cwast.CanonType:
+    def insert_sum_type(self, components: List[cwast.CanonType], untagged: bool) -> cwast.CanonType:
         assert len(components) > 1
         pieces = []
         for c in components:
@@ -361,7 +363,7 @@ class TypeCorpus:
                 pieces.append(c)
         pp = sorted(p.name for p in pieces)
         name = f"sum<{','.join(pp)}>"
-        return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces))
+        return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces, untagged=untagged))
 
     def insert_fun_type(self, params: List[cwast.CanonType],
                         result: cwast.CanonType) -> cwast.CanonType:
@@ -390,4 +392,4 @@ class TypeCorpus:
                 out.append(x)
         if len(out) == 1:
             return out[0]
-        return self.insert_sum_type(out)
+        return self.insert_sum_type(out, all.untagged)

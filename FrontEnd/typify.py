@@ -298,7 +298,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         # are not TypeSum themselves on the canonical side
         pieces = [_TypifyNodeRecursively(
             f, tc, type_corpus.NO_TYPE, ctx) for f in node.types]
-        return AnnotateNodeType(node, tc.insert_sum_type(pieces))
+        return AnnotateNodeType(node, tc.insert_sum_type(pieces, node.untagged))
     if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
         return AnnotateNodeType(node, tc.insert_base_type(
             cwast.BASE_TYPE_KIND.BOOL))
