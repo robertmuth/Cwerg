@@ -7,6 +7,11 @@
 
 (static_assert (== (sizeof UntaggedUnion) 32))
 
+(defrec RecordWithUntaggedUnion :
+    (field t1 bool)
+    (field t2 u32)
+    (field t3 UntaggedUnion)
+    (field t4 bool))
 
 (fun test_untagged_union [] void :
     @doc """(let @mut u4 TaggedUnion 777_u32)"""
@@ -30,6 +35,25 @@
     (test::AssertEq (as u3 u64) 0x4000000000000000_u64)
     (test::AssertEq (at (as u3 (array 32 u8)) 3) 0_u8)
     (test::AssertEq (at (as u3 (array 32 u8)) 7) 0x40_u8)
+
+    @doc ""
+    (let @mut rec1 RecordWithUntaggedUnion undef)
+    (= (. rec1 t3) 2.0_r32)
+    (test::AssertEq (as (. rec1 t3) u32) 0x40000000_u32)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 0) 0_u8)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 1) 0_u8)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 2) 0_u8)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 3) 0x40_u8)
+    @doc ""
+    (= (at (as (. rec1 t3) (array 32 u8)) 2) 0x28_u8)
+    (= (at (as (. rec1 t3) (array 32 u8)) 3) 0x42_u8)
+    (test::AssertEq (as (. rec1 t3) u32) 0x42280000_u32)
+    (test::AssertEq (as (. rec1 t3) r32) 42_r32)
+
+    (= (. rec1 t3)2.0_r64)
+    (test::AssertEq (as (. rec1 t3) u64) 0x4000000000000000_u64)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 3) 0_u8)
+    (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 7) 0x40_u8)
 )
 
 
