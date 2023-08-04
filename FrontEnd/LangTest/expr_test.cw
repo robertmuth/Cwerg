@@ -3,6 +3,16 @@
 (import test)
 
 (fun test_u64 [(param a u64) (param b u64)] void :
+    (test::AssertEq (+ a b) 0x9999999999999999_u64)
+    (test::AssertEq (- a b) 0x7530eca97530eca9_u64)
+    (test::AssertEq (max a b) 0x8765432187654321_u64)
+    (test::AssertEq (min a b) 0x1234567812345678_u64)
+    (test::AssertEq (or a b) 0x9775577997755779_u64)
+    (test::AssertEq (and a b) 0x0224422002244220_u64)
+    (test::AssertEq (xor a b) 0x9551155995511559_u64)
+    (test::AssertEq (* a b) 0xeb11e7f570b88d78_u64)
+    (test::AssertEq (/ a b) 0x7_u64)
+    (test::AssertEq (% a b) 0x7f6e5d907f6e5d9_u64)
     @doc ""
     (test::AssertEq (<< a 0) 0x8765432187654321_u64)
     (test::AssertEq (<< a 32) 0x8765432100000000_u64)
@@ -111,7 +121,7 @@
     (test::AssertEq (or a b) 0xff_u8)
     (test::AssertEq (and a b) 0x0_u8)
     (test::AssertEq (xor a b) 0xff_u8)
-    @doc """ (test::AssertEq (* a b) 0x48_u8) """
+    @doc """ needs backend fixes (test::AssertEq (* a b) 0x48_u8) """
     (test::AssertEq (/ a b) 0x1_u8)
     (test::AssertEq (% a b) 0xf_u8)
     @doc ""
