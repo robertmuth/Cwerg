@@ -42,7 +42,7 @@ tests_lang: \
 	$(DIR)/expr_sint_test.lang.x64.exe \
     $(DIR)/expr_uint_test.lang.x64.exe \
     $(DIR)/defer_test.lang.x64.exe \
-    $(DIR)/sum_test.lang.x64.exe 
+    $(DIR)/sum_untagged_test.lang.x64.exe 
 
 tests_emit: \
     $(DIR)/hello_world.x64.exe \

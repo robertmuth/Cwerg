@@ -2,6 +2,55 @@
 (module main [] :
 (import test)
 
+(type @wrapped t1 s32)
+(type @wrapped t2 void)
+(type @wrapped t3 void)
+(type type_ptr (ptr @mut s32))
+
+
+(type UntaggedUnion1 (union @untagged [
+        s32
+        void
+        type_ptr]))
+
+(static_assert (== (sizeof UntaggedUnion1) 8))
+
+
+(type UntaggedUnion2 (union @untagged [
+        s32
+        void
+        (union  @untagged [UntaggedUnion1 u8])]))
+
+(static_assert (== (sizeof UntaggedUnion2) 8))
+
+
+(type UntaggedUnion3 (union @untagged [
+        bool
+        s32
+        s64]))
+
+(static_assert (== (sizeof UntaggedUnion2) 8))
+
+
+(type UntaggedUnion4 (union @untagged [bool s32]))
+
+(static_assert (== (sizeof UntaggedUnion4) 4))
+
+
+(type @pub UntaggedUnion5 (union @untagged [
+        t2
+        t3
+        s8]))
+
+(static_assert (== (sizeof UntaggedUnion5) 1))
+
+
+(type  UntaggedUnion6 (union @untagged [bool u16]))
+
+(static_assert (== (sizeof UntaggedUnion6) 2))
+
+
+
 (type UntaggedUnion (union @untagged [bool u64 u32 r32 r64 (array 32 u8)]))
 (type TaggedUnion (union [bool u64 u32 r32 r64 (array 32 u8)]))
 
