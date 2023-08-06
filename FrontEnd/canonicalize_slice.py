@@ -29,9 +29,9 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice,
     pointer_field = cwast.RecField(
         SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(pointer_field, pointer_type.x_type)
-    length_type = cwast.TypeBase(tc.uint_kind, x_srcloc=srcloc)
-    typify.AnnotateNodeType(
-        length_type, tc.insert_base_type(length_type.base_type_kind))
+    uint_ct = tc.get_uint_canon_type()
+    length_type = cwast.TypeBase(uint_ct.base_type_kind, x_srcloc=srcloc)
+    typify.AnnotateNodeType(length_type, uint_ct)
     length_field = cwast.RecField(
         SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
     typify.AnnotateNodeType(length_field, length_type.x_type)
@@ -53,7 +53,7 @@ def _DoesFunSigContainSlices(fun_sig: cwast.CanonType, slice_to_struct_map) -> b
     return False
 
 
-def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus, 
+def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
                         slice_to_struct_map) -> cwast.TypeFun:
     assert fun_sig.is_fun()
     result = slice_to_struct_map.get(
@@ -138,7 +138,7 @@ def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
     assert node.x_type.mut
     # assert node.x_type.type == slice_rec.fields[0].x_type
     return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc),
-                    x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
+                             x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
 
 
 def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
@@ -169,7 +169,7 @@ def _MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.Type
 
 def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
     """Eliminate all the implcit Array to Slice conversions. """
-    uint_type: cwast.CanonType = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+    uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
     def visitor(node, _):
         nonlocal tc, uint_type
@@ -213,7 +213,7 @@ def InsertExplicitValSlice(node, tc:  type_corpus.TypeCorpus):
 
 def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Slice casts. """
-    uint_type: cwast.CanonType = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+    uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
     def replacer(node, _):
         nonlocal tc, uint_type

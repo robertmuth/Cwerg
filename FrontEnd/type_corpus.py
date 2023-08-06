@@ -188,28 +188,32 @@ class TypeCorpus:
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
                 continue
-            ct = self.insert_base_type(kind)
+            ct = self._insert_base_type(kind)
             self._base_type_map[kind] = ct
+            bitwidth = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
+            if kind in cwast.BASE_TYPE_KIND_SINT:
+                if bitwidth == target_arch_config.sint_bitwidth:
+                    self._base_type_map[cwast.BASE_TYPE_KIND.SINT] = ct
+            if kind in cwast.BASE_TYPE_KIND_UINT:
+                if bitwidth == target_arch_config.uint_bitwidth:
+                    self._base_type_map[cwast.BASE_TYPE_KIND.UINT] = ct
+                if bitwidth == target_arch_config.typeid_bitwidth:
+                    self._base_type_map[cwast.BASE_TYPE_KIND.TYPEID] = ct
 
-    def _convert_int(self, kind):
-        if kind is cwast.BASE_TYPE_KIND.UINT:
-            return self.uint_kind
-        elif kind is cwast.BASE_TYPE_KIND.SINT:
-            return self.sint_kind
-        else:
-            return kind
+    def get_base_canon_type(self, kind: cwast.BASE_TYPE_KIND):
+        return self._base_type_map[kind]
 
     def get_uint_canon_type(self):
-        return self.insert_base_type(self.uint_kind)
+        return self._base_type_map[cwast.BASE_TYPE_KIND.UINT]
 
     def get_sint_canon_type(self):
-        return self.insert_base_type(self.sint_kind)
+        return self._base_type_map[cwast.BASE_TYPE_KIND.SINT]
 
     def get_bool_canon_type(self):
-        return self.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+        return self._base_type_map[cwast.BASE_TYPE_KIND.BOOL]
 
     def get_void_canon_type(self):
-        return self.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+        return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
@@ -337,8 +341,7 @@ class TypeCorpus:
             ct.register_types = self.get_register_type(ct)
         return ct
 
-    def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
-        kind = self._convert_int(kind)
+    def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
         return self._insert(cwast.CanonType(cwast.TypeBase, kind.name.lower(), base_type_kind=kind))
 
     def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:

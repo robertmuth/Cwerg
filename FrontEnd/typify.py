@@ -232,7 +232,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             cstr = def_node.type_or_auto.x_type
         return AnnotateNodeType(node, cstr)
     elif isinstance(node, cwast.TypeBase):
-        return AnnotateNodeType(node, tc.insert_base_type(node.base_type_kind))
+        return AnnotateNodeType(node, tc.get_base_canon_type(node.base_type_kind))
     elif isinstance(node, cwast.TypePtr):
         t = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, t))
@@ -282,9 +282,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 node.value_or_auto, tc, target_type, ctx)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.DefEnum):
-        cstr = tc.insert_enum_type(
-            f"{ctx.mod_name}/{node.name}", node)
-        # base_type = corpus.insert_base_type(node.base_type_kind)
+        cstr = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
         for f in node.items:
             _TypifyNodeRecursively(f, tc, cstr, ctx)
         return AnnotateNodeType(node, cstr)
@@ -308,7 +306,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValNum):
         target_kind = target_type.base_type_kind if target_type else cwast.BASE_TYPE_KIND.INVALID
         actual_kind = ParseNumRaw(node.number, target_kind)[1]
-        ct = tc.insert_base_type(actual_kind)
+        ct = tc.get_base_canon_type(actual_kind)
         return AnnotateNodeType(node, ct)
 
     elif isinstance(node, cwast.ValAuto):
@@ -359,7 +357,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValString):
         dim = ComputeStringSize(node.raw, node.string)
         cstr = tc.insert_array_type(
-            dim, tc.insert_base_type(cwast.BASE_TYPE_KIND.U8))
+            dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, cstr)
     elif isinstance(node, cwast.ExprIndex):
         uint_type = tc.get_uint_canon_type()
