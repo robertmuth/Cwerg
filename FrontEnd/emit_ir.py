@@ -951,9 +951,11 @@ def main():
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
-    cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
-
+    for mod in mod_topo_order:
+        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
+        
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
