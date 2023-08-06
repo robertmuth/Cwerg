@@ -430,7 +430,7 @@ def VerifyASTEvalsRecursively(node):
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             # we must be able to initialize data these at compile time
             is_const = isinstance(
-                node, (cwast.DefRec, cwast.DefGlobal, cwast.DefEnum))
+                node, (cwast.DefGlobal, cwast.DefEnum))
             return
 
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):

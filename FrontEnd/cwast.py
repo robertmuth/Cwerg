@@ -724,7 +724,10 @@ class CanonType:
 
     def is_base_type(self) -> bool:
         return self.node is TypeBase
-
+    
+    def is_base_or_enum_type(self) -> bool:
+        return self.node is TypeBase or self.node is DefEnum
+    
     def is_sum(self) -> bool:
         return self.node is TypeSum
     
@@ -2106,7 +2109,7 @@ class EnumVal:
      `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
     #
     name: str
     value_or_auto: Union["ValNum", ValAuto]
@@ -2127,7 +2130,7 @@ class DefEnum:
     """Enum definition"""
     ALIAS = "enum"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
@@ -2763,9 +2766,11 @@ def CheckAST(node, disallowed_nodes):
     toplevel_node = None
 
     def visitor(node, field):
+        
         nonlocal disallowed_nodes
         nonlocal toplevel_node
-        # print ("#", node)
+        # print (f"@@@@ field={field}: {node.__class__.__name__}")
+
         assert type(
             node) not in disallowed_nodes, f"Disallowed node: {type(node)}"
         assert node.x_srcloc is not None, f"Node without srcloc node {node}"
@@ -2799,7 +2804,7 @@ def CheckAST(node, disallowed_nodes):
             if permitted and not isinstance(toplevel_node, DefMacro):
                 if node.__class__.__name__ not in permitted:
                     CompilerError(
-                        node.x_srcloc, f"unexpected node for field={field}: {node}")
+                        node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
 
     VisitAstRecursively(node, visitor)
 

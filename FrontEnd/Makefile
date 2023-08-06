@@ -37,6 +37,7 @@ tests_pp_py: $(TESTS_PP)
 # test language features
 tests_lang: \
     $(DIR)/assign_test.lang.x64.exe \
+    $(DIR)/enum_test.lang.x64.exe \
     $(DIR)/rec_test.lang.x64.exe \
 	$(DIR)/expr_sint_test.lang.x64.exe \
     $(DIR)/expr_uint_test.lang.x64.exe \

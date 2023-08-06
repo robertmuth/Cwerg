@@ -85,7 +85,7 @@ class ReturnResultLocation:
 
 
 def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
-    assert x_type.is_base_type()
+    assert x_type.is_base_or_enum_type()
     byte_width = x_type.size
     if x_value is None or isinstance(x_value, cwast.ValUndef):
         return ZEROS[byte_width]
@@ -741,15 +741,15 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 
-    def _emit_recursively(node, cstr: cwast.CanonType, offset: int) -> int:
-        assert offset == type_corpus.align(offset, cstr.alignment)
+    def _emit_recursively(node, ct: cwast.CanonType, offset: int) -> int:
+        assert offset == type_corpus.align(offset, ct.alignment)
         if isinstance(node, cwast.ValUndef):
-            return _EmitMem(_BYTE_UNDEF * cstr.size, f"{offset} undef={cstr.name}")
+            return _EmitMem(_BYTE_UNDEF * ct.size, f"{offset} undef={ct.name}")
 
         if isinstance(node, cwast.Id):
             node_def = node.x_symbol
             assert isinstance(node_def, cwast.DefGlobal)
-            return _emit_recursively(node_def.initial_or_undef_or_auto, cstr, offset)
+            return _emit_recursively(node_def.initial_or_undef_or_auto, ct, offset)
         elif isinstance(node, cwast.ExprFront):
             # we need to emit an address
             assert isinstance(node.container, cwast.Id)
@@ -759,19 +759,19 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
             # assert False, f"{name} {node.container}"
             return 8
 
-        if cstr.is_base_type():
-            return _EmitMem(_InitDataForBaseType(cstr, node.x_value),  f"{offset} {cstr.name}")
-        elif cstr.is_array():
+        if ct.is_base_or_enum_type():
+            return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
+        elif ct.is_array():
             assert isinstance(
                 node, (cwast.ValArray, cwast.ValString)), f"{node}"
-            print(f"# array: {cstr.name}")
-            width = cstr.array_dim()
-            x_type = cstr.underlying_array_type()
+            print(f"# array: {ct.name}")
+            width = ct.array_dim()
+            x_type = ct.underlying_array_type()
             if x_type.is_base_type():
                 if isinstance(node.x_value, bytes):
                     assert len(
                         node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
-                    return _EmitMem(node.x_value, f"{offset} {cstr.name}")
+                    return _EmitMem(node.x_value, f"{offset} {ct.name}")
                 else:
 
                     x_value = node.x_value
@@ -780,12 +780,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
                     out = bytearray()
                     for v in x_value:
                         out += _InitDataForBaseType(x_type, v)
-                    return _EmitMem(out, cstr.name)
+                    return _EmitMem(out, ct.name)
             else:
                 assert isinstance(node, cwast.ValArray), f"{node}"
                 last = cwast.ValUndef()
-                stride = cstr.size // width
-                assert stride * width == cstr.size, f"{cstr.size} {width}"
+                stride = ct.size // width
+                assert stride * width == ct.size, f"{ct.size} {width}"
                 for n, init in symbolize.IterateValArray(node, width):
                     if init is None:
                         count = _emit_recursively(
@@ -798,12 +798,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
                     if count != stride:
                         _EmitMem(_BYTE_PADDING * (stride - count),
                                  f"{stride - count} padding")
-                return cstr.size
-        elif cstr.is_rec():
+                return ct.size
+        elif ct.is_rec():
             assert isinstance(node, cwast.ValRec)
-            print(f"# record: {cstr.name}")
+            print(f"# record: {ct.name}")
             rel_off = 0
-            for f, i in symbolize. IterateValRec(node.inits_field, cstr):
+            for f, i in symbolize. IterateValRec(node.inits_field, ct):
 
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
@@ -817,7 +817,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
             return rel_off
 
         else:
-            assert False, f"unhandled node for DefGlobal: {node} {cstr.name}"
+            assert False, f"unhandled node for DefGlobal: {node} {ct.name}"
 
     return _emit_recursively(node.initial_or_undef_or_auto,
                              node.type_or_auto.x_type, 0)
@@ -942,8 +942,6 @@ def main():
     ELIMIMATED_NODES.add(cwast.Expr3)
     ELIMIMATED_NODES.add(cwast.ValSlice)
     ELIMIMATED_NODES.add(cwast.TypeSlice)
-    ELIMIMATED_NODES.add(cwast.EnumVal)
-    ELIMIMATED_NODES.add(cwast.DefEnum)
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)

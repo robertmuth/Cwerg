@@ -188,7 +188,7 @@ def ReplaceConstExpr(node):
             return None
         if field in ("expr_lhs", "inits_array", "inits_field"):
             return
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.RecField)):
+        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
             return
 
         if node.x_type.is_int() and not isinstance(node, cwast.ValNum):
