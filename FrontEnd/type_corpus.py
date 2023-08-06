@@ -1,6 +1,7 @@
 """All types have a canonical representation in the TypeCorpus"""
 import logging
 import re
+import dataclasses
 
 from typing import List, Dict, Optional, Any
 
@@ -117,7 +118,7 @@ _BASE_TYPE_MAP = {
 }
 
 
-def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, ptr_size):
+def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, tag_size, ptr_size):
     assert tc.node is cwast.TypeSum
     num_void = 0
     num_pointer = 0
@@ -142,12 +143,27 @@ def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, ptr_size):
     if num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
-    max_alignment = max(max_alignment, 2)
-    size = align(2, max_alignment)
+    # the tag is the first component of the tagged union in memory
+    max_alignment = max(max_alignment, tag_size)
+    size = align(tag_size, max_alignment)
     return size + max_size, max_alignment
 
 
-TYPE_ID_REG_TYPE = "U16"
+
+
+@dataclasses.dataclass()
+class TargetArchConfig:
+    """target system config"""
+    uint_bitwidth: int    # also used for ptr cast to ints
+    sint_bitwidth: int
+    typeid_bitwidth: int
+    data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
+    code_addr_bitwidth: int
+
+
+STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64)
+STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
+STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32)
 
 
 class TypeCorpus:
@@ -159,20 +175,19 @@ class TypeCorpus:
     using AST nodes.
     """
 
-    def __init__(self, uint_kind: cwast.BASE_TYPE_KIND, sint_kind: cwast.BASE_TYPE_KIND):
-        self.uint_kind: cwast.BASE_TYPE_KIND = uint_kind  # also used for ptr cast to ints
-        self.sint_kind: cwast.BASE_TYPE_KIND = sint_kind
+    def __init__(self, target_arch_config: TargetArchConfig):
+        self._target_arch_config: TargetArchConfig = target_arch_config
+        self.uint_kind: cwast.BASE_TYPE_KIND = cwast.BASE_TYPE_KIND.U64
+        self.sint_kind: cwast.BASE_TYPE_KIND = cwast.BASE_TYPE_KIND.S64
         # TODO
-        self._addr_reg_type = "A64"
-        self._code_reg_type = "C64"
 
-        self.wrapped_curr = 1
+        self._wrapped_curr = 1
         # maps to ast
         self.topo_order = []
         self.corpus: Dict[str, Any] = {}  # name to canonical type
 
         for kind in cwast.BASE_TYPE_KIND:
-            if kind.name in ("INVALID", "UINT", "SINT"):
+            if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
                 continue
             self.insert_base_type(kind)
 
@@ -209,7 +224,7 @@ class TypeCorpus:
             return scalars[0].register_types
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
-        return [f"U{largest}", TYPE_ID_REG_TYPE]
+        return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth // 8}"]
 
     def get_register_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
         """As long as a type can fit into no more than two regs it will have
@@ -218,9 +233,9 @@ class TypeCorpus:
         if tc.node is cwast.TypeBase:
             return _BASE_TYPE_MAP.get(tc.base_type_kind)
         elif tc.node is cwast.TypePtr:
-            return [self._addr_reg_type]
+            return [f"A{self._target_arch_config.data_addr_bitwidth}"]
         elif tc.node is cwast.TypeSlice:
-            return [self._addr_reg_type] + _BASE_TYPE_MAP[self.uint_kind]
+            return [f"A{self._target_arch_config.data_addr_bitwidth}"] + _BASE_TYPE_MAP[self.uint_kind]
         elif tc.node is cwast.DefRec:
             fields = [f for f in tc.ast_node.fields]
             if len(fields) == 1:
@@ -241,7 +256,7 @@ class TypeCorpus:
         elif tc.node is cwast.DefType:
             return self.get_register_type(tc.children[0])
         elif tc.node is cwast.TypeFun:
-            return [self._code_reg_type]
+            return [f"C{self._target_arch_config.data_addr_bitwidth}"]
         else:
             assert False, f"unknown type {tc.name}"
 
@@ -269,11 +284,13 @@ class TypeCorpus:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
             return size, size
         elif tc.node is cwast.TypePtr:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+            size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
         elif tc.node is cwast.TypeSlice:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
-            return size * 2, size
+            # slice is converted to (pointer, length) tuple
+            ptr_field_size = self._target_arch_config.data_addr_bitwidth // 8
+            len_field_size = self._target_arch_config.uint_bitwidth // 8
+            return ptr_field_size + len_field_size, ptr_field_size
         elif tc.node is cwast.TypeArray:
             alignment = tc.children[0].alignment
             size = tc.children[0].size
@@ -282,12 +299,13 @@ class TypeCorpus:
             return size * tc.dim, alignment
         elif tc.node is cwast.TypeSum:
             return _get_size_and_offset_for_sum_type(
-                tc, cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind])
+                tc, self._target_arch_config.typeid_bitwidth // 8,
+                self._target_arch_config.data_addr_bitwidth // 8)
         elif tc.node is cwast.DefEnum:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
             return size, size
         elif tc.node is cwast.TypeFun:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[self.uint_kind]
+            size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
         elif tc.node is cwast.DefType:
             return self._get_size_and_alignment(tc.children[0])
@@ -377,8 +395,8 @@ class TypeCorpus:
 
     def insert_wrapped_type(self, tc: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
-        uid = self.wrapped_curr
-        self.wrapped_curr += 1
+        uid = self._wrapped_curr
+        self._wrapped_curr += 1
         name = f"wrapped<{uid},{tc.name}>"
         assert name not in self.corpus
         return self._insert(cwast.CanonType(cwast.DefType, name, children=[tc]))

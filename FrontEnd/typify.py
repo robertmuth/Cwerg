@@ -912,8 +912,7 @@ def main(inp):
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
-    tc = type_corpus.TypeCorpus(
-        cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+    tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     DecorateASTWithTypes(mod_topo_order, tc)
 
     for t, n in tc.corpus.items():

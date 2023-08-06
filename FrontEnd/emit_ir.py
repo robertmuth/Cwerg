@@ -878,8 +878,7 @@ def main():
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
     logger.info("Typify the nodes")
-    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(
-        cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
 
     logger.info("partial eval")
