@@ -29,11 +29,6 @@ from FrontEnd import typify
 ############################################################
 
 
-def MakeTypeVoid(tc, srcloc):
-    return cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=srcloc,
-                          x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
-
-
 def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
     out = {}
     for fun_sig in list(tc.corpus.values()):
@@ -51,7 +46,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
         if not result.is_void() and reg_type is None or len(reg_type) > 1:
             change = True
             params.append(tc.insert_ptr_type(True, result))
-            result = tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+            result = tc.get_void_canon_type()
         if change:
             out[fun_sig] = tc.insert_fun_type(params, result)
     return out
@@ -71,7 +66,8 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         result_param = cwast.FunParam(id_gen.NewName(
             "result"), result_type, x_srcloc=fun.x_srcloc)
         fun.params.append(result_param)
-        fun.result = MakeTypeVoid(tc, fun.x_srcloc)
+        fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=fun.x_srcloc,
+                                    x_type=tc.get_void_canon_type())
     changing_params = {}
 
     # note: new_sig may contain an extra param at the end
@@ -108,8 +104,8 @@ def RewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
                 x_srcloc=node.x_srcloc, x_type=result_type.underlying_pointer_type())
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
-            node.expr_ret = cwast.ValVoid(
-                x_srcloc=node.x_srcloc, x_type=tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+            node.expr_ret = cwast.ValVoid(x_srcloc=node.x_srcloc,
+                                          x_type=tc.get_void_canon_type())
             return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
         return None
 
@@ -154,11 +150,9 @@ def RewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                 x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
-                typify.UpdateNodeType(
-                    call, tc.insert_base_type(cwast.BASE_TYPE_KIND.VOID))
+                typify.UpdateNodeType(call, tc.get_void_canon_type())
                 expr_body.append(new_def)
-                expr_body.append(cwast.StmtExpr(
-                    call, x_srcloc=call.x_srcloc))
+                expr_body.append(cwast.StmtExpr(call, x_srcloc=call.x_srcloc))
                 expr_body.append(cwast.StmtReturn(
                     expr_ret=name, x_srcloc=call.x_srcloc, x_target=expr))
             else:

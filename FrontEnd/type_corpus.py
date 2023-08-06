@@ -149,8 +149,6 @@ def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, tag_size, ptr_size):
     return size + max_size, max_alignment
 
 
-
-
 @dataclasses.dataclass()
 class TargetArchConfig:
     """target system config"""
@@ -182,6 +180,7 @@ class TypeCorpus:
         # TODO
 
         self._wrapped_curr = 1
+        self._base_type_map: Dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
         # maps to ast
         self.topo_order = []
         self.corpus: Dict[str, Any] = {}  # name to canonical type
@@ -189,15 +188,28 @@ class TypeCorpus:
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
                 continue
-            self.insert_base_type(kind)
+            ct = self.insert_base_type(kind)
+            self._base_type_map[kind] = ct
 
-    def convert_int(self, kind):
+    def _convert_int(self, kind):
         if kind is cwast.BASE_TYPE_KIND.UINT:
             return self.uint_kind
         elif kind is cwast.BASE_TYPE_KIND.SINT:
             return self.sint_kind
         else:
             return kind
+
+    def get_uint_canon_type(self):
+        return self.insert_base_type(self.uint_kind)
+
+    def get_sint_canon_type(self):
+        return self.insert_base_type(self.sint_kind)
+
+    def get_bool_canon_type(self):
+        return self.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+
+    def get_void_canon_type(self):
+        return self.insert_base_type(cwast.BASE_TYPE_KIND.VOID)
 
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
@@ -326,7 +338,7 @@ class TypeCorpus:
         return ct
 
     def insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
-        kind = self.convert_int(kind)
+        kind = self._convert_int(kind)
         return self._insert(cwast.CanonType(cwast.TypeBase, kind.name.lower(), base_type_kind=kind))
 
     def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:

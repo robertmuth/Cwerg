@@ -175,7 +175,7 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
         if scale == 1:
             return offset
         scaled = id_gen.NewName("scaled")
-        sint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.SINT)
+        sint_type = tc.get_sint_canon_type()
         print(
             f"{TAB}conv {scaled}:{StringifyOneType(sint_type)} = {offset}")
         print(

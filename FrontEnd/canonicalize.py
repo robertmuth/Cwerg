@@ -62,7 +62,7 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.Type
     def replacer(node, field):
         if not _ShouldBeBoolExpanded(node, field):
             return None
-        cstr_bool = tc.insert_base_type(cwast.BASE_TYPE_KIND.BOOL)
+        cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
                            cwast.ValTrue(x_srcloc=node.x_srcloc,
                                          x_type=cstr_bool, x_value=True),
@@ -251,8 +251,8 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
                            x_type=node.x_type, x_value=node.x_value)
 
 
-def ReplaceExprIndex(node, tc):
-    uint_type = tc.insert_base_type(cwast.BASE_TYPE_KIND.UINT)
+def ReplaceExprIndex(node, tc: type_corpus.TypeCorpus):
+    uint_type = tc.get_uint_canon_type()
 
     def replacer(node, _, is_lhs):
         nonlocal tc, uint_type
