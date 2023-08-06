@@ -202,8 +202,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName(f"lhsaddr_{name}")
-        # TODO
-        kind = "A64"
+        kind = tc.get_data_address_reg_type()
         storage = _StorageForId(node)
         if storage is STORAGE_KIND.DATA:
             print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
@@ -226,8 +225,7 @@ def _GetLValueAddress(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen
         return bo.base
     else:
         res = id_gen.NewName("at")
-        # TODO A64
-        kind = "A64"
+        kind = tc.get_data_address_reg_type()
         print(f"{TAB}lea {res}:{kind} = {bo.base} {bo.offset}")
         return res
 
@@ -419,7 +417,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             assert ct.is_pointer()
             offset = OffsetScaleToOffset(
                 node.expr2, ct.underlying_pointer_type().size, tc, id_gen)
-            print(f"{TAB}lea {res}:A64 = {base} {offset}")
+            kind = tc.get_data_address_reg_type()
+            print(f"{TAB}lea {res}:{kind} = {base} {offset}")
         else:
             assert False, f"unsupported expression {node}"
         return res
@@ -441,7 +440,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         elif ct_src.is_array() and ct_dst.is_slice():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
             size = node.expr.x_type.array_dim()
-            return addr, f"{size}:U64"
+            return addr, f"{size}:{tc.get_data_address_reg_type()}"
         elif ct_src.is_wrapped() and ct_dst is ct_src.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
@@ -631,7 +630,8 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
-                print(f"{TAB}lea.stk {init_base}:A64 {node.name} 0")
+                kind = tc.get_data_address_reg_type()
+                print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
                 EmitIRExprToMemory(node.type_or_auto.x_type, initial,  BaseOffset(
                     init_base, 0), tc, id_gen)
         else:
@@ -736,7 +736,7 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
+def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
     def_type: cwast.CanonType = node.type_or_auto.x_type
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
@@ -754,10 +754,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal) -> int:
             # we need to emit an address
             assert isinstance(node.container, cwast.Id)
             name = node.container.x_symbol.name
-            # ASUMES 64 biy
-            print(f".addr.mem 8 {name} 0")
+            print(f".addr.mem {tc.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
-            return 8
+            return tc.get_address_size() // 8
 
         if ct.is_base_or_enum_type():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
@@ -1036,7 +1035,7 @@ def main():
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                EmitIRDefGlobal(node)
+                EmitIRDefGlobal(node, tc)
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
