@@ -26,15 +26,18 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
-tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) tests_lang tests_emit
+tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) tests_lang_x64 tests_emit
 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
 tests_pp_py: $(TESTS_PP)
 
+STD_LIB_WITH_ARGV_X64 = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+
 # test language features
-tests_lang: \
+tests_lang_x64: \
     $(DIR)/assign_test.lang.x64.exe \
     $(DIR)/enum_test.lang.x64.exe \
     $(DIR)/rec_test.lang.x64.exe \
@@ -43,6 +46,18 @@ tests_lang: \
     $(DIR)/defer_test.lang.x64.exe \
     $(DIR)/sum_untagged_test.lang.x64.exe \
     $(DIR)/sum_tagged_test.lang.x64.exe 
+
+# test language features
+tests_lang_a64: \
+    $(DIR)/assign_test.lang.a64.exe \
+    $(DIR)/enum_test.lang.a64.exe \
+    $(DIR)/rec_test.lang.a64.exe \
+	$(DIR)/defer_test.lang.a64.exe \
+    $(DIR)/sum_untagged_test.lang.a64.exe \
+    $(DIR)/sum_tagged_test.lang.a64.exe \
+    $(DIR)/expr_uint_test.lang.a64.exe \
+    $(DIR)/expr_sint_test.lang.a64.exe
+
 
 tests_emit: \
     $(DIR)/hello_world.x64.exe \
@@ -83,65 +98,70 @@ $(DIR)/%.cw.pp: TestData/%.cw
 $(DIR)/%.lang.x64.exe: LangTest/%.cw
 	@echo "[lang $@]"
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
+$(DIR)/%.lang.a64.exe: LangTest/%.cw
+	@echo "[lang $@]"
+	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
 
 
 $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	./emit_ir.py Lib/builtin.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
 $(DIR)/sieve.x64.exe: TestData/sieve.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
 $(DIR)/heapsort.x64.exe: TestData/heapsort.cw
 	./emit_ir.py Lib/builtin.cw Lib/random.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 
 
 $(DIR)/print_argv.x64.exe: TestData/print_argv.cw
 	./emit_ir.py Lib/builtin.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  arg1 arg2 argc3
 
 $(DIR)/fizzbuzz.x64.exe: TestData/fizzbuzz.cw
 	./emit_ir.py Lib/builtin.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@  
 
 
 $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/string.x64.exe: Lib/string_test.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 ## Lib Tests
 
 $(DIR)/trig_test.x64.exe: Lib/trig_test.cw
 	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/math.cw Lib/trig.cw  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
 	./emit_ir.py  Lib/builtin.cw  Lib/test.cw Lib/checksum.cw  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 ##
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	./emit_ir.py Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
 
