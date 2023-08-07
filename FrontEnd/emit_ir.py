@@ -400,7 +400,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         res = id_gen.NewName("expr1")
         _EmitExpr1(node.unary_expr_kind, res, node.x_type, op)
         return res
-        assert False
     elif isinstance(node, cwast.Expr2):
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
@@ -953,7 +952,7 @@ def main():
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
         cwast.CheckAST(mod, ELIMIMATED_NODES)
-        
+
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)

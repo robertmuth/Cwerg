@@ -217,10 +217,10 @@ class TypeCorpus:
 
     def get_data_address_reg_type(self):
         return f"A{self._target_arch_config.data_addr_bitwidth}"
-    
+
     def get_address_size(self):
-        return self._target_arch_config.data_addr_bitwidth// 8
-       
+        return self._target_arch_config.data_addr_bitwidth // 8
+
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
         assert tc.node is cwast.TypeSum
         num_void = 0
