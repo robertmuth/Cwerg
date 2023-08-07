@@ -62,6 +62,16 @@
     (field t3 UntaggedUnion)
     (field t4 bool))
 
+
+
+(fun with_union_result [(param a bool) (param b u32) (param c r32)] UntaggedUnion :
+    (let @mut out UntaggedUnion undef)
+    (if a : 
+        (= out b) 
+        : (= out c))
+    (return out)
+)
+
 (fun test_untagged_union [] void :
     @doc "straight up union"
     (let @mut u1 UntaggedUnion auto_val)
@@ -119,7 +129,12 @@
     (test::AssertEq (as (at array1 13) u32) 0x42280000_u32)
     (test::AssertEq (as (at array1 13) r32) 42_r32)
 
-     (= (at array1 13) 2.0_r64)
+    (= u1 (call with_union_result [true 10 2.0]))
+    (test::AssertEq (as u1 u32) 10_u32)
+    (= u1 (call with_union_result [false 10 2.0]))
+    (test::AssertEq (as u1 u32) 0x40000000_u32)
+
+    (= (at array1 13) 2.0_r64)
     (test::AssertEq (as (at array1 13) u64) 0x4000000000000000_u64)
     (test::AssertEq (at (as (at array1 13) (array 32 u8)) 3) 0_u8)
     (test::AssertEq (at (as (at array1 13) (array 32 u8)) 7) 0x40_u8)
