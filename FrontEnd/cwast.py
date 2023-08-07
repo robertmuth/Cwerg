@@ -724,19 +724,19 @@ class CanonType:
 
     def is_base_type(self) -> bool:
         return self.node is TypeBase
-    
+
     def is_base_or_enum_type(self) -> bool:
         return self.node is TypeBase or self.node is DefEnum
-    
+
     def is_sum(self) -> bool:
         return self.node is TypeSum
-    
+
     def is_untagged_sum(self) -> bool:
         return self.node is TypeSum and self.untagged
-    
+
     def is_tagged_sum(self) -> bool:
         return self.node is TypeSum and not self.untagged
-    
+
     def sum_types(self) -> List["CanonType"]:
         assert self.is_sum()
         return self.children
@@ -2636,7 +2636,6 @@ def MaybeReplaceAstRecursivelyWithLhsPost(node, replacer, is_lhs=False):
                 new_child = replacer(child, f, is_lhs)
                 if new_child:
                     children[n] = new_child
-                
 
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
@@ -2766,7 +2765,7 @@ def CheckAST(node, disallowed_nodes):
     toplevel_node = None
 
     def visitor(node, field):
-        
+
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         # print (f"@@@@ field={field}: {node.__class__.__name__}")

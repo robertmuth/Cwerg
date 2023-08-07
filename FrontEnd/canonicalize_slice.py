@@ -3,7 +3,7 @@
 """
 
 
-from typing import Optional
+from typing import Optional, Dict
 
 from FrontEnd import cwast
 from FrontEnd import type_corpus
@@ -17,6 +17,9 @@ from FrontEnd import symbolize
 ############################################################
 SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
+
+
+SLICE_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
 
 
 def _MakeSliceReplacementStruct(slice: cwast.TypeSlice,
@@ -44,7 +47,8 @@ def _MakeSliceReplacementStruct(slice: cwast.TypeSlice,
     return cstr
 
 
-def _DoesFunSigContainSlices(fun_sig: cwast.CanonType, slice_to_struct_map) -> bool:
+def _DoesFunSigContainSlices(fun_sig: cwast.CanonType,
+                             slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> bool:
     if fun_sig.result_type() in slice_to_struct_map:
         return True
     for p in fun_sig.parameter_types():
@@ -54,7 +58,7 @@ def _DoesFunSigContainSlices(fun_sig: cwast.CanonType, slice_to_struct_map) -> b
 
 
 def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                        slice_to_struct_map) -> cwast.TypeFun:
+                        slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> cwast.TypeFun:
     assert fun_sig.is_fun()
     result = slice_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
@@ -62,7 +66,7 @@ def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
     return tc.insert_fun_type(params, result)
 
 
-def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus):
+def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_STRUCT_MAP:
     """For all types directly involving slices, produce a replacement type
     and return the map from one the other
 
@@ -85,7 +89,7 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus):
 
     # now go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it
-    out = {}
+    out: SLICE_TO_STRUCT_MAP = {}
     for cstr in tc.topo_order[:]:
         if cstr.is_slice():
             assert cstr in slice_type_to_slice
@@ -105,11 +109,11 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus):
     return out
 
 
-def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc):
+def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
     return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
-def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc):
+def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
     pointer_field, length_field = slice_rec.ast_node.fields
     inits = [cwast.FieldVal(pointer, "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
@@ -120,7 +124,7 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc):
     return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec)
 
 
-def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc):
+def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc) -> cwast.ValRec:
     assert node.x_type.is_array()
     pointer_field, length_field = slice_rec.fields
     width = node.x_type.size.x_value
@@ -158,7 +162,7 @@ def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
 
 
 def _MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                           uint_type: cwast.CanonType):
+                           uint_type: cwast.CanonType) -> cwast.ValSlice:
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type())
     pointer = cwast.ExprFront(node, x_srcloc=node.x_type, mut=dst_type.mut, x_type=p_type)
     width = node.x_type.array_dim()
