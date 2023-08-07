@@ -526,7 +526,7 @@ def EmitFunProlog(ctx: regs.EmitContext) -> List[InsTmpl]:
 
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
-    o.LINE,  # debug line number 
+    o.LINE,  # debug line number
     o.NOP1,  # pseudo instruction
     o.RET,  # handled via special epilog code
 }
@@ -979,11 +979,11 @@ loop:
                     InsTmpl(f"eor_x_reg",
                             [PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, a64.SHIFT.lsl, 0]),
                     _UnsignedExtension(PARAM.scratch_gpr,
-                                        kind.bitwidth(), True),
+                                       kind.bitwidth(), True),
                     InsTmpl(f"eor_x_reg", [
                         PARAM.scratch_gpr, PARAM.scratch_gpr, PARAM.reg1, a64.SHIFT.lsl, 0]),
                     _UnsignedExtension(PARAM.scratch_gpr,
-                                        kind.bitwidth(), False),
+                                       kind.bitwidth(), False),
                     InsTmpl("b_ne", [4]),
                     InsTmpl(f"stlxr_{suffix}", [
                         PARAM.scratch_gpr, PARAM.reg3, PARAM.reg2]),

@@ -719,7 +719,7 @@ def InitAluInt():
                 [InsTmpl(f"xor_{bw}_r_mr", [F.RDX, F.RDX]),
                  InsTmpl(f"div_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
 
-    # there is no 8 bit div - emulate via 16 bit version 
+    # there is no 8 bit div - emulate via 16 bit version
     Pattern(o.DIV, [o.DK.U8] * 3,
             [C.REG_RDX, C.REG_RAX, C.REG],
             [InsTmpl("xor_16_r_mr", [F.RDX, F.RDX])] +
@@ -736,8 +736,8 @@ def InitAluInt():
                 [C.REG_RDX, C.REG_RAX, C.REG],
                 [InsTmpl(prep, [F.RDX, F.RAX]),
                  InsTmpl(f"idiv_{bw}_{rdx}_{rax}_mr", [F.RDX, F.RAX, P.reg2])])
-    
-    # there is no 8 bit div- emulate via 16 bit version 
+
+    # there is no 8 bit div- emulate via 16 bit version
     Pattern(o.DIV, [o.DK.S8] * 3,
             [C.REG_RDX, C.REG_RAX, C.REG],
             ExtendRegInPlace(P.reg1, o.DK.S8, 16) +

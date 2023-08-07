@@ -525,7 +525,7 @@ class Pattern:
 
 
 OPCODES_REQUIRING_SPECIAL_HANDLING = {
-    o.LINE,  # line number 
+    o.LINE,  # line number
     o.NOP1,  # pseudo instruction
     o.RET,  # handled via special epilog code
 }
@@ -1067,14 +1067,14 @@ def InitMiscBra():
     # in the spawn() code in StdLib/syscall.a32.asm
     Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
             [  # push r7 on stack twice for 8 byte alignment
-             InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
-             InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
-             InsTmpl("movw", [arm.REG.r7, PARAM.num1]),
-             InsTmpl("svc", [0]),
-             InsTmpl("ldr_imm_add_post", [arm.REG.r7, arm.REG.sp, 4]),
-             InsTmpl("ldr_imm_add_post",
-                     [arm.REG.r7, arm.REG.sp, 4])],  # pop r7 from stack
-            imm_kind1 = IMM_CURB.pos_16_bits)
+        InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
+        InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),
+        InsTmpl("movw", [arm.REG.r7, PARAM.num1]),
+        InsTmpl("svc", [0]),
+        InsTmpl("ldr_imm_add_post", [arm.REG.r7, arm.REG.sp, 4]),
+        InsTmpl("ldr_imm_add_post",
+                [arm.REG.r7, arm.REG.sp, 4])],  # pop r7 from stack
+            imm_kind1=IMM_CURB.pos_16_bits)
     # Note: a dummy "nop1 %scratch_gpr" either immediately before
     # or after will ensure that %scratch_gpr is available
     Pattern(o.SWITCH, [o.DK.U32, o.DK.INVALID],
@@ -1148,7 +1148,7 @@ def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
 
     This can only be called AFTER the stack has been finalized
     """
-    patterns=Pattern.Table[ins.opcode.no]
+    patterns = Pattern.Table[ins.opcode.no]
     # print(f"@ {ins} {ins.operands}")
     for p in patterns:
         # print(f"@trying pattern {p}")
@@ -1165,18 +1165,18 @@ def FindtImmediateMismatchesInBestMatchPattern(ins: ir.Ins,
 
     None means there was an error
     """
-    best=MATCH_IMPOSSIBLE
-    best_num_bits=bin(best).count('1')
-    patterns=Pattern.Table[ins.opcode.no]
+    best = MATCH_IMPOSSIBLE
+    best_num_bits = bin(best).count('1')
+    patterns = Pattern.Table[ins.opcode.no]
     for p in patterns:
         if not p.MatchesTypeConstraints(ins):
             continue
-        mismatches=p.MatchesImmConstraints(ins, assume_stk_op_matches)
+        mismatches = p.MatchesImmConstraints(ins, assume_stk_op_matches)
         if mismatches == 0:
             return 0
-        num_bits=bin(mismatches).count('1')
+        num_bits = bin(mismatches).count('1')
         if num_bits < best_num_bits:
-            best, best_num_bits=mismatches, num_bits
+            best, best_num_bits = mismatches, num_bits
     return best
 
 
@@ -1187,20 +1187,20 @@ def _EmitCodeH(fout):
 
 
 def _RenderOperands(operands: List[Any]):
-    out=[]
-    mask=0
+    out = []
+    mask = 0
     for n, op in enumerate(operands):
         if isinstance(op, PARAM):
             mask |= 1 << n
-            s=f"+PARAM::{op.name}"
+            s = f"+PARAM::{op.name}"
         elif isinstance(op, arm.PRED):
-            s=f"+PRED::{op.name}"
+            s = f"+PRED::{op.name}"
         elif isinstance(op, arm.REG):
-            s=f"+REG::{op.name}"
+            s = f"+REG::{op.name}"
         elif isinstance(op, arm.SHIFT):
-            s=f"+SHIFT::{op.name}"
+            s = f"+SHIFT::{op.name}"
         elif isinstance(op, int):
-            s=f"{op}"
+            s = f"{op}"
         else:
             assert False, f"bad op {op}"
         out.append(s)
@@ -1208,19 +1208,19 @@ def _RenderOperands(operands: List[Any]):
 
 
 def _EmitCodeC(fout):
-    print(f"\nconst InsTmpl kInsTemplates[] = {{", file = fout)
-    print("  { /*used first entry*/ },", file = fout)
-    num_ins=1
+    print(f"\nconst InsTmpl kInsTemplates[] = {{", file=fout)
+    print("  { /*used first entry*/ },", file=fout)
+    num_ins = 1
     for i in range(256):
-        patterns=Pattern.Table.get(i)
+        patterns = Pattern.Table.get(i)
         if patterns is None:
             continue
-        opcode=o.Opcode.TableByNo.get(i)
+        opcode = o.Opcode.TableByNo.get(i)
         for pat in patterns:
             for tmpl in pat.emit:
-                mask, ops=_RenderOperands(tmpl.args)
+                mask, ops = _RenderOperands(tmpl.args)
                 num_ins += 1
-                print(f"  {{ {{{', '.join(ops)}}},", file = fout)
+                print(f"  {{ {{{', '.join(ops)}}},", file=fout)
                 print(
                     f"    a32::OPC::{tmpl.opcode.name}, 0x{mask:x} }},  // {opcode.name} [{num_ins}]",
                     file=fout)

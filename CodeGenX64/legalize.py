@@ -1,4 +1,3 @@
-import collections
 import dataclasses
 from typing import List, Dict, Optional, Tuple
 
@@ -86,7 +85,7 @@ _SHIFT_MASK = {
 # These require implicit regs
 # Note, that rax is a scratch register. Using it here is a little iffy but
 # we are only using it with simple mov instructions which do not require
-# the scratch register 
+# the scratch register
 def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
@@ -255,7 +254,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
     reg_stats.FunComputeRegStatsLAC(fun)
-    reg_stats.FunSeparateLocalRegUsage(fun)  # this has special hacks to avoid undoing _FunRewriteIntoAABForm()
+    # this has special hacks to avoid undoing _FunRewriteIntoAABForm()
+    reg_stats.FunSeparateLocalRegUsage(fun)
     # DumpRegStats(fun, local_reg_stats)
 
     sanity.FunCheck(fun, None)
@@ -277,7 +277,8 @@ def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
     global_not_lac = []
 
     for reg in fun.regs:
-        if ir.REG_FLAG.GLOBAL not in reg.flags: continue
+        if ir.REG_FLAG.GLOBAL not in reg.flags:
+            continue
         if reg.HasCpuReg():
             if ir.REG_FLAG.LAC in reg.flags:
                 allocated_lac.append(reg)
@@ -328,7 +329,8 @@ def _popcount(x):
 
 
 def _FindMaskCoveringTheLowOrderSetBits(bits: int, count: int) -> int:
-    if count == 0: return 0
+    if count == 0:
+        return 0
     mask = 1
     n = 0
     while n < count:
@@ -463,8 +465,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                           regs.FLT_LAC_REGS_MASK, global_reg_stats, debug)
 
 
-
-
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
                                        _opt_stats: Dict[str, int], fout):
     """Finalizing the stack implies performing all transformations that
@@ -485,7 +485,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # Alternatives: reserve reg (maybe only for functions that need it)
     # TODO: make sure that nop1 regs never get spilled
     # Recompute Everything (TODO: make this more selective to reduce work)
-    
+
     reg_stats.FunComputeRegStatsExceptLAC(fun)
     reg_stats.FunDropUnreferencedRegs(fun)
     liveness.FunComputeLivenessInfo(fun)
