@@ -70,18 +70,6 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
 
 
-_SHIFT_MASK = {
-    o.DK.S8: ir.Const(o.DK.S8, 7),
-    o.DK.U8: ir.Const(o.DK.U8, 7),
-    o.DK.S16: ir.Const(o.DK.S16, 15),
-    o.DK.U16: ir.Const(o.DK.U16, 15),
-    o.DK.S32: ir.Const(o.DK.S32, 31),
-    o.DK.U32: ir.Const(o.DK.U32, 31),
-    o.DK.S64: ir.Const(o.DK.S64, 63),
-    o.DK.U64: ir.Const(o.DK.U64, 63),
-}
-
-
 # These require implicit regs
 # Note, that rax is a scratch register. Using it here is a little iffy but
 # we are only using it with simple mov instructions which do not require
@@ -109,20 +97,17 @@ def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins
                 ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rdx])]
     elif opc in (o.SHR, o.SHL):
-        mask = _SHIFT_MASK.get(ops[0].kind)
+        dk: o.DK = ops[0].kind
+        mask = dk.bitwidth() - 1
 
         if isinstance(ops[2], ir.Reg):
             rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
             mov = ir.Ins(o.MOV, [rcx, ops[2]])
             ops[2] = rcx
-            if mask:
-                return [mov, ir.Ins(o.AND, [rcx, rcx, mask]), ins]
-            else:
-                return [mov, ins]
+            return [mov, ir.Ins(o.AND, [rcx, rcx, ir.Const(dk, mask)]), ins]
         else:
             assert isinstance(ops[2], ir.Const)
-            if mask:
-                ops[2].value = ops[2].value & mask.value
+            ops[2].value = ops[2].value & mask
     elif opc in {o.CAS, o.CAS_MEM, o.CAS_STK}:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         mov_src = ir.Ins(o.MOV, [rax, ops[1]])
