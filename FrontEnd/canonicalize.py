@@ -222,6 +222,10 @@ def CanonicalizeRemoveStmtCond(node):
 
 
 def OptimizeKnownConditionals(node):
+    """Simplify If-statements where the conditional could be evaluated
+    
+    TODO: add check for side-effects
+    """
     def replacer(node, _):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValTrue):

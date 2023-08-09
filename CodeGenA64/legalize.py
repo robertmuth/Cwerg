@@ -211,7 +211,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
-
     lowering.FunRegWidthWidening(fun, o.DK.U8, o.DK.U32)
     lowering.FunRegWidthWidening(fun, o.DK.S8, o.DK.S32)
     lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)

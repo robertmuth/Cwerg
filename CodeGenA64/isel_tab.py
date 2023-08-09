@@ -277,7 +277,7 @@ def _HandleReloc(cpuins: a64.Ins, pos: int, ins: ir.Ins, op: PARAM):
 
 
 class InsTmpl:
-    """Represents a template for an A32 instructions
+    """Represents a template for an A32 instruction
 
     The idea is to "explode" each IR instruction into a list of these.
 
