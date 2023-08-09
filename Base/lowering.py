@@ -75,6 +75,11 @@ def _InsStrengthReduction(
     """
     opc = ins.opcode
     ops = ins.operands
+
+    if opc in (o.SHR, o.SHL) and isinstance(ops[2], ir.Const):
+        mask = ops[0].kind.bitwidth() - 1
+        ops[2].value = ops[2].value & mask
+
     if _InsIsNop1(ins):
         ops.pop(2)
         ins.operand_defs.pop(2)

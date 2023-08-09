@@ -136,6 +136,20 @@ bool InsIsZero(Ins ins) {
 }
 
 bool InsStrengthReduction(Ins ins) {
+  // limit shifts to [0, bitwidth -1] 
+  if (InsOPC(ins) == OPC::SHL || InsOPC(ins) == OPC::SHR) {
+    const Const num2 = Const(InsOperand(ins, 2));
+    if (num2.kind() == RefKind::CONST) {
+      const DK dk = ConstKind(num2);
+      uint64_t mask = DKBitWidth(dk) - 1;
+      if (DKFlavor(dk) == DK_FLAVOR_U) {
+        InsOperand(ins, 2) = ConstNewU(dk, mask & ConstValueU(num2));
+      } else {
+        InsOperand(ins, 2) = ConstNewACS(dk, mask & ConstValueACS(num2));
+      }
+    }
+  }
+
   if (InsIsNop1(ins)) {
     InsOPC(ins) = OPC::MOV;
     InsOperand(ins, 2) = HandleInvalid;
