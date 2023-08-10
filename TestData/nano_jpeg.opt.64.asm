@@ -14,7 +14,7 @@
 # njClip                         RegStats:  0/ 1   0/ 2   0/ 1
 # njRowIDCT                      RegStats:  0/ 8   0/49   0/ 9
 # njColIDCT                      RegStats:  9/ 2   1/91   9/ 9
-# __static_1_njShowBits          RegStats:  0/ 2   0/47   0/ 4
+# __static_1_njShowBits          RegStats:  0/ 2   0/48   0/ 4
 # njSkipBits                     RegStats:  1/ 0   0/ 4   0/ 1
 # njGetBits                      RegStats:  0/ 0   2/ 0   2/ 0
 # njByteAlign                    RegStats:  0/ 0   0/ 2   0/ 1
@@ -34,7 +34,7 @@
 # njConvert                      RegStats: 11/ 0   3/65   3/ 3
 # njInit                         RegStats:  0/ 0   0/ 1   0/ 1
 # njDone                         RegStats:  1/ 0   0/10   0/ 2
-# njDecode                       RegStats:  0/ 1   2/33   2/ 3
+# njDecode                       RegStats:  0/ 1   2/34   2/ 3
 # write_str                      RegStats:  0/ 3   0/ 5   0/ 2
 # write_dec                      RegStats:  0/ 3   0/ 7   0/ 2
 # main                           RegStats:  3/ 0   3/28   2/ 3
@@ -619,7 +619,7 @@
 
 .fun __static_1_njShowBits NORMAL [S32] = [S32]
 .reg S32 [%S32_280 %S32_283 %S32_284 %S32_285 %S32_290 %S32_291 %S32_306 %S32_307 %S32_312 %S32_313 %S32_318 %S32_319 %S32_320 %S32_321 %S32_324 %S32_327 %S32_340 %S32_341 %S32_348 %S32_349 %S32_354 %S32_355 %S32_356 %S32_357 %S32_362 %S32_363 %S32_370 %S32_373 %S32_376 %S32_377 %S32_378 %S32_379 %S32_380 %out bits]
-.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8]
+.reg U8 [$1_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8]
 .reg U32 [marker newbyte]
 .reg A64 [%A64_296 %A64_300 %A64_301 %A64_330 %A64_334 %A64_335]
 .jtb switch_344_tab 256 switch_344_default [0 while_1_cond 217 switch_344_217 255 while_1_cond]
@@ -676,6 +676,8 @@
     ld.mem %S32_340 nj 16
     sub %S32_341 %S32_340 1
     st.mem nj 16 %S32_341
+    conv $5_narrowed_U8 marker
+    conv marker $5_narrowed_U8
     blt 255:U32 marker switch_344_default
 .bbl if_5_true_1  #  edge_out[switch_344_217  switch_344_default  while_1_cond  while_1_cond]  live_out[bits  marker]
     switch marker switch_344_tab
@@ -683,8 +685,8 @@
     st.mem nj 16 0:S32
     bra while_1_cond
 .bbl switch_344_default  #  edge_out[if_4_false  if_4_true]  live_out[bits  marker]
-    conv $5_narrowed_U8 marker
-    conv %S32_348 $5_narrowed_U8
+    conv $6_narrowed_U8 marker
+    conv %S32_348 $6_narrowed_U8
     and %S32_349 %S32_348 248
     beq %S32_349 208 if_4_false
 .bbl if_4_true  #  edge_out[while_1_cond]  live_out[bits]
@@ -693,8 +695,8 @@
 .bbl if_4_false  #  edge_out[while_1_cond]  live_out[bits]
     ld.mem %S32_354 nj 524752
     shl %S32_355 %S32_354 8
-    conv $6_narrowed_U8 marker
-    conv %S32_356 $6_narrowed_U8
+    conv $7_narrowed_U8 marker
+    conv %S32_356 $7_narrowed_U8
     or %S32_357 %S32_355 %S32_356
     st.mem nj 524752 %S32_357
     ld.mem %S32_362 nj 524756
@@ -2489,7 +2491,7 @@
 
 .fun njDecode NORMAL [S32] = [A64 S32]
 .reg S32 [$1_%out %S32_1693 %S32_1698 %S32_1703 %S32_1704 %S32_1710 %S32_1711 %S32_1712 %S32_1716 %S32_1721 %S32_1734 %S32_1735 %S32_1738 %S32_1741 %out size]
-.reg U8 [$10_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
+.reg U8 [$10_narrowed_U8 $11_narrowed_U8 $2_narrowed_U8 $3_narrowed_U8 $4_narrowed_U8 $5_narrowed_U8 $6_narrowed_U8 $7_narrowed_U8 $8_narrowed_U8 $9_narrowed_U8]
 .reg U32 [%U8_1702 %U8_1709 %U8_1720 %U8_1727 %U8_1733]
 .reg A64 [%A64_1701 %A64_1707 %A64_1719 %A64_1725 %A64_1731 jpeg]
 .jtb switch_1728_tab 255 switch_1728_default [192 switch_1728_192 196 switch_1728_196 218 switch_1728_218 219 switch_1728_219 221 switch_1728_221 254 switch_1728_254]
@@ -2546,6 +2548,8 @@
     ld.mem %A64_1725 nj 4
     ld $8_narrowed_U8 %A64_1725 -1
     conv %U8_1727 $8_narrowed_U8
+    conv $9_narrowed_U8 %U8_1727
+    conv %U8_1727 $9_narrowed_U8
     blt 254:U32 %U8_1727 switch_1728_default
 .bbl if_4_end_1  #  edge_out[switch_1728_192  switch_1728_196  switch_1728_218  switch_1728_219  switch_1728_221  switch_1728_254  switch_1728_default]
     switch %U8_1727 switch_1728_tab
@@ -2569,10 +2573,10 @@
     bra while_1_cond
 .bbl switch_1728_default  #  edge_out[if_5_false  if_5_true]
     ld.mem %A64_1731 nj 4
-    ld $9_narrowed_U8 %A64_1731 -1
-    conv %U8_1733 $9_narrowed_U8
-    conv $10_narrowed_U8 %U8_1733
-    conv %S32_1734 $10_narrowed_U8
+    ld $10_narrowed_U8 %A64_1731 -1
+    conv %U8_1733 $10_narrowed_U8
+    conv $11_narrowed_U8 %U8_1733
+    conv %S32_1734 $11_narrowed_U8
     and %S32_1735 %S32_1734 240
     bne %S32_1735 224 if_5_false
 .bbl if_5_true  #  edge_out[while_1_cond]
