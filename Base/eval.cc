@@ -1,6 +1,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/eval.h"
+
 #include "Base/opcode_gen.h"
 #include "Base/serialize.h"
 
@@ -128,6 +129,17 @@ Const ConstWithUpdateKind(DK kind_dst, Const src) {
   }
 }
 
+int64_t SignedIntFromBits(int64_t v, int n_bits) {
+  if (n_bits == 64) return v;
+  uint64_t mask = (1LL << n_bits) - 1;
+  bool will_be_negative = v & (1ULL << (n_bits - 1));
+  if (will_be_negative) {
+    return (v & mask) - (1ULL << n_bits);
+  } else {
+    return v & mask;
+  }
+}
+
 Const ConvertIntValue(DK kind_dst, Const src) {
   const DK kind_src = ConstKind(src);
   const uint64_t width_dst = DKBitWidth(kind_dst);
@@ -140,13 +152,7 @@ Const ConvertIntValue(DK kind_dst, Const src) {
     return ConstWithUpdateKind(kind_dst, src);
   } else {
     uint64_t v = ConstIntValue(src);
-    // longer val to shorter signed
-    int64_t will_be_negative = v & (1ULL << (width_dst - 1));
-    if (will_be_negative) {
-      return ConstNewACS(kind_dst, (v & mask) - (1ULL << width_dst));
-    } else {
-      return ConstNewACS(kind_dst, v & mask);
-    }
+    return ConstNewACS(kind_dst, SignedIntFromBits(v, width_dst));
   }
 }
 

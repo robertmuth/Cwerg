@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "Base/cfg.h"
+#include "Base/eval.h"
 #include "Base/ir.h"
 
 namespace cwerg::base {
@@ -136,7 +137,7 @@ bool InsIsZero(Ins ins) {
 }
 
 bool InsStrengthReduction(Ins ins) {
-  // limit shifts to [0, bitwidth -1] 
+  // limit shifts to [0, bitwidth -1]
   if (InsOPC(ins) == OPC::SHL || InsOPC(ins) == OPC::SHR) {
     const Const num2 = Const(InsOperand(ins, 2));
     if (num2.kind() == RefKind::CONST) {
@@ -224,6 +225,31 @@ int FunMoveElimination(Fun fun, std::vector<Ins>* to_delete) {
   return to_delete->size();
 }
 
+Handle NarrowOperand(Handle op, Fun fun, DK narrow_kind,
+                     std::vector<Ins>* inss) {
+  if (op.kind() == RefKind::CONST) {
+    Const c(op);
+    if (DKFlavor(narrow_kind) == DK_FLAVOR_U) {
+      uint64_t mask = (1 << DKBitWidth(narrow_kind)) - 1;
+      uint64_t v = ConstValueU(c) & mask;
+      return ConstNewU(ConstKind(c), v);
+    } else {
+      ASSERT(DKFlavor(narrow_kind) == DK_FLAVOR_S, "");
+      int64_t v = ConstValueACS(c);
+      return ConstNewACS(ConstKind(c),
+                         SignedIntFromBits(v, DKBitWidth(narrow_kind)));
+    }
+  } else {
+    ASSERT(op.kind() == RefKind::REG, "");
+    Reg reg(op);
+    Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
+    RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
+    inss->push_back(InsNew(OPC::CONV, tmp_reg, reg));
+    inss->push_back(InsNew(OPC::CONV, reg, tmp_reg));
+    return op;
+  }
+}
+
 // This is tricky and probably quite buggy at this point.
 void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
                          std::vector<Ins>* inss) {
@@ -292,12 +318,9 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         Ins and_ins = InsNew(OPC::AND, tmp_reg, InsOperand(ins, 2), mask);
         inss->push_back(and_ins);
         InsOperand(ins, 2) = tmp_reg;
-        if (InsOPC(ins) == OPC::SHR &&
-            InsOperand(ins, 1).kind() == RefKind::REG) {
-          Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
-          RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
-          inss->push_back(InsNew(OPC::CONV, tmp_reg, InsOperand(ins, 1)));
-          inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 1), tmp_reg));
+        if (InsOPC(ins) == OPC::SHR) {
+          InsOperand(ins, 1) =
+              NarrowOperand(InsOperand(ins, 1), fun, narrow_kind, inss);
         }
         inss->push_back(ins);
         dirty = true;
@@ -342,6 +365,20 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
         inss->push_back(InsNew(OPC::CONV, tmp_reg, InsOperand(ins, 1)));
         inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 0), tmp_reg));
+        dirty = true;
+      } else if (InsOpcodeKind(ins) == OPC_KIND::COND_BRA) {
+        InsOperand(ins, 0) =
+            NarrowOperand(InsOperand(ins, 0), fun, narrow_kind, inss);
+        InsOperand(ins, 1) =
+            NarrowOperand(InsOperand(ins, 1), fun, narrow_kind, inss);
+        inss->push_back(ins);
+        dirty = true;
+      } else if (InsOpcodeKind(ins) == OPC_KIND::CMP) {
+        InsOperand(ins, 1) =
+            NarrowOperand(InsOperand(ins, 1), fun, narrow_kind, inss);
+        InsOperand(ins, 2) =
+            NarrowOperand(InsOperand(ins, 2), fun, narrow_kind, inss);
+        inss->push_back(ins);
         dirty = true;
       } else {
         inss->push_back(ins);
@@ -412,7 +449,8 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
       if (opc == OPC::ST_MEM) {
         Handle st_offset = InsOperand(ins, 1);
         Handle lea_offset = ConstNewU(offset_kind, 0);
-        // TODO: small st_offset/ld_offset should probably stay with the `st`
+        // TODO: small st_offset/ld_offset should probably stay with the
+        // `st`
         if (st_offset.kind() == RefKind::CONST)
           std::swap(st_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 0), lea_offset);

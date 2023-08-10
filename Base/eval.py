@@ -27,7 +27,12 @@ _EVALUATORS_COND_BRA = {
 }
 
 
-def SignedIntFromBits(data, n_bits) -> int:
+def MakeAllOnesMask(n_ones: int) -> int:
+    return (1 << n_ones) - 1
+
+
+def SignedIntFromBits(data: int, n_bits: int) -> int:
+    """Takes the lower n_bits bit from data and converts them into an n_bits signed int"""
     mask = (1 << n_bits) - 1
     data &= mask
     if data & (1 << (n_bits - 1)):
@@ -110,4 +115,3 @@ def ConvertIntValue(kind_dst: o.DK, val: ir.Const) -> ir.Const:
         if will_be_negative:
             return ir.Const(kind_dst, masked - (1 << width_dst))
         return ir.Const(kind_dst, masked)
-

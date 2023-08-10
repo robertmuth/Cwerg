@@ -19,6 +19,7 @@ from Base import cfg
 from Base import ir
 from Base import opcode_tab as o
 from Base import serialize
+from Base import eval
 
 # nop means that the result of the operation is equal to src1
 _OPC_NOP_IF_SRC2_IS_ZERO = {
@@ -448,6 +449,19 @@ def FunEliminateMemLoadStore(fun: ir.Fun, base_kind: o.DK, offset_kind: o.DK) ->
         fun, _InsEliminateMemLoadStore, base_kind=base_kind, offset_kind=offset_kind)
 
 
+def _NarrowOperand(op, fun: ir.Fun, narrow_kind: o.DK, inss: List):
+    if isinstance(op, ir.Const):
+        val = op.value & eval.MakeAllOnesMask(narrow_kind.bitwidth())
+        if narrow_kind.flavor() is o.DK_FLAVOR_S:
+            val = eval.SignedIntFromBits(val, narrow_kind.bitwidth())
+        op.value = val
+    else:
+        assert isinstance(op, ir.Reg)
+        tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
+        inss.append(ir.Ins(o.CONV, [tmp_reg, op]))
+        inss.append(ir.Ins(o.CONV, [op, tmp_reg]))
+
+
 def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
     """
     Change the type of all register (and constants) of type src_kind into dst_kind.
@@ -481,7 +495,9 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                         narrow_kind else x for x in fun.output_types]
 
     assert narrow_kind.flavor() == wide_kind.flavor()
-    assert narrow_kind.bitwidth() < wide_kind.bitwidth()
+    narrow_bw = narrow_kind.bitwidth()
+    wide_bw = wide_kind.bitwidth()
+    assert narrow_bw < wide_bw
     narrow_regs = {reg for reg in fun.reg_syms.values()
                    if reg.kind == narrow_kind}
 
@@ -512,28 +528,21 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                 # deal with the shift amount which is subject to an implicit modulo "bitwidth -1"
                 # by changing the width of the reg - we lose this information
                 tmp_reg = fun.GetScratchReg(wide_kind, "tricky", False)
-                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(
-                    wide_kind, narrow_kind.bitwidth() - 1)]))
+                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(wide_kind, narrow_bw - 1)]))
                 ops[2] = tmp_reg
-                if ins.opcode is o.SHR and isinstance(ops[1], ir.Reg):
+                if ins.opcode is o.SHR:
                     # for SHR we also need to make sure the new high order bits are correct
-                    tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
-                    inss.append(ir.Ins(o.CONV, [tmp_reg, ops[1]]))
-                    # the implicit understanding is that this will become nop or a move and not modify the
-                    # high-order bit we just set in the previous instruction
-                    inss.append(ir.Ins(o.CONV, [ops[1], tmp_reg]))
+                    _NarrowOperand(ops[1], fun, narrow_kind, inss)
                 inss.append(ins)
             elif ins.opcode is o.CNTLZ:
                 inss.append(ins)
-                excess = wide_kind.bitwidth() - narrow_kind.bitwidth()
+                excess = wide_bw - narrow_bw
                 inss.append(
                     ir.Ins(o.SUB, [ops[0], ops[0], ir.Const(wide_kind, excess)]))
             elif ins.opcode is o.CNTTZ:
                 inss.append(ins)
-                inss.append(ir.Ins(o.CMPLT, [ops[0], ops[0],
-                                             ir.Const(
-                                                 wide_kind, narrow_kind.bitwidth()),
-                                             ops[0], ir.Const(wide_kind, narrow_kind.bitwidth())]))
+                inss.append(ir.Ins(o.CMPLT, [ops[0], ops[0], ir.Const(wide_kind, narrow_bw),
+                                             ops[0], ir.Const(wide_kind, narrow_bw)]))
             elif kind is o.OPC_KIND.LD and ops[0] in narrow_regs:
                 inss.append(ins)
                 tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
@@ -546,9 +555,21 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                 inss.append(ins)
                 ops[2] = tmp_reg
             elif ins.opcode is o.CONV:
+                # conv narrow = x
+                # becomes
+                # conv narrow_tmp = x
+                # conv wide = narrow_tmp
                 tmp_reg = fun.GetScratchReg(narrow_kind, "narrowed", True)
                 inss.append(ir.Ins(o.CONV, [tmp_reg, ops[1]]))
                 inss.append(ir.Ins(o.CONV, [ops[0], tmp_reg]))
+            elif ins.opcode in (o.BEQ, o.BNE, o.BLE, o.BLT):
+                _NarrowOperand(ops[0], fun, narrow_kind, inss)
+                _NarrowOperand(ops[1], fun, narrow_kind, inss)
+                inss.append(ins)
+            elif ins.opcode in (o.CMPEQ, o.CMPLT):
+                _NarrowOperand(ops[1], fun, narrow_kind, inss)
+                _NarrowOperand(ops[2], fun, narrow_kind, inss)
+                inss.append(ins)              
             else:
                 inss.append(ins)
 
