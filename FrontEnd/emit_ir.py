@@ -881,7 +881,12 @@ def main():
 
     logger.info("partial eval")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-
+    
+    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
+    for mod in mod_topo_order:
+        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+        cwast.CheckAST(mod, ELIMIMATED_NODES)
+        
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
@@ -914,15 +919,23 @@ def main():
         exit(0)
 
     logger.info("Legalize 2")
-    slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
-        mod_topo_order, tc)
-
     for mod in mod_topo_order:
         canonicalize.OptimizeKnownConditionals(mod)
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
         for node in mod.body_mod:
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
+            if isinstance(node, cwast.DefFun) and not node.extern:
+                canonicalize.AddMissingReturnStmts(node)
+                
+    ELIMIMATED_NODES.add(cwast.Expr3)
+
+    slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
+        mod_topo_order, tc)
+    for mod in mod_topo_order:
         canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
+    ELIMIMATED_NODES.add(cwast.ExprLen)
+    ELIMIMATED_NODES.add(cwast.ValSlice)
+    ELIMIMATED_NODES.add(cwast.TypeSlice)
 
     if args.emit_ir and False:
         mod_gen.body_mod += list(str_val_map.values()) + [
@@ -935,10 +948,6 @@ def main():
         exit(0)
 
     logger.info("Sanity Check 1")
-    ELIMIMATED_NODES.add(cwast.ExprLen)
-    ELIMIMATED_NODES.add(cwast.Expr3)
-    ELIMIMATED_NODES.add(cwast.ValSlice)
-    ELIMIMATED_NODES.add(cwast.TypeSlice)
 
     for mod in mod_topo_order:
         cwast.CheckAST(mod, ELIMIMATED_NODES)
@@ -948,10 +957,7 @@ def main():
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
-    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
-    for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
+
 
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
@@ -973,18 +979,7 @@ def main():
                         fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
                 canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
                 canonicalize.CanonicalizeRemoveStmtCond(fun)
-            # add missing return statement
-            if isinstance(fun, cwast.DefFun) and not fun.extern:
-                result: cwast.CanonType = fun.x_type.result_type()
-                if result.is_void_or_wrapped_void():
-                    if fun.body:
-                        last = fun.body[-1]
-                        if isinstance(last, cwast.StmtReturn):
-                            continue
-                    void_expr = cwast.ValVoid(
-                        x_srcloc=last.x_srcloc, x_type=result)
-                    fun.body.append(cwast.StmtReturn(
-                        void_expr, x_srcloc=last.x_srcloc, x_target=fun))
+
 
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)

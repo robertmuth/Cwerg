@@ -223,7 +223,7 @@ def CanonicalizeRemoveStmtCond(node):
 
 def OptimizeKnownConditionals(node):
     """Simplify If-statements where the conditional could be evaluated
-    
+
     TODO: add check for side-effects
     """
     def replacer(node, _):
@@ -314,3 +314,17 @@ def CanonicalizeDefer(node, scopes):
     if isinstance(node, cwast.DefFun):
         scopes.pop(-1)
     return None
+
+
+def AddMissingReturnStmts(fun: cwast.DefFun):
+    result:  cwast.CanonType = fun.x_type.result_type()
+    srcloc = fun.x_srcloc
+    if not result.is_void_or_wrapped_void():
+        return
+    if fun.body:
+        last = fun.body[-1]
+        if isinstance(last, cwast.StmtReturn):
+            return
+        srcloc = last.x_srcloc
+    void_expr = cwast.ValVoid(x_srcloc=srcloc, x_type=result)
+    fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
