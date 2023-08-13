@@ -218,7 +218,6 @@ class UNARY_EXPR_KIND(enum.Enum):
     INVALID = 0
     NOT = 1
     MINUS = 2
-    NEG = 3
 
 
 UNARY_EXPR_SHORTCUT = {
@@ -408,6 +407,8 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
     NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
     NFD(NFK.ATTR_BOOL, "untagged", "sum type is untagged"),
+    NFD(NFK.ATTR_BOOL, "arg_ref", "in parameter was converted for by-val to pointer"),
+    NFD(NFK.ATTR_BOOL, "res_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_STR, "doc", "comment"),
 
     #
@@ -865,6 +866,8 @@ class FunParam:
     name: str      # empty str means no var specified (fun proto type)
     type: NODES_TYPES_T
     #
+    arg_ref: bool = False
+    res_ref: bool = False
     doc: str = ""
     #
     x_srcloc: Optional[Any] = None

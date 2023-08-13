@@ -3,12 +3,14 @@
 
 
 ## Node Overview (Core)
+[DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
 [DefMod&nbsp;(module)](#defmod-module) &ensp;
 [DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
 [DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
+[EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
 [Expr1](#expr1) &ensp;
 [Expr2](#expr2) &ensp;
 [ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
@@ -55,9 +57,7 @@
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
-[DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
-[EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
 [EphemeralList](#ephemerallist) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
@@ -156,6 +156,8 @@ Fields:
 * type [NODE]: type expression
 
 Flags:
+* arg_ref: in parameter was converted for by-val to pointer
+* res_ref: in parameter was converted for by-val to pointer
 * doc: comment
 
 
@@ -1028,7 +1030,6 @@ Flags:
 |----|------|
 |NOT       |!|
 |MINUS     |~|
-|NEG       |not|
 
 ### Expr2 Kind
 
