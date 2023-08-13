@@ -881,12 +881,12 @@ def main():
 
     logger.info("partial eval")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-    
+
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
         cwast.CheckAST(mod, ELIMIMATED_NODES)
-        
+
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
@@ -926,7 +926,7 @@ def main():
             canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
             if isinstance(node, cwast.DefFun) and not node.extern:
                 canonicalize.AddMissingReturnStmts(node)
-                
+
     ELIMIMATED_NODES.add(cwast.Expr3)
 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
@@ -957,29 +957,39 @@ def main():
         typify.VerifyTypesRecursively(mod, tc)
         eval.VerifyASTEvalsRecursively(mod)
 
-
+    id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                id_gens[fun] = identifier.IdGen()
 
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
-            id_gen = identifier.IdGen()
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            id_gen = id_gens[fun]
+            canonicalize_large_args.RewriteLargeArgsCallerSide(
+                fun, fun_sigs_with_large_args, tc, id_gen)
+            if fun.x_type in fun_sigs_with_large_args:
+                canonicalize_large_args.RewriteLargeArgsCalleeSide(
+                    fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
+
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if not isinstance(fun, cwast.DefFun):
+                continue
+
+            id_gen = id_gens[fun]
             # continue
             # why doing this so late?
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
-            canonicalize.CanonicalizeTernaryOp(fun, identifier.IdGen())
-            typify.VerifyTypesRecursively(fun, tc)
-            if isinstance(fun, cwast.DefFun):
-                canonicalize_large_args.RewriteLargeArgsCallerSide(
-                    fun, fun_sigs_with_large_args, tc, id_gen)
-                if fun.x_type in fun_sigs_with_large_args:
-                    canonicalize_large_args.RewriteLargeArgsCalleeSide(
-                        fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
-                canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
-                canonicalize.CanonicalizeRemoveStmtCond(fun)
-
+            canonicalize.CanonicalizeTernaryOp(fun, id_gen)
+            canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
+            canonicalize.CanonicalizeRemoveStmtCond(fun)
 
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
