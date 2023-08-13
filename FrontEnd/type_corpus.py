@@ -182,8 +182,8 @@ class TypeCorpus:
         self._wrapped_curr = 1
         self._base_type_map: Dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
         # maps to ast
-        self.topo_order = []
-        self.corpus: Dict[str, Any] = {}  # name to canonical type
+        self.topo_order: List[cwast.CanonType] = []
+        self.corpus: Dict[str, cwast.CanonType] = {}  # name to canonical type
 
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
@@ -397,7 +397,7 @@ class TypeCorpus:
         assert len(components) > 1
         pieces = []
         for c in components:
-            if c.node is cwast.TypeSum:
+            if c.node is cwast.TypeSum and c.untagged == untagged:
                 for cc in c.children:
                     pieces.append(cc)
             else:
