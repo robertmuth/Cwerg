@@ -101,12 +101,6 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def StringifyOneType(ct: cwast.CanonType):
-    t = ct.register_types
-    assert len(t) == 1, f"bad type: {ct.name}"
-    return t[0]
-
-
 def _EmitFunctionHeader(fun: cwast.DefFun):
     sig: cwast.TypeFun = fun.x_type
     ins = []
@@ -115,7 +109,7 @@ def _EmitFunctionHeader(fun: cwast.DefFun):
         ins += p.register_types
     result = ""
     if not sig.result_type().is_void():
-        result = StringifyOneType(sig.result_type())
+        result = sig.result_type().get_single_register_type()
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
@@ -130,6 +124,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
         else:
+            assert False
             assert len(reg_types) == 2
             print(f"{TAB}poparg {p.name}..1:{reg_types[0]}")
             print(f"{TAB}poparg {p.name}..2:{reg_types[1]}")
@@ -172,7 +167,7 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
         scaled = id_gen.NewName("scaled")
         sint_type = tc.get_sint_canon_type()
         print(
-            f"{TAB}conv {scaled}:{StringifyOneType(sint_type)} = {offset}")
+            f"{TAB}conv {scaled}:{sint_type.get_single_register_type()} = {offset}")
         print(
             f"{TAB}mul {scaled} = {scaled} {scale}")
         return scaled
@@ -327,8 +322,8 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2(kind: cwast.BINARY_EXPR_KIND, res, ct, op1, op2):
-    res_type = StringifyOneType(ct)
+def _EmitExpr2(kind: cwast.BINARY_EXPR_KIND, res, ct: cwast.CanonType, op1, op2):
+    res_type = ct.get_single_register_type()
     op = _BIN_OP_MAP.get(kind)
     if op is not None:
         print(
@@ -344,7 +339,7 @@ def _EmitExpr2(kind: cwast.BINARY_EXPR_KIND, res, ct, op1, op2):
 
 
 def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
-    res_type = StringifyOneType(ct)
+    res_type = ct.get_single_register_type()
     ff = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind])) - 1
     if kind is cwast.UNARY_EXPR_KIND.MINUS:
         print(f"{TAB}sub {res}:{res_type} = 0 {op}")
@@ -370,10 +365,10 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return None
         else:
             res = id_gen.NewName("call")
-            print(f"{TAB}poparg {res}:{StringifyOneType(sig.result_type())}")
+            print(f"{TAB}poparg {res}:{sig.result_type().get_single_register_type()}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{node.x_value}:{StringifyOneType(node.x_type)}"
+        return f"{node.x_value}:{node.x_type.get_single_register_type()}"
     elif isinstance(node, cwast.ValFalse):
         return "0:U8"
     elif isinstance(node, cwast.ValTrue):
@@ -384,7 +379,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
             print(
-                f"{TAB}ld.mem {res}:{StringifyOneType(node.x_type)} = {node.x_symbol.name} 0")
+                f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
             return res
         else:
             return node.x_symbol.name
@@ -419,7 +414,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ExprBitCast):
         res = id_gen.NewName("bitcast")
         expr = EmitIRExpr(node.expr, tc, id_gen)
-        print(f"{TAB}bitcast {res}:{StringifyOneType(node.type.x_type)} = {expr}")
+        print(
+            f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
         return res
     elif isinstance(node, cwast.ExprAs):
         ct_src: cwast.CanonType = node.expr.x_type
@@ -429,7 +425,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             expr = EmitIRExpr(node.expr, tc, id_gen)
             res = id_gen.NewName("as")
             print(
-                f"{TAB}conv {res}:{StringifyOneType(ct_dst)} = {expr}")
+                f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
         elif ct_src.is_array() and ct_dst.is_slice():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
@@ -445,7 +441,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             if ct_dst.is_base_type():
                 addr = _GetLValueAddress(node.expr, tc, id_gen)
                 res = id_gen.NewName("union_access")
-                print(f"{TAB}ld {res}:{StringifyOneType(ct_dst)} = {addr} 0")
+                print(
+                    f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
                 return res
 
             else:
@@ -456,14 +453,15 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {addr} 0")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
         if node.x_type.is_void_or_wrapped_void():
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
-            print(f"{TAB}.reg {StringifyOneType(node.x_type)} [{result}]")
+            print(
+                f"{TAB}.reg {node.x_type.get_single_register_type()} [{result}]")
         for c in node.body:
             EmitIRStmt(c, ReturnResultLocation(result), tc, id_gen)
         return result
@@ -471,7 +469,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
         res = id_gen.NewName("at")
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {src.base} {src.offset}")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_array(), f"unexpected {node}"
@@ -480,7 +478,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         res = id_gen.NewName(f"field_{node.x_field.name}")
         addr = _GetLValueAddress(node.container, tc, id_gen)
         print(
-            f"{TAB}ld {res}:{StringifyOneType(node.x_type)} = {addr} {node.x_field.x_offset}")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {node.x_field.x_offset}")
         return res
     elif isinstance(node, cwast.ValVoid):
         pass
@@ -632,12 +630,12 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
         else:
             if isinstance(initial, cwast.ValUndef):
                 print(
-                    f"{TAB}.reg {StringifyOneType(def_type)} [{node.name}]")
+                    f"{TAB}.reg {def_type.get_single_register_type()} [{node.name}]")
             else:
                 out = EmitIRExpr(initial, tc, id_gen)
                 assert out is not None, f"Failure to gen code for {initial}"
                 print(
-                    f"{TAB}mov {node.name}:{StringifyOneType(def_type)} = {out}")
+                    f"{TAB}mov {node.name}:{def_type.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         continue_label = id_gen.NewName(node.label)
         break_label = id_gen.NewName(node.label)
