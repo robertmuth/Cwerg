@@ -44,15 +44,10 @@ class STORAGE_KIND(enum.Enum):
     DATA = enum.auto()
 
 
-def IsSingleRegType(ct: cwast.CanonType) -> bool:
-    rtype = ct.register_types
-    return rtype is not None and len(rtype) == 1
-
-
 def _IsDefVarOnStack(node: cwast.DefVar) -> bool:
     if node.ref:
         return True
-    return not IsSingleRegType(node.type_or_auto.x_type)
+    return not node.type_or_auto.x_type.fits_in_register()
 
 
 def _StorageForId(node: cwast.Id) -> STORAGE_KIND:
@@ -384,7 +379,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ValTrue):
         return "1:U8"
     elif isinstance(node, cwast.Id):
-        assert IsSingleRegType(node.x_type)
+        assert node.x_type.fits_in_register()
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
@@ -542,7 +537,8 @@ def EmitIRExprToMemory(ct_target: cwast.CanonType, init_node, dst: BaseOffset,
             assert False
     elif isinstance(init_node, cwast.ValAuto):
         # TODO: check if auto is legit (maybe add a check for this in another phase)
-        _EmitZero(dst, init_node.x_type.size, init_node.x_type.alignment, id_gen)
+        _EmitZero(dst, init_node.x_type.size,
+                  init_node.x_type.alignment, id_gen)
     else:
         assert False, f"NYI: {init_node}"
 
@@ -703,7 +699,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
-        if IsSingleRegType(node.lhs.x_type) and _AssignmentLhsIsInReg(node.lhs):
+        if node.lhs.x_type.fits_in_register() and _AssignmentLhsIsInReg(node.lhs):
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
@@ -876,7 +872,8 @@ def main():
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
     logger.info("Typify the nodes")
-    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
+    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(
+        type_corpus.STD_TARGET_X64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
 
     logger.info("partial eval")

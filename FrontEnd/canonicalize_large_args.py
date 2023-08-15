@@ -16,7 +16,7 @@ Effects of this step:
 
 """
 
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 from FrontEnd import identifier
 from FrontEnd import cwast
@@ -35,15 +35,13 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
         if not fun_sig.is_fun():
             continue
         change = False
-        params = fun_sig.parameter_types()
+        params: List[type_corpus.TypeCorpus] = fun_sig.parameter_types()
         for n, p in enumerate(params):
-            reg_type = p.register_types
-            if reg_type is None or len(reg_type) > 1:
+            if not p.fits_in_register():
                 params[n] = tc.insert_ptr_type(False, p)
                 change = True
         result = fun_sig.result_type()
-        reg_type = result.register_types
-        if not result.is_void() and reg_type is None or len(reg_type) > 1:
+        if not result.is_void() and not result.fits_in_register():
             change = True
             params.append(tc.insert_ptr_type(True, result))
             result = tc.get_void_canon_type()
@@ -64,7 +62,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         result_type = cwast.TypePtr(
             fun.result, mut=True, x_srcloc=fun.x_srcloc, x_type=new_sig.parameter_types()[-1])
         result_param = cwast.FunParam(id_gen.NewName(
-            "result"), result_type, x_srcloc=fun.x_srcloc)
+            "result"), result_type, x_srcloc=fun.x_srcloc, res_ref=True)
         fun.params.append(result_param)
         fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=fun.x_srcloc,
                                     x_type=tc.get_void_canon_type())
@@ -75,6 +73,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         if old != new:
             changing_params[p] = new
             p.type = cwast.TypePtr(p.type, x_srcloc=p.x_srcloc, x_type=new)
+            p.arg_ref = True
     assert result_changes or changing_params
     return changing_params, result_changes
 

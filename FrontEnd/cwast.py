@@ -782,6 +782,14 @@ class CanonType:
     def is_mutable(self) -> bool:
         return self.mut
 
+    def fits_in_register(self) -> bool:
+        reg_type = self.register_types
+        return reg_type is not None and len(reg_type) == 1
+
+    def get_single_register_type(self) -> str:
+        reg_type = self.register_types
+        assert reg_type is not None and len(reg_type) == 1
+        return reg_type[0]
 ############################################################
 # Emphemeral
 ############################################################
