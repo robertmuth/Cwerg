@@ -104,6 +104,19 @@
     (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 1) 0_u8)
     (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 2) 0_u8)
     (test::AssertEq (at (as (. rec1 t3) (array 32 u8)) 3) 0x40_u8)
+    
+    @doc "union embedded in record 2"
+    (let @mut rec2 auto (rec_val RecordWithUntaggedUnion [
+        (field_val false)
+        (field_val 0x12344321)
+        (field_val 2.0_r32)
+        (field_val true)]))
+    (test::AssertEq (. rec2 t1) false)
+    (test::AssertEq (. rec2 t2) 0x12344321_u32)
+    (test::AssertEq (as (. rec2 t3) u32) 0x40000000_u32)
+    (test::AssertEq (. rec2 t4) true)
+
+
     @doc ""
     (= (at (as (. rec1 t3) (array 32 u8)) 2) 0x28_u8)
     (= (at (as (. rec1 t3) (array 32 u8)) 3) 0x42_u8)
