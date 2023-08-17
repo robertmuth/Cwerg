@@ -1054,7 +1054,8 @@ class TypeSum:
 
     def __str__(self):
         t = [str(t) for t in self.types]
-        return f"{_NAME(self)} {' '.join(t)}"
+        extra = "-untagged" if self.untagged else ""
+        return f"{_NAME(self)}{extra} {' '.join(t)}"
 
 
 ############################################################
