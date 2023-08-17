@@ -176,8 +176,6 @@ class TypeCorpus:
     def __init__(self, target_arch_config: TargetArchConfig):
         self._target_arch_config: TargetArchConfig = target_arch_config
         self.uint_kind: cwast.BASE_TYPE_KIND = cwast.BASE_TYPE_KIND.U64
-        self.sint_kind: cwast.BASE_TYPE_KIND = cwast.BASE_TYPE_KIND.S64
-        # TODO
 
         self._wrapped_curr = 1
         self._base_type_map: Dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
@@ -257,7 +255,8 @@ class TypeCorpus:
         elif tc.node is cwast.TypePtr:
             return [f"A{self._target_arch_config.data_addr_bitwidth}"]
         elif tc.node is cwast.TypeSlice:
-            return [f"A{self._target_arch_config.data_addr_bitwidth}"] + _BASE_TYPE_MAP[self.uint_kind]
+            return [f"A{self._target_arch_config.data_addr_bitwidth}",
+                    f"U{self._target_arch_config.uint_bitwidth}"]
         elif tc.node is cwast.DefRec:
             fields = [f for f in tc.ast_node.fields]
             if len(fields) == 1:
