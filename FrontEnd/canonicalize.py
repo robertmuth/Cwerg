@@ -333,10 +333,17 @@ def AddMissingReturnStmts(fun: cwast.DefFun):
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
     if orig_node.x_type.is_array() and target_type.is_slice():
-        # print (f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
-        # assert False
         return canonicalize_slice.MakeValSliceFromArray(
             orig_node, target_type, tc, uint_type)
+    elif target_type.is_tagged_sum():
+        sum_type = cwast.TypeAuto(x_type=target_type, x_srcloc=orig_node.x_srcloc)
+        return cwast.ExprAs(orig_node, sum_type, x_type=target_type, x_srcloc=orig_node.x_srcloc)
+    elif target_type.is_untagged_sum():
+        pass
+    else:
+        print(
+            f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
+        assert False
     return orig_node
 
 
@@ -349,7 +356,7 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
         if isinstance(node, cwast.FieldVal):
             if node.value.x_type != node.x_type:
                 node.value = _HandleImplicitConversion(
-                node.value, node.x_type, uint_type, tc)
+                    node.value, node.x_type, uint_type, tc)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             initial = node.initial_or_undef_or_auto
             if not isinstance(initial, cwast.ValUndef):

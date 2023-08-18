@@ -2771,7 +2771,7 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def CheckAST(node, disallowed_nodes):
+def CheckAST(node, disallowed_nodes, allow_type_auto=False):
 
     # this forces a pre-order traversal
     toplevel_node = None
@@ -2814,8 +2814,9 @@ def CheckAST(node, disallowed_nodes):
             permitted = nfd.extra
             if permitted and not isinstance(toplevel_node, DefMacro):
                 if node.__class__.__name__ not in permitted:
-                    CompilerError(
-                        node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
+                    if not (allow_type_auto and isinstance(node, TypeAuto)):
+                        CompilerError(
+                            node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
 
     VisitAstRecursively(node, visitor)
 

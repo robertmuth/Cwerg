@@ -26,20 +26,16 @@ def _MakeSliceReplacementStruct(slice_type: cwast.TypeSlice,
                                 tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     srcloc = slice_type.x_srcloc
     #
-    pointer_type = cwast.TypePtr(cwast.CloneNodeRecursively(
-        slice_type.type, {}, {}), mut=slice_type.mut, x_srcloc=srcloc)
-    typify.AnnotateNodeType(pointer_type, tc.insert_ptr_type(
-        pointer_type.mut, pointer_type.type.x_type))
+    ct = tc.insert_ptr_type(slice_type.mut, slice_type.type.x_type)
+    pointer_type = cwast.TypeAuto(x_type=ct, x_srcloc=srcloc)
     pointer_field = cwast.RecField(
-        SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc)
-    typify.AnnotateNodeType(pointer_field, pointer_type.x_type)
+        SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc, x_type=ct)
     #
     uint_ct = tc.get_uint_canon_type()
-    length_type = cwast.TypeBase(uint_ct.base_type_kind, x_srcloc=srcloc)
-    typify.AnnotateNodeType(length_type, uint_ct)
+    length_type = cwast.TypeBase(
+        uint_ct.base_type_kind, x_srcloc=srcloc, x_type=uint_ct)
     length_field = cwast.RecField(
-        SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc)
-    typify.AnnotateNodeType(length_field, length_type.x_type)
+        SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc, x_type=uint_ct)
     #
     name = f"tuple_{slice_type.x_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
