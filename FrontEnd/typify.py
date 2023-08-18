@@ -668,9 +668,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
         initial = node.initial_or_undef_or_auto
         if not isinstance(initial, cwast.ValUndef):
             cstr = node.type_or_auto.x_type
-            initial_cstr = initial.x_type
             _CheckTypeCompatibleForAssignment(
-                node, initial_cstr, cstr, type_corpus.is_mutable_def(
+                node, initial.x_type, cstr, type_corpus.is_mutable_def(
                     initial),
                 initial.x_srcloc)
     elif isinstance(node, cwast.ExprDeref):
@@ -721,9 +720,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
         assert fun_sig.is_fun(), f"{fun_sig}"
         assert fun_sig.result_type() == result, f"{fun_sig.result} {result}"
         for p, a in zip(fun_sig.parameter_types(), node.args):
-            arg_cstr = a.x_type
             _CheckTypeCompatibleForAssignment(
-                p,  arg_cstr, p, type_corpus.is_mutable_def(a), a.x_srcloc)
+                p,  a.x_type, p, type_corpus.is_mutable_def(a), a.x_srcloc)
     elif isinstance(node, cwast.StmtReturn):
         target = node.x_target
         actual = node.expr_ret.x_type
@@ -838,7 +836,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def VerifyTypesRecursively(node, corpus):
+def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus):
     def visitor(node, _):
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             logger.info("TYPE-VERIFYING %s", node)
@@ -847,7 +845,7 @@ def VerifyTypesRecursively(node, corpus):
                 isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
             if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
                 assert node.x_type is not None, f"untyped node: {node.x_srcloc}  {node}"
-            _TypeVerifyNode(node, corpus)
+            _TypeVerifyNode(node, tc)
 
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
             field = node.x_field
