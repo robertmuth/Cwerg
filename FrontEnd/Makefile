@@ -35,8 +35,9 @@ tests_pp_py: $(TESTS_PP)
 
 STD_LIB_WITH_ARGV_X64 = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
-# test language features
+# test language features X64
 tests_lang_x64: \
     $(DIR)/assign_test.lang.x64.exe \
     $(DIR)/enum_test.lang.x64.exe \
@@ -47,17 +48,28 @@ tests_lang_x64: \
     $(DIR)/sum_untagged_test.lang.x64.exe \
     $(DIR)/sum_tagged_test.lang.x64.exe 
 
-# test language features
+# test language features A64
 tests_lang_a64: \
     $(DIR)/assign_test.lang.a64.exe \
     $(DIR)/enum_test.lang.a64.exe \
     $(DIR)/rec_test.lang.a64.exe \
-	$(DIR)/defer_test.lang.a64.exe \
+    $(DIR)/defer_test.lang.a64.exe \
     $(DIR)/sum_untagged_test.lang.a64.exe \
     $(DIR)/sum_tagged_test.lang.a64.exe \
     $(DIR)/expr_uint_test.lang.a64.exe \
     $(DIR)/expr_sint_test.lang.a64.exe
 
+# test language features A32
+# TODO: this does not work yet
+tests_lang_a32: \
+    $(DIR)/assign_test.lang.a64.exe \
+    $(DIR)/enum_test.lang.a64.exe \
+    $(DIR)/rec_test.lang.a64.exe \
+    $(DIR)/defer_test.lang.a64.exe \
+    $(DIR)/sum_untagged_test.lang.a64.exe \
+    $(DIR)/sum_tagged_test.lang.a64.exe \
+    $(DIR)/expr_uint_test.lang.a64.exe \
+    $(DIR)/expr_sint_test.lang.a64.exe
 
 tests_emit: \
     $(DIR)/hello_world.x64.exe \
@@ -107,7 +119,11 @@ $(DIR)/%.lang.a64.exe: LangTest/%.cw
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-
+$(DIR)/%.lang.a32.exe: LangTest/%.cw
+	@echo "[lang $@]"
+	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
 
 $(DIR)/hello_world.x64.exe: TestData/hello_world.cw
 	./emit_ir.py Lib/builtin.cw $< > $@.asm
