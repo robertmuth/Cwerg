@@ -8,7 +8,7 @@ import dataclasses
 import enum
 import struct
 
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, List
 
 from Util.parse import BytesToEscapedString
 
@@ -824,6 +824,21 @@ def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
             EmitIRStmt(c, None, tc, id_gen)
 
 
+def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc, eliminated_node_types):
+    logger.info(phase_name)
+    if emit_ir:
+        for mod in mod_topo_order:
+            pp.PrettyPrintHTML(mod, tc)
+            # pp.PrettyPrint(mod)
+        exit(0)
+
+    for mod in mods:
+        cwast.CheckAST(mod, eliminated_node_types)
+        symbolize.VerifyASTSymbolsRecursively(mod)
+        typify.VerifyTypesRecursively(mod, tc)
+        eval.VerifyASTEvalsRecursively(mod)
+
+
 ELIMIMATED_NODES = set()
 
 
@@ -881,7 +896,9 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
+
+    SanityCheckMods("AST is now fully decorated", args.emit_ir and False,
+              mod_topo_order, tc, ELIMIMATED_NODES)
 
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
@@ -902,17 +919,8 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
-    for mod in mod_topo_order:
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
-        typify.VerifyTypesRecursively(mod, tc)
-
-    if args.emit_ir and False:
-        mod_topo_order = [mod_gen] + mod_topo_order
-        for mod in mod_topo_order:
-            pp.PrettyPrintHTML(mod, tc)
-            # pp.PrettyPrint(mod)
-
-        exit(0)
+    SanityCheckMods("initial lowering", args.emit_ir and False,
+              mod_topo_order, tc, ELIMIMATED_NODES)
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:
@@ -924,9 +932,12 @@ def main():
                 canonicalize.AddMissingReturnStmts(node)
 
     ELIMIMATED_NODES.add(cwast.Expr3)
+    mod_gen.body_mod += list(str_val_map.values())
 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
+    mod_gen.body_mod += [
+        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
     for mod in mod_topo_order:
         canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
     ELIMIMATED_NODES.add(cwast.ExprLen)
@@ -938,25 +949,8 @@ def main():
     for mod in mod_topo_order:
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
-    if args.emit_ir and False:
-        mod_gen.body_mod += list(str_val_map.values()) + [
-            v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
-        mod_topo_order = [mod_gen] + mod_topo_order
-        for mod in mod_topo_order:
-            pp.PrettyPrintHTML(mod, tc)
-            # pp.PrettyPrint(mod)
-
-        exit(0)
-
-    logger.info("Sanity Check 1")
-
-    for mod in mod_topo_order:
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
-
-    for mod in mod_topo_order:
-        symbolize.VerifyASTSymbolsRecursively(mod)
-        typify.VerifyTypesRecursively(mod, tc)
-        eval.VerifyASTEvalsRecursively(mod)
+    SanityCheckMods("After slice elimination", args.emit_ir and False,
+              [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
     id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
     for mod in mod_topo_order:
@@ -1003,16 +997,9 @@ def main():
         if cwast.NF.NON_CORE in node.FLAGS:
             assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
 
-    logger.info("Sanity Check 2")
-    for mod in mod_topo_order:
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
-        symbolize.VerifyASTSymbolsRecursively(mod)
-        typify.VerifyTypesRecursively(mod, tc)
-        eval.VerifyASTEvalsRecursively(mod)
+    SanityCheckMods("After canonicalization", args.emit_ir and False,
+              [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
-    mod_gen.body_mod += list(str_val_map.values()) + [
-        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
-    cwast.CheckAST(mod_gen, ELIMIMATED_NODES)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1029,12 +1016,8 @@ def main():
                     suffix = f"<{node.x_type.parameter_types()[0].name}>"
                 node.name = mod_name + node.name + suffix
 
-    if args.emit_ir:
-        for mod in mod_topo_order:
-            pp.PrettyPrintHTML(mod, tc)
-            # pp.PrettyPrint(mod)
-
-        exit(0)
+    SanityCheckMods("After slice elimination", args.emit_ir,
+              mod_topo_order, tc, ELIMIMATED_NODES)
 
     # Emit Cwert IR
     for mod in mod_topo_order:
