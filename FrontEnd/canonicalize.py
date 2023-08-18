@@ -7,6 +7,7 @@ from typing import Dict, Any
 from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import type_corpus
+from FrontEnd import canonicalize_slice
 
 ############################################################
 #
@@ -328,3 +329,53 @@ def AddMissingReturnStmts(fun: cwast.DefFun):
         srcloc = last.x_srcloc
     void_expr = cwast.ValVoid(x_srcloc=srcloc, x_type=result)
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
+
+
+def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
+    if orig_node.x_type.is_array() and target_type.is_slice():
+        # print (f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
+        # assert False
+        return canonicalize_slice.MakeValSliceFromArray(
+            orig_node, target_type, tc, uint_type)
+    return orig_node
+
+
+def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
+    uint_type: cwast.CanonType = tc.get_uint_canon_type()
+
+    def visitor(node, _):
+        nonlocal tc, uint_type
+
+        if isinstance(node, cwast.FieldVal):
+            if node.value.x_type != node.x_type:
+                node.value = _HandleImplicitConversion(
+                node.value, node.x_type, uint_type, tc)
+        elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+            initial = node.initial_or_undef_or_auto
+            if not isinstance(initial, cwast.ValUndef):
+                if initial.x_type != node.type_or_auto.x_type:
+                    node.initial_or_undef_or_auto = _HandleImplicitConversion(
+                        initial, node.type_or_auto.x_type, uint_type, tc)
+        elif isinstance(node, cwast.ExprCall):
+            fun_sig: cwast.CanonType = node.callee.x_type
+            for n, (p, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
+                if a.x_type != p:
+                    node.args[n] = _HandleImplicitConversion(
+                        a, p, uint_type, tc)
+        elif isinstance(node, cwast.StmtReturn):
+            target = node.x_target
+            actual = node.expr_ret.x_type
+            if isinstance(target, cwast.DefFun):
+                expected = target.result.x_type
+            else:
+                assert isinstance(target, cwast.ExprStmt)
+                expected = target.x_type
+            if expected != actual:
+                node.expr_ret = _HandleImplicitConversion(
+                    node.expr_ret, expected, uint_type, tc)
+        elif isinstance(node, cwast.StmtAssignment):
+            if node.lhs.x_type != node.expr_rhs.x_type:
+                node.expr_rhs = _HandleImplicitConversion(
+                    node.expr_rhs, node.lhs.x_type, uint_type, tc)
+
+    cwast.VisitAstRecursivelyPost(mod, visitor)

@@ -910,7 +910,8 @@ def main():
     for mod in mod_topo_order:
         canonicalize.ReplaceExprIndex(mod, tc)
         canonicalize.ReplaceConstExpr(mod)
-        canonicalize_slice.InsertExplicitValSlice(mod, tc)
+        canonicalize.EliminateImplicitConversions(mod, tc)
+
         canonicalize_slice.ReplaceExplicitSliceCast(mod, tc)
         canonicalize.CanonicalizeDefer(mod, [])
         cwast.EliminateEphemeralsRecursively(mod)
