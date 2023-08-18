@@ -14,6 +14,7 @@ from Util.parse import BytesToEscapedString
 
 from FrontEnd import canonicalize_large_args
 from FrontEnd import canonicalize_slice
+from FrontEnd import canonicalize_sum
 from FrontEnd import canonicalize
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
@@ -931,6 +932,11 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprLen)
     ELIMIMATED_NODES.add(cwast.ValSlice)
     ELIMIMATED_NODES.add(cwast.TypeSlice)
+
+    sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
+        mod_topo_order, tc)
+    for mod in mod_topo_order:
+        canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
     if args.emit_ir and False:
         mod_gen.body_mod += list(str_val_map.values()) + [
