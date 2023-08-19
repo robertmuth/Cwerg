@@ -24,7 +24,7 @@ SLICE_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
 
 def _MakeSliceReplacementStruct(slice_type: cwast.TypeSlice,
                                 tc: type_corpus.TypeCorpus) -> cwast.CanonType:
-    srcloc = slice_type.x_srcloc
+    srcloc = cwast.SRCLOC_GENERATED
     #
     ct = tc.insert_ptr_type(slice_type.mut, slice_type.type.x_type)
     pointer_type = cwast.TypeAuto(x_type=ct, x_srcloc=srcloc)

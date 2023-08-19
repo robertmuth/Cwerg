@@ -25,7 +25,7 @@ SUM_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
 def _MakeSumReplacementStruct(sum_type: cwast.TypeSum,
                               tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     assert not sum_type.untagged
-    srcloc = sum_type.x_srcloc
+    srcloc = cwast.SRCLOC_GENERATED
     #
     tag_ct: cwast.CanonType = tc.get_base_canon_type(
         cwast.BASE_TYPE_KIND.TYPEID)
@@ -68,21 +68,21 @@ def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
 
 
 def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
-    """For all types directly involving tagged sums, produce a replacement type
-    and return the map from one the other
+    """For all types directly involving tagged sums, produce a replacement type, a DefRec,
+    and return the map from one the other.
 
     Note: recs containing sum fields are not thought of as directly involving sums
     """
 
-    # first collect all the slice types occuring in the program.
+    # first collect all the tagged sum types occuring in the program.
     # we collect one node witness for each to be used in the next step.
-    sum_type_to_struct: SUM_TO_STRUCT_MAP = {}
+    sum_type_to_first_definition: Dict[cwast.CanonType, Any] = {}
 
     def visitor(node, _):
-        nonlocal sum_type_to_struct
+        nonlocal sum_type_to_first_definition
         if isinstance(node, cwast.TypeSum) and not node.untagged:
-            if node.x_type not in sum_type_to_struct:
-                sum_type_to_struct[node.x_type] = node
+            if node.x_type not in sum_type_to_first_definition:
+                sum_type_to_first_definition[node.x_type] = node
 
     for mod in mods:
         cwast.VisitAstRecursivelyPost(mod, visitor)
@@ -92,8 +92,8 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
     out: SUM_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
         if ct.is_tagged_sum():
-            assert ct in sum_type_to_struct
-            out[ct] = _MakeSumReplacementStruct(sum_type_to_struct[ct], tc)
+            assert ct in sum_type_to_first_definition
+            out[ct] = _MakeSumReplacementStruct(sum_type_to_first_definition[ct], tc)
         elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
             out[ct] = _SumRewriteFunSig(ct, tc, out)
         elif ct.is_pointer():
