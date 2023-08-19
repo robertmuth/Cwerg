@@ -668,6 +668,7 @@ class CanonType:
     alignment: int = -1
     size: int = -1
     register_types: List[Any] = dataclasses.field(default_factory=list)
+    typeid: int = -1
 
     def __hash__(self):
         return hash(self.name)
@@ -2777,7 +2778,6 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
     toplevel_node = None
 
     def visitor(node, field):
-
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         # print (f"@@@@ field={field}: {node.__class__.__name__}")

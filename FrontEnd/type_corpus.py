@@ -175,14 +175,15 @@ class TypeCorpus:
 
     def __init__(self, target_arch_config: TargetArchConfig):
         self._target_arch_config: TargetArchConfig = target_arch_config
-        self.uint_kind: cwast.BASE_TYPE_KIND = cwast.BASE_TYPE_KIND.U64
-
         self._wrapped_curr = 1
         self._base_type_map: Dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
+        self._typeid_curr = 0
         # maps to ast
         self.topo_order: List[cwast.CanonType] = []
         self.corpus: Dict[str, cwast.CanonType] = {}  # name to canonical type
-
+        
+        # VOID should get typeid zero
+        self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
                 continue
@@ -207,6 +208,9 @@ class TypeCorpus:
     def get_sint_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.SINT]
 
+    def get_typeid_canon_type(self):
+        return self._base_type_map[cwast.BASE_TYPE_KIND.TYPEID]
+    
     def get_bool_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.BOOL]
 
@@ -337,6 +341,8 @@ class TypeCorpus:
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         if ct.name in self.corpus:
             return self.corpus[ct.name]
+        ct.typeid = self._typeid_curr
+        self._typeid_curr += 1
         self.corpus[ct.name] = ct
         self.topo_order.append(ct)
         assert STRINGIFIEDTYPE_RE.fullmatch(
