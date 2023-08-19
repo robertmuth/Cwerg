@@ -22,7 +22,7 @@ SUM_FIELD_UNION = "union"
 SUM_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
 
 
-def _MakeSumReplacementStruct(sum_type: cwast.TypeSum,
+def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
                               tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     assert not sum_type.untagged
     srcloc = cwast.SRCLOC_GENERATED
@@ -34,12 +34,12 @@ def _MakeSumReplacementStruct(sum_type: cwast.TypeSum,
     tag_field = cwast.RecField(
         SUM_FIELD_TAG, tag_type, x_srcloc=srcloc, x_type=tag_ct)
     #
-    union_ct = tc.insert_sum_type(sum_type.x_type.sum_types(), True)
+    union_ct = tc.insert_sum_type(sum_type.sum_types(), True)
     union_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_ct)
     union_field = cwast.RecField(
         SUM_FIELD_UNION, union_type, x_srcloc=srcloc, x_type=union_ct)
     #
-    name = f"tuple_{sum_type.x_type.name}"
+    name = f"tuple_{sum_type.name}"
     rec = cwast.DefRec(name, [tag_field, union_field],
                        pub=True, x_srcloc=srcloc)
     rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
@@ -74,26 +74,12 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
     Note: recs containing sum fields are not thought of as directly involving sums
     """
 
-    # first collect all the tagged sum types occuring in the program.
-    # we collect one node witness for each to be used in the next step.
-    sum_type_to_first_definition: Dict[cwast.CanonType, Any] = {}
-
-    def visitor(node, _):
-        nonlocal sum_type_to_first_definition
-        if isinstance(node, cwast.TypeSum) and not node.untagged:
-            if node.x_type not in sum_type_to_first_definition:
-                sum_type_to_first_definition[node.x_type] = node
-
-    for mod in mods:
-        cwast.VisitAstRecursivelyPost(mod, visitor)
-
-    # now go through the type table in topological order and generate the map.
-    # Note; we add new types to the map while iterating over it
+    # Go through the type table in topological order and generate the map.
+    # Note; we add new types to the map while iterating over it sop we take a snapshotfirst
     out: SUM_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
         if ct.is_tagged_sum():
-            assert ct in sum_type_to_first_definition
-            out[ct] = _MakeSumReplacementStruct(sum_type_to_first_definition[ct], tc)
+            out[ct] = _MakeSumReplacementStruct(ct, tc)
         elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
             out[ct] = _SumRewriteFunSig(ct, tc, out)
         elif ct.is_pointer():

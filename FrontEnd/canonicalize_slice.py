@@ -22,11 +22,11 @@ SLICE_FIELD_LENGTH = "length"
 SLICE_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
 
 
-def _MakeSliceReplacementStruct(slice_type: cwast.TypeSlice,
+def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
                                 tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     srcloc = cwast.SRCLOC_GENERATED
     #
-    ct = tc.insert_ptr_type(slice_type.mut, slice_type.type.x_type)
+    ct = tc.insert_ptr_type(slice_type.mut, slice_type.underlying_slice_type())
     pointer_type = cwast.TypeAuto(x_type=ct, x_srcloc=srcloc)
     pointer_field = cwast.RecField(
         SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc, x_type=ct)
@@ -37,7 +37,7 @@ def _MakeSliceReplacementStruct(slice_type: cwast.TypeSlice,
     length_field = cwast.RecField(
         SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc, x_type=uint_ct)
     #
-    name = f"tuple_{slice_type.x_type.name}"
+    name = f"tuple_{slice_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
     cstr: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
@@ -73,27 +73,12 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_ST
     TODO: what about sum types?
     """
 
-    # first collect all the slice types occuring in the program.
-    # we collect one node witness for each to be used in the next step.
-    slice_type_to_slice = {}
-
-    def visitor(node, _):
-        nonlocal slice_type_to_slice
-        if isinstance(node, cwast.TypeSlice):
-            if node.x_type not in slice_type_to_slice:
-                slice_type_to_slice[node.x_type] = node
-
-    for mod in mods:
-        cwast.VisitAstRecursivelyPost(mod, visitor)
-
-    # now go through the type table in topological order and generate the map.
-    # Note; we add new types to the map while iterating over it
+    # Go through the type table in topological order and generate the map.
+    # Note; we add new types to the map while iterating over it so we take a snapshot first
     out: SLICE_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
         if ct.is_slice():
-            assert ct in slice_type_to_slice
-            out[ct] = _MakeSliceReplacementStruct(
-                slice_type_to_slice[ct], tc)
+            out[ct] = _MakeSliceReplacementStruct(ct, tc)
         elif ct.is_fun() and _DoesFunSigContainSlices(ct, out):
             out[ct] = _SliceRewriteFunSig(ct, tc, out)
         elif ct.is_pointer():
