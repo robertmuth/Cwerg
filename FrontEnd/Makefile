@@ -173,14 +173,17 @@ $(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-##
+## Manual test
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	./emit_ir.py Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
-
+$(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
+	./emit_ir.py Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ 128 48
 
 clean:
 	@rm -f $(DIR)/* 
