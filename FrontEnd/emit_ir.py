@@ -351,6 +351,8 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
+    ct_dst: cwast.CanonType = node.x_type
+    assert ct_dst.is_void_or_wrapped_void() or ct_dst.fits_in_register()
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -375,7 +377,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ValTrue):
         return "1:U8"
     elif isinstance(node, cwast.Id):
-        assert node.x_type.fits_in_register()
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")
@@ -420,7 +421,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         return res
     elif isinstance(node, cwast.ExprAs):
         ct_src: cwast.CanonType = node.expr.x_type
-        ct_dst: cwast.CanonType = node.type.x_type
         if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
             expr = EmitIRExpr(node.expr, tc, id_gen)
@@ -428,10 +428,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(
                 f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
-        elif ct_src.is_array() and ct_dst.is_slice():
-            addr = _GetLValueAddress(node.expr, tc, id_gen)
-            size = node.expr.x_type.array_dim()
-            return addr, f"{size}:{tc.get_uint_reg_type()}"
         elif ct_src.is_wrapped() and ct_dst is ct_src.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
@@ -439,15 +435,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
         elif ct_src.is_untagged_sum():
-            if ct_dst.is_base_type():
-                addr = _GetLValueAddress(node.expr, tc, id_gen)
-                res = id_gen.NewName("union_access")
-                print(
-                    f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
-                return res
-
-            else:
-                assert False
+            addr = _GetLValueAddress(node.expr, tc, id_gen)
+            res = id_gen.NewName("union_access")
+            print(
+                f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
+            return res
         else:
             assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, cwast.ExprDeref):
@@ -505,9 +497,19 @@ def EmitIRExprToMemory(ct_target: cwast.CanonType, init_node, dst: BaseOffset,
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
-                              cwast.ExprFront, cwast.ExprBitCast, cwast.ExprAs)):
+                              cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+    elif isinstance(init_node, cwast.ExprAs):
+        if init_node.x_type.fits_in_register():
+            # same as above
+            reg = EmitIRExpr(init_node, tc, id_gen)
+            print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        elif init_node.x_type.is_untagged_sum() and init_node.expr.x_type.fits_in_register():
+            reg = EmitIRExpr(init_node.expr, tc, id_gen)
+            print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        else:
+            assert False, f"{init_node} {init_node.x_type}"
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(init_node, tc, id_gen)
         assert reg is not None

@@ -335,11 +335,10 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
     if orig_node.x_type.is_array() and target_type.is_slice():
         return canonicalize_slice.MakeValSliceFromArray(
             orig_node, target_type, tc, uint_type)
-    elif target_type.is_tagged_sum():
-        sum_type = cwast.TypeAuto(x_type=target_type, x_srcloc=orig_node.x_srcloc)
+    elif target_type.is_sum():
+        sum_type = cwast.TypeAuto(
+            x_type=target_type, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprAs(orig_node, sum_type, x_type=target_type, x_srcloc=orig_node.x_srcloc)
-    elif target_type.is_untagged_sum():
-        pass
     else:
         print(
             f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")

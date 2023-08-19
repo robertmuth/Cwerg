@@ -791,6 +791,9 @@ class CanonType:
         reg_type = self.register_types
         assert reg_type is not None and len(reg_type) == 1
         return reg_type[0]
+    
+    def __str__(self):
+        return self.name
 ############################################################
 # Emphemeral
 ############################################################
