@@ -431,7 +431,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         elif ct_src.is_array() and ct_dst.is_slice():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
             size = node.expr.x_type.array_dim()
-            return addr, f"{size}:{tc.get_data_address_reg_type()}"
+            return addr, f"{size}:{tc.get_uint_reg_type()}"
         elif ct_src.is_wrapped() and ct_dst is ct_src.underlying_wrapped_type():
             # just ignore the wrapped type
             return EmitIRExpr(node.expr, tc, id_gen)
@@ -749,7 +749,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             name = node.container.x_symbol.name
             print(f".addr.mem {tc.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
-            return tc.get_address_size() // 8
+            return tc.get_address_size()
 
         if ct.is_base_or_enum_type():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")

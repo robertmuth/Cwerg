@@ -181,7 +181,7 @@ class TypeCorpus:
         # maps to ast
         self.topo_order: List[cwast.CanonType] = []
         self.corpus: Dict[str, cwast.CanonType] = {}  # name to canonical type
-        
+
         # VOID should get typeid zero
         self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
         for kind in cwast.BASE_TYPE_KIND:
@@ -210,7 +210,7 @@ class TypeCorpus:
 
     def get_typeid_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.TYPEID]
-    
+
     def get_bool_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.BOOL]
 
@@ -219,6 +219,9 @@ class TypeCorpus:
 
     def get_data_address_reg_type(self):
         return f"A{self._target_arch_config.data_addr_bitwidth}"
+
+    def get_uint_reg_type(self):
+        return f"U{self._target_arch_config.uint_bitwidth}"
 
     def get_address_size(self):
         return self._target_arch_config.data_addr_bitwidth // 8
@@ -248,7 +251,7 @@ class TypeCorpus:
             return scalars[0].register_types
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
-        return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth // 8}"]
+        return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth}"]
 
     def get_register_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
         """As long as a type can fit into no more than two regs it will have
@@ -257,10 +260,9 @@ class TypeCorpus:
         if tc.node is cwast.TypeBase:
             return _BASE_TYPE_MAP.get(tc.base_type_kind)
         elif tc.node is cwast.TypePtr:
-            return [f"A{self._target_arch_config.data_addr_bitwidth}"]
+            return [self.get_data_address_reg_type()]
         elif tc.node is cwast.TypeSlice:
-            return [f"A{self._target_arch_config.data_addr_bitwidth}",
-                    f"U{self._target_arch_config.uint_bitwidth}"]
+            return [self.get_data_address_reg_type(), self.get_uint_reg_type()]
         elif tc.node is cwast.DefRec:
             fields = [f for f in tc.ast_node.fields]
             if len(fields) == 1:
