@@ -90,6 +90,7 @@
 
 
 (fun test_tagged_union [] void :
+    (let @mut x TaggedUnion3  true)
 )
 
 

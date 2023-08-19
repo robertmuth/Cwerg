@@ -502,7 +502,6 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 def EmitIRExprToMemory(ct_target: cwast.CanonType, init_node, dst: BaseOffset,
                        tc: type_corpus.TypeCorpus,
                        id_gen: identifier.IdGenIR):
-    assert not ct_target.is_tagged_sum()
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
@@ -824,11 +823,11 @@ def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
             EmitIRStmt(c, None, tc, id_gen)
 
 
-def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc, 
+def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc,
                     eliminated_node_types, allow_type_auto):
     logger.info(phase_name)
     if emit_ir:
-        for mod in mod_topo_order:
+        for mod in mods:
             pp.PrettyPrintHTML(mod, tc)
             # pp.PrettyPrint(mod)
         exit(0)
@@ -899,7 +898,7 @@ def main():
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
     SanityCheckMods("AST is now fully decorated", args.emit_ir and False,
-              mod_topo_order, tc, ELIMIMATED_NODES, False)
+                    mod_topo_order, tc, ELIMIMATED_NODES, False)
 
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
@@ -922,7 +921,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
     SanityCheckMods("initial lowering", args.emit_ir and False,
-              mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    mod_topo_order, tc, ELIMIMATED_NODES, True)
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:
@@ -949,10 +948,10 @@ def main():
     sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
         mod_topo_order, tc)
     for mod in mod_topo_order:
+        canonicalize_sum.ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
-
-    SanityCheckMods("After slice elimination", args.emit_ir and False,
-              [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
+    SanityCheckMods("After slice elimination", args.emit_ir,
+                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
 
     id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
     for mod in mod_topo_order:
@@ -1000,8 +999,7 @@ def main():
             assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
 
     SanityCheckMods("After canonicalization", args.emit_ir and False,
-              [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
-
+                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1019,7 +1017,7 @@ def main():
                 node.name = mod_name + node.name + suffix
 
     SanityCheckMods("After slice elimination", args.emit_ir,
-              mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    mod_topo_order, tc, ELIMIMATED_NODES, True)
 
     # Emit Cwert IR
     for mod in mod_topo_order:
