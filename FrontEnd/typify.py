@@ -666,10 +666,10 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.Case):
         assert node.cond.x_type.is_bool()
     elif isinstance(node, cwast.StmtAssignment):
-        var_cstr = node.lhs.x_type
-        expr_cstr = node.expr_rhs.x_type
+        var_ct = node.lhs.x_type
+        expr_ct = node.expr_rhs.x_type
         _CheckTypeCompatibleForAssignment(
-            node, expr_cstr, var_cstr, type_corpus.is_mutable_def(
+            node, expr_ct, var_ct, type_corpus.is_mutable_def(
                 node.expr_rhs),
             node.expr_rhs.x_srcloc)
         if not type_corpus.is_proper_lhs(node.lhs):
@@ -680,9 +680,9 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             cwast.CompilerError(
                 node.x_srcloc, f"cannot assign to readonly data: {node}")
         kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
-        var_cstr = node.lhs.x_type
-        expr_cstr = node.expr_rhs.x_type
-        _CheckExpr2Types(node, var_cstr, var_cstr, expr_cstr, kind, tc)
+        var_ct = node.lhs.x_type
+        expr_ct = node.expr_rhs.x_type
+        _CheckExpr2Types(node, var_ct, var_ct, expr_ct, kind, tc)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         initial = node.initial_or_undef_or_auto
         if not isinstance(initial, cwast.ValUndef):
@@ -692,7 +692,7 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
                     initial),
                 initial.x_srcloc)
     elif isinstance(node, cwast.StmtExpr):
-        pass 
+        pass
     else:
         assert False, f"unexpected type {node}"
 
@@ -725,10 +725,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.RecField):
         pass
     elif isinstance(node, cwast.ExprIndex):
-        assert node.x_type == node.container.x_type.underlying_array_or_slice_type()
+        assert ct is node.container.x_type.underlying_array_or_slice_type()
     elif isinstance(node, cwast.ExprField):
         #_CheckTypeSame(node,  node.x_field.x_type, ct)
-        assert ct == node.x_field.x_type, f"field node {node.container.x_type} type mismatch: {cstr} {field_node.x_type}"
+        assert ct is node.x_field.x_type, f"field node {node.container.x_type} type mismatch: {cstr} {field_node.x_type}"
     elif isinstance(node, cwast.ExprDeref):
         expr_type: cwast.CanonType = node.expr.x_type
         assert expr_type.is_pointer()
@@ -761,12 +761,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         _CheckTypeSame(node, node.x_type.underlying_pointer_type(),
                        node.container.x_type.underlying_array_or_slice_type())
     elif isinstance(node, cwast.Expr3):
-        cstr_t = node.expr_t.x_type
-        cstr_f = node.expr_f.x_type
-        cstr_cond = node.cond.x_type
-        _CheckTypeSame(node, cstr_t, ct)
-        _CheckTypeSame(node, cstr_f, ct)
-        assert cstr_cond.is_bool()
+        t_ct = node.expr_t.x_type
+        f_ct = node.expr_f.x_type
+        cond_ct = node.cond.x_type
+        _CheckTypeSame(node, t_ct, ct)
+        _CheckTypeSame(node, f_ct, ct)
+        assert cond_ct.is_bool()
     elif isinstance(node, cwast.ExprCall):
         fun_sig: cwast.CanonType = node.callee.x_type
         assert fun_sig.is_fun(), f"{fun_sig}"
@@ -774,7 +774,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         for p, a in zip(fun_sig.parameter_types(), node.args):
             _CheckTypeCompatibleForAssignment(
                 p,  a.x_type, p, type_corpus.is_mutable_def(a), a.x_srcloc)
-
 
     elif isinstance(node, cwast.ExprAsNot):
         pass
@@ -799,7 +798,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprIs):
         assert ct.is_bool()
     elif isinstance(node, cwast.ExprLen):
-        assert ct == tc.get_uint_canon_type()
+        assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.Id):
         def_node = node.x_symbol
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
@@ -809,16 +808,16 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         # else:
         #    _CheckTypeSame(node, tc, node.x_type, def_node.x_type)
     elif isinstance(node, cwast.ExprAddrOf):
-        cstr_expr = node.expr_lhs.x_type
+        expr_ct = node.expr_lhs.x_type
         if node.mut:
             if not address_can_be_taken(node.expr_lhs):
                 cwast.CompilerError(node.x_srcloc,
                                     f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
-        assert ct.is_pointer() and ct.underlying_pointer_type() == cstr_expr
+        assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
     elif isinstance(node, cwast.ExprOffsetof):
-        assert node.x_type == tc.get_uint_canon_type()
+        assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.ExprSizeof):
-        assert node.x_type == tc.get_uint_canon_type()
+        assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.ExprTryAs):
         _CheckTypeSame(node, ct, node.type.x_type)
         if not isinstance(node.default_or_undef, cwast.ValUndef):
@@ -830,19 +829,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypeSum):
         assert ct.is_sum()
     elif isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValVoid)):
-        assert node.x_type.is_base_type()
+        assert ct.is_base_type()
     elif isinstance(node, (cwast.DefFun, cwast.TypeFun)):
-        fun_type: cwast.CanonType = node.x_type
-        assert fun_type.is_fun()
-        _CheckTypeSame(node.result, fun_type.result_type(),
-                       node.result.x_type)
-        for a, b in zip(fun_type.parameter_types(), node.params):
+        assert ct.is_fun()
+        _CheckTypeSame(node.result, ct.result_type(), node.result.x_type)
+        for a, b in zip(ct.parameter_types(), node.params):
             _CheckTypeSame(b, a, b.type.x_type)
         # We should also ensure three is a proper return but that requires dataflow
 
     elif isinstance(node, cwast.ValSlice):
-        assert node.x_type.is_mutable() == node.pointer.x_type.is_mutable()
-        _CheckTypeSame(node, node.x_type.underlying_slice_type(),
+        assert ct.is_mutable() == node.pointer.x_type.is_mutable()
+        _CheckTypeSame(node, ct.underlying_slice_type(),
                        node.pointer.x_type.underlying_pointer_type())
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
                            cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,
@@ -860,17 +857,14 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
             logger.info("TYPE-VERIFYING %s", node)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
-             assert node.x_type is not None, f"untyped node: {node.x_srcloc}  {node}"
-             _TypeVerifyNode(node, tc, allow_implicit_type_conversion)
+            assert node.x_type is not None, f"untyped node: {node.x_srcloc}  {node}"
+            _TypeVerifyNode(node, tc, allow_implicit_type_conversion)
 
         elif isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED):
             _TypeVerifyUntypedNode(node, tc, allow_implicit_type_conversion)
 
-
-
-
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
-            field=node.x_field
+            field = node.x_field
             assert field is not None, f"node without field annotation: {node.x_srcloc} {node}"
             assert isinstance(field, cwast.RecField)
 
@@ -890,18 +884,18 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     * some x_value (only array dimention as they are related to types)
     * some x_symbol for polymorphic invocations
     """
-    poly_map=_PolyMap(tc)
+    poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
-        ctx=_TypeContext(mod.name, poly_map)
+        ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
-            ct=_TypifyNodeRecursively(node, tc, type_corpus.NO_TYPE, ctx)
+            ct = _TypifyNodeRecursively(node, tc, type_corpus.NO_TYPE, ctx)
             if isinstance(node, cwast.DefFun) and node.polymorphic:
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
                 poly_map.Register(node)
 
     for mod in mod_topo_order:
-        ctx=_TypeContext(mod.name, poly_map)
+        ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:
