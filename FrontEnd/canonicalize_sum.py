@@ -109,11 +109,13 @@ def _MakeTypeidVal(typeid, srcloc,  tc: type_corpus.TypeCorpus) -> cwast.ValNum:
                         x_type=tc.get_typeid_canon_type())
 
 
-def _MakeValRecForSum(value, sum_rec: cwast.CanonType,
+def _MakeValRecForSum(value: cwast.ExprAs, sum_rec: cwast.CanonType,
                       tc: type_corpus.TypeCorpus) -> cwast.ValRec:
     tag_field, union_field = sum_rec.ast_node.fields
     srcloc = value.x_srcloc
-    inits = [cwast.FieldVal(_MakeTypeidVal(value.x_type.typeid, srcloc, tc), "",
+    value.x_type = union_field.x_type
+    value.type =  cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
+    inits = [cwast.FieldVal(_MakeTypeidVal(value.expr.x_type.typeid, srcloc, tc), "",
                             x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc),
              cwast.FieldVal(value, "",
                             x_field=union_field, x_type=union_field.x_type,
@@ -128,7 +130,7 @@ def ReplaceExplicitSumCast(node, sum_to_struct_map: SUM_TO_STRUCT_MAP, tc: type_
         nonlocal tc
         if isinstance(node, cwast.ExprAs):
             if node.x_type.is_tagged_sum():
-                return _MakeValRecForSum(node.expr, sum_to_struct_map[node.x_type], tc)
+                return _MakeValRecForSum(node, sum_to_struct_map[node.x_type], tc)
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
