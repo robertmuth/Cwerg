@@ -826,7 +826,8 @@ def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
 
 
 def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc,
-                    eliminated_node_types, allow_type_auto):
+                    eliminated_node_types, allow_type_auto=True,
+                    allow_implicit_type_conversion=False):
     logger.info(phase_name)
     if emit_ir:
         for mod in mods:
@@ -837,7 +838,7 @@ def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc
     for mod in mods:
         cwast.CheckAST(mod, eliminated_node_types, allow_type_auto)
         symbolize.VerifyASTSymbolsRecursively(mod)
-        typify.VerifyTypesRecursively(mod, tc)
+        typify.VerifyTypesRecursively(mod, tc, allow_implicit_type_conversion)
         eval.VerifyASTEvalsRecursively(mod)
 
 
@@ -892,7 +893,7 @@ def main():
         type_corpus.STD_TARGET_X64)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
 
-    logger.info("partial eval")
+    logger.info("partial eval and static assert validation")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
     ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
@@ -900,7 +901,9 @@ def main():
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
     SanityCheckMods("AST is now fully decorated", args.emit_ir and False,
-                    mod_topo_order, tc, ELIMIMATED_NODES, False)
+                    mod_topo_order, tc, ELIMIMATED_NODES, 
+                    allow_type_auto=False,
+                    allow_implicit_type_conversion=True)
 
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
@@ -922,8 +925,9 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
+
     SanityCheckMods("initial lowering", args.emit_ir and False,
-                    mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    mod_topo_order, tc, ELIMIMATED_NODES)
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:
@@ -952,8 +956,9 @@ def main():
     for mod in mod_topo_order:
         canonicalize_sum.ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
+
     SanityCheckMods("After slice elimination", args.emit_ir,
-                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
     id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
     for mod in mod_topo_order:
@@ -1001,7 +1006,7 @@ def main():
             assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
 
     SanityCheckMods("After canonicalization", args.emit_ir and False,
-                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1019,7 +1024,7 @@ def main():
                 node.name = mod_name + node.name + suffix
 
     SanityCheckMods("After slice elimination", args.emit_ir,
-                    mod_topo_order, tc, ELIMIMATED_NODES, True)
+                    mod_topo_order, tc, ELIMIMATED_NODES)
 
     # Emit Cwert IR
     for mod in mod_topo_order:

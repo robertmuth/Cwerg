@@ -420,7 +420,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr2, tc, uint_type, ctx)
         if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
-            _TypifyNodeRecursively(node.expr_bound_or_undef, tc, uint_type, ctx)
+            _TypifyNodeRecursively(
+                node.expr_bound_or_undef, tc, uint_type, ctx)
         return AnnotateNodeType(node, cstr)
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
@@ -428,7 +429,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if not ct.is_slice() and not ct.is_array():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
-        p_type = tc.insert_ptr_type(node.mut, ct.underlying_array_or_slice_type())
+        p_type = tc.insert_ptr_type(
+            node.mut, ct.underlying_array_or_slice_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
@@ -633,7 +635,8 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
         _CheckTypeSame(node, op2_type, result_type)
 
 
-def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
+def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
+                    allow_implicit_type_conversion: bool):
     if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         ct: cwast.CanonType = node.x_type
         assert ct is not type_corpus.NO_TYPE
@@ -836,7 +839,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
         assert False, f"unsupported  node type: {node.__class__} {node}"
 
 
-def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus):
+def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
+                           allow_implicit_type_conversion: bool):
     def visitor(node, _):
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             logger.info("TYPE-VERIFYING %s", node)
@@ -845,7 +849,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus):
                 isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED)):
             if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
                 assert node.x_type is not None, f"untyped node: {node.x_srcloc}  {node}"
-            _TypeVerifyNode(node, tc)
+            _TypeVerifyNode(node, tc, allow_implicit_type_conversion)
 
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
             field = node.x_field
@@ -886,7 +890,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                     _TypifyNodeRecursively(
                         c, tc, node.result.x_type, ctx)
     for mod in mod_topo_order:
-        VerifyTypesRecursively(mod, tc)
+        VerifyTypesRecursively(mod, tc, True)
 
 ############################################################
 #
