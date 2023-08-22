@@ -590,20 +590,22 @@ def _CheckTypeSame(node, actual: cwast.CanonType, expected: cwast.CanonType):
                             f"{node}: not the same actual: {actual} expected: {expected}")
 
 
-def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.CanonType):
+def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.CanonType,
+                            srcloc=None):
     if actual is expected:
         return
     if actual.node is expected.node and actual.mut and not expected.mut:
         if (actual.node in (cwast.TypePtr, cwast.TypeArray, cwast.TypePtr) and
                 actual.children[0] == expected.children[0]):
             return
-    cwast.CompilerError(node.x_srcloc,
+    cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                         f"{node}: not the same actual: {actual} expected: {expected}")
 
 
-def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonType):
+def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonType,
+                         srcloc=None):
     if not type_corpus.is_compatible(actual, expected):
-        cwast.CompilerError(node.x_srcloc,
+        cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
 
@@ -668,10 +670,14 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.StmtAssignment):
         var_ct = node.lhs.x_type
         expr_ct = node.expr_rhs.x_type
-        _CheckTypeCompatibleForAssignment(
-            node, expr_ct, var_ct, type_corpus.is_mutable_def(
-                node.expr_rhs),
-            node.expr_rhs.x_srcloc)
+        if allow_implicit_type_conversion:
+            _CheckTypeCompatibleForAssignment(
+                node, expr_ct, var_ct, type_corpus.is_mutable_def(
+                    node.expr_rhs),
+                node.expr_rhs.x_srcloc)
+        else:
+            _CheckTypeSameExceptMut(
+                node, expr_ct, var_ct, node.expr_rhs.x_srcloc)
         if not type_corpus.is_proper_lhs(node.lhs):
             cwast.CompilerError(
                 node.x_srcloc, f"cannot assign to readonly data: {node}")
@@ -686,11 +692,15 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         initial = node.initial_or_undef_or_auto
         if not isinstance(initial, cwast.ValUndef):
-            cstr = node.type_or_auto.x_type
-            _CheckTypeCompatibleForAssignment(
-                node, initial.x_type, cstr, type_corpus.is_mutable_def(
-                    initial),
-                initial.x_srcloc)
+            ct = node.type_or_auto.x_type
+            if allow_implicit_type_conversion:
+                _CheckTypeCompatibleForAssignment(
+                    node, initial.x_type, ct, type_corpus.is_mutable_def(
+                        initial),
+                    initial.x_srcloc)
+            else:
+                _CheckTypeSameExceptMut(
+                    node, initial.x_type, ct, initial.x_srcloc)
     elif isinstance(node, cwast.StmtExpr):
         pass
     else:
@@ -772,8 +782,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         assert fun_sig.is_fun(), f"{fun_sig}"
         assert fun_sig.result_type() == ct, f"{fun_sig.result} {ct}"
         for p, a in zip(fun_sig.parameter_types(), node.args):
-            _CheckTypeCompatibleForAssignment(
-                p,  a.x_type, p, type_corpus.is_mutable_def(a), a.x_srcloc)
+            if allow_implicit_type_conversion:
+                _CheckTypeCompatibleForAssignment(
+                    p,  a.x_type, p, type_corpus.is_mutable_def(a), a.x_srcloc)
+            else:
+                _CheckTypeSameExceptMut(
+                    p,  a.x_type, p, a.x_srcloc)
 
     elif isinstance(node, cwast.ExprAsNot):
         pass
