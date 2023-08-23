@@ -29,6 +29,23 @@
     (= (at c2 0) 666)
     (return 66))
 
+(fun bar [(param s (slice @mut u8)) 
+          (param pos uint) 
+          (param new u8)] u8 :
+    (let old auto (at s pos))
+    (= (at s pos) new)
+    (return old))
+
+
+(fun bar2 [] u8 :
+    (let @mut @ref a auto (array_val 10 u8 [
+        (index_val 1)
+        (index_val 2)
+        (index_val 3)]))   
+    (let pa auto (& @mut a))
+    (return (call bar [(^ pa) 0 2]))
+)
+
 
 (global d1 auto (array_val 10 s32 [
         (index_val 1)

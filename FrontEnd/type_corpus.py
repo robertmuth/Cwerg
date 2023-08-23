@@ -15,7 +15,23 @@ NO_TYPE = None
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 
-def is_mutable_def(node):
+def is_mutable_array(node) -> bool:
+    """array types do not carry a mutable bit, so we have to work
+    a little harder to determine mutability
+    """
+    ct: cwast.CanonType = node.x_type
+    if not ct.is_array():
+            return False
+            
+    if isinstance(node, cwast.Id):
+        s = node.x_symbol
+        if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
+            return s.mut
+    elif isinstance(node, cwast.ExprDeref):
+        return node.expr.x_type.mut
+    return False
+
+def is_mutable_def(node) -> bool:
     if isinstance(node, cwast.Id):
         s = node.x_symbol
         if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):

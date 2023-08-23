@@ -672,7 +672,7 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         expr_ct = node.expr_rhs.x_type
         if allow_implicit_type_conversion:
             _CheckTypeCompatibleForAssignment(
-                node, expr_ct, var_ct, type_corpus.is_mutable_def(
+                node, expr_ct, var_ct, type_corpus.is_mutable_array(
                     node.expr_rhs),
                 node.expr_rhs.x_srcloc)
         else:
@@ -695,7 +695,7 @@ def _TypeVerifyUntypedNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             ct = node.type_or_auto.x_type
             if allow_implicit_type_conversion:
                 _CheckTypeCompatibleForAssignment(
-                    node, initial.x_type, ct, type_corpus.is_mutable_def(
+                    node, initial.x_type, ct, type_corpus.is_mutable_array(
                         initial),
                     initial.x_srcloc)
             else:
@@ -784,7 +784,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         for p, a in zip(fun_sig.parameter_types(), node.args):
             if allow_implicit_type_conversion:
                 _CheckTypeCompatibleForAssignment(
-                    p,  a.x_type, p, type_corpus.is_mutable_def(a), a.x_srcloc)
+                    p,  a.x_type, p, type_corpus.is_mutable_array(a), a.x_srcloc)
             else:
                 _CheckTypeSameExceptMut(
                     p,  a.x_type, p, a.x_srcloc)
