@@ -50,7 +50,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
 
 def GetNodeTypeAndFields(node, condense=True):
     cls = node.__class__
-    fields = cls.FIELDS[:]
+    fields = cls.ATTRS[:] + cls.FIELDS[:]
     if not condense:
         return cls.__name__, fields
 
@@ -293,6 +293,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         line = out[-1]
         field_kind = nfd.kind
         val = getattr(node, field)
+
         if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
                 line.append(" " + field)
