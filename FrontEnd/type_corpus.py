@@ -15,23 +15,6 @@ NO_TYPE = None
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 
-def is_mutable_array(node) -> bool:
-    """array types do not carry a mutable bit, so we have to work
-    a little harder to determine mutability
-    """
-    ct: cwast.CanonType = node.x_type
-    if not ct.is_array():
-        return False
-
-    if isinstance(node, cwast.Id):
-        s = node.x_symbol
-        if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
-            return s.mut
-    elif isinstance(node, cwast.ExprDeref):
-        return node.expr.x_type.mut
-    return False
-
-
 def align(x, a):
     return (x + a - 1) // a * a
 
@@ -88,7 +71,18 @@ def is_proper_lhs(node) -> bool:
         return False
 
 
-def is_mutable_container(node) -> bool:
+def is_mutable_array(node) -> bool:
+    """array types do not carry a mutable bit, so we have to work
+    a little harder to determine mutability
+    """
+    if not node.x_type.is_array():
+        return False
+
+    return is_proper_lhs(node)
+
+
+def is_mutable_array_or_slice(node) -> bool:
+    """Mutable refers to the elements of the arrray/slice"""
     ct: cwast.CanonType = node.x_type
     if ct.is_slice():
         return ct.mut

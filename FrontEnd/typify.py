@@ -760,8 +760,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         assert node.container.x_type.is_array_or_slice(
         ), f"unpected front expr {node.container.x_type}"
         if node.mut:
-            assert type_corpus.is_mutable_container(
-                node.container), f"container not mutable: {node} {node.container}"
+            if not type_corpus.is_mutable_array_or_slice(node.container):
+                cwast.CompilerError(
+                    node.x_srcloc, f"container not mutable: {node} {node.container}")
 
         if node.container.x_type.is_array():
             # TODO: check if address can be taken
