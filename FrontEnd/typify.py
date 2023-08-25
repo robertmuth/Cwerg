@@ -595,7 +595,7 @@ def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.Canon
     if actual is expected:
         return
     if actual.node is expected.node and actual.mut and not expected.mut:
-        if (actual.node in (cwast.TypePtr, cwast.TypeArray, cwast.TypePtr) and
+        if (actual.node in (cwast.TypePtr, cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr) and
                 actual.children[0] == expected.children[0]):
             return
     cwast.CompilerError(srcloc if srcloc else node.x_srcloc,

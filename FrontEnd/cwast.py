@@ -746,6 +746,9 @@ class CanonType:
     def is_array(self) -> bool:
         return self.node is TypeArray
 
+    def is_rec(self) -> bool:
+        return self.node is DefRec
+
     def is_void_or_wrapped_void(self) -> bool:
         if self.node is DefType:
             return self.children[0].is_void()
@@ -791,7 +794,7 @@ class CanonType:
         reg_type = self.register_types
         assert reg_type is not None and len(reg_type) == 1
         return reg_type[0]
-    
+
     def __str__(self):
         return self.name
 ############################################################
