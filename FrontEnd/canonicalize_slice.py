@@ -40,10 +40,11 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     name = f"tuple_{slice_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
-    cstr: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
-    typify.AnnotateNodeType(rec, cstr)
-    tc.finalize_rec_type(cstr)
-    return cstr
+    ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
+    typify.AnnotateNodeType(rec, ct)
+    tc.finalize_rec_type(ct)
+    ct.original_type = slice_type
+    return ct
 
 
 def _DoesFunSigContainSlices(fun_sig: cwast.CanonType,
@@ -106,43 +107,6 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> 
                             x_field=length_field, x_type=length_field.x_type,
                             x_srcloc=srcloc, x_value=length.x_value)]
     return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec)
-
-
-def _ConvertValArrayToSliceValRec(node, slice_rec: cwast.DefRec, srcloc) -> cwast.ValRec:
-    assert node.x_type.is_array()
-    pointer_field, length_field = slice_rec.fields
-    width = node.x_type.size.x_value
-    assert width is not None
-    pointer_type = pointer_field.x_type
-    pointer = cwast.ExprFront(node, mut=pointer_type.mut,
-                              x_type=pointer_type, x_srcloc=srcloc)
-    length = cwast.ValNum(f"{width}", x_value=width,
-                          x_srcloc=srcloc, x_type=length_field.x_type)
-    return _MakeValRecForSlice(pointer, length, slice_rec, srcloc)
-
-
-def _ConvertMutSliceValRecToSliceValRec(node, slice_rec: cwast.DefRec):
-    node.x_type.is_slice()
-    assert node.x_type.mut
-    # assert node.x_type.type == slice_rec.fields[0].x_type
-    return cwast.ExprBitCast(node, _MakeIdForDefRec(slice_rec, node.x_srcloc),
-                             x_srcloc=node.x_srcloc, x_type=slice_rec.x_type)
-
-
-def _ImplicitSliceConversion(rhs, lhs_type, def_rec, srcloc):
-    """Convert:
-    slice-mut -> slice
-    array -> slice
-    array-mut -> slice-mut
-    """
-    if rhs.x_type.is_slice():
-        assert lhs_type.type == rhs.x_type.type
-        assert not lhs_type.mut and rhs.x_type.mut
-        return _ConvertMutSliceValRecToSliceValRec(rhs, def_rec)
-    elif rhs.x_type.is_array():
-        return _ConvertValArrayToSliceValRec(rhs, def_rec, srcloc)
-    else:
-        assert False
 
 
 def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,

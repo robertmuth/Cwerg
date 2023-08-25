@@ -45,6 +45,8 @@ def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
     rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
     tc.finalize_rec_type(rec_ct)
+    rec_ct.original_type = sum_type
+
     return rec_ct
 
 

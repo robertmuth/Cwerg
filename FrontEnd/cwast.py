@@ -669,6 +669,7 @@ class CanonType:
     size: int = -1
     register_types: List[Any] = dataclasses.field(default_factory=list)
     typeid: int = -1
+    original_type: Optional["CanonType"] = None
 
     def __hash__(self):
         return hash(self.name)
