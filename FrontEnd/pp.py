@@ -50,7 +50,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
 
 def GetNodeTypeAndFields(node, condense=True):
     cls = node.__class__
-    fields = cls.ATTRS[:] + cls.FIELDS[:]
+    fields = cls.FIELDS[:]
     if not condense:
         return cls.__name__, fields
 
@@ -223,7 +223,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
         elif field_kind is cwast.NFK.STR_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
-            assert False
+            assert False, f"unexpected field {field}"
 
     line = out[-1]
     line.append(")")
@@ -289,11 +289,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
     node_name, fields = GetNodeTypeAndFields(node)
     line += DecorateNode("(" + node_name, node)
 
-    for field, nfd in fields:
-        line = out[-1]
-        field_kind = nfd.kind
-        val = getattr(node, field)
-
+    for field, nfd in node.ATTRS:
         if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
                 line.append(" " + field)
@@ -301,7 +297,13 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
             if val:
                 pass
                 # line.append(" " + field)
-        elif cwast.IsFieldWithDefaultValue(field, val):
+
+    for field, nfd in fields:
+        line = out[-1]
+        field_kind = nfd.kind
+        val = getattr(node, field)
+
+        if cwast.IsFieldWithDefaultValue(field, val):
             continue
         elif field_kind is cwast.NFK.STR:
             line.append(
