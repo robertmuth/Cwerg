@@ -290,6 +290,8 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
     line += DecorateNode("(" + node_name, node)
 
     for field, nfd in node.ATTRS:
+        field_kind = nfd.kind
+        val = getattr(node, field)
         if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
                 line.append(" " + field)
