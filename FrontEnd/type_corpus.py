@@ -21,8 +21,8 @@ def is_mutable_array(node) -> bool:
     """
     ct: cwast.CanonType = node.x_type
     if not ct.is_array():
-            return False
-            
+        return False
+
     if isinstance(node, cwast.Id):
         s = node.x_symbol
         if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
@@ -31,25 +31,9 @@ def is_mutable_array(node) -> bool:
         return node.expr.x_type.mut
     return False
 
-def is_mutable_def(node) -> bool:
-    if isinstance(node, cwast.Id):
-        s = node.x_symbol
-        if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
-            return s.mut
-    return False
-
 
 def align(x, a):
     return (x + a - 1) // a * a
-
-
-def is_mutable(cstr:  cwast.CanonType, actual_is_lvalue=False) -> bool:
-    if cstr.is_pointer() or cstr.is_slice():
-        return cstr.is_mutable()
-    elif cstr.is_array():
-        return actual_is_lvalue
-    else:
-        assert False, f"unexpected node for mutable test: {cstr}"
 
 
 def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
@@ -81,19 +65,23 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
 
 def is_proper_lhs(node) -> bool:
-    # TODO: this needs to be rethought and cleaned up
-    # x =  (x must be mutable definition)
-    # ^x = (x must have type mutable pointer)
-    #
-    if is_mutable_def(node):
-        return True
+    if isinstance(node, cwast.Id):
+        s = node.x_symbol
+        if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
+            return s.mut
+        return False
     elif isinstance(node, cwast.ExprDeref):
         return node.expr.x_type.is_mutable()
         # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
     elif isinstance(node, cwast.ExprField):
         return is_proper_lhs(node.container)
     elif isinstance(node, cwast.ExprIndex):
-        return is_proper_lhs(node.container) or is_mutable(node.container.x_type)
+        container_ct: cwast.CanonType = node.container.x_type
+        if container_ct.is_slice():
+            return container_ct.mut
+        else:
+            assert container_ct.is_array()
+            return is_proper_lhs(node.container)
     elif isinstance(node, cwast.ExprAs) and node.expr.x_type.is_untagged_sum():
         return is_proper_lhs(node.expr)
     else:
