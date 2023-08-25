@@ -338,12 +338,22 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
     elif target_type.is_sum():
         sum_type = cwast.TypeAuto(
             x_type=target_type, x_srcloc=orig_node.x_srcloc)
-        return cwast.ExprAs(orig_node, sum_type, x_type=target_type, x_srcloc=orig_node.x_srcloc)
+        return cwast.ExprAs(orig_node, sum_type, x_type=target_type,
+                            x_srcloc=orig_node.x_srcloc)
     else:
         print(
             f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
         assert False
     return orig_node
+
+
+def IsSameTypeExceptMut(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
+    if src is dst:
+        return True
+    if src.node is dst.node and src.mut and not dst.mut:
+        return (src.node in (cwast.TypePtr, cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr) and
+                src.children[0] == dst.children[0])
+    return False
 
 
 def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
@@ -353,19 +363,19 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
         nonlocal tc, uint_type
 
         if isinstance(node, cwast.FieldVal):
-            if node.value.x_type != node.x_type:
+            if not IsSameTypeExceptMut(node.value.x_type, node.x_type):
                 node.value = _HandleImplicitConversion(
                     node.value, node.x_type, uint_type, tc)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             initial = node.initial_or_undef_or_auto
             if not isinstance(initial, cwast.ValUndef):
-                if initial.x_type != node.type_or_auto.x_type:
+                if not IsSameTypeExceptMut(initial.x_type, node.type_or_auto.x_type):
                     node.initial_or_undef_or_auto = _HandleImplicitConversion(
                         initial, node.type_or_auto.x_type, uint_type, tc)
         elif isinstance(node, cwast.ExprCall):
             fun_sig: cwast.CanonType = node.callee.x_type
             for n, (p, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
-                if a.x_type != p:
+                if not IsSameTypeExceptMut(a.x_type, p):
                     node.args[n] = _HandleImplicitConversion(
                         a, p, uint_type, tc)
         elif isinstance(node, cwast.StmtReturn):
@@ -376,11 +386,11 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
             else:
                 assert isinstance(target, cwast.ExprStmt)
                 expected = target.x_type
-            if expected != actual:
+            if not IsSameTypeExceptMut(actual, expected):
                 node.expr_ret = _HandleImplicitConversion(
                     node.expr_ret, expected, uint_type, tc)
         elif isinstance(node, cwast.StmtAssignment):
-            if node.lhs.x_type != node.expr_rhs.x_type:
+            if not IsSameTypeExceptMut(node.expr_rhs.x_type, node.lhs.x_type):
                 node.expr_rhs = _HandleImplicitConversion(
                     node.expr_rhs, node.lhs.x_type, uint_type, tc)
 
