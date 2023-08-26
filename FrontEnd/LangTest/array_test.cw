@@ -1,4 +1,4 @@
-(module m1 [] :
+(module main [] :
 (type type_array (array 3 bool))
 
 
@@ -111,7 +111,14 @@
 (fun baz [] void :
     @doc "ERRPOR: (= (at c1 5) 0)"
     (let pc1 (ptr s32) (front c1))
-    (= (at c2 5) 0))
+    (= (at c2 5) 0)
+)
+
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    @doc "test end"
+    (stmt (call SysPrint ["OK\n"]))
+    (return 0))
+
 
 )
 

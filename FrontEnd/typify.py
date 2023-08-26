@@ -598,6 +598,10 @@ def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.Canon
         if (actual.node in (cwast.TypePtr, cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr) and
                 actual.children[0] == expected.children[0]):
             return
+    if actual.original_type and expected.original_type:
+        _CheckTypeSameExceptMut(node, actual.original_type, expected.original_type,
+                                srcloc)
+        return
     cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                         f"{node}: not the same actual: {actual} expected: {expected}")
 
@@ -737,7 +741,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprIndex):
         assert ct is node.container.x_type.underlying_array_or_slice_type()
     elif isinstance(node, cwast.ExprField):
-        #_CheckTypeSame(node,  node.x_field.x_type, ct)
+        # _CheckTypeSame(node,  node.x_field.x_type, ct)
         assert ct is node.x_field.x_type, f"field node {node.container.x_type} type mismatch: {cstr} {field_node.x_type}"
     elif isinstance(node, cwast.ExprDeref):
         expr_type: cwast.CanonType = node.expr.x_type

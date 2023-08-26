@@ -783,7 +783,11 @@ class CanonType:
     def array_dim(self):
         assert self.is_array()
         return self.dim
-
+    
+    def array_element_size(self):
+        assert self.is_array()
+        return self.size // self.dim
+    
     def is_mutable(self) -> bool:
         return self.mut
 

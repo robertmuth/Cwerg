@@ -72,9 +72,7 @@ def is_proper_lhs(node) -> bool:
 
 
 def is_mutable_array(node) -> bool:
-    """array types do not carry a mutable bit, so we have to work
-    a little harder to determine mutability
-    """
+    """"""
     if not node.x_type.is_array():
         return False
 

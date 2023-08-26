@@ -242,14 +242,19 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
                   tc: type_corpus.TypeCorpus, srcloc):
     container_type: cwast.CanonType = node.container.x_type
     bound = None
+    mut = False
     if container_type.is_array():
         bound = container_type.dim
-    cstr_ptr = tc.insert_ptr_type(
-        is_lhs, container_type.underlying_array_or_slice_type())
+        mut = type_corpus.is_mutable_array(node.container)
+    else:
+        assert container_type.is_slice()
+        mut = container_type.is_mutable()
+    ptr_ct = tc.insert_ptr_type(
+        mut, container_type.underlying_array_or_slice_type())
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(
-        node.container, x_srcloc=srcloc, x_type=cstr_ptr, mut=is_lhs)
+        node.container, x_srcloc=srcloc, x_type=ptr_ct, mut=mut)
     elem_addr = cwast.ExprPointer(
         cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
     return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,

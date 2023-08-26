@@ -491,7 +491,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
             curr += width
 
 
-def EmitIRExprToMemory(ct_target: cwast.CanonType, init_node, dst: BaseOffset,
+def EmitIRExprToMemory(init_node, dst: BaseOffset,
                        tc: type_corpus.TypeCorpus,
                        id_gen: identifier.IdGenIR):
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
@@ -526,15 +526,17 @@ def EmitIRExprToMemory(ct_target: cwast.CanonType, init_node, dst: BaseOffset,
         src_type = init_node.x_type
         for field, init in symbolize.IterateValRec(init_node.inits_field, src_type):
             if init is not None and not isinstance(init, cwast.ValUndef):
-                EmitIRExprToMemory(field.type.x_type, init.value, BaseOffset(
+                EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
     elif isinstance(init_node, cwast.ValArray):
-        for _, c in symbolize.IterateValArray(init_node, init_node.x_type.array_dim()):
+        element_size: int = init_node.x_type.array_element_size()
+        for index, c in symbolize.IterateValArray(init_node, init_node.x_type.array_dim()):
             if c is None:
                 continue
             if isinstance(c.value_or_undef, cwast.ValUndef):
                 continue
-            assert False
+            EmitIRExprToMemory(
+                c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), tc, id_gen)
     elif isinstance(init_node, cwast.ValAuto):
         # TODO: check if auto is legit (maybe add a check for this in another phase)
         _EmitZero(dst, init_node.x_type.size,
@@ -627,7 +629,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                 init_base = id_gen.NewName("init_base")
                 kind = tc.get_data_address_reg_type()
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
-                EmitIRExprToMemory(node.type_or_auto.x_type, initial,  BaseOffset(
+                EmitIRExprToMemory(initial,  BaseOffset(
                     init_base, 0), tc, id_gen)
         else:
             if isinstance(initial, cwast.ValUndef):
@@ -655,8 +657,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                     out = EmitIRExpr(node.expr_ret, tc, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
                 else:
-                    EmitIRExprToMemory(node.x_target.x_type, node.expr_ret, result.dst,
-                                       tc, id_gen)
+                    EmitIRExprToMemory(node.expr_ret, result.dst, tc, id_gen)
             else:
                 EmitIRExpr(node.expr_ret, tc, id_gen)
         else:
@@ -704,7 +705,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
             lhs = _GetLValueAddressAsBaseOffset(node.lhs, tc, id_gen)
-            EmitIRExprToMemory(node.lhs.x_type, node.expr_rhs, lhs, tc, id_gen)
+            EmitIRExprToMemory(node.expr_rhs, lhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:
@@ -901,7 +902,7 @@ def main():
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
     SanityCheckMods("AST is now fully decorated", args.emit_ir and False,
-                    mod_topo_order, tc, ELIMIMATED_NODES, 
+                    mod_topo_order, tc, ELIMIMATED_NODES,
                     allow_type_auto=False,
                     allow_implicit_type_conversion=True)
 

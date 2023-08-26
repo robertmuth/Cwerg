@@ -39,6 +39,7 @@ STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../S
 
 # test language features X64
 tests_lang_x64: \
+    $(DIR)/array_test.lang.x64.exe \
     $(DIR)/assign_test.lang.x64.exe \
     $(DIR)/enum_test.lang.x64.exe \
     $(DIR)/rec_test.lang.x64.exe \
@@ -50,6 +51,7 @@ tests_lang_x64: \
 
 # test language features A64
 tests_lang_a64: \
+    $(DIR)/array_test.lang.a64.exe \
     $(DIR)/assign_test.lang.a64.exe \
     $(DIR)/enum_test.lang.a64.exe \
     $(DIR)/rec_test.lang.a64.exe \
@@ -62,6 +64,7 @@ tests_lang_a64: \
 # test language features A32
 # TODO: this does not work yet
 tests_lang_a32: \
+    $(DIR)/array_test.lang.a32.exe \
     $(DIR)/assign_test.lang.a64.exe \
     $(DIR)/enum_test.lang.a64.exe \
     $(DIR)/rec_test.lang.a64.exe \
@@ -173,7 +176,7 @@ $(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-## Manual test
+## Manual tests
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	./emit_ir.py Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
