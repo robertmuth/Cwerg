@@ -103,9 +103,7 @@
     (let pa auto (& a))
     (let pa_mut auto (& @mut a))
     (let pb auto (& b))
-    @doc "this should fail"
-    (let pb_mut auto (& @mut b))
-
+  
     (test::AssertEq (at a 0) 1_u8)
     (test::AssertEq (at b 2) 6_u8)
     (= (at a 0) 6)

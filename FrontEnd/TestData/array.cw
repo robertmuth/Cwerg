@@ -62,7 +62,6 @@
     (let pa auto (& a))
     (let pa_mut auto (& @mut a))
     (let pb auto (& b))
-    (let pb_mut auto (& @mut b))
 
     (= (at a 0) 6)
     (= (at (^ pa_mut) 0) 6)

@@ -829,6 +829,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprAddrOf):
         expr_ct = node.expr_lhs.x_type
         if node.mut:
+            if not type_corpus.is_proper_lhs(node.expr_lhs):
+                 cwast.CompilerError(node.x_srcloc,
+                                     f"not mutable: {node.expr_lhs}")
+            # TODO: this applies for the non-mut case too
             if not address_can_be_taken(node.expr_lhs):
                 cwast.CompilerError(node.x_srcloc,
                                     f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
