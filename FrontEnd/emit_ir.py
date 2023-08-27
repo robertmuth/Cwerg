@@ -798,8 +798,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             assert isinstance(node, cwast.ValRec)
             print(f"# record: {ct.name}")
             rel_off = 0
-            for f, i in symbolize. IterateValRec(node.inits_field, ct):
-
+            # note node.x_type may be compatible but not equal to ct
+            for f, i in symbolize.IterateValRec(node.inits_field, node.x_type):
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
                                         (f.x_offset - rel_off), f"{offset+rel_off} padding")
@@ -958,7 +958,7 @@ def main():
         canonicalize_sum.ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
-    SanityCheckMods("After slice elimination", args.emit_ir,
+    SanityCheckMods("After slice elimination", args.emit_ir and False,
                     [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
     id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}

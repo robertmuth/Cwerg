@@ -489,9 +489,14 @@ def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
 def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.CanonType):
     inits: Dict[cwast.RecField,
                 cwast.FieldVal] = {i.x_field: i for i in inits_field}
+    used = 0
     for f in def_rec.ast_node.fields:
         assert isinstance(f, cwast.RecField)
-        yield f, inits.get(f)
+        i = inits.get(f)
+        if i is not None:
+            used += 1
+        yield f, i
+    assert used == len(inits)
 
 
 _UNDEF = cwast.ValUndef()

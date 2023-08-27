@@ -1,4 +1,6 @@
 (module main [] :
+(import test)
+
 (type type_array (array 3 bool))
 
 
@@ -80,15 +82,15 @@
 
 
 (global d1 auto (array_val 10 s32 [
-        (index_val 1)
-        (index_val 2)
-        (index_val 3)]))
+        (index_val 11)
+        (index_val 22)
+        (index_val 33)]))
 
 
 (global @mut d2 auto (array_val 10 s32 [
-        (index_val 1)
-        (index_val 2)
-        (index_val 3)]))
+        (index_val 111)
+        (index_val 222)
+        (index_val 333)]))
 
 
 (global e1 (slice s32) d1)
@@ -100,11 +102,10 @@
 @doc "ERROR: (let e3 (slice mut s32) d2)"
 (global f1 (slice s32) e1)
 
+(global f3 (slice s32) e2)
 
 (global f2 (slice @mut s32) e2)
 
-
-(global f3 (slice s32) e2)
 
 
 @doc "ERROR: (let f4 (slice mut s32) e1)"
@@ -115,6 +116,16 @@
 )
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    @doc "basic"
+    (test::AssertEq (at c1 1) 2_s32)
+    (test::AssertEq (at c2 2) 3_s32)
+    (test::AssertEq (at c3 0) 4_u8)
+    (test::AssertEq (at e1 1) 22_s32)
+    (test::AssertEq (at e2 2) 333_s32)
+    @doc "basic"
+    (test::AssertEq (at f1 1) 22_s32)
+    (test::AssertEq (at f2 2) 333_s32)
+    (test::AssertEq (at f3 0) 111_s32)
     @doc "test end"
     (stmt (call SysPrint ["OK\n"]))
     (return 0))
