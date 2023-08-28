@@ -575,47 +575,6 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
             curr += width
 
 
-def _EmitInitialization(dst: BaseOffset, src_init,  tc: type_corpus.TypeCorpus,
-                        id_gen: identifier.IdGenIR):
-
-    def emit_recursively(offset, init):
-        nonlocal dst, tc, id_gen
-        src_type: cwast.CanonType = init.x_type
-        assert not isinstance(init, cwast.ValUndef)
-
-        if isinstance(init, cwast.Id):
-            storage = _StorageForId(init)
-            if storage is STORAGE_KIND.REGISTER:
-                res = EmitIRExpr(init, tc, id_gen)
-                assert res is not None
-                print(f"{TAB}st {dst.base} {offset} = {res}")
-            else:
-                src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
-                _EmitCopy(BaseOffset(dst.base, offset), src,
-                          src_type.size, src_type.alignment, id_gen)
-
-        elif isinstance(init, cwast.ValRec):
-            for field, init in symbolize.IterateValRec(init.inits_field, src_type):
-                if init is not None and not isinstance(init, cwast.ValUndef):
-                    emit_recursively(offset + field.x_offset, init.value)
-        elif isinstance(init, (cwast.ExprAddrOf, cwast.ValNum, cwast.ExprCall, cwast.ExprStmt)):
-            res = EmitIRExpr(init, tc, id_gen)
-            assert res is not None
-            print(f"{TAB}st {dst.base} {offset} = {res}")
-        elif isinstance(init, cwast.ExprFront):
-            assert init.container.x_type.is_array()
-            res = _GetLValueAddress(init.container, tc, id_gen)
-            print(f"{TAB}st {dst.base} {offset} = {res}")
-        elif isinstance(init, cwast.ExprDeref):
-            src = _GetLValueAddressAsBaseOffset(init, tc, id_gen)
-            _EmitCopy(BaseOffset(dst.base, offset), src,
-                      src_type.size, src_type.alignment, id_gen)
-        else:
-            assert False, f"{init.x_srcloc} {init} {src_type}"
-
-    emit_recursively(dst.offset, src_init)
-
-
 def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus,
                id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
