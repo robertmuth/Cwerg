@@ -19,8 +19,6 @@
         (index_val 3)]))
 
 
-
-
 @doc """ (let c20 auto (len c1)")
          "(let c21 auto (at c1 2))") """
 (global dim auto 5_u16)
@@ -88,9 +86,6 @@
     (= (at (. r1 u5) 1)  111)
     (= a (. r1 u5))
     (test::AssertEq (at a 1) 111_u8)
-
-    (= (at (. r1 u5) 1)  66)
-
 )
 
 (fun test_local_array [] void :
