@@ -830,12 +830,12 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         expr_ct = node.expr_lhs.x_type
         if node.mut:
             if not type_corpus.is_proper_lhs(node.expr_lhs):
-                 cwast.CompilerError(node.x_srcloc,
-                                     f"not mutable: {node.expr_lhs}")
-            # TODO: this applies for the non-mut case too
-            if not address_can_be_taken(node.expr_lhs):
                 cwast.CompilerError(node.x_srcloc,
-                                    f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
+                                    f"not mutable: {node.expr_lhs}")
+            # TODO: this applies for the non-mut case too
+        if not address_can_be_taken(node.expr_lhs):
+            cwast.CompilerError(node.x_srcloc,
+                                f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
         assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
     elif isinstance(node, cwast.ExprOffsetof):
         assert ct is tc.get_uint_canon_type()
