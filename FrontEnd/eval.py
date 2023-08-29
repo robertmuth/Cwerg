@@ -355,8 +355,19 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprIs):
-        # TODO: we can do better here
-        return False
+        expr_ct: cwast.CanonType = node.expr.x_type
+        test_ct: cwast.CanonType = node.type.x_type
+        assert expr_ct.typeid != -1 and test_ct.typeid != -1
+        if expr_ct.typeid == test_ct.typeid:
+            return _AssignValue(node, True)
+        if expr_ct.is_tagged_sum():
+            if test_ct.is_tagged_sum():
+                # TODO: do better
+                return False
+            else:
+                return False
+        else:
+            return _AssignValue(node, False)
     elif isinstance(node, cwast.ExprPointer):
         # TODO: we can do better here
         return False
