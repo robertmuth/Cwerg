@@ -699,7 +699,7 @@ y                   y
     @doc "100ms per frame"
     (let @ref req TimeSpec (rec_val TimeSpec [(field_val 0) (field_val 100000000)]))
     (let @mut @ref rem TimeSpec undef)
-    (let @ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
+    (let @mut @ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
     (let @mut curr auto (front @mut all_objects))
     @doc "add obj"
     (stmt (call aanim::InitObjectState [curr (& artwork::DuckR)]))
