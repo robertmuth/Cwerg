@@ -362,10 +362,17 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, True)
         if expr_ct.is_tagged_sum():
             if test_ct.is_tagged_sum():
-                # TODO: do better
+                test_elements = set([x.name for x in test_ct.sum_types()])
+                expr_elements = set([x.name for x in expr_ct.sum_types()])
+                if expr_elements.issubset(test_elements):
+                    return _AssignValue(node, True)
                 return False
             else:
                 return False
+        elif test_ct.is_tagged_sum():
+            test_elements = set(
+                [x.name for x in test_ct.sum_types()])
+            return _AssignValue(node, expr_ct.name in test_elements)
         else:
             return _AssignValue(node, False)
     elif isinstance(node, cwast.ExprPointer):

@@ -42,6 +42,8 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
     expected_children = set([x.name for x in expected.sum_types()])
     if actual.is_sum():
+        if actual.untagged != expected.untagged:
+            return False
         return set([x.name for x in actual.sum_types()]).issubset(expected_children)
     else:
         return actual.name in expected_children

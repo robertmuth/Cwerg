@@ -423,6 +423,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             _TypifyNodeRecursively(
                 node.expr_bound_or_undef, tc, uint_type, ctx)
         return AnnotateNodeType(node, cstr)
+    elif isinstance(node, cwast.ExprSumTag):
+        ct = _TypifyNodeRecursively(
+            node.expr, tc, type_corpus.NO_TYPE, ctx)
+        assert ct.is_tagged_sum()
+        return AnnotateNodeType(node, tc.get_typeid_canon_type())
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
             node.container, tc, type_corpus.NO_TYPE, ctx)
@@ -832,7 +837,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             if not type_corpus.is_proper_lhs(node.expr_lhs):
                 cwast.CompilerError(node.x_srcloc,
                                     f"not mutable: {node.expr_lhs}")
-            # TODO: this applies for the non-mut case too
         if not address_can_be_taken(node.expr_lhs):
             cwast.CompilerError(node.x_srcloc,
                                 f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
@@ -864,6 +868,9 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         assert ct.is_mutable() == node.pointer.x_type.is_mutable()
         _CheckTypeSame(node, ct.underlying_slice_type(),
                        node.pointer.x_type.underlying_pointer_type())
+    elif isinstance(node, cwast.ExprSumTag):
+        assert ct is tc.get_typeid_canon_type()
+        assert node.expr.x_type.is_tagged_sum()
     elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
                            cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,
                            cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,

@@ -869,22 +869,37 @@ def main():
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
     id_gen_global = identifier.IdGen()
+    id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
+
+    def GetIdGen(fun):
+        assert isinstance(fun, cwast.DefFun)
+        ig = id_gens.get(fun)
+        if ig is None:
+            ig = identifier.IdGen()
+            id_gens[fun] = ig
+        return ig
+
     str_val_map = {}
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
-        canonicalize.ReplaceExprIndex(mod, tc)
-        canonicalize.ReplaceConstExpr(mod)
-        canonicalize.EliminateImplicitConversions(mod, tc)
-
-        canonicalize_slice.ReplaceExplicitSliceCast(mod, tc)
-        canonicalize.CanonicalizeDefer(mod, [])
-        cwast.EliminateEphemeralsRecursively(mod)
+        for fun in mod.body_mod:
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            id_gen = GetIdGen(fun)
+            canonicalize.ReplaceExprIndex(mod, tc)
+            canonicalize.ReplaceExprIs(mod, id_gen, tc)
+            canonicalize.ReplaceConstExpr(mod)
+            canonicalize.EliminateImplicitConversions(mod, tc)
+            canonicalize_slice.ReplaceExplicitSliceCast(mod, tc)
+            canonicalize.CanonicalizeDefer(mod, [])
+            cwast.EliminateEphemeralsRecursively(mod)
 
     ELIMIMATED_NODES.add(cwast.ExprSizeof)
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
+    ELIMIMATED_NODES.add(cwast.ExprIs)
 
     SanityCheckMods("initial lowering", args.emit_ir and False,
                     mod_topo_order, tc, ELIMIMATED_NODES)
@@ -920,12 +935,6 @@ def main():
     SanityCheckMods("After slice elimination", args.emit_ir and False,
                     [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
-    id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if isinstance(fun, cwast.DefFun):
-                id_gens[fun] = identifier.IdGen()
-
     logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -945,7 +954,7 @@ def main():
             if not isinstance(fun, cwast.DefFun):
                 continue
 
-            id_gen = id_gens[fun]
+            id_gen = GetIdGen(fun)
             # continue
             # why doing this so late?
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
@@ -960,6 +969,7 @@ def main():
 
     # TODO
     ELIMIMATED_NODES.add(cwast.ExprTypeId)
+    ELIMIMATED_NODES.add(cwast.ExprSumTag)
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:

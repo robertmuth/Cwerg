@@ -155,6 +155,16 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     def replacer(node, field):
 
+        if isinstance(node, cwast.ExprSumTag):
+            def_rec = node.expr.x_type
+            assert def_rec.is_rec()
+            assert len(def_rec.ast_node.fields) == 2
+            tag_field: cwast.RecField = def_rec.ast_node.fields[0]
+            # this is only reached if this used to be a slice
+            return cwast.ExprField(node.expr, SUM_FIELD_TAG,
+                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
+                                    x_field=tag_field)
+
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 
             def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(

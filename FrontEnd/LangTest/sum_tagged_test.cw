@@ -1,5 +1,5 @@
 (module main [] :
-
+(import test)
 
 (type @wrapped t1 s32)
 (type @wrapped t2 void)
@@ -91,6 +91,7 @@
 
 (fun test_tagged_union [] void :
     (let @mut x TaggedUnion3  true)
+    (test::AssertEq (is x bool) true)
 )
 
 

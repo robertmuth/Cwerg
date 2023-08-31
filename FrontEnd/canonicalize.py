@@ -74,8 +74,32 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.Type
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
+def _RewriteExprIs(node: cwast.ExprIs, id_gen: identifier.IdGen,
+                   tc: type_corpus.TypeCorpus):
+    src_ct: cwast.CanonType = node.expr.x_type
+    dst_ct: cwast.CanonType = node.type.x_type
+    typeid_ct = tc.get_typeid_canon_type()
+    srcloc = node.x_srcloc
+    assert src_ct.is_tagged_sum()
+    assert not dst_ct.is_sum()
+    tag = cwast.ExprSumTag(node.expr, x_srcloc=srcloc, x_type=typeid_ct)
+    typeid = cwast.ValNum(str(dst_ct.typeid), x_srcloc=srcloc,
+                          x_type=typeid_ct, x_value=dst_ct.typeid)
+    return cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, tag, typeid,
+                       x_srcloc=srcloc, x_type=tc.get_bool_canon_type())
+
+
+def ReplaceExprIs(node, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
+    """Transform ExprIs comparisons for typeids"""
+    def replacer(node, field):
+        if isinstance(node, cwast.ExprIs):
+            return _RewriteExprIs(node, id_gen, tc)
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+
+
 def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
-    """Convert ternary operator nodes into  expr with if statements
+    """Convert ternary operator nodes into expr with if statements
 
     Note we could implement the ternary op as a macro but would lose the ability to do
     type inference, so instead we use this hardcoded rewrite"""
