@@ -21,7 +21,6 @@
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
-[ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
@@ -61,12 +60,14 @@
 [EphemeralList](#ephemerallist) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
+[ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
 [ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
 [ExprParen](#exprparen) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
+[ExprSumTag&nbsp;(typetag)](#exprsumtag-typetag) &ensp;
 [ExprTypeId&nbsp;(typeid)](#exprtypeid-typeid) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
@@ -907,6 +908,15 @@ Human readable representation of the expression
 
     This is useful to implement for assert like features
     
+
+Fields:
+* expr [NODE]: expression
+
+
+### ExprSumTag (typetag)
+Typetage of tagged sum type
+
+    result has type is `typeid`
 
 Fields:
 * expr [NODE]: expression

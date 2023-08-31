@@ -355,6 +355,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprLen", "ExprFront",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
+              "ExprSumTag",
               "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs", "ExprBitCast")
 
 
@@ -783,11 +784,11 @@ class CanonType:
     def array_dim(self):
         assert self.is_array()
         return self.dim
-    
+
     def array_element_size(self):
         assert self.is_array()
         return self.size // self.dim
-    
+
     def is_mutable(self) -> bool:
         return self.mut
 
@@ -1589,7 +1590,7 @@ class ExprIs:
     """
     ALIAS = "is"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -1747,6 +1748,26 @@ class ExprTypeId:
 
     def __str__(self):
         return f"{_NAME(self)} {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprSumTag:
+    """Typetage of tagged sum type
+
+    result has type is `typeid`"""
+    ALIAS = "typetag"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    #
+    expr: NODES_EXPR_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr}"
 
 
 @NodeCommon
