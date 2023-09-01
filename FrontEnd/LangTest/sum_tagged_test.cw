@@ -91,7 +91,18 @@
 
 (fun test_tagged_union [] void :
     (let @mut x TaggedUnion3  true)
+    (let @mut y TaggedUnion3  undef)
+    (= y x)
     (test::AssertEq (is x bool) true)
+    (test::AssertEq (is x s32) false)
+    (test::AssertEq (is y bool) true)
+    (test::AssertEq (is y s32) false)
+    (= x 777_s32)
+    (= y x)
+    (test::AssertEq (is x bool) false)
+    (test::AssertEq (is x s32) true)
+    (test::AssertEq (is y bool) false)
+    (test::AssertEq (is y s32) true)
 )
 
 
