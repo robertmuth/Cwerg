@@ -2909,24 +2909,30 @@ def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
     print("\n## Node Overview (Core)",  file=fout)
+    n = 0
     for name, cls in nodes:
         if NF.NON_CORE in cls.FLAGS:
             continue
+        n += 1
         alias = ""
         if cls.ALIAS:
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
+    print (f"({n} nodes)", file=fout)
 
     print("\n## Node Overview (Non-Core)",  file=fout)
+    n = 0
     for name, cls in nodes:
         if NF.NON_CORE not in cls.FLAGS:
             continue
+        n += 1
         alias = ""
         if cls.ALIAS:
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
+    print (f"({n} nodes)", file=fout)
 
     print("\n## Enum Overview",  file=fout)
     for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Type",

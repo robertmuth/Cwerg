@@ -15,7 +15,6 @@
 [Expr2](#expr2) &ensp;
 [ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
 [ExprAs&nbsp;(as)](#expras-as) &ensp;
-[ExprAsNot&nbsp;(asnot)](#exprasnot-asnot) &ensp;
 [ExprBitCast&nbsp;(bitcast)](#exprbitcast-bitcast) &ensp;
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
@@ -23,7 +22,7 @@
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
-[ExprTryAs&nbsp;(tryas)](#exprtryas-tryas) &ensp;
+[ExprSumAs&nbsp;(sumas)](#exprsumas-sumas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
@@ -44,6 +43,7 @@
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
+[TypeSumDelta&nbsp;(sumdelta)](#typesumdelta-sumdelta) &ensp;
 [ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
@@ -53,6 +53,7 @@
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
+(50 nodes)
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
@@ -83,6 +84,7 @@
 [TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
+(28 nodes)
 
 ## Enum Overview
 [Expr1 Kind](#expr1-kind) &ensp;
@@ -263,6 +265,15 @@ Fields:
 
 Flags:
 * untagged: sum type is untagged
+
+
+### TypeSumDelta (sumdelta)
+Type resulting from the difference of SumType and a non-empty subset sets of its elements
+    
+
+Fields:
+* type [NODE]: type expression
+* subtrahend [NODE]: type expression
 
 
 ## Statement Node Details
@@ -761,16 +772,6 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprAsNot (asnot)
-Cast of Union to diff of the union and the given type
-
-    
-
-Fields:
-* expr [NODE]: expression
-* type [NODE]: type expression
-
-
 ### ExprBitCast (bitcast)
 Bit cast.
 
@@ -922,6 +923,21 @@ Fields:
 * expr [NODE]: expression
 
 
+### ExprSumAs (sumas)
+Narrow a (tagged) sum `expr` to `type`
+
+    If not `unchecked` this will trap if the sum has not type `type`.
+
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
+
+Flags:
+* unchecked: array acces is not checked
+
+
 ### ExprSumTag (typetag)
 Typetage of tagged sum type
 
@@ -929,20 +945,6 @@ Typetage of tagged sum type
 
 Fields:
 * expr [NODE]: expression
-
-
-### ExprTryAs (tryas)
-Narrow a `expr` which is of Sum to `type`
-
-    If the is not possible return `default_or_undef` if that is not undef
-    or trap otherwise.
-
-    
-
-Fields:
-* expr [NODE]: expression
-* type [NODE]: type expression
-* default_or_undef [NODE]: value if type narrowing fail or trap if undef
 
 
 ### ExprTypeId (typeid)
