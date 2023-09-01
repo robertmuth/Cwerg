@@ -335,6 +335,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _EvalExpr2(node)
     elif isinstance(node, cwast.Expr3):
         return _EvalExpr3(node)
+    elif isinstance(node, cwast.ExprTypeId):
+        return _AssignValue(node, node.x_type.typeid)
     elif isinstance(node, cwast.ExprCall):
         # TODO
         return False

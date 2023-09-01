@@ -322,11 +322,11 @@ NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
 NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
 
 NODES_TYPES = ("TypeBase",
-               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeOf")
+               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeOf", "TypeSumDelta")
 NODES_TYPES_T = Union[NODES_TYPES]
 
 NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
-                       "TypeSum", "TypeAuto", "TypeOf")
+                       "TypeSum", "TypeOf", "TypeSumDelta", "TypeAuto")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
 NODES_ITEMS = ("EnumVal")
@@ -459,6 +459,7 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "init_index",
         "initializer index or empty (empty mean next index)", None),
     NFD(NFK.NODE, "type", "type expression", NODES_TYPES),
+    NFD(NFK.NODE, "subtrahend", "type expression", NODES_TYPES),
     NFD(NFK.NODE, "type_or_auto", "type expression", NODES_TYPES_OR_AUTO),
     NFD(NFK.NODE, "result", "return type", None),
     NFD(NFK.NODE, "size", "compile-time constant size", NODES_EXPR),
@@ -1067,6 +1068,25 @@ class TypeSum:
         t = [str(t) for t in self.types]
         extra = "-untagged" if self.untagged else ""
         return f"{_NAME(self)}{extra} {' '.join(t)}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class TypeSumDelta:
+    """Type resulting from the difference of SumType and a non-empty subset sets of its elements
+    """
+    ALIAS = "sumdelta"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED
+    #
+    type: NODES_TYPES_T
+    subtrahend: NODES_TYPES_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}{self.type} - {self.subtrahend}"
 
 
 @NodeCommon

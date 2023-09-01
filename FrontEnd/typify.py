@@ -297,7 +297,13 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         pieces = [_TypifyNodeRecursively(
             f, tc, type_corpus.NO_TYPE, ctx) for f in node.types]
         return AnnotateNodeType(node, tc.insert_sum_type(pieces, node.untagged))
-    if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
+    elif isinstance(node, cwast.TypeSumDelta):
+        minuend = _TypifyNodeRecursively(
+            node.type, tc, type_corpus.NO_TYPE, ctx)
+        subtrahend = _TypifyNodeRecursively(
+            node.subtrahend, tc, type_corpus.NO_TYPE, ctx)
+        return AnnotateNodeType(node, tc.insert_sum_complement(minuend, subtrahend))
+    elif isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
         return AnnotateNodeType(node, tc.get_bool_canon_type())
     elif isinstance(node, cwast.ValVoid):
         return AnnotateNodeType(node, tc.get_void_canon_type())
@@ -519,9 +525,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return type_corpus.NO_TYPE
     elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
-        return AnnotateNodeType(node, cstr)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprAsNot):
         cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         union = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
@@ -539,8 +545,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             node.expr_lhs, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
-        field_node = tc.lookup_rec_field(cstr, node.field)
+        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        field_node = tc.lookup_rec_field(ct, node.field)
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")
@@ -562,6 +568,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         for c in node.body:
             _TypifyNodeRecursively(c, tc, target_type, ctx)
         return type_corpus.NO_TYPE
+    elif isinstance(node, cwast.ExprTypeId):
+        _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        return AnnotateNodeType(node, tc.get_typeid_canon_type())
     elif isinstance(node, cwast.ValSlice):
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
@@ -798,7 +807,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             else:
                 _CheckTypeSameExceptMut(
                     p,  a.x_type, p, a.x_srcloc)
-
+    elif isinstance(node, cwast.TypeSumDelta):
+        minuned = node.type.x_type
+        subtrahend = node.subtrahend.x_type
+        # TODO: need to use origianal types if available
     elif isinstance(node, cwast.ExprAsNot):
         pass
     elif isinstance(node, cwast.ExprAs):
@@ -841,6 +853,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             cwast.CompilerError(node.x_srcloc,
                                 f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
         assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
+    elif isinstance(node, cwast.ExprTypeId):
+        assert ct is tc.get_typeid_canon_type()
     elif isinstance(node, cwast.ExprOffsetof):
         assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.ExprSizeof):
@@ -862,7 +876,7 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             _CheckTypeSame(b, a, b.type.x_type)
         # We should also ensure three is a proper return but that requires dataflow
     elif isinstance(node, cwast.TypeOf):
-         _CheckTypeSame(node, node.x_type, node.expr.x_type)
+        _CheckTypeSame(node, node.x_type, node.expr.x_type)
     elif isinstance(node, cwast.ValSlice):
         assert ct.is_mutable() == node.pointer.x_type.is_mutable()
         _CheckTypeSame(node, ct.underlying_slice_type(),
