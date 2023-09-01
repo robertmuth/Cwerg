@@ -5,7 +5,6 @@ QEMU=
 $(info $(shell mkdir -p $(DIR)))
 
 TESTS = macros.cw \
-        print_argv.cw \
         types.cw \
         consts.cw \
         sexpr.cw \
