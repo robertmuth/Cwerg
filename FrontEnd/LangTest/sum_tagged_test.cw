@@ -28,12 +28,19 @@
         s32
         s64]))
 
+
+
 (static_assert (== (sizeof TaggedUnion3) 16))
 
 
 (type TaggedUnion4 (union [bool s32]))
 
 (static_assert (== (sizeof TaggedUnion4) 8))
+
+(type TaggedUnionDelta (sumdelta TaggedUnion3 TaggedUnion4))
+(static_assert (== (sizeof TaggedUnionDelta) 8))
+(static_assert (== (typeid TaggedUnionDelta) (typeid s64)))
+
 
 
 (type @pub TaggedUnion5 (union [
@@ -68,25 +75,6 @@
 @doc """
 (type @pub sum11_t (union [bool u16]))
 (type @pub sum12_t (union [type_ptr u16])) """
-
-
-@doc """
-(fun fun_result [
-        (param a sum1_t)
-        (param b bool)
-        (param c s32)] sum2_t :
-    (let @mut x sum2_t true)
-    (let y sum1_t x)
-    (= x false)
-    (if (is x sum2_t) :
-        (return false)
-        :)
-    (= x (or (tryas x bool undef) false))
-    (stmt (call fun1 [
-            true
-            false
-            1]))
-    (return true)) """
 
 
 (fun test_tagged_union_basic [] void :
@@ -133,7 +121,6 @@
     :
         (= out c))
     (return out))
-
 
 
 (fun test_tagged_union_result [] void :
