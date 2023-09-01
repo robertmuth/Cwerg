@@ -282,15 +282,15 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 node.value_or_auto, tc, target_type, ctx)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.DefEnum):
-        cstr = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
+        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
         for f in node.items:
-            _TypifyNodeRecursively(f, tc, cstr, ctx)
-        return AnnotateNodeType(node, cstr)
+            _TypifyNodeRecursively(f, tc, ct, ctx)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.DefType):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         if node.wrapped:
-            cstr = tc.insert_wrapped_type(cstr)
-        return AnnotateNodeType(node, cstr)
+            ct = tc.insert_wrapped_type(ct)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.TypeSum):
         # this is tricky code to ensure that children of TypeSum
         # are not TypeSum themselves on the canonical side
@@ -364,17 +364,17 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValString):
         dim = ComputeStringSize(node.raw, node.string)
-        cstr = tc.insert_array_type(
+        ct = tc.insert_array_type(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
-        return AnnotateNodeType(node, cstr)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprIndex):
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_index, tc, uint_type, ctx)
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
         return AnnotateNodeType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
-        cstr = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
-        field_node = tc.lookup_rec_field(cstr, node.field)
+        ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
+        field_node = tc.lookup_rec_field(ct, node.field)
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")
@@ -401,8 +401,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         # TODO: how is mutability propagated?
         return AnnotateNodeType(node, ct.underlying_pointer_type())
     elif isinstance(node, cwast.Expr1):
-        cstr = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
-        return AnnotateNodeType(node, cstr)
+        ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.Expr2):
         ct: cwast.CanonType = _TypifyNodeRecursively(
             node.expr1, tc, target_type, ctx)
@@ -424,13 +424,13 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 assert False
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprPointer):
-        cstr = _TypifyNodeRecursively(node.expr1, tc, target_type, ctx)
+        ct = _TypifyNodeRecursively(node.expr1, tc, target_type, ctx)
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr2, tc, uint_type, ctx)
         if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
             _TypifyNodeRecursively(
                 node.expr_bound_or_undef, tc, uint_type, ctx)
-        return AnnotateNodeType(node, cstr)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprSumTag):
         ct = _TypifyNodeRecursively(
             node.expr, tc, type_corpus.NO_TYPE, ctx)
@@ -447,9 +447,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
-        cstr = _TypifyNodeRecursively(node.expr_t, tc, target_type, ctx)
-        _TypifyNodeRecursively(node.expr_f, tc, cstr, ctx)
-        return AnnotateNodeType(node, cstr)
+        ct = _TypifyNodeRecursively(node.expr_t, tc, target_type, ctx)
+        _TypifyNodeRecursively(node.expr_f, tc, ct, ctx)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.StmtExpr):
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
         return type_corpus.NO_TYPE
@@ -528,10 +528,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.ExprAsNot):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
-        union = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_sum_complement(union, cstr))
     elif isinstance(node, cwast.ExprIs):
         _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
@@ -811,8 +807,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         minuned = node.type.x_type
         subtrahend = node.subtrahend.x_type
         # TODO: need to use origianal types if available
-    elif isinstance(node, cwast.ExprAsNot):
-        pass
     elif isinstance(node, cwast.ExprAs):
         pass
         # src = node.expr.x_type

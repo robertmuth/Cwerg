@@ -350,9 +350,6 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprSumAs):
         # TODO: we can do better here
         return False
-    elif isinstance(node, cwast.ExprAsNot):
-        # TODO: we can do better here
-        return False
     elif isinstance(node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         # TODO: we can do better here
         return False

@@ -356,7 +356,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprSumTag",
-              "ExprIs", "ExprAs", "ExprAsNot", "ExprSumAs", "ExprBitCast")
+              "ExprIs", "ExprAs", "ExprSumAs", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1655,27 +1655,6 @@ class ExprAs:
     ptr to rec -> ptr to first element of rec
     """
     ALIAS = "as"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: NODES_EXPR_T
-    type: NODES_TYPES_T
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{self.expr} AS {self.type}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class ExprAsNot:
-    """Cast of Union to diff of the union and the given type
-
-    """
-    ALIAS = "asnot"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #

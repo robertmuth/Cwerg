@@ -60,7 +60,7 @@
 
 
 (fun funx [(param a type_union)] s32 :
-    (return (asnot a (union [void type_ptr]))))
+    (return (as a (sumdelta type_union (union [void type_ptr])))))
 
 )
 
