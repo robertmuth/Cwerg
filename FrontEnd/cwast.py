@@ -356,7 +356,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprSumTag",
-              "ExprIs", "ExprAs", "ExprAsNot", "ExprTryAs", "ExprBitCast")
+              "ExprIs", "ExprAs", "ExprAsNot", "ExprSumAs", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -485,8 +485,6 @@ ALL_FIELDS = [
     NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
     NFD(NFK.NODE, "expr_lhs", "l-value expression", NODES_LHS),
     NFD(NFK.NODE, "initial_or_undef_or_auto", "initializer", NODES_EXPR_INIT),
-    NFD(NFK.NODE, "default_or_undef",
-        "value if type narrowing fail or trap if undef", None),
 ]
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
@@ -1674,27 +1672,27 @@ class ExprAsNot:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ExprTryAs:
-    """Narrow a `expr` which is of Sum to `type`
+class ExprSumAs:
+    """Narrow a (tagged) sum `expr` to `type`
 
-    If the is not possible return `default_or_undef` if that is not undef
-    or trap otherwise.
+    If not `unchecked` this will trap if the sum has not type `type`.
 
     """
-    ALIAS = "tryas"
+    ALIAS = "sumas"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
-    default_or_undef: Union[NODES_EXPR_T, ValUndef]
+    #
+    unchecked: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr} {self.type} {self.default_or_undef}"
+        return f"{_NAME(self)} {self.expr} {self.type}"
 
 
 @NodeCommon

@@ -547,14 +547,12 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(node, tc.get_uint_canon_type())
     elif isinstance(node, cwast.ExprSizeof):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.get_uint_canon_type())
-    elif isinstance(node, cwast.ExprTryAs):
-        cstr = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+    elif isinstance(node, cwast.ExprSumAs):
+        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
-        if not isinstance(node.default_or_undef, cwast.ValUndef):
-            _TypifyNodeRecursively(node.default_or_undef, tc, cstr, ctx)
-        return AnnotateNodeType(node, cstr)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, (cwast.StmtStaticAssert)):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
         return type_corpus.NO_TYPE
@@ -847,10 +845,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.ExprSizeof):
         assert ct is tc.get_uint_canon_type()
-    elif isinstance(node, cwast.ExprTryAs):
+    elif isinstance(node, cwast.ExprSumAs):
         _CheckTypeSame(node, ct, node.type.x_type)
-        if not isinstance(node.default_or_undef, cwast.ValUndef):
-            _CheckTypeSame(node, ct, node.default_or_undef.x_type)
         assert type_corpus.is_compatible(ct, node.expr.x_type)
     elif isinstance(node, cwast.ValNum):
         if not ct.is_base_type() and not ct.is_enum():

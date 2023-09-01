@@ -345,7 +345,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         if node.expr.x_value is not None:
             return _AssignValue(node, node.expr.x_value)
         return False
-    elif isinstance(node, cwast.ExprTryAs):
+    elif isinstance(node, cwast.ExprSumAs):
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprAsNot):

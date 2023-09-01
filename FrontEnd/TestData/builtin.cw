@@ -65,7 +65,7 @@ This gets passed to the actual formatters which decide how to interpret the opti
         (macro_let $catch_name auto (asnot $eval $type))
         $catch_body
         (trap))
-    (macro_let $name $type (tryas $eval $type undef)))
+    (macro_let $name $type (sumas $eval $type)))
 
 
 (fun @pub @extern IsLogActive [(param level u8) (param loc u32)] void :)

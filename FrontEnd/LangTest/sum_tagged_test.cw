@@ -71,7 +71,7 @@
 
 
 @doc """
-(fun fun1 [
+(fun fun_result [
         (param a sum1_t)
         (param b bool)
         (param c s32)] sum2_t :
@@ -89,25 +89,67 @@
     (return true)) """
 
 
-(fun test_tagged_union [] void :
+(fun test_tagged_union_basic [] void :
     (let @mut x TaggedUnion3  true)
     (let @mut y TaggedUnion3  undef)
     (= y x)
-    (test::AssertEq (is x bool) true)
-    (test::AssertEq (is x s32) false)
-    (test::AssertEq (is y bool) true)
-    (test::AssertEq (is y s32) false)
+    (test::AssertTrue (is x bool))
+    (test::AssertFalse (is x s32))
+    (test::AssertTrue (is y bool))
+    (test::AssertFalse (is y s32))
     (= x 777_s32)
     (= y x)
-    (test::AssertEq (is x bool) false)
-    (test::AssertEq (is x s32) true)
-    (test::AssertEq (is y bool) false)
-    (test::AssertEq (is y s32) true)
+    (test::AssertFalse (is x bool))
+    (test::AssertTrue (is x s32))
+    (test::AssertFalse (is y bool))
+    (test::AssertTrue (is y s32))
 )
 
+(fun fun_param [
+        (param a bool)
+        (param b bool)
+        (param c s32)
+        (param x TaggedUnion3)] void :
+    (if a :
+         (test::AssertTrue (is x bool))
+    :
+        (test::AssertTrue (is x s32))
+    ))
+
+(fun test_tagged_union_parameter [] void :
+    (let @mut x TaggedUnion3 true)
+    (stmt (call fun_param [true true 0 x]))
+    (= x 666_s32)
+    (stmt (call fun_param [false true 666 x]))
+)
+
+(fun fun_result [
+        (param a bool)
+        (param b bool)
+        (param c s32)] TaggedUnion3 :
+    (let @mut out  TaggedUnion3 undef)
+    (if a :
+        (= out b) 
+    :
+        (= out c))
+    (return out))
+
+
+
+(fun test_tagged_union_result [] void :
+    (let @mut x auto (call fun_result [true false 2]))
+    (test::AssertTrue (is x bool))
+    (test::AssertFalse (is x s32))
+
+    (= x (call fun_result [false false 2]))
+    (test::AssertFalse (is x bool))
+    (test::AssertTrue (is x s32))
+)
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (call test_tagged_union []))
+    (stmt (call test_tagged_union_basic []))
+    (stmt (call test_tagged_union_result []))
+    (stmt (call test_tagged_union_parameter []))
 
     @doc "test end"
     (stmt (call SysPrint ["OK\n"]))
