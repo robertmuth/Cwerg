@@ -80,6 +80,7 @@
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
+[TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
 
@@ -215,6 +216,14 @@ A function signature
 Fields:
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
+
+
+### TypeOf (typeof)
+Type of the expression
+    
+
+Fields:
+* expr [NODE]: expression
 
 
 ### TypePtr (ptr)

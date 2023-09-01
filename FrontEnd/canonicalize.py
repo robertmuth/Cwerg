@@ -424,3 +424,12 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
                     node.expr_rhs, node.lhs.x_type, uint_type, tc)
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
+
+
+def FunReplaceTypeOf(fun: cwast.DefFun):
+    def replacer(node, _):
+        if not isinstance(node, cwast.TypeOf):
+            return None
+        return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)

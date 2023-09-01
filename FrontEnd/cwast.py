@@ -326,7 +326,7 @@ NODES_TYPES = ("TypeBase",
 NODES_TYPES_T = Union[NODES_TYPES]
 
 NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
-                       "TypeSum", "TypeAuto" , "TypeOf")
+                       "TypeSum", "TypeAuto", "TypeOf")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
 NODES_ITEMS = ("EnumVal")
@@ -1078,7 +1078,7 @@ class TypeOf:
     """
     ALIAS = "typeof"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #

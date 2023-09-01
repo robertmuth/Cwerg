@@ -884,22 +884,26 @@ def main():
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
+            canonicalize.FunReplaceTypeOf(fun)
+            canonicalize.ReplaceExprIndex(fun, tc)
+            canonicalize.ReplaceConstExpr(fun)
+            canonicalize.EliminateImplicitConversions(fun, tc)
+            canonicalize_slice.ReplaceExplicitSliceCast(fun, tc)
+                
             if not isinstance(fun, cwast.DefFun):
                 continue
             id_gen = GetIdGen(fun)
-            canonicalize.ReplaceExprIndex(mod, tc)
-            canonicalize.ReplaceExprIs(mod, id_gen, tc)
-            canonicalize.ReplaceConstExpr(mod)
-            canonicalize.EliminateImplicitConversions(mod, tc)
-            canonicalize_slice.ReplaceExplicitSliceCast(mod, tc)
-            canonicalize.CanonicalizeDefer(mod, [])
-            cwast.EliminateEphemeralsRecursively(mod)
+            canonicalize.ReplaceExprIs(fun, id_gen, tc)
+ 
+            canonicalize.CanonicalizeDefer(fun, [])
+            cwast.EliminateEphemeralsRecursively(fun)
 
     ELIMIMATED_NODES.add(cwast.ExprSizeof)
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
     ELIMIMATED_NODES.add(cwast.StmtDefer)
     ELIMIMATED_NODES.add(cwast.ExprIs)
+    ELIMIMATED_NODES.add(cwast.TypeOf)
 
     SanityCheckMods("initial lowering", args.emit_ir and False,
                     mod_topo_order, tc, ELIMIMATED_NODES)
