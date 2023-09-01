@@ -322,11 +322,11 @@ NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
 NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
 
 NODES_TYPES = ("TypeBase",
-               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum")
+               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeOf")
 NODES_TYPES_T = Union[NODES_TYPES]
 
 NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
-                       "TypeSum", "TypeAuto")
+                       "TypeSum", "TypeAuto" , "TypeOf")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
 NODES_ITEMS = ("EnumVal")
@@ -1071,9 +1071,27 @@ class TypeSum:
         return f"{_NAME(self)}{extra} {' '.join(t)}"
 
 
+@NodeCommon
+@dataclasses.dataclass()
+class TypeOf:
+    """Type of the expression
+    """
+    ALIAS = "typeof"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED
+    #
+    expr: NODES_EXPR_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)}"
 ############################################################
 # Val Nodes
 ############################################################
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class ValAuto:

@@ -308,7 +308,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         actual_kind = ParseNumRaw(node.number, target_kind)[1]
         ct = tc.get_base_canon_type(actual_kind)
         return AnnotateNodeType(node, ct)
-
+    elif isinstance(node, cwast.TypeOf):
+        ct = _TypifyNodeRecursively(node.expr, tc,  type_corpus.NO_TYPE, ctx)
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValAuto):
         assert target_type is not None
         return AnnotateNodeType(node, target_type)
@@ -863,7 +865,8 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         for a, b in zip(ct.parameter_types(), node.params):
             _CheckTypeSame(b, a, b.type.x_type)
         # We should also ensure three is a proper return but that requires dataflow
-
+    elif isinstance(node, cwast.TypeOf):
+         _CheckTypeSame(node, node.x_type, node.expr.x_type)
     elif isinstance(node, cwast.ValSlice):
         assert ct.is_mutable() == node.pointer.x_type.is_mutable()
         _CheckTypeSame(node, ct.underlying_slice_type(),
