@@ -10,7 +10,6 @@ TESTS = macros.cw \
         sexpr.cw \
         cast.cw \
 		comment.cw \
-        wordcount.cw \
         linked_list.cw \
         binary_tree.cw \
         import.cw \
@@ -73,9 +72,10 @@ tests_lang_a32: \
     $(DIR)/expr_sint_test.lang.a64.exe
 
 tests_emit: \
+    $(DIR)/wordcount.x64.exe \
     $(DIR)/hello_world.x64.exe \
     $(DIR)/fizzbuzz.x64.exe \
-	$(DIR)/heapsort.x64.exe \
+    $(DIR)/heapsort.x64.exe \
     $(DIR)/print_argv.x64.exe \
     $(DIR)/sieve.x64.exe \
     $(DIR)/polymorphic.x64.exe \
@@ -156,6 +156,10 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
+
+$(DIR)/wordcount.x64.exe: TestData/wordcount.cw
+	cat Lib/os.cw $< | ./typify.py
+
 
 $(DIR)/string.x64.exe: Lib/string_test.cw
 	./emit_ir.py Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm

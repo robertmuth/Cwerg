@@ -2919,7 +2919,7 @@ def GenerateDocumentation(fout):
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
-    print (f"({n} nodes)", file=fout)
+    print(f"({n} nodes)", file=fout)
 
     print("\n## Node Overview (Non-Core)",  file=fout)
     n = 0
@@ -2932,7 +2932,7 @@ def GenerateDocumentation(fout):
             alias = f"&nbsp;({cls.ALIAS})"
         anchor = MakeAnchor(name, cls.ALIAS)
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
-    print (f"({n} nodes)", file=fout)
+    print(f"({n} nodes)", file=fout)
 
     print("\n## Enum Overview",  file=fout)
     for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Type",
