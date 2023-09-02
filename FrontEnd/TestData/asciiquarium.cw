@@ -135,7 +135,7 @@
     (let @mut left_side auto true)
     (let @mut have_color auto true)
     (let @mut cpos uint 0)
-    (for ipos uint 0 (len image_map) 1 :
+    (for ipos 0 (len image_map) 1 :
         @doc "determine attribute"
         (let @mut a u8 def_attr)
         (if have_color :
@@ -185,9 +185,9 @@
     (let h auto (-> obj height))
     @doc "@ is an invalid attrib"
     (let @mut last_attr u8 '@')
-    (for x s32 0 w 1 :
+    (for x 0 w 1 :
         (let @mut last_x auto MAX_DIM)
-        (for y s32 0 h 1 :
+        (for y 0 h 1 :
             (let index auto (+ (* y w) x))
             (let c auto (at (-> obj char_map) index))
             (let a auto (at (-> obj attr_map) index))
@@ -210,7 +210,7 @@
         (param c u8)
         (param a u8)] void :
     (let size auto (* (-> obj width) (-> obj height)))
-    (for i s32 0 size 1 :
+    (for i 0 size 1 :
         (= (at (-> obj char_map) i) c)
         (= (at (-> obj attr_map) i) a)
         (= (at (-> obj depth_map) i) 255)))
@@ -777,16 +777,16 @@ y                   y
     @doc "add obj"
     (print [ansi::CURSOR_HIDE])
     (let @mut last_t r32 0.0)
-    (for t r32 0.0 5.0 0.1 :
+    (for t 0.0 5.0_r32 0.1 :
         (stmt (call aanim::window_fill [
                 (& @mut window)
                 ' '
                 ' ']))
         (= curr (front @mut all_objects))
-        (for i uint 0 9 1 :
+        (for i 0 9_uint 1 :
             (stmt (call aanim::draw [(& @mut window) (incp curr i)])))
         (stmt (call aanim::window_draw [(& window) 'k']))
-        (for i uint 0 9 1 :
+        (for i 0 9_uint 1 :
             (stmt (call artwork::UpdateState [
                     (incp curr i)
                     t

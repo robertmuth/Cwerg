@@ -65,7 +65,7 @@
 (fun sum_kahan_compensated [(param summands (slice r64))] r64 :
     (let @mut s r64 0.0)
     (let @mut c r64 0.0)
-    (for i uint 0 (len summands) 1 :
+    (for i 0 (len summands) 1 :
         (let x auto (at summands i))
         (let y auto (- x c))
         (let t auto (+ s y))
@@ -83,7 +83,7 @@
 (fun sum_priest_compensated [(param summands (slice r64))] SumCompensation :
     (let @mut s r64 0.0)
     (let @mut c r64 0.0)
-    (for i uint 0 (len summands) 1 :
+    (for i 0 (len summands) 1 :
         (let x auto (at summands i))
         (let y auto (+ c x))
         (let u auto (- x (- y c)))
@@ -97,7 +97,7 @@
 
 (fun horner_sum [(param x r64) (param coeffs (slice r64))] r64 :
     (let @mut s r64 0.0)
-    (for i uint 0 (len coeffs) 1 :
+    (for i 0 (len coeffs) 1 :
         (let c auto (at coeffs i))
         (= s (+ (* s x) c)))
     (return s))

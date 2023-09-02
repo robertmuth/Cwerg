@@ -15,15 +15,15 @@
 
 (fun sieve [] uint :
     @doc "initially every number is assumed prime"
-    (for i uint 0 SIZE 1 :
+    (for i 0 SIZE 1 :
         (= (at is_prime i) 1))
     @doc "run the sieve"
     (let @mut count uint 0)
-    (for i uint 0 SIZE 1 :
+    (for i 0 SIZE 1 :
         (if (!= (at is_prime i) 0) :
             (= count (+ count 1))
             (let p uint (+ 3 (+ i i)))
-            (for k uint (+ i p) SIZE p :
+            (for k (+ i p) SIZE p :
                 (= (at is_prime k) 0))
             :))
     (return count))

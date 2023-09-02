@@ -21,18 +21,19 @@ This gets passed to the actual formatters which decide how to interpret the opti
 (macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 
+@doc """macro for number range for-loop, 
 
-@doc "macro for number range for-loop"
+The type of the loop variable is determined by $end"""
 (macro @pub for STMT_LIST [
         (mparam $index ID)
-        (mparam $type TYPE)
+
         (mparam $start EXPR)
         (mparam $end EXPR)
         (mparam $step EXPR)
         (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    (macro_let $end_eval $type $end)
-    (macro_let $step_eval $type $step)
-    (macro_let @mut $it $type $start)
+    (macro_let $end_eval (typeof $end) $end)
+    (macro_let $step_eval (typeof $end) $step)
+    (macro_let @mut $it (typeof $end) $start)
     (block _ :
         (if (>= $it $end_eval) :
             (break)
@@ -41,7 +42,6 @@ This gets passed to the actual formatters which decide how to interpret the opti
         (= $it (+ $it $step_eval))
         $body
         (continue)))
-
 
 @doc "macro for while-loop"
 (macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
@@ -80,14 +80,14 @@ This gets passed to the actual formatters which decide how to interpret the opti
     (macro_let $psrc auto (as $src (ptr $item_type)))
     (macro_let $pdst auto (as $dst (ptr @mut $item_type)))
     (macro_let $n uint (min $len (len $dst)))
-    (for $i uint 0 $n 1 [(= (^ (incp $pdst $i)) (^ (incp $psrc $i)))]))
+    (for $i 0 $n 1 [(= (^ (incp $pdst $i)) (^ (incp $psrc $i)))]))
 
 
 (fun @pub memcpy [
         (param dst (ptr @mut u8))
         (param src (ptr u8))
         (param size uint)] uint :
-    (for i uint 0 size 1 :
+    (for i 0 size 1 :
         (= (^ (incp dst i)) (^ (incp src i))))
     (return size))
 

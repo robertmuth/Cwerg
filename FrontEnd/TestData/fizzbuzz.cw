@@ -13,7 +13,7 @@
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (for i u64 0 31 1 :
+    (for i 0 31_uint 1 :
         (cond :
             (case (== (% i 15) 0) :
                 (print [FIZZBUZZ]))

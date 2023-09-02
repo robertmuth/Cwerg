@@ -10,9 +10,9 @@
 (global @pub PolyCrc32cLE u32 0x82f63b78)
 
 (fun @pub InitCrcTab [(param poly u32) (param tab (ptr @mut CrcTab))] void :
-    (for i u32 0 256 1 :
+    (for i 0 256_u32 1 :
         (let @mut crc u32 i)
-        (for j u32 0 8 1 :
+        (for j 0 8_u32 1 :
             (if (== (and crc 1) 0) :
                 (= crc (>> crc 1))
             :
@@ -27,7 +27,7 @@
                    (param start_crc u32) 
                    (param tab (ptr CrcTab))] u32 :
     (let @mut crc u32 (xor start_crc 0xffffffff))
-    (for i uint 0 (len buf) 1 :
+    (for i 0 (len buf) 1 :
         (let index u8 (xor (as (and crc 0xff) u8) (at buf i)))
         (= crc (xor (at (^ tab) index) (>> crc 8)))
     )

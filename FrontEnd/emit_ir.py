@@ -769,7 +769,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                     rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
                                         f.type.x_type.name)
             return rel_off
-
+        elif ct.is_wrapped():
+            assert isinstance(node, cwast.ExprAs)
+            return _emit_recursively(node.expr, node.expr.x_type, offset)
         else:
             assert False, f"unhandled node for DefGlobal: {node} {ct.name}"
 

@@ -42,18 +42,19 @@
         $body
         (continue)))
 
+@doc """macro for number range for-loop, 
 
-@doc "macro for number range for-loop"
+The type of the loop variable is determined by $end"""
 (macro @pub for STMT_LIST [
         (mparam $index ID)
-        (mparam $type TYPE)
+
         (mparam $start EXPR)
         (mparam $end EXPR)
         (mparam $step EXPR)
         (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    (macro_let $end_eval $type $end)
-    (macro_let $step_eval $type $step)
-    (macro_let @mut $it $type $start)
+    (macro_let $end_eval (typeof $end) $end)
+    (macro_let $step_eval (typeof $end) $step)
+    (macro_let @mut $it (typeof $end) $start)
     (block _ :
         (if (>= $it $end_eval) :
             (break)
@@ -68,7 +69,7 @@
         (param dst (ptr @mut u8))
         (param src (ptr u8))
         (param size uint)] uint :
-    (for i uint 0 size 1 :
+    (for i 0 size 1 :
         (= (^ (incp dst i)) (^ (incp src i))))
     (return size))
 
@@ -160,7 +161,7 @@
 
 (fun str_to_u32 [(param s (slice u8))] u32 :
     (let @mut x auto 0_u32)
-    (for i uint 0 (len s) 1 :
+    (for i 0 (len s) 1 :
         (*= x 10)
         (let c auto (at s i))
         (+= x (as (- c '0') u32)))
