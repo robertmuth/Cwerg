@@ -50,7 +50,7 @@
     (return (& @mut gr1))
 )
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "a1 u32"
     (= (at ga1 3) 0x8765432187654321)
     (test::AssertEq (at ga1 3) 0x8765432187654321_s64)

@@ -59,7 +59,7 @@
 (global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
 
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
     (let @mut v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)

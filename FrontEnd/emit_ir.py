@@ -891,12 +891,12 @@ def main():
             canonicalize.ReplaceConstExpr(fun)
             canonicalize.EliminateImplicitConversions(fun, tc)
             canonicalize_slice.ReplaceExplicitSliceCast(fun, tc)
-                
+
             if not isinstance(fun, cwast.DefFun):
                 continue
             id_gen = GetIdGen(fun)
             canonicalize.ReplaceExprIs(fun, id_gen, tc)
- 
+
             canonicalize.CanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
@@ -991,13 +991,15 @@ def main():
     for mod in mod_topo_order:
         # when we emit Cwerg IR we use the "/" sepearator not "::" because
         # : is used for type annotations
-        mod_name = "" if mod.name in ("main", "$builtin") else mod.name + "/"
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 suffix = ""
                 if isinstance(node, (cwast.DefFun)) and node.polymorphic:
                     suffix = f"<{node.x_type.parameter_types()[0].name}>"
-                node.name = mod_name + node.name + suffix
+                if node.cdecl:
+                    node.name = node.name + suffix
+                else:
+                    node.name = mod.name + "/" + node.name + suffix
 
     SanityCheckMods("After slice elimination", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)

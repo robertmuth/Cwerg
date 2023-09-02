@@ -55,7 +55,7 @@
     (field num_chars uint))
 
 
-(fun @pub WordCount [(param fd os::FD)] (union [TextStats os::Error]) :
+(fun WordCount [(param fd os::FD)] (union [TextStats os::Error]) :
     (let @mut stats auto (rec_val TextStats []))
     (let @mut in_word auto false)
     (let @mut buf (array 1024 u8) undef)
@@ -78,6 +78,12 @@
                 (break)
                 :)))
     (return stats))
+
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    (try stats TextStats (call WordCount [os::Stdin]) err :
+        (return 1)
+    )
+    (return 0))
 
 )
 

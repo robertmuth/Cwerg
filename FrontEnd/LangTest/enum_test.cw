@@ -39,7 +39,7 @@
 
 (global @mut gr1 rec1 undef)
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
     (let @mut v1 auto enum8::e2)
     (let @mut v2 auto enum16::e3)

@@ -6,7 +6,7 @@
         (param size uint)] (ptr @mut u8) :)
 
 
-(fun @pub @extern write [
+(fun @pub @cdecl @extern write [
         (param fd s32)
         (param s (ptr u8))
         (param size uint)] sint :)
@@ -17,7 +17,7 @@
     (field nano_sec uint))
 
 
-(fun @pub @extern nanosleep [(param req (ptr TimeSpec)) (param rem (ptr @mut TimeSpec))] s32 :)
+(fun @pub @cdecl  @extern nanosleep [(param req (ptr TimeSpec)) (param rem (ptr @mut TimeSpec))] s32 :)
 
 
 (fun @pub @extern SysErrorPrint [(param buffer (slice u8))] void :)

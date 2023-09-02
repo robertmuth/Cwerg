@@ -168,7 +168,7 @@
     (test::AssertEq (call update_array [c3 0 5]) 77_u8)
 )
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (call test_global_array []))
     (stmt (call test_local_array []))
     (stmt (call test_mixed_array []))

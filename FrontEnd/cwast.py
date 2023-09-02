@@ -399,7 +399,7 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "mut", "is mutable"),
     NFD(NFK.ATTR_BOOL, "ref", "address may be taken"),
     NFD(NFK.ATTR_BOOL, "colon", "colon style list"),
-
+    NFD(NFK.ATTR_BOOL, "cdecl", "use c-linkage (no module prefix)"),
     NFD(NFK.ATTR_BOOL, "wrapped", "is wrapped type (forces type equivalence by name)"),
     NFD(NFK.ATTR_BOOL, "discard", "ignore non-void expression"),
     NFD(NFK.ATTR_BOOL, "init", "run function at startup"),
@@ -2279,6 +2279,7 @@ class DefGlobal:
     #
     pub: bool = False
     mut: bool = False
+    cdecl: bool = False
     doc: str = ""
     #
     x_srcloc: Optional[Any] = None
@@ -2311,6 +2312,7 @@ class DefFun:
     fini: bool = False
     pub: bool = False
     extern: bool = False
+    cdecl: bool = False
     doc: str = ""
     #
     x_srcloc: Optional[Any] = None

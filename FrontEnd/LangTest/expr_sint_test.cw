@@ -159,7 +159,7 @@
     (test::AssertEq (!= a a) false)
 )
 
-(fun main [(param argc s32) (param argv (ptr (ptr s8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr s8)))] s32 :
     (stmt (call test_s64 [0x8765432187654321 0x1234567812345678]))
     (stmt (call test_s32 [0x87654321 0x12345678]))
     (stmt (call test_s16 [0x8765 0x1234]))

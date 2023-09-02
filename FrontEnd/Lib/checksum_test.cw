@@ -80,7 +80,7 @@
     (index_val 63)
     ]))
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
     (stmt (call checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
     (print ["\n\n"])

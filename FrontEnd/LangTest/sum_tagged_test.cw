@@ -133,7 +133,7 @@
     (test::AssertTrue (is x s32))
 )
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (call test_tagged_union_basic []))
     (stmt (call test_tagged_union_result []))
     (stmt (call test_tagged_union_parameter []))
