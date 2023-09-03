@@ -224,11 +224,6 @@ def PhaseLegalizationStep2(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int
 
     TODO: missing is a function to change calling signature so that
     """
-    lowering.FunRegWidthWidening(fun, o.DK.U8, o.DK.U32)
-    lowering.FunRegWidthWidening(fun, o.DK.S8, o.DK.S32)
-    lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
-    lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
-
     fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(
         fun.input_types)
     fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(
