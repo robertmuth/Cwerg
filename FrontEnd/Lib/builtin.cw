@@ -1,20 +1,16 @@
 (module $builtin [] :
-
+(import os)
 (fun @pub @extern memcpy [
         (param dst (ptr @mut u8))
         (param src (ptr u8))
         (param size uint)] (ptr @mut u8) :)
 
-(fun @pub @cdecl @extern write [
-        (param fd s32)
-        (param s (ptr u8))
-        (param size uint)] sint :)
 
 (fun @pub @extern SysErrorPrint [(param buffer (slice u8))] void :)
 
 
 (fun @pub SysPrint [(param buffer (slice u8))] void :
-    (stmt (call write [
+    (stmt (call os::write [
             1_s32
             (front buffer)
             (len buffer)])))
