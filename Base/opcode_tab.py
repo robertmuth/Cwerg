@@ -235,7 +235,12 @@ class DK(enum.Enum):
 
     def bitwidth(self) -> int:
         return 8 << (self.value & 0x7)
-
+    
+    def __str__(self):
+        return self.name
+    
+    def __repr__(self):
+        return self.name
 
 SHORT_STR_TO_RK = {x.name: x for x in DK}  # this does contain the aliases
 
