@@ -39,7 +39,10 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
             legalize.PhaseOptimize(fun, unit, opt_stats, fout)
 
     for fun in unit.funs:
-        legalize.PhaseLegalization(fun, unit, opt_stats, fout)
+        legalize.PhaseLegalizationStep1(fun, unit, opt_stats, fout)
+
+    for fun in unit.funs:
+        legalize.PhaseLegalizationStep2(fun, unit, opt_stats, fout)
 
 
 def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
