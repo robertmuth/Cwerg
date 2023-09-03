@@ -75,7 +75,7 @@ class SymTab:
 
         return None
 
-    def resolve_sym(self, components: List[str], symtab_map, must_be_public) -> Optional[Any]:
+    def resolve_sym(self, components: List[str], symtab_map, must_be_public, srcloc) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         if len(components) == 2:
             s = self._enum_syms.get(components[0])
@@ -90,8 +90,8 @@ class SymTab:
             if s:
                 assert isinstance(s, cwast.DefMod), f"{s}"
                 mod_symtab = symtab_map[s.name]
-                return mod_symtab.resolve_sym(components[1:], symtab_map, True)
-            assert False, f"could not resolve name {components}"
+                return mod_symtab.resolve_sym(components[1:], symtab_map, True, srcloc)
+            cwast.CompilerError(srcloc, f"could not resolve name {components}")
 
         out = self.resolve_sym_here(components[0], must_be_public)
         if not out:
@@ -159,7 +159,7 @@ class SymTab:
 def _ResolveGlobalSymbols(node: cwast.Id, symtab_map):
     symtab = symtab_map[node.x_module.name]
     return symtab.resolve_sym(
-        node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False)
+        node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False, node.x_srcloc)
 
 
 def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map, scopes):
@@ -170,7 +170,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map, scopes):
             if def_node is not None:
                 return def_node
     symtab = symtab_map[node.x_module.name]
-    return symtab.resolve_sym(components, symtab_map, False)
+    return symtab.resolve_sym(components, symtab_map, False, node.x_srcloc)
 
 
 def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map: Dict[str, SymTab]):
@@ -351,7 +351,8 @@ def VerifyASTSymbolsRecursively(node):
             # all macros should have been resolved
             assert not node.name.startswith("$"), f"{node.name}"
             def_node = node.x_symbol
-            is_type_node = field in ("type", "types", "result", "type_or_auto", "subtrahend")
+            is_type_node = field in (
+                "type", "types", "result", "type_or_auto", "subtrahend")
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)):
                 cwast.CompilerError(
                     node.x_srcloc, f"unexpected id {node.name}: {type(def_node)} {field}")
