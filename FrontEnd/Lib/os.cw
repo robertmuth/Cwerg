@@ -1,5 +1,9 @@
 (module os [] :
 
+(defrec @pub TimeSpec :
+    (field sec uint)
+    (field nano_sec uint))
+    
 (fun @pub @cdecl @extern nanosleep [
     (param req (ptr TimeSpec)) 
     (param rem (ptr @mut TimeSpec))] s32 :)
@@ -44,9 +48,7 @@
 )
 
 
-(defrec @pub TimeSpec :
-    (field sec uint)
-    (field nano_sec uint))
+
 
 
 (fun @pub TimeNanoSleep [(param req (ptr TimeSpec)) 

@@ -679,15 +679,14 @@ y                   y
 @doc "main module with program entry point `main`"
 (module main [] :
 (import artwork)
-
 (import aanim)
-
 (import ansi)
+(import os)
 
 (global @mut all_objects auto (array_val 100 aanim::ObjectState))
 
 
-(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
         (print ["Not enough arguments, need width and height\n"])
         (return 0)
@@ -697,8 +696,8 @@ y                   y
     (let width s32 (as (call str_to_u32 [arg_w]) s32))
     (let height s32 (as (call str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
-    (let @ref req TimeSpec (rec_val TimeSpec [(field_val 0) (field_val 100000000)]))
-    (let @mut @ref rem TimeSpec undef)
+    (let @ref req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
+    (let @mut @ref rem os::TimeSpec undef)
     (let @mut @ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
     (let @mut curr auto (front @mut all_objects))
     @doc "add obj"
@@ -791,7 +790,7 @@ y                   y
                     (incp curr i)
                     t
                     (- t last_t)])))
-        (stmt (call nanosleep [(& req) (& @mut rem)]))
+        (stmt (call os::nanosleep [(& req) (& @mut rem)]))
         (= last_t t))
     (print [ansi::CURSOR_SHOW])
     (return 0))
