@@ -29,9 +29,9 @@ constexpr auto operator+(T e) noexcept
 
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
-  return  opc == OPC::LINE || // handled via special epilog code
-          opc == OPC::RET ||  // handled via special epilog code
-          opc == OPC::NOP1;   // pseudo instruction
+  return opc == OPC::LINE ||  // handled via special epilog code
+         opc == OPC::RET ||   // handled via special epilog code
+         opc == OPC::NOP1;    // pseudo instruction
 }
 
 void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
@@ -200,13 +200,16 @@ PoolMasks GetRegPoolsForGlobals(const FunRegStats& needed, uint32_t regs_lac,
 
 }  // namespace
 
-void PhaseLegalization(Fun fun, Unit unit, std::ostream* fout) {
+void PhaseLegalizationStep1(Fun fun, Unit unit, std::ostream* fout) {
   std::vector<Ins> inss;
   FunRegWidthWidening(fun, DK::U8, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S8, DK::S32, &inss);
   FunRegWidthWidening(fun, DK::U16, DK::U32, &inss);
   FunRegWidthWidening(fun, DK::S16, DK::S32, &inss);
+}
 
+void PhaseLegalizationStep2(Fun fun, Unit unit, std::ostream* fout) {
+  std::vector<Ins> inss;
   FunSetInOutCpuRegs(fun, *PushPopInterfaceA64);
 
   if (FunKind(fun) != FUN_KIND::NORMAL) return;
@@ -391,7 +394,8 @@ void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
     }
 
     FunCheck(fun);
-    PhaseLegalization(fun, unit, fout);
+    PhaseLegalizationStep1(fun, unit, fout);
+    PhaseLegalizationStep2(fun, unit, fout);
   }
 }
 

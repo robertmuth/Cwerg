@@ -200,7 +200,20 @@ def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int], fout):
     optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
 
 
-def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
+def PhaseLegalizationStep1(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
+    """this needs to happen for all funs BEFORE push arg conversions
+
+    Note that funs are not necessarily procesed in call graph 
+    topological order. If we do not do this ahead of time a call
+    might processed seeing the wrong parameter types for the callee.
+    """
+    lowering.FunRegWidthWidening(fun, o.DK.U8, o.DK.U32)
+    lowering.FunRegWidthWidening(fun, o.DK.S8, o.DK.S32)
+    lowering.FunRegWidthWidening(fun, o.DK.S16, o.DK.S32)
+    lowering.FunRegWidthWidening(fun, o.DK.U16, o.DK.U32)
+
+
+def PhaseLegalizationStep2(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
     """
     Does a lot of the heavily lifting so that the instruction selector can remain
     simple and table driven.
