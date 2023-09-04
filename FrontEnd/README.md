@@ -47,7 +47,7 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 Added
 * modules (with templates, not nestable) 
 * enum namespaces 
-* sum types (supports nullable types and result types (error code + payload))
+* sum types (tagged unions, supporting nullable types and result types (error code + payload))
 * visibility control (default private)
 * mutability control (default not mutable)
 * referencability control (default address cannot be taken)
@@ -69,7 +69,6 @@ Removed:
 * pre-processor
 * varargs
 * implcit type conversions
-* untagged unions
 * ++/--
 * comma operator 
 * implicitly nullable pointers
@@ -82,42 +81,42 @@ Removed:
 
 ### Operations and Basic Syntax
 
-####  Increment/decrement operators (`++`/`--`) NO
+####  Increment/decrement operators (`++`/`--`): NO
 
 Pro: Helpful for writing very succint code. 
 
 Con: Expressions with side-effects requiring the concept of [Sequence Point](https://en.wikipedia.org/wiki/Sequence_point) which adds complexity.
 
 
-#### Compound Assignments (`+=`, `-=`, etc.) YES
+#### Compound Assignments (`+=`, `-=`, etc.): YES
 
 Pro: Convenient shorthand, especially if increment/decrement is not availabe. Helps with code generation in the absence of CSE optimzation pass.
 
 Con: `a += b` is *mostly* syntactic sugar for `a = a + b` so not much expressive power is gained.
 
 
-#### Multi-assignment PROBABLY NO
+#### Multi-assignment: NO
 
 Pro: Nice for swaps: `a, b = b, a` and when Functions return multiple values.
 
 Con: Needs tuples, makes syntax more complicated.
 
 
-#### Multi-definition of Variables and Parameters NO
+#### Multi-definition of Variables and Parameters: NO
 
 Pro: `x,y,z: int` is very succint
 
 Con: Makes syntax more complicated.
 
 
-#### Short-circuit operators (`&&`, `||`) YES
+#### Short-circuit operators (`&&`, `||`): YES
 
 Pro: Very common and useful
 
 Con: Adds implementation complexity
 
 
-#### Select operators (`? :`) YES
+#### Select operators (`? :`): YES
 
 Pro: Very common and useful.
 
@@ -125,11 +124,11 @@ Con: Does not add a lot of expressiveness.
 
 (maybe implement as a macro)
 
-#### Symbol visbility control YES
+#### Symbol visbility control: YES
 
 Decision: included for toplevel Types, Modules, Functions, Constants and Variables. Not for struct fields. Default is not-public
 
-#### Built-in Unicode/Utf-8 support NO
+#### Built-in Unicode/Utf-8 support: NO
 
 Pro: Unicode and Utf-8 is widespread.
 
@@ -138,50 +137,50 @@ Con: System programs rarely need internationalization.
 
 Decision: omitted (strings are uninterpreted arrays of bytes). Needs to be implemented in libraries.
 
-#### Checked Array/Slice indexing YES
+#### Checked Array/Slice indexing: YES
 
 Pro: Avoids common bugs.
 
 Decision: included via `[]` operator. But unchecked pointer arithmetic is also available
 
-#### Pointer Arithmetic YES
+#### Pointer Arithmetic: YES
 
 Decision: included but see section on Arrays, Slices, etc. below.
 
-#### Default function arguments UNDECIDED
+#### Default function arguments: NO
 
 Con: Complicate/obscure Function dispatch in combination with overloaded Functions.
 
-#### All variables must be initialized YES
+#### All variables are initialized: YES
 
 Decision: included. Variables and Struct can explicitly marked as `undef`
 
-#### Allow the const/enum/struct definitions inside Function NO
+#### Allow the const/enum/struct definitions inside Function: NO
 
 Pro: Allow better information hiding by scope narrowing 
 
 Con: Makes parsing more complex. Modules help with scope narrowing 
 
 
-#### Allow Function definitions inside Function PROBABLY NO
+#### Allow Function definitions inside Function: NO
 
 Con: Closures have tricky semantics, even simple [gcc style nested functions](https://gcc.gnu.org/onlinedocs/gcc/Nested-Functions.html)
 
 
-#### Bitfields NO
+#### Bitfields: NO
 
 Con: Not portable, cannot be set atomically
 
 ### Typing
 
-#### Vararg (...) NO
+#### Vararg (...): NO
 
 Pro: Handy for printf style function
 
 Con: High implementation complexity
 
 
-#### Mutability (aka `const`) control  YES
+#### Mutability (aka `const`) control:  YES
 
 Pro: Enables more safety checking. Makes Function Prototype more informative.
      Helps with optimizations.
@@ -190,7 +189,7 @@ Con: Adds clutter to code. Adds implementation complexity.
 
 Decision: Supported for Variables, Pointees and Slices. `mut` Pointers/Slices can be assigned to non-`mut` Pointers/Slices. Default is non-mutable
 
-#### Built-in Map and List datatypes NO
+#### Built-in Map and List datatypes: NO
 
 Pro: Maps (and List) are almost all you need (see Lua)
 
@@ -198,50 +197,46 @@ Con: They require built-in dynamic memory management.
      They can be implemented in libraries.
 
 
-#### Structural Type equivalence vs name equivalence BOTH
+#### Structural Type equivalence vs name equivalence: BOTH
 
 Default is structural equivalence (except for enums and recs) but all types 
 can be wrapped (similar to `distinct` in Nim/Odin) which forces name equivalence.
 
 
-#### NULL pointers (aka nullptr, nil, None, etc.) NO
+#### NULL pointers (aka nullptr, nil, None, etc.): NO
 
 Con: Cause a lot of bugs.
 
 Decision: omitted - use optional pointers of sum type  (*A | void) to model nullable Pointers safely.
 
-#### Sum Types (aka tagged union) YES
+#### Sum Types (aka tagged union): YES
 
 Pro: Very useful for implementing Result and Optional types
 
 Decision: included with special optimization for optional pointers so that 
           nullable pointer can be implemented efficiently 
 
-#### Untagged Unions PROBABLY NO
-
-Bitcasting will be available to support some of the (ab)uses of untagged unions.
-
-#### Member functions for structs PROBABLY NO
+#### Member functions for structs: NO
 
 Pro: makes name resolution of member functions easier
 
 
-#### Embedded structs PROBABLY NO
+#### Embedded structs: NO
 
 Pro: Suppports primitive implementation inheritance
 
 
-#### Classes/Interfaces PROBABLY NO
+#### Classes/Interfaces: NO
 
 TBD
 
-#### Tuples UNDECIDED
+#### Tuples: NO
 
 Pro: Needed for multi-assignment (`a, b = 1, 2`) and mutiple return values
 
-#### Multiple return values UNDECIDED
+#### Multiple return values: NO
 
-Con: Optional and Result types cover a lot of use cases for multiple return values. If small structs can be passed in and out of functions in registers.
+Instead makes sure the small structs, slices and sums/unions are passed in registers
 
 #### Passing and returning of (small) Arrays YES
 
@@ -251,25 +246,25 @@ Pro: Provides a path to promote `[4]f32` into SIMD operands
 
 Pro: Modules will provide namespaces.
 
-#### Parameterized Modules YES
+#### Parameterized Modules: YES
 
 Pro: Parameterized Modules will provide template style generics (similar to later versions of Oberon). Modules can be parameterized by Constants, Types or other Modules.
 
-#### Implicit conversion of Numbers (ints/floats) UNDECIDED
+#### Implicit conversion of Numbers (ints/floats) NO
 
-Must not permit information loss.
+Use explicit casts
 
-### Type Inference PROBABLY YES BUT LIMITED
+### Type Inference: YES BUT LIMITED
 
 Pro: `i := 666_u32` or `i: u32 := 666` reduces clutter
 
-#### Iterators PROBABLY YES
+#### Iterators PROBABLY NO
 
-At a minimum should allow iteration over linked lists in one line of code.
 
-#### Runtime lookup of typeid UNDECIDED
+Use macros to define custom for loop syntaxes as needed.
 
-TBD
+#### Runtime lookup of typeid: YES
+
 
 #### Overloaded Functions (adhoc polymorphism) UNDECIDED 
 
@@ -278,25 +273,25 @@ Likely only supported for a fixed feature set, e.g. iterators and stringificatio
 ### Control Flow
 
 
-#### Goto PROBABLY NO
+#### Goto: PROBABLY NO
 
 The label blocks and defer seem to be adequate.
 
 Gotos in C are convenient when you transpile to C but Cwerg is not meant to be a 
 compilation target.
 
-#### Named Blocks and Continue/Break statements with labels YES
+#### Named Blocks and Continue/Break statements with labels: YES
 
 Pro: Simplfy inlining in the absence of `goto`
 
 
-#### Defer YES
+#### Defer: YES
 
 Pro: Avoids `goto cleanup`. Provides limited replacement for RAII.
 
-#### Switch/Match statements UNDECIDED
+#### Switch/Match statements: YES
 
-TBD
+see node type cond
 
 #### Init/Fini Functions for (almost) static initialization and cleanup YES
 
