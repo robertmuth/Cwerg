@@ -40,6 +40,7 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 * [Heap Sort](TestData/heapsort.cw)
 * [Fizzbuzz](TestData/fizzbuzz.cw)
 * [Sieve](TestData/sieve.cw)
+* [Word Count](TestData/wordcount.cw)
 
 ## Features Relative to C
 

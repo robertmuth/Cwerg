@@ -22,7 +22,6 @@
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
-[ExprSumAs&nbsp;(sumas)](#exprsumas-sumas) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
@@ -53,7 +52,7 @@
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(50 nodes)
+(49 nodes)
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
@@ -68,7 +67,8 @@
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
-[ExprSumTag&nbsp;(typetag)](#exprsumtag-typetag) &ensp;
+[ExprSumTag&nbsp;(sumtypetag)](#exprsumtag-sumtypetag) &ensp;
+[ExprSumUntagged&nbsp;(sumuntagged)](#exprsumuntagged-sumuntagged) &ensp;
 [ExprTypeId&nbsp;(typeid)](#exprtypeid-typeid) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
@@ -84,7 +84,7 @@
 [TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
-(28 nodes)
+(29 nodes)
 
 ## Enum Overview
 [Expr1 Kind](#expr1-kind) &ensp;
@@ -312,6 +312,7 @@ Flags:
 * fini: run function at shutdown
 * pub: has public visibility
 * extern: is external function (empty body)
+* cdecl: use c-linkage (no module prefix)
 * doc: comment
 
 
@@ -332,6 +333,7 @@ Fields:
 Flags:
 * pub: has public visibility
 * mut: is mutable
+* cdecl: use c-linkage (no module prefix)
 * doc: comment
 
 
@@ -821,7 +823,6 @@ Fields:
 Address of the first element of an array or slice
 
     Similar to `(& (at container 0))` but will not fail if container has zero size
-
     
 
 Fields:
@@ -844,7 +845,10 @@ Flags:
 
 
 ### ExprIs (is)
-Test actual expression type within a Sum Type
+Test actual expression type
+    
+    
+    Typically used when `expr` is a tagged sum type.
 
     
 
@@ -855,6 +859,9 @@ Fields:
 
 ### ExprLen (len)
 Length of array or slice
+    
+    Result type is `uint`.
+    
 
 Fields:
 * container [NODE]: array and slice
@@ -863,7 +870,7 @@ Fields:
 ### ExprOffsetof (offsetof)
 Byte offset of field in record types
 
-    Type is `uint`
+    Result has type `uint`
 
 Fields:
 * type [NODE]: type expression
@@ -891,7 +898,7 @@ Fields:
 ### ExprSizeof (sizeof)
 Byte size of type
 
-    result has type is `uint`
+    Result has type is `uint`
 
 Fields:
 * type [NODE]: type expression
@@ -923,22 +930,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprSumAs (sumas)
-Narrow a (tagged) sum `expr` to `type`
-
-    If not `unchecked` this will trap if the sum has not type `type`.
-
-    
-
-Fields:
-* expr [NODE]: expression
-* type [NODE]: type expression
-
-Flags:
-* unchecked: array acces is not checked
-
-
-### ExprSumTag (typetag)
+### ExprSumTag (sumtypetag)
 Typetage of tagged sum type
 
     result has type is `typeid`
@@ -947,10 +939,19 @@ Fields:
 * expr [NODE]: expression
 
 
+### ExprSumUntagged (sumuntagged)
+Untagged sum portion of tagged sum type
+
+    Result has type untagged sum
+
+Fields:
+* expr [NODE]: expression
+
+
 ### ExprTypeId (typeid)
 TypeId of type
 
-    result has type is `typeid`
+    Result has type is `typeid`
 
 Fields:
 * type [NODE]: type expression

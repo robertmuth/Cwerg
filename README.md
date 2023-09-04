@@ -3,7 +3,7 @@
 ![Status](../../workflows/cwerg-tests/badge.svg)
 
 Cwerg aims to be a complete "from-scratch" compiler for a C-like language. 
-The [frontend](FrontEnd) is still in its infancy but the multi-target backend 
+The [frontend](FrontEnd) is WIP. The multi-target backend 
 is fairly far along and can be used independently from the frontend.
 
 Documentation:
@@ -24,7 +24,7 @@ understood by a single developer and very fast translation times.
 ### Frontend
 
 Cwerg aims to be a much better C, avoiding some of its problems (pre-processor, 
-array decay to pointer, etc.) while preserving its low level feel (no unexpected 
+array decay to pointers, etc.) while preserving its low level feel (no unexpected 
 memory allocations or control flow changes).
 
 Among the features added are:

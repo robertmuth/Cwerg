@@ -1577,7 +1577,10 @@ class ExprIndex:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprLen:
-    """Length of array or slice"""
+    """Length of array or slice
+    
+    Result type is `uint`.
+    """
     ALIAS = "len"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
@@ -1599,7 +1602,6 @@ class ExprFront:
     """Address of the first element of an array or slice
 
     Similar to `(& (at container 0))` but will not fail if container has zero size
-
     """
     ALIAS = "front"
     GROUP = GROUP.Expression
@@ -1621,7 +1623,10 @@ class ExprFront:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprIs:
-    """Test actual expression type within a Sum Type
+    """Test actual expression type
+    
+    
+    Typically used when `expr` is a tagged sum type.
 
     """
     ALIAS = "is"
@@ -1725,7 +1730,7 @@ class ExprBitCast:
 class ExprTypeId:
     """TypeId of type
 
-    result has type is `typeid`"""
+    Result has type is `typeid`"""
     ALIAS = "typeid"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
@@ -1765,7 +1770,7 @@ class ExprSumTag:
 class ExprSumUntagged:
     """Untagged sum portion of tagged sum type
 
-    result has type is `typeid`"""
+    Result has type untagged sum"""
     ALIAS = "sumuntagged"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
@@ -1785,7 +1790,7 @@ class ExprSumUntagged:
 class ExprSizeof:
     """Byte size of type
 
-    result has type is `uint`"""
+    Result has type is `uint`"""
     ALIAS = "sizeof"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
@@ -1805,7 +1810,7 @@ class ExprSizeof:
 class ExprOffsetof:
     """Byte offset of field in record types
 
-    Type is `uint`"""
+    Result has type `uint`"""
     ALIAS = "offsetof"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED | NF.NON_CORE
