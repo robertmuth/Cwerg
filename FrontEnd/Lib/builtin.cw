@@ -367,7 +367,20 @@ The type of the loop variable is determined by $end"""
         (print [(stringify $cond) $parts])
         (trap)))
 
-
+(macro @pub try STMT_LIST [
+        (mparam $name ID)
+        (mparam $type EXPR)
+        (mparam $expr EXPR)
+        (mparam $catch_name ID)
+        (mparam $catch_body STMT_LIST)] [$eval] :
+    (macro_let $eval auto $expr)
+    (if (is $eval $type) :
+        :
+        (macro_let $catch_name auto (as (sumuntagged $eval) (sumdelta (typeof $eval) $type)))
+        $catch_body
+        (trap))
+    (macro_let $name $type (as (sumuntagged $eval) $type)))
+    
 @doc "macro for c-style -> operator"
 (macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))

@@ -23,7 +23,7 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
-tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) tests_lang_x64 tests_emit
+tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) tests_lang_x64 tests_lang_a64 tests_emit
 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
@@ -159,6 +159,8 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 
 $(DIR)/wordcount.x64.exe: TestData/wordcount.cw
 	./emit_ir.py Lib/os.cw  Lib/builtin.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	echo "hello world\na b c d " |${QEMU} $@
 
 $(DIR)/string.x64.exe: Lib/string_test.cw
 	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm

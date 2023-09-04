@@ -8,23 +8,6 @@
                 (|| (== c '\t') (== c '\r'))))
 )
 
-(macro @pub try STMT_LIST [
-        (mparam $name ID)
-        (mparam $type EXPR)
-        (mparam $expr EXPR)
-        (mparam $catch_name ID)
-        (mparam $catch_body STMT_LIST)] [$eval] :
-    (macro_let $eval auto $expr)
-    (if (is $eval $type) :
-        :
-        (macro_let $catch_name auto (as (sumuntagged $eval) (sumdelta (typeof $eval) $type)))
-        $catch_body
-        (trap))
-    (macro_let $name $type (as (sumuntagged $eval) $type)))
-
-
-
-
 (defrec TextStats :
     (field num_lines uint)
     (field num_words uint)
@@ -49,16 +32,17 @@
                     (= in_word false))
                 (case (! in_word) :
                     (= in_word true)
-                    (+= (. stats num_words) 1)))
-            (if (!= n (len buf)) :
+                    (+= (. stats num_words) 1))))
+        (if (!= n (len buf)) :
                 (break)
-                :)))
+                :))
     (return stats))
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (try stats TextStats (call WordCount [os::Stdin]) err :
         (return 1)
     )
+    (print [(. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n"])
     (return 0))
 
 )
