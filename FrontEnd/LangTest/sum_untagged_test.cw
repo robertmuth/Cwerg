@@ -74,7 +74,7 @@
 
 (fun test_untagged_union [] void :
     @doc "straight up union"
-    (let @mut u1 UntaggedUnion auto_val)
+    (let @mut u1 UntaggedUnion)
     (let @mut u2 UntaggedUnion undef)
     (let @mut u3 UntaggedUnion 2.0_r32)
     (let @mut u4 UntaggedUnion 777_u32)
