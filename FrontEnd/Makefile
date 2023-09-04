@@ -158,8 +158,7 @@ $(DIR)/polymorphic.x64.exe: TestData/polymorphic.cw
 	${QEMU} $@
 
 $(DIR)/wordcount.x64.exe: TestData/wordcount.cw
-	cat Lib/os.cw $< | ./typify.py
-
+	./emit_ir.py Lib/os.cw  Lib/builtin.cw $< > $@.asm
 
 $(DIR)/string.x64.exe: Lib/string_test.cw
 	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm

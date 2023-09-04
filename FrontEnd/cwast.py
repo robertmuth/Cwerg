@@ -355,8 +355,8 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprLen", "ExprFront",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
-              "ExprSumTag",
-              "ExprIs", "ExprAs", "ExprSumAs", "ExprBitCast")
+              "ExprSumTag", "ExprSumUntagged",
+              "ExprIs", "ExprAs", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1671,31 +1671,6 @@ class ExprAs:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ExprSumAs:
-    """Narrow a (tagged) sum `expr` to `type`
-
-    If not `unchecked` this will trap if the sum has not type `type`.
-
-    """
-    ALIAS = "sumas"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
-    #
-    expr: NODES_EXPR_T
-    type: NODES_TYPES_T
-    #
-    unchecked: bool = False
-    #
-    x_srcloc: Optional[Any] = None
-    x_type: Optional[Any] = None
-    x_value: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.expr} {self.type}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
 class ExprUnsafeCast:
     """Unsafe Cast
 
@@ -1771,7 +1746,27 @@ class ExprSumTag:
     """Typetage of tagged sum type
 
     result has type is `typeid`"""
-    ALIAS = "typetag"
+    ALIAS = "sumtypetag"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    #
+    expr: NODES_EXPR_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprSumUntagged:
+    """Untagged sum portion of tagged sum type
+
+    result has type is `typeid`"""
+    ALIAS = "sumuntagged"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #

@@ -509,7 +509,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             reg = EmitIRExpr(init_node.expr, tc, id_gen)
             print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
         else:
-            assert False, f"{init_node} {init_node.x_type}"
+            EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
+            # print (f"unsupported conversion src={init_node.expr.x_type} dst={init_node.x_type}")
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(init_node, tc, id_gen)
         assert reg is not None
@@ -896,7 +897,6 @@ def main():
                 continue
             id_gen = GetIdGen(fun)
             canonicalize.ReplaceExprIs(fun, id_gen, tc)
-
             canonicalize.CanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
@@ -938,6 +938,9 @@ def main():
         canonicalize_sum.ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
+    ELIMIMATED_NODES.add(cwast.ExprSumTag)
+    ELIMIMATED_NODES.add(cwast.ExprSumUntagged)
+
     SanityCheckMods("After slice elimination", args.emit_ir and False,
                     [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
@@ -972,10 +975,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
     ELIMIMATED_NODES.add(cwast.Case)
-
-    # TODO
     ELIMIMATED_NODES.add(cwast.ExprTypeId)
-    ELIMIMATED_NODES.add(cwast.ExprSumTag)
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
@@ -1005,6 +1005,10 @@ def main():
                     mod_topo_order, tc, ELIMIMATED_NODES)
 
     # Emit Cwert IR
+    # print ("# TOPO-ORDER")
+    # for mod in mod_topo_order:
+    #    print (f"# {mod.name}")
+
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):

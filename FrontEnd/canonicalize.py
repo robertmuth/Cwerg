@@ -50,7 +50,7 @@ def _ShouldBeBoolExpanded(node, field):
     # * is not part of a conditional
     # * has a x_type
     return field in (
-        "args", "expr_rhs", "initial_or_undef_or_auto", "value",
+        "args", "expr_ret", "expr_rhs", "initial_or_undef_or_auto", "value",
         "value_or_undef") and node.x_type.is_bool()
 
 

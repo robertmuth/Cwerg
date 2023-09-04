@@ -69,6 +69,10 @@ def ParseNumRaw(num: str, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_
         if num[1] == "\\":
             if num[2] == "n":
                 return 10, kind
+            elif num[2] == "t":
+                return 8, kind
+            elif num[2] == "r":
+                return 13, kind
             assert False, f"unsupported escape sequence: [{num}]"
 
         else:
@@ -551,10 +555,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprSizeof):
         _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.get_uint_canon_type())
-    elif isinstance(node, cwast.ExprSumAs):
-        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
-        _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
-        return AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.ExprSumUntagged):
+        ct = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
+        assert ct.is_tagged_sum()
+        return AnnotateNodeType(node, tc.insert_sum_type(ct.children, True))
     elif isinstance(node, (cwast.StmtStaticAssert)):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
         return type_corpus.NO_TYPE
@@ -618,6 +622,8 @@ def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.Canon
 
 def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonType,
                          srcloc=None):
+    if expected.original_type is not None:
+        expected = expected.original_type
     if not type_corpus.is_compatible(actual, expected):
         cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
@@ -853,9 +859,11 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         assert ct is tc.get_uint_canon_type()
     elif isinstance(node, cwast.ExprSizeof):
         assert ct is tc.get_uint_canon_type()
-    elif isinstance(node, cwast.ExprSumAs):
-        _CheckTypeSame(node, ct, node.type.x_type)
-        assert type_corpus.is_compatible(ct, node.expr.x_type)
+    elif isinstance(node, cwast.ExprSumUntagged):
+        assert ct.is_untagged_sum()
+        assert node.expr.x_type.is_tagged_sum(), f"{node.expr.x_type}"
+        for c1, c2 in zip(ct.sum_types(), node.expr.x_type.sum_types()):
+            _CheckTypeSame(node, c1, c2)
     elif isinstance(node, cwast.ValNum):
         if not ct.is_base_type() and not ct.is_enum():
             cwast.CompilerError(node.x_srcloc, f"type mismatch {node} vs {ct}")

@@ -3,7 +3,10 @@
 (import os)
 
 
-(fun @pub @extern is_white_space [(param c u8)] bool :)
+(fun is_white_space [(param c u8)] bool :
+    (return (|| (|| (== c ' ') (== c '\n'))
+                (|| (== c '\t') (== c '\r'))))
+)
 
 (macro @pub try STMT_LIST [
         (mparam $name ID)
@@ -14,40 +17,13 @@
     (macro_let $eval auto $expr)
     (if (is $eval $type) :
         :
-        (macro_let $catch_name auto (sumas @unchecked $eval (sumdelta (typeof $eval) $type)))
+        (macro_let $catch_name auto (as (sumuntagged $eval) (sumdelta (typeof $eval) $type)))
         $catch_body
         (trap))
-    (macro_let $name $type (sumas @unchecked $eval $type)))
+    (macro_let $name $type (as (sumuntagged $eval) $type)))
 
 
-@doc "macro for while-loop"
-(macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
-    (block _ :
-        (if $cond :
-            :
-            (break))
-        $body
-        (continue)))
 
-
-@doc "macro for number range for-loop"
-(macro @pub for STMT_LIST [
-        (mparam $index ID)
-        (mparam $start EXPR)
-        (mparam $end EXPR)
-        (mparam $step EXPR)
-        (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    (macro_let $end_eval (typeof $end) $end)
-    (macro_let $step_eval (typeof $end) $step)
-    (macro_let @mut $it (typeof $end) $start)
-    (block _ :
-        (if (>= $it $end_eval) :
-            (break)
-            :)
-        (macro_let $index auto $it)
-        (= $it (+ $it $step_eval))
-        $body
-        (continue)))
 
 (defrec TextStats :
     (field num_lines uint)

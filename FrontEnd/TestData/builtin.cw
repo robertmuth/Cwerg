@@ -62,10 +62,10 @@ The type of the loop variable is determined by $end"""
     (macro_let $eval auto $expr)
     (if (is $eval $type) :
         :
-        (macro_let $catch_name auto (sumas @unchecked $eval (sumdelta (typeof $eval) $type)))
+        (macro_let $catch_name auto (as (sumuntagged $eval) (sumdelta (typeof $eval) $type)))
         $catch_body
         (trap))
-    (macro_let $name $type (sumas @unchecked $eval $type)))
+    (macro_let $name $type (as (sumuntagged $eval) $type)))
 
 
 (fun @pub @extern IsLogActive [(param level u8) (param loc u32)] void :)

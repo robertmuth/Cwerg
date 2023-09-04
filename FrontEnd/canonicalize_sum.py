@@ -116,7 +116,7 @@ def _MakeValRecForSum(value: cwast.ExprAs, sum_rec: cwast.CanonType,
     tag_field, union_field = sum_rec.ast_node.fields
     srcloc = value.x_srcloc
     value.x_type = union_field.x_type
-    value.type =  cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
+    value.type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
     inits = [cwast.FieldVal(_MakeTypeidVal(value.expr.x_type.typeid, srcloc, tc), "",
                             x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc),
              cwast.FieldVal(value, "",
@@ -126,7 +126,10 @@ def _MakeValRecForSum(value: cwast.ExprAs, sum_rec: cwast.CanonType,
 
 
 def ReplaceExplicitSumCast(node, sum_to_struct_map: SUM_TO_STRUCT_MAP, tc: type_corpus.TypeCorpus):
-    """ """
+    """Convert Cast to sum type to RecVal
+
+    Note, such cast can be introduced by  EliminateImplicitConversions()
+    """
 
     def replacer(node, _):
         nonlocal tc
@@ -162,9 +165,18 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             tag_field: cwast.RecField = def_rec.ast_node.fields[0]
             # this is only reached if this used to be a slice
             return cwast.ExprField(node.expr, SUM_FIELD_TAG,
-                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
-                                    x_field=tag_field)
-
+                                   x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
+                                   x_field=tag_field)
+        elif isinstance(node, cwast.ExprSumUntagged):
+            def_rec = node.expr.x_type
+            assert def_rec.is_rec()
+            assert len(def_rec.ast_node.fields) == 2
+            tag_field: cwast.RecField = def_rec.ast_node.fields[1]
+            # this is only reached if this used to be a slice
+            return cwast.ExprField(node.expr, SUM_FIELD_UNION,
+                                   x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
+                                   x_field=tag_field)
+            
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 
             def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
