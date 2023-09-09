@@ -2,11 +2,14 @@
 
 import pathlib
 import logging
+import collections
+import heapq
 
-import cwast
+from FrontEnd import cwast
 
+from typing import Union, Any, Optional, List, Set
 
-ModHandle = str
+ModHandle = pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 
@@ -16,100 +19,136 @@ class ModPool:
     def __init__(self, root: pathlib.Path):
         self._root: pathlib.Path = root
         # _started is used to prevent import cycles
-        self._started = set()
-        self._mods = {}
-        self._mods = {}
+        self._started: Set[ModHandle] = set()
+        self._mods: Dict[ModHandle, cwast.DefMod] = {}
+        self.builtin = None
 
     def __str__(self):
         return f"root={self._root}"
 
-    def ModUniqueId(self, curr: ModHandle, pathname: str, drop_libname) -> ModHandle:
-        if pathname.startswith("."):
-            pc = pathlib.Path(curr)
-            if drop_libname:
-                pc = pc.parent
+    def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:
+        # other options, would be to use checksums
+        if pathname.startswith("/"):
+            return pathlib.Path(pathname).resolve()
+        elif pathname.startswith("."):
+            # drop the libname from curr
+            pc = pathlib.Path(curr).parent
             return (pc / pathname).resolve()
         else:
             return (self._root / pathname).resolve()
 
-        # other options, would be to use checksums
-        return pathlib.Path(path_or_name).resolve()
-
-    def InitMod(self,  curr: ModHandle, path_or_name: str, drop_libname=True) -> ModHandle:
-        uid = self.ModUniqueId(curr, path_or_name, drop_libname)
-        assert uid not in self._started
-        assert uid not in self._mods
-        self._started.add(uid)
-        logger.info("InitMod %s", uid)
+    def FindOrInsertModForImport(self, curr: ModHandle, import_node: cwast.Import) -> ModHandle:
+        uid = self._ModUniqueId(curr, import_node.name)
+        if uid not in self._mods and uid not in self._started:
+            logger.info("Insert Mod %s", uid)
+            self._started.add(uid)
         return uid
 
-    def LookupImportOrNone(self, curr: ModHandle, import_node: cwast.Import):
-        uid = self.ModUniqueId(curr, import_node.name, True)
-        assert uid not in self._started
-        return self._mods.get(uid)
+    def InsertSeedMod(self, pathname: str) -> ModHandle:
+        assert not pathname.startswith(".")
+        uid = self._ModUniqueId(None, pathname)
+        assert uid not in self._mods and uid not in self._started
+        self._started.add(uid)
+        logger.info("Insert RootMod %s", uid)
+        return uid
 
-    def FiniMod(self, uid: ModHandle, mod: cwast.DefMod):
-        logger.info("FiniMod %s", uid)
+    def FinalizeMod(self, uid: ModHandle, def_mod: cwast.DefMod):
+        assert isinstance(def_mod, cwast.DefMod), f"expect mod but got {def_mod} {type(def_mod)}"
+        logger.info("FinalizeMod %s", uid)
         assert uid in self._started
         self._started.discard(uid)
         assert uid not in self._mods
-        self._mods[uid] = mod
+        self._mods[uid] = def_mod
+
+    def GetNextUnfinalized(self) -> Optional[ModHandle]:
+        if not self._started:
+            return None
+        return next(iter(self._started))
 
     def IsFinalized(self):
         return not self._started
 
+    def ModulesInTopologicalOrder(self) -> List[cwast.DefMod]:
+        """The order is also deterministic
+
+        This means modules cannot have circular dependencies except for module arguments
+        to parameterized modules which are ignored in the topo order.
+        """
+
+        deps_in = collections.defaultdict(list)
+        deps_out = collections.defaultdict(list)
+        # candidates have no incoming deps
+        candidates = []
+        for handle, def_mod in self._mods.items():
+            assert isinstance(def_mod, cwast.DefMod), f"expect mod but got {def_mod}"
+            for node in def_mod.body_mod:
+                if isinstance(node, cwast.Import):
+                    logger.info("found mod deps [%s] imported by [%s]", node.x_module, handle)
+                    assert node.x_module in self._mods
+                    deps_in[handle].append(node.x_module)
+                    deps_out[node.x_module].append(handle)
+
+        for h in self._mods:
+            if not deps_in[h]:
+                logger.info("found leaf mod [%s]", h)
+                heapq.heappush(candidates, h)
+        out=[]
+        while len(out) != len(self._mods):
+            assert candidates
+            x=heapq.heappop(candidates)
+            logger.info("picking next mod: %s", x)
+            out.append(self._mods[x])
+            for importer in deps_out[x]:
+                deps_in[importer].remove(x)
+                if not deps_in[importer]:
+                    heapq.heappush(candidates, importer)
+        return out
+
+    def FixupImports(self):
+        for mod in self._mods.values():
+            assert isinstance(mod, cwast.DefMod)
+            for node in mod.body_mod:
+                if isinstance(node, cwast.Import):
+                    node.x_module = self._mods[node.x_module]
+
 
 def tests(cwd: str):
-    pool = ModPool(pathlib.Path(cwd) / "Lib")
+    mods_std={
+        "builtin": cwast.DefMod("builtin", [], []),
+        "os": cwast.DefMod("os", [], []),
+        "math": cwast.DefMod("math", [], []),
+        "std":  cwast.DefMod("std", [], []),
+    }
+    mods_local={
+        "helper": cwast.DefMod("helper", [], [cwast.Import("os", "")]),
+        "math":  cwast.DefMod("math", [], [cwast.Import("std", "")]),
+        "main": cwast.DefMod("main", [], [cwast.Import("std", ""),
+                                          cwast.Import("math", ""),
+                                          cwast.Import("./math", ""),
+                                          cwast.Import("./helper", "")])
+    }
+    pool=ModPool(pathlib.Path(cwd) / "Lib")
     logger.info("Pool %s", pool)
-    # init main module
-    handle_main = pool.InitMod(cwd, "./main", drop_libname=False)
 
-    # import std
-    import_std = cwast.Import("std", "")
-    assert not pool.LookupImportOrNone(handle_main, import_std)
-    # init std module
-    handle_std = pool.InitMod(handle_main, import_std.name)
-    # fini std module
-    mod_std = cwast.DefMod("std", [], [])
-    pool.FiniMod(handle_std, mod_std)
+    pool.InsertSeedMod("builtin")
+    pool.InsertSeedMod(str(pathlib.Path("./main").resolve()))
+    while True:
+        handle=pool.GetNextUnfinalized()
+        if handle is None:
+            break
+        assert isinstance(handle, ModHandle), f"Not a path: {handle}"
+        logger.info("Processing %s", handle)
 
-    # import math
-    import_math = cwast.Import("math", "")
-    assert not pool.LookupImportOrNone(handle_main, import_math)
-    # init math module
-    handle_math = pool.InitMod(handle_main, import_math.name)
-    # fini math module
-    mod_math = cwast.DefMod("math", [], [])
-    pool.FiniMod(handle_math, mod_math)
-
-    # import local helper
-    import_local_helper = cwast.Import("./helper", "")
-    assert not pool.LookupImportOrNone(handle_main, import_local_helper)
-    # init local helper module
-    handle_local_helper = pool.InitMod(handle_main, import_local_helper.name)
-    import_std2 = cwast.Import("std", "")
-    assert pool.LookupImportOrNone(handle_local_helper, import_std2)
-
-    # fini local helper module
-    mod_local_helper = cwast.DefMod("helper", [], [import_std2])
-    pool.FiniMod(handle_local_helper, mod_local_helper)
-
-    # import local math
-    import_local_math = cwast.Import("./math", "")
-    assert not pool.LookupImportOrNone(handle_main, import_local_math)
-    # init local math module
-    handle_local_math = pool.InitMod(handle_main, import_local_math.name)
-    # fini local math module
-    mod_local_math = cwast.DefMod(
-        "math", [], [import_std, import_math,
-                     import_local_helper, import_local_math])
-    pool.FiniMod(handle_local_math, mod_local_math)
-
-    # fini main module
-    mod_main = cwast.DefMod("main", [], [])
-    pool.FiniMod(handle_main, mod_main)
+        name=handle.name
+        dir=handle.parent.name
+        mod: cwast.DefMod=mods_std[name] if dir == "Lib" else mods_local[name]
+        for i in mod.body_mod:
+            assert isinstance(i, cwast.Import)
+            i.x_module = pool.FindOrInsertModForImport(handle, i)
+        pool.FinalizeMod(handle, mod)
     assert pool.IsFinalized()
+    print([m.name for m in pool.ModulesInTopologicalOrder()])
+    pool.FixupImports()
     print("OK")
 
 

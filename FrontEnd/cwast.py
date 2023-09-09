@@ -2371,7 +2371,7 @@ class Import:
     """Import another Module from `path` as `name`"""
     ALIAS = "import"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
     #
     name: str
     alias: str
@@ -2379,6 +2379,7 @@ class Import:
     doc: str = ""
     #
     x_srcloc: Optional[Any] = None
+    x_module: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
