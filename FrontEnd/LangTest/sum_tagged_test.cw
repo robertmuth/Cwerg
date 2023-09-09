@@ -139,7 +139,7 @@
     (stmt (call test_tagged_union_parameter []))
 
     @doc "test end"
-    (stmt (call SysPrint ["OK\n"]))
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 )

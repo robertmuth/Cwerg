@@ -1,5 +1,6 @@
 (module main [] :
 (import test)
+(import fmt)
 
 (import checksum)
 
@@ -83,7 +84,7 @@
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
     (stmt (call checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
-    (print ["\n\n"])
+    (fmt::print ["\n\n"])
     (stmt (call checksum::InitCrcTab [checksum::PolyCrc32cLE (& @mut Crc32cTab)]))
     @doc "crc32"
     (test::AssertEq (call checksum::CalcCrc [Data00 0 (& Crc32Tab)]) 0xefb5af2e_u32)
@@ -93,14 +94,14 @@
     (test::AssertEq (call checksum::CalcCrc [DataInc 0 (& Crc32Tab)]) 0x100ece8c_u32)
 
     @doc "crc32c"
-    (print [(as (call checksum::CalcCrc [Data00 0 (& Crc32cTab)]) u32_hex) "\n"])
-    (print [(as (call checksum::CalcCrc [Data55 0 (& Crc32cTab)]) u32_hex) "\n"])
-    (print [(as (call checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) u32_hex) "\n"])
-    (print [(as (call checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) u32_hex) "\n"])
-    (print [(as (call checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) u32_hex) "\n"])
+    (fmt::print [(as (call checksum::CalcCrc [Data00 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print [(as (call checksum::CalcCrc [Data55 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print [(as (call checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print [(as (call checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print [(as (call checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
 
     @doc "test end"
-    (print ["OK\n"])
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 )

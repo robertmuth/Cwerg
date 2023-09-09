@@ -17,9 +17,7 @@
     (return sum))
 
 
-(fun TestAssertMacro [(param xxx u32)] u32 :
-    (assert (< xxx 777) [true])
-    (return 0))
+
 
 
 (fun TestForMacro [(param end u32)] u32 :
@@ -77,14 +75,6 @@
 (fun TestSwap [(param vec (slice @mut u8))] void :
     (swap (at vec 1) (at vec 2)))
 
-
-(fun TestForMacroPrint [] void :
-    (print [
-            true
-            false
-            0_u32
-            12_u8
-            "wow"]))
 
 )
 

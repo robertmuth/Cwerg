@@ -521,7 +521,7 @@ def main(argv):
     assert argv[0].endswith(".cw")
 
     cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "TestData")
+    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
     mp.InsertSeedMod("builtin")
     mp.InsertSeedMod(str(pathlib.Path(argv[0][:-3]).resolve()))
     mp.ReadAndFinalizedMods()

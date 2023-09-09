@@ -102,7 +102,7 @@
     (test::AssertEq (at (. g3 u5) 3) 503_u16)
     (test::AssertEq (at (. g3 u5) 10) 510_u16)
     @doc "test end"
-    (stmt (call SysPrint ["OK\n"]))
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 )

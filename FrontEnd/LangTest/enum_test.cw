@@ -74,7 +74,7 @@
     (test::AssertEq (. gr1 s7) enum32::e1)
 
     @doc "test end"
-    (stmt (call SysPrint ["OK\n"]))
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 )

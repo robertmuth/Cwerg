@@ -80,7 +80,7 @@
     (test::AssertEq string::NOT_FOUND (call string::find_last_not_of [STR_EMPTY STR_XYZ]))
     (test::AssertEq 2_uint (call string::find_last_not_of [STR_ABC STR_EMPTY]))
     @doc "test end"
-    (stmt (call SysPrint ["OK\n"]))
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 )

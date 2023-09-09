@@ -1,6 +1,7 @@
 @doc "Ascii Art Animation Module"
 (module aanim [] :
 (import ansi)
+(import fmt)
 
 @doc "arbitrary bounds so we can statically allocate maps"
 (global MAX_DIM s32 1024)
@@ -157,7 +158,7 @@
             (= x (as (-> s x_pos) s32))
             (= left_side true)
             @doc "the end of the color row should have been reached already"
-            (assert (! have_color) ["color failure\n"])
+            (fmt::assert (! have_color) ["color failure\n"])
             (if (< cpos (len color_map)) :
                 (= have_color true)
                 :)
@@ -180,7 +181,7 @@
 
 
 (fun @pub window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
-    (print [(call get_bg_color [bg_col]) ansi::CLEAR_ALL])
+    (fmt::print [(call get_bg_color [bg_col]) ansi::CLEAR_ALL])
     (let w auto (-> obj width))
     (let h auto (-> obj height))
     @doc "@ is an invalid attrib"
@@ -195,14 +196,14 @@
                 (continue)
                 :)
             (if (!= x (+ last_x 1)) :
-                (print [(ansi::POS (+ y 1) (+ x 1))])
+                (fmt::print [(ansi::POS (+ y 1) (+ x 1))])
                 :)
             (= last_x x)
             (if (!= last_attr a) :
-                (print [(call get_fg_color [a]) (call get_style [a])])
+                (fmt::print [(call get_fg_color [a]) (call get_style [a])])
                 :)
             (= last_attr a)
-            (print [(as c rune)]))))
+            (fmt::print [(as c fmt::rune)]))))
 
 
 (fun @pub window_fill [

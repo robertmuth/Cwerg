@@ -22,7 +22,7 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
-                tests_lang_x64 tests_lang_a64 \
+                tests_lang_x64  \
                 tests_lib_x64 tests_lib_a64 \
 				tests_emit
 

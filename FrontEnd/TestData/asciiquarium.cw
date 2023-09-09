@@ -4,19 +4,20 @@
 (import ./ascii_anim aanim)
 (import ansi)
 (import os)
+(import fmt)
 
 (global @mut all_objects auto (array_val 100 aanim::ObjectState))
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
-        (print ["Not enough arguments, need width and height\n"])
+        (fmt::print ["Not enough arguments, need width and height\n"])
         (return 0)
         :)
-    (let arg_w (slice u8) (call strz_to_slice [(^ (incp argv 1))]))
-    (let arg_h (slice u8) (call strz_to_slice [(^ (incp argv 2))]))
-    (let width s32 (as (call str_to_u32 [arg_w]) s32))
-    (let height s32 (as (call str_to_u32 [arg_h]) s32))
+    (let arg_w (slice u8) (call fmt::strz_to_slice [(^ (incp argv 1))]))
+    (let arg_h (slice u8) (call fmt::strz_to_slice [(^ (incp argv 2))]))
+    (let width s32 (as (call fmt::str_to_u32 [arg_w]) s32))
+    (let height s32 (as (call fmt::str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
     (let @ref req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
     (let @mut @ref rem os::TimeSpec undef)
@@ -96,7 +97,7 @@
             40]))
     (= curr (incp curr 1))
     @doc "add obj"
-    (print [ansi::CURSOR_HIDE])
+    (fmt::print [ansi::CURSOR_HIDE])
     (let @mut last_t r32 0.0)
     (for t 0.0 5.0_r32 0.1 :
         (stmt (call aanim::window_fill [
@@ -114,7 +115,7 @@
                     (- t last_t)])))
         (stmt (call os::nanosleep [(& req) (& @mut rem)]))
         (= last_t t))
-    (print [ansi::CURSOR_SHOW])
+    (fmt::print [ansi::CURSOR_SHOW])
     (return 0))
 
 

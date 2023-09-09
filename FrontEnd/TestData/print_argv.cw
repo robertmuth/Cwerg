@@ -1,6 +1,7 @@
 @doc "main module with program entry point `main`"
 
 (module main [] :
+(import fmt)
 
 (fun strlen [(param s (ptr u8))] uint :
     (let @mut i uint 0)
@@ -13,7 +14,7 @@
     (for i 0 (as argc u32) 1 :
         (let s (ptr u8) (^ (incp argv i)))
         (let t auto (slice_val s (call strlen [s])))
-        (print [t "\n"]))
+        (fmt::print [t "\n"]))
     (return 0))
 
 )

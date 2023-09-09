@@ -166,7 +166,7 @@
     (stmt (call test_s8 [0x87 0x78]))
 
     @doc "test end"
-    (stmt (call SysPrint ["OK\n"]))
+    (test::SysPrint ["OK\n"])
     (return 0))
 
 

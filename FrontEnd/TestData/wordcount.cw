@@ -1,6 +1,7 @@
 @doc "Word Count Example"
 (module main [] :
 (import os)
+(import fmt)
 
 
 (fun is_white_space [(param c u8)] bool :
@@ -42,7 +43,7 @@
     (try stats TextStats (call WordCount [os::Stdin]) err :
         (return 1)
     )
-    (print [(. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n"])
+    (fmt::print [(. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n"])
     (return 0))
 
 )

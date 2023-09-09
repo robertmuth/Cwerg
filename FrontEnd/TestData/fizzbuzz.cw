@@ -1,5 +1,6 @@
 @doc "fizzbuzz"
 (module main [] :
+(import fmt)
 (global NEWLINE auto "\n")
 
 
@@ -16,14 +17,14 @@
     (for i 0 31_uint 1 :
         (cond :
             (case (== (% i 15) 0) :
-                (print [FIZZBUZZ]))
+                (fmt::print [FIZZBUZZ]))
             (case (== (% i 3) 0) :
-                (print [FIZZ]))
+                (fmt::print [FIZZ]))
             (case (== (% i 5) 0) :
-                (print [BUZZ]))
+                (fmt::print [BUZZ]))
             (case true :
-                (print [i])))
-        (print [NEWLINE]))
+                (fmt::print [i])))
+        (fmt::print [NEWLINE]))
     (return 0))
 
 )

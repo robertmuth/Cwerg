@@ -353,7 +353,8 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     ct_dst: cwast.CanonType = node.x_type
-    assert ct_dst.is_void_or_wrapped_void() or ct_dst.fits_in_register()
+    assert ct_dst.is_void_or_wrapped_void(
+    ) or ct_dst.fits_in_register(), f"{node} {ct_dst}"
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -633,7 +634,16 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
         block = node.x_target.label[0]
         print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
-        EmitIRExpr(node.expr, tc, id_gen)
+        ct: cwast.CanonType = node.expr.x_type
+        if ct.is_void_or_wrapped_void() or ct.fits_in_register():
+            EmitIRExpr(node.expr, tc, id_gen)
+        else:
+            name = id_gen.NewName("stmt_stk_var")
+            print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
+            base = id_gen.NewName("stmt_stk_base")
+            kind = tc.get_data_address_reg_type()
+            print(f"{TAB}lea.stk {base}:{kind} {name} 0")
+            EmitIRExprToMemory(node.expr,  BaseOffset(base, 0), tc, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_f = id_gen.NewName("br_f")
         label_join = id_gen.NewName("br_join")

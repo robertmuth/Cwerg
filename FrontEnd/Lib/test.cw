@@ -1,16 +1,22 @@
 @doc "test helpers"
 (module test [] :
+(import os)
+
+(macro @pub SysPrint STMT [(mparam $msg EXPR)] [] :
+    (stmt (call os::FileWrite [os::Stdout $msg]))
+)
+
 
 @doc "The two arguments must derivable types as we use `auto`"
 (macro @pub AssertEq STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
     (if (!= $e_val $a_val) :
-        (stmt (call SysPrint ["AssertEq failed: "]))
-        (stmt (call SysPrint [(stringify $e_expr)]))
-        (stmt (call SysPrint [" VS "]))
-        (stmt (call SysPrint [(stringify $a_expr)]))
-        (stmt (call SysPrint ["\n"]))
+        (SysPrint ["AssertEq failed: "])
+        (SysPrint [(stringify $e_expr)])
+        (SysPrint [" VS "])
+        (SysPrint [(stringify $a_expr)])
+        (SysPrint ["\n"])
         (trap)
         :))
 
@@ -32,11 +38,11 @@
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
     (if (|| (< $e_val (- $a_val $epsilon)) (> $e_val (+ $a_val $epsilon))) :
-        (stmt (call SysPrint ["AssertApproxEq failed: "]))
-        (stmt (call SysPrint [(stringify $e_expr)]))
-        (stmt (call SysPrint [" VS "]))
-        (stmt (call SysPrint [(stringify $a_expr)]))
-        (stmt (call SysPrint ["\n"]))
+        (SysPrint ["AssertApproxEq failed: "])
+        (SysPrint [(stringify $e_expr)])
+        (SysPrint [" VS "])
+        (SysPrint [(stringify $a_expr)])
+        (SysPrint ["\n"])
         (trap)
         :))
 
@@ -56,18 +62,18 @@
 @doc ""
 (macro @pub AssertTrue STMT_LIST [(mparam $e_expr EXPR)] [$e_val $a_val] :
     (if  $e_expr : : 
-        (stmt (call SysPrint ["AssertTrue failed: "]))
-        (stmt (call SysPrint [(stringify $e_expr)]))
-        (stmt (call SysPrint ["\n"]))
+        (SysPrint ["AssertTrue failed: "])
+        (SysPrint [(stringify $e_expr)])
+        (SysPrint ["\n"])
         (trap)
         ))
 
 @doc ""
 (macro @pub AssertFalse STMT_LIST [(mparam $e_expr EXPR)] [$e_val $a_val] :
     (if  $e_expr : 
-        (stmt (call SysPrint ["AssertFalse failed: "]))
-        (stmt (call SysPrint [(stringify $e_expr)]))
-        (stmt (call SysPrint ["\n"]))
+        (SysPrint ["AssertFalse failed: "])
+        (SysPrint [(stringify $e_expr)])
+        (SysPrint ["\n"])
         (trap)
         : ))
 
