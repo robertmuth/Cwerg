@@ -7,6 +7,8 @@ import argparse
 import dataclasses
 import enum
 import struct
+import pathlib
+import os
 
 from typing import Union, Any, Optional, List
 
@@ -22,9 +24,8 @@ from FrontEnd import cwast
 from FrontEnd import typify
 from FrontEnd import eval
 from FrontEnd import identifier
-from FrontEnd import parse
 from FrontEnd import pp
-
+from FrontEnd import mod_pool
 
 logger = logging.getLogger(__name__)
 
@@ -819,11 +820,15 @@ def main():
     logging.basicConfig(level=logging.WARN)
     # logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
-    asts = []
-    for f in args.files:
-        asts += parse.ReadModsFromStream(open(f, encoding="utf8"), f)
+    cwd = os.getcwd()
+    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
+    mp.InsertSeedMod("builtin")
+    assert len(args.files) == 1
+    assert args.files[0].endswith(".cw")
+    mp.InsertSeedMod(str(pathlib.Path(args.files[0][:-3]).resolve()))
+    mp.ReadAndFinalizedMods()
 
-    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
+    mod_topo_order = mp.ModulesInTopologicalOrder()
 
     ELIMIMATED_NODES.add(cwast.ExprParen)  # this needs more work
 
@@ -831,7 +836,7 @@ def main():
         cwast.CheckAST(mod, ELIMIMATED_NODES)
 
     logger.info("Expand macros and link most IDs to their definition")
-    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

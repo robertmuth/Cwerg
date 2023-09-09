@@ -66,10 +66,7 @@
     (entry s3 19)
     (entry s4))
 
-)
 
-
-(module m2 [] :
 (type type_ptr (ptr @mut s32))
 
 

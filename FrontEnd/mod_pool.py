@@ -6,6 +6,7 @@ import collections
 import heapq
 
 from FrontEnd import cwast
+from FrontEnd import parse
 
 from typing import Union, Any, Optional, List, Set
 
@@ -14,8 +15,13 @@ ModHandle = pathlib.PurePath
 logger = logging.getLogger(__name__)
 
 
-class ModPool:
-
+class ModPoolBase:
+    """
+    class protocol:
+    * InsertSeedMod() +
+    * ReadAndFinalizedMods()
+    * ModulesInTopologicalOrder()
+    """
     def __init__(self, root: pathlib.Path):
         self._root: pathlib.Path = root
         # _started is used to prevent import cycles
@@ -25,6 +31,9 @@ class ModPool:
 
     def __str__(self):
         return f"root={self._root}"
+
+    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+        assert False, "to be implemented by derived class"
 
     def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:
         # other options, would be to use checksums
@@ -37,7 +46,7 @@ class ModPool:
         else:
             return (self._root / pathname).resolve()
 
-    def FindOrInsertModForImport(self, curr: ModHandle, import_node: cwast.Import) -> ModHandle:
+    def _FindOrInsertModForImport(self, curr: ModHandle, import_node: cwast.Import) -> ModHandle:
         uid = self._ModUniqueId(curr, import_node.name)
         if uid not in self._mods and uid not in self._started:
             logger.info("Insert Mod %s", uid)
@@ -52,21 +61,42 @@ class ModPool:
         logger.info("Insert RootMod %s", uid)
         return uid
 
-    def FinalizeMod(self, uid: ModHandle, def_mod: cwast.DefMod):
-        assert isinstance(def_mod, cwast.DefMod), f"expect mod but got {def_mod} {type(def_mod)}"
+    def _FinalizeMod(self, uid: ModHandle, def_mod: cwast.DefMod):
+        assert isinstance(
+            def_mod, cwast.DefMod), f"expect mod but got {def_mod} {type(def_mod)}"
         logger.info("FinalizeMod %s", uid)
         assert uid in self._started
         self._started.discard(uid)
         assert uid not in self._mods
         self._mods[uid] = def_mod
 
-    def GetNextUnfinalized(self) -> Optional[ModHandle]:
+    def _GetNextUnfinalized(self) -> Optional[ModHandle]:
         if not self._started:
             return None
         return next(iter(self._started))
 
-    def IsFinalized(self):
-        return not self._started
+    def _Finalize(self):
+        assert not self._started
+        for mod in self._mods.values():
+            assert isinstance(mod, cwast.DefMod)
+            for node in mod.body_mod:
+                if isinstance(node, cwast.Import):
+                    assert isinstance(node.x_module, ModHandle)
+                    node.x_module = self._mods[node.x_module]
+                    assert isinstance(node.x_module, cwast.DefMod)
+
+    def ReadAndFinalizedMods(self):
+        while True:
+            handle = self._GetNextUnfinalized()
+            if handle is None:
+                break
+            logger.info("Processing %s", handle)
+            def_mod: cwast.DefMod = self.ReadMod(handle)
+            for i in def_mod.body_mod:
+                if isinstance(i, cwast.Import):
+                    i.x_module = self._FindOrInsertModForImport(handle, i)
+            self._FinalizeMod(handle, def_mod)
+        self._Finalize()
 
     def ModulesInTopologicalOrder(self) -> List[cwast.DefMod]:
         """The order is also deterministic
@@ -79,76 +109,85 @@ class ModPool:
         deps_out = collections.defaultdict(list)
         # candidates have no incoming deps
         candidates = []
-        for handle, def_mod in self._mods.items():
-            assert isinstance(def_mod, cwast.DefMod), f"expect mod but got {def_mod}"
+        for def_mod in self._mods.values():
+            assert isinstance(
+                def_mod, cwast.DefMod), f"expect mod but got {def_mod}"
             for node in def_mod.body_mod:
                 if isinstance(node, cwast.Import):
-                    logger.info("found mod deps [%s] imported by [%s]", node.x_module, handle)
-                    assert node.x_module in self._mods
-                    deps_in[handle].append(node.x_module)
-                    deps_out[node.x_module].append(handle)
+                    importee = node.x_module
+                    assert isinstance(importee, cwast.DefMod)
 
-        for h in self._mods:
-            if not deps_in[h]:
-                logger.info("found leaf mod [%s]", h)
-                heapq.heappush(candidates, h)
-        out=[]
+                    logger.info(
+                        "found mod deps [%s] imported by [%s]", importee, def_mod)
+                    assert isinstance(
+                        node.x_module, cwast.DefMod), "was Finalize() run?"
+                    deps_in[def_mod].append(importee)
+                    deps_out[importee].append(def_mod)
+
+        for def_mod in self._mods.values():
+            if not deps_in[def_mod]:
+                logger.info("found leaf mod [%s]", def_mod)
+                heapq.heappush(candidates, def_mod)
+        out = []
         while len(out) != len(self._mods):
             assert candidates
-            x=heapq.heappop(candidates)
+            x = heapq.heappop(candidates)
+            assert isinstance(x, cwast.DefMod)
             logger.info("picking next mod: %s", x)
-            out.append(self._mods[x])
+            out.append(x)
             for importer in deps_out[x]:
                 deps_in[importer].remove(x)
                 if not deps_in[importer]:
                     heapq.heappush(candidates, importer)
         return out
 
-    def FixupImports(self):
-        for mod in self._mods.values():
-            assert isinstance(mod, cwast.DefMod)
-            for node in mod.body_mod:
-                if isinstance(node, cwast.Import):
-                    node.x_module = self._mods[node.x_module]
+
+class ModPool(ModPoolBase):
+
+    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+        fn = str(handle) + ".cw"
+        asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
+        assert len(asts) == 1
+        assert isinstance(asts[0], cwast.DefMod)
+        return asts[0]
+
+
+
+
+
+_test_mods_std = {
+    "builtin": cwast.DefMod("builtin", [], []),
+    "os": cwast.DefMod("os", [], []),
+    "math": cwast.DefMod("math", [], []),
+    "std":  cwast.DefMod("std", [], []),
+}
+_test_mods_local = {
+    "helper": cwast.DefMod("helper", [], [cwast.Import("os", "")]),
+    "math":  cwast.DefMod("math", [], [cwast.Import("std", "")]),
+    "main": cwast.DefMod("main", [], [cwast.Import("std", ""),
+                                      cwast.Import("math", ""),
+                                      cwast.Import("./math", ""),
+                                      cwast.Import("./helper", "")])
+}
+
+
+class ModPoolForTest(ModPoolBase):
+
+    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+        name = handle.name
+        dir = handle.parent.name
+        return _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
 
 
 def tests(cwd: str):
-    mods_std={
-        "builtin": cwast.DefMod("builtin", [], []),
-        "os": cwast.DefMod("os", [], []),
-        "math": cwast.DefMod("math", [], []),
-        "std":  cwast.DefMod("std", [], []),
-    }
-    mods_local={
-        "helper": cwast.DefMod("helper", [], [cwast.Import("os", "")]),
-        "math":  cwast.DefMod("math", [], [cwast.Import("std", "")]),
-        "main": cwast.DefMod("main", [], [cwast.Import("std", ""),
-                                          cwast.Import("math", ""),
-                                          cwast.Import("./math", ""),
-                                          cwast.Import("./helper", "")])
-    }
-    pool=ModPool(pathlib.Path(cwd) / "Lib")
+
+    pool = ModPoolForTest(pathlib.Path(cwd) / "Lib")
     logger.info("Pool %s", pool)
 
     pool.InsertSeedMod("builtin")
     pool.InsertSeedMod(str(pathlib.Path("./main").resolve()))
-    while True:
-        handle=pool.GetNextUnfinalized()
-        if handle is None:
-            break
-        assert isinstance(handle, ModHandle), f"Not a path: {handle}"
-        logger.info("Processing %s", handle)
-
-        name=handle.name
-        dir=handle.parent.name
-        mod: cwast.DefMod=mods_std[name] if dir == "Lib" else mods_local[name]
-        for i in mod.body_mod:
-            assert isinstance(i, cwast.Import)
-            i.x_module = pool.FindOrInsertModForImport(handle, i)
-        pool.FinalizeMod(handle, mod)
-    assert pool.IsFinalized()
+    pool.ReadAndFinalizedMods()
     print([m.name for m in pool.ModulesInTopologicalOrder()])
-    pool.FixupImports()
     print("OK")
 
 

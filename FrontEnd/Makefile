@@ -12,8 +12,6 @@ TESTS = macros.cw \
 		comment.cw \
         linked_list.cw \
         binary_tree.cw \
-        import.cw \
-        import2.cw \
         sizeof.cw 
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
@@ -23,7 +21,10 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
 
-tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) tests_lang_x64 tests_lang_a64 tests_emit
+tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
+                tests_lang_x64 tests_lang_a64 \
+                tests_lib_x64 tests_lib_a64 \
+				tests_emit
 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
@@ -40,7 +41,7 @@ tests_lang_x64: \
     $(DIR)/assign_test.lang.x64.exe \
     $(DIR)/enum_test.lang.x64.exe \
     $(DIR)/rec_test.lang.x64.exe \
-	$(DIR)/expr_sint_test.lang.x64.exe \
+    $(DIR)/expr_sint_test.lang.x64.exe \
     $(DIR)/expr_uint_test.lang.x64.exe \
     $(DIR)/defer_test.lang.x64.exe \
     $(DIR)/sum_untagged_test.lang.x64.exe \
@@ -71,25 +72,31 @@ tests_lang_a32: \
     $(DIR)/expr_uint_test.lang.a64.exe \
     $(DIR)/expr_sint_test.lang.a64.exe
 
-tests_emit: \
-    $(DIR)/wordcount.x64.test \
-    $(DIR)/wordcount.a64.test \
-    $(DIR)/hello_world.x64.test \
-    $(DIR)/hello_world.a64.test \
-    $(DIR)/fizzbuzz.x64.test \
-    $(DIR)/fizzbuzz.a64.test \
-    $(DIR)/print_argv.x64.test \
-    $(DIR)/print_argv.a64.test \
-    $(DIR)/sieve.x64.test \
-    $(DIR)/sieve.a64.test \
-    $(DIR)/polymorphic.x64.test \
-    $(DIR)/polymorphic.a64.test \
-    $(DIR)/heapsort.x64.exe \
-    $(DIR)/string.x64.exe \
-    $(DIR)/trig_test.x64.exe \
-    $(DIR)/checksum_test.x64.exe
+tests_lib_x64: \
+	$(DIR)/string_test.lib.x64.exe \
+    $(DIR)/trig_test.lib.x64.exe \
+    $(DIR)/checksum_test.lib.x64.exe 
 
-BUILTINS = TestData/builtin.cw 
+tests_lib_a64: \
+	$(DIR)/string_test.lib.a64.exe \
+    $(DIR)/trig_test.lib.a64.exe \
+    $(DIR)/checksum_test.lib.a64.exe 
+
+tests_emit: \
+    $(DIR)/hello_world.run.x64.exe \
+    $(DIR)/hello_world.run.a64.exe \
+    $(DIR)/fizzbuzz.run.x64.exe \
+    $(DIR)/fizzbuzz.run.a64.exe \
+    $(DIR)/sieve.run.x64.exe \
+    $(DIR)/sieve.run.a64.exe \
+    $(DIR)/polymorphic.run.x64.exe \
+    $(DIR)/polymorphic.run.a64.exe \
+    $(DIR)/heapsort.run.x64.exe \
+    $(DIR)/heapsort.run.a64.exe \
+	$(DIR)/print_argv.x64.test \
+    $(DIR)/print_argv.a64.test \
+    $(DIR)/wordcount.x64.test \
+    $(DIR)/wordcount.a64.test 
 
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
@@ -97,15 +104,15 @@ $(DIR)/%.cw.parse: TestData/%.cw
 
 $(DIR)/%.cw.meta: TestData/%.cw
 	@echo "[typify $@]"
-	cat $(BUILTINS) $< |./typify.py 
+	./typify.py $< 
 
 $(DIR)/%.cw.eval: TestData/%.cw
 	@echo "[eval $@]"
-	cat $(BUILTINS) $< |./eval.py 
+	./eval.py $< 
 
 $(DIR)/%.cw.symtab: TestData/%.cw
 	@echo "[symbolize $@]"
-	cat $(BUILTINS) $< |./symbolize.py 
+	./symbolize.py $< 
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"
@@ -113,16 +120,17 @@ $(DIR)/%.cw.pp: TestData/%.cw
 	./pp.py < $@.tmp >$@
 	diff $@.tmp $@
 
+## Language Tests
 
 $(DIR)/%.lang.x64.exe: LangTest/%.cw
 	@echo "[lang $@]"
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/%.lang.a64.exe: LangTest/%.cw
 	@echo "[lang $@]"
-	./emit_ir.py  Lib/os.cw Lib/builtin.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
@@ -132,87 +140,70 @@ $(DIR)/%.lang.a32.exe: LangTest/%.cw
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
+## Library Tests
+
+$(DIR)/%.lib.x64.exe: Lib/%.cw
+	@echo "[lib $@]"
+	./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/%.lib.a64.exe: Lib/%.cw
+	@echo "[lib $@]"
+	./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/%.lib.a32.exe: Lib/%.cw
+	@echo "[lib $@]"
+	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
 ## Misc Tests
 
 $(DIR)/%.run.x64.exe: TestData/%.cw
 	@echo "[run $@]"
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw  Lib/test.cw $< > $@.asm
+	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
 
 $(DIR)/%.run.a64.exe: TestData/%.cw
 	@echo "[run $@]"
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw  Lib/test.cw  $< > $@.asm
+	./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+## Compile only Tests
+
+$(DIR)/%.compile.x64.exe: TestData/%.cw
+	@echo "[run $@]"
+	./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+
+$(DIR)/%.compile.a64.exe: TestData/%.cw
+	@echo "[run $@]"
+	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 
-
-$(DIR)/hello_world.x64.test: build/hello_world.run.x64.exe
-	${QEMU} $<
-
-$(DIR)/hello_world.a64.test: build/hello_world.run.a64.exe
-	${QEMU} $<
-
-$(DIR)/sieve.x64.test: build/sieve.run.x64.exe
-	${QEMU} $<
-
-$(DIR)/sieve.a64.test: build/sieve.run.a64.exe
-	${QEMU} $<
-
-$(DIR)/fizzbuzz.x64.test: build/fizzbuzz.run.x64.exe
-	${QEMU} $<
-
-$(DIR)/fizzbuzz.a64.test: build/fizzbuzz.run.a64.exe
-	${QEMU} $<
-
-$(DIR)/polymorphic.x64.test: build/polymorphic.run.x64.exe
-	${QEMU} $<
-
-$(DIR)/polymorphic.a64.test: build/polymorphic.run.a64.exe
-	${QEMU} $<
-
-$(DIR)/wordcount.x64.test: build/wordcount.run.x64.exe
+$(DIR)/wordcount.x64.test: build/wordcount.compile.x64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
-$(DIR)/wordcount.a64.test: build/wordcount.run.a64.exe
+$(DIR)/wordcount.a64.test: build/wordcount.compile.a64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
 
-$(DIR)/print_argv.x64.test: build/print_argv.run.x64.exe
+$(DIR)/print_argv.x64.test: build/print_argv.compile.x64.exe
 	${QEMU} $< arg1 arg2 argc3
 
-$(DIR)/print_argv.a64.test: build/print_argv.run.a64.exe
+$(DIR)/print_argv.a64.test: build/print_argv.compile.a64.exe
 	${QEMU} $< arg1 arg2 argc3
 
-$(DIR)/print_argv.x64.exe: TestData/print_argv.cw
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@  arg1 arg2 argc3
-
-## Lib Tests
-
-$(DIR)/string.x64.exe: Lib/string_test.cw
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw Lib/string.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/heapsort.x64.exe: TestData/heapsort.cw
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw  Lib/test.cw Lib/random.cw  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/trig_test.x64.exe: Lib/trig_test.cw
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw  Lib/test.cw Lib/math.cw Lib/trig.cw  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/checksum_test.x64.exe: Lib/checksum_test.cw
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw  Lib/test.cw Lib/checksum.cw  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
 
 ## Manual tests
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
-	./emit_ir.py Lib/os.cw Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 

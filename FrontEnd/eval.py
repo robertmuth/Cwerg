@@ -516,11 +516,18 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
         VerifyASTEvalsRecursively(mod)
 
 
-def main(inp):
-    asts = parse.ReadModsFromStream(inp)
+def main(argv):
+    assert len(argv) == 1
+    assert argv[0].endswith(".cw")
 
-    mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(asts)
-    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
+    cwd = os.getcwd()
+    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "TestData")
+    mp.InsertSeedMod("builtin")
+    mp.InsertSeedMod(str(pathlib.Path(argv[0][:-3]).resolve()))
+    mp.ReadAndFinalizedMods()
+    mod_topo_order = mp.ModulesInTopologicalOrder()
+    
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
@@ -530,7 +537,10 @@ def main(inp):
 
 if __name__ == "__main__":
     import sys
-
+    import os 
+    import pathlib
+    from FrontEnd import mod_pool
+    
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    main(sys.stdin)
+    main(sys.argv[1:])

@@ -13,11 +13,12 @@ from typing import List, Dict, Optional, Any, Tuple
 from FrontEnd import pp
 from FrontEnd import macros
 from FrontEnd import cwast
-from FrontEnd import parse
 
 logger = logging.getLogger(__name__)
 
 BUILTIN_MOD = "$builtin"
+
+SYMTAB_MAP = Dict[str, "SymTab"]
 
 
 def AnnotateNodeSymbol(id_node, def_node):
@@ -123,7 +124,7 @@ class SymTab:
 
         return out
 
-    def add_top_level_sym(self, node, mod_map):
+    def add_top_level_sym(self, node):
         logger.info("recording global symbol: %s", node)
         name = node.name
         if isinstance(node, cwast.DefFun):
@@ -149,7 +150,8 @@ class SymTab:
         elif isinstance(node, cwast.Import):
             name = node.alias if node.alias else node.name
             assert name not in self._mod_syms
-            self._mod_syms[name] = mod_map[node.name]
+            assert isinstance(node.x_module, cwast.DefMod)
+            self._mod_syms[name] = node.x_module
         else:
             cwast.CompilerError(
                 node.x_srcloc, f"Unexpected toplevel node {node}")
@@ -178,7 +180,7 @@ def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map: Dict[str, SymTab]):
     return symtab.resolve_macro(node,  symtab_map, False)
 
 
-def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
+def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
     logger.info("Processing %s", mod.name)
@@ -191,7 +193,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod, mod_map) -> SymTab:
             # types so we skip them here
             continue
         else:
-            symtab.add_top_level_sym(node, mod_map)
+            symtab.add_top_level_sym(node)
     return symtab
 
 
@@ -399,8 +401,7 @@ def _SetTargetFieldRecursively(node):
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
-def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
-                                         mod_map: Dict[str, cwast.DefMod]):
+def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
     """
     * extract global symbols
     * resolve global symbols
@@ -410,7 +411,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
     """
     symtab_map: Dict[str, SymTab] = {}
     for mod in mod_topo_order:
-        symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod, mod_map)
+        symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -441,50 +442,6 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod],
 
     for mod in mod_topo_order:
         VerifyASTSymbolsRecursively(mod)
-
-
-def ModulesInTopologicalOrder(asts: List[cwast.DefMod]) -> Tuple[
-        List[cwast.DefMod], Dict[str, cwast.DefMod]]:
-    """The order is also deterministic
-
-    This means modules cannot have circular dependencies except for module arguments
-    to parameterized modules which are ignored in the topo order.
-    """
-    mod_map: Dict[str, cwast.DefMod] = {}
-    for mod in asts:
-        assert isinstance(mod, cwast.DefMod)
-        mod_map[mod.name] = mod
-
-    deps_in = collections.defaultdict(list)
-    deps_out = collections.defaultdict(list)
-    # candidates have no incoming deps
-    candidates = []
-    for mod in asts:
-        assert isinstance(mod, cwast.DefMod)
-        mod_map[mod.name] = mod
-        for node in mod.body_mod:
-            if isinstance(node, cwast.Import):
-                assert node.name in mod_map, f"unknown module `{node.name}`"
-                logger.info(
-                    "found mod deps [%s] imported by [%s]", node.name, mod.name)
-                deps_in[mod.name].append(node.name)
-                deps_out[node.name].append(mod.name)
-
-    for m in mod_map.keys():
-        if not deps_in[m]:
-            logger.info("found leaf mod [%s]", m)
-            heapq.heappush(candidates, m)
-    out = []
-    while len(out) != len(mod_map):
-        assert candidates
-        x = heapq.heappop(candidates)
-        logger.info("picking next mod: %s", x)
-        out.append(mod_map[x])
-        for importer in deps_out[x]:
-            deps_in[importer].remove(x)
-            if not deps_in[importer]:
-                heapq.heappush(candidates, importer)
-    return out, mod_map
 
 
 def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.CanonType):
@@ -528,11 +485,18 @@ def IterateValArray(val_array: cwast.ValArray, width):
 ############################################################
 
 
-def main(inp):
-    asts = parse.ReadModsFromStream(inp)
-    mod_topo_order, mod_map = ModulesInTopologicalOrder(asts)
-    MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
-    for ast in asts:
+def main(argv):
+    assert len(argv) == 1
+    assert argv[0].endswith(".cw")
+
+    cwd = os.getcwd()
+    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "TestData")
+    mp.InsertSeedMod("builtin")
+    mp.InsertSeedMod(str(pathlib.Path(argv[0][:-3]).resolve()))
+    mp.ReadAndFinalizedMods()
+    mod_topo_order = mp.ModulesInTopologicalOrder()
+    MacroExpansionDecorateASTWithSymbols(mod_topo_order)
+    for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
         pp.PrettyPrint(ast)
@@ -540,6 +504,10 @@ def main(inp):
 
 if __name__ == "__main__":
     import sys
+    import os 
+    import pathlib
+    from FrontEnd import mod_pool
+    
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
-    main(sys.stdin)
+    main(sys.argv[1:])

@@ -2343,11 +2343,14 @@ class ModParam:
 
 
 @NodeCommon
-@dataclasses.dataclass()
+@dataclasses.dataclass(order=True)
 class DefMod:
     """Module Definition
 
-    The module is a template if `params` is non-empty"""
+    The module is a template if `params` is non-empty
+    
+    ordering is used to put the modules in a deterministic order
+    """
     ALIAS = "module"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF
@@ -2834,7 +2837,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
 
         assert type(
             node) not in disallowed_nodes, f"Disallowed node: {type(node)}"
-        assert node.x_srcloc is not None, f"Node without srcloc node {node}"
+        assert node.x_srcloc is not None, f"Node without srcloc node {node} for field {field}"
 
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":
