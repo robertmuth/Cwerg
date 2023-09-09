@@ -208,7 +208,7 @@ $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
 	${QEMU} $@ 128 48
 
 $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
-	./emit_ir.py Lib/os.cw Lib/builtin.cw  Lib/random.cw Lib/ansi.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py  $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 

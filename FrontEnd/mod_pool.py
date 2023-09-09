@@ -147,7 +147,7 @@ class ModPool(ModPoolBase):
     def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
         fn = str(handle) + ".cw"
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
-        assert len(asts) == 1
+        assert len(asts) == 1, f"multiple modules in {fn}"
         assert isinstance(asts[0], cwast.DefMod)
         return asts[0]
 
