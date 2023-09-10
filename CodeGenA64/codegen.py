@@ -71,30 +71,28 @@ _MEMKIND_TO_SECTION = {
 }
 
 
-def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit) -> List[str]:
-    out = [f"# size {mem.Size()}",
-           f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"]
+def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit):
+    yield f"# size {mem.Size()}"
+    yield f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"
     for d in mem.datas:
         if isinstance(d, ir.DataBytes):
-            out += [f"    .data {d.count} {serialize.EscapeCStyle(d.data)}"]
+            yield f"    .data {d.count} {serialize.EscapeCStyle(d.data)}"
         elif isinstance(d, ir.DataAddrFun):
-            out += [f"    .addr.fun {d.size} {d.fun.name}"]
+            yield f"    .addr.fun {d.size} {d.fun.name}"
         elif isinstance(d, ir.DataAddrMem):
-            out += [f"    .addr.mem {d.size} {d.mem.name} 0x{d.offset:x}"]
+            yield f"    .addr.mem {d.size} {d.mem.name} 0x{d.offset:x}"
         else:
             assert False
 
-    out += [f".endmem"]
-    return out
+    yield ".endmem"
 
 
 def _JtbCodeGen(jtb: ir.Jtb):
-    out = [f".localmem {jtb.name} 8 rodata"]
+    yield f".localmem {jtb.name} 8 rodata"
     for i in range(jtb.size):
         bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-        out.append(f"    .addr.bbl 8 {bbl.name}")
-    out.append(".endmem")
-    return out
+        yield f"    .addr.bbl 8 {bbl.name}"
+    yield".endmem"
 
 
 def _RenderIns(ins: a64.Ins) -> str:
@@ -113,31 +111,31 @@ def _SimplifyCpuIns(cpu_ins: a64.Ins) -> bool:
     return True
 
 
-def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
+def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit):
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
     assert fun.stk_size >= 0, f"did you call FinalizeStk?"
     # DumpFun("codegen", fun)
-    out: List[str] = [
-        f"# sig: {fun.render_signature()}  stk_size:{fun.stk_size}",
-        f".fun {fun.name} 16",
-    ]
+
+    yield f"# sig: {fun.render_signature()}  stk_size:{fun.stk_size}"
+    yield f".fun {fun.name} 16"
 
     for jtb in fun.jtbs:
-        out += _JtbCodeGen(jtb)
+        yield from _JtbCodeGen(jtb)
 
     ctx = regs.FunComputeEmitContext(fun)
+    for tmpl in isel_tab.EmitFunProlog(ctx):
+        yield _RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
 
-    out += [_RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
-            for tmpl in isel_tab.EmitFunProlog(ctx)]
     for bbl in fun.bbls:
         live_out = sorted([r.name for r in bbl.live_out])
-        out.append(f".bbl {bbl.name} 4")
+        yield f".bbl {bbl.name} 4"
         for ins in bbl.inss:
             if ins.opcode is o.NOP1:
                 isel_tab.HandlePseudoNop1(ins, ctx)
             elif ins.opcode is o.RET:
-                out += [_RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
-                        for tmpl in isel_tab.EmitFunEpilog(ctx)]
+                for tmpl in isel_tab.EmitFunEpilog(ctx):
+                    yield _RenderIns(tmpl.MakeInsFromTmpl(None, ctx))
+
             else:
                 pattern = isel_tab.FindMatchingPattern(ins)
                 assert pattern, (f"could not find pattern for\n{ins} {ins.operands} "
@@ -145,9 +143,8 @@ def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
                 for tmpl in pattern.emit:
                     cpu_ins = tmpl.MakeInsFromTmpl(ins, ctx)
                     if _SimplifyCpuIns(cpu_ins):
-                        out.append(_RenderIns(cpu_ins))
-    out.append(f".endfun")
-    return out
+                        yield _RenderIns(cpu_ins)
+    yield f".endfun"
 
 
 def EmitUnitAsText(unit: ir.Unit, fout):
@@ -183,13 +180,13 @@ def codegen(unit: ir.Unit) -> Unit:
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         arm_mem = _MemCodeGenText(mem, unit)
-        out.mems.append((mem.name, arm_mem))
+        out.mems.append((mem.name, [x for x in arm_mem]))
         out.mem_syms[mem.name] = arm_mem
     for fun in unit.funs:
         if fun.kind is not o.FUN_KIND.NORMAL:
             continue
         arm_fun = _FunCodeGenText(fun, unit)
-        out.funs.append((fun.name, arm_fun))
+        out.funs.append((fun.name, [x for x in arm_fun]))
         out.fun_syms[fun.name] = arm_fun
     return out
 

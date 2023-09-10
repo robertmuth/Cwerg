@@ -31,7 +31,7 @@ class IMM_CURB(enum.IntEnum):
     IMM_10_15_16_22_X = 5
     IMM_SHIFTED_5_20_21_22 = 6
     IMM_SHIFTED_5_20_21_22_NOT = 7
-    #
+    # also update _IMM_KIND_STK if new stk immediates are added
     pos_stk_combo_shifted_10_21_22 = 8
     pos_stk_combo_16_bits = 9
     pos_stk_combo_32_bits = 10
@@ -76,6 +76,11 @@ _IMM_KIND_STK: Set[IMM_CURB] = {
     IMM_CURB.pos_stk_combo_shifted_10_21_22,
     IMM_CURB.pos_stk_combo_16_bits,
     IMM_CURB.pos_stk_combo_32_bits,
+    IMM_CURB.pos_stk_combo_32_bits,
+    IMM_CURB.pos_stk_combo_10_21,
+    IMM_CURB.pos_stk_combo_10_21_times_2,
+    IMM_CURB.pos_stk_combo_10_21_times_4,
+    IMM_CURB.pos_stk_combo_10_21_times_8,
 }
 
 
@@ -426,6 +431,7 @@ class Pattern:
                     assert stk.slot is not None, f"unfinalized stack slot for {stk} in {ins}"
                     val += stk.slot
                 if not ValueMatchesCurbs(imm_curb, val):
+
                     # have constant that does not fit
                     return MATCH_IMPOSSIBLE
             elif isinstance(op, ir.Reg):
