@@ -1578,7 +1578,7 @@ class ExprIndex:
 @dataclasses.dataclass()
 class ExprLen:
     """Length of array or slice
-    
+
     Result type is `uint`.
     """
     ALIAS = "len"
@@ -1624,8 +1624,8 @@ class ExprFront:
 @dataclasses.dataclass()
 class ExprIs:
     """Test actual expression type
-    
-    
+
+
     Typically used when `expr` is a tagged sum type.
 
     """
@@ -2348,7 +2348,7 @@ class DefMod:
     """Module Definition
 
     The module is a template if `params` is non-empty
-    
+
     ordering is used to put the modules in a deterministic order
     """
     ALIAS = "module"
@@ -2835,8 +2835,9 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
         nonlocal toplevel_node
         # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
-        assert type(
-            node) not in disallowed_nodes, f"Disallowed node: {type(node)}"
+        if type(node) in disallowed_nodes:
+            CompilerError(node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
+
         assert node.x_srcloc is not None, f"Node without srcloc node {node} for field {field}"
 
         if NF.TOP_LEVEL in node.FLAGS:
