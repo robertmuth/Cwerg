@@ -5,8 +5,6 @@
 """
 
 import logging
-import collections
-import heapq
 
 from typing import List, Dict, Optional, Any, Tuple
 
@@ -504,10 +502,10 @@ def main(argv):
 
 if __name__ == "__main__":
     import sys
-    import os 
+    import os
     import pathlib
     from FrontEnd import mod_pool
-    
+
     logging.basicConfig(level=logging.INFO)
     logger.setLevel(logging.INFO)
     main(sys.argv[1:])

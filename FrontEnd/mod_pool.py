@@ -8,7 +8,7 @@ import heapq
 from FrontEnd import cwast
 from FrontEnd import parse
 
-from typing import Union, Any, Optional, List, Set
+from typing import Any, Optional, List, Set, Dict
 
 ModHandle = pathlib.PurePath
 
@@ -22,6 +22,7 @@ class ModPoolBase:
     * ReadAndFinalizedMods()
     * ModulesInTopologicalOrder()
     """
+
     def __init__(self, root: pathlib.Path):
         self._root: pathlib.Path = root
         # _started is used to prevent import cycles
@@ -150,9 +151,6 @@ class ModPool(ModPoolBase):
         assert len(asts) == 1, f"multiple modules in {fn}"
         assert isinstance(asts[0], cwast.DefMod)
         return asts[0]
-
-
-
 
 
 _test_mods_std = {

@@ -747,9 +747,6 @@ class CanonType:
     def is_array(self) -> bool:
         return self.node is TypeArray
 
-    def is_rec(self) -> bool:
-        return self.node is DefRec
-
     def is_void_or_wrapped_void(self) -> bool:
         if self.node is DefType:
             return self.children[0].is_void()
@@ -2836,7 +2833,8 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
         # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
         if type(node) in disallowed_nodes:
-            CompilerError(node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
+            CompilerError(
+                node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
 
         assert node.x_srcloc is not None, f"Node without srcloc node {node} for field {field}"
 

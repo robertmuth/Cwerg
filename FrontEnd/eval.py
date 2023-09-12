@@ -12,7 +12,6 @@ from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
 from FrontEnd import typify
-from FrontEnd import parse
 
 from Util.parse import EscapedStringToBytes
 
@@ -540,7 +539,7 @@ if __name__ == "__main__":
     import os 
     import pathlib
     from FrontEnd import mod_pool
-    
+
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     main(sys.argv[1:])

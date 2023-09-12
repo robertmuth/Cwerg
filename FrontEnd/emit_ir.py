@@ -10,7 +10,7 @@ import struct
 import pathlib
 import os
 
-from typing import Union, Any, Optional, List
+from typing import Union, Any, Optional, List, Dict
 
 from Util.parse import BytesToEscapedString
 
@@ -143,8 +143,7 @@ def RLE(data: bytes):
             count = 1
         else:
             count += 1
-    else:
-        yield count, last
+    yield count, last
 
 
 def is_repeated_single_char(data: bytes):
@@ -887,7 +886,7 @@ def main():
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED)
     id_gen_global = identifier.IdGen()
-    id_gens: Dict[cwast.Fun,  identifier.IdGen] = {}
+    id_gens: Dict[cwast.DefFun,  identifier.IdGen] = {}
 
     def GetIdGen(fun):
         assert isinstance(fun, cwast.DefFun)
@@ -971,7 +970,6 @@ def main():
             if fun.x_type in fun_sigs_with_large_args:
                 canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
-
 
     SanityCheckMods("after_large_arg_conversion", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)
