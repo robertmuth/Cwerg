@@ -799,11 +799,11 @@ def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
             EmitIRStmt(c, None, tc, id_gen)
 
 
-def SanityCheckMods(phase_name: str, emit_ir: bool, mods: List[cwast.DefMod], tc,
+def SanityCheckMods(phase_name: str, emit_ir: str, mods: List[cwast.DefMod], tc,
                     eliminated_node_types, allow_type_auto=True,
                     allow_implicit_type_conversion=False):
     logger.info(phase_name)
-    if emit_ir:
+    if emit_ir == phase_name:
         for mod in mods:
             pp.PrettyPrintHTML(mod, tc)
             # pp.PrettyPrint(mod)
@@ -822,7 +822,7 @@ ELIMIMATED_NODES = set()
 def main():
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
-        '-emit_ir', help='stop before emitting asm', action='store_true')
+        '-emit_ir', help='stop at the given stage and emit ir')
     parser.add_argument('files', metavar='F', type=str, nargs='+',
                         help='an input source file')
     args = parser.parse_args()
@@ -878,7 +878,7 @@ def main():
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
-    SanityCheckMods("AST is now fully decorated", args.emit_ir and False,
+    SanityCheckMods("after_partial_eval", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES,
                     allow_type_auto=False,
                     allow_implicit_type_conversion=True)
@@ -922,7 +922,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprIs)
     ELIMIMATED_NODES.add(cwast.TypeOf)
 
-    SanityCheckMods("initial lowering", args.emit_ir and False,
+    SanityCheckMods("after_initial_lowering", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)
 
     logger.info("Legalize 2")
@@ -956,10 +956,9 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprSumTag)
     ELIMIMATED_NODES.add(cwast.ExprSumUntagged)
 
-    SanityCheckMods("After slice elimination", args.emit_ir and False,
+    SanityCheckMods("after_slice_elimination", args.emit_ir,
                     [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
-    logger.info("Canonicalization")
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
     for mod in mod_topo_order:
@@ -967,12 +966,15 @@ def main():
             if not isinstance(fun, cwast.DefFun):
                 continue
             id_gen = id_gens[fun]
-            canonicalize_large_args.RewriteLargeArgsCallerSide(
+            canonicalize_large_args.FunRewriteLargeArgsCallerSide(
                 fun, fun_sigs_with_large_args, tc, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
-                canonicalize_large_args.RewriteLargeArgsCalleeSide(
+                canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
 
+
+    SanityCheckMods("after_large_arg_conversion", args.emit_ir,
+                    mod_topo_order, tc, ELIMIMATED_NODES)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
@@ -996,7 +998,7 @@ def main():
         if cwast.NF.NON_CORE in node.FLAGS:
             assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
 
-    SanityCheckMods("After canonicalization", args.emit_ir and False,
+    SanityCheckMods("after_canonicalization", args.emit_ir,
                     [mod_gen] + mod_topo_order, tc, ELIMIMATED_NODES)
 
     mod_topo_order = [mod_gen] + mod_topo_order
@@ -1016,7 +1018,7 @@ def main():
                 else:
                     node.name = mod.name + "/" + node.name + suffix
 
-    SanityCheckMods("After slice elimination", args.emit_ir,
+    SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)
 
     # Emit Cwert IR
