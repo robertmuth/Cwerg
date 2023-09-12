@@ -158,7 +158,7 @@
     (stmt (call test_u8 [0x87 0x78]))
 
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 

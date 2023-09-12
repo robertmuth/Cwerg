@@ -33,7 +33,7 @@
     (stmt (call foo []))
     (test::AssertSliceEq (slice_val (front gSequence) gIndex) "abcdefgh")
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 )
 

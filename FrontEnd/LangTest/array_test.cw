@@ -173,7 +173,7 @@
     (stmt (call test_local_array []))
     (stmt (call test_mixed_array []))
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 

@@ -6,12 +6,6 @@
         (param size uint)] (ptr @mut u8) :)
 
 
-(fun @pub @extern SysErrorPrint [(param buffer (slice u8))] void :)
-
-
-
-
-
 (global @pub FORMATED_STRING_MAX_LEN uint 4096)
 
 
@@ -315,7 +309,7 @@
                 $i
                 (slice_val (incp (front @mut $buffer) $curr) (- (len $buffer) $curr))
                 (& @mut $options)])))
-    (stmt (call os::FileWrite [os::Stdout (slice_val (front $buffer) $curr)])))
+    (stmt (call os::write [(as os::Stdout s32) (front $buffer) $curr])))
 
 
 (fun @pub strz_to_slice [(param s (ptr u8))] (slice u8) :

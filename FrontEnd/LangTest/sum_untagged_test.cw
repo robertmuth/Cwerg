@@ -158,7 +158,7 @@
     (stmt (call test_untagged_union []))
 
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 )

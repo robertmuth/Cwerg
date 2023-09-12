@@ -38,7 +38,7 @@
             (& @mut opt)]))
     (test::AssertSliceEq (slice_val (front s) n) "0x1.p1")
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 )

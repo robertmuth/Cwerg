@@ -31,7 +31,7 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (test::AssertEq (call sieve []) EXPECTED)
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 )

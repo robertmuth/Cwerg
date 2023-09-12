@@ -101,7 +101,7 @@
     (fmt::print [(as (call checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
 
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 )

@@ -83,7 +83,7 @@
     (= (. (. gr2 t3) i2) 0x1234567812345678)
     (test::AssertEq (. (. gr2 t3) i2) 0x1234567812345678_u64)
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 )

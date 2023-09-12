@@ -40,7 +40,7 @@ cos   1    sqrt(3)/2   sqrt(2)/2  1/2        0
     (test::AssertApproxEq (call trig::cos_restricted [(/ math::PI 3.0) 0.0]) 0.5_r64 EPSILON)
     (test::AssertApproxEq (call trig::cos_restricted [(/ math::PI 2.0) 0.0]) 0.0_r64 EPSILON)
     @doc "test end"
-    (test::SysPrint ["OK\n"])
+    (test::Success)
     (return 0))
 
 
