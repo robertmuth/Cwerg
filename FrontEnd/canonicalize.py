@@ -89,16 +89,16 @@ def _RewriteExprIs(node: cwast.ExprIs, id_gen: identifier.IdGen,
                        x_srcloc=srcloc, x_type=tc.get_bool_canon_type())
 
 
-def ReplaceExprIs(node, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
+def FunReplaceExprIs(fun: cwast.DefFun, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
     """Transform ExprIs comparisons for typeids"""
     def replacer(node, field):
         if isinstance(node, cwast.ExprIs):
             return _RewriteExprIs(node, id_gen, tc)
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
+def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
     """Convert ternary operator nodes into expr with if statements
 
     Note we could implement the ternary op as a macro but would lose the ability to do
@@ -132,7 +132,7 @@ def CanonicalizeTernaryOp(node, id_gen: identifier.IdGen):
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 ############################################################
@@ -185,7 +185,7 @@ def _FixUpLhs(lhs, stmts, id_gen):
 #
 
 
-def CanonicalizeCompoundAssignments(node, id_gen: identifier.IdGen):
+def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node, _):
         if isinstance(node, cwast.StmtCompoundAssignment):
@@ -198,8 +198,8 @@ def CanonicalizeCompoundAssignments(node, id_gen: identifier.IdGen):
             stmts.append(assignment)
             return cwast.EphemeralList(stmts, colon=True)
 
-    cwast.MaybeReplaceAstRecursively(node, replacer)
-    cwast.EliminateEphemeralsRecursively(node)
+    cwast.MaybeReplaceAstRecursively(fun, replacer)
+    cwast.EliminateEphemeralsRecursively(fun)
 
 
 def ReplaceConstExpr(node):
@@ -228,7 +228,7 @@ def ReplaceConstExpr(node):
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
-def CanonicalizeRemoveStmtCond(node):
+def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
     """Convert StmtCond to nested StmtIf"""
     def replacer(node, _):
         if not isinstance(node, cwast.StmtCond):
@@ -243,10 +243,10 @@ def CanonicalizeRemoveStmtCond(node):
                 out], x_srcloc=case.x_srcloc)
         return out
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def OptimizeKnownConditionals(node):
+def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     """Simplify If-statements where the conditional could be evaluated
 
     TODO: add check for side-effects
@@ -259,7 +259,7 @@ def OptimizeKnownConditionals(node):
                 node.body_t.clear()
         return None
 
-    cwast.VisitAstRecursivelyPost(node, replacer)
+    cwast.VisitAstRecursivelyPost(fun, replacer)
 
 
 def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
@@ -285,7 +285,7 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
                            x_type=node.x_type, x_value=node.x_value)
 
 
-def ReplaceExprIndex(node, tc: type_corpus.TypeCorpus):
+def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     uint_type = tc.get_uint_canon_type()
 
     def replacer(node, _, is_lhs):
@@ -295,15 +295,15 @@ def ReplaceExprIndex(node, tc: type_corpus.TypeCorpus):
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithLhsPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithLhsPost(fun, replacer)
 
 
-def CanonicalizeDefer(node, scopes):
-    if isinstance(node, cwast.DefFun):
-        scopes.append((node, []))
+def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
+    if isinstance(fun, cwast.DefFun):
+        scopes.append((fun, []))
 
-    if isinstance(node, cwast.StmtDefer):
-        scopes[-1][1].append(node)
+    if isinstance(fun, cwast.StmtDefer):
+        scopes[-1][1].append(fun)
 
     def handle_cfg(target):
         out = []
@@ -315,21 +315,21 @@ def CanonicalizeDefer(node, scopes):
                 break
         return out
 
-    if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        return cwast.EphemeralList(handle_cfg(node.x_target) + [node], colon=False)
+    if cwast.NF.CONTROL_FLOW in fun.FLAGS:
+        return cwast.EphemeralList(handle_cfg(fun.x_target) + [fun], colon=False)
 
-    for field, nfd in node.__class__.FIELDS:
+    for field, nfd in fun.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, field)
-            new_child = CanonicalizeDefer(child, scopes)
+            child = getattr(fun, field)
+            new_child = FunCanonicalizeDefer(child, scopes)
             if new_child:
-                setattr(node, child, new_child)
+                setattr(fun, child, new_child)
         elif nfd.kind is cwast.NFK.LIST:
             if field in cwast.NEW_SCOPE_FIELDS:
-                scopes.append((node, []))
-            children = getattr(node, field)
+                scopes.append((fun, []))
+            children = getattr(fun, field)
             for n, child in enumerate(children):
-                new_child = CanonicalizeDefer(child, scopes)
+                new_child = FunCanonicalizeDefer(child, scopes)
                 if new_child:
                     children[n] = new_child
             if field in cwast.NEW_SCOPE_FIELDS:
@@ -339,14 +339,14 @@ def CanonicalizeDefer(node, scopes):
                         children += out
                 scopes.pop(-1)
 
-    if isinstance(node, cwast.StmtDefer):
-        return cwast.EphemeralList([], colon=False, x_srcloc=node.x_srcloc)
-    if isinstance(node, cwast.DefFun):
+    if isinstance(fun, cwast.StmtDefer):
+        return cwast.EphemeralList([], colon=False, x_srcloc=fun.x_srcloc)
+    if isinstance(fun, cwast.DefFun):
         scopes.pop(-1)
     return None
 
 
-def AddMissingReturnStmts(fun: cwast.DefFun):
+def FunAddMissingReturnStmts(fun: cwast.DefFun):
     result:  cwast.CanonType = fun.x_type.result_type()
     srcloc = fun.x_srcloc
     if not result.is_void_or_wrapped_void():

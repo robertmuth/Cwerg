@@ -902,7 +902,7 @@ def main():
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.FunReplaceTypeOf(fun)
-            canonicalize.ReplaceExprIndex(fun, tc)
+            canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.ReplaceConstExpr(fun)
             canonicalize.EliminateImplicitConversions(fun, tc)
             canonicalize_slice.ReplaceExplicitSliceCast(fun, tc)
@@ -910,8 +910,8 @@ def main():
             if not isinstance(fun, cwast.DefFun):
                 continue
             id_gen = GetIdGen(fun)
-            canonicalize.ReplaceExprIs(fun, id_gen, tc)
-            canonicalize.CanonicalizeDefer(fun, [])
+            canonicalize.FunReplaceExprIs(fun, id_gen, tc)
+            canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
     ELIMIMATED_NODES.add(cwast.ExprSizeof)
@@ -926,12 +926,12 @@ def main():
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:
-        canonicalize.OptimizeKnownConditionals(mod)
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
         for node in mod.body_mod:
-            canonicalize.CanonicalizeTernaryOp(node, identifier.IdGen())
             if isinstance(node, cwast.DefFun) and not node.extern:
-                canonicalize.AddMissingReturnStmts(node)
+                canonicalize.FunCanonicalizeTernaryOp(node, identifier.IdGen())
+                canonicalize.FunOptimizeKnownConditionals(node)
+                canonicalize.FunAddMissingReturnStmts(node)
 
     ELIMIMATED_NODES.add(cwast.Expr3)
     mod_gen.body_mod += list(str_val_map.values())
@@ -983,9 +983,9 @@ def main():
             # why doing this so late?
             canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
                 fun, tc)
-            canonicalize.CanonicalizeTernaryOp(fun, id_gen)
-            canonicalize.CanonicalizeCompoundAssignments(fun, id_gen)
-            canonicalize.CanonicalizeRemoveStmtCond(fun)
+            canonicalize.FunCanonicalizeTernaryOp(fun, id_gen)
+            canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
+            canonicalize.FunCanonicalizeRemoveStmtCond(fun)
 
     ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
     ELIMIMATED_NODES.add(cwast.StmtCond)
