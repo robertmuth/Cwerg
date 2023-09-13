@@ -9,17 +9,17 @@ TESTS = macros.cw \
         consts.cw \
         sexpr.cw \
         cast.cw \
-		comment.cw \
+        comment.cw \
         linked_list.cw \
         binary_tree.cw \
-        sizeof.cw 
+        sizeof.cw
 
 TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
 TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 TESTS_META = $(TESTS:%.cw=$(DIR)/%.cw.meta)
 TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
-TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp) 
+TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
                 tests_lang_x64 tests_lang_a64 \
@@ -45,7 +45,7 @@ tests_lang_x64: \
     $(DIR)/expr_uint_test.lang.x64.exe \
     $(DIR)/defer_test.lang.x64.exe \
     $(DIR)/sum_untagged_test.lang.x64.exe \
-    $(DIR)/sum_tagged_test.lang.x64.exe 
+    $(DIR)/sum_tagged_test.lang.x64.exe
 
 # test language features A64
 tests_lang_a64: \
@@ -75,12 +75,12 @@ tests_lang_a32: \
 tests_lib_x64: \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \
-    $(DIR)/checksum_test.lib.x64.exe 
+    $(DIR)/checksum_test.lib.x64.exe
 
 tests_lib_a64: \
 	$(DIR)/string_test.lib.a64.exe \
     $(DIR)/trig_test.lib.a64.exe \
-    $(DIR)/checksum_test.lib.a64.exe 
+    $(DIR)/checksum_test.lib.a64.exe
 
 tests_emit: \
     $(DIR)/hello_world.run.x64.exe \
@@ -96,29 +96,29 @@ tests_emit: \
 	$(DIR)/print_argv.x64.test \
     $(DIR)/print_argv.a64.test \
     $(DIR)/wordcount.x64.test \
-    $(DIR)/wordcount.a64.test 
+    $(DIR)/wordcount.a64.test
 
 $(DIR)/%.cw.parse: TestData/%.cw
 	@echo "[parse $@]"
-	cat $(BUILTINS) $< | ./parse.py 
+	./parse.py $<
 
 $(DIR)/%.cw.meta: TestData/%.cw
 	@echo "[typify $@]"
-	./typify.py $< 
+	./typify.py $<
 
 $(DIR)/%.cw.eval: TestData/%.cw
 	@echo "[eval $@]"
-	./eval.py $< 
+	./eval.py $<
 
 $(DIR)/%.cw.symtab: TestData/%.cw
 	@echo "[symbolize $@]"
-	./symbolize.py $< 
+	./symbolize.py $<
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"
-	cat $(BUILTINS) $< | ./pp.py >$@.tmp
-	./pp.py < $@.tmp >$@
-	diff $@.tmp $@
+	./pp.py $< >$@.tmp.cw
+	./pp.py $@.tmp.cw >$@
+	diff $@.tmp.cw $@
 
 ## Language Tests
 
@@ -213,7 +213,7 @@ $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
 	${QEMU} $@ 128 48
 
 clean:
-	@rm -f $(DIR)/* 
+	@rm -f $(DIR)/*
 
 
 reformat:

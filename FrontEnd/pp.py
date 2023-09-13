@@ -8,6 +8,8 @@ import sys
 import logging
 import argparse
 import enum
+import os
+import pathlib
 
 from typing import List, Optional, Tuple
 
@@ -17,7 +19,7 @@ from FrontEnd import symbolize
 from FrontEnd import typify
 from FrontEnd import type_corpus
 from FrontEnd import eval
-
+from FrontEnd import mod_pool
 
 logger = logging.getLogger(__name__)
 
@@ -868,27 +870,36 @@ def main():
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument(
         '-mode', type=str, help='mode. one of: reformat, annotate, concrete', default="reformat")
+    parser.add_argument('files', metavar='F', type=str, nargs='+',
+                        help='an input source file')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-
-    mods = parse.ReadModsFromStream(sys.stdin)
+    assert len(args.files) == 1
+    assert args.files[0].endswith(".cw")
 
     if args.mode == 'reformat':
-        for mod in mods:
-            PrettyPrint(mod)
+        with open(args.files[0], encoding="utf8") as f:
+            mods = parse.ReadModsFromStream(f)
+            assert len(mods) == 1
+            PrettyPrint(mods[0])
     elif args.mode == 'annotate':
-        mod_topo_order, mod_map = symbolize.ModulesInTopologicalOrder(mods)
-        symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, mod_map)
+        cwd = os.getcwd()
+        mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
+        mp.InsertSeedMod("builtin")
+        mp.InsertSeedMod(str(pathlib.Path(args.files[0][:-3]).resolve()))
+        mp.ReadAndFinalizedMods()
+
+        mod_topo_order = mp.ModulesInTopologicalOrder()
+        symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
         for mod in mod_topo_order:
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        tc = type_corpus.TypeCorpus(
-            cwast.BASE_TYPE_KIND.U64, cwast.BASE_TYPE_KIND.S64)
+        tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
         typify.DecorateASTWithTypes(mod_topo_order, tc)
         eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
-        for mod in mods:
+        for mod in mod_topo_order:
             PrettyPrintHTML(mod, tc)
     elif args.mode == 'concrete':
         for mod in mods:

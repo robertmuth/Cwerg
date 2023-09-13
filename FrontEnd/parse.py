@@ -424,4 +424,6 @@ if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    ReadModsFromStream(sys.stdin)
+    assert len(sys.argv) == 2
+    with open(sys.argv[1], encoding="utf8") as f:
+        ReadModsFromStream(f)
