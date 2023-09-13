@@ -525,7 +525,7 @@ def main(argv):
     mp.InsertSeedMod(str(pathlib.Path(argv[0][:-3]).resolve()))
     mp.ReadAndFinalizedMods()
     mod_topo_order = mp.ModulesInTopologicalOrder()
-    
+
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
@@ -536,7 +536,7 @@ def main(argv):
 
 if __name__ == "__main__":
     import sys
-    import os 
+    import os
     import pathlib
     from FrontEnd import mod_pool
 

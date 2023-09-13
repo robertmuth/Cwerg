@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 class MacroContext:
     """TBD"""
-    def __init__(self, no):
-        self._no = no
+
+    def __init__(self, no: int):
+        self._no: int = no
         # these need to become lists
         self.macro_parameter: Dict[str, Tuple[cwast.MacroParam, Any]] = {}
         self.srcloc = None

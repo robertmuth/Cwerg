@@ -141,11 +141,6 @@ def ReplaceExplicitSumCast(node, sum_to_struct_map: SUM_TO_STRUCT_MAP, tc: type_
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc):
-    return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node,
-                    x_type=def_rec, x_srcloc=srcloc)
-
-
 def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
@@ -176,7 +171,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             return cwast.ExprField(node.expr, SUM_FIELD_UNION,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
-            
+
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 
             def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(

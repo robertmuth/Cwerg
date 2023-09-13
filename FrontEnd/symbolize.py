@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any
 
 from FrontEnd import pp
 from FrontEnd import macros

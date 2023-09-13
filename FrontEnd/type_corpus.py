@@ -3,7 +3,7 @@ import logging
 import re
 import dataclasses
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 
 from FrontEnd import cwast
 

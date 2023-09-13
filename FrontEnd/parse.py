@@ -397,8 +397,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
 def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
     asts = []
     stream = ReadTokens(fp, fn)
+    failure = False
     try:
-        failure = False
         while True:
             attr = {}
             t = ReadAttrs(next(stream), attr, stream)

@@ -79,7 +79,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
 
 
 def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
-                               tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+                                  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
         fun, new_sig, tc, id_gen)
 
@@ -113,8 +113,8 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 
 
 def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
-                               tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
-    """Assuming the callee signature was changed like so  
+                                  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+    """Assuming the callee signature was changed like so
           foo(a: rec A, b: rec B, c: rec C)
        To
           foo(a: ptr(rec A), b: ptr(rec B), c: ptr(rec C))
@@ -129,10 +129,10 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
            foo(&aa, &bb, &cc)
 
        We have to play it safe and materialize aa, bb, cc under certain conditions:
-       * a, b, c are expression 
+       * a, b, c are expression
          we cannot take address of an expression so we have to make copy first.
        * a, b, c are mutable storage locations
-         we cannot be sure if mutable aliases to a, b, c are accessed by foo 
+         we cannot be sure if mutable aliases to a, b, c are accessed by foo
          of functions called by foo, so we have to make a copy with value just before the call.
     """
     def replacer(call, _) -> Optional[Any]:

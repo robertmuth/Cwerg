@@ -808,9 +808,10 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
                 _CheckTypeSameExceptMut(
                     p,  a.x_type, p, a.x_srcloc)
     elif isinstance(node, cwast.TypeSumDelta):
-        minuned = node.type.x_type
-        subtrahend = node.subtrahend.x_type
+        # minuned = node.type.x_type
+        #  subtrahend = node.subtrahend.x_type
         # TODO: need to use origianal types if available
+        pass
     elif isinstance(node, cwast.ExprAs):
         pass
         # src = node.expr.x_type
@@ -975,7 +976,7 @@ def main(argv):
 
 if __name__ == "__main__":
     import sys
-    import os 
+    import os
     import pathlib
     from FrontEnd import mod_pool
 
