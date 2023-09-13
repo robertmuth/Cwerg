@@ -971,7 +971,7 @@ def main(argv):
     DecorateASTWithTypes(mod_topo_order, tc)
 
     for t, n in tc.corpus.items():
-        print(t, n.register_types, n.size, n.alignment)
+        logger.warning("%s %s %d %d", t, n.register_types, n.size, n.alignment)
 
 
 if __name__ == "__main__":
@@ -981,5 +981,5 @@ if __name__ == "__main__":
     from FrontEnd import mod_pool
 
     logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.WARN)
     main(sys.argv[1:])

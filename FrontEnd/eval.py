@@ -541,5 +541,5 @@ if __name__ == "__main__":
     from FrontEnd import mod_pool
 
     logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.WARN)
     main(sys.argv[1:])
