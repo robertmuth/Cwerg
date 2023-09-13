@@ -815,7 +815,6 @@ def SanityCheckMods(phase_name: str, emit_ir: str, mods: List[cwast.DefMod], tc,
         eval.VerifyASTEvalsRecursively(mod)
 
 
-ELIMIMATED_NODES = set()
 
 
 def main():
@@ -839,6 +838,9 @@ def main():
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
 
+    # keeps track of those node classes which have been eliminated and hence must not
+    # occur in the AST anymore
+    ELIMIMATED_NODES = set()
     ELIMIMATED_NODES.add(cwast.ExprParen)  # this needs more work
 
     for mod in mod_topo_order:
@@ -909,8 +911,7 @@ def main():
 
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = GetIdGen(fun)
-            canonicalize.FunReplaceExprIs(fun, id_gen, tc)
+            canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
@@ -929,6 +930,8 @@ def main():
         canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
+                canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
+                    node, tc)
                 canonicalize.FunCanonicalizeTernaryOp(node, identifier.IdGen())
                 canonicalize.FunOptimizeKnownConditionals(node)
                 canonicalize.FunAddMissingReturnStmts(node)
@@ -964,7 +967,7 @@ def main():
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = id_gens[fun]
+            id_gen = GetIdGen(fun)
             canonicalize_large_args.FunRewriteLargeArgsCallerSide(
                 fun, fun_sigs_with_large_args, tc, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
@@ -979,11 +982,6 @@ def main():
                 continue
 
             id_gen = GetIdGen(fun)
-            # continue
-            # why doing this so late?
-            canonicalize.CanonicalizeBoolExpressionsNotUsedForConditionals(
-                fun, tc)
-            canonicalize.FunCanonicalizeTernaryOp(fun, id_gen)
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
 

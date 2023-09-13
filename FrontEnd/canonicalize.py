@@ -54,7 +54,7 @@ def _ShouldBeBoolExpanded(node, field):
         "value_or_undef") and node.x_type.is_bool()
 
 
-def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.TypeCorpus):
+def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """transform a complex bool expression e into "e ? true : false"
 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
@@ -71,11 +71,10 @@ def CanonicalizeBoolExpressionsNotUsedForConditionals(node, tc: type_corpus.Type
                                x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def _RewriteExprIs(node: cwast.ExprIs, id_gen: identifier.IdGen,
-                   tc: type_corpus.TypeCorpus):
+def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     src_ct: cwast.CanonType = node.expr.x_type
     dst_ct: cwast.CanonType = node.type.x_type
     typeid_ct = tc.get_typeid_canon_type()
@@ -89,11 +88,11 @@ def _RewriteExprIs(node: cwast.ExprIs, id_gen: identifier.IdGen,
                        x_srcloc=srcloc, x_type=tc.get_bool_canon_type())
 
 
-def FunReplaceExprIs(fun: cwast.DefFun, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
+def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Transform ExprIs comparisons for typeids"""
-    def replacer(node, field):
+    def replacer(node, _):
         if isinstance(node, cwast.ExprIs):
-            return _RewriteExprIs(node, id_gen, tc)
+            return _RewriteExprIs(node, tc)
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
