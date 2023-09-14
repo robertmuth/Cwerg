@@ -17,7 +17,7 @@
         (param p1 bool)
         (param p2 MyRec)
         (param p3 MyRec)] MyRec :
-    (return (call foo [
+    (return (foo [
             'c'
             p2
             p1

@@ -142,9 +142,9 @@
     (test::AssertEq! (as (at array1 13) u32) 0x42280000_u32)
     (test::AssertEq! (as (at array1 13) r32) 42_r32)
 
-    (= u1 (call with_union_result [true 10 2.0]))
+    (= u1 (with_union_result [true 10 2.0]))
     (test::AssertEq! (as u1 u32) 10_u32)
-    (= u1 (call with_union_result [false 10 2.0]))
+    (= u1 (with_union_result [false 10 2.0]))
     (test::AssertEq! (as u1 u32) 0x40000000_u32)
 
     (= (at array1 13) 2.0_r64)
@@ -155,7 +155,7 @@
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (call test_untagged_union []))
+    (stmt (test_untagged_union []))
 
     @doc "test end"
     (test::Success!)

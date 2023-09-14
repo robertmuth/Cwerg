@@ -28,7 +28,7 @@
 
 (fun @pub FileWrite [
         (param fd FD) (param buffer (slice u8))] (union [uint Error])  :
-    (let res auto (call write [(as fd s32) (front buffer) (len buffer)]))
+    (let res auto (write [(as fd s32) (front buffer) (len buffer)]))
     (if (< res 0) :
           (return (as (as res s32) Error))
     :
@@ -39,7 +39,7 @@
 
 (fun @pub FileRead [
         (param fd FD) (param buffer (slice @mut u8))] (union [uint Error]):
-    (let res auto (call read [(as fd s32) (front @mut buffer) (len buffer)]))
+    (let res auto (read [(as fd s32) (front @mut buffer) (len buffer)]))
     (if (< res 0) :
           (return (as (as res s32) Error))
     :
@@ -50,7 +50,7 @@
 
 (fun @pub TimeNanoSleep [(param req (ptr TimeSpec)) 
                                   (param rem (ptr @mut TimeSpec))] Error :
-    (let res auto (call nanosleep [req rem]))
+    (let res auto (nanosleep [req rem]))
     (return (as res Error))
 )
 

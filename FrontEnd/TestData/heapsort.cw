@@ -58,14 +58,14 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 SIZE 1 :
-        (let v auto (call random::get_random [1000]))
+        (let v auto (random::get_random [1000]))
         (= (at Data (+ i 1)) v))
-    (stmt (call dump_array [SIZE (& (at Data 1))]))
+    (stmt (dump_array [SIZE (& (at Data 1))]))
     (fmt::print! [NEWLINE])
     (fmt::print! [SIZE NEWLINE])
-    (stmt (call heap_sort [SIZE (& @mut (at Data 0))]))
+    (stmt (heap_sort [SIZE (& @mut (at Data 0))]))
     (fmt::print! [NEWLINE])
-    (stmt (call dump_array [SIZE (& (at Data 1))]))
+    (stmt (dump_array [SIZE (& (at Data 1))]))
     (fmt::print! [NEWLINE])
     (for i 1 SIZE 1 :
         (if (> (at Data i) (at Data (+ i 1))) :

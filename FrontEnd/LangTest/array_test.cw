@@ -118,9 +118,9 @@
 
     (= a b)
     (test::AssertEq! (at a 0) 4_u8)
-    (test::AssertEq! (call update_array [a 0 2]) 4_u8)
-    (test::AssertEq! (call update_array [a 0 3]) 2_u8)
-    (test::AssertEq! (call update_array [(^ pa_mut) 0 2]) 3_u8)
+    (test::AssertEq! (update_array [a 0 2]) 4_u8)
+    (test::AssertEq! (update_array [a 0 3]) 2_u8)
+    (test::AssertEq! (update_array [(^ pa_mut) 0 2]) 3_u8)
 )
 
 
@@ -164,14 +164,14 @@
     (test::AssertEq! (at f3 0) 111_s32)
     @doc "basic"
     (test::AssertEq! (at c3 0) 4_u8)
-    (test::AssertEq! (call update_array [c3 0 77]) 4_u8)
-    (test::AssertEq! (call update_array [c3 0 5]) 77_u8)
+    (test::AssertEq! (update_array [c3 0 77]) 4_u8)
+    (test::AssertEq! (update_array [c3 0 5]) 77_u8)
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (call test_global_array []))
-    (stmt (call test_local_array []))
-    (stmt (call test_mixed_array []))
+    (stmt (test_global_array []))
+    (stmt (test_local_array []))
+    (stmt (test_mixed_array []))
     @doc "test end"
     (test::Success!)
     (return 0))

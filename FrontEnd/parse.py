@@ -49,12 +49,13 @@ _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
 BUILT_IN_MACROS = set([
-     "while",
-     "for",
-     "try",
-     "->",
-     "swap",
+    "while",
+    "for",
+    "try",
+    "->",
+    "swap",
 ])
+
 
 def ReadAttrs(t: str, attr, stream):
     while t.startswith("@"):
@@ -390,7 +391,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream)
             else:
-                cwast.CompilerError(stream.srcloc(), f"expected macro got {tag}")
+                return ReadRestAndMakeNode(cwast.ExprCall, [cwast.Id(tag, x_srcloc=stream.srcloc())],
+                                           cwast.ExprCall.FIELDS[1:], attr, stream)
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
 
         # This helps catching missing closing braces early

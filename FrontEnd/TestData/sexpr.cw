@@ -3,11 +3,11 @@
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (stmt (call foo1 [
+    (stmt (foo1 [
             0
             0
             0]))
-    (stmt (call foo2 [
+    (stmt (foo2 [
             1
             2
             3]))
@@ -124,5 +124,3 @@
     (return (call foo [c])))
 
 )
-
-

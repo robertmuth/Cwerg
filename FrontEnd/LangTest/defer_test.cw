@@ -14,23 +14,23 @@
 
 (fun foo [] void :
     (defer :
-        (stmt (call store ['h'])))
+        (stmt (store ['h'])))
     (defer :
-        (stmt (call store ['g'])))
-    (stmt (call store ['a']))
+        (stmt (store ['g'])))
+    (stmt (store ['a']))
     (block _ :
-        (stmt (call store ['b']))
+        (stmt (store ['b']))
         (defer :
-            (stmt (call store ['e'])))
+            (stmt (store ['e'])))
         (defer :
-            (stmt (call store ['d'])))
-        (stmt (call store ['c'])))
-    (stmt (call store ['f']))
+            (stmt (store ['d'])))
+        (stmt (store ['c'])))
+    (stmt (store ['f']))
 )
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (call foo []))
+    (stmt (foo []))
     (test::AssertSliceEq! (slice_val (front gSequence) gIndex) "abcdefgh")
     @doc "test end"
     (test::Success!)

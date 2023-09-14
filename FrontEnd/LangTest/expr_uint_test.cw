@@ -152,10 +152,10 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (call test_u64 [0x8765432187654321 0x1234567812345678]))
-    (stmt (call test_u32 [0x87654321 0x12345678]))
-    (stmt (call test_u16 [0x4321 0x1234]))
-    (stmt (call test_u8 [0x87 0x78]))
+    (stmt (test_u64 [0x8765432187654321 0x1234567812345678]))
+    (stmt (test_u32 [0x87654321 0x12345678]))
+    (stmt (test_u16 [0x4321 0x1234]))
+    (stmt (test_u8 [0x87 0x78]))
 
     @doc "test end"
     (test::Success!)

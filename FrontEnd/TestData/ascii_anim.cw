@@ -77,7 +77,7 @@
 
 
 (fun get_fg_color [(param attr u8)] (slice u8) :
-    (let col u8 (call tolower [attr]))
+    (let col u8 (tolower [attr]))
     (cond :
         (case (== col 'k') :
             (return ansi::FG_COLOR_BLACK))
@@ -100,7 +100,7 @@
 
 
 (fun get_bg_color [(param attr u8)] (slice u8) :
-    (let col u8 (call tolower [attr]))
+    (let col u8 (tolower [attr]))
     (cond :
         (case (== col 'k') :
             (return ansi::BG_COLOR_BLACK))
@@ -181,7 +181,7 @@
 
 
 (fun @pub window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
-    (fmt::print! [(call get_bg_color [bg_col]) ansi::CLEAR_ALL])
+    (fmt::print! [(get_bg_color [bg_col]) ansi::CLEAR_ALL])
     (let w auto (-> obj width))
     (let h auto (-> obj height))
     @doc "@ is an invalid attrib"
@@ -200,7 +200,7 @@
                 :)
             (= last_x x)
             (if (!= last_attr a) :
-                (fmt::print! [(call get_fg_color [a]) (call get_style [a])])
+                (fmt::print! [(get_fg_color [a]) (call get_style [a])])
                 :)
             (= last_attr a)
             (fmt::print! [(as c fmt::rune)]))))

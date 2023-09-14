@@ -14,31 +14,31 @@ cos   1    sqrt(3)/2   sqrt(2)/2  1/2        0
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (test::AssertApproxEq! (call trig::sin_restricted [
+    (test::AssertApproxEq! (trig::sin_restricted [
             0.0
             0.0
             true]) 0.0_r64 EPSILON)
-    (test::AssertApproxEq! (call trig::sin_restricted [
+    (test::AssertApproxEq! (trig::sin_restricted [
             (/ math::PI 6.0)
             0.0
             true]) 0.5_r64 EPSILON)
-    (test::AssertApproxEq! (call trig::sin_restricted [
+    (test::AssertApproxEq! (trig::sin_restricted [
             (/ math::PI 4.0)
             0.0
             true]) (/ math::SQRT_2 2) EPSILON)
-    (test::AssertApproxEq! (call trig::sin_restricted [
+    (test::AssertApproxEq! (trig::sin_restricted [
             (/ math::PI 3.0)
             0.0
             true]) (/ math::SQRT_3 2) EPSILON)
-    (test::AssertApproxEq! (call trig::sin_restricted [
+    (test::AssertApproxEq! (trig::sin_restricted [
             (/ math::PI 2.0)
             0.0
             true]) 1.0_r64 EPSILON)
-    (test::AssertApproxEq! (call trig::cos_restricted [0.0 0.0]) 1.0_r64 EPSILON)
-    (test::AssertApproxEq! (call trig::cos_restricted [(/ math::PI 6.0) 0.0]) (/ math::SQRT_3 2) EPSILON)
-    (test::AssertApproxEq! (call trig::cos_restricted [(/ math::PI 4.0) 0.0]) (/ math::SQRT_2 2) EPSILON)
-    (test::AssertApproxEq! (call trig::cos_restricted [(/ math::PI 3.0) 0.0]) 0.5_r64 EPSILON)
-    (test::AssertApproxEq! (call trig::cos_restricted [(/ math::PI 2.0) 0.0]) 0.0_r64 EPSILON)
+    (test::AssertApproxEq! (trig::cos_restricted [0.0 0.0]) 1.0_r64 EPSILON)
+    (test::AssertApproxEq! (trig::cos_restricted [(/ math::PI 6.0) 0.0]) (/ math::SQRT_3 2) EPSILON)
+    (test::AssertApproxEq! (trig::cos_restricted [(/ math::PI 4.0) 0.0]) (/ math::SQRT_2 2) EPSILON)
+    (test::AssertApproxEq! (trig::cos_restricted [(/ math::PI 3.0) 0.0]) 0.5_r64 EPSILON)
+    (test::AssertApproxEq! (trig::cos_restricted [(/ math::PI 2.0) 0.0]) 0.0_r64 EPSILON)
     @doc "test end"
     (test::Success!)
     (return 0))

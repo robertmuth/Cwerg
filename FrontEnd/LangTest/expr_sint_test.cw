@@ -160,10 +160,10 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr s8)))] s32 :
-    (stmt (call test_s64 [0x8765432187654321 0x1234567812345678]))
-    (stmt (call test_s32 [0x87654321 0x12345678]))
-    (stmt (call test_s16 [0x8765 0x1234]))
-    (stmt (call test_s8 [0x87 0x78]))
+    (stmt (test_s64 [0x8765432187654321 0x1234567812345678]))
+    (stmt (test_s32 [0x87654321 0x12345678]))
+    (stmt (test_s16 [0x8765 0x1234]))
+    (stmt (test_s8 [0x87 0x78]))
 
     @doc "test end"
     (test::Success!)
