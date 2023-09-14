@@ -11,36 +11,34 @@
             666_uint
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "666")
+    (test::AssertSliceEq! (slice_val (front s) n) "666")
     (= n (call @polymorphic SysRender [
             true
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "true")
+    (test::AssertSliceEq! (slice_val (front s) n) "true")
     (= n (call @polymorphic SysRender [
             69_u16
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "69")
+    (test::AssertSliceEq! (slice_val (front s) n) "69")
     (= n (call @polymorphic SysRender [
             -69_s32
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "-69")
+    (test::AssertSliceEq! (slice_val (front s) n) "-69")
     (= n (call @polymorphic SysRender [
             (as 120_u8 fmt::rune)
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "x")
+    (test::AssertSliceEq! (slice_val (front s) n) "x")
     (= n (call @polymorphic SysRender [
             (as 2_r64 fmt::r64_hex)
             s
             (& @mut opt)]))
-    (test::AssertSliceEq (slice_val (front s) n) "0x1.p1")
+    (test::AssertSliceEq! (slice_val (front s) n) "0x1.p1")
     @doc "test end"
-    (test::Success)
+    (test::Success!)
     (return 0))
 
 )
-
-

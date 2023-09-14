@@ -31,10 +31,8 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (call foo []))
-    (test::AssertSliceEq (slice_val (front gSequence) gIndex) "abcdefgh")
+    (test::AssertSliceEq! (slice_val (front gSequence) gIndex) "abcdefgh")
     @doc "test end"
-    (test::Success)
+    (test::Success!)
     (return 0))
 )
-
-

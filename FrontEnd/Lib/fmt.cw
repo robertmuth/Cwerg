@@ -41,7 +41,7 @@
             n])))
 
 
-(macro unsigned_to_str EXPR [
+(macro unsigned_to_str! EXPR [
         (mparam $val EXPR)
         (mparam $base EXPR)
         (mparam $max_width EXPR)
@@ -76,19 +76,19 @@
 
 
 (fun u8_to_str [(param v u8) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 10 32_uint out)))
+    (return (unsigned_to_str! v 10 32_uint out)))
 
 
 (fun u16_to_str [(param v u16) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 10 32_uint out)))
+    (return (unsigned_to_str! v 10 32_uint out)))
 
 
 (fun u32_to_str [(param v u32) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 10 32_uint out)))
+    (return (unsigned_to_str! v 10 32_uint out)))
 
 
 (fun u64_to_str [(param v u64) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 10 32_uint out)))
+    (return (unsigned_to_str! v 10 32_uint out)))
 
 
 (fun s32_to_str [(param v s32) (param out (slice @mut u8))] uint :
@@ -98,9 +98,9 @@
     (if (< v 0) :
         (let v_unsigned auto (- 0_s32 v))
         (= (at out 0) '-')
-        (return (+ 1 (unsigned_to_str v_unsigned 10 32_uint (call slice_incp [out 1]))))
+        (return (+ 1 (unsigned_to_str! v_unsigned 10 32_uint (call slice_incp [out 1]))))
         :
-        (return (unsigned_to_str (as v u32) 10 32_uint out))))
+        (return (unsigned_to_str! (as v u32) 10 32_uint out))))
 
 
 (fun @pub str_to_u32 [(param s (slice u8))] u32 :
@@ -163,13 +163,13 @@
 (type @pub @wrapped u8_hex u8)
 
 (fun u32_to_hex_str [(param v u32) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 16 32_uint out)))
+    (return (unsigned_to_str! v 16 32_uint out)))
 
 (fun u16_to_hex_str [(param v u16) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 16 32_uint out)))
+    (return (unsigned_to_str! v 16 32_uint out)))
 
 (fun u8_to_hex_str [(param v u8) (param out (slice @mut u8))] uint :
-    (return (unsigned_to_str v 16 32_uint out)))
+    (return (unsigned_to_str! v 16 32_uint out)))
 
 (fun @polymorphic SysRender [
         (param v u32_hex)
@@ -298,7 +298,7 @@
     (return (call r64_to_hex_str [(as v r64) out])))
 
 
-(macro @pub print STMT_LIST [
+(macro @pub print! STMT_LIST [
         @doc "list of items to be printed"
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     (macro_let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
@@ -319,11 +319,10 @@
     (return (slice_val s i)))
 
 
-(macro @pub assert STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST)] [] :
+(macro @pub assert! STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST)] [] :
     (if $cond :
         :
-        (print [(stringify $cond) $parts])
+        (print! [(stringify $cond) $parts])
         (trap)))
 
 )
-

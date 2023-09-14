@@ -84,24 +84,24 @@
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
     (stmt (call checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
-    (fmt::print ["\n\n"])
+    (fmt::print! ["\n\n"])
     (stmt (call checksum::InitCrcTab [checksum::PolyCrc32cLE (& @mut Crc32cTab)]))
     @doc "crc32"
-    (test::AssertEq (call checksum::CalcCrc [Data00 0 (& Crc32Tab)]) 0xefb5af2e_u32)
-    (test::AssertEq (call checksum::CalcCrc [Data55 0 (& Crc32Tab)]) 0x6be062a7_u32)
-    (test::AssertEq (call checksum::CalcCrc [DataAA 0 (& Crc32Tab)]) 0x3c6f327d_u32)
-    (test::AssertEq (call checksum::CalcCrc [DataFF 0 (& Crc32Tab)]) 0xb83afff4_u32)
-    (test::AssertEq (call checksum::CalcCrc [DataInc 0 (& Crc32Tab)]) 0x100ece8c_u32)
+    (test::AssertEq! (call checksum::CalcCrc [Data00 0 (& Crc32Tab)]) 0xefb5af2e_u32)
+    (test::AssertEq! (call checksum::CalcCrc [Data55 0 (& Crc32Tab)]) 0x6be062a7_u32)
+    (test::AssertEq! (call checksum::CalcCrc [DataAA 0 (& Crc32Tab)]) 0x3c6f327d_u32)
+    (test::AssertEq! (call checksum::CalcCrc [DataFF 0 (& Crc32Tab)]) 0xb83afff4_u32)
+    (test::AssertEq! (call checksum::CalcCrc [DataInc 0 (& Crc32Tab)]) 0x100ece8c_u32)
 
     @doc "crc32c"
-    (fmt::print [(as (call checksum::CalcCrc [Data00 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print [(as (call checksum::CalcCrc [Data55 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print [(as (call checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print [(as (call checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print [(as (call checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(as (call checksum::CalcCrc [Data00 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(as (call checksum::CalcCrc [Data55 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(as (call checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(as (call checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(as (call checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
 
     @doc "test end"
-    (test::Success)
+    (test::Success!)
     (return 0))
 
 )

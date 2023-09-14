@@ -17,16 +17,14 @@
     (for i 0 31_uint 1 :
         (cond :
             (case (== (% i 15) 0) :
-                (fmt::print [FIZZBUZZ]))
+                (fmt::print! [FIZZBUZZ]))
             (case (== (% i 3) 0) :
-                (fmt::print [FIZZ]))
+                (fmt::print! [FIZZ]))
             (case (== (% i 5) 0) :
-                (fmt::print [BUZZ]))
+                (fmt::print! [BUZZ]))
             (case true :
-                (fmt::print [i])))
-        (fmt::print [NEWLINE]))
+                (fmt::print! [i])))
+        (fmt::print! [NEWLINE]))
     (return 0))
 
 )
-
-

@@ -20,45 +20,45 @@
 
 
 
-(fun TestForMacro [(param end u32)] u32 :
+(fun TestForMacro! [(param end u32)] u32 :
     (let @mut sum u32 0)
     (for i 0 end 1 :
         (+= sum i))
     (return sum))
 
 
-(macro nested0 STMT_LIST [] [] :)
+(macro nested0! STMT_LIST [] [] :)
 
 
-(macro nested1 STMT_LIST [] [] :
-    (nested0))
+(macro nested1! STMT_LIST [] [] :
+    (nested0!))
 
 
-(macro nested2 STMT_LIST [] [] :
-    (nested1))
+(macro nested2! STMT_LIST [] [] :
+    (nested1!))
 
 
-(macro nested3 STMT_LIST [] [] :
-    (nested2))
+(macro nested3! STMT_LIST [] [] :
+    (nested2!))
 
 
-(macro nested4 STMT_LIST [] [] :
-    (nested3))
+(macro nested4! STMT_LIST [] [] :
+    (nested3!))
 
 
 (fun TestRecursiveMacro [] u32 :
-    (nested3)
+    (nested3!)
     (return 0))
 
 
-(macro product STMT_LIST [(mparam $result ID) (mparam $factors STMT_LIST)] [] :
+(macro product! STMT_LIST [(mparam $result ID) (mparam $factors STMT_LIST)] [] :
     (macro_for $x $factors :
         (= $result (* $result $x))))
 
 
 (fun TestProductMacro [] u32 :
     (let @mut result u32 1)
-    (product result [
+    (product! result [
             111
             (* 2 111)
             333
@@ -77,5 +77,3 @@
 
 
 )
-
-

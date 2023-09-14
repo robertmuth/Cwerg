@@ -4,7 +4,6 @@
 
 """
 
-import sys
 import logging
 import argparse
 import enum

@@ -52,7 +52,7 @@
     (let @mut @ref buf (array 32 u8) undef)
     (for i 0 size 1 :
         (let v auto (^ (incp data i)))
-        (fmt::print [(as v fmt::r64_hex) NEWLINE]))
+        (fmt::print! [(as v fmt::r64_hex) NEWLINE]))
     (return))
 
 
@@ -61,19 +61,17 @@
         (let v auto (call random::get_random [1000]))
         (= (at Data (+ i 1)) v))
     (stmt (call dump_array [SIZE (& (at Data 1))]))
-    (fmt::print [NEWLINE])
-    (fmt::print [SIZE NEWLINE])
+    (fmt::print! [NEWLINE])
+    (fmt::print! [SIZE NEWLINE])
     (stmt (call heap_sort [SIZE (& @mut (at Data 0))]))
-    (fmt::print [NEWLINE])
+    (fmt::print! [NEWLINE])
     (stmt (call dump_array [SIZE (& (at Data 1))]))
-    (fmt::print [NEWLINE])
+    (fmt::print! [NEWLINE])
     (for i 1 SIZE 1 :
         (if (> (at Data i) (at Data (+ i 1))) :
-            (fmt::print [ERROR])
+            (fmt::print! [ERROR])
             (trap)
             :))
     (return 0))
 
 )
-
-

@@ -42,11 +42,19 @@ _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
 
 
 _RE_TOKEN_ID = re.compile(
-    r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?')
+    r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?')
 
 # hex is lower case
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
+
+BUILT_IN_MACROS = set([
+     "while",
+     "for",
+     "try",
+     "->",
+     "swap",
+])
 
 def ReadAttrs(t: str, attr, stream):
     while t.startswith("@"):
@@ -378,8 +386,11 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
-            # unknown node name - assume it is a macro
-            return ReadMacroInvocation(tag, stream)
+            if tag in BUILT_IN_MACROS or tag.endswith("!"):
+                # unknown node name - assume it is a macro
+                return ReadMacroInvocation(tag, stream)
+            else:
+                cwast.CompilerError(stream.srcloc(), f"expected macro got {tag}")
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
 
         # This helps catching missing closing braces early
