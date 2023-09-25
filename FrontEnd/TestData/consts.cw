@@ -107,7 +107,7 @@
     (entry e4))
 
 
-(global c20 auto type_enum::e3)
+(global c20 auto type_enum:e3)
 
 
 (static_assert (== (as c20 s32) 19))
@@ -201,5 +201,3 @@
 (static_assert (== (is p1 (ptr r32)) true))
 
 )
-
-

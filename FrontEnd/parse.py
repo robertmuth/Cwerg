@@ -40,9 +40,9 @@ _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     _TOKEN_MULTI_LINE_STR_START, _TOKEN_R_MULTI_LINE_STR_START,
     _TOKEN_STR, _TOKEN_R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
-
+# TODO: make this stricter WRT to :: vs :
 _RE_TOKEN_ID = re.compile(
-    r'([_A-Za-z$][_A-Za-z$0-9]*::)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?')
+    r'([_A-Za-z$][_A-Za-z$0-9]*:+)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?')
 
 # hex is lower case
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')

@@ -28,12 +28,11 @@ def AnnotateNodeSymbol(id_node, def_node):
     id_node.x_symbol = def_node
 
 
-def _resolve_enum_item(node: cwast.DefEnum, components) -> cwast.EnumVal:
-    assert len(components) == 1
+def _resolve_enum_item(node: cwast.DefEnum, entry_name) -> cwast.EnumVal:
     for item in node.items:
-        if isinstance(item, cwast.EnumVal) and item.name == components[0]:
+        if isinstance(item, cwast.EnumVal) and item.name == entry_name:
             return item
-    assert False, f"unknown enum [{components[0]}] for [{node.name}]"
+    assert False, f"unknown enum [{entry_name}] for [{node.name}]"
 
 
 class SymTab:
@@ -77,13 +76,6 @@ class SymTab:
     def resolve_sym(self, components: List[str], symtab_map, must_be_public, srcloc) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         if len(components) == 2:
-            s = self._enum_syms.get(components[0])
-            if s:
-                assert isinstance(s, cwast.DefEnum)
-                if must_be_public:
-                    assert s.pub, f"{components} must be public"
-                return _resolve_enum_item(s, components[1:])
-        if len(components) > 1:
             # TODO: pub check?
             s = self._mod_syms.get(components[0])
             if s:
@@ -92,11 +84,23 @@ class SymTab:
                 return mod_symtab.resolve_sym(components[1:], symtab_map, True, srcloc)
             cwast.CompilerError(srcloc, f"could not resolve name {components}")
 
-        out = self.resolve_sym_here(components[0], must_be_public)
+        assert len(components) == 1
+        name = components[0]
+        if ":" in name:
+            enum_name, entry_name = name.split(":")
+            s = self._enum_syms.get(enum_name)
+            if s:
+                assert isinstance(s, cwast.DefEnum)
+                if must_be_public:
+                    assert s.pub, f"{components} must be public"
+                return _resolve_enum_item(s, entry_name)
+            cwast.CompilerError(srcloc, f"could not resolve enum base-name [{enum_name}]")
+
+        out = self.resolve_sym_here(name, must_be_public)
         if not out:
             s = symtab_map.get(BUILTIN_MOD)
             if s:
-                out = s.resolve_sym_here(components[0], must_be_public)
+                out = s.resolve_sym_here(name, must_be_public)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
@@ -162,7 +166,7 @@ def _ResolveGlobalSymbols(node: cwast.Id, symtab_map):
         node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False, node.x_srcloc)
 
 
-def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map, scopes):
+def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: Dict[str, SymTab], scopes):
     components = node.name.split(cwast.ID_PATH_SEPARATOR)
     if len(components) == 1:
         for s in reversed(scopes):
@@ -264,7 +268,7 @@ def FindAndExpandMacrosRecursively(node, symtab_map, nesting, ctx: macros.MacroC
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab: SymTab, symtab_map, scopes):
+        node, symtab: SymTab, symtab_map: Dict[str, SymTab], scopes):
 
     def record_local_sym(node):
         name = node.name
