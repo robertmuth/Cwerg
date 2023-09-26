@@ -7,32 +7,32 @@
     (let @mut buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
     (let @mut @ref s (slice @mut u8) buffer)
     (let @mut n uint 0)
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             666_uint
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "666")
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             true
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "true")
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             69_u16
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "69")
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             -69_s32
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "-69")
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             (as 120_u8 fmt::rune)
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "x")
-    (= n (@polymorphic SysRender [
+    (= n (@polymorphic fmt::SysRender [
             (as 2_r64 fmt::r64_hex)
             s
             (& @mut opt)]))

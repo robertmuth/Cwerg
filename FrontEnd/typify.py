@@ -118,21 +118,22 @@ class _PolyMap:
     """Polymorphism map"""
 
     def __init__(self, tc: type_corpus.TypeCorpus):
-        self._map: Dict[Tuple[str, str], cwast.DefFun] = {}
+        self._map: Dict[Tuple[cwast.DefMod, str, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
-    def Register(self, fun: cwast.DefFun):
+    def Register(self, mod: cwast.DefMod, fun: cwast.DefFun):
         ct: cwast.CanonType = fun.x_type
         first_param_type = ct.children[0].name
-        logger.info("Register polymorphic fun %s: %s",
-                    fun.name, first_param_type)
-        self._map[(fun.name, first_param_type)] = fun
+        logger.info("Register polymorphic fun %s::%s: %s",
+                    mod.name, fun.name, first_param_type)
+        # TODO: Should this work with parameterized volumes
+        self._map[(mod, fun.name, first_param_type)] = fun
 
-    def Resolve(self, fun_name: str, first_param_type: cwast.CanonType) -> cwast.DefFun:
+    def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
+        fun_name = cwast.GetSymbolName(callee.name)
         type_name = first_param_type.name
-        logger.info("Resolving polymorphic fun %s: %s",
-                    fun_name, type_name)
-        out = self._map.get((fun_name, type_name))
+        logger.info("Resolving polymorphic fun %s: %s", fun_name, type_name)
+        out = self._map.get((callee.x_module, fun_name, type_name))
         if out:
             return out
         # TODO: why do we need this - seems unsafe:
@@ -141,17 +142,17 @@ class _PolyMap:
                 False, first_param_type.underlying_array_type())
             type_name = slice_type.name
 
-            out = self._map.get((fun_name, type_name))
+            out = self._map.get((callee.x_module, fun_name, type_name))
             if out:
                 return out
         cwast.CompilerError(
-            0, f"cannot resolve polymorphic {fun_name} {type_name}")
+            callee.x_srcloc, f"cannot resolve polymorphic {fun_name} {type_name}")
 
 
 class _TypeContext:
     def __init__(self, mod_name, poly_map: _PolyMap):
         self.mod_name: str = mod_name
-        self._poly_map: _PolyMap = poly_map
+        self.poly_map: _PolyMap = poly_map
 
 
 def is_compatible_for_as(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
@@ -461,14 +462,15 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             _TypifyNodeRecursively(c, tc, target_type, ctx)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
+        callee = node.callee
         if node.polymorphic:
             assert len(node.args) > 0
-            assert isinstance(node.callee, cwast.Id)
+            assert isinstance(callee, cwast.Id)
             t = _TypifyNodeRecursively(
                 node.args[0], tc, type_corpus.NO_TYPE, ctx)
-            called_fun = ctx._poly_map.Resolve(node.callee.name, t)
-            symbolize.AnnotateNodeSymbol(node.callee, called_fun)
-            AnnotateNodeType(node.callee, called_fun.x_type)
+            called_fun = ctx.poly_map.Resolve(callee, t)
+            symbolize.AnnotateNodeSymbol(callee, called_fun)
+            AnnotateNodeType(callee, called_fun.x_type)
             ct_callee: cwast.CanonType = called_fun.x_type
             assert ct_callee.is_fun(), f"{cstr}"
             params_ct = ct_callee.parameter_types()
@@ -478,12 +480,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 _TypifyNodeRecursively(a, tc, p, ctx)
             return AnnotateNodeType(node, ct_callee.result_type())
         else:
-            ct = _TypifyNodeRecursively(
-                node.callee, tc, type_corpus.NO_TYPE, ctx)
+            ct = _TypifyNodeRecursively(callee, tc, type_corpus.NO_TYPE, ctx)
             params_ct = ct.parameter_types()
             if len(params_ct) != len(node.args):
                 cwast.CompilerError(node.x_srcloc,
-                                    f"number of args does not match for call to {node.callee}")
+                                    f"number of args does not match for call to {callee}")
             for p, a in zip(params_ct, node.args):
                 _TypifyNodeRecursively(a, tc, p, ctx)
             return AnnotateNodeType(node, ct.result_type())
@@ -936,7 +937,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
             ct = _TypifyNodeRecursively(node, tc, type_corpus.NO_TYPE, ctx)
             if isinstance(node, cwast.DefFun) and node.polymorphic:
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
-                poly_map.Register(node)
+                poly_map.Register(mod, node)
 
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.name, poly_map)

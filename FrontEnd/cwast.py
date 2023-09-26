@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 SRCLOC_GENERATED = -1
 
-ID_PATH_SEPARATOR = "::"
+_ID_PATH_SEPARATOR = "::"
 
 
 def GetQualifierIfPresent(name: str) -> Optional[str]:
-    tokens = name.split(ID_PATH_SEPARATOR)
+    tokens = name.split(_ID_PATH_SEPARATOR)
     if len(tokens) == 2:
         return tokens[0]
     assert 1 == len(tokens)
@@ -25,8 +25,11 @@ def GetQualifierIfPresent(name: str) -> Optional[str]:
 
 
 def GetSymbolName(name: str) -> str:
-    return name.split(ID_PATH_SEPARATOR)[-1]
+    return name.split(_ID_PATH_SEPARATOR)[-1]
 
+
+def IsQualifiedName(name: str) -> bool:
+    return _ID_PATH_SEPARATOR in name
 
 ############################################################
 # Enums
@@ -68,8 +71,8 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
-    MODULE_ANNOTATED = enum.auto()  # node reference the imported module or the qualifier  (x_module)
-
+    # node reference the imported module or the qualifier  (x_module)
+    MODULE_ANNOTATED = enum.auto()
 
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
