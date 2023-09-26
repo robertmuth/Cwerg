@@ -161,7 +161,7 @@ class SymTab:
 
 
 def _ResolveGlobalSymbols(node: cwast.Id, symtab_map):
-    symtab = symtab_map[node.x_module.name]
+    symtab = symtab_map[node.x_qualifier.name]
     return symtab.resolve_sym(
         node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False, node.x_srcloc)
 
@@ -173,12 +173,12 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: Dict[str, SymTab], 
             def_node = s.get(components[0])
             if def_node is not None:
                 return def_node
-    symtab = symtab_map[node.x_module.name]
+    symtab = symtab_map[node.x_qualifier.name]
     return symtab.resolve_sym(components, symtab_map, False, node.x_srcloc)
 
 
 def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map: Dict[str, SymTab]):
-    symtab = symtab_map[node.x_module.name]
+    symtab = symtab_map[node.x_qualifier.name]
     return symtab.resolve_macro(node,  symtab_map, False)
 
 

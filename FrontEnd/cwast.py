@@ -56,6 +56,8 @@ class NF(enum.Flag):
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     MODULE_ANNOTATED = enum.auto()  # node reference a the enclosing module  (x_module)
+    QUALIEFIER_ANNOTATED = enum.auto()  # node reference a the enclosing module  (x_qualifier)
+
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
@@ -555,6 +557,8 @@ X_FIELDS = {
     "x_module": NF.MODULE_ANNOTATED,  # set during parsing, contains up point to
                                       # containing module for symbol resolution
                                       # important for symbol resolutions in macros
+    "x_qualifier": NF.QUALIEFIER_ANNOTATED,  # set during parsing, contains link to Import if
+                                      # identifier is qualified
     "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py, contains node from
                                       # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
     "x_target": NF.CONTROL_FLOW,  # set by symbolize.py,
@@ -835,7 +839,7 @@ class Id:
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.MODULE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.QUALIEFIER_ANNOTATED
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
@@ -843,7 +847,7 @@ class Id:
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
-    x_module: Optional[Any] = None
+    x_qualifier: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2508,13 +2512,13 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.MODULE_ANNOTATED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.QUALIEFIER_ANNOTATED
     #
     name: str
     args: List[NODES_EXPR_T]
     #
     x_srcloc: Optional[Any] = None
-    x_module: Optional[Any] = None
+    x_qualifier: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2796,11 +2800,14 @@ def StripFromListRecursively(node, cls):
                 setattr(node, f, new_children)
 
 
-def DecorateIdsWithModule(mod: DefMod):
+def DecorateIdsWithQualifer(mod: DefMod):
+    """Record the original module
+    """
     def visitor(node, _):
         nonlocal mod
         if isinstance(node, (Id, MacroInvoke)):
-            node.x_module = mod
+            # TODO: only decorate if the name is not qualified
+            node.x_qualifier = mod
 
     VisitAstRecursivelyPost(mod, visitor)
 ############################################################
@@ -2857,9 +2864,9 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
                 assert i.startswith("$")
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
-            assert node.x_module is not None or node.x_symbol is not None
+            assert node.x_qualifier is not None or node.x_symbol is not None
         elif isinstance(node, MacroInvoke):
-            assert node.x_module is not None
+            assert node.x_qualifier is not None
 
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
