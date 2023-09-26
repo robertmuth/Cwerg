@@ -36,9 +36,9 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
             q = cwast.GetQualifierIfPresent(node.name)
             if q:
                 assert q in imports
-                node.x_qualifier = imports[q]
+                node.x_module = imports[q]
             else:
-                node.x_qualifier = mod
+                node.x_module = mod
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 

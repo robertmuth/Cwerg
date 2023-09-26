@@ -148,7 +148,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
             def_node = s.get(name)
             if def_node is not None:
                 return def_node
-    symtab = symtab_map[node.x_qualifier]
+    symtab = symtab_map[node.x_module]
     return symtab.resolve_sym(node, symtab_map, False)
 
 
@@ -172,7 +172,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB_MAP):
     def visitor(node, _):
         if isinstance(node, cwast.Id):
-            symtab = symtab_map[node.x_qualifier]
+            symtab = symtab_map[node.x_module]
             # TODO: last parameter should depend on whether name contains ::
             def_node = symtab.resolve_sym(node, symtab_map, False)
             if def_node is None:
@@ -197,7 +197,7 @@ def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.Ma
         return cwast.ValString(f'"{node.expr}"', raw=True, x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
-    symtab = symtab_map[node.x_qualifier]
+    symtab = symtab_map[node.x_module]
     # TODO: last parameter should depend on whether name contains ::
     macro = symtab.resolve_macro(node,  symtab_map, False)
     if macro is None:
