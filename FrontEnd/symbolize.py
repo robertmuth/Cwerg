@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 BUILTIN_MOD = "$builtin"
 
-SYMTAB_MAP = Dict[str, "SymTab"]
+SYMTAB_MAP = Dict[cwast.DefMod, "SymTab"]
 
 
 def AnnotateNodeSymbol(id_node, def_node):
@@ -73,28 +73,19 @@ class SymTab:
 
         return None
 
-    def resolve_sym(self, components: List[str], symtab_map, must_be_public, srcloc) -> Optional[Any]:
+    def resolve_sym(self, ident: cwast.Id, symtab_map: SYMTAB_MAP, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        if len(components) == 2:
-            # TODO: pub check?
-            s = self._mod_syms.get(components[0])
-            if s:
-                assert isinstance(s, cwast.DefMod), f"{s}"
-                mod_symtab = symtab_map[s.name]
-                return mod_symtab.resolve_sym(components[1:], symtab_map, True, srcloc)
-            cwast.CompilerError(srcloc, f"could not resolve name {components}")
-
-        assert len(components) == 1
-        name = components[0]
+        name = cwast.GetSymbolName(ident.name)
         if ":" in name:
             enum_name, entry_name = name.split(":")
             s = self._enum_syms.get(enum_name)
             if s:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
-                    assert s.pub, f"{components} must be public"
+                    assert s.pub, f"{name} must be public"
                 return _resolve_enum_item(s, entry_name)
-            cwast.CompilerError(srcloc, f"could not resolve enum base-name [{enum_name}]")
+            cwast.CompilerError(
+                ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
 
         out = self.resolve_sym_here(name, must_be_public)
         if not out:
@@ -105,24 +96,14 @@ class SymTab:
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        components: List[str] = macro_invoke.name.split(
-            cwast.ID_PATH_SEPARATOR)
-        if len(components) > 1:
-            assert len(components) == 2
-            # TODO: pub check?
-            s = self._mod_syms.get(components[0])
-            if s:
-                assert isinstance(s, cwast.DefMod), f"{s}"
-                mod_symtab = symtab_map[s.name]
-                return mod_symtab._macro_syms.get(components[1])
-            cwast.CompilerError(macro_invoke.x_srcloc,
-                                f"could not resolve name {components}")
 
-        out = self._macro_syms.get(components[0])
+        name = cwast.GetSymbolName(macro_invoke.name)
+        # TODO: pub check?
+        out = self._macro_syms.get(name)
         if not out:
-            s = symtab_map.get(BUILTIN_MOD)
+            s = symtab_map.get(None)
             if s:
-                out = s._macro_syms.get(components[0])
+                out = s._macro_syms.get(name)
 
         return out
 
@@ -160,26 +141,15 @@ class SymTab:
         self.AddSymWithDupCheck(name, node)
 
 
-def _ResolveGlobalSymbols(node: cwast.Id, symtab_map):
-    symtab = symtab_map[node.x_qualifier.name]
-    return symtab.resolve_sym(
-        node.name.split(cwast.ID_PATH_SEPARATOR), symtab_map, False, node.x_srcloc)
-
-
-def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: Dict[str, SymTab], scopes):
-    components = node.name.split(cwast.ID_PATH_SEPARATOR)
-    if len(components) == 1:
+def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes):
+    name = cwast.GetSymbolName(node.name)
+    if cwast.ID_PATH_SEPARATOR not in node.name:
         for s in reversed(scopes):
-            def_node = s.get(components[0])
+            def_node = s.get(name)
             if def_node is not None:
                 return def_node
-    symtab = symtab_map[node.x_qualifier.name]
-    return symtab.resolve_sym(components, symtab_map, False, node.x_srcloc)
-
-
-def _ResolveMacroInvoke(node: cwast.MacroInvoke, symtab_map: Dict[str, SymTab]):
-    symtab = symtab_map[node.x_qualifier.name]
-    return symtab.resolve_macro(node,  symtab_map, False)
+    symtab = symtab_map[node.x_qualifier]
+    return symtab.resolve_sym(node, symtab_map, False)
 
 
 def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
@@ -199,10 +169,12 @@ def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
     return symtab
 
 
-def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map):
+def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB_MAP):
     def visitor(node, _):
         if isinstance(node, cwast.Id):
-            def_node = _ResolveGlobalSymbols(node, symtab_map)
+            symtab = symtab_map[node.x_qualifier]
+            # TODO: last parameter should depend on whether name contains ::
+            def_node = symtab.resolve_sym(node, symtab_map, False)
             if def_node is None:
                 cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
@@ -214,7 +186,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map):
 MAX_MACRO_NESTING = 4
 
 
-def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
+def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.MacroContext):
     assert nesting < MAX_MACRO_NESTING
     assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
     if isinstance(node, cwast.ExprSrcLoc):
@@ -225,7 +197,9 @@ def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
         return cwast.ValString(f'"{node.expr}"', raw=True, x_srcloc=node)
 
     assert isinstance(node, cwast.MacroInvoke)
-    macro = _ResolveMacroInvoke(node,  symtab_map)
+    symtab = symtab_map[node.x_qualifier]
+    # TODO: last parameter should depend on whether name contains ::
+    macro = symtab.resolve_macro(node,  symtab_map, False)
     if macro is None:
         cwast.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
@@ -238,7 +212,7 @@ def ExpandMacroOrMacroLike(node, symtab_map, nesting, ctx: macros.MacroContext):
     return exp
 
 
-def FindAndExpandMacrosRecursively(node, symtab_map, nesting, ctx: macros.MacroContext):
+def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
@@ -411,9 +385,12 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
     * reolve symbols within functions
 
     """
-    symtab_map: Dict[str, SymTab] = {}
+    symtab_map: SYMTAB_MAP = {}
     for mod in mod_topo_order:
-        symtab_map[mod.name] = _ExtractSymTabPopulatedWithGlobals(mod)
+        symtab_map[mod] = _ExtractSymTabPopulatedWithGlobals(mod)
+        # TODO: total hack - add attribute builtin instead
+        if mod.name == BUILTIN_MOD:
+            symtab_map[None] = symtab_map[mod]
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -433,7 +410,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
         # we wait until macro expansion with this
         _SetTargetFieldRecursively(mod)
 
-        symtab = symtab_map[mod.name]
+        symtab = symtab_map[mod]
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)

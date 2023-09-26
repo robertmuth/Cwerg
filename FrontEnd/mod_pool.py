@@ -8,12 +8,39 @@ import heapq
 from FrontEnd import cwast
 from FrontEnd import parse
 
-from typing import Any, Optional, List, Set, Dict
+from typing import Optional, List, Set, Dict
 
 ModHandle = pathlib.PurePath
 
 logger = logging.getLogger(__name__)
 
+
+def _DecorateIdsWithQualifer(mod: cwast.DefMod):
+    """Record the original module
+
+    We do this even for unqualified names. This is important for macros whose
+    syntax tree might get copied into a different from where it originated.
+    """
+    imports: Dict[str, cwast.DefMod] = {}
+
+    def visitor(node, _):
+        nonlocal imports, mod
+        if isinstance(node, cwast.Import):
+            name = node.name
+            # TODO: strip off path component if present
+            if node.alias:
+                name = node.alias
+            assert name not in imports
+            imports[name] = node.x_module
+        if isinstance(node, (cwast.Id, cwast.MacroInvoke)):
+            q = cwast.GetQualifierIfPresent(node.name)
+            if q:
+                assert q in imports
+                node.x_qualifier = imports[q]
+            else:
+                node.x_qualifier = mod
+
+    cwast.VisitAstRecursivelyPost(mod, visitor)
 
 class ModPoolBase:
     """
@@ -85,6 +112,9 @@ class ModPoolBase:
                     assert isinstance(node.x_module, ModHandle)
                     node.x_module = self._mods[node.x_module]
                     assert isinstance(node.x_module, cwast.DefMod)
+            _DecorateIdsWithQualifer(mod)
+            cwast.CheckAST(mod, set())
+
 
     def ReadAndFinalizedMods(self):
         while True:

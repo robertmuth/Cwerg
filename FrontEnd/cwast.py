@@ -15,6 +15,19 @@ SRCLOC_GENERATED = -1
 
 ID_PATH_SEPARATOR = "::"
 
+
+def GetQualifierIfPresent(name: str) -> Optional[str]:
+    tokens = name.split(ID_PATH_SEPARATOR)
+    if len(tokens) == 2:
+        return tokens[0]
+    assert 1 == len(tokens)
+    return None
+
+
+def GetSymbolName(name: str) -> str:
+    return name.split(ID_PATH_SEPARATOR)[-1]
+
+
 ############################################################
 # Enums
 ############################################################
@@ -56,7 +69,8 @@ class NF(enum.Flag):
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     MODULE_ANNOTATED = enum.auto()  # node reference a the enclosing module  (x_module)
-    QUALIEFIER_ANNOTATED = enum.auto()  # node reference a the enclosing module  (x_qualifier)
+    # node reference a the enclosing module  (x_qualifier)
+    QUALIEFIER_ANNOTATED = enum.auto()
 
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
@@ -557,7 +571,8 @@ X_FIELDS = {
     "x_module": NF.MODULE_ANNOTATED,  # set during parsing, contains up point to
                                       # containing module for symbol resolution
                                       # important for symbol resolutions in macros
-    "x_qualifier": NF.QUALIEFIER_ANNOTATED,  # set during parsing, contains link to Import if
+    # set during parsing, contains link to Import if
+    "x_qualifier": NF.QUALIEFIER_ANNOTATED,
                                       # identifier is qualified
     "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py, contains node from
                                       # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
@@ -2800,16 +2815,6 @@ def StripFromListRecursively(node, cls):
                 setattr(node, f, new_children)
 
 
-def DecorateIdsWithQualifer(mod: DefMod):
-    """Record the original module
-    """
-    def visitor(node, _):
-        nonlocal mod
-        if isinstance(node, (Id, MacroInvoke)):
-            # TODO: only decorate if the name is not qualified
-            node.x_qualifier = mod
-
-    VisitAstRecursivelyPost(mod, visitor)
 ############################################################
 # AST Checker
 ############################################################
@@ -2830,7 +2835,6 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
 
 
 def CheckAST(node, disallowed_nodes, allow_type_auto=False):
-
     # this forces a pre-order traversal
     toplevel_node = None
 
@@ -2864,10 +2868,13 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
                 assert i.startswith("$")
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
-            assert node.x_qualifier is not None or node.x_symbol is not None
+            # when we synthesize Ids later we do not bother with x_module anymore
+            assert node.x_symbol is not None or isinstance(
+                node.x_qualifier, DefMod)
         elif isinstance(node, MacroInvoke):
-            assert node.x_qualifier is not None
-
+            assert isinstance(node.x_qualifier, DefMod)
+        elif isinstance(node, Import):
+            assert isinstance(node.x_module, DefMod)
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra
