@@ -14,7 +14,6 @@ from FrontEnd import cwast
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_MOD = "$builtin"
 
 SYMTAB_MAP = Dict[cwast.DefMod, "SymTab"]
 
@@ -73,7 +72,7 @@ class SymTab:
 
         return None
 
-    def resolve_sym(self, ident: cwast.Id, symtab_map: SYMTAB_MAP, must_be_public) -> Optional[Any]:
+    def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         name = cwast.GetSymbolName(ident.name)
         if ":" in name:
@@ -88,23 +87,18 @@ class SymTab:
                 ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
 
         out = self.resolve_sym_here(name, must_be_public)
-        if not out:
-            s = symtab_map.get(BUILTIN_MOD)
-            if s:
-                out = s.resolve_sym_here(name, must_be_public)
+        if not out and builtin_syms:
+            out = builtin_syms.resolve_sym_here(name, must_be_public)
         return out
 
-    def resolve_macro(self, macro_invoke: cwast.MacroInvoke, symtab_map, must_be_public) -> Optional[Any]:
+    def resolve_macro(self, macro_invoke: cwast.MacroInvoke, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
 
         name = cwast.GetSymbolName(macro_invoke.name)
         # TODO: pub check?
         out = self._macro_syms.get(name)
-        if not out:
-            s = symtab_map.get(None)
-            if s:
-                out = s._macro_syms.get(name)
-
+        if not out and builtin_syms:
+            out = builtin_syms._macro_syms.get(name)
         return out
 
     def add_top_level_sym(self, node):
@@ -150,7 +144,8 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
             if def_node is not None:
                 return def_node
     symtab = symtab_map[node.x_module]
-    return symtab.resolve_sym(node, symtab_map, is_qualified)
+    builtin_syms = symtab_map.get(None)
+    return symtab.resolve_sym(node, builtin_syms, is_qualified)
 
 
 def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
@@ -171,11 +166,14 @@ def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
 
 
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB_MAP):
+    builtin_syms = symtab_map.get(None)
+
     def visitor(node, _):
+        nonlocal builtin_syms
         if isinstance(node, cwast.Id):
             symtab = symtab_map[node.x_module]
             def_node = symtab.resolve_sym(
-                node, symtab_map, cwast.IsQualifiedName(node.name))
+                node, builtin_syms, cwast.IsQualifiedName(node.name))
             if def_node is None:
                 cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.name}")
@@ -199,8 +197,9 @@ def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.Ma
 
     assert isinstance(node, cwast.MacroInvoke)
     symtab = symtab_map[node.x_module]
+    builtin_syms = symtab_map.get(None)
     macro = symtab.resolve_macro(
-        node,  symtab_map,  cwast.IsQualifiedName(node.name))
+        node,  builtin_syms,  cwast.IsQualifiedName(node.name))
     if macro is None:
         cwast.CompilerError(
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
@@ -243,7 +242,7 @@ def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: m
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab: SymTab, symtab_map: Dict[str, SymTab], scopes):
+        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes):
 
     def record_local_sym(node):
         name = node.name
@@ -390,7 +389,8 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
     for mod in mod_topo_order:
         symtab_map[mod] = _ExtractSymTabPopulatedWithGlobals(mod)
         # TODO: total hack - add attribute builtin instead
-        if mod.name == BUILTIN_MOD:
+        if mod.builtin:
+            assert None not in symtab_map
             symtab_map[None] = symtab_map[mod]
 
     for mod in mod_topo_order:

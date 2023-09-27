@@ -1,4 +1,4 @@
-(module $builtin [] :
+(module @builtin $builtin [] :
 
 @doc "macro for while-loop"
 (macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
@@ -9,7 +9,7 @@
         $body
         (continue)))
 
-@doc """macro for number range for-loop, 
+@doc """macro for number range for-loop,
 
 The type of the loop variable is determined by $end"""
 (macro @pub for STMT_LIST [

@@ -428,6 +428,7 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "untagged", "sum type is untagged"),
     NFD(NFK.ATTR_BOOL, "arg_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_BOOL, "res_ref", "in parameter was converted for by-val to pointer"),
+    NFD(NFK.ATTR_BOOL, "builtin", "module is the builtin module"),
     NFD(NFK.ATTR_STR, "doc", "comment"),
 
     #
@@ -2308,7 +2309,6 @@ class DefGlobal:
 class DefFun:
     """Function definition
 
-
     `init` and `fini` indicate module initializer/finalizers
 
     `extern` indicates a prototype and hence the function body must be empty.
@@ -2376,6 +2376,7 @@ class DefMod:
     body_mod: List[NODES_BODY_MOD_T]
     #
     doc: str = ""
+    builtin: bool = False
     #
     x_srcloc: Optional[Any] = None
 
