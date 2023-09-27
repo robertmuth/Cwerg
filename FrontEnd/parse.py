@@ -420,7 +420,8 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
                 cwast.CompilerError(
                     stream.srcloc(), f"expect start of new node, got '{t}']")
             mod = ReadSExpr(stream, None, attr)
-            assert isinstance(mod, cwast.DefMod)
+            if not isinstance(mod, cwast.DefMod):
+                cwast.CompilerError(stream.srcloc(), f"expected end of module but for {mod}")
             asts.append(mod)
             failure = False
     except StopIteration:

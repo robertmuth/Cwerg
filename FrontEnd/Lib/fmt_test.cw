@@ -9,11 +9,35 @@
     (entry green 3)
     (entry red 4))
 
+
 (fun @polymorphic fmt::SysRender [
         (param v color)
         (param out (slice @mut u8))
         (param options (ptr @mut fmt::SysFormatOptions))] uint :
     (return (@polymorphic fmt::SysRender [(as v s32) out options])))
+
+
+(defrec @pub ic32 :
+    (field real s32)
+    (field imag s32))
+
+(fun @polymorphic fmt::SysRender [
+        (param v ic32)
+        (param s (slice @mut u8))
+        (param opt (ptr @mut fmt::SysFormatOptions))] uint :
+    (let f auto (front @mut s))
+    (let l auto (len s))
+    (let @mut n uint 0)
+    (= n (@polymorphic fmt::SysRender [
+       (. v real) s opt]))
+    (+= n (@polymorphic fmt::SysRender [
+        "+"  (slice_val (incp f n) (- l n)) opt]))
+    (+= n (@polymorphic fmt::SysRender [
+        (. v imag)  (slice_val (incp f n) (- l n)) opt]))
+    (+= n (@polymorphic fmt::SysRender [
+        "i"  (slice_val (incp f n) (- l n)) opt]))
+    (return n))
+
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (let @mut @ref opt auto (rec_val fmt::SysFormatOptions []))
@@ -55,6 +79,11 @@
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "2")
+    (= n (@polymorphic fmt::SysRender [
+            (rec_val ic32 [(field_val 111) (field_val 222)])
+            s
+            (& @mut opt)]))
+    (test::AssertSliceEq! (slice_val (front s) n) "111+222i")
     @doc "test end"
     (test::Success!)
     (return 0))
