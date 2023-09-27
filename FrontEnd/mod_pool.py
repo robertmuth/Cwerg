@@ -32,9 +32,11 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
                 name = node.alias
             assert name not in imports
             imports[name] = node.x_module
-        if isinstance(node, (cwast.Id, cwast.MacroInvoke)):
+        if isinstance(node, (cwast.Id, cwast.MacroInvoke, cwast.DefFun)):
             q = cwast.GetQualifierIfPresent(node.name)
             if q:
+                if isinstance(node, cwast.DefFun):
+                    assert node.polymorphic
                 assert q in imports
                 node.x_module = imports[q]
             else:

@@ -73,11 +73,13 @@ tests_lang_a32: \
     $(DIR)/expr_sint_test.lang.a64.exe
 
 tests_lib_x64: \
+	$(DIR)/fmt_test.lib.x64.exe \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \
     $(DIR)/checksum_test.lib.x64.exe
 
 tests_lib_a64: \
+	$(DIR)/fmt_test.lib.a64.exe \
 	$(DIR)/string_test.lib.a64.exe \
     $(DIR)/trig_test.lib.a64.exe \
     $(DIR)/checksum_test.lib.a64.exe
@@ -89,8 +91,6 @@ tests_emit: \
     $(DIR)/fizzbuzz.run.a64.exe \
     $(DIR)/sieve.run.x64.exe \
     $(DIR)/sieve.run.a64.exe \
-    $(DIR)/polymorphic.run.x64.exe \
-    $(DIR)/polymorphic.run.a64.exe \
     $(DIR)/heapsort.run.x64.exe \
     $(DIR)/heapsort.run.a64.exe \
 	$(DIR)/print_argv.x64.test \

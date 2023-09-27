@@ -441,6 +441,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(
                 f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
             return res
+        elif (ct_src.is_enum() and ct_dst.is_base_type() or
+              ct_dst.is_enum() and ct_src.is_base_type()) and (ct_src.base_type_kind
+                                                               == ct_dst.base_type_kind):
+            # just ignore the wrapped type
+            return EmitIRExpr(node.expr, tc, id_gen)
         else:
             assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, cwast.ExprDeref):
@@ -813,8 +818,6 @@ def SanityCheckMods(phase_name: str, emit_ir: str, mods: List[cwast.DefMod], tc,
         symbolize.VerifyASTSymbolsRecursively(mod)
         typify.VerifyTypesRecursively(mod, tc, allow_implicit_type_conversion)
         eval.VerifyASTEvalsRecursively(mod)
-
-
 
 
 def main():

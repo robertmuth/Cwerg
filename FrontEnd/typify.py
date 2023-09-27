@@ -121,13 +121,15 @@ class _PolyMap:
         self._map: Dict[Tuple[cwast.DefMod, str, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
-    def Register(self, mod: cwast.DefMod, fun: cwast.DefFun):
+    def Register(self, fun: cwast.DefFun):
         ct: cwast.CanonType = fun.x_type
+        mod = fun.x_module
+        name = cwast.GetSymbolName(fun.name)
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
-                    mod.name, fun.name, first_param_type)
+                    mod.name, name, first_param_type)
         # TODO: Should this work with parameterized volumes
-        self._map[(mod, fun.name, first_param_type)] = fun
+        self._map[(mod, name, first_param_type)] = fun
 
     def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
         fun_name = cwast.GetSymbolName(callee.name)
@@ -937,7 +939,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
             ct = _TypifyNodeRecursively(node, tc, type_corpus.NO_TYPE, ctx)
             if isinstance(node, cwast.DefFun) and node.polymorphic:
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
-                poly_map.Register(mod, node)
+                poly_map.Register(node)
 
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.name, poly_map)

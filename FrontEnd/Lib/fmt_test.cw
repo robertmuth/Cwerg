@@ -2,6 +2,19 @@
 (import test)
 (import fmt)
 
+(enum @pub color S32 :
+    (entry black 0)
+    (entry white 1)
+    (entry blue 2)
+    (entry green 3)
+    (entry red 4))
+
+(fun @polymorphic fmt::SysRender [
+        (param v color)
+        (param out (slice @mut u8))
+        (param options (ptr @mut fmt::SysFormatOptions))] uint :
+    (return (@polymorphic fmt::SysRender [(as v s32) out options])))
+
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (let @mut @ref opt auto (rec_val fmt::SysFormatOptions []))
     (let @mut buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
@@ -37,6 +50,11 @@
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "0x1.p1")
+    (= n (@polymorphic fmt::SysRender [
+            color:blue
+            s
+            (& @mut opt)]))
+    (test::AssertSliceEq! (slice_val (front s) n) "2")
     @doc "test end"
     (test::Success!)
     (return 0))

@@ -2315,7 +2315,7 @@ class DefFun:
     """
     ALIAS = "fun"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.MODULE_ANNOTATED
     #
     name: str
     params: List[NODES_PARAMS_T]
@@ -2332,6 +2332,7 @@ class DefFun:
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
+    x_module: Optional["DefMod"] = None  # only use for polymorphic function
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -2870,9 +2871,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
             # when we synthesize Ids later we do not bother with x_module anymore
             assert node.x_symbol is not None or isinstance(
                 node.x_module, DefMod)
-        elif isinstance(node, MacroInvoke):
-            assert isinstance(node.x_module, DefMod)
-        elif isinstance(node, Import):
+        elif isinstance(node, (MacroInvoke, DefFun, Import)):
             assert isinstance(node.x_module, DefMod)
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
