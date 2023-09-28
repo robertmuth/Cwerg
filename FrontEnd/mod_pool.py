@@ -106,16 +106,23 @@ class ModPoolBase:
         return next(iter(self._started))
 
     def _Finalize(self):
+        taken_names: Set[str] = set()
         assert not self._started
-        for mod in self._mods.values():
-            assert isinstance(mod, cwast.DefMod)
-            for node in mod.body_mod:
+        for def_mod in self._mods.values():
+            assert isinstance(def_mod, cwast.DefMod)
+            for node in def_mod.body_mod:
                 if isinstance(node, cwast.Import):
                     assert isinstance(node.x_module, ModHandle)
                     node.x_module = self._mods[node.x_module]
                     assert isinstance(node.x_module, cwast.DefMod)
-            _DecorateIdsWithQualifer(mod)
-            cwast.CheckAST(mod, set())
+            _DecorateIdsWithQualifer(def_mod)
+            if def_mod.name not in taken_names:
+                def_mod.x_modname = def_mod.name
+            else:
+                assert False
+            taken_names.add(def_mod.x_modname)
+            cwast.CheckAST(def_mod, set())
+
 
 
     def ReadAndFinalizedMods(self):

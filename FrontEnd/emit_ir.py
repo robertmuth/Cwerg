@@ -889,7 +889,7 @@ def main():
 
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
-                           x_srcloc=cwast.SRCLOC_GENERATED)
+                           x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
     id_gen_global = identifier.IdGen()
     id_gens: Dict[cwast.DefFun,  identifier.IdGen] = {}
 
@@ -1015,7 +1015,7 @@ def main():
                 if node.cdecl:
                     node.name = node.name + suffix
                 else:
-                    node.name = mod.name + "/" + node.name + suffix
+                    node.name = mod.x_modname + "/" + node.name + suffix
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)
@@ -1023,7 +1023,7 @@ def main():
     # Emit Cwert IR
     # print ("# TOPO-ORDER")
     # for mod in mod_topo_order:
-    #    print (f"# {mod.name}")
+    #    print (f"# {mod.x_modname}")
 
     for mod in mod_topo_order:
         for node in mod.body_mod:

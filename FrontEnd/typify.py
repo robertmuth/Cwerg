@@ -127,7 +127,7 @@ class _PolyMap:
         name = cwast.GetSymbolName(fun.name)
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
-                    mod.name, name, first_param_type)
+                    mod.x_modname, name, first_param_type)
         # TODO: Should this work with parameterized volumes
         self._map[(mod, name, first_param_type)] = fun
 
@@ -933,7 +933,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
     """
     poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.name, poly_map)
+        ctx = _TypeContext(mod.x_modname, poly_map)
         for node in mod.body_mod:
             # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
             ct = _TypifyNodeRecursively(node, tc, type_corpus.NO_TYPE, ctx)
@@ -942,7 +942,7 @@ def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
                 poly_map.Register(node)
 
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.name, poly_map)
+        ctx = _TypeContext(mod.x_modname, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:

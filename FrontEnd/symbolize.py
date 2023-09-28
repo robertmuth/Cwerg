@@ -151,7 +151,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
 def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
-    logger.info("Processing %s", mod.name)
+    logger.info("Processing %s", mod.x_modname)
     # pass 1: get all the top level symbols
     for node in mod.body_mod:
         if isinstance(node, cwast.StmtStaticAssert):

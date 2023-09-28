@@ -73,6 +73,7 @@ class NF(enum.Flag):
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     # node reference the imported module or the qualifier  (x_module)
     MODULE_ANNOTATED = enum.auto()
+    MODNAME_ANNOTATED = enum.auto()
 
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
@@ -397,6 +398,7 @@ NODES_LHS_T = Union[NODES_LHS]
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
     NFD(NFK.STR, "name", "name of the object"),
+
     NFD(NFK.STR, "name_list", "name of the object list"),
 
     NFD(NFK.STR, "string", "string literal"),
@@ -570,20 +572,19 @@ def IsFieldWithDefaultValue(field, val):
 
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
-    #
-    "x_module": NF.MODULE_ANNOTATED,  # set during parsing, contains up point to
-                                      # containing module for symbol resolution
-                                      # important for symbol resolutions
-    "x_symbol": NF.SYMBOL_ANNOTATED,  # set by symbolize.py, contains node from
+    # set by mod_pool.py
+    "x_module": NF.MODULE_ANNOTATED,  # containing module for symbol resolution
+    "x_modname": NF.MODNAME_ANNOTATED,  # unique module name
+    # set by symbolize.py,
+    "x_symbol": NF.SYMBOL_ANNOTATED,  # contains node from
                                       # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
-    "x_target": NF.CONTROL_FLOW,  # set by symbolize.py,
-    #
-    "x_field": NF.FIELD_ANNOTATED,  # set by typify.py
-    #
-    "x_type": NF.TYPE_ANNOTATED,   # set by typify.py
-    "x_offset": NF.TYPE_CORPUS,  # set by typify.py - oddball, should be moved into types
-    #
-    "x_value": NF.VALUE_ANNOTATED,  # set by eval.py
+    "x_target": NF.CONTROL_FLOW,
+    # set by typify.py
+    "x_field": NF.FIELD_ANNOTATED,
+    "x_type": NF.TYPE_ANNOTATED,
+    "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
+    # set by eval.py
+    "x_value": NF.VALUE_ANNOTATED,
 }
 
 
@@ -2369,7 +2370,7 @@ class DefMod:
     """
     ALIAS = "module"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED
     #
     name: str
     params_mod: List[NODES_PARAMS_MOD_T]
@@ -2379,6 +2380,7 @@ class DefMod:
     builtin: bool = False
     #
     x_srcloc: Optional[Any] = None
+    x_modname: str = ""
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
@@ -2874,6 +2876,8 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
                 node.x_module, DefMod)
         elif isinstance(node, (MacroInvoke, DefFun, Import)):
             assert isinstance(node.x_module, DefMod)
+        elif isinstance(node, DefMod):
+            assert node.x_modname, f"missing x_modname {node}"
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra
