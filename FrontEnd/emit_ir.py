@@ -203,7 +203,8 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
             assert False, f"unsupported storage class {storage}"
         return BaseOffset(base, 0)
     elif isinstance(node, cwast.ExprAs):
-        assert node.expr.x_type.is_untagged_sum()
+        #
+        assert node.expr.x_type.is_untagged_sum() or node.expr.x_type.is_wrapped()
         base = _GetLValueAddress(node.expr, tc, id_gen)
         return BaseOffset(base, 0)
     else:
@@ -445,6 +446,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
               ct_dst.is_enum() and ct_src.is_base_type()) and (ct_src.base_type_kind
                                                                == ct_dst.base_type_kind):
             # just ignore the wrapped type
+            return EmitIRExpr(node.expr, tc, id_gen)
+        elif ct_src.is_pointer() and ct_dst.is_pointer():
             return EmitIRExpr(node.expr, tc, id_gen)
         else:
             assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"

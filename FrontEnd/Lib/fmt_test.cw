@@ -39,6 +39,8 @@
     (return n))
 
 
+(global test_string (slice u8) "qwerty_1234")
+
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (let @mut @ref opt auto (rec_val fmt::SysFormatOptions []))
     (let @mut buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
@@ -84,6 +86,11 @@
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "111+222i")
+    (= n (@polymorphic fmt::SysRender [
+            (as test_string fmt::str_hex)
+            s
+            (& @mut opt)]))
+    (test::AssertSliceEq! (slice_val (front s) n) "7177657274795f31323334")
     @doc "test end"
     (test::Success!)
     (return 0))

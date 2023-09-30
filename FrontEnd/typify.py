@@ -27,6 +27,7 @@ def is_ref_def(node) -> bool:
 
 def address_can_be_taken(node) -> bool:
     return (is_ref_def(node) or
+            isinstance(node, cwast.ExprField) or
             isinstance(node, cwast.ExprDeref) or
             isinstance(node, cwast.ExprIndex) and
             node.container.x_type.is_slice() or

@@ -200,8 +200,15 @@ def ReplaceSlice(node, slice_to_struct_map):
                 elif isinstance(node, cwast.ExprPointer):
                     assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
                     assert False
-                else:
-                    assert False, f"do not know how to convert slice node [{def_rec.name}]: {node}"
+                elif isinstance(node, cwast.ExprAs):
+                    ct_src = node.expr.x_type
+                    ct_dst = node.x_type
+                    if ct_src.is_wrapped() and ct_src.underlying_wrapped_type() == ct_dst:
+                        typify.UpdateNodeType(node, def_rec)
+                        return None
+
+                cwast.CompilerError(
+                        node.x_srcloc, f"do not know how to convert slice node [{def_rec.name}]: {node}")
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

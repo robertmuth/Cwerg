@@ -239,6 +239,9 @@
             :
             (return (slice_copy [NAN_NEG out])))))
 
+(fun to_hex_digit [(param digit u8)] u8 :
+  (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10))))
+)
 
 @doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
         exponentiation bias is 1023
@@ -271,8 +274,7 @@
     (= (^ (incp buf i)) '.')
     (+= i 1)
     (while (!= frac_bits 0) :
-        (let c auto (as (>> frac_bits 48) u8))
-        (= (^ (incp buf i)) (? (<= c 9) (+ c '0') (+ c (- 'a' 10))))
+        (= (^ (incp buf i)) (to_hex_digit [(as (>> frac_bits 48) u8)]))
         (+= i 1)
         (and= frac_bits 0xffff_ffff_ffff)
         (<<= frac_bits 4))
@@ -297,6 +299,26 @@
         (param options (ptr @mut SysFormatOptions))] uint :
     (return (r64_to_hex_str [(as v r64) out])))
 
+(type @pub @wrapped str_hex (slice u8))
+
+(fun @polymorphic SysRender [
+        (param v str_hex)
+        (param out (slice @mut u8))
+        (param options (ptr @mut SysFormatOptions))] uint :
+    (let v_str (slice u8) (as v (slice u8)))
+    (let dst_len auto (len v_str))
+    (if (<= dst_len (len out))
+    : (for i 0 dst_len 1 :
+        (let c u8 (at v_str i))
+        (let o1 uint (* i 2))
+        (let o2 uint (+ o1 1))
+        (= (at out o1) (to_hex_digit [(>> c 4)]))
+        (= (at out o2) (to_hex_digit [(and c 15)]))
+      )
+      (return (* dst_len 2))
+    : (return 0))
+
+)
 
 (macro @pub print! STMT_LIST [
         @doc "list of items to be printed"
