@@ -375,7 +375,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprSumTag", "ExprSumUntagged",
-              "ExprIs", "ExprAs", "ExprBitCast")
+              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1663,6 +1663,45 @@ class ExprIs:
 
 @NodeCommon
 @dataclasses.dataclass()
+class ExprWrap:
+    """Cast: underlying type -> enum/wrapped
+    """
+    ALIAS = "wrap"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} WRAP {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprUnwrap:
+    """Cast: enum/wrapped -> underlying type
+    """
+    ALIAS = "unwrap"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: NODES_EXPR_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.__class__.__name__} {self.expr}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
 class ExprAs:
     """Safe Cast (Conversion)
 
@@ -2683,44 +2722,6 @@ def MaybeReplaceAstRecursively(node, replacer):
                     children[n] = new_child
                 else:
                     MaybeReplaceAstRecursively(child, replacer)
-
-
-def _IsLhs(node, field: str, parent_is_lhs) -> bool:
-    if isinstance(node, (StmtAssignment, StmtCompoundAssignment)) and field == "lhs":
-        return True
-    if not parent_is_lhs:
-        return False
-    if isinstance(node, (ExprDeref, ExprFront)):
-        return True
-    if isinstance(node, ExprIndex) and field == "container":
-        return True
-    if isinstance(node, ExprField) and field == "container":
-        return True
-    if isinstance(node, ExprPointer) and field == "expr1":
-        return True
-    if isinstance(node, ExprAs):
-        return True
-    return False
-
-
-def MaybeReplaceAstRecursivelyWithLhsPost(node, replacer, is_lhs=False):
-    """Note: the root node will not be replaced"""
-    for f, nfd in node.__class__.FIELDS:
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            is_lhs = _IsLhs(node, f, is_lhs)
-            MaybeReplaceAstRecursivelyWithLhsPost(child, replacer, is_lhs)
-            new_child = replacer(child, f, is_lhs)
-            if new_child:
-                setattr(node, f, new_child)
-        elif nfd.kind is NFK.LIST:
-            is_lhs = False
-            children = getattr(node, f)
-            for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelyWithLhsPost(child, replacer, is_lhs)
-                new_child = replacer(child, f, is_lhs)
-                if new_child:
-                    children[n] = new_child
 
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):

@@ -261,7 +261,7 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, replacer)
 
 
-def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
+def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
                   tc: type_corpus.TypeCorpus, srcloc):
     container_type: cwast.CanonType = node.container.x_type
     bound = None
@@ -287,14 +287,14 @@ def _ConvertIndex(node: cwast.ExprIndex, is_lhs, uint_type: cwast.CanonType,
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     uint_type = tc.get_uint_canon_type()
 
-    def replacer(node, _, is_lhs):
+    def replacer(node, _):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprIndex):
-            return _ConvertIndex(node, is_lhs, uint_type, tc, node.x_srcloc)
+            return _ConvertIndex(node, uint_type, tc, node.x_srcloc)
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithLhsPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
