@@ -94,11 +94,11 @@
     (test::AssertEq! (checksum::CalcCrc [DataInc 0 (& Crc32Tab)]) 0x100ece8c_u32)
 
     @doc "crc32c"
-    (fmt::print! [(as (checksum::CalcCrc [Data00 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print! [(as (checksum::CalcCrc [Data55 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print! [(as (checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print! [(as (checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
-    (fmt::print! [(as (checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(wrap (checksum::CalcCrc [Data00 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(wrap (checksum::CalcCrc [Data55 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(wrap (checksum::CalcCrc [DataAA 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(wrap (checksum::CalcCrc [DataFF 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
+    (fmt::print! [(wrap (checksum::CalcCrc [DataInc 0 (& Crc32cTab)]) fmt::u32_hex) "\n"])
 
     @doc "test end"
     (test::Success!)

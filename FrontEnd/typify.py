@@ -158,14 +158,6 @@ class _TypeContext:
         self.poly_map: _PolyMap = poly_map
 
 
-def is_compatible_for_as(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
-    # TODO: deal with distinct types
-
-    if src.is_int():
-        return dst.is_int() or dst.is_real()
-    return False
-
-
 def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
     if isinstance(node, cwast.ValNum):
         return ParseNumRaw(node.number, kind)[0]
@@ -530,10 +522,18 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             node.lhs, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return type_corpus.NO_TYPE
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.ExprUnwrap):
+        ct = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
+        if ct.is_wrapped():
+            return AnnotateNodeType(node, ct.underlying_wrapped_type())
+        elif ct.is_enum():
+            return AnnotateNodeType(node, tc.get_base_canon_type(ct.base_type_kind))
+        else:
+            assert False
     elif isinstance(node, cwast.ExprIs):
         _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
@@ -817,11 +817,11 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         # TODO: need to use origianal types if available
         pass
     elif isinstance(node, cwast.ExprAs):
-        pass
-        # src = node.expr.x_type
-        # dst = node.type.x_type
-        # TODO
-        # assert is_compatible_for_as(src, dst)
+        ct_src = node.expr.x_type
+        ct_dst = node.type.x_type
+        if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
+            cwast.CompilerError(
+                node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}")
     elif isinstance(node, cwast.ExprUnsafeCast):
         # src = node.expr.x_type
         # dst = node.type.x_type
@@ -894,6 +894,25 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
                            cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
                            cwast.EnumVal, cwast.ValAuto, cwast.ValString, cwast.FieldVal)):
         pass
+    elif isinstance(node, cwast.ExprWrap):
+        ct_node: cwast.CanonType = node.x_type
+        ct_expr: cwast.CanonType = node.expr.x_type
+        assert ct_node == node.type.x_type
+        if ct_node.is_enum():
+            assert ct_expr.is_base_type() and ct_node.base_type_kind == ct_expr.base_type_kind
+        elif ct_node.is_wrapped():
+            assert ct_node.underlying_wrapped_type() in (ct_expr, ct_expr.original_type), f"{ct_node} vs {ct_expr}"
+        else:
+            assert False
+    elif isinstance(node, cwast.ExprUnwrap):
+        ct_node: cwast.CanonType = node.x_type
+        ct_expr: cwast.CanonType = node.expr.x_type
+        if ct_expr.is_enum():
+            assert ct_node.is_base_type() and ct_expr.base_type_kind == ct_node.base_type_kind
+        elif ct_expr.is_wrapped():
+            assert ct_expr.underlying_wrapped_type() in (ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
+        else:
+            assert False
     else:
         assert False, f"unsupported  node type: {node.__class__} {node}"
 

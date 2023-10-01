@@ -175,19 +175,19 @@
         (param v u32_hex)
         (param out (slice @mut u8))
         (param options (ptr @mut SysFormatOptions))] uint :
-    (return (u32_to_hex_str [(as v u32) out])))
+    (return (u32_to_hex_str [(unwrap v) out])))
 
 (fun @polymorphic SysRender [
         (param v u16_hex)
         (param out (slice @mut u8))
         (param options (ptr @mut SysFormatOptions))] uint :
-    (return (u16_to_hex_str [(as v u16) out])))
+    (return (u16_to_hex_str [(unwrap v) out])))
 
 (fun @polymorphic SysRender [
         (param v u8_hex)
         (param out (slice @mut u8))
         (param options (ptr @mut SysFormatOptions))] uint :
-    (return (u8_to_hex_str [(as v u8) out])))
+    (return (u8_to_hex_str [(unwrap v) out])))
 
 
 (type @pub @wrapped rune u8)
@@ -200,7 +200,7 @@
     (if (== (len buffer) 0) :
         (return 0)
         :
-        (= (^ (front @mut buffer)) (as v u8))
+        (= (^ (front @mut buffer)) (unwrap v))
         (return 1)))
 
 
@@ -297,7 +297,7 @@
         (param v r64_hex)
         (param out (slice @mut u8))
         (param options (ptr @mut SysFormatOptions))] uint :
-    (return (r64_to_hex_str [(as v r64) out])))
+    (return (r64_to_hex_str [(unwrap v) out])))
 
 (type @pub @wrapped str_hex (slice u8))
 
@@ -305,7 +305,7 @@
         (param v str_hex)
         (param out (slice @mut u8))
         (param options (ptr @mut SysFormatOptions))] uint :
-    (let v_str (slice u8) (as v (slice u8)))
+    (let v_str (slice u8) (unwrap v))
     (let dst_len auto (len v_str))
     (if (<= dst_len (len out))
     : (for i 0 dst_len 1 :
@@ -317,7 +317,6 @@
       )
       (return (* dst_len 2))
     : (return 0))
-
 )
 
 (macro @pub print! STMT_LIST [
@@ -331,7 +330,7 @@
                 $i
                 (slice_val (incp (front @mut $buffer) $curr) (- (len $buffer) $curr))
                 (& @mut $options)])))
-    (stmt (os::write [(as os::Stdout s32) (front $buffer) $curr])))
+    (stmt (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
 (fun @pub strz_to_slice [(param s (ptr u8))] (slice u8) :

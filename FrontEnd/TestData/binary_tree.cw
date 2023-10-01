@@ -3,7 +3,7 @@
 (type @wrapped NoneType void)
 
 
-(global @pub None auto (as void_val NoneType))
+(global @pub None auto (wrap void_val NoneType))
 
 
 (defrec @pub BinaryTreeNode :
@@ -25,5 +25,3 @@
     (stmt (InorderTraversal [(. (^ node) right) visitor])))
 
 )
-
-

@@ -49,6 +49,35 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
         return actual.name in expected_children
 
 
+def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src.is_int():
+        if ct_dst.is_int() or ct_dst.is_real():
+            return True
+
+    if ct_src.is_real():
+        if ct_dst.is_int() or ct_dst.is_real():
+            return True
+
+    if ct_src.is_array() and ct_dst.is_slice():
+        # TODO: check "ref"
+        return ct_src.underlying_array_type() == ct_dst.underlying_slice_type()
+
+    if ct_dst.is_sum() and ct_src.is_sum():
+        if ct_dst.untagged != ct_src.untagged:
+            return False
+        dst_children = set([x.name for x in ct_dst.sum_types()])
+        src_children = set([x.name for x in ct_src.sum_types()])
+        return src_children.issubset(dst_children) or dst_children.issubset(src_children)
+    elif ct_src.is_sum():
+        src_children = set([x.name for x in ct_src.sum_types()])
+        return ct_dst.name in src_children
+    elif ct_dst.is_sum():
+        dst_children = set([x.name for x in ct_dst.sum_types()])
+        return ct_src.name in dst_children
+
+    return False
+
+
 def is_proper_lhs(node) -> bool:
     if isinstance(node, cwast.Id):
         s = node.x_symbol

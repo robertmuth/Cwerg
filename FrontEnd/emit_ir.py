@@ -430,12 +430,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(
                 f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
-        elif ct_src.is_wrapped() and ct_dst is ct_src.underlying_wrapped_type():
-            # just ignore the wrapped type
-            return EmitIRExpr(node.expr, tc, id_gen)
-        elif ct_dst.is_wrapped() and ct_src is ct_dst.underlying_wrapped_type():
-            # just ignore the wrapped type
-            return EmitIRExpr(node.expr, tc, id_gen)
         elif ct_src.is_untagged_sum():
             addr = _GetLValueAddress(node.expr, tc, id_gen)
             res = id_gen.NewName("union_access")
@@ -451,6 +445,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return EmitIRExpr(node.expr, tc, id_gen)
         else:
             assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"
+    elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
+        return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprDeref):
         addr = EmitIRExpr(node.expr, tc, id_gen)
         res = id_gen.NewName("deref")
@@ -509,7 +505,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(init_node, cwast.ExprAs):
+    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap)):
         if init_node.x_type.fits_in_register():
             # same as above
             reg = EmitIRExpr(init_node, tc, id_gen)
@@ -789,7 +785,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                                         f.type.x_type.name)
             return rel_off
         elif ct.is_wrapped():
-            assert isinstance(node, cwast.ExprAs)
+            assert isinstance(node, cwast.ExprWrap)
             return _emit_recursively(node.expr, node.expr.x_type, offset)
         else:
             assert False, f"unhandled node for DefGlobal: {node} {ct.name}"

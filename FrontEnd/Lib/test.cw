@@ -6,7 +6,7 @@
 
 (macro SysPrint! STMT_LIST [(mparam $msg EXPR)] [$msg_eval] :
     (macro_let $msg_eval (slice u8) $msg)
-    (stmt (os::write [(as os::Stdout s32) (front $msg_eval) (len $msg_eval)])
+    (stmt (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])
     ))
 
 (macro @pub Success! STMT [] [] :

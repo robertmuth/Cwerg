@@ -14,7 +14,6 @@
 The type of the loop variable is determined by $end"""
 (macro @pub for STMT_LIST [
         (mparam $index ID)
-
         (mparam $start EXPR)
         (mparam $end EXPR)
         (mparam $step EXPR)

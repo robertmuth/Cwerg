@@ -203,7 +203,7 @@
                 (fmt::print! [(get_fg_color [a]) (call get_style [a])])
                 :)
             (= last_attr a)
-            (fmt::print! [(as c fmt::rune)]))))
+            (fmt::print! [(wrap c fmt::rune)]))))
 
 
 (fun @pub window_fill [
