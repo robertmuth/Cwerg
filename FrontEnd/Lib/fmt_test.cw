@@ -67,12 +67,12 @@
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "-69")
     (= n (@polymorphic fmt::SysRender [
-            (wrap 120_u8 fmt::rune)
+            (wrap 120 fmt::rune)
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "x")
     (= n (@polymorphic fmt::SysRender [
-            (wrap 2_r64 fmt::r64_hex)
+            (wrap 2 fmt::r64_hex)
             s
             (& @mut opt)]))
     (test::AssertSliceEq! (slice_val (front s) n) "0x1.p1")

@@ -22,9 +22,9 @@
 (type @pub @wrapped Error s32)
 (type @pub @wrapped FD s32)
 
-(global @pub Stdin auto (wrap 0_s32 FD))
-(global @pub Stdout auto (wrap 1_s32 FD))
-(global @pub Stderr auto (wrap 2_s32 FD))
+(global @pub Stdin auto (wrap 0 FD))
+(global @pub Stdout auto (wrap 1 FD))
+(global @pub Stderr auto (wrap 2 FD))
 
 (fun @pub FileWrite [
         (param fd FD) (param buffer (slice u8))] (union [uint Error])  :

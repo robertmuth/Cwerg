@@ -522,9 +522,14 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             node.lhs, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return type_corpus.NO_TYPE
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
+        return AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.ExprWrap):
+        ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
+        assert ct.is_wrapped()
+        _TypifyNodeRecursively(node.expr, tc, ct.underlying_wrapped_type(), ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprUnwrap):
         ct = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
