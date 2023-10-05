@@ -158,9 +158,13 @@
             n])))
 
 
+(type @pub @wrapped u64_hex u64)
 (type @pub @wrapped u32_hex u32)
 (type @pub @wrapped u16_hex u16)
 (type @pub @wrapped u8_hex u8)
+
+(fun u64_to_hex_str [(param v u64) (param out (slice @mut u8))] uint :
+    (return (unsigned_to_str! v 16 64_uint out)))
 
 (fun u32_to_hex_str [(param v u32) (param out (slice @mut u8))] uint :
     (return (unsigned_to_str! v 16 32_uint out)))
@@ -170,6 +174,12 @@
 
 (fun u8_to_hex_str [(param v u8) (param out (slice @mut u8))] uint :
     (return (unsigned_to_str! v 16 32_uint out)))
+
+(fun @polymorphic SysRender [
+        (param v u64_hex)
+        (param out (slice @mut u8))
+        (param options (ptr @mut SysFormatOptions))] uint :
+    (return (u64_to_hex_str [(unwrap v) out])))
 
 (fun @polymorphic SysRender [
         (param v u32_hex)
@@ -316,7 +326,9 @@
         (= (at out o2) (to_hex_digit [(and c 15)]))
       )
       (return (* dst_len 2))
-    : (return 0))
+    :
+    (for i 0 (len out) 1 :   (= (at out i) '.'))
+    (return 0))
 )
 
 (macro @pub print! STMT_LIST [
