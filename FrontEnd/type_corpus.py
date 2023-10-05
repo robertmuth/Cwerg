@@ -58,6 +58,13 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
         if ct_dst.is_int() or ct_dst.is_real():
             return True
 
+    if ct_src.is_pointer() and ct_dst.is_pointer():
+        # TODO: check "ref"
+        if ct_src.underlying_pointer_type() == ct_dst.underlying_pointer_type():
+            return not ct_dst.is_mutable()
+        else:
+            return ct_dst.is_mutable() == ct_src.is_mutable()
+
     if ct_src.is_array() and ct_dst.is_slice():
         # TODO: check "ref"
         return ct_src.underlying_array_type() == ct_dst.underlying_slice_type()
@@ -74,6 +81,19 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
     elif ct_dst.is_sum():
         dst_children = set([x.name for x in ct_dst.sum_types()])
         return ct_src.name in dst_children
+
+    return False
+
+
+def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_dst.is_enum():
+        return ct_src.is_base_type() and ct_dst.base_type_kind == ct_src.base_type_kind
+    elif ct_dst.is_wrapped():
+        wrapped_type = ct_dst.underlying_wrapped_type()
+        if wrapped_type in (ct_src, ct_src.original_type):
+            return True
+        if ct_src.is_array() and wrapped_type.is_slice():
+            return ct_src.underlying_array_type() == wrapped_type.underlying_slice_type() and not ct_dst.is_mutable()
 
     return False
 

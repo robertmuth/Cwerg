@@ -171,6 +171,8 @@ def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
             return _ComputeArrayLength(node.expr1, kind) + _ComputeArrayLength(node.expr2, kind)
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.MUL:
             return _ComputeArrayLength(node.expr1, kind) * _ComputeArrayLength(node.expr2, kind)
+        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.DIV:
+            return _ComputeArrayLength(node.expr1, kind) // _ComputeArrayLength(node.expr2, kind)
         else:
             assert False
     else:
@@ -529,7 +531,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         assert ct.is_wrapped()
-        _TypifyNodeRecursively(node.expr, tc, ct.underlying_wrapped_type(), ctx)
+        _TypifyNodeRecursively(
+            node.expr, tc, ct.underlying_wrapped_type(), ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprUnwrap):
         ct = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
@@ -903,19 +906,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         ct_node: cwast.CanonType = node.x_type
         ct_expr: cwast.CanonType = node.expr.x_type
         assert ct_node == node.type.x_type
-        if ct_node.is_enum():
-            assert ct_expr.is_base_type() and ct_node.base_type_kind == ct_expr.base_type_kind
-        elif ct_node.is_wrapped():
-            assert ct_node.underlying_wrapped_type() in (ct_expr, ct_expr.original_type), f"{ct_node} vs {ct_expr}"
-        else:
-            assert False
+        if not type_corpus.is_compatible_for_wrap(ct_expr, ct_node):
+            cwast.CompilerError(
+                node.x_srcloc, f"bad wrap {ct_expr} -> {ct_node}")
     elif isinstance(node, cwast.ExprUnwrap):
         ct_node: cwast.CanonType = node.x_type
         ct_expr: cwast.CanonType = node.expr.x_type
         if ct_expr.is_enum():
             assert ct_node.is_base_type() and ct_expr.base_type_kind == ct_node.base_type_kind
         elif ct_expr.is_wrapped():
-            assert ct_expr.underlying_wrapped_type() in (ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
+            assert ct_expr.underlying_wrapped_type() in (
+                ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
         else:
             assert False
     else:
