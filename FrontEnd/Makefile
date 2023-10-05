@@ -212,6 +212,13 @@ $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
+
+$(DIR)/sha3.x64.exe: Lib/sha3.cw
+	./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+
 clean:
 	@rm -f $(DIR)/*
 
