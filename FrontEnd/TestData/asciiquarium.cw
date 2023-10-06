@@ -21,7 +21,13 @@
     @doc "100ms per frame"
     (let @ref req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
     (let @mut @ref rem os::TimeSpec undef)
-    (let @mut @ref window auto (rec_val aanim::Window [(field_val width) (field_val height)]))
+    (let @mut @ref window auto (rec_val aanim::Window [
+        (field_val width)
+        (field_val height)
+        (field_val undef)
+        (field_val undef)
+        (field_val undef)
+        ]))
     (let @mut curr auto (front @mut all_objects))
     @doc "add obj"
     (stmt (aanim::InitObjectState [curr (& artwork::DuckR)]))
