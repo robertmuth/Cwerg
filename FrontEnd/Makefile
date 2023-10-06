@@ -21,10 +21,11 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
+# TODO: tests_lib_a64 tests_emit_a64
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
                 tests_lang_x64 tests_lang_a64 \
-                tests_lib_x64 tests_lib_a64 \
-				tests_emit
+                tests_lib_x64 \
+				tests_emit_x64
 
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
@@ -76,26 +77,30 @@ tests_lib_x64: \
 	$(DIR)/fmt_test.lib.x64.exe \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \
-    $(DIR)/checksum_test.lib.x64.exe
+    $(DIR)/checksum_test.lib.x64.exe \
+    $(DIR)/sha3_test.lib.x64.exe
 
 tests_lib_a64: \
 	$(DIR)/fmt_test.lib.a64.exe \
 	$(DIR)/string_test.lib.a64.exe \
     $(DIR)/trig_test.lib.a64.exe \
-    $(DIR)/checksum_test.lib.a64.exe
+    $(DIR)/checksum_test.lib.a64.exe \
+    $(DIR)/sha3_test.lib.a64.exe
 
-tests_emit: \
+tests_emit_x64: \
     $(DIR)/hello_world.run.x64.exe \
-    $(DIR)/hello_world.run.a64.exe \
     $(DIR)/fizzbuzz.run.x64.exe \
-    $(DIR)/fizzbuzz.run.a64.exe \
     $(DIR)/sieve.run.x64.exe \
-    $(DIR)/sieve.run.a64.exe \
     $(DIR)/heapsort.run.x64.exe \
-    $(DIR)/heapsort.run.a64.exe \
 	$(DIR)/print_argv.x64.test \
+    $(DIR)/wordcount.x64.test
+
+tests_emit_a64: \
+    $(DIR)/hello_world.run.a64.exe \
+    $(DIR)/fizzbuzz.run.a64.exe \
+    $(DIR)/sieve.run.a64.exe \
+    $(DIR)/heapsort.run.a64.exe \
     $(DIR)/print_argv.a64.test \
-    $(DIR)/wordcount.x64.test \
     $(DIR)/wordcount.a64.test
 
 $(DIR)/%.cw.parse: TestData/%.cw
@@ -213,10 +218,6 @@ $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
 	${QEMU} $@ 128 48
 
 
-$(DIR)/sha3.x64.exe: Lib/sha3.cw
-	./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
 
 
 clean:
