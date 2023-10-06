@@ -10,7 +10,7 @@
     ))
 
 (macro @pub Success! STMT [] [] :
-    (SysPrint! "OK"))
+    (SysPrint! "OK\n"))
 
 
 @doc "The two arguments must derivable types as we use `auto`"

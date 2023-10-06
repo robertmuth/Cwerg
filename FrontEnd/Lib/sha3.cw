@@ -70,8 +70,9 @@
 )
 
 (fun KeccakF  [(param x (ptr @mut (array 25 u64)))] void :
+    @doc """(stmt (dumpA ["KeccakF:" x]))"""
+
 	(for round  0 24_uint 1 :
-        (fmt::print! ["KeccakF round " round "\n"])
         @doc "theta(x)"
 		(let @mut bc0 auto (XOR_5_EXPR! x 0 5 10 15 20))
   		(let @mut bc1 auto (XOR_5_EXPR! x 1 6 11 16 21))
@@ -79,30 +80,18 @@
   		(let @mut bc3 auto (XOR_5_EXPR! x 3 8 13 18 23))
   		(let @mut bc4 auto (XOR_5_EXPR! x 4 9 14 19 24))
         @doc ""
-        (fmt::print! [(wrap bc0 fmt::u64_hex) " "
-                      (wrap bc1 fmt::u64_hex) " "
-                      (wrap bc2 fmt::u64_hex) " "
-                      (wrap bc3 fmt::u64_hex) " "
-                      (wrap bc4 fmt::u64_hex) "\n"])
-
 		(let @mut t0 auto (xor bc4  (or (<< bc1 1) (>> bc1 63))))
 		(let @mut t1 auto (xor bc0  (or (<< bc2 1) (>> bc2 63))))
 		(let @mut t2 auto (xor bc1  (or (<< bc3 1) (>> bc3 63))))
 		(let @mut t3 auto (xor bc2  (or (<< bc4 1) (>> bc4 63))))
 		(let @mut t4 auto (xor bc3  (or (<< bc0 1) (>> bc0 63))))
 
-    (fmt::print! [(wrap t0 fmt::u64_hex) " "
-                      (wrap t1 fmt::u64_hex) " "
-                      (wrap t2 fmt::u64_hex) " "
-                      (wrap t3 fmt::u64_hex) " "
-                      (wrap t4 fmt::u64_hex) "\n"])
-
         (XOR_1! x [0 5 10 15 20] t0)
         (XOR_1! x [1 6 11 16 21] t1)
         (XOR_1! x [2 7 12 17 22] t2)
         (XOR_1! x [3 8 13 18 23] t3)
         (XOR_1! x [4 9 14 19 24] t4)
-        (stmt (dumpA ["theta" x]))
+        @doc """(stmt (dumpA ["theta" x]))"""
 
         @doc "rho(x)"
         (let @mut a u64 (at (^ x) 1))
@@ -139,7 +128,7 @@
         (UPDATE! a b x 1 44)
 
 
-        (stmt (dumpA ["rho" x]))
+        @doc """(stmt (dumpA ["rho" x]))"""
 
 
         @doc "chi"
@@ -157,18 +146,17 @@
             (xor= (at (^ x) (+ i 4)) (and (! bc0) bc1))
         )
 
-        (stmt (dumpA ["chi" x]))
+        @doc """(stmt (dumpA ["chi" x]))"""
 
         @doc "iota"
         (xor= (at (^ x) 0) (at rconst round))
     )
 )
 
-@doc "st.msglen += keccak(st.x[:], data, 72, st.tail[:], st.msglen)"
 (fun @pub KeccakAdd [(param state (ptr @mut  StateKeccak))
                      (param tail (slice @mut u64))
                      (param data (slice u8))] void :
-    (fmt::print! ["KeccakAdd" "\n"])
+    @doc """(fmt::print! ["KeccakAdd: " (-> state msglen) " "  data "\n"])"""
     (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
     (let block_size uint (* (len tail) 8))
     (let tail_use uint (% (-> state msglen) block_size))
@@ -194,9 +182,10 @@
        (for i 0 block_size 1 :
             (= (^ (incp tail_u8 i)) (at data offset))
             (+= offset 1)
-            (stmt (AddBlockAlignedLE [state  tail]))
-            (stmt (KeccakF [(& @mut (-> state x))]))
         )
+        (stmt (AddBlockAlignedLE [state  tail]))
+        (stmt (KeccakF [(& @mut (-> state x))]))
+
     )
     (for i 0 (- (len data) offset) 1 :
         (= (^ (incp tail_u8 i)) (at data offset))
@@ -212,8 +201,8 @@
    (let block_size auto (* (len tail) 8))
 
    (let padding_start uint (% (-> state msglen) block_size))
-   (for i padding_start (len tail) 1 :
-    (= (at tail i ) 0))
+   (for i padding_start block_size 1 :
+    (= (^ (incp tail_u8 i)) 0))
    (or= (^ (incp tail_u8 padding_start)) 1)
    (or= (^ (incp tail_u8 (- block_size 1))) 0x80)
    (stmt (AddBlockAlignedLE [state  tail]))
@@ -225,14 +214,7 @@
   (let @mut @ref state auto (rec_val StateKeccak512 []))
   (stmt (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
   (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail)]))
-  (fmt::print! ["Return\n"])
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    @doc "LOCAL"
-    (let hash (array 64 u8) (Keccak512 ["Keccak-512 Test Hash"]))
-    (fmt::print! ["Sha3 Hash: [" (wrap (as hash (slice u8)) fmt::str_hex) "]\n"])
-
-    (return 0))
 )
