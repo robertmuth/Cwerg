@@ -23,6 +23,8 @@
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
+[ExprUnwrap&nbsp;(unwrap)](#exprunwrap-unwrap) &ensp;
+[ExprWrap&nbsp;(wrap)](#exprwrap-wrap) &ensp;
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
@@ -52,7 +54,7 @@
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(49 nodes)
+(51 nodes)
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
@@ -292,7 +294,6 @@ Flags:
 ### DefFun (fun)
 Function definition
 
-
     `init` and `fini` indicate module initializer/finalizers
 
     `extern` indicates a prototype and hence the function body must be empty.
@@ -367,6 +368,9 @@ Module Definition
 
     The module is a template if `params` is non-empty
 
+    ordering is used to put the modules in a deterministic order
+    
+
 Fields:
 * name [STR]: name of the object
 * params_mod [LIST]: module template parameters
@@ -374,6 +378,7 @@ Fields:
 
 Flags:
 * doc: comment
+* builtin: module is the builtin module
 
 
 ### DefType (type)
@@ -593,7 +598,7 @@ Part of rec literal
     
 
 Fields:
-* value [NODE]: 
+* value_or_undef [NODE]: 
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
 Flags:
@@ -687,7 +692,8 @@ Fields:
 * string [STR]: string literal
 
 Flags:
-* raw: ignore escape sequences in string
+* strkind: raw: ignore escape sequences in string, hex:
+* triplequoted: string is using 3 double quotes
 
 
 ### ValTrue (true)
@@ -846,8 +852,8 @@ Flags:
 
 ### ExprIs (is)
 Test actual expression type
-    
-    
+
+
     Typically used when `expr` is a tagged sum type.
 
     
@@ -859,7 +865,7 @@ Fields:
 
 ### ExprLen (len)
 Length of array or slice
-    
+
     Result type is `uint`.
     
 
@@ -963,6 +969,23 @@ Unsafe Cast
     Allowed:
     ptr a <-> ptr b
 
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
+
+
+### ExprUnwrap (unwrap)
+Cast: enum/wrapped -> underlying type
+    
+
+Fields:
+* expr [NODE]: expression
+
+
+### ExprWrap (wrap)
+Cast: underlying type -> enum/wrapped
     
 
 Fields:

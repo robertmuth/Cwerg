@@ -1,6 +1,6 @@
 # Cwerg Language
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. 
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity.
 The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write
 system software like operating systems and compilers in this language.
 
@@ -21,17 +21,17 @@ untagged unions, ...
 ...
 
 ## Syntax
-  
+
 Source code will be stored as S-Expressions with tooling to
 convert back and forth to a yet to be defined concrete syntax.
 
 The tooling will do most of the syntax and semantic checking.
 Comments wil be explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
- 
-* [List of S-Expression Nodes](../Docs/ast.md)
-* [Macros](../Docs/macros.md)
-* [Casting](../Docs/casting.md)
+
+* [List of S-Expression Nodes](../FrontEndDocs/ast.md)
+* [Macros](../FrontEndDocs/macros.md)
+* [Casting](../FrontEndDocs/casting.md)
 
 
 ## Code Examples (using S-Expr Syntax)
@@ -45,8 +45,8 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 ## Features Relative to C
 
 Added
-* modules (with templates, not nestable) 
-* enum namespaces 
+* modules (with templates, not nestable)
+* enum namespaces
 * sum types (tagged unions, supporting nullable types and result types (error code + payload))
 * visibility control (default private)
 * mutability control (default not mutable)
@@ -70,7 +70,7 @@ Removed:
 * varargs
 * implcit type conversions
 * ++/--
-* comma operator 
+* comma operator
 * implicitly nullable pointers
 * goto
 
@@ -83,7 +83,7 @@ Removed:
 
 ####  Increment/decrement operators (`++`/`--`): NO
 
-Pro: Helpful for writing very succint code. 
+Pro: Helpful for writing very succint code.
 
 Con: Expressions with side-effects requiring the concept of [Sequence Point](https://en.wikipedia.org/wiki/Sequence_point) which adds complexity.
 
@@ -132,7 +132,7 @@ Decision: included for toplevel Types, Modules, Functions, Constants and Variabl
 
 Pro: Unicode and Utf-8 is widespread.
 
-Con: System programs rarely need internationalization. 
+Con: System programs rarely need internationalization.
       Unicode handling is complex and can be moved into libraries.
 
 Decision: omitted (strings are uninterpreted arrays of bytes). Needs to be implemented in libraries.
@@ -157,9 +157,9 @@ Decision: included. Variables and Struct can explicitly marked as `undef`
 
 #### Allow the const/enum/struct definitions inside Function: NO
 
-Pro: Allow better information hiding by scope narrowing 
+Pro: Allow better information hiding by scope narrowing
 
-Con: Makes parsing more complex. Modules help with scope narrowing 
+Con: Makes parsing more complex. Modules help with scope narrowing
 
 
 #### Allow Function definitions inside Function: NO
@@ -199,7 +199,7 @@ Con: They require built-in dynamic memory management.
 
 #### Structural Type equivalence vs name equivalence: BOTH
 
-Default is structural equivalence (except for enums and recs) but all types 
+Default is structural equivalence (except for enums and recs) but all types
 can be wrapped (similar to `distinct` in Nim/Odin) which forces name equivalence.
 
 
@@ -213,8 +213,8 @@ Decision: omitted - use optional pointers of sum type  (*A | void) to model null
 
 Pro: Very useful for implementing Result and Optional types
 
-Decision: included with special optimization for optional pointers so that 
-          nullable pointer can be implemented efficiently 
+Decision: included with special optimization for optional pointers so that
+          nullable pointer can be implemented efficiently
 
 #### Member functions for structs: NO
 
@@ -266,9 +266,9 @@ Use macros to define custom for loop syntaxes as needed.
 #### Runtime lookup of typeid: YES
 
 
-#### Overloaded Functions (adhoc polymorphism) UNDECIDED 
+#### Overloaded Functions (adhoc polymorphism) UNDECIDED
 
-Likely only supported for a fixed feature set, e.g. iterators and stringification 
+Likely only supported for a fixed feature set, e.g. iterators and stringification
 
 ### Control Flow
 
@@ -277,7 +277,7 @@ Likely only supported for a fixed feature set, e.g. iterators and stringificatio
 
 The label blocks and defer seem to be adequate.
 
-Gotos in C are convenient when you transpile to C but Cwerg is not meant to be a 
+Gotos in C are convenient when you transpile to C but Cwerg is not meant to be a
 compilation target.
 
 #### Named Blocks and Continue/Break statements with labels: YES
@@ -305,7 +305,7 @@ Decision: included. Will be guided by acyclic Module dependency graph to avoid t
 Pro: Useful for code re-use and portability
 
 Con: Can make code hard to understand. Tricky to implement unless limited to be
-     used inside functions. Must disable some semantic checking in the non-included code portions or run very early.    
+     used inside functions. Must disable some semantic checking in the non-included code portions or run very early.
      Competes with simpler approaches of selecting from a set of API compatible modules at link-time.
 
 ##### Support for printing/stringification of custom data structure
@@ -326,9 +326,9 @@ as non-mutable function arguments.
 Pointers
 
 * can point to anything including Scalars. Arrays and Slices
-* syntactic indexing is not available but 
+* syntactic indexing is not available but
 * pointer arithmetic is allowed and unchecked:
- `^(ptr + 8)`  is equivalent to C's `ptr[8]` or `*(ptr + 8)` 
+ `^(ptr + 8)`  is equivalent to C's `ptr[8]` or `*(ptr + 8)`
 * pointers can be cast to arrays
 
 Arrays
@@ -343,13 +343,13 @@ Arrays
 * arrays are implicitly converted to slices if passed to a slice    function argument
 
 Slices
-* are fat pointer - starting address + length 
+* are fat pointer - starting address + length
 * are intended to be the main work horse
 * indexing (`a_slice[i]`) is available AND run-time checked
 * slicing `b_slice = a_slice[start:length]` can be used for checked "arithmetic"
 
 
-Strings 
+Strings
 * are just Arrays of unsigned bytes
 * they are not null terminated
 
@@ -364,4 +364,4 @@ Strings
   * https://github.com/vlang/v/blob/master/doc/docs.md
   * https://nim-lang.org/documentation.html
   * https://github.com/oberon-lang/specification/blob/master/The_Programming_Language_Oberon%2B.adoc
-  * 
+  *
