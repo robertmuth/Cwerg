@@ -492,7 +492,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
         while width > (length - curr):
             width //= 2
         while curr + width <= length:
-            print(f"{TAB}st {dst.base} {dst.offset + curr} = 0:U{width}")
+            print(f"{TAB}st {dst.base} {dst.offset + curr} = 0:U{width * 8}")
             curr += width
 
 
@@ -530,8 +530,18 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
     elif isinstance(init_node, cwast.ValRec):
         src_type = init_node.x_type
+
+        if not init_node.inits_field:
+            _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
+            return
         for field, init in symbolize.IterateValRec(init_node.inits_field, src_type):
-            if init is not None and not isinstance(init, cwast.ValUndef):
+            if isinstance(init, cwast.ValUndef):
+                pass
+            elif init is None:
+                assert False, f"{src_type} {field}"
+                # _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
+                #          field.x_type.size, field.x_type.alignment, id_gen)
+            else:
                 EmitIRExprToMemory(init.value, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
     elif isinstance(init_node, cwast.ValArray):
@@ -594,7 +604,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                 init_base = id_gen.NewName("init_base")
                 kind = tc.get_data_address_reg_type()
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
-                EmitIRExprToMemory(initial,  BaseOffset(
+                EmitIRExprToMemory(initial, BaseOffset(
                     init_base, 0), tc, id_gen)
         else:
             if isinstance(initial, cwast.ValUndef):
@@ -737,10 +747,11 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             width = ct.array_dim()
             x_type = ct.underlying_array_type()
             if x_type.is_base_type():
-                if isinstance(node.x_value, bytes):
+                value = node.x_value
+                if isinstance(value, bytes):
                     assert len(
-                        node.x_value) == width, f"length mismatch {len(node.x_value)} vs {width}"
-                    return _EmitMem(node.x_value, f"{offset} {ct.name}")
+                        value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
+                    return _EmitMem(value, f"{offset} {ct.name}")
                 else:
 
                     x_value = node.x_value

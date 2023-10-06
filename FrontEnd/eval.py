@@ -301,6 +301,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _AssignValue(node, _EvalValRec(node.x_type, node.inits_field, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
+        if not all(ord(c) < 128 for c in s):
+            cwast.CompilerError(node, "non-ascii chars currently not supported")
         if node.strkind == "raw":
             return _AssignValue(node, bytes(s, encoding="ascii"))
         elif node.strkind == "hex":
