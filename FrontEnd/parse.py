@@ -28,16 +28,20 @@ _TOKEN_OP = r'[\[\]\(\)]'
 
 _TOKEN_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
 _TOKEN_R_MULTI_LINE_STR_START = r'r"""(?:["]{0,2}[^"])*(?:["]{3,5}|$)'
+_TOKEN_X_MULTI_LINE_STR_START = r'x"""[a-fA-F0-9\s]*(?:"""|$)'
 
 _RE_MULTI_LINE_STR_END = re.compile(
     r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
-
 _RE_R_MULTI_LINE_STR_END = re.compile(
     r'^(?:["]{0,2}[^"])*(?:["]{3,5}|$)')
+_RE_X_MULTI_LINE_STR_END = re.compile(
+    r'^[a-fA-F0-9\s]*(?:"""|$)')
 
 _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     # order is important: multi-line before regular
-    _TOKEN_MULTI_LINE_STR_START, _TOKEN_R_MULTI_LINE_STR_START,
+    _TOKEN_MULTI_LINE_STR_START,
+    _TOKEN_R_MULTI_LINE_STR_START,
+    _TOKEN_X_MULTI_LINE_STR_START,
     _TOKEN_STR, _TOKEN_R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 # TODO: make this stricter WRT to :: vs :
@@ -93,27 +97,35 @@ class ReadTokens:
             self._tokens.reverse()
             self.line_no += 1
         out = self._tokens.pop(-1)
-        if not self._tokens:
-            if not out.endswith('"""') and (out.startswith('"""') or out.startswith('r"""')):
-                # hack for multi-line strings
-                # print("@@ multiline string partial start", self.srcloc(), out)
-                regex = _RE_R_MULTI_LINE_STR_END if out.startswith(
-                    "r") else _RE_MULTI_LINE_STR_END
-                while True:
-                    line = next(self._fp)
-                    self.line_no += 1
-                    m: re.Match = regex.match(line)
-                    if not m:
-                        cwast.CompilerError(
-                            self.srcloc(), "cannot parse multiline string constant")
-                    g = m.group()
-                    # print("@@ multiline string cont", g)
-                    out += g
-                    if len(g) != len(line):
-                        rest = line[len(g):]
-                        self._tokens = re.findall(_RE_TOKENS_ALL, rest)
-                        self._tokens.reverse()
-                        break
+        if self._tokens:
+            return out
+        if not out.endswith('"""'):
+            if out.startswith('"""'):
+                regex = _RE_MULTI_LINE_STR_END
+            elif out.startswith('r"""'):
+                regex = _RE_R_MULTI_LINE_STR_END
+            elif out.startswith('x"""'):
+                regex = _RE_X_MULTI_LINE_STR_END
+            else:
+                return out
+            # hack for multi-line strings
+            # print("@@ multiline string partial start", self.srcloc(), out)
+
+            while True:
+                line = next(self._fp)
+                self.line_no += 1
+                m: re.Match = regex.match(line)
+                if not m:
+                    cwast.CompilerError(
+                        self.srcloc(), "cannot parse multiline string constant")
+                g = m.group()
+                # print("@@ multiline string cont", g)
+                out += g
+                if len(g) != len(line):
+                    rest = line[len(g):]
+                    self._tokens = re.findall(_RE_TOKENS_ALL, rest)
+                    self._tokens.reverse()
+                    break
         return out
 
 
@@ -166,9 +178,13 @@ for basic_type in _SCALAR_TYPES:
 
 def IsWellFormedStringLiteral(t: str):
     if t.endswith('"""'):
-        return len(t) >= 6 and t.startswith('"""') or len(t) >= 7 and t.startswith('r"""')
+        return (len(t) >= 6 and t.startswith('"""') or
+                len(t) >= 7 and t.startswith('r"""') or
+                len(t) >= 7 and t.startswith('x"""'))
     elif t.endswith('"'):
-        return len(t) >= 2 and t.startswith('"') or len(t) >= 3 and t.startswith('r"')
+        return (len(t) >= 2 and t.startswith('"') or
+                len(t) >= 3 and t.startswith('r"') or
+                len(t) >= 3 and t.startswith('x"'))
     else:
         return False
 
@@ -181,10 +197,25 @@ def ExpandShortHand(t: str, srcloc) -> Any:
 
     if IsWellFormedStringLiteral(t):
         logger.info("STRING %s at %s", t, srcloc)
+        strkind = ""
         if t.startswith("r"):
-            return cwast.ValString(t[1:], x_srcloc=srcloc, raw=True)
+            strkind = "raw"
+            t = t[1:]
+        elif t.startswith("x"):
+            strkind = "hex"
+            t = t[1:]
+
+        triplequoted = False
+        if t.startswith('"""'):
+            triplequoted = True
+            t = t[3:]
+            assert t.endswith('"""')
+            t = t[:-3]
         else:
-            return cwast.ValString(t, x_srcloc=srcloc, raw=False)
+            t = t[1:-1]
+
+        return cwast.ValString(t, x_srcloc=srcloc, strkind=strkind,
+                               triplequoted=triplequoted)
     elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
@@ -421,7 +452,8 @@ def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
                     stream.srcloc(), f"expect start of new node, got '{t}']")
             mod = ReadSExpr(stream, None, attr)
             if not isinstance(mod, cwast.DefMod):
-                cwast.CompilerError(stream.srcloc(), f"expected end of module but for {mod}")
+                cwast.CompilerError(
+                    stream.srcloc(), f"expected end of module but for {mod}")
             asts.append(mod)
             failure = False
     except StopIteration:

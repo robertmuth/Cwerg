@@ -13,7 +13,7 @@ from FrontEnd import symbolize
 from FrontEnd import type_corpus
 from FrontEnd import typify
 
-from Util.parse import EscapedStringToBytes
+from Util.parse import EscapedStringToBytes, HexStringToBytes
 
 
 logger = logging.getLogger(__name__)
@@ -301,14 +301,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return _AssignValue(node, _EvalValRec(node.x_type, node.inits_field, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
-        assert s[0] == '"' and s[-1] == '"', f"expected string [{s}]"
-        if s.startswith('"""'):
-            assert s.endswith('"""')
-            s = s[3:-3]
-        else:
-            s = s[1:-1]
-        if node.raw:
+        if node.strkind == "raw":
             return _AssignValue(node, bytes(s, encoding="ascii"))
+        elif node.strkind == "hex":
+            return _AssignValue(node, HexStringToBytes(s))
         return _AssignValue(node, EscapedStringToBytes(s))
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value

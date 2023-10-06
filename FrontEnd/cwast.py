@@ -424,14 +424,15 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "discard", "ignore non-void expression"),
     NFD(NFK.ATTR_BOOL, "init", "run function at startup"),
     NFD(NFK.ATTR_BOOL, "fini", "run function at shutdown"),
-    NFD(NFK.ATTR_BOOL, "raw", "ignore escape sequences in string"),
     NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
     NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
     NFD(NFK.ATTR_BOOL, "untagged", "sum type is untagged"),
     NFD(NFK.ATTR_BOOL, "arg_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_BOOL, "res_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_BOOL, "builtin", "module is the builtin module"),
+    NFD(NFK.ATTR_BOOL, "triplequoted", "string is using 3 double quotes"),
     NFD(NFK.ATTR_STR, "doc", "comment"),
+    NFD(NFK.ATTR_STR, "strkind", "raw: ignore escape sequences in string, hex:"),
 
     #
     NFD(NFK.KIND, "unary_expr_kind",
@@ -1346,7 +1347,8 @@ class ValString:
     #
     string: str
     #
-    raw: bool = False
+    strkind: str = ""   # or raw or hex
+    triplequoted: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None

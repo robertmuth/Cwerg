@@ -43,8 +43,13 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValVoid):
         return "void_val"
     elif isinstance(node, cwast.ValString):
-        prefix = "r" if node.raw else ""
-        return prefix + node.string
+        quotes = '"""' if node.triplequoted else '"'
+        prefix = ""
+        if node.strkind == "raw":
+            prefix = "r"
+        elif node.strkind == "hex":
+            prefix = "x"
+        return prefix + quotes + node.string + quotes
     else:
         return None
 

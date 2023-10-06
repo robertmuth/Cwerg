@@ -76,6 +76,20 @@ def EscapedStringToBytes(s) -> bytes:
 
     return bytes(out)
 
+def HexStringToBytes(s) -> bytes:
+    out = bytearray()
+    last = None
+    for c in s:
+        if c in " \n\t":
+            pass
+        elif last is None:
+            last = c
+        else:
+            last += c
+            out.append(int(last, 16))
+            last = None
+    assert last is None
+    return bytes(out)
 
 def QuotedEscapedStringToBytes(s: str) -> bytes:
     r"""Note: this does NOT support many c-escape sequences.

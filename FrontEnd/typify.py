@@ -35,15 +35,22 @@ def address_can_be_taken(node) -> bool:
             address_can_be_taken(node.container))
 
 
-def ComputeStringSize(raw: bool, string: str) -> int:
-    if string.startswith('"""') and string.endswith('"""'):
-        string = string[3:-3]
-    elif string.startswith('"') and string.endswith('"'):
-        string = string[1:-1]
-    else:
-        assert False
+def ComputeStringSize(strkind: str, string: str) -> int:
     n = len(string)
-    if raw:
+    if strkind == "raw":
+        return n
+    if strkind == "hex":
+        n = 0
+        last = None
+        for c in string:
+            if c in " \t\n":
+                continue
+            if last:
+                last = None
+            else:
+                last = c
+                n += 1
+        assert last == None
         return n
     esc = False
     for c in string:
@@ -363,7 +370,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             _TypifyNodeRecursively(val.value, tc, field_ct, ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValString):
-        dim = ComputeStringSize(node.raw, node.string)
+        dim = ComputeStringSize(node.strkind, node.string)
         ct = tc.insert_array_type(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)
