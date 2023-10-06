@@ -111,9 +111,9 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
                 assert False, f"{ct}"
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
-            if init.value.x_value is None:
+            if init.value_or_undef.x_value is None:
                 return None
-            rec[field.name] = init.value.x_value
+            rec[field.name] = init.value_or_undef.x_value
     return rec
 
 
@@ -294,8 +294,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValArray):
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
-        if node.value.x_value is not None:
-            return _AssignValue(node, node.value.x_value)
+        if node.value_or_undef.x_value is not None:
+            return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
         return _AssignValue(node, _EvalValRec(node.x_type, node.inits_field, node.x_srcloc))

@@ -367,7 +367,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             field_ct = field_node.x_type
             AnnotateNodeField(val, field_node)
             AnnotateNodeType(val, field_ct)
-            _TypifyNodeRecursively(val.value, tc, field_ct, ctx)
+            if not isinstance(val.value_or_undef, cwast.ValUndef):
+                _TypifyNodeRecursively(val.value_or_undef, tc, field_ct, ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValString):
         dim = ComputeStringSize(node.strkind, node.string)
@@ -765,10 +766,13 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
             assert isinstance(x, cwast.FieldVal), f"unexpected field: {x}"
             field_node = x.x_field
             _CheckTypeSame(node, field_node.x_type, x.x_type)
-            if allow_implicit_type_conversion:
-                _CheckTypeCompatible(node, x.value.x_type, x.x_type)
-            else:
-                _CheckTypeSameExceptMut(node, x.value.x_type, x.x_type)
+            if not isinstance(x.value_or_undef, cwast.ValUndef):
+                if allow_implicit_type_conversion:
+                    _CheckTypeCompatible(
+                        node, x.value_or_undef.x_type, x.x_type)
+                else:
+                    _CheckTypeSameExceptMut(
+                        node, x.value_or_undef.x_type, x.x_type)
     elif isinstance(node, cwast.RecField):
         pass
     elif isinstance(node, cwast.ExprIndex):

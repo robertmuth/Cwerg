@@ -1273,7 +1273,7 @@ class FieldVal:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
     #
-    value: "NODES_EXPR_T"
+    value_or_undef: "NODES_EXPR_T"
     init_field: str
     #
     doc: str = ""
@@ -1284,7 +1284,7 @@ class FieldVal:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.init_field}={self.value}"
+        return f"{_NAME(self)} {self.init_field}={self.value_or_undef}"
 
 
 @NodeCommon

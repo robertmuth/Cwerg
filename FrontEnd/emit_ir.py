@@ -535,14 +535,14 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
             return
         for field, init in symbolize.IterateValRec(init_node.inits_field, src_type):
-            if isinstance(init, cwast.ValUndef):
+
+            if init is None:
+                _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
+                          field.x_type.size, field.x_type.alignment, id_gen)
+            elif isinstance(init.value_or_undef, cwast.ValUndef):
                 pass
-            elif init is None:
-                assert False, f"{src_type} {field}"
-                # _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
-                #          field.x_type.size, field.x_type.alignment, id_gen)
             else:
-                EmitIRExprToMemory(init.value, BaseOffset(
+                EmitIRExprToMemory(init.value_or_undef, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
     elif isinstance(init_node, cwast.ValArray):
         element_size: int = init_node.x_type.array_element_size()
@@ -788,8 +788,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
                                         (f.x_offset - rel_off), f"{offset+rel_off} padding")
-                if i is not None and not isinstance(i.value, cwast.ValUndef):
-                    rel_off += _emit_recursively(i.value,
+                if i is not None and not isinstance(i.value_or_undef, cwast.ValUndef):
+                    rel_off += _emit_recursively(i.value_or_undef,
                                                  f.type.x_type, offset + rel_off)
                 else:
                     rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
