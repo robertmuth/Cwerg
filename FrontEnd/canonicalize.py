@@ -406,6 +406,12 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
                 if not IsSameTypeExceptMut(a.x_type, p):
                     node.args[n] = _HandleImplicitConversion(
                         a, p, uint_type, tc)
+        elif isinstance(node, cwast.ExprWrap):
+            target = node.x_type.underlying_wrapped_type()
+            actual = node.expr.x_type
+            if not IsSameTypeExceptMut(actual, target):
+                node.expr = _HandleImplicitConversion(
+                    node.expr, target, uint_type, tc)
         elif isinstance(node, cwast.StmtReturn):
             target = node.x_target
             actual = node.expr_ret.x_type
