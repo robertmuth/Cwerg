@@ -1,17 +1,38 @@
 (module sha3 [] :
 (import fmt)
 
-@doc "variant of sha3-512 - https://www.cybertest.com/blog/keccak-vs-sha3"
+@doc """variants of sha3-512
+https://www.cybertest.com/blog/keccak-vs-sha3
+https://emn178.github.io/online-tools/sha3_512.html
+"""
 
 (defrec @pub StateKeccak :
 	(field msglen uint)
     (field x (array 25 u64)))
 
+(global KeccakPadding u8 1)
+(global Sha3Padding u8 6)
+
 (global BlockSize512 uint 72)
+(global BlockSize384 uint 104)
+(global BlockSize256 uint 136)
+(global BlockSize224 uint 144)
 
 (defrec @pub StateKeccak512 :
 	(field base StateKeccak)
 	(field tail	(array (/ BlockSize512 8) u64)))
+
+(defrec @pub StateKeccak384 :
+	(field base StateKeccak)
+	(field tail	(array (/ BlockSize384 8) u64)))
+
+(defrec @pub StateKeccak256 :
+	(field base StateKeccak)
+	(field tail	(array (/ BlockSize256 8) u64)))
+
+(defrec @pub StateKeccak224 :
+	(field base StateKeccak)
+	(field tail	(array (/ BlockSize224 8) u64)))
 
 @doc "only valid len for data are 9, 13, 17, 18
 (fun AddBlockAlignedLE [(param state (ptr @mut StateKeccak)) (param data (slice u64))] void :
@@ -196,14 +217,15 @@
 )
 
 (fun @pub KeccakFinalize [(param state (ptr @mut  StateKeccak))
-                          (param tail (slice @mut u64))] void :
+                          (param tail (slice @mut u64))
+                          (param padding u8)] void :
    (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
    (let block_size auto (* (len tail) 8))
 
    (let padding_start uint (% (-> state msglen) block_size))
    (for i padding_start block_size 1 :
     (= (^ (incp tail_u8 i)) 0))
-   (or= (^ (incp tail_u8 padding_start)) 1)
+   (or= (^ (incp tail_u8 padding_start)) padding)
    (or= (^ (incp tail_u8 (- block_size 1))) 0x80)
    (stmt (AddBlockAlignedLE [state  tail]))
    (stmt (KeccakF [(& @mut (-> state x))]))
@@ -213,7 +235,15 @@
 (fun @pub Keccak512 [(param data (slice u8))] (array 64 u8) :
   (let @mut @ref state auto (rec_val StateKeccak512 []))
   (stmt (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
-  (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail)]))
+  (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail) KeccakPadding]))
+  (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
+)
+
+@doc "returns 512 bit cryptographic hash of data"
+(fun @pub Sha3512 [(param data (slice u8))] (array 64 u8) :
+  (let @mut @ref state auto (rec_val StateKeccak512 []))
+  (stmt (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
+  (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail) Sha3Padding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 
