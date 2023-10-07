@@ -93,7 +93,8 @@ tests_emit_x64: \
     $(DIR)/sieve.run.x64.exe \
     $(DIR)/heapsort.run.x64.exe \
 	$(DIR)/print_argv.x64.test \
-    $(DIR)/wordcount.x64.test
+    $(DIR)/wordcount.x64.test \
+    $(DIR)/fibonacci.x64.test
 
 tests_emit_a64: \
     $(DIR)/hello_world.run.a64.exe \
