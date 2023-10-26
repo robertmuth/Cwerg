@@ -23,8 +23,9 @@
     )
 )
 
-(fun @pub CalcCrc [(param buf (slice u8)) 
-                   (param start_crc u32) 
+@doc "start crc is 0"
+(fun @pub CalcCrc [(param buf (slice u8))
+                   (param start_crc u32)
                    (param tab (ptr CrcTab))] u32 :
     (let @mut crc u32 (xor start_crc 0xffffffff))
     (for i 0 (len buf) 1 :
@@ -32,4 +33,41 @@
         (= crc (xor (at (^ tab) index) (>> crc 8)))
     )
     (return (xor crc 0xffffffff)))
+
+(global Adler32Mod u32 65521)
+
+@doc "largest n before we have to do a modulo operation on b"
+(global Adler32MaxLen uint 5552)
+
+@doc "only use expensive modulo when absolutely needed"
+(fun @pub Adler32ShortSliceHelper [(param buf (slice u8))
+                        (param start_crc u32)] u32 :
+    (let @mut a u32 (and start_crc 0xffff))
+    (let @mut b u32 (and (>> start_crc 16) 0xffff))
+    (for i 0 (len buf) 1 :
+        (+= a (as (at buf i) u32))
+        (+= b a)
+    )
+    (%= a Adler32Mod)
+    (%= b Adler32Mod)
+    (return (or a (<< b 16)))
+)
+
+@doc "crc to be passed to Adler32 for the first invocation"
+(global @pub Adler32SeedCrc u32 1)
+
+@doc "start crc is 1"
+(fun @pub Adler32 [(param buf (slice u8))
+                    (param start_crc u32)] u32 :
+
+    (let @mut crc u32 start_crc)
+    (let @mut start uint 0)
+    (while (< start (len buf)) :
+        (let end auto (min (+ start Adler32MaxLen) (len buf)))
+        (= crc (Adler32ShortSliceHelper [(slice_val (incp (front buf) start) (- end start))
+                                        crc]))
+        (= start end)
+    )
+    (return crc))
+
 )
