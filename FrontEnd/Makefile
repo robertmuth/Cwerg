@@ -78,13 +78,15 @@ tests_lib_x64: \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \
     $(DIR)/checksum_test.lib.x64.exe \
-    $(DIR)/sha3_test.lib.x64.exe
+    $(DIR)/sha3_test.lib.x64.exe \
+    $(DIR)/bitstream_test.lib.x64.exe
 
 tests_lib_a64: \
 	$(DIR)/fmt_test.lib.a64.exe \
 	$(DIR)/string_test.lib.a64.exe \
     $(DIR)/trig_test.lib.a64.exe \
     $(DIR)/checksum_test.lib.a64.exe \
+	$(DIR)/sha3_test.lib.a64.exe \
     $(DIR)/sha3_test.lib.a64.exe
 
 tests_emit_x64: \
