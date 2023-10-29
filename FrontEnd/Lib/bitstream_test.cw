@@ -32,8 +32,8 @@
     (test::AssertFalse! (. bs eos))
 
     (test::AssertEq! (bitstream::Stream32BytesLeft [(& bs)]) 1011_uint)
-    @doc """(test::AssertEq! (front (bitstream::Stream32GetByteSlice [(& @mut bs) 1000_uint]))
-        (incp (front DataFF) 13))"""
+    (test::AssertEq! (front (bitstream::Stream32GetByteSlice [(& @mut bs) 1000_uint]))
+        (incp (front DataFF) 13))
     (test::AssertFalse! (. bs eos))
 
 

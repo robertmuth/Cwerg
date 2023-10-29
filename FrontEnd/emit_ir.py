@@ -207,6 +207,15 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         assert node.expr.x_type.is_untagged_sum() or node.expr.x_type.is_wrapped()
         base = _GetLValueAddress(node.expr, tc, id_gen)
         return BaseOffset(base, 0)
+    elif isinstance(node, cwast.ExprStmt):
+        ct = node.x_type
+        name = id_gen.NewName("expr_stk_var")
+        print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
+        base = id_gen.NewName("stmt_stk_base")
+        kind = tc.get_data_address_reg_type()
+        print(f"{TAB}lea.stk {base}:{kind} {name} 0")
+        EmitIRExprToMemory(node,  BaseOffset(base, 0), tc, id_gen)
+        return BaseOffset(base, 0)
     else:
         assert False, f"unsupported node for lvalue {node}"
 
