@@ -182,6 +182,8 @@ def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
             return _ComputeArrayLength(node.expr1, kind) // _ComputeArrayLength(node.expr2, kind)
         else:
             assert False
+    elif isinstance(node, cwast.ValAuto):
+        assert False
     else:
         assert False, f"unexpected dim node: {node}"
 
