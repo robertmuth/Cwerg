@@ -51,7 +51,7 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
 def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_src.is_int():
-        if ct_dst.is_int() or ct_dst.is_real():
+        if ct_dst.is_int() or ct_dst.is_real() or ct_dst.is_bool():
             return True
 
     if ct_src.is_real():

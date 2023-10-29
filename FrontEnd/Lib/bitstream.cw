@@ -61,10 +61,14 @@ may set eos
    (= (-> bs bits_count) 0)
 )
 
+(fun @pub Stream32GetBool [(param bs (ptr @mut Stream32))] bool :
+    (return (as (Stream32GetBits [bs 1]) bool))
+)
+
 @doc "may set eos bit"
 (fun @pub Stream32GetByteSlice [(param bs (ptr @mut Stream32))
                                 (param n uint)] (slice u8) :
-   (let @mut l auto (len (-> bs buf)))
+   (let @mut l uint (len (-> bs buf)))
    (let @mut f auto (front (-> bs buf)))
    (let offset uint (-> bs offset))
 
@@ -72,7 +76,7 @@ may set eos
     (= (-> bs eos) true)
     (return (slice_val f 0))
    :
-     (= (-> bs offset) (+ offset n))
+    (= (-> bs offset) (+ offset n))
     (return (slice_val (incp f offset) n))
    )
 
