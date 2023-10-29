@@ -287,6 +287,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
                 EmitIRConditional(cond.expr1, False, label_false, tc, id_gen)
                 EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
         else:
+            assert cond.expr1.x_type.fits_in_register(), "NYI"
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
 

@@ -66,8 +66,8 @@ may set eos
                                 (param n uint)] (slice u8) :
    (let @mut l auto (len (-> bs buf)))
    (let @mut f auto (front (-> bs buf)))
+   (let offset uint (-> bs offset))
 
-   (let @mut offset uint (-> bs offset))
    (if (> n (- l  offset)) :
     (= (-> bs eos) true)
     (return (slice_val f 0))
