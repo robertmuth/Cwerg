@@ -40,10 +40,11 @@ The type of the loop variable is determined by $end"""
     (macro_let $eval auto $expr)
     (if (is $eval $type) :
         :
-        (macro_let $catch_name auto (as (sumuntagged $eval) (sumdelta (typeof $eval) $type)))
+        (macro_let $catch_name auto
+            (narrowto $eval (sumdelta (typeof $eval) $type)))
         $catch_body
         (trap))
-    (macro_let $name $type (as (sumuntagged $eval) $type)))
+    (macro_let $name $type (narrowto $eval $type)))
 
 (macro swap STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     (macro_let $t auto $a)

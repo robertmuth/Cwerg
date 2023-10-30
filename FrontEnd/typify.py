@@ -534,7 +534,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             node.lhs, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr_rhs, tc, var_cstr, ctx)
         return type_corpus.NO_TYPE
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         ct = _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)
@@ -842,7 +842,13 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         ct_dst = node.type.x_type
         if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
             cwast.CompilerError(
-                node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}")
+                node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
+    elif isinstance(node, cwast.ExprNarrow):
+        ct_src = node.expr.x_type
+        ct_dst = node.type.x_type
+        if not type_corpus.is_compatible_for_narrow(ct_src, ct_dst):
+            cwast.CompilerError(
+                node.x_srcloc,  f"bad narrow {ct_src} -> {ct_dst}: {node.expr}")
     elif isinstance(node, cwast.ExprUnsafeCast):
         # src = node.expr.x_type
         # dst = node.type.x_type

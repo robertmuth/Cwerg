@@ -66,8 +66,8 @@
 
 (fun with_union_result [(param a bool) (param b u32) (param c r32)] UntaggedUnion :
     (let @mut out UntaggedUnion undef)
-    (if a : 
-        (= out b) 
+    (if a :
+        (= out b)
         : (= out c))
     (return out)
 )
@@ -79,32 +79,32 @@
     (let @mut u3 UntaggedUnion 2.0_r32)
     (let @mut u4 UntaggedUnion 777_u32)
 
-    (let s1 u32 (as u3 u32))
+    (let s1 u32 (narrowto u3 u32))
     (test::AssertEq! s1 0x40000000_u32)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 0) 0_u8)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 1) 0_u8)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 2) 0_u8)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 3) 0x40_u8)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 0) 0_u8)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 1) 0_u8)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 2) 0_u8)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 3) 0x40_u8)
 
-    (= (at (as u3 (array 32 u8)) 2) 0x28_u8)
-    (= (at (as u3 (array 32 u8)) 3) 0x42_u8)
-    (test::AssertEq! (as u3 u32) 0x42280000_u32)
-    (test::AssertEq! (as u3 r32) 42_r32)
+    (= (at (narrowto u3 (array 32 u8)) 2) 0x28_u8)
+    (= (at (narrowto u3 (array 32 u8)) 3) 0x42_u8)
+    (test::AssertEq! (narrowto u3 u32) 0x42280000_u32)
+    (test::AssertEq! (narrowto u3 r32) 42_r32)
 
     (= u3 2.0_r64)
-    (test::AssertEq! (as u3 u64) 0x4000000000000000_u64)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 3) 0_u8)
-    (test::AssertEq! (at (as u3 (array 32 u8)) 7) 0x40_u8)
+    (test::AssertEq! (narrowto u3 u64) 0x4000000000000000_u64)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 3) 0_u8)
+    (test::AssertEq! (at (narrowto u3 (array 32 u8)) 7) 0x40_u8)
 
     @doc "union embedded in record"
     (let @mut rec1 RecordWithUntaggedUnion undef)
     (= (. rec1 t3) 2.0_r32)
-    (test::AssertEq! (as (. rec1 t3) u32) 0x40000000_u32)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 0) 0_u8)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 1) 0_u8)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 2) 0_u8)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 3) 0x40_u8)
-    
+    (test::AssertEq! (narrowto (. rec1 t3) u32) 0x40000000_u32)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 0) 0_u8)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 1) 0_u8)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 2) 0_u8)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 3) 0x40_u8)
+
     @doc "union embedded in record 2"
     (let @mut rec2 auto (rec_val RecordWithUntaggedUnion [
         (field_val false)
@@ -113,44 +113,44 @@
         (field_val true)]))
     (test::AssertEq! (. rec2 t1) false)
     (test::AssertEq! (. rec2 t2) 0x12344321_u32)
-    (test::AssertEq! (as (. rec2 t3) u32) 0x40000000_u32)
+    (test::AssertEq! (narrowto (. rec2 t3) u32) 0x40000000_u32)
     (test::AssertEq! (. rec2 t4) true)
 
 
     @doc ""
-    (= (at (as (. rec1 t3) (array 32 u8)) 2) 0x28_u8)
-    (= (at (as (. rec1 t3) (array 32 u8)) 3) 0x42_u8)
-    (test::AssertEq! (as (. rec1 t3) u32) 0x42280000_u32)
-    (test::AssertEq! (as (. rec1 t3) r32) 42_r32)
+    (= (at (narrowto (. rec1 t3) (array 32 u8)) 2) 0x28_u8)
+    (= (at (narrowto (. rec1 t3) (array 32 u8)) 3) 0x42_u8)
+    (test::AssertEq! (narrowto (. rec1 t3) u32) 0x42280000_u32)
+    (test::AssertEq! (narrowto (. rec1 t3) r32) 42_r32)
 
     (= (. rec1 t3) 2.0_r64)
-    (test::AssertEq! (as (. rec1 t3) u64) 0x4000000000000000_u64)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 3) 0_u8)
-    (test::AssertEq! (at (as (. rec1 t3) (array 32 u8)) 7) 0x40_u8)
+    (test::AssertEq! (narrowto (. rec1 t3) u64) 0x4000000000000000_u64)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 3) 0_u8)
+    (test::AssertEq! (at (narrowto (. rec1 t3) (array 32 u8)) 7) 0x40_u8)
 
     @doc "array of union"
     (let @mut array1 (array 16 UntaggedUnion) undef)
     (= (at array1 13) 2.0_r32)
-    (test::AssertEq! (as (at array1 13) u32) 0x40000000_u32)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 0) 0_u8)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 1) 0_u8)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 2) 0_u8)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 3) 0x40_u8)
+    (test::AssertEq! (narrowto (at array1 13) u32) 0x40000000_u32)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 0) 0_u8)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 1) 0_u8)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 2) 0_u8)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 3) 0x40_u8)
 
-    (= (at (as (at array1 13) (array 32 u8)) 2) 0x28_u8)
-    (= (at (as (at array1 13) (array 32 u8)) 3) 0x42_u8)
-    (test::AssertEq! (as (at array1 13) u32) 0x42280000_u32)
-    (test::AssertEq! (as (at array1 13) r32) 42_r32)
+    (= (at (narrowto (at array1 13) (array 32 u8)) 2) 0x28_u8)
+    (= (at (narrowto (at array1 13) (array 32 u8)) 3) 0x42_u8)
+    (test::AssertEq! (narrowto (at array1 13) u32) 0x42280000_u32)
+    (test::AssertEq! (narrowto (at array1 13) r32) 42_r32)
 
     (= u1 (with_union_result [true 10 2.0]))
-    (test::AssertEq! (as u1 u32) 10_u32)
+    (test::AssertEq! (narrowto u1 u32) 10_u32)
     (= u1 (with_union_result [false 10 2.0]))
-    (test::AssertEq! (as u1 u32) 0x40000000_u32)
+    (test::AssertEq! (narrowto u1 u32) 0x40000000_u32)
 
     (= (at array1 13) 2.0_r64)
-    (test::AssertEq! (as (at array1 13) u64) 0x4000000000000000_u64)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 3) 0_u8)
-    (test::AssertEq! (at (as (at array1 13) (array 32 u8)) 7) 0x40_u8)
+    (test::AssertEq! (narrowto (at array1 13) u64) 0x4000000000000000_u64)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 3) 0_u8)
+    (test::AssertEq! (at (narrowto (at array1 13) (array 32 u8)) 7) 0x40_u8)
 )
 
 

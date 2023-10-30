@@ -14,7 +14,7 @@
         (param v color)
         (param out (slice @mut u8))
         (param options (ptr @mut fmt::SysFormatOptions))] uint :
-    (return (@polymorphic fmt::SysRender [(as v s32) out options])))
+    (return (@polymorphic fmt::SysRender [(unwrap v) out options])))
 
 
 (defrec @pub ic32 :

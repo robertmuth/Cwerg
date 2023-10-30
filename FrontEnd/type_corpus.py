@@ -69,20 +69,33 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
         # TODO: check "ref"
         return ct_src.underlying_array_type() == ct_dst.underlying_slice_type()
 
-    if ct_dst.is_sum() and ct_src.is_sum():
+    # widening
+    if ct_dst.is_sum():
+        dst_children = set([x.name for x in ct_dst.sum_types()])
+        if ct_src.is_sum():
+            if ct_dst.untagged != ct_src.untagged:
+                return False
+            src_children = set([x.name for x in ct_src.sum_types()])
+        else:
+            src_children = set([ct_src.name])
+        return src_children.issubset(dst_children)
+    return False
+
+
+def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src.original_type is not None:
+        ct_src = ct_src.original_type
+    if ct_dst.original_type is not None:
+        ct_dst = ct_dst.original_type
+    assert ct_src.is_sum(), F"{ct_src} VS {ct_dst}"
+    src_children = set([x.name for x in ct_src.sum_types()])
+    if ct_dst.is_sum():
         if ct_dst.untagged != ct_src.untagged:
             return False
         dst_children = set([x.name for x in ct_dst.sum_types()])
-        src_children = set([x.name for x in ct_src.sum_types()])
-        return src_children.issubset(dst_children) or dst_children.issubset(src_children)
-    elif ct_src.is_sum():
-        src_children = set([x.name for x in ct_src.sum_types()])
-        return ct_dst.name in src_children
-    elif ct_dst.is_sum():
-        dst_children = set([x.name for x in ct_dst.sum_types()])
-        return ct_src.name in dst_children
-
-    return False
+    else:
+        dst_children = set([ct_dst.name])
+    return dst_children.issubset(src_children)
 
 
 def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
@@ -116,7 +129,7 @@ def is_proper_lhs(node) -> bool:
         else:
             assert container_ct.is_array()
             return is_proper_lhs(node.container)
-    elif isinstance(node, cwast.ExprAs) and node.expr.x_type.is_untagged_sum():
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)) and node.expr.x_type.is_untagged_sum():
         return is_proper_lhs(node.expr)
     else:
         return False

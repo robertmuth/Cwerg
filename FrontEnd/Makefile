@@ -94,15 +94,16 @@ tests_emit_x64: \
     $(DIR)/fizzbuzz.run.x64.exe \
     $(DIR)/sieve.run.x64.exe \
     $(DIR)/heapsort.run.x64.exe \
+	$(DIR)/fibonacci.run.x64.exe \
 	$(DIR)/print_argv.x64.test \
-    $(DIR)/wordcount.x64.test \
-    $(DIR)/fibonacci.x64.test
+    $(DIR)/wordcount.x64.test
 
 tests_emit_a64: \
     $(DIR)/hello_world.run.a64.exe \
     $(DIR)/fizzbuzz.run.a64.exe \
     $(DIR)/sieve.run.a64.exe \
     $(DIR)/heapsort.run.a64.exe \
+	$(DIR)/fibonacci.run.x64.exe \
     $(DIR)/print_argv.a64.test \
     $(DIR)/wordcount.a64.test
 

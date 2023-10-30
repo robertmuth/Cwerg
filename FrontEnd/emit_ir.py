@@ -202,9 +202,9 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         else:
             assert False, f"unsupported storage class {storage}"
         return BaseOffset(base, 0)
-    elif isinstance(node, cwast.ExprAs):
+    elif isinstance(node, cwast.ExprNarrow):
         #
-        assert node.expr.x_type.is_untagged_sum() or node.expr.x_type.is_wrapped()
+        assert node.expr.x_type.is_untagged_sum()
         base = _GetLValueAddress(node.expr, tc, id_gen)
         return BaseOffset(base, 0)
     elif isinstance(node, cwast.ExprStmt):
@@ -431,6 +431,14 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         print(
             f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
         return res
+    elif isinstance(node, cwast.ExprNarrow):
+        ct_src: cwast.CanonType = node.expr.x_type
+        assert ct_src.is_sum() or ct_src.original_type.is_sum()
+        addr = _GetLValueAddress(node.expr, tc, id_gen)
+        res = id_gen.NewName("union_access")
+        print(
+            f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
+        return res
     elif isinstance(node, cwast.ExprAs):
         ct_src: cwast.CanonType = node.expr.x_type
         if ct_src.is_base_type() and ct_dst.is_base_type():
@@ -440,17 +448,6 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(
                 f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
-        elif ct_src.is_untagged_sum():
-            addr = _GetLValueAddress(node.expr, tc, id_gen)
-            res = id_gen.NewName("union_access")
-            print(
-                f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
-            return res
-        elif (ct_src.is_enum() and ct_dst.is_base_type() or
-              ct_dst.is_enum() and ct_src.is_base_type()) and (ct_src.base_type_kind
-                                                               == ct_dst.base_type_kind):
-            # just ignore the wrapped type
-            return EmitIRExpr(node.expr, tc, id_gen)
         elif ct_src.is_pointer() and ct_dst.is_pointer():
             return EmitIRExpr(node.expr, tc, id_gen)
         else:
@@ -515,7 +512,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap)):
+    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprNarrow, cwast.ExprUnwrap)):
         if init_node.x_type.fits_in_register():
             # same as above
             reg = EmitIRExpr(init_node, tc, id_gen)
@@ -728,6 +725,8 @@ _BYTE_PADDING = b"\x6f"
 
 def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
     def_type: cwast.CanonType = node.type_or_auto.x_type
+    if def_type.is_void_or_wrapped_void():
+        return 0
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 

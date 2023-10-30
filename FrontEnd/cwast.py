@@ -375,7 +375,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprSumTag", "ExprSumUntagged",
-              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprBitCast")
+              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1708,14 +1708,8 @@ class ExprAs:
     """Safe Cast (Conversion)
 
     Allowed:
-    enum <-> undelying enum type
-    wrapped type <-> undelying enum type
     u8-u64, s8-s64 <-> u8-u64, s8-s64
     u8-u64, s8-s64 -> r32-r64  (note: one way only)
-
-    Possibly
-    slice -> ptr
-    ptr to rec -> ptr to first element of rec
     """
     ALIAS = "as"
     GROUP = GROUP.Expression
@@ -1730,6 +1724,27 @@ class ExprAs:
 
     def __str__(self):
         return f"{self.expr} AS {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprNarrow:
+    """Narrowing Cast (for unions)
+
+    """
+    ALIAS = "narrowto"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} NARROW_TO {self.type}"
 
 
 @NodeCommon
