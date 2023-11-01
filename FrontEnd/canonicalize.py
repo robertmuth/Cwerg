@@ -432,9 +432,9 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
 
-def FunReplaceTypeOf(fun: cwast.DefFun):
+def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
     def replacer(node, _):
-        if not isinstance(node, cwast.TypeOf):
+        if not isinstance(node, (cwast.TypeOf, cwast.TypeSumDelta)):
             return None
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
 

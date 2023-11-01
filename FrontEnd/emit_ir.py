@@ -897,9 +897,10 @@ def main():
     logger.info("partial eval and static assert validation")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
-    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+
+    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
 
     SanityCheckMods("after_partial_eval", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES,
@@ -925,7 +926,7 @@ def main():
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
-            canonicalize.FunReplaceTypeOf(fun)
+            canonicalize.FunReplaceTypeOfAndTypeSumDelta(fun)  # maybe Mod...
             canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.ReplaceConstExpr(fun)
             canonicalize.EliminateImplicitConversions(fun, tc)
@@ -943,6 +944,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtDefer)
     ELIMIMATED_NODES.add(cwast.ExprIs)
     ELIMIMATED_NODES.add(cwast.TypeOf)
+    ELIMIMATED_NODES.add(cwast.TypeSumDelta)
 
     SanityCheckMods("after_initial_lowering", args.emit_ir,
                     mod_topo_order, tc, ELIMIMATED_NODES)

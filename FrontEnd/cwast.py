@@ -1095,7 +1095,7 @@ class TypeSumDelta:
     """
     ALIAS = "sumdelta"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
     type: NODES_TYPES_T
     subtrahend: NODES_TYPES_T
