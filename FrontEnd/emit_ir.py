@@ -512,7 +512,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprNarrow, cwast.ExprUnwrap)):
+    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprWiden,
+                                cwast.ExprNarrow, cwast.ExprUnwrap)):
         if init_node.x_type.fits_in_register():
             # same as above
             reg = EmitIRExpr(init_node, tc, id_gen)
@@ -976,7 +977,6 @@ def main():
     sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
         mod_topo_order, tc)
     for mod in mod_topo_order:
-        canonicalize_sum.ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
     ELIMIMATED_NODES.add(cwast.ExprSumTag)

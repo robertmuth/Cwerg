@@ -764,17 +764,17 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
                 assert x.init_index.x_type.is_int()
             _CheckTypeSame(node,  x.x_type, cstr)
     elif isinstance(node, cwast.ValRec):
-        for x in node.inits_field:
-            assert isinstance(x, cwast.FieldVal), f"unexpected field: {x}"
-            field_node = x.x_field
-            _CheckTypeSame(node, field_node.x_type, x.x_type)
-            if not isinstance(x.value_or_undef, cwast.ValUndef):
-                if allow_implicit_type_conversion:
-                    _CheckTypeCompatible(
-                        node, x.value_or_undef.x_type, x.x_type)
-                else:
-                    _CheckTypeSameExceptMut(
-                        node, x.value_or_undef.x_type, x.x_type)
+        pass
+    elif isinstance(node, cwast.FieldVal):
+        field_node = node.x_field
+        _CheckTypeSame(node, field_node.x_type, node.x_type)
+        if not isinstance(node.value_or_undef, cwast.ValUndef):
+            if allow_implicit_type_conversion:
+                _CheckTypeCompatible(
+                    node, node.value_or_undef.x_type, node.x_type)
+            else:
+                _CheckTypeSameExceptMut(
+                    node, node.value_or_undef.x_type, node.x_type)
     elif isinstance(node, cwast.RecField):
         pass
     elif isinstance(node, cwast.ExprIndex):
@@ -843,12 +843,18 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
         if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
             cwast.CompilerError(
                 node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
+    elif isinstance(node, cwast.ExprWiden):
+        ct_src = node.expr.x_type
+        ct_dst = node.type.x_type
+        if not type_corpus.is_compatible_for_widen(ct_src, ct_dst):
+            cwast.CompilerError(
+                node.x_srcloc,  f"bad widen {ct_src.original_type} -> {ct_dst}: {node.expr}")
     elif isinstance(node, cwast.ExprNarrow):
         ct_src = node.expr.x_type
         ct_dst = node.type.x_type
         if not type_corpus.is_compatible_for_narrow(ct_src, ct_dst):
             cwast.CompilerError(
-                node.x_srcloc,  f"bad narrow {ct_src} -> {ct_dst}: {node.expr}")
+                node.x_srcloc,  f"bad narrow {ct_src.original_type} -> {ct_dst}: {node.expr}")
     elif isinstance(node, cwast.ExprUnsafeCast):
         # src = node.expr.x_type
         # dst = node.type.x_type
@@ -916,11 +922,6 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprSumTag):
         assert ct is tc.get_typeid_canon_type()
         assert node.expr.x_type.is_tagged_sum()
-    elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
-                           cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,
-                           cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
-                           cwast.EnumVal, cwast.ValAuto, cwast.ValString, cwast.FieldVal)):
-        pass
     elif isinstance(node, cwast.ExprWrap):
         ct_node: cwast.CanonType = node.x_type
         ct_expr: cwast.CanonType = node.expr.x_type
@@ -938,6 +939,11 @@ def _TypeVerifyNode(node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus,
                 ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
         else:
             assert False
+    elif isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypeSlice, cwast.IndexVal,
+                           cwast.TypeArray, cwast.DefFun, cwast.TypeAuto,
+                           cwast.TypePtr, cwast.FunParam, cwast.DefRec, cwast.DefEnum,
+                           cwast.EnumVal, cwast.ValAuto, cwast.ValString)):
+        pass
     else:
         assert False, f"unsupported  node type: {node.__class__} {node}"
 

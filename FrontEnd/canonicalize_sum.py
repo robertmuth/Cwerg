@@ -1,5 +1,11 @@
 """Canonicalizer For Tagged Sum
 
+
+Protocol:
+* sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(mod_topo_order)
+* for mod in mod_in_top_order:
+  - ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
+  - ReplaceSums(mod, sum_to_struct_map)
 """
 
 
@@ -106,39 +112,106 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
                     x_srcloc=srcloc)
 
 
-def _MakeTypeidVal(typeid, srcloc,  tc: type_corpus.TypeCorpus) -> cwast.ValNum:
+def _MakeTypeidVal(typeid, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     return cwast.ValNum(str(typeid), x_value=typeid, x_srcloc=srcloc,
-                        x_type=tc.get_typeid_canon_type())
+                        x_type=ct_typeid)
 
 
-def _MakeValRecForSum(value: cwast.ExprAs, sum_rec: cwast.CanonType,
-                      tc: type_corpus.TypeCorpus) -> cwast.ValRec:
+def _MakeValRecForSum(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
+    tag_field, union_field = sum_rec.ast_node.fields
+    return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), [
+        cwast.FieldVal(tag_value, "",
+                       x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc),
+        cwast.FieldVal(union_value, "",
+                       x_field=union_field, x_type=union_field.x_type,
+                       x_srcloc=srcloc, x_value=union_value.x_value)
+
+    ], x_srcloc=srcloc,
+        x_type=sum_rec)
+
+
+def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValRec:
+    assert sum_rec.is_rec()
+    assert value.x_type.is_tagged_sum()
+    assert not value.expr.x_type.is_sum(
+    ), f"{value.expr.x_type} -> {sum_rec} {value.x_srcloc}"
+
     tag_field, union_field = sum_rec.ast_node.fields
     srcloc = value.x_srcloc
     value.x_type = union_field.x_type
     value.type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
-    inits = [cwast.FieldVal(_MakeTypeidVal(value.expr.x_type.typeid, srcloc, tc), "",
-                            x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc),
-             cwast.FieldVal(value, "",
-                            x_field=union_field, x_type=union_field.x_type,
-                            x_srcloc=srcloc, x_value=value.x_value)]
-    return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), inits, x_srcloc=srcloc, x_type=sum_rec)
+
+    return _MakeValRecForSum(sum_rec,
+                             _MakeTypeidVal(
+                                 value.expr.x_type.typeid, srcloc, tag_field.x_type),
+                             value,
+                             srcloc)
 
 
-def ReplaceExplicitSumCast(node, sum_to_struct_map: SUM_TO_STRUCT_MAP, tc: type_corpus.TypeCorpus):
-    """Convert Cast to sum type to RecVal
+def _CloneId(node: cwast.Id) -> cwast.Id:
+    assert isinstance(node, cwast.Id)
+    return cwast.Id(node.name, x_symbol=node.x_symbol, x_type=node.x_type,
+                    x_srcloc=node.x_srcloc)
 
-    Note, such cast can be introduced by  EliminateImplicitConversions()
-    """
 
-    def replacer(node, _):
-        nonlocal tc
-        if isinstance(node, cwast.ExprAs):
-            if node.x_type.is_tagged_sum():
-                return _MakeValRecForSum(node, sum_to_struct_map[node.x_type], tc)
-        return None
+def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
+    assert dst_sum_rec.is_rec()
+    _, dst_union_field = dst_sum_rec.ast_node.fields
+    src_sum_rec: cwast.CanonType = value.expr.x_type
+    assert src_sum_rec.is_rec()
+    assert src_sum_rec.original_type.is_tagged_sum()
+    src_tag_field, src_union_field = src_sum_rec.ast_node.fields
+    # to drop this we would need to introducea temporary
+    assert isinstance(value.expr, cwast.Id)
+    srcloc = value.x_srcloc
+    # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    tag_value = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
+                                x_srcloc=srcloc, x_type=src_tag_field.x_type,
+                                x_field=src_tag_field)
+    union_field = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
+                                  x_srcloc=srcloc, x_type=src_union_field.x_type,
+                                  x_field=src_union_field)
+    union_value = cwast.ExprNarrow(union_field,
+                                   cwast.TypeAuto(x_srcloc=srcloc,
+                                                  x_type=dst_union_field.x_type),
+                                   x_srcloc=srcloc,
+                                   x_value=value.x_value,
+                                   x_type=dst_union_field.x_type)
+
+    return _MakeValRecForSum(dst_sum_rec,
+                             tag_value, union_value,
+                             srcloc)
+
+
+def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
+    assert dst_sum_rec.is_rec()
+    _, dst_union_field = dst_sum_rec.ast_node.fields
+    src_sum_rec: cwast.CanonType = value.expr.x_type
+    assert src_sum_rec.is_rec()
+    assert src_sum_rec.original_type.is_tagged_sum()
+    src_tag_field, src_union_field = src_sum_rec.ast_node.fields
+    # to drop this we would need to introducea temporary
+    assert isinstance(value.expr, cwast.Id)
+    srcloc = value.x_srcloc
+    # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
+
+    tag_value = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
+                                x_srcloc=srcloc, x_type=src_tag_field.x_type,
+                                x_field=src_tag_field)
+    union_field = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
+                                  x_srcloc=srcloc, x_type=src_union_field.x_type,
+                                  x_field=src_union_field)
+    union_value = cwast.ExprWiden(union_field,
+                                  cwast.TypeAuto(x_srcloc=srcloc,
+                                                 x_type=dst_union_field.x_type),
+                                  x_srcloc=srcloc,
+                                  x_value=value.x_value,
+                                  x_type=dst_union_field.x_type)
+
+    return _MakeValRecForSum(dst_sum_rec,
+                             tag_value, union_value,
+                             srcloc)
 
 
 def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
@@ -172,33 +245,46 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
 
-        if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
+        if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
+            return None
+        def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
+            node.x_type)
+        if def_rec is None:
+            return None
+        if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
+                             cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
+                             cwast.FunParam, cwast.ExprCall, cwast.RecField,
+                             cwast.ExprField, cwast.FieldVal)):
+            typify.UpdateNodeType(node, def_rec)
+            return None
+        elif isinstance(node, cwast.TypeSum):
+            return _MakeIdForDefRec(def_rec, node.x_srcloc)
+        elif isinstance(node, cwast.ExprWiden):
+            ct_src: cwast.CanonType = node.expr.x_type
+            if ct_src.original_type is not None and ct_src.original_type.is_tagged_sum():
+                return _MakeValRecForWidenFromUnion(node, sum_to_struct_map[node.x_type])
+            else:
+                return _MakeValRecForWidenFromNonUnion(node, sum_to_struct_map[node.x_type])
 
-            def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
-                node.x_type)
-            if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
-                                     cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
-                                     cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                                     cwast.ExprField, cwast.FieldVal)):
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, cwast.TypeSum):
-                    return _MakeIdForDefRec(def_rec, node.x_srcloc)
-                elif isinstance(node, cwast.Id):
-                    sym = node.x_symbol
-                    # TODO
-                    # This needs a lot of work also what about field references to
-                    # rewritten fields
-                    if isinstance(sym, cwast.TypeSum):
-                        symbolize.AnnotateNodeSymbol(node, def_rec)
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, cwast.ExprPointer):
-                    assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
-                    assert False
-                else:
-                    assert False, f"do not know how to convert sum node [{def_rec.name}]: {node}"
-        return None
+        elif isinstance(node, cwast.ExprNarrow):
+            ct_src: cwast.CanonType = node.expr.x_type
+            assert ct_src.is_rec(
+            ), f"{ct_src} -> {node.x_type}: {node.x_srcloc}"
+
+            return _MakeValRecForNarrow(node, sum_to_struct_map[node.x_type])
+        elif isinstance(node, cwast.Id):
+            sym = node.x_symbol
+            # TODO
+            # This needs a lot of work also what about field references to
+            # rewritten fields
+            if isinstance(sym, cwast.TypeSum):
+                symbolize.AnnotateNodeSymbol(node, def_rec)
+            typify.UpdateNodeType(node, def_rec)
+            return None
+        elif isinstance(node, cwast.ExprPointer):
+            assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
+            assert False
+        else:
+            assert False, f"do not know how to convert sum node [{def_rec.name}]: {node} {node.x_srcloc}"
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

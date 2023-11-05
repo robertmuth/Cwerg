@@ -375,7 +375,8 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
               "ExprSumTag", "ExprSumUntagged",
-              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow", "ExprBitCast")
+              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
+              "ExprWiden", "ExprBitCast")
 
 
 NODES_EXPR_T = Union[NODES_EXPR]
@@ -1745,6 +1746,27 @@ class ExprNarrow:
 
     def __str__(self):
         return f"{self.expr} NARROW_TO {self.type}"
+
+@NodeCommon
+@dataclasses.dataclass()
+class ExprWiden:
+    """Widening Cast (for unions)
+
+    Usually this is implicit
+    """
+    ALIAS = "widento"
+    GROUP = GROUP.Expression
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    expr: NODES_EXPR_T
+    type: NODES_TYPES_T
+    #
+    x_srcloc: Optional[Any] = None
+    x_type: Optional[Any] = None
+    x_value: Optional[Any] = None
+
+    def __str__(self):
+        return f"{self.expr} WIDEN_TO {self.type}"
 
 
 @NodeCommon

@@ -68,8 +68,10 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
     if ct_src.is_array() and ct_dst.is_slice():
         # TODO: check "ref"
         return ct_src.underlying_array_type() == ct_dst.underlying_slice_type()
+    return False
 
-    # widening
+
+def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_dst.is_sum():
         dst_children = set([x.name for x in ct_dst.sum_types()])
         if ct_src.is_sum():
