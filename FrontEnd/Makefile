@@ -74,6 +74,7 @@ tests_lang_a32: \
     $(DIR)/expr_sint_test.lang.a64.exe
 
 tests_lib_x64: \
+	$(DIR)/flate_test.lib.x64.exe \
 	$(DIR)/fmt_test.lib.x64.exe \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \
@@ -82,6 +83,7 @@ tests_lib_x64: \
     $(DIR)/bitstream_test.lib.x64.exe
 
 tests_lib_a64: \
+	$(DIR)/flate_test.lib.a64.exe \
 	$(DIR)/fmt_test.lib.a64.exe \
 	$(DIR)/string_test.lib.a64.exe \
     $(DIR)/trig_test.lib.a64.exe \

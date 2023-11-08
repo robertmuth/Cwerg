@@ -506,6 +506,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 def EmitIRExprToMemory(init_node, dst: BaseOffset,
                        tc: type_corpus.TypeCorpus,
                        id_gen: identifier.IdGenIR):
+    assert init_node.x_type.size > 0, f"{init_node}"
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
@@ -518,6 +519,10 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             # same as above
             reg = EmitIRExpr(init_node, tc, id_gen)
             print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        elif init_node.x_type.size == 0 or init_node.expr.x_type.size == 0:
+                # init_node can be union of voids
+                # init_node.expr can void for widening
+            pass
         elif init_node.x_type.is_untagged_sum() and init_node.expr.x_type.fits_in_register():
             reg = EmitIRExpr(init_node.expr, tc, id_gen)
             print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
@@ -548,6 +553,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                 _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
                           field.x_type.size, field.x_type.alignment, id_gen)
             elif isinstance(init.value_or_undef, cwast.ValUndef):
+                pass
+            elif init.value_or_undef.x_type.size == 0:
                 pass
             else:
                 EmitIRExprToMemory(init.value_or_undef, BaseOffset(
@@ -697,6 +704,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
         else:
             lhs = _GetLValueAddressAsBaseOffset(node.lhs, tc, id_gen)
+            assert node.expr_rhs.x_type.size > 0
             EmitIRExprToMemory(node.expr_rhs, lhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
