@@ -20,10 +20,12 @@
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
+[ExprNarrow&nbsp;(narrowto)](#exprnarrow-narrowto) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
 [ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
 [ExprUnwrap&nbsp;(unwrap)](#exprunwrap-unwrap) &ensp;
+[ExprWiden&nbsp;(widento)](#exprwiden-widento) &ensp;
 [ExprWrap&nbsp;(wrap)](#exprwrap-wrap) &ensp;
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
@@ -44,7 +46,6 @@
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
 [TypeSum&nbsp;(union)](#typesum-union) &ensp;
-[TypeSumDelta&nbsp;(sumdelta)](#typesumdelta-sumdelta) &ensp;
 [ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
@@ -54,7 +55,7 @@
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(51 nodes)
+(52 nodes)
 
 ## Node Overview (Non-Core)
 [Case&nbsp;(case)](#case-case) &ensp;
@@ -85,8 +86,9 @@
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
+[TypeSumDelta&nbsp;(sumdelta)](#typesumdelta-sumdelta) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
-(29 nodes)
+(30 nodes)
 
 ## Enum Overview
 [Expr1 Kind](#expr1-kind) &ensp;
@@ -765,14 +767,8 @@ Flags:
 Safe Cast (Conversion)
 
     Allowed:
-    enum <-> undelying enum type
-    wrapped type <-> undelying enum type
     u8-u64, s8-s64 <-> u8-u64, s8-s64
     u8-u64, s8-s64 -> r32-r64  (note: one way only)
-
-    Possibly
-    slice -> ptr
-    ptr to rec -> ptr to first element of rec
     
 
 Fields:
@@ -871,6 +867,16 @@ Length of array or slice
 
 Fields:
 * container [NODE]: array and slice
+
+
+### ExprNarrow (narrowto)
+Narrowing Cast (for unions)
+
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
 
 
 ### ExprOffsetof (offsetof)
@@ -982,6 +988,17 @@ Cast: enum/wrapped -> underlying type
 
 Fields:
 * expr [NODE]: expression
+
+
+### ExprWiden (widento)
+Widening Cast (for unions)
+
+    Usually this is implicit
+    
+
+Fields:
+* expr [NODE]: expression
+* type [NODE]: type expression
 
 
 ### ExprWrap (wrap)
