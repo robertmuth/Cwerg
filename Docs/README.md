@@ -14,13 +14,7 @@
 [Debugging Hints](debugging.md)
 
 
-## Frontend
 
-[Intro](../FrontEnd/README.md)
-
-[AST Node Description](ast.md)
-
-[Codegen For Conditional Expressions](codegen_for_cond_exprs.md)
 
 ## Backend
 
@@ -47,7 +41,7 @@
 Emit Cwerg IR from input languages.
 
 [Cwerg Frontend](../FrontEnd/README.md),
-[C (Lite) Frontend](../FrontEndC/README.md), 
+[C (Lite) Frontend](../FrontEndC/README.md),
 [WASM/WASI Frontend](../FrontEndWASM/README.md)
 
 ### Backends
@@ -56,27 +50,27 @@ Generate a target (machine) code from Cwerg IR code.
 
 Implementations: Python, C++ (except for C Backend which is Python only)
 
-[C Backend](../CodeGenC/README.md), 
-[Arm32 (A32) Backend](../CodeGenA32/README.md), 
-[Aarch64 (A64) Backend](../CodeGenA64/README.md), 
-[X64-64 (X64) Backend](../CodeGenX64/README.md), 
+[C Backend](../CodeGenC/README.md),
+[Arm32 (A32) Backend](../CodeGenA32/README.md),
+[Aarch64 (A64) Backend](../CodeGenA64/README.md),
+[X64-64 (X64) Backend](../CodeGenX64/README.md),
 
 ### Target ISAs (Assembler/Disassembler)
 
 Can be used standalone (without the rest of Cwerg)
 
-Implementations: Python, C++ 
+Implementations: Python, C++
 
 [Arm32 (A32) ISA](../CpuA32/README.md),
-[AArch64 (A64)) ISA](../CpuA64/README.md), 
-[X86-64 (X64)) ISA](../CpuX64/README.md) 
+[AArch64 (A64)) ISA](../CpuA64/README.md),
+[X86-64 (X64)) ISA](../CpuX64/README.md)
 
 
 ### Object File Format Suuport
 
 Can be used standalone (without the rest of Cwerg)
 
-Implementations: Python, C++ 
+Implementations: Python, C++
 
 [ELF](../Elf/README.md) - 32 and 64 bit Elf support
 
