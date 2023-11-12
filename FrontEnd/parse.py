@@ -85,7 +85,7 @@ class ReadTokens:
         return self
 
     def srcloc(self):
-        return f"{self._filename}:{self.line_no}"
+        return f"{self._filename}({self.line_no})"
 
     def pushback(self, token):
         # TODO: line number fix up in rare cases
@@ -337,7 +337,8 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         elif token == ":":
             return ReadNodeColonList(stream, parent_cls)
         else:
-            assert False, f"expected list start in {parent_cls.__name__} for: {field} {token} at {stream.srcloc()}"
+            cwast.CompilerError(stream.srcloc(),
+                                f"expected list start in {parent_cls.__name__} for: {field} {token}")
 
     else:
         assert None

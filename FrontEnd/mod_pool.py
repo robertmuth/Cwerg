@@ -37,7 +37,8 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
             if q:
                 if isinstance(node, cwast.DefFun):
                     assert node.polymorphic
-                assert q in imports
+                if q not in imports:
+                    cwast.CompilerError(node.x_srcloc, f"unkown module {q}")
                 node.x_module = imports[q]
             else:
                 node.x_module = mod

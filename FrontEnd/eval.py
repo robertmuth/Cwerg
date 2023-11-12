@@ -515,6 +515,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
 
 
 def main(argv):
+    cwast.ASSERT_AFTER_ERROR = False
     assert len(argv) == 1
     assert argv[0].endswith(".cw")
 

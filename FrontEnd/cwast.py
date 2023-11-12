@@ -1747,6 +1747,7 @@ class ExprNarrow:
     def __str__(self):
         return f"{self.expr} NARROW_TO {self.type}"
 
+
 @NodeCommon
 @dataclasses.dataclass()
 class ExprWiden:
@@ -2861,11 +2862,17 @@ def StripFromListRecursively(node, cls):
 ############################################################
 # AST Checker
 ############################################################
+ASSERT_AFTER_ERROR = True
 
-
-def CompilerError(srcloc, msg):
-    print(f"{srcloc} ERROR: {msg}", file=sys.stdout)
-    assert False
+# message format follows:
+# https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks
+def CompilerError(srcloc, msg, kind='syntax'):
+    global ASSERT_AFTER_ERROR
+    print(f"{srcloc}: error {kind}: {msg}", file=sys.stdout)
+    if ASSERT_AFTER_ERROR:
+        # this will enit a stack trace which is the main purpose
+        assert False
+    exit(1)
 
 
 def _CheckMacroRecursively(node, seen_names: Set[str]):
