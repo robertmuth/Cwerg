@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <set>
+#include <tuple>
 
 namespace cwerg::base {
 namespace {

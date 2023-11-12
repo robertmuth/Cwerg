@@ -36,7 +36,7 @@ uint32_t StripeGroup::NumFree() const {
   return n;
 }
 
-void StripeGroup::SetBitVecOfFreeInstances(u_int8_t* vec) const {
+void StripeGroup::SetBitVecOfFreeInstances(uint8_t* vec) const {
   StripeBase* sb = stripes_[0];
   for (Handle r = first_free_; !r.isnull();
        r = *static_cast<Handle*>(sb->element(r.index()))) {
