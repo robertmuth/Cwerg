@@ -108,10 +108,10 @@ Note counts[0] is always 0
 
     @doc """de-accumulate to get back original count
     n0 is the original value of the element at index i-2
-    n0 is the original value of the element at index i-1"""
+    n1 is the original value of the element at index i-1"""
     (let @mut n0 u16 0)
     (let @mut n1 u16 0)
-    (for i 1 (len counts) 1 :
+    (for i 0 (len counts) 1 :
         (let d auto(- n1 n0))
         (= n0 n1)
         (= n1 (at counts i))

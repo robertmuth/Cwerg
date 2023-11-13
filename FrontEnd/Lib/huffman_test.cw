@@ -4,8 +4,48 @@
 
 (import huffman)
 
+@doc r"""Tree0
 
-@doc r"""
+
+B = 0
+A = 11
+C = 101
+D = 100
+"""
+
+(global Tree0Length auto (array_val 4 u16 [
+    (index_val 2)
+    (index_val 1)
+    (index_val 3)
+    (index_val 3)
+]))
+
+(global Tree0ExpectedSymbols auto (array_val 4 u16 [
+    (index_val (- 'B' 'A'))
+    (index_val (- 'A' 'A'))
+    (index_val (- 'C' 'A'))
+    (index_val (- 'D' 'A'))
+]))
+
+(global Tree0ExpectedCounts auto (array_val 4 u16 [
+    (index_val 0)
+    (index_val 1)
+    (index_val 1)
+    (index_val 2)
+]))
+
+(fun test_tree0_decoding [] void :
+   (let @mut counts (array 4 u16))
+   (let @mut symbols (array 4 u16))
+   (test::AssertEq!
+    (huffman::ComputeCountsAndSymbolsFromLengths [Tree0Length counts symbols])
+    3_u16)
+   (test::AssertSliceEq! symbols Tree0ExpectedSymbols)
+   (test::AssertSliceEq! counts Tree0ExpectedCounts)
+)
+
+@doc r"""Tree1
+
                             *
                            / \
                           /   \
@@ -76,7 +116,7 @@ J   K                                                 6
     (index_val 2)
 ]))
 
-(fun test_tree_decoding [] void :
+(fun test_tree1_decoding [] void :
    (let @mut counts (array 7 u16))
    (let @mut symbols (array 11 u16))
 
@@ -90,7 +130,8 @@ J   K                                                 6
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_tree_decoding []))
+    (stmt (test_tree0_decoding []))
+    (stmt (test_tree1_decoding []))
     @doc "test end"
     (test::Success!)
     (return 0))
