@@ -65,12 +65,16 @@ def ComputeStringSize(strkind: str, string: str) -> int:
     return n
 
 
-def ParseNumRaw(num: str, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
+def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
+    num = num_val.number
+
     def get_kind(length):
         return cwast.BASE_TYPE_KIND[num[-length:].upper()]
 
     if num[0] == "'":
-        assert kind is not cwast.BASE_TYPE_KIND.INVALID
+        if kind is cwast.BASE_TYPE_KIND.INVALID:
+            cwast.CompilerError(
+                num_val.x_srcloc, f"Number needs explicit type {num_val}")
         assert num[-1] == "'"
         if num[1] == "\\":
             if num[2] == "n":
@@ -100,18 +104,19 @@ def ParseNumRaw(num: str, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_
             return float.fromhex(num), kind
         return float(num), kind
     else:
-        assert False, f"{num} {kind}"
+        cwast.CompilerError(
+            num_val.x_srcloc, f"cannot parse number: {num} {kind}")
 
 
-def ParseNum(num: str, kind: cwast.BASE_TYPE_KIND) -> Any:
+def ParseNum(num: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Any:
     val, _ = ParseNumRaw(num, kind)
     bitsize = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
     if kind in cwast.BASE_TYPE_KIND_UINT:
-        assert 0 <= val < (1 << bitsize), f"val {num} ouy of bounds for {kind}"
+        assert 0 <= val < (1 << bitsize), f"val {num} out of bounds for {kind}"
     elif kind in cwast.BASE_TYPE_KIND_SINT:
         t = 1 << (bitsize - 1)
         if val >= t:
-            if num.startswith("0x"):
+            if num.number.startswith("0x"):
                 val -= t * 2
         assert -t <= val < t
 
@@ -167,7 +172,7 @@ class _TypeContext:
 
 def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
     if isinstance(node, cwast.ValNum):
-        return ParseNumRaw(node.number, kind)[0]
+        return ParseNumRaw(node, kind)[0]
     elif isinstance(node, cwast.Id):
         node = node.x_symbol
         return _ComputeArrayLength(node, kind)
@@ -320,7 +325,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         assert False, "Must not try to typify UNDEF"
     elif isinstance(node, cwast.ValNum):
         target_kind = target_type.base_type_kind if target_type else cwast.BASE_TYPE_KIND.INVALID
-        actual_kind = ParseNumRaw(node.number, target_kind)[1]
+        actual_kind = ParseNumRaw(node, target_kind)[1]
         ct = tc.get_base_canon_type(actual_kind)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.TypeOf):

@@ -61,13 +61,14 @@ class SymTab:
         assert name in self._all_syms
         del self._all_syms[name]
 
-    def resolve_sym_here(self, name, must_be_public):
+    def resolve_sym_here(self, name, must_be_public, srcloc):
         for syms in (self._type_syms, self._fun_syms,
                      self._rec_syms, self._enum_syms, self._var_syms, self._macro_syms):
             s = syms.get(name)
             if s:
-                if must_be_public:
-                    assert s.pub, f"{name} must be public"
+                if must_be_public and not s.pub:
+
+                    cwast.CompilerError(srcloc, f"{name} must be public")
                 return s
 
         return None
@@ -86,9 +87,10 @@ class SymTab:
             cwast.CompilerError(
                 ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
 
-        out = self.resolve_sym_here(name, must_be_public)
+        out = self.resolve_sym_here(name, must_be_public, ident.x_srcloc)
         if not out and builtin_syms:
-            out = builtin_syms.resolve_sym_here(name, must_be_public)
+            out = builtin_syms.resolve_sym_here(
+                name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
@@ -297,7 +299,8 @@ def _CheckAddressCanBeTaken(lhs):
         elif isinstance(node_def, cwast.DefVar):
             assert node_def.ref, f"in {lhs.x_srcloc} expect ref flag for {node_def}"
         else:
-            cwast.CompilerError(lhs.x_srcloc, f"expect DefVar node for lhs {node_def}")
+            cwast.CompilerError(
+                lhs.x_srcloc, f"expect DefVar node for lhs {node_def}")
     elif isinstance(lhs, cwast.ExprIndex):
         _CheckAddressCanBeTaken(lhs.container)
     elif isinstance(lhs, cwast.ExprDeref):

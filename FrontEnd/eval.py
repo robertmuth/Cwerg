@@ -279,7 +279,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValNum):
         cstr: cwast.CanonType = node.x_type
         if cstr.is_base_type() or cstr.is_enum():
-            return _AssignValue(node, typify.ParseNum(node.number, cstr.base_type_kind))
+            return _AssignValue(node, typify.ParseNum(node, cstr.base_type_kind))
         else:
             assert False, f"unepxected type for ValNum: {cstr}"
             return False
