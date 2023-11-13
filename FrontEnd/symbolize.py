@@ -107,13 +107,17 @@ class SymTab:
         logger.info("recording global symbol: %s", node)
         name = node.name
         if isinstance(node, cwast.DefFun):
-            assert name not in self._fun_syms, f"duplicate symbol {name}"
+            if name in self._fun_syms:
+                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
+
             self._fun_syms[name] = node
         elif isinstance(node, cwast.DefMacro):
-            assert name not in self._macro_syms, f"duplicate symbol {name}"
+            if name in self._macro_syms:
+                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
             self._macro_syms[name] = node
         elif isinstance(node, cwast.DefGlobal):
-            assert name not in self._var_syms, f"duplicate name {name}"
+            if name in self._var_syms:
+                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
             self._var_syms[name] = node
         elif isinstance(node, cwast.DefRec):
             assert name not in self._rec_syms
