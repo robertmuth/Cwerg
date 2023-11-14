@@ -8,7 +8,9 @@ https://en.wikipedia.org/wiki/Canonical_Huffman_code
 
 (import bitstream)
 
-(global BAD_SYMBOL u16 0xffff)
+(global @pub BAD_SYMBOL u16 0xffff)
+(global @pub BAD_TREE_ENCODING u16 0xffff)
+(global MAX_SYMBOLS uint 0xff00)
 
 @doc """Decode the next symbol from a bitstream
 
@@ -20,7 +22,7 @@ This function has two failure modes:
 
   Note counts[0] is not used
 """
-(fun NextSymbol [(param bs (ptr @mut bitstream::Stream32))
+(fun @pub NextSymbol [(param bs (ptr @mut bitstream::Stream32))
                  (param counts (slice u16))
                  (param symbols (slice u16))] u16 :
    (let @mut offset u32 0)
@@ -41,8 +43,7 @@ This function has two failure modes:
 )
 
 
-(global BAD_TREE_ENCODING u16 0xffff)
-(global MAX_SYMBOLS uint 0xff00)
+
 
 
 @doc """Check that symbol count at a level can be encoded
@@ -82,6 +83,7 @@ Note counts[0] is always 0
         (let bits auto (at lengths i))
         (if (!= bits 0) :
         (= last (as i u16))
+        (if (>= (as bits uint) (len counts)) : (return BAD_TREE_ENCODING) :)
         (+= (at counts bits) 1)
         :)
     )
