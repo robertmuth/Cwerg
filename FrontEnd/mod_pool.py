@@ -30,7 +30,8 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
             # TODO: strip off path component if present
             if node.alias:
                 name = node.alias
-            assert name not in imports
+            if name in imports:
+                cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node.x_module
         if isinstance(node, (cwast.Id, cwast.MacroInvoke, cwast.DefFun)):
             q = cwast.GetQualifierIfPresent(node.name)
