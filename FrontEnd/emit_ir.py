@@ -210,6 +210,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprStmt):
         ct = node.x_type
         name = id_gen.NewName("expr_stk_var")
+        assert ct.size > 0
         print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
         base = id_gen.NewName("stmt_stk_base")
         kind = tc.get_data_address_reg_type()
@@ -362,6 +363,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
+    """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     assert ct_dst.is_void_or_wrapped_void(
     ) or ct_dst.fits_in_register(), f"{node} {ct_dst}"
@@ -432,6 +434,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
         return res
     elif isinstance(node, cwast.ExprNarrow):
+        if ct_dst.is_void_or_wrapped_void():
+            return None
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_sum() or ct_src.original_type.is_sum()
         addr = _GetLValueAddress(node.expr, tc, id_gen)
@@ -520,8 +524,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             reg = EmitIRExpr(init_node, tc, id_gen)
             print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
         elif init_node.x_type.size == 0 or init_node.expr.x_type.size == 0:
-                # init_node can be union of voids
-                # init_node.expr can void for widening
+            # init_node can be union of voids
+            # init_node.expr can void for widening
             pass
         elif init_node.x_type.is_untagged_sum() and init_node.expr.x_type.fits_in_register():
             reg = EmitIRExpr(init_node.expr, tc, id_gen)
@@ -613,7 +617,10 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
         # This uniquifies names
         node.name = id_gen.NewName(node.name)
         initial = node.initial_or_undef_or_auto
-        if _IsDefVarOnStack(node):
+        if def_type.size == 0 and not isinstance(initial, cwast.ValUndef):
+            EmitIRExpr(initial, tc, id_gen)
+        elif _IsDefVarOnStack(node):
+            assert def_type.size > 0
             print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
@@ -667,6 +674,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             EmitIRExpr(node.expr, tc, id_gen)
         else:
             name = id_gen.NewName("stmt_stk_var")
+            assert ct.size > 0
             print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
             base = id_gen.NewName("stmt_stk_base")
             kind = tc.get_data_address_reg_type()
