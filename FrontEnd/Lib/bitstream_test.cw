@@ -4,7 +4,7 @@
 
 (import bitstream)
 
-(global DataFF auto (array_val 1024 u8 [(index_val 0xff)]))
+(global DataFF auto (array_val 1024 u8 [ 0xff ]))
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
 

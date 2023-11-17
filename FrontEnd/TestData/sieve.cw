@@ -10,7 +10,7 @@
 
 
 @doc "index i reprents number 3 + 2 * i"
-(global @mut is_prime (array SIZE u8) (array_val SIZE u8 [(index_val 0 0)]))
+(global @mut is_prime (array SIZE u8) (array_val SIZE u8 [ 0 ]))
 
 
 (fun sieve [] uint :
@@ -35,5 +35,3 @@
     (return 0))
 
 )
-
-

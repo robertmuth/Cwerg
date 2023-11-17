@@ -7,81 +7,81 @@
 (global @mut Crc32Tab checksum::CrcTab undef)
 (global @mut Crc32cTab checksum::CrcTab undef)
 
-(global Data00k auto (array_val 1024 u8 [(index_val 0x00)]))
-(global Data55k auto (array_val 1024 u8 [(index_val 0x55)]))
-(global DataAAk auto (array_val 1024 u8 [(index_val 0xaa)]))
-(global DataFFk auto (array_val 1024 u8 [(index_val 0xff)]))
+(global Data00k auto (array_val 1024 u8 [ 0x00 ]))
+(global Data55k auto (array_val 1024 u8 [ 0x55 ]))
+(global DataAAk auto (array_val 1024 u8 [ 0xaa ]))
+(global DataFFk auto (array_val 1024 u8 [ 0xff ]))
 
-(global Data00m auto (array_val (* 1024 1024) u8 [(index_val 0x00)]))
-(global Data55m auto (array_val (* 1024 1024) u8 [(index_val 0x55)]))
-(global DataAAm auto (array_val (* 1024 1024) u8 [(index_val 0xaa)]))
-(global DataFFm auto (array_val (* 1024 1024) u8 [(index_val 0xff)]))
+(global Data00m auto (array_val (* 1024 1024) u8 [ 0x00 ]))
+(global Data55m auto (array_val (* 1024 1024) u8 [ 0x55 ]))
+(global DataAAm auto (array_val (* 1024 1024) u8 [ 0xaa ]))
+(global DataFFm auto (array_val (* 1024 1024) u8 [ 0xff ]))
 
 (global DataInc auto (array_val 64 u8 [
-    (index_val 0)
-    (index_val 1)
-    (index_val 2)
-    (index_val 3)
-    (index_val 4)
-    (index_val 5)
-    (index_val 6)
-    (index_val 7)
-    (index_val 8)
-    (index_val 9)
-    (index_val 10)
-    (index_val 11)
-    (index_val 12)
-    (index_val 13)
-    (index_val 14)
-    (index_val 15)
-    (index_val 16)
-    (index_val 17)
-    (index_val 18)
-    (index_val 19)
-    (index_val 20)
-    (index_val 21)
-    (index_val 22)
-    (index_val 23)
-    (index_val 24)
-    (index_val 25)
-    (index_val 26)
-    (index_val 27)
-    (index_val 28)
-    (index_val 29)
-    (index_val 30)
-    (index_val 31)
-    (index_val 32)
-    (index_val 33)
-    (index_val 34)
-    (index_val 35)
-    (index_val 36)
-    (index_val 37)
-    (index_val 38)
-    (index_val 39)
-    (index_val 40)
-    (index_val 41)
-    (index_val 42)
-    (index_val 43)
-    (index_val 44)
-    (index_val 45)
-    (index_val 46)
-    (index_val 47)
-    (index_val 48)
-    (index_val 49)
-    (index_val 50)
-    (index_val 51)
-    (index_val 52)
-    (index_val 53)
-    (index_val 54)
-    (index_val 55)
-    (index_val 56)
-    (index_val 57)
-    (index_val 58)
-    (index_val 59)
-    (index_val 60)
-    (index_val 61)
-    (index_val 62)
-    (index_val 63)
+    0
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+    20
+    21
+    22
+    23
+    24
+    25
+    26
+    27
+    28
+    29
+    30
+    31
+    32
+    33
+    34
+    35
+    36
+    37
+    38
+    39
+    40
+    41
+    42
+    43
+    44
+    45
+    46
+    47
+    48
+    49
+    50
+    51
+    52
+    53
+    54
+    55
+    56
+    57
+    58
+    59
+    60
+    61
+    62
+    63
     ]))
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

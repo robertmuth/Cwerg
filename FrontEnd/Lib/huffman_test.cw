@@ -15,24 +15,24 @@ D = 100
 """
 
 (global Tree0Length auto (array_val 4 u16 [
-    (index_val 2)
-    (index_val 1)
-    (index_val 3)
-    (index_val 3)
+    2
+    1
+    3
+    3
 ]))
 
 (global Tree0ExpectedSymbols auto (array_val 4 u16 [
-    (index_val (- 'B' 'A'))
-    (index_val (- 'A' 'A'))
-    (index_val (- 'C' 'A'))
-    (index_val (- 'D' 'A'))
+    (- 'B' 'A')
+    (- 'A' 'A')
+    (- 'C' 'A')
+    (- 'D' 'A')
 ]))
 
 (global Tree0ExpectedCounts auto (array_val 4 u16 [
-    (index_val 0)
-    (index_val 1)
-    (index_val 1)
-    (index_val 2)
+    0
+    1
+    1
+    2
 ]))
 
 (fun test_tree0_decoding [] void :
@@ -92,41 +92,41 @@ D = 100
 10-K 111111
 """
 (global Tree1Length auto (array_val 11 u16 [
-    (index_val 4)
-    (index_val 4)
-    (index_val 4)
-    (index_val 5)
-    (index_val 3)
-    (index_val 2)
-    (index_val 3)
-    (index_val 3)
-    (index_val 3)
-    (index_val 6)
-    (index_val 6)
+    4
+    4
+    4
+    5
+    3
+    2
+    3
+    3
+    3
+    6
+    6
 ]))
 
 (global Tree1ExpectedSymbols auto (array_val 11 u16 [
-    (index_val (- 'F' 'A'))
-    (index_val (- 'E' 'A'))
-    (index_val (- 'G' 'A'))
-    (index_val (- 'H' 'A'))
-    (index_val (- 'I' 'A'))
-    (index_val (- 'A' 'A'))
-    (index_val (- 'B' 'A'))
-    (index_val (- 'C' 'A'))
-    (index_val (- 'D' 'A'))
-    (index_val (- 'J' 'A'))
-    (index_val (- 'K' 'A'))
+    (- 'F' 'A')
+    (- 'E' 'A')
+    (- 'G' 'A')
+    (- 'H' 'A')
+    (- 'I' 'A')
+    (- 'A' 'A')
+    (- 'B' 'A')
+    (- 'C' 'A')
+    (- 'D' 'A')
+    (- 'J' 'A')
+    (- 'K' 'A')
 ]))
 
 (global Tree1ExpectedCounts auto (array_val 7 u16 [
-    (index_val 0)
-    (index_val 0)
-    (index_val 1)
-    (index_val 4)
-    (index_val 3)
-    (index_val 1)
-    (index_val 2)
+    0
+    0
+    1
+    4
+    3
+    1
+    2
 ]))
 
 (fun test_tree1_decoding [] void :
@@ -150,14 +150,15 @@ D = 100
     10_u16)
 
    (let data auto (array_val 8 u8 [
-    (index_val 0b11111100)
-    (index_val 0b01001001)
-    (index_val 0b1)
-    (index_val 0)
-    (index_val 0)
-    (index_val 0)
-    (index_val 0)
-    (index_val 0)]))
+    0b11111100
+    0b01001001
+    0b1
+    0
+    0
+    0
+    0
+    0
+  ]))
   (let @mut @ref bs auto (rec_val bitstream::Stream32 [(field_val data)]))
   (test::AssertEq! 5_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
   (test::AssertEq! 10_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))

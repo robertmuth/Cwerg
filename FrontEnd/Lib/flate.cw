@@ -22,25 +22,26 @@
 
 
 (global CodeLenCodeIndex auto (array_val 19 u8 [
-   (index_val 16)
-   (index_val 17)
-   (index_val 18)
-   (index_val 0)
-   (index_val 8)
-   (index_val 7)
-   (index_val 9)
-   (index_val 6)
-   (index_val 10)
-   (index_val 5)
-   (index_val 11)
-   (index_val 4)
-   (index_val 12)
-   (index_val 3)
-   (index_val 13)
-   (index_val 2)
-   (index_val 14)
-   (index_val 1)
-   (index_val 15)
+   @doc ""
+   16
+   17
+   18
+   0
+   8
+   7
+   9
+   6
+   10
+   5
+   11
+   4
+   12
+   3
+   13
+   2
+   14
+   1
+   15
 ]))
 
 
