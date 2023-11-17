@@ -3,29 +3,79 @@
 (import flate)
 (import bitstream)
 
-(fun test_inflate_failure [] void :
+(fun test_inflate_generic_failure [] void :
     (let @mut @ref out auto (array_val 1024 u8 [0]))
     @doc "sub test: "
+
     (block _ :
-        (let @ref data1 auto (array_val 1 u8 [ 0x42 ]))
-        (let @ref @mut bs1 auto (rec_val bitstream::Stream32 [(field_val data1)]))
-        (test::AssertIs! (flate::uncompress [ (& @mut bs1) out ]) flate::CorruptionError)
+        @doc "missing next block after final uncompressed block"
+        (let @ref data auto (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::TruncationError)
+    )
+    (block _ :
+        @doc "invalid block 11"
+        (let @ref data auto (array_val 1 u8 [ 0x07 ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::CorruptionError)
     )
 )
 
-(fun test_inflate_success [] void :
-    (let @mut @ref out auto (array_val 1024 u8 [0]))
-    @doc "sub test: empty"
+(fun test_inflate_uncompressed_failure [] void :
+    (let @mut @ref out auto (array_val 1 u8 [0]))
     (block _ :
-        (let @ref data1 auto (array_val 5 u8 [ 0x01 0x00 0xf8 0xff 0x07 ]))
-        (let @ref @mut bs1 auto (rec_val bitstream::Stream32 [(field_val data1)]))
-        (test::AssertIs! (flate::uncompress [ (& @mut bs1) out ]) uint)
+         @doc "truncation"
+        (let @ref data auto (array_val 1 u8 [ 0x01 ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::TruncationError)
+    )
+    (block _ :
+        @doc "truncated checksum"
+        (let @ref data auto (array_val 4 u8 [ 0x01 0x00 0x00 0xff ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::TruncationError)
+    )
+    (block _ :
+        @doc "bad checksum"
+        (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xee 0xee ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::CorruptionError)
+    )
+    (block _ :
+        @doc "truncated data"
+        (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xee 0xee ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::CorruptionError)
+    )
+    (block _ :
+        @doc "writing past end"
+        (let @ref data auto (array_val 7 u8 [ 0x01 0x02 0x00 0xfd 0xff 00 00]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::NoSpaceError)
+    )
+)
+
+(fun test_inflate_uncompressed_success [] void :
+    (let @mut @ref out auto (array_val 1024 u8 [0]))
+    (block _ :
+        @doc "empty"
+        (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xff 0xff ]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) uint)
+    )
+    (block _ :
+        @doc "one byte"
+        (let @ref data auto (array_val 6 u8 [ 0x01 0x01 0x00 0xfe 0xff 00]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) uint)
     )
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_inflate_failure []))
-    (stmt (test_inflate_success []))
+    (stmt (test_inflate_generic_failure []))
+    (stmt (test_inflate_uncompressed_failure []))
+
+    (stmt (test_inflate_uncompressed_success []))
     @doc "test end"
     (test::Success!)
     (return 0))
