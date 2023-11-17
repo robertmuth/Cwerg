@@ -13,7 +13,9 @@
     (SysPrint! "OK\n"))
 
 
-@doc "The two arguments must derivable types as we use `auto`"
+@doc """The two scalar arguments must be the same
+
+Both must have derivable types as we use `auto`"""
 (macro @pub AssertEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
@@ -26,6 +28,16 @@
         (trap)
         :))
 
+@doc "First argument must have the type denoted by the second"
+(macro @pub AssertIs! STMT_LIST [(mparam $expr EXPR) (mparam $type TYPE)] [] :
+    (if (is $expr $type) : :
+        (SysPrint! "AssertIs failed: ")
+        (SysPrint! (stringify $expr))
+        (SysPrint! " VS ")
+        (SysPrint! (stringify $type))
+        (SysPrint! "\n")
+        (trap)
+        ))
 
 @doc "The two arguments must type derivable"
 (macro @pub AssertSliceEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
