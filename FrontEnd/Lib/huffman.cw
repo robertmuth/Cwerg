@@ -23,8 +23,8 @@ This function has two failure modes:
   Note counts[0] is not used
 """
 (fun @pub NextSymbol [(param bs (ptr @mut bitstream::Stream32))
-                 (param counts (slice u16))
-                 (param symbols (slice u16))] u16 :
+                     (param counts (slice u16))
+                     (param symbols (slice u16))] u16 :
    (let @mut offset u32 0)
    (let @mut base u32 0)
 
@@ -99,6 +99,10 @@ Note counts[0] is always 0
     )
 
     @doc "fill in symbols"
+    (for i 0 (len symbols) 1 :
+        (= (at symbols i) BAD_SYMBOL)
+    )
+
     (for i 0 (len lengths) 1 :
         (let bits auto (at lengths i))
         (if (!= bits 0) :

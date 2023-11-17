@@ -43,6 +43,66 @@
    (index_val 15)
 ]))
 
+
+@doc "read length for the combined literal and distance huffman costs"
+(fun read_lit_dist_lengths [(param bs (ptr @mut bitstream::Stream32))
+                            (param cl_counts (slice u16))
+                            (param cl_symbols (slice u16))
+                            (param lengths (slice @mut u16))]
+                           (union [SuccessType CorruptionErrorType]) :
+   (let @mut i uint 0)
+   (while (< i (len lengths)) :
+      (let sym auto (huffman::NextSymbol [bs cl_counts cl_symbols]))
+      (if (== sym huffman::BAD_SYMBOL) :
+         (return CorruptionError)
+      :)
+      (if (bitstream::Stream32Eos [bs]) :
+          (return CorruptionError)
+      :)
+      (cond :
+        (case (< sym 16) :
+          (=  (at lengths i) sym)
+          (+= i 1)
+        )
+        (case (== sym 16) :
+            (if (== i 0) : (return CorruptionError)  :)
+            (let prev auto (at lengths (- i 1)))
+            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 2]) 3))
+            (while (> n 0) :
+               (-= n 1)
+               (= (at lengths i) prev)
+               (+= i 1)
+            )
+        )
+        (case (== sym 17) :
+            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 3]) 3))
+            (if (> (+ i (as n uint)) (len lengths)) : (return CorruptionError) :)
+            (block _ :
+               (-= n 1)
+               (= (at lengths i) 0)
+               (+= i 1)
+               (if (!= n 0) : (continue) :)
+
+            )
+        )
+        (case (== sym 18) :
+            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 7]) 11))
+            (if (> (+ i (as n uint)) (len lengths)) : (return CorruptionError) :)
+            (block _ :
+               (-= n 1)
+               (= (at lengths i) 0)
+               (+= i 1)
+               (if (!= n 0) : (continue) :)
+            )
+        )
+        (case true :
+         (return CorruptionError)
+        )
+      )
+   )
+   (return Success)
+)
+
 @doc """
 
 """
@@ -79,36 +139,10 @@
         (return CorruptionError)
    :)
 
-   (let @mut lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
-   (let @mut i u32 0)
-   (while (< i (+ lit_num_syms dist_num_syms)) :
-      (let sym auto (huffman::NextSymbol [bs cl_counts cl_symbols]))
-      (if (== sym huffman::BAD_SYMBOL) :
-         (return CorruptionError)
-      :)
-      (if (bitstream::Stream32Eos [bs]) :
-          (return CorruptionError)
-      :)
-      (cond :
-        (case (< sym 16) :
-          (=  (at lit_dist_lengths i) sym)
-          (+= i 1)
-        )
-        (case (== sym 16) :
-
-        )
-        (case (== sym 17) :
-
-        )
-        (case (== sym 18) :
-
-        )
-        (case true :
-         (return CorruptionError)
-        )
-      )
-   )
-
+   (let @mut @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
+   (stmt (read_lit_dist_lengths [bs cl_counts cl_symbols
+                                 (slice_val (front @mut lit_dist_lengths)
+                                             (as (+ lit_num_syms dist_num_syms) uint))]))
 )
 
 
