@@ -103,15 +103,20 @@
    (return Success)
 )
 
+(macro incs! EXPR [(mparam $slice EXPR) (mparam $length EXPR)] [] :
+   (slice_val (incp (front @mut $slice) $length)
+              (- (len $slice) $length))
+)
+
 @doc """
 
 """
 (fun handle_dynamic_huffman [(param bs (ptr @mut bitstream::Stream32))
                       (param dst_buf (slice @mut u8))]
                       (union [uint CorruptionErrorType NoSpaceErrorType]) :
-   (let lit_num_syms u32 (+ (bitstream::Stream32GetBits [bs 5]) 257))
-	(let dist_num_syms u32 (+ (bitstream::Stream32GetBits [bs 5]) 1))
-   (let cl_num_syms u32 (+ (bitstream::Stream32GetBits [bs 4]) 4))
+   (let lit_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 257) uint))
+	(let dist_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 1) uint))
+   (let cl_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 4]) 4) uint))
 
    @doc "build the code_len auxiliary huffman tree"
    (let @mut cl_lengths (array NUM_CODE_LEN_SYMS u16))
@@ -125,9 +130,9 @@
       (= (at cl_lengths (at CodeLenCodeIndex i))
          (as (bitstream::Stream32GetBits [bs 3]) u16))
    )
-   (if (== (huffman::ComputeCountsAndSymbolsFromLengths
-                [cl_lengths cl_counts cl_symbols])
-           huffman::BAD_TREE_ENCODING) :
+   (let cl_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
+                [cl_lengths cl_counts cl_symbols]))
+   (if (== cl_last_symbol huffman::BAD_TREE_ENCODING) :
       (return CorruptionError)
    :)
 
@@ -140,9 +145,34 @@
    :)
 
    (let @mut @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
-   (stmt (read_lit_dist_lengths [bs cl_counts cl_symbols
-                                 (slice_val (front @mut lit_dist_lengths)
-                                             (as (+ lit_num_syms dist_num_syms) uint))]))
+   (let lit_dist_slice auto (slice_val (front @mut lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
+   (try x SuccessType (read_lit_dist_lengths [bs cl_counts cl_symbols
+                                 lit_dist_slice]) err :
+                                             (return err))
+   @doc "literal tree"
+   (let @mut lit_lengths (array MAX_LIT_SYMS u16))
+   (let @mut lit_symbols (array MAX_LIT_SYMS u16))
+   (let @mut lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+   (let lit_slice auto (slice_val (incp (front @mut lit_lengths) dist_num_syms) lit_num_syms))
+   (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
+                [lit_slice lit_counts lit_symbols]))
+
+   (if (== lit_last_symbol huffman::BAD_TREE_ENCODING) :
+      (return CorruptionError)
+   :)
+
+   @doc "distance tree"
+   (let @mut dist_lengths (array MAX_DIST_SYMS u16))
+   (let @mut dist_symbols (array MAX_DIST_SYMS u16))
+   (let @mut dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+   (let dist_slice auto (slice_val (front @mut dist_lengths) dist_num_syms))
+
+   (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
+                [dist_slice dist_counts dist_symbols]))
+
+   (if (== dist_last_symbol huffman::BAD_TREE_ENCODING) :
+      (return CorruptionError)
+   :)
 )
 
 
@@ -168,10 +198,7 @@
    (return (len copy_src))
 )
 
-(macro incs! EXPR [(mparam $slice EXPR) (mparam $length EXPR)] [] :
-   (slice_val (incp (front @mut $slice) $length)
-              (- (len $slice) $length))
-)
+
 
 (fun @pub uncompress [(param bs (ptr @mut bitstream::Stream32))
                       (param dst (slice @mut u8))]
