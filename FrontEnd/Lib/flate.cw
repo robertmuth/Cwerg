@@ -5,7 +5,6 @@
 (import fmt)
 (import huffman)
 
-
 (type @pub @wrapped CorruptionError void)
 (global @pub CorruptionErrorVal auto (wrap void_val CorruptionError))
 
@@ -174,6 +173,8 @@
    (if (== dist_last_symbol huffman::BAD_TREE_ENCODING) :
       (return CorruptionErrorVal)
    :)
+
+   (return 0_uint)
 )
 
 
@@ -185,6 +186,7 @@
    (if (!= length (and (! inv_length) 0xffff)) :
       (return CorruptionErrorVal)
    :)
+
    (stmt (bitstream::Stream32SkipToNextByte [bs]))
    (let copy_src auto (bitstream::Stream32GetByteSlice [bs (as length uint)]))
 

@@ -1,4 +1,9 @@
-@doc "test helpers"
+@doc """test helpers macros
+
+This intentionally does not import the fmt module to keep
+the footprint/dependencies small.
+(We may change our mind on this.)
+"""
 (module test [] :
 (import os)
 
@@ -32,7 +37,7 @@ Both must have derivable types as we use `auto`"""
 (macro @pub AssertIs! STMT_LIST [(mparam $expr EXPR) (mparam $type TYPE)] [] :
     (if (is $expr $type) : :
         (SysPrint! "AssertIs failed: ")
-        (SysPrint! (stringify $expr))
+        (SysPrint! (stringify (typeof $expr)))
         (SysPrint! " VS ")
         (SysPrint! (stringify $type))
         (SysPrint! "\n")
