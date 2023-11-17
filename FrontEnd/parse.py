@@ -109,8 +109,6 @@ class ReadTokens:
             else:
                 return out
             # hack for multi-line strings
-            # print("@@ multiline string partial start", self.srcloc(), out)
-
             while True:
                 line = next(self._fp)
                 self.line_no += 1
@@ -242,11 +240,15 @@ def ReadNodeList(stream: ReadTokens, parent_cls):
             assert not attr
             break
         if token == "(":
-            out.append(ReadSExpr(stream, parent_cls, attr))
-            attr.clear()
+            expr = ReadSExpr(stream, parent_cls, attr)
         else:
-            assert not attr
-            out.append(ExpandShortHand(token, stream.srcloc()))
+            expr = ExpandShortHand(token, stream.srcloc())
+        # hack for simpler array val and rec val initializers
+        if parent_cls is cwast.ValArray and not isinstance(expr, cwast.IndexVal):
+            expr = cwast.IndexVal(expr, cwast.ValAuto(
+                x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc, **attr)
+        out.append(expr)
+        attr.clear()
     return out
 
 
@@ -265,13 +267,15 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
             break
 
         if token == "(":
-            out.append(ReadSExpr(stream, parent_cls, attr))
-            attr.clear()
+            expr = ReadSExpr(stream, parent_cls, attr)
         else:
             if attr:
                 cwast.CompilerError(
                     stream.srcloc(), f"unexpected attribs: {attr}")
-            out.append(ExpandShortHand(token, stream.srcloc()))
+            expr = ExpandShortHand(token, stream.srcloc())
+        out.append(expr)
+        attr.clear()
+
     return out
 
 
