@@ -111,33 +111,45 @@
               (- (len $slice) $length))
 )
 
-(global length_bits_lookup auto (array_val 28 u8 [
+(global width_bits_lookup auto (array_val 29 u8 [
 		0 0 0 0 0 0 0 0 1 1
 		1 1 2 2 2 2 3 3 3 3
-		4 4 4 4 5 5 5 5
+		4 4 4 4 5 5 5 5 0
 ]))
 
-(global length_base_lookup auto (array_val 28 u8 [
+(global width_base_lookup auto (array_val 29 u16 [
 		 3  4  5   6   7   8   9  10  11  13
 		15 17 19  23  27  31  35  43  51  59
-		67 83 99 115 131 163 195 227
+		67 83 99 115 131 163 195 227 258
 ]))
 
+(global dist_bits_lookup auto (array_val 30 u8 [
+		0 0  0  0  1  1  2  2  3  3
+		4 4  5  5  6  6  7  7  8  8
+		9 9 10 10 11 11 12 12 13 13
+]))
+
+(global dist_base_lookup auto (array_val 30 u16 [
+		   1    2    3    4    5    7    9    13    17    25
+		  33   49   65   97  129  193  257   385   513   769
+		1025 1537 2049 3073 4097 6145 8193 12289 16385 24577
+]))
+
+
 @doc "common part for handing both dynamic and fixed hufman"
-(fun handle_huffman [
+(fun handle_huffman_common [
    (param bs (ptr @mut bitstream::Stream32))
    (param lit_counts (slice u16))
    (param lit_symbols (slice u16))
    (param dist_counts (slice u16))
    (param dist_symbols (slice u16))
-   (param dst_buf (slice @mut u8)) ]
+   (param pos uint)
+   (param dst (slice @mut u8)) ]
  (union [uint CorruptionError NoSpaceError TruncationError]) :
-   (let @mut i uint 0)
+   (let @mut i uint pos)
    (while true :
      (let sym auto (huffman::NextSymbol [bs lit_counts lit_symbols]))
-     (if (bitstream::Stream32Eos [bs]) :
-          (return TruncationErrorVal)
-     :)
+     (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
      (if (== sym huffman::BAD_TREE_ENCODING) :
       (return CorruptionErrorVal)
      :)
@@ -146,12 +158,26 @@
          (return i)
         )
         (case (< sym 256) :
-          (=  (at dst_buf i) (as sym u8))
+          (=  (at dst i) (as sym u8))
           (+= i 1)
         )
-        (case  (< sym (+ 256 28)):
-          (let d u16 (- sym 28))
-          (let x u32 (bitstream::Stream32GetBits [bs (at length_bits_lookup d)]))
+        (case  (< sym (+ (as (len width_bits_lookup) u16) 257)) :
+            (let sym_width auto (- sym 257))
+            (let width u32 (+ (bitstream::Stream32GetBits [bs (at width_bits_lookup sym_width)])
+                              (as (at width_base_lookup sym_width) u32)))
+            (let sym_dist auto (huffman::NextSymbol [bs dist_counts dist_symbols]))
+            (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
+            (if (> sym_dist (as (len dist_bits_lookup) u16)) : (return CorruptionErrorVal) :)
+            (let distance u32 (+ (bitstream::Stream32GetBits [bs (at dist_bits_lookup sym_dist)])
+                             (as (at dist_base_lookup sym_dist) u32)))
+            (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
+            (if (> (as distance uint) i) : (return CorruptionErrorVal) :)
+            (if (> (+ i (as width uint)) (len dst)) : (return NoSpaceErrorVal) :)
+            (for x 0 width 1 :
+               (= (at dst i) (at dst (- i (as distance uint))))
+               (+= i 1)
+            )
+
         )
         (case true : (return CorruptionErrorVal))
      )
@@ -159,11 +185,12 @@
    (return i)
 )
 
-@doc """
+@doc """Extracts the the literal and distance tree
 
 """
 (fun handle_dynamic_huffman [(param bs (ptr @mut bitstream::Stream32))
-                      (param dst_buf (slice @mut u8))]
+                      (param pos uint)
+                      (param dst (slice @mut u8))]
                       (union [uint CorruptionError NoSpaceError TruncationError]) :
    (let lit_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 257) uint))
 	(let dist_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 1) uint))
@@ -188,12 +215,8 @@
    :)
 
    @doc "decode combined lengths for lit + dist"
-   (if (> lit_num_syms  286) :
-        (return CorruptionErrorVal)
-   :)
-   (if (> dist_num_syms 30) :
-        (return CorruptionErrorVal)
-   :)
+   (if (> lit_num_syms  286) : (return CorruptionErrorVal) :)
+   (if (> dist_num_syms 30) : (return CorruptionErrorVal) :)
 
    (let @mut @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
    (let lit_dist_slice auto (slice_val (front @mut lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
@@ -223,51 +246,51 @@
       (return CorruptionErrorVal)
    :)
 
-   (return (handle_huffman [
+   (return (handle_huffman_common [
          bs
          lit_counts
          (slice_val (front lit_symbols) lit_num_syms)
          dist_counts
          (slice_val (front dist_symbols) dist_num_syms)
-         dst_buf
+         pos
+         dst
       ]))
 )
 
 
-(fun handle_uncompressed [(param bs (ptr @mut bitstream::Stream32))
-                      (param dst_buf (slice @mut u8))]
-                      (union [uint CorruptionError NoSpaceError TruncationError]) :
+(fun handle_uncompressed [
+    (param bs (ptr @mut bitstream::Stream32))
+    (param pos uint)
+    (param dst (slice @mut u8))
+   ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (stmt (bitstream::Stream32SkipToNextByte [bs]))
    (let length u32 (bitstream::Stream32GetBits [bs 16]))
    (let inv_length u32 (bitstream::Stream32GetBits [bs 16]))
-   (if (bitstream::Stream32Eos [bs]) :
-          (return TruncationErrorVal)
-   :)
+   (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
    (if (!= length (and (! inv_length) 0xffff)) :
       (return CorruptionErrorVal)
    :)
    (fmt::print! ["uncompressed " length "\n"])
 
-   (let copy_src auto (bitstream::Stream32GetByteSlice [bs (as length uint)]))
+   (let src auto (bitstream::Stream32GetByteSlice [bs (as length uint)]))
 
-   (if (bitstream::Stream32Eos [bs]) :
-      (return CorruptionErrorVal)
-   :)
+   (if (bitstream::Stream32Eos [bs]) : (return CorruptionErrorVal) :)
 
-   (if (< (len dst_buf) (as length uint)) :
-      (return NoSpaceErrorVal)
-   :)
-
-   (return (len copy_src))
+   (if (< (len dst) (as length uint)) : (return NoSpaceErrorVal) :)
+   (for i 0 (len src) 1 :
+      (= (at dst (+ pos i)) (at src i))
+   )
+   (return (+ pos (len src)))
 )
 
 
 
-(fun @pub uncompress [(param bs (ptr @mut bitstream::Stream32))
-                      (param dst (slice @mut u8))]
-                      (union [uint CorruptionError NoSpaceError TruncationError]) :
+(fun @pub uncompress [
+   (param bs (ptr @mut bitstream::Stream32))
+   (param dst (slice @mut u8))
+   ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (fmt::print! ["FlateUncompress\n"])
-   (let @mut dst_buf auto dst)
+   (let @mut pos uint 0)
    (let @mut seen_last bool false)
    (while (! seen_last) :
      (= seen_last (bitstream::Stream32GetBool [bs]))
@@ -278,20 +301,20 @@
      (fmt::print! ["new round " seen_last " " kind "\n"])
      (cond :
        (case (== kind 0) :
-         (try written_bytes uint (handle_uncompressed [bs dst_buf]) err :
+         (try new_pos uint (handle_uncompressed [bs pos dst]) err :
             (return err))
 
-         (= dst_buf (incs! dst_buf written_bytes))
+         (= pos new_pos)
        )
        @doc "fixed huffman"
        (case (== kind 1) :
          (trap)
        )
        (case (== kind 2) :
-         (try written_bytes uint (handle_dynamic_huffman [bs dst_buf]) err :
+         (try new_pos uint (handle_dynamic_huffman [bs pos dst]) err :
             (return err))
 
-         (= dst_buf (incs! dst_buf written_bytes))
+         (+= pos new_pos)
        )
        @doc "reserved"
        (case true :
@@ -299,7 +322,7 @@
        )
      )
    )
-   (return (- (len dst) (len dst_buf)))
+   (return pos)
 )
 
 )
