@@ -40,7 +40,7 @@ D = 100
    (let @mut symbols (array 4 u16))
    (test::AssertEq!
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree0Length counts symbols])
-    3_u16)
+    4_u16)
    (test::AssertSliceEq! symbols Tree0ExpectedSymbols)
    (test::AssertSliceEq! counts Tree0ExpectedCounts)
 )
@@ -135,7 +135,7 @@ D = 100
 
    (test::AssertEq!
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
-    10_u16)
+    11_u16)
 
    (test::AssertSliceEq! symbols Tree1ExpectedSymbols)
    (test::AssertSliceEq! counts Tree1ExpectedCounts)
@@ -147,7 +147,7 @@ D = 100
 
    (test::AssertEq!
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
-    10_u16)
+    11_u16)
 
    (let data auto (array_val 8 u8 [
     0b11111100

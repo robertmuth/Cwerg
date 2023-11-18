@@ -111,6 +111,54 @@
               (- (len $slice) $length))
 )
 
+(global length_bits_lookup auto (array_val 28 u8 [
+		0 0 0 0 0 0 0 0 1 1
+		1 1 2 2 2 2 3 3 3 3
+		4 4 4 4 5 5 5 5
+]))
+
+(global length_base_lookup auto (array_val 28 u8 [
+		 3  4  5   6   7   8   9  10  11  13
+		15 17 19  23  27  31  35  43  51  59
+		67 83 99 115 131 163 195 227
+]))
+
+@doc "common part for handing both dynamic and fixed hufman"
+(fun handle_huffman [
+   (param bs (ptr @mut bitstream::Stream32))
+   (param lit_counts (slice u16))
+   (param lit_symbols (slice u16))
+   (param dist_counts (slice u16))
+   (param dist_symbols (slice u16))
+   (param dst_buf (slice @mut u8)) ]
+ (union [uint CorruptionError NoSpaceError TruncationError]) :
+   (let @mut i uint 0)
+   (while true :
+     (let sym auto (huffman::NextSymbol [bs lit_counts lit_symbols]))
+     (if (bitstream::Stream32Eos [bs]) :
+          (return TruncationErrorVal)
+     :)
+     (if (== sym huffman::BAD_TREE_ENCODING) :
+      (return CorruptionErrorVal)
+     :)
+     (cond :
+        (case (== sym 256) :
+         (return i)
+        )
+        (case (< sym 256) :
+          (=  (at dst_buf i) (as sym u8))
+          (+= i 1)
+        )
+        (case  (< sym (+ 256 28)):
+          (let d u16 (- sym 28))
+          (let x u32 (bitstream::Stream32GetBits [bs (at length_bits_lookup d)]))
+        )
+        (case true : (return CorruptionErrorVal))
+     )
+   )
+   (return i)
+)
+
 @doc """
 
 """
@@ -153,31 +201,36 @@
                                  lit_dist_slice]) err :
                                              (return err))
    @doc "literal tree"
-   (let @mut lit_lengths (array MAX_LIT_SYMS u16))
+   (let lit_lengths auto (slice_val (incp (front @mut lit_dist_lengths) dist_num_syms) lit_num_syms))
    (let @mut lit_symbols (array MAX_LIT_SYMS u16))
    (let @mut lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
-   (let lit_slice auto (slice_val (incp (front @mut lit_lengths) dist_num_syms) lit_num_syms))
    (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
-                [lit_slice lit_counts lit_symbols]))
+                [lit_lengths lit_counts lit_symbols]))
 
    (if (== lit_last_symbol huffman::BAD_TREE_ENCODING) :
       (return CorruptionErrorVal)
    :)
 
    @doc "distance tree"
-   (let @mut dist_lengths (array MAX_DIST_SYMS u16))
+   (let dist_lengths auto (slice_val (incp (front @mut lit_dist_lengths) lit_num_syms) dist_num_syms))
    (let @mut dist_symbols (array MAX_DIST_SYMS u16))
    (let @mut dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
-   (let dist_slice auto (slice_val (front @mut dist_lengths) dist_num_syms))
 
    (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
-                [dist_slice dist_counts dist_symbols]))
+                [dist_lengths dist_counts dist_symbols]))
 
    (if (== dist_last_symbol huffman::BAD_TREE_ENCODING) :
       (return CorruptionErrorVal)
    :)
 
-   (return 0_uint)
+   (return (handle_huffman [
+         bs
+         lit_counts
+         (slice_val (front lit_symbols) lit_num_syms)
+         dist_counts
+         (slice_val (front dist_symbols) dist_num_syms)
+         dst_buf
+      ]))
 )
 
 

@@ -64,8 +64,8 @@ This function has two failure modes:
 
 
 @doc """
-Returns highest symbol encountered. Usually that value is
-(len lengths) - 1
+Returns highest symbol encountered (= non-zero entries in lengths).
+Usually that value is (len lengths)
 
 Note counts[0] is always 0
 """
@@ -123,7 +123,7 @@ Note counts[0] is always 0
         (= n1 (at counts i))
         (= (at counts i) d)
     )
-    (return last)
+    (return n)
 )
 
 )

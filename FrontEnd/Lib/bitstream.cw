@@ -8,7 +8,7 @@ not thread-safe"""
     (field buf (slice u8))
     (field offset uint)
     (field bits_cache u32)
-    (field bits_count u32)
+    (field bits_count u8)
     (field eos bool))
 
 
@@ -17,9 +17,9 @@ may set eos
 """
 
 (fun @pub Stream32GetBits [(param bs (ptr @mut Stream32))
-                            (param n u32)] u32 :
+                            (param n u8)] u32 :
    (let @mut new_bits u32)
-   (let @mut bits_count u32 (-> bs bits_count))
+   (let @mut bits_count u8 (-> bs bits_count))
    (let @mut bits_cache u32 (-> bs bits_cache))
 
    @doc """when the while loop exits and bits_count > 32, new_bits contains
@@ -31,22 +31,22 @@ may set eos
       :)
       (= new_bits  (as (at (-> bs buf) (-> bs offset)) u32))
       (+= (-> bs offset) 1)
-      (or= bits_cache (<< new_bits bits_count))
+      (or= bits_cache (<< new_bits (as bits_count u32)))
       (+= bits_count 8)
    )
 
     (let @mut out u32)
     (if (< n 32) :
-       (= out (and bits_cache (- (<< 1_u32 n) 1)))
-       (>>= bits_cache n)
+       (= out (and bits_cache (- (<< 1_u32 (as n u32)) 1)))
+       (>>= bits_cache (as n u32))
     :
       (= out bits_cache)
       (= bits_cache 0)
     )
 
     (if (>= bits_count 32) :
-       (>>= new_bits (- 40_u32 bits_count))
-       (<<= new_bits (- 32_u32 n))
+       (>>= new_bits (- 40_u32 (as bits_count u32)))
+       (<<= new_bits (- 32_u32 (as n u32)))
        (or= bits_cache new_bits)
    :)
 
