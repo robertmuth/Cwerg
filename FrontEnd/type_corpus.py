@@ -49,6 +49,26 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
         return actual.name in expected_children
 
 
+# maybe add records if all their fields are comparable?
+def is_comparable(ct: cwast.CanonType) -> bool:
+    return (ct.is_base_or_enum_type() or ct.is_pointer() or
+            ct.is_wrapped() and is_comparable(ct.underlying_wrapped_type()))
+
+
+def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if is_comparable(actual):
+        if actual == expected:
+            return True
+
+        if expected.is_tagged_sum():
+            return actual in expected.sum_types()
+
+    if actual.is_tagged_sum():
+        return is_comparable(expected) and expected in actual.sum_types()
+
+    return False
+
+
 def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_src.is_int():
         if ct_dst.is_int() or ct_dst.is_real() or ct_dst.is_bool():
@@ -348,6 +368,7 @@ class TypeCorpus:
             return [f"C{self._target_arch_config.data_addr_bitwidth}"]
         else:
             assert False, f"unknown type {tc.name}"
+            return None
 
     def _get_size_and_alignment_and_set_offsets_for_rec_type(self, tc: cwast.CanonType):
         size = 0

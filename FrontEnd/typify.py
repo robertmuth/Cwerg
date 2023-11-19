@@ -50,7 +50,7 @@ def ComputeStringSize(strkind: str, string: str) -> int:
             else:
                 last = c
                 n += 1
-        assert last == None
+        assert last is None
         return n
     esc = False
     for c in string:
@@ -629,6 +629,16 @@ def _CheckTypeSame(node, actual: cwast.CanonType, expected: cwast.CanonType):
                             f"{node}: not the same actual: {actual} expected: {expected}")
 
 
+def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.CanonType):
+    if expected.original_type is not None:
+        expected = expected.original_type
+    if actual.original_type is not None:
+        actual = actual.original_type
+    if not type_corpus.is_compatible_for_eq(actual, expected):
+        cwast.CompilerError(node.x_srcloc,
+                            f"{node}: incompatible actual: {actual} expected: {expected}")
+
+
 def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.CanonType,
                             srcloc=None):
     if actual is expected:
@@ -666,7 +676,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
                      tc: type_corpus.TypeCorpus):
     if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
         assert result_type.is_bool()
-        _CheckTypeSame(node, op1_type, op2_type)
+        _CheckTypeCompatibleForEq(node, op1_type, op2_type)
     elif kind in cwast.BINOP_BOOL:
         assert op1_type.is_base_type() and result_type.is_bool()
         _CheckTypeSame(node, op1_type, op2_type)
