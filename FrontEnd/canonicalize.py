@@ -432,6 +432,38 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
 
+def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
+    def make_cmp(cmp: cwast.Expr2, union, field):
+        # NE needs more work
+        assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ
+        type_check = cwast.ExprIs(union, cwast.TypeAuto(
+            x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc)
+        if field.x_type.is_void_or_wrapped_void():
+            return type_check
+        # for non-ids we would need to avoid double evaluation
+        assert isinstance(union, cwast.Id), f"{cmp}: {union}"
+        cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
+            x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
+            x_type=field.x_type, x_srcloc=cmp.x_srcloc)
+        cmp.expr2 = field
+        return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, type_check, cmp,
+                           x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+
+    def replacer(node, _):
+
+        if not isinstance(node, cwast.Expr2):
+            return None
+
+        if node.binary_expr_kind not in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
+            return None
+        if node.expr1.x_type.is_tagged_sum():
+            return make_cmp(node, node.expr1, node.expr2)
+        if node.expr2.x_type.is_tagged_sum():
+            return make_cmp(node, node.expr2, node.expr1)
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+
+
 def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
     def replacer(node, _):
         if not isinstance(node, (cwast.TypeOf, cwast.TypeSumDelta)):

@@ -1732,6 +1732,7 @@ class ExprAs:
 class ExprNarrow:
     """Narrowing Cast (for unions)
 
+    optionally unchecked
     """
     ALIAS = "narrowto"
     GROUP = GROUP.Expression
@@ -1739,6 +1740,8 @@ class ExprNarrow:
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
+    #
+    unchecked: bool = False
     #
     x_srcloc: Optional[Any] = None
     x_type: Optional[Any] = None
