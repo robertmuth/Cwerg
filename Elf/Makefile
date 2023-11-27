@@ -90,7 +90,7 @@ $(DIR)/gen_a32_test_c: $(GEN_ELF_TEST)
 	$(GEN_ELF_TEST) gena32 $@.exe  > $@.log.out 2>&1
 	cmp -l $@.py.exe  $@.exe
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_A32) ./$@.exe > $@.out
 	diff $@.out TestData/gen.a32.golden
 
 $(DIR)/gen_x64_test_c: $(GEN_ELF_TEST)
@@ -99,7 +99,7 @@ $(DIR)/gen_x64_test_c: $(GEN_ELF_TEST)
 	$(GEN_ELF_TEST) genx64 $@.exe  > $@.log.out 2>&1
 	cmp -l $@.py.exe  $@.exe
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_X64) ./$@.exe > $@.out
 	diff $@.out TestData/gen.x64.golden
 
 $(DIR)/gen_a64_test_c: $(GEN_ELF_TEST)
@@ -108,7 +108,7 @@ $(DIR)/gen_a64_test_c: $(GEN_ELF_TEST)
 	$(GEN_ELF_TEST) gena64 $@.exe  > $@.log.out 2>&1
 	cmp -l $@.py.exe  $@.exe
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_A64) ./$@.exe > $@.out
 	diff $@.out TestData/gen.a64.golden
 
 ############################################################
