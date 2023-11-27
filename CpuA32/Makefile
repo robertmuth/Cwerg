@@ -23,7 +23,7 @@ tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_p
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$@.exe > $@.actual.out
+	$(QEMU_A32) $@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
@@ -112,6 +112,3 @@ $(DIR)/symbolize_parity: $(DISASSEMBLER_TOOL)
 
 clean:
 	rm -f  $(DIR)/* $(DISASSEMBLER_TOOL) $(ASSEMBLER_TOOL)
-
-
-
