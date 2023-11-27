@@ -3,6 +3,10 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
+QEMU_A64 = qemu-aarch64-static
+QEMU_A32 = qemu-arm-static
+QEMU_X64 =
+
 tests: tests_py tests_c
 	@echo "[OK Elf]"
 
@@ -29,21 +33,21 @@ $(DIR)/gen_x64_test:
 	@echo "[$@]"
 	$(PYPY) ./gen_elf_test.py genx64 $@.exe > $@.log.out 2>&1
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_X64) ./$@.exe > $@.out
 	diff $@.out TestData/gen.x64.golden
 
 $(DIR)/gen_a32_test:
 	@echo "[$@]"
 	$(PYPY) ./gen_elf_test.py gena32 $@.exe  > $@.log.out 2>&1
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_A32) ./$@.exe > $@.out
 	diff $@.out TestData/gen.a32.golden
 
 $(DIR)/gen_a64_test:
 	@echo "[$@]"
 	$(PYPY) ./gen_elf_test.py gena64 $@.exe  > $@.log.out 2>&1
 	chmod a+rx $@.exe
-	./$@.exe > $@.out
+	$(QEMU_A64) ./$@.exe > $@.out
 	diff $@.out TestData/gen.a64.golden
 
 ############################################################
@@ -113,4 +117,3 @@ $(DIR)/gen_a64_test_c: $(GEN_ELF_TEST)
 
 clean:
 	rm -f $(DIR)/*
-
