@@ -214,6 +214,41 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.Can
                              srcloc)
 
 
+def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):
+    tagged_ct = node.expr.x_type
+    untagged_ct = tc.insert_sum_type(tagged_ct.sum_types(), True)
+    node.unchecked = True
+    node.expr = cwast.ExprSumUntagged(node.expr, x_srcloc=node.x_srcloc,
+                                      x_type=untagged_ct)
+
+
+def ReplaceTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+    """Eliminates all ExprNarrow involving tagged unions."""
+    def replacer(node, field):
+        nonlocal tc
+        if not isinstance(node, cwast.ExprNarrow):
+            return None
+        if not node.expr.x_type.is_tagged_sum():
+            return None
+        sl = node.x_srcloc
+        if not node.unchecked:
+            expr = cwast.ExprStmt([], x_srcloc=sl, x_type=node.x_type)
+            assert isinstance(node.expr, cwast.Id)
+            cond = cwast.ExprIs(_CloneId(node.expr), cwast.TypeAuto(
+                x_srcloc=sl, x_type=node.x_type), x_srcloc=sl)
+            _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
+            ret = cwast.StmtReturn(node, x_srcloc=sl, x_target=expr)
+            check = cwast.StmtIf(cond, [],
+                                 [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl)
+            expr.body = [check, ret]
+            return expr
+        else:
+            _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
+            return False
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+
+
 def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
@@ -244,7 +279,6 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             return cwast.ExprField(node.expr, SUM_FIELD_UNION,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
-
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
         def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
@@ -267,6 +301,8 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                 return _MakeValRecForWidenFromNonUnion(node, sum_to_struct_map[node.x_type])
 
         elif isinstance(node, cwast.ExprNarrow):
+            # applies to the destination of the narrow
+            assert False, "this has not been tested"
             ct_src: cwast.CanonType = node.expr.x_type
             assert ct_src.is_rec(
             ), f"{ct_src} -> {node.x_type}: {node.x_srcloc}"

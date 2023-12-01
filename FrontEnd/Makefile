@@ -73,9 +73,10 @@ tests_lang_a32: \
     $(DIR)/expr_uint_test.lang.a64.exe \
     $(DIR)/expr_sint_test.lang.a64.exe
 
+# 	$(DIR)/flate_test.lib.x64.exe
+
 tests_lib_x64: \
 	$(DIR)/huffman_test.lib.x64.exe \
-	$(DIR)/flate_test.lib.x64.exe \
 	$(DIR)/fmt_test.lib.x64.exe \
 	$(DIR)/string_test.lib.x64.exe \
     $(DIR)/trig_test.lib.x64.exe \

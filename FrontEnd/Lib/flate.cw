@@ -24,26 +24,7 @@
 
 
 (global CodeLenCodeIndex auto (array_val 19 u8 [
-   @doc ""
-   16
-   17
-   18
-   0
-   8
-   7
-   9
-   6
-   10
-   5
-   11
-   4
-   12
-   3
-   13
-   2
-   14
-   1
-   15
+   16 17 18 0 8 7 9 6 10 5 11 4 12 3 13 2 14 1 15
 ]))
 
 
@@ -85,7 +66,6 @@
                (= (at lengths i) 0)
                (+= i 1)
                (if (!= n 0) : (continue) :)
-
             )
         )
         (case (== sym 18) :
@@ -185,9 +165,7 @@
    (return i)
 )
 
-@doc """Extracts the the literal and distance tree
-
-"""
+@doc "handle 0b10 section"
 (fun handle_dynamic_huffman [(param bs (ptr @mut bitstream::Stream32))
                       (param pos uint)
                       (param dst (slice @mut u8))]
@@ -257,7 +235,7 @@
       ]))
 )
 
-
+@doc "handle 0b00 section"
 (fun handle_uncompressed [
     (param bs (ptr @mut bitstream::Stream32))
     (param pos uint)

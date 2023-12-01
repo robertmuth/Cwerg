@@ -109,7 +109,6 @@ class SymTab:
         if isinstance(node, cwast.DefFun):
             if name in self._fun_syms:
                 cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-
             self._fun_syms[name] = node
         elif isinstance(node, cwast.DefMacro):
             if name in self._macro_syms:

@@ -955,9 +955,13 @@ def main():
 
             if not isinstance(fun, cwast.DefFun):
                 continue
+            # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
+            canonicalize_sum.ReplaceTaggedExprNarrow(fun, tc)
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
+
+
 
     ELIMIMATED_NODES.add(cwast.ExprSizeof)
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
@@ -966,6 +970,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprIs)
     ELIMIMATED_NODES.add(cwast.TypeOf)
     ELIMIMATED_NODES.add(cwast.TypeSumDelta)
+    verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowStrict)
     verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
     verifier.Replace(cwast.ExprCall, typify.CheckExprCallStrict)
     verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)

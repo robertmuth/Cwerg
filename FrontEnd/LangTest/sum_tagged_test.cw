@@ -7,10 +7,7 @@
 (type type_ptr (ptr @mut s32))
 
 
-(type TaggedUnion1 (union [
-        s32
-        void
-        type_ptr]))
+(type TaggedUnion1 (union [ s32 void type_ptr ]))
 
 (static_assert (== (sizeof TaggedUnion1) 16))
 
@@ -22,13 +19,12 @@
 
 (static_assert (== (sizeof TaggedUnion2) 16))
 
+(type TaggedUnion2Simplified (union [s32 void u8 type_ptr]))
 
-(type TaggedUnion3 (union [
-        bool
-        s32
-        s64]))
+(static_assert (== (typeid TaggedUnion2) (typeid TaggedUnion2Simplified)))
 
 
+(type TaggedUnion3 (union [ bool s32 s64 ]))
 
 (static_assert (== (sizeof TaggedUnion3) 16))
 
@@ -43,15 +39,12 @@
 
 
 
-(type @pub TaggedUnion5 (union [
-        t2
-        t3
-        s8]))
+(type @pub TaggedUnion5 (union [ t2 t3 s8 ]))
 
 (static_assert (== (sizeof TaggedUnion5) 3))
 
 
-(type  TaggedUnion6 (union [bool u16]))
+(type  TaggedUnion6 (union [ bool u16 ]))
 
 (static_assert (== (sizeof TaggedUnion6) 4))
 
@@ -76,8 +69,8 @@
 (type @pub sum11_t (union [bool u16]))
 (type @pub sum12_t (union [type_ptr u16])) """
 
-
 (fun test_tagged_union_basic [] void :
+
     (let @mut x TaggedUnion3  true)
     (let @mut y TaggedUnion3  undef)
     (= y x)
@@ -91,6 +84,16 @@
     (test::AssertTrue! (is x s32))
     (test::AssertFalse! (is y bool))
     (test::AssertTrue! (is y s32))
+    (test::AssertTrue! (== y 777_s32))
+    (test::AssertTrue! (== 777_s32 y))
+)
+
+
+
+(type @pub TaggedUnionVoid (union [ void t2 t3 ]))
+
+(fun test_tagged_union_void [] void :
+  (let @mut x TaggedUnionVoid  void_val)
 )
 
 (fun fun_param [
@@ -135,6 +138,7 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (test_tagged_union_basic []))
+    (stmt (test_tagged_union_void []))
     (stmt (test_tagged_union_result []))
     (stmt (test_tagged_union_parameter []))
 
