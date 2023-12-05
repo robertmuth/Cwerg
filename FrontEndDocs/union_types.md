@@ -1,4 +1,4 @@
-# Union Types
+# Union/Sum Types
 
 ## Basics
 
@@ -11,6 +11,8 @@ Example:
 ```
 (type UntaggedUnion1 (union @untagged [ s32 void (ptr @mut s32)]))
 ```
+This represents a union of 3 fields/types: s32, void and (ptr @mut s32).
+Note that void is valid field/type for unions.
 
 
 A `tagged union` can be thought of as a pair of
@@ -18,7 +20,7 @@ A `tagged union` can be thought of as a pair of
 * an `untagged union`.
 
 Given a tagged union the two components can be retrieved using
-`ExprSumTag` and `ExprSumUntagged`.
+`sumtypetag` and `sumuntagged`.
 
 
 Example:
@@ -49,7 +51,7 @@ Union types are auto flattening, duplicate eliminating and order independent:
 
 ## Initialization and Implicit Widening
 
-Union u typed variable, parameter, field-element, returns, etc. can be initialized using
+A typed variable, parameter, field-element, return, etc. of type union u can be initialized using
 an expression whose type is
 * any of the underlying types of u
 * another union v where
@@ -61,7 +63,7 @@ This amounts to an explicit type widening which can also be made explicit using
 
 ## Equality Testing
 
-Tagged unions support equality testing against values of the underlying types.
+Only tagged unions support equality testing only against values of the underlying types.
 
 Assuming
 ```
@@ -85,4 +87,26 @@ The following expressions are valid:
 
 ## Narrowing
 
+Narrowing of values of a union type is possible with `ExprNarrow`.
+For `tagged unions` the narrowing can be explicitly marked as `@unchecked`.
+For `untagged unions` there is nothing to check anyway.
+
+In order to avoid runtime type inspection narrowing is subject to restriction show below,
+assuming the underlying types of v are a subset of the underlying types of u:
+
+### case: u, v are untagged unions
+
+This is always valid:
+```
+... (narrowto u (typeof v)) ...
+```
+The value of the expression are the bits of u truncated to `(sizeof (typeof v))`
+
+### case: u, v are tagged unions, unchecked
+
 TBD
+
+###case: u, v are tagged unions, (checked)
+
+TBD
+
