@@ -6,7 +6,7 @@ Additionally, support for the following instructions is required:
 * movw, movt
 * vfpv3 instructions
 
-In terms of gcc compiler flags this approximate correspods to: `-marm -march=armv7ve+fp `
+In terms of gcc compiler flags this approximately correspods to: `-marm -march=armv7ve+fp `
 
 Many SOCs, including the Raspberry Pi 3 and 4, satisfy these requirements.
 
