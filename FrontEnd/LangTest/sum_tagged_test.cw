@@ -33,7 +33,7 @@
 
 (static_assert (== (sizeof TaggedUnion4) 8))
 
-(type TaggedUnionDelta (sumdelta TaggedUnion3 TaggedUnion4))
+(type TaggedUnionDelta (uniondelta TaggedUnion3 TaggedUnion4))
 (static_assert (== (sizeof TaggedUnionDelta) 8))
 (static_assert (== (typeid TaggedUnionDelta) (typeid s64)))
 

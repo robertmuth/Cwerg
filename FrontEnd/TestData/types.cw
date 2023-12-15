@@ -60,6 +60,6 @@
 
 
 (fun funx [(param a type_union)] s32 :
-    (return (narrowto a (sumdelta type_union (union [void type_ptr])))))
+    (return (narrowto a (uniondelta type_union (union [void type_ptr])))))
 
 )

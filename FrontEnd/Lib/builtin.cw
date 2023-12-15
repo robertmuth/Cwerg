@@ -41,7 +41,7 @@ The type of the loop variable is determined by $end"""
     (if (is $eval $type) :
         :
         (macro_let $catch_name auto
-            (narrowto @unchecked $eval (sumdelta (typeof $eval) $type)))
+            (narrowto @unchecked $eval (uniondelta (typeof $eval) $type)))
         $catch_body
         (trap))
     (macro_let $name $type (narrowto $eval $type)))

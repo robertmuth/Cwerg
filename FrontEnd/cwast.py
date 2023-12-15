@@ -1094,7 +1094,7 @@ class TypeUnion:
 class TypeUnionDelta:
     """Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     """
-    ALIAS = "sumdelta"
+    ALIAS = "uniondelta"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
@@ -1850,7 +1850,7 @@ class ExprUnionTag:
     """Typetage of tagged union type
 
     result has type is `typeid`"""
-    ALIAS = "sumtypetag"
+    ALIAS = "uniontypetag"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
@@ -1870,7 +1870,7 @@ class ExprUnionUntagged:
     """Untagged union portion of tagged union type
 
     Result has type untagged union"""
-    ALIAS = "sumuntagged"
+    ALIAS = "unionuntagged"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
