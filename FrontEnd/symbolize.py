@@ -337,7 +337,7 @@ def VerifyASTSymbolsRecursively(node):
             def_node = node.x_symbol
             is_type_node = field in (
                 "type", "types", "result", "type_or_auto", "subtrahend")
-            if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeSum, cwast.DefEnum)):
+            if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):
                 cwast.CompilerError(
                     node.x_srcloc, f"unexpected id {node.name}: {type(def_node)} {field}")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):

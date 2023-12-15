@@ -341,11 +341,11 @@ NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
 NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
 
 NODES_TYPES = ("TypeBase",
-               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeSum", "TypeOf", "TypeSumDelta")
+               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeUnion", "TypeOf", "TypeUnionDelta")
 NODES_TYPES_T = Union[NODES_TYPES]
 
 NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
-                       "TypeSum", "TypeOf", "TypeSumDelta", "TypeAuto")
+                       "TypeUnion", "TypeOf", "TypeUnionDelta", "TypeAuto")
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
 
 NODES_ITEMS = ("EnumVal")
@@ -374,7 +374,7 @@ NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
               "ExprLen", "ExprFront",
               "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
               "ExprStringify",
-              "ExprSumTag", "ExprSumUntagged",
+              "ExprUnionTag", "ExprUnionUntagged",
               "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
               "ExprWiden", "ExprBitCast")
 
@@ -427,7 +427,7 @@ ALL_FIELDS = [
     NFD(NFK.ATTR_BOOL, "fini", "run function at shutdown"),
     NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
     NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
-    NFD(NFK.ATTR_BOOL, "untagged", "sum type is untagged"),
+    NFD(NFK.ATTR_BOOL, "untagged", "union type is untagged"),
     NFD(NFK.ATTR_BOOL, "arg_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_BOOL, "res_ref", "in parameter was converted for by-val to pointer"),
     NFD(NFK.ATTR_BOOL, "builtin", "module is the builtin module"),
@@ -753,17 +753,17 @@ class CanonType:
     def is_base_or_enum_type(self) -> bool:
         return self.node is TypeBase or self.node is DefEnum
 
-    def is_sum(self) -> bool:
-        return self.node is TypeSum
+    def is_union(self) -> bool:
+        return self.node is TypeUnion
 
-    def is_untagged_sum(self) -> bool:
-        return self.node is TypeSum and self.untagged
+    def is_untagged_union(self) -> bool:
+        return self.node is TypeUnion and self.untagged
 
-    def is_tagged_sum(self) -> bool:
-        return self.node is TypeSum and not self.untagged
+    def is_tagged_union(self) -> bool:
+        return self.node is TypeUnion and not self.untagged
 
-    def sum_types(self) -> List["CanonType"]:
-        assert self.is_sum()
+    def union_member_types(self) -> List["CanonType"]:
+        assert self.is_union()
         return self.children
 
     def is_array(self) -> bool:
@@ -1066,11 +1066,11 @@ class TypeFun:
 
 @NodeCommon
 @dataclasses.dataclass()
-class TypeSum:
-    """Sum types (tagged unions)
+class TypeUnion:
+    """Union types (tagged unions)
 
-    Sums are "auto flattening", e.g.
-    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    Unions are "auto flattening", e.g.
+    Union(a, Union(b,c), Union(a, d)) = Union(a, b, c, d)
     """
     ALIAS = "union"
     GROUP = GROUP.Type
@@ -1091,8 +1091,8 @@ class TypeSum:
 
 @NodeCommon
 @dataclasses.dataclass()
-class TypeSumDelta:
-    """Type resulting from the difference of SumType and a non-empty subset sets of its elements
+class TypeUnionDelta:
+    """Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     """
     ALIAS = "sumdelta"
     GROUP = GROUP.Type
@@ -1223,7 +1223,7 @@ class ValUndef:
 class ValVoid:
     """Only value inhabiting the `TypeVoid` type
 
-    It can be used to model *null* in nullable pointers via a sum type.
+    It can be used to model *null* in nullable pointers via a union type.
      """
     ALIAS = "void_val"
     GROUP = GROUP.Value
@@ -1646,7 +1646,7 @@ class ExprIs:
     """Test actual expression type
 
 
-    Typically used when `expr` is a tagged sum type.
+    Typically used when `expr` is a tagged union type.
 
     """
     ALIAS = "is"
@@ -1846,8 +1846,8 @@ class ExprTypeId:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ExprSumTag:
-    """Typetage of tagged sum type
+class ExprUnionTag:
+    """Typetage of tagged union type
 
     result has type is `typeid`"""
     ALIAS = "sumtypetag"
@@ -1866,10 +1866,10 @@ class ExprSumTag:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ExprSumUntagged:
-    """Untagged sum portion of tagged sum type
+class ExprUnionUntagged:
+    """Untagged union portion of tagged union type
 
-    Result has type untagged sum"""
+    Result has type untagged union"""
     ALIAS = "sumuntagged"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE

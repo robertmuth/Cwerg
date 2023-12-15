@@ -512,7 +512,7 @@ def ConcreteSyntaxType(node):
         yield from ConcreteSyntaxExpr(node.size)
         yield "]", TK.END
         yield from ConcreteSyntaxType(node.type)
-    elif isinstance(node, cwast.TypeSum):
+    elif isinstance(node, cwast.TypeUnion):
         yield "union", TK.UNOP
         yield "[", TK.BEG
         for t in node.types:

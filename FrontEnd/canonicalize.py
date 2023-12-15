@@ -79,9 +79,9 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     dst_ct: cwast.CanonType = node.type.x_type
     typeid_ct = tc.get_typeid_canon_type()
     srcloc = node.x_srcloc
-    assert src_ct.is_tagged_sum()
-    assert not dst_ct.is_sum()
-    tag = cwast.ExprSumTag(node.expr, x_srcloc=srcloc, x_type=typeid_ct)
+    assert src_ct.is_tagged_union()
+    assert not dst_ct.is_union()
+    tag = cwast.ExprUnionTag(node.expr, x_srcloc=srcloc, x_type=typeid_ct)
     typeid = cwast.ValNum(str(dst_ct.typeid), x_srcloc=srcloc,
                           x_type=typeid_ct, x_value=dst_ct.typeid)
     return cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, tag, typeid,
@@ -363,7 +363,7 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
     if orig_node.x_type.is_array() and target_type.is_slice():
         return canonicalize_slice.MakeValSliceFromArray(
             orig_node, target_type, tc, uint_type)
-    elif target_type.is_sum():
+    elif target_type.is_union():
         sum_type = cwast.TypeAuto(
             x_type=target_type, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprWiden(orig_node, sum_type, x_type=target_type,
@@ -456,9 +456,9 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
 
         if node.binary_expr_kind not in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
             return None
-        if node.expr1.x_type.is_tagged_sum():
+        if node.expr1.x_type.is_tagged_union():
             return make_cmp(node, node.expr1, node.expr2)
-        if node.expr2.x_type.is_tagged_sum():
+        if node.expr2.x_type.is_tagged_union():
             return make_cmp(node, node.expr2, node.expr1)
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
@@ -466,7 +466,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
 
 def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
     def replacer(node, _):
-        if not isinstance(node, (cwast.TypeOf, cwast.TypeSumDelta)):
+        if not isinstance(node, (cwast.TypeOf, cwast.TypeUnionDelta)):
             return None
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
 

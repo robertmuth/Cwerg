@@ -305,13 +305,13 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if node.wrapped:
             ct = tc.insert_wrapped_type(ct)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.TypeSum):
+    elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeSum
         # are not TypeSum themselves on the canonical side
         pieces = [_TypifyNodeRecursively(
             f, tc, type_corpus.NO_TYPE, ctx) for f in node.types]
-        return AnnotateNodeType(node, tc.insert_sum_type(pieces, node.untagged))
-    elif isinstance(node, cwast.TypeSumDelta):
+        return AnnotateNodeType(node, tc.insert_union_type(pieces, node.untagged))
+    elif isinstance(node, cwast.TypeUnionDelta):
         minuend = _TypifyNodeRecursively(
             node.type, tc, type_corpus.NO_TYPE, ctx)
         subtrahend = _TypifyNodeRecursively(
@@ -446,10 +446,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             _TypifyNodeRecursively(
                 node.expr_bound_or_undef, tc, uint_type, ctx)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.ExprSumTag):
+    elif isinstance(node, cwast.ExprUnionTag):
         ct = _TypifyNodeRecursively(
             node.expr, tc, type_corpus.NO_TYPE, ctx)
-        assert ct.is_tagged_sum()
+        assert ct.is_tagged_union()
         return AnnotateNodeType(node, tc.get_typeid_canon_type())
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
@@ -580,10 +580,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprSizeof):
         _TypifyNodeRecursively(node.type, tc, type_corpus.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.get_uint_canon_type())
-    elif isinstance(node, cwast.ExprSumUntagged):
+    elif isinstance(node, cwast.ExprUnionUntagged):
         ct = _TypifyNodeRecursively(node.expr, tc, type_corpus.NO_TYPE, ctx)
-        assert ct.is_tagged_sum()
-        return AnnotateNodeType(node, tc.insert_sum_type(ct.children, True))
+        assert ct.is_tagged_union()
+        return AnnotateNodeType(node, tc.insert_union_type(ct.children, True))
     elif isinstance(node, (cwast.StmtStaticAssert)):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
         return type_corpus.NO_TYPE
@@ -802,7 +802,7 @@ def _CheckExprNarrow(node: cwast.ExprNarrow, _):
 def CheckExprNarrowStrict(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not ct_src.is_untagged_sum():
+    if not ct_src.is_untagged_union():
         cwast.CompilerError(
             node.x_srcloc,  f"tagged unions not allowed {ct_src.original_type} -> {ct_dst}: {node.expr}")
     # print ("@@@@@@@@@@@@@@@", node)
@@ -824,10 +824,10 @@ def CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
 
 
-def CheckExprSumUntagged(node: cwast.ExprSumUntagged, _):
-    assert node.x_type.is_untagged_sum()
-    assert node.expr.x_type.is_tagged_sum(), f"{node.expr.x_type}"
-    for c1, c2 in zip(node.x_type.sum_types(), node.expr.x_type.sum_types()):
+def CheckExprSumUntagged(node: cwast.ExprUnionUntagged, _):
+    assert node.x_type.is_untagged_union()
+    assert node.expr.x_type.is_tagged_union(), f"{node.expr.x_type}"
+    for c1, c2 in zip(node.x_type.union_member_types(), node.expr.x_type.union_member_types()):
         _CheckTypeSame(node, c1, c2)
 
 
@@ -897,9 +897,9 @@ def CheckValSlice(node: cwast.ValSlice, _):
                    node.pointer.x_type.underlying_pointer_type())
 
 
-def CheckExprSumTag(node: cwast.ExprSumTag, tc: type_corpus.TypeCorpus):
+def CheckExprSumTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):
     assert node.x_type is tc.get_typeid_canon_type()
-    assert node.expr.x_type.is_tagged_sum()
+    assert node.expr.x_type.is_tagged_union()
 
 
 def CheckId(node: cwast.Id,  _):
@@ -1038,15 +1038,15 @@ class TypeVerifier:
             cwast.ExprWiden: _CheckExprWiden,
             cwast.ExprNarrow: _CheckExprNarrow,
             cwast.ExprAddrOf: CheckExprAddrOf,
-            cwast.ExprSumTag: CheckExprSumTag,
-            cwast.ExprSumUntagged: CheckExprSumUntagged,
+            cwast.ExprUnionTag: CheckExprSumTag,
+            cwast.ExprUnionUntagged: CheckExprSumUntagged,
             cwast.ExprWrap: CheckExprWrap,
             cwast.ExprUnwrap: CheckExprUnwrap,
             cwast.ExprCall: CheckExprCall,
 
             cwast.Id: CheckId,
             #
-            cwast.TypeSum: lambda node, tc: node.x_type.is_sum(),
+            cwast.TypeUnion: lambda node, tc: node.x_type.is_union(),
             cwast.TypeFun: CheckDefFunTypeFun,
             #
             cwast.DefRec: CheckDefRecDefEnum,
@@ -1084,7 +1084,7 @@ class TypeVerifier:
             cwast.ExprStmt: CheckNothing,
             cwast.ValRec: CheckNothing,
             cwast.RecField: CheckNothing,
-            cwast.TypeSumDelta:  CheckNothing,
+            cwast.TypeUnionDelta:  CheckNothing,
             # minuned = node.type.x_type
             #  subtrahend = node.subtrahend.x_type
             # TODO: need to use origianal types if available

@@ -204,7 +204,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         return BaseOffset(base, 0)
     elif isinstance(node, cwast.ExprNarrow):
         #
-        assert node.expr.x_type.is_untagged_sum()
+        assert node.expr.x_type.is_untagged_union()
         base = _GetLValueAddress(node.expr, tc, id_gen)
         return BaseOffset(base, 0)
     elif isinstance(node, cwast.ExprStmt):
@@ -438,7 +438,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         if ct_dst.is_void_or_wrapped_void():
             return None
         ct_src: cwast.CanonType = node.expr.x_type
-        assert ct_src.is_sum() or ct_src.original_type.is_sum()
+        assert ct_src.is_union() or ct_src.original_type.is_union()
         addr = _GetLValueAddress(node.expr, tc, id_gen)
         res = id_gen.NewName("union_access")
         print(
@@ -528,7 +528,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             # init_node can be union of voids
             # init_node.expr can void for widening
             pass
-        elif init_node.x_type.is_untagged_sum() and init_node.expr.x_type.fits_in_register():
+        elif init_node.x_type.is_untagged_union() and init_node.expr.x_type.fits_in_register():
             reg = EmitIRExpr(init_node.expr, tc, id_gen)
             print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
         else:
@@ -969,7 +969,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.StmtDefer)
     ELIMIMATED_NODES.add(cwast.ExprIs)
     ELIMIMATED_NODES.add(cwast.TypeOf)
-    ELIMIMATED_NODES.add(cwast.TypeSumDelta)
+    ELIMIMATED_NODES.add(cwast.TypeUnionDelta)
     verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowStrict)
     verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
     verifier.Replace(cwast.ExprCall, typify.CheckExprCallStrict)
@@ -1010,8 +1010,8 @@ def main():
     for mod in mod_topo_order:
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
-    ELIMIMATED_NODES.add(cwast.ExprSumTag)
-    ELIMIMATED_NODES.add(cwast.ExprSumUntagged)
+    ELIMIMATED_NODES.add(cwast.ExprUnionTag)
+    ELIMIMATED_NODES.add(cwast.ExprUnionUntagged)
 
     SanityCheckMods("after_slice_elimination", args.emit_ir,
                     [mod_gen] + mod_topo_order, tc, verifier, ELIMIMATED_NODES)

@@ -37,14 +37,14 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
         # TODO: check "ref"
         return actual.underlying_pointer_type() == expected.underlying_pointer_type() and (not expected.is_mutable())
 
-    if not expected.is_sum():
+    if not expected.is_union():
         return False
 
-    expected_children = set([x.name for x in expected.sum_types()])
-    if actual.is_sum():
+    expected_children = set([x.name for x in expected.union_member_types()])
+    if actual.is_union():
         if actual.untagged != expected.untagged:
             return False
-        return set([x.name for x in actual.sum_types()]).issubset(expected_children)
+        return set([x.name for x in actual.union_member_types()]).issubset(expected_children)
     else:
         return actual.name in expected_children
 
@@ -60,11 +60,11 @@ def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> 
         if actual == expected:
             return True
 
-        if expected.is_tagged_sum():
-            return actual in expected.sum_types()
+        if expected.is_tagged_union():
+            return actual in expected.union_member_types()
 
-    if actual.is_tagged_sum():
-        return is_comparable(expected) and expected in actual.sum_types()
+    if actual.is_tagged_union():
+        return is_comparable(expected) and expected in actual.union_member_types()
 
     return False
 
@@ -92,12 +92,12 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
 
 
 def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if ct_dst.is_sum():
-        dst_children = set([x.name for x in ct_dst.sum_types()])
-        if ct_src.is_sum():
+    if ct_dst.is_union():
+        dst_children = set([x.name for x in ct_dst.union_member_types()])
+        if ct_src.is_union():
             if ct_dst.untagged != ct_src.untagged:
                 return False
-            src_children = set([x.name for x in ct_src.sum_types()])
+            src_children = set([x.name for x in ct_src.union_member_types()])
         else:
             src_children = set([ct_src.name])
         return src_children.issubset(dst_children)
@@ -109,12 +109,12 @@ def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -
         ct_src = ct_src.original_type
     if ct_dst.original_type is not None:
         ct_dst = ct_dst.original_type
-    assert ct_src.is_sum(), F"{ct_src} VS {ct_dst}"
-    src_children = set([x.name for x in ct_src.sum_types()])
-    if ct_dst.is_sum():
+    assert ct_src.is_union(), F"{ct_src} VS {ct_dst}"
+    src_children = set([x.name for x in ct_src.union_member_types()])
+    if ct_dst.is_union():
         if ct_dst.untagged != ct_src.untagged:
             return False
-        dst_children = set([x.name for x in ct_dst.sum_types()])
+        dst_children = set([x.name for x in ct_dst.union_member_types()])
     else:
         dst_children = set([ct_dst.name])
     return dst_children.issubset(src_children)
@@ -151,7 +151,7 @@ def is_proper_lhs(node) -> bool:
         else:
             assert container_ct.is_array()
             return is_proper_lhs(node.container)
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)) and node.expr.x_type.is_untagged_sum():
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)) and node.expr.x_type.is_untagged_union():
         return is_proper_lhs(node.expr)
     else:
         return False
@@ -201,13 +201,13 @@ _BASE_TYPE_MAP = {
 
 
 def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, tag_size, ptr_size):
-    assert tc.node is cwast.TypeSum
+    assert tc.node is cwast.TypeUnion
     num_void = 0
     num_pointer = 0
     num_other = 0
     max_size = 0
     max_alignment = 1
-    for t in tc.sum_types():
+    for t in tc.union_member_types():
         if t.is_wrapped():
             t = t.children[0]
         if t.is_void():
@@ -309,12 +309,12 @@ class TypeCorpus:
         return self._target_arch_config.data_addr_bitwidth // 8
 
     def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
-        assert tc.node is cwast.TypeSum
+        assert tc.node is cwast.TypeUnion
         num_void = 0
         scalars: List[cwast.CanonType] = []
         largest_by_kind = {}
         largest = 0
-        for t in tc.sum_types():
+        for t in tc.union_member_types():
             if t.is_wrapped():
                 t = t.children[0]
             if t.is_void():
@@ -360,7 +360,7 @@ class TypeCorpus:
             return None
         elif tc.node is cwast.DefEnum:
             return _BASE_TYPE_MAP[tc.base_type_kind]
-        elif tc.node is cwast.TypeSum:
+        elif tc.node is cwast.TypeUnion:
             return self._get_register_type_for_sum_type(tc)
         elif tc.node is cwast.DefType:
             return self.get_register_type(tc.children[0])
@@ -407,7 +407,7 @@ class TypeCorpus:
             # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
             size = align(size, alignment)
             return size * tc.dim, alignment
-        elif tc.node is cwast.TypeSum:
+        elif tc.node is cwast.TypeUnion:
             return _get_size_and_offset_for_sum_type(
                 tc, self._target_arch_config.typeid_bitwidth // 8,
                 self._target_arch_config.data_addr_bitwidth // 8)
@@ -483,11 +483,11 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefEnum, name,
                                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
-    def insert_sum_type(self, components: List[cwast.CanonType], untagged: bool) -> cwast.CanonType:
+    def insert_union_type(self, components: List[cwast.CanonType], untagged: bool) -> cwast.CanonType:
         assert len(components) > 1
         pieces = []
         for c in components:
-            if c.node is cwast.TypeSum and c.untagged == untagged:
+            if c.node is cwast.TypeUnion and c.untagged == untagged:
                 for cc in c.children:
                     pieces.append(cc)
             else:
@@ -495,7 +495,7 @@ class TypeCorpus:
         pp = sorted(p.name for p in pieces)
         extra = "_untagged" if untagged else ""
         name = f"sum{extra}<{','.join(pp)}>"
-        return self._insert(cwast.CanonType(cwast.TypeSum, name, children=pieces, untagged=untagged))
+        return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=pieces, untagged=untagged))
 
     def insert_fun_type(self, params: List[cwast.CanonType],
                         result: cwast.CanonType) -> cwast.CanonType:
@@ -513,8 +513,8 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefType, name, children=[tc]))
 
     def insert_sum_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
-        assert all.node is cwast.TypeSum, f"expect sum type: {all.name}"
-        if part.node is cwast.TypeSum:
+        assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
+        if part.node is cwast.TypeUnion:
             part_children = part.children
         else:
             part_children = [part]
@@ -524,4 +524,4 @@ class TypeCorpus:
                 out.append(x)
         if len(out) == 1:
             return out[0]
-        return self.insert_sum_type(out, all.untagged)
+        return self.insert_union_type(out, all.untagged)

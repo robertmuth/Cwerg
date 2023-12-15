@@ -345,7 +345,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         if node.expr.x_value is not None:
             return _AssignValue(node, node.expr.x_value)
         return False
-    elif isinstance(node, cwast.ExprSumUntagged):
+    elif isinstance(node, cwast.ExprUnionUntagged):
         # TODO: we can do better here
         return False
     elif isinstance(node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
@@ -357,18 +357,18 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         assert expr_ct.typeid != -1 and test_ct.typeid != -1
         if expr_ct.typeid == test_ct.typeid:
             return _AssignValue(node, True)
-        if expr_ct.is_tagged_sum():
-            if test_ct.is_tagged_sum():
-                test_elements = set([x.name for x in test_ct.sum_types()])
-                expr_elements = set([x.name for x in expr_ct.sum_types()])
+        if expr_ct.is_tagged_union():
+            if test_ct.is_tagged_union():
+                test_elements = set([x.name for x in test_ct.union_member_types()])
+                expr_elements = set([x.name for x in expr_ct.union_member_types()])
                 if expr_elements.issubset(test_elements):
                     return _AssignValue(node, True)
                 return False
             else:
                 return False
-        elif test_ct.is_tagged_sum():
+        elif test_ct.is_tagged_union():
             test_elements = set(
-                [x.name for x in test_ct.sum_types()])
+                [x.name for x in test_ct.union_member_types()])
             return _AssignValue(node, expr_ct.name in test_elements)
         else:
             return _AssignValue(node, False)

@@ -40,7 +40,7 @@ def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
     tag_field = cwast.RecField(
         SUM_FIELD_TAG, tag_type, x_srcloc=srcloc, x_type=tag_ct)
     #
-    union_ct = tc.insert_sum_type(sum_type.sum_types(), True)
+    union_ct = tc.insert_union_type(sum_type.union_member_types(), True)
     union_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_ct)
     union_field = cwast.RecField(
         SUM_FIELD_UNION, union_type, x_srcloc=srcloc, x_type=union_ct)
@@ -86,7 +86,7 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
     # Note; we add new types to the map while iterating over it sop we take a snapshotfirst
     out: SUM_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
-        if ct.is_tagged_sum():
+        if ct.is_tagged_union():
             out[ct] = _MakeSumReplacementStruct(ct, tc)
         elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
             out[ct] = _SumRewriteFunSig(ct, tc, out)
@@ -132,8 +132,8 @@ def _MakeValRecForSum(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
 
 def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValRec:
     assert sum_rec.is_rec()
-    assert value.x_type.is_tagged_sum()
-    assert not value.expr.x_type.is_sum(
+    assert value.x_type.is_tagged_union()
+    assert not value.expr.x_type.is_union(
     ), f"{value.expr.x_type} -> {sum_rec} {value.x_srcloc}"
 
     tag_field, union_field = sum_rec.ast_node.fields
@@ -159,7 +159,7 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
     _, dst_union_field = dst_sum_rec.ast_node.fields
     src_sum_rec: cwast.CanonType = value.expr.x_type
     assert src_sum_rec.is_rec()
-    assert src_sum_rec.original_type.is_tagged_sum()
+    assert src_sum_rec.original_type.is_tagged_union()
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
     # to drop this we would need to introducea temporary
     assert isinstance(value.expr, cwast.Id)
@@ -189,7 +189,7 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.Can
     _, dst_union_field = dst_sum_rec.ast_node.fields
     src_sum_rec: cwast.CanonType = value.expr.x_type
     assert src_sum_rec.is_rec()
-    assert src_sum_rec.original_type.is_tagged_sum()
+    assert src_sum_rec.original_type.is_tagged_union()
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
     # to drop this we would need to introducea temporary
     assert isinstance(value.expr, cwast.Id)
@@ -215,10 +215,10 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.Can
 
 
 def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):
-    tagged_ct = node.expr.x_type
-    untagged_ct = tc.insert_sum_type(tagged_ct.sum_types(), True)
+    tagged_ct: cwast.CanonType = node.expr.x_type
+    untagged_ct = tc.insert_union_type(tagged_ct.union_member_types(), True)
     node.unchecked = True
-    node.expr = cwast.ExprSumUntagged(node.expr, x_srcloc=node.x_srcloc,
+    node.expr = cwast.ExprUnionUntagged(node.expr, x_srcloc=node.x_srcloc,
                                       x_type=untagged_ct)
 
 
@@ -228,7 +228,7 @@ def ReplaceTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
         nonlocal tc
         if not isinstance(node, cwast.ExprNarrow):
             return None
-        if not node.expr.x_type.is_tagged_sum():
+        if not node.expr.x_type.is_tagged_union():
             return None
         sl = node.x_srcloc
         if not node.unchecked:
@@ -261,7 +261,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     def replacer(node, field):
 
-        if isinstance(node, cwast.ExprSumTag):
+        if isinstance(node, cwast.ExprUnionTag):
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
             assert len(def_rec.ast_node.fields) == 2
@@ -270,7 +270,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             return cwast.ExprField(node.expr, SUM_FIELD_TAG,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
-        elif isinstance(node, cwast.ExprSumUntagged):
+        elif isinstance(node, cwast.ExprUnionUntagged):
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
             assert len(def_rec.ast_node.fields) == 2
@@ -291,11 +291,11 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                              cwast.ExprField, cwast.FieldVal)):
             typify.UpdateNodeType(node, def_rec)
             return None
-        elif isinstance(node, cwast.TypeSum):
+        elif isinstance(node, cwast.TypeUnion):
             return _MakeIdForDefRec(def_rec, node.x_srcloc)
         elif isinstance(node, cwast.ExprWiden):
             ct_src: cwast.CanonType = node.expr.x_type
-            if ct_src.original_type is not None and ct_src.original_type.is_tagged_sum():
+            if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():
                 return _MakeValRecForWidenFromUnion(node, sum_to_struct_map[node.x_type])
             else:
                 return _MakeValRecForWidenFromNonUnion(node, sum_to_struct_map[node.x_type])
@@ -313,7 +313,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             # TODO
             # This needs a lot of work also what about field references to
             # rewritten fields
-            if isinstance(sym, cwast.TypeSum):
+            if isinstance(sym, cwast.TypeUnion):
                 symbolize.AnnotateNodeSymbol(node, def_rec)
             typify.UpdateNodeType(node, def_rec)
             return None
