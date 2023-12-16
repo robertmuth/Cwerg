@@ -7,62 +7,64 @@
 (type type_ptr (ptr @mut s32))
 
 
-(type TaggedUnion1 (union [ s32 void type_ptr ]))
+(type Union1 (union [ s32 void type_ptr ]))
 
-(static_assert (== (sizeof TaggedUnion1) 16))
+(static_assert (== (sizeof Union1) 16))
 
 
-(type TaggedUnion2 (union [
+(type Union2 (union [
         s32
         void
-        (union  [TaggedUnion1 u8])]))
+        (union  [Union1 u8])]))
 
-(static_assert (== (sizeof TaggedUnion2) 16))
+(static_assert (== (sizeof Union2) 16))
 
-(type TaggedUnion2Simplified (union [s32 void u8 type_ptr]))
+(type Union2Simplified (union [s32 void u8 type_ptr]))
 
-(static_assert (== (typeid TaggedUnion2) (typeid TaggedUnion2Simplified)))
-
-
-(type TaggedUnion3 (union [ bool s32 s64 ]))
-
-(static_assert (== (sizeof TaggedUnion3) 16))
+(static_assert (== (typeid Union2) (typeid Union2Simplified)))
 
 
-(type TaggedUnion4 (union [bool s32]))
+(type Union3 (union [ bool u8 s32 s64 ]))
 
-(static_assert (== (sizeof TaggedUnion4) 8))
-
-(type TaggedUnionDelta (uniondelta TaggedUnion3 TaggedUnion4))
-(static_assert (== (sizeof TaggedUnionDelta) 8))
-(static_assert (== (typeid TaggedUnionDelta) (typeid s64)))
+(static_assert (== (sizeof Union3) 16))
 
 
 
-(type @pub TaggedUnion5 (union [ t2 t3 s8 ]))
-
-(static_assert (== (sizeof TaggedUnion5) 3))
-
-
-(type  TaggedUnion6 (union [ bool u16 ]))
-
-(static_assert (== (sizeof TaggedUnion6) 4))
+(type Delta1 (uniondelta Union3 (union [ bool u8 s32 ])))
+(static_assert (== (sizeof Delta1) 8))
+(static_assert (== (typeid Delta1) (typeid s64)))
 
 
+(type Delta2 (uniondelta Union3 (union [ bool u8 ])))
+(static_assert (== (typeid Delta2) (typeid (union [ s32 s64 ]))))
 
-(type TaggedUnion (union [bool u64 u32 r32 r64 (array 32 u8)]))
+(type Delta3 (uniondelta Union3 (union [ bool u8 s64])))
+(static_assert (== (typeid Delta3) (typeid s32)))
 
-(static_assert (== (sizeof TaggedUnion) 40))
+(type @pub Union5 (union [ t2 t3 s8 ]))
+
+(static_assert (== (sizeof Union5) 3))
+
+
+(type  Union6 (union [ bool u16 ]))
+
+(static_assert (== (sizeof Union6) 4))
+
+
+
+(type Union (union [bool u64 u32 r32 r64 (array 32 u8)]))
+
+(static_assert (== (sizeof Union) 40))
 
 
 (defrec rec1 :
-    (field s1 TaggedUnion5)
-    (field s2 TaggedUnion5))
+    (field s1 Union5)
+    (field s2 Union5))
 
 
 (defrec @pub rec2 :
-    (field s1 TaggedUnion1)
-    (field s2 TaggedUnion2))
+    (field s1 Union1)
+    (field s2 Union2))
 
 
 @doc """
@@ -71,14 +73,17 @@
 
 (fun test_tagged_union_basic [] void :
 
-    (let @mut x TaggedUnion3  true)
-    (let @mut y TaggedUnion3  undef)
+    (let @mut x Union3 true)
+    (let @mut y Union3 undef)
+    (let @mut z s32 777)
+
     (= y x)
     (test::AssertTrue! (is x bool))
     (test::AssertFalse! (is x s32))
     (test::AssertTrue! (is y bool))
     (test::AssertFalse! (is y s32))
     (= x 777_s32)
+    (= x z)
     (= y x)
     (test::AssertFalse! (is x bool))
     (test::AssertTrue! (is x s32))
@@ -90,17 +95,17 @@
 
 
 
-(type @pub TaggedUnionVoid (union [ void t2 t3 ]))
+(type @pub UnionVoid (union [ void t2 t3 ]))
 
 (fun test_tagged_union_void [] void :
-  (let @mut x TaggedUnionVoid  void_val)
+  (let @mut x UnionVoid  void_val)
 )
 
 (fun fun_param [
         (param a bool)
         (param b bool)
         (param c s32)
-        (param x TaggedUnion3)] void :
+        (param x Union3)] void :
     (if a :
          (test::AssertTrue! (is x bool))
     :
@@ -108,7 +113,7 @@
     ))
 
 (fun test_tagged_union_parameter [] void :
-    (let @mut x TaggedUnion3 true)
+    (let @mut x Union3 true)
     (stmt (fun_param [true true 0 x]))
     (= x 666_s32)
     (stmt (fun_param [false true 666 x]))
@@ -117,8 +122,8 @@
 (fun fun_result [
         (param a bool)
         (param b bool)
-        (param c s32)] TaggedUnion3 :
-    (let @mut out  TaggedUnion3 undef)
+        (param c s32)] Union3 :
+    (let @mut out  Union3 undef)
     (if a :
         (= out b)
     :
