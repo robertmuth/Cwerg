@@ -46,7 +46,7 @@
 (static_assert (== (sizeof Union5) 3))
 
 
-(type  Union6 (union [ bool u16 ]))
+(type  Union6 (union [ bool u16 bool ]))
 
 (static_assert (== (sizeof Union6) 4))
 
