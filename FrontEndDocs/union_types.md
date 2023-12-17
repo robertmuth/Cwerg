@@ -29,14 +29,16 @@ Example:
 
 ```
 (type @wrapped t1 s32)
-(type type_ptr (ptr @mut s32))
-
-(type Union1 (union [ s32 void type_ptr ]))
+(type Union1 (union [ s32 t1 ]))
 
 (type @wrapped t2 void)
 (type @wrapped t3 void)
 
-(type @pub Union2 (union [ void t2 t3 ]))
+@doc "multiple void types can be used as error code"
+(type Union2 (union [ void t2 t3 ]))
+
+@doc "nullable pointers can be modelled like so"
+(type Union3 (union [ void (ptr @mut u8) ]))
 ```
 
 Union types are order independent:
@@ -76,20 +78,22 @@ of two unions or a union and an individual type:
 (type Union1 (union [ s32 void s64 u8 ]))
 (type Union2 (union [ s32 void ]))
 
-(type Union3 (uniondelta Union1 Union2))
-(static_assert (== (typeid Union3) (typeid (union [ u8 s64 ]))))
+(type Delta1 (uniondelta Union1 Union2))
+(static_assert (== (typeid Delta1) (typeid (union [ u8 s64 ]))))
 
-(type Union3 (uniondelta Union1 Union2))
+(type Delta2 (uniondelta Union2 void))
+(static_assert (== (typeid Delta2) (typeid s32)))
+
 ```
 
 ## Initialization and Implicit Widening
 
-A typed variable, parameter, field-element, return value, etc. of type union `u` can be initialized using
-an expression whose type is
-* any of the underlying types of u
-* another union v where
-  * v and u are either both tagged or both untagged
-  * the underlying types of v are a subset of the underlying types of u
+A typed variable, parameter, field-element, return value, etc. of type union `u` can be initialized using an expression whose type is
+
+* any of the underlying types of `u`
+* another union `v` where
+  * `v` and `u` are either both tagged or both untagged
+  * the member types of `v` are a subset of the member types of `u`
 
 This amounts to an explicit type widening which can also be made explicit using `widento`. No run-time type check is necessary here.
 
@@ -113,7 +117,6 @@ Assuming
 
 The following expressions are valid:
 ```
-... (== u 222_s16) ...
 ... (!= u 222_s16) ...
 
 ... (== u 222_s32) ...
@@ -132,25 +135,85 @@ The following expressions are valid:
 
 ## Narrowing
 
-Narrowing of values of a union type is possible with `narrowto`.
+Narrowing of values of a union type is possible with the `narrowto` operator.
+
 For `tagged unions` the narrowing can be explicitly marked as `@unchecked`.
-For `untagged unions` there is nothing to check anyway.
 
-In order to avoid runtime type inspection narrowing is subject to restriction show below,
-assuming the underlying types of v are a subset of the underlying types of u:
+For `untagged unions` there is nothing to check.
 
-### case: u, v are untagged unions
+Assuming `u` is of type `tu`  and `v`, `z` are of type `tv`,
+we need to consider the following cases:
+
+### case: ut is untagged union
+
+```
+(= z (narrowto u tv))
+```
+
+#### tv ∈ member-types(tu)
 
 This is always valid:
+
+
+`z` is set to the bits of `u` truncated to `(sizeof tv)`
+
+####  tv is untagged union where member-types(tv) ⊆ member-types(tu)
+
+This is always valid:
+
+The value of `z` are the bits of `u` truncated to `(sizeof tv)`.
+
+
+### case: ut is tagged union unchecked
+
 ```
-... (narrowto u (typeof v)) ...
+(= z (narrowto @unchecked u tv))
 ```
-The value of the expression are the bits of u truncated to `(sizeof (typeof v))`
 
-### case: u, v are tagged unions, unchecked
+#### tv ∈ member-types(tu)
 
-TBD
+This is only valid if  `(uniontypetag u) == (typeid tv)`:
+But the assumption is not checked.
 
-###case: u, v are tagged unions, (checked)
+The value of `z` are the bits of `(unionuntagged u)` truncated to `(sizeof tv)`.
 
-TBD
+####  tv is tagged union where member-types(tv) ⊆ member-types(tu)
+
+
+This is onlt valid if `(uniontypetag u) ∈  member-type-ids(tv)`:
+But the assumption is not checked.
+
+The value of `z` is a tagged union where
+
+`(uniontypetag z)`:  `(uniontypetag u)`
+
+`(unionuntagged z)`:   `(unionuntagged u)` truncated to
+`(sizeof (unionuntagged tv))`
+
+
+### case: ut is tagged union checked
+
+```
+(= z (narrowto u tv))
+```
+
+#### tv ∈ member-types(tu)
+
+This will check if  `(uniontypetag u) == (typeid tv)` and trap if it is not.
+Otherwise, the value of `z` are the bits of `(unionuntagged u)` truncated to `(sizeof tv)`.
+
+#### tv is tagged union where member-types(tv) ⊆ member-types(tu)
+
+This will check if `(uniontypetag u) ∈  member-type-ids(tv)`
+and trap if it is not.
+
+Otherwise, the value of `z` is a tagged union where
+
+`(uniontypetag z)`:  `(uniontypetag u)`
+
+`(unionuntagged z)`:   `(unionuntagged u)` truncated to
+`(sizeof (unionuntagged tv))`
+
+
+Note, that checking `(uniontypetag u) ∈  member-type-ids(tv)` is equivalent
+to `(uniontypetag u) ∉  member-type-ids((uniondelta tu tv))` which may be faster to check.
