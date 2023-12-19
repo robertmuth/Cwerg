@@ -2178,1225 +2178,1609 @@ const InsTmpl kInsTemplates[] = {
     a64::OPC::fldr_d_imm, 0x5 },  // ld.stk [1010]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::stk1_offset2},
     a64::OPC::fldr_d_imm, 0x5 },  // ld.stk [1011]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1012]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1013]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1014]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1015]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1016]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1017]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1018]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1019]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1020]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1021]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1022]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1023]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1024]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1025]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1026]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1027]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1028]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1029]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1030]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1031]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1032]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1033]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1034]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1035]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1036]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1037]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1038]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1039]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1040]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1041]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1042]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_x_reg_w, 0x5 },  // ld.stk [1043]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1044]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_w_reg_w, 0x5 },  // ld.stk [1045]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1046]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_w_reg_w, 0x5 },  // ld.stk [1047]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1048]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_w_reg_w, 0x5 },  // ld.stk [1049]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1050]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_w_reg_w, 0x5 },  // ld.stk [1051]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1052]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsw_reg_w, 0x5 },  // ld.stk [1053]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1054]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsw_reg_w, 0x5 },  // ld.stk [1055]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1056]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsw_reg_w, 0x5 },  // ld.stk [1057]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1058]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsw_reg_w, 0x5 },  // ld.stk [1059]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1060]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsh_x_reg_w, 0x5 },  // ld.stk [1061]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1062]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsh_x_reg_w, 0x5 },  // ld.stk [1063]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1064]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsh_x_reg_w, 0x5 },  // ld.stk [1065]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1066]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsh_x_reg_w, 0x5 },  // ld.stk [1067]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1068]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_h_reg_w, 0x5 },  // ld.stk [1069]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1070]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_h_reg_w, 0x5 },  // ld.stk [1071]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1072]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_h_reg_w, 0x5 },  // ld.stk [1073]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1074]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_h_reg_w, 0x5 },  // ld.stk [1075]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1076]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_b_reg_w, 0x5 },  // ld.stk [1077]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1078]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_b_reg_w, 0x5 },  // ld.stk [1079]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1080]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_b_reg_w, 0x5 },  // ld.stk [1081]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1082]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldr_b_reg_w, 0x5 },  // ld.stk [1083]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1084]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsb_x_reg_w, 0x5 },  // ld.stk [1085]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1086]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsb_x_reg_w, 0x5 },  // ld.stk [1087]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1088]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsb_x_reg_w, 0x5 },  // ld.stk [1089]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1090]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::ldrsb_x_reg_w, 0x5 },  // ld.stk [1091]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1092]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_s_reg_w, 0x5 },  // ld.stk [1093]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1094]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_s_reg_w, 0x5 },  // ld.stk [1095]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1096]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_s_reg_w, 0x5 },  // ld.stk [1097]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1098]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_s_reg_w, 0x5 },  // ld.stk [1099]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1100]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_d_reg_w, 0x5 },  // ld.stk [1101]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1102]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_d_reg_w, 0x5 },  // ld.stk [1103]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1104]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_d_reg_w, 0x5 },  // ld.stk [1105]
+  { {+PARAM::scratch_gpr, +PARAM::stk1_offset2},
+    a64::OPC::movz_x_imm, 0x3 },  // ld.stk [1106]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0},
+    a64::OPC::fldr_d_reg_w, 0x5 },  // ld.stk [1107]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1012]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1108]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1013]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1109]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1014]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1110]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1015]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1111]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1016]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1112]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1017]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1113]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1018]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1114]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1019]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1115]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1020]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1116]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1021]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1117]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1022]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1118]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1023]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1119]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1024]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1120]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_x, 0x13 },  // st [1025]
+    a64::OPC::str_x_reg_x, 0x13 },  // st [1121]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1026]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1122]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_x_reg_w, 0x13 },  // st [1027]
+    a64::OPC::str_x_reg_w, 0x13 },  // st [1123]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_x, 0x13 },  // st [1028]
+    a64::OPC::str_w_reg_x, 0x13 },  // st [1124]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_x, 0x13 },  // st [1029]
+    a64::OPC::str_w_reg_x, 0x13 },  // st [1125]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_w, 0x13 },  // st [1030]
+    a64::OPC::str_w_reg_w, 0x13 },  // st [1126]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_w, 0x13 },  // st [1031]
+    a64::OPC::str_w_reg_w, 0x13 },  // st [1127]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_x, 0x13 },  // st [1032]
+    a64::OPC::str_w_reg_x, 0x13 },  // st [1128]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_x, 0x13 },  // st [1033]
+    a64::OPC::str_w_reg_x, 0x13 },  // st [1129]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_w, 0x13 },  // st [1034]
+    a64::OPC::str_w_reg_w, 0x13 },  // st [1130]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_w_reg_w, 0x13 },  // st [1035]
+    a64::OPC::str_w_reg_w, 0x13 },  // st [1131]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_x, 0x13 },  // st [1036]
+    a64::OPC::str_h_reg_x, 0x13 },  // st [1132]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_x, 0x13 },  // st [1037]
+    a64::OPC::str_h_reg_x, 0x13 },  // st [1133]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_w, 0x13 },  // st [1038]
+    a64::OPC::str_h_reg_w, 0x13 },  // st [1134]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_w, 0x13 },  // st [1039]
+    a64::OPC::str_h_reg_w, 0x13 },  // st [1135]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_x, 0x13 },  // st [1040]
+    a64::OPC::str_h_reg_x, 0x13 },  // st [1136]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_x, 0x13 },  // st [1041]
+    a64::OPC::str_h_reg_x, 0x13 },  // st [1137]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_w, 0x13 },  // st [1042]
+    a64::OPC::str_h_reg_w, 0x13 },  // st [1138]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_h_reg_w, 0x13 },  // st [1043]
+    a64::OPC::str_h_reg_w, 0x13 },  // st [1139]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_x, 0x13 },  // st [1044]
+    a64::OPC::str_b_reg_x, 0x13 },  // st [1140]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_x, 0x13 },  // st [1045]
+    a64::OPC::str_b_reg_x, 0x13 },  // st [1141]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_w, 0x13 },  // st [1046]
+    a64::OPC::str_b_reg_w, 0x13 },  // st [1142]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_w, 0x13 },  // st [1047]
+    a64::OPC::str_b_reg_w, 0x13 },  // st [1143]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_x, 0x13 },  // st [1048]
+    a64::OPC::str_b_reg_x, 0x13 },  // st [1144]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_x, 0x13 },  // st [1049]
+    a64::OPC::str_b_reg_x, 0x13 },  // st [1145]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_w, 0x13 },  // st [1050]
+    a64::OPC::str_b_reg_w, 0x13 },  // st [1146]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::str_b_reg_w, 0x13 },  // st [1051]
+    a64::OPC::str_b_reg_w, 0x13 },  // st [1147]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::fstr_d_reg_x, 0x13 },  // st [1052]
+    a64::OPC::fstr_d_reg_x, 0x13 },  // st [1148]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::fstr_d_reg_x, 0x13 },  // st [1053]
+    a64::OPC::fstr_d_reg_x, 0x13 },  // st [1149]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::fstr_d_reg_w, 0x13 },  // st [1054]
+    a64::OPC::fstr_d_reg_w, 0x13 },  // st [1150]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::fstr_d_reg_w, 0x13 },  // st [1055]
+    a64::OPC::fstr_d_reg_w, 0x13 },  // st [1151]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::fstr_s_reg_x, 0x13 },  // st [1056]
+    a64::OPC::fstr_s_reg_x, 0x13 },  // st [1152]
   { {+PARAM::reg0, +PARAM::reg1, +SHIFT::lsl, 0, +PARAM::reg2},
-    a64::OPC::fstr_s_reg_x, 0x13 },  // st [1057]
+    a64::OPC::fstr_s_reg_x, 0x13 },  // st [1153]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::SXTW, 0, +PARAM::reg2},
-    a64::OPC::fstr_s_reg_w, 0x13 },  // st [1058]
+    a64::OPC::fstr_s_reg_w, 0x13 },  // st [1154]
   { {+PARAM::reg0, +PARAM::reg1, +FIXARG::UXTW, 0, +PARAM::reg2},
-    a64::OPC::fstr_s_reg_w, 0x13 },  // st [1059]
+    a64::OPC::fstr_s_reg_w, 0x13 },  // st [1155]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1060]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1156]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1061]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1157]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1062]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1158]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1063]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1159]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1064]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1160]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1065]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1161]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1066]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1162]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1067]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1163]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1068]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1164]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1069]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1165]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1070]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1166]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1071]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1167]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1072]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1168]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1073]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1169]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1074]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1170]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_x_imm, 0x6 },  // st.stk [1075]
+    a64::OPC::str_x_imm, 0x6 },  // st.stk [1171]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1076]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1172]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1077]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1173]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1078]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1174]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1079]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1175]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1080]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1176]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1081]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1177]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1082]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1178]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_w_imm, 0x6 },  // st.stk [1083]
+    a64::OPC::str_w_imm, 0x6 },  // st.stk [1179]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1084]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1180]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1085]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1181]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1086]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1182]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1087]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1183]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1088]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1184]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1089]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1185]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1090]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1186]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_h_imm, 0x6 },  // st.stk [1091]
+    a64::OPC::str_h_imm, 0x6 },  // st.stk [1187]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1092]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1188]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1093]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1189]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1094]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1190]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1095]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1191]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1096]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1192]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1097]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1193]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1098]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1194]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::str_b_imm, 0x6 },  // st.stk [1099]
+    a64::OPC::str_b_imm, 0x6 },  // st.stk [1195]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1100]
+    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1196]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1101]
+    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1197]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1102]
+    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1198]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1103]
+    a64::OPC::fstr_s_imm, 0x6 },  // st.stk [1199]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1104]
+    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1200]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1105]
+    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1201]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1106]
+    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1202]
   { {+FIXARG::WZR, +PARAM::stk0_offset1, +PARAM::reg2},
-    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1107]
+    a64::OPC::fstr_d_imm, 0x6 },  // st.stk [1203]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1204]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1205]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1206]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1207]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1208]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1209]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1210]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1211]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1212]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1213]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1214]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1215]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1216]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1217]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1218]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1219]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1220]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1221]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1222]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1223]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1224]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1225]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1226]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1227]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1228]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1229]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1230]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1231]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1232]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1233]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1234]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_x_reg_w, 0x12 },  // st.stk [1235]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1236]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1237]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1238]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1239]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1240]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1241]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1242]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1243]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1244]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1245]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1246]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1247]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1248]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1249]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1250]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_w_reg_w, 0x12 },  // st.stk [1251]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1252]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1253]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1254]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1255]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1256]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1257]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1258]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1259]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1260]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1261]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1262]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1263]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1264]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1265]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1266]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_h_reg_w, 0x12 },  // st.stk [1267]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1268]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1269]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1270]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1271]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1272]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1273]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1274]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1275]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1276]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1277]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1278]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1279]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1280]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1281]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1282]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::str_b_reg_w, 0x12 },  // st.stk [1283]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1284]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_s_reg_w, 0x12 },  // st.stk [1285]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1286]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_s_reg_w, 0x12 },  // st.stk [1287]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1288]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_s_reg_w, 0x12 },  // st.stk [1289]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1290]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_s_reg_w, 0x12 },  // st.stk [1291]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1292]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_d_reg_w, 0x12 },  // st.stk [1293]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1294]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_d_reg_w, 0x12 },  // st.stk [1295]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1296]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_d_reg_w, 0x12 },  // st.stk [1297]
+  { {+PARAM::scratch_gpr, +PARAM::stk0_offset1},
+    a64::OPC::movz_x_imm, 0x3 },  // st.stk [1298]
+  { {+FIXARG::WZR, +PARAM::scratch_gpr, +FIXARG::UXTW, 0, +PARAM::reg2},
+    a64::OPC::fstr_d_reg_w, 0x12 },  // st.stk [1299]
   { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1108]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1109]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1110]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1111]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1112]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1113]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1114]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1115]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1116]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1117]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1118]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1119]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1120]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1121]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1122]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1123]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1124]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1125]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1126]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1127]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1128]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1129]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1130]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1131]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1132]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1133]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1134]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1135]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1136]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1137]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1138]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1139]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1140]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1141]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1142]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1143]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1144]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1145]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1146]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1147]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1148]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1149]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1150]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1151]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1152]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1153]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1154]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1155]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1156]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1157]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1158]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1159]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1160]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1161]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1162]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1163]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1164]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1165]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1166]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1167]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1168]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1169]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1170]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1171]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1172]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1173]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1174]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1175]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1176]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1177]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1178]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1179]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1180]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1181]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1182]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1183]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1184]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1185]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1186]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1187]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1188]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1189]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1190]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1191]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1192]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1193]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1194]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1195]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1196]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1197]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1198]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1199]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1200]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1201]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1202]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1203]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1204]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1205]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1206]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1207]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1208]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1209]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1210]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1211]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1212]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1213]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1214]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1215]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1216]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1217]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1218]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1219]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1220]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1221]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1222]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1223]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1224]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1225]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1226]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1227]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1228]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1229]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1230]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1231]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1232]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1233]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1234]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1235]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1236]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1237]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1238]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1239]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1240]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1241]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1242]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1243]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1244]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1245]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1246]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1247]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1248]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1249]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1250]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1251]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1252]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1253]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1254]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1255]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1256]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1257]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_x, 0x3 },  // cas [1258]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1259]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_x_imm, 0x3 },  // cas [1260]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1261]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_x_imm, 0x3 },  // cas [1262]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1263]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_x, 0x7 },  // cas [1264]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1265]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1266]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1267]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1268]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1269]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1270]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1271]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1272]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1273]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1274]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1275]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1276]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1277]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1278]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1279]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1280]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1281]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1282]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1283]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1284]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1285]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1286]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1287]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1288]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1289]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1290]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1291]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1292]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1293]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1294]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1295]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1296]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1297]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1298]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1299]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1300]
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1300]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1301]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1302]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1303]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1304]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1305]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1306]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1307]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1308]
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1302]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1309]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1303]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1310]
+    a64::OPC::add_x_imm, 0x3 },  // cas [1304]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1305]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1306]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1307]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1308]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1309]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1310]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1311]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1312]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1313]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1314]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1315]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1316]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1317]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1318]
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1312]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1319]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1313]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1320]
+    a64::OPC::add_x_imm, 0x3 },  // cas [1314]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1315]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1316]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1317]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1318]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1319]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1320]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1321]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1322]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1323]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1324]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1325]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1326]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1327]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1328]
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1322]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1329]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1323]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1330]
+    a64::OPC::add_x_imm, 0x3 },  // cas [1324]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1325]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1326]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1327]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1328]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1329]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1330]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1331]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1332]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1333]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1334]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1335]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1336]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1337]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_w, 0x3 },  // cas [1338]
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1332]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1339]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1333]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::adds_w_imm, 0x3 },  // cas [1340]
+    a64::OPC::add_x_imm, 0x3 },  // cas [1334]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1335]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1336]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1337]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1338]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1339]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1340]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1341]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
-    a64::OPC::add_w_imm, 0x3 },  // cas [1342]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1343]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_w, 0x7 },  // cas [1344]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1345]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1346]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1347]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1348]
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1342]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1349]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1350]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1343]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1344]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1345]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1346]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1347]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1348]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1349]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1350]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1351]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1352]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1353]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1354]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1355]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1356]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1357]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1358]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1352]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1359]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1360]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1353]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1354]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1355]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1356]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1357]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1358]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1359]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1360]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1361]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1362]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1363]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1364]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1365]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1366]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1367]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1368]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1362]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1369]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1370]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1363]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1364]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1365]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1366]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1367]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1368]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1369]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1370]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1371]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1372]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1373]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1374]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1375]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1376]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1377]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1378]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1372]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1379]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1380]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1373]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1374]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1375]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1376]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1377]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1378]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1379]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1380]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1381]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1382]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1383]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1384]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1385]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1386]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1387]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1388]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1382]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1389]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1390]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1383]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1384]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1385]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1386]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1387]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1388]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1389]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1390]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1391]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1392]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1393]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1394]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1395]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1396]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1397]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1398]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1392]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1399]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1400]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1393]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1394]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1395]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1396]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1397]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1398]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1399]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1400]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1401]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1402]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1403]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1404]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1405]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1406]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1407]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1408]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1402]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1409]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1410]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1403]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1404]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1405]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1406]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1407]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1408]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1409]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1410]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1411]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1412]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1413]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1414]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1415]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1416]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1417]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_h, 0x3 },  // cas [1418]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1412]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1419]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1420]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1413]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1414]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1415]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1416]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1417]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1418]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1419]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1420]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1421]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1422]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1423]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_h, 0x7 },  // cas [1424]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1425]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1426]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1427]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1428]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1422]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1429]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1430]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1423]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1424]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1425]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1426]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1427]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1428]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1429]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1430]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1431]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1432]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1433]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1434]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1435]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1436]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1437]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1438]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1432]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1439]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1440]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1433]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1434]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1435]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1436]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1437]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1438]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1439]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1440]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1441]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1442]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1443]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1444]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1445]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1446]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1447]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1448]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1442]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1449]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1450]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1443]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1444]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1445]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1446]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1447]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1448]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1449]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_x, 0x3 },  // cas [1450]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1451]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1452]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1453]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1454]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1455]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1456]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1457]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1458]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_x_imm, 0x3 },  // cas [1452]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1459]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1460]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1453]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_x_imm, 0x3 },  // cas [1454]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1455]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_x, 0x7 },  // cas [1456]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1457]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1458]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1459]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1460]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1461]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1462]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1463]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1464]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1465]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1466]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1467]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1468]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1462]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1469]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1470]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1463]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1464]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1465]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1466]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1467]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1468]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1469]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1470]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1471]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1472]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1473]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1474]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1475]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1476]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1477]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1478]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1472]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1479]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1480]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1473]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1474]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1475]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1476]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1477]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1478]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1479]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1480]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1481]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1482]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1483]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1484]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1485]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1486]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1487]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1488]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1482]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1489]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1490]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1483]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1484]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1485]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1486]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1487]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1488]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1489]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1490]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1491]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1492]
-  { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1493]
-  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1494]
-  { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1495]
-  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1496]
-  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1497]
-  { {+PARAM::scratch_gpr, +PARAM::reg3},
-    a64::OPC::ldaxr_b, 0x3 },  // cas [1498]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1492]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::eor_x_reg, 0x7 },  // cas [1499]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::ands_x_imm, 0x3 },  // cas [1500]
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1493]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1494]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1495]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1496]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1497]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1498]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1499]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1500]
   { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
     a64::OPC::eor_x_reg, 0x7 },  // cas [1501]
-  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
-    a64::OPC::and_x_imm, 0x3 },  // cas [1502]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1502]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1503]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1504]
   { {4},
-    a64::OPC::b_ne, 0x0 },  // cas [1503]
+    a64::OPC::b_ne, 0x0 },  // cas [1505]
   { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
-    a64::OPC::stlxr_b, 0x7 },  // cas [1504]
+    a64::OPC::stlxr_w, 0x7 },  // cas [1506]
   { {+PARAM::scratch_gpr, -7},
-    a64::OPC::cbnz_w, 0x1 },  // cas [1505]
+    a64::OPC::cbnz_w, 0x1 },  // cas [1507]
   { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1506]
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1508]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
-    a64::OPC::orr_x_reg, 0x5 },  // cas [1507]
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1509]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1510]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1511]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1512]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1513]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1514]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1515]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1516]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1517]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1518]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1519]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1520]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1521]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1522]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1523]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1524]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1525]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1526]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1527]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1528]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1529]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_w, 0x3 },  // cas [1530]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1531]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::adds_w_imm, 0x3 },  // cas [1532]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1533]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 0},
+    a64::OPC::add_w_imm, 0x3 },  // cas [1534]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1535]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_w, 0x7 },  // cas [1536]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1537]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1538]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1539]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1540]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1541]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1542]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1543]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1544]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1545]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1546]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1547]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1548]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1549]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1550]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1551]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1552]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1553]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1554]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1555]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1556]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1557]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1558]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1559]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1560]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1561]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1562]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1563]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1564]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1565]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1566]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1567]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1568]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1569]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1570]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1571]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1572]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1573]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1574]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1575]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1576]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1577]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1578]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1579]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1580]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1581]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1582]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1583]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1584]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1585]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1586]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1587]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1588]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1589]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1590]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1591]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1592]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1593]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1594]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1595]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1596]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1597]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1598]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1599]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1600]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1601]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1602]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1603]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1604]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1605]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1606]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1607]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1608]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1609]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_h, 0x3 },  // cas [1610]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1611]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1612]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1613]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 65535},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1614]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1615]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_h, 0x7 },  // cas [1616]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1617]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1618]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1619]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1620]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1621]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1622]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1623]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1624]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1625]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1626]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1627]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1628]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1629]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1630]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1631]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1632]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1633]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1634]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1635]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1636]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1637]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1638]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1639]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1640]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1641]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1642]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1643]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1644]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1645]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1646]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1647]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1648]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1649]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1650]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1651]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1652]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1653]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1654]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1655]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1656]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1657]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1658]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1659]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1660]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1661]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1662]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1663]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1664]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1665]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1666]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1667]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1668]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1669]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1670]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1671]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1672]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1673]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1674]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1675]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1676]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1677]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1678]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1679]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1680]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1681]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1682]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1683]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1684]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1685]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1686]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1687]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1688]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1689]
+  { {+PARAM::scratch_gpr, +PARAM::reg3},
+    a64::OPC::ldaxr_b, 0x3 },  // cas [1690]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1691]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::ands_x_imm, 0x3 },  // cas [1692]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::eor_x_reg, 0x7 },  // cas [1693]
+  { {+PARAM::scratch_gpr, +PARAM::scratch_gpr, 255},
+    a64::OPC::and_x_imm, 0x3 },  // cas [1694]
+  { {4},
+    a64::OPC::b_ne, 0x0 },  // cas [1695]
+  { {+PARAM::scratch_gpr, +PARAM::reg3, +PARAM::reg2},
+    a64::OPC::stlxr_b, 0x7 },  // cas [1696]
+  { {+PARAM::scratch_gpr, -7},
+    a64::OPC::cbnz_w, 0x1 },  // cas [1697]
+  { {+PARAM::scratch_gpr, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1698]
+  { {+PARAM::reg0, +FIXARG::WZR, +PARAM::scratch_gpr, +SHIFT::lsl, 0},
+    a64::OPC::orr_x_reg, 0x5 },  // cas [1699]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintp_s, 0x3 },  // ceil [1508]
+    a64::OPC::frintp_s, 0x3 },  // ceil [1700]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintp_d, 0x3 },  // ceil [1509]
+    a64::OPC::frintp_d, 0x3 },  // ceil [1701]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintm_s, 0x3 },  // floor [1510]
+    a64::OPC::frintm_s, 0x3 },  // floor [1702]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintm_d, 0x3 },  // floor [1511]
+    a64::OPC::frintm_d, 0x3 },  // floor [1703]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frinta_s, 0x3 },  // round [1512]
+    a64::OPC::frinta_s, 0x3 },  // round [1704]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frinta_d, 0x3 },  // round [1513]
+    a64::OPC::frinta_d, 0x3 },  // round [1705]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintz_s, 0x3 },  // trunc [1514]
+    a64::OPC::frintz_s, 0x3 },  // trunc [1706]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::frintz_d, 0x3 },  // trunc [1515]
+    a64::OPC::frintz_d, 0x3 },  // trunc [1707]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fabs_s, 0x3 },  // copysign [1516]
+    a64::OPC::fabs_s, 0x3 },  // copysign [1708]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fabs_d, 0x3 },  // copysign [1517]
+    a64::OPC::fabs_d, 0x3 },  // copysign [1709]
   { {+PARAM::scratch_gpr, +PARAM::reg2},
-    a64::OPC::fmov_w_from_s, 0x3 },  // copysign [1518]
+    a64::OPC::fmov_w_from_s, 0x3 },  // copysign [1710]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fabs_s, 0x3 },  // copysign [1519]
+    a64::OPC::fabs_s, 0x3 },  // copysign [1711]
   { {+PARAM::scratch_gpr, 31, 2},
-    a64::OPC::tbz, 0x1 },  // copysign [1520]
+    a64::OPC::tbz, 0x1 },  // copysign [1712]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::fneg_s, 0x3 },  // copysign [1521]
+    a64::OPC::fneg_s, 0x3 },  // copysign [1713]
   { {+PARAM::scratch_gpr, +PARAM::reg2},
-    a64::OPC::fmov_x_from_d, 0x3 },  // copysign [1522]
+    a64::OPC::fmov_x_from_d, 0x3 },  // copysign [1714]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fabs_d, 0x3 },  // copysign [1523]
+    a64::OPC::fabs_d, 0x3 },  // copysign [1715]
   { {+PARAM::scratch_gpr, 63, 0},
-    a64::OPC::tbz, 0x1 },  // copysign [1524]
+    a64::OPC::tbz, 0x1 },  // copysign [1716]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::fneg_d, 0x3 },  // copysign [1525]
+    a64::OPC::fneg_d, 0x3 },  // copysign [1717]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fsqrt_s, 0x3 },  // sqrt [1526]
+    a64::OPC::fsqrt_s, 0x3 },  // sqrt [1718]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::fsqrt_d, 0x3 },  // sqrt [1527]
+    a64::OPC::fsqrt_d, 0x3 },  // sqrt [1719]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::clz_w, 0x3 },  // cntlz [1528]
+    a64::OPC::clz_w, 0x3 },  // cntlz [1720]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::clz_w, 0x3 },  // cntlz [1529]
+    a64::OPC::clz_w, 0x3 },  // cntlz [1721]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::clz_x, 0x3 },  // cntlz [1530]
+    a64::OPC::clz_x, 0x3 },  // cntlz [1722]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::clz_x, 0x3 },  // cntlz [1531]
+    a64::OPC::clz_x, 0x3 },  // cntlz [1723]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::rbit_w, 0x3 },  // cnttz [1532]
+    a64::OPC::rbit_w, 0x3 },  // cnttz [1724]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::clz_w, 0x3 },  // cnttz [1533]
+    a64::OPC::clz_w, 0x3 },  // cnttz [1725]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::rbit_w, 0x3 },  // cnttz [1534]
+    a64::OPC::rbit_w, 0x3 },  // cnttz [1726]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::clz_w, 0x3 },  // cnttz [1535]
+    a64::OPC::clz_w, 0x3 },  // cnttz [1727]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::rbit_x, 0x3 },  // cnttz [1536]
+    a64::OPC::rbit_x, 0x3 },  // cnttz [1728]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::clz_x, 0x3 },  // cnttz [1537]
+    a64::OPC::clz_x, 0x3 },  // cnttz [1729]
   { {+PARAM::reg0, +PARAM::reg1},
-    a64::OPC::rbit_x, 0x3 },  // cnttz [1538]
+    a64::OPC::rbit_x, 0x3 },  // cnttz [1730]
   { {+PARAM::reg0, +PARAM::reg0},
-    a64::OPC::clz_x, 0x3 },  // cnttz [1539]
+    a64::OPC::clz_x, 0x3 },  // cnttz [1731]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_w_reg, 0x5 },  // cntpop [1540]
+    a64::OPC::orr_w_reg, 0x5 },  // cntpop [1732]
   { {+PARAM::scratch_flt, +PARAM::reg0},
-    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1541]
+    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1733]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::cnt_8b, 0x3 },  // cntpop [1542]
+    a64::OPC::cnt_8b, 0x3 },  // cntpop [1734]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1543]
+    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1735]
   { {+PARAM::reg0, +PARAM::scratch_flt},
-    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1544]
+    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1736]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg1, +SHIFT::lsl, 0},
-    a64::OPC::orr_w_reg, 0x5 },  // cntpop [1545]
+    a64::OPC::orr_w_reg, 0x5 },  // cntpop [1737]
   { {+PARAM::scratch_flt, +PARAM::reg0},
-    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1546]
+    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1738]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::cnt_8b, 0x3 },  // cntpop [1547]
+    a64::OPC::cnt_8b, 0x3 },  // cntpop [1739]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1548]
+    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1740]
   { {+PARAM::reg0, +PARAM::scratch_flt},
-    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1549]
+    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1741]
   { {+PARAM::scratch_flt, +PARAM::reg1},
-    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1550]
+    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1742]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::cnt_8b, 0x3 },  // cntpop [1551]
+    a64::OPC::cnt_8b, 0x3 },  // cntpop [1743]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1552]
+    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1744]
   { {+PARAM::reg0, +PARAM::scratch_flt},
-    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1553]
+    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1745]
   { {+PARAM::scratch_flt, +PARAM::reg1},
-    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1554]
+    a64::OPC::fmov_d_from_x, 0x3 },  // cntpop [1746]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::cnt_8b, 0x3 },  // cntpop [1555]
+    a64::OPC::cnt_8b, 0x3 },  // cntpop [1747]
   { {+PARAM::scratch_flt, +PARAM::scratch_flt},
-    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1556]
+    a64::OPC::uaddlv_8b, 0x3 },  // cntpop [1748]
   { {+PARAM::reg0, +PARAM::scratch_flt},
-    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1557]
+    a64::OPC::fmov_w_from_s, 0x3 },  // cntpop [1749]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1558]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1750]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1559]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1751]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1560]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1752]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1561]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1753]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1562]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1754]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1563]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1755]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1564]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1756]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1565]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1757]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1566]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1758]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1567]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1759]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1568]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1760]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1569]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1761]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1570]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1762]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1571]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1763]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1572]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1764]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1573]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1765]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1574]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1766]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1575]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1767]
   { {+PARAM::reg0, +PARAM::frame_size},
-    a64::OPC::movz_x_imm, 0x3 },  // getfp [1576]
+    a64::OPC::movz_x_imm, 0x3 },  // getfp [1768]
   { {+PARAM::reg0, +FIXARG::WZR, +PARAM::reg0, 0},
-    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1577]
+    a64::OPC::add_x_reg_uxtx, 0x5 },  // getfp [1769]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1578]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1770]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1579]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1771]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1580]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1772]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1581]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1773]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1582]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1774]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1583]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1775]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1584]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1776]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1585]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1777]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1586]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1778]
   { {+PARAM::reg0, +FIXARG::WZR, 0},
-    a64::OPC::add_x_imm, 0x1 },  // getsp [1587]
+    a64::OPC::add_x_imm, 0x1 },  // getsp [1779]
 };
 
 const uint16_t kPatternJumper[256] = {
- 0 /* --- */,  0 /* .mem */,  0 /* .data */,  0 /* .addr.fun */, 
- 0 /* .addr.mem */,  0 /* .fun */,  0 /* .bbl */,  0 /* .reg */, 
- 0 /* .stk */,  0 /* .jtb */,  0 /* --- */,  0 /* --- */, 
- 0 /* --- */,  0 /* --- */,  0 /* --- */,  0 /* --- */, 
- 0 /* add */,  10 /* sub */,  24 /* mul */,  30 /* div */, 
- 36 /* --- */,  36 /* --- */,  36 /* --- */,  36 /* --- */, 
- 36 /* xor */,  44 /* and */,  52 /* or */,  60 /* shl */, 
- 68 /* shr */,  76 /* rem */,  76 /* clmul */,  76 /* --- */, 
- 76 /* beq */,  92 /* bne */,  108 /* blt */,  130 /* ble */, 
- 152 /* --- */,  152 /* --- */,  152 /* --- */,  152 /* --- */, 
- 152 /* switch */,  153 /* bra */,  154 /* ret */,  154 /* bsr */, 
- 155 /* jsr */,  156 /* syscall */,  157 /* trap */,  158 /* --- */, 
- 158 /* pusharg */,  158 /* poparg */,  158 /* conv */,  236 /* bitcast */, 
- 264 /* mov */,  316 /* cmpeq */,  464 /* cmplt */,  510 /* --- */, 
- 510 /* lea */,  518 /* lea.mem */,  522 /* lea.stk */,  534 /* lea.fun */, 
- 535 /* --- */,  535 /* --- */,  535 /* --- */,  535 /* --- */, 
- 535 /* ld */,  631 /* ld.mem */,  631 /* ld.stk */,  679 /* --- */, 
- 679 /* st */,  727 /* st.mem */,  727 /* st.stk */,  775 /* --- */, 
- 775 /* cas */,  815 /* cas.mem */,  815 /* cas.stk */,  815 /* --- */, 
- 815 /* --- */,  815 /* --- */,  815 /* --- */,  815 /* --- */, 
- 815 /* ceil */,  817 /* floor */,  819 /* round */,  821 /* trunc */, 
- 823 /* copysign */,  827 /* sqrt */,  829 /* --- */,  829 /* --- */, 
- 829 /* sin */,  829 /* cos */,  829 /* tan */,  829 /* asin */, 
- 829 /* acos */,  829 /* atan */,  829 /* exp */,  829 /* log */, 
- 829 /* cntlz */,  833 /* cnttz */,  837 /* cntpop */,  841 /* --- */, 
- 841 /* --- */,  841 /* --- */,  841 /* --- */,  841 /* --- */, 
- 841 /* --- */,  841 /* --- */,  841 /* --- */,  841 /* --- */, 
- 841 /* --- */,  841 /* --- */,  841 /* --- */,  841 /* --- */, 
- 841 /* nop */,  841 /* nop1 */,  841 /* --- */,  841 /* --- */, 
- 841 /* --- */,  841 /* --- */,  841 /* --- */,  841 /* line */, 
- 841 /* inline */,  841 /* getfp */,  851 /* getsp */,  861 /* gettp */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* bcopy */,  861 /* --- */,  861 /* bzero */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
- 861 /* --- */,  861 /* --- */,  861 /* --- */,  861 /* --- */, 
+ 0 /* --- */,  0 /* .mem */,  0 /* .data */,  0 /* .addr.fun */,
+ 0 /* .addr.mem */,  0 /* .fun */,  0 /* .bbl */,  0 /* .reg */,
+ 0 /* .stk */,  0 /* .jtb */,  0 /* --- */,  0 /* --- */,
+ 0 /* --- */,  0 /* --- */,  0 /* --- */,  0 /* --- */,
+ 0 /* add */,  10 /* sub */,  24 /* mul */,  30 /* div */,
+ 36 /* --- */,  36 /* --- */,  36 /* --- */,  36 /* --- */,
+ 36 /* xor */,  44 /* and */,  52 /* or */,  60 /* shl */,
+ 68 /* shr */,  76 /* rem */,  76 /* clmul */,  76 /* --- */,
+ 76 /* beq */,  92 /* bne */,  108 /* blt */,  130 /* ble */,
+ 152 /* --- */,  152 /* --- */,  152 /* --- */,  152 /* --- */,
+ 152 /* switch */,  153 /* bra */,  154 /* ret */,  154 /* bsr */,
+ 155 /* jsr */,  156 /* syscall */,  157 /* trap */,  158 /* --- */,
+ 158 /* pusharg */,  158 /* poparg */,  158 /* conv */,  236 /* bitcast */,
+ 264 /* mov */,  316 /* cmpeq */,  464 /* cmplt */,  510 /* --- */,
+ 510 /* lea */,  518 /* lea.mem */,  522 /* lea.stk */,  534 /* lea.fun */,
+ 535 /* --- */,  535 /* --- */,  535 /* --- */,  535 /* --- */,
+ 535 /* ld */,  631 /* ld.mem */,  631 /* ld.stk */,  727 /* --- */,
+ 727 /* st */,  775 /* st.mem */,  775 /* st.stk */,  871 /* --- */,
+ 871 /* cas */,  911 /* cas.mem */,  911 /* cas.stk */,  911 /* --- */,
+ 911 /* --- */,  911 /* --- */,  911 /* --- */,  911 /* --- */,
+ 911 /* ceil */,  913 /* floor */,  915 /* round */,  917 /* trunc */,
+ 919 /* copysign */,  923 /* sqrt */,  925 /* --- */,  925 /* --- */,
+ 925 /* sin */,  925 /* cos */,  925 /* tan */,  925 /* asin */,
+ 925 /* acos */,  925 /* atan */,  925 /* exp */,  925 /* log */,
+ 925 /* cntlz */,  929 /* cnttz */,  933 /* cntpop */,  937 /* --- */,
+ 937 /* --- */,  937 /* --- */,  937 /* --- */,  937 /* --- */,
+ 937 /* --- */,  937 /* --- */,  937 /* --- */,  937 /* --- */,
+ 937 /* --- */,  937 /* --- */,  937 /* --- */,  937 /* --- */,
+ 937 /* nop */,  937 /* nop1 */,  937 /* --- */,  937 /* --- */,
+ 937 /* --- */,  937 /* --- */,  937 /* --- */,  937 /* line */,
+ 937 /* inline */,  937 /* getfp */,  947 /* getsp */,  957 /* gettp */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* bcopy */,  957 /* --- */,  957 /* bzero */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
+ 957 /* --- */,  957 /* --- */,  957 /* --- */,  957 /* --- */,
 };
 
 const Pattern kPatterns[] = {
@@ -5437,552 +5821,840 @@ const Pattern kPatterns[] = {
   { {DK::F64, DK::INVALID, DK::U32},
     {IC::INVALID, IC::INVALID, IC::pos_stk_combo_10_21_times_8},
     &kInsTemplates[1010], 1 },  // ld.stk [678]
+  { {DK::U64, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1011], 2 },  // ld.stk [679]
+  { {DK::U64, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1013], 2 },  // ld.stk [680]
+  { {DK::U64, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1015], 2 },  // ld.stk [681]
+  { {DK::U64, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1017], 2 },  // ld.stk [682]
+  { {DK::S64, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1019], 2 },  // ld.stk [683]
+  { {DK::S64, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1021], 2 },  // ld.stk [684]
+  { {DK::S64, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1023], 2 },  // ld.stk [685]
+  { {DK::S64, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1025], 2 },  // ld.stk [686]
+  { {DK::A64, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1027], 2 },  // ld.stk [687]
+  { {DK::A64, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1029], 2 },  // ld.stk [688]
+  { {DK::A64, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1031], 2 },  // ld.stk [689]
+  { {DK::A64, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1033], 2 },  // ld.stk [690]
+  { {DK::C64, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1035], 2 },  // ld.stk [691]
+  { {DK::C64, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1037], 2 },  // ld.stk [692]
+  { {DK::C64, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1039], 2 },  // ld.stk [693]
+  { {DK::C64, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1041], 2 },  // ld.stk [694]
+  { {DK::U32, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1043], 2 },  // ld.stk [695]
+  { {DK::U32, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1045], 2 },  // ld.stk [696]
+  { {DK::U32, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1047], 2 },  // ld.stk [697]
+  { {DK::U32, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1049], 2 },  // ld.stk [698]
+  { {DK::S32, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1051], 2 },  // ld.stk [699]
+  { {DK::S32, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1053], 2 },  // ld.stk [700]
+  { {DK::S32, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1055], 2 },  // ld.stk [701]
+  { {DK::S32, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1057], 2 },  // ld.stk [702]
+  { {DK::U16, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1059], 2 },  // ld.stk [703]
+  { {DK::U16, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1061], 2 },  // ld.stk [704]
+  { {DK::U16, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1063], 2 },  // ld.stk [705]
+  { {DK::U16, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1065], 2 },  // ld.stk [706]
+  { {DK::S16, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1067], 2 },  // ld.stk [707]
+  { {DK::S16, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1069], 2 },  // ld.stk [708]
+  { {DK::S16, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1071], 2 },  // ld.stk [709]
+  { {DK::S16, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1073], 2 },  // ld.stk [710]
+  { {DK::U8, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1075], 2 },  // ld.stk [711]
+  { {DK::U8, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1077], 2 },  // ld.stk [712]
+  { {DK::U8, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1079], 2 },  // ld.stk [713]
+  { {DK::U8, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1081], 2 },  // ld.stk [714]
+  { {DK::S8, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1083], 2 },  // ld.stk [715]
+  { {DK::S8, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1085], 2 },  // ld.stk [716]
+  { {DK::S8, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1087], 2 },  // ld.stk [717]
+  { {DK::S8, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1089], 2 },  // ld.stk [718]
+  { {DK::F32, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1091], 2 },  // ld.stk [719]
+  { {DK::F32, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1093], 2 },  // ld.stk [720]
+  { {DK::F32, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1095], 2 },  // ld.stk [721]
+  { {DK::F32, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1097], 2 },  // ld.stk [722]
+  { {DK::F64, DK::INVALID, DK::S64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1099], 2 },  // ld.stk [723]
+  { {DK::F64, DK::INVALID, DK::U64},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1101], 2 },  // ld.stk [724]
+  { {DK::F64, DK::INVALID, DK::S32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1103], 2 },  // ld.stk [725]
+  { {DK::F64, DK::INVALID, DK::U32},
+    {IC::INVALID, IC::INVALID, IC::pos_stk_combo_16_bits},
+    &kInsTemplates[1105], 2 },  // ld.stk [726]
   { {DK::A64, DK::S64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1011], 1 },  // st [679]
+    &kInsTemplates[1107], 1 },  // st [727]
   { {DK::A64, DK::U64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1012], 1 },  // st [680]
+    &kInsTemplates[1108], 1 },  // st [728]
   { {DK::A64, DK::S32, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1013], 1 },  // st [681]
+    &kInsTemplates[1109], 1 },  // st [729]
   { {DK::A64, DK::U32, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1014], 1 },  // st [682]
+    &kInsTemplates[1110], 1 },  // st [730]
   { {DK::A64, DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1015], 1 },  // st [683]
+    &kInsTemplates[1111], 1 },  // st [731]
   { {DK::A64, DK::U64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1016], 1 },  // st [684]
+    &kInsTemplates[1112], 1 },  // st [732]
   { {DK::A64, DK::S32, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1017], 1 },  // st [685]
+    &kInsTemplates[1113], 1 },  // st [733]
   { {DK::A64, DK::U32, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1018], 1 },  // st [686]
+    &kInsTemplates[1114], 1 },  // st [734]
   { {DK::A64, DK::S64, DK::A64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1019], 1 },  // st [687]
+    &kInsTemplates[1115], 1 },  // st [735]
   { {DK::A64, DK::U64, DK::A64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1020], 1 },  // st [688]
+    &kInsTemplates[1116], 1 },  // st [736]
   { {DK::A64, DK::S32, DK::A64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1021], 1 },  // st [689]
+    &kInsTemplates[1117], 1 },  // st [737]
   { {DK::A64, DK::U32, DK::A64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1022], 1 },  // st [690]
+    &kInsTemplates[1118], 1 },  // st [738]
   { {DK::A64, DK::S64, DK::C64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1023], 1 },  // st [691]
+    &kInsTemplates[1119], 1 },  // st [739]
   { {DK::A64, DK::U64, DK::C64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1024], 1 },  // st [692]
+    &kInsTemplates[1120], 1 },  // st [740]
   { {DK::A64, DK::S32, DK::C64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1025], 1 },  // st [693]
+    &kInsTemplates[1121], 1 },  // st [741]
   { {DK::A64, DK::U32, DK::C64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1026], 1 },  // st [694]
+    &kInsTemplates[1122], 1 },  // st [742]
   { {DK::A64, DK::S64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1027], 1 },  // st [695]
+    &kInsTemplates[1123], 1 },  // st [743]
   { {DK::A64, DK::U64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1028], 1 },  // st [696]
+    &kInsTemplates[1124], 1 },  // st [744]
   { {DK::A64, DK::S32, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1029], 1 },  // st [697]
+    &kInsTemplates[1125], 1 },  // st [745]
   { {DK::A64, DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1030], 1 },  // st [698]
+    &kInsTemplates[1126], 1 },  // st [746]
   { {DK::A64, DK::S64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1031], 1 },  // st [699]
+    &kInsTemplates[1127], 1 },  // st [747]
   { {DK::A64, DK::U64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1032], 1 },  // st [700]
+    &kInsTemplates[1128], 1 },  // st [748]
   { {DK::A64, DK::S32, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1033], 1 },  // st [701]
+    &kInsTemplates[1129], 1 },  // st [749]
   { {DK::A64, DK::U32, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1034], 1 },  // st [702]
+    &kInsTemplates[1130], 1 },  // st [750]
   { {DK::A64, DK::S64, DK::U16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1035], 1 },  // st [703]
+    &kInsTemplates[1131], 1 },  // st [751]
   { {DK::A64, DK::U64, DK::U16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1036], 1 },  // st [704]
+    &kInsTemplates[1132], 1 },  // st [752]
   { {DK::A64, DK::S32, DK::U16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1037], 1 },  // st [705]
+    &kInsTemplates[1133], 1 },  // st [753]
   { {DK::A64, DK::U32, DK::U16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1038], 1 },  // st [706]
+    &kInsTemplates[1134], 1 },  // st [754]
   { {DK::A64, DK::S64, DK::S16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1039], 1 },  // st [707]
+    &kInsTemplates[1135], 1 },  // st [755]
   { {DK::A64, DK::U64, DK::S16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1040], 1 },  // st [708]
+    &kInsTemplates[1136], 1 },  // st [756]
   { {DK::A64, DK::S32, DK::S16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1041], 1 },  // st [709]
+    &kInsTemplates[1137], 1 },  // st [757]
   { {DK::A64, DK::U32, DK::S16},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1042], 1 },  // st [710]
+    &kInsTemplates[1138], 1 },  // st [758]
   { {DK::A64, DK::S64, DK::U8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1043], 1 },  // st [711]
+    &kInsTemplates[1139], 1 },  // st [759]
   { {DK::A64, DK::U64, DK::U8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1044], 1 },  // st [712]
+    &kInsTemplates[1140], 1 },  // st [760]
   { {DK::A64, DK::S32, DK::U8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1045], 1 },  // st [713]
+    &kInsTemplates[1141], 1 },  // st [761]
   { {DK::A64, DK::U32, DK::U8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1046], 1 },  // st [714]
+    &kInsTemplates[1142], 1 },  // st [762]
   { {DK::A64, DK::S64, DK::S8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1047], 1 },  // st [715]
+    &kInsTemplates[1143], 1 },  // st [763]
   { {DK::A64, DK::U64, DK::S8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1048], 1 },  // st [716]
+    &kInsTemplates[1144], 1 },  // st [764]
   { {DK::A64, DK::S32, DK::S8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1049], 1 },  // st [717]
+    &kInsTemplates[1145], 1 },  // st [765]
   { {DK::A64, DK::U32, DK::S8},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1050], 1 },  // st [718]
+    &kInsTemplates[1146], 1 },  // st [766]
   { {DK::A64, DK::S64, DK::F64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1051], 1 },  // st [719]
+    &kInsTemplates[1147], 1 },  // st [767]
   { {DK::A64, DK::U64, DK::F64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1052], 1 },  // st [720]
+    &kInsTemplates[1148], 1 },  // st [768]
   { {DK::A64, DK::S32, DK::F64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1053], 1 },  // st [721]
+    &kInsTemplates[1149], 1 },  // st [769]
   { {DK::A64, DK::U32, DK::F64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1054], 1 },  // st [722]
+    &kInsTemplates[1150], 1 },  // st [770]
   { {DK::A64, DK::S64, DK::F32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1055], 1 },  // st [723]
+    &kInsTemplates[1151], 1 },  // st [771]
   { {DK::A64, DK::U64, DK::F32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1056], 1 },  // st [724]
+    &kInsTemplates[1152], 1 },  // st [772]
   { {DK::A64, DK::S32, DK::F32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1057], 1 },  // st [725]
+    &kInsTemplates[1153], 1 },  // st [773]
   { {DK::A64, DK::U32, DK::F32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1058], 1 },  // st [726]
+    &kInsTemplates[1154], 1 },  // st [774]
   { {DK::INVALID, DK::S64, DK::U64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1059], 1 },  // st.stk [727]
+    &kInsTemplates[1155], 1 },  // st.stk [775]
   { {DK::INVALID, DK::U64, DK::U64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1060], 1 },  // st.stk [728]
+    &kInsTemplates[1156], 1 },  // st.stk [776]
   { {DK::INVALID, DK::S32, DK::U64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1061], 1 },  // st.stk [729]
+    &kInsTemplates[1157], 1 },  // st.stk [777]
   { {DK::INVALID, DK::U32, DK::U64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1062], 1 },  // st.stk [730]
+    &kInsTemplates[1158], 1 },  // st.stk [778]
   { {DK::INVALID, DK::S64, DK::S64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1063], 1 },  // st.stk [731]
+    &kInsTemplates[1159], 1 },  // st.stk [779]
   { {DK::INVALID, DK::U64, DK::S64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1064], 1 },  // st.stk [732]
+    &kInsTemplates[1160], 1 },  // st.stk [780]
   { {DK::INVALID, DK::S32, DK::S64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1065], 1 },  // st.stk [733]
+    &kInsTemplates[1161], 1 },  // st.stk [781]
   { {DK::INVALID, DK::U32, DK::S64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1066], 1 },  // st.stk [734]
+    &kInsTemplates[1162], 1 },  // st.stk [782]
   { {DK::INVALID, DK::S64, DK::A64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1067], 1 },  // st.stk [735]
+    &kInsTemplates[1163], 1 },  // st.stk [783]
   { {DK::INVALID, DK::U64, DK::A64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1068], 1 },  // st.stk [736]
+    &kInsTemplates[1164], 1 },  // st.stk [784]
   { {DK::INVALID, DK::S32, DK::A64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1069], 1 },  // st.stk [737]
+    &kInsTemplates[1165], 1 },  // st.stk [785]
   { {DK::INVALID, DK::U32, DK::A64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1070], 1 },  // st.stk [738]
+    &kInsTemplates[1166], 1 },  // st.stk [786]
   { {DK::INVALID, DK::S64, DK::C64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1071], 1 },  // st.stk [739]
+    &kInsTemplates[1167], 1 },  // st.stk [787]
   { {DK::INVALID, DK::U64, DK::C64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1072], 1 },  // st.stk [740]
+    &kInsTemplates[1168], 1 },  // st.stk [788]
   { {DK::INVALID, DK::S32, DK::C64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1073], 1 },  // st.stk [741]
+    &kInsTemplates[1169], 1 },  // st.stk [789]
   { {DK::INVALID, DK::U32, DK::C64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1074], 1 },  // st.stk [742]
+    &kInsTemplates[1170], 1 },  // st.stk [790]
   { {DK::INVALID, DK::S64, DK::U32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1075], 1 },  // st.stk [743]
+    &kInsTemplates[1171], 1 },  // st.stk [791]
   { {DK::INVALID, DK::U64, DK::U32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1076], 1 },  // st.stk [744]
+    &kInsTemplates[1172], 1 },  // st.stk [792]
   { {DK::INVALID, DK::S32, DK::U32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1077], 1 },  // st.stk [745]
+    &kInsTemplates[1173], 1 },  // st.stk [793]
   { {DK::INVALID, DK::U32, DK::U32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1078], 1 },  // st.stk [746]
+    &kInsTemplates[1174], 1 },  // st.stk [794]
   { {DK::INVALID, DK::S64, DK::S32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1079], 1 },  // st.stk [747]
+    &kInsTemplates[1175], 1 },  // st.stk [795]
   { {DK::INVALID, DK::U64, DK::S32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1080], 1 },  // st.stk [748]
+    &kInsTemplates[1176], 1 },  // st.stk [796]
   { {DK::INVALID, DK::S32, DK::S32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1081], 1 },  // st.stk [749]
+    &kInsTemplates[1177], 1 },  // st.stk [797]
   { {DK::INVALID, DK::U32, DK::S32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1082], 1 },  // st.stk [750]
+    &kInsTemplates[1178], 1 },  // st.stk [798]
   { {DK::INVALID, DK::S64, DK::U16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1083], 1 },  // st.stk [751]
+    &kInsTemplates[1179], 1 },  // st.stk [799]
   { {DK::INVALID, DK::U64, DK::U16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1084], 1 },  // st.stk [752]
+    &kInsTemplates[1180], 1 },  // st.stk [800]
   { {DK::INVALID, DK::S32, DK::U16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1085], 1 },  // st.stk [753]
+    &kInsTemplates[1181], 1 },  // st.stk [801]
   { {DK::INVALID, DK::U32, DK::U16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1086], 1 },  // st.stk [754]
+    &kInsTemplates[1182], 1 },  // st.stk [802]
   { {DK::INVALID, DK::S64, DK::S16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1087], 1 },  // st.stk [755]
+    &kInsTemplates[1183], 1 },  // st.stk [803]
   { {DK::INVALID, DK::U64, DK::S16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1088], 1 },  // st.stk [756]
+    &kInsTemplates[1184], 1 },  // st.stk [804]
   { {DK::INVALID, DK::S32, DK::S16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1089], 1 },  // st.stk [757]
+    &kInsTemplates[1185], 1 },  // st.stk [805]
   { {DK::INVALID, DK::U32, DK::S16},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_2, IC::INVALID},
-    &kInsTemplates[1090], 1 },  // st.stk [758]
+    &kInsTemplates[1186], 1 },  // st.stk [806]
   { {DK::INVALID, DK::S64, DK::U8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1091], 1 },  // st.stk [759]
+    &kInsTemplates[1187], 1 },  // st.stk [807]
   { {DK::INVALID, DK::U64, DK::U8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1092], 1 },  // st.stk [760]
+    &kInsTemplates[1188], 1 },  // st.stk [808]
   { {DK::INVALID, DK::S32, DK::U8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1093], 1 },  // st.stk [761]
+    &kInsTemplates[1189], 1 },  // st.stk [809]
   { {DK::INVALID, DK::U32, DK::U8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1094], 1 },  // st.stk [762]
+    &kInsTemplates[1190], 1 },  // st.stk [810]
   { {DK::INVALID, DK::S64, DK::S8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1095], 1 },  // st.stk [763]
+    &kInsTemplates[1191], 1 },  // st.stk [811]
   { {DK::INVALID, DK::U64, DK::S8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1096], 1 },  // st.stk [764]
+    &kInsTemplates[1192], 1 },  // st.stk [812]
   { {DK::INVALID, DK::S32, DK::S8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1097], 1 },  // st.stk [765]
+    &kInsTemplates[1193], 1 },  // st.stk [813]
   { {DK::INVALID, DK::U32, DK::S8},
     {IC::INVALID, IC::pos_stk_combo_10_21, IC::INVALID},
-    &kInsTemplates[1098], 1 },  // st.stk [766]
+    &kInsTemplates[1194], 1 },  // st.stk [814]
   { {DK::INVALID, DK::S64, DK::F32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1099], 1 },  // st.stk [767]
+    &kInsTemplates[1195], 1 },  // st.stk [815]
   { {DK::INVALID, DK::U64, DK::F32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1100], 1 },  // st.stk [768]
+    &kInsTemplates[1196], 1 },  // st.stk [816]
   { {DK::INVALID, DK::S32, DK::F32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1101], 1 },  // st.stk [769]
+    &kInsTemplates[1197], 1 },  // st.stk [817]
   { {DK::INVALID, DK::U32, DK::F32},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_4, IC::INVALID},
-    &kInsTemplates[1102], 1 },  // st.stk [770]
+    &kInsTemplates[1198], 1 },  // st.stk [818]
   { {DK::INVALID, DK::S64, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1103], 1 },  // st.stk [771]
+    &kInsTemplates[1199], 1 },  // st.stk [819]
   { {DK::INVALID, DK::U64, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1104], 1 },  // st.stk [772]
+    &kInsTemplates[1200], 1 },  // st.stk [820]
   { {DK::INVALID, DK::S32, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1105], 1 },  // st.stk [773]
+    &kInsTemplates[1201], 1 },  // st.stk [821]
   { {DK::INVALID, DK::U32, DK::F64},
     {IC::INVALID, IC::pos_stk_combo_10_21_times_8, IC::INVALID},
-    &kInsTemplates[1106], 1 },  // st.stk [774]
+    &kInsTemplates[1202], 1 },  // st.stk [822]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1203], 2 },  // st.stk [823]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1205], 2 },  // st.stk [824]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1207], 2 },  // st.stk [825]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1209], 2 },  // st.stk [826]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1211], 2 },  // st.stk [827]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1213], 2 },  // st.stk [828]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1215], 2 },  // st.stk [829]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1217], 2 },  // st.stk [830]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1219], 2 },  // st.stk [831]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1221], 2 },  // st.stk [832]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1223], 2 },  // st.stk [833]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1225], 2 },  // st.stk [834]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1227], 2 },  // st.stk [835]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1229], 2 },  // st.stk [836]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1231], 2 },  // st.stk [837]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1233], 2 },  // st.stk [838]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1235], 2 },  // st.stk [839]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1237], 2 },  // st.stk [840]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1239], 2 },  // st.stk [841]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1241], 2 },  // st.stk [842]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1243], 2 },  // st.stk [843]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1245], 2 },  // st.stk [844]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1247], 2 },  // st.stk [845]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1249], 2 },  // st.stk [846]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1251], 2 },  // st.stk [847]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1253], 2 },  // st.stk [848]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1255], 2 },  // st.stk [849]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1257], 2 },  // st.stk [850]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1259], 2 },  // st.stk [851]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1261], 2 },  // st.stk [852]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1263], 2 },  // st.stk [853]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1265], 2 },  // st.stk [854]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1267], 2 },  // st.stk [855]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1269], 2 },  // st.stk [856]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1271], 2 },  // st.stk [857]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1273], 2 },  // st.stk [858]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1275], 2 },  // st.stk [859]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1277], 2 },  // st.stk [860]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1279], 2 },  // st.stk [861]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1281], 2 },  // st.stk [862]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1283], 2 },  // st.stk [863]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1285], 2 },  // st.stk [864]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1287], 2 },  // st.stk [865]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1289], 2 },  // st.stk [866]
+  { {DK::INVALID, DK::S64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1291], 2 },  // st.stk [867]
+  { {DK::INVALID, DK::U64, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1293], 2 },  // st.stk [868]
+  { {DK::INVALID, DK::S32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1295], 2 },  // st.stk [869]
+  { {DK::INVALID, DK::U32, DK::F64},
+    {IC::INVALID, IC::pos_stk_combo_16_bits, IC::INVALID},
+    &kInsTemplates[1297], 2 },  // st.stk [870]
   { {DK::U64, DK::U64, DK::U64, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1107], 10 },  // cas [775]
+    &kInsTemplates[1299], 10 },  // cas [871]
   { {DK::U64, DK::U64, DK::U64, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1117], 10 },  // cas [776]
+    &kInsTemplates[1309], 10 },  // cas [872]
   { {DK::U64, DK::U64, DK::U64, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1127], 10 },  // cas [777]
+    &kInsTemplates[1319], 10 },  // cas [873]
   { {DK::U64, DK::U64, DK::U64, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1137], 10 },  // cas [778]
+    &kInsTemplates[1329], 10 },  // cas [874]
   { {DK::S64, DK::S64, DK::S64, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1147], 10 },  // cas [779]
+    &kInsTemplates[1339], 10 },  // cas [875]
   { {DK::S64, DK::S64, DK::S64, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1157], 10 },  // cas [780]
+    &kInsTemplates[1349], 10 },  // cas [876]
   { {DK::S64, DK::S64, DK::S64, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1167], 10 },  // cas [781]
+    &kInsTemplates[1359], 10 },  // cas [877]
   { {DK::S64, DK::S64, DK::S64, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1177], 10 },  // cas [782]
+    &kInsTemplates[1369], 10 },  // cas [878]
   { {DK::A64, DK::A64, DK::A64, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1187], 10 },  // cas [783]
+    &kInsTemplates[1379], 10 },  // cas [879]
   { {DK::A64, DK::A64, DK::A64, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1197], 10 },  // cas [784]
+    &kInsTemplates[1389], 10 },  // cas [880]
   { {DK::A64, DK::A64, DK::A64, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1207], 10 },  // cas [785]
+    &kInsTemplates[1399], 10 },  // cas [881]
   { {DK::A64, DK::A64, DK::A64, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1217], 10 },  // cas [786]
+    &kInsTemplates[1409], 10 },  // cas [882]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1227], 10 },  // cas [787]
+    &kInsTemplates[1419], 10 },  // cas [883]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1237], 10 },  // cas [788]
+    &kInsTemplates[1429], 10 },  // cas [884]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1247], 10 },  // cas [789]
+    &kInsTemplates[1439], 10 },  // cas [885]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1257], 10 },  // cas [790]
+    &kInsTemplates[1449], 10 },  // cas [886]
   { {DK::U32, DK::U32, DK::U32, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1267], 10 },  // cas [791]
+    &kInsTemplates[1459], 10 },  // cas [887]
   { {DK::U32, DK::U32, DK::U32, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1277], 10 },  // cas [792]
+    &kInsTemplates[1469], 10 },  // cas [888]
   { {DK::U32, DK::U32, DK::U32, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1287], 10 },  // cas [793]
+    &kInsTemplates[1479], 10 },  // cas [889]
   { {DK::U32, DK::U32, DK::U32, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1297], 10 },  // cas [794]
+    &kInsTemplates[1489], 10 },  // cas [890]
   { {DK::S32, DK::S32, DK::S32, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1307], 10 },  // cas [795]
+    &kInsTemplates[1499], 10 },  // cas [891]
   { {DK::S32, DK::S32, DK::S32, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1317], 10 },  // cas [796]
+    &kInsTemplates[1509], 10 },  // cas [892]
   { {DK::S32, DK::S32, DK::S32, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1327], 10 },  // cas [797]
+    &kInsTemplates[1519], 10 },  // cas [893]
   { {DK::S32, DK::S32, DK::S32, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1337], 10 },  // cas [798]
+    &kInsTemplates[1529], 10 },  // cas [894]
   { {DK::U16, DK::U16, DK::U16, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1347], 10 },  // cas [799]
+    &kInsTemplates[1539], 10 },  // cas [895]
   { {DK::U16, DK::U16, DK::U16, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1357], 10 },  // cas [800]
+    &kInsTemplates[1549], 10 },  // cas [896]
   { {DK::U16, DK::U16, DK::U16, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1367], 10 },  // cas [801]
+    &kInsTemplates[1559], 10 },  // cas [897]
   { {DK::U16, DK::U16, DK::U16, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1377], 10 },  // cas [802]
+    &kInsTemplates[1569], 10 },  // cas [898]
   { {DK::S16, DK::S16, DK::S16, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1387], 10 },  // cas [803]
+    &kInsTemplates[1579], 10 },  // cas [899]
   { {DK::S16, DK::S16, DK::S16, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1397], 10 },  // cas [804]
+    &kInsTemplates[1589], 10 },  // cas [900]
   { {DK::S16, DK::S16, DK::S16, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1407], 10 },  // cas [805]
+    &kInsTemplates[1599], 10 },  // cas [901]
   { {DK::S16, DK::S16, DK::S16, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1417], 10 },  // cas [806]
+    &kInsTemplates[1609], 10 },  // cas [902]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1427], 10 },  // cas [807]
+    &kInsTemplates[1619], 10 },  // cas [903]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1437], 10 },  // cas [808]
+    &kInsTemplates[1629], 10 },  // cas [904]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1447], 10 },  // cas [809]
+    &kInsTemplates[1639], 10 },  // cas [905]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1457], 10 },  // cas [810]
+    &kInsTemplates[1649], 10 },  // cas [906]
   { {DK::S8, DK::S8, DK::S8, DK::A64, DK::S64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1467], 10 },  // cas [811]
+    &kInsTemplates[1659], 10 },  // cas [907]
   { {DK::S8, DK::S8, DK::S8, DK::A64, DK::U64},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1477], 10 },  // cas [812]
+    &kInsTemplates[1669], 10 },  // cas [908]
   { {DK::S8, DK::S8, DK::S8, DK::A64, DK::S32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1487], 10 },  // cas [813]
+    &kInsTemplates[1679], 10 },  // cas [909]
   { {DK::S8, DK::S8, DK::S8, DK::A64, DK::U32},
     {IC::INVALID, IC::INVALID, IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1497], 10 },  // cas [814]
+    &kInsTemplates[1689], 10 },  // cas [910]
   { {DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1507], 1 },  // ceil [815]
+    &kInsTemplates[1699], 1 },  // ceil [911]
   { {DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1508], 1 },  // ceil [816]
+    &kInsTemplates[1700], 1 },  // ceil [912]
   { {DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1509], 1 },  // floor [817]
+    &kInsTemplates[1701], 1 },  // floor [913]
   { {DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1510], 1 },  // floor [818]
+    &kInsTemplates[1702], 1 },  // floor [914]
   { {DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1511], 1 },  // round [819]
+    &kInsTemplates[1703], 1 },  // round [915]
   { {DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1512], 1 },  // round [820]
+    &kInsTemplates[1704], 1 },  // round [916]
   { {DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1513], 1 },  // trunc [821]
+    &kInsTemplates[1705], 1 },  // trunc [917]
   { {DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1514], 1 },  // trunc [822]
+    &kInsTemplates[1706], 1 },  // trunc [918]
   { {DK::F32, DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1515], 1 },  // copysign [823]
+    &kInsTemplates[1707], 1 },  // copysign [919]
   { {DK::F64, DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID, IC::ZERO},
-    &kInsTemplates[1516], 1 },  // copysign [824]
+    &kInsTemplates[1708], 1 },  // copysign [920]
   { {DK::F32, DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1517], 4 },  // copysign [825]
+    &kInsTemplates[1709], 4 },  // copysign [921]
   { {DK::F64, DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID, IC::INVALID},
-    &kInsTemplates[1521], 4 },  // copysign [826]
+    &kInsTemplates[1713], 4 },  // copysign [922]
   { {DK::F32, DK::F32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1525], 1 },  // sqrt [827]
+    &kInsTemplates[1717], 1 },  // sqrt [923]
   { {DK::F64, DK::F64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1526], 1 },  // sqrt [828]
+    &kInsTemplates[1718], 1 },  // sqrt [924]
   { {DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1527], 1 },  // cntlz [829]
+    &kInsTemplates[1719], 1 },  // cntlz [925]
   { {DK::S32, DK::S32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1528], 1 },  // cntlz [830]
+    &kInsTemplates[1720], 1 },  // cntlz [926]
   { {DK::U64, DK::U64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1529], 1 },  // cntlz [831]
+    &kInsTemplates[1721], 1 },  // cntlz [927]
   { {DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1530], 1 },  // cntlz [832]
+    &kInsTemplates[1722], 1 },  // cntlz [928]
   { {DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1531], 2 },  // cnttz [833]
+    &kInsTemplates[1723], 2 },  // cnttz [929]
   { {DK::S32, DK::S32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1533], 2 },  // cnttz [834]
+    &kInsTemplates[1725], 2 },  // cnttz [930]
   { {DK::U64, DK::U64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1535], 2 },  // cnttz [835]
+    &kInsTemplates[1727], 2 },  // cnttz [931]
   { {DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1537], 2 },  // cnttz [836]
+    &kInsTemplates[1729], 2 },  // cnttz [932]
   { {DK::U32, DK::U32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1539], 5 },  // cntpop [837]
+    &kInsTemplates[1731], 5 },  // cntpop [933]
   { {DK::S32, DK::S32},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1544], 5 },  // cntpop [838]
+    &kInsTemplates[1736], 5 },  // cntpop [934]
   { {DK::U64, DK::U64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1549], 4 },  // cntpop [839]
+    &kInsTemplates[1741], 4 },  // cntpop [935]
   { {DK::S64, DK::S64},
     {IC::INVALID, IC::INVALID},
-    &kInsTemplates[1553], 4 },  // cntpop [840]
+    &kInsTemplates[1745], 4 },  // cntpop [936]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1557], 2 },  // getfp [841]
+    &kInsTemplates[1749], 2 },  // getfp [937]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1559], 2 },  // getfp [842]
+    &kInsTemplates[1751], 2 },  // getfp [938]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1561], 2 },  // getfp [843]
+    &kInsTemplates[1753], 2 },  // getfp [939]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1563], 2 },  // getfp [844]
+    &kInsTemplates[1755], 2 },  // getfp [940]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1565], 2 },  // getfp [845]
+    &kInsTemplates[1757], 2 },  // getfp [941]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1567], 2 },  // getfp [846]
+    &kInsTemplates[1759], 2 },  // getfp [942]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1569], 2 },  // getfp [847]
+    &kInsTemplates[1761], 2 },  // getfp [943]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1571], 2 },  // getfp [848]
+    &kInsTemplates[1763], 2 },  // getfp [944]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1573], 2 },  // getfp [849]
+    &kInsTemplates[1765], 2 },  // getfp [945]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1575], 2 },  // getfp [850]
+    &kInsTemplates[1767], 2 },  // getfp [946]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1577], 1 },  // getsp [851]
+    &kInsTemplates[1769], 1 },  // getsp [947]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1578], 1 },  // getsp [852]
+    &kInsTemplates[1770], 1 },  // getsp [948]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1579], 1 },  // getsp [853]
+    &kInsTemplates[1771], 1 },  // getsp [949]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1580], 1 },  // getsp [854]
+    &kInsTemplates[1772], 1 },  // getsp [950]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1581], 1 },  // getsp [855]
+    &kInsTemplates[1773], 1 },  // getsp [951]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1582], 1 },  // getsp [856]
+    &kInsTemplates[1774], 1 },  // getsp [952]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1583], 1 },  // getsp [857]
+    &kInsTemplates[1775], 1 },  // getsp [953]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1584], 1 },  // getsp [858]
+    &kInsTemplates[1776], 1 },  // getsp [954]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1585], 1 },  // getsp [859]
+    &kInsTemplates[1777], 1 },  // getsp [955]
   { {DK::A64},
     {IC::INVALID},
-    &kInsTemplates[1586], 1 },  // getsp [860]
+    &kInsTemplates[1778], 1 },  // getsp [956]
 };
 }  // namespace
 
@@ -6193,9 +6865,7 @@ int64_t ExtractParamOp(Ins ins, PARAM param, const EmitContext& ctx) {
       return (GetStackOffset(InsOperand(ins, 1), InsOperand(ins, 2)) >> 16U) &
              0xffffU;
     case PARAM::scratch_gpr:
-      ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::GPR,
-             "expected gpr64 reg got " << Name(ctx.scratch_cpu_reg));
-      return CpuRegNo(ctx.scratch_cpu_reg);
+      return CpuRegNo(GPR_HELPER_REG);
     case PARAM::scratch_flt:
       ASSERT(CpuRegKind(ctx.scratch_cpu_reg) == +CPU_REG_KIND::FLT,
              "expected flt64 reg got " << Name(ctx.scratch_cpu_reg));

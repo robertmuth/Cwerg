@@ -86,18 +86,8 @@ _IMM_KIND_STK: Set[IMM_CURB] = {
 
 def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
-    if opc is o.SWITCH:
-        # needs scratch to compute the jmp address into
-        scratch = fun.GetScratchReg(o.DK.C64, "switch", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
-    elif opc is o.COPYSIGN:
-        scratch = fun.GetScratchReg(o.DK.U64, "copysign", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
-    elif opc is o.CNTPOP:
+    if opc is o.CNTPOP:
         scratch = fun.GetScratchReg(o.DK.F64, "popcnt", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
-    elif opc is o.CAS:
-        scratch = fun.GetScratchReg(o.DK.U64, "cas", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
@@ -206,8 +196,8 @@ def _ExtractTmplArgOp(ins: ir.Ins, arg: PARAM, ctx: regs.EmitContext) -> int:
         assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.FLT, f"{ctx.scratch_cpu_reg}"
         return ctx.scratch_cpu_reg.no
     elif arg is PARAM.scratch_gpr:
-        assert ctx.scratch_cpu_reg.kind == regs.CpuRegKind.GPR, f"{ctx.scratch_cpu_reg}"
-        return ctx.scratch_cpu_reg.no
+        # This is a reserved reg and hence always available
+        return regs.GPR_HELPER_REG.no
     elif arg in {PARAM.stk1_offset2, PARAM.stk1_offset2_hi, PARAM.stk1_offset2_lo}:
         return GetStackOffset(ins.operands[1], ins.operands[2])
     elif arg in {PARAM.stk0_offset1, PARAM.stk0_offset1_hi, PARAM.stk0_offset1_lo}:
@@ -895,6 +885,7 @@ def InitLoad():
 
 
 def InitStackLoad():
+    # support for smaller stack offsets
     for dst_kind, opc, curb in [
         (o.DK.U64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
         (o.DK.S64, "ldr_x_imm", IMM_CURB.pos_stk_combo_10_21_times_8),
@@ -908,13 +899,33 @@ def InitStackLoad():
         (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.F32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
             (o.DK.F64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
-        # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
             Pattern(o.LD_STK, [dst_kind, o.DK.INVALID, offset_kind],
                     [InsTmpl(opc, [PARAM.reg0, FIXARG.SP, PARAM.stk1_offset2])],
                     imm_curb2=curb)
+
+    # support stack offsets up to 64k
+    for dst_kind, opc in [
+        (o.DK.U64, "ldr_x_reg_w"),
+        (o.DK.S64, "ldr_x_reg_w"),
+        (o.DK.A64, "ldr_x_reg_w"),
+        (o.DK.C64, "ldr_x_reg_w"),
+        (o.DK.U32, "ldr_w_reg_w"),
+        (o.DK.S32, "ldrsw_reg_w"),
+        (o.DK.U16, "ldrsh_x_reg_w"),
+        (o.DK.S16, "ldr_h_reg_w"),
+        (o.DK.U8, "ldr_b_reg_w"),
+        (o.DK.S8, "ldrsb_x_reg_w"),
+        (o.DK.F32, "fldr_s_reg_w"),
+            (o.DK.F64, "fldr_d_reg_w")]:
+        # The offset_kind does not really matter, what matters is actual values
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            Pattern(o.LD_STK, [dst_kind, o.DK.INVALID, offset_kind],
+                    [InsTmpl("movz_x_imm", [PARAM.scratch_gpr, PARAM.stk1_offset2]),
+                     InsTmpl(opc, [PARAM.reg0, FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0])],
+                    imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
 
 
 def InitStore():
@@ -1022,6 +1033,27 @@ def InitStackStore():
             Pattern(o.ST_STK, [o.DK.INVALID, offset_kind, src_kind],
                     [InsTmpl(opc, [FIXARG.SP, PARAM.stk0_offset1, PARAM.reg2])],
                     imm_curb1=imm)
+
+    # support stack offsets up to 64k
+    for dst_kind, opc in [
+        (o.DK.U64, "str_x_reg_w"),
+        (o.DK.S64, "str_x_reg_w"),
+        (o.DK.A64, "str_x_reg_w"),
+        (o.DK.C64, "str_x_reg_w"),
+        (o.DK.U32, "str_w_reg_w"),
+        (o.DK.S32, "str_w_reg_w"),
+        (o.DK.U16, "str_h_reg_w"),
+        (o.DK.S16, "str_h_reg_w"),
+        (o.DK.U8, "str_b_reg_w"),
+        (o.DK.S8, "str_b_reg_w"),
+        (o.DK.F32, "fstr_s_reg_w"),
+            (o.DK.F64, "fstr_d_reg_w")]:
+        # The offset_kind does not really matter, what matters is actual values
+        for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
+            Pattern(o.ST_STK, [o.DK.INVALID, offset_kind, src_kind],
+                    [InsTmpl("movz_x_imm", [PARAM.scratch_gpr, PARAM.stk0_offset1]),
+                     InsTmpl(opc, [FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0, PARAM.reg2])],
+                    imm_curb1=IMM_CURB.pos_stk_combo_16_bits)
 
 
 def InitLea():

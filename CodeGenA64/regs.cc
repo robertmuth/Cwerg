@@ -14,6 +14,8 @@ std::array<CpuReg, 31> GPR_REGS;
 
 std::array<CpuReg, 32> FLT_REGS;
 
+CpuReg GPR_HELPER_REG;
+
 base::DK_MAP DK_TO_CPU_REG_KIND_MAP;
 
 namespace {
@@ -445,6 +447,8 @@ void InitCodeGenA64() {
     ToDecString(i, buffer + 1);
     FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
   }
+
+  GPR_HELPER_REG = GPR_REGS[16];
   // ==================================================
   // GPR_PARAM_REGS
   for (unsigned i = 0; i < GPR_PARAM_REGS.size(); ++i) {

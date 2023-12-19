@@ -41,26 +41,8 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
     Reg tmp;
     for (Ins ins : BblInsIter(bbl)) {
       switch (InsOPC(ins)) {
-        case OPC::SWITCH:
-          tmp = FunGetScratchReg(fun, DK::C64, "switch", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
-          inss->push_back(ins);
-          dirty = true;
-          break;
-        case OPC::CAS:
-          tmp = FunGetScratchReg(fun, DK::U64, "cas", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
-          inss->push_back(ins);
-          dirty = true;
-          break;
-        case OPC::COPYSIGN:
-          tmp = FunGetScratchReg(fun, DK::U64, "copysign", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
-          inss->push_back(ins);
-          dirty = true;
-          break;
         case OPC::CNTPOP:
-          tmp = FunGetScratchReg(fun, DK::F64, "cntpop", false);
+          tmp = FunGetScratchReg(fun, DK::F64, "popcnt", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
           inss->push_back(ins);
           dirty = true;

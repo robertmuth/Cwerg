@@ -28,6 +28,9 @@ _FLT_REGS = [ir.CpuReg(f"d{i}", i, CpuRegKind.FLT) for i in range(32)]
 _GPR_PARAMETER_REGS = _GPR_REGS[0:16]
 _FLT_PARAMETER_REGS = _FLT_REGS[0:8] + _FLT_REGS[16:32]
 
+# Note: this is excluded from GPR_LAC_REGS_MASK
+GPR_HELPER_REG = _GPR_REGS[16]
+
 CPU_REGS_MAP = {**{r.name: r for r in _GPR_REGS},
                 **{r.name: r for r in _FLT_REGS}}
 
@@ -70,8 +73,9 @@ def MaskToFlt64Regs(mask: int) -> List[ir.CpuReg]:
 _LINK_REG_MASK = 1 << 30
 
 GPR_REGS_MASK = 0x7fffffff
-GPR_LAC_REGS_MASK = 0x3fff0000
-GPR_LAC_REGS_MASK_WITH_LR = 0x7fff0000
+GPR_LAC_REGS_MASK = 0x3ffe0000
+GPR_LAC_REGS_MASK_WITH_LR = 0x7ffe0000
+GPR_SPECIAL_MASK = 0x00010000
 
 FLT_REGS_MASK = 0xffffffff
 FLT_LAC_REGS_MASK = 0x0000ff00
@@ -332,7 +336,7 @@ def _BblRegAllocOrSpill(bbl: ir.Bbl, fun: ir.Fun) -> int:
             lr.cpu_reg = lr.reg.cpu_reg
         # print (repr(lr))
 
-    # First reg-alloc path to determine if spilling is needed.
+    # First reg-alloc pass to determine if spilling is needed.
     # Note, global and fixed registers have already been assigned and will
     # be respected by the allocator.
     _RunLinearScan(bbl, fun, live_ranges, True,

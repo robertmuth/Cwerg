@@ -35,9 +35,11 @@ extern std::array<base::CpuReg, 31> GPR_REGS;
 
 extern std::array<base::CpuReg, 32> FLT_REGS;
 
+extern base::CpuReg GPR_HELPER_REG;
+
 const constexpr uint32_t GPR_REGS_MASK = 0x7fffffff;
-const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3fff0000;
-const constexpr uint32_t GPR_LAC_REGS_MASK_WITH_LR = 0x7fff0000;
+const constexpr uint32_t GPR_LAC_REGS_MASK = 0x3ffe0000;
+const constexpr uint32_t GPR_LAC_REGS_MASK_WITH_LR = 0x7ffe0000;
 const constexpr uint32_t FLT_REGS_MASK = 0xffffffff;
 const constexpr uint32_t FLT_LAC_REGS_MASK = 0x0000ff00;
 

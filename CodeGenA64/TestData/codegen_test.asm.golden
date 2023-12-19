@@ -125,16 +125,16 @@ PAT: reg:[F64 F64 INVALID]  imm:[INVALID ZERO INVALID]
 
 INS: copysign flt@d1 flt@d1 flt@d1  [F32 F32 F32]
 PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID INVALID]
-    fmov_w_from_s w8 s1
+    fmov_w_from_s w16 s1
     fabs_s s1 s1
-    tbz x8 31 2
+    tbz x16 31 2
     fneg_s s1 s1
 
 INS: copysign dbl@d2 dbl@d2 dbl@d2  [F64 F64 F64]
 PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID INVALID]
-    fmov_x_from_d x8 d2
+    fmov_x_from_d x16 d2
     fabs_d d2 d2
-    tbz x8 63 0
+    tbz x16 63 0
     fneg_d d2 d2
 
 INS: ret  []
