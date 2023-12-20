@@ -21,12 +21,13 @@ TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
 
 TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
-# TODO: tests_lib_a64 tests_emit_a64
 tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
-                tests_lang_x64 tests_lang_a64 \
+                tests_lang_x64 \
+                tests_lang_a64 \
                 tests_lib_x64 \
-				tests_emit_x64
-
+                tests_lib_a64 \
+                tests_emit_x64 \
+                tests_emit_a64
 
 tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 

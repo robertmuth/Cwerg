@@ -390,7 +390,7 @@ NODES_COND = ("ValFalse", "ValTrue",
               "Id", "ExprDeref", "ExprIndex",
               "ExprField", "ExprCall", "ExprParen",
               "Expr1", "Expr2", "Expr3",
-              "ExprStmt", "ExprIs")
+              "ExprStmt", "ExprIs", "ExprNarrow")
 NODES_COND_T = Union[NODES_COND]
 
 NODES_LHS = ("Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke")

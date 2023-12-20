@@ -156,32 +156,32 @@ def _CloneId(node: cwast.Id) -> cwast.Id:
 
 def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
     assert dst_sum_rec.is_rec()
-    _, dst_union_field = dst_sum_rec.ast_node.fields
+    dst_untagged_union_ct: cwast.CanonType = dst_sum_rec.ast_node.fields[1].x_type
+    assert dst_untagged_union_ct.is_untagged_union()
     src_sum_rec: cwast.CanonType = value.expr.x_type
     assert src_sum_rec.is_rec()
     assert src_sum_rec.original_type.is_tagged_union()
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
     # to drop this we would need to introducea temporary
     assert isinstance(value.expr, cwast.Id)
-    srcloc = value.x_srcloc
+    sl = value.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    tag_value = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
-                                x_srcloc=srcloc, x_type=src_tag_field.x_type,
-                                x_field=src_tag_field)
-    union_field = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
-                                  x_srcloc=srcloc, x_type=src_union_field.x_type,
-                                  x_field=src_union_field)
-    union_value = cwast.ExprNarrow(union_field,
-                                   cwast.TypeAuto(x_srcloc=srcloc,
-                                                  x_type=dst_union_field.x_type),
-                                   x_srcloc=srcloc,
+    src_tag = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
+                              x_srcloc=sl, x_type=src_tag_field.x_type,
+                              x_field=src_tag_field)
+    src_union = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
+                                x_srcloc=sl, x_type=src_union_field.x_type,
+                                x_field=src_union_field)
+    union_value = cwast.ExprNarrow(src_union,
+                                   cwast.TypeAuto(x_srcloc=sl,
+                                                  x_type=dst_untagged_union_ct),
+                                   unchecked=True,
+                                   x_srcloc=sl,
                                    x_value=value.x_value,
-                                   x_type=dst_union_field.x_type)
-
-    return _MakeValRecForSum(dst_sum_rec,
-                             tag_value, union_value,
-                             srcloc)
+                                   x_type=dst_untagged_union_ct)
+    # tag is the same as with the src but (untagged) union is narrowed
+    return _MakeValRecForSum(dst_sum_rec, src_tag, union_value, sl)
 
 
 def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
@@ -219,32 +219,66 @@ def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus
     untagged_ct = tc.insert_union_type(tagged_ct.union_member_types(), True)
     node.unchecked = True
     node.expr = cwast.ExprUnionUntagged(node.expr, x_srcloc=node.x_srcloc,
-                                      x_type=untagged_ct)
+                                        x_type=untagged_ct)
 
 
-def ReplaceTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
-    """Eliminates all ExprNarrow involving tagged unions."""
+def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+    """Simplifies ExprNarrow for tagged unions `u`
+
+    (narrowto @unchecked u t)
+
+    case: if t is a non-union type
+
+    ... (narrowto @unchecked (unionuntagged u) t) ...
+
+    (narrowto u t)
+
+    case: t is union
+
+    case: if t is a non-union type
+
+    (expr [
+        (if (is u t) [] [(trap)])
+        (return (narrowto @unchecked (unionuntagged u) t))
+    ])
+
+    (expr [
+        (if (is u t) [] [(trap)])
+        (return (narrowto @unchecked u t))
+    ])
+
+
+
+
+
+    """
     def replacer(node, field):
         nonlocal tc
         if not isinstance(node, cwast.ExprNarrow):
             return None
         if not node.expr.x_type.is_tagged_union():
             return None
-        sl = node.x_srcloc
-        if not node.unchecked:
+        if node.unchecked:
+            if not node.x_type.is_union():
+                _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
+                return False
+
+        else:
+            sl = node.x_srcloc
             expr = cwast.ExprStmt([], x_srcloc=sl, x_type=node.x_type)
             assert isinstance(node.expr, cwast.Id)
             cond = cwast.ExprIs(_CloneId(node.expr), cwast.TypeAuto(
                 x_srcloc=sl, x_type=node.x_type), x_srcloc=sl)
-            _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
+            if node.x_type.is_union():
+                node.unchecked = True
+            else:
+                _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
             ret = cwast.StmtReturn(node, x_srcloc=sl, x_target=expr)
             check = cwast.StmtIf(cond, [],
                                  [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl)
             expr.body = [check, ret]
             return expr
-        else:
-            _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
-            return False
+        return None
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
@@ -252,12 +286,6 @@ def ReplaceTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
-    (cast to slices are eliminated by ReplaceExplicitSliceCast)
-    This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
-
-    Complications:
-     TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
-     `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
     """
     def replacer(node, field):
 
@@ -302,7 +330,8 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
 
         elif isinstance(node, cwast.ExprNarrow):
             # applies to the destination of the narrow
-            assert False, "this has not been tested"
+            assert isinstance(
+                node.expr, cwast.Id), "need to introduce ExprStmt"
             ct_src: cwast.CanonType = node.expr.x_type
             assert ct_src.is_rec(
             ), f"{ct_src} -> {node.x_type}: {node.x_srcloc}"

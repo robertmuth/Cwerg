@@ -799,16 +799,12 @@ def _CheckExprNarrow(node: cwast.ExprNarrow, _):
             node.x_srcloc,  f"bad narrow {ct_src.original_type} -> {ct_dst}: {node.expr}")
 
 
-def CheckExprNarrowStrict(node: cwast.ExprNarrow, _):
+def CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not ct_src.is_untagged_union():
+    if ct_src.is_tagged_union() and not node.unchecked:
         cwast.CompilerError(
-            node.x_srcloc,  f"tagged unions not allowed {ct_src.original_type} -> {ct_dst}: {node.expr}")
-    # print ("@@@@@@@@@@@@@@@", node)
-    if not type_corpus.is_compatible_for_narrow(ct_src, ct_dst):
-        cwast.CompilerError(
-            node.x_srcloc,  f"bad narrow {ct_src} -> {ct_dst}: {node.expr}")
+            node.x_srcloc,  f"narrow must be unchecked {ct_src.original_type} -> {ct_dst}: {node.expr}")
 
 
 def CheckExprAddrOf(node: cwast.ExprAddrOf, _):

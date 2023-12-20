@@ -95,14 +95,16 @@ A typed variable, parameter, field-element, return value, etc. of type union `u`
   * `v` and `u` are either both tagged or both untagged
   * the member types of `v` are a subset of the member types of `u`
 
-This amounts to an explicit type widening which can also be made explicit using `widento`. No run-time type check is necessary here.
+This amounts to an explicit type widening which can also be made explicit using the `widento` operator. No run-time type check is necessary here.
 
 ## Equality Testing
 
 Only tagged unions support equality testing.
-One can compare two tagged unions of the same type or
-a tagged union against a value of one of its member types.
-In the latter case implicit widening is used.
+One can compare a tagged union against a value of one of its member types.
+Internally this works by first checking if the types match and then narrowing
+the tagged union and compare the resulting value;
+
+**Not supported**: comparison of two tagged unions (even of the same type).
 
 Assuming
 ```
@@ -116,6 +118,7 @@ Assuming
 ```
 
 The following expressions are valid:
+
 ```
 ... (!= u 222_s16) ...
 
@@ -130,6 +133,27 @@ The following expressions are valid:
 
 ... (== u x) ...
 ... (!= u x) ...
+
+@doc "not supported:"
+... (== u v) ...
+... (!= u v) ...
+
+```
+
+## Runtime type queries
+
+The `is` operator can be used to test if the run-time type of a tagged union belongs to one or more of the member types.
+
+
+Examples
+```
+(type Union1 (union [ s16 void u32 ]))
+
+(let @mut u  Union1 ...)
+
+.. (is u s16) ..
+.. (is u (union  [ s16 void ])) ..
+
 
 ```
 
@@ -217,3 +241,27 @@ Otherwise, the value of `z` is a tagged union where
 
 Note, that checking `(uniontypetag u) ∈  member-type-ids(tv)` is equivalent
 to `(uniontypetag u) ∉  member-type-ids((uniondelta tu tv))` which may be faster to check.
+
+## Lowering / CodeGen
+
+
+* EliminateImplicitConversions()
+  This introduces explicit `widento` operators for
+  * FieldVal (value_or_undef)
+  * DefVar (initial_or_undef)
+  * DefGlobal (initial_or_undef)
+  * ExprCall (args)
+  * ExprWrap (expr)
+  * StmtReturn (expr)
+  * StmtAssignment (expr_rhs)
+
+* EliminateComparisonConversionsForTaggedUnion()
+  This introduces unchecked `narrowto`nodes - see function comment.
+
+
+* SimplifyTaggedExprNarrow()
+  This replaces all checked narrowto expressions and simplifies
+  narrowto expressions that narrow to a non-union
+
+* ReplaceSums
+  Replaces all tagged unions with structs representing underlying the tag and the untagged union

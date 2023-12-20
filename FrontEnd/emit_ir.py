@@ -518,22 +518,30 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(init_node, (cwast.ExprAs, cwast.ExprWrap, cwast.ExprWiden,
-                                cwast.ExprNarrow, cwast.ExprUnwrap)):
-        if init_node.x_type.fits_in_register():
-            # same as above
-            reg = EmitIRExpr(init_node, tc, id_gen)
-            print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-        elif init_node.x_type.size == 0 or init_node.expr.x_type.size == 0:
-            # init_node can be union of voids
-            # init_node.expr can void for widening
-            pass
-        elif init_node.x_type.is_untagged_union() and init_node.expr.x_type.fits_in_register():
-            reg = EmitIRExpr(init_node.expr, tc, id_gen)
-            print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-        else:
-            EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
-            # print (f"unsupported conversion src={init_node.expr.x_type} dst={init_node.x_type}")
+    elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
+        EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
+    elif isinstance(init_node, cwast.ExprAs):
+        # same as above
+        assert init_node.x_type.fits_in_register(), f"{init_node} {init_node.x_type}"
+        reg = EmitIRExpr(init_node, tc, id_gen)
+        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+    elif isinstance(init_node, cwast.ExprNarrow):
+        # if we are narrowing the dst determines the size
+        ct: cwast.CanonType = init_node.x_type
+        if ct.size != 0:
+            src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
+            _EmitCopy(dst, BaseOffset(src_base, 0), ct.size, ct.alignment, id_gen)
+    elif isinstance(init_node, cwast.ExprWiden):
+        # if we are widening the src determines the size
+        ct: cwast.CanonType = init_node.expr.x_type
+        if ct.size != 0:
+            if ct.fits_in_register():
+                 reg = EmitIRExpr(init_node.expr, tc, id_gen)
+                 assert reg is not None
+                 print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+            else:
+                src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
+                _EmitCopy(dst, BaseOffset(src_base, 0), ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(init_node, tc, id_gen)
         assert reg is not None
@@ -541,7 +549,11 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
         src_base = _GetLValueAddress(init_node, tc, id_gen)
         src_type = init_node.x_type
+        #if isinstance(init_node,  cwast.ExprField):
+        #    print ("@@@@@@", init_node, src_type)
         _EmitCopy(dst, BaseOffset(
+
+
             src_base, 0), src_type.size, src_type.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprStmt):
         for c in init_node.body:
@@ -956,7 +968,7 @@ def main():
             if not isinstance(fun, cwast.DefFun):
                 continue
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
-            canonicalize_sum.ReplaceTaggedExprNarrow(fun, tc)
+            canonicalize_sum.SimplifyTaggedExprNarrow(fun, tc)
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
@@ -970,7 +982,7 @@ def main():
     ELIMIMATED_NODES.add(cwast.ExprIs)
     ELIMIMATED_NODES.add(cwast.TypeOf)
     ELIMIMATED_NODES.add(cwast.TypeUnionDelta)
-    verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowStrict)
+    verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowUnchecked)
     verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
     verifier.Replace(cwast.ExprCall, typify.CheckExprCallStrict)
     verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)

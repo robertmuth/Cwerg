@@ -46,7 +46,7 @@
 (static_assert (== (sizeof Union5) 3))
 
 
-(type  Union6 (union [ bool u16 bool ]))
+(type  Union6 (union [ bool u16 ]))
 
 (static_assert (== (sizeof Union6) 4))
 
@@ -141,11 +141,23 @@
     (test::AssertTrue! (is x s32))
 )
 
+(fun test_tagged_union_narrowto [] void :
+    (let @mut x Union3 true)
+    (let @mut y auto (narrowto x bool))
+    (test::AssertTrue! y)
+
+    (test::AssertTrue! (narrowto x bool))
+
+    (let @mut z auto (narrowto x (union [ u8 bool ])))
+
+)
+
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (test_tagged_union_basic []))
     (stmt (test_tagged_union_void []))
     (stmt (test_tagged_union_result []))
     (stmt (test_tagged_union_parameter []))
+    (stmt (test_tagged_union_narrowto []))
 
     @doc "test end"
     (test::Success!)

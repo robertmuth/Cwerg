@@ -78,14 +78,28 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     src_ct: cwast.CanonType = node.expr.x_type
     dst_ct: cwast.CanonType = node.type.x_type
     typeid_ct = tc.get_typeid_canon_type()
-    srcloc = node.x_srcloc
+    bool_ct = tc.get_bool_canon_type()
+    sl = node.x_srcloc
+    # if src_ct is not a tagged union ExprIs has been compile time evaluated
     assert src_ct.is_tagged_union()
-    assert not dst_ct.is_union()
-    tag = cwast.ExprUnionTag(node.expr, x_srcloc=srcloc, x_type=typeid_ct)
-    typeid = cwast.ValNum(str(dst_ct.typeid), x_srcloc=srcloc,
-                          x_type=typeid_ct, x_value=dst_ct.typeid)
-    return cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, tag, typeid,
-                       x_srcloc=srcloc, x_type=tc.get_bool_canon_type())
+    typeids = []
+    if dst_ct.is_union():
+        for ct in dst_ct.union_member_types():
+            typeids.append(ct.typeid)
+    else:
+        typeids.append(dst_ct.typeid)
+    typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
+                               x_type=typeid_ct, x_value=i) for i in typeids]
+    # TODO: store tag in a variable rather than retrieving it each time.
+    #       Sadly, this requires ExprStmt
+    tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
+    tests = [cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, cwast.CloneNodeRecursively(tag, {}, {}), v,
+                         x_srcloc=sl, x_type=bool_ct) for v in typeidvals]
+    out = tests.pop(-1)
+    while tests:
+        out = cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC,
+                          tests.pop(-1), out,  x_srcloc=sl, x_type=bool_ct)
+    return out
 
 
 def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
@@ -434,6 +448,15 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
 
 def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
     def make_cmp(cmp: cwast.Expr2, union, field):
+        """
+        (== tagged_union_val member_val)
+
+        becomes
+
+        (&&
+            (== (uniontaggedtype tagged_union_val) (typeid member_val)))
+            (== (narrowto @unchecked tagged_union_val (typeof member_val)) member_val))
+        """
         # NE needs more work
         assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ
         type_check = cwast.ExprIs(union, cwast.TypeAuto(
