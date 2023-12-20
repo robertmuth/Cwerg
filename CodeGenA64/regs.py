@@ -72,7 +72,8 @@ def MaskToFlt64Regs(mask: int) -> List[ir.CpuReg]:
 # We do not really care about the 32 vs 64 bit for these
 _LINK_REG_MASK = 1 << 30
 
-GPR_REGS_MASK = 0x7fffffff
+# excludes x16 which we have reserved
+GPR_REGS_MASK = 0x7ffeffff
 GPR_LAC_REGS_MASK = 0x3ffe0000
 GPR_LAC_REGS_MASK_WITH_LR = 0x7ffe0000
 GPR_SPECIAL_MASK = 0x00010000
