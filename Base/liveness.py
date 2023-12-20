@@ -15,7 +15,7 @@ from Base import opcode_tab as o
 class Liveness:
     """Liveness summary for Bbl
 
-    Only `live_out` is persisted for the use by optimizations. 
+    Only `live_out` is persisted for the use by optimizations.
     `live_in`, `live_def`, `live_use` are used  only during the analysis phase.
     """
 
@@ -220,11 +220,11 @@ NO_USE = AFTER_BBL + 1
 class LiveRangeFlag(enum.Flag):
     LAC = 1  # live across call
     PRE_ALLOC = 2  # already allocated - re-use reg after last_use
-    IGNORE = 4  # ignore completely
+    IGNORE = 4  # ignore completely (already assigned, cross BBL, etc.)
 
 
 @dataclasses.dataclass()
-class LiveRange: 
+class LiveRange:
     """Represents and intra Bbl live-range (LR)
 
     This is pretty standard stuff except for LRs with is_use_lr() == True
@@ -255,7 +255,7 @@ class LiveRange:
 
     def __repr__(self):
         """Generate a textual representation of LR
-        
+
         This can be parsed with `ParseLiveRanges()`
         """
         def render_pos(pos) -> str:
@@ -286,21 +286,25 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
     """ Compute LiveRanges for one BBL (e.g. for use with register allocation)
 
     Note: function call handling is quite adhoc and likely has bugs.
-    The output contains the following special LiveRanges
+    Besides regular LRs, the output contains the following special LiveRanges
     * LRs without a last_use if the register is used outside the Bbl (based on live_out)
     * LRs without a def of the register is defined outside the Bbl
-    * use-def LRs contain the LRs of all the used regs in the instruction at point p.
-                     (def=p last_use=p,  reg=REG_INVALID)
+    * "use" LRs: contain the LRs of all the used regs in the instruction at point p.
+                 (def=p last_use=p,  reg=REG_INVALID)
+    The last catagory helps with LR spilling
     """
     out = []
     bbl_size = len(bbl.inss)
 
     last_use: Dict[ir.Reg, LiveRange] = {}
     last_call_pos = -1
+    # these cpu registers are also live because they are inputs to function call
+    # or being returned
     last_call_cpu_live_in = []
 
-    def initialize_lr(pos: int, reg: ir.Reg) -> LiveRange:
-        lr = LiveRange(-1, pos, reg, 1)
+    def initialize_lr(last_use_pos: int, reg: ir.Reg) -> LiveRange:
+        # note: the def_pos=-1 will be updated in finalize_lr() below
+        lr = LiveRange(-1, last_use_pos, reg, 1)
         last_use[reg] = lr
         out.append(lr)
         return lr
@@ -314,8 +318,8 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
 
     # handle live ranges that extend passed the bbl
     for reg in live_out:
-        # There is not point in tracking spilled regs as they do not contribute to
-        # usage gaps where we could temporarily  use a CPU_REG for another REG.
+        # There is no point in tracking spilled regs as they do not contribute to
+        # usage gaps where we could temporarily use a CPU_REG for another REG.
         if reg.IsSpilled(): continue
         initialize_lr(AFTER_BBL, reg)
 
@@ -328,10 +332,12 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
         elif ins.opcode.is_call():
             callee: ir.Fun = cfg.InsCallee(ins)
             assert isinstance(callee, ir.Fun)
-            # This complication only applies after we have (partial) reg allocation
+            # This complication only applies after we have (partial) cpu reg allocation
             # Finalize live ranges using the results of the call
             if callee.cpu_live_out:
                 # Note, destructive list iteration -> `list(...)` is necessary
+                # go through all pending live-ragnes and finalize those that
+                # consume results from the function call.
                 for reg, lr in list(last_use.items()):
                     if reg.HasCpuReg() and reg.cpu_reg in callee.cpu_live_out:
                         finalize_lr(lr, pos)
@@ -366,6 +372,7 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
                     # make meaning of num_uses more precise
                     lr.num_uses += 1
                 else:
+                    # last use
                     lr = initialize_lr(pos, reg)
                 if lr not in uses:
                     uses.append(lr)
@@ -395,8 +402,8 @@ def _ParsePos(s: str) -> int:
 
 def ParseLiveRanges(fin, cpu_reg_map: Dict[str, ir.CpuReg]) -> List[LiveRange]:
     """For testing it is nice to have a serialized form of the LRs for on BBL
-    
-    
+
+
     This function parses the textual representation.
     """
     out: List[LiveRange] = []

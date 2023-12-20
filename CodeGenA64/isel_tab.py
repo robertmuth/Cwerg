@@ -924,7 +924,7 @@ def InitStackLoad():
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
             Pattern(o.LD_STK, [dst_kind, o.DK.INVALID, offset_kind],
                     [InsTmpl("movz_x_imm", [PARAM.scratch_gpr, PARAM.stk1_offset2]),
-                     InsTmpl(opc, [PARAM.reg0, FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0])],
+                    InsTmpl(opc, [PARAM.reg0, FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0])],
                     imm_curb2=IMM_CURB.pos_stk_combo_16_bits)
 
 
@@ -1035,7 +1035,7 @@ def InitStackStore():
                     imm_curb1=imm)
 
     # support stack offsets up to 64k
-    for dst_kind, opc in [
+    for src_kind, opc in [
         (o.DK.U64, "str_x_reg_w"),
         (o.DK.S64, "str_x_reg_w"),
         (o.DK.A64, "str_x_reg_w"),
@@ -1052,7 +1052,7 @@ def InitStackStore():
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
             Pattern(o.ST_STK, [o.DK.INVALID, offset_kind, src_kind],
                     [InsTmpl("movz_x_imm", [PARAM.scratch_gpr, PARAM.stk0_offset1]),
-                     InsTmpl(opc, [FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0, PARAM.reg2])],
+                    InsTmpl(opc, [FIXARG.SP, PARAM.scratch_gpr, FIXARG.UXTW, 0, PARAM.reg2])],
                     imm_curb1=IMM_CURB.pos_stk_combo_16_bits)
 
 
@@ -1304,16 +1304,23 @@ InitConv()
 InitVFP()
 
 
-def FindMatchingPattern(ins: ir.Ins) -> Optional[Pattern]:
+def FindMatchingPattern(ins: ir.Ins, diagnostic: bool = False) -> Optional[Pattern]:
     """Returns the best pattern matching `ins` or None
 
     This can only be called AFTER the stack has been finalized
     """
     patterns = Pattern.Table[ins.opcode.no]
-    # print(f"@@ {ins} {ins.operands}")
+
     for p in patterns:
-        # print(f"@@ trying pattern {p}")
-        if p.MatchesTypeCurbs(ins) and 0 == p.MatchesImmCurbs(ins, False):
+        if diagnostic:
+            print(f"@@ trying pattern {p}", end=" ")
+        if not p.MatchesTypeCurbs(ins):
+            if diagnostic:
+                print(f"TYPE_MISMATCH")
+        elif 0 != p.MatchesImmCurbs(ins, False):
+            if diagnostic:
+                print(f"IMM_MISMATCH")
+        else:
             return p
     else:
         # assert False, f"Could not find a matching patterns for {ins}. tried:\n{patterns}"

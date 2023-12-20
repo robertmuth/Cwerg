@@ -247,11 +247,15 @@ def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
                 else:
                     pattern = isel_tab.FindMatchingPattern(ins)
                     if not pattern:
+                        print(f"@@ {ins} {ins.operands}")
                         for n, op in enumerate(ins.operands):
                             if isinstance(op, ir.Const):
                                 print(f"op {n}: {op.value} [{op}]")
                             elif isinstance(op, ir.Stk):
                                 print(f"op {n}: {op.slot} [{op}]")
+                            else:
+                                print(f"op {n}: {op}")
+                        isel_tab.FindMatchingPattern(ins, diagnostic=True)
                     assert pattern, f"could not find pattern for\n{ins} {ins.operands}"
                     for tmpl in pattern.emit:
                         cpu_ins = tmpl.MakeInsFromTmpl(ins, ctx)
