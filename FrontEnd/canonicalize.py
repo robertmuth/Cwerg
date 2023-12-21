@@ -457,21 +457,33 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
             (== (uniontaggedtype tagged_union_val) (typeid member_val)))
             (== (narrowto @unchecked tagged_union_val (typeof member_val)) member_val))
         """
-        # NE needs more work
-        assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ
-        type_check = cwast.ExprIs(union, cwast.TypeAuto(
-            x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc)
-        if field.x_type.is_void_or_wrapped_void():
-            return type_check
-        # for non-ids we would need to avoid double evaluation
-        assert isinstance(union, cwast.Id), f"{cmp}: {union}"
-        cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
-            x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
-            x_type=field.x_type, x_srcloc=cmp.x_srcloc)
-        cmp.expr2 = field
-        return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, type_check, cmp,
-                           x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
-
+        if cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ:
+            type_check = cwast.ExprIs(union, cwast.TypeAuto(
+                x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc)
+            if field.x_type.is_void_or_wrapped_void():
+                return type_check
+            # for non-ids we would need to avoid double evaluation
+            assert isinstance(union, cwast.Id), f"{cmp}: {union}"
+            cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
+                x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
+                x_type=field.x_type, x_srcloc=cmp.x_srcloc)
+            cmp.expr2 = field
+            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, type_check, cmp,
+                               x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+        else:
+            assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.NE
+            type_check = cwast.Expr1(cwast.UNARY_EXPR_KIND.NOT,
+                                     cwast.ExprIs(union, cwast.TypeAuto(
+                                         x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc),
+                                     x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+            if field.x_type.is_void_or_wrapped_void():
+                return type_check
+            cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
+                x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
+                x_type=field.x_type, x_srcloc=cmp.x_srcloc)
+            cmp.expr2 = field
+            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
+                               x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
     def replacer(node, _):
 
         if not isinstance(node, cwast.Expr2):

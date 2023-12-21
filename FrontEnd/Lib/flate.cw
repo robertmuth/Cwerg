@@ -136,10 +136,16 @@
    (param pos uint)
    (param dst (slice @mut u8)) ]
  (union [uint CorruptionError NoSpaceError TruncationError]) :
+   (fmt::print! ["handle_huffman_common " pos "\n"])
    (let @mut i uint pos)
    (while true :
      (let sym auto (huffman::NextSymbol [bs lit_counts lit_symbols]))
-     (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
+     (fmt::print! ["  symbol " sym "\n"])
+
+     (if (bitstream::Stream32Eos [bs]) :
+        (fmt::print! ["  eos\n" ])
+        (return TruncationErrorVal)
+     :)
      (if (== sym huffman::BAD_TREE_ENCODING) :
       (return CorruptionErrorVal)
      :)
@@ -335,7 +341,15 @@ last symbol: 29
                       (param pos uint)
                       (param dst (slice @mut u8))]
                       (union [uint CorruptionError NoSpaceError TruncationError]) :
-   (return 0_uint)
+   (return (handle_huffman_common [
+         bs
+         fixed_lit_counts
+         fixed_lit_symbols
+         fixed_dist_counts
+         fixed_dist_symbols
+         pos
+         dst
+      ]))
 )
 
 @doc "handle 0b00 section"
