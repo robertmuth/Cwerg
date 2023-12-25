@@ -3,6 +3,9 @@
 
 
 ## Node Overview (Core)
+
+Core nodes are the ones that are known to the code generator.
+
 [DefEnum&nbsp;(enum)](#defenum-enum) &ensp;
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
@@ -45,7 +48,7 @@
 [TypeBase](#typebase) &ensp;
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
-[TypeSum&nbsp;(union)](#typesum-union) &ensp;
+[TypeUnion&nbsp;(union)](#typeunion-union) &ensp;
 [ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
@@ -58,6 +61,10 @@
 (52 nodes)
 
 ## Node Overview (Non-Core)
+
+Non-core nodes are syntactic sugar and will be eliminated before
+code generation.
+
 [Case&nbsp;(case)](#case-case) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
 [EphemeralList](#ephemerallist) &ensp;
@@ -70,9 +77,9 @@
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
-[ExprSumTag&nbsp;(sumtypetag)](#exprsumtag-sumtypetag) &ensp;
-[ExprSumUntagged&nbsp;(sumuntagged)](#exprsumuntagged-sumuntagged) &ensp;
 [ExprTypeId&nbsp;(typeid)](#exprtypeid-typeid) &ensp;
+[ExprUnionTag&nbsp;(uniontypetag)](#expruniontag-uniontypetag) &ensp;
+[ExprUnionUntagged&nbsp;(unionuntagged)](#exprunionuntagged-unionuntagged) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
@@ -86,11 +93,14 @@
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
-[TypeSumDelta&nbsp;(sumdelta)](#typesumdelta-sumdelta) &ensp;
+[TypeUnionDelta&nbsp;(uniondelta)](#typeuniondelta-uniondelta) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
 (30 nodes)
 
 ## Enum Overview
+
+Misc enums used inside of nodes.
+
 [Expr1 Kind](#expr1-kind) &ensp;
 [Expr2 Kind](#expr2-kind) &ensp;
 [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) &ensp;
@@ -104,6 +114,8 @@
 Refers to a type, variable, constant, function, module by name.
 
     Ids may contain a path component indicating which modules they reference.
+    If the path component is missing the Id refers to the current module.
+
     
 
 Fields:
@@ -257,22 +269,22 @@ Flags:
 * mut: is mutable
 
 
-### TypeSum (union)
-Sum types (tagged unions)
+### TypeUnion (union)
+Union types (tagged unions)
 
-    Sums are "auto flattening", e.g.
-    Sum(a, Sum(b,c), Sum(a, d)) = Sum(a, b, c, d)
+    Unions are "auto flattening", e.g.
+    Union(a, Union(b,c), Union(a, d)) = Union(a, b, c, d)
     
 
 Fields:
 * types [LIST]: union types
 
 Flags:
-* untagged: sum type is untagged
+* untagged: union type is untagged
 
 
-### TypeSumDelta (sumdelta)
-Type resulting from the difference of SumType and a non-empty subset sets of its elements
+### TypeUnionDelta (uniondelta)
+Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     
 
 Fields:
@@ -714,7 +726,7 @@ Fields:
 ### ValVoid (void_val)
 Only value inhabiting the `TypeVoid` type
 
-    It can be used to model *null* in nullable pointers via a sum type.
+    It can be used to model *null* in nullable pointers via a union type.
      
 
 Fields:
@@ -847,11 +859,12 @@ Flags:
 
 
 ### ExprIs (is)
-Test actual expression type
+Test actual expression (run-time) type
 
+    Typically used when `expr` is a tagged union type.
+    Otherwise, the node can be constant folded.
 
-    Typically used when `expr` is a tagged sum type.
-
+    `type` can be a tagged union itself.
     
 
 Fields:
@@ -872,11 +885,15 @@ Fields:
 ### ExprNarrow (narrowto)
 Narrowing Cast (for unions)
 
+    optionally unchecked
     
 
 Fields:
 * expr [NODE]: expression
 * type [NODE]: type expression
+
+Flags:
+* unchecked: array acces is not checked
 
 
 ### ExprOffsetof (offsetof)
@@ -942,24 +959,6 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprSumTag (sumtypetag)
-Typetage of tagged sum type
-
-    result has type is `typeid`
-
-Fields:
-* expr [NODE]: expression
-
-
-### ExprSumUntagged (sumuntagged)
-Untagged sum portion of tagged sum type
-
-    Result has type untagged sum
-
-Fields:
-* expr [NODE]: expression
-
-
 ### ExprTypeId (typeid)
 TypeId of type
 
@@ -967,6 +966,24 @@ TypeId of type
 
 Fields:
 * type [NODE]: type expression
+
+
+### ExprUnionTag (uniontypetag)
+Typetage of tagged union type
+
+    result has type is `typeid`
+
+Fields:
+* expr [NODE]: expression
+
+
+### ExprUnionUntagged (unionuntagged)
+Untagged union portion of tagged union type
+
+    Result has type untagged union
+
+Fields:
+* expr [NODE]: expression
 
 
 ### ExprUnsafeCast (cast)

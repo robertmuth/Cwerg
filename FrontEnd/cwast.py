@@ -854,6 +854,8 @@ class Id:
     """Refers to a type, variable, constant, function, module by name.
 
     Ids may contain a path component indicating which modules they reference.
+    If the path component is missing the Id refers to the current module.
+
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
@@ -1643,11 +1645,12 @@ class ExprFront:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprIs:
-    """Test actual expression type
-
+    """Test actual expression (run-time) type
 
     Typically used when `expr` is a tagged union type.
+    Otherwise, the node can be constant folded.
 
+    `type` can be a tagged union itself.
     """
     ALIAS = "is"
     GROUP = GROUP.Expression
@@ -2980,7 +2983,11 @@ def MakeAnchor(name, alias):
 def GenerateDocumentation(fout):
     print(PROLOG, file=fout)
     nodes = sorted((node.__name__, node) for node in ALL_NODES)
-    print("\n## Node Overview (Core)",  file=fout)
+    print("""
+## Node Overview (Core)
+
+Core nodes are the ones that are known to the code generator.
+""",  file=fout)
     n = 0
     for name, cls in nodes:
         if NF.NON_CORE in cls.FLAGS:
@@ -2993,7 +3000,12 @@ def GenerateDocumentation(fout):
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
     print(f"({n} nodes)", file=fout)
 
-    print("\n## Node Overview (Non-Core)",  file=fout)
+    print("""
+## Node Overview (Non-Core)
+
+Non-core nodes are syntactic sugar and will be eliminated before
+code generation.
+""",  file=fout)
     n = 0
     for name, cls in nodes:
         if NF.NON_CORE not in cls.FLAGS:
@@ -3006,7 +3018,11 @@ def GenerateDocumentation(fout):
         print(f"[{name}{alias}](#{anchor}) &ensp;", file=fout)
     print(f"({n} nodes)", file=fout)
 
-    print("\n## Enum Overview",  file=fout)
+    print("""
+## Enum Overview
+
+Misc enums used inside of nodes.
+""",  file=fout)
     for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Type",
                 "ModParam", "MacroParam"]:
         name = cls + " Kind"
