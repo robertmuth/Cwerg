@@ -627,8 +627,6 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         def_type: cwast.CanonType = node.type_or_auto.x_type
-        # This uniquifies names
-        node.name = id_gen.NewName(node.name)
         initial = node.initial_or_undef_or_auto
         if def_type.size == 0 and not isinstance(initial, cwast.ValUndef):
             EmitIRExpr(initial, tc, id_gen)
@@ -942,14 +940,14 @@ def main():
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
-    id_gen_global = identifier.IdGen()
+    id_gen_global = identifier.IdGen("$GLOBAL")
     id_gens: Dict[cwast.DefFun,  identifier.IdGen] = {}
 
     def GetIdGen(fun):
         assert isinstance(fun, cwast.DefFun)
         ig = id_gens.get(fun)
         if ig is None:
-            ig = identifier.IdGen()
+            ig = identifier.IdGen(fun.name)
             id_gens[fun] = ig
         return ig
 
@@ -1068,11 +1066,35 @@ def main():
 
     # Naming cleanup:
     # * Set fully qualified names for all module level symbols
+    # * uniquify local variables so we can use them directly
+    #   for codegen without having to worry about name clashes
     for mod in mod_topo_order:
-        # when we emit Cwerg IR we use the "/" sepearator not "::" because
-        # : is used for type annotations
+
         for node in mod.body_mod:
+
+            if isinstance(node, cwast.DefFun):
+                names = set()
+                clashes = set()
+                def visitor(n, _):
+                    nonlocal names, clashes
+                    if isinstance(n, cwast.DefVar):
+                        if n.name in names:
+                            clashes.add(n)
+                        else:
+                            names.add(n.name)
+                cwast.VisitAstRecursivelyPost(node, visitor)
+                for n in clashes:
+                    assert "%" not in n.name
+                    for i in range(1000000):
+                        nn = f"{n.name}%{i+1}"
+                        if nn not in names:
+                            names.add(nn)
+                            n.name = nn
+                            break
+
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
+                # when we emit Cwerg IR we use the "/" sepearator not "::" because
+                # : is used for type annotations
                 suffix = ""
                 if isinstance(node, (cwast.DefFun)) and node.polymorphic:
                     suffix = f"<{node.x_type.parameter_types()[0].name}>"
@@ -1080,6 +1102,7 @@ def main():
                     node.name = node.name + suffix
                 else:
                     node.name = mod.x_modname + "/" + node.name + suffix
+
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, verifier, ELIMIMATED_NODES)
@@ -1096,7 +1119,7 @@ def main():
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                EmitIRDefFun(node, tc, identifier.IdGenIR())
+                EmitIRDefFun(node, tc, identifier.IdGenIR(node.name))
 
 
 if __name__ == "__main__":

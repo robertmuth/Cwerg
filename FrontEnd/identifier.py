@@ -11,10 +11,12 @@ class IdGenIR:
        are also valid IR names and use them verbatim.
        """
 
-    def __init__(self):
+    def __init__(self, handle=""):
+        self.handle = handle
         self._names: Dict[str, int] = {}
 
-    def NewName(self, prefix) -> str:
+    def NewName(self, prefix: str) -> str:
+        assert "." not in prefix, f"{prefix}"
         no = self._names.get(prefix, 0)
         self._names[prefix] = no + 1
         if no == 0:
@@ -24,12 +26,18 @@ class IdGenIR:
 
 
 class IdGen:
-    """This is used to generate new names for the AST."""
+    """This is used to generate new names for the AST.
 
-    def __init__(self):
+    This should be the only place that introduces "%" into
+    identifier names.
+    """
+
+    def __init__(self, handle=""):
+        self.handle = handle
         self._names: Dict[str, int] = {}
 
-    def NewName(self, prefix) -> str:
+    def NewName(self, prefix: str) -> str:
+        assert "%" not in prefix
         no = self._names.get(prefix, 0)
         self._names[prefix] = no + 1
         return f"{prefix}%{no}"
