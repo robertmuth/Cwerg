@@ -85,15 +85,34 @@
     (block _ :
         @doc "one byte"
         (let @mut @ref out auto (array_val 1 u8 []))
+        @doc "last=1 fixed=01 sym8=000_01100 sym7=00_00000"
         (let @ref data auto (array_val 3 u8 [ 0x63 0x00 0x00]))
         (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
         (test::AssertEq! (flate::uncompress [ (& @mut bs) out ]) 1_uint)
         (let @ref expected auto (array_val 1 u8 [ 0x00 ]))
         (test::AssertSliceEq! expected out))
+    (block _ :
+        @doc "two byte"
+        (let @mut @ref out auto (array_val 2 u8 []))
+        @doc "last=1 fixed=01 sym8=000_01100 sym8=000_01110 sym7=00_00000"
+        (let @ref data auto (array_val 4 u8 [ 0x63 0x70 0x00 0x00]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertEq! (flate::uncompress [ (& @mut bs) out ]) 2_uint)
+        (let @ref expected auto (array_val 2 u8 [ 0x00 0x40]))
+        (test::AssertSliceEq! expected out))
+    (block _ :
+        @doc "two byte in two blocks"
+        (let @mut @ref out auto (array_val 2 u8 []))
+        @doc """last=0 fixed=01 sym8=000_01100 sym7=00_00000
+                last=1 fixed=01 sym8=00001_110 sym7=0000_000"""
+        (let @ref data auto (array_val 5 u8 [ 0x62 0x00 0xcc 0x01 0x00]))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertEq! (flate::uncompress [ (& @mut bs) out ]) 2_uint)
+        (let @ref expected auto (array_val 2 u8 [ 0x00 0x40]))
+        (test::AssertSliceEq! expected out))
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-
     (stmt (test_inflate_generic_failure []))
     @doc "uncompressed"
     (stmt (test_inflate_uncompressed_failure []))

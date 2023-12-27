@@ -188,6 +188,7 @@
         (case true : (return CorruptionErrorVal))
      )
    )
+   @doc "unreachable"
    (return i)
 )
 
@@ -407,13 +408,13 @@ last symbol: 29
          (try new_pos uint (handle_fixed_huffman [bs pos dst]) err :
             (return err))
 
-         (+= pos new_pos)
+         (= pos new_pos)
        )
        (case (== kind 2) :
          (try new_pos uint (handle_dynamic_huffman [bs pos dst]) err :
             (return err))
 
-         (+= pos new_pos)
+         (= pos new_pos)
        )
        @doc "reserved"
        (case true :
