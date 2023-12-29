@@ -64,35 +64,62 @@ This function has two failure modes:
 
 
 @doc """
-Returns highest symbol encountered (= non-zero entries in lengths).
-Usually that value is (len lengths)
+Popoulates the counts and sybols from lengths
 
+lengths[sym] contains the bitwidth of synbol sym.
+
+Returns the number of elements in symbols populated which is usally
+the number of nonzero entries in lengths.
+
+If lengths has exactly one non-zero elemenmt an extra dummy element
+will be inserted into symbols and 2 will be returned.
+
+counts[width] contains the number of elments in lengths having value width.
 Note counts[0] is always 0
+
 """
+
 (fun @pub ComputeCountsAndSymbolsFromLengths [
        (param lengths (slice u16))
        (param counts (slice @mut u16))
        (param symbols (slice @mut u16))] u16 :
     (if (> (len lengths) MAX_SYMBOLS) : (return BAD_TREE_ENCODING) :)
-    (if (< (len lengths) 2) : (return BAD_TREE_ENCODING) :)
-
     (for level 0 (len counts) 1 :
         (= (at counts level) 0))
+
     (let @mut last u16 0)
     (for i 0 (len lengths) 1 :
         (let bits auto (at lengths i))
         (if (!= bits 0) :
-        (= last (as i u16))
-        (if (>= (as bits uint) (len counts)) : (return BAD_TREE_ENCODING) :)
-        (+= (at counts bits) 1)
+            (= last (as i u16))
+            (if (>= (as bits uint) (len counts)) : (return BAD_TREE_ENCODING) :)
+            (+= (at counts bits) 1)
         :)
     )
-    (if (! (CountsAreFeasible [counts])) :
-        (return BAD_TREE_ENCODING)
-    :)
+
+    (let @mut n u16 0)
+    (for i 1 (len counts) 1 :
+        (+= n (at counts i))
+    )
+
+    (cond :
+        (case (== n 0) :
+            (return BAD_TREE_ENCODING)
+        )
+        (case (== n 1) :
+            @doc "also see below for more special handling"
+            (if (!= (at counts 1) 1) :
+                (return BAD_TREE_ENCODING) :)
+        )
+        (case true :
+            (if (! (CountsAreFeasible [counts])) :
+                (return BAD_TREE_ENCODING) :)
+
+        )
+    )
 
     @doc "accumulate counts to get offsets"
-    (let @mut n u16 0)
+    (= n 0)
     (for i 1 (len counts) 1 :
         (+= n (at counts i))
         (= (at counts i) n)
@@ -123,6 +150,13 @@ Note counts[0] is always 0
         (= n1 (at counts i))
         (= (at counts i) d)
     )
+
+    @doc "weird case"
+    (if (== n 1) :
+        (= (at counts 1) 2)
+        (= (at symbols 1) BAD_SYMBOL)
+        (+= n 1)
+    :)
     (return n)
 )
 

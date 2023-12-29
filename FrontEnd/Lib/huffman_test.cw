@@ -168,7 +168,47 @@ D = 100
 
 )
 
+(fun test_helper [] void :
+   (let @mut lengths (array 285 u16))
+   (= (at lengths 0) 1)
+   (= (at lengths 256) 2)
+   (= (at lengths 284) 2)
+
+   (let @mut counts (array 8 u16))
+   (let @mut symbols (array 8 u16))
+   (test::AssertEq!
+        (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
+    3_u16)
+    (test::AssertEq! 0_u16 (at counts 0))
+    (test::AssertEq! 1_u16 (at counts 1))
+    (test::AssertEq! 2_u16 (at counts 2))
+
+    (test::AssertEq! 0_u16 (at symbols 0))
+    (test::AssertEq! 256_u16 (at symbols 1))
+    (test::AssertEq! 284_u16 (at symbols 2))
+)
+
+(fun test_helper_single_code [] void :
+   (let @mut lengths (array 285 u16))
+   (= (at lengths 66) 1)
+
+   (let @mut counts (array 8 u16))
+   (let @mut symbols (array 8 u16))
+   (test::AssertEq!
+        (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
+    2_u16)
+    (test::AssertEq! 0_u16 (at counts 0))
+    (test::AssertEq! 2_u16 (at counts 1))
+
+    (test::AssertEq! 66_u16 (at symbols 0))
+    (test::AssertEq! huffman::BAD_SYMBOL (at symbols 1))
+
+)
+
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    (stmt (test_helper []))
+    (stmt (test_helper_single_code []))
+
     (stmt (test_tree0_decoding []))
     (stmt (test_tree1_decoding []))
     (stmt (test_tree1_bitstream_decoding []))
