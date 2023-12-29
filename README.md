@@ -8,7 +8,7 @@ is fairly far along and can be used independently from the frontend.
 
 Documentation:
 * [Frontend Docs](FrontEndDocs/) (misc. documentation)
-* [Cwerg Examples](FrondEnd/TestData) (example Cwerg code)
+* [Cwerg Examples](FrontEnd/TestData) (example Cwerg code)
 * [Backend Docs](Docs/) (misc. documentation)
 * [Cwerg IR Examples](Examples/) (examples demonstrating backend API usage)
 
