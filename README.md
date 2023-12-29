@@ -7,8 +7,10 @@ The [frontend](FrontEnd) is WIP. The multi-target backend
 is fairly far along and can be used independently from the frontend.
 
 Documentation:
-* [Docs](Docs/) (misc. documentation)
-* [Examples](Examples/) (examples demonstrating backend API usage)
+* [Frontend Docs](FrontEndDocs/) (misc. documentation)
+* [Cwerg Examples](FrondEnd/TestData) (example Cwerg code)
+* [Backend Docs](Docs/) (misc. documentation)
+* [Cwerg IR Examples](Examples/) (examples demonstrating backend API usage)
 
 Most components are implemented twice (see [rationale](Docs/why_python.md)):
 1. spec/reference implementation: Python 3.9
