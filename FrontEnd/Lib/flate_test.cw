@@ -30,17 +30,18 @@
         (let @ref data auto (array_val 4 u8 [ 0x01 0x00 0x00 0xff ]))
         (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
         (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::TruncationError))
-
     (block _ :
         @doc "bad checksum"
         (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xee 0xee ]))
         (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
         (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::CorruptionError))
+
     (block _ :
         @doc "truncated data"
         (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xee 0xee ]))
         (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
         (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) flate::CorruptionError))
+
     (block _ :
         @doc "writing past end"
         (let @ref data auto (array_val 7 u8 [ 0x01 0x02 0x00 0xfd 0xff 00 00]))
@@ -112,14 +113,40 @@
         (test::AssertSliceEq! expected out))
 )
 
+(fun test_inflate_dynamic_huffman_success [] void :
+    (block _ :
+        @doc "256 zero bytes compressed using RLE (only one distance code)"
+        (let @mut @ref out auto (array_val 256 u8 []))
+        (let @ref data auto (array_val 15 u8 [
+        0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80
+        0xa0 0xfc 0xa9 0x07 0x39 0x73 0x01]
+        ))
+        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+        (test::AssertEq! (flate::uncompress [ (& @mut bs) out ]) 256_uint)
+        (let @ref expected auto (array_val 256 u8 [
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0]))
+        (test::AssertSliceEq! expected out))
+)
+
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (stmt (test_inflate_generic_failure []))
     @doc "uncompressed"
     (stmt (test_inflate_uncompressed_failure []))
     (stmt (test_inflate_uncompressed_success []))
+
     @doc "fixed huffman"
     (stmt (test_inflate_fixed_huffman_failure []))
     (stmt (test_inflate_fixed_huffman_success []))
+
+    @doc "dynamic huffman"
+    (stmt (test_inflate_dynamic_huffman_success []))
 
     @doc "test end"
     (test::Success!)

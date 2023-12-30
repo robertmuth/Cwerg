@@ -235,7 +235,7 @@
    (let @mut lit_symbols (array MAX_LIT_SYMS u16))
    (let @mut lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
    (block _ :
-      (let lit_lengths auto (slice_val (incp (front @mut lit_dist_lengths) dist_num_syms) lit_num_syms))
+      (let lit_lengths auto (slice_val (front @mut lit_dist_lengths) lit_num_syms))
       (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
                   [lit_lengths lit_counts lit_symbols]))
       (if (== lit_last_symbol huffman::BAD_TREE_ENCODING) :
