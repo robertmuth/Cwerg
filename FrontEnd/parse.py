@@ -247,6 +247,8 @@ def ReadNodeList(stream: ReadTokens, parent_cls):
         if parent_cls is cwast.ValArray and not isinstance(expr, cwast.IndexVal):
             expr = cwast.IndexVal(expr, cwast.ValAuto(
                 x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc, **attr)
+        elif parent_cls is cwast.ValRec and not isinstance(expr, cwast.FieldVal):
+            expr = cwast.FieldVal(expr, "", x_srcloc=expr.x_srcloc, **attr)
         out.append(expr)
         attr.clear()
     return out

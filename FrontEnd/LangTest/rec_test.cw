@@ -55,6 +55,12 @@
                 (index_val undef)
                 (index_val 0x12)]))]))
 
+(global @mut g3_alt auto (rec_val type_rec3 [
+        0x1234
+        0x4321
+        g2
+        (array_val 13 u16 [ 0x11 undef 0x12 ])]))
+
 
 (global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
 
@@ -78,6 +84,13 @@
     (test::AssertEq! (at (. v1 u5) 2) 502_u16)
     (test::AssertEq! (at (. v1 u5) 3) 503_u16)
     (test::AssertEq! (at (. v1 u5) 10) 510_u16)
+    @doc "GLOBAL ALT"
+    (test::AssertEq! (. g3_alt u2) 0x1234_u16)
+    (test::AssertEq! (. g3_alt u3) 0x4321_u64)
+    (test::AssertEq! (. (. g3_alt  u4) t1) true)
+    (test::AssertEq! (. (. g3_alt  u4) t2) 0x12345678_u32)
+    (test::AssertEq! (at (. g3_alt  u5) 0) 0x11_u16)
+    (test::AssertEq! (at (. g3_alt  u5) 2) 0x12_u16)
     @doc "GLOBAL"
     (test::AssertEq! (. g3 u2) 0x1234_u16)
     (test::AssertEq! (. g3 u3) 0x4321_u64)
@@ -106,5 +119,3 @@
     (return 0))
 
 )
-
-

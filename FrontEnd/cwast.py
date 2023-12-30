@@ -1245,7 +1245,7 @@ class IndexVal:
     """Part of an array literal
 
     e.g. `.1 = 5`
-    If index is empty use `0` or `previous index + 1`.
+    If index is auto use `0` or `previous index + 1`.
     """
     ALIAS = "index_val"
     GROUP = GROUP.Value
