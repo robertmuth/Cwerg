@@ -84,7 +84,7 @@ class ReturnResultLocation:
 def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
     assert x_type.is_base_or_enum_type()
     byte_width = x_type.size
-    if x_value is None or isinstance(x_value, cwast.ValUndef):
+    if x_value is eval.VAL_UNDEF:
         return ZEROS[byte_width]
     elif x_type.is_uint():
         return x_value.to_bytes(byte_width, 'little')

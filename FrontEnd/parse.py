@@ -85,7 +85,7 @@ class ReadTokens:
         return self
 
     def srcloc(self):
-        return f"{self._filename}({self.line_no})"
+        return cwast.SrcLoc(self._filename, self.line_no)
 
     def pushback(self, token):
         # TODO: line number fix up in rare cases

@@ -18,8 +18,24 @@ from Util.parse import EscapedStringToBytes, HexStringToBytes
 
 logger = logging.getLogger(__name__)
 
-_UNDEF = cwast.ValUndef()
-_VOID = cwast.ValVoid()
+
+class _ValSpecial:
+    def __init__(self, kind: str):
+        self._kind = kind
+
+    def __str__(self):
+        return f"VAL-{self._kind}"
+
+
+VAL_UNDEF = _ValSpecial("UNDEF")
+VAL_VOID = _ValSpecial("VOID")
+VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
+VAL_GLOBALSLICE = _ValSpecial("GLOBALSLICE")
+
+
+def IsGlobalSymId(node):
+    # TODO: maybe include DefFun
+    return isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.DefGlobal)
 
 
 def _VerifyEvalValue(val):
@@ -31,10 +47,10 @@ def _VerifyEvalValue(val):
             assert x is not None
     elif isinstance(val, dict):
         for x in val.values():
-            assert x is not None
+            assert x is not None, f"rec dict with None {val}"
     else:
-        assert isinstance(val, (int, float, bytes, cwast.ValUndef,
-                          cwast.ValVoid)), f"unexpected value {val}"
+        assert isinstance(val, (int, float, bytes, _ValSpecial)
+                          ), f"unexpected value {val}"
         assert val is not None
 
 
@@ -89,7 +105,6 @@ _BASE_TYPE_TO_DEFAULT = {
 
 
 def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
-    # first pass if we cannot evaluate everyting, we must give up
     rec: Dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
@@ -98,7 +113,7 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
             if ct.is_base_type():
                 rec[field.name] = _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
             elif ct.is_slice():
-                rec[field.name] = []
+                rec[field.name] = []  # null slice
             elif ct.is_pointer():
                 cwast.CompilerError(
                     srcloc, f"ptr field {field.name} must be initialized")
@@ -111,9 +126,9 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
                 assert False, f"{ct}"
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
-            if init.value_or_undef.x_value is None:
+            if init.x_value is None:
                 return None
-            rec[field.name] = init.value_or_undef.x_value
+            rec[field.name] = init.x_value
     return rec
 
 
@@ -133,7 +148,7 @@ def _EvalValArray(node: cwast.ValArray) -> bool:
                 break
     if has_unknown:
         return False
-    curr_val = _UNDEF
+    curr_val = VAL_UNDEF
     array = []
     for _, c in symbolize.IterateValArray(node, node.x_type.dim):
         if c is None:
@@ -273,9 +288,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     if isinstance(node, cwast.ValFalse):
         return _AssignValue(node, False)
     elif isinstance(node, cwast.ValVoid):
-        return _AssignValue(node, _VOID)
+        return _AssignValue(node, VAL_VOID)
     elif isinstance(node, cwast.ValUndef):
-        return _AssignValue(node, _UNDEF)
+        return _AssignValue(node, VAL_UNDEF)
     elif isinstance(node, cwast.ValNum):
         cstr: cwast.CanonType = node.x_type
         if cstr.is_base_type() or cstr.is_enum():
@@ -288,13 +303,22 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
     elif isinstance(node, cwast.IndexVal):
-        if node.value_or_undef.x_value is not None:
+        if node.value_or_undef.x_value is None:
+            if (node.x_type.is_slice() and node.value_or_undef.x_type.is_array() and
+                    IsGlobalSymId(node.value_or_undef)):
+                return _AssignValue(node, VAL_GLOBALSLICE)
+
+        else:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValArray):
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
-        if node.value_or_undef.x_value is not None:
+        if node.value_or_undef.x_value is None:
+            if (node.x_type.is_slice() and node.value_or_undef.x_type.is_array() and
+                    IsGlobalSymId(node.value_or_undef)):
+                return _AssignValue(node, VAL_GLOBALSLICE)
+        else:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
@@ -359,8 +383,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, True)
         if expr_ct.is_tagged_union():
             if test_ct.is_tagged_union():
-                test_elements = set([x.name for x in test_ct.union_member_types()])
-                expr_elements = set([x.name for x in expr_ct.union_member_types()])
+                test_elements = set(
+                    [x.name for x in test_ct.union_member_types()])
+                expr_elements = set(
+                    [x.name for x in expr_ct.union_member_types()])
                 if expr_elements.issubset(test_elements):
                     return _AssignValue(node, True)
                 return False
@@ -376,7 +402,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprFront):
-        # TODO: we can do better here
+        if IsGlobalSymId(node.container):
+            return _AssignValue(node, VAL_GLOBALSYMADDR)
         return False
     elif isinstance(node, cwast.ExprLen):
         if node.container.x_type.is_array():
@@ -385,7 +412,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
             return _AssignValue(node, len(node.container.x_value))
         return False
     elif isinstance(node, cwast.ExprAddrOf):
-        # TODO: we can do better here
+        if IsGlobalSymId(node.expr_lhs):
+            return _AssignValue(node, VAL_GLOBALSYMADDR)
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
@@ -470,11 +498,8 @@ def VerifyASTEvalsRecursively(node):
                                                 f"expected const node: {node} inside: {parent}")
             else:
                 if node.x_value is None:
-                    if node.x_type.is_pointer():
-                        # TODO: we do not track constant addresses yet
-                        # for now assume they are constant
-                        pass
-                    elif node.x_type.is_slice():
+                    if node.x_type.is_slice() or (node.x_type.original_type and
+                                                  node.x_type.original_type.is_slice()):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
                         pass
@@ -485,7 +510,7 @@ def VerifyASTEvalsRecursively(node):
                         pass
                     else:
                         cwast.CompilerError(
-                            node.x_srcloc, f"expected const node: {node} inside {parent}")
+                            node.x_srcloc, f"expected const node: {node} of type {node.x_type} inside {parent}")
 
         if field == "init_index":
             assert (node.x_value is not None or

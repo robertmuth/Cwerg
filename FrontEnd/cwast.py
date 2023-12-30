@@ -11,7 +11,6 @@ from typing import List, Dict, Set, Optional, Union, Any
 
 logger = logging.getLogger(__name__)
 
-SRCLOC_GENERATED = -1
 
 _ID_PATH_SEPARATOR = "::"
 
@@ -821,6 +820,19 @@ class CanonType:
 
     def __str__(self):
         return self.name
+
+
+@dataclasses.dataclass()
+class SrcLoc:
+    filename: str
+    lineno: int
+
+    def __str__(self):
+        return f"{self.filename}({self.lineno})"
+
+SRCLOC_UNKNOWN = SrcLoc("@unknown@", 0)
+SRCLOC_GENERATED = SrcLoc("@generated@", 0)
+
 ############################################################
 # Emphemeral
 ############################################################
@@ -841,7 +853,7 @@ class EphemeralList:
     #
     colon: bool = False  # colon style list
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
 ############################################################
 # Identifier
@@ -863,7 +875,7 @@ class Id:
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
@@ -884,7 +896,7 @@ class TypeAuto:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -911,7 +923,7 @@ class FunParam:
     res_ref: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}: {self.type}"
@@ -973,7 +985,7 @@ class TypeBase:
     #
     base_type_kind: BASE_TYPE_KIND
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -993,7 +1005,7 @@ class TypePtr:
     #
     mut: bool = False  # pointee is mutable
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1016,7 +1028,7 @@ class TypeSlice:
     #
     mut: bool = False  # slice is mutable
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1037,7 +1049,7 @@ class TypeArray:
     size: "NODES_EXPR_T"      # must be const and unsigned
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1058,7 +1070,7 @@ class TypeFun:
     params: List[NODES_PARAMS_T]
     result: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1082,7 +1094,7 @@ class TypeUnion:
     #
     untagged: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1103,7 +1115,7 @@ class TypeUnionDelta:
     type: NODES_TYPES_T
     subtrahend: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1121,7 +1133,7 @@ class TypeOf:
     #
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1142,7 +1154,7 @@ class ValAuto:
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1158,7 +1170,7 @@ class ValTrue:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1176,7 +1188,7 @@ class ValFalse:
     #
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1196,7 +1208,7 @@ class ValNum:
     #
     number: str   # maybe a (unicode) character as well
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1213,7 +1225,7 @@ class ValUndef:
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_value: Optional[Any] = None    # this is always a ValUndef() object
 
     def __str__(self):
@@ -1231,7 +1243,7 @@ class ValVoid:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1256,7 +1268,7 @@ class IndexVal:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1281,13 +1293,13 @@ class FieldVal:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.init_field}={self.value_or_undef}"
+        return f"{_NAME(self)} {self.init_field}"
 
 
 @NodeCommon
@@ -1307,7 +1319,7 @@ class ValArray:
     type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1329,7 +1341,7 @@ class ValSlice:
     pointer: "NODES_EXPR_T"
     expr_size: "NODES_EXPR_T"
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1353,7 +1365,7 @@ class ValString:
     strkind: str = ""   # or raw or hex
     triplequoted: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1375,7 +1387,7 @@ class ValRec:
     type: NODES_TYPES_T
     inits_field: List[NODES_INITS_REC_T]
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1399,7 +1411,7 @@ class ExprDeref:
     #
     expr: NODES_EXPR_T  # must be of type AddrOf
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1423,7 +1435,7 @@ class ExprAddrOf:
     #
     mut: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1445,7 +1457,7 @@ class ExprCall:
     #
     polymorphic: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1464,7 +1476,7 @@ class ExprParen:
     #
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1481,7 +1493,7 @@ class ExprField:
     container: NODES_EXPR_T  # must be of type rec
     field: str
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -1501,7 +1513,7 @@ class Expr1:
     unary_expr_kind: UNARY_EXPR_KIND
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1523,7 +1535,7 @@ class ExprPointer:
     expr_bound_or_undef: NODES_EXPR_T
 
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1543,7 +1555,7 @@ class Expr2:
     expr1: NODES_EXPR_T
     expr2: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1564,7 +1576,7 @@ class Expr3:
     expr_t: NODES_EXPR_T
     expr_f: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1588,7 +1600,7 @@ class ExprIndex:
     #
     unchecked: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1609,7 +1621,7 @@ class ExprLen:
     #
     container: NODES_EXPR_T   # must be of type slice or array
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1633,7 +1645,7 @@ class ExprFront:
     #
     mut: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1659,7 +1671,7 @@ class ExprIs:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1679,7 +1691,7 @@ class ExprWrap:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1698,7 +1710,7 @@ class ExprUnwrap:
     #
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1722,7 +1734,7 @@ class ExprAs:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1746,7 +1758,7 @@ class ExprNarrow:
     #
     unchecked: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1768,7 +1780,7 @@ class ExprWiden:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1792,7 +1804,7 @@ class ExprUnsafeCast:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -1819,7 +1831,7 @@ class ExprBitCast:
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1839,7 +1851,7 @@ class ExprTypeId:
     #
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1859,7 +1871,7 @@ class ExprUnionTag:
     #
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1879,7 +1891,7 @@ class ExprUnionUntagged:
     #
     expr: NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1899,7 +1911,7 @@ class ExprSizeof:
     #
     type: NODES_TYPES_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1920,7 +1932,7 @@ class ExprOffsetof:
     type: NODES_TYPES_T  # must be rec
     field: str
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
@@ -1942,7 +1954,7 @@ class ExprStmt:
     #
     body: List[NODES_BODY_T]  # new scope
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -1969,7 +1981,7 @@ class StmtBlock:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.label}"
@@ -1991,7 +2003,7 @@ class StmtDefer:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -2011,7 +2023,7 @@ class StmtIf:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -2030,7 +2042,7 @@ class Case:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -2048,7 +2060,7 @@ class StmtCond:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -2068,7 +2080,7 @@ class StmtBreak:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -2089,7 +2101,7 @@ class StmtContinue:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -2112,7 +2124,7 @@ class StmtReturn:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_target: Optional[Any] = None
 
     def __str__(self):
@@ -2134,7 +2146,7 @@ class StmtExpr:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr}"
@@ -2153,7 +2165,7 @@ class StmtStaticAssert:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.cond}"
@@ -2169,7 +2181,7 @@ class StmtTrap:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -2189,7 +2201,7 @@ class StmtCompoundAssignment:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr_rhs}"
@@ -2208,7 +2220,7 @@ class StmtAssignment:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.lhs} = {self.expr_rhs}"
@@ -2234,7 +2246,7 @@ class RecField:  #
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_offset: int = -1
 
@@ -2256,7 +2268,7 @@ class DefRec:
     pub:  bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -2278,7 +2290,7 @@ class EnumVal:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None
 
@@ -2301,7 +2313,7 @@ class DefEnum:
     pub:  bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
 
@@ -2328,7 +2340,7 @@ class DefType:
     wrapped: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
 
     def __str__(self):
@@ -2357,7 +2369,7 @@ class DefVar:
     ref: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
@@ -2381,10 +2393,11 @@ class DefGlobal:
     #
     pub: bool = False
     mut: bool = False
+    ref: bool = False
     cdecl: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
@@ -2416,7 +2429,7 @@ class DefFun:
     cdecl: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: Optional[Any] = None
     x_module: Optional["DefMod"] = None  # only use for polymorphic function
 
@@ -2438,7 +2451,7 @@ class ModParam:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
@@ -2464,7 +2477,7 @@ class DefMod:
     doc: str = ""
     builtin: bool = False
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_modname: str = ""
 
     def __str__(self):
@@ -2485,7 +2498,7 @@ class Import:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_module: Optional[Any] = None
 
     def __str__(self):
@@ -2503,7 +2516,7 @@ class ExprSrcLoc:
     GROUP = GROUP.Expression
     FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
 
 @NodeCommon
@@ -2519,7 +2532,7 @@ class ExprStringify:
     #
     expr:  NODES_EXPR_T
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
 ############################################################
 # Macro
@@ -2539,7 +2552,7 @@ class MacroId:
     #
     name: str
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2565,7 +2578,7 @@ class MacroVar:
     ref: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef_or_auto}"
@@ -2587,7 +2600,7 @@ class MacroFor:
     name_list: str
     body_for: List[Any]
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
 
 @NodeCommon
@@ -2603,7 +2616,7 @@ class MacroParam:
     #
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
@@ -2620,7 +2633,7 @@ class MacroInvoke:
     name: str
     args: List[NODES_EXPR_T]
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_module: Optional[Any] = None
 
     def __str__(self):
@@ -2652,7 +2665,7 @@ class DefMacro:
     pub: bool = False
     doc: str = ""
     #
-    x_srcloc: Optional[Any] = None
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2872,6 +2885,8 @@ ASSERT_AFTER_ERROR = True
 
 # message format follows:
 # https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks
+
+
 def CompilerError(srcloc, msg, kind='syntax'):
     global ASSERT_AFTER_ERROR
     print(f"{srcloc}: error {kind}: {msg}", file=sys.stdout)
@@ -2903,7 +2918,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
             CompilerError(
                 node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
 
-        assert node.x_srcloc is not None, f"Node without srcloc node {node} for field {field}"
+        assert isinstance(node.x_srcloc, SrcLoc) and node.x_srcloc != SRCLOC_UNKNOWN, f"Node without srcloc node {node} for field {field}"
 
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":

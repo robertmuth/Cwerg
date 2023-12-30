@@ -64,6 +64,18 @@
 
 (global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
 
+(defrec @pub type_rec5 :
+    (field t1 u64)
+    (field t2 (slice @mut u8))
+    (field t5 bool))
+
+
+(global @mut buffer auto (array_val 3 u8 [ 0 0 0 ]))
+
+(global g5 type_rec5 undef)
+(global g6 type_rec5 (rec_val type_rec5 [0 buffer false]))
+(global g7 auto
+           (array_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"

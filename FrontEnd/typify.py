@@ -665,7 +665,7 @@ def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonTyp
 
 
 def _CheckTypeCompatibleForAssignment(node, actual: cwast.CanonType,
-                                      expected: cwast.CanonType, mutable, srcloc=None):
+                                      expected: cwast.CanonType, mutable: bool, srcloc=None):
     if not type_corpus.is_compatible(actual, expected, mutable):
         cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
@@ -707,8 +707,10 @@ def _CheckFieldVal(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
     field_node = node.x_field
     _CheckTypeSame(node, field_node.x_type, node.x_type)
     if not isinstance(node.value_or_undef, cwast.ValUndef):
-        _CheckTypeCompatible(
-            node, node.value_or_undef.x_type, node.x_type)
+        _CheckTypeCompatibleForAssignment(
+            node, node.value_or_undef.x_type, node.x_type, type_corpus.is_mutable_array(
+                node.value_or_undef),
+            node.value_or_undef.x_srcloc)
 
 
 def CheckFieldValStrict(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
@@ -725,6 +727,7 @@ def CheckValArray(node: cwast.ValArray, tc: type_corpus.TypeCorpus):
         assert isinstance(x, cwast.IndexVal), f"{x}"
         if not isinstance(x.init_index, cwast.ValAuto):
             assert x.init_index.x_type.is_int()
+        # TODO: this should be  _CheckTypeCompatibleForAssignment
         _CheckTypeSame(node,  x.x_type, cstr)
 
 

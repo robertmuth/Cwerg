@@ -9,6 +9,7 @@ from FrontEnd import cwast
 from FrontEnd import type_corpus
 from FrontEnd import typify
 from FrontEnd import symbolize
+from FrontEnd import eval
 
 ############################################################
 # Convert Slices to equvalent struct
@@ -102,7 +103,7 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> 
     pointer_field, length_field = slice_rec.ast_node.fields
     inits = [cwast.FieldVal(pointer, "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
-                            x_srcloc=srcloc),
+                            x_srcloc=srcloc, x_value=pointer.x_value),
              cwast.FieldVal(length, "",
                             x_field=length_field, x_type=length_field.x_type,
                             x_srcloc=srcloc, x_value=length.x_value)]
@@ -112,12 +113,16 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> 
 def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                           uint_type: cwast.CanonType) -> cwast.ValSlice:
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type())
+    value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
+        node) or isinstance(node, (cwast.ValArray, cwast.ValString)) else None
     pointer = cwast.ExprFront(
-        node, x_srcloc=node.x_type, mut=dst_type.mut, x_type=p_type)
+        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
     width = node.x_type.array_dim()
     length = cwast.ValNum(f"{width}", x_value=width,
                           x_srcloc=node.x_srcloc, x_type=uint_type)
-    return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type)
+    if value is not None:
+        value = eval.VAL_GLOBALSLICE
+    return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
 
 
 def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
@@ -208,7 +213,7 @@ def ReplaceSlice(node, slice_to_struct_map):
                         return None
 
                 cwast.CompilerError(
-                        node.x_srcloc, f"do not know how to convert slice node [{def_rec.name}]: {node}")
+                    node.x_srcloc, f"do not know how to convert slice node [{def_rec.name}]: {node}")
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
