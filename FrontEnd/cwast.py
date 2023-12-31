@@ -822,6 +822,9 @@ class CanonType:
         return self.name
 
 
+NO_TYPE = CanonType(None, "@invali@d")
+
+
 @dataclasses.dataclass()
 class SrcLoc:
     filename: str
@@ -829,6 +832,7 @@ class SrcLoc:
 
     def __str__(self):
         return f"{self.filename}({self.lineno})"
+
 
 SRCLOC_UNKNOWN = SrcLoc("@unknown@", 0)
 SRCLOC_GENERATED = SrcLoc("@generated@", 0)
@@ -876,7 +880,7 @@ class Id:
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
     x_module: Optional[Any] = None
@@ -897,7 +901,7 @@ class TypeAuto:
     FLAGS = NF.TYPE_ANNOTATED
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -986,7 +990,7 @@ class TypeBase:
     base_type_kind: BASE_TYPE_KIND
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)} {self.base_type_kind.name}"
@@ -1006,7 +1010,7 @@ class TypePtr:
     mut: bool = False  # pointee is mutable
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
@@ -1029,7 +1033,7 @@ class TypeSlice:
     mut: bool = False  # slice is mutable
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
@@ -1050,7 +1054,7 @@ class TypeArray:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)} ({self.type}) {self.size}"
@@ -1071,7 +1075,7 @@ class TypeFun:
     result: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         t = [str(t) for t in self.params]
@@ -1095,7 +1099,7 @@ class TypeUnion:
     untagged: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         t = [str(t) for t in self.types]
@@ -1116,7 +1120,7 @@ class TypeUnionDelta:
     subtrahend: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}{self.type} - {self.subtrahend}"
@@ -1134,7 +1138,7 @@ class TypeOf:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}"
@@ -1155,7 +1159,7 @@ class ValAuto:
     FLAGS = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1171,7 +1175,7 @@ class ValTrue:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1186,7 +1190,7 @@ class ValFalse:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -1209,7 +1213,7 @@ class ValNum:
     number: str   # maybe a (unicode) character as well
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1244,7 +1248,7 @@ class ValVoid:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1269,7 +1273,7 @@ class IndexVal:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1294,7 +1298,7 @@ class FieldVal:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
@@ -1320,7 +1324,7 @@ class ValArray:
     inits_array: List[NODES_INITS_ARRAY_T]
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1342,7 +1346,7 @@ class ValSlice:
     expr_size: "NODES_EXPR_T"
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1366,7 +1370,7 @@ class ValString:
     triplequoted: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1388,7 +1392,7 @@ class ValRec:
     inits_field: List[NODES_INITS_REC_T]
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1412,7 +1416,7 @@ class ExprDeref:
     expr: NODES_EXPR_T  # must be of type AddrOf
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1436,7 +1440,7 @@ class ExprAddrOf:
     mut: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1458,7 +1462,7 @@ class ExprCall:
     polymorphic: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1477,7 +1481,7 @@ class ExprParen:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
 
@@ -1494,7 +1498,7 @@ class ExprField:
     field: str
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
@@ -1514,7 +1518,7 @@ class Expr1:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1536,7 +1540,7 @@ class ExprPointer:
 
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1556,7 +1560,7 @@ class Expr2:
     expr2: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1577,7 +1581,7 @@ class Expr3:
     expr_f: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1601,7 +1605,7 @@ class ExprIndex:
     unchecked: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1622,7 +1626,7 @@ class ExprLen:
     container: NODES_EXPR_T   # must be of type slice or array
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1646,7 +1650,7 @@ class ExprFront:
     mut: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1672,7 +1676,7 @@ class ExprIs:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1692,7 +1696,7 @@ class ExprWrap:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1711,7 +1715,7 @@ class ExprUnwrap:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1735,7 +1739,7 @@ class ExprAs:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1759,7 +1763,7 @@ class ExprNarrow:
     unchecked: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1781,7 +1785,7 @@ class ExprWiden:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1805,7 +1809,7 @@ class ExprUnsafeCast:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)} {self.type}"
@@ -1832,7 +1836,7 @@ class ExprBitCast:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1852,7 +1856,7 @@ class ExprTypeId:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1872,7 +1876,7 @@ class ExprUnionTag:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1892,7 +1896,7 @@ class ExprUnionUntagged:
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1912,7 +1916,7 @@ class ExprSizeof:
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -1933,7 +1937,7 @@ class ExprOffsetof:
     field: str
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
@@ -1955,7 +1959,7 @@ class ExprStmt:
     body: List[NODES_BODY_T]  # new scope
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -2247,7 +2251,7 @@ class RecField:  #
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_offset: int = -1
 
     def __str__(self):
@@ -2269,7 +2273,7 @@ class DefRec:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
@@ -2291,7 +2295,7 @@ class EnumVal:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def __str__(self):
@@ -2314,7 +2318,7 @@ class DefEnum:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
 
     def __str__(self):
@@ -2341,7 +2345,7 @@ class DefType:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
 
     def __str__(self):
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
@@ -2430,7 +2434,7 @@ class DefFun:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: Optional[Any] = None
+    x_type: CanonType = NO_TYPE
     x_module: Optional["DefMod"] = None  # only use for polymorphic function
 
     def __str__(self):
@@ -2918,7 +2922,8 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
             CompilerError(
                 node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
 
-        assert isinstance(node.x_srcloc, SrcLoc) and node.x_srcloc != SRCLOC_UNKNOWN, f"Node without srcloc node {node} for field {field}"
+        assert isinstance(
+            node.x_srcloc, SrcLoc) and node.x_srcloc != SRCLOC_UNKNOWN, f"Node without srcloc node {node} for field {field}"
 
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":

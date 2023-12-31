@@ -11,7 +11,6 @@ from FrontEnd import cwast
 logger = logging.getLogger(__name__)
 
 
-NO_TYPE = None
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 

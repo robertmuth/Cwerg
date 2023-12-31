@@ -59,7 +59,7 @@ def _DoesFunSigContainSlices(fun_sig: cwast.CanonType,
 
 
 def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                        slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> cwast.TypeFun:
+                        slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> cwast.CanonType:
     assert fun_sig.is_fun()
     result = slice_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
