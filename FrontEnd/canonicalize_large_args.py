@@ -35,7 +35,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
         if not fun_sig.is_fun():
             continue
         change = False
-        params: List[type_corpus.TypeCorpus] = fun_sig.parameter_types()
+        params: List[cwast.CanonType] = fun_sig.parameter_types()
         for n, p in enumerate(params):
             if not p.fits_in_register():
                 params[n] = tc.insert_ptr_type(False, p)

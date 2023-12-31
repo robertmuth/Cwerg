@@ -104,14 +104,14 @@ def RenderList(items):
 
 
 def _EmitFunctionHeader(fun: cwast.DefFun):
-    sig: cwast.TypeFun = fun.x_type
+    ct = fun.x_type
     ins = []
-    for p in sig.parameter_types():
+    for p in ct.parameter_types():
         #
         ins += p.register_types
     result = ""
-    if not sig.result_type().is_void():
-        result = sig.result_type().get_single_register_type()
+    if not ct.result_type().is_void():
+        result = ct.result_type().get_single_register_type()
     print(
         f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
 
@@ -158,7 +158,7 @@ ZERO_INDEX = "0"
 
 
 def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
-                        id_gen: identifier.IdGenIR) -> BaseOffset:
+                        id_gen: identifier.IdGenIR) -> str:
     if offset_expr.x_value is not None:
         return offset_expr.x_value * scale
     else:
@@ -522,7 +522,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
     elif isinstance(init_node, cwast.ExprAs):
         # same as above
-        assert init_node.x_type.fits_in_register(), f"{init_node} {init_node.x_type}"
+        assert init_node.x_type.fits_in_register(
+        ), f"{init_node} {init_node.x_type}"
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, cwast.ExprNarrow):
@@ -530,18 +531,20 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         ct: cwast.CanonType = init_node.x_type
         if ct.size != 0:
             src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
-            _EmitCopy(dst, BaseOffset(src_base, 0), ct.size, ct.alignment, id_gen)
+            _EmitCopy(dst, BaseOffset(src_base, 0),
+                      ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprWiden):
         # if we are widening the src determines the size
         ct: cwast.CanonType = init_node.expr.x_type
         if ct.size != 0:
             if ct.fits_in_register():
-                 reg = EmitIRExpr(init_node.expr, tc, id_gen)
-                 assert reg is not None
-                 print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+                reg = EmitIRExpr(init_node.expr, tc, id_gen)
+                assert reg is not None
+                print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
             else:
                 src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
-                _EmitCopy(dst, BaseOffset(src_base, 0), ct.size, ct.alignment, id_gen)
+                _EmitCopy(dst, BaseOffset(src_base, 0),
+                          ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(init_node, tc, id_gen)
         assert reg is not None
@@ -549,7 +552,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
         src_base = _GetLValueAddress(init_node, tc, id_gen)
         src_type = init_node.x_type
-        #if isinstance(init_node,  cwast.ExprField):
+        # if isinstance(init_node,  cwast.ExprField):
         #    print ("@@@@@@", init_node, src_type)
         _EmitCopy(dst, BaseOffset(
 
@@ -971,8 +974,6 @@ def main():
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
-
-
     ELIMIMATED_NODES.add(cwast.ExprSizeof)
     ELIMIMATED_NODES.add(cwast.ExprOffsetof)
     ELIMIMATED_NODES.add(cwast.ExprIndex)
@@ -1075,6 +1076,7 @@ def main():
             if isinstance(node, cwast.DefFun):
                 names = set()
                 clashes = set()
+
                 def visitor(n, _):
                     nonlocal names, clashes
                     if isinstance(n, cwast.DefVar):
@@ -1102,7 +1104,6 @@ def main():
                     node.name = node.name + suffix
                 else:
                     node.name = mod.x_modname + "/" + node.name + suffix
-
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, verifier, ELIMIMATED_NODES)
