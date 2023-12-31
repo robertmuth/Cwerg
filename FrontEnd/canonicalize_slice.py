@@ -41,7 +41,7 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     name = f"tuple_{slice_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
-    ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
+    ct = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, ct)
     tc.finalize_rec_type(ct)
     ct.original_type = slice_type
@@ -84,13 +84,13 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_ST
         elif ct.is_fun() and _DoesFunSigContainSlices(ct, out):
             out[ct] = _SliceRewriteFunSig(ct, tc, out)
         elif ct.is_pointer():
-            elem_ct: cwast.CanonType = ct.underlying_pointer_type()
-            if elem_ct in out:
-                out[ct] = tc.insert_ptr_type(ct.mut, out[elem_ct])
+            replacement = out.get(ct.underlying_pointer_type())
+            if replacement is not None:
+                out[ct] = tc.insert_ptr_type(ct.mut, replacement)
         elif ct.is_array():
-            elem_ct: cwast.CanonType = ct.underlying_array_type()
-            if elem_ct in out:
-                out[ct] = tc.insert_array_type(ct.array_dim(), elem_ct)
+            replacement = out.get(ct.underlying_array_type())
+            if replacement is not None:
+                out[ct] = tc.insert_array_type(ct.array_dim(), replacement)
 
     return out
 
@@ -142,7 +142,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ReplaceSlice(node, slice_to_struct_map):
+def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
     """
     Replaces all slice<X> expressions with rec named tuple_slice<X>
     (cast to slices are eliminated by ReplaceExplicitSliceCast)
@@ -186,7 +186,12 @@ def ReplaceSlice(node, slice_to_struct_map):
                     typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.FieldVal):
-                    # assert False
+                    typify.UpdateNodeType(node, def_rec)
+                    return None
+                elif isinstance(node, cwast.IndexVal):
+                    typify.UpdateNodeType(node, def_rec)
+                    return None
+                elif isinstance(node, cwast.ValArray):
                     typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.TypeSlice):

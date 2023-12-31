@@ -67,7 +67,7 @@ def _DoesFunSigContainSums(fun_sig: cwast.CanonType,
 
 
 def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                      sum_to_struct_map: SUM_TO_STRUCT_MAP) -> cwast.TypeFun:
+                      sum_to_struct_map: SUM_TO_STRUCT_MAP) -> cwast.CanonType:
     assert fun_sig.is_fun()
     result = sum_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
@@ -83,7 +83,7 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
     """
 
     # Go through the type table in topological order and generate the map.
-    # Note; we add new types to the map while iterating over it sop we take a snapshotfirst
+    # Note; we add new types to the map while iterating over it so we take a snapshot first
     out: SUM_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
         if ct.is_tagged_union():
@@ -91,19 +91,19 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
         elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
             out[ct] = _SumRewriteFunSig(ct, tc, out)
         elif ct.is_pointer():
-            elem_ct: cwast.CanonType = ct.underlying_pointer_type()
-            if elem_ct in out:
-                out[ct] = tc.insert_ptr_type(ct.mut, out[elem_ct])
+            replacement = out.get(ct.underlying_pointer_type())
+            if replacement is not None:
+                out[ct] = tc.insert_ptr_type(ct.mut, replacement)
         elif ct.is_array():
-            elem_ct: cwast.CanonType = ct.underlying_array_type()
-            if elem_ct in out:
-                out[ct] = tc.insert_array_type(ct.array_dim(), elem_ct)
+            replacement = out.get(ct.underlying_array_type())
+            if replacement is not None:
+                out[ct] = tc.insert_array_type(ct.array_dim(), replacement)
         elif ct.is_slice():
-            elem_ct: cwast.CanonType = ct.underlying_slice_type()
+            replacement = out.get(ct.underlying_slice_type())
             # we probably should run this after slices have been eliminates so we
             # we do not have to deal with this case
-            if elem_ct in out:
-                out[ct] = tc.insert_slice_type(elem_ct)
+            if replacement is not None:
+                out[ct] = tc.insert_slice_type(ct.mut, replacement)
     return out
 
 
