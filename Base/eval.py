@@ -3,7 +3,7 @@ are known/constant.
 
 """
 
-from typing import List, Dict, Optional
+from typing import Optional
 from Base import ir
 from Base import opcode_tab as o
 

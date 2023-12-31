@@ -332,7 +332,9 @@ def BblGetLiveRanges(bbl: ir.Bbl, fun: ir.Fun, live_out: Set[ir.Reg]) -> List[Li
         elif ins.opcode.is_call():
             callee: ir.Fun = cfg.InsCallee(ins)
             assert isinstance(callee, ir.Fun)
-            # This complication only applies after we have (partial) cpu reg allocation
+            # This complication only applies after we have (partial) cpu reg allocation.
+            # Otherwise the pop/push instrcutions serve as starting/ending points of LRs
+            #
             # Finalize live ranges using the results of the call
             if callee.cpu_live_out:
                 # Note, destructive list iteration -> `list(...)` is necessary
