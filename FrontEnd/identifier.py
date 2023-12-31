@@ -11,7 +11,7 @@ class IdGenIR:
        are also valid IR names and use them verbatim.
        """
 
-    def __init__(self, handle=""):
+    def __init__(self, handle: str = ""):
         self.handle = handle
         self._names: Dict[str, int] = {}
 

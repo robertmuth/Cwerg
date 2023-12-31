@@ -8,7 +8,7 @@
 import re
 import logging
 
-from typing import List, Any
+from typing import List, Any, Dict, Tuple
 
 from FrontEnd import cwast
 
@@ -231,9 +231,9 @@ def ExpandShortHand(t: str, srcloc) -> Any:
         cwast.CompilerError(srcloc, f"unexpected token {repr(t)}")
 
 
-def ReadNodeList(stream: ReadTokens, parent_cls):
+def ReadNodeList(stream: ReadTokens, parent_cls) -> List[Any]:
     out = []
-    attr = {}
+    attr: Dict[str, Any] = {}
     while True:
         token = ReadAttrs(next(stream), attr, stream)
         if token == "]":
@@ -256,7 +256,7 @@ def ReadNodeList(stream: ReadTokens, parent_cls):
 
 def ReadNodeColonList(stream: ReadTokens, parent_cls):
     out = []
-    attr = {}
+    attr: Dict[str, Any] = {}
     while True:
         token = ReadAttrs(next(stream), attr, stream)
         if token == ")" or token == ":" or token == "[":
@@ -354,7 +354,7 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     parent_cls = cwast.MacroInvoke
     srcloc = stream.srcloc()
     logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
-    args = []
+    args: List[Any] = []
     while True:
         token = next(stream)
         if token == ")":
@@ -374,7 +374,7 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[str], attr, stream: ReadTokens):
+def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NFD]], attr, stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag).
 
     Can handle optional bools at the beginning and an optional 'tail'

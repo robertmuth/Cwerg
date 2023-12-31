@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Value annotator for Cwerg AST
+"""Partial evaluator and value annotator for Cwerg AST
 
 """
 

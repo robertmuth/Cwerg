@@ -46,6 +46,7 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
+
 class ModPoolBase:
     """
     class protocol:
@@ -125,8 +126,6 @@ class ModPoolBase:
             taken_names.add(def_mod.x_modname)
             cwast.CheckAST(def_mod, set())
 
-
-
     def ReadAndFinalizedMods(self):
         while True:
             handle = self._GetNextUnfinalized()
@@ -147,10 +146,10 @@ class ModPoolBase:
         to parameterized modules which are ignored in the topo order.
         """
 
-        deps_in = collections.defaultdict(list)
-        deps_out = collections.defaultdict(list)
+        deps_in: Dict[cwast.DefMod, List[cwast.DefMod]] = collections.defaultdict(list)
+        deps_out: Dict[cwast.DefMod, List[cwast.DefMod]] = collections.defaultdict(list)
         # candidates have no incoming deps
-        candidates = []
+        candidates: List[cwast.DefMod] = []
         for def_mod in self._mods.values():
             assert isinstance(
                 def_mod, cwast.DefMod), f"expect mod but got {def_mod}"
@@ -170,7 +169,7 @@ class ModPoolBase:
             if not deps_in[def_mod]:
                 logger.info("found leaf mod [%s]", def_mod)
                 heapq.heappush(candidates, def_mod)
-        out = []
+        out: List[cwast.DefMod] = []
         while len(out) != len(self._mods):
             assert candidates
             x = heapq.heappop(candidates)

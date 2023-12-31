@@ -484,6 +484,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
             cmp.expr2 = field
             return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
                                x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+
     def replacer(node, _):
 
         if not isinstance(node, cwast.Expr2):

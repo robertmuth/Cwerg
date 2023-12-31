@@ -247,7 +247,7 @@ def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: m
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes):
+        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes: List[Dict]):
 
     def record_local_sym(node):
         name = node.name
@@ -421,7 +421,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
-                scopes = []
+                scopes: List[Dict] = []
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, scopes)
                 assert not scopes
