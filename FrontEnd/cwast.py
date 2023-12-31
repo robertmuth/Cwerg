@@ -316,84 +316,91 @@ class NFD:
     extra: Any = None
 
 
-NODES_PARAMS = ("FunParam")
-NODES_PARAMS_T = Union[NODES_PARAMS]
-
-NODES_BODY_MOD = ("DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType",
-                  "DefGlobal", "StmtStaticAssert", "Import")
-NODES_BODY_MOD_T = Union[NODES_BODY_MOD]
-
-NODES_PARAMS_MOD = ("ModParam")
-NODES_PARAMS_MOD_T = Union[NODES_PARAMS_MOD]
-
-NODES_PARAMS_MACRO = ("MacroParam")
-NODES_PARAMS_MACRO_T = Union[NODES_PARAMS_MACRO]
-
-NODES_BODY = ("StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
-              "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke",
-              "StmtAssignment", "StmtTrap")
-NODES_BODY_T = Union[NODES_BODY]
-
-NODES_BODY_MACRO = ("StmtDefer", "StmtIf", "StmtBreak",
-                    "StmtContinue", "StmtReturn", "StmtExpr",
-                    "StmtBlock", "StmtCond")
-NODES_BODY_MACRO_T = Union[NODES_BODY_MACRO]
-
-NODES_TYPES = ("TypeBase",
-               "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeUnion", "TypeOf", "TypeUnionDelta")
-NODES_TYPES_T = Union[NODES_TYPES]
-
-NODES_TYPES_OR_AUTO = ("TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
-                       "TypeUnion", "TypeOf", "TypeUnionDelta", "TypeAuto")
-NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_OR_AUTO]
-
-NODES_ITEMS = ("EnumVal")
-NODES_ITEMS_T = Union[NODES_ITEMS]
-
-NODES_INITS_ARRAY = ("IndexVal")
-NODES_INITS_ARRAY_T = Union[NODES_INITS_ARRAY]
-
-NODES_INITS_REC = ("FieldVal")
-NODES_INITS_REC_T = Union[NODES_INITS_REC]
-
-NODES_FIELDS = ("RecField")
-NODES_FIELDS_T = Union[NODES_FIELDS]
-
-NODES_CASES = ("Case")
-NODES_CASES_T = Union[NODES_CASES]
-
-NODES_EXPR = ("ValFalse", "ValTrue", "ValNum",
-              "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
-              #
-              "MacroInvoke",
-              #
-              "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
-              "ExprField", "ExprCall", "ExprParen",
-              "Expr1", "Expr2", "Expr3", "ExprPointer",
-              "ExprLen", "ExprFront",
-              "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
-              "ExprStringify",
-              "ExprUnionTag", "ExprUnionUntagged",
-              "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
-              "ExprWiden", "ExprBitCast")
+def _ExtractTypes(t):
+    if isinstance(t, str):
+        return t
+    # we cannot test isinstance(t, Union) because Union is a special form
+    return tuple([x.__forward_arg__ for x in t.__args__])
 
 
-NODES_EXPR_T = Union[NODES_EXPR]
+NODES_PARAMS_T = "FunParam"
+NODES_PARAMS = _ExtractTypes(NODES_PARAMS_T)
+
+
+NODES_BODY_MOD_T = Union["DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "DefType",
+                         "DefGlobal", "StmtStaticAssert", "Import"]
+NODES_BODY_MOD = _ExtractTypes(NODES_BODY_MOD_T)
+
+
+NODES_PARAMS_MOD_T = "ModParam"
+NODES_PARAMS_MOD = _ExtractTypes(NODES_PARAMS_MOD_T)
+
+NODES_PARAMS_MACRO_T = "MacroParam"
+NODES_PARAMS_MACRO = _ExtractTypes(NODES_PARAMS_MACRO_T)
+
+NODES_BODY_T = Union["StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
+                     "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke",
+                     "StmtAssignment", "StmtTrap"]
+NODES_BODY = _ExtractTypes(NODES_BODY_T)
+
+NODES_BODY_MACRO_T = Union["StmtDefer", "StmtIf", "StmtBreak",
+                           "StmtContinue", "StmtReturn", "StmtExpr",
+                           "StmtBlock", "StmtCond"]
+NODES_BODY_MACRO = _ExtractTypes(NODES_BODY_MACRO_T)
+
+NODES_TYPES_T = Union["TypeBase",
+                      "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id", "TypeUnion", "TypeOf", "TypeUnionDelta"]
+NODES_TYPES = _ExtractTypes(NODES_TYPES_T)
+
+NODES_TYPES_OR_AUTO_T = Union["TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
+                              "TypeUnion", "TypeOf", "TypeUnionDelta", "TypeAuto"]
+NODES_TYPES_OR_AUTO = _ExtractTypes(NODES_TYPES_OR_AUTO_T)
+
+NODES_ITEMS_T = "EnumVal"
+NODES_ITEMS = _ExtractTypes(NODES_ITEMS_T)
+
+NODES_INITS_ARRAY_T = "IndexVal"
+NODES_INITS_ARRAY = _ExtractTypes(NODES_INITS_ARRAY_T)
+
+NODES_INITS_REC_T = "FieldVal"
+NODES_INITS_REC = _ExtractTypes(NODES_INITS_REC_T)
+
+NODES_FIELDS_T = "RecField"
+NODES_FIELDS = _ExtractTypes(NODES_FIELDS_T)
+
+NODES_CASES_T = "Case"
+NODES_CASES = _ExtractTypes(NODES_CASES_T)
+
+NODES_EXPR_T = Union["ValFalse", "ValTrue", "ValNum",
+                     "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
+                     #
+                     "MacroInvoke",
+                     #
+                     "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
+                     "ExprField", "ExprCall", "ExprParen",
+                     "Expr1", "Expr2", "Expr3", "ExprPointer",
+                     "ExprLen", "ExprFront",
+                     "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
+                     "ExprStringify",
+                     "ExprUnionTag", "ExprUnionUntagged",
+                     "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
+                     "ExprWiden", "ExprBitCast"]
+NODES_EXPR = _ExtractTypes(NODES_EXPR_T)
 
 NODES_EXPR_OR_UNDEF = NODES_EXPR + ("ValUndef",)
 
 NODES_EXPR_INIT = NODES_EXPR + ("ValAuto", "ValUndef")
 
-NODES_COND = ("ValFalse", "ValTrue",
-              #
-              "Id", "ExprDeref", "ExprIndex",
-              "ExprField", "ExprCall", "ExprParen",
-              "Expr1", "Expr2", "Expr3",
-              "ExprStmt", "ExprIs", "ExprNarrow")
-NODES_COND_T = Union[NODES_COND]
+NODES_COND_T = Union["ValFalse", "ValTrue",
+                     #
+                     "Id", "ExprDeref", "ExprIndex",
+                     "ExprField", "ExprCall", "ExprParen",
+                     "Expr1", "Expr2", "Expr3",
+                     "ExprStmt", "ExprIs", "ExprNarrow"]
+NODES_COND = _ExtractTypes(NODES_COND_T)
 
-NODES_LHS = ("Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke")
-NODES_LHS_T = Union[NODES_LHS]
+NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke"]
+NODES_LHS = _ExtractTypes(NODES_LHS_T)
 
 ALL_FIELDS = [
     NFD(NFK.STR, "number", "a number"),
@@ -684,7 +691,7 @@ class CanonType:
     base_type_kind: BASE_TYPE_KIND = BASE_TYPE_KIND.INVALID
     children: List["CanonType"] = dataclasses.field(default_factory=list)
     #
-    ast_node: Optional[Any] = None
+    ast_node: Optional[Union["DefRec", "DefEnum"]] = None
     #
     alignment: int = -1
     size: int = -1
