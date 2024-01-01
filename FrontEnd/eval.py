@@ -7,11 +7,13 @@
 import logging
 
 from typing import List, Dict, Optional, Any
+import enum
 
 from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
 from FrontEnd import typify
+from FrontEnd import identifier
 
 from Util.parse import EscapedStringToBytes, HexStringToBytes
 
@@ -31,6 +33,138 @@ VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
 VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
 VAL_GLOBALSLICE = _ValSpecial("GLOBALSLICE")
+
+
+@enum.unique
+class CONSTANT_KIND(enum.Enum):
+    # These form a simple straight line lattice
+    NOT = 0    # not a constant
+    WITH_GOBAL_ADDRESS = 3  # constant with addresses
+    PURE = 4
+
+
+def AddressConstKind(node) -> CONSTANT_KIND:
+    if isinstance(node, cwast.Id):
+        if isinstance(node.x_symbol, cwast.DefGlobal):
+            return CONSTANT_KIND.WITH_GOBAL_ADDRESS
+        elif isinstance(node.x_symbol, cwast.DefVar):
+            return CONSTANT_KIND.NOT
+        else:
+            assert False
+            return CONSTANT_KIND.NOT
+    elif isinstance(node, cwast.ExprIndex):
+        if not isinstance(node.expr_index, cwast.ValNum):
+            return CONSTANT_KIND.NOT
+        return AddressConstKind(node.container)
+    else:
+        return CONSTANT_KIND.NOT
+
+
+def ValueConstKind(node) -> CONSTANT_KIND:
+    """This works best once constant folding has occurred"""
+    assert cwast.NF.VALUE_ANNOTATED in node.FLAGS
+    if isinstance(node, (cwast.ValString, cwast.ValFalse, cwast.ValTrue,
+                         cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
+        return CONSTANT_KIND.PURE
+    if isinstance(node, cwast.ExprAddrOf):
+        return AddressConstKind(node.expr_lhs)
+    elif isinstance(node, cwast.ExprFront):
+        return AddressConstKind(node.container)
+    elif isinstance(node, cwast.ValSlice):
+        if not isinstance(node.expr_size, cwast.ValNum):
+            return CONSTANT_KIND.NOT
+        return ValueConstKind(node.pointer)
+    elif isinstance(node, cwast.ValRec):
+        out = CONSTANT_KIND.PURE
+        for field in node.inits_field:
+            o = ValueConstKind(field.value_or_undef)
+            if o is CONSTANT_KIND.NOT:
+                return o
+            if o.value < out.value:
+                out = o
+        return out
+    elif isinstance(node, cwast.ValArray):
+        out = CONSTANT_KIND.PURE
+        for index in node.inits_array:
+            if not isinstance(index.init_index, cwast.ValNum):
+                return CONSTANT_KIND.NOT
+            o = ValueConstKind(index.value_or_undef)
+            if o is CONSTANT_KIND.NOT:
+                return o
+            if o.value < out.value:
+                out = o
+        return out
+    else:
+        assert False, "unexpected {node}"
+        return CONSTANT_KIND.NOT
+
+# def _ValueShouldBeGlobalConst(node) -> bool:
+#     if not isinstance(node, cwast.ValString, cwast.ValArray, cwast.ValRec):
+#         # do not bother with small values like slices, etc.
+#         return False;
+#     # Maybe instantiating small string directly?
+#     if isinstance(node, cwast.ValString): return True
+#     return eval.IsGlobalConst(node)
+
+
+def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
+    assert def_node.type_or_auto.x_type is not None
+    return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
+
+
+class GlobalConstantPool:
+    """Manages a bunch of DefGlobal statements that were implicit in the orginal code
+
+    We move string/array/etc values into globals (un-mutable variables) for two reasons:
+    1) if these consts are used to initialize local variables, copying the data
+       from a global might be more efficient in both terms of time and cache used
+       Note: that we can also collapse idententical constants
+    2) If the address of the  const is taken we must materialize the constant.
+       This should only apply to case were strings/arrays are implicitly converted
+       to a s slice.
+
+    """
+
+    def __init__(self, id_gen_global: identifier.IdGen):
+        self._id_gen_global = id_gen_global
+        self._bytes_map: Dict[bytes, cwast.DefGlobal] = {}
+        self._all_globals: List[cwast.DefGlobal] = []
+
+    def _maybe_replace(self, node, parent, _field) -> Optional[Any]:
+        if isinstance(parent, cwast.DefGlobal):
+            return None
+        elif (isinstance(node, cwast.ValArray) and ValueConstKind(node) is not
+              CONSTANT_KIND.NOT and not isinstance(parent, cwast.DefVar)):
+            # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
+            def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
+                                       cwast.TypeAuto(
+                node.x_srcloc, x_type=node.x_type), node,
+                pub=True,
+                x_srcloc=node.x_srcloc)
+            self._all_globals.append(def_node)
+            return _IdNodeFromDef(def_node, node.x_srcloc)
+        elif isinstance(node, cwast.ValString):
+            assert isinstance(
+                node.x_value, bytes), f"expected str got {node.x_value}"
+            def_node = self._bytes_map.get(node.x_value)
+            if not def_node:
+                def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
+                                           cwast.TypeAuto(
+                                               node.x_srcloc, x_type=node.x_type), node,
+                                           pub=True,
+                                           x_srcloc=node.x_srcloc)
+                self._bytes_map[node.x_value] = def_node
+                self._all_globals.append(def_node)
+            return _IdNodeFromDef(def_node, node.x_srcloc)
+
+        return None
+
+    def PopulateConstantPool(self, node):
+        cwast.MaybeReplaceAstRecursively(node, self._maybe_replace)
+
+    def GetDefGlobals(self):
+        return self._all_globals
 
 
 def IsGlobalSymId(node):

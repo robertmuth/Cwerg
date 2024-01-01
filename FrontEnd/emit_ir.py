@@ -511,6 +511,13 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 def EmitIRExprToMemory(init_node, dst: BaseOffset,
                        tc: type_corpus.TypeCorpus,
                        id_gen: identifier.IdGenIR):
+    """This will instantiate objects on the stack or heap.
+
+    Note, that this can occur in two ways:
+    1) we populate the object from the information AST
+    2) we copy the contents from a global const location
+       (this works in conjunction with the GlobalConstantPool)
+    """
     assert init_node.x_type.size > 0, f"{init_node}"
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
@@ -561,6 +568,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, cwast.ExprStmt):
         for c in init_node.body:
             EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
+    elif isinstance(init_node, cwast.ValString):
+        assert False, f"NYI {init_node}"
     elif isinstance(init_node, cwast.ValRec):
         src_type = init_node.x_type
 
@@ -755,6 +764,7 @@ _BYTE_PADDING = b"\x6f"
 
 
 def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
+    """Note there is some similarity to  EmitIRExprToMemory"""
     def_type: cwast.CanonType = node.type_or_auto.x_type
     if def_type.is_void_or_wrapped_void():
         return 0
@@ -954,7 +964,6 @@ def main():
             id_gens[fun] = ig
         return ig
 
-    str_val_map = {}
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
@@ -992,9 +1001,11 @@ def main():
     SanityCheckMods("after_initial_lowering", args.emit_ir,
                     mod_topo_order, tc, verifier, ELIMIMATED_NODES)
 
+    constant_pool = eval.GlobalConstantPool(id_gen_global)
+
     logger.info("Legalize 2")
     for mod in mod_topo_order:
-        canonicalize.CanonicalizeStringVal(mod, str_val_map, id_gen_global)
+        constant_pool.PopulateConstantPool(mod)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
@@ -1004,7 +1015,7 @@ def main():
                 canonicalize.FunAddMissingReturnStmts(node)
 
     ELIMIMATED_NODES.add(cwast.Expr3)
-    mod_gen.body_mod += list(str_val_map.values())
+    mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)

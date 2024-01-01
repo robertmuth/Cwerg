@@ -2,7 +2,6 @@
 
 """
 
-from typing import Dict, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
@@ -18,28 +17,6 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
-
-
-def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifier.IdGen):
-    """Move string/array values into global (un-mutable variables)"""
-    def replacer(node, _parent, _field):
-        # TODO: add support for ValArray
-        if isinstance(node, cwast.ValString):
-            assert isinstance(
-                node.x_value, bytes), f"expected str got {node.x_value}"
-            def_node = str_map.get(node.x_value)
-            if not def_node:
-                def_node = cwast.DefGlobal(id_gen_global.NewName("global_str"),
-                                           cwast.TypeAuto(
-                                               node.x_srcloc, x_type=node.x_type), node,
-                                           pub=True,
-                                           x_srcloc=node.x_srcloc)
-                str_map[node.x_value] = def_node
-
-            return _IdNodeFromDef(def_node, node.x_srcloc)
-        return None
-
-    cwast.MaybeReplaceAstRecursively(node, replacer)
 
 
 def _ShouldBeBoolExpanded(node, field):
