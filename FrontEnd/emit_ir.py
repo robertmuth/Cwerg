@@ -772,7 +772,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             return _emit_recursively(node_def.initial_or_undef_or_auto, ct, offset)
         elif isinstance(node, cwast.ExprFront):
             # we need to emit an address
-            assert isinstance(node.container, cwast.Id)
+            assert isinstance(node.container, cwast.Id), f"{node.container}"
             name = node.container.x_symbol.name
             print(f".addr.mem {tc.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"

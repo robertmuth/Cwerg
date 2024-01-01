@@ -100,7 +100,7 @@ def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT
                 out[ct] = tc.insert_array_type(ct.array_dim(), replacement)
         elif ct.is_slice():
             replacement = out.get(ct.underlying_slice_type())
-            # we probably should run this after slices have been eliminates so we
+            # we probably should run this after slices have been eliminated so we
             # we do not have to deal with this case
             if replacement is not None:
                 out[ct] = tc.insert_slice_type(ct.mut, replacement)
@@ -112,7 +112,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
                     x_srcloc=srcloc)
 
 
-def _MakeTypeidVal(typeid, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
+def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     return cwast.ValNum(str(typeid), x_value=typeid, x_srcloc=srcloc,
                         x_type=ct_typeid)
 
@@ -121,7 +121,8 @@ def _MakeValRecForSum(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
     tag_field, union_field = sum_rec.ast_node.fields
     return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), [
         cwast.FieldVal(tag_value, "",
-                       x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc),
+                       x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc,
+                       x_value=tag_value.x_value),
         cwast.FieldVal(union_value, "",
                        x_field=union_field, x_type=union_field.x_type,
                        x_srcloc=srcloc, x_value=union_value.x_value)

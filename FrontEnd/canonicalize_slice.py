@@ -182,16 +182,8 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
                 if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                                      cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                                     cwast.ExprField)):
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, cwast.FieldVal):
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, cwast.IndexVal):
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, cwast.ValArray):
+                                     cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
+                                     cwast.ValArray)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.TypeSlice):
@@ -218,7 +210,8 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
                         return None
 
                 cwast.CompilerError(
-                    node.x_srcloc, f"do not know how to convert slice node [{def_rec.name}]: {node}")
+                    node.x_srcloc, "do not know how to convert slice node " +
+                    f"[{def_rec.name}]: {node} of type {node.x_type}")
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

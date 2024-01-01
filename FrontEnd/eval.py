@@ -364,7 +364,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         return False
     elif isinstance(node, cwast.ExprStmt):
         return False
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWrap, cwast.ExprUnwrap)):
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprWrap, cwast.ExprUnwrap)):
         # TODO: some transforms may need to be applied
         if node.expr.x_value is not None:
             return _AssignValue(node, node.expr.x_value)

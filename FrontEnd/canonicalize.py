@@ -381,7 +381,7 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
         sum_type = cwast.TypeAuto(
             x_type=target_type, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprWiden(orig_node, sum_type, x_type=target_type,
-                               x_srcloc=orig_node.x_srcloc)
+                               x_srcloc=orig_node.x_srcloc, x_value=orig_node.x_value)
     else:
         print(
             f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
