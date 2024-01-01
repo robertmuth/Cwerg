@@ -760,11 +760,14 @@ def _EmitMem(data, comment) -> int:
 
 
 _BYTE_UNDEF = b"\0"
-_BYTE_PADDING = b"\x6f"
+_BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
 
 
 def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
-    """Note there is some similarity to  EmitIRExprToMemory"""
+    """Note there is some similarity to  EmitIRExprToMemory
+
+    returns the amount of bytes emitted
+    """
     def_type: cwast.CanonType = node.type_or_auto.x_type
     if def_type.is_void_or_wrapped_void():
         return 0
@@ -772,6 +775,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 
     def _emit_recursively(node, ct: cwast.CanonType, offset: int) -> int:
+        """When does  node.x_type != ct not hold?"""
+        if ct.is_void_or_wrapped_void():
+            return 0
         assert offset == type_corpus.align(offset, ct.alignment)
         if isinstance(node, cwast.ValUndef):
             return _EmitMem(_BYTE_UNDEF * ct.size, f"{offset} undef={ct.name}")
@@ -787,6 +793,13 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             print(f".addr.mem {tc.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
             return tc.get_address_size()
+        elif isinstance(node, cwast.ExprWiden):
+            count = _emit_recursively(node.expr, node.expr.x_type, offset)
+            target = node.x_type.size
+            if target != count:
+                _EmitMem(_BYTE_PADDING * (target - count),
+                         f"{target - count} padding")
+            return target
 
         if ct.is_base_or_enum_type():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
@@ -849,7 +862,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             assert isinstance(node, cwast.ExprWrap)
             return _emit_recursively(node.expr, node.expr.x_type, offset)
         else:
-            assert False, f"unhandled node for DefGlobal: {node} {ct.name}"
+            assert False, f"unhandled node: {node} {ct.name}"
 
     return _emit_recursively(node.initial_or_undef_or_auto,
                              node.type_or_auto.x_type, 0)

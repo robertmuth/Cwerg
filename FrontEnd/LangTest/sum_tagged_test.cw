@@ -67,6 +67,8 @@
     (field s2 Union2))
 
 
+(global global_rec1  auto (rec_val rec1 [1_s8 2_s8]))
+
 @doc """
 (type @pub sum11_t (union [bool u16]))
 (type @pub sum12_t (union [type_ptr u16])) """

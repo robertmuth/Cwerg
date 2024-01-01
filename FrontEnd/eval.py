@@ -86,7 +86,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
     elif isinstance(node, cwast.ValArray):
         out = CONSTANT_KIND.PURE
         for index in node.inits_array:
-            if not isinstance(index.init_index, cwast.ValNum):
+            if not isinstance(index.init_index, (cwast.ValAuto, cwast.ValNum)):
                 return CONSTANT_KIND.NOT
             o = ValueConstKind(index.value_or_undef)
             if o is CONSTANT_KIND.NOT:
