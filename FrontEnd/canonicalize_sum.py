@@ -253,7 +253,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
 
     """
-    def replacer(node, field):
+    def replacer(node, _parent, _field):
         nonlocal tc
         if not isinstance(node, cwast.ExprNarrow):
             return None
@@ -288,7 +288,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
     """
-    def replacer(node, field):
+    def replacer(node, _parent, _field):
 
         if isinstance(node, cwast.ExprUnionTag):
             def_rec = node.expr.x_type

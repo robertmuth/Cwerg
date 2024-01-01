@@ -129,7 +129,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Slice casts. """
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprAs):
             if (node.x_type != node.expr.x_type and
@@ -152,7 +152,7 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
      TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
      `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
     """
-    def replacer(node, field):
+    def replacer(node, _parent, field):
 
         # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):

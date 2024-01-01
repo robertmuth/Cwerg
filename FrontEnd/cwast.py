@@ -2779,7 +2779,7 @@ def MaybeReplaceAstRecursively(node, replacer):
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            new_child = replacer(child, f)
+            new_child = replacer(child, node, f)
             if new_child:
                 setattr(node, f, new_child)
             else:
@@ -2787,7 +2787,7 @@ def MaybeReplaceAstRecursively(node, replacer):
         elif nfd.kind is NFK.LIST:
             children = getattr(node, f)
             for n, child in enumerate(children):
-                new_child = replacer(child, f)
+                new_child = replacer(child, node, f)
                 if new_child:
                     children[n] = new_child
                 else:
@@ -2801,14 +2801,14 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             MaybeReplaceAstRecursivelyPost(child, replacer)
-            new_child = replacer(child, f)
+            new_child = replacer(child, node, f)
             if new_child:
                 setattr(node, f, new_child)
         elif nfd.kind is NFK.LIST:
             children = getattr(node, f)
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelyPost(child, replacer)
-                new_child = replacer(child, f)
+                new_child = replacer(child, node, f)
                 if new_child:
                     children[n] = new_child
 

@@ -85,7 +85,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
-    def replacer(node, _) -> Optional[Any]:
+    def replacer(node, _parent, _field) -> Optional[Any]:
 
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
@@ -135,7 +135,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
          we cannot be sure if mutable aliases to a, b, c are accessed by foo
          of functions called by foo, so we have to make a copy with value just before the call.
     """
-    def replacer(call, _) -> Optional[Any]:
+    def replacer(call, _parent, _field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]

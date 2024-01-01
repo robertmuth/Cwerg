@@ -22,7 +22,7 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
 
 def CanonicalizeStringVal(node, str_map: Dict[str, Any], id_gen_global: identifier.IdGen):
     """Move string/array values into global (un-mutable variables)"""
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         # TODO: add support for ValArray
         if isinstance(node, cwast.ValString):
             assert isinstance(
@@ -60,7 +60,7 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
     to materialize boolean values
      """
-    def replacer(node, field):
+    def replacer(node, _parent, field):
         if not _ShouldBeBoolExpanded(node, field):
             return None
         cstr_bool = tc.get_bool_canon_type()
@@ -104,7 +104,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
 
 def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Transform ExprIs comparisons for typeids"""
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         if isinstance(node, cwast.ExprIs):
             return _RewriteExprIs(node, tc)
 
@@ -116,7 +116,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
 
     Note we could implement the ternary op as a macro but would lose the ability to do
     type inference, so instead we use this hardcoded rewrite"""
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         if isinstance(node, cwast.Expr3):
             srcloc = node.x_srcloc
             name_t = id_gen.NewName("op_t")
@@ -200,7 +200,7 @@ def _FixUpLhs(lhs, stmts, id_gen):
 
 def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         if isinstance(node, cwast.StmtCompoundAssignment):
             stmts = []
             new_lhs = _FixUpLhs(node.lhs, stmts, id_gen)
@@ -219,7 +219,7 @@ def ReplaceConstExpr(node):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
-    def replacer(node, field):
+    def replacer(node, _parent, field):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
@@ -243,7 +243,7 @@ def ReplaceConstExpr(node):
 
 def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
     """Convert StmtCond to nested StmtIf"""
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         if not isinstance(node, cwast.StmtCond):
             return None
         if not node.cases:
@@ -264,7 +264,7 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
 
     TODO: add check for side-effects
     """
-    def replacer(node, _):
+    def visit(node, _field):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValTrue):
                 node.body_f.clear()
@@ -272,7 +272,7 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
                 node.body_t.clear()
         return None
 
-    cwast.VisitAstRecursivelyPost(fun, replacer)
+    cwast.VisitAstRecursivelyPost(fun, visit)
 
 
 def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
@@ -301,7 +301,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     uint_type = tc.get_uint_canon_type()
 
-    def replacer(node, _):
+    def replacer(node, _parent,  _field):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprIndex):
             return _ConvertIndex(node, uint_type, tc, node.x_srcloc)
@@ -485,7 +485,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
             return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
                                x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
 
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
 
         if not isinstance(node, cwast.Expr2):
             return None
@@ -501,7 +501,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
 
 
 def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
-    def replacer(node, _):
+    def replacer(node, _parent, _field):
         if not isinstance(node, (cwast.TypeOf, cwast.TypeUnionDelta)):
             return None
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
