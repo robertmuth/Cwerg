@@ -461,7 +461,9 @@ def IterateValArray(val_array: cwast.ValArray, width):
             curr_val += 1
         yield curr_val, init
         curr_val += 1
-    assert curr_val <= width
+    if curr_val > width:
+        cwast.CompilerError(
+            val_array.x_srcloc, f"Out of bounds array access at {curr_val}. Array size is  {width}")
     while curr_val < width:
         yield curr_val, None
         curr_val += 1
