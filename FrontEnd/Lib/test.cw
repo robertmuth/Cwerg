@@ -45,12 +45,13 @@ Both must have derivable types as we use `auto`"""
         ))
 
 @doc "The two arguments must type derivable"
-(macro @pub AssertSliceEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
+(macro @pub AssertSliceEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)]
+        [$e_val $a_val $i] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
-    (for i 0 (len $a_val) 1 :
-        (AssertEq! (^ (incp (front $e_val) i)) (^ (incp (front $a_val) i)))))
+    (for $i 0 (len $a_val) 1 :
+        (AssertEq! (^ (incp (front $e_val) $i)) (^ (incp (front $a_val) $i)))))
 
 
 @doc "The first two arguments must derivable types as we use `auto`"
@@ -74,12 +75,12 @@ Both must have derivable types as we use `auto`"""
 (macro @pub AssertSliceApproxEq! STMT_LIST [
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
-        (mparam $epsilon EXPR)] [$e_val $a_val] :
+        (mparam $epsilon EXPR)] [$e_val $a_val $i] :
     (macro_let $e_val auto $e_expr)
     (macro_let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
-    (for i 0 (len $a_val) 1 :
-        (AssertApproxEq! (^ (incp (front $e_val) i)) (^ (incp (front $a_val) i))))
+    (for $i 0 (len $a_val) 1 :
+        (AssertApproxEq! (^ (incp (front $e_val) $i)) (^ (incp (front $a_val) $i))))
     $epsilon)
 
 @doc ""

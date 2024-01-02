@@ -16,47 +16,54 @@
 
 (global @mut one_byte_output_buffer auto (array_val 1 u8 [0]))
 
-(global AllTestCases auto  (array_val 6 TestCase [
+(global AllTestCases auto  (array_val 8 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
     flate::TruncationErrorVal
-    (array_val 0 u8 [])
+    ""
     large_output_buffer
    ])
    (rec_val TestCase [
     "generic: invalid block 11"
     (array_val 1 u8 [ 0x07 ])
-    flate::CorruptionErrorVal
-    (array_val 0 u8 [])
+    flate::CorruptionErrorVal ""
     large_output_buffer
     ])
     (rec_val TestCase [
     "uncompressed: truncation"
     (array_val 1 u8 [ 0x01 ])
-    flate::TruncationErrorVal
-    (array_val 0 u8 [])
+    flate::TruncationErrorVal ""
     large_output_buffer
     ])
     (rec_val TestCase [
     "uncompressed: truncation checksum"
     (array_val 4 u8 [0x01 0x00 0x00 0xff ])
-    flate::TruncationErrorVal
-    (array_val 0 u8 [])
+    flate::TruncationErrorVal ""
     large_output_buffer
     ])
     (rec_val TestCase [
     "uncompressed: bad checksum"
     (array_val 5 u8 [  0x01 0x00 0x00 0xee 0xee  ])
-    flate::CorruptionErrorVal
-    (array_val 0 u8 [])
+    flate::CorruptionErrorVal ""
     large_output_buffer
     ])
     (rec_val TestCase [
     "uncompressed: writing past end"
     (array_val 7 u8 [  0x01 0x02 0x00 0xfd 0xff 0x00 0x00  ])
-    flate::NoSpaceErrorVal
-    (array_val 0 u8 [])
+    flate::NoSpaceErrorVal ""
+    one_byte_output_buffer
+    ])
+    (rec_val TestCase [
+    "uncompressed: 0 bytes"
+    (array_val 5 u8 [ 0x01 0x00 0x00 0xff 0xff  ])
+    0_uint ""
+    one_byte_output_buffer
+    ])
+    (rec_val TestCase [
+    "uncompressed: 1 bytes"
+    (array_val 6 u8 [ 0x01 0x01 0x00 0xfe 0xff 0x00 ])
+    0_uint "\x00"
     one_byte_output_buffer
     ])
 ]))
@@ -68,24 +75,18 @@
          (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val (-> tc input))]))
          (let res  auto (flate::uncompress [ (& @mut bs) (-> tc output) ]))
          (test::AssertEq! (uniontypetag res) (uniontypetag (-> tc expected_result)))
+         (if (is res uint) :
+            (test::AssertSliceEq!
+                (-> tc expected_output)
+                (slice_val (front (-> tc output)) (narrowto @unchecked res uint))
+            )
+         :)
 
     )
 )
 
 
-(fun test_inflate_uncompressed_success [] void :
-    (let @mut @ref out auto (array_val 1024 u8 [0]))
-    (block _ :
-        @doc "empty"
-        (let @ref data auto (array_val 5 u8 [ 0x01 0x00 0x00 0xff 0xff ]))
-        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
-        (test::AssertIs! (flate::uncompress [ (& @mut bs) out ]) uint))
-    (block _ :
-        @doc "one byte"
-        (let @ref data auto (array_val 6 u8 [ 0x01 0x01 0x00 0xfe 0xff 00]))
-        (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val data)]))
-        (test::AssertEq! (flate::uncompress [ (& @mut bs) out ]) 1_uint))
-)
+
 
 (fun test_inflate_fixed_huffman_failure [] void :
     (let @mut @ref out auto (array_val 1024 u8 [0]))
@@ -160,9 +161,6 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    @doc "uncompressed"
-    (stmt (test_inflate_uncompressed_success []))
-
     @doc "fixed huffman"
     (stmt (test_inflate_fixed_huffman_failure []))
     (stmt (test_inflate_fixed_huffman_success []))
