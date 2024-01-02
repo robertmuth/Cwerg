@@ -75,7 +75,7 @@ def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
     return tc.insert_fun_type(params, result)
 
 
-def MakeSumTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
+def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 

@@ -497,7 +497,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
 
 
 def _EmitZero(dst: BaseOffset, length, alignment,
-              id_gen: identifier.IdGenIR):
+              _id_gen: identifier.IdGenIR):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
@@ -916,11 +916,11 @@ def main():
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
-    ELIMIMATED_NODES = set()
-    ELIMIMATED_NODES.add(cwast.ExprParen)  # this needs more work
+    eliminated_nodes = set()
+    eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
+        cwast.CheckAST(mod, eliminated_nodes)
 
     logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
@@ -928,20 +928,20 @@ def main():
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)
 
-    ELIMIMATED_NODES.add(cwast.Import)
-    ELIMIMATED_NODES.add(cwast.DefMacro)
-    ELIMIMATED_NODES.add(cwast.MacroInvoke)
-    ELIMIMATED_NODES.add(cwast.MacroId)
-    ELIMIMATED_NODES.add(cwast.MacroVar)
-    ELIMIMATED_NODES.add(cwast.MacroFor)
-    ELIMIMATED_NODES.add(cwast.MacroParam)
-    ELIMIMATED_NODES.add(cwast.ExprSrcLoc)
-    ELIMIMATED_NODES.add(cwast.ExprStringify)
-    ELIMIMATED_NODES.add(cwast.EphemeralList)
-    ELIMIMATED_NODES.add(cwast.ModParam)
+    eliminated_nodes.add(cwast.Import)
+    eliminated_nodes.add(cwast.DefMacro)
+    eliminated_nodes.add(cwast.MacroInvoke)
+    eliminated_nodes.add(cwast.MacroId)
+    eliminated_nodes.add(cwast.MacroVar)
+    eliminated_nodes.add(cwast.MacroFor)
+    eliminated_nodes.add(cwast.MacroParam)
+    eliminated_nodes.add(cwast.ExprSrcLoc)
+    eliminated_nodes.add(cwast.ExprStringify)
+    eliminated_nodes.add(cwast.EphemeralList)
+    eliminated_nodes.add(cwast.ModParam)
 
     for mod in mod_topo_order:
-        cwast.CheckAST(mod, ELIMIMATED_NODES)
+        cwast.CheckAST(mod, eliminated_nodes)
 
     logger.info("Typify the nodes")
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(
@@ -957,10 +957,10 @@ def main():
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
 
-    ELIMIMATED_NODES.add(cwast.StmtStaticAssert)
+    eliminated_nodes.add(cwast.StmtStaticAssert)
 
     SanityCheckMods("after_partial_eval", args.emit_ir,
-                    mod_topo_order, tc, verifier, ELIMIMATED_NODES,
+                    mod_topo_order, tc, verifier, eliminated_nodes,
                     allow_type_auto=False)
 
     logger.info("Legalize 1")
@@ -996,13 +996,13 @@ def main():
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
 
-    ELIMIMATED_NODES.add(cwast.ExprSizeof)
-    ELIMIMATED_NODES.add(cwast.ExprOffsetof)
-    ELIMIMATED_NODES.add(cwast.ExprIndex)
-    ELIMIMATED_NODES.add(cwast.StmtDefer)
-    ELIMIMATED_NODES.add(cwast.ExprIs)
-    ELIMIMATED_NODES.add(cwast.TypeOf)
-    ELIMIMATED_NODES.add(cwast.TypeUnionDelta)
+    eliminated_nodes.add(cwast.ExprSizeof)
+    eliminated_nodes.add(cwast.ExprOffsetof)
+    eliminated_nodes.add(cwast.ExprIndex)
+    eliminated_nodes.add(cwast.StmtDefer)
+    eliminated_nodes.add(cwast.ExprIs)
+    eliminated_nodes.add(cwast.TypeOf)
+    eliminated_nodes.add(cwast.TypeUnionDelta)
     verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowUnchecked)
     verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
     verifier.Replace(cwast.ExprCall, typify.CheckExprCallStrict)
@@ -1012,7 +1012,7 @@ def main():
     verifier.Replace(cwast.DefVar, typify.CheckDefVarDefGlobalStrict)
 
     SanityCheckMods("after_initial_lowering", args.emit_ir,
-                    mod_topo_order, tc, verifier, ELIMIMATED_NODES)
+                    mod_topo_order, tc, verifier, eliminated_nodes)
 
     constant_pool = eval.GlobalConstantPool(id_gen_global)
 
@@ -1027,7 +1027,7 @@ def main():
                 canonicalize.FunOptimizeKnownConditionals(node)
                 canonicalize.FunAddMissingReturnStmts(node)
 
-    ELIMIMATED_NODES.add(cwast.Expr3)
+    eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
@@ -1036,20 +1036,20 @@ def main():
         v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
     for mod in mod_topo_order:
         canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
-    ELIMIMATED_NODES.add(cwast.ExprLen)
-    ELIMIMATED_NODES.add(cwast.ValSlice)
-    ELIMIMATED_NODES.add(cwast.TypeSlice)
+    eliminated_nodes.add(cwast.ExprLen)
+    eliminated_nodes.add(cwast.ValSlice)
+    eliminated_nodes.add(cwast.TypeSlice)
 
     sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
         mod_topo_order, tc)
     for mod in mod_topo_order:
         canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
 
-    ELIMIMATED_NODES.add(cwast.ExprUnionTag)
-    ELIMIMATED_NODES.add(cwast.ExprUnionUntagged)
+    eliminated_nodes.add(cwast.ExprUnionTag)
+    eliminated_nodes.add(cwast.ExprUnionUntagged)
 
     SanityCheckMods("after_slice_elimination", args.emit_ir,
-                    [mod_gen] + mod_topo_order, tc, verifier, ELIMIMATED_NODES)
+                    [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -1065,7 +1065,7 @@ def main():
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
 
     SanityCheckMods("after_large_arg_conversion", args.emit_ir,
-                    mod_topo_order, tc, verifier, ELIMIMATED_NODES)
+                    mod_topo_order, tc, verifier, eliminated_nodes)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
@@ -1075,17 +1075,17 @@ def main():
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
 
-    ELIMIMATED_NODES.add(cwast.StmtCompoundAssignment)
-    ELIMIMATED_NODES.add(cwast.StmtCond)
-    ELIMIMATED_NODES.add(cwast.Case)
-    ELIMIMATED_NODES.add(cwast.ExprTypeId)
+    eliminated_nodes.add(cwast.StmtCompoundAssignment)
+    eliminated_nodes.add(cwast.StmtCond)
+    eliminated_nodes.add(cwast.Case)
+    eliminated_nodes.add(cwast.ExprTypeId)
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
-            assert node in ELIMIMATED_NODES, f"node: {node} must be eliminated before codegen"
+            assert node in eliminated_nodes, f"node: {node} must be eliminated before codegen"
 
     SanityCheckMods("after_canonicalization", args.emit_ir,
-                    [mod_gen] + mod_topo_order, tc, verifier, ELIMIMATED_NODES)
+                    [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1130,7 +1130,7 @@ def main():
                     node.name = mod.x_modname + "/" + node.name + suffix
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
-                    mod_topo_order, tc, verifier, ELIMIMATED_NODES)
+                    mod_topo_order, tc, verifier, eliminated_nodes)
 
     # Emit Cwert IR
     # print ("# TOPO-ORDER")

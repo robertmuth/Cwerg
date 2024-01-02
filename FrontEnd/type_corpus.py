@@ -175,7 +175,7 @@ def is_mutable_array_or_slice(node) -> bool:
         assert False
 
 
-_BASE_TYPE_MAP = {
+_BASE_TYPE_MAP: Dict[cwast.BASE_TYPE_KIND, List[str]] = {
     cwast.BASE_TYPE_KIND.SINT: ["S64"],
     cwast.BASE_TYPE_KIND.S8: ["S8"],
     cwast.BASE_TYPE_KIND.S16: ["S16"],
@@ -353,8 +353,7 @@ class TypeCorpus:
                 b = self.get_register_type(fields[1].type.x_type)
                 if a is not None and b is not None and len(a) + len(b) <= 2:
                     return a + b
-            else:
-                return None
+            return None
         elif tc.node is cwast.TypeArray:
             return None
         elif tc.node is cwast.DefEnum:

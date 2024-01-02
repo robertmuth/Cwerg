@@ -65,7 +65,7 @@ class ModPoolBase:
     def __str__(self):
         return f"root={self._root}"
 
-    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+    def ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
 
     def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:

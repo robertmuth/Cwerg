@@ -106,6 +106,7 @@ def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,
     else:
         cwast.CompilerError(
             num_val.x_srcloc, f"cannot parse number: {num} {kind}")
+        return (None, cwast.BASE_TYPE_KIND.INVALID)
 
 
 def ParseNum(num: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Any:
@@ -703,7 +704,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
         _CheckTypeSame(node, op2_type, result_type)
 
 
-def _CheckFieldVal(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
+def _CheckFieldVal(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
     field_node = node.x_field
     _CheckTypeSame(node, field_node.x_type, node.x_type)
     if not isinstance(node.value_or_undef, cwast.ValUndef):
@@ -713,7 +714,7 @@ def _CheckFieldVal(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
             node.value_or_undef.x_srcloc)
 
 
-def CheckFieldValStrict(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
+def CheckFieldValStrict(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
     field_node = node.x_field
     _CheckTypeSame(node, field_node.x_type, node.x_type)
     if not isinstance(node.value_or_undef, cwast.ValUndef):
@@ -721,7 +722,7 @@ def CheckFieldValStrict(node: cwast.FieldVal, tc: type_corpus.TypeCorpus):
             node, node.value_or_undef.x_type, node.x_type)
 
 
-def CheckValArray(node: cwast.ValArray, tc: type_corpus.TypeCorpus):
+def CheckValArray(node: cwast.ValArray, _tc: type_corpus.TypeCorpus):
     cstr = node.type.x_type
     for x in node.inits_array:
         assert isinstance(x, cwast.IndexVal), f"{x}"
@@ -731,7 +732,7 @@ def CheckValArray(node: cwast.ValArray, tc: type_corpus.TypeCorpus):
         _CheckTypeSame(node,  x.x_type, cstr)
 
 
-def CheckExpr3(node: cwast.Expr3, tc: type_corpus.TypeCorpus):
+def CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
     ct = node.x_type
     t_ct = node.expr_t.x_type
     f_ct = node.expr_f.x_type
@@ -1086,7 +1087,7 @@ class TypeVerifier:
             cwast.TypeUnionDelta:  CheckNothing,
             # minuned = node.type.x_type
             #  subtrahend = node.subtrahend.x_type
-            # TODO: need to use origianal types if available
+            # TODO: need to use original types if available
             cwast.ExprUnsafeCast: CheckNothing,
             # src = node.expr.x_type
             # dst = node.type.x_type

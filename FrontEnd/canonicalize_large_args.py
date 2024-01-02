@@ -140,7 +140,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]
             typify.UpdateNodeType(call.callee, new_sig)
-            expr_body = []
+            expr_body: List[Any] = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
             # note: new_sig might be longer if the result type was changed

@@ -73,7 +73,7 @@ class SymTab:
 
         return None
 
-    def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
+    def resolve_sym(self, ident: cwast.Id, builtin_syms: Optional["SymTab"], must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         name = cwast.GetSymbolName(ident.name)
         if ":" in name:
@@ -93,7 +93,8 @@ class SymTab:
                 name, must_be_public, ident.x_srcloc)
         return out
 
-    def resolve_macro(self, macro_invoke: cwast.MacroInvoke, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
+    def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
+                      builtin_syms: Optional["SymTab"], _must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
 
         name = cwast.GetSymbolName(macro_invoke.name)
