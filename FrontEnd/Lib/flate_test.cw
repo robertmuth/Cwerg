@@ -16,7 +16,17 @@
 
 (global @mut one_byte_output_buffer auto (array_val 1 u8 [0]))
 
-(global AllTestCases auto  (array_val 15 TestCase [
+(global zero_times_256 auto (array_val 256 u8 [
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
+          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0]))
+
+(global AllTestCases auto  (array_val 16 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
@@ -110,15 +120,29 @@
     "dynamic huffman:  256 zero bytes compressed using RLE (only one distance code)"
     (array_val 15 u8 [ 0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80
                        0xa0 0xfc 0xa9 0x07 0x39 0x73 0x01])
-    256_uint (array_val 256 u8 [
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0])
+    256_uint zero_times_256
+    large_output_buffer
+    ])
+    @doc """
+    (rec_val TestCase [
+    "dynamic huffman:  256 zero bytes compressed"
+    (array_val 45 u8 [
+        0x05 0xca 0x81 0x00  0x00 0x00 0x00 0x00
+        0x10 0xff 0xd5 0x02  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x02 ])
+    256_uint zero_times_256
+    large_output_buffer
+    ])
+    """
+    (rec_val TestCase [
+    "dynamic huffman:  empty (no distance only literal tree)"
+    (array_val 13 u8 [
+        0x05 0xca 0x81 0x00  0x00 0x00 0x00 0x00
+        0x90 0xff 0x6b 0x01  0x00 ])
+    0_uint ""
     large_output_buffer
     ])
 ]))

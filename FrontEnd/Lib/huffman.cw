@@ -7,7 +7,6 @@ https://en.wikipedia.org/wiki/Canonical_Huffman_code
 (module huffman [] :
 
 (import bitstream)
-
 (global @pub BAD_SYMBOL u16 0xffff)
 (global @pub BAD_TREE_ENCODING u16 0xffff)
 (global MAX_SYMBOLS uint 0xff00)
@@ -39,6 +38,7 @@ This function has two failure modes:
       (+= base count)
       (-= offset count)
    )
+
    (return BAD_SYMBOL)
 )
 
@@ -83,7 +83,8 @@ Note counts[0] is always 0
        (param lengths (slice u16))
        (param counts (slice @mut u16))
        (param symbols (slice @mut u16))] u16 :
-    (if (> (len lengths) MAX_SYMBOLS) : (return BAD_TREE_ENCODING) :)
+    (if (> (len lengths) MAX_SYMBOLS) :
+        (return BAD_TREE_ENCODING) :)
     (for level 0 (len counts) 1 :
         (= (at counts level) 0))
 
@@ -92,7 +93,8 @@ Note counts[0] is always 0
         (let bits auto (at lengths i))
         (if (!= bits 0) :
             (= last (as i u16))
-            (if (>= (as bits uint) (len counts)) : (return BAD_TREE_ENCODING) :)
+            (if (>= (as bits uint) (len counts)) :
+                (return BAD_TREE_ENCODING) :)
             (+= (at counts bits) 1)
         :)
     )
@@ -104,7 +106,8 @@ Note counts[0] is always 0
 
     (cond :
         (case (== n 0) :
-            (return BAD_TREE_ENCODING)
+            @doc "this is odd but some tests rely on it"
+            (return 0_u16)
         )
         (case (== n 1) :
             @doc "also see below for more special handling"
