@@ -1330,6 +1330,8 @@ class ValArray:
     type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #
+    doc: str = ""
+    #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
@@ -1397,6 +1399,8 @@ class ValRec:
     #
     type: NODES_TYPES_T
     inits_field: List[NODES_INITS_REC_T]
+    #
+    doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
