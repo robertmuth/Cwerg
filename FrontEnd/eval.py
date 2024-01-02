@@ -563,6 +563,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ValSlice):
         # TODO maybe track symbolic addresses
         return False
+    elif isinstance(node, cwast.ExprUnionTag):
+        return False
     else:
         assert False, f"unexpected node {node}"
 
