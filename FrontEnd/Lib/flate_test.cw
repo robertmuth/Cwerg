@@ -26,7 +26,7 @@
           0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
           0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0]))
 
-(global AllTestCases auto  (array_val 16 TestCase [
+(global AllTestCases auto  (array_val 17 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
@@ -123,9 +123,16 @@
     256_uint zero_times_256
     large_output_buffer
     ])
-    @doc """
     (rec_val TestCase [
-    "dynamic huffman:  256 zero bytes compressed"
+    "dynamic huffman:  empty (no distance only literal tree)"
+    (array_val 13 u8 [
+        0x05 0xca 0x81 0x00  0x00 0x00 0x00 0x00
+        0x90 0xff 0x6b 0x01  0x00 ])
+    0_uint ""
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "dynamic huffman:  256 zero bytes (no distance only literal tree)"
     (array_val 45 u8 [
         0x05 0xca 0x81 0x00  0x00 0x00 0x00 0x00
         0x10 0xff 0xd5 0x02  0x00 0x00 0x00 0x00
@@ -136,15 +143,7 @@
     256_uint zero_times_256
     large_output_buffer
     ])
-    """
-    (rec_val TestCase [
-    "dynamic huffman:  empty (no distance only literal tree)"
-    (array_val 13 u8 [
-        0x05 0xca 0x81 0x00  0x00 0x00 0x00 0x00
-        0x90 0xff 0x6b 0x01  0x00 ])
-    0_uint ""
-    large_output_buffer
-    ])
+
 ]))
 
 (fun test_all [] void :
