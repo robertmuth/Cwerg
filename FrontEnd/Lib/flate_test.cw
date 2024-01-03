@@ -24,7 +24,7 @@
 @doc """
 Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.c
 """
-(global AllTestCases auto  (array_val 22 TestCase [
+(global AllTestCases auto  (array_val 27 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
@@ -74,7 +74,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
     1_uint "\x00"
     large_output_buffer
     ])
-    @doc "fixed huffman: ======================================="
+    @doc "fixed huffman: ERROR ======================================="
     (rec_val TestCase [
     "fixed huffman: huffman terminator corrupted"
     (array_val 2 u8 [ 0x63 0x00 ])
@@ -93,26 +93,63 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
     flate::CorruptionErrorVal ""
     large_output_buffer
     ])
+    @doc "fixed huffman: SUCCESS ======================================="
     (rec_val TestCase [
-    "fixed huffman:  one byte"
+    "fixed huffman:   empty"
+    (array_val 3 u8 [ 0x03 0x00])
+    0_uint ""
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "fixed huffman:  0x00"
     @doc "last=1 fixed=01 sym8=000_01100 sym7=00_00000"
     (array_val 3 u8 [ 0x63 0x00 0x00])
     1_uint "\x00"
     large_output_buffer
     ])
     (rec_val TestCase [
-    "fixed huffman:  two bytes"
+    "fixed huffman:  0x11"
+    (array_val 4 u8 [ 0x12 0x04 0x0c 0x00])
+    1_uint "\x11"
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "fixed huffman:  0x00 0x00"
     @doc  "last=1 fixed=01 sym8=000_01100 sym8=000_01110 sym7=00_00000"
     (array_val 4 u8 [ 0x63 0x70 0x00 0x00 ])
     2_uint "\x00\x40"
     large_output_buffer
     ])
     (rec_val TestCase [
-    "fixed huffman:  two bytes in two blocks"
+    "fixed huffman:  0x11 0x12"
+    (array_val 5 u8 [0x12 0x14 0x02 0x0c 0x00  ])
+    2_uint "\x11\x12"
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "fixed huffman:  0x00 0x00 in two blocks"
     @doc """last=0 fixed=01 sym8=000_01100 sym7=00_00000
             last=1 fixed=01 sym8=00001_110 sym7=0000_000"""
     (array_val 5 u8 [  0x62 0x00 0xcc 0x01 0x00 ])
     2_uint "\x00\x40"
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "fixed huffman:  0x11{9}"
+    (array_val 5 u8 [ 0x12 0x84 0x01 0xc0 0x00])
+    2_uint "\x11\x11\x11\x11\x11\x11\x11\x11\x11"
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "fixed huffman:  We the people ... "
+    (array_val 37 u8 [
+        0x0b 0x4f 0x55 0x28 0xc9 0x48 0x55 0x08
+        0x48 0xcd 0x2f 0xc8 0x49 0x55 0xc8 0x4f
+        0x03 0xf3 0x42 0xf3 0x32 0x4b 0x52 0x53
+        0x14 0x82 0x4b 0x12 0x4b 0x52 0x8b 0x75
+        0x14 0xf4 0xf4 0xf4 0x00
+    ])
+    39_uint "We the People of the United States, ..."
     large_output_buffer
     ])
     @doc "dynamic huffman: ======================================="
