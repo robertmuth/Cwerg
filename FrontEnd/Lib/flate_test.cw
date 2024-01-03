@@ -21,7 +21,10 @@
 (global @mut special_2_1_0 auto (array_val 32771 u8 [
       2 1 0 (index_val 2 32768) 1 0]))
 
-(global AllTestCases auto  (array_val 20 TestCase [
+@doc """
+Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.c
+"""
+(global AllTestCases auto  (array_val 22 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
@@ -71,6 +74,7 @@
     1_uint "\x00"
     large_output_buffer
     ])
+    @doc "fixed huffman: ======================================="
     (rec_val TestCase [
     "fixed huffman: huffman terminator corrupted"
     (array_val 2 u8 [ 0x63 0x00 ])
@@ -111,6 +115,7 @@
     2_uint "\x00\x40"
     large_output_buffer
     ])
+    @doc "dynamic huffman: ======================================="
     (rec_val TestCase [
     "dynamic huffman:  256 zero bytes compressed using RLE (only one distance code)"
     (array_val 15 u8 [ 0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80
@@ -168,6 +173,26 @@
         0x00 0xe0 0xfe 0xff  0x05
         ])
     32771_uint special_2_1_0
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "dynamic huffman:  4 zero bytes - use code length codes include codes 16, 17, and 18"
+    (array_val 15 u8 [
+        0x0d 0xc3 0x37 0x01  0x00 0x00 0x00 0x80
+        0x20 0xfa 0x77 0x1e  0xca 0x61 0x01 ])
+    4_uint  (slice_val (front zeros) 4)
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "dynamic huffman:  15 zero bytes - use all codeword lengths including 15"
+    (array_val 39 u8 [
+        0x05 0xea 0x01 0x82  0x24 0x49 0x92 0x24
+        0x49 0x02 0x12 0x8b  0x9a 0x47 0x56 0xcf
+        0xde 0xff 0x9f 0x7b  0x0f 0xd0 0xee 0x7d
+        0xbf 0xbf 0x7f 0xff  0xfd 0xef 0xff 0xfe
+        0xdf 0xff 0xf7 0xff  0xfb 0xff 0x03
+        ])
+    15_uint "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e"
     large_output_buffer
     ])
 ]))
