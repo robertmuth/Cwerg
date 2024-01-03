@@ -12,13 +12,16 @@
     (field output (slice @mut u8))
 )
 
-(global @mut large_output_buffer auto (array_val 1024 u8 [0]))
+(global @mut large_output_buffer auto (array_val 65536 u8 [0]))
 
 (global @mut one_byte_output_buffer auto (array_val 1 u8 [0]))
 
 (global zeros auto (array_val 1024 u8 [0]))
 
-(global AllTestCases auto  (array_val 17 TestCase [
+(global @mut special_2_1_0 auto (array_val 32771 u8 [
+      2 1 0 (index_val 2 32768) 1 0]))
+
+(global AllTestCases auto  (array_val 20 TestCase [
    (rec_val TestCase [
     "generic: missing next block after final uncompressed block"
     (array_val 5 u8 [ 0x00 0x00 0x00 0xff 0xff ])
@@ -135,7 +138,38 @@
     256_uint (slice_val (front zeros) 256)
     large_output_buffer
     ])
-
+    (rec_val TestCase [
+    "dynamic huffman:  259 zero bytes compressed using literal/length code 285 (len 258)"
+    (array_val 15 u8 [
+        0xed 0xcc 0x81 0x00  0x00 0x00 0x00 0x80
+        0xa0 0xfc 0xa9 0x17  0xb9 0x00 0x2c
+        ])
+    259_uint (slice_val (front zeros) 259)
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "dynamic huffman: 259 zero bytes compressed using literal/length code 284 + 31 (len 258)"
+    (array_val 16 u8 [
+        0xe5 0xcc 0x81 0x00  0x00 0x00 0x00 0x80
+        0xa0 0xfc 0xa9 0x07  0xb9 0x00 0xfc 0x05
+        ])
+    259_uint (slice_val (front zeros) 259)
+    large_output_buffer
+    ])
+    (rec_val TestCase [
+    "dynamic huffman:  copy of 3 bytes with a distance of 32768 "
+    (array_val 53 u8 [
+		0xed 0xdd 0x01 0x01  0x00 0x00 0x08 0x02
+        0x20 0xed 0xff 0xe8  0xfa 0x11 0x1c 0x61
+        0x9a 0xf7 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+		0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
+        0x00 0xe0 0xfe 0xff  0x05
+        ])
+    32771_uint special_2_1_0
+    large_output_buffer
+    ])
 ]))
 
 (fun test_all [] void :
