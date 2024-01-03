@@ -16,15 +16,7 @@
 
 (global @mut one_byte_output_buffer auto (array_val 1 u8 [0]))
 
-(global zero_times_256 auto (array_val 256 u8 [
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0
-          0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0  0 0 0 0]))
+(global zeros auto (array_val 1024 u8 [0]))
 
 (global AllTestCases auto  (array_val 17 TestCase [
    (rec_val TestCase [
@@ -120,7 +112,7 @@
     "dynamic huffman:  256 zero bytes compressed using RLE (only one distance code)"
     (array_val 15 u8 [ 0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80
                        0xa0 0xfc 0xa9 0x07 0x39 0x73 0x01])
-    256_uint zero_times_256
+    256_uint (slice_val (front zeros) 256)
     large_output_buffer
     ])
     (rec_val TestCase [
@@ -140,7 +132,7 @@
         0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
         0x00 0x00 0x00 0x00  0x00 0x00 0x00 0x00
         0x00 0x00 0x00 0x00  0x02 ])
-    256_uint zero_times_256
+    256_uint (slice_val (front zeros) 256)
     large_output_buffer
     ])
 

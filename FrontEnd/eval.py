@@ -179,6 +179,9 @@ def _VerifyEvalValue(val):
     if isinstance(val, list):
         for x in val:
             assert x is not None
+    elif isinstance(val, tuple):
+        for x in val:
+            assert x is not None
     elif isinstance(val, dict):
         for x in val.values():
             assert x is not None, f"rec dict with None {val}"
@@ -242,6 +245,7 @@ def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
     rec: Dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
+        # print ("    ", field)
         ct: cwast.CanonType = field.x_type
         if init is None:
             if ct.is_base_type():
@@ -561,7 +565,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
         # TODO maybe track symbolic addresses
         return False
     elif isinstance(node, cwast.ValSlice):
-        # TODO maybe track symbolic addresses
+        if node.pointer.x_value is not None and node.expr_size.x_value is not None:
+            return _AssignValue(node,
+                                (node.pointer.x_value, node.expr_size.x_value))
         return False
     elif isinstance(node, cwast.ExprUnionTag):
         return False
@@ -646,7 +652,8 @@ def VerifyASTEvalsRecursively(node):
                         pass
                     else:
                         cwast.CompilerError(
-                            node.x_srcloc, f"expected const node: {node} of type {node.x_type} inside {parent}")
+                            node.x_srcloc, f"expected const node: {node} of type {node.x_type} "
+                            f"inside {parent}")
 
         if field == "init_index":
             assert (node.x_value is not None or
