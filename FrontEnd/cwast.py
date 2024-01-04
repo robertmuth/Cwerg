@@ -1548,7 +1548,6 @@ class ExprPointer:
     expr1: NODES_EXPR_T
     expr2: NODES_EXPR_T
     expr_bound_or_undef: NODES_EXPR_T
-
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE

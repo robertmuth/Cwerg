@@ -179,11 +179,11 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
             def_rec: Optional[cwast.CanonType] = slice_to_struct_map.get(
                 node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
+                if isinstance(node, (cwast.TypeAuto, cwast.DefType,
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                                      cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                                     cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
-                                     cwast.ValArray)):
+                                     cwast.ExprField, cwast.Expr3, cwast.ExprDeref,
+                                     cwast.FieldVal, cwast.IndexVal, cwast.ValArray)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.TypeSlice):
@@ -199,9 +199,6 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
                     typify.UpdateNodeType(node, def_rec)
                     return None
-                elif isinstance(node, cwast.ExprPointer):
-                    assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
-                    assert False
                 elif isinstance(node, (cwast.ExprAs, cwast.ExprUnwrap)):
                     ct_src = node.expr.x_type
                     ct_dst = node.x_type
@@ -210,8 +207,8 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
                         return None
 
                 cwast.CompilerError(
-                    node.x_srcloc, "do not know how to convert slice node " +
-                    f"[{def_rec.name}]: {node} of type {node.x_type}")
+                    node.x_srcloc, "do not know how to convert slice related node " +
+                    f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

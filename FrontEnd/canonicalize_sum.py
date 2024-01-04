@@ -248,10 +248,6 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
         (return (narrowto @unchecked u t))
     ])
 
-
-
-
-
     """
     def replacer(node, _parent, _field):
         nonlocal tc
