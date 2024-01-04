@@ -179,10 +179,11 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
             def_rec: Optional[cwast.CanonType] = slice_to_struct_map.get(
                 node.x_type)
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.DefType,
+                if isinstance(node, (cwast.TypeAuto, cwast.DefType, cwast.TypePtr,
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                                      cwast.FunParam, cwast.ExprCall, cwast.RecField,
                                      cwast.ExprField, cwast.Expr3, cwast.ExprDeref,
+                                     cwast.ExprAddrOf,
                                      cwast.FieldVal, cwast.IndexVal, cwast.ValArray)):
                     typify.UpdateNodeType(node, def_rec)
                     return None

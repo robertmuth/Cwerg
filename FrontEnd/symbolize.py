@@ -301,7 +301,9 @@ def _CheckAddressCanBeTaken(lhs):
         if isinstance(node_def, cwast.DefGlobal):
             pass
         elif isinstance(node_def, cwast.DefVar):
-            assert node_def.ref, f"in {lhs.x_srcloc} expect ref flag for {node_def}"
+            if not node_def.ref:
+                cwast.CompilerError(
+                    lhs.x_srcloc, f"in {lhs.x_srcloc} expect ref flag for {node_def}")
         else:
             cwast.CompilerError(
                 lhs.x_srcloc, f"expect DefVar node for lhs {node_def}")

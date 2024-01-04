@@ -752,7 +752,8 @@ def CheckExprPointer(node: cwast.ExprPointer, _):
     if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
         _CheckTypeUint(node, node.expr_bound_or_undef.x_type)
     ct: cwast.CanonType = node.expr1.x_type
-    assert ct.is_pointer(), f"{node.expr1.x_type}"
+    if not ct.is_pointer():
+        cwast.CompilerError(node.x_srcloc, f"expected pointer got {node.expr1.x_type}")
     # _CheckTypeUint(node, tc, node.expr2.x_type)
     _CheckTypeSame(node, node.expr1.x_type, node.x_type)
 

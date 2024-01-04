@@ -83,7 +83,8 @@ tests_lib_x64: \
     $(DIR)/trig_test.lib.x64.exe \
     $(DIR)/checksum_test.lib.x64.exe \
     $(DIR)/sha3_test.lib.x64.exe \
-    $(DIR)/bitstream_test.lib.x64.exe
+    $(DIR)/bitstream_test.lib.x64.exe \
+    $(DIR)/bytestream_test.lib.x64.exe
 
 tests_lib_a64: \
     $(DIR)/huffman_test.lib.a64.exe \
