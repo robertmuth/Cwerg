@@ -3,6 +3,7 @@
 (import test)
 (import bytestream)
 
+(global empty_slice (slice u8))
 
 (fun test_bs_or_die [] void :
     (let @mut data (array 23 u8) "\x22\x33\x44\x55\x66\x77\x88abcdefghijklmnop")
@@ -20,7 +21,6 @@
     (test::AssertSliceEq!
          (bytestream::FrontSliceOrDie [(& @mut stream) 1])
           "k")
-    (let empty_slice (slice u8))
     (test::AssertSliceEq!
          (bytestream::FrontSliceOrDie [(& @mut stream) 0])
          empty_slice)
@@ -62,7 +62,6 @@
         (test::AssertUnreachable!)
     )
 
-    (let empty_slice (slice u8))
     (let raw5 auto  (bytestream::FrontSlice [(& @mut stream) 0]))
     (try result5 (slice u8) raw5 err :
         (test::AssertUnreachable!)

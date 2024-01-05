@@ -570,6 +570,10 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
     elif isinstance(init_node, cwast.ValString):
         assert False, f"NYI {init_node}"
+    elif isinstance(init_node, cwast.ValAuto):
+        # TODO: check if auto is legit (maybe add a check for this in another phase)
+        _EmitZero(dst, init_node.x_type.size,
+                  init_node.x_type.alignment, id_gen)
     elif isinstance(init_node, cwast.ValRec):
         src_type = init_node.x_type
 
@@ -597,10 +601,6 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                 continue
             EmitIRExprToMemory(
                 c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), tc, id_gen)
-    elif isinstance(init_node, cwast.ValAuto):
-        # TODO: check if auto is legit (maybe add a check for this in another phase)
-        _EmitZero(dst, init_node.x_type.size,
-                  init_node.x_type.alignment, id_gen)
     else:
         assert False, f"NYI: {init_node}"
 
@@ -758,7 +758,7 @@ def _EmitMem(data, comment) -> int:
         assert False
     return len(data)
 
-
+_BYTE_ZERO = b"\0"
 _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
 
@@ -843,7 +843,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                                  f"{stride - count} padding")
                 return ct.size
         elif ct.is_rec():
-            assert isinstance(node, cwast.ValRec)
+            if isinstance(node, cwast.ValAuto):
+                return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
+            assert isinstance(node, cwast.ValRec), f"unexpected value {node}"
             print(f"# record: {ct.name}")
             rel_off = 0
             # note node.x_type may be compatible but not equal to ct
