@@ -84,7 +84,7 @@ Both must have derivable types as we use `auto`"""
     $epsilon)
 
 @doc ""
-(macro @pub AssertTrue! STMT_LIST [(mparam $e_expr EXPR)] [$e_val $a_val] :
+(macro @pub AssertTrue! STMT_LIST [(mparam $e_expr EXPR)] [] :
     (if  $e_expr : :
         (SysPrint! "AssertTrue failed: ")
         (SysPrint! (stringify $e_expr))
@@ -93,12 +93,18 @@ Both must have derivable types as we use `auto`"""
         ))
 
 @doc ""
-(macro @pub AssertFalse! STMT_LIST [(mparam $e_expr EXPR)] [$e_val $a_val] :
+(macro @pub AssertFalse! STMT_LIST [(mparam $e_expr EXPR)] [] :
     (if  $e_expr :
         (SysPrint! "AssertFalse failed: ")
         (SysPrint! (stringify $e_expr))
         (SysPrint! "\n")
         (trap)
         : ))
+
+@doc ""
+(macro @pub AssertUnreachable! STMT_LIST [] [] :
+    (SysPrint! "AssertUnreachable\n")
+    (trap)
+)
 
 )

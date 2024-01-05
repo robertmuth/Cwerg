@@ -42,6 +42,10 @@
 (fun @pub FrontSlice [
     (param buffer (ptr @mut (slice u8))) (param n uint)]
             (union [(slice u8) OutOfBoundsError]) :
+    (if (<= (len  (^ buffer)) n) :
+        (return OutOfBoundsErrorVal)
+    :)
+
     (let out (slice u8) (slice_val (front (^ buffer)) n))
     (stmt (IncSliceUnchecked [buffer n]))
     (return out)
