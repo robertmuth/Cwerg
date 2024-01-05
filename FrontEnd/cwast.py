@@ -697,6 +697,8 @@ class CanonType:
     size: int = -1
     register_types: List[Any] = dataclasses.field(default_factory=list)
     typeid: int = -1
+    # we may rewrite slices and unions into structs
+    # this provides a way to access the original type (mostly its typeid)
     original_type: Optional["CanonType"] = None
 
     def __hash__(self):
@@ -824,6 +826,12 @@ class CanonType:
         reg_type = self.register_types
         assert reg_type is not None and len(reg_type) == 1
         return reg_type[0]
+
+    def get_original_typeid(self):
+        if not self.original_type:
+            return self.typeid
+        else:
+            return self.original_type.get_original_typeid()
 
     def __str__(self):
         return self.name

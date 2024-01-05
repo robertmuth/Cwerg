@@ -62,9 +62,9 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     typeids = []
     if dst_ct.is_union():
         for ct in dst_ct.union_member_types():
-            typeids.append(ct.typeid)
+            typeids.append(ct.get_original_typeid())
     else:
-        typeids.append(dst_ct.typeid)
+        typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
                                x_type=typeid_ct, x_value=i) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.

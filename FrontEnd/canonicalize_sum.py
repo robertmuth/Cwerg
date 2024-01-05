@@ -72,7 +72,7 @@ def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
     result = sum_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
     params = [sum_to_struct_map.get(p, p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result)
+    return tc.insert_fun_type(params, result, original_type=fun_sig)
 
 
 def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
@@ -93,17 +93,20 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUC
         elif ct.is_pointer():
             replacement = out.get(ct.underlying_pointer_type())
             if replacement is not None:
-                out[ct] = tc.insert_ptr_type(ct.mut, replacement)
+                out[ct] = tc.insert_ptr_type(
+                    ct.mut, replacement, original_type=ct)
         elif ct.is_array():
             replacement = out.get(ct.underlying_array_type())
             if replacement is not None:
-                out[ct] = tc.insert_array_type(ct.array_dim(), replacement)
+                out[ct] = tc.insert_array_type(
+                    ct.array_dim(), replacement, original_type=ct)
         elif ct.is_slice():
             replacement = out.get(ct.underlying_slice_type())
             # we probably should run this after slices have been eliminated so we
             # we do not have to deal with this case
             if replacement is not None:
-                out[ct] = tc.insert_slice_type(ct.mut, replacement)
+                out[ct] = tc.insert_slice_type(
+                    ct.mut, replacement, original_type=ct)
     return out
 
 
@@ -113,6 +116,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
 
 
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
+    assert typeid >= 0
     return cwast.ValNum(str(typeid), x_value=typeid, x_srcloc=srcloc,
                         x_type=ct_typeid)
 
@@ -144,7 +148,7 @@ def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.Canon
 
     return _MakeValRecForSum(sum_rec,
                              _MakeTypeidVal(
-                                 value.expr.x_type.typeid, srcloc, tag_field.x_type),
+                                 value.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
                              value,
                              srcloc)
 

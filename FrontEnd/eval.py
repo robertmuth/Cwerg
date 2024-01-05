@@ -31,6 +31,7 @@ class _ValSpecial:
     def __repr__(self):
         return f"VAL-{self._kind}"
 
+
 VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
 VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
@@ -498,8 +499,9 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.Expr3):
         return _EvalExpr3(node)
     elif isinstance(node, cwast.ExprTypeId):
-        assert  node.type.x_type.typeid >=0
-        return _AssignValue(node, node.type.x_type.typeid)
+        typeid = node.type.x_type.get_original_typeid()
+        assert typeid >= 0
+        return _AssignValue(node, typeid)
     elif isinstance(node, cwast.ExprCall):
         # TODO
         return False
@@ -519,8 +521,7 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.ExprIs):
         expr_ct: cwast.CanonType = node.expr.x_type
         test_ct: cwast.CanonType = node.type.x_type
-        assert expr_ct.typeid != -1 and test_ct.typeid != -1
-        if expr_ct.typeid == test_ct.typeid:
+        if expr_ct.get_original_typeid() == test_ct.get_original_typeid():
             return _AssignValue(node, True)
         if expr_ct.is_tagged_union():
             if test_ct.is_tagged_union():
