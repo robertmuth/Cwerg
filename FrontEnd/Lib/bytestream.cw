@@ -30,6 +30,22 @@
     (return out)
 )
 
+@doc ""
+(fun @pub FrontSliceUnchecked [
+    (param buffer (ptr @mut (slice u8))) (param n uint)] (slice u8) :
+    (let out auto (slice_val (front (^ buffer)) n))
+    (stmt (IncSliceUnchecked [buffer n]))
+    (return out)
+)
+
+@doc ""
+(fun @pub FrontSlice [
+    (param buffer (ptr @mut (slice u8))) (param n uint)]
+            (union [(slice u8) OutOfBoundsError]) :
+    (let out (slice u8) (slice_val (front (^ buffer)) n))
+    (stmt (IncSliceUnchecked [buffer n]))
+    (return out)
+)
 
 @doc ""
 (fun @pub FrontLeU8Unchecked [(param buffer (ptr @mut (slice u8)))] u8 :

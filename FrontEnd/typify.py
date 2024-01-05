@@ -753,7 +753,8 @@ def CheckExprPointer(node: cwast.ExprPointer, _):
         _CheckTypeUint(node, node.expr_bound_or_undef.x_type)
     ct: cwast.CanonType = node.expr1.x_type
     if not ct.is_pointer():
-        cwast.CompilerError(node.x_srcloc, f"expected pointer got {node.expr1.x_type}")
+        cwast.CompilerError(
+            node.x_srcloc, f"expected pointer got {node.expr1.x_type}")
     # _CheckTypeUint(node, tc, node.expr2.x_type)
     _CheckTypeSame(node, node.expr1.x_type, node.x_type)
 
@@ -791,10 +792,12 @@ def CheckExprAs(node: cwast.ExprAs, _):
 
 def _CheckExprWiden(node: cwast.ExprWiden, _):
     ct_src: cwast.CanonType = node.expr.x_type
+    if ct_src.original_type:
+        ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
     if not type_corpus.is_compatible_for_widen(ct_src, ct_dst):
         cwast.CompilerError(
-            node.x_srcloc,  f"bad widen {ct_src.original_type} -> {ct_dst}: {node.expr}")
+            node.x_srcloc,  f"bad widen {ct_src} -> {ct_dst}: {node.expr}")
 
 
 def _CheckExprNarrow(node: cwast.ExprNarrow, _):
