@@ -41,10 +41,9 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     name = f"tuple_{slice_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
-    ct = tc.insert_rec_type(f"{name}", rec)
+    ct = tc.insert_rec_type(f"{name}", rec, original_type=slice_type)
     typify.AnnotateNodeType(rec, ct)
     tc.finalize_rec_type(ct)
-    ct.original_type = slice_type
     return ct
 
 

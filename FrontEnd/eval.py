@@ -28,6 +28,8 @@ class _ValSpecial:
     def __str__(self):
         return f"VAL-{self._kind}"
 
+    def __repr__(self):
+        return f"VAL-{self._kind}"
 
 VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
@@ -496,7 +498,8 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
     elif isinstance(node, cwast.Expr3):
         return _EvalExpr3(node)
     elif isinstance(node, cwast.ExprTypeId):
-        return _AssignValue(node, node.x_type.typeid)
+        assert  node.type.x_type.typeid >=0
+        return _AssignValue(node, node.type.x_type.typeid)
     elif isinstance(node, cwast.ExprCall):
         # TODO
         return False
@@ -610,7 +613,9 @@ def VerifyASTEvalsRecursively(node):
             return
 
         if isinstance(node, cwast.StmtStaticAssert):
-            assert node.cond.x_value is True, f"Failed static assert: {node} is {node.cond.x_value}"
+            if node.cond.x_value is not True:
+                cwast.CompilerError(
+                    node.x_srcloc, f"Failed static assert: {node} is {node.cond.x_value}")
 
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             # we must be able to initialize data these at compile time

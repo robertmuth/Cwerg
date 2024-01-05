@@ -98,7 +98,8 @@ def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) ->
                 return False
             src_children = set([x.name for x in ct_src.union_member_types()])
         else:
-            src_children = set([ct_src.name])
+            src_children = set(
+                [ct_src.original_type.name if ct_src.original_type else ct_src.name])
         return src_children.issubset(dst_children)
     return False
 
@@ -425,6 +426,7 @@ class TypeCorpus:
         if ct.name in self.corpus:
             return self.corpus[ct.name]
         ct.typeid = self._typeid_curr
+        # print(f">>>>>>>> ",  ct.name,  ct.typeid, ct.original_type)
         self._typeid_curr += 1
         self.corpus[ct.name] = ct
         self.topo_order.append(ct)
@@ -468,11 +470,11 @@ class TypeCorpus:
                 return x
         return None
 
-    def insert_rec_type(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
+    def insert_rec_type(self, name: str, ast_node: cwast.DefRec, original_type=None) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
-        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
+        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node, original_type=original_type), finalize=False)
 
     def insert_enum_type(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
@@ -483,17 +485,18 @@ class TypeCorpus:
 
     def insert_union_type(self, components: List[cwast.CanonType], untagged: bool) -> cwast.CanonType:
         assert len(components) > 1
-        pieces = []
+        pp = set()
         for c in components:
             if c.node is cwast.TypeUnion and c.untagged == untagged:
                 for cc in c.children:
-                    pieces.append(cc)
+                    pp.add(cc)
             else:
-                pieces.append(c)
-        pp = sorted(p.name for p in pieces)
+                pp.add(c)
+        sorted_children = sorted(pp, key=lambda x: x.name)
+        pp = [x.name for x in sorted_children]
         extra = "_untagged" if untagged else ""
         name = f"sum{extra}<{','.join(pp)}>"
-        return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=pieces, untagged=untagged))
+        return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
     def insert_fun_type(self, params: List[cwast.CanonType],
                         result: cwast.CanonType) -> cwast.CanonType:
