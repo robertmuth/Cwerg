@@ -55,7 +55,7 @@ _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 BUILT_IN_MACROS = set([
     "while",
     "for",
-    "try",
+    "trylet",
     "->",
     "swap",
 ])

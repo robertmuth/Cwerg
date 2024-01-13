@@ -31,7 +31,7 @@ The type of the loop variable is determined by $end"""
         (continue)))
 
 
-(macro @pub try STMT_LIST [
+(macro @pub trylet STMT_LIST [
         (mparam $name ID)
         (mparam $type EXPR)
         (mparam $expr EXPR)

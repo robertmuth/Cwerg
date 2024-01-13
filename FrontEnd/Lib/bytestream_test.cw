@@ -40,30 +40,30 @@
     (let dummy1 auto (typeid  (slice u8)))
     (let dummy2 auto (typeid  bytestream::OutOfBoundsError))
 
-    (try result1 (slice u8) raw1 err :
+    (trylet result1 (slice u8) raw1 err :
         (test::AssertUnreachable!)
     )
     (test::AssertSliceEq! result1 "abcdefghij")
 
 
     (let raw2 auto  (bytestream::FrontSlice [(& @mut stream) 1000]))
-    (try result2  bytestream::OutOfBoundsError raw2 err :
+    (trylet result2  bytestream::OutOfBoundsError raw2 err :
         (test::AssertUnreachable!)
     )
 
     (let raw3 auto  (bytestream::FrontSlice [(& @mut stream) 1]))
-    (try result3 (slice u8) raw3 err :
+    (trylet result3 (slice u8) raw3 err :
         (test::AssertUnreachable!)
     )
     (test::AssertSliceEq! result3 "k")
 
     (let raw4 auto  (bytestream::FrontSlice [(& @mut stream) 1000]))
-    (try result4  bytestream::OutOfBoundsError raw4 err :
+    (trylet result4  bytestream::OutOfBoundsError raw4 err :
         (test::AssertUnreachable!)
     )
 
     (let raw5 auto  (bytestream::FrontSlice [(& @mut stream) 0]))
-    (try result5 (slice u8) raw5 err :
+    (trylet result5 (slice u8) raw5 err :
         (test::AssertUnreachable!)
     )
     (test::AssertSliceEq! result5 empty_slice)

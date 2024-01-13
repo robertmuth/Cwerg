@@ -20,7 +20,7 @@
     (let @mut in_word auto false)
     (let @mut buf (array 1024 u8) undef)
     (while true :
-        (try n uint (os::FileRead [fd buf]) err :
+        (trylet n uint (os::FileRead [fd buf]) err :
             (return err))
         (if (==  n 0) : break : )
         (+= (. stats num_chars) n)
@@ -40,7 +40,7 @@
     (return stats))
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (try stats TextStats (WordCount [os::Stdin]) err :
+    (trylet stats TextStats (WordCount [os::Stdin]) err :
         (return 1)
     )
     (fmt::print! [(. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n"])

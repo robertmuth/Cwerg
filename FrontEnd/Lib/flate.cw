@@ -256,7 +256,7 @@
       (if (> dist_num_syms 30) : (return CorruptionErrorVal) :)
 
       (let lit_dist_slice auto (slice_val (front @mut lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
-      (try x Success (read_lit_dist_lengths [bs cl_counts cl_symbols
+      (trylet x Success (read_lit_dist_lengths [bs cl_counts cl_symbols
                                     lit_dist_slice]) err :
                                                 (return err))
    )
@@ -439,20 +439,20 @@ last symbol: 29
      (debug! ["new round last=" seen_last "\n"])
      (cond :
        (case (== kind 0) :
-         (try new_pos uint (handle_uncompressed [bs pos dst]) err :
+         (trylet new_pos uint (handle_uncompressed [bs pos dst]) err :
             (return err))
 
          (= pos new_pos)
        )
        @doc "fixed huffman"
        (case (== kind 1) :
-         (try new_pos uint (handle_fixed_huffman [bs pos dst]) err :
+         (trylet new_pos uint (handle_fixed_huffman [bs pos dst]) err :
             (return err))
 
          (= pos new_pos)
        )
        (case (== kind 2) :
-         (try new_pos uint (handle_dynamic_huffman [bs pos dst]) err :
+         (trylet new_pos uint (handle_dynamic_huffman [bs pos dst]) err :
             (return err))
 
          (= pos new_pos)
