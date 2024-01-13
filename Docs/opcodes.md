@@ -69,7 +69,7 @@ cannot be deduced and must always be provided:
 ```
 .reg A32 [a]
 ...
-st a 16 = 1.0:f32   # stores a 32 bit wide floating point constant
+st a 16 = 1.0:F32   # stores a 32 bit wide floating point constant
 st a 16 = 32:U8     # stores a 8 bit wide integer constant
 st a 16 = 0:A64     # stores a 64 bit wide null pointer
 push 0:C64          # pushes  a 64 bit wide code null pointer
