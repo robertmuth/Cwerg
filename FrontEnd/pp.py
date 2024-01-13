@@ -380,6 +380,40 @@ class TK(enum.Enum):
     END = 10
 
 
+_BINARY_EXPR_KIND_TO_STR = {
+
+    cwast.BINARY_EXPR_KIND.ADD: "+",
+    cwast.BINARY_EXPR_KIND.SUB: "-",
+    cwast.BINARY_EXPR_KIND.MUL: "*",
+    cwast.BINARY_EXPR_KIND.DIV: "/",
+    #
+    cwast.BINARY_EXPR_KIND.OR: "or",
+    cwast.BINARY_EXPR_KIND.AND: "and",
+    cwast.BINARY_EXPR_KIND.XOR: "xor",
+
+    #
+    cwast.BINARY_EXPR_KIND.SHL: "<<",
+    cwast.BINARY_EXPR_KIND.SHR: ">>",
+    cwast.BINARY_EXPR_KIND.EQ: "==",
+    cwast.BINARY_EXPR_KIND.NE: "!=",
+    cwast.BINARY_EXPR_KIND.LE: "<",
+    cwast.BINARY_EXPR_KIND.LT: "<=",
+    cwast.BINARY_EXPR_KIND.GE: ">",
+    cwast.BINARY_EXPR_KIND.GT: ">=",
+    #
+    cwast.BINARY_EXPR_KIND.ANDSC: "&&",
+    cwast.BINARY_EXPR_KIND.ORSC: "||",
+}
+
+_ASSIGNMENT_KIND_TO_STR = {
+    cwast.ASSIGNMENT_KIND.ADD: "+=",
+    cwast.ASSIGNMENT_KIND.SUB: "==",
+    cwast.ASSIGNMENT_KIND.OR: "or=",
+    cwast.ASSIGNMENT_KIND.AND: "and=",
+
+}
+
+
 def ConcreteSyntaxExpr(node):
     if isinstance(node, cwast.Id):
         yield node.name, TK.ATTR
@@ -415,7 +449,7 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxExpr(node.expr)
     elif isinstance(node, cwast.Expr2):
         yield from ConcreteSyntaxExpr(node.expr1)
-        yield f"{node.binary_expr_kind.name}", TK.BINOP
+        yield _BINARY_EXPR_KIND_TO_STR[node.binary_expr_kind], TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr2)
     elif isinstance(node, cwast.MacroInvoke):
         if node.name == "->":
@@ -424,8 +458,7 @@ def ConcreteSyntaxExpr(node):
             yield "->", TK.BINOP
             yield from ConcreteSyntaxExpr(node.args[1])
         else:
-            assert False
-            yield from ConcreteSyntaxMacroInvoke(node)
+            yield from ConcreteSyntaxMacroInvoke(node, False)
     elif isinstance(node, cwast.ExprPointer):
         yield from ConcreteSyntaxExpr(node.expr1)
         yield f"{node.pointer_expr_kind.name}", TK.BINOP
@@ -446,7 +479,10 @@ def ConcreteSyntaxExpr(node):
         yield "^", TK.UNOP
         yield from ConcreteSyntaxExpr(node.expr)
     elif isinstance(node, cwast.ExprAddrOf):
-        yield "&", TK.UNOP
+        if node.mut:
+            yield "&mut", TK.UNOP
+        else:
+            yield "&", TK.UNOP
         yield from ConcreteSyntaxExpr(node.expr_lhs)
     elif isinstance(node, cwast.ExprFront):
         yield "front", TK.UNOP
@@ -490,6 +526,12 @@ def ConcreteSyntaxExpr(node):
         yield from ConcreteSyntaxExpr(node.expr_size)
         yield "]", TK.END
         yield from ConcreteSyntaxExpr(node.pointer)
+    elif isinstance(node, cwast.ExprWrap):
+        yield "wrap", TK.UNOP
+        yield from ConcreteSyntaxExpr(node.expr)
+    elif isinstance(node, cwast.ExprUnwrap):
+        yield "unwrap", TK.UNOP
+        yield from ConcreteSyntaxExpr(node.expr)
     else:
         assert False, f"unknown expr node: {type(node)}"
 
@@ -503,7 +545,7 @@ def ConcreteSyntaxType(node):
         yield "[]", TK.UNOP
         yield from ConcreteSyntaxType(node.type)
     elif isinstance(node, cwast.TypeBase):
-        yield node.base_type_kind.name, TK.ATTR
+        yield node.base_type_kind.name.lower(), TK.ATTR
     elif isinstance(node, cwast.TypePtr):
         yield "*", TK.UNOP
         yield from ConcreteSyntaxType(node.type)
@@ -530,8 +572,10 @@ def ConcreteSyntaxType(node):
         assert False, f"unknown type node: {type(node)}"
 
 
-def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
-    yield f"{node.name}!", TK.BEG
+def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke, is_control_flow):
+    yield f"{node.name}", TK.BEG
+    if not is_control_flow:
+        yield "(", TK.BEG
     sep = False
     for a in node.args:
 
@@ -565,7 +609,9 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
                 yield ",", TK.SEP
             yield from ConcreteSyntaxExpr(a)
         sep = True
-    yield f"@{node.name}!", TK.END
+    if not is_control_flow:
+        yield ")", TK.END
+    yield f"@{node.name}", TK.END
 
 
 def ConcreteSyntaxStmt(node):
@@ -599,7 +645,7 @@ def ConcreteSyntaxStmt(node):
     elif isinstance(node, cwast.StmtCompoundAssignment):
         yield ("set", TK.BEG)
         yield from ConcreteSyntaxExpr(node.lhs)
-        yield f"={node.assignment_kind}", TK.BINOP
+        yield _ASSIGNMENT_KIND_TO_STR[node.assignment_kind], TK.BINOP
         yield from ConcreteSyntaxExpr(node.expr_rhs)
         yield ("@set", TK.END)
     elif isinstance(node, cwast.StmtAssignment):
@@ -623,7 +669,7 @@ def ConcreteSyntaxStmt(node):
             yield ("@:", TK.END)
         yield ("@if", TK.END)
     elif isinstance(node, cwast.MacroInvoke):
-        yield from ConcreteSyntaxMacroInvoke(node)
+        yield from ConcreteSyntaxMacroInvoke(node, node.name in ("trylet", "for", "while"))
     elif isinstance(node, cwast.StmtDefer):
         yield ("defer", TK.BEG)
         yield ":", TK.BEG
@@ -658,6 +704,9 @@ def ConcreteSyntaxStmt(node):
         if node.target:
             yield node.target, TK.ATTR
         yield ("@continue", TK.END)
+    elif isinstance(node, cwast.StmtTrap):
+        yield "trap", TK.BEG
+        yield "@trap", TK.END
     else:
         assert False, f"unknown stmt node: {type(node)}"
 
@@ -691,7 +740,6 @@ def ConcreteSyntaxTop(node):
             yield (p.name, TK.ATTR)
             yield from ConcreteSyntaxType(p.type)
         yield (")", TK.END)
-
         yield from ConcreteSyntaxType(node.result)
         yield (":", TK.BEG)
 
@@ -740,8 +788,10 @@ def ConcreteSyntaxTop(node):
         assert False, f"unknown node: {type(node)}"
 
 
-BEG_TOKENS = set(["module", "global", "defenum", "import", "defer", "block", "break", "continue", "fun", "cond", "type", "if", "",
-                 "deftype", "discard", "defrec", "case", "let", "set", "return", "NONE", ":", "(", "["])
+BEG_TOKENS = set(["module", "global", "defenum", "import", "defer", "block",
+                  "break", "continue", "fun", "cond", "type", "if", "",
+                 "deftype", "discard", "defrec", "case", "let", "set", "for",
+                  "while", "try", "trylet", "trap", "return", "NONE", ":", "(", "["])
 BEG_WITH_SEP_TOKENS = set(["(", "["])
 END_TOKENS = set(["", ")", "]"])
 
@@ -906,8 +956,10 @@ def main():
         for mod in mod_topo_order:
             PrettyPrintHTML(mod, tc)
     elif args.mode == 'concrete':
-        for mod in mods:
-            tokens = ConcreteSyntaxTop(mod)
+        with open(args.files[0], encoding="utf8") as f:
+            mods = parse.ReadModsFromStream(f)
+            assert len(mods) == 1
+            tokens = ConcreteSyntaxTop(mods[0])
             tokens = list(tokens)
             print(tokens)
             tokens.reverse()
