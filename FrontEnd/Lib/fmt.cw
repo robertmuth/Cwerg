@@ -49,10 +49,10 @@
         (mparam $out EXPR)] [$v $out_eval $tmp $pos] :
     (expr :
         @doc "unsigned to str with given base"
-        (macro_let @mut $v auto $val)
-        (macro_let @mut $tmp auto (array_val $max_width u8))
-        (macro_let @mut $pos uint $max_width)
-        (macro_let $out_eval auto $out)
+        ($let @mut $v auto $val)
+        ($let @mut $tmp auto (array_val $max_width u8))
+        ($let @mut $pos uint $max_width)
+        ($let $out_eval auto $out)
         (block _ :
             (-= $pos 1)
             (let c auto (% $v $base))
@@ -334,15 +334,15 @@
 (macro @pub print! STMT_LIST [
         @doc "list of items to be printed"
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
-    (macro_let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
-    (macro_let @mut $curr uint 0)
-    (macro_let @mut @ref $options auto (rec_val SysFormatOptions []))
-    (macro_for $i $parts :
+    ($let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    ($let @mut $curr uint 0)
+    ($let @mut @ref $options auto (rec_val SysFormatOptions []))
+    ($for $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
                 (slice_val (incp (front @mut $buffer) $curr) (- (len $buffer) $curr))
                 (& @mut $options)])))
-    (stmt (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
+    (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
 (fun @pub strz_to_slice [(param s (ptr u8))] (slice u8) :

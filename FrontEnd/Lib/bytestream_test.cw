@@ -70,8 +70,8 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_bs_or_die []))
-    (stmt (test_bs []))
+    (shed (test_bs_or_die []))
+    (shed (test_bs []))
 
     @doc "test end"
     (test::Success!)

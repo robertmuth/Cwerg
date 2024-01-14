@@ -116,9 +116,9 @@
 
 (fun test_tagged_union_parameter [] void :
     (let @mut x Union3 true)
-    (stmt (fun_param [true true 0 x]))
+    (shed (fun_param [true true 0 x]))
     (= x 666_s32)
-    (stmt (fun_param [false true 666 x]))
+    (shed (fun_param [false true 666 x]))
 )
 
 (fun fun_result [
@@ -155,11 +155,11 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_tagged_union_basic []))
-    (stmt (test_tagged_union_void []))
-    (stmt (test_tagged_union_result []))
-    (stmt (test_tagged_union_parameter []))
-    (stmt (test_tagged_union_narrowto []))
+    (shed (test_tagged_union_basic []))
+    (shed (test_tagged_union_void []))
+    (shed (test_tagged_union_result []))
+    (shed (test_tagged_union_parameter []))
+    (shed (test_tagged_union_narrowto []))
 
     @doc "test end"
     (test::Success!)

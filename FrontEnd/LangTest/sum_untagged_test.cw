@@ -155,7 +155,7 @@
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_untagged_union []))
+    (shed (test_untagged_union []))
 
     @doc "test end"
     (test::Success!)

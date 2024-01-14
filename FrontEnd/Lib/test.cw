@@ -10,8 +10,8 @@ the footprint/dependencies small.
 
 
 (macro SysPrint! STMT_LIST [(mparam $msg EXPR)] [$msg_eval] :
-    (macro_let $msg_eval (slice u8) $msg)
-    (stmt (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])
+    ($let $msg_eval (slice u8) $msg)
+    (shed (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])
     ))
 
 (macro @pub Success! STMT [] [] :
@@ -22,8 +22,8 @@ the footprint/dependencies small.
 
 Both must have derivable types as we use `auto`"""
 (macro @pub AssertEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
-    (macro_let $e_val auto $e_expr)
-    (macro_let $a_val auto $a_expr)
+    ($let $e_val auto $e_expr)
+    ($let $a_val auto $a_expr)
     (if (!= $e_val $a_val) :
         (SysPrint! "AssertEq failed: ")
         (SysPrint! (stringify $e_expr))
@@ -47,8 +47,8 @@ Both must have derivable types as we use `auto`"""
 @doc "The two arguments must type derivable"
 (macro @pub AssertSliceEq! STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)]
         [$e_val $a_val $i] :
-    (macro_let $e_val auto $e_expr)
-    (macro_let $a_val auto $a_expr)
+    ($let $e_val auto $e_expr)
+    ($let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
         (AssertEq! (^ (incp (front $e_val) $i)) (^ (incp (front $a_val) $i)))))
@@ -59,8 +59,8 @@ Both must have derivable types as we use `auto`"""
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val] :
-    (macro_let $e_val auto $e_expr)
-    (macro_let $a_val auto $a_expr)
+    ($let $e_val auto $e_expr)
+    ($let $a_val auto $a_expr)
     (if (|| (< $e_val (- $a_val $epsilon)) (> $e_val (+ $a_val $epsilon))) :
         (SysPrint! "AssertApproxEq failed: ")
         (SysPrint! (stringify $e_expr))
@@ -76,8 +76,8 @@ Both must have derivable types as we use `auto`"""
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val $i] :
-    (macro_let $e_val auto $e_expr)
-    (macro_let $a_val auto $a_expr)
+    ($let $e_val auto $e_expr)
+    ($let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
         (AssertApproxEq! (^ (incp (front $e_val) $i)) (^ (incp (front $a_val) $i))))

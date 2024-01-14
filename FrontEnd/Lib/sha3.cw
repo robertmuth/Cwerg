@@ -71,7 +71,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 )
 
 (macro XOR_1! STMT_LIST  [(mparam $x EXPR) (mparam $indices EXPR_LIST) (mparam $v EXPR)] [] :
-     (macro_for $i $indices : (xor= (at (^ $x) $i) $v))
+     ($for $i $indices : (xor= (at (^ $x) $i) $v))
 )
 
 (macro UPDATE! STMT_LIST [(mparam $a EXPR) (mparam $b EXPR) (mparam $x EXPR) (mparam $i EXPR) (mparam $bitpos EXPR)] [] :
@@ -91,7 +91,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 )
 
 (fun KeccakF  [(param x (ptr @mut (array 25 u64)))] void :
-    @doc """(stmt (dumpA ["KeccakF:" x]))"""
+    @doc """(shed (dumpA ["KeccakF:" x]))"""
 
 	(for round  0 24_uint 1 :
         @doc "theta(x)"
@@ -112,7 +112,7 @@ https://emn178.github.io/online-tools/sha3_512.html
         (XOR_1! x [2 7 12 17 22] t2)
         (XOR_1! x [3 8 13 18 23] t3)
         (XOR_1! x [4 9 14 19 24] t4)
-        @doc """(stmt (dumpA ["theta" x]))"""
+        @doc """(shed (dumpA ["theta" x]))"""
 
         @doc "rho(x)"
         (let @mut a u64 (at (^ x) 1))
@@ -149,7 +149,7 @@ https://emn178.github.io/online-tools/sha3_512.html
         (UPDATE! a b x 1 44)
 
 
-        @doc """(stmt (dumpA ["rho" x]))"""
+        @doc """(shed (dumpA ["rho" x]))"""
 
 
         @doc "chi"
@@ -167,7 +167,7 @@ https://emn178.github.io/online-tools/sha3_512.html
             (xor= (at (^ x) (+ i 4)) (and (! bc0) bc1))
         )
 
-        @doc """(stmt (dumpA ["chi" x]))"""
+        @doc """(shed (dumpA ["chi" x]))"""
 
         @doc "iota"
         (xor= (at (^ x) 0) (at rconst round))
@@ -195,8 +195,8 @@ https://emn178.github.io/online-tools/sha3_512.html
             (for i 0 offset 1 :
                 (= (^ (incp tail_u8 (+ tail_use i))) (at data i))
             )
-            (stmt (AddBlockAlignedLE [state  tail]))
-            (stmt (KeccakF [(& @mut (-> state x))]))
+            (shed (AddBlockAlignedLE [state  tail]))
+            (shed (KeccakF [(& @mut (-> state x))]))
        )
     :)
     (while  (>= (- (len data) offset) block_size) :
@@ -204,8 +204,8 @@ https://emn178.github.io/online-tools/sha3_512.html
             (= (^ (incp tail_u8 i)) (at data offset))
             (+= offset 1)
         )
-        (stmt (AddBlockAlignedLE [state  tail]))
-        (stmt (KeccakF [(& @mut (-> state x))]))
+        (shed (AddBlockAlignedLE [state  tail]))
+        (shed (KeccakF [(& @mut (-> state x))]))
 
     )
     (for i 0 (- (len data) offset) 1 :
@@ -227,23 +227,23 @@ https://emn178.github.io/online-tools/sha3_512.html
     (= (^ (incp tail_u8 i)) 0))
    (or= (^ (incp tail_u8 padding_start)) padding)
    (or= (^ (incp tail_u8 (- block_size 1))) 0x80)
-   (stmt (AddBlockAlignedLE [state  tail]))
-   (stmt (KeccakF [(& @mut (-> state x))]))
+   (shed (AddBlockAlignedLE [state  tail]))
+   (shed (KeccakF [(& @mut (-> state x))]))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 (fun @pub Keccak512 [(param data (slice u8))] (array 64 u8) :
   (let @mut @ref state auto (rec_val StateKeccak512 []))
-  (stmt (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
-  (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail) KeccakPadding]))
+  (shed (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
+  (shed (KeccakFinalize [(& @mut (. state base)) (. state tail) KeccakPadding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 (fun @pub Sha3512 [(param data (slice u8))] (array 64 u8) :
   (let @mut @ref state auto (rec_val StateKeccak512 []))
-  (stmt (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
-  (stmt (KeccakFinalize [(& @mut (. state base)) (. state tail) Sha3Padding]))
+  (shed (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
+  (shed (KeccakFinalize [(& @mut (. state base)) (. state tail) Sha3Padding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 

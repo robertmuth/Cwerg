@@ -176,9 +176,9 @@
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_global_array []))
-    (stmt (test_local_array []))
-    (stmt (test_mixed_array []))
+    (shed (test_global_array []))
+    (shed (test_local_array []))
+    (shed (test_mixed_array []))
     @doc "test end"
     (test::Success!)
     (return 0))

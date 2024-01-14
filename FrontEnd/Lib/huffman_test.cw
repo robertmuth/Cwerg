@@ -206,12 +206,12 @@ D = 100
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (stmt (test_helper []))
-    (stmt (test_helper_single_code []))
+    (shed (test_helper []))
+    (shed (test_helper_single_code []))
 
-    (stmt (test_tree0_decoding []))
-    (stmt (test_tree1_decoding []))
-    (stmt (test_tree1_bitstream_decoding []))
+    (shed (test_tree0_decoding []))
+    (shed (test_tree1_decoding []))
+    (shed (test_tree1_bitstream_decoding []))
 
     @doc "test end"
     (test::Success!)

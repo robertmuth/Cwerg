@@ -86,9 +86,9 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
-    (stmt (checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
+    (shed (checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
     (fmt::print! ["\n\n"])
-    (stmt (checksum::InitCrcTab [checksum::PolyCrc32cLE (& @mut Crc32cTab)]))
+    (shed (checksum::InitCrcTab [checksum::PolyCrc32cLE (& @mut Crc32cTab)]))
 
     @doc """crc32
     python3 -c "import zlib; print(zlib.crc32(bytes([0xaa] * 1024)))"

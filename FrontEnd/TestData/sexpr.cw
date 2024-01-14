@@ -3,11 +3,11 @@
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (stmt (foo1 [
+    (shed (foo1 [
             0
             0
             0]))
-    (stmt (foo2 [
+    (shed (foo2 [
             1
             2
             3]))

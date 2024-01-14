@@ -665,11 +665,13 @@ def NodeCommon(cls):
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
     cls.ATTRS = []
+    cls.ATTRS_MAP = {}
     for field, _ in cls.__annotations__.items():
         if not field.startswith("x_"):
             nfd = ALL_FIELDS_MAP[field]
             if nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
                 cls.ATTRS.append((field, nfd))
+                cls.ATTRS_MAP[field] = nfd
             else:
                 cls.FIELDS.append((field, nfd))
     return cls
@@ -2160,7 +2162,7 @@ class StmtExpr:
 
     Turns an expression (typically a call) into a statement
     """
-    ALIAS = "stmt"
+    ALIAS = "shed"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
     #
@@ -2588,7 +2590,7 @@ class MacroVar:
     `name` must start with a `$`.
 
     """
-    ALIAS = "macro_let"
+    ALIAS = "$let"
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
@@ -2614,13 +2616,15 @@ class MacroFor:
     loops over the macro parameter `name_list` which must be a list and
     binds each list element to `name` while expanding the AST nodes in `body_for`.
     """
-    ALIAS = "macro_for"
+    ALIAS = "$for"
     GROUP = GROUP.Macro
     FLAGS = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: str
     name_list: str
     body_for: List[Any]
+    #
+    doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -2654,6 +2658,8 @@ class MacroInvoke:
     #
     name: str
     args: List[NODES_EXPR_T]
+    #
+    doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_module: Optional[Any] = None

@@ -13,7 +13,7 @@
 
 (macro xdump_slice! STMT_LIST [
    (mparam $prefix EXPR) (mparam $slice EXPR)] [$s_eval $i] :
-   (macro_let $s_eval auto $slice)
+   ($let $s_eval auto $slice)
    (for $i 0 (len $s_eval) 1 :
        (fmt::print! [$prefix $i " -> " (at $s_eval $i) "\n"]))
 )
@@ -400,7 +400,7 @@ last symbol: 29
     (param dst (slice @mut u8))
    ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug! ["handle_uncompressed\n"])
-   (stmt (bitstream::Stream32SkipToNextByte [bs]))
+   (shed (bitstream::Stream32SkipToNextByte [bs]))
    (let length u32 (bitstream::Stream32GetBits [bs 16]))
    (let inv_length u32 (bitstream::Stream32GetBits [bs 16]))
    (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
