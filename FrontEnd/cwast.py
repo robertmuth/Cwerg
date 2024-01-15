@@ -656,6 +656,8 @@ def NodeCommon(cls):
     assert hasattr(cls, "ALIAS") and hasattr(
         cls, "FLAGS") and hasattr(cls, "GROUP")
     assert hasattr(cls, "x_srcloc")
+    if cls.GROUP is GROUP.Statement:
+        assert hasattr(cls, "doc"), f"mising doc {cls.__name__}"
     _CheckNodeFieldOrder(cls)
 
     ALL_NODES.add(cls)
@@ -2933,13 +2935,14 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def CheckAST(node, disallowed_nodes, allow_type_auto=False):
+def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False):
     # this forces a pre-order traversal
     toplevel_node = None
 
     def visitor(node, field):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
+        nonlocal pre_symbolize
         # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
         if type(node) in disallowed_nodes:
@@ -2969,12 +2972,18 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False):
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
             # when we synthesize Ids later we do not bother with x_module anymore
-            assert node.x_symbol is not None or isinstance(
-                node.x_module, DefMod)
+            if not pre_symbolize:
+                assert node.x_symbol is not None or isinstance(
+                    node.x_module, DefMod)
+            assert not node.name.startswith("$")
+        elif isinstance(node, MacroId):
+            assert node.name.startswith("$")
         elif isinstance(node, (MacroInvoke, DefFun, Import)):
-            assert isinstance(node.x_module, DefMod)
+            if not pre_symbolize:
+                assert isinstance(node.x_module, DefMod)
         elif isinstance(node, DefMod):
-            assert node.x_modname, f"missing x_modname {node}"
+            if not pre_symbolize:
+                assert node.x_modname, f"missing x_modname {node}"
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             permitted = nfd.extra

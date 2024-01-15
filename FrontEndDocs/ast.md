@@ -39,7 +39,7 @@ Core nodes are the ones that are known to the code generator.
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
 [StmtBreak&nbsp;(break)](#stmtbreak-break) &ensp;
 [StmtContinue&nbsp;(continue)](#stmtcontinue-continue) &ensp;
-[StmtExpr&nbsp;(stmt)](#stmtexpr-stmt) &ensp;
+[StmtExpr&nbsp;(shed)](#stmtexpr-shed) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
@@ -81,11 +81,11 @@ code generation.
 [ExprUnionTag&nbsp;(uniontypetag)](#expruniontag-uniontypetag) &ensp;
 [ExprUnionUntagged&nbsp;(unionuntagged)](#exprunionuntagged-unionuntagged) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
-[MacroFor&nbsp;(macro_for)](#macrofor-macro_for) &ensp;
+[MacroFor&nbsp;($for)](#macrofor-for) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
 [MacroParam&nbsp;(mparam)](#macroparam-mparam) &ensp;
-[MacroVar&nbsp;(macro_let)](#macrovar-macro_let) &ensp;
+[MacroVar&nbsp;($let)](#macrovar-let) &ensp;
 [ModParam](#modparam) &ensp;
 [StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
@@ -348,6 +348,7 @@ Fields:
 Flags:
 * pub: has public visibility
 * mut: is mutable
+* ref: address may be taken
 * cdecl: use c-linkage (no module prefix)
 * doc: comment
 
@@ -541,7 +542,7 @@ Flags:
 * doc: comment
 
 
-### StmtExpr (stmt)
+### StmtExpr (shed)
 Expression statement
 
     Turns an expression (typically a call) into a statement
@@ -623,7 +624,7 @@ Flags:
 Part of an array literal
 
     e.g. `.1 = 5`
-    If index is empty use `0` or `previous index + 1`.
+    If index is auto use `0` or `previous index + 1`.
     
 
 Fields:
@@ -646,6 +647,9 @@ Fields:
 * expr_size [NODE]: expression determining the size or auto
 * type [NODE]: type expression
 * inits_array [LIST] (default list): array initializers and/or comments
+
+Flags:
+* doc: comment
 
 
 ### ValAuto (auto_val)
@@ -683,6 +687,9 @@ A record literal
 Fields:
 * type [NODE]: type expression
 * inits_field [LIST]: record initializers and/or comments
+
+Flags:
+* doc: comment
 
 
 ### ValSlice (slice_val)
@@ -1042,7 +1049,7 @@ Flags:
 * colon: colon style list
 
 
-### MacroFor (macro_for)
+### MacroFor ($for)
 Macro for-loop like statement
 
     loops over the macro parameter `name_list` which must be a list and
@@ -1053,6 +1060,9 @@ Fields:
 * name [STR]: name of the object
 * name_list [STR]: name of the object list
 * body_for [LIST]: statement list for macro_loop
+
+Flags:
+* doc: comment
 
 
 ### MacroId (macro_id)
@@ -1072,6 +1082,9 @@ Fields:
 * name [STR]: name of the object
 * args [LIST]: function call arguments
 
+Flags:
+* doc: comment
+
 
 ### MacroParam (mparam)
 Macro Parameter
@@ -1084,7 +1097,7 @@ Flags:
 * doc: comment
 
 
-### MacroVar (macro_let)
+### MacroVar ($let)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
     `name` must start with a `$`.
