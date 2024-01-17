@@ -482,6 +482,14 @@ def ExprtWithParenListExpr(callee, lst):
     yield from ParenList(lst)
 
 
+def ConcreteExpr3(node: cwast.Expr3):
+    yield from ConcreteSyntaxMisc(node.cond)
+    yield Token("??", TK.ATTR)
+    yield from ConcreteSyntaxMisc(node.expr_t)
+    yield Token("!!", TK.ATTR)
+    yield from ConcreteSyntaxMisc(node.expr_f)
+
+
 def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
@@ -533,8 +541,8 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
     yield Token(f"@{node.name}", TK.END)
 
 
-def ConcreteStmt(name: str, arg):
-    yield Token(name, TK.BEG)
+def ConcreteStmt(kind: str, arg):
+    yield Token(kind, TK.BEG)    # return, continue, etc.
     if arg:
         if type(arg) == str:
             yield Token(arg, TK.ATTR)
@@ -542,10 +550,10 @@ def ConcreteStmt(name: str, arg):
             # for return
             yield from ConcreteSyntaxMisc(arg)
 
-    yield Token("@" + name, TK.END)
+    yield Token("@" + kind, TK.END)
 
 
-def ConcreteBlock(kind, arg, stmts):
+def ConcreteStmtBlock(kind, arg, stmts):
     yield Token(kind, TK.BEG)
     if arg:
         if type(arg) == str:
@@ -559,7 +567,7 @@ def ConcreteBlock(kind, arg, stmts):
     yield Token("@" + kind, TK.END)
 
 
-def ConcreteSet(kind, lhs, rhs):
+def ConcreteStmtSet(kind, lhs, rhs):
     yield ("set", TK.BEG)
     yield from ConcreteSyntaxMisc(lhs)
     yield kind, TK.BINOP
@@ -577,15 +585,71 @@ def ConcreteLet(kind, name: str, type_or_auto, init_or_auto):
     yield Token("@" + kind, TK.END)
 
 
-def ConcreteMacroFor(name: str, name_list, body):
+def ConcreteMacroFor(node: cwast.MacroFor):
     yield Token("$for", TK.BEG)
-    yield Token(name, TK.ATTR)
-    yield Token(name_list, TK.ATTR)
+    yield Token(node.name, TK.ATTR)
+    yield Token(node.name_list, TK.ATTR)
     yield Token(":", TK.BEG)
-    yield from ConcreteSyntaxMisc(body)
+    yield from ConcreteSyntaxMisc(node.body_for)
     yield Token("@:", TK.END)
     yield Token("@$for", TK.END)
 
+
+def ConcreteIf(node: cwast.StmtIf):
+    yield ("if", TK.BEG)
+    yield from ConcreteSyntaxMisc(node.cond)
+    yield (":", TK.BEG)
+    for c in node.body_t:
+        yield from ConcreteSyntaxMisc(c)
+    yield ("@:", TK.END)
+    if node.body_f:
+        yield ("else", TK.ATTR)
+        yield (":", TK.BEG)
+        for c in node.body_f:
+            yield from ConcreteSyntaxMisc(c)
+        yield ("@:", TK.END)
+    yield ("@if", TK.END)
+
+
+def ConcreteValRec(node: cwast.ValRec):
+    yield from ConcreteSyntaxMisc(node.type)
+    yield Token("[", TK.BEG)
+    sep = False
+    for e in node.inits_field:
+        if sep:
+            yield Token(",", TK.SEP)
+        sep = True
+        yield from ConcreteSyntaxMisc(e.value_or_undef)
+        if e.init_field:
+            yield Token(e.init_field, TK.ATTR)
+    yield Token("]", TK.END)
+
+
+def ConcreteValArray(node: cwast.ValArray):
+    yield Token("[", TK.BEG)
+    yield from ConcreteSyntaxMisc(node.expr_size)
+    yield Token("]", TK.END)
+    yield from ConcreteSyntaxMisc(node.type)
+    yield Token("[", TK.BEG)
+    sep = False
+    for e in node.inits_array:
+        assert isinstance(e, cwast.IndexVal)
+        if sep:
+            yield Token(",", TK.SEP)
+        sep = True
+        yield from ConcreteSyntaxMisc(e.value_or_undef)
+        if not isinstance(e.init_index, cwast.ValAuto):
+            yield from ConcreteSyntaxMisc(e.init_index)
+    yield Token("]", TK.END)
+
+def ConcreteTypeFun(node: cwast.TypeFun):
+    yield Token("funtype", TK.UNOP)
+    yield Token("(", TK.BEG)
+    for p in node.params:
+        yield Token(p.name, TK.ATTR)
+        yield from ConcreteSyntaxMisc(p.type)
+    yield Token(")", TK.END)
+    yield from ConcreteSyntaxMisc(node.result)
 
 CONCRETE_SYNTAX = {
     cwast.Id: lambda n:  (yield Token(n.name, TK.ATTR)),
@@ -593,8 +657,7 @@ CONCRETE_SYNTAX = {
     cwast.MacroId: lambda n:  (yield Token(n.name, TK.ATTR)),
     cwast.MacroInvoke: ConcreteSyntaxMacroInvoke,
     cwast.MacroVar: lambda n: ConcreteLet("$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
-    cwast.MacroFor: lambda n:  ConcreteMacroFor(n.name, n.name_list, n.body_for),
-
+    cwast.MacroFor: ConcreteMacroFor,
     #
     cwast.TypeAuto: lambda n: (yield Token("auto", TK.ATTR)),
     cwast.TypeBase: lambda n: (yield Token(n.base_type_kind.name.lower(), TK.ATTR)),
@@ -604,6 +667,7 @@ CONCRETE_SYNTAX = {
     cwast.TypePtr: lambda n: UnaryFunction("ptr", n.type),
     cwast.TypeArray: lambda n: BinaryFunction("array", n.size, n.type),
     cwast.TypeUnionDelta: lambda n: BinaryFunction("uniondelta", n.type, n.subtrahend),
+    cwast.TypeFun:  ConcreteTypeFun,
     #
     cwast.ValNum: lambda n: (yield Token(n.number, TK.ATTR)),
     cwast.ValTrue: lambda n: (yield Token("true", TK.ATTR)),
@@ -612,6 +676,9 @@ CONCRETE_SYNTAX = {
     cwast.ValVoid: lambda n: (yield Token("void", TK.ATTR)),
     cwast.ValAuto: lambda n: (yield Token("auto", TK.ATTR)),
     cwast.ValString: lambda n: (yield Token(f'{n.strkind}"{n.string}"', TK.ATTR)),
+    cwast.ValRec: ConcreteValRec,
+    cwast.ValArray: ConcreteValArray,
+
     #
     cwast.ExprFront: lambda n: UnaryFunction("front", n.container),
     cwast.ExprUnionTag: lambda n: UnaryFunction("uniontag", n.expr),
@@ -634,6 +701,7 @@ CONCRETE_SYNTAX = {
     cwast.ExprAddrOf: lambda n: UnaryPrefix("&", n.expr_lhs),
     cwast.Expr2: lambda n: BinaryInfix(_BINARY_EXPR_KIND_TO_STR[n.binary_expr_kind],
                                        n.expr1, n.expr2),
+    cwast.Expr3: ConcreteExpr3,
     cwast.ExprStringify: lambda n: UnaryFunction("stringify", n.expr),
     cwast.ExprCall: lambda n: ExprtWithParenListExpr(n.callee, n.args),
     #
@@ -642,101 +710,38 @@ CONCRETE_SYNTAX = {
     cwast.StmtTrap: lambda n: ConcreteStmt("trap", ""),
     cwast.StmtReturn: lambda n: ConcreteStmt("return", n.expr_ret),
     cwast.StmtExpr: lambda n: ConcreteStmt("shed", n.expr),
+    cwast.StmtDefer: lambda n: ConcreteStmtBlock("defer", "", n.body),
+    cwast.StmtBlock: lambda n: ConcreteStmtBlock("block", n.label, n.body),
+    cwast.Case: lambda n: ConcreteStmtBlock("case", n.cond, n.body),
 
-    cwast.StmtDefer: lambda n: ConcreteBlock("defer", "", n.body),
-    cwast.StmtBlock: lambda n: ConcreteBlock("block", n.label, n.body),
-    cwast.Case: lambda n: ConcreteBlock("case", n.cond, n.body),
-
-    cwast.StmtCond: lambda n: ConcreteBlock("cond", "", n.cases),
-    cwast.StmtCompoundAssignment: lambda n: ConcreteSet(_ASSIGNMENT_KIND_TO_STR[n.assignment_kind],
-                                                        n.lhs, n.expr_rhs),
-    cwast.StmtAssignment: lambda n: ConcreteSet("=", n.lhs, n.expr_rhs),
+    cwast.StmtCond: lambda n: ConcreteStmtBlock("cond", "", n.cases),
+    cwast.StmtCompoundAssignment: lambda n: ConcreteStmtSet(_ASSIGNMENT_KIND_TO_STR[n.assignment_kind],
+                                                            n.lhs, n.expr_rhs),
+    cwast.StmtAssignment: lambda n: ConcreteStmtSet("=", n.lhs, n.expr_rhs),
     cwast.DefVar: lambda n: ConcreteLet("let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.StmtIf: ConcreteIf,
 }
 
 
+def ConcreteAnnotations(node):
+    for field, nfd in node.ATTRS:
+        if field in ("triplequoted", "strkind"):
+            continue
+        val = getattr(node, field)
+        if nfd.kind is cwast.NFK.ATTR_BOOL:
+            if val:
+                yield Token(" @" + field, TK.ANNOTATION)
+        elif nfd.kind is cwast.NFK.ATTR_STR:
+            if val:
+                yield Token(" @" + field + "=" + val, TK.ANNOTATION)
+
+
 def ConcreteSyntaxMisc(node):
-    if "doc" in node.__class__.ATTRS_MAP:
-        if node.doc:
-            yield Token("@doc=" + node.doc, TK.ANNOTATION)
-    if "pub" in node.__class__.ATTRS_MAP:
-        if node.pub:
-            yield Token("@pub", TK.ANNOTATION)
-    if "mut" in node.__class__.ATTRS_MAP:
-        if node.mut:
-            yield Token("@mut", TK.ANNOTATION)
+    yield from ConcreteAnnotations(node)
 
     gen = CONCRETE_SYNTAX.get(node.__class__)
-    if gen:
-        yield from gen(node)
-        return
-
-    if isinstance(node, cwast.ValRec):
-        yield from ConcreteSyntaxMisc(node.type)
-        yield Token("[", TK.BEG)
-        sep = False
-        for e in node.inits_field:
-            if sep:
-                yield Token(",", TK.SEP)
-            sep = True
-            yield from ConcreteSyntaxMisc(e.value_or_undef)
-            if e.init_field:
-                yield Token(e.init_field, TK.ATTR)
-        yield Token("]", TK.END)
-
-    elif isinstance(node, cwast.Expr3):
-        yield from ConcreteSyntaxMisc(node.cond)
-        yield Token("??", TK.ATTR)
-        yield from ConcreteSyntaxMisc(node.expr_t)
-        yield Token("!!", TK.ATTR)
-        yield from ConcreteSyntaxMisc(node.expr_f)
-    elif isinstance(node, cwast.ValArray):
-        yield Token("[", TK.BEG)
-        yield from ConcreteSyntaxMisc(node.expr_size)
-        yield Token("]", TK.END)
-        yield from ConcreteSyntaxMisc(node.type)
-        yield Token("[", TK.BEG)
-        sep = False
-        for e in node.inits_array:
-            assert isinstance(e, cwast.IndexVal)
-            if sep:
-                yield Token(",", TK.SEP)
-            sep = True
-            yield from ConcreteSyntaxMisc(e.value_or_undef)
-            if not isinstance(e.init_index, cwast.ValAuto):
-                yield from ConcreteSyntaxMisc(e.init_index)
-        yield Token("]", TK.END)
-
-    elif isinstance(node, cwast.TypeFun):
-        yield Token("funtype", TK.UNOP)
-        yield Token("(", TK.BEG)
-        for p in node.params:
-            yield Token(p.name, TK.ATTR)
-            yield from ConcreteSyntaxMisc(p.type)
-        yield Token(")", TK.END)
-        yield from ConcreteSyntaxMisc(node.result)
-
-
-
-    elif isinstance(node, cwast.StmtIf):
-        yield ("if", TK.BEG)
-        yield from ConcreteSyntaxMisc(node.cond)
-        yield (":", TK.BEG)
-        for c in node.body_t:
-            yield from ConcreteSyntaxMisc(c)
-        yield ("@:", TK.END)
-        if node.body_f:
-            yield ("else", TK.ATTR)
-            yield (":", TK.BEG)
-            for c in node.body_f:
-                yield from ConcreteSyntaxMisc(c)
-            yield ("@:", TK.END)
-        yield ("@if", TK.END)
-    elif isinstance(node, cwast.MacroInvoke):
-        yield from ConcreteSyntaxMacroInvoke(node)
-
-    else:
-        assert False, f"unknown stmt node: {type(node)}"
+    assert gen
+    yield from gen(node)
 
 
 def ConcreteSyntaxTop(node):
