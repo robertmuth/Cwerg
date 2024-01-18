@@ -609,6 +609,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 node.pointer, tc, cwast.NO_TYPE, ctx)
             return AnnotateNodeType(
                 node, tc.insert_slice_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
+    elif isinstance(node, cwast.ExprParen):
+        ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
+        return AnnotateNodeType(node, ct)
     else:
         assert False, f"unexpected node {node}"
 
@@ -1113,6 +1116,7 @@ class TypeVerifier:
             cwast.StmtReturn: CheckStmtReturn,
             cwast.DefVar: CheckDefVarDefGlobal,
             cwast.DefGlobal: CheckDefVarDefGlobal,
+            cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
         }
 
     def Verify(self, node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):

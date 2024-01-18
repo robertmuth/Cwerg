@@ -110,6 +110,12 @@
     (return (< c (expr :
         (return 6)))))
 
+(fun foo6 [(param c s32)] s32 :
+    (return (* 55_s32
+               (paren (+ c 44)))
+    )
+)
+
 
 (fun square [(param c s32)] s32 :
     (return (* c c)))

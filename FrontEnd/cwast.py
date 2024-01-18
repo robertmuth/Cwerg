@@ -1497,7 +1497,7 @@ class ExprCall:
 class ExprParen:
     """Used for preserving parenthesis in the source
     """
-    ALIAS = None
+    ALIAS = "paren"
     GROUP = GROUP.Expression
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
     #
@@ -1507,6 +1507,8 @@ class ExprParen:
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
+    def __str__(self):
+        return f"{_NAME(self)} {self.expr}"
 
 @NodeCommon
 @dataclasses.dataclass()

@@ -408,6 +408,7 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
 
 
 def _EvalNode(node: cwast.ALL_NODES) -> bool:
+    """Returns True if node could be evaluated."""
 
     if isinstance(node, cwast.Id):
         # this case is why we need the sym_tab
@@ -574,6 +575,10 @@ def _EvalNode(node: cwast.ALL_NODES) -> bool:
                                 (node.pointer.x_value, node.expr_size.x_value))
         return False
     elif isinstance(node, cwast.ExprUnionTag):
+        return False
+    elif isinstance(node, cwast.ExprParen):
+        if _EvalNode(node.expr):
+            return _AssignValue(node, node.expr.x_value)
         return False
     else:
         assert False, f"unexpected node {node}"
