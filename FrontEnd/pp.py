@@ -370,16 +370,17 @@ class TK(enum.Enum):
     INVALID = 0
 
     ATTR = 1  # attribute
+    ATTR_WITH_SPACE = 4  # attribute
+
     SEP = 2  # sequence seperator
     SEQ = 3  # sequence element
-    COM = 4  # comment
-    MCOM = 5  # multi line comment
     BINOP = 6  # binary operator
-    UNOP = 7  # unary operator
+    UNOP = 7  # unary operator - not space afterwards
     BEG = 8
     END = 10
-    ANNOTATION = 11
-    NEWLINE = 12
+    ANNOTATION_SHORT = 11
+    ANNOTATION_LONG = 12
+    NEWLINE = 13
 
 
 _BINARY_EXPR_KIND_TO_STR = {
@@ -414,6 +415,7 @@ _ASSIGNMENT_KIND_TO_STR = {
     cwast.ASSIGNMENT_KIND.ADD: "+=",
     cwast.ASSIGNMENT_KIND.SUB: "-=",
     cwast.ASSIGNMENT_KIND.MUL: "*=",
+    cwast.ASSIGNMENT_KIND.DIV: "/=",
     cwast.ASSIGNMENT_KIND.REM: "%=",
     cwast.ASSIGNMENT_KIND.OR: "or=",
     cwast.ASSIGNMENT_KIND.AND: "and=",
@@ -429,19 +431,19 @@ def Token(a, k):
 
 
 def UnaryFunction(name, node):
-    yield Token(name, TK.ATTR)
+    yield Token(name, TK.UNOP)
     yield Token("(", TK.BEG)
     yield from ConcreteSyntaxMisc(node)
     yield Token(")", TK.END)
 
 
 def BinaryFunction(name, node1, node2):
-    yield Token(name, TK.ATTR)
+    yield Token(name, TK.UNOP)
     yield Token("(", TK.BEG)
     yield from ConcreteSyntaxMisc(node1)
     yield Token(",", TK.SEP)
     if type(node2) == str:
-        yield Token(field, TK.ATTR)
+        yield Token(node2, TK.ATTR)
     else:
         yield from ConcreteSyntaxMisc(node2)
     yield Token(")", TK.END)
@@ -457,7 +459,7 @@ def BinaryInfix(name: str, node1, node2):
 
 
 def UnaryPrefix(name: str, node):
-    yield Token(name, TK.BINOP)
+    yield Token(name, TK.UNOP)
     yield from ConcreteSyntaxMisc(node)
 
 
@@ -467,7 +469,7 @@ def ParenList(lst):
     for t in lst:
         if sep:
             yield Token(",", TK.SEP)
-            sep = True
+        sep = True
         yield from ConcreteSyntaxMisc(t)
     yield Token(")", TK.END)
 
@@ -546,7 +548,7 @@ def ConcreteStmt(kind: str, arg):
     if arg:
         if type(arg) == str:
             yield Token(arg, TK.ATTR)
-        elif isinstance(arg, cwast.ValVoid):
+        elif not isinstance(arg, cwast.ValVoid):
             # for return
             yield from ConcreteSyntaxMisc(arg)
 
@@ -590,7 +592,8 @@ def ConcreteMacroFor(node: cwast.MacroFor):
     yield Token(node.name, TK.ATTR)
     yield Token(node.name_list, TK.ATTR)
     yield Token(":", TK.BEG)
-    yield from ConcreteSyntaxMisc(node.body_for)
+    for x in node.body_for:
+        yield from ConcreteSyntaxMisc(x)
     yield Token("@:", TK.END)
     yield Token("@$for", TK.END)
 
@@ -626,10 +629,7 @@ def ConcreteValRec(node: cwast.ValRec):
 
 
 def ConcreteValArray(node: cwast.ValArray):
-    yield Token("[", TK.BEG)
-    yield from ConcreteSyntaxMisc(node.expr_size)
-    yield Token("]", TK.END)
-    yield from ConcreteSyntaxMisc(node.type)
+    yield from BinaryFunction("array", node.expr_size, node.type)
     yield Token("[", TK.BEG)
     sep = False
     for e in node.inits_array:
@@ -642,6 +642,7 @@ def ConcreteValArray(node: cwast.ValArray):
             yield from ConcreteSyntaxMisc(e.init_index)
     yield Token("]", TK.END)
 
+
 def ConcreteTypeFun(node: cwast.TypeFun):
     yield Token("funtype", TK.UNOP)
     yield Token("(", TK.BEG)
@@ -650,6 +651,7 @@ def ConcreteTypeFun(node: cwast.TypeFun):
         yield from ConcreteSyntaxMisc(p.type)
     yield Token(")", TK.END)
     yield from ConcreteSyntaxMisc(node.result)
+
 
 CONCRETE_SYNTAX = {
     cwast.Id: lambda n:  (yield Token(n.name, TK.ATTR)),
@@ -684,17 +686,17 @@ CONCRETE_SYNTAX = {
     cwast.ExprUnionTag: lambda n: UnaryFunction("uniontag", n.expr),
     cwast.ExprAs: lambda n: BinaryFunction("as", n.expr, n.type),
     cwast.ExprIs: lambda n: BinaryInfix("is", n.expr, n.type),
-    cwast.ExprBitCast: lambda n: BinaryInfix("asbits", n.expr, n.type),
+    cwast.ExprBitCast: lambda n: BinaryFunction("asbits", n.expr, n.type),
     cwast.ExprOffsetof: lambda n: BinaryFunction("offsetof", n.type, n.field),
     cwast.ExprLen: lambda n: UnaryFunction("len", n.container),
     cwast.ExprSizeof: lambda n: UnaryFunction("sizeof", n.type),
     cwast.ExprTypeId: lambda n: UnaryFunction("sizeof", n.type),
-    cwast.ExprNarrow: lambda n: BinaryInfix("narrowto", n.expr, n.type),
+    cwast.ExprNarrow: lambda n: BinaryFunction("narrowto", n.expr, n.type),
     cwast.Expr1: lambda n: UnaryFunction(f"{n.unary_expr_kind.name}", n.expr),
     cwast.ExprPointer: lambda n: BinaryInfix(f"{n.pointer_expr_kind.name}", n.expr1, n.expr2),
     cwast.ExprIndex: lambda n: BinaryInfix("at", n.container, n.expr_index),
     cwast.ValSlice: lambda n: BinaryFunction("slice", n.pointer, n.expr_size),
-    cwast.ExprWrap: lambda n: BinaryInfix("wrap", n.expr, n.type),
+    cwast.ExprWrap: lambda n: BinaryFunction("wrapas", n.expr, n.type),
     cwast.ExprUnwrap: lambda n: UnaryFunction("unwrap", n.expr),
     cwast.ExprField: lambda n: BinaryInfix(".", n.container, n.field),
     cwast.ExprDeref: lambda n: UnaryPrefix("^", n.expr),
@@ -704,6 +706,9 @@ CONCRETE_SYNTAX = {
     cwast.Expr3: ConcreteExpr3,
     cwast.ExprStringify: lambda n: UnaryFunction("stringify", n.expr),
     cwast.ExprCall: lambda n: ExprtWithParenListExpr(n.callee, n.args),
+    cwast.ExprStmt: lambda n: ConcreteStmtBlock("expr", "", n.body),
+    cwast.ExprParen: lambda n: ParenList([n.expr]),
+
     #
     cwast.StmtContinue: lambda n: ConcreteStmt("continue", n.target),
     cwast.StmtBreak: lambda n: ConcreteStmt("break", n.target),
@@ -727,35 +732,37 @@ def ConcreteAnnotations(node):
     for field, nfd in node.ATTRS:
         if field in ("triplequoted", "strkind"):
             continue
-        val = getattr(node, field)
+        if nfd.kind is cwast.NFK.ATTR_STR:
+            val = getattr(node, field)
+            if val:
+                yield Token("@" + field + "=" + val, TK.ANNOTATION_LONG)
+
+    for field, nfd in node.ATTRS:
+        if field in ("triplequoted", "strkind"):
+            continue
+
         if nfd.kind is cwast.NFK.ATTR_BOOL:
+            val = getattr(node, field)
             if val:
-                yield Token(" @" + field, TK.ANNOTATION)
-        elif nfd.kind is cwast.NFK.ATTR_STR:
-            if val:
-                yield Token(" @" + field + "=" + val, TK.ANNOTATION)
+                yield Token("@" + field, TK.ANNOTATION_SHORT)
 
 
 def ConcreteSyntaxMisc(node):
     yield from ConcreteAnnotations(node)
 
     gen = CONCRETE_SYNTAX.get(node.__class__)
-    assert gen
+    assert gen, f"unknown node {node.__class__}"
     yield from gen(node)
 
 
 def ConcreteSyntaxTop(node):
     if not isinstance(node, cwast.DefMod):
         yield ("", TK.NEWLINE)
-    if "doc" in node.__class__.ATTRS_MAP:
-        if node.doc:
-            yield Token("@doc=" + node.doc, TK.ANNOTATION)
-    if "pub" in node.__class__.ATTRS_MAP:
-        if node.pub:
-            yield Token("@pub", TK.ANNOTATION)
+    yield from ConcreteAnnotations(node)
     if isinstance(node, cwast.DefMod):
         yield Token("module", TK.BEG)
-        yield (node.name, TK.ATTR)
+        # we do not want the next item to be indented
+        yield (node.name, TK.UNOP)
         for child in node.body_mod:
             yield from ConcreteSyntaxTop(child)
         yield ("@module", TK.END)
@@ -798,20 +805,20 @@ def ConcreteSyntaxTop(node):
         yield ("@import", TK.END)
     elif isinstance(node, cwast.DefType):
         yield "type", TK.BEG
-        if node.wrapped:
-            yield "wrapped", TK.ATTR
-        yield node.name, TK.ATTR
+        yield Token(node.name, TK.ATTR)
+        yield Token("=", TK.BINOP)
         yield from ConcreteSyntaxMisc(node.type)
-        yield "@type", TK.END
+        yield Token("@type", TK.END)
     elif isinstance(node, cwast.DefRec):
-        yield "rec", TK.BEG
-        yield node.name, TK.ATTR
-        yield ":", TK.BEG
+        yield Token("rec", TK.BEG)
+        yield Token(node.name, TK.ATTR)
+        yield Token(":", TK.BEG)
         for f in node.fields:
-            yield "NONE", TK.BEG
-            yield f.name, TK.ATTR
+            yield from ConcreteAnnotations(f)
+            yield Token("NONE", TK.BEG)
+            yield Token(f.name, TK.ATTR)
             yield from ConcreteSyntaxMisc(f.type)
-            yield "@NONE", TK.END
+            yield Token("@NONE", TK.END)
         yield "@:", TK.END
         yield "@rec", TK.END
     elif isinstance(node, cwast.DefEnum):
@@ -864,11 +871,11 @@ def ConcreteSyntaxTop(node):
 
 
 BEG_TOKENS = set([
-    "module", "global", "enum", "import", "defer", "block",
+    "module", "global", "enum", "import", "defer", "block", "expr",
     "break", "continue", "fun", "cond", "type", "if", "type",
     "shed", "discard", "rec", "case", "let", "set", "for", "macro",
     "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$for",
+    "$let", "$for", "swap",
     ":", "(", "["
 ])
 BEG_WITH_SEP_TOKENS = set(["(", "["])
@@ -891,8 +898,11 @@ class Stack:
     def empty(self):
         return 0 == len(self._stack)
 
-    def push(self, t, kind, indent):
-        self._stack.append((t, kind, indent))
+    def push(self, t: str, kind, indent_delta: int) -> int:
+        assert t.endswith("!") or t in BEG_TOKENS, f"{t}"
+        new_indent = self.CurrentIndent() + indent_delta
+        self._stack.append((t, kind, new_indent))
+        return new_indent
 
     def pop(self):
         return self._stack.pop(-1)
@@ -909,23 +919,34 @@ class Sink:
     """TBD"""
 
     def __init__(self):
+        self._indent = 0
         self._col = 0
 
     def maybe_newline(self):
         if self._col != 0:
-            print()
-            self._col = 0
+            self.newline()
 
     def newline(self):
         print()
         self._col = 0
 
     def emit_token(self, token):
+        if self._col == 0:
+            ws = " " * (4 * self._indent)
+            #ws = f"{len(ws):02}" + ws[2:]
+            print(ws, end="")
+            self._col = len(ws)
         print(token, end="")
         self._col += len(token)
 
-    def indent(self, ci):
-        print(" " * (4 * ci), end="")
+    def emit_space(self):
+        self.emit_token(" ")
+
+    def set_indent(self, indent):
+        self._indent = indent
+
+
+INDENT = 1
 
 
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
@@ -933,6 +954,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     TK.BEG may force a new indentation level
 
     """
+    want_space = False
+
     while True:
         t, kind = tokens.pop(-1)
         if kind is TK.BEG:
@@ -940,39 +963,52 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             if t == "module":
                 assert stack.empty()
                 sink.emit_token(t)
+                want_space = True
                 stack.push(t, kind, 0)
             elif t == ":":
-                ci = stack.CurrentIndent()
+                want_space = False
                 sink.emit_token(t)
                 sink.newline()
-                stack.push(t, kind, ci + 1)
+                indent = stack.push(t, kind, INDENT)
+                sink.set_indent(indent)
             elif t.endswith("!"):
-                ci = stack.CurrentIndent()
-                sink.indent(ci)
                 sink.emit_token(t)
-                stack.push(t, kind, ci)
-            elif t in BEG_WITH_SEP_TOKENS:
-                ci = stack.CurrentIndent()
-                sink.emit_token(" " + t)
-                stack.push(t, kind, ci)
+                stack.push(t, kind, 0)
+            elif t == "(" or t == "[":
+
+                want_space = False
+                sink.emit_token(t)
+                stack.push(t, kind, 0)
             else:
-                ci = stack.CurrentIndent()
-                sink.indent(ci)
+                if want_space:
+                    sink.emit_space()
+                    want_space = False
                 if t != "NONE":
                     sink.emit_token(t)
-                stack.push(t, kind, ci)
+                    want_space = True
+                stack.push(t, kind, 0)
         elif kind is TK.ATTR:
             assert type(t) is str, repr(t)
             if t == "else":
-                ci = stack.CurrentIndent()
-                sink.indent(ci)
+                # ci = stack.CurrentIndent()
+                # sink.indent(ci)
                 sink.emit_token(t)
             else:
-                sink.emit_token(" "+t)
+                if want_space:
+                    sink.emit_space()
+                    want_space = False
+                sink.emit_token(t)
+                want_space = True
+        elif kind is TK.ATTR_WITH_SPACE:
+            sink.emit_token(t)
+            sink.emit_space()
         elif kind is TK.SEP:
             sink.emit_token(t)
+            sink.emit_space()
+            want_space = False
         elif kind is TK.END:
             t_beg, kind_beg, _ = stack.pop()
+            sink.set_indent(stack.CurrentIndent())
             assert kind_beg is TK.BEG
             if t.startswith("@"):
                 assert t[1:] == t_beg, f"{t_beg} vs {t}"
@@ -987,27 +1023,29 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 return
             if not t.startswith("@"):
                 sink.emit_token(t)
+                want_space = True
             if t.startswith("@"):
                 sink.maybe_newline()
-
+                want_space = False
         elif kind is TK.BINOP:
-            sink.emit_token(" " + t)
-        elif kind is TK.UNOP:
-            sink.emit_token(" " + t)
-        elif kind is TK.COM:
-            ci = stack.CurrentIndent()
-            sink.maybe_newline()
-            sink.indent(ci)
-            sink.emit_token("# ")
+            if want_space:
+                sink.emit_space()
             sink.emit_token(t)
-            sink.newline()
+            want_space = True
+        elif kind is TK.UNOP:
+            if want_space:
+                sink.emit_space()
+                want_space = False
+            sink.emit_token(t)
         elif kind is TK.NEWLINE:
             sink.newline()
-        elif kind is TK.ANNOTATION:
-            ci = stack.CurrentIndent()
-            sink.indent(ci)
+        elif kind is TK.ANNOTATION_LONG:
+            sink.maybe_newline()
             sink.emit_token(t)
             sink.newline()
+        elif kind is TK.ANNOTATION_SHORT:
+            sink.emit_token(t)
+            want_space = True
         else:
             assert False, f"{kind}"
         assert tokens, f"{t} {kind}"
@@ -1063,7 +1101,7 @@ def main():
             # we first produce an output token stream from the AST
             tokens = ConcreteSyntaxTop(mods[0])
             tokens = list(tokens)
-            # print(tokens)
+            print(tokens)
             tokens.reverse()
             # and now format the stream
             FormatTokenStream(tokens, Stack(), Sink())
