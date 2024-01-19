@@ -380,6 +380,8 @@ class TK(enum.Enum):
     END = 10
     BEG_PAREN = 20
     END_PAREN = 21
+    BEG_MISC = 30
+    END_MISC = 31
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
     NEWLINE = 13
@@ -429,26 +431,34 @@ _ASSIGNMENT_KIND_TO_STR = {
 
 
 def Token(a, k):
+    if a == "(" or a == "[":
+        assert k is TK.BEG_PAREN
+    elif a == ")" or a == "]":
+        assert k is TK.END_PAREN
+    elif a == ":":
+        assert k is TK.BEG_MISC
+    elif a == "@:":
+        assert k is TK.END_MISC
     return (a, k)
 
 
 def UnaryFunction(name, node):
     yield Token(name, TK.UNOP)
-    yield Token("(", TK.BEG)
+    yield Token("(", TK.BEG_PAREN)
     yield from ConcreteSyntaxMisc(node)
-    yield Token(")", TK.END)
+    yield Token(")", TK.END_PAREN)
 
 
 def BinaryFunction(name, node1, node2):
     yield Token(name, TK.UNOP)
-    yield Token("(", TK.BEG)
+    yield Token("(", TK.BEG_PAREN)
     yield from ConcreteSyntaxMisc(node1)
     yield Token(",", TK.SEP)
     if type(node2) == str:
         yield Token(node2, TK.ATTR)
     else:
         yield from ConcreteSyntaxMisc(node2)
-    yield Token(")", TK.END)
+    yield Token(")", TK.END_PAREN)
 
 
 def BinaryInfix(name: str, node1, node2):
@@ -467,13 +477,13 @@ def UnaryPrefix(name: str, node):
 
 def ParenList(lst):
     sep = False
-    yield Token("(", TK.BEG)
+    yield Token("(", TK.BEG_PAREN)
     for t in lst:
         if sep:
             yield Token(",", TK.SEP)
         sep = True
         yield from ConcreteSyntaxMisc(t)
-    yield Token(")", TK.END)
+    yield Token(")", TK.END_PAREN)
 
 
 def NameWithParenListExpr(name, lst):
@@ -506,31 +516,31 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
         yield Token(node.name, TK.BEG)
     else:
         yield Token(node.name, TK.ATTR)
-        yield Token("(", TK.BEG)
+        yield Token("(", TK.BEG_PAREN)
     sep = False
     for a in node.args:
 
         if isinstance(a, cwast.Id):
             if sep:
                 yield Token(",", TK.SEP)
-            yield a.name, TK.ATTR
+            yield Token(a.name, TK.ATTR)
         elif isinstance(a, (cwast.EphemeralList)):
             if a.colon:
-                yield Token(":", TK.BEG)
+                yield Token(":", TK.BEG_MISC)
                 for s in a.args:
                     yield from ConcreteSyntaxMisc(s)
-                yield Token("@:", TK.END)
+                yield Token("@:", TK.END_MISC)
             else:
                 if sep:
                     yield Token(",", TK.SEP)
                 sep2 = False
-                yield Token("[", TK.BEG)
+                yield Token("[", TK.BEG_PAREN)
                 for e in a.args:
                     if sep2:
                         yield Token(",", TK.SEP)
                     sep2 = True
                     yield from ConcreteSyntaxMisc(e)
-                yield "]", TK.END
+                yield Token("]", TK.END_PAREN)
         elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
                             cwast.TypeArray, cwast.TypePtr, cwast.TypeSlice)):
             if sep:
@@ -544,7 +554,7 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
     if is_block_like:
         yield Token(f"@{node.name}", TK.END)
     else:
-        yield Token(")", TK.END)
+        yield Token(")", TK.END_PAREN)
 
 
 def ConcreteStmt(kind: str, arg):
@@ -566,10 +576,10 @@ def ConcreteStmtBlock(kind, arg, stmts):
             yield Token(arg, TK.ATTR)
         else:
             yield from ConcreteSyntaxMisc(arg)
-    yield Token(":", TK.BEG)
+    yield Token(":", TK.BEG_MISC)
     for s in stmts:
         yield from ConcreteSyntaxMisc(s)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     yield Token("@" + kind, TK.END)
 
 
@@ -595,32 +605,32 @@ def ConcreteMacroFor(node: cwast.MacroFor):
     yield Token("$for", TK.BEG)
     yield Token(node.name, TK.ATTR)
     yield Token(node.name_list, TK.ATTR)
-    yield Token(":", TK.BEG)
+    yield Token(":", TK.BEG_MISC)
     for x in node.body_for:
         yield from ConcreteSyntaxMisc(x)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     yield Token("@$for", TK.END)
 
 
 def ConcreteIf(node: cwast.StmtIf):
     yield Token("if", TK.BEG)
     yield from ConcreteSyntaxMisc(node.cond)
-    yield Token(":", TK.BEG)
+    yield Token(":", TK.BEG_MISC)
     for c in node.body_t:
         yield from ConcreteSyntaxMisc(c)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     if node.body_f:
         yield Token("else", TK.ATTR)
-        yield Token(":", TK.BEG)
+        yield Token(":", TK.BEG_MISC)
         for c in node.body_f:
             yield from ConcreteSyntaxMisc(c)
-        yield Token("@:", TK.END)
+        yield Token("@:", TK.END_MISC)
     yield Token("@if", TK.END)
 
 
 def ConcreteValRec(node: cwast.ValRec):
     yield from ConcreteSyntaxMisc(node.type)
-    yield Token("[", TK.BEG)
+    yield Token("[", TK.BEG_PAREN)
     sep = False
     for e in node.inits_field:
         if sep:
@@ -629,12 +639,12 @@ def ConcreteValRec(node: cwast.ValRec):
         yield from ConcreteSyntaxMisc(e.value_or_undef)
         if e.init_field:
             yield Token(e.init_field, TK.ATTR)
-    yield Token("]", TK.END)
+    yield Token("]", TK.END_PAREN)
 
 
 def ConcreteValArray(node: cwast.ValArray):
     yield from BinaryFunction("array", node.expr_size, node.type)
-    yield Token("[", TK.BEG)
+    yield Token("[", TK.BEG_PAREN)
     sep = False
     for e in node.inits_array:
         assert isinstance(e, cwast.IndexVal)
@@ -644,13 +654,13 @@ def ConcreteValArray(node: cwast.ValArray):
         yield from ConcreteSyntaxMisc(e.value_or_undef)
         if not isinstance(e.init_index, cwast.ValAuto):
             yield from ConcreteSyntaxMisc(e.init_index)
-    yield Token("]", TK.END)
+    yield Token("]", TK.END_PAREN)
 
 
 def ConcreteDefMod(node: cwast.DefMod):
     yield Token("module", TK.BEG)
     # we do not want the next item to be indented
-    yield (node.name, TK.UNOP)
+    yield Token(node.name, TK.UNOP)
     for child in node.body_mod:
         yield from ConcreteSyntaxMisc(child)
     yield Token("@module", TK.END)
@@ -676,7 +686,7 @@ def ConcreteImport(node: cwast.Import):
 
 
 def ConcreteDefType(node: cwast.DefType):
-    yield "type", TK.BEG
+    yield Token("type", TK.BEG)
     yield Token(node.name, TK.ATTR)
     yield Token("=", TK.BINOP)
     yield from ConcreteSyntaxMisc(node.type)
@@ -685,7 +695,7 @@ def ConcreteDefType(node: cwast.DefType):
 
 def ConcreteTypeFun(node: cwast.TypeFun):
     yield Token("funtype", TK.UNOP)
-    yield Token("(", TK.BEG)
+    yield Token("(", TK.BEG_PAREN)
     sep = False
     for p in node.params:
         if sep:
@@ -693,21 +703,21 @@ def ConcreteTypeFun(node: cwast.TypeFun):
         sep = True
         yield Token(p.name, TK.ATTR)
         yield from ConcreteSyntaxMisc(p.type)
-    yield Token(")", TK.END)
+    yield Token(")", TK.END_PAREN)
     yield from ConcreteSyntaxMisc(node.result)
 
 
 def ConcreteDefRec(node: cwast.DefRec):
     yield Token("rec", TK.BEG)
     yield Token(node.name, TK.ATTR)
-    yield Token(":", TK.BEG)
+    yield Token(":", TK.BEG_MISC)
     for f in node.fields:
         yield from ConcreteAnnotations(f)
         yield Token("NONE", TK.BEG)
         yield Token(f.name, TK.ATTR)
         yield from ConcreteSyntaxMisc(f.type)
         yield Token("@NONE", TK.END)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     yield Token("@rec", TK.END)
 
 
@@ -715,13 +725,13 @@ def ConcreteDefEnum(node: cwast.DefEnum):
     yield Token("enum", TK.BEG)
     yield Token(node.name, TK.ATTR)
     yield Token(node.base_type_kind.name, TK.ATTR)
-    yield Token(":", TK.BEG)
+    yield Token(":", TK.BEG_MISC)
     for f in node.items:
         yield Token("NONE", TK.BEG)
         yield Token(f.name, TK.ATTR)
         yield from ConcreteSyntaxMisc(f.value_or_auto)
         yield Token("@NONE", TK.END)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     yield Token("@enum", TK.END)
 
 
@@ -735,7 +745,7 @@ def ConcreteDefFun(node: cwast.DefFun):
     yield Token("fun", TK.BEG)
     yield Token(node.name, TK.ATTR)
 
-    yield ("(", TK.BEG)
+    yield ("(", TK.BEG_PAREN)
     sep = False
     for p in node.params:
         if sep:
@@ -743,13 +753,12 @@ def ConcreteDefFun(node: cwast.DefFun):
         sep = True
         yield Token(p.name, TK.ATTR)
         yield from ConcreteSyntaxMisc(p.type)
-    yield Token(")", TK.END)
+    yield Token(")", TK.END_PAREN)
     yield from ConcreteSyntaxMisc(node.result)
-    yield Token(":", TK.BEG)
-
+    yield Token(":", TK.BEG_MISC)
     for child in node.body:
         yield from ConcreteSyntaxMisc(child)
-    yield Token("@:", TK.END)
+    yield Token("@:", TK.END_MISC)
     yield Token("@fun", TK.END)
 
 
@@ -757,7 +766,7 @@ def ConcreteDefMacro(node: cwast.DefMacro):
     yield Token("macro", TK.BEG)
     yield Token(node.name, TK.ATTR)
     yield Token(node.macro_result_kind.name, TK.ATTR)
-    yield ("[", TK.BEG)
+    yield Token("[", TK.BEG_PAREN)
     sep = False
     for p in node.params_macro:
         if sep:
@@ -765,21 +774,20 @@ def ConcreteDefMacro(node: cwast.DefMacro):
         sep = True
         yield Token(p.name, TK.ATTR)
         yield Token(p.macro_param_kind.name, TK.ATTR)
-    yield Token("]", TK.END)
+    yield Token("]", TK.END_PAREN)
     #
-    yield Token("[", TK.BEG)
+    yield Token("[", TK.BEG_PAREN)
     sep = False
     for gen_id in node.gen_ids:
         if sep:
             yield Token(",", TK.SEP)
         sep = True
         yield Token(gen_id, TK.ATTR)
-    yield ("]", TK.END)
-    yield Token(":", TK.BEG)
+    yield Token("]", TK.END_PAREN)
+    yield Token(":", TK.BEG_MISC)
     for x in node.body_macro:
         yield from ConcreteSyntaxMisc(x)
-    yield Token("@:", TK.END)
-
+    yield Token("@:", TK.END_MISC)
     yield Token("@macro", TK.END)
 
 
@@ -904,18 +912,8 @@ BEG_TOKENS = set([
     "break", "continue", "fun", "cond", "type", "if", "type",
     "shed", "discard", "rec", "case", "let", "set", "for", "macro",
     "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$for", "swap",
-    ":", "(", "["
+    "$let", "$for", "swap", ":", "(", "[",
 ])
-BEG_WITH_SEP_TOKENS = set(["(", "["])
-END_TOKENS = set(["", ")", "]"])
-
-
-def GetCurrentIndent(stack) -> int:
-    for _, kind, i in reversed(stack):
-        if kind is TK.BEG:
-            return i * 4
-    assert False
 
 
 class Stack:
@@ -938,10 +936,9 @@ class Stack:
 
     def CurrentIndent(self) -> int:
         for _, kind, i in reversed(self._stack):
-            if kind is TK.BEG:
+            if kind in (TK.BEG_MISC, TK.BEG, TK.BEG_PAREN):
                 return i
         return 0
-        assert False
 
 
 class Sink:
@@ -988,23 +985,16 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     while True:
         t, kind = tokens.pop(-1)
         if kind is TK.BEG:
+            #want_space = False
+            #sink.maybe_newline()
             assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
             if t == "module":
                 assert stack.empty()
                 sink.emit_token(t)
                 want_space = True
                 stack.push(t, kind, 0)
-            elif t == ":":
-                want_space = False
-                sink.emit_token(t)
-                sink.newline()
-                indent = stack.push(t, kind, INDENT)
-                sink.set_indent(indent)
+
             elif t.endswith("!"):
-                sink.emit_token(t)
-                stack.push(t, kind, 0)
-            elif t == "(" or t == "[":
-                want_space = False
                 sink.emit_token(t)
                 stack.push(t, kind, 0)
             else:
@@ -1015,6 +1005,16 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                     sink.emit_token(t)
                     want_space = True
                 stack.push(t, kind, 0)
+        elif kind is TK.BEG_MISC:
+            want_space = False
+            sink.emit_token(t)
+            sink.newline()
+            indent = stack.push(t, kind, INDENT)
+            sink.set_indent(indent)
+        elif kind is TK.BEG_PAREN:
+            want_space = False
+            sink.emit_token(t)
+            stack.push(t, kind, 0)
         elif kind is TK.ATTR:
             assert type(t) is str, repr(t)
             if t == "else":
@@ -1038,23 +1038,27 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             t_beg, kind_beg, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
             assert kind_beg is TK.BEG
-            if t.startswith("@"):
-                assert t[1:] == t_beg, f"{t_beg} vs {t}"
-            elif t == ")":
-                assert t_beg == "(", f"{t_beg} vs {t}"
-            else:
-                assert t_beg == "[" and t == "]", f"{t_beg} vs {t}"
+            assert t.startswith("@")
+            assert t[1:] == t_beg, f"{t_beg} vs {t}"
             if t_beg == "module":
                 sink.newline()
                 assert not tokens
                 assert stack.empty()
                 return
-            if not t.startswith("@"):
-                sink.emit_token(t)
-                want_space = True
-            if t.startswith("@"):
-                sink.maybe_newline()
-                want_space = False
+            sink.maybe_newline()
+            want_space = False
+        elif kind is TK.END_MISC:
+            t_beg, kind_beg, _ = stack.pop()
+            sink.set_indent(stack.CurrentIndent())
+            assert kind_beg is TK.BEG_MISC
+            sink.maybe_newline()
+            want_space = False
+        elif kind is TK.END_PAREN:
+            t_beg, kind_beg, _ = stack.pop()
+            sink.set_indent(stack.CurrentIndent())
+            assert kind_beg is TK.BEG_PAREN
+            sink.emit_token(t)
+            want_space = True
         elif kind is TK.BINOP:
             if t == "." or t == "->":
                 sink.emit_token(t)
