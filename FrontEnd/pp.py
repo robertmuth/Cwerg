@@ -364,6 +364,22 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
 ############################################################
 
 
+def AddMissingParens(node):
+    """Eliminate Array to Slice casts. """
+
+    def replacer(node, parent, _field):
+        if isinstance(node, cwast.ExprPointer) and isinstance(parent, cwast.ExprDeref):
+            return cwast.ExprParen(node, x_srcloc=node.x_srcloc, x_type=node.x_type)
+
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+
+############################################################
+#
+############################################################
+
+
 @enum.unique
 class TK(enum.Enum):
     """TBD"""
@@ -385,6 +401,12 @@ class TK(enum.Enum):
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
     NEWLINE = 13
+
+
+_POINTER_EXPR_KIND_TO_STR = {
+    cwast.POINTER_EXPR_KIND.DECP: "--",
+    cwast.POINTER_EXPR_KIND.INCP: "++",
+}
 
 
 _BINARY_EXPR_KIND_TO_STR = {
@@ -831,7 +853,7 @@ CONCRETE_SYNTAX = {
     cwast.ExprTypeId: lambda n: UnaryFunction("sizeof", n.type),
     cwast.ExprNarrow: lambda n: BinaryFunction("narrowto", n.expr, n.type),
     cwast.Expr1: lambda n: UnaryFunction(f"{n.unary_expr_kind.name}", n.expr),
-    cwast.ExprPointer: lambda n: BinaryInfix(f"{n.pointer_expr_kind.name}", n.expr1, n.expr2),
+    cwast.ExprPointer: lambda n: BinaryInfix(_POINTER_EXPR_KIND_TO_STR[n.pointer_expr_kind], n.expr1, n.expr2),
     cwast.ExprIndex: lambda n: BinaryInfix("at", n.container, n.expr_index),
     cwast.ValSlice: lambda n: BinaryFunction("slice", n.pointer, n.expr_size),
     cwast.ExprWrap: lambda n: BinaryFunction("wrapas", n.expr, n.type),
@@ -985,8 +1007,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     while True:
         t, kind = tokens.pop(-1)
         if kind is TK.BEG:
-            #want_space = False
-            #sink.maybe_newline()
+            # want_space = False
+            # sink.maybe_newline()
             assert t in BEG_TOKENS or t.endswith("!"), f"bad BEG token {t}"
             if t == "module":
                 assert stack.empty()
@@ -1136,6 +1158,7 @@ def main():
             assert len(mods) == 1
             for m in mods:
                 assert isinstance(m, cwast.DefMod)
+                AddMissingParens(m)
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST
             tokens = ConcreteSyntaxMisc(mods[0])
