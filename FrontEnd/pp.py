@@ -496,7 +496,7 @@ def ConcreteSyntaxMacroInvoke(node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
         yield from ConcreteSyntaxMisc(node.args[0])
-        yield Token("->", TK.ATTR)
+        yield Token("->", TK.BINOP)
         yield from ConcreteSyntaxMisc(node.args[1])
         return
     yield Token(f"{node.name}", TK.BEG)
@@ -646,7 +646,11 @@ def ConcreteValArray(node: cwast.ValArray):
 def ConcreteTypeFun(node: cwast.TypeFun):
     yield Token("funtype", TK.UNOP)
     yield Token("(", TK.BEG)
+    sep = False
     for p in node.params:
+        if sep:
+            yield Token(",", TK.SEP)
+        sep = True
         yield Token(p.name, TK.ATTR)
         yield from ConcreteSyntaxMisc(p.type)
     yield Token(")", TK.END)
@@ -1028,10 +1032,14 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.maybe_newline()
                 want_space = False
         elif kind is TK.BINOP:
-            if want_space:
-                sink.emit_space()
-            sink.emit_token(t)
-            want_space = True
+            if t == "." or t == "->":
+                sink.emit_token(t)
+                want_space = False
+            else:
+                if want_space:
+                    sink.emit_space()
+                sink.emit_token(t)
+                want_space = True
         elif kind is TK.UNOP:
             if want_space:
                 sink.emit_space()
@@ -1044,6 +1052,9 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.emit_token(t)
             sink.newline()
         elif kind is TK.ANNOTATION_SHORT:
+            if want_space:
+                sink.emit_space()
+                want_space = False
             sink.emit_token(t)
             want_space = True
         else:
