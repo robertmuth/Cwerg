@@ -314,9 +314,9 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
     elif nfd.kind is cwast.NFK.INT:
         return token
     elif nfd.kind is cwast.NFK.KIND:
-        assert nfd.extra is not None, f"{field} {token}"
+        assert nfd.enum_kind is not None, f"{field} {token}"
         try:
-            return nfd.extra[token]
+            return nfd.enum_kind[token]
         except KeyError:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot convert {token} for {field}")

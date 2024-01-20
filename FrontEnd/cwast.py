@@ -73,6 +73,7 @@ class NF(enum.Flag):
     # node reference the imported module or the qualifier  (x_module)
     MODULE_ANNOTATED = enum.auto()
     MODNAME_ANNOTATED = enum.auto()
+    ROLE_ANNOTATED = enum.auto()
 
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
@@ -313,7 +314,33 @@ class NFD:
     kind: NFK
     name: str
     doc: str
-    extra: Any = None
+    enum_kind: Any = None
+    node_type: Any = None
+    role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
+
+
+def NfdStr(name, doc):
+    return NFD(NFK.STR, name, doc)
+
+
+def NfdAttrBool(name, doc):
+    return NFD(NFK.ATTR_BOOL, name, doc)
+
+
+def NfdAttrStr(name, doc):
+    return NFD(NFK.ATTR_STR, name, doc)
+
+
+def NfdKind(name, doc, enum_kind):
+    return NFD(NFK.KIND, name, doc, enum_kind=enum_kind)
+
+
+def NfdNode(name, doc, node_type, role):
+    return NFD(NFK.NODE, name, doc, node_type=node_type, role=role)
+
+
+def NfdNodeList(name, doc, node_type, role):
+    return NFD(NFK.LIST, name, doc, node_type=node_type, role=role)
 
 
 def _ExtractTypes(t):
@@ -403,118 +430,149 @@ NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke"]
 NODES_LHS = _ExtractTypes(NODES_LHS_T)
 
 ALL_FIELDS = [
-    NFD(NFK.STR, "number", "a number"),
-    NFD(NFK.STR, "name", "name of the object"),
+    NfdStr("number", "a number"),
+    NfdStr("name", "name of the object"),
 
-    NFD(NFK.STR, "name_list", "name of the object list"),
+    NfdStr("name_list", "name of the object list"),
 
-    NFD(NFK.STR, "string", "string literal"),
-    NFD(NFK.STR, "comment", "comment"),
-    NFD(NFK.STR, "message", "message for assert failures"),
-    NFD(NFK.STR, "field", "record field"),
-    NFD(NFK.STR, "label", "block  name (if not empty)"),
-    NFD(NFK.STR, "target",
-        "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NFD(NFK.STR, "init_field", "initializer field or empty (empty means next field)"),
-    NFD(NFK.STR, "path", "TBD"),
-    NFD(NFK.STR, "alias", "name of imported module to be used instead of given name"),
+    NfdStr("string", "string literal"),
+    NfdStr("comment", "comment"),
+    NfdStr("message", "message for assert failures"),
+    NfdStr("field", "record field"),
+    NfdStr("label", "block  name (if not empty)"),
+    NfdStr("target",
+           "name of enclosing while/for/block to brach to (empty means nearest)"),
+    NfdStr("init_field", "initializer field or empty (empty means next field)"),
+    NfdStr("path", "TBD"),
+    NfdStr("alias", "name of imported module to be used instead of given name"),
     NFD(NFK.STR_LIST, "gen_ids",
         "name placeholder ids to be generated at macro instantiation time"),
     #
-    NFD(NFK.ATTR_BOOL, "pub", "has public visibility"),
-    NFD(NFK.ATTR_BOOL, "extern", "is external function (empty body)"),
-    NFD(NFK.ATTR_BOOL, "mut", "is mutable"),
-    NFD(NFK.ATTR_BOOL, "ref", "address may be taken"),
-    NFD(NFK.ATTR_BOOL, "colon", "colon style list"),
-    NFD(NFK.ATTR_BOOL, "cdecl", "use c-linkage (no module prefix)"),
-    NFD(NFK.ATTR_BOOL, "wrapped", "is wrapped type (forces type equivalence by name)"),
-    NFD(NFK.ATTR_BOOL, "discard", "ignore non-void expression"),
-    NFD(NFK.ATTR_BOOL, "init", "run function at startup"),
-    NFD(NFK.ATTR_BOOL, "fini", "run function at shutdown"),
-    NFD(NFK.ATTR_BOOL, "polymorphic", "function definition or call is polymorphic"),
-    NFD(NFK.ATTR_BOOL, "unchecked", "array acces is not checked"),
-    NFD(NFK.ATTR_BOOL, "untagged", "union type is untagged"),
-    NFD(NFK.ATTR_BOOL, "arg_ref", "in parameter was converted for by-val to pointer"),
-    NFD(NFK.ATTR_BOOL, "res_ref", "in parameter was converted for by-val to pointer"),
-    NFD(NFK.ATTR_BOOL, "builtin", "module is the builtin module"),
-    NFD(NFK.ATTR_BOOL, "triplequoted", "string is using 3 double quotes"),
-    NFD(NFK.ATTR_STR, "doc", "comment"),
-    NFD(NFK.ATTR_STR, "strkind", "raw: ignore escape sequences in string, hex:"),
+    NfdAttrBool("pub", "has public visibility"),
+    NfdAttrBool("extern", "is external function (empty body)"),
+    NfdAttrBool("mut", "is mutable"),
+    NfdAttrBool("ref", "address may be taken"),
+    NfdAttrBool("colon", "colon style list"),
+    NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
+    NfdAttrBool("wrapped", "is wrapped type (forces type equivalence by name)"),
+    NfdAttrBool("discard", "ignore non-void expression"),
+    NfdAttrBool("init", "run function at startup"),
+    NfdAttrBool("fini", "run function at shutdown"),
+    NfdAttrBool("polymorphic", "function definition or call is polymorphic"),
+    NfdAttrBool("unchecked", "array acces is not checked"),
+    NfdAttrBool("untagged", "union type is untagged"),
+    NfdAttrBool("arg_ref", "in parameter was converted for by-val to pointer"),
+    NfdAttrBool("res_ref", "in parameter was converted for by-val to pointer"),
+    NfdAttrBool("builtin", "module is the builtin module"),
+    NfdAttrBool("triplequoted", "string is using 3 double quotes"),
+    NfdAttrStr("doc", "comment"),
+    NfdAttrStr("strkind", "raw: ignore escape sequences in string, hex:"),
 
     #
-    NFD(NFK.KIND, "unary_expr_kind",
-        "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
-    NFD(NFK.KIND, "binary_expr_kind",
-        "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
-    NFD(NFK.KIND, "base_type_kind",
-        "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
-    NFD(NFK.KIND, "mod_param_kind",
-        "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
-    NFD(NFK.KIND, "assignment_kind",
-        "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
-    NFD(NFK.KIND,  "macro_param_kind",
-        "type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
-    NFD(NFK.KIND,  "macro_result_kind",
-        "type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
-    NFD(NFK.KIND, "pointer_expr_kind",
-        "see [PointerOp Kind](#pointerop-kind) below", POINTER_EXPR_KIND),
+    NfdKind("unary_expr_kind",
+            "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
+    NfdKind("binary_expr_kind",
+            "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
+    NfdKind("base_type_kind",
+            "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
+    NfdKind("mod_param_kind",
+            "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
+    NfdKind("assignment_kind",
+            "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
+    NfdKind("macro_param_kind",
+            "type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+    NfdKind("macro_result_kind",
+            "type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+    NfdKind("pointer_expr_kind",
+            "see [PointerOp Kind](#pointerop-kind) below", POINTER_EXPR_KIND),
     #
     # TODO: fix all the None below
-    NFD(NFK.LIST, "params", "function parameters and/or comments", NODES_PARAMS),
-    NFD(NFK.LIST, "params_mod", "module template parameters", NODES_PARAMS_MOD),
-    NFD(NFK.LIST, "params_macro", "macro parameters", NODES_PARAMS_MACRO),
-    NFD(NFK.LIST, "args", "function call arguments", None),
-    NFD(NFK.LIST, "items", "enum items and/or comments", NODES_ITEMS),
-    NFD(NFK.LIST, "fields", "record fields and/or comments", NODES_FIELDS),
-    NFD(NFK.LIST, "types", "union types", NODES_TYPES),
-    NFD(NFK.LIST, "inits_array",
-        "array initializers and/or comments", NODES_INITS_ARRAY),
-    NFD(NFK.LIST, "inits_field",
-        "record initializers and/or comments", NODES_INITS_REC),
+    NfdNodeList("params", "function parameters and/or comments", NODES_PARAMS,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("params_mod", "module template parameters", NODES_PARAMS_MOD,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("params_macro", "macro parameters", NODES_PARAMS_MACRO,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("args", "function call arguments",
+                None, MACRO_PARAM_KIND.EXPR),
+    NfdNodeList("items", "enum items and/or comments", NODES_ITEMS,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("types", "union types", NODES_TYPES,
+                MACRO_PARAM_KIND.TYPE),
+    NfdNodeList("inits_array",
+                "array initializers and/or comments", NODES_INITS_ARRAY,
+                MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("inits_field",
+                "record initializers and/or comments", NODES_INITS_REC,
+                MACRO_PARAM_KIND.INVALID),
     #
-    NFD(NFK.LIST, "body_mod",
-        "toplevel module definitions and/or comments", NODES_BODY_MOD),
-    NFD(NFK.LIST, "body", "new scope: statement list and/or comments", NODES_BODY),
-    NFD(NFK.LIST, "body_t",
-        "new scope: statement list and/or comments for true branch", NODES_BODY),
-    NFD(NFK.LIST, "body_f",
-        "new scope: statement list and/or comments for false branch", NODES_BODY),
-    NFD(NFK.LIST, "body_for", "statement list for macro_loop", NODES_BODY),
-    NFD(NFK.LIST, "body_macro",
-        "new scope: macro statments/expression", None),
-    NFD(NFK.LIST, "cases", "list of case statements", NODES_CASES),
+    NfdNodeList("body_mod",
+                "toplevel module definitions and/or comments", NODES_BODY_MOD,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("body", "new scope: statement list and/or comments", NODES_BODY,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("body_t",
+                "new scope: statement list and/or comments for true branch", NODES_BODY,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("body_f",
+                "new scope: statement list and/or comments for false branch", NODES_BODY,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("body_for", "statement list for macro_loop", NODES_BODY,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("body_macro",
+                "new scope: macro statments/expression", None,
+                MACRO_PARAM_KIND.STMT_LIST),
+    NfdNodeList("cases", "list of case statements", NODES_CASES,
+                MACRO_PARAM_KIND.STMT_LIST),
 
     #
-    NFD(NFK.NODE, "init_index",
-        "initializer index or empty (empty mean next index)", None),
-    NFD(NFK.NODE, "type", "type expression", NODES_TYPES),
-    NFD(NFK.NODE, "subtrahend", "type expression", NODES_TYPES),
-    NFD(NFK.NODE, "type_or_auto", "type expression", NODES_TYPES_OR_AUTO),
-    NFD(NFK.NODE, "result", "return type", None),
-    NFD(NFK.NODE, "size", "compile-time constant size", NODES_EXPR),
-    NFD(NFK.NODE, "expr_size", "expression determining the size or auto", None),
-    NFD(NFK.NODE, "expr_index",
-        "expression determining the index to be accessed", NODES_EXPR),
-    NFD(NFK.NODE, "expr", "expression", NODES_EXPR),
-    NFD(NFK.NODE, "cond", "conditional expression must evaluate to a boolean", NODES_COND),
-    NFD(NFK.NODE, "expr_t",
-        "expression (will only be evaluated if cond == true)", NODES_EXPR),
-    NFD(NFK.NODE, "expr_f",
-        "expression (will only be evaluated if cond == false)", NODES_EXPR),
-    NFD(NFK.NODE, "expr1", "left operand expression", NODES_EXPR),
-    NFD(NFK.NODE, "expr2", "righ operand expression", NODES_EXPR),
-    NFD(NFK.NODE, "expr_bound_or_undef", "", NODES_EXPR_OR_UNDEF),
-    NFD(NFK.NODE, "expr_rhs", "rhs of assignment", NODES_EXPR),
-    NFD(NFK.NODE, "expr_ret", "result expression (ValVoid means no result)", NODES_EXPR),
-    NFD(NFK.NODE, "pointer", "pointer component of slice", None),
-    NFD(NFK.NODE, "container", "array and slice", None),
-    NFD(NFK.NODE, "callee", "expression evaluating to the function to be called", None),
-    NFD(NFK.NODE, "value", "", NODES_EXPR),
-    NFD(NFK.NODE, "value_or_auto", "enum constant or auto", None),
-    NFD(NFK.NODE, "value_or_undef", "", NODES_EXPR_OR_UNDEF),
-    NFD(NFK.NODE, "lhs", "l-value expression", NODES_LHS),
-    NFD(NFK.NODE, "expr_lhs", "l-value expression", NODES_LHS),
-    NFD(NFK.NODE, "initial_or_undef_or_auto", "initializer", NODES_EXPR_INIT),
+    NfdNode("init_index",
+            "initializer index or empty (empty mean next index)", None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("type", "type expression", NODES_TYPES, MACRO_PARAM_KIND.TYPE),
+    NfdNode("subtrahend", "type expression",
+            NODES_TYPES, MACRO_PARAM_KIND.TYPE),
+    NfdNode("type_or_auto", "type expression",
+            NODES_TYPES_OR_AUTO, MACRO_PARAM_KIND.TYPE),
+    NfdNode("result", "return type", None, MACRO_PARAM_KIND.TYPE),
+    NfdNode("size", "compile-time constant size",
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_size", "expression determining the size or auto",
+            None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_index",
+            "expression determining the index to be accessed", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr", "expression", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("cond", "conditional expression must evaluate to a boolean",
+            NODES_COND, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_t",
+            "expression (will only be evaluated if cond == true)", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_f",
+            "expression (will only be evaluated if cond == false)", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr1", "left operand expression",
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr2", "righ operand expression",
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_bound_or_undef", "",
+            NODES_EXPR_OR_UNDEF, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_rhs", "rhs of assignment",
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_ret", "result expression (ValVoid means no result)",
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("pointer", "pointer component of slice",
+            None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("container", "array and slice", None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("callee", "expression evaluating to the function to be called",
+            None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("value", "", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("value_or_auto", "enum constant or auto",
+            None, MACRO_PARAM_KIND.EXPR),
+    NfdNode("value_or_undef", "", NODES_EXPR_OR_UNDEF, MACRO_PARAM_KIND.EXPR),
+    NfdNode("lhs", "l-value expression", NODES_LHS, MACRO_PARAM_KIND.EXPR),
+    NfdNode("expr_lhs", "l-value expression",
+            NODES_LHS, MACRO_PARAM_KIND.EXPR),
+    NfdNode("initial_or_undef_or_auto", "initializer",
+            NODES_EXPR_INIT, MACRO_PARAM_KIND.EXPR),
 ]
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
@@ -593,6 +651,8 @@ X_FIELDS = {
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
     # set by eval.py
     "x_value": NF.VALUE_ANNOTATED,
+    #
+    "x_role":   NF.ROLE_ANNOTATED,
 }
 
 
@@ -634,7 +694,7 @@ def _CheckNodeFieldOrder(cls):
             assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
             if field != "x_srcloc":
                 flag_kind = X_FIELDS[field]
-                assert flag_kind in cls.FLAGS, f"{cls}: {field} {flag_kind}"
+                assert flag_kind in cls.FLAGS, f"{cls}: {field} missing flag {flag_kind}"
             xs += 1
             continue
         nfd = ALL_FIELDS_MAP[field]
@@ -1509,6 +1569,7 @@ class ExprParen:
 
     def __str__(self):
         return f"{_NAME(self)} {self.expr}"
+
 
 @NodeCommon
 @dataclasses.dataclass()
@@ -2576,11 +2637,12 @@ class MacroId:
     """
     ALIAS = "macro_id"
     GROUP = GROUP.Macro
-    FLAGS = NF.NON_CORE
+    FLAGS = NF.NON_CORE | NF.ROLE_ANNOTATED
     #
     name: str
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2658,7 +2720,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.MODULE_ANNOTATED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.MODULE_ANNOTATED | NF.ROLE_ANNOTATED
     #
     name: str
     args: List[NODES_EXPR_T]
@@ -2667,6 +2729,7 @@ class MacroInvoke:
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_module: Optional[Any] = None
+    x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2894,6 +2957,32 @@ def CloneNodeRecursively(node, var_map, block_map):
 ############################################################
 # Helpers
 ############################################################
+def AnnotateRole(node, parent=None, field=""):
+    """Some nodes can play multiple role. Determine which one.
+
+    This is useful if we do not have symbol information (x_symbol)
+    but want to pretty print the code
+    """
+
+    def visitor(node, parent, field: str):
+        if not isinstance(node, (MacroInvoke, MacroId)):
+            return
+        if isinstance(parent, EphemeralList):
+            if parent.colon:
+                node.x_role = MACRO_PARAM_KIND.STMT
+            else:
+                node.x_role = MACRO_PARAM_KIND.EXPR
+        else:
+            nfd = ALL_FIELDS_MAP[field]
+            assert nfd.kind in (NFK.NODE, NFK.LIST)
+            if nfd.role is MACRO_PARAM_KIND.STMT_LIST:
+                node.x_role = MACRO_PARAM_KIND.STMT
+            elif nfd.role is MACRO_PARAM_KIND.TYPE:
+                node.x_role = MACRO_PARAM_KIND.STMT
+            else:
+                node.x_role = MACRO_PARAM_KIND.EXPR
+
+    VisitAstRecursivelyWithParent(node, visitor, parent, field)
 
 
 def StripFromListRecursively(node, cls):
@@ -2988,7 +3077,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
                 assert node.x_modname, f"missing x_modname {node}"
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
-            permitted = nfd.extra
+            permitted = nfd.node_type
             if permitted and not isinstance(toplevel_node, DefMacro):
                 if node.__class__.__name__ not in permitted:
                     if not (allow_type_auto and isinstance(node, TypeAuto)):
