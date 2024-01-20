@@ -2978,7 +2978,7 @@ def AnnotateRole(node, parent=None, field=""):
             if nfd.role is MACRO_PARAM_KIND.STMT_LIST:
                 node.x_role = MACRO_PARAM_KIND.STMT
             elif nfd.role is MACRO_PARAM_KIND.TYPE:
-                node.x_role = MACRO_PARAM_KIND.STMT
+                node.x_role = MACRO_PARAM_KIND.TYPE
             else:
                 node.x_role = MACRO_PARAM_KIND.EXPR
 

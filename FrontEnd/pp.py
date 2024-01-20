@@ -529,14 +529,14 @@ def ConcreteExpr3(node: cwast.Expr3):
 def TokensMacroInvoke(node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
-        yield from Tokens(node.args[0])
-        yield Token("->", TK.BINOP)
-        yield from Tokens(node.args[1])
+        yield from TokensBinaryInfix("->", node.args[0], node.args[1])
         return
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if is_block_like:
         yield Token(node.name, TK.BEG)
     else:
+        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
+            yield Token("NONE", TK.BEG)
         yield Token(node.name, TK.ATTR)
         yield Token("(", TK.BEG_PAREN)
     sep = False
@@ -577,6 +577,9 @@ def TokensMacroInvoke(node: cwast.MacroInvoke):
         yield Token(f"@{node.name}", TK.END)
     else:
         yield Token(")", TK.END_PAREN)
+        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
+            yield Token("@NONE", TK.END)
+
 
 
 def TokensSimpleStmt(kind: str, arg):
@@ -812,11 +815,18 @@ def TokensDefMacro(node: cwast.DefMacro):
     yield Token("@:", TK.END_MISC)
     yield Token("@macro", TK.END)
 
+def TokensMacroId(node: cwast.MacroId):
+    if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
+        yield Token("NONE", TK.BEG)
+        yield Token(node.name, TK.ATTR)
+        yield Token("@NONE", TK.END)
+    else:
+        yield Token(node.name, TK.ATTR)
 
 CONCRETE_SYNTAX = {
     cwast.Id: lambda n:  (yield Token(n.name, TK.ATTR)),
     #
-    cwast.MacroId: lambda n:  (yield Token(n.name, TK.ATTR)),
+    cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
     cwast.MacroVar: lambda n: TokensStmtLet("$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
@@ -1158,12 +1168,13 @@ def main():
             assert len(mods) == 1
             for m in mods:
                 assert isinstance(m, cwast.DefMod)
+                cwast.AnnotateRole(m)
                 AddMissingParens(m)
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST
             tokens = Tokens(mods[0])
             tokens = list(tokens)
-            print(tokens)
+            # print(tokens)
             tokens.reverse()
             # and now format the stream
             FormatTokenStream(tokens, Stack(), Sink())
