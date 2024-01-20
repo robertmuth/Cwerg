@@ -379,6 +379,7 @@ def AddMissingParens(node):
 # Token
 ############################################################
 
+
 @enum.unique
 class TK(enum.Enum):
     """TBD"""
@@ -438,23 +439,47 @@ def TokenSep(a: str):
     return Token(a, TK.SEP)
 
 
+def TokenBegParen(a: str):
+    return Token(a, TK.BEG_PAREN)
+
+
+def TokenEndParen(a: str):
+    return Token(a, TK.END_PAREN)
+
+
+def TokenBeg(a: str):
+    return Token(a, TK.BEG)
+
+
+def TokenEnd(a: str):
+    return Token("@" + a, TK.END)
+
+
+def TokenBegColon():
+    return Token(":", TK.BEG_MISC)
+
+
+def TokenEndColon():
+    return Token("@:", TK.END_MISC)
+
+
 def TokensUnaryFunction(name, node):
     yield TokenUnOp(name)
-    yield Token("(", TK.BEG_PAREN)
+    yield TokenBegParen("(")
     yield from Tokens(node)
-    yield Token(")", TK.END_PAREN)
+    yield TokenEndParen(")")
 
 
 def TokensBinaryFunction(name, node1, node2):
     yield TokenUnOp(name)
-    yield Token("(", TK.BEG_PAREN)
+    yield TokenBegParen("(")
     yield from Tokens(node1)
     yield TokenSep(",")
     if type(node2) == str:
         yield TokenAttr(node2)
     else:
         yield from Tokens(node2)
-    yield Token(")", TK.END_PAREN)
+    yield TokenEndParen(")")
 
 
 def TokensBinaryInfix(name: str, node1, node2):
@@ -473,13 +498,13 @@ def TokensUnaryPrefix(name: str, node):
 
 def TokensParenList(lst):
     sep = False
-    yield Token("(", TK.BEG_PAREN)
+    yield TokenBegParen("(")
     for t in lst:
         if sep:
             yield TokenSep(",")
         sep = True
         yield from Tokens(t)
-    yield Token(")", TK.END_PAREN)
+    yield TokenEndParen(")")
 
 
 def NameWithParenListExpr(name, lst):
@@ -507,12 +532,12 @@ def TokensMacroInvoke(node: cwast.MacroInvoke):
         return
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if is_block_like:
-        yield Token(node.name, TK.BEG)
+        yield TokenBeg(node.name)
     else:
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            yield Token("NONE", TK.BEG)
+            yield TokenBeg("NONE")
         yield TokenAttr(node.name)
-        yield Token("(", TK.BEG_PAREN)
+        yield TokenBegParen("(")
     sep = False
     for a in node.args:
 
@@ -522,21 +547,21 @@ def TokensMacroInvoke(node: cwast.MacroInvoke):
             yield TokenAttr(a.name)
         elif isinstance(a, (cwast.EphemeralList)):
             if a.colon:
-                yield Token(":", TK.BEG_MISC)
+                yield TokenBegColon()
                 for s in a.args:
                     yield from Tokens(s)
-                yield Token("@:", TK.END_MISC)
+                yield TokenEndColon()
             else:
                 if sep:
-                    yield Token(",", TK.SEP)
+                    yield TokenSep(",")
                 sep2 = False
-                yield Token("[", TK.BEG_PAREN)
+                yield TokenBegParen("[")
                 for e in a.args:
                     if sep2:
                         yield TokenSep(",")
                     sep2 = True
                     yield from Tokens(e)
-                yield Token("]", TK.END_PAREN)
+                yield TokenEndParen("]")
         elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
                             cwast.TypeArray, cwast.TypePtr, cwast.TypeSlice)):
             if sep:
@@ -548,15 +573,15 @@ def TokensMacroInvoke(node: cwast.MacroInvoke):
             yield from Tokens(a)
         sep = True
     if is_block_like:
-        yield Token(f"@{node.name}", TK.END)
+        yield TokenEnd(node.name)
     else:
-        yield Token(")", TK.END_PAREN)
+        yield TokenEndParen(")")
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            yield Token("@NONE", TK.END)
+            yield TokenEnd("NONE")
 
 
 def TokensSimpleStmt(kind: str, arg):
-    yield Token(kind, TK.BEG)    # return, continue, etc.
+    yield TokenBeg(kind)    # return, continue, etc.
     if arg:
         if type(arg) == str:
             yield TokenAttr(arg)
@@ -564,71 +589,71 @@ def TokensSimpleStmt(kind: str, arg):
             # for return
             yield from Tokens(arg)
 
-    yield Token("@" + kind, TK.END)
+    yield TokenEnd(kind)
 
 
 def TokensStmtBlock(kind, arg, stmts):
-    yield Token(kind, TK.BEG)
+    yield TokenBeg(kind)
     if arg:
         if type(arg) == str:
             yield TokenAttr(arg)
         else:
             yield from Tokens(arg)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenBegColon()
     for s in stmts:
         yield from Tokens(s)
-    yield Token("@:", TK.END_MISC)
-    yield Token("@" + kind, TK.END)
+    yield TokenEndColon()
+    yield TokenEnd(kind)
 
 
 def TokensStmtSet(kind, lhs, rhs):
-    yield Token("set", TK.BEG)
+    yield TokenBeg("set")
     yield from Tokens(lhs)
     yield TokenBinOp(kind)
     yield from Tokens(rhs)
-    yield Token("@set", TK.END)
+    yield TokenEnd("set")
 
 
 def TokensStmtLet(kind, name: str, type_or_auto, init_or_auto):
-    yield Token(kind, TK.BEG)
+    yield TokenBeg(kind)
     yield TokenAttr(name)
     yield from Tokens(type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
         yield TokenBinOp("=")
         yield from Tokens(init_or_auto)
-    yield Token("@" + kind, TK.END)
+    yield TokenEnd(kind)
 
 
 def TokensMacroFor(node: cwast.MacroFor):
-    yield Token("$for", TK.BEG)
+    yield TokenBeg("$for")
     yield TokenAttr(node.name)
     yield TokenAttr(node.name_list)
     yield Token(":", TK.BEG_MISC)
     for x in node.body_for:
         yield from Tokens(x)
     yield Token("@:", TK.END_MISC)
-    yield Token("@$for", TK.END)
+    yield TokenEnd("$for")
 
 
 def ConcreteIf(node: cwast.StmtIf):
-    yield Token("if", TK.BEG)
+    yield TokenBeg("if")
     yield from Tokens(node.cond)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenBegColon()
     for c in node.body_t:
         yield from Tokens(c)
-    yield Token("@:", TK.END_MISC)
+    yield TokenEndColon()
     if node.body_f:
         yield TokenAttr("else")
-        yield Token(":", TK.BEG_MISC)
+        yield TokenBegColon()
         for c in node.body_f:
             yield from Tokens(c)
-        yield Token("@:", TK.END_MISC)
-    yield Token("@if", TK.END)
+        yield TokenEndColon()
+    yield TokenEnd("if")
 
 
 def TokensValRec(node: cwast.ValRec):
     yield from Tokens(node.type)
-    yield Token("[", TK.BEG_PAREN)
+    yield TokenBegParen("[")
     sep = False
     for e in node.inits_field:
         if sep:
@@ -636,13 +661,13 @@ def TokensValRec(node: cwast.ValRec):
         sep = True
         yield from Tokens(e.value_or_undef)
         if e.init_field:
-            yield TokenName(e.init_field)
-    yield Token("]", TK.END_PAREN)
+            yield TokenAttr(e.init_field)
+    yield TokenEndParen("]")
 
 
 def TokensValArray(node: cwast.ValArray):
     yield from TokensBinaryFunction("array", node.expr_size, node.type)
-    yield Token("[", TK.BEG_PAREN)
+    yield TokenBegParen("[")
     sep = False
     for e in node.inits_array:
         assert isinstance(e, cwast.IndexVal)
@@ -652,48 +677,48 @@ def TokensValArray(node: cwast.ValArray):
         yield from Tokens(e.value_or_undef)
         if not isinstance(e.init_index, cwast.ValAuto):
             yield from Tokens(e.init_index)
-    yield Token("]", TK.END_PAREN)
+    yield TokenEndParen("]")
 
 
 def TokensDefMod(node: cwast.DefMod):
-    yield Token("module", TK.BEG)
+    yield TokenBeg("module")
     # we do not want the next item to be indented
     yield TokenUnOp(node.name)
     for child in node.body_mod:
         yield from Tokens(child)
-    yield Token("@module", TK.END)
+    yield TokenEnd("module")
 
 
 def TokensDefGlobal(node: cwast.DefGlobal):
-    yield Token("global", TK.BEG)
+    yield TokenBeg("global")
     yield TokenAttr(node.name)
     yield from Tokens(node.type_or_auto)
     if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
         yield TokenBinOp("=")
         yield from Tokens(node.initial_or_undef_or_auto)
-    yield Token("@global", TK.END)
+    yield TokenEnd("global")
 
 
 def TokensImport(node: cwast.Import):
-    yield Token("import", TK.BEG)
+    yield TokenBeg("import")
     yield TokenAttr(node.name)
     if node.alias:
         yield TokenBinOp("as")
         yield TokenAttr(node.alias)
-    yield Token("@import", TK.END)
+    yield TokenEnd("import")
 
 
 def TokensDefType(node: cwast.DefType):
-    yield Token("type", TK.BEG)
+    yield TokenBeg("type")
     yield TokenAttr(node.name)
     yield TokenBinOp("=")
     yield from Tokens(node.type)
-    yield Token("@type", TK.END)
+    yield TokenEnd("type")
 
 
 def TokensTypeFun(node: cwast.TypeFun):
     yield TokenUnOp("funtype")
-    yield Token("(", TK.BEG_PAREN)
+    yield TokenBegParen("(")
     sep = False
     for p in node.params:
         if sep:
@@ -701,70 +726,70 @@ def TokensTypeFun(node: cwast.TypeFun):
         sep = True
         yield TokenAttr(p.name)
         yield from Tokens(p.type)
-    yield Token(")", TK.END_PAREN)
+    yield TokenEndParen(")")
     yield from Tokens(node.result)
 
 
 def TokensDefRec(node: cwast.DefRec):
-    yield Token("rec", TK.BEG)
+    yield TokenBeg("rec")
     yield TokenAttr(node.name)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenBegColon()
     for f in node.fields:
         yield from TokensAnnotations(f)
-        yield Token("NONE", TK.BEG)
+        yield TokenBeg("NONE")
         yield TokenAttr(f.name)
         yield from Tokens(f.type)
-        yield Token("@NONE", TK.END)
-    yield Token("@:", TK.END_MISC)
-    yield Token("@rec", TK.END)
+        yield TokenEnd("NONE")
+    yield TokenEndColon()
+    yield TokenEnd("rec")
 
 
 def TokensDefEnum(node: cwast.DefEnum):
-    yield Token("enum", TK.BEG)
+    yield TokenBeg("enum")
     yield TokenAttr(node.name,)
     yield TokenAttr(node.base_type_kind.name)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenBegColon()
     for f in node.items:
-        yield Token("NONE", TK.BEG)
+        yield TokenBeg("NONE")
         yield TokenAttr(f.name)
         yield from Tokens(f.value_or_auto)
-        yield Token("@NONE", TK.END)
-    yield Token("@:", TK.END_MISC)
-    yield Token("@enum", TK.END)
+        yield TokenEnd("NONE")
+    yield TokenEndColon()
+    yield TokenEnd("enum")
 
 
 def TokensStaticAssert(node: cwast.StmtStaticAssert):
-    yield Token("static_assert", TK.BEG)
+    yield TokenBeg("static_assert")
     yield from Tokens(node.cond)
-    yield Token("@static_assert", TK.END)
+    yield TokenEnd("static_assert")
 
 
 def TokensDefFun(node: cwast.DefFun):
-    yield Token("fun", TK.BEG)
+    yield TokenBeg("fun")
     yield TokenAttr(node.name)
 
-    yield ("(", TK.BEG_PAREN)
+    yield TokenBegParen("(")
     sep = False
     for p in node.params:
         if sep:
-            yield Token(",", TK.SEP)
+            yield TokenSep(",")
         sep = True
         yield TokenAttr(p.name)
         yield from Tokens(p.type)
-    yield Token(")", TK.END_PAREN)
+    yield TokenEndParen(")")
     yield from Tokens(node.result)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenBegColon()
     for child in node.body:
         yield from Tokens(child)
-    yield Token("@:", TK.END_MISC)
-    yield Token("@fun", TK.END)
+    yield TokenEndColon()
+    yield TokenEnd("fun")
 
 
 def TokensDefMacro(node: cwast.DefMacro):
-    yield Token("macro", TK.BEG)
+    yield TokenBeg("macro")
     yield TokenAttr(node.name)
     yield TokenAttr(node.macro_result_kind.name)
-    yield Token("[", TK.BEG_PAREN)
+    yield TokenBegParen("[")
     sep = False
     for p in node.params_macro:
         if sep:
@@ -772,28 +797,28 @@ def TokensDefMacro(node: cwast.DefMacro):
         sep = True
         yield TokenAttr(p.name)
         yield TokenAttr(p.macro_param_kind.name)
-    yield Token("]", TK.END_PAREN)
+    yield TokenEndParen("]")
     #
-    yield Token("[", TK.BEG_PAREN)
+    yield TokenBegParen("[")
     sep = False
     for gen_id in node.gen_ids:
         if sep:
             yield TokenSep(",")
         sep = True
         yield TokenAttr(gen_id)
-    yield Token("]", TK.END_PAREN)
-    yield Token(":", TK.BEG_MISC)
+    yield TokenEndParen("]")
+    yield TokenBegColon()
     for x in node.body_macro:
         yield from Tokens(x)
-    yield Token("@:", TK.END_MISC)
-    yield Token("@macro", TK.END)
+    yield TokenEndColon()
+    yield TokenEnd("macro")
 
 
 def TokensMacroId(node: cwast.MacroId):
     if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-        yield Token("NONE", TK.BEG)
+        yield TokenBeg("NONE")
         yield TokenAttr(node.name)
-        yield Token("@NONE", TK.END)
+        yield TokenEnd("NONE")
     else:
         yield TokenAttr(node.name)
 
