@@ -437,6 +437,12 @@ _BINARY_EXPR_KIND_TO_STR = {
     cwast.BINARY_EXPR_KIND.ORSC: "||",
 }
 
+_UNARY_EXPR_KIND_TO_STR = {
+    cwast.UNARY_EXPR_KIND.MINUS: "-",
+    cwast.UNARY_EXPR_KIND.NOT: "!",
+
+}
+
 _ASSIGNMENT_KIND_TO_STR = {
     cwast.ASSIGNMENT_KIND.ADD: "+=",
     cwast.ASSIGNMENT_KIND.SUB: "-=",
@@ -579,7 +585,6 @@ def TokensMacroInvoke(node: cwast.MacroInvoke):
         yield Token(")", TK.END_PAREN)
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
             yield Token("@NONE", TK.END)
-
 
 
 def TokensSimpleStmt(kind: str, arg):
@@ -815,6 +820,7 @@ def TokensDefMacro(node: cwast.DefMacro):
     yield Token("@:", TK.END_MISC)
     yield Token("@macro", TK.END)
 
+
 def TokensMacroId(node: cwast.MacroId):
     if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
         yield Token("NONE", TK.BEG)
@@ -822,6 +828,7 @@ def TokensMacroId(node: cwast.MacroId):
         yield Token("@NONE", TK.END)
     else:
         yield Token(node.name, TK.ATTR)
+
 
 CONCRETE_SYNTAX = {
     cwast.Id: lambda n:  (yield Token(n.name, TK.ATTR)),
@@ -862,7 +869,7 @@ CONCRETE_SYNTAX = {
     cwast.ExprSizeof: lambda n: TokensUnaryFunction("sizeof", n.type),
     cwast.ExprTypeId: lambda n: TokensUnaryFunction("sizeof", n.type),
     cwast.ExprNarrow: lambda n: TokensBinaryFunction("narrowto", n.expr, n.type),
-    cwast.Expr1: lambda n: TokensUnaryFunction(f"{n.unary_expr_kind.name}", n.expr),
+    cwast.Expr1: lambda n: TokensUnaryPrefix(_UNARY_EXPR_KIND_TO_STR[n.unary_expr_kind], n.expr),
     cwast.ExprPointer: lambda n: TokensBinaryInfix(_POINTER_EXPR_KIND_TO_STR[n.pointer_expr_kind], n.expr1, n.expr2),
     cwast.ExprIndex: lambda n: TokensBinaryInfix("at", n.container, n.expr_index),
     cwast.ValSlice: lambda n: TokensBinaryFunction("slice", n.pointer, n.expr_size),
@@ -872,7 +879,7 @@ CONCRETE_SYNTAX = {
     cwast.ExprDeref: lambda n: TokensUnaryPrefix("^", n.expr),
     cwast.ExprAddrOf: lambda n: TokensUnaryPrefix("&", n.expr_lhs),
     cwast.Expr2: lambda n: TokensBinaryInfix(_BINARY_EXPR_KIND_TO_STR[n.binary_expr_kind],
-                                       n.expr1, n.expr2),
+                                             n.expr1, n.expr2),
     cwast.Expr3: ConcreteExpr3,
     cwast.ExprStringify: lambda n: TokensUnaryFunction("stringify", n.expr),
     cwast.ExprCall: lambda n: TokensExprtWithParenListExpr(n.callee, n.args),
@@ -891,7 +898,7 @@ CONCRETE_SYNTAX = {
 
     cwast.StmtCond: lambda n: TokensStmtBlock("cond", "", n.cases),
     cwast.StmtCompoundAssignment: lambda n: TokensStmtSet(_ASSIGNMENT_KIND_TO_STR[n.assignment_kind],
-                                                            n.lhs, n.expr_rhs),
+                                                          n.lhs, n.expr_rhs),
     cwast.StmtAssignment: lambda n: TokensStmtSet("=", n.lhs, n.expr_rhs),
     cwast.DefVar: lambda n: TokensStmtLet("let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.StmtIf: ConcreteIf,

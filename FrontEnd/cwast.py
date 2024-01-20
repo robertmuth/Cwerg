@@ -651,10 +651,10 @@ X_FIELDS = {
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
     # set by eval.py
     "x_value": NF.VALUE_ANNOTATED,
-    #
+    # set by AnnotateRole() in this file
+    # used by pretty printing where we do not have sym info
     "x_role":   NF.ROLE_ANNOTATED,
 }
-
 
 def _NAME(node):
     if node.ALIAS is not None:
