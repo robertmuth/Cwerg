@@ -142,7 +142,7 @@ BINARY_EXPR_SHORTCUT = {
     "-": BINARY_EXPR_KIND.SUB,
     "*": BINARY_EXPR_KIND.MUL,
     "/": BINARY_EXPR_KIND.DIV,
-    "%": BINARY_EXPR_KIND.REM,
+    "mod": BINARY_EXPR_KIND.REM,
     "max": BINARY_EXPR_KIND.MAX,
     "min": BINARY_EXPR_KIND.MIN,
     #
@@ -156,7 +156,7 @@ BINARY_EXPR_SHORTCUT = {
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
-    "pdelta": BINARY_EXPR_KIND.PDELTA,
+    "&-&": BINARY_EXPR_KIND.PDELTA,
 }
 
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
@@ -172,8 +172,8 @@ class POINTER_EXPR_KIND(enum.Enum):
 
 POINTER_EXPR_SHORTCUT = {
     #
-    "incp": POINTER_EXPR_KIND.INCP,
-    "decp": POINTER_EXPR_KIND.DECP,
+    "&+": POINTER_EXPR_KIND.INCP,
+    "&-": POINTER_EXPR_KIND.DECP,
 }
 
 POINTER_EXPR_SHORTCUT_INV = {v: k for k, v in POINTER_EXPR_SHORTCUT.items()}
@@ -203,7 +203,7 @@ ASSIGNMENT_SHORTCUT = {
     "-=": ASSIGNMENT_KIND.SUB,
     "*=": ASSIGNMENT_KIND.MUL,
     "/=": ASSIGNMENT_KIND.DIV,
-    "%=": ASSIGNMENT_KIND.REM,
+    "mod=": ASSIGNMENT_KIND.REM,
     #
     "and=": ASSIGNMENT_KIND.AND,
     "or=": ASSIGNMENT_KIND.OR,
@@ -213,7 +213,7 @@ ASSIGNMENT_SHORTCUT = {
     ">>=": ASSIGNMENT_KIND.SHR,
 }
 
-ASSIGMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
+ASSIGNMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 
 COMPOUND_KIND_TO_EXPR_KIND = {
     ASSIGNMENT_KIND.ADD: BINARY_EXPR_KIND.ADD,
@@ -639,11 +639,20 @@ def IsFieldWithDefaultValue(field, val):
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     # set by mod_pool.py
-    "x_module": NF.MODULE_ANNOTATED,  # containing module for symbol resolution
+    # containing module links for symbol resolution
+    # import -> imported module
+    # id -> referenced module
+    # fun -> module of archetype (only use for polymorphic function)
+    # macro_invoke ->  referenced module
+    "x_module": NF.MODULE_ANNOTATED,
+    # set by mod_pool.py
+    # uniquified module name
     "x_modname": NF.MODNAME_ANNOTATED,  # unique module name
-    # set by symbolize.py,
-    "x_symbol": NF.SYMBOL_ANNOTATED,  # contains node from
-                                      # GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
+    # set by symbolize.py
+    # contains node from GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
+    "x_symbol": NF.SYMBOL_ANNOTATED,
+    # set by symbolize.py
+    # linksbreak/continue/return nodes to enclosing node
     "x_target": NF.CONTROL_FLOW,
     # set by typify.py
     "x_field": NF.FIELD_ANNOTATED,
@@ -655,6 +664,7 @@ X_FIELDS = {
     # used by pretty printing where we do not have sym info
     "x_role":   NF.ROLE_ANNOTATED,
 }
+
 
 def _NAME(node):
     if node.ALIAS is not None:
@@ -3222,7 +3232,7 @@ Misc enums used inside of nodes.
     _RenderKind(ExprPointer.__name__,  POINTER_EXPR_KIND,
                 POINTER_EXPR_SHORTCUT_INV, fout)
     _RenderKind(StmtCompoundAssignment.__name__,
-                ASSIGNMENT_KIND, ASSIGMENT_SHORTCUT_INV, fout)
+                ASSIGNMENT_KIND, ASSIGNMENT_SHORTCUT_INV, fout)
     _RenderKindSimple("Base Type",
                       BASE_TYPE_KIND, fout)
     _RenderKindSimple("ModParam",

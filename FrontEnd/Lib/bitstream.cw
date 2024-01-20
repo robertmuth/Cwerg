@@ -77,7 +77,7 @@ may set eos
     (return (slice_val f 0))
    :
     (= (-> bs offset) (+ offset n))
-    (return (slice_val (incp f offset) n))
+    (return (slice_val (&+ f offset) n))
    )
 
 )

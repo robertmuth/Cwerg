@@ -14,7 +14,7 @@
 
 
 (fun @pub get_random [(param max r64)] r64 :
-    (= LAST (% (+ (* LAST IA) IC) IM))
+    (= LAST (mod (+ (* LAST IA) IC) IM))
     (return (/ (* max (as LAST r64)) (as IM r64))))
 
 

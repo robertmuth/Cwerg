@@ -17,7 +17,7 @@
     (test::AssertEq! (* a b) 0xeb11e7f570b88d78_s64)
     @doc """ 
     (test::AssertEq! (/ a b) 0x7_u64)
-    (test::AssertEq! (% a b) 0x7f6e5d907f6e5d9_u64) """
+    (test::AssertEq! (mod a b) 0x7f6e5d907f6e5d9_u64) """
     @doc ""
     (test::AssertEq! (<< a 0) 0x8765432187654321_s64)
     (test::AssertEq! (<< a 32) 0x8765432100000000_s64)
@@ -53,7 +53,7 @@
     (test::AssertEq! (* a b) 0x70b88d78_s32)
     @doc """
     (test::AssertEq! (/ a b) 0x7_s32)
-    (test::AssertEq! (% a b) 0x7f6e5d9_s32) """
+    (test::AssertEq! (mod a b) 0x7f6e5d9_s32) """
     @doc ""
     (test::AssertEq! (! a) 0x789abcde_s32)
     (test::AssertEq! (~ a) 0x789abcdf_s32)
@@ -92,7 +92,7 @@
     @doc """
     (test::AssertEq! (* a b) 0xf4b4_s16)
     (test::AssertEq! (/ a b) 0x3_s16)
-    (test::AssertEq! (% a b) 0xc85_s16)
+    (test::AssertEq! (mod a b) 0xc85_s16)
     @doc ""
     (test::AssertEq! (! a) 0xbcde_s16)
     (test::AssertEq! (~ a) 0xbcdf_s16) """
@@ -131,7 +131,7 @@
     @doc """ needs backend fixes (test::AssertEq! (* a b) 0x48_s8) """
     @doc """
     (test::AssertEq! (/ a b) 0x1_s8)
-    (test::AssertEq! (% a b) 0xf_s8) """
+    (test::AssertEq! (mod a b) 0xf_s8) """
     @doc ""
     (test::AssertEq! (! a) 0x78_s8)
     (test::AssertEq! (~ a) 0x79_s8)

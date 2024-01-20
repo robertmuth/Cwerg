@@ -10,7 +10,7 @@
 (fun IncSliceUnchecked  [
     (param buffer (ptr @mut (slice u8)))  (param n uint)] void :
     (let length uint (len (^ buffer)))
-    (= (^ buffer) (slice_val (incp (front (^ buffer)) n) (- length n)))
+    (= (^ buffer) (slice_val (&+ (front (^ buffer)) n) (- length n)))
 )
 
 
@@ -18,7 +18,7 @@
 (fun IncSliceOrDie  [
     (param buffer (ptr @mut (slice u8)))  (param n uint)] void :
     (let length uint (len (^ buffer)))
-    (= (^ buffer) (slice_val (incp (front (^ buffer)) n length) (- length n)))
+    (= (^ buffer) (slice_val (&+ (front (^ buffer)) n length) (- length n)))
 )
 
 

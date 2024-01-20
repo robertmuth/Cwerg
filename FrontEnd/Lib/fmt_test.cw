@@ -31,11 +31,11 @@
     (= n (@polymorphic fmt::SysRender [
        (. v real) s opt]))
     (+= n (@polymorphic fmt::SysRender [
-        "+"  (slice_val (incp f n) (- l n)) opt]))
+        "+"  (slice_val (&+ f n) (- l n)) opt]))
     (+= n (@polymorphic fmt::SysRender [
-        (. v imag)  (slice_val (incp f n) (- l n)) opt]))
+        (. v imag)  (slice_val (&+ f n) (- l n)) opt]))
     (+= n (@polymorphic fmt::SysRender [
-        "i"  (slice_val (incp f n) (- l n)) opt]))
+        "i"  (slice_val (&+ f n) (- l n)) opt]))
     (return n))
 
 

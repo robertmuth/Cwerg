@@ -110,7 +110,7 @@
 )
 
 (macro incs! EXPR [(mparam $slice EXPR) (mparam $length EXPR)] [] :
-   (slice_val (incp (front @mut $slice) $length)
+   (slice_val (&+ (front @mut $slice) $length)
               (- (len $slice) $length))
 )
 
@@ -282,7 +282,7 @@
    (let @mut dist_symbols (array MAX_DIST_SYMS u16))
    (let @mut dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
    (block _ :
-      (let dist_lengths auto (slice_val (incp (front @mut lit_dist_lengths) lit_num_syms) dist_num_syms))
+      (let dist_lengths auto (slice_val (&+ (front @mut lit_dist_lengths) lit_num_syms) dist_num_syms))
       (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
                   [dist_lengths dist_counts dist_symbols]))
 

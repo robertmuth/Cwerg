@@ -48,8 +48,8 @@
         (+= a (as (at buf i) u32))
         (+= b a)
     )
-    (%= a Adler32Mod)
-    (%= b Adler32Mod)
+    (mod= a Adler32Mod)
+    (mod= b Adler32Mod)
     (return (or a (<< b 16)))
 )
 
@@ -64,7 +64,7 @@
     (let @mut start uint 0)
     (while (< start (len buf)) :
         (let end auto (min (+ start Adler32MaxLen) (len buf)))
-        (= crc (Adler32ShortSliceHelper [(slice_val (incp (front buf) start) (- end start))
+        (= crc (Adler32ShortSliceHelper [(slice_val (&+ (front buf) start) (- end start))
                                         crc]))
         (= start end)
     )
