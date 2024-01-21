@@ -267,6 +267,7 @@ class MACRO_PARAM_KIND(enum.Enum):
     STMT = 5
     FIELD = 6
     TYPE = 7
+    EXPR_LIST_REST = 8
 
 ############################################################
 # Field attributes of Nodes

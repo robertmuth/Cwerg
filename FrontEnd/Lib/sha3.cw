@@ -81,12 +81,12 @@ https://emn178.github.io/online-tools/sha3_512.html
 )
 
 (fun dumpA [(param tag (slice u8)) (param x (ptr (array 25 u64)))] void :
-    (fmt::print! [tag "\n"])
+    (fmt::print! tag "\n")
     (for i 0 5_uint 1 :
         (for j 0 5_uint 1 :
-            (fmt::print! [" " (wrap (at (^ x) (+ i (* j 5))) fmt::u64_hex)])
+            (fmt::print! " " (wrap (at (^ x) (+ i (* j 5))) fmt::u64_hex))
         )
-        (fmt::print! ["\n"])
+        (fmt::print! "\n")
     )
 )
 
@@ -177,7 +177,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 (fun @pub KeccakAdd [(param state (ptr @mut  StateKeccak))
                      (param tail (slice @mut u64))
                      (param data (slice u8))] void :
-    @doc """(fmt::print! ["KeccakAdd: " (-> state msglen) " "  data "\n"])"""
+    @doc """(fmt::print! "KeccakAdd: " (-> state msglen) " "  data "\n")"""
     (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
     (let block_size uint (* (len tail) 8))
     (let tail_use uint (mod (-> state msglen) block_size))

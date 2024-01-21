@@ -181,7 +181,7 @@
 
 
 (fun @pub window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
-    (fmt::print! [(get_bg_color [bg_col]) ansi::CLEAR_ALL])
+    (fmt::print! (get_bg_color [bg_col]) ansi::CLEAR_ALL)
     (let w auto (-> obj width))
     (let h auto (-> obj height))
     @doc "@ is an invalid attrib"
@@ -196,14 +196,14 @@
                 (continue)
                 :)
             (if (!= x (+ last_x 1)) :
-                (fmt::print! [(ansi::POS! (+ y 1) (+ x 1))])
+                (fmt::print! (ansi::POS! (+ y 1) (+ x 1)))
                 :)
             (= last_x x)
             (if (!= last_attr a) :
-                (fmt::print! [(get_fg_color [a]) (call get_style [a])])
+                (fmt::print! (get_fg_color [a]) (call get_style [a]))
                 :)
             (= last_attr a)
-            (fmt::print! [(wrap c fmt::rune)]))))
+            (fmt::print! (wrap c fmt::rune)))))
 
 
 (fun @pub window_fill [

@@ -487,7 +487,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             ct_callee: cwast.CanonType = called_fun.x_type
             assert ct_callee.is_fun(), f"{ct}"
             params_ct = ct_callee.parameter_types()
-            assert len(params_ct) == len(node.args)
+            if len(params_ct) != len(node.args):
+                cwast.CompilerError(node.x_srcloc, f"parameter size mismatch in call to {callee} - macro issues?")
             # we already process the first arg
             for p, a in zip(params_ct[1:], node.args[1:]):
                 _TypifyNodeRecursively(a, tc, p, ctx)

@@ -46,6 +46,21 @@ The type of the loop variable is determined by $end"""
         (trap))
     ($let $name $type (narrowto $eval $type)))
 
+(macro @pub tryset STMT_LIST [
+        (mparam $name ID)
+        (mparam $expr EXPR)
+        (mparam $catch_name ID)
+        (mparam $catch_body STMT_LIST)] [$eval] :
+    ($let $eval auto $expr)
+    (if (is $eval (typeof $name)) :
+        :
+        ($let $catch_name auto
+            (narrowto @unchecked $eval (uniondelta (typeof $eval) (typeof $type))))
+        $catch_body
+        (trap))
+    ($let $name $type (narrowto $eval $type)))
+
+
 (macro swap STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     ($let $t auto $a)
     (= $a $b)

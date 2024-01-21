@@ -333,6 +333,19 @@
 
 (macro @pub print! STMT_LIST [
         @doc "list of items to be printed"
+        (mparam $parts EXPR_LIST_REST)] [$buffer $curr $options] :
+    ($let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    ($let @mut $curr uint 0)
+    ($let @mut @ref $options auto (rec_val SysFormatOptions []))
+    ($for $i $parts :
+        (+= $curr (@polymorphic SysRender [
+                $i
+                (slice_val (&+ (front @mut $buffer) $curr) (- (len $buffer) $curr))
+                (& @mut $options)])))
+    (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
+
+@doc "same as above but takes an EXPR_LIST - should only be used by other macros"
+(macro @pub print_list! STMT_LIST [
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     ($let @mut $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     ($let @mut $curr uint 0)
@@ -352,10 +365,11 @@
     (return (slice_val s i)))
 
 
-(macro @pub assert! STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST)] [] :
+(macro @pub assert! STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST_REST)] [] :
     (if $cond :
         :
-        (print! [(stringify $cond) $parts])
+        (print! (stringify $cond))
+        (print_list!  $parts)
         (trap)))
 
 )

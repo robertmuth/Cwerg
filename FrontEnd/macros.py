@@ -7,7 +7,7 @@
 import dataclasses
 import logging
 
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List
 
 from FrontEnd import cwast
 
@@ -65,6 +65,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.ID,
                         cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.EXPR_LIST,
+                        cwast.MACRO_PARAM_KIND.EXPR_LIST_REST,
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
@@ -110,21 +111,26 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 
 
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
-    params = macro.params_macro
-    if len(params) != len(invoke.args):
+    params: List[cwast.MacroParam] = macro.params_macro
+    args = invoke.args
+    if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
+        rest = cwast.EphemeralList(args[len(params)-1:], colon=False)
+        args = args[:len(params)-1:] + [rest]
+    if len(params) != len(args):
         cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
-                            f"actual {len(invoke.args)} expected: {len(params)}")
+                            f"actual {len(args)} expected: {len(params)}")
     logger.info("Expanding Macro Invocation: %s", invoke)
     logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)
     # pp.PrettyPrint(macro)
     ctx.PushScope(invoke.x_srcloc)
-    for p, a in zip(params, invoke.args):
+    for p, a in zip(params, args):
         assert p.name.startswith("$")
         kind = p.macro_param_kind
         if kind is cwast.MACRO_PARAM_KIND.EXPR:
             pass
-        elif kind is cwast.MACRO_PARAM_KIND.STMT_LIST or kind is cwast.MACRO_PARAM_KIND.EXPR_LIST:
+        elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST, cwast.MACRO_PARAM_KIND.EXPR_LIST,
+                      cwast.MACRO_PARAM_KIND.EXPR_LIST_REST):
             if not isinstance(a, cwast.EphemeralList):
                 cwast.CompilerError(invoke.x_srcloc,
                                     f"expected EphemeralList for macro param {p} got {a}")
