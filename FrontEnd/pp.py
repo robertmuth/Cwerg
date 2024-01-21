@@ -402,6 +402,65 @@ class TK(enum.Enum):
     ANNOTATION_LONG = 12
     NEWLINE = 13
 
+
+class TS:
+
+    def __init__(self):
+        self._tokens = []
+        self._count = 0
+
+    def Token(self, a, k):
+        if a == "(" or a == "[":
+            assert k is TK.BEG_PAREN
+        elif a == ")" or a == "]":
+            assert k is TK.END_PAREN
+        elif a == ":":
+            assert k is TK.BEG_MISC
+        elif a == "@:":
+            assert k is TK.END_MISC
+        tk = (a, k)
+        self._tokens.append(tk)
+        return tk
+
+    def EmitNewline(self):
+        return self.Token("", TK.NEWLINE)
+
+    def EmitUnOp(self, a: str):
+        return self.Token(a, TK.UNOP)
+
+    def EmitBinOp(self, a: str):
+        return self.Token(a, TK.BINOP)
+
+    def EmitAttr(self, a: str):
+        return self.Token(a, TK.ATTR)
+
+    def EmitAnnotationShort(self, a: str):
+        return self.Token(a, TK.ANNOTATION_SHORT)
+
+    def EmitAnnotationLong(self, a: str):
+        return self.Token(a, TK.ANNOTATION_LONG)
+
+    def EmitSep(self, a: str):
+        return self.Token(a, TK.SEP)
+
+    def EmitBegParen(self, a: str):
+        return self.Token(a, TK.BEG_PAREN)
+
+    def EmitEndParen(self, a: str):
+        return self.Token(a, TK.END_PAREN)
+
+    def EmitBeg(self, a: str):
+        return self.Token(a, TK.BEG)
+
+    def EmitEnd(self, a: str):
+        return self.Token("@" + a, TK.END)
+
+    def EmitBegColon(self):
+        return self.Token(":", TK.BEG_MISC)
+
+    def EmitEndColon(self):
+        return self.Token("@:", TK.END_MISC)
+
 # @dataclasses.dataclass()
 # class Token:
 #     """Node Field Descriptor"""
@@ -411,489 +470,437 @@ class TK(enum.Enum):
 #     length: int = 0
 
 
-def Token(a, k):
-    if a == "(" or a == "[":
-        assert k is TK.BEG_PAREN
-    elif a == ")" or a == "]":
-        assert k is TK.END_PAREN
-    elif a == ":":
-        assert k is TK.BEG_MISC
-    elif a == "@:":
-        assert k is TK.END_MISC
-    return (a, k)
+def TokensUnaryFunction(ts: TS, name, node):
+    ts.EmitUnOp(name)
+    ts.EmitBegParen("(")
+    EmitTokens(ts, node)
+    ts.EmitEndParen(")")
 
 
-def TokenUnOp(a: str):
-    return Token(a, TK.UNOP)
-
-
-def TokenBinOp(a: str):
-    return Token(a, TK.BINOP)
-
-
-def TokenAttr(a: str):
-    return Token(a, TK.ATTR)
-
-
-def TokenSep(a: str):
-    return Token(a, TK.SEP)
-
-
-def TokenBegParen(a: str):
-    return Token(a, TK.BEG_PAREN)
-
-
-def TokenEndParen(a: str):
-    return Token(a, TK.END_PAREN)
-
-
-def TokenBeg(a: str):
-    return Token(a, TK.BEG)
-
-
-def TokenEnd(a: str):
-    return Token("@" + a, TK.END)
-
-
-def TokenBegColon():
-    return Token(":", TK.BEG_MISC)
-
-
-def TokenEndColon():
-    return Token("@:", TK.END_MISC)
-
-
-def TokensUnaryFunction(name, node):
-    yield TokenUnOp(name)
-    yield TokenBegParen("(")
-    yield from Tokens(node)
-    yield TokenEndParen(")")
-
-
-def TokensBinaryFunction(name, node1, node2):
-    yield TokenUnOp(name)
-    yield TokenBegParen("(")
-    yield from Tokens(node1)
-    yield TokenSep(",")
+def TokensBinaryFunction(ts: TS, name, node1, node2):
+    ts.EmitUnOp(name)
+    ts.EmitBegParen("(")
+    EmitTokens(ts, node1)
+    ts.EmitSep(",")
     if type(node2) == str:
-        yield TokenAttr(node2)
+        ts.EmitAttr(node2)
     else:
-        yield from Tokens(node2)
-    yield TokenEndParen(")")
+        EmitTokens(ts, node2)
+    ts.EmitEndParen(")")
 
 
-def TokensBinaryInfix(name: str, node1, node2):
-    yield from Tokens(node1)
-    yield TokenBinOp(name)
-    if type(node2) == str:
-        yield TokenAttr(node2)
+def TokensBinaryInfix(ts: TS, name: str, node1, node2):
+    EmitTokens(ts, node1)
+    ts.EmitBinOp(name)
+    if isinstance(node2, str):
+        ts.EmitAttr(node2)
     else:
-        yield from Tokens(node2)
+        EmitTokens(ts, node2)
 
 
-def TokensUnaryPrefix(name: str, node):
-    yield TokenUnOp(name)
-    yield from Tokens(node)
+def TokensUnaryPrefix(ts: TS, name: str, node):
+    ts.EmitUnOp(name)
+    EmitTokens(ts, node)
 
 
-def TokensParenList(lst):
+def EmitParenList(ts: TS, lst):
     sep = False
-    yield TokenBegParen("(")
+    ts.EmitBegParen("(")
     for t in lst:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield from Tokens(t)
-    yield TokenEndParen(")")
+        EmitTokens(ts, t)
+    ts.EmitEndParen(")")
 
 
-def NameWithParenListExpr(name, lst):
-    yield TokenUnOp(name)
-    yield from TokensParenList(lst)
+def EmitNameWithParenListExpr(ts: TS, name, lst):
+    ts.EmitUnOp(name)
+    EmitParenList(ts, lst)
 
 
-def TokensExprtWithParenListExpr(callee, lst):
-    yield from Tokens(callee)
-    yield from TokensParenList(lst)
+def EmitExprtWithParenListExpr(ts: TS, callee, lst):
+    EmitTokens(ts, callee)
+    EmitParenList(ts, lst)
 
 
-def ConcreteExpr3(node: cwast.Expr3):
-    yield from Tokens(node.cond)
-    yield TokenAttr("??")
-    yield from Tokens(node.expr_t)
-    yield TokenAttr("!!")
-    yield from Tokens(node.expr_f)
+def EmitExpr3(ts: TS, node: cwast.Expr3):
+    EmitTokens(ts, node.cond)
+    ts.EmitAttr("??")
+    EmitTokens(ts, node.expr_t)
+    ts.EmitAttr("!!")
+    EmitTokens(ts, node.expr_f)
 
 
-def TokensMacroInvoke(node: cwast.MacroInvoke):
+def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
-        yield from TokensBinaryInfix("->", node.args[0], node.args[1])
+        TokensBinaryInfix(ts, "->", node.args[0], node.args[1])
         return
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if is_block_like:
-        yield TokenBeg(node.name)
+        ts.EmitBeg(node.name)
     else:
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            yield TokenBeg("NONE")
-        yield TokenAttr(node.name)
-        yield TokenBegParen("(")
+            ts.EmitBeg("NONE")
+        ts.EmitAttr(node.name)
+        ts.EmitBegParen("(")
     sep = False
     for a in node.args:
 
         if isinstance(a, cwast.Id):
             if sep:
-                yield TokenSep(",")
-            yield TokenAttr(a.name)
+                ts.EmitSep(",")
+            ts.EmitAttr(a.name)
         elif isinstance(a, (cwast.EphemeralList)):
             if a.colon:
-                yield TokenBegColon()
+                ts.EmitBegColon()
                 for s in a.args:
-                    yield from Tokens(s)
-                yield TokenEndColon()
+                    EmitTokens(ts, s)
+                ts.EmitEndColon()
             else:
                 if sep:
-                    yield TokenSep(",")
+                    ts.EmitSep(",")
                 sep2 = False
-                yield TokenBegParen("[")
+                ts.EmitBegParen("[")
                 for e in a.args:
                     if sep2:
-                        yield TokenSep(",")
+                        ts.EmitSep(",")
                     sep2 = True
-                    yield from Tokens(e)
-                yield TokenEndParen("]")
+                    EmitTokens(ts, e)
+                ts.EmitEndParen("]")
         elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
                             cwast.TypeArray, cwast.TypePtr, cwast.TypeSlice)):
             if sep:
-                yield TokenSep(",")
-            yield from Tokens(a)
+                ts.EmitSep(",")
+            EmitTokens(ts, a)
         else:
             if sep:
-                yield TokenSep(",")
-            yield from Tokens(a)
+                ts.EmitSep(",")
+            EmitTokens(ts, a)
         sep = True
     if is_block_like:
-        yield TokenEnd(node.name)
+        ts.EmitEnd(node.name)
     else:
-        yield TokenEndParen(")")
+        ts.EmitEndParen(")")
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            yield TokenEnd("NONE")
+            ts.EmitEnd("NONE")
 
 
-def TokensSimpleStmt(kind: str, arg):
-    yield TokenBeg(kind)    # return, continue, etc.
+def TokensSimpleStmt(ts: TS, kind: str, arg):
+    ts.EmitBeg(kind)    # return, continue, etc.
     if arg:
         if type(arg) == str:
-            yield TokenAttr(arg)
+            ts.EmitAttr(arg)
         elif not isinstance(arg, cwast.ValVoid):
             # for return
-            yield from Tokens(arg)
+            EmitTokens(ts, arg)
 
-    yield TokenEnd(kind)
+    ts.EmitEnd(kind)
 
 
-def TokensStmtBlock(kind, arg, stmts):
-    yield TokenBeg(kind)
+def TokensStmtBlock(ts: TS, kind, arg, stmts):
+    ts.EmitBeg(kind)
     if arg:
         if type(arg) == str:
-            yield TokenAttr(arg)
+            ts.EmitAttr(arg)
         else:
-            yield from Tokens(arg)
-    yield TokenBegColon()
+            EmitTokens(ts, arg)
+    ts.EmitBegColon()
     for s in stmts:
-        yield from Tokens(s)
-    yield TokenEndColon()
-    yield TokenEnd(kind)
+        EmitTokens(ts, s)
+    ts.EmitEndColon()
+    ts.EmitEnd(kind)
 
 
-def TokensStmtSet(kind, lhs, rhs):
-    yield TokenBeg("set")
-    yield from Tokens(lhs)
-    yield TokenBinOp(kind)
-    yield from Tokens(rhs)
-    yield TokenEnd("set")
+def TokensStmtSet(ts: TS, kind, lhs, rhs):
+    ts.EmitBeg("set")
+    EmitTokens(ts, lhs)
+    ts.EmitBinOp(kind)
+    EmitTokens(ts, rhs)
+    ts.EmitEnd("set")
 
 
-def TokensStmtLet(kind, name: str, type_or_auto, init_or_auto):
-    yield TokenBeg(kind)
-    yield TokenAttr(name)
-    yield from Tokens(type_or_auto)
+def TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
+    ts.EmitBeg(kind)
+    ts.EmitAttr(name)
+    EmitTokens(ts, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
-        yield TokenBinOp("=")
-        yield from Tokens(init_or_auto)
-    yield TokenEnd(kind)
+        ts.EmitBinOp("=")
+        EmitTokens(ts, init_or_auto)
+    ts.EmitEnd(kind)
 
 
-def TokensMacroFor(node: cwast.MacroFor):
-    yield TokenBeg("$for")
-    yield TokenAttr(node.name)
-    yield TokenAttr(node.name_list)
-    yield Token(":", TK.BEG_MISC)
+def TokensMacroFor(ts: TS, node: cwast.MacroFor):
+    ts.EmitBeg("$for")
+    ts.EmitAttr(node.name)
+    ts.EmitAttr(node.name_list)
+    ts.EmitBegColon()
     for x in node.body_for:
-        yield from Tokens(x)
-    yield Token("@:", TK.END_MISC)
-    yield TokenEnd("$for")
+        EmitTokens(ts, x)
+    ts.EmitEndColon()
+    ts.EmitEnd("$for")
 
 
-def ConcreteIf(node: cwast.StmtIf):
-    yield TokenBeg("if")
-    yield from Tokens(node.cond)
-    yield TokenBegColon()
+def ConcreteIf(ts: TS, node: cwast.StmtIf):
+    ts.EmitBeg("if")
+    EmitTokens(ts, node.cond)
+    ts.EmitBegColon()
     for c in node.body_t:
-        yield from Tokens(c)
-    yield TokenEndColon()
+        EmitTokens(ts, c)
+    ts.EmitEndColon()
     if node.body_f:
-        yield TokenAttr("else")
-        yield TokenBegColon()
+        ts.EmitAttr("else")
+        ts.EmitBegColon()
         for c in node.body_f:
-            yield from Tokens(c)
-        yield TokenEndColon()
-    yield TokenEnd("if")
+            EmitTokens(ts, c)
+        ts.EmitEndColon()
+    ts.EmitEnd("if")
 
 
-def TokensValRec(node: cwast.ValRec):
-    yield from Tokens(node.type)
-    yield TokenBegParen("[")
+def TokensValRec(ts: TS, node: cwast.ValRec):
+    EmitTokens(ts, node.type)
+    ts.EmitBegParen("[")
     sep = False
     for e in node.inits_field:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield from Tokens(e.value_or_undef)
+        EmitTokens(ts, e.value_or_undef)
         if e.init_field:
-            yield TokenAttr(e.init_field)
-    yield TokenEndParen("]")
+            ts.EmitAttr(e.init_field)
+    ts.EmitEndParen("]")
 
 
-def TokensValArray(node: cwast.ValArray):
-    yield from TokensBinaryFunction("array", node.expr_size, node.type)
-    yield TokenBegParen("[")
+def TokensValArray(ts: TS, node: cwast.ValArray):
+    TokensBinaryFunction(ts, "array", node.expr_size, node.type)
+    ts.EmitBegParen("[")
     sep = False
     for e in node.inits_array:
         assert isinstance(e, cwast.IndexVal)
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield from Tokens(e.value_or_undef)
+        EmitTokens(ts, e.value_or_undef)
         if not isinstance(e.init_index, cwast.ValAuto):
-            yield from Tokens(e.init_index)
-    yield TokenEndParen("]")
+            EmitTokens(ts, e.init_index)
+    ts.EmitEndParen("]")
 
 
-def TokensDefMod(node: cwast.DefMod):
-    yield TokenBeg("module")
+def TokensDefMod(ts: TS, node: cwast.DefMod):
+    ts.EmitBeg("module")
     # we do not want the next item to be indented
-    yield TokenUnOp(node.name)
+    ts.EmitUnOp(node.name)
     for child in node.body_mod:
-        yield from Tokens(child)
-    yield TokenEnd("module")
+        EmitTokens(ts, child)
+    ts.EmitEnd("module")
 
 
-def TokensDefGlobal(node: cwast.DefGlobal):
-    yield TokenBeg("global")
-    yield TokenAttr(node.name)
-    yield from Tokens(node.type_or_auto)
+def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
+    ts.EmitBeg("global")
+    ts.EmitAttr(node.name)
+    EmitTokens(ts, node.type_or_auto)
     if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
-        yield TokenBinOp("=")
-        yield from Tokens(node.initial_or_undef_or_auto)
-    yield TokenEnd("global")
+        ts.EmitBinOp("=")
+        EmitTokens(ts, node.initial_or_undef_or_auto)
+    ts.EmitEnd("global")
 
 
-def TokensImport(node: cwast.Import):
-    yield TokenBeg("import")
-    yield TokenAttr(node.name)
+def TokensImport(ts: TS, node: cwast.Import):
+    ts.EmitBeg("import")
+    ts.EmitAttr(node.name)
     if node.alias:
-        yield TokenBinOp("as")
-        yield TokenAttr(node.alias)
-    yield TokenEnd("import")
+        ts.EmitBinOp("as")
+        ts.EmitAttr(node.alias)
+    ts.EmitEnd("import")
 
 
-def TokensDefType(node: cwast.DefType):
-    yield TokenBeg("type")
-    yield TokenAttr(node.name)
-    yield TokenBinOp("=")
-    yield from Tokens(node.type)
-    yield TokenEnd("type")
+def TokensDefType(ts: TS, node: cwast.DefType):
+    ts.EmitBeg("type")
+    ts.EmitAttr(node.name)
+    ts.EmitBinOp("=")
+    EmitTokens(ts, node.type)
+    ts.EmitEnd("type")
 
 
-def TokensTypeFun(node: cwast.TypeFun):
-    yield TokenUnOp("funtype")
-    yield TokenBegParen("(")
+def TokensTypeFun(ts: TS, node: cwast.TypeFun):
+    ts.EmitUnOp("funtype")
+    ts.EmitBegParen("(")
     sep = False
     for p in node.params:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield TokenAttr(p.name)
-        yield from Tokens(p.type)
-    yield TokenEndParen(")")
-    yield from Tokens(node.result)
+        ts.EmitAttr(p.name)
+        EmitTokens(ts, p.type)
+    ts.EmitEndParen(")")
+    EmitTokens(ts, node.result)
 
 
-def TokensDefRec(node: cwast.DefRec):
-    yield TokenBeg("rec")
-    yield TokenAttr(node.name)
-    yield TokenBegColon()
+def TokensDefRec(ts: TS, node: cwast.DefRec):
+    ts.EmitBeg("rec")
+    ts.EmitAttr(node.name)
+    ts.EmitBegColon()
     for f in node.fields:
-        yield from TokensAnnotations(f)
-        yield TokenBeg("NONE")
-        yield TokenAttr(f.name)
-        yield from Tokens(f.type)
-        yield TokenEnd("NONE")
-    yield TokenEndColon()
-    yield TokenEnd("rec")
+        TokensAnnotations(ts, f)
+        ts.EmitBeg("NONE")
+        ts.EmitAttr(f.name)
+        EmitTokens(ts, f.type)
+        ts.EmitEnd("NONE")
+    ts.EmitEndColon()
+    ts.EmitEnd("rec")
 
 
-def TokensDefEnum(node: cwast.DefEnum):
-    yield TokenBeg("enum")
-    yield TokenAttr(node.name,)
-    yield TokenAttr(node.base_type_kind.name)
-    yield TokenBegColon()
+def TokensDefEnum(ts: TS, node: cwast.DefEnum):
+    ts.EmitBeg("enum")
+    ts.EmitAttr(node.name,)
+    ts.EmitAttr(node.base_type_kind.name)
+    ts.EmitBegColon()
     for f in node.items:
-        yield TokenBeg("NONE")
-        yield TokenAttr(f.name)
-        yield from Tokens(f.value_or_auto)
-        yield TokenEnd("NONE")
-    yield TokenEndColon()
-    yield TokenEnd("enum")
+        ts.EmitBeg("NONE")
+        ts.EmitAttr(f.name)
+        EmitTokens(ts, f.value_or_auto)
+        ts.EmitEnd("NONE")
+    ts.EmitEndColon()
+    ts.EmitEnd("enum")
 
 
-def TokensStaticAssert(node: cwast.StmtStaticAssert):
-    yield TokenBeg("static_assert")
-    yield from Tokens(node.cond)
-    yield TokenEnd("static_assert")
+def TokensStaticAssert(ts: TS, node: cwast.StmtStaticAssert):
+    ts.EmitBeg("static_assert")
+    EmitTokens(ts, node.cond)
+    ts.EmitEnd("static_assert")
 
 
-def TokensDefFun(node: cwast.DefFun):
-    yield TokenBeg("fun")
-    yield TokenAttr(node.name)
+def TokensDefFun(ts: TS, node: cwast.DefFun):
+    ts.EmitBeg("fun")
+    ts.EmitAttr(node.name)
 
-    yield TokenBegParen("(")
+    ts.EmitBegParen("(")
     sep = False
     for p in node.params:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield TokenAttr(p.name)
-        yield from Tokens(p.type)
-    yield TokenEndParen(")")
-    yield from Tokens(node.result)
-    yield TokenBegColon()
+        ts.EmitAttr(p.name)
+        EmitTokens(ts, p.type)
+    ts.EmitEndParen(")")
+    EmitTokens(ts, node.result)
+    ts.EmitBegColon()
     for child in node.body:
-        yield from Tokens(child)
-    yield TokenEndColon()
-    yield TokenEnd("fun")
+        EmitTokens(ts, child)
+    ts.EmitEndColon()
+    ts.EmitEnd("fun")
 
 
-def TokensDefMacro(node: cwast.DefMacro):
-    yield TokenBeg("macro")
-    yield TokenAttr(node.name)
-    yield TokenAttr(node.macro_result_kind.name)
-    yield TokenBegParen("[")
+def TokensDefMacro(ts: TS, node: cwast.DefMacro):
+    ts.EmitBeg("macro")
+    ts.EmitAttr(node.name)
+    ts.EmitAttr(node.macro_result_kind.name)
+    ts.EmitBegParen("[")
     sep = False
     for p in node.params_macro:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield TokenAttr(p.name)
-        yield TokenAttr(p.macro_param_kind.name)
-    yield TokenEndParen("]")
+        ts.EmitAttr(p.name)
+        ts.EmitAttr(p.macro_param_kind.name)
+    ts.EmitEndParen("]")
     #
-    yield TokenBegParen("[")
+    ts.EmitBegParen("[")
     sep = False
     for gen_id in node.gen_ids:
         if sep:
-            yield TokenSep(",")
+            ts.EmitSep(",")
         sep = True
-        yield TokenAttr(gen_id)
-    yield TokenEndParen("]")
-    yield TokenBegColon()
+        ts.EmitAttr(gen_id)
+    ts.EmitEndParen("]")
+    ts.EmitBegColon()
     for x in node.body_macro:
-        yield from Tokens(x)
-    yield TokenEndColon()
-    yield TokenEnd("macro")
+        EmitTokens(ts, x)
+    ts.EmitEndColon()
+    ts.EmitEnd("macro")
 
 
-def TokensMacroId(node: cwast.MacroId):
+def TokensMacroId(ts: TS, node: cwast.MacroId):
     if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-        yield TokenBeg("NONE")
-        yield TokenAttr(node.name)
-        yield TokenEnd("NONE")
+        ts.EmitBeg("NONE")
+        ts.EmitAttr(node.name)
+        ts.EmitEnd("NONE")
     else:
-        yield TokenAttr(node.name)
+        ts.EmitAttr(node.name)
 
 
 CONCRETE_SYNTAX = {
-    cwast.Id: lambda n:  (yield TokenAttr(n.name)),
+    cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
     cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda n: TokensStmtLet("$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.MacroVar: lambda ts, n: TokensStmtLet("$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
     #
-    cwast.TypeAuto: lambda n: (yield TokenAttr("auto")),
-    cwast.TypeBase: lambda n: (yield TokenAttr(n.base_type_kind.name.lower())),
-    cwast.TypeSlice: lambda n: TokensUnaryFunction("slice", n.type),
-    cwast.TypeOf: lambda n: TokensUnaryFunction("typeof", n.expr),
-    cwast.TypeUnion: lambda n: NameWithParenListExpr("union", n.types),
-    cwast.TypePtr: lambda n: TokensUnaryFunction("ptr", n.type),
-    cwast.TypeArray: lambda n: TokensBinaryFunction("array", n.size, n.type),
-    cwast.TypeUnionDelta: lambda n: TokensBinaryFunction("uniondelta", n.type, n.subtrahend),
+    cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
+    cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
+    cwast.TypeSlice: lambda ts, n: TokensUnaryFunction(ts, "slice", n.type),
+    cwast.TypeOf: lambda ts, n: TokensUnaryFunction(ts, "typeof", n.expr),
+    cwast.TypeUnion: lambda ts, n: EmitNameWithParenListExpr(ts, "union", n.types),
+    cwast.TypePtr: lambda ts, n: TokensUnaryFunction(ts, "ptr", n.type),
+    cwast.TypeArray: lambda ts, n: TokensBinaryFunction(ts, "array", n.size, n.type),
+    cwast.TypeUnionDelta: lambda ts, n: TokensBinaryFunction(ts, "uniondelta", n.type, n.subtrahend),
     cwast.TypeFun:  TokensTypeFun,
     #
-    cwast.ValNum: lambda n: (yield TokenAttr(n.number)),
-    cwast.ValTrue: lambda n: (yield TokenAttr("true")),
-    cwast.ValFalse: lambda n: (yield TokenAttr("false")),
-    cwast.ValUndef: lambda n: (yield TokenAttr("undef")),
-    cwast.ValVoid: lambda n: (yield TokenAttr("void")),
-    cwast.ValAuto: lambda n: (yield TokenAttr("auto")),
-    cwast.ValString: lambda n: (yield TokenAttr(f'{n.strkind}"{n.string}"')),
+    cwast.ValNum: lambda ts, n: ts.EmitAttr(n.number),
+    cwast.ValTrue: lambda ts, n: ts.EmitAttr("true"),
+    cwast.ValFalse: lambda ts, n: ts.EmitAttr("false"),
+    cwast.ValUndef: lambda ts, n: ts.EmitAttr("undef"),
+    cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
+    cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
+    cwast.ValString: lambda ts, n: ts.EmitAttr(f'{n.strkind}"{n.string}"'),
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValArray,
 
     #
-    cwast.ExprFront: lambda n: TokensUnaryFunction("front", n.container),
-    cwast.ExprUnionTag: lambda n: TokensUnaryFunction("uniontag", n.expr),
-    cwast.ExprAs: lambda n: TokensBinaryFunction("as", n.expr, n.type),
-    cwast.ExprIs: lambda n: TokensBinaryInfix("is", n.expr, n.type),
-    cwast.ExprBitCast: lambda n: TokensBinaryFunction("asbits", n.expr, n.type),
-    cwast.ExprOffsetof: lambda n: TokensBinaryFunction("offsetof", n.type, n.field),
-    cwast.ExprLen: lambda n: TokensUnaryFunction("len", n.container),
-    cwast.ExprSizeof: lambda n: TokensUnaryFunction("sizeof", n.type),
-    cwast.ExprTypeId: lambda n: TokensUnaryFunction("sizeof", n.type),
-    cwast.ExprNarrow: lambda n: TokensBinaryFunction("narrowto", n.expr, n.type),
-    cwast.Expr1: lambda n: TokensUnaryPrefix(cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
-    cwast.ExprPointer: lambda n: TokensBinaryInfix(cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind], n.expr1, n.expr2),
-    cwast.ExprIndex: lambda n: TokensBinaryInfix("at", n.container, n.expr_index),
-    cwast.ValSlice: lambda n: TokensBinaryFunction("slice", n.pointer, n.expr_size),
-    cwast.ExprWrap: lambda n: TokensBinaryFunction("wrapas", n.expr, n.type),
-    cwast.ExprUnwrap: lambda n: TokensUnaryFunction("unwrap", n.expr),
-    cwast.ExprField: lambda n: TokensBinaryInfix(".", n.container, n.field),
-    cwast.ExprDeref: lambda n: TokensUnaryPrefix("^", n.expr),
-    cwast.ExprAddrOf: lambda n: TokensUnaryPrefix("&", n.expr_lhs),
-    cwast.Expr2: lambda n: TokensBinaryInfix(cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
-                                             n.expr1, n.expr2),
-    cwast.Expr3: ConcreteExpr3,
-    cwast.ExprStringify: lambda n: TokensUnaryFunction("stringify", n.expr),
-    cwast.ExprCall: lambda n: TokensExprtWithParenListExpr(n.callee, n.args),
-    cwast.ExprStmt: lambda n: TokensStmtBlock("expr", "", n.body),
-    cwast.ExprParen: lambda n: TokensParenList([n.expr]),
+    cwast.ExprFront: lambda ts, n: TokensUnaryFunction(ts, "front", n.container),
+    cwast.ExprUnionTag: lambda ts, n: TokensUnaryFunction(ts, "uniontag", n.expr),
+    cwast.ExprAs: lambda ts, n: TokensBinaryFunction(ts, "as", n.expr, n.type),
+    cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type),
+    cwast.ExprBitCast: lambda ts, n: TokensBinaryFunction(ts, "asbits", n.expr, n.type),
+    cwast.ExprOffsetof: lambda ts, n: TokensBinaryFunction(ts, "offsetof", n.type, n.field),
+    cwast.ExprLen: lambda ts, n: TokensUnaryFunction(ts, "len", n.container),
+    cwast.ExprSizeof: lambda ts, n: TokensUnaryFunction(ts, "sizeof", n.type),
+    cwast.ExprTypeId: lambda ts, n: TokensUnaryFunction(ts, "sizeof", n.type),
+    cwast.ExprNarrow: lambda ts, n: TokensBinaryFunction(ts, "narrowto", n.expr, n.type),
+    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
+    cwast.ExprPointer: lambda ts, n: TokensBinaryInfix(ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind], n.expr1, n.expr2),
+    cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index),
+    cwast.ValSlice: lambda ts, n: TokensBinaryFunction(ts, "slice", n.pointer, n.expr_size),
+    cwast.ExprWrap: lambda ts, n: TokensBinaryFunction(ts, "wrapas", n.expr, n.type),
+    cwast.ExprUnwrap: lambda ts, n: TokensUnaryFunction(ts, "unwrap", n.expr),
+    cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field),
+    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&", n.expr_lhs),
+    cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
+                                                 n.expr1, n.expr2),
+    cwast.Expr3: EmitExpr3,
+    cwast.ExprStringify: lambda ts, n: TokensUnaryFunction(ts, "stringify", n.expr),
+    cwast.ExprCall: lambda ts, n: EmitExprtWithParenListExpr(ts, n.callee, n.args),
+    cwast.ExprStmt: lambda ts, n: TokensStmtBlock(ts, "expr", "", n.body),
+    cwast.ExprParen: lambda ts, n: EmitParenList(ts, [n.expr]),
 
     #
-    cwast.StmtContinue: lambda n: TokensSimpleStmt("continue", n.target),
-    cwast.StmtBreak: lambda n: TokensSimpleStmt("break", n.target),
-    cwast.StmtTrap: lambda n: TokensSimpleStmt("trap", ""),
-    cwast.StmtReturn: lambda n: TokensSimpleStmt("return", n.expr_ret),
-    cwast.StmtExpr: lambda n: TokensSimpleStmt("shed", n.expr),
-    cwast.StmtDefer: lambda n: TokensStmtBlock("defer", "", n.body),
-    cwast.StmtBlock: lambda n: TokensStmtBlock("block", n.label, n.body),
-    cwast.Case: lambda n: TokensStmtBlock("case", n.cond, n.body),
+    cwast.StmtContinue: lambda ts, n: TokensSimpleStmt(ts, "continue", n.target),
+    cwast.StmtBreak: lambda ts, n: TokensSimpleStmt(ts, "break", n.target),
+    cwast.StmtTrap: lambda ts, n: TokensSimpleStmt(ts, "trap", ""),
+    cwast.StmtReturn: lambda ts, n: TokensSimpleStmt(ts, "return", n.expr_ret),
+    cwast.StmtExpr: lambda ts, n: TokensSimpleStmt(ts, "shed", n.expr),
+    cwast.StmtDefer: lambda ts, n: TokensStmtBlock(ts, "defer", "", n.body),
+    cwast.StmtBlock: lambda ts, n: TokensStmtBlock(ts, "block", n.label, n.body),
+    cwast.Case: lambda ts, n: TokensStmtBlock(ts, "case", n.cond, n.body),
 
-    cwast.StmtCond: lambda n: TokensStmtBlock("cond", "", n.cases),
-    cwast.StmtCompoundAssignment: lambda n: TokensStmtSet(cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
-                                                          n.lhs, n.expr_rhs),
-    cwast.StmtAssignment: lambda n: TokensStmtSet("=", n.lhs, n.expr_rhs),
-    cwast.DefVar: lambda n: TokensStmtLet("let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.StmtCond: lambda ts, n: TokensStmtBlock(ts, "cond", "", n.cases),
+    cwast.StmtCompoundAssignment: lambda ts, n: TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
+                                                              n.lhs, n.expr_rhs),
+    cwast.StmtAssignment: lambda ts, n: TokensStmtSet(ts, "=", n.lhs, n.expr_rhs),
+    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, "let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.StmtIf: ConcreteIf,
     #
     cwast.DefMod: TokensDefMod,
@@ -908,14 +915,14 @@ CONCRETE_SYNTAX = {
 }
 
 
-def TokensAnnotations(node):
+def TokensAnnotations(ts: TS, node):
     for field, nfd in node.ATTRS:
         if field in ("triplequoted", "strkind"):
             continue
         if nfd.kind is cwast.NFK.ATTR_STR:
             val = getattr(node, field)
             if val:
-                yield Token("@" + field + "=" + val, TK.ANNOTATION_LONG)
+                ts.EmitAnnotationLong("@" + field + "=" + val)
 
     for field, nfd in node.ATTRS:
         if field in ("triplequoted", "strkind"):
@@ -924,19 +931,19 @@ def TokensAnnotations(node):
         if nfd.kind is cwast.NFK.ATTR_BOOL:
             val = getattr(node, field)
             if val:
-                yield Token("@" + field, TK.ANNOTATION_SHORT)
+                ts.EmitAnnotationShort("@" + field)
 
 
-def Tokens(node):
+def EmitTokens(ts: TS, node):
     if isinstance(node, (cwast.DefRec, cwast.DefEnum, cwast.DefFun, cwast.DefType, cwast.Import,
                          cwast.DefGlobal, cwast.DefMacro, cwast.StmtStaticAssert)):
-        yield Token("", TK.NEWLINE)
+        ts.EmitNewline()
 
-    yield from TokensAnnotations(node)
+    TokensAnnotations(ts, node)
 
     gen = CONCRETE_SYNTAX.get(node.__class__)
     assert gen, f"unknown node {node.__class__}"
-    yield from gen(node)
+    gen(ts, node)
 
 
 BEG_TOKENS = set([
@@ -1172,9 +1179,11 @@ def main():
                 AddMissingParens(m)
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST
-            tokens = Tokens(mods[0])
-            tokens = list(tokens)
+            ts = TS()
+            tokens = EmitTokens(ts, mods[0])
+            tokens = list(ts._tokens)
             # print(tokens)
+            # reverse once because popping of the end of a list is more efficient
             tokens.reverse()
             # and now format the stream
             FormatTokenStream(tokens, Stack(), Sink())
