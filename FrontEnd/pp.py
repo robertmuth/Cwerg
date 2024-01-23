@@ -398,7 +398,6 @@ class TK(enum.Enum):
     BEG_MISC = 30
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
-    NEWLINE = 13
 
 # @dataclasses.dataclass()
 # class Token:
@@ -427,9 +426,6 @@ class TS:
         tk = (a, k)
         self._tokens.append(tk)
         return tk
-
-    def EmitNewline(self):
-        return self.Token("", TK.NEWLINE)
 
     def EmitUnOp(self, a: str):
         return self.Token(a, TK.UNOP)
@@ -729,19 +725,28 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     EmitTokens(ts, node.result)
 
 
+def TokensRecField(ts: TS, node: cwast.RecField):
+    beg = ts.EmitBeg("NONE")
+    ts.EmitAttr(node.name)
+    EmitTokens(ts, node.type)
+    ts.EmitEnd(beg)
+
+
 def TokensDefRec(ts: TS, node: cwast.DefRec):
     beg_rec = ts.EmitBeg("rec")
     ts.EmitAttr(node.name)
     beg_colon = ts.EmitBegColon()
     for f in node.fields:
-        # TODO: handle RecField explicitly
-        TokensAnnotations(ts, f)
-        beg = ts.EmitBeg("NONE")
-        ts.EmitAttr(f.name)
-        EmitTokens(ts, f.type)
-        ts.EmitEnd(beg)
+        EmitTokens(ts, f)
     ts.EmitEnd(beg_colon)
     ts.EmitEnd(beg_rec)
+
+
+def TokensEnumVal(ts: TS, node: cwast.EnumVal):
+    beg = ts.EmitBeg("NONE")
+    ts.EmitAttr(node.name)
+    EmitTokens(ts, node.value_or_auto)
+    ts.EmitEnd(beg)
 
 
 def TokensDefEnum(ts: TS, node: cwast.DefEnum):
@@ -750,11 +755,7 @@ def TokensDefEnum(ts: TS, node: cwast.DefEnum):
     ts.EmitAttr(node.base_type_kind.name)
     beg_colon = ts.EmitBegColon()
     for f in node.items:
-        # TODO: handle RecField explicitly
-        beg = ts.EmitBeg("NONE")
-        ts.EmitAttr(f.name)
-        EmitTokens(ts, f.value_or_auto)
-        ts.EmitEnd(beg)
+        EmitTokens(ts, f)
     ts.EmitEnd(beg_colon)
     ts.EmitEnd(beg_enum)
 
@@ -829,7 +830,7 @@ CONCRETE_SYNTAX = {
     #
     cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda ts, n: TokensStmtLet("$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, "$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
@@ -906,6 +907,9 @@ CONCRETE_SYNTAX = {
     cwast.DefRec: TokensDefRec,
     cwast.StmtStaticAssert: TokensStaticAssert,
     cwast.DefMacro: TokensDefMacro,
+    cwast.EnumVal:  TokensEnumVal,
+    cwast.RecField:  TokensRecField,
+
 }
 
 
@@ -929,10 +933,6 @@ def TokensAnnotations(ts: TS, node):
 
 
 def EmitTokens(ts: TS, node):
-    if isinstance(node, (cwast.DefRec, cwast.DefEnum, cwast.DefFun, cwast.DefType, cwast.Import,
-                         cwast.DefGlobal, cwast.DefMacro, cwast.StmtStaticAssert)):
-        ts.EmitNewline()
-
     TokensAnnotations(ts, node)
 
     gen = CONCRETE_SYNTAX.get(node.__class__)
@@ -1073,7 +1073,6 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.set_indent(stack.CurrentIndent())
             if kind_beg is TK.BEG:
                 if t_beg == "module":
-                    sink.newline()
                     assert not tokens
                     assert stack.empty()
                     return
@@ -1088,6 +1087,10 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 want_space = True
             else:
                 assert False
+            if t_beg in ("rec", "enum", "fun", "type", "import", "global", "macro",
+                         "static_assert"):
+                sink.newline()
+
         elif kind is TK.BINOP:
             if tag == "." or tag == "->":
                 sink.emit_token(tag)
@@ -1102,8 +1105,6 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.emit_space()
                 want_space = False
             sink.emit_token(tag)
-        elif kind is TK.NEWLINE:
-            sink.newline()
         elif kind is TK.ANNOTATION_LONG:
             sink.maybe_newline()
             sink.emit_token(tag)
