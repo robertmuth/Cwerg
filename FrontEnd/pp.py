@@ -411,17 +411,25 @@ BEG_TOKENS = set([
     "$let", "$for", "swap", ":", "(", "[",
 ])
 
+
 @dataclasses.dataclass()
 class Token:
     """Node Field Descriptor"""
     kind: TK
-    string: str
+    tag: str
     beg: Optional["Token"] = None
     start: int = 0
     length: int = 0
 
     # assert tag in BEG_TOKENS or tag.endswith(
     #            "!"), f"bad BEG token {tag}"
+
+    def IsBeg(self) -> bool:
+        return self.kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON)
+
+    def IsTopLevelBeg(self):
+        return self.kind is TK.BEG and self.tag in ("rec", "enum", "fun", "type", "import",
+                                                    "global", "macro", "static_assert")
 
 
 class TS:
@@ -435,9 +443,11 @@ class TS:
             assert kind is TK.BEG_PAREN
         elif tag == ":":
             assert kind is TK.BEG_COLON
-        tk = Token(kind, string=tag, beg=beg, start=self._count)
-        #self._count += len(tag)
+        tk = Token(kind, tag=tag, beg=beg, start=self._count)
+        self._count += len(tag)
         self._tokens.append(tk)
+        if beg is not None:
+            beg.length = self._count - beg.start
         return tk
 
     def EmitUnOp(self, a: str):
@@ -467,8 +477,10 @@ class TS:
     def EmitBegAnon(self):
         return self.Token(TK.BEG_ANON)
 
-    def EmitEnd(self, beg: "TS"):
-        return self.Token(TK.END, beg)
+    def EmitEnd(self, beg: "Token"):
+        if beg.kind is TK.BEG_PAREN:
+            return self.Token(TK.END, tag=")" if beg.tag == "(" else "]", beg=beg)
+        return self.Token(TK.END, beg=beg)
 
     def EmitBegColon(self):
         return self.Token(TK.BEG_COLON, ":")
@@ -486,7 +498,7 @@ def TokensBinaryFunction(ts: TS, name, node1, node2):
     beg = ts.EmitBegParen("(")
     EmitTokens(ts, node1)
     ts.EmitSep(",")
-    if type(node2) == str:
+    if isinstance(node2, str):
         ts.EmitAttr(node2)
     else:
         EmitTokens(ts, node2)
@@ -663,8 +675,8 @@ def ConcreteIf(ts: TS, node: cwast.StmtIf):
 
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
-    beg = EmitTokens(ts, node.type)
-    ts.EmitBegParen("[")
+    EmitTokens(ts, node.type)
+    beg = ts.EmitBegParen("[")
     sep = False
     for e in node.inits_field:
         if sep:
@@ -956,9 +968,6 @@ def EmitTokens(ts: TS, node):
     gen(ts, node)
 
 
-
-
-
 class Stack:
     """TBD"""
 
@@ -968,20 +977,19 @@ class Stack:
     def empty(self):
         return 0 == len(self._stack)
 
-    def push(self, t: str, kind, indent_delta: int) -> int:
+    def push(self, tk: Token, indent_delta: int) -> int:
+        assert tk.IsBeg(), f"{tk}"
         new_indent = self.CurrentIndent() + indent_delta
-        self._stack.append((t, kind, new_indent))
+        self._stack.append((tk, new_indent))
         return new_indent
 
     def pop(self):
         return self._stack.pop(-1)
 
     def CurrentIndent(self) -> int:
-        for _, kind, i in reversed(self._stack):
-            if kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON):
-                return i
+        if self._stack:
+            return self._stack[-1][1]
         return 0
-
 
 class Sink:
     """TBD"""
@@ -1027,7 +1035,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     while True:
         tk: Token = tokens.pop(-1)
         kind = tk.kind
-        tag = tk.string
+        tag = tk.tag
         if kind is TK.BEG:
             # want_space = False
             # sink.maybe_newline()
@@ -1035,33 +1043,33 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 assert stack.empty()
                 sink.emit_token(tag)
                 want_space = True
-                stack.push(tag, kind, 0)
+                stack.push(tk, 0)
 
             elif tag.endswith("!"):
                 sink.emit_token(tag)
-                stack.push(tag, kind, 0)
+                stack.push(tk, 0)
             else:
                 if want_space:
                     sink.emit_space()
                     want_space = False
                 sink.emit_token(tag)
                 want_space = True
-                stack.push(tag, kind, 0)
+                stack.push(tk, 0)
         elif kind is TK.BEG_ANON:
             if want_space:
                 sink.emit_space()
                 want_space = False
-            stack.push(tag, kind, 0)
+            stack.push(tk, 0)
         elif kind is TK.BEG_COLON:
             want_space = False
             sink.emit_token(tag)
             sink.newline()
-            indent = stack.push(tag, kind, INDENT)
+            indent = stack.push(tk, INDENT)
             sink.set_indent(indent)
         elif kind is TK.BEG_PAREN:
             want_space = False
             sink.emit_token(tag)
-            stack.push(tag, kind, 0)
+            stack.push(tk, 0)
         elif kind is TK.ATTR:
             assert type(tag) is str, repr(tag)
             if tag == "else":
@@ -1082,29 +1090,28 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.emit_space()
             want_space = False
         elif kind is TK.END:
-            t_beg, kind_beg, _ = stack.pop()
+            beg, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
-            if kind_beg is TK.BEG:
-                if t_beg == "module":
+            if beg.kind is TK.BEG:
+                if beg.tag == "module":
                     assert not tokens
                     assert stack.empty()
                     return
                 sink.maybe_newline()
                 want_space = False
-            elif kind_beg is TK.BEG_ANON:
+            elif beg.kind is TK.BEG_ANON:
                 sink.maybe_newline()
                 want_space = False
-            elif kind_beg is TK.BEG_COLON:
+            elif beg.kind is TK.BEG_COLON:
                 sink.maybe_newline()
                 want_space = False
-            elif kind_beg is TK.BEG_PAREN:
+            elif beg.kind is TK.BEG_PAREN:
                 # TODO
-                sink.emit_token(")" if t_beg[0] == "(" else "]")
+                sink.emit_token(tk.tag)
                 want_space = True
             else:
                 assert False
-            if t_beg in ("rec", "enum", "fun", "type", "import", "global", "macro",
-                         "static_assert"):
+            if beg.IsTopLevelBeg():
                 sink.newline()
 
         elif kind is TK.BINOP:
