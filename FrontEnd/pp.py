@@ -397,20 +397,32 @@ class TK(enum.Enum):
     BEG = 8
     BEG_PAREN = 20
     BEG_COLON = 30
+    BEG_ANON = 40
+
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
 
 
+BEG_TOKENS = set([
+    "module", "global", "enum", "import", "defer", "block", "expr",
+    "break", "continue", "fun", "cond", "type", "if", "type",
+    "shed", "discard", "rec", "case", "let", "set", "for", "macro",
+    "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
+    "$let", "$for", "swap", ":", "(", "[",
+])
+
 @dataclasses.dataclass()
 class Token:
     """Node Field Descriptor"""
-    string: str
     kind: TK
+    string: str
+    beg: Optional["Token"] = None
     start: int = 0
     length: int = 0
 
     # assert tag in BEG_TOKENS or tag.endswith(
     #            "!"), f"bad BEG token {tag}"
+
 
 class TS:
 
@@ -418,47 +430,48 @@ class TS:
         self._tokens: List[Token] = []
         self._count = 0
 
-    def Token(self, a, k):
-        if a == "(" or a == "[":
-            assert k is TK.BEG_PAREN
-        elif a == ":":
-            assert k is TK.BEG_COLON
-        tk = Token(a, k)
+    def Token(self, kind: TK, tag="", beg=None):
+        if tag == "(" or tag == "[":
+            assert kind is TK.BEG_PAREN
+        elif tag == ":":
+            assert kind is TK.BEG_COLON
+        tk = Token(kind, string=tag, beg=beg, start=self._count)
+        #self._count += len(tag)
         self._tokens.append(tk)
         return tk
 
     def EmitUnOp(self, a: str):
-        return self.Token(a, TK.UNOP)
+        return self.Token(TK.UNOP, a)
 
     def EmitBinOp(self, a: str):
-        return self.Token(a, TK.BINOP)
+        return self.Token(TK.BINOP, a)
 
     def EmitAttr(self, a: str):
-        return self.Token(a, TK.ATTR)
+        return self.Token(TK.ATTR, a)
 
     def EmitAnnotationShort(self, a: str):
-        return self.Token(a, TK.ANNOTATION_SHORT)
+        return self.Token(TK.ANNOTATION_SHORT, a)
 
     def EmitAnnotationLong(self, a: str):
-        return self.Token(a, TK.ANNOTATION_LONG)
+        return self.Token(TK.ANNOTATION_LONG, a)
 
     def EmitSep(self, a: str):
-        return self.Token(a, TK.SEP)
+        return self.Token(TK.SEP, a)
 
     def EmitBegParen(self, a: str):
-        return self.Token(a, TK.BEG_PAREN)
+        return self.Token(TK.BEG_PAREN, a)
 
     def EmitBeg(self, a: str):
-        return self.Token(a, TK.BEG)
+        return self.Token(TK.BEG, a)
 
     def EmitBegAnon(self):
-        return self.Token("NONE", TK.BEG)
+        return self.Token(TK.BEG_ANON)
 
     def EmitEnd(self, beg: "TS"):
-        return self.Token(beg, TK.END)
+        return self.Token(TK.END, beg)
 
     def EmitBegColon(self):
-        return self.Token(":", TK.BEG_COLON)
+        return self.Token(TK.BEG_COLON, ":")
 
 
 def TokensUnaryFunction(ts: TS, name, node):
@@ -943,13 +956,7 @@ def EmitTokens(ts: TS, node):
     gen(ts, node)
 
 
-BEG_TOKENS = set([
-    "module", "global", "enum", "import", "defer", "block", "expr",
-    "break", "continue", "fun", "cond", "type", "if", "type",
-    "shed", "discard", "rec", "case", "let", "set", "for", "macro",
-    "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$for", "swap", ":", "(", "[",
-])
+
 
 
 class Stack:
@@ -962,7 +969,6 @@ class Stack:
         return 0 == len(self._stack)
 
     def push(self, t: str, kind, indent_delta: int) -> int:
-        assert t.endswith("!") or t in BEG_TOKENS, f"{t}"
         new_indent = self.CurrentIndent() + indent_delta
         self._stack.append((t, kind, new_indent))
         return new_indent
@@ -972,7 +978,7 @@ class Stack:
 
     def CurrentIndent(self) -> int:
         for _, kind, i in reversed(self._stack):
-            if kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN):
+            if kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON):
                 return i
         return 0
 
@@ -1019,7 +1025,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     want_space = False
 
     while True:
-        tk: Token  = tokens.pop(-1)
+        tk: Token = tokens.pop(-1)
         kind = tk.kind
         tag = tk.string
         if kind is TK.BEG:
@@ -1038,10 +1044,14 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 if want_space:
                     sink.emit_space()
                     want_space = False
-                if tag != "NONE":
-                    sink.emit_token(tag)
-                    want_space = True
+                sink.emit_token(tag)
+                want_space = True
                 stack.push(tag, kind, 0)
+        elif kind is TK.BEG_ANON:
+            if want_space:
+                sink.emit_space()
+                want_space = False
+            stack.push(tag, kind, 0)
         elif kind is TK.BEG_COLON:
             want_space = False
             sink.emit_token(tag)
@@ -1079,6 +1089,9 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                     assert not tokens
                     assert stack.empty()
                     return
+                sink.maybe_newline()
+                want_space = False
+            elif kind_beg is TK.BEG_ANON:
                 sink.maybe_newline()
                 want_space = False
             elif kind_beg is TK.BEG_COLON:
