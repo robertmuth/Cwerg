@@ -9,6 +9,7 @@ import argparse
 import enum
 import os
 import pathlib
+import dataclasses
 
 from typing import List, Optional, Tuple
 
@@ -395,35 +396,34 @@ class TK(enum.Enum):
     END = 10
     BEG = 8
     BEG_PAREN = 20
-    BEG_MISC = 30
+    BEG_COLON = 30
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
 
-# @dataclasses.dataclass()
-# class Token:
-#     """Node Field Descriptor"""
-#     string: str
-#     kind: TK
-#     start: int = 0
-#     length: int = 0
 
+@dataclasses.dataclass()
+class Token:
+    """Node Field Descriptor"""
+    string: str
+    kind: TK
+    start: int = 0
+    length: int = 0
+
+    # assert tag in BEG_TOKENS or tag.endswith(
+    #            "!"), f"bad BEG token {tag}"
 
 class TS:
 
     def __init__(self):
-        self._tokens = []
+        self._tokens: List[Token] = []
         self._count = 0
 
     def Token(self, a, k):
         if a == "(" or a == "[":
             assert k is TK.BEG_PAREN
-        elif a == ")" or a == "]":
-            assert k is TK.END_PAREN
         elif a == ":":
-            assert k is TK.BEG_MISC
-        elif a == "@:":
-            assert k is TK.END_MISC
-        tk = (a, k)
+            assert k is TK.BEG_COLON
+        tk = Token(a, k)
         self._tokens.append(tk)
         return tk
 
@@ -451,11 +451,14 @@ class TS:
     def EmitBeg(self, a: str):
         return self.Token(a, TK.BEG)
 
+    def EmitBegAnon(self):
+        return self.Token("NONE", TK.BEG)
+
     def EmitEnd(self, beg: "TS"):
         return self.Token(beg, TK.END)
 
     def EmitBegColon(self):
-        return self.Token(":", TK.BEG_MISC)
+        return self.Token(":", TK.BEG_COLON)
 
 
 def TokensUnaryFunction(ts: TS, name, node):
@@ -530,7 +533,7 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         beg_block = ts.EmitBeg(node.name)
     else:
         if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            beg_stmt = ts.EmitBeg("NONE")
+            beg_stmt = ts.EmitBegAnon()
         ts.EmitAttr(node.name)
         beg_paren = ts.EmitBegParen("(")
     sep = False
@@ -726,7 +729,7 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
 
 
 def TokensRecField(ts: TS, node: cwast.RecField):
-    beg = ts.EmitBeg("NONE")
+    beg = ts.EmitBegAnon()
     ts.EmitAttr(node.name)
     EmitTokens(ts, node.type)
     ts.EmitEnd(beg)
@@ -743,7 +746,7 @@ def TokensDefRec(ts: TS, node: cwast.DefRec):
 
 
 def TokensEnumVal(ts: TS, node: cwast.EnumVal):
-    beg = ts.EmitBeg("NONE")
+    beg = ts.EmitBegAnon()
     ts.EmitAttr(node.name)
     EmitTokens(ts, node.value_or_auto)
     ts.EmitEnd(beg)
@@ -818,7 +821,7 @@ def TokensDefMacro(ts: TS, node: cwast.DefMacro):
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
     if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-        beg = ts.EmitBeg("NONE")
+        beg = ts.EmitBegAnon()
         ts.EmitAttr(node.name)
         ts.EmitEnd(beg)
     else:
@@ -969,7 +972,7 @@ class Stack:
 
     def CurrentIndent(self) -> int:
         for _, kind, i in reversed(self._stack):
-            if kind in (TK.BEG_MISC, TK.BEG, TK.BEG_PAREN):
+            if kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN):
                 return i
         return 0
 
@@ -1016,12 +1019,12 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     want_space = False
 
     while True:
-        tag, kind = tokens.pop(-1)
+        tk: Token  = tokens.pop(-1)
+        kind = tk.kind
+        tag = tk.string
         if kind is TK.BEG:
             # want_space = False
             # sink.maybe_newline()
-            assert tag in BEG_TOKENS or tag.endswith(
-                "!"), f"bad BEG token {tag}"
             if tag == "module":
                 assert stack.empty()
                 sink.emit_token(tag)
@@ -1039,7 +1042,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                     sink.emit_token(tag)
                     want_space = True
                 stack.push(tag, kind, 0)
-        elif kind is TK.BEG_MISC:
+        elif kind is TK.BEG_COLON:
             want_space = False
             sink.emit_token(tag)
             sink.newline()
@@ -1078,7 +1081,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                     return
                 sink.maybe_newline()
                 want_space = False
-            elif kind_beg is TK.BEG_MISC:
+            elif kind_beg is TK.BEG_COLON:
                 sink.maybe_newline()
                 want_space = False
             elif kind_beg is TK.BEG_PAREN:
