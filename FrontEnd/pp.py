@@ -977,10 +977,10 @@ class Stack:
     def empty(self):
         return 0 == len(self._stack)
 
-    def push(self, tk: Token, indent_delta: int) -> int:
+    def push(self, tk: Token, indent_delta: int, break_after_sep=False) -> int:
         assert tk.IsBeg(), f"{tk}"
         new_indent = self.CurrentIndent() + indent_delta
-        self._stack.append((tk, new_indent))
+        self._stack.append((tk, new_indent, break_after_sep))
         return new_indent
 
     def pop(self):
@@ -991,12 +991,20 @@ class Stack:
             return self._stack[-1][1]
         return 0
 
+    def BreakAfterSep(self) -> bool:
+        if self._stack:
+            return self._stack[-1][2]
+        assert False
+
 class Sink:
     """TBD"""
 
     def __init__(self):
         self._indent = 0
         self._col = 0
+
+    def CurrenColumn(self):
+        return self._col
 
     def maybe_newline(self):
         if self._col != 0:
@@ -1023,7 +1031,7 @@ class Sink:
 
 
 INDENT = 1
-
+MAX_LINE_LEN = 80
 
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     """
@@ -1037,24 +1045,19 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         kind = tk.kind
         tag = tk.tag
         if kind is TK.BEG:
-            # want_space = False
-            # sink.maybe_newline()
+            if want_space:
+                # assert False, f"{tk}"
+                sink.emit_space()
+                want_space = False
+            sink.emit_token(tag)
+            stack.push(tk, 0)
             if tag == "module":
-                assert stack.empty()
-                sink.emit_token(tag)
+                # there maybe parameters
                 want_space = True
-                stack.push(tk, 0)
-
             elif tag.endswith("!"):
-                sink.emit_token(tag)
-                stack.push(tk, 0)
+                want_space = False
             else:
-                if want_space:
-                    sink.emit_space()
-                    want_space = False
-                sink.emit_token(tag)
                 want_space = True
-                stack.push(tk, 0)
         elif kind is TK.BEG_ANON:
             if want_space:
                 sink.emit_space()
@@ -1069,7 +1072,13 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         elif kind is TK.BEG_PAREN:
             want_space = False
             sink.emit_token(tag)
-            stack.push(tk, 0)
+            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
+                break_after_sep =  stack.CurrentIndent() + tk.length > MAX_LINE_LEN
+                indent = stack.push(tk, INDENT, break_after_sep=break_after_sep)
+                sink.set_indent(indent)
+                sink.newline()
+            else:
+                stack.push(tk, 0)
         elif kind is TK.ATTR:
             assert type(tag) is str, repr(tag)
             if tag == "else":
@@ -1087,10 +1096,13 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.emit_space()
         elif kind is TK.SEP:
             sink.emit_token(tag)
-            sink.emit_space()
-            want_space = False
+            if stack.BreakAfterSep():
+                sink.newline()
+                want_space = False
+            else:
+                want_space = True
         elif kind is TK.END:
-            beg, _ = stack.pop()
+            beg, _, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
             if beg.kind is TK.BEG:
                 if beg.tag == "module":
