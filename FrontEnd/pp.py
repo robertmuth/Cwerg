@@ -505,8 +505,9 @@ def TokensBinaryFunction(ts: TS, name, node1, node2):
     ts.EmitEnd(beg)
 
 
-def TokensBinaryInfix(ts: TS, name: str, node1, node2):
+def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
+    TokensAnnotations(ts, node)
     ts.EmitBinOp(name)
     if isinstance(node2, str):
         ts.EmitAttr(node2)
@@ -548,10 +549,29 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.expr_f)
 
 
+def TokensAnnotations(ts: TS, node):
+    for field, nfd in node.ATTRS:
+        if field in ("triplequoted", "strkind"):
+            continue
+        if nfd.kind is cwast.NFK.ATTR_STR:
+            val = getattr(node, field)
+            if val:
+                ts.EmitAnnotationLong("@" + field + "=" + val)
+
+    for field, nfd in node.ATTRS:
+        if field in ("triplequoted", "strkind"):
+            continue
+
+        if nfd.kind is cwast.NFK.ATTR_BOOL:
+            val = getattr(node, field)
+            if val:
+                ts.EmitAnnotationShort("@" + field)
+
+
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
-        TokensBinaryInfix(ts, "->", node.args[0], node.args[1])
+        TokensBinaryInfix(ts, "->", node.args[0], node.args[1], node)
         return
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if is_block_like:
@@ -819,7 +839,7 @@ def TokensDefMacro(ts: TS, node: cwast.DefMacro):
     beg_macro = ts.EmitBeg("macro")
     ts.EmitAttr(node.name)
     ts.EmitAttr(node.macro_result_kind.name)
-    beg_paren = ts.EmitBegParen("[")
+    beg_paren = ts.EmitBegParen("(")
     sep = False
     for p in node.params_macro:
         if sep:
@@ -853,7 +873,16 @@ def TokensMacroId(ts: TS, node: cwast.MacroId):
         ts.EmitAttr(node.name)
 
 
-CONCRETE_SYNTAX = {
+_INFIX_OPS = set([
+    cwast.ExprIs,
+    cwast.ExprPointer,
+    cwast.ExprIndex,
+    cwast.ExprField,
+    cwast.Expr2,
+])
+
+
+_CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
     cwast.MacroId: TokensMacroId,
@@ -885,7 +914,7 @@ CONCRETE_SYNTAX = {
     cwast.ExprFront: lambda ts, n: TokensUnaryFunction(ts, "front", n.container),
     cwast.ExprUnionTag: lambda ts, n: TokensUnaryFunction(ts, "uniontag", n.expr),
     cwast.ExprAs: lambda ts, n: TokensBinaryFunction(ts, "as", n.expr, n.type),
-    cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type),
+    cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type, n),
     cwast.ExprBitCast: lambda ts, n: TokensBinaryFunction(ts, "asbits", n.expr, n.type),
     cwast.ExprOffsetof: lambda ts, n: TokensBinaryFunction(ts, "offsetof", n.type, n.field),
     cwast.ExprLen: lambda ts, n: TokensUnaryFunction(ts, "len", n.container),
@@ -893,16 +922,16 @@ CONCRETE_SYNTAX = {
     cwast.ExprTypeId: lambda ts, n: TokensUnaryFunction(ts, "sizeof", n.type),
     cwast.ExprNarrow: lambda ts, n: TokensBinaryFunction(ts, "narrowto", n.expr, n.type),
     cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
-    cwast.ExprPointer: lambda ts, n: TokensBinaryInfix(ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind], n.expr1, n.expr2),
-    cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index),
+    cwast.ExprPointer: lambda ts, n: TokensBinaryInfix(ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind], n.expr1, n.expr2, n),
+    cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index, n),
     cwast.ValSlice: lambda ts, n: TokensBinaryFunction(ts, "slice", n.pointer, n.expr_size),
     cwast.ExprWrap: lambda ts, n: TokensBinaryFunction(ts, "wrapas", n.expr, n.type),
     cwast.ExprUnwrap: lambda ts, n: TokensUnaryFunction(ts, "unwrap", n.expr),
-    cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field),
+    cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
     cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
     cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&", n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
-                                                 n.expr1, n.expr2),
+                                                 n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
     cwast.ExprStringify: lambda ts, n: TokensUnaryFunction(ts, "stringify", n.expr),
     cwast.ExprCall: lambda ts, n: EmitExprtWithParenListExpr(ts, n.callee, n.args),
@@ -941,29 +970,11 @@ CONCRETE_SYNTAX = {
 }
 
 
-def TokensAnnotations(ts: TS, node):
-    for field, nfd in node.ATTRS:
-        if field in ("triplequoted", "strkind"):
-            continue
-        if nfd.kind is cwast.NFK.ATTR_STR:
-            val = getattr(node, field)
-            if val:
-                ts.EmitAnnotationLong("@" + field + "=" + val)
-
-    for field, nfd in node.ATTRS:
-        if field in ("triplequoted", "strkind"):
-            continue
-
-        if nfd.kind is cwast.NFK.ATTR_BOOL:
-            val = getattr(node, field)
-            if val:
-                ts.EmitAnnotationShort("@" + field)
-
-
 def EmitTokens(ts: TS, node):
-    TokensAnnotations(ts, node)
+    if node.__class__ not in _INFIX_OPS:
+        TokensAnnotations(ts, node)
 
-    gen = CONCRETE_SYNTAX.get(node.__class__)
+    gen = _CONCRETE_SYNTAX.get(node.__class__)
     assert gen, f"unknown node {node.__class__}"
     gen(ts, node)
 
@@ -995,6 +1006,7 @@ class Stack:
         if self._stack:
             return self._stack[-1][2]
         assert False
+
 
 class Sink:
     """TBD"""
@@ -1032,6 +1044,7 @@ class Sink:
 
 INDENT = 1
 MAX_LINE_LEN = 80
+
 
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     """
@@ -1073,8 +1086,9 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             want_space = False
             sink.emit_token(tag)
             if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                break_after_sep =  stack.CurrentIndent() + tk.length > MAX_LINE_LEN
-                indent = stack.push(tk, INDENT, break_after_sep=break_after_sep)
+                break_after_sep = stack.CurrentIndent() + tk.length > MAX_LINE_LEN
+                indent = stack.push(
+                    tk, INDENT, break_after_sep=break_after_sep)
                 sink.set_indent(indent)
                 sink.newline()
             else:

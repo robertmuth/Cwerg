@@ -345,7 +345,7 @@ _EVAL2_REAL = {
 
 _EVAL2_INT = {
     cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x.x_value // y.x_value,
-    cwast.BINARY_EXPR_KIND.REM: lambda x, y: x.x_value % y.x_value,
+    cwast.BINARY_EXPR_KIND.MOD: lambda x, y: x.x_value % y.x_value,
 
 }
 

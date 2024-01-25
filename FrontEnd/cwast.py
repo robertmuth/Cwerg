@@ -106,7 +106,7 @@ class BINARY_EXPR_KIND(enum.Enum):
     SUB = 2
     DIV = 3
     MUL = 4
-    REM = 5
+    MOD = 5
     MIN = 6
     MAX = 7
 
@@ -142,7 +142,7 @@ BINARY_EXPR_SHORTCUT = {
     "-": BINARY_EXPR_KIND.SUB,
     "*": BINARY_EXPR_KIND.MUL,
     "/": BINARY_EXPR_KIND.DIV,
-    "mod": BINARY_EXPR_KIND.REM,
+    "mod": BINARY_EXPR_KIND.MOD,
     "max": BINARY_EXPR_KIND.MAX,
     "min": BINARY_EXPR_KIND.MIN,
     #
@@ -187,7 +187,7 @@ class ASSIGNMENT_KIND(enum.Enum):
     SUB = 2
     DIV = 3
     MUL = 4
-    REM = 5
+    MOD = 5
     #
     AND = 10
     OR = 11
@@ -203,7 +203,7 @@ ASSIGNMENT_SHORTCUT = {
     "-=": ASSIGNMENT_KIND.SUB,
     "*=": ASSIGNMENT_KIND.MUL,
     "/=": ASSIGNMENT_KIND.DIV,
-    "mod=": ASSIGNMENT_KIND.REM,
+    "mod=": ASSIGNMENT_KIND.MOD,
     #
     "and=": ASSIGNMENT_KIND.AND,
     "or=": ASSIGNMENT_KIND.OR,
@@ -220,7 +220,7 @@ COMPOUND_KIND_TO_EXPR_KIND = {
     ASSIGNMENT_KIND.SUB: BINARY_EXPR_KIND.SUB,
     ASSIGNMENT_KIND.DIV: BINARY_EXPR_KIND.DIV,
     ASSIGNMENT_KIND.MUL: BINARY_EXPR_KIND.MUL,
-    ASSIGNMENT_KIND.REM: BINARY_EXPR_KIND.REM,
+    ASSIGNMENT_KIND.MOD: BINARY_EXPR_KIND.MOD,
     #
     ASSIGNMENT_KIND.AND: BINARY_EXPR_KIND.AND,
     ASSIGNMENT_KIND.OR: BINARY_EXPR_KIND.OR,
@@ -267,7 +267,7 @@ class MACRO_PARAM_KIND(enum.Enum):
     STMT = 5
     FIELD = 6
     TYPE = 7
-    EXPR_LIST_REST = 8
+    EXPR_LIST_REST = 8   # must be last
 
 ############################################################
 # Field attributes of Nodes
@@ -430,6 +430,11 @@ NODES_COND = _ExtractTypes(NODES_COND_T)
 NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke"]
 NODES_LHS = _ExtractTypes(NODES_LHS_T)
 
+
+def _EnumValues(enum_class):
+    return ", ".join(x.name for x in enum_class if x.value != 0)
+
+
 ALL_FIELDS = [
     NfdStr("number", "a number"),
     NfdStr("name", "name of the object"),
@@ -471,21 +476,29 @@ ALL_FIELDS = [
 
     #
     NfdKind("unary_expr_kind",
-            "see [Expr1 Kind](#expr1-kind) below", UNARY_EXPR_KIND),
+            f"one of: [{_EnumValues(UNARY_EXPR_KIND)}](#expr1-kind)",
+            UNARY_EXPR_KIND),
     NfdKind("binary_expr_kind",
-            "see [Expr2 Kind](#expr2-kind) below", BINARY_EXPR_KIND),
+            f"one of: [{_EnumValues(BINARY_EXPR_KIND)}](#expr2-kind)",
+            BINARY_EXPR_KIND),
     NfdKind("base_type_kind",
-            "see [Base Type Kind](#base-type-kind) below", BASE_TYPE_KIND),
+            f"one of: [{_EnumValues(BASE_TYPE_KIND)}](#base-type-kind)",
+            BASE_TYPE_KIND),
     NfdKind("mod_param_kind",
-            "see [ModParam Kind](#modparam-kind) below",  MOD_PARAM_KIND),
+            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#modparam-kind)",
+            MOD_PARAM_KIND),
     NfdKind("assignment_kind",
-            "see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below", ASSIGNMENT_KIND),
+            f"one of: [{_EnumValues(ASSIGNMENT_KIND)}](#stmtcompoundassignment-kind)",
+            ASSIGNMENT_KIND),
     NfdKind("macro_param_kind",
-            "type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#MacroParam-kind)",
+            MACRO_PARAM_KIND),
     NfdKind("macro_result_kind",
-            "type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below",  MACRO_PARAM_KIND),
+            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#MacroParam-kind)",
+            MACRO_PARAM_KIND),
     NfdKind("pointer_expr_kind",
-            "see [PointerOp Kind](#pointerop-kind) below", POINTER_EXPR_KIND),
+            f"one of: [{_EnumValues(POINTER_EXPR_KIND)}](#pointerop-kind)",
+            POINTER_EXPR_KIND),
     #
     # TODO: fix all the None below
     NfdNodeList("params", "function parameters and/or comments", NODES_PARAMS,
@@ -552,7 +565,7 @@ ALL_FIELDS = [
             "expression (will only be evaluated if cond == false)", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr1", "left operand expression",
             NODES_EXPR, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr2", "righ operand expression",
+    NfdNode("expr2", "right operand expression",
             NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr_bound_or_undef", "",
             NODES_EXPR_OR_UNDEF, MACRO_PARAM_KIND.EXPR),
@@ -2290,7 +2303,10 @@ class StmtTrap:
 @NodeCommon
 @dataclasses.dataclass()
 class StmtCompoundAssignment:
-    """Compound assignment statement"""
+    """Compound assignment statement
+
+    Note: this does not support pointer inc/dec
+    """
     ALIAS = None
     GROUP = GROUP.Statement
     FLAGS = NF.NON_CORE
@@ -2800,7 +2816,7 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     BINARY_EXPR_KIND.SUB,
     BINARY_EXPR_KIND.MUL,
     BINARY_EXPR_KIND.DIV,
-    BINARY_EXPR_KIND.REM,
+    BINARY_EXPR_KIND.MOD,
     BINARY_EXPR_KIND.MIN,
     BINARY_EXPR_KIND.MAX,
     #

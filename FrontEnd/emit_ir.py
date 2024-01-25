@@ -327,7 +327,7 @@ _BIN_OP_MAP = {
     cwast.BINARY_EXPR_KIND.ADD: "add",
     cwast.BINARY_EXPR_KIND.SUB: "sub",
     cwast.BINARY_EXPR_KIND.DIV: "div",
-    cwast.BINARY_EXPR_KIND.REM: "rem",
+    cwast.BINARY_EXPR_KIND.MOD: "rem",
     cwast.BINARY_EXPR_KIND.SHL: "shl",
     cwast.BINARY_EXPR_KIND.SHR: "shr",
     cwast.BINARY_EXPR_KIND.XOR: "xor",

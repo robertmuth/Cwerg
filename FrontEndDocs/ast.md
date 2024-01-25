@@ -73,7 +73,7 @@ code generation.
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
 [ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
-[ExprParen](#exprparen) &ensp;
+[ExprParen&nbsp;(paren)](#exprparen-paren) &ensp;
 [ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
@@ -131,7 +131,7 @@ Allowed at top level only
 
 Fields:
 * name [STR]: name of the object
-* base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
+* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
 * items [LIST]: enum items and/or comments
 
 Flags:
@@ -222,7 +222,7 @@ Base type
     
 
 Fields:
-* base_type_kind [KIND]: see [Base Type Kind](#base-type-kind) below
+* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
 
 
 ### TypeFun (sig)
@@ -368,7 +368,7 @@ Allowed at top level only
 
 Fields:
 * name [STR]: name of the object
-* macro_result_kind [KIND]: type of the macro result node,  see [MacroParam Kind](#macroparam-kind) below
+* macro_result_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#MacroParam-kind)
 * params_macro [LIST]: macro parameters
 * gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
 * body_macro [LIST]: new scope: macro statments/expression
@@ -451,7 +451,7 @@ Module Parameters
 
 Fields:
 * name [STR]: name of the object
-* mod_param_kind [KIND]: see [ModParam Kind](#modparam-kind) below
+* mod_param_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#modparam-kind)
 
 Flags:
 * doc: comment
@@ -497,8 +497,11 @@ Flags:
 ### StmtCompoundAssignment
 Compound assignment statement
 
+    Note: this does not support pointer inc/dec
+    
+
 Fields:
-* assignment_kind [KIND]: see [StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) below
+* assignment_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, AND, OR, XOR, SHR, SHL](#stmtcompoundassignment-kind)
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
@@ -745,7 +748,7 @@ Fields:
 Unary expression.
 
 Fields:
-* unary_expr_kind [KIND]: see [Expr1 Kind](#expr1-kind) below
+* unary_expr_kind [KIND]: one of: [NOT, MINUS](#expr1-kind)
 * expr [NODE]: expression
 
 
@@ -753,9 +756,9 @@ Fields:
 Binary expression.
 
 Fields:
-* binary_expr_kind [KIND]: see [Expr2 Kind](#expr2-kind) below
+* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, PDELTA](#expr2-kind)
 * expr1 [NODE]: left operand expression
-* expr2 [NODE]: righ operand expression
+* expr2 [NODE]: right operand expression
 
 
 ### Expr3 (?)
@@ -913,7 +916,7 @@ Fields:
 * field [STR]: record field
 
 
-### ExprParen
+### ExprParen (paren)
 Used for preserving parenthesis in the source
     
 
@@ -925,9 +928,9 @@ Fields:
 Pointer arithmetic expression - optionally bound checked..
 
 Fields:
-* pointer_expr_kind [KIND]: see [PointerOp Kind](#pointerop-kind) below
+* pointer_expr_kind [KIND]: one of: [INCP, DECP](#pointerop-kind)
 * expr1 [NODE]: left operand expression
-* expr2 [NODE]: righ operand expression
+* expr2 [NODE]: right operand expression
 * expr_bound_or_undef [NODE] (default ValUndef): 
 
 
@@ -1091,7 +1094,7 @@ Macro Parameter
 
 Fields:
 * name [STR]: name of the object
-* macro_param_kind [KIND]: type of a macro parameter node, see [MacroParam Kind](#macroparam-kind) below
+* macro_param_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#MacroParam-kind)
 
 Flags:
 * doc: comment
@@ -1131,7 +1134,7 @@ Flags:
 |SUB       |-|
 |DIV       |/|
 |MUL       |*|
-|REM       |%|
+|MOD       |mod|
 |MIN       |min|
 |MAX       |max|
 |AND       |and|
@@ -1147,14 +1150,14 @@ Flags:
 |ORSC      ||||
 |SHR       |>>|
 |SHL       |<<|
-|PDELTA    |pdelta|
+|PDELTA    |&-&|
 
 ### ExprPointer Kind
 
 |Kind|Abbrev|
 |----|------|
-|INCP      |incp|
-|DECP      |decp|
+|INCP      |&+|
+|DECP      |&-|
 
 ### StmtCompoundAssignment Kind
 
@@ -1164,7 +1167,7 @@ Flags:
 |SUB       |-=|
 |DIV       |/=|
 |MUL       |*=|
-|REM       |%=|
+|MOD       |mod=|
 |AND       |and=|
 |OR        |or=|
 |XOR       |xor=|
@@ -1211,3 +1214,4 @@ Flags:
 |STMT      |
 |FIELD     |
 |TYPE      |
+|EXPR_LIST_REST|
