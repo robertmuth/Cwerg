@@ -360,6 +360,7 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> List[Tuple[int, str]]:
     for a in out:
         print("".join(a))
         print("<br>")
+
 ############################################################
 #
 ############################################################
@@ -411,8 +412,11 @@ BEG_TOKENS = set([
     "break", "continue", "fun", "cond", "type", "if", "type",
     "shed", "discard", "rec", "case", "let", "set", "for", "macro",
     "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$for", "swap", ":", "(", "[",
+    "$let", "$for", "swap",
 ])
+
+INDENT = 1
+MAX_LINE_LEN = 80
 
 
 @dataclasses.dataclass()
@@ -423,9 +427,7 @@ class Token:
     beg: Optional["Token"] = None
     start: int = 0
     length: int = 0
-
-    # assert tag in BEG_TOKENS or tag.endswith(
-    #            "!"), f"bad BEG token {tag}"
+    long_array_val: bool = False
 
     def IsBeg(self) -> bool:
         return self.kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON)
@@ -440,6 +442,9 @@ class TS:
     def __init__(self):
         self._tokens: List[Token] = []
         self._count = 0
+
+    def Pos(self) -> int:
+        return self._count
 
     def EmitToken(self, kind: TK, tag="", beg=None):
         if tag == "(" or tag == "[":
@@ -456,12 +461,11 @@ class TS:
     def EmitUnOp(self, a: str):
         return self.EmitToken(TK.UNOP, a)
 
-    def EmitBinOp(self, a: str):
-        if a in (".", "->"):
-            return self.EmitToken(TK.BINOP_NO_SPACE, a)
+    def EmitBinOpNoSpace(self, a: str):
+        return self.EmitToken(TK.BINOP_NO_SPACE, a)
 
-        else:
-            return self.EmitToken(TK.BINOP, a)
+    def EmitBinOp(self, a: str):
+        return self.EmitToken(TK.BINOP, a)
 
     def EmitAttr(self, a: str):
         return self.EmitToken(TK.ATTR, a)
@@ -482,6 +486,7 @@ class TS:
         return self.EmitToken(TK.BEG_PAREN, a)
 
     def EmitBeg(self, a: str):
+        assert a in BEG_TOKENS or a.endswith("!"), f"bad BEG token {a}"
         return self.EmitToken(TK.BEG, a)
 
     def EmitBegAnon(self):
@@ -518,7 +523,10 @@ def TokensBinaryFunction(ts: TS, name, node1, node2):
 def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
     TokensAnnotations(ts, node)
-    ts.EmitBinOp(name)
+    if name in (".", "->"):
+        ts.EmitBinOpNoSpace(name)
+    else:
+        ts.EmitBinOp(name)
     if isinstance(node2, str):
         ts.EmitAttr(node2)
     else:
@@ -715,15 +723,20 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
 def TokensValArray(ts: TS, node: cwast.ValArray):
     TokensBinaryFunction(ts, "array", node.expr_size, node.type)
     beg = ts.EmitBegParen("[")
+    sizes = []
     sep = False
     for e in node.inits_array:
         assert isinstance(e, cwast.IndexVal)
         if sep:
             ts.EmitSep(",")
         sep = True
+        start = ts.Pos()
         EmitTokens(ts, e.value_or_undef)
         if not isinstance(e.init_index, cwast.ValAuto):
             EmitTokens(ts, e.init_index)
+        sizes.append(ts.Pos() - start)
+    if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
+        beg.long_array_val = True
     ts.EmitEnd(beg)
 
 
@@ -1046,10 +1059,6 @@ class Sink:
         self._indent = indent
 
 
-INDENT = 1
-MAX_LINE_LEN = 80
-
-
 def FormatTokenStream(tokens, stack: Stack, sink: Sink):
     """
     TK.BEG may force a new indentation level
@@ -1084,7 +1093,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         elif kind is TK.BEG_PAREN:
             sink.emit_token(tag)
             if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                break_after_sep = stack.CurrentIndent() + tk.length > MAX_LINE_LEN
+                break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
+                ) + tk.length > MAX_LINE_LEN
                 indent = stack.push(
                     tk, INDENT, break_after_sep=break_after_sep)
                 sink.set_indent(indent)
@@ -1096,6 +1106,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             # sink.indent(ci)
             sink.emit_token(tag)
         elif kind is TK.ATTR:
+            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
+                sink.newline()
             sink.emit_token(tag)
             want_space = True
         elif kind is TK.ATTR_WITH_SPACE:
