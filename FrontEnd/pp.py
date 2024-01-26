@@ -347,7 +347,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         out.append(["<p></p>"])
 
 
-def PrettyPrintHTML(mod: cwast.DefMod, tc) -> List[Tuple[int, str]]:
+def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> List[Tuple[int, str]]:
     out = [[
         """<html>
            <style>
@@ -387,14 +387,17 @@ class TK(enum.Enum):
     INVALID = 0
 
     ATTR = 1  # attribute
-    ATTR_WITH_SPACE = 4  # attribute
+    ATTR_WITH_SPACE = 2  # attribute
 
-    SEP = 2  # sequence seperator
-    SEQ = 3  # sequence element
-    BINOP = 6  # binary operator
+    SEP = 3  # sequence seperator
+    SEQ = 4  # sequence element
+    BINOP = 5  # binary operator
+    BINOP_NO_SPACE = 6  # binary operator
+
     UNOP = 7  # unary operator - not space afterwards
-    END = 10
-    BEG = 8
+    END = 8
+    BEG = 9
+    ELSE = 10
     BEG_PAREN = 20
     BEG_COLON = 30
     BEG_ANON = 40
@@ -438,7 +441,7 @@ class TS:
         self._tokens: List[Token] = []
         self._count = 0
 
-    def Token(self, kind: TK, tag="", beg=None):
+    def EmitToken(self, kind: TK, tag="", beg=None):
         if tag == "(" or tag == "[":
             assert kind is TK.BEG_PAREN
         elif tag == ":":
@@ -451,39 +454,46 @@ class TS:
         return tk
 
     def EmitUnOp(self, a: str):
-        return self.Token(TK.UNOP, a)
+        return self.EmitToken(TK.UNOP, a)
 
     def EmitBinOp(self, a: str):
-        return self.Token(TK.BINOP, a)
+        if a in (".", "->"):
+            return self.EmitToken(TK.BINOP_NO_SPACE, a)
+
+        else:
+            return self.EmitToken(TK.BINOP, a)
 
     def EmitAttr(self, a: str):
-        return self.Token(TK.ATTR, a)
+        return self.EmitToken(TK.ATTR, a)
+
+    def EmitElse(self):
+        return self.EmitToken(TK.ELSE, "else")
 
     def EmitAnnotationShort(self, a: str):
-        return self.Token(TK.ANNOTATION_SHORT, a)
+        return self.EmitToken(TK.ANNOTATION_SHORT, a)
 
     def EmitAnnotationLong(self, a: str):
-        return self.Token(TK.ANNOTATION_LONG, a)
+        return self.EmitToken(TK.ANNOTATION_LONG, a)
 
     def EmitSep(self, a: str):
-        return self.Token(TK.SEP, a)
+        return self.EmitToken(TK.SEP, a)
 
     def EmitBegParen(self, a: str):
-        return self.Token(TK.BEG_PAREN, a)
+        return self.EmitToken(TK.BEG_PAREN, a)
 
     def EmitBeg(self, a: str):
-        return self.Token(TK.BEG, a)
+        return self.EmitToken(TK.BEG, a)
 
     def EmitBegAnon(self):
-        return self.Token(TK.BEG_ANON)
+        return self.EmitToken(TK.BEG_ANON)
 
-    def EmitEnd(self, beg: "Token"):
+    def EmitEnd(self, beg: Token):
         if beg.kind is TK.BEG_PAREN:
-            return self.Token(TK.END, tag=")" if beg.tag == "(" else "]", beg=beg)
-        return self.Token(TK.END, beg=beg)
+            return self.EmitToken(TK.END, tag=")" if beg.tag == "(" else "]", beg=beg)
+        return self.EmitToken(TK.END, beg=beg)
 
     def EmitBegColon(self):
-        return self.Token(TK.BEG_COLON, ":")
+        return self.EmitToken(TK.BEG_COLON, ":")
 
 
 def TokensUnaryFunction(ts: TS, name, node):
@@ -583,20 +593,19 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         beg_paren = ts.EmitBegParen("(")
     sep = False
     for a in node.args:
-
-        if isinstance(a, cwast.Id):
-            if sep:
+        if sep:
+            if not isinstance(a, cwast.EphemeralList) or not a.colon:
                 ts.EmitSep(",")
+        sep = True
+        if isinstance(a, cwast.Id):
             ts.EmitAttr(a.name)
-        elif isinstance(a, (cwast.EphemeralList)):
+        elif isinstance(a, cwast.EphemeralList):
             if a.colon:
                 beg = ts.EmitBegColon()
                 for s in a.args:
                     EmitTokens(ts, s)
                 ts.EmitEnd(beg)
             else:
-                if sep:
-                    ts.EmitSep(",")
                 sep2 = False
                 beg = ts.EmitBegParen("[")
                 for e in a.args:
@@ -607,14 +616,9 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
                 ts.EmitEnd(beg)
         elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
                             cwast.TypeArray, cwast.TypePtr, cwast.TypeSlice)):
-            if sep:
-                ts.EmitSep(",")
             EmitTokens(ts, a)
         else:
-            if sep:
-                ts.EmitSep(",")
             EmitTokens(ts, a)
-        sep = True
     if is_block_like:
         ts.EmitEnd(beg_block)
     else:
@@ -686,7 +690,7 @@ def ConcreteIf(ts: TS, node: cwast.StmtIf):
         EmitTokens(ts, c)
     ts.EmitEnd(beg_colon)
     if node.body_f:
-        ts.EmitAttr("else")
+        ts.EmitElse()
         beg_colon = ts.EmitBegColon()
         for c in node.body_f:
             EmitTokens(ts, c)
@@ -1057,33 +1061,27 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         tk: Token = tokens.pop(-1)
         kind = tk.kind
         tag = tk.tag
-        if kind is TK.BEG:
-            if want_space:
+        if want_space:
+            if kind in (TK.BEG, TK.BEG_ANON, TK.UNOP, TK.ANNOTATION_SHORT, TK.BINOP, TK.ATTR):
                 # assert False, f"{tk}"
                 sink.emit_space()
-                want_space = False
+        want_space = False
+        if kind is TK.BEG:
             sink.emit_token(tag)
             stack.push(tk, 0)
             if tag == "module":
                 # there maybe parameters
                 want_space = True
-            elif tag.endswith("!"):
-                want_space = False
-            else:
+            elif not tag.endswith("!"):
                 want_space = True
         elif kind is TK.BEG_ANON:
-            if want_space:
-                sink.emit_space()
-                want_space = False
             stack.push(tk, 0)
         elif kind is TK.BEG_COLON:
-            want_space = False
             sink.emit_token(tag)
             sink.newline()
             indent = stack.push(tk, INDENT)
             sink.set_indent(indent)
         elif kind is TK.BEG_PAREN:
-            want_space = False
             sink.emit_token(tag)
             if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
                 break_after_sep = stack.CurrentIndent() + tk.length > MAX_LINE_LEN
@@ -1093,18 +1091,13 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.newline()
             else:
                 stack.push(tk, 0)
+        elif kind is TK.ELSE:
+            # ci = stack.CurrentIndent()
+            # sink.indent(ci)
+            sink.emit_token(tag)
         elif kind is TK.ATTR:
-            assert type(tag) is str, repr(tag)
-            if tag == "else":
-                # ci = stack.CurrentIndent()
-                # sink.indent(ci)
-                sink.emit_token(tag)
-            else:
-                if want_space:
-                    sink.emit_space()
-                    want_space = False
-                sink.emit_token(tag)
-                want_space = True
+            sink.emit_token(tag)
+            want_space = True
         elif kind is TK.ATTR_WITH_SPACE:
             sink.emit_token(tag)
             sink.emit_space()
@@ -1112,7 +1105,6 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.emit_token(tag)
             if stack.BreakAfterSep():
                 sink.newline()
-                want_space = False
             else:
                 want_space = True
         elif kind is TK.END:
@@ -1124,13 +1116,10 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                     assert stack.empty()
                     return
                 sink.maybe_newline()
-                want_space = False
             elif beg.kind is TK.BEG_ANON:
                 sink.maybe_newline()
-                want_space = False
             elif beg.kind is TK.BEG_COLON:
                 sink.maybe_newline()
-                want_space = False
             elif beg.kind is TK.BEG_PAREN:
                 # TODO
                 sink.emit_token(tk.tag)
@@ -1139,29 +1128,18 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 assert False
             if beg.IsTopLevelBeg():
                 sink.newline()
-
+        elif kind is TK.BINOP_NO_SPACE:
+            sink.emit_token(tag)
         elif kind is TK.BINOP:
-            if tag == "." or tag == "->":
-                sink.emit_token(tag)
-                want_space = False
-            else:
-                if want_space:
-                    sink.emit_space()
-                sink.emit_token(tag)
-                want_space = True
+            sink.emit_token(tag)
+            want_space = True
         elif kind is TK.UNOP:
-            if want_space:
-                sink.emit_space()
-                want_space = False
             sink.emit_token(tag)
         elif kind is TK.ANNOTATION_LONG:
             sink.maybe_newline()
             sink.emit_token(tag)
             sink.newline()
         elif kind is TK.ANNOTATION_SHORT:
-            if want_space:
-                sink.emit_space()
-                want_space = False
             sink.emit_token(tag)
             want_space = True
         else:
