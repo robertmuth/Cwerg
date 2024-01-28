@@ -186,14 +186,14 @@ https://emn178.github.io/online-tools/sha3_512.html
     (if (> tail_use 0) :
        (if (< (+ tail_use (len data)) block_size) :
             (for i 0 (len data) 1 :
-                (= (^ (&+ tail_u8 (+ tail_use i))) (at data i))
+                (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
             (+= (-> state msglen) (len data))
             (return)
        :
             (= offset (- block_size tail_use))
             (for i 0 offset 1 :
-                (= (^ (&+ tail_u8 (+ tail_use i))) (at data i))
+                (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
             (shed (AddBlockAlignedLE [state  tail]))
             (shed (KeccakF [(& @mut (-> state x))]))
@@ -201,7 +201,7 @@ https://emn178.github.io/online-tools/sha3_512.html
     :)
     (while  (>= (- (len data) offset) block_size) :
        (for i 0 block_size 1 :
-            (= (^ (&+ tail_u8 i)) (at data offset))
+            (= (^ (pinc tail_u8 i)) (at data offset))
             (+= offset 1)
         )
         (shed (AddBlockAlignedLE [state  tail]))
@@ -209,7 +209,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
     )
     (for i 0 (- (len data) offset) 1 :
-        (= (^ (&+ tail_u8 i)) (at data offset))
+        (= (^ (pinc tail_u8 i)) (at data offset))
         (+= offset 1)
     )
 
@@ -224,9 +224,9 @@ https://emn178.github.io/online-tools/sha3_512.html
 
    (let padding_start uint (mod (-> state msglen) block_size))
    (for i padding_start block_size 1 :
-    (= (^ (&+ tail_u8 i)) 0))
-   (or= (^ (&+ tail_u8 padding_start)) padding)
-   (or= (^ (&+ tail_u8 (- block_size 1))) 0x80)
+    (= (^ (pinc tail_u8 i)) 0))
+   (or= (^ (pinc tail_u8 padding_start)) padding)
+   (or= (^ (pinc tail_u8 (- block_size 1))) 0x80)
    (shed (AddBlockAlignedLE [state  tail]))
    (shed (KeccakF [(& @mut (-> state x))]))
 )

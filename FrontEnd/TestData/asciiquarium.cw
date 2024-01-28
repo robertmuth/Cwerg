@@ -14,8 +14,8 @@
         (fmt::print! "Not enough arguments, need width and height\n")
         (return 0)
         :)
-    (let arg_w (slice u8) (fmt::strz_to_slice [(^ (&+ argv 1))]))
-    (let arg_h (slice u8) (fmt::strz_to_slice [(^ (&+ argv 2))]))
+    (let arg_w (slice u8) (fmt::strz_to_slice [(^ (pinc argv 1))]))
+    (let arg_h (slice u8) (fmt::strz_to_slice [(^ (pinc argv 2))]))
     (let width s32 (as (fmt::str_to_u32 [arg_w]) s32))
     (let height s32 (as (fmt::str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
@@ -36,7 +36,7 @@
             0.0
             0
             5]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
 
     (shed (aanim::InitObjectState [curr (& artwork::Castle)]))
@@ -45,7 +45,7 @@
             0.0
             (- (as width r32) 32)
             (- (as height r32) 13)]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::BigFishR)]))
     (shed (aanim::SetBasics [
@@ -53,7 +53,7 @@
             0.0
             10
             10]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::SwanL)]))
     (shed (aanim::SetBasics [
@@ -61,7 +61,7 @@
             0.0
             50
             1]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::DolphinL)]))
     (shed (aanim::SetBasics [
@@ -69,7 +69,7 @@
             0.0
             30
             8]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::MonsterR)]))
     (shed (aanim::SetBasics [
@@ -77,7 +77,7 @@
             0.0
             30
             2]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::SharkR)]))
     (shed (aanim::SetBasics [
@@ -85,7 +85,7 @@
             0.0
             30
             30]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::ShipR)]))
     (shed (aanim::SetBasics [
@@ -93,7 +93,7 @@
             0.0
             50
             0]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::Fish1R)]))
     (shed (aanim::SetBasics [
@@ -101,7 +101,7 @@
             0.0
             40
             40]))
-    (= curr (&+ curr 1))
+    (= curr (pinc curr 1))
     @doc "add obj"
     (fmt::print! ansi::CURSOR_HIDE)
     (let @mut last_t r32 0.0)
@@ -112,11 +112,11 @@
                 ' ']))
         (= curr (front @mut all_objects))
         (for i 0 9_uint 1 :
-            (shed (aanim::draw [(& @mut window) (&+ curr i)])))
+            (shed (aanim::draw [(& @mut window) (pinc curr i)])))
         (shed (aanim::window_draw [(& window) 'k']))
         (for i 0 9_uint 1 :
             (shed (artwork::UpdateState [
-                    (&+ curr i)
+                    (pinc curr i)
                     t
                     (- t last_t)])))
         (shed (os::nanosleep [(& req) (& @mut rem)]))

@@ -14,7 +14,7 @@
         (param src (ptr u8))
         (param size uint)] uint :
     (for i 0 size 1 :
-        (= (^ (&+ dst i)) (^ (&+ src i))))
+        (= (^ (pinc dst i)) (^ (pinc src i))))
     (return size))
 
 
@@ -66,13 +66,13 @@
         (let n uint (min (- $max_width $pos) (len $out_eval)))
         (return (mymemcpy [
                 (front @mut $out_eval)
-                (&+ (front $tmp) $pos)
+                (pinc (front $tmp) $pos)
                 n]))))
 
 
 (fun slice_incp [(param s (slice @mut u8)) (param inc uint)] (slice @mut u8) :
     (let n uint (min inc (len s)))
-    (return (slice_val (&+ (front @mut s) n) (- (len s) n))))
+    (return (slice_val (pinc (front @mut s) n) (- (len s) n))))
 
 
 (fun u8_to_str [(param v u8) (param out (slice @mut u8))] uint :
@@ -272,30 +272,30 @@
     (let @mut exp auto (- exp_bits 1023))
     (let @mut i uint 0)
     (if (!= sign_bit 0) :
-        (= (^ (&+ buf i)) '-')
+        (= (^ (pinc buf i)) '-')
         (+= i 1)
         :)
-    (= (^ (&+ buf i)) '0')
+    (= (^ (pinc buf i)) '0')
     (+= i 1)
-    (= (^ (&+ buf i)) 'x')
+    (= (^ (pinc buf i)) 'x')
     (+= i 1)
-    (= (^ (&+ buf i)) (? (== exp_bits 0) '0' '1'))
+    (= (^ (pinc buf i)) (? (== exp_bits 0) '0' '1'))
     (+= i 1)
-    (= (^ (&+ buf i)) '.')
+    (= (^ (pinc buf i)) '.')
     (+= i 1)
     (while (!= frac_bits 0) :
-        (= (^ (&+ buf i)) (to_hex_digit [(as (>> frac_bits 48) u8)]))
+        (= (^ (pinc buf i)) (to_hex_digit [(as (>> frac_bits 48) u8)]))
         (+= i 1)
         (and= frac_bits 0xffff_ffff_ffff)
         (<<= frac_bits 4))
-    (= (^ (&+ buf i)) 'p')
+    (= (^ (pinc buf i)) 'p')
     (+= i 1)
     (if (< exp 0) :
-        (= (^ (&+ buf i)) '-')
+        (= (^ (pinc buf i)) '-')
         (+= i 1)
         (= exp (- 0_s64 exp))
         :)
-    (let rest auto (slice_val (&+ buf i) (- (len out) i)))
+    (let rest auto (slice_val (pinc buf i) (- (len out) i)))
     (+= i (u64_to_str [(as exp u64) rest]))
     (return i))
 
@@ -340,7 +340,7 @@
     ($for $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
-                (slice_val (&+ (front @mut $buffer) $curr) (- (len $buffer) $curr))
+                (slice_val (pinc (front @mut $buffer) $curr) (- (len $buffer) $curr))
                 (& @mut $options)])))
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
@@ -353,14 +353,14 @@
     ($for $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
-                (slice_val (&+ (front @mut $buffer) $curr) (- (len $buffer) $curr))
+                (slice_val (pinc (front @mut $buffer) $curr) (- (len $buffer) $curr))
                 (& @mut $options)])))
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
 (fun @pub strz_to_slice [(param s (ptr u8))] (slice u8) :
     (let @mut i uint 0)
-    (while (!= (^ (&+ s i)) 0) :
+    (while (!= (^ (pinc s i)) 0) :
         (+= i 1))
     (return (slice_val s i)))
 

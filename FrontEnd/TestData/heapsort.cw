@@ -23,35 +23,35 @@
     (while true :
         (if (> l 1) :
             (-= l 1)
-            (= rdata (^ (&+ data l)))
+            (= rdata (^ (pinc data l)))
             :
-            (= rdata (^ (&+ data ir)))
-            (= (^ (&+ data ir)) (^ (&+ data 1_uint)))
+            (= rdata (^ (pinc data ir)))
+            (= (^ (pinc data ir)) (^ (pinc data 1_uint)))
             (-= ir 1)
             (if (== ir 1) :
-                (= (^ (&+ data ir)) rdata)
+                (= (^ (pinc data ir)) rdata)
                 (return)
                 :))
         (let @mut i auto l)
         (let @mut j auto (<< l 1))
         (while (<= j ir) :
-            (if (&& (< j ir) (< (^ (&+ data j)) (^ (&+ data (+ j 1))))) :
+            (if (&& (< j ir) (< (^ (pinc data j)) (^ (pinc data (+ j 1))))) :
                 (+= j 1)
                 :)
-            (if (< rdata (^ (&+ data j))) :
-                (= (^ (&+ data i)) (^ (&+ data j)))
+            (if (< rdata (^ (pinc data j))) :
+                (= (^ (pinc data i)) (^ (pinc data j)))
                 (= i j)
                 (+= j i)
                 :
                 (= j (+ ir 1))))
-        (= (^ (&+ data i)) rdata))
+        (= (^ (pinc data i)) rdata))
     (return))
 
 
 (fun dump_array [(param size uint) (param data (ptr r64))] void :
     (let @mut @ref buf (array 32 u8) undef)
     (for i 0 size 1 :
-        (let v auto (^ (&+ data i)))
+        (let v auto (^ (pinc data i)))
         (fmt::print! (wrap v fmt::r64_hex) NEWLINE))
     (return))
 

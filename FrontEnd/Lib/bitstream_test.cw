@@ -33,7 +33,7 @@
 
     (test::AssertEq! (bitstream::Stream32BytesLeft [(& bs)]) 1011_uint)
     (test::AssertEq! (front (bitstream::Stream32GetByteSlice [(& @mut bs) 1000_uint]))
-        (&+ (front DataFF) 13))
+        (pinc (front DataFF) 13))
     (test::AssertEq! (bitstream::Stream32BytesLeft [(& bs)]) 11_uint)
 
     (test::AssertFalse! (. bs eos))

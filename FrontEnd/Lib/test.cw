@@ -51,7 +51,7 @@ Both must have derivable types as we use `auto`"""
     ($let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
-        (AssertEq! (^ (&+ (front $e_val) $i)) (^ (&+ (front $a_val) $i)))))
+        (AssertEq! (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i)))))
 
 
 @doc "The first two arguments must derivable types as we use `auto`"
@@ -80,7 +80,7 @@ Both must have derivable types as we use `auto`"""
     ($let $a_val auto $a_expr)
     (AssertEq! (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
-        (AssertApproxEq! (^ (&+ (front $e_val) $i)) (^ (&+ (front $a_val) $i))))
+        (AssertApproxEq! (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i))))
     $epsilon)
 
 @doc ""

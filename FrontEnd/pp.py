@@ -501,22 +501,18 @@ class TS:
         return self.EmitToken(TK.BEG_COLON, ":")
 
 
-def TokensUnaryFunction(ts: TS, name, node):
+def TokensFunctional(ts: TS, name, nodes: List):
     ts.EmitUnOp(name)
     beg = ts.EmitBegParen("(")
-    EmitTokens(ts, node)
-    ts.EmitEnd(beg)
-
-
-def TokensBinaryFunction(ts: TS, name, node1, node2):
-    ts.EmitUnOp(name)
-    beg = ts.EmitBegParen("(")
-    EmitTokens(ts, node1)
-    ts.EmitSep(",")
-    if isinstance(node2, str):
-        ts.EmitAttr(node2)
-    else:
-        EmitTokens(ts, node2)
+    sep = False
+    for n in nodes:
+        if sep:
+            ts.EmitSep(",")
+        sep = True
+        if isinstance(n, str):
+            ts.EmitAttr(n)
+        else:
+            EmitTokens(ts, n)
     ts.EmitEnd(beg)
 
 
@@ -721,7 +717,7 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
 
 
 def TokensValArray(ts: TS, node: cwast.ValArray):
-    TokensBinaryFunction(ts, "array", node.expr_size, node.type)
+    TokensFunctional(ts, "array", [node.expr_size, node.type])
     beg = ts.EmitBegParen("[")
     sizes = []
     sep = False
@@ -892,7 +888,6 @@ def TokensMacroId(ts: TS, node: cwast.MacroId):
 
 _INFIX_OPS = set([
     cwast.ExprIs,
-    cwast.ExprPointer,
     cwast.ExprIndex,
     cwast.ExprField,
     cwast.Expr2,
@@ -909,12 +904,12 @@ _CONCRETE_SYNTAX = {
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
-    cwast.TypeSlice: lambda ts, n: TokensUnaryFunction(ts, "slice", n.type),
-    cwast.TypeOf: lambda ts, n: TokensUnaryFunction(ts, "typeof", n.expr),
+    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.type]),
+    cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: EmitNameWithParenListExpr(ts, "union", n.types),
-    cwast.TypePtr: lambda ts, n: TokensUnaryFunction(ts, "ptr", n.type),
-    cwast.TypeArray: lambda ts, n: TokensBinaryFunction(ts, "array", n.size, n.type),
-    cwast.TypeUnionDelta: lambda ts, n: TokensBinaryFunction(ts, "uniondelta", n.type, n.subtrahend),
+    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, "ptr", [n.type]),
+    cwast.TypeArray: lambda ts, n: TokensFunctional(ts, "array", [n.size, n.type]),
+    cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
     #
     cwast.ValNum: lambda ts, n: ts.EmitAttr(n.number),
@@ -928,29 +923,32 @@ _CONCRETE_SYNTAX = {
     cwast.ValArray: TokensValArray,
 
     #
-    cwast.ExprFront: lambda ts, n: TokensUnaryFunction(ts, "front", n.container),
-    cwast.ExprUnionTag: lambda ts, n: TokensUnaryFunction(ts, "uniontag", n.expr),
-    cwast.ExprAs: lambda ts, n: TokensBinaryFunction(ts, "as", n.expr, n.type),
+    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, "front", [n.container]),
+    cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
+    cwast.ExprAs: lambda ts, n: TokensFunctional(ts, "as", [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type, n),
-    cwast.ExprBitCast: lambda ts, n: TokensBinaryFunction(ts, "asbits", n.expr, n.type),
-    cwast.ExprOffsetof: lambda ts, n: TokensBinaryFunction(ts, "offsetof", n.type, n.field),
-    cwast.ExprLen: lambda ts, n: TokensUnaryFunction(ts, "len", n.container),
-    cwast.ExprSizeof: lambda ts, n: TokensUnaryFunction(ts, "sizeof", n.type),
-    cwast.ExprTypeId: lambda ts, n: TokensUnaryFunction(ts, "sizeof", n.type),
-    cwast.ExprNarrow: lambda ts, n: TokensBinaryFunction(ts, "narrowto", n.expr, n.type),
+    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, "asbits", [n.expr, n.type]),
+    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, n.field]),
+    cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
+    cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
+    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
+    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrowto", [n.expr, n.type]),
     cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
-    cwast.ExprPointer: lambda ts, n: TokensBinaryInfix(ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind], n.expr1, n.expr2, n),
+    cwast.ExprPointer: lambda ts, n: TokensFunctional(
+        ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
+        [n.expr1, n.expr2]  if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
+          [n.expr1, n.expr2, n.expr_bound_or_undef] ),
     cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index, n),
-    cwast.ValSlice: lambda ts, n: TokensBinaryFunction(ts, "slice", n.pointer, n.expr_size),
-    cwast.ExprWrap: lambda ts, n: TokensBinaryFunction(ts, "wrapas", n.expr, n.type),
-    cwast.ExprUnwrap: lambda ts, n: TokensUnaryFunction(ts, "unwrap", n.expr),
+    cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
+    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
+    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
     cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
     cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&", n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
-    cwast.ExprStringify: lambda ts, n: TokensUnaryFunction(ts, "stringify", n.expr),
+    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
     cwast.ExprCall: lambda ts, n: EmitExprtWithParenListExpr(ts, n.callee, n.args),
     cwast.ExprStmt: lambda ts, n: TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: EmitParenList(ts, [n.expr]),

@@ -10,8 +10,8 @@
         (param n uint)] bool :
     (let @mut i uint 0)
     (block _ :
-        (let c1 u8 (^ (&+ s1 i)))
-        (let c2 u8 (^ (&+ s2 i)))
+        (let c1 u8 (^ (pinc s1 i)))
+        (let c2 u8 (^ (pinc s2 i)))
         (if (!= c1 c2) :
             (return false)
             :)
@@ -38,7 +38,7 @@
     (let @mut i uint 0)
     (block _ :
         (if (are_two_non_empty_strings_the_same [
-                (&+ hptr i)
+                (pinc hptr i)
                 nptr
                 nlen]) :
             (return i)
@@ -65,7 +65,7 @@
     (let @mut i uint (- hlen nlen))
     (block _ :
         (if (are_two_non_empty_strings_the_same [
-                (&+ hptr i)
+                (pinc hptr i)
                 nptr
                 nlen]) :
             (return i)
@@ -104,7 +104,7 @@
         :)
     @doc "at this point we know that both slices have len > 0"
     (return (are_two_non_empty_strings_the_same [
-            (&+ (front haystack) (- hlen nlen))
+            (pinc (front haystack) (- hlen nlen))
             (front needle)
             nlen])))
 
@@ -120,8 +120,8 @@
         (if (< i n) :
             :
             (break))
-        (let a u8 (^ (&+ aptr i)))
-        (let b u8 (^ (&+ bptr i)))
+        (let a u8 (^ (pinc aptr i)))
+        (let b u8 (^ (pinc bptr i)))
         (cond :
             (case (== a b) :)
             (case (< a b) :
@@ -146,7 +146,7 @@
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
     (block _ :
-        (if (== needle (^ (&+ hptr i))) :
+        (if (== needle (^ (pinc hptr i))) :
             (return true)
             :)
         (+= i 1)
@@ -169,7 +169,7 @@
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
     (block _ :
-        (if (contains_char [needle (^ (&+ hptr i))]) :
+        (if (contains_char [needle (^ (pinc hptr i))]) :
             (return i)
             :)
         (+= i 1)
@@ -192,7 +192,7 @@
     (let hptr (ptr u8) (front haystack))
     (let @mut i uint 0)
     (block _ :
-        (if (contains_char [needle (^ (&+ hptr i))]) :
+        (if (contains_char [needle (^ (pinc hptr i))]) :
             :
             (return i))
         (+= i 1)
@@ -216,7 +216,7 @@
     (let @mut i uint hlen)
     (block _ :
         (-= i 1)
-        (if (contains_char [needle (^ (&+ hptr i))]) :
+        (if (contains_char [needle (^ (pinc hptr i))]) :
             (return i)
             :)
         (if (== i 0) :
@@ -239,7 +239,7 @@
     (let @mut i uint hlen)
     (block _ :
         (-= i 1)
-        (if (contains_char [needle (^ (&+ hptr i))]) :
+        (if (contains_char [needle (^ (pinc hptr i))]) :
             :
             (return i))
         (if (== i 0) :
