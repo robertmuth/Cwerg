@@ -756,7 +756,7 @@ Fields:
 Binary expression.
 
 Fields:
-* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, PDELTA](#expr2-kind)
+* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, ROTR, ROTL, PDELTA](#expr2-kind)
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: right operand expression
 
@@ -1150,14 +1150,16 @@ Flags:
 |ORSC      ||||
 |SHR       |>>|
 |SHL       |<<|
+|ROTR      |>>>|
+|ROTL      |<<<|
 |PDELTA    |&-&|
 
 ### ExprPointer Kind
 
 |Kind|Abbrev|
 |----|------|
-|INCP      |&+|
-|DECP      |&-|
+|INCP      |pinc|
+|DECP      |pdec|
 
 ### StmtCompoundAssignment Kind
 

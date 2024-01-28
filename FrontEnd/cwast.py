@@ -127,6 +127,9 @@ class BINARY_EXPR_KIND(enum.Enum):
     SHR = 40    # >>
     SHL = 41    # <<
 
+    ROTR = 42    # >>>
+    ROTL = 43    # <<<
+
     PDELTA = 52  # pointer delta result is sint
 
 
@@ -151,6 +154,8 @@ BINARY_EXPR_SHORTCUT = {
     #
     "<<": BINARY_EXPR_KIND.SHL,
     ">>": BINARY_EXPR_KIND.SHR,
+    "<<<": BINARY_EXPR_KIND.ROTL,
+    ">>>": BINARY_EXPR_KIND.ROTR,
     #
     "and": BINARY_EXPR_KIND.AND,
     "or": BINARY_EXPR_KIND.OR,
