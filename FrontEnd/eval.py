@@ -142,7 +142,7 @@ class GlobalConstantPool:
             # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
             def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
                                        cwast.TypeAuto(
-                node.x_srcloc, x_type=node.x_type), node,
+                x_srcloc=node.x_srcloc, x_type=node.x_type), node,
                 pub=True,
                 x_srcloc=node.x_srcloc)
             self._all_globals.append(def_node)
@@ -154,7 +154,7 @@ class GlobalConstantPool:
             if not def_node:
                 def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
                                            cwast.TypeAuto(
-                                               node.x_srcloc, x_type=node.x_type), node,
+                                               x_srcloc=node.x_srcloc, x_type=node.x_type), node,
                                            pub=True,
                                            x_srcloc=node.x_srcloc)
                 self._bytes_map[node.x_value] = def_node
