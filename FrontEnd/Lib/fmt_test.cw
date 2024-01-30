@@ -50,49 +50,49 @@
             666_uint
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "666")
+    (test::AssertSliceEq# (slice_val (front s) n) "666")
     (= n (@polymorphic fmt::SysRender [
             true
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "true")
+    (test::AssertSliceEq# (slice_val (front s) n) "true")
     (= n (@polymorphic fmt::SysRender [
             69_u16
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "69")
+    (test::AssertSliceEq# (slice_val (front s) n) "69")
     (= n (@polymorphic fmt::SysRender [
             -69_s32
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "-69")
+    (test::AssertSliceEq# (slice_val (front s) n) "-69")
     (= n (@polymorphic fmt::SysRender [
             (wrap 120 fmt::rune)
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "x")
+    (test::AssertSliceEq# (slice_val (front s) n) "x")
     (= n (@polymorphic fmt::SysRender [
             (wrap 2 fmt::r64_hex)
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "0x1.p1")
+    (test::AssertSliceEq# (slice_val (front s) n) "0x1.p1")
     (= n (@polymorphic fmt::SysRender [
             color:blue
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "2")
+    (test::AssertSliceEq# (slice_val (front s) n) "2")
     (= n (@polymorphic fmt::SysRender [
             (rec_val ic32 [(field_val 111) (field_val 222)])
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "111+222i")
+    (test::AssertSliceEq# (slice_val (front s) n) "111+222i")
     (= n (@polymorphic fmt::SysRender [
             (wrap test_string fmt::str_hex)
             s
             (& @mut opt)]))
-    (test::AssertSliceEq! (slice_val (front s) n) "7177657274795f31323334")
+    (test::AssertSliceEq# (slice_val (front s) n) "7177657274795f31323334")
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 )

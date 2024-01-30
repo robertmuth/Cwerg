@@ -2,7 +2,7 @@
 (module main [] :
 (import fmt)
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (fmt::print! """hello world
+    (fmt::print# """hello world
 
     line 1
     line 2

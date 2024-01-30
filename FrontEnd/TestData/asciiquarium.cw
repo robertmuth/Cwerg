@@ -11,7 +11,7 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
-        (fmt::print! "Not enough arguments, need width and height\n")
+        (fmt::print# "Not enough arguments, need width and height\n")
         (return 0)
         :)
     (let arg_w (slice u8) (fmt::strz_to_slice [(^ (pinc argv 1))]))
@@ -103,7 +103,7 @@
             40]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (fmt::print! ansi::CURSOR_HIDE)
+    (fmt::print# ansi::CURSOR_HIDE)
     (let @mut last_t r32 0.0)
     (for t 0.0 5.0_r32 0.1 :
         (shed (aanim::window_fill [
@@ -121,7 +121,7 @@
                     (- t last_t)])))
         (shed (os::nanosleep [(& req) (& @mut rem)]))
         (= last_t t))
-    (fmt::print! ansi::CURSOR_SHOW)
+    (fmt::print# ansi::CURSOR_SHOW)
     (return 0))
 
 

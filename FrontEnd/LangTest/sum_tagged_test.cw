@@ -80,19 +80,19 @@
     (let @mut z s32 777)
 
     (= y x)
-    (test::AssertTrue! (is x bool))
-    (test::AssertFalse! (is x s32))
-    (test::AssertTrue! (is y bool))
-    (test::AssertFalse! (is y s32))
+    (test::AssertTrue# (is x bool))
+    (test::AssertFalse# (is x s32))
+    (test::AssertTrue# (is y bool))
+    (test::AssertFalse# (is y s32))
     (= x 777_s32)
     (= x z)
     (= y x)
-    (test::AssertFalse! (is x bool))
-    (test::AssertTrue! (is x s32))
-    (test::AssertFalse! (is y bool))
-    (test::AssertTrue! (is y s32))
-    (test::AssertTrue! (== y 777_s32))
-    (test::AssertTrue! (== 777_s32 y))
+    (test::AssertFalse# (is x bool))
+    (test::AssertTrue# (is x s32))
+    (test::AssertFalse# (is y bool))
+    (test::AssertTrue# (is y s32))
+    (test::AssertTrue# (== y 777_s32))
+    (test::AssertTrue# (== 777_s32 y))
 )
 
 
@@ -109,9 +109,9 @@
         (param c s32)
         (param x Union3)] void :
     (if a :
-         (test::AssertTrue! (is x bool))
+         (test::AssertTrue# (is x bool))
     :
-        (test::AssertTrue! (is x s32))
+        (test::AssertTrue# (is x s32))
     ))
 
 (fun test_tagged_union_parameter [] void :
@@ -135,20 +135,20 @@
 
 (fun test_tagged_union_result [] void :
     (let @mut x auto (fun_result [true false 2]))
-    (test::AssertTrue! (is x bool))
-    (test::AssertFalse! (is x s32))
+    (test::AssertTrue# (is x bool))
+    (test::AssertFalse# (is x s32))
 
     (= x (fun_result [false false 2]))
-    (test::AssertFalse! (is x bool))
-    (test::AssertTrue! (is x s32))
+    (test::AssertFalse# (is x bool))
+    (test::AssertTrue# (is x s32))
 )
 
 (fun test_tagged_union_narrowto [] void :
     (let @mut x Union3 true)
     (let @mut y auto (narrowto x bool))
-    (test::AssertTrue! y)
+    (test::AssertTrue# y)
 
-    (test::AssertTrue! (narrowto x bool))
+    (test::AssertTrue# (narrowto x bool))
 
     (let @mut z auto (narrowto x (union [ u8 bool ])))
 
@@ -162,7 +162,7 @@
     (shed (test_tagged_union_narrowto []))
 
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 )

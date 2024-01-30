@@ -43,6 +43,6 @@
     (trylet stats TextStats (WordCount [os::Stdin]) err :
         (return 1)
     )
-    (fmt::print! (. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n")
+    (fmt::print# (. stats num_lines) " " (. stats num_words) " " (. stats num_chars) "\n")
     (return 0))
 )

@@ -45,36 +45,36 @@
     (let @mut v2 auto enum16:e3)
     (let @mut v3 auto enum32:e4)
 
-    (test::AssertEq! g1 enum8:e1)
-    (test::AssertEq! g2 enum16:e2)
-    (test::AssertEq! g3 enum32:e3)
+    (test::AssertEq# g1 enum8:e1)
+    (test::AssertEq# g2 enum16:e2)
+    (test::AssertEq# g3 enum32:e3)
 
     (= g1 v1)
     (= g2 v2)
     (= g3 v3)
 
-    (test::AssertEq! g1 enum8:e2)
-    (test::AssertEq! g2 enum16:e3)
-    (test::AssertEq! g3 enum32:e4)
+    (test::AssertEq# g1 enum8:e2)
+    (test::AssertEq# g2 enum16:e3)
+    (test::AssertEq# g3 enum32:e4)
 
     (= v1 enum8:e3)
     (= v2 enum16:e4)
     (= v3 enum32:e1)
 
-    (test::AssertEq! v1 enum8:e3)
-    (test::AssertEq! v2 enum16:e4)
-    (test::AssertEq! v3 enum32:e1)
+    (test::AssertEq# v1 enum8:e3)
+    (test::AssertEq# v2 enum16:e4)
+    (test::AssertEq# v3 enum32:e1)
 
     (= (. gr1 s5) enum8:e3)
     (= (. gr1 s6) enum16:e4)
     (= (. gr1 s7) enum32:e1)
 
-    (test::AssertEq! (. gr1 s5) enum8:e3)
-    (test::AssertEq! (. gr1 s6) enum16:e4)
-    (test::AssertEq! (. gr1 s7) enum32:e1)
+    (test::AssertEq# (. gr1 s5) enum8:e3)
+    (test::AssertEq# (. gr1 s6) enum16:e4)
+    (test::AssertEq# (. gr1 s7) enum32:e1)
 
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 )

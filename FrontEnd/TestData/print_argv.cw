@@ -14,7 +14,7 @@
     (for i 0 (as argc u32) 1 :
         (let s (ptr u8) (^ (pinc argv i)))
         (let t auto (slice_val s (strlen [s])))
-        (fmt::print! t "\n"))
+        (fmt::print# t "\n"))
     (return 0))
 
 )

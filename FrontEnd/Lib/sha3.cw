@@ -60,7 +60,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 	 0x8000000000008080 0x0000000080000001 0x8000000080008008
 ]))
 
-(macro XOR_5_EXPR! EXPR  [(mparam $x EXPR)
+(macro XOR_5_EXPR# EXPR  [(mparam $x EXPR)
                          (mparam $p1 EXPR)
                          (mparam $p2 EXPR)
                          (mparam $p3 EXPR)
@@ -70,23 +70,23 @@ https://emn178.github.io/online-tools/sha3_512.html
             (at (^ $x) $p3)) (at (^ $x) $p4)) (at (^ $x) $p5))
 )
 
-(macro XOR_1! STMT_LIST  [(mparam $x EXPR) (mparam $indices EXPR_LIST) (mparam $v EXPR)] [] :
+(macro XOR_1# STMT_LIST  [(mparam $x EXPR) (mparam $indices EXPR_LIST) (mparam $v EXPR)] [] :
      ($for $i $indices : (xor= (at (^ $x) $i) $v))
 )
 
-(macro UPDATE! STMT_LIST [(mparam $a EXPR) (mparam $b EXPR) (mparam $x EXPR) (mparam $i EXPR) (mparam $bitpos EXPR)] [] :
+(macro UPDATE# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR) (mparam $x EXPR) (mparam $i EXPR) (mparam $bitpos EXPR)] [] :
     (= $b (at (^ $x) $i))
     (= (at (^ $x) $i) (or (<< $a $bitpos) (>> $a (- 64 $bitpos))))
     (= $a $b)
 )
 
 (fun dumpA [(param tag (slice u8)) (param x (ptr (array 25 u64)))] void :
-    (fmt::print! tag "\n")
+    (fmt::print# tag "\n")
     (for i 0 5_uint 1 :
         (for j 0 5_uint 1 :
-            (fmt::print! " " (wrap (at (^ x) (+ i (* j 5))) fmt::u64_hex))
+            (fmt::print# " " (wrap (at (^ x) (+ i (* j 5))) fmt::u64_hex))
         )
-        (fmt::print! "\n")
+        (fmt::print# "\n")
     )
 )
 
@@ -95,11 +95,11 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 	(for round  0 24_uint 1 :
         @doc "theta(x)"
-		(let @mut bc0 auto (XOR_5_EXPR! x 0 5 10 15 20))
-  		(let @mut bc1 auto (XOR_5_EXPR! x 1 6 11 16 21))
-  		(let @mut bc2 auto (XOR_5_EXPR! x 2 7 12 17 22))
-  		(let @mut bc3 auto (XOR_5_EXPR! x 3 8 13 18 23))
-  		(let @mut bc4 auto (XOR_5_EXPR! x 4 9 14 19 24))
+		(let @mut bc0 auto (XOR_5_EXPR# x 0 5 10 15 20))
+  		(let @mut bc1 auto (XOR_5_EXPR# x 1 6 11 16 21))
+  		(let @mut bc2 auto (XOR_5_EXPR# x 2 7 12 17 22))
+  		(let @mut bc3 auto (XOR_5_EXPR# x 3 8 13 18 23))
+  		(let @mut bc4 auto (XOR_5_EXPR# x 4 9 14 19 24))
         @doc ""
 		(let @mut t0 auto (xor bc4  (or (<< bc1 1) (>> bc1 63))))
 		(let @mut t1 auto (xor bc0  (or (<< bc2 1) (>> bc2 63))))
@@ -107,46 +107,46 @@ https://emn178.github.io/online-tools/sha3_512.html
 		(let @mut t3 auto (xor bc2  (or (<< bc4 1) (>> bc4 63))))
 		(let @mut t4 auto (xor bc3  (or (<< bc0 1) (>> bc0 63))))
 
-        (XOR_1! x [0 5 10 15 20] t0)
-        (XOR_1! x [1 6 11 16 21] t1)
-        (XOR_1! x [2 7 12 17 22] t2)
-        (XOR_1! x [3 8 13 18 23] t3)
-        (XOR_1! x [4 9 14 19 24] t4)
+        (XOR_1# x [0 5 10 15 20] t0)
+        (XOR_1# x [1 6 11 16 21] t1)
+        (XOR_1# x [2 7 12 17 22] t2)
+        (XOR_1# x [3 8 13 18 23] t3)
+        (XOR_1# x [4 9 14 19 24] t4)
         @doc """(shed (dumpA ["theta" x]))"""
 
         @doc "rho(x)"
         (let @mut a u64 (at (^ x) 1))
         (let @mut b u64)
 
-        (UPDATE! a b x 10 1)
-        (UPDATE! a b x 7 3)
-        (UPDATE! a b x 11 6)
-        (UPDATE! a b x 17 10)
+        (UPDATE# a b x 10 1)
+        (UPDATE# a b x 7 3)
+        (UPDATE# a b x 11 6)
+        (UPDATE# a b x 17 10)
         @doc ""
-        (UPDATE! a b x 18 15)
-        (UPDATE! a b x 3 21)
-        (UPDATE! a b x 5 28)
-        (UPDATE! a b x 16 36)
+        (UPDATE# a b x 18 15)
+        (UPDATE# a b x 3 21)
+        (UPDATE# a b x 5 28)
+        (UPDATE# a b x 16 36)
         @doc ""
-        (UPDATE! a b x 8 45)
-        (UPDATE! a b x 21 55)
-        (UPDATE! a b x 24 2)
-        (UPDATE! a b x 4 14)
+        (UPDATE# a b x 8 45)
+        (UPDATE# a b x 21 55)
+        (UPDATE# a b x 24 2)
+        (UPDATE# a b x 4 14)
         @doc ""
-        (UPDATE! a b x 15 27)
-        (UPDATE! a b x 23 41)
-        (UPDATE! a b x 19 56)
-        (UPDATE! a b x 13 8)
+        (UPDATE# a b x 15 27)
+        (UPDATE# a b x 23 41)
+        (UPDATE# a b x 19 56)
+        (UPDATE# a b x 13 8)
         @doc ""
-        (UPDATE! a b x 12 25)
-        (UPDATE! a b x 2 43)
-        (UPDATE! a b x 20 62)
-        (UPDATE! a b x 14 18)
+        (UPDATE# a b x 12 25)
+        (UPDATE# a b x 2 43)
+        (UPDATE# a b x 20 62)
+        (UPDATE# a b x 14 18)
         @doc ""
-        (UPDATE! a b x 22 39)
-        (UPDATE! a b x 9 61)
-        (UPDATE! a b x 6 20)
-        (UPDATE! a b x 1 44)
+        (UPDATE# a b x 22 39)
+        (UPDATE# a b x 9 61)
+        (UPDATE# a b x 6 20)
+        (UPDATE# a b x 1 44)
 
 
         @doc """(shed (dumpA ["rho" x]))"""
@@ -177,7 +177,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 (fun @pub KeccakAdd [(param state (ptr @mut  StateKeccak))
                      (param tail (slice @mut u64))
                      (param data (slice u8))] void :
-    @doc """(fmt::print! "KeccakAdd: " (-> state msglen) " "  data "\n")"""
+    @doc """(fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")"""
     (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
     (let block_size uint (* (len tail) 8))
     (let tail_use uint (mod (-> state msglen) block_size))

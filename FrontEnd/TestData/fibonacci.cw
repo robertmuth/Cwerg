@@ -33,9 +33,9 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 20_uint 1 :
-        (test::AssertEq! (at expected i) (fib [i]))
+        (test::AssertEq# (at expected i) (fib [i]))
     )
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 )

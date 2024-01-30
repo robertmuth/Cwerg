@@ -13,7 +13,7 @@ If not you're just wasting my time
 """)
 
 (fun test_Keccak512 [] void :
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""82368d4d74e4c746 389c75d720159d61
         3ad18ffd6624ac12 c032008cf4bb83cf
         8bd7d351b1613001 48d7daed629703ed
@@ -21,7 +21,7 @@ If not you're just wasting my time
          (sha3::Keccak512 [limerick])
         )
 
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""96ee4718dcba3c74 619ba1fa7f57dfe7
         769d3f6698a8b33f a101838970a131e6
         21ccfd05feffbc11 80f263c27f1adab4
@@ -29,7 +29,7 @@ If not you're just wasting my time
          (sha3::Keccak512 ["Keccak-512 Test Hash"])
         )
 
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""0eab42de4c3ceb92 35fc91acffe746b2
         9c29a8c366b7c60e 4e67c466f36a4304
         c00fa9caf9d87976 ba469bcbe06713b4
@@ -39,7 +39,7 @@ If not you're just wasting my time
 )
 
 (fun test_Sha3512 [] void :
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""c48266f826ef5181 866b7a9c4ce4a7ce
         49279ea71d8d5783 56348f565154f906
         3111cb978fd2c49f e4877b7369ff7260
@@ -47,7 +47,7 @@ If not you're just wasting my time
          (sha3::Sha3512 [limerick])
         )
 
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""2a2aadf8fd39288e c6e19e1c1d09c4b4
         a4cab5a232803b1f 383ea81f8deac480
         f33e4ec76faf617c 84d5275c13763e90
@@ -55,7 +55,7 @@ If not you're just wasting my time
          (sha3::Sha3512 ["Sha3-512 Test Hash"])
         )
 
-    (test::AssertSliceEq!
+    (test::AssertSliceEq#
     x"""a69f73cca23a9ac5 c8b567dc185a756e
         97c982164fe25859 e0d1dcc1475c80a6
         15b2123af1f5f94c 11e3e9402c3ac558
@@ -70,7 +70,7 @@ If not you're just wasting my time
     (shed (test_Sha3512 []))
 
     @doc """(let hash auto  (sha3::Keccak512 [limerick]))
-    (fmt::print! (wrap hash fmt::str_hex) "\n")"""
-    (test::Success!)
+    (fmt::print# (wrap hash fmt::str_hex) "\n")"""
+    (test::Success#)
     (return 0))
 )

@@ -38,11 +38,11 @@ D = 100
 (fun test_tree0_decoding [] void :
    (let @mut counts (array 4 u16))
    (let @mut symbols (array 4 u16))
-   (test::AssertEq!
+   (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree0Length counts symbols])
     4_u16)
-   (test::AssertSliceEq! symbols Tree0ExpectedSymbols)
-   (test::AssertSliceEq! counts Tree0ExpectedCounts)
+   (test::AssertSliceEq# symbols Tree0ExpectedSymbols)
+   (test::AssertSliceEq# counts Tree0ExpectedCounts)
 )
 
 @doc r"""Tree1
@@ -133,19 +133,19 @@ D = 100
    (let @mut counts (array 7 u16))
    (let @mut symbols (array 11 u16))
 
-   (test::AssertEq!
+   (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
     11_u16)
 
-   (test::AssertSliceEq! symbols Tree1ExpectedSymbols)
-   (test::AssertSliceEq! counts Tree1ExpectedCounts)
+   (test::AssertSliceEq# symbols Tree1ExpectedSymbols)
+   (test::AssertSliceEq# counts Tree1ExpectedCounts)
 )
 
 (fun test_tree1_bitstream_decoding [] void :
    (let @mut counts (array 7 u16))
    (let @mut symbols (array 11 u16))
 
-   (test::AssertEq!
+   (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
     11_u16)
 
@@ -160,11 +160,11 @@ D = 100
     0
   ]))
   (let @mut @ref bs auto (rec_val bitstream::Stream32 [(field_val data)]))
-  (test::AssertEq! 5_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq! 10_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq! 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq! 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq! 8_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (test::AssertEq# 5_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (test::AssertEq# 10_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (test::AssertEq# 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (test::AssertEq# 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (test::AssertEq# 8_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
 
 )
 
@@ -176,16 +176,16 @@ D = 100
 
    (let @mut counts (array 8 u16))
    (let @mut symbols (array 8 u16))
-   (test::AssertEq!
+   (test::AssertEq#
         (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
     3_u16)
-    (test::AssertEq! 0_u16 (at counts 0))
-    (test::AssertEq! 1_u16 (at counts 1))
-    (test::AssertEq! 2_u16 (at counts 2))
+    (test::AssertEq# 0_u16 (at counts 0))
+    (test::AssertEq# 1_u16 (at counts 1))
+    (test::AssertEq# 2_u16 (at counts 2))
 
-    (test::AssertEq! 0_u16 (at symbols 0))
-    (test::AssertEq! 256_u16 (at symbols 1))
-    (test::AssertEq! 284_u16 (at symbols 2))
+    (test::AssertEq# 0_u16 (at symbols 0))
+    (test::AssertEq# 256_u16 (at symbols 1))
+    (test::AssertEq# 284_u16 (at symbols 2))
 )
 
 (fun test_helper_single_code [] void :
@@ -194,14 +194,14 @@ D = 100
 
    (let @mut counts (array 8 u16))
    (let @mut symbols (array 8 u16))
-   (test::AssertEq!
+   (test::AssertEq#
         (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
     2_u16)
-    (test::AssertEq! 0_u16 (at counts 0))
-    (test::AssertEq! 2_u16 (at counts 1))
+    (test::AssertEq# 0_u16 (at counts 0))
+    (test::AssertEq# 2_u16 (at counts 1))
 
-    (test::AssertEq! 66_u16 (at symbols 0))
-    (test::AssertEq! huffman::BAD_SYMBOL (at symbols 1))
+    (test::AssertEq# 66_u16 (at symbols 0))
+    (test::AssertEq# huffman::BAD_SYMBOL (at symbols 1))
 
 )
 
@@ -214,6 +214,6 @@ D = 100
     (shed (test_tree1_bitstream_decoding []))
 
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 )

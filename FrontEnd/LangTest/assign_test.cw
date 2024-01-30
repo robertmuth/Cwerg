@@ -53,37 +53,37 @@
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "a1 u32"
     (= (at ga1 3) 0x8765432187654321)
-    (test::AssertEq! (at ga1 3) 0x8765432187654321_s64)
+    (test::AssertEq# (at ga1 3) 0x8765432187654321_s64)
     (+= (at ga1 3) 0x1)
-    (test::AssertEq! (at ga1 3) 0x8765432187654322_s64)
+    (test::AssertEq# (at ga1 3) 0x8765432187654322_s64)
     @doc "gr1 s64"
     (= (. gr1 i1) 0x8765432187654321)
-    (test::AssertEq! (. gr1 i1) 0x8765432187654321_s64)
+    (test::AssertEq# (. gr1 i1) 0x8765432187654321_s64)
     (+= (. gr1 i1) 0x1)
-    (test::AssertEq! (. gr1 i1) 0x8765432187654322_s64)
+    (test::AssertEq# (. gr1 i1) 0x8765432187654322_s64)
      @doc "gr1 u64"
     (= (. gr1 i2) 0x1234567812345678)
-    (test::AssertEq! (. gr1 i2) 0x1234567812345678_u64)
+    (test::AssertEq# (. gr1 i2) 0x1234567812345678_u64)
     (-= (. gr1 i2) 0x1)
-    (test::AssertEq! (. gr1 i2) 0x1234567812345677_u64)
+    (test::AssertEq# (. gr1 i2) 0x1234567812345677_u64)
      @doc "gr1 u64 via pointer"
     (= (. (^ (get_addr [])) i2) 0x1234567812345678)
-    (test::AssertEq! (. (^ (get_addr [])) i2) 0x1234567812345678_u64)
+    (test::AssertEq# (. (^ (get_addr [])) i2) 0x1234567812345678_u64)
     (-= (.  (^ (get_addr [])) i2) 0x1)
-    (test::AssertEq! (.  (^ (get_addr [])) i2) 0x1234567812345677_u64)
+    (test::AssertEq# (.  (^ (get_addr [])) i2) 0x1234567812345677_u64)
     @doc "gar1 s64"
     (= (. (at gar1 3) i1) 0x8765432187654321)
-    (test::AssertEq! (. (at gar1 3) i1) 0x8765432187654321_s64)
+    (test::AssertEq# (. (at gar1 3) i1) 0x8765432187654321_s64)
     @doc "gr2 s64"
     (= (. (. gr2 t3) i1) 0x8765432187654321)
-    (test::AssertEq! (. (. gr2 t3) i1) 0x8765432187654321_s64)
+    (test::AssertEq# (. (. gr2 t3) i1) 0x8765432187654321_s64)
     (+= (. (. gr2 t3) i1) 0x1)
-    (test::AssertEq! (. (. gr2 t3) i1) 0x8765432187654322_s64)
+    (test::AssertEq# (. (. gr2 t3) i1) 0x8765432187654322_s64)
      @doc "gr2 u64"
     (= (. (. gr2 t3) i2) 0x1234567812345678)
-    (test::AssertEq! (. (. gr2 t3) i2) 0x1234567812345678_u64)
+    (test::AssertEq# (. (. gr2 t3) i2) 0x1234567812345678_u64)
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 )

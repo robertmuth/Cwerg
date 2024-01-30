@@ -73,19 +73,19 @@
         (index_val 3)]))
     (let pa auto (& a))
     (let pa_mut auto (& @mut a))
-    (test::AssertEq! (at c4 2) 61_u8)
+    (test::AssertEq# (at c4 2) 61_u8)
     (= c4 a)
-    (test::AssertEq! (at c4 2) 3_u8)
+    (test::AssertEq# (at c4 2) 3_u8)
     (= (at c4 2) 4_u8)
     (= a c4)
-    (test::AssertEq! (at a 2) 4_u8)
+    (test::AssertEq# (at a 2) 4_u8)
 
-    (test::AssertEq! (at (. r1 u5) 1) 88_u8)
+    (test::AssertEq# (at (. r1 u5) 1) 88_u8)
     (= (. r1 u5)  a)
-    (test::AssertEq! (at (. r1 u5) 1) 2_u8)
+    (test::AssertEq# (at (. r1 u5) 1) 2_u8)
     (= (at (. r1 u5) 1)  111)
     (= a (. r1 u5))
-    (test::AssertEq! (at a 1) 111_u8)
+    (test::AssertEq# (at a 1) 111_u8)
 )
 
 (fun test_local_array [] void :
@@ -102,25 +102,25 @@
     (let pa_mut auto (& @mut a))
     (let pb auto (& b))
 
-    (test::AssertEq! (at a 0) 1_u8)
-    (test::AssertEq! (at b 2) 6_u8)
+    (test::AssertEq# (at a 0) 1_u8)
+    (test::AssertEq# (at b 2) 6_u8)
     (= (at a 0) 6)
-    (test::AssertEq! (at a 0) 6_u8)
+    (test::AssertEq# (at a 0) 6_u8)
 
     (= (at (^ pa_mut) 2) 77_u8)
-    (test::AssertEq! (at (^ pa) 2) 77_u8)
-    (test::AssertEq! (at (^ pa_mut) 2) 77_u8)
+    (test::AssertEq# (at (^ pa) 2) 77_u8)
+    (test::AssertEq# (at (^ pa_mut) 2) 77_u8)
 
-    (test::AssertEq! (at (^ pb) 0) 4_u8)
+    (test::AssertEq# (at (^ pb) 0) 4_u8)
 
     (= (at (^ pa_mut) 0) 66)
-    (test::AssertEq! (at a 0) 66_u8)
+    (test::AssertEq# (at a 0) 66_u8)
 
     (= a b)
-    (test::AssertEq! (at a 0) 4_u8)
-    (test::AssertEq! (update_array [a 0 2]) 4_u8)
-    (test::AssertEq! (update_array [a 0 3]) 2_u8)
-    (test::AssertEq! (update_array [(^ pa_mut) 0 2]) 3_u8)
+    (test::AssertEq# (at a 0) 4_u8)
+    (test::AssertEq# (update_array [a 0 2]) 4_u8)
+    (test::AssertEq# (update_array [a 0 3]) 2_u8)
+    (test::AssertEq# (update_array [(^ pa_mut) 0 2]) 3_u8)
 )
 
 
@@ -161,18 +161,18 @@
 
 (fun test_global_array [] void :
    @doc "basic"
-    (test::AssertEq! (at c1 1) 2_s32)
-    (test::AssertEq! (at c2 2) 3_s32)
-    (test::AssertEq! (at e1 1) 22_s32)
-    (test::AssertEq! (at e2 2) 333_s32)
-    (test::AssertEq! (at f1 1) 22_s32)
-    (test::AssertEq! (at f2 2) 333_s32)
-    (test::AssertEq! (at f3 0) 111_s32)
+    (test::AssertEq# (at c1 1) 2_s32)
+    (test::AssertEq# (at c2 2) 3_s32)
+    (test::AssertEq# (at e1 1) 22_s32)
+    (test::AssertEq# (at e2 2) 333_s32)
+    (test::AssertEq# (at f1 1) 22_s32)
+    (test::AssertEq# (at f2 2) 333_s32)
+    (test::AssertEq# (at f3 0) 111_s32)
     @doc "basic"
-    (test::AssertEq! (at c3 0) 4_u8)
-    (test::AssertEq! (update_array [c3 0 77]) 4_u8)
-    (test::AssertEq! (update_array [c3 0 5]) 77_u8)
-    (test::AssertEq! (len e1) 10_uint)
+    (test::AssertEq# (at c3 0) 4_u8)
+    (test::AssertEq# (update_array [c3 0 77]) 4_u8)
+    (test::AssertEq# (update_array [c3 0 5]) 77_u8)
+    (test::AssertEq# (len e1) 10_uint)
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -180,7 +180,7 @@
     (shed (test_local_array []))
     (shed (test_mixed_array []))
     @doc "test end"
-    (test::Success!)
+    (test::Success#)
     (return 0))
 
 

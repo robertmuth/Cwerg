@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 _ID_PATH_SEPARATOR = "::"
 
 
+MACRO_SUFFIX = "#"
+
 def GetQualifierIfPresent(name: str) -> Optional[str]:
     tokens = name.split(_ID_PATH_SEPARATOR)
     if len(tokens) == 2:
@@ -3087,7 +3089,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
     # this forces a pre-order traversal
     toplevel_node = None
 
-    def visitor(node, field):
+    def visitor(node, parent, field):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         nonlocal pre_symbolize
@@ -3098,7 +3100,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
                 node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
 
         assert isinstance(
-            node.x_srcloc, SrcLoc) and node.x_srcloc != SRCLOC_UNKNOWN, f"Node without srcloc node {node} for field {field}"
+            node.x_srcloc, SrcLoc) and node.x_srcloc != SRCLOC_UNKNOWN, f"Node without srcloc node {node} for parent={parent} field={field} {node.x_srcloc}"
 
         if NF.TOP_LEVEL in node.FLAGS:
             if field != "body_mod":
@@ -3141,7 +3143,7 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
                         CompilerError(
                             node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
 
-    VisitAstRecursively(node, visitor)
+    VisitAstRecursivelyWithParent(node, visitor, None)
 
 
 ##########################################################################################

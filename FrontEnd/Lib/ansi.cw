@@ -63,7 +63,7 @@
 (global @pub CURSOR_SHOW auto "\x1b[?25h")
 
 
-(macro POS! EXPR_LIST [(mparam $x EXPR) (mparam $y EXPR)] [] :
+(macro POS# EXPR_LIST [(mparam $x EXPR) (mparam $y EXPR)] [] :
     "\x1b["
     $x
     ";"
@@ -96,7 +96,7 @@
 (global @pub FG_COLOR_WHITE auto "\x1b[38;2;229;229;229m")
 
 
-(macro FG_COLOR! EXPR_LIST [
+(macro FG_COLOR# EXPR_LIST [
         (mparam $r EXPR)
         (mparam $g EXPR)
         (mparam $b EXPR)] [] :
@@ -134,7 +134,7 @@
 (global @pub BG_COLOR_WHITE auto "\x1b[48;2;229;229;229m")
 
 
-(macro BG_COLOR! EXPR_LIST [
+(macro BG_COLOR# EXPR_LIST [
         (mparam $r EXPR)
         (mparam $g EXPR)
         (mparam $b EXPR)] [] :

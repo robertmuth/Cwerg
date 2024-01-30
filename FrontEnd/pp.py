@@ -550,7 +550,7 @@ class TS:
         return self.EmitToken(TK.BEG_EXPR_PAREN, a)
 
     def EmitBeg(self, a: str):
-        assert a in BEG_TOKENS or a.endswith("!"), f"bad BEG token {a}"
+        assert a in BEG_TOKENS or a.endswith(cwast.MACRO_SUFFIX), f"bad BEG token {a}"
         return self.EmitToken(TK.BEG, a)
 
     def EmitBegAnon(self):
@@ -1141,7 +1141,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             if tag == "module":
                 # there maybe parameters
                 want_space = True
-            elif not tag.endswith("!"):
+            elif not tag.endswith(cwast.MACRO_SUFFIX):
                 want_space = True
         elif kind is TK.BEG_ANON:
             stack.push(tk, 0)
