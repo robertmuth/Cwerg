@@ -16,11 +16,11 @@ not thread-safe"""
 may set eos
 """
 
-(fun @pub Stream32GetBits [(param bs (ptr @mut Stream32))
+(fun @pub Stream32GetBits [(param bs (ptr! Stream32))
                             (param n u8)] u32 :
-   (let @mut new_bits u32)
-   (let @mut bits_count u8 (-> bs bits_count))
-   (let @mut bits_cache u32 (-> bs bits_cache))
+   (let! new_bits u32)
+   (let! bits_count u8 (-> bs bits_count))
+   (let! bits_cache u32 (-> bs bits_cache))
 
    @doc """when the while loop exits and bits_count > 32, new_bits contains
    (bits_count - 32) bits we still need to put into the cache"""
@@ -35,7 +35,7 @@ may set eos
       (+= bits_count 8)
    )
 
-    (let @mut out u32)
+    (let! out u32)
     (if (< n 32) :
        (= out (and bits_cache (- (<< 1_u32 (as n u32)) 1)))
        (>>= bits_cache (as n u32))
@@ -57,19 +57,19 @@ may set eos
    (return out)
 )
 
-(fun @pub Stream32SkipToNextByte [(param bs (ptr @mut Stream32))] void :
+(fun @pub Stream32SkipToNextByte [(param bs (ptr! Stream32))] void :
    (= (-> bs bits_count) 0)
 )
 
-(fun @pub Stream32GetBool [(param bs (ptr @mut Stream32))] bool :
+(fun @pub Stream32GetBool [(param bs (ptr! Stream32))] bool :
     (return (as (Stream32GetBits [bs 1]) bool))
 )
 
 @doc "may set eos bit"
-(fun @pub Stream32GetByteSlice [(param bs (ptr @mut Stream32))
+(fun @pub Stream32GetByteSlice [(param bs (ptr! Stream32))
                                 (param n uint)] (slice u8) :
-   (let @mut l uint (len (-> bs buf)))
-   (let @mut f auto (front (-> bs buf)))
+   (let! l uint (len (-> bs buf)))
+   (let! f auto (front (-> bs buf)))
    (let offset uint (-> bs offset))
 
    (if (> n (- l  offset)) :

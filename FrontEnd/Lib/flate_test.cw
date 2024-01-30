@@ -9,16 +9,16 @@
     (field input (slice u8))
     (field expected_result (union [uint flate::CorruptionError flate::NoSpaceError flate::TruncationError]))
     (field expected_output (slice u8))
-    (field output (slice @mut u8))
+    (field output (slice! u8))
 )
 
-(global @mut large_output_buffer auto (array_val 65536 u8 [0]))
+(global! large_output_buffer auto (array_val 65536 u8 [0]))
 
-(global @mut one_byte_output_buffer auto (array_val 1 u8 [0]))
+(global! one_byte_output_buffer auto (array_val 1 u8 [0]))
 
 (global zeros auto (array_val 1024 u8 [0]))
 
-(global @mut special_2_1_0 auto (array_val 32771 u8 [
+(global! special_2_1_0 auto (array_val 32771 u8 [
       2 1 0 (index_val 2 32768) 1 0]))
 
 @doc """
@@ -238,8 +238,8 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
     (for i 0 (len AllTestCases) 1 :
          (let tc (ptr TestCase) (& (at AllTestCases i)))
          (fmt::print# "TEST - " (-> tc description) "\n")
-         (let @ref @mut bs auto (rec_val bitstream::Stream32 [(field_val (-> tc input))]))
-         (let res  auto (flate::uncompress [ (& @mut bs) (-> tc output) ]))
+         (let! @ref bs auto (rec_val bitstream::Stream32 [(field_val (-> tc input))]))
+         (let res  auto (flate::uncompress [ (&! bs) (-> tc output) ]))
          (test::AssertEq# (uniontypetag res) (uniontypetag (-> tc expected_result)))
          (if (is res uint) :
             (test::AssertSliceEq#

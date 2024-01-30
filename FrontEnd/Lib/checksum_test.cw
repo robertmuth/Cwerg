@@ -4,8 +4,8 @@
 
 (import checksum)
 
-(global @mut Crc32Tab checksum::CrcTab undef)
-(global @mut Crc32cTab checksum::CrcTab undef)
+(global! Crc32Tab checksum::CrcTab undef)
+(global! Crc32cTab checksum::CrcTab undef)
 
 (global Data00k auto (array_val 1024 u8 [ 0x00 ]))
 (global Data55k auto (array_val 1024 u8 [ 0x55 ]))
@@ -86,9 +86,9 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
-    (shed (checksum::InitCrcTab [checksum::PolyCrc32LE (& @mut Crc32Tab)]))
+    (shed (checksum::InitCrcTab [checksum::PolyCrc32LE (&! Crc32Tab)]))
     (fmt::print# ["\n\n"])
-    (shed (checksum::InitCrcTab [checksum::PolyCrc32cLE (& @mut Crc32cTab)]))
+    (shed (checksum::InitCrcTab [checksum::PolyCrc32cLE (&! Crc32cTab)]))
 
     @doc """crc32
     python3 -c "import zlib; print(zlib.crc32(bytes([0xaa] * 1024)))"

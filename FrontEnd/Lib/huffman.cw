@@ -21,11 +21,11 @@ This function has two failure modes:
 
   Note counts[0] is not used
 """
-(fun @pub NextSymbol [(param bs (ptr @mut bitstream::Stream32))
+(fun @pub NextSymbol [(param bs (ptr! bitstream::Stream32))
                      (param counts (slice u16))
                      (param symbols (slice u16))] u16 :
-   (let @mut offset u32 0)
-   (let @mut base u32 0)
+   (let! offset u32 0)
+   (let! base u32 0)
 
    (for level 1 (len counts) 1 :
       (<<= offset 1)
@@ -50,7 +50,7 @@ This function has two failure modes:
 
 """
 (fun CountsAreFeasible [(param counts (slice u16))] bool :
-    (let @mut available u16 2)
+    (let! available u16 2)
     (for level 1 (len counts) 1 :
         (let used auto (at counts level))
         (if (> used available) :
@@ -81,14 +81,14 @@ Note counts[0] is always 0
 
 (fun @pub ComputeCountsAndSymbolsFromLengths [
        (param lengths (slice u16))
-       (param counts (slice @mut u16))
-       (param symbols (slice @mut u16))] u16 :
+       (param counts (slice! u16))
+       (param symbols (slice! u16))] u16 :
     (if (> (len lengths) MAX_SYMBOLS) :
         (return BAD_TREE_ENCODING) :)
     (for level 0 (len counts) 1 :
         (= (at counts level) 0))
 
-    (let @mut last u16 0)
+    (let! last u16 0)
     (for i 0 (len lengths) 1 :
         (let bits auto (at lengths i))
         (if (!= bits 0) :
@@ -99,7 +99,7 @@ Note counts[0] is always 0
         :)
     )
 
-    (let @mut n u16 0)
+    (let! n u16 0)
     (for i 1 (len counts) 1 :
         (+= n (at counts i))
     )
@@ -145,8 +145,8 @@ Note counts[0] is always 0
     @doc """de-accumulate to get back original count
     n0 is the original value of the element at index i-2
     n1 is the original value of the element at index i-1"""
-    (let @mut n0 u16 0)
-    (let @mut n1 u16 0)
+    (let! n0 u16 0)
+    (let! n1 u16 0)
     (for i 0 (len counts) 1 :
         (let d auto(- n1 n0))
         (= n0 n1)
