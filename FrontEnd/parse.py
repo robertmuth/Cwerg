@@ -407,9 +407,13 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NF
     return cls(*pieces, x_srcloc=srcloc, **attr)
 
 
-def ReadSExpr(stream: ReadTokens, parent_cls, attr) -> Any:
+def ReadSExpr(stream: ReadTokens, parent_cls, attr: Dict[str, Any]) -> Any:
     """The leading '(' has already been consumed"""
     tag = ReadAttrs(next(stream), attr, stream)
+    if len(tag) > 1 and tag.endswith("!"):
+        tag = tag[:-1]
+        attr["mut"] = True
+
     if tag in cwast.UNARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr1, [cwast.UNARY_EXPR_SHORTCUT[tag]],
                                    cwast.Expr1.FIELDS[1:], attr, stream)

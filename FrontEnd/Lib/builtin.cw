@@ -20,7 +20,7 @@ The type of the loop variable is determined by $end"""
         (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
     ($let $end_eval (typeof $end) $end)
     ($let $step_eval (typeof $end) $step)
-    ($let @mut $it (typeof $end) $start)
+    ($let! $it (typeof $end) $start)
     (block _ :
         (if (>= $it $end_eval) :
             (break)

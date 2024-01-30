@@ -48,12 +48,12 @@
 
 
 @doc "read length for the combined literal and distance huffman costs"
-(fun read_lit_dist_lengths [(param bs (ptr @mut bitstream::Stream32))
+(fun read_lit_dist_lengths [(param bs (ptr! bitstream::Stream32))
                             (param cl_counts (slice u16))
                             (param cl_symbols (slice u16))
-                            (param lengths (slice @mut u16))]
+                            (param lengths (slice! u16))]
                            (union [Success CorruptionError TruncationError]) :
-   (let @mut i uint 0)
+   (let! i uint 0)
    (while (< i (len lengths)) :
       (let sym auto (huffman::NextSymbol [bs cl_counts cl_symbols]))
       (if (== sym huffman::BAD_SYMBOL) :
@@ -71,7 +71,7 @@
         (case (== sym 16) :
             (if (== i 0) : (return CorruptionErrorVal)  :)
             (let prev auto (at lengths (- i 1)))
-            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 2]) 3))
+            (let! n auto (+ (bitstream::Stream32GetBits [bs 2]) 3))
             (debug# "tree decoding num=" i  " sym=" sym " len=" n "\n")
             (while (> n 0) :
                (-= n 1)
@@ -80,7 +80,7 @@
             )
         )
         (case (== sym 17) :
-            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 3]) 3))
+            (let! n auto (+ (bitstream::Stream32GetBits [bs 3]) 3))
             (if (> (+ i (as n uint)) (len lengths)) : (return CorruptionErrorVal) :)
             (debug# "tree decoding num=" i  " sym=" sym " len=" n "\n")
             (block _ :
@@ -91,7 +91,7 @@
             )
         )
         (case (== sym 18) :
-            (let @mut n auto (+ (bitstream::Stream32GetBits [bs 7]) 11))
+            (let! n auto (+ (bitstream::Stream32GetBits [bs 7]) 11))
             (if (> (+ i (as n uint)) (len lengths)) : (return CorruptionErrorVal) :)
             (debug# "tree decoding num=" i  " sym=0" " len=" n "\n")
             (block _ :
@@ -110,7 +110,7 @@
 )
 
 (macro incs! EXPR [(mparam $slice EXPR) (mparam $length EXPR)] [] :
-   (slice_val (pinc (front @mut $slice) $length)
+   (slice_val (pinc (front! $slice) $length)
               (- (len $slice) $length))
 )
 
@@ -148,16 +148,16 @@
 
 @doc "common part for handing both dynamic and fixed hufman"
 (fun handle_huffman_common [
-   (param bs (ptr @mut bitstream::Stream32))
+   (param bs (ptr! bitstream::Stream32))
    (param lit_counts (slice u16))
    (param lit_symbols (slice u16))
    (param dist_counts (slice u16))
    (param dist_symbols (slice u16))
    (param pos uint)
-   (param dst (slice @mut u8)) ]
+   (param dst (slice! u8)) ]
  (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug# "handle_huffman_common " pos "\n")
-   (let @mut i uint pos)
+   (let! i uint pos)
    (while true :
      (let sym auto (huffman::NextSymbol [bs lit_counts lit_symbols]))
      (debug# ["["  i "]  symbol " sym "\n"])
@@ -219,9 +219,9 @@
 )
 
 @doc "handle 0b10 section"
-(fun handle_dynamic_huffman [(param bs (ptr @mut bitstream::Stream32))
+(fun handle_dynamic_huffman [(param bs (ptr! bitstream::Stream32))
                       (param pos uint)
-                      (param dst (slice @mut u8))]
+                      (param dst (slice! u8))]
                       (union [uint CorruptionError NoSpaceError TruncationError]) :
    (let lit_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 257) uint))
 	(let dist_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 5]) 1) uint))
@@ -230,12 +230,12 @@
                  " dist_num_syms=" dist_num_syms  " cl_num_syms=" cl_num_syms "\n")
 
    @doc ""
-   (let @mut @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
+   (let! @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
    (block _ :
       @doc "build the code_len auxiliary huffman tree"
-      (let @mut cl_lengths (array NUM_CODE_LEN_SYMS u16))
-      (let @mut cl_symbols (array NUM_CODE_LEN_SYMS u16))
-      (let @mut cl_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+      (let! cl_lengths (array NUM_CODE_LEN_SYMS u16))
+      (let! cl_symbols (array NUM_CODE_LEN_SYMS u16))
+      (let! cl_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
 
       (for i 0 (len cl_lengths) 1 :
          (= (at cl_lengths i) 0)
@@ -255,7 +255,7 @@
       (if (> lit_num_syms  286) : (return CorruptionErrorVal) :)
       (if (> dist_num_syms 30) : (return CorruptionErrorVal) :)
 
-      (let lit_dist_slice auto (slice_val (front @mut lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
+      (let lit_dist_slice auto (slice_val (front! lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
       (trylet x Success (read_lit_dist_lengths [bs cl_counts cl_symbols
                                     lit_dist_slice]) err :
                                                 (return err))
@@ -266,10 +266,10 @@
    )
 
 
-   (let @mut lit_symbols (array MAX_LIT_SYMS u16))
-   (let @mut lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+   (let! lit_symbols (array MAX_LIT_SYMS u16))
+   (let! lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
    (block _ :
-      (let lit_lengths auto (slice_val (front @mut lit_dist_lengths)  lit_num_syms))
+      (let lit_lengths auto (slice_val (front! lit_dist_lengths)  lit_num_syms))
       (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
                   [lit_lengths lit_counts lit_symbols]))
       (if (== lit_last_symbol huffman::BAD_TREE_ENCODING) :
@@ -279,10 +279,10 @@
    )
 
 
-   (let @mut dist_symbols (array MAX_DIST_SYMS u16))
-   (let @mut dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+   (let! dist_symbols (array MAX_DIST_SYMS u16))
+   (let! dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
    (block _ :
-      (let dist_lengths auto (slice_val (pinc (front @mut lit_dist_lengths) lit_num_syms) dist_num_syms))
+      (let dist_lengths auto (slice_val (pinc (front! lit_dist_lengths) lit_num_syms) dist_num_syms))
       (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths
                   [dist_lengths dist_counts dist_symbols]))
 
@@ -377,9 +377,9 @@ last symbol: 29
 ]))
 
 @doc "handle 0b01 section"
-(fun handle_fixed_huffman [(param bs (ptr @mut bitstream::Stream32))
+(fun handle_fixed_huffman [(param bs (ptr! bitstream::Stream32))
                       (param pos uint)
-                      (param dst (slice @mut u8))]
+                      (param dst (slice! u8))]
                       (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug# "handle_fixed_huffman\n")
    (return (handle_huffman_common [
@@ -395,9 +395,9 @@ last symbol: 29
 
 @doc "handle 0b00 section"
 (fun handle_uncompressed [
-    (param bs (ptr @mut bitstream::Stream32))
+    (param bs (ptr! bitstream::Stream32))
     (param pos uint)
-    (param dst (slice @mut u8))
+    (param dst (slice! u8))
    ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug# "handle_uncompressed\n")
    (shed (bitstream::Stream32SkipToNextByte [bs]))
@@ -423,13 +423,13 @@ last symbol: 29
 
 
 (fun @pub uncompress [
-   (param bs (ptr @mut bitstream::Stream32))
-   (param dst (slice @mut u8))
+   (param bs (ptr! bitstream::Stream32))
+   (param dst (slice! u8))
    ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug# "FlateUncompress\n")
    @doc "next position within dst to write"
-   (let @mut pos uint 0)
-   (let @mut seen_last bool false)
+   (let! pos uint 0)
+   (let! seen_last bool false)
    (while (! seen_last) :
      (= seen_last (bitstream::Stream32GetBool [bs]))
      (let kind u32 (bitstream::Stream32GetBits [bs 2]))
