@@ -48,7 +48,7 @@
     (field visible bool))
 
 
-(fun @pub InitObjectState [(param s (ptr @mut ObjectState)) (param o (ptr Object))] void :
+(fun @pub InitObjectState [(param s (ptr! ObjectState)) (param o (ptr Object))] void :
     (= (-> s obj) o)
     (= (-> s attr_lookup) DEF_ATTR_LOOKUP)
     (= (-> s depth) (-> o def_depth))
@@ -59,7 +59,7 @@
 
 
 (fun @pub SetBasics [
-        (param s (ptr @mut ObjectState))
+        (param s (ptr! ObjectState))
         (param start_time r32)
         (param x_pos r32)
         (param y_pos r32)] void :
@@ -122,7 +122,7 @@
             (return ""))))
 
 
-(fun @pub draw [(param window (ptr @mut Window)) (param s (ptr @mut ObjectState))] void :
+(fun @pub draw [(param window (ptr! Window)) (param s (ptr! ObjectState))] void :
     (let width auto (-> window width))
     (let height auto (-> window height))
     (let obj auto (-> s obj))
@@ -131,14 +131,14 @@
     (let color_map auto (-> sprite color_map))
     (let def_attr auto (-> s def_attr))
     (let depth auto (-> s depth))
-    (let @mut x s32 (as (-> s x_pos) s32))
-    (let @mut y s32 (as (-> s y_pos) s32))
-    (let @mut left_side auto true)
-    (let @mut have_color auto true)
-    (let @mut cpos uint 0)
+    (let! x s32 (as (-> s x_pos) s32))
+    (let! y s32 (as (-> s y_pos) s32))
+    (let! left_side auto true)
+    (let! have_color auto true)
+    (let! cpos uint 0)
     (for ipos 0 (len image_map) 1 :
         @doc "determine attribute"
-        (let @mut a u8 def_attr)
+        (let! a u8 def_attr)
         (if have_color :
             (let cc u8 (at color_map cpos))
             (+= cpos 1)
@@ -185,9 +185,9 @@
     (let w auto (-> obj width))
     (let h auto (-> obj height))
     @doc "@ is an invalid attrib"
-    (let @mut last_attr u8 '@')
+    (let! last_attr u8 '@')
     (for x 0 w 1 :
-        (let @mut last_x auto MAX_DIM)
+        (let! last_x auto MAX_DIM)
         (for y 0 h 1 :
             (let index auto (+ (* y w) x))
             (let c auto (at (-> obj char_map) index))
@@ -207,7 +207,7 @@
 
 
 (fun @pub window_fill [
-        (param obj (ptr @mut Window))
+        (param obj (ptr! Window))
         (param c u8)
         (param a u8)] void :
     (let size auto (* (-> obj width) (-> obj height)))

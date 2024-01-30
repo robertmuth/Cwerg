@@ -36,8 +36,8 @@ D = 100
 ]))
 
 (fun test_tree0_decoding [] void :
-   (let @mut counts (array 4 u16))
-   (let @mut symbols (array 4 u16))
+   (let! counts (array 4 u16))
+   (let! symbols (array 4 u16))
    (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree0Length counts symbols])
     4_u16)
@@ -130,8 +130,8 @@ D = 100
 ]))
 
 (fun test_tree1_decoding [] void :
-   (let @mut counts (array 7 u16))
-   (let @mut symbols (array 11 u16))
+   (let! counts (array 7 u16))
+   (let! symbols (array 11 u16))
 
    (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
@@ -142,8 +142,8 @@ D = 100
 )
 
 (fun test_tree1_bitstream_decoding [] void :
-   (let @mut counts (array 7 u16))
-   (let @mut symbols (array 11 u16))
+   (let! counts (array 7 u16))
+   (let! symbols (array 11 u16))
 
    (test::AssertEq#
     (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols])
@@ -159,23 +159,23 @@ D = 100
     0
     0
   ]))
-  (let @mut @ref bs auto (rec_val bitstream::Stream32 [(field_val data)]))
-  (test::AssertEq# 5_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq# 10_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq# 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq# 7_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
-  (test::AssertEq# 8_u16 (huffman::NextSymbol [(& @mut bs) counts symbols]))
+  (let! @ref bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+  (test::AssertEq# 5_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
+  (test::AssertEq# 10_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
+  (test::AssertEq# 7_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
+  (test::AssertEq# 7_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
+  (test::AssertEq# 8_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
 
 )
 
 (fun test_helper [] void :
-   (let @mut lengths (array 285 u16))
+   (let! lengths (array 285 u16))
    (= (at lengths 0) 1)
    (= (at lengths 256) 2)
    (= (at lengths 284) 2)
 
-   (let @mut counts (array 8 u16))
-   (let @mut symbols (array 8 u16))
+   (let! counts (array 8 u16))
+   (let! symbols (array 8 u16))
    (test::AssertEq#
         (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
     3_u16)
@@ -189,11 +189,11 @@ D = 100
 )
 
 (fun test_helper_single_code [] void :
-   (let @mut lengths (array 285 u16))
+   (let! lengths (array 285 u16))
    (= (at lengths 66) 1)
 
-   (let @mut counts (array 8 u16))
-   (let @mut symbols (array 8 u16))
+   (let! counts (array 8 u16))
+   (let! symbols (array 8 u16))
    (test::AssertEq#
         (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols])
     2_u16)

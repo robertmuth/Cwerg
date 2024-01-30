@@ -14,10 +14,10 @@
     (return 7))
 
 
-(global @pub @mut v1 auto 7_u64)
+(global! @pub v1 auto 7_u64)
 
 
-(global @pub v1a auto (& @mut v1))
+(global @pub v1a auto (&! v1))
 
 
 (fun foo2 [
@@ -67,7 +67,7 @@
     (entry s4))
 
 
-(type type_ptr (ptr @mut s32))
+(type type_ptr (ptr! s32))
 
 
 (type @pub type_union (union [

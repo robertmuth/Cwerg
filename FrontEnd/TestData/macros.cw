@@ -11,7 +11,7 @@
 
 
 (fun TestWhileMacro [(param end u32)] u32 :
-    (let @mut sum u32 0)
+    (let! sum u32 0)
     (while (< sum end) :
         (+= sum 1))
     (return sum))
@@ -21,7 +21,7 @@
 
 
 (fun TestForMacro! [(param end u32)] u32 :
-    (let @mut sum u32 0)
+    (let! sum u32 0)
     (for i 0 end 1 :
         (+= sum i))
     (return sum))
@@ -57,7 +57,7 @@
 
 
 (fun TestProductMacro [] u32 :
-    (let @mut result u32 1)
+    (let! result u32 1)
     (product# result [
             111
             (* 2 111)
@@ -72,7 +72,7 @@
     (return (stringify TestForMacroStringify)))
 
 
-(fun TestSwap [(param vec (slice @mut u8))] void :
+(fun TestSwap [(param vec (slice! u8))] void :
     (swap (at vec 1) (at vec 2)))
 
 

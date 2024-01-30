@@ -7,19 +7,19 @@
 
 
 (defrec @pub BinaryTreeNode :
-    (field left (union [NoneType (ptr @mut BinaryTreeNode)]))
-    (field right (union [NoneType (ptr @mut BinaryTreeNode)]))
+    (field left (union [NoneType (ptr! BinaryTreeNode)]))
+    (field right (union [NoneType (ptr! BinaryTreeNode)]))
     (field payload u32))
 
 
-(type MaybeNode (union [NoneType (ptr @mut BinaryTreeNode)]))
+(type MaybeNode (union [NoneType (ptr! BinaryTreeNode)]))
 
 
-(type Visitor (sig [(param node (ptr @mut BinaryTreeNode))] void))
+(type Visitor (sig [(param node (ptr! BinaryTreeNode))] void))
 
 
 (fun InorderTraversal [(param root MaybeNode) (param visitor Visitor)] void :
-    (trylet node (ptr @mut BinaryTreeNode) root _ : (return))
+    (trylet node (ptr! BinaryTreeNode) root _ : (return))
     (shed (InorderTraversal [(. (^ node) left) visitor]))
     (shed (visitor [node]))
     (shed (InorderTraversal [(. (^ node) right) visitor])))

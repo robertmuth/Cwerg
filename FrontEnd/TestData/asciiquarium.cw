@@ -6,7 +6,7 @@
 (import os)
 (import fmt)
 
-(global @mut all_objects auto (array_val 100 aanim::ObjectState))
+(global! all_objects auto (array_val 100 aanim::ObjectState))
 
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -20,15 +20,15 @@
     (let height s32 (as (fmt::str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
     (let @ref req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
-    (let @mut @ref rem os::TimeSpec undef)
-    (let @mut @ref window auto (rec_val aanim::Window [
+    (let! @ref rem os::TimeSpec undef)
+    (let! @ref window auto (rec_val aanim::Window [
         (field_val width)
         (field_val height)
         (field_val undef)
         (field_val undef)
         (field_val undef)
         ]))
-    (let @mut curr auto (front @mut all_objects))
+    (let! curr auto (front! all_objects))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::DuckR)]))
     (shed (aanim::SetBasics [
@@ -104,22 +104,22 @@
     (= curr (pinc curr 1))
     @doc "add obj"
     (fmt::print# ansi::CURSOR_HIDE)
-    (let @mut last_t r32 0.0)
+    (let! last_t r32 0.0)
     (for t 0.0 5.0_r32 0.1 :
         (shed (aanim::window_fill [
-                (& @mut window)
+                (&! window)
                 ' '
                 ' ']))
-        (= curr (front @mut all_objects))
+        (= curr (front! all_objects))
         (for i 0 9_uint 1 :
-            (shed (aanim::draw [(& @mut window) (pinc curr i)])))
+            (shed (aanim::draw [(&! window) (pinc curr i)])))
         (shed (aanim::window_draw [(& window) 'k']))
         (for i 0 9_uint 1 :
             (shed (artwork::UpdateState [
                     (pinc curr i)
                     t
                     (- t last_t)])))
-        (shed (os::nanosleep [(& req) (& @mut rem)]))
+        (shed (os::nanosleep [(& req) (&! rem)]))
         (= last_t t))
     (fmt::print# ansi::CURSOR_SHOW)
     (return 0))

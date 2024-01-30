@@ -16,9 +16,9 @@
 
 
 (fun WordCount [(param fd os::FD)] (union [TextStats os::Error]) :
-    (let @mut stats auto (rec_val TextStats []))
-    (let @mut in_word auto false)
-    (let @mut buf (array 1024 u8) undef)
+    (let! stats auto (rec_val TextStats []))
+    (let! in_word auto false)
+    (let! buf (array 1024 u8) undef)
     (while true :
         (trylet n uint (os::FileRead [fd buf]) err :
             (return err))

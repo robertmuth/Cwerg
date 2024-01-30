@@ -68,7 +68,7 @@
 (type @wrapped w3 void)
 
 
-(type ptr1 (ptr @mut s32))
+(type ptr1 (ptr! s32))
 
 
 (type @pub sum1 (union [bool u8]))
@@ -117,5 +117,3 @@
 (static_assert (== (sizeof sum6) 16))
 
 )
-
-

@@ -38,7 +38,7 @@
 (type type_slice (slice type_rec))
 
 
-(type type_ptr (ptr @mut s32))
+(type type_ptr (ptr! s32))
 
 
 (type @pub type_union (union [
