@@ -483,7 +483,9 @@ ALL_FIELDS = [
     NfdAttrBool("res_ref", "in parameter was converted for by-val to pointer"),
     NfdAttrBool("builtin", "module is the builtin module"),
     NfdAttrBool("triplequoted", "string is using 3 double quotes"),
-    NfdAttrStr("doc", "comment"),
+    NfdAttrStr("doc", "possibly multi-line comment"),
+    NfdAttrStr("eoldoc", "line end comment"),
+
     NfdAttrStr("strkind", "raw: ignore escape sequences in string, hex:"),
 
     #
@@ -994,6 +996,8 @@ class Id:
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
+    eoldoc: str = ""
+    #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
@@ -1014,6 +1018,8 @@ class TypeAuto:
     ALIAS = "auto"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED
+    #
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1103,6 +1109,8 @@ class TypeBase:
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     base_type_kind: BASE_TYPE_KIND
+    #
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1327,6 +1335,8 @@ class ValNum:
     #
     number: str   # maybe a (unicode) character as well
     #
+    eoldoc: str = ""
+    #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
@@ -1343,6 +1353,8 @@ class ValUndef:
     ALIAS = "undef"
     GROUP = GROUP.Value
     FLAGS = NF.VALUE_ANNOTATED
+    #
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_value: Optional[Any] = None    # this is always a ValUndef() object
@@ -1361,6 +1373,8 @@ class ValVoid:
     ALIAS = "void_val"
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    #
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1482,6 +1496,8 @@ class ValString:
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
     string: str
+    #
+    eoldoc: str = ""
     #
     strkind: str = ""   # or raw or hex
     triplequoted: bool = False
@@ -1679,6 +1695,8 @@ class Expr2:
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: NODES_EXPR_T
     expr2: NODES_EXPR_T
+    #
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
