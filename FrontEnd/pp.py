@@ -460,6 +460,7 @@ class TK(enum.Enum):
 
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
+    NEW_LINE = 13
 
 
 BEG_TOKENS = set([
@@ -524,6 +525,9 @@ class TS:
 
     def EmitAttr(self, a: str):
         return self.EmitToken(TK.ATTR, a)
+
+    def EmitNewLine(self):
+        return self.EmitToken(TK.NEW_LINE)
 
     def EmitElse(self):
         return self.EmitToken(TK.ELSE, "else")
@@ -608,12 +612,22 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
 
 def TokensAnnotations(ts: TS, node):
     for field, nfd in node.ATTRS:
+        # these attributes will be rendered directly
         if field in ("triplequoted", "strkind"):
             continue
         if nfd.kind is cwast.NFK.ATTR_STR:
             val = getattr(node, field)
             if val:
-                ts.EmitAnnotationLong("@" + field + "=" + val)
+                if field == "doc":
+                    if val.startswith('"""'):
+                        val = val[3:-3]
+                    else:
+                        val = val[1:-1]
+                    for line in val.split("\n"):
+                        ts.EmitAttr("-- " + line)
+                        ts.EmitNewLine()
+                else:
+                    ts.EmitAnnotationLong("@" + field + "=" + val)
 
     for field, nfd in node.ATTRS:
         if field in ("triplequoted", "strkind"):
@@ -783,8 +797,10 @@ def TokensDefMod(ts: TS, node: cwast.DefMod):
     beg = ts.EmitBeg("module")
     # we do not want the next item to be indented
     ts.EmitUnOp(node.name)
+    beg_colon = ts.EmitBegColon()
     for child in node.body_mod:
         EmitTokens(ts, child)
+    ts.EmitEnd(beg_colon)
     ts.EmitEnd(beg)
 
 
@@ -1043,6 +1059,9 @@ class Stack:
     def __init__(self):
         self._stack = []
 
+    def depth(self):
+        return len(self._stack)
+
     def empty(self):
         return 0 == len(self._stack)
 
@@ -1126,10 +1145,14 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 want_space = True
         elif kind is TK.BEG_ANON:
             stack.push(tk, 0)
+        elif kind is TK.NEW_LINE:
+            sink.newline()
         elif kind is TK.BEG_COLON:
             sink.emit_token(tag)
             sink.newline()
-            indent = stack.push(tk, INDENT)
+            if stack.depth() <= 1:
+                sink.newline()
+            indent = stack.push(tk, INDENT if stack.depth() > 1 else 0)
             sink.set_indent(indent)
         elif kind is TK.BEG_PAREN:
             sink.emit_token(tag)
