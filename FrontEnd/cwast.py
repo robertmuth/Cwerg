@@ -193,14 +193,17 @@ class ASSIGNMENT_KIND(enum.Enum):
     DIV = 3
     MUL = 4
     MOD = 5
+    MIN = 6
+    MAX = 7
     #
     AND = 10
     OR = 11
     XOR = 12
     #
-    SHR = 20    # >>
-    SHL = 31    # <<
-
+    SHR = 40    # >>
+    SHL = 41    # <<
+    ROTR = 42    # >>
+    ROTL = 43    # <<
 
 ASSIGNMENT_SHORTCUT = {
     #
@@ -209,6 +212,8 @@ ASSIGNMENT_SHORTCUT = {
     "*=": ASSIGNMENT_KIND.MUL,
     "/=": ASSIGNMENT_KIND.DIV,
     "mod=": ASSIGNMENT_KIND.MOD,
+    "min=": ASSIGNMENT_KIND.MIN,
+    "max=": ASSIGNMENT_KIND.MAX,
     #
     "and=": ASSIGNMENT_KIND.AND,
     "or=": ASSIGNMENT_KIND.OR,
@@ -216,6 +221,8 @@ ASSIGNMENT_SHORTCUT = {
     #
     "<<=": ASSIGNMENT_KIND.SHL,
     ">>=": ASSIGNMENT_KIND.SHR,
+    "<<<=": ASSIGNMENT_KIND.ROTL,
+    ">>>=": ASSIGNMENT_KIND.ROTR,
 }
 
 ASSIGNMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}

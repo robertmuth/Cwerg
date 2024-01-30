@@ -361,16 +361,70 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> List[Tuple[int, str]]:
         print("".join(a))
         print("<br>")
 
+
 ############################################################
 #
 ############################################################
+_OPS_PRECENDENCE = {
+    # "->": 10,
+    cwast.ExprField: 10,
+    cwast.ExprAs: 10,
+    #
+    cwast.Expr1: 11,
+    cwast.ExprDeref: 11,
+    cwast.ExprAddrOf: 11,
+
+    cwast.ExprIs: 50,
+}
+
+_OPS_PRECENDENCE_EXPR2 = {
+    cwast.BINARY_EXPR_KIND.SHL: 20,
+    cwast.BINARY_EXPR_KIND.ROTL: 20,
+    cwast.BINARY_EXPR_KIND.SHR: 20,
+    cwast.BINARY_EXPR_KIND.ROTR: 20,
+    #
+    cwast.BINARY_EXPR_KIND.MUL: 30,
+    cwast.BINARY_EXPR_KIND.DIV: 30,
+    cwast.BINARY_EXPR_KIND.MOD: 30,
+    cwast.BINARY_EXPR_KIND.AND: 30,
+    cwast.BINARY_EXPR_KIND.XOR: 30,
+    #
+    cwast.BINARY_EXPR_KIND.OR: 35,
+    cwast.BINARY_EXPR_KIND.ADD: 35,
+    cwast.BINARY_EXPR_KIND.SUB: 35,
+    #
+    cwast.BINARY_EXPR_KIND.MAX: 40,
+    cwast.BINARY_EXPR_KIND.MIN: 40,
+    #
+    cwast.BINARY_EXPR_KIND.GE: 60,
+    cwast.BINARY_EXPR_KIND.GT: 60,
+    cwast.BINARY_EXPR_KIND.LE: 60,
+    cwast.BINARY_EXPR_KIND.LT: 60,
+    cwast.BINARY_EXPR_KIND.EQ: 65,
+    cwast.BINARY_EXPR_KIND.NE: 65,
+    #
+    cwast.BINARY_EXPR_KIND.ANDSC: 70,
+    cwast.BINARY_EXPR_KIND.ORSC: 75,
+}
+
+
+def _NodeNeedsParen(node, parent, field: str):
+    if isinstance(parent, cwast.Expr2):
+        if field == "expr1":
+            if isinstance(node, cwast.Expr2):
+                return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind] > _OPS_PRECENDENCE_EXPR2[parent.binary_expr_kind]
+        if field == "expr2":
+            if isinstance(node, cwast.Expr2):
+                return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind] > _OPS_PRECENDENCE_EXPR2[parent.binary_expr_kind]
+
+    return False
 
 
 def AddMissingParens(node):
     """Eliminate Array to Slice casts. """
 
-    def replacer(node, parent, _field):
-        if isinstance(node, cwast.ExprPointer) and isinstance(parent, cwast.ExprDeref):
+    def replacer(node, parent, field: str):
+        if _NodeNeedsParen(node, parent, field):
             return cwast.ExprParen(node, x_srcloc=node.x_srcloc, x_type=node.x_type)
 
         return None
@@ -402,6 +456,7 @@ class TK(enum.Enum):
     BEG_PAREN = 20
     BEG_COLON = 30
     BEG_ANON = 40
+    BEG_EXPR_PAREN = 50
 
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
@@ -430,7 +485,7 @@ class Token:
     long_array_val: bool = False
 
     def IsBeg(self) -> bool:
-        return self.kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON)
+        return self.kind in (TK.BEG_COLON, TK.BEG, TK.BEG_PAREN, TK.BEG_ANON, TK.BEG_EXPR_PAREN)
 
     def IsTopLevelBeg(self):
         return self.kind is TK.BEG and self.tag in ("rec", "enum", "fun", "type", "import",
@@ -448,7 +503,7 @@ class TS:
 
     def EmitToken(self, kind: TK, tag="", beg=None):
         if tag == "(" or tag == "[":
-            assert kind is TK.BEG_PAREN
+            assert kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN)
         elif tag == ":":
             assert kind is TK.BEG_COLON
         tk = Token(kind, tag=tag, beg=beg, start=self._count)
@@ -482,8 +537,13 @@ class TS:
     def EmitSep(self, a: str):
         return self.EmitToken(TK.SEP, a)
 
+    # no space before paren
     def EmitBegParen(self, a: str):
         return self.EmitToken(TK.BEG_PAREN, a)
+
+    # space before paren
+    def EmitBegExprParen(self, a: str):
+        return self.EmitToken(TK.BEG_EXPR_PAREN, a)
 
     def EmitBeg(self, a: str):
         assert a in BEG_TOKENS or a.endswith("!"), f"bad BEG token {a}"
@@ -493,7 +553,7 @@ class TS:
         return self.EmitToken(TK.BEG_ANON)
 
     def EmitEnd(self, beg: Token):
-        if beg.kind is TK.BEG_PAREN:
+        if beg.kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN):
             return self.EmitToken(TK.END, tag=")" if beg.tag == "(" else "]", beg=beg)
         return self.EmitToken(TK.END, beg=beg)
 
@@ -501,19 +561,23 @@ class TS:
         return self.EmitToken(TK.BEG_COLON, ":")
 
 
-def TokensFunctional(ts: TS, name, nodes: List):
-    ts.EmitUnOp(name)
-    beg = ts.EmitBegParen("(")
+def TokensParenList(ts: TS, lst, is_grouping: bool):
     sep = False
-    for n in nodes:
+    beg = ts.EmitBegExprParen("(") if is_grouping else ts.EmitBegParen("(")
+    for t in lst:
         if sep:
             ts.EmitSep(",")
         sep = True
-        if isinstance(n, str):
-            ts.EmitAttr(n)
-        else:
-            EmitTokens(ts, n)
+        EmitTokens(ts, t)
     ts.EmitEnd(beg)
+
+
+def TokensFunctional(ts: TS, name, nodes: List):
+    if isinstance(name, str):
+        ts.EmitUnOp(name)
+    else:
+        EmitTokens(ts, name)
+    TokensParenList(ts, nodes, False)
 
 
 def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
@@ -532,27 +596,6 @@ def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
 def TokensUnaryPrefix(ts: TS, name: str, node):
     ts.EmitUnOp(name)
     EmitTokens(ts, node)
-
-
-def EmitParenList(ts: TS, lst):
-    sep = False
-    beg = ts.EmitBegParen("(")
-    for t in lst:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        EmitTokens(ts, t)
-    ts.EmitEnd(beg)
-
-
-def EmitNameWithParenListExpr(ts: TS, name, lst):
-    ts.EmitUnOp(name)
-    EmitParenList(ts, lst)
-
-
-def EmitExprtWithParenListExpr(ts: TS, callee, lst):
-    EmitTokens(ts, callee)
-    EmitParenList(ts, lst)
 
 
 def EmitExpr3(ts: TS, node: cwast.Expr3):
@@ -906,7 +949,7 @@ _CONCRETE_SYNTAX = {
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
     cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
-    cwast.TypeUnion: lambda ts, n: EmitNameWithParenListExpr(ts, "union", n.types),
+    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
     cwast.TypePtr: lambda ts, n: TokensFunctional(ts, "ptr", [n.type]),
     cwast.TypeArray: lambda ts, n: TokensFunctional(ts, "array", [n.size, n.type]),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
@@ -936,8 +979,8 @@ _CONCRETE_SYNTAX = {
     cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
-        [n.expr1, n.expr2]  if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
-          [n.expr1, n.expr2, n.expr_bound_or_undef] ),
+        [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
+        [n.expr1, n.expr2, n.expr_bound_or_undef]),
     cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index, n),
     cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
@@ -949,9 +992,9 @@ _CONCRETE_SYNTAX = {
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
     cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
-    cwast.ExprCall: lambda ts, n: EmitExprtWithParenListExpr(ts, n.callee, n.args),
+    cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
     cwast.ExprStmt: lambda ts, n: TokensStmtBlock(ts, "expr", "", n.body),
-    cwast.ExprParen: lambda ts, n: EmitParenList(ts, [n.expr]),
+    cwast.ExprParen: lambda ts, n: TokensParenList(ts, [n.expr], True),
 
     #
     cwast.StmtContinue: lambda ts, n: TokensSimpleStmt(ts, "continue", n.target),
@@ -1069,7 +1112,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         kind = tk.kind
         tag = tk.tag
         if want_space:
-            if kind in (TK.BEG, TK.BEG_ANON, TK.UNOP, TK.ANNOTATION_SHORT, TK.BINOP, TK.ATTR):
+            if kind in (TK.BEG, TK.BEG_ANON, TK.UNOP, TK.ANNOTATION_SHORT, TK.BINOP, TK.ATTR, TK.BEG_EXPR_PAREN):
                 # assert False, f"{tk}"
                 sink.emit_space()
         want_space = False
@@ -1089,6 +1132,17 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             indent = stack.push(tk, INDENT)
             sink.set_indent(indent)
         elif kind is TK.BEG_PAREN:
+            sink.emit_token(tag)
+            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
+                break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
+                ) + tk.length > MAX_LINE_LEN
+                indent = stack.push(
+                    tk, INDENT, break_after_sep=break_after_sep)
+                sink.set_indent(indent)
+                sink.newline()
+            else:
+                stack.push(tk, 0)
+        elif kind is TK.BEG_EXPR_PAREN:
             sink.emit_token(tag)
             if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
                 break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
@@ -1130,6 +1184,9 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.maybe_newline()
             elif beg.kind is TK.BEG_COLON:
                 sink.maybe_newline()
+            elif beg.kind is TK.BEG_EXPR_PAREN:
+                sink.emit_token(tk.tag)
+                want_space = True
             elif beg.kind is TK.BEG_PAREN:
                 # TODO
                 sink.emit_token(tk.tag)
