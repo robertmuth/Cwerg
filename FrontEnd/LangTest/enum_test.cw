@@ -20,9 +20,9 @@
     (entry e4))
 
 @doc "GLOBAL"
-(global @mut g1 auto enum8:e1)
-(global @mut g2 auto enum16:e2)
-(global @mut g3 auto enum32:e3)
+(global! g1 auto enum8:e1)
+(global! g2 auto enum16:e2)
+(global! g3 auto enum32:e3)
 
 
 (defrec @pub rec1 :
@@ -37,13 +37,13 @@
     (field s8 u64)
     (field s9 u64))
 
-(global @mut gr1 rec1 undef)
+(global! gr1 rec1 undef)
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
-    (let @mut v1 auto enum8:e2)
-    (let @mut v2 auto enum16:e3)
-    (let @mut v3 auto enum32:e4)
+    (let! v1 auto enum8:e2)
+    (let! v2 auto enum16:e3)
+    (let! v3 auto enum32:e4)
 
     (test::AssertEq# g1 enum8:e1)
     (test::AssertEq# g2 enum16:e2)

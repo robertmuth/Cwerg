@@ -35,7 +35,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 	(field tail	(array (/ BlockSize224 8) u64)))
 
 @doc "only valid len for data are 9, 13, 17, 18
-(fun AddBlockAlignedLE [(param state (ptr @mut StateKeccak)) (param data (slice u64))] void :
+(fun AddBlockAlignedLE [(param state (ptr! StateKeccak)) (param data (slice u64))] void :
     (for i 0 9_uint 1 :
         (xor= (at (-> state x) i) (at data i)))
     (if (== (len data) 9) : (return) :)
@@ -90,22 +90,22 @@ https://emn178.github.io/online-tools/sha3_512.html
     )
 )
 
-(fun KeccakF  [(param x (ptr @mut (array 25 u64)))] void :
+(fun KeccakF  [(param x (ptr! (array 25 u64)))] void :
     @doc """(shed (dumpA ["KeccakF:" x]))"""
 
 	(for round  0 24_uint 1 :
         @doc "theta(x)"
-		(let @mut bc0 auto (XOR_5_EXPR# x 0 5 10 15 20))
-  		(let @mut bc1 auto (XOR_5_EXPR# x 1 6 11 16 21))
-  		(let @mut bc2 auto (XOR_5_EXPR# x 2 7 12 17 22))
-  		(let @mut bc3 auto (XOR_5_EXPR# x 3 8 13 18 23))
-  		(let @mut bc4 auto (XOR_5_EXPR# x 4 9 14 19 24))
+		(let! bc0 auto (XOR_5_EXPR# x 0 5 10 15 20))
+  		(let! bc1 auto (XOR_5_EXPR# x 1 6 11 16 21))
+  		(let! bc2 auto (XOR_5_EXPR# x 2 7 12 17 22))
+  		(let! bc3 auto (XOR_5_EXPR# x 3 8 13 18 23))
+  		(let! bc4 auto (XOR_5_EXPR# x 4 9 14 19 24))
         @doc ""
-		(let @mut t0 auto (xor bc4  (or (<< bc1 1) (>> bc1 63))))
-		(let @mut t1 auto (xor bc0  (or (<< bc2 1) (>> bc2 63))))
-		(let @mut t2 auto (xor bc1  (or (<< bc3 1) (>> bc3 63))))
-		(let @mut t3 auto (xor bc2  (or (<< bc4 1) (>> bc4 63))))
-		(let @mut t4 auto (xor bc3  (or (<< bc0 1) (>> bc0 63))))
+		(let! t0 auto (xor bc4  (or (<< bc1 1) (>> bc1 63))))
+		(let! t1 auto (xor bc0  (or (<< bc2 1) (>> bc2 63))))
+		(let! t2 auto (xor bc1  (or (<< bc3 1) (>> bc3 63))))
+		(let! t3 auto (xor bc2  (or (<< bc4 1) (>> bc4 63))))
+		(let! t4 auto (xor bc3  (or (<< bc0 1) (>> bc0 63))))
 
         (XOR_1# x [0 5 10 15 20] t0)
         (XOR_1# x [1 6 11 16 21] t1)
@@ -115,8 +115,8 @@ https://emn178.github.io/online-tools/sha3_512.html
         @doc """(shed (dumpA ["theta" x]))"""
 
         @doc "rho(x)"
-        (let @mut a u64 (at (^ x) 1))
-        (let @mut b u64)
+        (let! a u64 (at (^ x) 1))
+        (let! b u64)
 
         (UPDATE# a b x 10 1)
         (UPDATE# a b x 7 3)
@@ -174,15 +174,15 @@ https://emn178.github.io/online-tools/sha3_512.html
     )
 )
 
-(fun @pub KeccakAdd [(param state (ptr @mut  StateKeccak))
-                     (param tail (slice @mut u64))
+(fun @pub KeccakAdd [(param state (ptr!  StateKeccak))
+                     (param tail (slice! u64))
                      (param data (slice u8))] void :
     @doc """(fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")"""
-    (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
+    (let tail_u8 auto (as (front! tail)  (ptr! u8)))
     (let block_size uint (* (len tail) 8))
     (let tail_use uint (mod (-> state msglen) block_size))
 
-    (let @mut offset uint 0)
+    (let! offset uint 0)
     (if (> tail_use 0) :
        (if (< (+ tail_use (len data)) block_size) :
             (for i 0 (len data) 1 :
@@ -196,7 +196,7 @@ https://emn178.github.io/online-tools/sha3_512.html
                 (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
             (shed (AddBlockAlignedLE [state  tail]))
-            (shed (KeccakF [(& @mut (-> state x))]))
+            (shed (KeccakF [(&! (-> state x))]))
        )
     :)
     (while  (>= (- (len data) offset) block_size) :
@@ -205,7 +205,7 @@ https://emn178.github.io/online-tools/sha3_512.html
             (+= offset 1)
         )
         (shed (AddBlockAlignedLE [state  tail]))
-        (shed (KeccakF [(& @mut (-> state x))]))
+        (shed (KeccakF [(&! (-> state x))]))
 
     )
     (for i 0 (- (len data) offset) 1 :
@@ -216,10 +216,10 @@ https://emn178.github.io/online-tools/sha3_512.html
     (+= (-> state msglen) (len data))
 )
 
-(fun @pub KeccakFinalize [(param state (ptr @mut  StateKeccak))
-                          (param tail (slice @mut u64))
+(fun @pub KeccakFinalize [(param state (ptr!  StateKeccak))
+                          (param tail (slice! u64))
                           (param padding u8)] void :
-   (let tail_u8 auto (as (front @mut tail)  (ptr @mut u8)))
+   (let tail_u8 auto (as (front! tail)  (ptr! u8)))
    (let block_size auto (* (len tail) 8))
 
    (let padding_start uint (mod (-> state msglen) block_size))
@@ -228,22 +228,22 @@ https://emn178.github.io/online-tools/sha3_512.html
    (or= (^ (pinc tail_u8 padding_start)) padding)
    (or= (^ (pinc tail_u8 (- block_size 1))) 0x80)
    (shed (AddBlockAlignedLE [state  tail]))
-   (shed (KeccakF [(& @mut (-> state x))]))
+   (shed (KeccakF [(&! (-> state x))]))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 (fun @pub Keccak512 [(param data (slice u8))] (array 64 u8) :
-  (let @mut @ref state auto (rec_val StateKeccak512 []))
-  (shed (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
-  (shed (KeccakFinalize [(& @mut (. state base)) (. state tail) KeccakPadding]))
+  (let! @ref state auto (rec_val StateKeccak512 []))
+  (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
+  (shed (KeccakFinalize [(&! (. state base)) (. state tail) KeccakPadding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 (fun @pub Sha3512 [(param data (slice u8))] (array 64 u8) :
-  (let @mut @ref state auto (rec_val StateKeccak512 []))
-  (shed (KeccakAdd [(& @mut (. state base)) (. state tail) data]))
-  (shed (KeccakFinalize [(& @mut (. state base)) (. state tail) Sha3Padding]))
+  (let! @ref state auto (rec_val StateKeccak512 []))
+  (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
+  (shed (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 

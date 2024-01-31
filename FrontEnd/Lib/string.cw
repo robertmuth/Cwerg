@@ -8,7 +8,7 @@
         (param s1 (ptr u8))
         (param s2 (ptr u8))
         (param n uint)] bool :
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (let c1 u8 (^ (pinc s1 i)))
         (let c2 u8 (^ (pinc s2 i)))
@@ -35,7 +35,7 @@
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
     (let n uint (- hlen nlen))
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (if (are_two_non_empty_strings_the_same [
                 (pinc hptr i)
@@ -62,7 +62,7 @@
     @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
     (let nptr (ptr u8) (front needle))
-    (let @mut i uint (- hlen nlen))
+    (let! i uint (- hlen nlen))
     (block _ :
         (if (are_two_non_empty_strings_the_same [
                 (pinc hptr i)
@@ -115,7 +115,7 @@
     (let n uint (min alen blen))
     (let aptr (ptr u8) (front aslice))
     (let bptr (ptr u8) (front bslice))
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (if (< i n) :
             :
@@ -144,7 +144,7 @@
     @doc "assumes that haystack is not empty"
     (let n uint (len haystack))
     (let hptr (ptr u8) (front haystack))
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (if (== needle (^ (pinc hptr i))) :
             (return true)
@@ -167,7 +167,7 @@
         :)
     @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (if (contains_char [needle (^ (pinc hptr i))]) :
             (return i)
@@ -190,7 +190,7 @@
         :)
     @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
-    (let @mut i uint 0)
+    (let! i uint 0)
     (block _ :
         (if (contains_char [needle (^ (pinc hptr i))]) :
             :
@@ -213,7 +213,7 @@
         :)
     @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
-    (let @mut i uint hlen)
+    (let! i uint hlen)
     (block _ :
         (-= i 1)
         (if (contains_char [needle (^ (pinc hptr i))]) :
@@ -236,7 +236,7 @@
         :)
     @doc "at this point we know that both slices have len > 0"
     (let hptr (ptr u8) (front haystack))
-    (let @mut i uint hlen)
+    (let! i uint hlen)
     (block _ :
         (-= i 1)
         (if (contains_char [needle (^ (pinc hptr i))]) :
@@ -247,4 +247,3 @@
             :)
         (continue)))
 )
-

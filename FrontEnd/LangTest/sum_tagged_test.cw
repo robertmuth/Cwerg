@@ -4,7 +4,7 @@
 (type @wrapped t1 s32)
 (type @wrapped t2 void)
 (type @wrapped t3 void)
-(type type_ptr (ptr @mut s32))
+(type type_ptr (ptr! s32))
 
 
 (type Union1 (union [ s32 void type_ptr ]))
@@ -75,9 +75,9 @@
 
 (fun test_tagged_union_basic [] void :
 
-    (let @mut x Union3 true)
-    (let @mut y Union3 undef)
-    (let @mut z s32 777)
+    (let! x Union3 true)
+    (let! y Union3 undef)
+    (let! z s32 777)
 
     (= y x)
     (test::AssertTrue# (is x bool))
@@ -100,7 +100,7 @@
 (type @pub UnionVoid (union [ void t2 t3 ]))
 
 (fun test_tagged_union_void [] void :
-  (let @mut x UnionVoid  void_val)
+  (let! x UnionVoid  void_val)
 )
 
 (fun fun_param [
@@ -115,7 +115,7 @@
     ))
 
 (fun test_tagged_union_parameter [] void :
-    (let @mut x Union3 true)
+    (let! x Union3 true)
     (shed (fun_param [true true 0 x]))
     (= x 666_s32)
     (shed (fun_param [false true 666 x]))
@@ -125,7 +125,7 @@
         (param a bool)
         (param b bool)
         (param c s32)] Union3 :
-    (let @mut out  Union3 undef)
+    (let! out  Union3 undef)
     (if a :
         (= out b)
     :
@@ -134,7 +134,7 @@
 
 
 (fun test_tagged_union_result [] void :
-    (let @mut x auto (fun_result [true false 2]))
+    (let! x auto (fun_result [true false 2]))
     (test::AssertTrue# (is x bool))
     (test::AssertFalse# (is x s32))
 
@@ -144,13 +144,13 @@
 )
 
 (fun test_tagged_union_narrowto [] void :
-    (let @mut x Union3 true)
-    (let @mut y auto (narrowto x bool))
+    (let! x Union3 true)
+    (let! y auto (narrowto x bool))
     (test::AssertTrue# y)
 
     (test::AssertTrue# (narrowto x bool))
 
-    (let @mut z auto (narrowto x (union [ u8 bool ])))
+    (let! z auto (narrowto x (union [ u8 bool ])))
 
 )
 

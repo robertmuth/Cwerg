@@ -38,16 +38,16 @@
     (field u6 u64))
 
 
-(global @mut ga1  (array 5 s64) undef)
+(global! ga1  (array 5 s64) undef)
 
-(global @mut gr1 type_rec1 undef)
-(global @mut gar1 (array 5 type_rec1) undef)
+(global! gr1 type_rec1 undef)
+(global! gar1 (array 5 type_rec1) undef)
 
-(global @mut gr2 type_rec2 undef)
-(global @mut gar2 (array 5 type_rec2) undef)
+(global! gr2 type_rec2 undef)
+(global! gar2 (array 5 type_rec2) undef)
 
-(fun get_addr [] (ptr @mut type_rec1) :
-    (return (& @mut gr1))
+(fun get_addr [] (ptr! type_rec1) :
+    (return (&! gr1))
 )
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -87,5 +87,3 @@
     (return 0))
 
 )
-
-

@@ -5,7 +5,7 @@
 (type @wrapped t1 s32)
 (type @wrapped t2 void)
 (type @wrapped t3 void)
-(type type_ptr (ptr @mut s32))
+(type type_ptr (ptr! s32))
 
 
 (type UntaggedUnion1 (union @untagged [
@@ -65,7 +65,7 @@
 
 
 (fun with_union_result [(param a bool) (param b u32) (param c r32)] UntaggedUnion :
-    (let @mut out UntaggedUnion undef)
+    (let! out UntaggedUnion undef)
     (if a :
         (= out b)
         : (= out c))
@@ -74,10 +74,10 @@
 
 (fun test_untagged_union [] void :
     @doc "straight up union"
-    (let @mut u1 UntaggedUnion)
-    (let @mut u2 UntaggedUnion undef)
-    (let @mut u3 UntaggedUnion 2.0_r32)
-    (let @mut u4 UntaggedUnion 777_u32)
+    (let! u1 UntaggedUnion)
+    (let! u2 UntaggedUnion undef)
+    (let! u3 UntaggedUnion 2.0_r32)
+    (let! u4 UntaggedUnion 777_u32)
 
     (let s1 u32 (narrowto u3 u32))
     (test::AssertEq# s1 0x40000000_u32)
@@ -97,7 +97,7 @@
     (test::AssertEq# (at (narrowto u3 (array 32 u8)) 7) 0x40_u8)
 
     @doc "union embedded in record"
-    (let @mut rec1 RecordWithUntaggedUnion undef)
+    (let! rec1 RecordWithUntaggedUnion undef)
     (= (. rec1 t3) 2.0_r32)
     (test::AssertEq# (narrowto (. rec1 t3) u32) 0x40000000_u32)
     (test::AssertEq# (at (narrowto (. rec1 t3) (array 32 u8)) 0) 0_u8)
@@ -106,7 +106,7 @@
     (test::AssertEq# (at (narrowto (. rec1 t3) (array 32 u8)) 3) 0x40_u8)
 
     @doc "union embedded in record 2"
-    (let @mut rec2 auto (rec_val RecordWithUntaggedUnion [
+    (let! rec2 auto (rec_val RecordWithUntaggedUnion [
         (field_val false)
         (field_val 0x12344321)
         (field_val 2.0_r32)
@@ -129,7 +129,7 @@
     (test::AssertEq# (at (narrowto (. rec1 t3) (array 32 u8)) 7) 0x40_u8)
 
     @doc "array of union"
-    (let @mut array1 (array 16 UntaggedUnion) undef)
+    (let! array1 (array 16 UntaggedUnion) undef)
     (= (at array1 13) 2.0_r32)
     (test::AssertEq# (narrowto (at array1 13) u32) 0x40000000_u32)
     (test::AssertEq# (at (narrowto (at array1 13) (array 32 u8)) 0) 0_u8)

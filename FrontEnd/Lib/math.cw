@@ -63,8 +63,8 @@
 
 @doc "Kahan's doubly compensated summation. Less accurate but fast"
 (fun sum_kahan_compensated [(param summands (slice r64))] r64 :
-    (let @mut s r64 0.0)
-    (let @mut c r64 0.0)
+    (let! s r64 0.0)
+    (let! c r64 0.0)
     (for i 0 (len summands) 1 :
         (let x auto (at summands i))
         (let y auto (- x c))
@@ -81,8 +81,8 @@
 
 @doc "Priest's doubly compensated summation. Accurate but slow"
 (fun sum_priest_compensated [(param summands (slice r64))] SumCompensation :
-    (let @mut s r64 0.0)
-    (let @mut c r64 0.0)
+    (let! s r64 0.0)
+    (let! c r64 0.0)
     (for i 0 (len summands) 1 :
         (let x auto (at summands i))
         (let y auto (+ c x))
@@ -96,10 +96,9 @@
 
 
 (fun horner_sum [(param x r64) (param coeffs (slice r64))] r64 :
-    (let @mut s r64 0.0)
+    (let! s r64 0.0)
     (for i 0 (len coeffs) 1 :
         (let c auto (at coeffs i))
         (= s (+ (* s x) c)))
     (return s))
 )
-

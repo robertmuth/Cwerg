@@ -3,8 +3,8 @@
 (import test)
 
 
-(global @mut gIndex uint 0)
-(global @mut gSequence auto (array_val 10 u8 [(index_val 0)]))
+(global! gIndex uint 0)
+(global! gSequence auto (array_val 10 u8 [(index_val 0)]))
 
 
 (fun store [(param c u8)] void :

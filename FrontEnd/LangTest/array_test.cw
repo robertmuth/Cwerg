@@ -13,7 +13,7 @@
         (index_val 3)]))
 
 
-(global @mut c2 auto (array_val 10 s32 [
+(global! c2 auto (array_val 10 s32 [
         (index_val 1)
         (index_val 2)
         (index_val 3)]))
@@ -27,11 +27,11 @@
 (fun foo [(param a (array 10 u8)) (param b (array dim u64))] u8 :
     (let v2 auto (at c1 0))
     (let v3 auto (& (at c1 0)))
-    (let v4 auto (& @mut (at c2 0)))
+    (let v4 auto (&! (at c2 0)))
     (= (at c2 0) 666)
     (return 66))
 
-(fun update_array [(param s (slice @mut u8))
+(fun update_array [(param s (slice! u8))
           (param pos uint)
           (param new u8)] u8 :
     (let old auto (at s pos))
@@ -52,7 +52,7 @@
     (field u5 (array 10 u8))
     (field u6 u64))
 
-(global @mut r1 auto (rec_val type_rec3 [
+(global! r1 auto (rec_val type_rec3 [
     (field_val (array_val 10 u8 [
                 (index_val 77)
                 (index_val 88)
@@ -60,19 +60,19 @@
 ]))
 
 
-(global @mut c4 auto (array_val 10 u8 [
+(global! c4 auto (array_val 10 u8 [
         (index_val 41)
         (index_val 51)
         (index_val 61)]))
 
 (fun test_mixed_array [] void :
     @doc ""
-    (let @mut @ref a auto (array_val 10 u8 [
+    (let! @ref a auto (array_val 10 u8 [
         (index_val 1)
         (index_val 2)
         (index_val 3)]))
     (let pa auto (& a))
-    (let pa_mut auto (& @mut a))
+    (let pa_mut auto (&! a))
     (test::AssertEq# (at c4 2) 61_u8)
     (= c4 a)
     (test::AssertEq# (at c4 2) 3_u8)
@@ -90,7 +90,7 @@
 
 (fun test_local_array [] void :
     @doc ""
-    (let @mut @ref a auto (array_val 10 u8 [
+    (let! @ref a auto (array_val 10 u8 [
         (index_val 1)
         (index_val 2)
         (index_val 3)]))
@@ -99,7 +99,7 @@
         (index_val 5)
         (index_val 6)]))
     (let pa auto (& a))
-    (let pa_mut auto (& @mut a))
+    (let pa_mut auto (&! a))
     (let pb auto (& b))
 
     (test::AssertEq# (at a 0) 1_u8)
@@ -130,12 +130,12 @@
         (index_val 33)]))
 
 
-(global @mut d2 auto (array_val 10 s32 [
+(global! d2 auto (array_val 10 s32 [
         (index_val 111)
         (index_val 222)
         (index_val 333)]))
 
-(global @mut c3 auto (array_val 10 u8 [
+(global! c3 auto (array_val 10 u8 [
         (index_val 4)
         (index_val 5)
         (index_val 6)]))
@@ -144,7 +144,7 @@
 (global e1 (slice s32) d1)
 
 
-(global e2 (slice @mut s32) d2)
+(global e2 (slice! s32) d2)
 
 (global e3 auto (array_val 5 s32 [ 0 1 2 3 4]))
 
@@ -157,7 +157,7 @@
 
 (global f3 (slice s32) e2)
 
-(global f2 (slice @mut s32) e2)
+(global f2 (slice! s32) e2)
 
 (fun test_global_array [] void :
    @doc "basic"

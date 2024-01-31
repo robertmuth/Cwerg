@@ -46,7 +46,7 @@
 (global g2 auto (rec_val type_rec2 [(field_val true) (field_val u0)]))
 
 
-(global @mut g3 auto (rec_val type_rec3 [
+(global! g3 auto (rec_val type_rec3 [
         (field_val 0x1234)
         (field_val 0x4321)
         (field_val g2)
@@ -55,7 +55,7 @@
                 (index_val undef)
                 (index_val 0x12)]))]))
 
-(global @mut g3_alt auto (rec_val type_rec3 [
+(global! g3_alt auto (rec_val type_rec3 [
         0x1234
         0x4321
         g2
@@ -66,11 +66,11 @@
 
 (defrec @pub type_rec5 :
     (field t1 u64)
-    (field t2 (slice @mut u8))
+    (field t2 (slice! u8))
     (field t5 bool))
 
 
-(global @mut buffer auto (array_val 3 u8 [ 0 0 0 ]))
+(global! buffer auto (array_val 3 u8 [ 0 0 0 ]))
 
 (global g5 type_rec5 undef)
 (global g6 type_rec5 (rec_val type_rec5 [0 buffer false]))
@@ -79,7 +79,7 @@
 
 (fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
-    (let @mut v1 auto (rec_val type_rec3 []))
+    (let! v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)
     (= (. v1 u3) 103)
     (= (. v1 u6) 106)

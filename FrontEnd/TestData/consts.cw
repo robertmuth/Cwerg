@@ -194,11 +194,11 @@
 (static_assert (!= (is a8 s32) true))
 (static_assert (== (is a8 bool) true))
 
-(global @mut Real r32)
+(global! Real r32)
 (global p1 (ptr r32) (& Real))
-(global p2 (ptr @mut r32) (& @mut Real))
+(global p2 (ptr! r32) (&! Real))
 (static_assert (== (is p1 bool) false))
-(static_assert (== (is p1 (ptr @mut r32)) false))
+(static_assert (== (is p1 (ptr! r32)) false))
 (static_assert (== (is p1 (ptr r32)) true))
 
 )

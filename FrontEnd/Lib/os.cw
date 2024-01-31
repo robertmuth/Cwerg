@@ -6,7 +6,7 @@
 
 (fun @pub @cdecl @extern nanosleep [
     (param req (ptr TimeSpec))
-    (param rem (ptr @mut TimeSpec))] s32 :)
+    (param rem (ptr! TimeSpec))] s32 :)
 
 (fun @pub @cdecl @extern write [
         (param fd s32)
@@ -15,7 +15,7 @@
 
 (fun @pub @cdecl @extern read [
         (param fd s32)
-        (param s (ptr @mut u8))
+        (param s (ptr! u8))
         (param size uint)] sint :)
 
 
@@ -38,8 +38,8 @@
 )
 
 (fun @pub FileRead [
-        (param fd FD) (param buffer (slice @mut u8))] (union [uint Error]):
-    (let res auto (read [(unwrap fd) (front @mut buffer) (len buffer)]))
+        (param fd FD) (param buffer (slice! u8))] (union [uint Error]):
+    (let res auto (read [(unwrap fd) (front! buffer) (len buffer)]))
     (if (< res 0) :
           (return (wrap (as res s32) Error))
     :
@@ -49,7 +49,7 @@
 
 
 (fun @pub TimeNanoSleep [(param req (ptr TimeSpec))
-                                  (param rem (ptr @mut TimeSpec))] Error :
+                                  (param rem (ptr! TimeSpec))] Error :
     (let res auto (nanosleep [req rem]))
     (return (wrap res Error))
 )
