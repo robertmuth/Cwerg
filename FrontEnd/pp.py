@@ -464,11 +464,11 @@ class TK(enum.Enum):
 
 
 BEG_TOKENS = set([
-    "module", "global", "enum", "import", "defer", "block", "expr",
+    "module", "global", "global!", "enum", "import", "defer", "block", "expr",
     "break", "continue", "fun", "cond", "type", "if", "type",
-    "shed", "discard", "rec", "case", "let", "set", "for", "macro",
+    "shed", "discard", "rec", "case", "let", "let!", "set", "for", "macro",
     "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$for", "swap",
+    "$let", "$let!", "$for", "$for!", "swap",
 ])
 
 INDENT = 1
@@ -550,7 +550,8 @@ class TS:
         return self.EmitToken(TK.BEG_EXPR_PAREN, a)
 
     def EmitBeg(self, a: str):
-        assert a in BEG_TOKENS or a.endswith(cwast.MACRO_SUFFIX), f"bad BEG token {a}"
+        assert a in BEG_TOKENS or a.endswith(
+            cwast.MACRO_SUFFIX), f"bad BEG token {a}"
         return self.EmitToken(TK.BEG, a)
 
     def EmitBegAnon(self):
@@ -611,32 +612,34 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
 
 
 def TokensAnnotations(ts: TS, node):
+    # handle docs first
     for field, nfd in node.ATTRS:
         # these attributes will be rendered directly
-        if field in ("triplequoted", "strkind"):
+        if field in ("triplequoted", "strkind") or nfd.kind is not cwast.NFK.ATTR_STR:
             continue
-        if nfd.kind is cwast.NFK.ATTR_STR:
-            val = getattr(node, field)
-            if val:
-                if field == "doc":
-                    if val.startswith('"""'):
-                        val = val[3:-3]
-                    else:
-                        val = val[1:-1]
-                    for line in val.split("\n"):
-                        ts.EmitAttr("-- " + line)
-                        ts.EmitNewLine()
+        val = getattr(node, field)
+        if val:
+            if field == "doc":
+                if val.startswith('"""'):
+                    val = val[3:-3]
                 else:
-                    ts.EmitAnnotationLong("@" + field + "=" + val)
+                    val = val[1:-1]
+                for line in val.split("\n"):
+                    ts.EmitAttr("-- " + line)
+                    ts.EmitNewLine()
 
+            else:
+                ts.EmitAnnotationLong("@" + field + "=" + val)
+
+    # next handle non-docs
     for field, nfd in node.ATTRS:
-        if field in ("triplequoted", "strkind"):
+        # mut is handled directly
+        if field in ("triplequoted", "strkind", "mut") or nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
 
-        if nfd.kind is cwast.NFK.ATTR_BOOL:
-            val = getattr(node, field)
-            if val:
-                ts.EmitAnnotationShort("@" + field)
+        val = getattr(node, field)
+        if val:
+            ts.EmitAnnotationShort("@" + field)
 
 
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
@@ -805,7 +808,7 @@ def TokensDefMod(ts: TS, node: cwast.DefMod):
 
 
 def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
-    beg = ts.EmitBeg("global")
+    beg = ts.EmitBeg("global!" if node.mut else "global")
     ts.EmitAttr(node.name)
     EmitTokens(ts, node.type_or_auto)
     if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
@@ -958,15 +961,15 @@ _CONCRETE_SYNTAX = {
     #
     cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, "$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, "$let!" if n.mut else "$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
-    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.type]),
+    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, "slice!" if n.mut else "slice", [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
-    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, "ptr", [n.type]),
+    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, "ptr!" if n.mut else "ptr", [n.type]),
     cwast.TypeArray: lambda ts, n: TokensFunctional(ts, "array", [n.size, n.type]),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
@@ -982,7 +985,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValArray: TokensValArray,
 
     #
-    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, "front", [n.container]),
+    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, "front!" if n.mut else "front", [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, "as", [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type, n),
@@ -1003,7 +1006,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
     cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&", n.expr_lhs),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&!" if n.mut else "&", n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
@@ -1026,7 +1029,7 @@ _CONCRETE_SYNTAX = {
     cwast.StmtCompoundAssignment: lambda ts, n: TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
                                                               n.lhs, n.expr_rhs),
     cwast.StmtAssignment: lambda ts, n: TokensStmtSet(ts, "=", n.lhs, n.expr_rhs),
-    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, "let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, "let!" if n.mut else "let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.StmtIf: ConcreteIf,
     #
     cwast.DefMod: TokensDefMod,
