@@ -64,7 +64,7 @@ If not you're just wasting my time
         )
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc ""
     (shed (test_Keccak512 []))
     (shed (test_Sha3512 []))

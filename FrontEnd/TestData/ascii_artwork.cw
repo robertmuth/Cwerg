@@ -28,7 +28,7 @@ Fish body parts:
 6: tailfin
 7: gills
 """
-(global @pub RandomColor auto "RcRyBgM")
+@pub (global RandomColor auto "RcRyBgM")
 
 
 (global CastleSprites auto (array_val 1 aanim::Sprite [(index_val (rec_val aanim::Sprite [(field_val r"""
@@ -62,7 +62,7 @@ Fish body parts:
 """)]))]))
 
 
-(global @pub Castle auto (rec_val aanim::Object [
+@pub (global Castle auto (rec_val aanim::Object [
         (field_val "castle")
         (field_val CastleSprites)
         (field_val 'B')
@@ -84,7 +84,7 @@ yy
 """)]))]))
 
 
-(global @pub SwanL auto (rec_val aanim::Object [
+@pub (global SwanL auto (rec_val aanim::Object [
         (field_val "swan_l")
         (field_val SwanLSprites)
         (field_val 'W')
@@ -107,7 +107,7 @@ yy
 """)]))]))
 
 
-(global @pub SwanR auto (rec_val aanim::Object [
+@pub (global SwanR auto (rec_val aanim::Object [
         (field_val "swan_r")
         (field_val SwanRSprites)
         (field_val 'W')
@@ -145,7 +145,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub DuckR auto (rec_val aanim::Object [
+@pub (global DuckR auto (rec_val aanim::Object [
         (field_val "duck_r1")
         (field_val DucksRSprites)
         (field_val 'W')
@@ -175,7 +175,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub DolphinR auto (rec_val aanim::Object [
+@pub (global DolphinR auto (rec_val aanim::Object [
         (field_val "dolphin_r")
         (field_val DolphinRSprites)
         (field_val 'b')
@@ -204,7 +204,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub DolphinL auto (rec_val aanim::Object [
+@pub (global DolphinL auto (rec_val aanim::Object [
         (field_val "dolphin_r")
         (field_val DolphinLSprites)
         (field_val 'b')
@@ -245,7 +245,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub BigFishR auto (rec_val aanim::Object [
+@pub (global BigFishR auto (rec_val aanim::Object [
         (field_val "bigfish_r")
         (field_val BigFishRSprites)
         (field_val 'Y')
@@ -286,7 +286,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub BigFishL auto (rec_val aanim::Object [
+@pub (global BigFishL auto (rec_val aanim::Object [
         (field_val "bigfish_l")
         (field_val BigFishLSprites)
         (field_val 'Y')
@@ -349,7 +349,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """)]))]))
 
 
-(global @pub MonsterR auto (rec_val aanim::Object [
+@pub (global MonsterR auto (rec_val aanim::Object [
         (field_val "monster_r")
         (field_val MonsterRSprites)
         (field_val 'G')
@@ -375,7 +375,7 @@ y                   y
 """)]))]))
 
 
-(global @pub ShipR auto (rec_val aanim::Object [
+@pub (global ShipR auto (rec_val aanim::Object [
         (field_val "ship_r")
         (field_val ShipRSprites)
         (field_val 'W')
@@ -408,7 +408,7 @@ y                   y
 """)]))]))
 
 
-(global @pub SharkR auto (rec_val aanim::Object [
+@pub (global SharkR auto (rec_val aanim::Object [
         (field_val "ship_r")
         (field_val SharkRSprites)
         (field_val 'C')
@@ -434,14 +434,14 @@ y                   y
 """)]))]))
 
 
-(global @pub Fish1R auto (rec_val aanim::Object [
+@pub (global Fish1R auto (rec_val aanim::Object [
         (field_val "fish1_r")
         (field_val Fish1RSprites)
         (field_val 'C')
         (field_val 2 def_depth)]))
 
 
-(fun @pub UpdateState [
+@pub (fun UpdateState [
         (param s (ptr! aanim::ObjectState))
         (param t r32)
         (param dt r32)] void :

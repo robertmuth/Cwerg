@@ -46,7 +46,7 @@
     (= (at c2 5) 0)
 )
 
-(defrec @pub type_rec3 :
+@pub (defrec type_rec3 :
     (field u2 u16)
     (field u3 u64)
     (field u5 (array 10 u8))
@@ -175,7 +175,7 @@
     (test::AssertEq# (len e1) 10_uint)
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_global_array []))
     (shed (test_local_array []))
     (shed (test_mixed_array []))

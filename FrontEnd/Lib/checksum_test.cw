@@ -84,7 +84,7 @@
     63
     ]))
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "init"
     (shed (checksum::InitCrcTab [checksum::PolyCrc32LE (&! Crc32Tab)]))
     (fmt::print# ["\n\n"])

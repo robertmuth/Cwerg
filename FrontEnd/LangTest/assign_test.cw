@@ -1,7 +1,7 @@
 (module main [] :
 (import test)
 
-(defrec @pub type_rec1 :
+@pub (defrec type_rec1 :
     @doc "this is a comment with \" with quotes \t "
     (field i1 s64)
     (field i2 u64)
@@ -23,14 +23,14 @@
     )
 
 
-(defrec @pub type_rec2 :
+@pub (defrec type_rec2 :
     (field t1 bool)
     (field t2 u32)
     (field t3 type_rec1)
     (field t4 bool))
 
 
-(defrec @pub type_rec3 :
+@pub (defrec type_rec3 :
     (field u2 u16)
     (field u3 u64)
     (field u4 type_rec2)
@@ -50,7 +50,7 @@
     (return (&! gr1))
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "a1 u32"
     (= (at ga1 3) 0x8765432187654321)
     (test::AssertEq# (at ga1 3) 0x8765432187654321_s64)

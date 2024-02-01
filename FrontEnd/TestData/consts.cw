@@ -62,13 +62,13 @@
 (global c3 auto 7.0_r32)
 
 
-(global @pub c4 auto "xxxxxx")
+@pub (global c4 auto "xxxxxx")
 
 
 (global c10 auto c2)
 
 
-(defrec @pub type_rec :
+@pub (defrec type_rec :
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -100,7 +100,7 @@
 (static_assert (== (. c32 b1) false))
 
 
-(enum @pub type_enum S32 :
+@pub (enum type_enum S32 :
     (entry e1 7)
     (entry e2)
     (entry e3 19)
@@ -149,7 +149,7 @@
 (static_assert (== (. c33 s1) 7))
 
 
-(defrec @pub type_rec2 :
+@pub (defrec type_rec2 :
     (field s1 (slice u8))
     (field s2 s32)
     (field s3 s32))

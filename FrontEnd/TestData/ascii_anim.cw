@@ -7,10 +7,10 @@
 (global MAX_DIM s32 1024)
 
 
-(global @pub DEF_ATTR_LOOKUP auto "RcRyBgM")
+@pub (global DEF_ATTR_LOOKUP auto "RcRyBgM")
 
 
-(defrec @pub Window :
+@pub (defrec Window :
     (field width s32)
     (field height s32)
     (field char_map (array (* MAX_DIM MAX_DIM) u8))
@@ -18,12 +18,12 @@
     (field depth_map (array (* MAX_DIM MAX_DIM) u8)))
 
 
-(defrec @pub Sprite :
+@pub (defrec Sprite :
     (field image_map (slice u8))
     (field color_map (slice u8)))
 
 
-(defrec @pub Object :
+@pub (defrec Object :
     (field name (slice u8))
     (field sprites (slice Sprite))
     (field def_attr u8)
@@ -33,7 +33,7 @@
     (field def_y_speed r32))
 
 
-(defrec @pub ObjectState :
+@pub (defrec ObjectState :
     (field obj (ptr Object))
     (field start_time r32)
     (field x_pos r32)
@@ -48,7 +48,7 @@
     (field visible bool))
 
 
-(fun @pub InitObjectState [(param s (ptr! ObjectState)) (param o (ptr Object))] void :
+@pub (fun InitObjectState [(param s (ptr! ObjectState)) (param o (ptr Object))] void :
     (= (-> s obj) o)
     (= (-> s attr_lookup) DEF_ATTR_LOOKUP)
     (= (-> s depth) (-> o def_depth))
@@ -58,7 +58,7 @@
     (= (-> s y_speed) (-> o def_y_speed)))
 
 
-(fun @pub SetBasics [
+@pub (fun SetBasics [
         (param s (ptr! ObjectState))
         (param start_time r32)
         (param x_pos r32)
@@ -122,7 +122,7 @@
             (return ""))))
 
 
-(fun @pub draw [(param window (ptr! Window)) (param s (ptr! ObjectState))] void :
+@pub (fun draw [(param window (ptr! Window)) (param s (ptr! ObjectState))] void :
     (let width auto (-> window width))
     (let height auto (-> window height))
     (let obj auto (-> s obj))
@@ -180,7 +180,7 @@
         (+= x 1)))
 
 
-(fun @pub window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
+@pub (fun window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
     (fmt::print# (get_bg_color [bg_col]) ansi::CLEAR_ALL)
     (let w auto (-> obj width))
     (let h auto (-> obj height))
@@ -206,7 +206,7 @@
             (fmt::print# (wrap c fmt::rune)))))
 
 
-(fun @pub window_fill [
+@pub (fun window_fill [
         (param obj (ptr! Window))
         (param c u8)
         (param a u8)] void :

@@ -1,5 +1,5 @@
 (module m1 [] :
-(fun @pub foo1 [
+@pub (fun foo1 [
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
@@ -14,10 +14,10 @@
     (return 7))
 
 
-(global! @pub v1 auto 7_u64)
+@pub (global! v1 auto 7_u64)
 
 
-(global @pub v1a auto (&! v1))
+@pub (global v1a auto (&! v1))
 
 
 (fun foo2 [
@@ -36,10 +36,10 @@
 (type @wrapped t1 s32)
 
 
-(global @pub c1 auto 7_s64)
+@pub (global c1 auto 7_s64)
 
 
-(defrec @pub type_rec :
+@pub (defrec type_rec :
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -49,18 +49,18 @@
     (field u2 u64))
 
 
-(defrec @pub one_field_rec :
+@pub (defrec one_field_rec :
     (field the_field r32))
 
 
-(defrec @pub one_one_field_rec :
+@pub (defrec one_one_field_rec :
     (field the_field one_field_rec))
 
 
 (global c2 auto (offsetof type_rec s1))
 
 
-(enum @pub type_enum S32 :
+@pub (enum type_enum S32 :
     (entry s1 7)
     (entry s2)
     (entry s3 19)
@@ -70,7 +70,7 @@
 (type type_ptr (ptr! s32))
 
 
-(type @pub type_union (union [
+@pub (type type_union (union [
         s32
         void
         type_ptr]))

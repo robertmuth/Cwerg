@@ -1,15 +1,15 @@
 (module fmt [] :
 (import os)
-(fun @pub @extern memcpy [
+@pub @extern (fun memcpy [
         (param dst (ptr! u8))
         (param src (ptr u8))
         (param size uint)] (ptr! u8) :)
 
 
-(global @pub FORMATED_STRING_MAX_LEN uint 4096)
+@pub (global FORMATED_STRING_MAX_LEN uint 4096)
 
 
-(fun @pub mymemcpy [
+@pub (fun mymemcpy [
         (param dst (ptr! u8))
         (param src (ptr u8))
         (param size uint)] uint :
@@ -19,7 +19,7 @@
 
 
 @doc "This gets passed to the actual formatters which decide how to interpret the options."
-(defrec @pub SysFormatOptions :
+@pub (defrec SysFormatOptions :
     @doc "min width"
     (field witdh u8)
     (field precission u8)
@@ -29,7 +29,7 @@
     (field left_justify bool))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v bool)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -103,7 +103,7 @@
         (return (unsigned_to_str# (as v u32) 10 32_uint out))))
 
 
-(fun @pub str_to_u32 [(param s (slice u8))] u32 :
+@pub (fun str_to_u32 [(param s (slice u8))] u32 :
     (let! x auto 0_u32)
     (for i 0 (len s) 1 :
         (*= x 10)
@@ -112,42 +112,42 @@
     (return x))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u8)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u8_to_str [v out])))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u16)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u16_to_str [v out])))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u32_to_str [v out])))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u64)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u64_to_str [v out])))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v s32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (s32_to_str [v out])))
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v (slice u8))
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -158,10 +158,10 @@
             n])))
 
 
-(type @pub @wrapped u64_hex u64)
-(type @pub @wrapped u32_hex u32)
-(type @pub @wrapped u16_hex u16)
-(type @pub @wrapped u8_hex u8)
+@pub (type @wrapped u64_hex u64)
+@pub (type @wrapped u32_hex u32)
+@pub (type @wrapped u16_hex u16)
+@pub (type @wrapped u8_hex u8)
 
 (fun u64_to_hex_str [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
@@ -175,35 +175,35 @@
 (fun u8_to_hex_str [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u64_to_hex_str [(unwrap v) out])))
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u32_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u32_to_hex_str [(unwrap v) out])))
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u16_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u16_to_hex_str [(unwrap v) out])))
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v u8_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u8_to_hex_str [(unwrap v) out])))
 
 
-(type @pub @wrapped rune u8)
+@pub (type @wrapped rune u8)
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v rune)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -300,18 +300,18 @@
     (return i))
 
 
-(type @pub @wrapped r64_hex r64)
+@pub (type @wrapped r64_hex r64)
 
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v r64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (r64_to_hex_str [(unwrap v) out])))
 
-(type @pub @wrapped str_hex (slice u8))
+@pub (type @wrapped str_hex (slice u8))
 
-(fun @polymorphic SysRender [
+@polymorphic (fun SysRender [
         (param v str_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -331,7 +331,7 @@
     (return 0))
 )
 
-(macro @pub print# STMT_LIST [
+@pub (macro print# STMT_LIST [
         @doc "list of items to be printed"
         (mparam $parts EXPR_LIST_REST)] [$buffer $curr $options] :
     ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
@@ -345,7 +345,7 @@
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 @doc "same as above but takes an EXPR_LIST - should only be used by other macros"
-(macro @pub print_list# STMT_LIST [
+@pub (macro print_list# STMT_LIST [
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     ($let! $curr uint 0)
@@ -358,14 +358,14 @@
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
-(fun @pub strz_to_slice [(param s (ptr u8))] (slice u8) :
+@pub (fun strz_to_slice [(param s (ptr u8))] (slice u8) :
     (let! i uint 0)
     (while (!= (^ (pinc s i)) 0) :
         (+= i 1))
     (return (slice_val s i)))
 
 
-(macro @pub assert# STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST_REST)] [] :
+@pub (macro assert# STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST_REST)] [] :
     (if $cond :
         :
         (print# (stringify $cond))

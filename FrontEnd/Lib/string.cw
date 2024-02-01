@@ -1,7 +1,7 @@
 @doc "String Library"
 (module string [] :
 
-(global @pub NOT_FOUND uint (! 0))
+@pub (global NOT_FOUND uint (! 0))
 
 
 (fun are_two_non_empty_strings_the_same [
@@ -22,7 +22,7 @@
             (return true))))
 
 
-(fun @pub find [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun find [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== nlen 0) :
@@ -50,7 +50,7 @@
             (return NOT_FOUND))))
 
 
-(fun @pub rfind [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun rfind [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== nlen 0) :
@@ -77,7 +77,7 @@
         (continue)))
 
 
-(fun @pub starts_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
+@pub (fun starts_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
     (let hlen uint (len haystack))
     (let nlen uint (len needle))
     (if (== nlen 0) :
@@ -93,7 +93,7 @@
             nlen])))
 
 
-(fun @pub ends_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
+@pub (fun ends_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
     (let hlen uint (len haystack))
     (let nlen uint (len needle))
     (if (== nlen 0) :
@@ -109,7 +109,7 @@
             nlen])))
 
 
-(fun @pub cmp [(param aslice (slice u8)) (param bslice (slice u8))] sint :
+@pub (fun cmp [(param aslice (slice u8)) (param bslice (slice u8))] sint :
     (let alen uint (len aslice))
     (let blen uint (len bslice))
     (let n uint (min alen blen))
@@ -156,7 +156,7 @@
             (return false))))
 
 
-(fun @pub find_first_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun find_first_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -179,7 +179,7 @@
             (return NOT_FOUND))))
 
 
-(fun @pub find_first_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun find_first_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -202,7 +202,7 @@
             (return NOT_FOUND))))
 
 
-(fun @pub find_last_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun find_last_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :
@@ -225,7 +225,7 @@
         (continue)))
 
 
-(fun @pub find_last_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
+@pub (fun find_last_not_of [(param haystack (slice u8)) (param needle (slice u8))] uint :
     (let nlen uint (len needle))
     (let hlen uint (len haystack))
     (if (== hlen 0) :

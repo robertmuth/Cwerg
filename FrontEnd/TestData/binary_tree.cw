@@ -3,10 +3,10 @@
 (type @wrapped NoneType void)
 
 
-(global @pub None auto (wrap void_val NoneType))
+@pub (global None auto (wrap void_val NoneType))
 
 
-(defrec @pub BinaryTreeNode :
+@pub (defrec BinaryTreeNode :
     (field left (union [NoneType (ptr! BinaryTreeNode)]))
     (field right (union [NoneType (ptr! BinaryTreeNode)]))
     (field payload u32))

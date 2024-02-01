@@ -8,7 +8,7 @@
 (type @wrapped t3 void)
 
 
-(defrec @pub type_rec :
+@pub (defrec type_rec :
     @doc "this is a comment with \" with quotes \t"
     (field s1 s32)
     (field s2 s32)
@@ -19,12 +19,12 @@
     (field u2 u64))
 
 
-(defrec @pub linked_list :
+@pub (defrec linked_list :
     @doc "this is a comment with \" with quotes \t "
     (field s1 (union [void (ptr linked_list)])))
 
 
-(enum @pub type_enum S32 :
+@pub (enum type_enum S32 :
     @doc "this is a comment with \" with quotes \t "
     (entry s1)
     (entry s2)
@@ -41,13 +41,13 @@
 (type type_ptr (ptr! s32))
 
 
-(type @pub type_union (union [
+@pub (type type_union (union [
         s32
         void
         type_ptr]))
 
 
-(type @pub type_union2 (union [
+@pub (type type_union2 (union [
         s32
         void
         (union [type_union u8])]))

@@ -1,7 +1,7 @@
 @doc "Macro Examples"
 (module macro_testing [] :
 
-(defrec @pub MyRec :
+@pub (defrec MyRec :
     (field s1 s32)
     (field s2 u32))
 

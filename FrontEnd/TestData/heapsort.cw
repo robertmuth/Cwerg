@@ -56,7 +56,7 @@
     (return))
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 SIZE 1 :
         (let v auto (random::get_random [1000]))
         (= (at Data (+ i 1)) v))

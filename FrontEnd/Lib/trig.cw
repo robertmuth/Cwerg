@@ -21,7 +21,7 @@
 
 
 @doc "|x + y | <= pi / 4"
-(fun @pub sin_restricted [
+@pub (fun sin_restricted [
         (param x r64)
         (param y r64)
         (param y_is_zero bool)] r64 :
@@ -62,7 +62,7 @@
 
 
 @doc "|x + y | <= pi / 4"
-(fun @pub cos_restricted [(param x r64) (param y r64)] r64 :
+@pub (fun cos_restricted [(param x r64) (param y r64)] r64 :
     (let x2 auto (* x x))
     (let x4 auto (* x2 x2))
     (let x8 auto (* x4 x4))

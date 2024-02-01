@@ -1,7 +1,7 @@
 @doc "module"
 (module m1 [] :
 
-(defrec @pub type_rec2 :
+@pub (defrec type_rec2 :
       (field s1 (slice u8))
       @doc "field comment"
       (field s2 s32)

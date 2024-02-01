@@ -37,7 +37,7 @@
 (static_assert (== (sizeof UntaggedUnion4) 4))
 
 
-(type @pub UntaggedUnion5 (union @untagged [
+@pub (type UntaggedUnion5 (union @untagged [
         t2
         t3
         s8]))
@@ -154,7 +154,7 @@
 )
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_untagged_union []))
 
     @doc "test end"

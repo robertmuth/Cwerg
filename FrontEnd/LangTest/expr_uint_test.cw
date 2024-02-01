@@ -151,7 +151,7 @@
     (test::AssertEq# (!= a a) false)
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_u64 [0x8765432187654321 0x1234567812345678]))
     (shed (test_u32 [0x87654321 0x12345678]))
     (shed (test_u16 [0x4321 0x1234]))

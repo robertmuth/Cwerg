@@ -41,7 +41,7 @@
 (type Delta3 (uniondelta Union3 (union [ bool u8 s64])))
 (static_assert (== (typeid Delta3) (typeid s32)))
 
-(type @pub Union5 (union [ t2 t3 s8 ]))
+@pub (type Union5 (union [ t2 t3 s8 ]))
 
 (static_assert (== (sizeof Union5) 3))
 
@@ -62,7 +62,7 @@
     (field s2 Union5))
 
 
-(defrec @pub rec2 :
+@pub (defrec rec2 :
     (field s1 Union1)
     (field s2 Union2))
 
@@ -70,8 +70,8 @@
 (global global_rec1  auto (rec_val rec1 [1_s8 2_s8]))
 
 @doc """
-(type @pub sum11_t (union [bool u16]))
-(type @pub sum12_t (union [type_ptr u16])) """
+@pub (type sum11_t (union [bool u16]))
+@pub (type sum12_t (union [type_ptr u16])) """
 
 (fun test_tagged_union_basic [] void :
 
@@ -97,7 +97,7 @@
 
 
 
-(type @pub UnionVoid (union [ void t2 t3 ]))
+@pub (type UnionVoid (union [ void t2 t3 ]))
 
 (fun test_tagged_union_void [] void :
   (let! x UnionVoid  void_val)
@@ -154,7 +154,7 @@
 
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_tagged_union_basic []))
     (shed (test_tagged_union_void []))
     (shed (test_tagged_union_result []))

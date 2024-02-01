@@ -205,7 +205,7 @@ D = 100
 
 )
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_helper []))
     (shed (test_helper_single_code []))
 

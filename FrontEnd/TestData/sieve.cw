@@ -29,7 +29,7 @@
     (return count))
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (test::AssertEq# (sieve []) EXPECTED)
     (test::Success#)
     (return 0))

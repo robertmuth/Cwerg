@@ -14,14 +14,14 @@ the footprint/dependencies small.
     (shed (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])
     ))
 
-(macro @pub Success# STMT [] [] :
+@pub (macro Success# STMT [] [] :
     (SysPrint# "OK\n"))
 
 
 @doc """The two scalar arguments must be the same
 
 Both must have derivable types as we use `auto`"""
-(macro @pub AssertEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
+@pub (macro AssertEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
     ($let $e_val auto $e_expr)
     ($let $a_val auto $a_expr)
     (if (!= $e_val $a_val) :
@@ -34,7 +34,7 @@ Both must have derivable types as we use `auto`"""
         :))
 
 @doc "First argument must have the type denoted by the second"
-(macro @pub AssertIs# STMT_LIST [(mparam $expr EXPR) (mparam $type TYPE)] [] :
+@pub (macro AssertIs# STMT_LIST [(mparam $expr EXPR) (mparam $type TYPE)] [] :
     (if (is $expr $type) : :
         (SysPrint# "AssertIs failed: ")
         (SysPrint# (stringify (typeof $expr)))
@@ -45,7 +45,7 @@ Both must have derivable types as we use `auto`"""
         ))
 
 @doc "The two arguments must type derivable"
-(macro @pub AssertSliceEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)]
+@pub (macro AssertSliceEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)]
         [$e_val $a_val $i] :
     ($let $e_val auto $e_expr)
     ($let $a_val auto $a_expr)
@@ -55,7 +55,7 @@ Both must have derivable types as we use `auto`"""
 
 
 @doc "The first two arguments must derivable types as we use `auto`"
-(macro @pub AssertApproxEq# STMT_LIST [
+@pub (macro AssertApproxEq# STMT_LIST [
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val] :
@@ -72,7 +72,7 @@ Both must have derivable types as we use `auto`"""
 
 
 @doc "The first two arguments must type derivable"
-(macro @pub AssertSliceApproxEq# STMT_LIST [
+@pub (macro AssertSliceApproxEq# STMT_LIST [
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val $i] :
@@ -84,7 +84,7 @@ Both must have derivable types as we use `auto`"""
     $epsilon)
 
 @doc ""
-(macro @pub AssertTrue# STMT_LIST [(mparam $e_expr EXPR)] [] :
+@pub (macro AssertTrue# STMT_LIST [(mparam $e_expr EXPR)] [] :
     (if  $e_expr : :
         (SysPrint# "AssertTrue failed: ")
         (SysPrint# (stringify $e_expr))
@@ -93,7 +93,7 @@ Both must have derivable types as we use `auto`"""
         ))
 
 @doc ""
-(macro @pub AssertFalse# STMT_LIST [(mparam $e_expr EXPR)] [] :
+@pub (macro AssertFalse# STMT_LIST [(mparam $e_expr EXPR)] [] :
     (if  $e_expr :
         (SysPrint# "AssertFalse failed: ")
         (SysPrint# (stringify $e_expr))
@@ -102,7 +102,7 @@ Both must have derivable types as we use `auto`"""
         : ))
 
 @doc ""
-(macro @pub AssertUnreachable# STMT_LIST [] [] :
+@pub (macro AssertUnreachable# STMT_LIST [] [] :
     (SysPrint# "AssertUnreachable\n")
     (trap)
 )

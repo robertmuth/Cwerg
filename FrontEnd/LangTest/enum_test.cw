@@ -1,19 +1,19 @@
 (module main [] :
 (import test)
 
-(enum @pub enum8 U8 :
+@pub (enum enum8 U8 :
     (entry e1 7)
     (entry e2)
     (entry e3 19)
     (entry e4))
 
-(enum @pub enum16 U16 :
+@pub (enum enum16 U16 :
     (entry e1 70)
     (entry e2)
     (entry e3 190)
     (entry e4))
 
-(enum @pub enum32 U32 :
+@pub (enum enum32 U32 :
     (entry e1 700)
     (entry e2)
     (entry e3 1900)
@@ -25,7 +25,7 @@
 (global! g3 auto enum32:e3)
 
 
-(defrec @pub rec1 :
+@pub (defrec rec1 :
     @doc "this is a comment with \" with quotes \t "
     (field s1 s32)
     (field s2 s32)
@@ -39,7 +39,7 @@
 
 (global! gr1 rec1 undef)
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
     (let! v1 auto enum8:e2)
     (let! v2 auto enum16:e3)

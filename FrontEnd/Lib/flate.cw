@@ -22,19 +22,19 @@
    (mparam $prefix EXPR) (mparam $slice EXPR)] [$s $i] :)
 
 @doc "the input bitstream was corrupted"
-(type @pub @wrapped CorruptionError void)
-(global @pub CorruptionErrorVal auto (wrap void_val CorruptionError))
+@pub (type @wrapped CorruptionError void)
+@pub (global CorruptionErrorVal auto (wrap void_val CorruptionError))
 
 @doc "the input bitstream was truncated"
-(type @pub @wrapped TruncationError void)
-(global @pub TruncationErrorVal auto (wrap void_val TruncationError))
+@pub (type @wrapped TruncationError void)
+@pub (global TruncationErrorVal auto (wrap void_val TruncationError))
 
 @doc "the provided output buffer was not large enough"
-(type @pub @wrapped NoSpaceError void)
-(global @pub NoSpaceErrorVal auto (wrap void_val NoSpaceError))
+@pub (type @wrapped NoSpaceError void)
+@pub (global NoSpaceErrorVal auto (wrap void_val NoSpaceError))
 
-(type @pub @wrapped Success void)
-(global @pub SuccessVal auto (wrap void_val Success))
+@pub (type @wrapped Success void)
+@pub (global SuccessVal auto (wrap void_val Success))
 
 (global MAX_HUFFMAN_BITS u16 15)
 (global MAX_LIT_SYMS u16 288)
@@ -422,7 +422,7 @@ last symbol: 29
 
 
 
-(fun @pub uncompress [
+@pub (fun uncompress [
    (param bs (ptr! bitstream::Stream32))
    (param dst (slice! u8))
    ] (union [uint CorruptionError NoSpaceError TruncationError]) :

@@ -1,7 +1,8 @@
-(module @builtin $builtin [] :
+@builtin
+(module  $builtin [] :
 
 @doc "macro for while-loop"
-(macro @pub while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
+@pub (macro while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
         (if $cond :
             :
@@ -12,7 +13,7 @@
 @doc """macro for number range for-loop,
 
 The type of the loop variable is determined by $end"""
-(macro @pub for STMT_LIST [
+@pub (macro for STMT_LIST [
         (mparam $index ID)
         (mparam $start EXPR)
         (mparam $end EXPR)
@@ -31,7 +32,7 @@ The type of the loop variable is determined by $end"""
         (continue)))
 
 
-(macro @pub trylet STMT_LIST [
+@pub (macro trylet STMT_LIST [
         (mparam $name ID)
         (mparam $type EXPR)
         (mparam $expr EXPR)
@@ -46,7 +47,7 @@ The type of the loop variable is determined by $end"""
         (trap))
     ($let $name $type (narrowto $eval $type)))
 
-(macro @pub tryset STMT_LIST [
+@pub (macro tryset STMT_LIST [
         (mparam $name ID)
         (mparam $expr EXPR)
         (mparam $catch_name ID)
@@ -67,7 +68,7 @@ The type of the loop variable is determined by $end"""
     (= $b $t))
 
 @doc "macro for c-style -> operator"
-(macro @pub -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
+@pub (macro -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 
 )

@@ -1,32 +1,32 @@
 (module os [] :
 
-(defrec @pub TimeSpec :
+@pub (defrec TimeSpec :
     (field sec uint)
     (field nano_sec uint))
 
-(fun @pub @cdecl @extern nanosleep [
+@pub @cdecl @extern (fun nanosleep [
     (param req (ptr TimeSpec))
     (param rem (ptr! TimeSpec))] s32 :)
 
-(fun @pub @cdecl @extern write [
+@pub @cdecl @extern (fun write [
         (param fd s32)
         (param s (ptr u8))
         (param size uint)] sint :)
 
-(fun @pub @cdecl @extern read [
+@pub @cdecl @extern (fun read [
         (param fd s32)
         (param s (ptr! u8))
         (param size uint)] sint :)
 
 
-(type @pub @wrapped Error s32)
-(type @pub @wrapped FD s32)
+@pub (type @wrapped Error s32)
+@pub (type @wrapped FD s32)
 
-(global @pub Stdin auto (wrap 0 FD))
-(global @pub Stdout auto (wrap 1 FD))
-(global @pub Stderr auto (wrap 2 FD))
+@pub (global Stdin auto (wrap 0 FD))
+@pub (global Stdout auto (wrap 1 FD))
+@pub (global Stderr auto (wrap 2 FD))
 
-(fun @pub FileWrite [
+@pub (fun FileWrite [
         (param fd FD) (param buffer (slice u8))] (union [uint Error])  :
     (let res auto (write [(unwrap fd) (front buffer) (len buffer)]))
     (if (< res 0) :
@@ -37,7 +37,7 @@
 
 )
 
-(fun @pub FileRead [
+@pub (fun FileRead [
         (param fd FD) (param buffer (slice! u8))] (union [uint Error]):
     (let res auto (read [(unwrap fd) (front! buffer) (len buffer)]))
     (if (< res 0) :
@@ -48,7 +48,7 @@
 )
 
 
-(fun @pub TimeNanoSleep [(param req (ptr TimeSpec))
+@pub (fun TimeNanoSleep [(param req (ptr TimeSpec))
                                   (param rem (ptr! TimeSpec))] Error :
     (let res auto (nanosleep [req rem]))
     (return (wrap res Error))

@@ -2,7 +2,7 @@
 (import test)
 (import fmt)
 
-(enum @pub color S32 :
+@pub (enum color S32 :
     (entry black 0)
     (entry white 1)
     (entry blue 2)
@@ -10,18 +10,18 @@
     (entry red 4))
 
 
-(fun @polymorphic fmt::SysRender [
+@polymorphic (fun fmt::SysRender [
         (param v color)
         (param out (slice! u8))
         (param options (ptr! fmt::SysFormatOptions))] uint :
     (return (@polymorphic fmt::SysRender [(unwrap v) out options])))
 
 
-(defrec @pub ic32 :
+@pub (defrec ic32 :
     (field real s32)
     (field imag s32))
 
-(fun @polymorphic fmt::SysRender [
+@polymorphic (fun fmt::SysRender [
         (param v ic32)
         (param s (slice! u8))
         (param opt (ptr! fmt::SysFormatOptions))] uint :
@@ -41,7 +41,7 @@
 
 (global test_string (slice u8) "qwerty_1234")
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (let! @ref opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
     (let! @ref s (slice! u8) buffer)

@@ -252,7 +252,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
 )
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_all []))
 
     @doc "test end"

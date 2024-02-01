@@ -10,7 +10,7 @@
     (return i))
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 (as argc u32) 1 :
         (let s (ptr u8) (^ (pinc argv i)))
         (let t auto (slice_val s (strlen [s])))

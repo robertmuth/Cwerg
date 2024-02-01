@@ -13,7 +13,7 @@
 (global FIZZBUZZ auto "FIBU")
 
 
-(fun @cdecl main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 31_uint 1 :
         (cond :
             (case (== (mod i 15) 0) :

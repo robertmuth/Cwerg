@@ -4,10 +4,10 @@
 (type @wrapped NoneType void)
 
 
-(global @pub None auto (wrap void_val NoneType))
+@pub (global None auto (wrap void_val NoneType))
 
 
-(defrec @pub LinkedListNode :
+@pub (defrec LinkedListNode :
     (field next (union [NoneType (ptr! LinkedListNode)]))
     (field payload u32))
 

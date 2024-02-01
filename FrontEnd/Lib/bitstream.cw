@@ -4,7 +4,7 @@
 @doc """supports retrieval of bitfields up to 32 bit wide from underlying slice
 
 not thread-safe"""
-(defrec @pub Stream32 :
+@pub (defrec Stream32 :
     (field buf (slice u8))
     (field offset uint)
     (field bits_cache u32)
@@ -16,7 +16,7 @@ not thread-safe"""
 may set eos
 """
 
-(fun @pub Stream32GetBits [(param bs (ptr! Stream32))
+@pub (fun Stream32GetBits [(param bs (ptr! Stream32))
                             (param n u8)] u32 :
    (let! new_bits u32)
    (let! bits_count u8 (-> bs bits_count))
@@ -57,16 +57,16 @@ may set eos
    (return out)
 )
 
-(fun @pub Stream32SkipToNextByte [(param bs (ptr! Stream32))] void :
+@pub (fun Stream32SkipToNextByte [(param bs (ptr! Stream32))] void :
    (= (-> bs bits_count) 0)
 )
 
-(fun @pub Stream32GetBool [(param bs (ptr! Stream32))] bool :
+@pub (fun Stream32GetBool [(param bs (ptr! Stream32))] bool :
     (return (as (Stream32GetBits [bs 1]) bool))
 )
 
 @doc "may set eos bit"
-(fun @pub Stream32GetByteSlice [(param bs (ptr! Stream32))
+@pub (fun Stream32GetByteSlice [(param bs (ptr! Stream32))
                                 (param n uint)] (slice u8) :
    (let! l uint (len (-> bs buf)))
    (let! f auto (front (-> bs buf)))
@@ -83,16 +83,16 @@ may set eos
 )
 
 @doc "rounds down - bits_cache treated as consumed/empty"
-(fun @pub Stream32BytesLeft [(param bs (ptr Stream32))] uint :
+@pub (fun Stream32BytesLeft [(param bs (ptr Stream32))] uint :
    (return (- (len (-> bs buf)) (-> bs offset)))
 )
 
 @doc "rounds up - bits_cache treated as consumed/empty"
-(fun @pub Stream32BytesConsumed [(param bs (ptr Stream32))] uint :
+@pub (fun Stream32BytesConsumed [(param bs (ptr Stream32))] uint :
    (return (-> bs offset))
 )
 
-(fun @pub Stream32Eos [(param bs (ptr Stream32))] bool :
+@pub (fun Stream32Eos [(param bs (ptr Stream32))] bool :
    (return (-> bs eos))
 )
 )
