@@ -59,13 +59,13 @@
 (static_assert (== (sizeof type_enum) 4))
 
 
-(type @wrapped w1 s32)
+(@wrapped type w1 s32)
 
 
-(type @wrapped w2 void)
+(@wrapped type w2 void)
 
 
-(type @wrapped w3 void)
+(@wrapped type w3 void)
 
 
 (type ptr1 (ptr! s32))

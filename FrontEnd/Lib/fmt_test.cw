@@ -42,9 +42,9 @@
 (global test_string (slice u8) "qwerty_1234")
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (let! @ref opt auto (rec_val fmt::SysFormatOptions []))
+    (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
-    (let! @ref s (slice! u8) buffer)
+    (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (@polymorphic fmt::SysRender [
             666_uint

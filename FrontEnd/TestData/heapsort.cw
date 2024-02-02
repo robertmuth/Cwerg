@@ -16,7 +16,7 @@
 
 
 (fun heap_sort [(param n uint) (param data (ptr! r64))] void :
-    (let! @ref buf (array 32 u8) undef)
+    (@ref let! buf (array 32 u8) undef)
     (let! ir auto n)
     (let! l auto (+ (>> n 1) 1))
     (let! rdata r64 undef)
@@ -49,7 +49,7 @@
 
 
 (fun dump_array [(param size uint) (param data (ptr r64))] void :
-    (let! @ref buf (array 32 u8) undef)
+    (@ref let! buf (array 32 u8) undef)
     (for i 0 size 1 :
         (let v auto (^ (pinc data i)))
         (fmt::print# (wrap v fmt::r64_hex) NEWLINE))

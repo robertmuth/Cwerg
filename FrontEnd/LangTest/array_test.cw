@@ -67,7 +67,7 @@
 
 (fun test_mixed_array [] void :
     @doc ""
-    (let! @ref a auto (array_val 10 u8 [
+    (@ref let! a auto (array_val 10 u8 [
         (index_val 1)
         (index_val 2)
         (index_val 3)]))
@@ -90,11 +90,11 @@
 
 (fun test_local_array [] void :
     @doc ""
-    (let! @ref a auto (array_val 10 u8 [
+    (@ref let! a auto (array_val 10 u8 [
         (index_val 1)
         (index_val 2)
         (index_val 3)]))
-    (let @ref b auto (array_val 10 u8 [
+    (@ref let b auto (array_val 10 u8 [
         (index_val 4)
         (index_val 5)
         (index_val 6)]))

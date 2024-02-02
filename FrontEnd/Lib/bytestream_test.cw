@@ -7,7 +7,7 @@
 
 (fun test_bs_or_die [] void :
     (let! data (array 23 u8) "\x22\x33\x44\x55\x66\x77\x88abcdefghijklmnop")
-    (let! @ref stream (slice u8) data)
+    (@ref let! stream (slice u8) data)
     (test::AssertEq# 0x22_u8
                       (bytestream::FrontLeU8OrDie [(&! stream)]))
     (test::AssertEq# 0x4433_u16
@@ -28,7 +28,7 @@
 
 (fun test_bs [] void :
     (let! data (array 23 u8) "\x22\x33\x44\x55\x66\x77\x88abcdefghijklmnop")
-    (let! @ref stream (slice u8) data)
+    (@ref let! stream (slice u8) data)
     (test::AssertEq# 0x22_u8
                       (bytestream::FrontLeU8 [(&! stream)]))
     (test::AssertEq# 0x4433_u16

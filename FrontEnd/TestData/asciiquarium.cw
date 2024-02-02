@@ -19,9 +19,9 @@
     (let width s32 (as (fmt::str_to_u32 [arg_w]) s32))
     (let height s32 (as (fmt::str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
-    (let @ref req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
-    (let! @ref rem os::TimeSpec undef)
-    (let! @ref window auto (rec_val aanim::Window [
+    (@ref let req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
+    (@ref let! rem os::TimeSpec undef)
+    (@ref let! window auto (rec_val aanim::Window [
         (field_val width)
         (field_val height)
         (field_val undef)

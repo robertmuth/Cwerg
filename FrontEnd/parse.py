@@ -375,14 +375,13 @@ def ReadMacroInvocation(tag, stream: ReadTokens):
 
 
 def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NFD]], attr, stream: ReadTokens):
-    """Read the remaining componts of an SExpr (after the tag).
+    """Read the remaining componts of an SExpr (after the tag and attr).
 
     Can handle optional bools at the beginning and an optional 'tail'
     """
     srcloc = stream.srcloc()
     logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
-    token = ReadAttrs(next(stream), attr, stream)
-
+    token = next(stream)
     try:
         for field, _ in fields:
             if token == ")":

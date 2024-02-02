@@ -195,7 +195,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
         out.append([" " * indent])
         line = out[-1]
 
-    line.append("(" + node_name)
+    line.append("(")
 
     for field, nfd in node.ATTRS:
         if field == "doc":
@@ -203,7 +203,9 @@ def RenderRecursivelyToIR(node, out, indent: str):
             continue
         val = getattr(node, field)
         if val:
-            line.append(" @" + field)
+            line.append("@" + field + " ")
+
+    line.append(node_name)
 
     for field, nfd in fields:
         field_kind = nfd.kind
@@ -460,7 +462,9 @@ class TK(enum.Enum):
 
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
-    NEW_LINE = 13
+    EOL_COMMENT = 13
+    COMMENT = 14
+
 
 
 BEG_TOKENS = set([
@@ -526,9 +530,6 @@ class TS:
     def EmitAttr(self, a: str):
         return self.EmitToken(TK.ATTR, a)
 
-    def EmitNewLine(self):
-        return self.EmitToken(TK.NEW_LINE)
-
     def EmitElse(self):
         return self.EmitToken(TK.ELSE, "else")
 
@@ -537,6 +538,12 @@ class TS:
 
     def EmitAnnotationLong(self, a: str):
         return self.EmitToken(TK.ANNOTATION_LONG, a)
+
+    def EmitEolComment(self, a: str):
+        return self.EmitToken(TK.EOL_COMMENT, a)
+
+    def EmitComment(self, a: str):
+        return self.EmitToken(TK.COMMENT, a)
 
     def EmitSep(self, a: str):
         return self.EmitToken(TK.SEP, a)
@@ -625,8 +632,7 @@ def TokensAnnotations(ts: TS, node):
                 else:
                     val = val[1:-1]
                 for line in val.split("\n"):
-                    ts.EmitAttr("-- " + line)
-                    ts.EmitNewLine()
+                    ts.EmitComment("-- " + line)
 
             else:
                 ts.EmitAnnotationLong("@" + field + "=" + val)
@@ -1043,7 +1049,6 @@ _CONCRETE_SYNTAX = {
     cwast.DefMacro: TokensDefMacro,
     cwast.EnumVal:  TokensEnumVal,
     cwast.RecField:  TokensRecField,
-
 }
 
 
@@ -1148,7 +1153,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 want_space = True
         elif kind is TK.BEG_ANON:
             stack.push(tk, 0)
-        elif kind is TK.NEW_LINE:
+        elif kind is TK.COMMENT:
+            sink.emit_token(tag)
             sink.newline()
         elif kind is TK.BEG_COLON:
             sink.emit_token(tag)
@@ -1157,18 +1163,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.newline()
             indent = stack.push(tk, INDENT if stack.depth() > 1 else 0)
             sink.set_indent(indent)
-        elif kind is TK.BEG_PAREN:
-            sink.emit_token(tag)
-            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
-                ) + tk.length > MAX_LINE_LEN
-                indent = stack.push(
-                    tk, INDENT, break_after_sep=break_after_sep)
-                sink.set_indent(indent)
-                sink.newline()
-            else:
-                stack.push(tk, 0)
-        elif kind is TK.BEG_EXPR_PAREN:
+        elif kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN):
             sink.emit_token(tag)
             if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
                 break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(

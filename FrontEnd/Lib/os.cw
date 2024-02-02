@@ -19,8 +19,8 @@
         (param size uint)] sint :)
 
 
-@pub (type @wrapped Error s32)
-@pub (type @wrapped FD s32)
+@pub (@wrapped type Error s32)
+@pub (@wrapped type FD s32)
 
 @pub (global Stdin auto (wrap 0 FD))
 @pub (global Stdout auto (wrap 1 FD))

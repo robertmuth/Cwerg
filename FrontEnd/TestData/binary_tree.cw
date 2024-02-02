@@ -1,6 +1,6 @@
 @doc "Binary Tree Example"
 (module main [] :
-(type @wrapped NoneType void)
+(@wrapped type NoneType void)
 
 
 @pub (global None auto (wrap void_val NoneType))

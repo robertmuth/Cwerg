@@ -233,7 +233,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 @doc "returns 512 bit cryptographic hash of data"
 @pub (fun Keccak512 [(param data (slice u8))] (array 64 u8) :
-  (let! @ref state auto (rec_val StateKeccak512 []))
+  (@ref let! state auto (rec_val StateKeccak512 []))
   (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
   (shed (KeccakFinalize [(&! (. state base)) (. state tail) KeccakPadding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
@@ -241,7 +241,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 @doc "returns 512 bit cryptographic hash of data"
 @pub (fun Sha3512 [(param data (slice u8))] (array 64 u8) :
-  (let! @ref state auto (rec_val StateKeccak512 []))
+  (@ref let! state auto (rec_val StateKeccak512 []))
   (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
   (shed (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))

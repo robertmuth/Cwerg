@@ -159,7 +159,7 @@ D = 100
     0
     0
   ]))
-  (let! @ref bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+  (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val data)]))
   (test::AssertEq# 5_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
   (test::AssertEq# 10_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
   (test::AssertEq# 7_u16 (huffman::NextSymbol [(&! bs) counts symbols]))

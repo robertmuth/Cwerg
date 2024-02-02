@@ -2,7 +2,7 @@
 (import fmt)
 
 @doc "the input bitstream was corrupted"
-@pub (type @wrapped OutOfBoundsError void)
+@pub (@wrapped type OutOfBoundsError void)
 @pub (global OutOfBoundsErrorVal auto (wrap void_val OutOfBoundsError))
 
 
@@ -53,7 +53,7 @@
 
 @doc ""
 @pub (fun FrontLeU8Unchecked [(param buffer (ptr! (slice u8)))] u8 :
-    (let out u8 (at @unchecked (^ buffer) 0))
+    (let out u8 (@unchecked at (^ buffer) 0))
     (shed (IncSliceUnchecked [buffer 1]))
     (return out)
 )
@@ -75,8 +75,8 @@
 
 @doc ""
 @pub (fun FrontLeU16Unchecked [(param buffer (ptr! (slice u8)))] u16 :
-    (let out0 auto (as (at @unchecked (^ buffer) 0) u16))
-    (let out1 auto (as (at @unchecked (^ buffer) 1) u16))
+    (let out0 auto (as (@unchecked at (^ buffer) 0) u16))
+    (let out1 auto (as (@unchecked at (^ buffer) 1) u16))
     (shed (IncSliceUnchecked [buffer 2]))
     (return (+ out0 (<< out1 8)))
 )
@@ -98,10 +98,10 @@
 
 @doc ""
 @pub (fun FrontLeU32Unchecked [(param buffer (ptr! (slice u8)))] u32 :
-    (let out0 auto (as (at @unchecked (^ buffer) 0) u32))
-    (let out1 auto (as (at @unchecked (^ buffer) 1) u32))
-    (let out2 auto (as (at @unchecked (^ buffer) 2) u32))
-    (let out3 auto (as (at @unchecked (^ buffer) 3) u32))
+    (let out0 auto (as (@unchecked at (^ buffer) 0) u32))
+    (let out1 auto (as (@unchecked at (^ buffer) 1) u32))
+    (let out2 auto (as (@unchecked at (^ buffer) 2) u32))
+    (let out3 auto (as (@unchecked at (^ buffer) 3) u32))
     (shed (IncSliceUnchecked [buffer 4]))
     (return (+ (+ (+ out0 (<< out1 8)) (<< out2 16)) (<< out3 24)))
 )

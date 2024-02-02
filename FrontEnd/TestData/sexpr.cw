@@ -33,7 +33,7 @@
     (return 7))
 
 
-(type @wrapped t1 s32)
+(@wrapped type t1 s32)
 
 
 @pub (global c1 auto 7_s64)

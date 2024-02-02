@@ -2,13 +2,13 @@
 (module main [] :
 (import test)
 
-(type @wrapped t1 s32)
-(type @wrapped t2 void)
-(type @wrapped t3 void)
+(@wrapped type t1 s32)
+(@wrapped type t2 void)
+(@wrapped type t3 void)
 (type type_ptr (ptr! s32))
 
 
-(type UntaggedUnion1 (union @untagged [
+(type UntaggedUnion1 (@untagged union [
         s32
         void
         type_ptr]))
@@ -16,15 +16,15 @@
 (static_assert (== (sizeof UntaggedUnion1) 8))
 
 
-(type UntaggedUnion2 (union @untagged [
+(type UntaggedUnion2 (@untagged union [
         s32
         void
-        (union  @untagged [UntaggedUnion1 u8])]))
+        (@untagged union [UntaggedUnion1 u8])]))
 
 (static_assert (== (sizeof UntaggedUnion2) 8))
 
 
-(type UntaggedUnion3 (union @untagged [
+(type UntaggedUnion3 (@untagged union [
         bool
         s32
         s64]))
@@ -32,12 +32,12 @@
 (static_assert (== (sizeof UntaggedUnion2) 8))
 
 
-(type UntaggedUnion4 (union @untagged [bool s32]))
+(type UntaggedUnion4 (@untagged union [bool s32]))
 
 (static_assert (== (sizeof UntaggedUnion4) 4))
 
 
-@pub (type UntaggedUnion5 (union @untagged [
+@pub (type UntaggedUnion5 (@untagged union [
         t2
         t3
         s8]))
@@ -45,13 +45,13 @@
 (static_assert (== (sizeof UntaggedUnion5) 1))
 
 
-(type  UntaggedUnion6 (union @untagged [bool u16]))
+(type  UntaggedUnion6 (@untagged union [bool u16]))
 
 (static_assert (== (sizeof UntaggedUnion6) 2))
 
 
 
-(type UntaggedUnion (union @untagged [bool u64 u32 r32 r64 (array 32 u8)]))
+(type UntaggedUnion (@untagged union [bool u64 u32 r32 r64 (array 32 u8)]))
 (type TaggedUnion (union [bool u64 u32 r32 r64 (array 32 u8)]))
 
 (static_assert (== (sizeof UntaggedUnion) 32))

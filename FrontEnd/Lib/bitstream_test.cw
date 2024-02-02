@@ -8,7 +8,7 @@
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
 
-    (let! @ref bs auto (rec_val bitstream::Stream32 [(field_val DataFF)]))
+    (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val DataFF)]))
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 1]) 1_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 2]) 3_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 3]) 7_u32)

@@ -158,10 +158,10 @@
             n])))
 
 
-@pub (type @wrapped u64_hex u64)
-@pub (type @wrapped u32_hex u32)
-@pub (type @wrapped u16_hex u16)
-@pub (type @wrapped u8_hex u8)
+@pub (@wrapped type u64_hex u64)
+@pub (@wrapped type u32_hex u32)
+@pub (@wrapped type u16_hex u16)
+@pub (@wrapped type u8_hex u8)
 
 (fun u64_to_hex_str [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
@@ -200,7 +200,7 @@
     (return (u8_to_hex_str [(unwrap v) out])))
 
 
-@pub (type @wrapped rune u8)
+@pub (@wrapped type rune u8)
 
 
 @polymorphic (fun SysRender [
@@ -300,7 +300,7 @@
     (return i))
 
 
-@pub (type @wrapped r64_hex r64)
+@pub (@wrapped type r64_hex r64)
 
 
 @polymorphic (fun SysRender [
@@ -309,7 +309,7 @@
         (param options (ptr! SysFormatOptions))] uint :
     (return (r64_to_hex_str [(unwrap v) out])))
 
-@pub (type @wrapped str_hex (slice u8))
+@pub (@wrapped type str_hex (slice u8))
 
 @polymorphic (fun SysRender [
         (param v str_hex)
@@ -336,7 +336,7 @@
         (mparam $parts EXPR_LIST_REST)] [$buffer $curr $options] :
     ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     ($let! $curr uint 0)
-    ($let! @ref $options auto (rec_val SysFormatOptions []))
+    (@ref $let! $options auto (rec_val SysFormatOptions []))
     ($for $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
@@ -349,7 +349,7 @@
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     ($let! $curr uint 0)
-    ($let! @ref $options auto (rec_val SysFormatOptions []))
+    (@ref $let! $options auto (rec_val SysFormatOptions []))
     ($for $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i

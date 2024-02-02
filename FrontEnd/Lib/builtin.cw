@@ -42,7 +42,7 @@ The type of the loop variable is determined by $end"""
     (if (is $eval $type) :
         :
         ($let $catch_name auto
-            (narrowto @unchecked $eval (uniondelta (typeof $eval) $type)))
+            (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
         $catch_body
         (trap))
     ($let $name $type (narrowto $eval $type)))
@@ -56,7 +56,7 @@ The type of the loop variable is determined by $end"""
     (if (is $eval (typeof $name)) :
         :
         ($let $catch_name auto
-            (narrowto @unchecked $eval (uniondelta (typeof $eval) (typeof $type))))
+            (@unchecked narrowto $eval (uniondelta (typeof $eval) (typeof $type))))
         $catch_body
         (trap))
     ($let $name $type (narrowto $eval $type)))

@@ -22,18 +22,18 @@
    (mparam $prefix EXPR) (mparam $slice EXPR)] [$s $i] :)
 
 @doc "the input bitstream was corrupted"
-@pub (type @wrapped CorruptionError void)
+@pub (@wrapped type CorruptionError void)
 @pub (global CorruptionErrorVal auto (wrap void_val CorruptionError))
 
 @doc "the input bitstream was truncated"
-@pub (type @wrapped TruncationError void)
+@pub (@wrapped type TruncationError void)
 @pub (global TruncationErrorVal auto (wrap void_val TruncationError))
 
 @doc "the provided output buffer was not large enough"
-@pub (type @wrapped NoSpaceError void)
+@pub (@wrapped type NoSpaceError void)
 @pub (global NoSpaceErrorVal auto (wrap void_val NoSpaceError))
 
-@pub (type @wrapped Success void)
+@pub (@wrapped type Success void)
 @pub (global SuccessVal auto (wrap void_val Success))
 
 (global MAX_HUFFMAN_BITS u16 15)
@@ -230,7 +230,7 @@
                  " dist_num_syms=" dist_num_syms  " cl_num_syms=" cl_num_syms "\n")
 
    @doc ""
-   (let! @ref lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
+   (@ref let! lit_dist_lengths (array (+ MAX_DIST_SYMS  MAX_LIT_SYMS) u16))
    (block _ :
       @doc "build the code_len auxiliary huffman tree"
       (let! cl_lengths (array NUM_CODE_LEN_SYMS u16))

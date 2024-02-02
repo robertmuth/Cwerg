@@ -1,11 +1,11 @@
 (module m1 [] :
-(type @wrapped t1 s32)
+(@wrapped type t1 s32)
 
 
-(type @wrapped t2 void)
+(@wrapped type t2 void)
 
 
-(type @wrapped t3 void)
+(@wrapped type t3 void)
 
 
 @pub (defrec type_rec :

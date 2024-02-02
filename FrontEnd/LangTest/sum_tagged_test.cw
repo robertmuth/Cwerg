@@ -1,9 +1,9 @@
 (module main [] :
 (import test)
 
-(type @wrapped t1 s32)
-(type @wrapped t2 void)
-(type @wrapped t3 void)
+(@wrapped type t1 s32)
+(@wrapped type t2 void)
+(@wrapped type t3 void)
 (type type_ptr (ptr! s32))
 
 
