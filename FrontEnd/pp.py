@@ -970,6 +970,12 @@ def TokensMacroId(ts: TS, node: cwast.MacroId):
     else:
         ts.EmitAttr(node.name)
 
+def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
+    EmitTokens(ts, node.container)
+    beg_paren = ts.EmitBegParen("[")
+    EmitTokens(ts, node.expr_index)
+    ts.EmitEnd(beg_paren)
+
 
 _INFIX_OPS = set([
     cwast.ExprIs,
@@ -1023,7 +1029,7 @@ _CONCRETE_SYNTAX = {
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
-    cwast.ExprIndex: lambda ts, n: TokensBinaryInfix(ts, "at", n.container, n.expr_index, n),
+    cwast.ExprIndex: TokensExprIndex,
     cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),

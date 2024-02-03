@@ -55,7 +55,7 @@
         ($let $out_eval auto $out)
         (block _ :
             (-= $pos 1)
-            (let c auto (mod $v $base))
+            (let c auto (% $v $base))
             (let! c8 auto (as c u8))
             (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
             (= (at $tmp $pos) c8)

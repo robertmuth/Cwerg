@@ -180,7 +180,7 @@ https://emn178.github.io/online-tools/sha3_512.html
     @doc """(fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")"""
     (let tail_u8 auto (as (front! tail)  (ptr! u8)))
     (let block_size uint (* (len tail) 8))
-    (let tail_use uint (mod (-> state msglen) block_size))
+    (let tail_use uint (% (-> state msglen) block_size))
 
     (let! offset uint 0)
     (if (> tail_use 0) :
@@ -222,7 +222,7 @@ https://emn178.github.io/online-tools/sha3_512.html
    (let tail_u8 auto (as (front! tail)  (ptr! u8)))
    (let block_size auto (* (len tail) 8))
 
-   (let padding_start uint (mod (-> state msglen) block_size))
+   (let padding_start uint (% (-> state msglen) block_size))
    (for i padding_start block_size 1 :
     (= (^ (pinc tail_u8 i)) 0))
    (or= (^ (pinc tail_u8 padding_start)) padding)

@@ -16,11 +16,11 @@
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 31_uint 1 :
         (cond :
-            (case (== (mod i 15) 0) :
+            (case (== (% i 15) 0) :
                 (fmt::print# FIZZBUZZ))
-            (case (== (mod i 3) 0) :
+            (case (== (% i 3) 0) :
                 (fmt::print# FIZZ))
-            (case (== (mod i 5) 0) :
+            (case (== (% i 5) 0) :
                 (fmt::print# BUZZ))
             (case true :
                 (fmt::print# i)))

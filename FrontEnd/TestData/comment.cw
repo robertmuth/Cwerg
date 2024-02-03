@@ -40,13 +40,13 @@
     @doc "cond"
     (cond :
         @doc "in block"
-        (case (== (mod argc 15) 0) :
+        (case (== (% argc 15) 0) :
             @doc "in block"
             (return 1))
         @doc "in another block2"
-        (case (== (mod argc 3) 0) :
+        (case (== (% argc 3) 0) :
             (return 2))
-        (case (== (mod argc 5) 0) :
+        (case (== (% argc 5) 0) :
             (return 3))
         (case true :
             (return 4)))
