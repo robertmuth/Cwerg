@@ -1413,6 +1413,7 @@ class IndexVal:
     init_index: "NODES_EXPR_T"  # compile time constant
     #
     doc: str = ""
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1540,6 +1541,8 @@ class ValRec:
     inits_field: List[NODES_INITS_REC_T]
     #
     doc: str = ""
+    eoldoc: str = ""
+
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -2281,6 +2284,7 @@ class StmtReturn:
     expr_ret: NODES_EXPR_T
     #
     doc: str = ""
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_target: Optional[Any] = None
@@ -2361,6 +2365,7 @@ class StmtCompoundAssignment:
     expr_rhs: NODES_EXPR_T
     #
     doc: str = ""
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -2380,6 +2385,7 @@ class StmtAssignment:
     expr_rhs: NODES_EXPR_T
     #
     doc: str = ""
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -2406,6 +2412,7 @@ class RecField:  #
     type: NODES_TYPES_T
     #
     doc: str = ""
+    eoldoc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -3290,9 +3297,9 @@ Misc enums used inside of nodes.
 
     print("## Enum Details",  file=fout)
 
-    _RenderKind(Expr1.__name__, UNARY_EXPR_KIND,
+    _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
                 UNARY_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(Expr2.__name__, BINARY_EXPR_KIND,
+    _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
                 BINARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(ExprPointer.__name__, POINTER_EXPR_KIND,
                 POINTER_EXPR_SHORTCUT_INV, fout)

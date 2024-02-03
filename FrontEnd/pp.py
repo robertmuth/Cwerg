@@ -591,7 +591,7 @@ def TokensFunctional(ts: TS, name, nodes: List):
 
 def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
-    TokensAnnotations(ts, node)
+    TokensAnnotationsPre(ts, node)
     if name in (".", "->"):
         ts.EmitBinOpNoSpace(name)
     else:
@@ -615,7 +615,7 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.expr_f)
 
 
-def TokensAnnotations(ts: TS, node):
+def TokensAnnotationsPre(ts: TS, node):
     # handle docs first
     for field, nfd in node.ATTRS:
         # these attributes will be rendered directly
@@ -623,7 +623,9 @@ def TokensAnnotations(ts: TS, node):
             continue
         val = getattr(node, field)
         if val:
-            if field == "doc":
+            if field == "eoldoc":
+                continue
+            elif field == "doc":
                 if val.startswith('"""'):
                     val = val[3:-3]
                 else:
@@ -643,6 +645,20 @@ def TokensAnnotations(ts: TS, node):
         val = getattr(node, field)
         if val:
             ts.EmitAnnotationShort("@" + field)
+
+
+def TokensAnnotationsPost(ts: TS, node):
+    for field, nfd in node.ATTRS:
+        # these attributes will be rendered directly
+        if field != "eoldoc":
+            continue
+        val = getattr(node, field)
+        if val:
+            if val.startswith('"""'):
+                val = val[3:-3]
+            else:
+                val = val[1:-1]
+            ts.EmitComment("  -- " + val)
 
 
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
@@ -809,8 +825,10 @@ def TokensDefMod(ts: TS, node: cwast.DefMod):
     ts.EmitEnd(beg_colon)
     ts.EmitEnd(beg)
 
+
 def WithMut(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
+
 
 def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
     beg = ts.EmitBeg(WithMut("global", node.mut))
@@ -961,9 +979,6 @@ _INFIX_OPS = set([
 ])
 
 
-
-
-
 _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
@@ -1056,11 +1071,13 @@ _CONCRETE_SYNTAX = {
 
 def EmitTokens(ts: TS, node):
     if node.__class__ not in _INFIX_OPS:
-        TokensAnnotations(ts, node)
+        TokensAnnotationsPre(ts, node)
 
     gen = _CONCRETE_SYNTAX.get(node.__class__)
     assert gen, f"unknown node {node.__class__}"
     gen(ts, node)
+    if node.__class__ not in _INFIX_OPS:
+        TokensAnnotationsPost(ts, node)
 
 
 class Stack:

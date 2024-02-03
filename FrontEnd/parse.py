@@ -8,7 +8,7 @@
 import re
 import logging
 
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Dict, Tuple, Union
 
 from FrontEnd import cwast
 
@@ -52,14 +52,12 @@ _RE_TOKEN_ID = re.compile(
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
-
-
-
-def ReadAttrs(t: str, attr, stream):
+def ReadAttrs(t: str, attr: Dict[str, Any], stream):
+    """attr is indended to be used for node creation as a  **attr parameter."""
     while t.startswith("@"):
         tag = t[1:]
-        val = True
-        if tag == "doc":
+        val: Union[bool, str] = True
+        if tag in ("doc", "eoldoc"):
             val = next(stream)
         attr[tag] = val
         t = next(stream)
@@ -141,25 +139,27 @@ _SCALAR_TYPES = [
 
 
 def _MakeTypeBaseLambda(kind: cwast.BASE_TYPE_KIND):
-    return lambda srcloc: cwast.TypeBase(kind, x_srcloc=srcloc)
+    def closure(**extra):
+        return cwast.TypeBase(kind, **extra)
+    return closure
 
 
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
-    "auto": lambda srcloc: cwast. TypeAuto(x_srcloc=srcloc),
+    "auto": cwast.TypeAuto,
     #
     "noret": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.NORET),
     "bool": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.BOOL),
     "void": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.VOID),
     #
-    "auto_val": lambda srcloc: cwast.ValAuto(x_srcloc=srcloc),
-    "void_val": lambda srcloc: cwast.ValVoid(x_srcloc=srcloc),
-    "undef": lambda srcloc: cwast.ValUndef(x_srcloc=srcloc),
-    "true": lambda srcloc: cwast.ValTrue(x_srcloc=srcloc),
-    "false": lambda srcloc: cwast.ValFalse(x_srcloc=srcloc),
+    "auto_val": cwast.ValAuto,
+    "void_val": cwast.ValVoid,
+    "undef": cwast.ValUndef,
+    "true": cwast.ValTrue,
+    "false": cwast.ValFalse,
     # see cwast.OPTIONAL_FIELDS
-    "break": lambda srcloc: cwast.StmtBreak(target="", x_srcloc=srcloc),
-    "continue": lambda srcloc: cwast.StmtContinue(target="", x_srcloc=srcloc),
+    "break": lambda args: cwast.StmtBreak(target="", **args),
+    "continue": lambda args: cwast.StmtContinue(target="", **args),
 }
 
 # add basic type names
@@ -181,11 +181,12 @@ def IsWellFormedStringLiteral(t: str):
         return False
 
 
-def ExpandShortHand(t: str, srcloc) -> Any:
+def ExpandShortHand(t: str, srcloc, attr: Dict[str, Any]) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
-        return x(srcloc)
+        node = x(x_srcloc=srcloc, **attr)
+        return node
 
     if IsWellFormedStringLiteral(t):
         logger.info("STRING %s at %s", t, srcloc)
@@ -207,20 +208,20 @@ def ExpandShortHand(t: str, srcloc) -> Any:
             t = t[1:-1]
 
         return cwast.ValString(t, x_srcloc=srcloc, strkind=strkind,
-                               triplequoted=triplequoted)
+                               triplequoted=triplequoted,    **attr)
     elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
-        return cwast.Id(t, x_srcloc=srcloc)
+        return cwast.Id(t, x_srcloc=srcloc, **attr)
     elif _RE_TOKEN_NUM.fullmatch(t):
         logger.info("NUM %s at %s", t, srcloc)
-        return cwast.ValNum(t, x_srcloc=srcloc)
+        return cwast.ValNum(t, x_srcloc=srcloc, **attr)
     elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
         logger.info("CHAR %s at %s", t, srcloc)
-        return cwast.ValNum(t, x_srcloc=srcloc)
+        return cwast.ValNum(t, x_srcloc=srcloc, **attr)
     else:
         cwast.CompilerError(srcloc, f"unexpected token {repr(t)}")
 
@@ -236,15 +237,17 @@ def ReadNodeList(stream: ReadTokens, parent_cls) -> List[Any]:
         if token == "(":
             expr = ReadSExpr(stream, parent_cls, attr)
         else:
-            expr = ExpandShortHand(token, stream.srcloc())
-        # hack for simpler array val and rec val initializers
+            expr = ExpandShortHand(token, stream.srcloc(), attr)
+        attr.clear()
+        # hack for simpler array val and rec val initializers: take the expr
+        # from above and wrap it into a IndexVal or FieldVal
         if parent_cls is cwast.ValArray and not isinstance(expr, cwast.IndexVal):
             expr = cwast.IndexVal(expr, cwast.ValAuto(
-                x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc, **attr)
+                x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc)
         elif parent_cls is cwast.ValRec and not isinstance(expr, cwast.FieldVal):
-            expr = cwast.FieldVal(expr, "", x_srcloc=expr.x_srcloc, **attr)
+            expr = cwast.FieldVal(expr, "", x_srcloc=expr.x_srcloc)
         out.append(expr)
-        attr.clear()
+
     return out
 
 
@@ -265,10 +268,7 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
         if token == "(":
             expr = ReadSExpr(stream, parent_cls, attr)
         else:
-            if attr:
-                cwast.CompilerError(
-                    stream.srcloc(), f"unexpected attribs: {attr}")
-            expr = ExpandShortHand(token, stream.srcloc())
+            expr = ExpandShortHand(token, stream.srcloc(), attr)
         out.append(expr)
         attr.clear()
 
@@ -313,11 +313,11 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot convert {token} for {field}")
     elif nfd.kind is cwast.NFK.NODE:
-        attr = {}
-        token = ReadAttrs(token, {}, stream)
+        attr: Dict[str, Any] = {}
+        token = ReadAttrs(token, attr, stream)
         if token == "(":
             return ReadSExpr(stream, parent_cls, attr)
-        out = ExpandShortHand(token, stream.srcloc())
+        out = ExpandShortHand(token, stream.srcloc(), attr)
         if out is None:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot expand {token} for {field}")
@@ -343,25 +343,30 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         assert None
 
 
-def ReadMacroInvocation(tag, stream: ReadTokens):
+def ReadMacroInvocation(tag: str, stream: ReadTokens):
+    """The leading '(' and `tag` have already been consumed"""
     parent_cls = cwast.MacroInvoke
     srcloc = stream.srcloc()
     logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
     args: List[Any] = []
     while True:
         token = next(stream)
+        attr = {}
+        token = ReadAttrs(token, {}, stream)
         if token == ")":
-            return cwast.MacroInvoke(tag, args, x_srcloc=srcloc)
+            return cwast.MacroInvoke(tag, args, x_srcloc=srcloc, **attr)
         elif token == "(":
-            args.append(ReadSExpr(stream, parent_cls, {}))
+            args.append(ReadSExpr(stream, parent_cls, attr))
         elif token == "[":
+            assert not attr
             args.append(cwast.EphemeralList(ReadNodeList(
                 stream, parent_cls), colon=False, x_srcloc=srcloc))
         elif token == ":":
+            assert not attr
             args.append(cwast.EphemeralList(ReadNodeColonList(
                 stream, parent_cls), colon=True, x_srcloc=srcloc))
         else:
-            out = ExpandShortHand(token, stream.srcloc())
+            out = ExpandShortHand(token, stream.srcloc(), attr)
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
             args.append(out)
     return args

@@ -4,8 +4,9 @@
 @pub (defrec type_rec1 :
     @doc "this is a comment with \" with quotes \t "
     (field s1 s32)
+    @doc "s2 comment "
     (field s2 s32)
-    (field s3 s32)
+    (field s3  @eoldoc "s3 is ..." s32)
     (field s4 bool)
     (field s5 u64)
     (field s6 u64))
@@ -37,7 +38,7 @@
 (global u0 u32 0x12345678)
 
 
-(global g0 type_rec1 undef)
+(global g0 type_rec1 @eoldoc "g0 is i mportant" undef)
 
 
 (global g1 (array 5 type_rec1) undef)
@@ -62,7 +63,7 @@
         (array_val 13 u16 [ 0x11 undef 0x12 ])]))
 
 
-(global g4 auto (array_val 4 type_rec2 [(index_val undef) (index_val g2)]))
+(global g4 auto (array_val 4 type_rec2 [(index_val undef) @eoldoc " BROKEN init" (index_val g2)]))
 
 @pub (defrec type_rec5 :
     (field t1 u64)
@@ -79,7 +80,7 @@
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
-    (let! v1 auto (rec_val type_rec3 []))
+    (let! v1 auto @eoldoc "after let " (rec_val type_rec3 []))
     (= (. v1 u2) 102)
     (= (. v1 u3) 103)
     (= (. v1 u6) 106)
@@ -128,6 +129,5 @@
     (test::AssertEq# (at (. g3 u5) 10) 510_u16)
     @doc "test end"
     (test::Success#)
-    (return 0))
-
+    (return @eoldoc "after return" 0))
 )
