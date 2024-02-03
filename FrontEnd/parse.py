@@ -52,13 +52,7 @@ _RE_TOKEN_ID = re.compile(
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
-BUILT_IN_MACROS = set([
-    "while",
-    "for",
-    "trylet",
-    "->",
-    "swap",
-])
+
 
 
 def ReadAttrs(t: str, attr, stream):
@@ -427,7 +421,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: Dict[str, Any]) -> Any:
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
-            if tag in BUILT_IN_MACROS or tag.endswith(cwast.MACRO_SUFFIX):
+            if tag in cwast.BUILT_IN_MACROS or tag.endswith(cwast.MACRO_SUFFIX):
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream)
             else:

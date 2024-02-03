@@ -1032,6 +1032,7 @@ def main():
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
+
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)
     mod_gen.body_mod += [

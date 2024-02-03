@@ -62,7 +62,7 @@ The type of the loop variable is determined by $end"""
     ($let $name $type (narrowto $eval $type)))
 
 
-(macro swap STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
+(macro swap# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     ($let $t auto $a)
     (= $a $b)
     (= $b $t))

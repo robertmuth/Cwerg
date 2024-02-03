@@ -73,7 +73,7 @@
 
 
 (fun TestSwap [(param vec (slice! u8))] void :
-    (swap (at vec 1) (at vec 2)))
+    (swap# (at vec 1) (at vec 2)))
 
 
 )

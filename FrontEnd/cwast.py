@@ -17,6 +17,14 @@ _ID_PATH_SEPARATOR = "::"
 
 MACRO_SUFFIX = "#"
 
+BUILT_IN_MACROS = set([
+    "while",
+    "for",
+    "trylet",
+    "tryset",
+    "->",
+])
+
 def GetQualifierIfPresent(name: str) -> Optional[str]:
     tokens = name.split(_ID_PATH_SEPARATOR)
     if len(tokens) == 2:
@@ -207,6 +215,7 @@ class ASSIGNMENT_KIND(enum.Enum):
     ROTR = 42    # >>
     ROTL = 43    # <<
 
+
 ASSIGNMENT_SHORTCUT = {
     #
     "+=": ASSIGNMENT_KIND.ADD,
@@ -317,9 +326,9 @@ class NFK(enum.Enum):
     STR = enum.auto()
     ATTR_BOOL = enum.auto()  # usually specified via @XXX
     ATTR_STR = enum.auto()  # usually specified via @XXX=YYY
-    KIND =  enum.auto()  # some enum
-    INTERNAL_BOOL = enum.auto() # like ATTR_BOOL but handled internally
-    INTERNAL_STR = enum.auto() # like an ATTR_STR but handled internally
+    KIND = enum.auto()  # some enum
+    INTERNAL_BOOL = enum.auto()  # like ATTR_BOOL but handled internally
+    INTERNAL_STR = enum.auto()  # like an ATTR_STR but handled internally
     NODE = enum.auto()
     LIST = enum.auto()
     STR_LIST = enum.auto()
@@ -486,11 +495,10 @@ ALL_FIELDS = [
     NfdAttrBool("arg_ref", "in parameter was converted for by-val to pointer"),
     NfdAttrBool("res_ref", "in parameter was converted for by-val to pointer"),
     NfdAttrBool("builtin", "module is the builtin module"),
-    NfdAttrBool("triplequoted", "string is using 3 double quotes"),
     NfdAttrStr("doc", "possibly multi-line comment"),
     NfdAttrStr("eoldoc", "line end comment"),
-
-    NfdAttrStr("strkind", "raw: ignore escape sequences in string, hex:"),
+    NFD(NFK.INTERNAL_BOOL, "triplequoted", "string is using 3 double quotes"),
+    NFD(NFK.INTERNAL_STR, "strkind", "raw: ignore escape sequences in string, hex:"),
 
     #
     NfdKind("unary_expr_kind",
@@ -3118,6 +3126,8 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
+            if not node.name.endswith("#") and node.name not in BUILT_IN_MACROS:
+                CompilerError(node.x_srcloc, f"macro name must end with `#`: {node.name}")
             for p in node.params_macro:
                 if isinstance(p, MacroParam):
                     assert p.name.startswith("$")

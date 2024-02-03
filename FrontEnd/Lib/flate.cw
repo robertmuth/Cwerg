@@ -109,10 +109,6 @@
    (return SuccessVal)
 )
 
-(macro incs! EXPR [(mparam $slice EXPR) (mparam $length EXPR)] [] :
-   (slice_val (pinc (front! $slice) $length)
-              (- (len $slice) $length))
-)
 
 @doc "amount of bytes to copy: fixed base"
 (global width_base_lookup auto (array_val 29 u16 [

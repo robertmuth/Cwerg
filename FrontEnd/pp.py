@@ -620,7 +620,7 @@ def TokensAnnotations(ts: TS, node):
     # handle docs first
     for field, nfd in node.ATTRS:
         # these attributes will be rendered directly
-        if field in ("triplequoted", "strkind") or nfd.kind is not cwast.NFK.ATTR_STR:
+        if nfd.kind is not cwast.NFK.ATTR_STR:
             continue
         val = getattr(node, field)
         if val:
@@ -638,7 +638,7 @@ def TokensAnnotations(ts: TS, node):
     # next handle non-docs
     for field, nfd in node.ATTRS:
         # mut is handled directly
-        if field in ("triplequoted", "strkind", "mut") or nfd.kind is not cwast.NFK.ATTR_BOOL:
+        if nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
 
         val = getattr(node, field)
