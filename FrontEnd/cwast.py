@@ -25,6 +25,7 @@ BUILT_IN_MACROS = set([
     "->",
 ])
 
+
 def GetQualifierIfPresent(name: str) -> Optional[str]:
     tokens = name.split(_ID_PATH_SEPARATOR)
     if len(tokens) == 2:
@@ -3127,7 +3128,8 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
             if not node.name.endswith("#") and node.name not in BUILT_IN_MACROS:
-                CompilerError(node.x_srcloc, f"macro name must end with `#`: {node.name}")
+                CompilerError(
+                    node.x_srcloc, f"macro name must end with `#`: {node.name}")
             for p in node.params_macro:
                 if isinstance(p, MacroParam):
                     assert p.name.startswith("$")
@@ -3288,11 +3290,11 @@ Misc enums used inside of nodes.
 
     print("## Enum Details",  file=fout)
 
-    _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
+    _RenderKind(Expr1.__name__, UNARY_EXPR_KIND,
                 UNARY_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
+    _RenderKind(Expr2.__name__, BINARY_EXPR_KIND,
                 BINARY_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(ExprPointer.__name__,  POINTER_EXPR_KIND,
+    _RenderKind(ExprPointer.__name__, POINTER_EXPR_KIND,
                 POINTER_EXPR_SHORTCUT_INV, fout)
     _RenderKind(StmtCompoundAssignment.__name__,
                 ASSIGNMENT_KIND, ASSIGNMENT_SHORTCUT_INV, fout)

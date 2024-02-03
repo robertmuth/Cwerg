@@ -464,7 +464,6 @@ class TK(enum.Enum):
     COMMENT = 14
 
 
-
 BEG_TOKENS = set([
     "module", "global", "global!", "enum", "import", "defer", "block", "expr",
     "break", "continue", "fun", "cond", "type", "if", "type",
@@ -638,7 +637,7 @@ def TokensAnnotations(ts: TS, node):
     # next handle non-docs
     for field, nfd in node.ATTRS:
         # mut is handled directly
-        if nfd.kind is not cwast.NFK.ATTR_BOOL:
+        if nfd.kind is not cwast.NFK.ATTR_BOOL or field == "mut":
             continue
 
         val = getattr(node, field)
@@ -810,9 +809,11 @@ def TokensDefMod(ts: TS, node: cwast.DefMod):
     ts.EmitEnd(beg_colon)
     ts.EmitEnd(beg)
 
+def WithMut(name: str, mutable: bool) -> str:
+    return name + "!" if mutable else name
 
 def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
-    beg = ts.EmitBeg("global!" if node.mut else "global")
+    beg = ts.EmitBeg(WithMut("global", node.mut))
     ts.EmitAttr(node.name)
     EmitTokens(ts, node.type_or_auto)
     if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
@@ -960,20 +961,23 @@ _INFIX_OPS = set([
 ])
 
 
+
+
+
 _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
     cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, "$let!" if n.mut else "$let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, WithMut("$let", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
-    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, "slice!" if n.mut else "slice", [n.type]),
+    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
-    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, "ptr!" if n.mut else "ptr", [n.type]),
+    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, WithMut("ptr", n.mut), [n.type]),
     cwast.TypeArray: lambda ts, n: TokensFunctional(ts, "array", [n.size, n.type]),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
@@ -989,7 +993,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValArray: TokensValArray,
 
     #
-    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, "front!" if n.mut else "front", [n.container]),
+    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut("front", n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, "as", [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type, n),
@@ -1010,7 +1014,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
     cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, "&!" if n.mut else "&", n.expr_lhs),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut("&", n.mut), n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
@@ -1033,7 +1037,7 @@ _CONCRETE_SYNTAX = {
     cwast.StmtCompoundAssignment: lambda ts, n: TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
                                                               n.lhs, n.expr_rhs),
     cwast.StmtAssignment: lambda ts, n: TokensStmtSet(ts, "=", n.lhs, n.expr_rhs),
-    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, "let!" if n.mut else "let", n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, WithMut("let", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.StmtIf: ConcreteIf,
     #
     cwast.DefMod: TokensDefMod,
@@ -1284,7 +1288,7 @@ def main():
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST
             ts = TS()
-            tokens = EmitTokens(ts, mods[0])
+            EmitTokens(ts, mods[0])
             tokens = list(ts._tokens)
             # print(tokens)
             # reverse once because popping of the end of a list is more efficient
