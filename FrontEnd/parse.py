@@ -311,8 +311,6 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         return bool(token)
     elif nfd.kind is cwast.NFK.STR:
         return token
-    elif nfd.kind is cwast.NFK.INT:
-        return token
     elif nfd.kind is cwast.NFK.KIND:
         assert nfd.enum_kind is not None, f"{field} {token}"
         try:
@@ -322,6 +320,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
                 stream.srcloc(), f"Cannot convert {token} for {field}")
     elif nfd.kind is cwast.NFK.NODE:
         attr = {}
+        token = ReadAttrs(token, {}, stream)
         if token == "(":
             return ReadSExpr(stream, parent_cls, attr)
         out = ExpandShortHand(token, stream.srcloc())

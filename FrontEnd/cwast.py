@@ -313,14 +313,16 @@ class MACRO_PARAM_KIND(enum.Enum):
 @enum.unique
 class NFK(enum.Enum):
     """Node Field Descriptor Kind"""
-    INT = 1
-    STR = 2
-    ATTR_BOOL = 3
-    ATTR_STR = 4
-    KIND = 5
-    NODE = 6
-    LIST = 7
-    STR_LIST = 8
+    INVALID = 0
+    STR = enum.auto()
+    ATTR_BOOL = enum.auto()  # usually specified via @XXX
+    ATTR_STR = enum.auto()  # usually specified via @XXX=YYY
+    KIND =  enum.auto()  # some enum
+    INTERNAL_BOOL = enum.auto() # like ATTR_BOOL but handled internally
+    INTERNAL_STR = enum.auto() # like an ATTR_STR but handled internally
+    NODE = enum.auto()
+    LIST = enum.auto()
+    STR_LIST = enum.auto()
 
 
 @dataclasses.dataclass()
@@ -1499,10 +1501,12 @@ class ValString:
     #
     string: str
     #
-    eoldoc: str = ""
-    #
     strkind: str = ""   # or raw or hex
     triplequoted: bool = False
+    #
+    eoldoc: str = ""
+    #
+
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
